@@ -40,6 +40,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert config["model"]["name"] == "qwen3-coder-next:latest"
     assert config["model"]["think"] is False
     assert config["impact_policy"]["no_effect_retry_limit"] == 1
+    assert config["impact_policy"]["max_no_effect_failovers_per_scope"] == 4
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.0",
         "source_sha256": "8f6914743d8380fabd9bf1294556a53ba5e447532e4b9e9763d3d69c0c0120b4",

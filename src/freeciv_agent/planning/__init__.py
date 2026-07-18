@@ -2,14 +2,16 @@
 """Proof-to-plan scheduling with explicit resources and deterministic artifacts."""
 
 from .bounded import ProductionGoal, ProductionScheduler
-from .impact import GroundedImpactPlanner, ImpactCandidate, ImpactDecision
+from .impact import (GroundedImpactPlanner, ImpactCandidate, ImpactDecision,
+                     ImpactTurnBudget)
 from .model import (BranchScore, NonPlan, Plan, PlanAssumption, PlanStep,
                     PlanningSnapshot, ResourceLedger, ResourceLedgerEntry)
 from .scheduler import ProofScheduler, research_duration_turns, validate_next_step
 
 __all__ = [
     "BranchScore", "NonPlan", "Plan", "PlanAssumption", "PlanStep",
-    "GroundedImpactPlanner", "ImpactCandidate", "ImpactDecision", "PlanningSnapshot",
+    "GroundedImpactPlanner", "ImpactCandidate", "ImpactDecision", "ImpactTurnBudget",
+    "PlanningSnapshot",
     "ProductionGoal", "ProductionScheduler", "ProofScheduler",
     "ResourceLedger", "ResourceLedgerEntry", "research_duration_turns", "validate_next_step",
 ]

@@ -53,7 +53,8 @@ def load(path=None):
             ("max_actions_per_turn", 1, 32),
             ("expansion_city_target", 1, 20),
             ("settle_min_distance", 1, 12),
-            ("no_effect_retry_limit", 1, 8)):
+            ("no_effect_retry_limit", 1, 8),
+            ("max_no_effect_failovers_per_scope", 0, 8)):
         setting = impact.get(key)
         if isinstance(setting, bool) or not isinstance(setting, int) or not lower <= setting <= upper:
             raise ValueError("impact_policy.{} must be in {}..{}".format(key, lower, upper))

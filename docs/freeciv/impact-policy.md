@@ -23,6 +23,7 @@ impact_policy:
   expansion_city_target: 3
   settle_min_distance: 3
   no_effect_retry_limit: 1
+  max_no_effect_failovers_per_scope: 4
   preserve_city_defenders: true
 ```
 
@@ -37,10 +38,12 @@ The deterministic priority order is:
 6. Explore with diplomats, spies, caravans, and explorers; non-garrison military
    units may advance toward visible opponents or the frontier.
 
-One unit-scoped strategic action and one production change per city are allowed per
-turn. A successful fortification is not reissued on every later turn. These bounds
-prevent stale proxy action lists or effect-free orders from consuming the action
-budget.
+One successful unit-scoped strategic action and one successful production change per
+city are allowed per turn. After a no-effect action, up to
+`max_no_effect_failovers_per_scope` alternative exact actions may use the same scope,
+within the global `max_actions_per_turn` budget. A successful fortification is not
+reissued on every later turn. These bounds prevent stale proxy action lists or
+effect-free orders from consuming the action budget.
 
 Accepted transport is feedback, not proof that an order changed the game. After an
 accepted action produces no authoritative state-hash change, the planner records the
@@ -48,7 +51,14 @@ exact action and a local grounding signature for its actor, city, visible target
 city layout. The action is suppressed after `no_effect_retry_limit` attempts while
 that signature remains unchanged. A material local change makes it eligible again;
 turn advancement and movement-point refresh alone do not. When another advertised
-action exists for the same actor, it can be selected immediately instead.
+action exists for the same actor, it can be selected immediately in the same turn.
+The first alternative that produces an authoritative change closes that actor/city
+scope for the rest of the turn.
+
+Transport-accepted terminal actions close their actor scope immediately even if the
+first refreshed packet has not caught up. This prevents a delayed city-founding or
+suicide-attack effect from creating a stale follow-up action against an actor the
+engine has already consumed.
 
 ## Impact telemetry
 
@@ -60,6 +70,8 @@ the existing score and latency metrics:
 - `decision_effect_observed_rate` and `decision_no_effect_actions`;
 - `decision_no_effect_retries_blocked` for exact actions rejected by grounded
   no-effect feedback;
+- `decision_no_effect_failover_attempts`, `decision_no_effect_failover_recoveries`,
+  and `decision_no_effect_failover_recovery_rate` for bounded same-turn recovery;
 - `action_type_diversity`, `positions_explored`, and `tactical_actions`;
 - `cities_founded`, `technologies_acquired`, `production_changes`, and `score_gain`;
 - `model_safe_fallback_rate` and `model_corrections_per_turn`.
@@ -117,6 +129,31 @@ The same score with broader exploration and fewer ineffective decisions is evide
 that the feedback mechanism works on this seed, but it is still not a statistically
 reliable win/score improvement. The declared paired-seed experiment remains the next
 measurement gate.
+
+## Same-turn failover smoke evidence
+
+The bounded-failover run is retained at
+`artifacts/freeciv/same-turn-failover-engine-smoke-final`. Against the same seed and
+30-turn configuration it completed with:
+
+- 58 impact actions, 45 immediate effects, and 13 no-effect actions (`77.6%`
+  effect-observed rate, up from `57.1%`);
+- 11 same-turn failover attempts, seven authoritative recoveries, and a `63.6%`
+  failover recovery rate;
+- 36 newly visited unit positions (up from 19) and nine tactical actions (up from
+  two), while retaining one net new city, six action types, and score 106 (`+3`);
+- 89 accepted actions, zero engine rejection, zero model fallback, and 30/30 turns
+  below 30 seconds (maximum 5.324 seconds);
+- a passing 838-event cognitive-trace release audit, trace SHA-256
+  `c0a254a1ab10221c11f17094bd000f99855c2d672c6e11476aa8b7e211c32242`.
+
+The first validation attempt is retained at
+`artifacts/freeciv/same-turn-failover-engine-smoke`. It exposed a delayed-state race:
+the engine accepted city founding before the refreshed packet removed the settler,
+and a stale follow-up move was rejected. That run remains an infrastructure failure;
+the terminal-action scope guard was added from its evidence, and the final rerun had
+zero rejection. As with the preceding smokes, this is behavioral evidence on one
+seed, not a conclusive score or win-rate result.
 
 ## Operational note
 

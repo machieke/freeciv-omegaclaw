@@ -26,6 +26,9 @@ METRICS = (
     "decision_impact_actions", "decision_impact_turn_rate",
     "decision_effect_observed_rate", "decision_no_effect_actions",
     "decision_no_effect_retries_blocked",
+    "decision_no_effect_failover_attempts",
+    "decision_no_effect_failover_recoveries",
+    "decision_no_effect_failover_recovery_rate",
     "model_safe_fallback_rate", "model_corrections_per_turn",
     "action_type_diversity", "cities_founded", "technologies_acquired",
     "positions_explored", "production_changes", "tactical_actions", "score_gain",
@@ -260,22 +263,25 @@ def write_report(out, aggregate):
     lines.extend([
         "", "## Decision impact", "",
         "| Condition | Meaningful actions/turn | Impact actions | Impact-turn rate | "
-        "Effect-observed rate | No-effect retries blocked | Model fallback rate | "
+        "Effect-observed rate | Failover recovery rate | No-effect retries blocked | "
+        "Model fallback rate | "
         "Cities founded | "
         "Technologies acquired | Score gain |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ])
     for condition, row in aggregate["conditions"].items():
         metrics = row["metrics"]
         values = [metrics[name]["estimate"] for name in (
             "meaningful_actions_per_turn", "decision_impact_actions",
             "decision_impact_turn_rate", "decision_effect_observed_rate",
+            "decision_no_effect_failover_recovery_rate",
             "decision_no_effect_retries_blocked", "model_safe_fallback_rate",
             "cities_founded",
             "technologies_acquired", "score_gain")]
         rendered = ["n/a" if value is None else "{:.3f}".format(value)
                     for value in values]
-        lines.append("| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |".format(
+        lines.append(
+            "| {} | {} | {} | {} | {} | {} | {} | {} | {} | {} | {} |".format(
             condition, *rendered))
     lines.extend(["", "## Marginal effects", ""])
     for transition, metrics in aggregate["marginal_deltas"].items():

@@ -26,7 +26,8 @@ from freeciv_agent.monitoring import AtomRevision, LocalRepairer, PlanMonitor
 from freeciv_agent.oracle import CrispStateView, DependencyOracle, Goal
 from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     PlanStep, PlanningSnapshot, ProofScheduler,
-                                    ResourceLedger, GroundedImpactPlanner)
+                                    ResourceLedger, GroundedImpactPlanner,
+                                    ImpactTurnBudget)
 from freeciv_agent.rulesets.compiler import compile_ruleset
 from freeciv_agent.state import ProxyStateDTO, SnapshotStore, StateSummaryService
 
@@ -824,6 +825,7 @@ async def _play(run_dir, manifest, context):
         "impact_actions": 0, "meaningful_actions": 0,
         "production_changes": 0, "tactical_actions": 0,
         "effect_observed": 0, "no_effect": 0, "safe_model_fallbacks": 0,
+        "failover_attempts": 0, "failover_recoveries": 0,
     }
     action_type_counts = {}
     impact_turns = set()
@@ -1029,13 +1031,15 @@ async def _play(run_dir, manifest, context):
             # into short strategic plans.  Refresh after every action so the
             # next candidate is grounded in a new snapshot and legal digest.
             excluded_impact_actions = set()
-            used_impact_scopes = set()
+            impact_budget = (ImpactTurnBudget(
+                impact_planner.max_no_effect_failovers_per_scope)
+                if impact_planner is not None else None)
             if impact_planner is not None and not safe_model_fallback:
                 context.use("scheduler")
                 for _ in range(impact_planner.max_actions_per_turn):
                     decision = impact_planner.plan(
                         snapshot, excluded=excluded_impact_actions,
-                        excluded_scopes=used_impact_scopes)
+                        excluded_scopes=impact_budget.excluded_scopes)
                     if decision is None:
                         break
                     impact_action = decision.candidate.action
@@ -1060,16 +1064,18 @@ async def _play(run_dir, manifest, context):
                         impact_action, impact=True,
                         category=decision.candidate.category)
                     excluded_impact_actions.add(decision.candidate.action_key)
-                    used_impact_scopes.add(decision.candidate.scope)
                     raw, snapshot, parent = await refresh_after_action(snapshot, parent)
                     effect_observed = snapshot.identity.state_hash != prior_state_hash
                     impact_planner.record_outcome(
                         decision.candidate, action_snapshot, effect_observed)
+                    impact_budget.record(decision.candidate, effect_observed)
                     if effect_observed:
                         decision_stats["effect_observed"] += 1
                     else:
                         decision_stats["no_effect"] += 1
                     impact_planner.observe(snapshot)
+                decision_stats["failover_attempts"] += impact_budget.failover_attempts
+                decision_stats["failover_recoveries"] += impact_budget.recoveries
 
             action = (None if (safe_model_fallback or impact_planner is not None)
                       else _scout_action(
@@ -1173,6 +1179,8 @@ async def _play(run_dir, manifest, context):
     impact_turn_rate = float(len(impact_turns)) / max(1, turns_executed)
     effect_observed_rate = (float(decision_stats["effect_observed"])
                             / max(1, decision_stats["impact_actions"]))
+    failover_recovery_rate = (float(decision_stats["failover_recoveries"])
+                              / max(1, decision_stats["failover_attempts"]))
     metrics = [
         ("game_win", int(won)), ("score_turn_n", player_score),
         ("engine_rejected_action_rate", float(rejected) / max(1, action_count)),
@@ -1190,6 +1198,10 @@ async def _play(run_dir, manifest, context):
         ("decision_no_effect_actions", decision_stats["no_effect"]),
         ("decision_no_effect_retries_blocked",
          impact_planner.no_effect_retries_blocked if impact_planner is not None else 0),
+        ("decision_no_effect_failover_attempts", decision_stats["failover_attempts"]),
+        ("decision_no_effect_failover_recoveries",
+         decision_stats["failover_recoveries"]),
+        ("decision_no_effect_failover_recovery_rate", failover_recovery_rate),
         ("model_safe_fallback_rate",
          float(decision_stats["safe_model_fallbacks"]) / max(1, turns_executed)),
         ("model_corrections_per_turn", float(corrections) / max(1, turns_executed)),
@@ -1227,6 +1239,9 @@ async def _play(run_dir, manifest, context):
             "decision_no_effect_retries_blocked": (
                 impact_planner.no_effect_retries_blocked
                 if impact_planner is not None else 0),
+            "decision_no_effect_failover_attempts": decision_stats["failover_attempts"],
+            "decision_no_effect_failover_recoveries": (
+                decision_stats["failover_recoveries"]),
             "meaningful_actions": decision_stats["meaningful_actions"],
             "planned_engine_actions": planned_actions,
             "score": player_score, "won": won, "zombie_attempts_blocked": zombie_blocked,
@@ -1240,6 +1255,8 @@ async def _play(run_dir, manifest, context):
         "decision_no_effect_retries_blocked": (
             impact_planner.no_effect_retries_blocked
             if impact_planner is not None else 0),
+        "decision_no_effect_failover_attempts": decision_stats["failover_attempts"],
+        "decision_no_effect_failover_recoveries": decision_stats["failover_recoveries"],
         "meaningful_actions": decision_stats["meaningful_actions"],
         "planned_engine_actions": planned_actions,
         "zombie_attempts_blocked": zombie_blocked,

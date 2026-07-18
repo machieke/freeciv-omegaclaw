@@ -10,7 +10,7 @@ SRC = os.path.join(REPO, "src")
 if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
-from freeciv_agent.planning import GroundedImpactPlanner  # noqa: E402
+from freeciv_agent.planning import GroundedImpactPlanner, ImpactTurnBudget  # noqa: E402
 from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 
 
@@ -184,7 +184,9 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
     assert GroundedImpactPlanner().plan(snapshot) is None
     for config in ({"max_actions_per_turn": 0}, {"max_actions_per_turn": 33},
                    {"settle_min_distance": 0}, {"expansion_city_target": 21},
-                   {"no_effect_retry_limit": 0}, {"no_effect_retry_limit": 9}):
+                   {"no_effect_retry_limit": 0}, {"no_effect_retry_limit": 9},
+                   {"max_no_effect_failovers_per_scope": -1},
+                   {"max_no_effect_failovers_per_scope": 9}):
         try:
             GroundedImpactPlanner(config)
         except ValueError:
@@ -273,3 +275,49 @@ def test_configured_no_effect_retry_limit_allows_one_controlled_retry():
     planner.record_outcome(first.candidate, snapshot, effect_observed=False)
     assert planner.plan(snapshot) is None
     assert planner.no_effect_retries_blocked == 1
+
+
+def test_turn_budget_releases_failed_scope_for_bounded_alternative_recovery():
+    preferred = {"action_type": "unit_move", "actor_id": 20,
+                 "target": {"x": 0, "y": 2}, "is_valid": True}
+    alternative = {"action_type": "unit_move", "actor_id": 20,
+                   "target": {"x": 1, "y": 0}, "is_valid": True}
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops"), _unit(20, "Explorer")],
+        [preferred, alternative, {"action_type": "end_turn", "is_valid": True}])
+    planner = GroundedImpactPlanner()
+    budget = ImpactTurnBudget(max_no_effect_failovers=2)
+
+    first = planner.plan(snapshot, excluded_scopes=budget.excluded_scopes)
+    planner.record_outcome(first.candidate, snapshot, effect_observed=False)
+    assert budget.record(first.candidate, effect_observed=False) is False
+    assert first.candidate.scope not in budget.excluded_scopes
+
+    second = planner.plan(
+        snapshot, excluded=(first.candidate.action_key,),
+        excluded_scopes=budget.excluded_scopes)
+    assert second.candidate.action["target"] == alternative["target"]
+    assert budget.record(second.candidate, effect_observed=True) is True
+    assert second.candidate.scope in budget.excluded_scopes
+    assert budget.failover_attempts == 1
+    assert budget.recoveries == 1
+
+    fail_closed = ImpactTurnBudget(max_no_effect_failovers=0)
+    fail_closed.record(first.candidate, effect_observed=False)
+    assert first.candidate.scope in fail_closed.excluded_scopes
+
+
+def test_accepted_terminal_action_closes_actor_scope_before_delayed_state_effect():
+    build = {"action_type": "unit_build_city", "actor_id": 1, "is_valid": True}
+    snapshot = _snapshot(
+        [_unit(1, "Settlers", 3, 0), _unit(11, "Alpine Troops")],
+        [build, {"action_type": "end_turn", "is_valid": True}])
+    decision = GroundedImpactPlanner({"settle_min_distance": 3}).plan(snapshot)
+    assert decision.candidate.terminal_on_accept
+    assert decision.candidate.scope == ("unit", 1)
+
+    budget = ImpactTurnBudget(max_no_effect_failovers=4)
+    budget.record(decision.candidate, effect_observed=False)
+    assert decision.candidate.scope in budget.excluded_scopes
+    assert budget.failover_attempts == 0
+    assert budget.recoveries == 0

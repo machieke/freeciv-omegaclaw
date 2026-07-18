@@ -33,6 +33,7 @@ impact_policy:
   expansion_city_target: 3
   settle_min_distance: 3
   no_effect_retry_limit: 1
+  max_no_effect_failovers_per_scope: 4
   preserve_city_defenders: true
 seeds:
   - 104729

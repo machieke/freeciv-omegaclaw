@@ -44,11 +44,15 @@ class ImpactCandidate:
         action_type = str(self.action.get("action_type", ""))
         if action_type == "city_production":
             return ("production", self.action.get("city_id"))
-        if action_type == "unit_build_city":
-            return ("found-city", self.action.get("actor_id"))
         if action_type.startswith("unit_"):
             return ("unit", self.action.get("actor_id"))
         return (action_type, None)
+
+    @property
+    def terminal_on_accept(self):
+        """Whether transport acceptance can consume the actor before state catches up."""
+        return self.action.get("action_type") in (
+            "unit_build_city", "unit_suicide_attack")
 
     def to_dict(self):
         return {
@@ -61,6 +65,38 @@ class ImpactCandidate:
 class ImpactDecision:
     candidate: ImpactCandidate
     plan: Plan
+
+
+class ImpactTurnBudget(object):
+    """Bound no-effect failover without consuming a successful action scope."""
+
+    def __init__(self, max_no_effect_failovers):
+        self.max_no_effect_failovers = int(max_no_effect_failovers)
+        if not 0 <= self.max_no_effect_failovers <= 8:
+            raise ValueError("max_no_effect_failovers must be in 0..8")
+        self.used_scopes = set()
+        self.failed_attempts = {}
+        self.failover_attempts = 0
+        self.recoveries = 0
+
+    @property
+    def excluded_scopes(self):
+        return frozenset(self.used_scopes)
+
+    def record(self, candidate, effect_observed):
+        scope = candidate.scope
+        is_failover = self.failed_attempts.get(scope, 0) > 0
+        if is_failover:
+            self.failover_attempts += 1
+        if effect_observed or candidate.terminal_on_accept:
+            self.used_scopes.add(scope)
+            self.recoveries += int(is_failover and effect_observed)
+        else:
+            failures = self.failed_attempts.get(scope, 0) + 1
+            self.failed_attempts[scope] = failures
+            if failures > self.max_no_effect_failovers:
+                self.used_scopes.add(scope)
+        return is_failover
 
 
 def _normalized_type(value):
@@ -93,6 +129,8 @@ class GroundedImpactPlanner(object):
         self.expansion_city_target = int(values.get("expansion_city_target", 3))
         self.settle_min_distance = int(values.get("settle_min_distance", 3))
         self.no_effect_retry_limit = int(values.get("no_effect_retry_limit", 1))
+        self.max_no_effect_failovers_per_scope = int(
+            values.get("max_no_effect_failovers_per_scope", 4))
         self.preserve_city_defenders = bool(values.get("preserve_city_defenders", True))
         if not 1 <= self.max_actions_per_turn <= 32:
             raise ValueError("max_actions_per_turn must be in 1..32")
@@ -102,6 +140,8 @@ class GroundedImpactPlanner(object):
             raise ValueError("settle_min_distance must be in 1..12")
         if not 1 <= self.no_effect_retry_limit <= 8:
             raise ValueError("no_effect_retry_limit must be in 1..8")
+        if not 0 <= self.max_no_effect_failovers_per_scope <= 8:
+            raise ValueError("max_no_effect_failovers_per_scope must be in 0..8")
         self.visited_positions = set()
         self._fortified_units = set()
         self._no_effect_attempts = {}
