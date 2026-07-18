@@ -55,3 +55,12 @@ memory/sessions.db-*
 # scheduler jobs store (runtime, Issue #17)
 memory/jobs.db
 memory/jobs.db-*
+
+agent-instructions
+
+# PLN-FreeCiv generated rulebases, run logs, engine helpers, and UI artifacts
+/artifacts/freeciv/
+/build/freeciv/
+/apps/freeciv-observability/node_modules/
+/apps/freeciv-observability/dist/
+/apps/freeciv-observability/coverage/

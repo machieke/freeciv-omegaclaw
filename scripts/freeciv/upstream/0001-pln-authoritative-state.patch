@@ -1,0 +1,752 @@
+diff --git a/freeciv-proxy/action_validator.py b/freeciv-proxy/action_validator.py
+index 96d166c..772b354 100644
+--- a/freeciv-proxy/action_validator.py
++++ b/freeciv-proxy/action_validator.py
+@@ -473,50 +473,17 @@ class LLMActionValidator:
+         if 'tech_name' not in action:
+             return self._validation_error('E040', 'Tech research requires tech_name field')
+ 
+-        tech_name = action['tech_name']
+-
+-        # CHANGED: Case-insensitive tech validation with expanded tech list
+-        # FreeCiv standard tech tree expanded to 66 techs
+-        # Enables full era progression: Ancient → Classical → Medieval → Renaissance → Industrial → Modern
+-        valid_techs = [
+-            # Ancient era (0-5 tech count)
+-            'alphabet', 'animal_husbandry', 'agriculture', 'pottery',
+-            'mining', 'bronze_working', 'the_wheel', 'writing',
+-            'ceremonial_burial', 'code_of_laws', 'horseback_riding',
+-            'iron_working', 'mapmaking', 'masonry', 'mysticism',
+-            # Classical era (6-15 tech count)
+-            'mathematics', 'construction', 'currency', 'literacy',
+-            'philosophy', 'republic', 'monarchy', 'seafaring',
+-            'trade', 'university', 'warrior_code',
+-            # Medieval era (16-25 tech count)
+-            'astronomy', 'banking', 'chemistry', 'chivalry',
+-            'democracy', 'economics', 'engineering', 'feudalism',
+-            'gunpowder', 'invention', 'medicine', 'metallurgy',
+-            'navigation', 'physics', 'theology',
+-            # Renaissance era (26-35 tech count)
+-            'printing_press', 'colonization', 'magnetism', 'leadership',
+-            'tactics',
+-            # Industrial era (36-45 tech count)
+-            'steam_engine', 'railroad', 'steel', 'electricity',
+-            'sanitation', 'refrigeration', 'conscription', 'explosives',
+-            'corporation', 'refining',
+-            # Modern era (46+ tech count)
+-            'combustion', 'automobile', 'flight', 'radio',
+-            'electronics', 'mass_production', 'plastics', 'atomic_theory',
+-            'rocketry', 'computers'
+-        ]
+-
+-        # Case-insensitive comparison
+-        tech_name_lower = str(tech_name).lower().replace(' ', '_')
+-
+-        if tech_name_lower not in valid_techs:
+-            # More helpful error message with suggestions
+-            return self._validation_error(
+-                'E041',
+-                f'Invalid technology: "{tech_name}". '
+-                f'Try one of: {", ".join(sorted(valid_techs[:12]))}... '
+-                f'(Note: tech names are case-insensitive)'
+-            )
++        tech_name = str(action['tech_name']).strip()
++        if not tech_name:
++            return self._validation_error('E041', 'tech_name cannot be empty')
++        if len(tech_name) > MAX_NAME_LENGTH:
++            return self._validation_error('E041', 'tech_name is too long')
++        # Rulesets are runtime data. RulesetMapper performs the authoritative
++        # name-to-ID lookup later in the handler; a static default-ruleset list
++        # here incorrectly rejects server-advertised technologies.
++        import re
++        if not re.match(r"^[\w\s\.\-']+$", tech_name, flags=re.UNICODE):
++            return self._validation_error('E041', 'tech_name contains invalid characters')
+ 
+         return ValidationResult(True)
+ 
+@@ -1109,4 +1076,3 @@ class LLMActionValidator:
+                 return self._validation_error('E323', 'city_sell_improvement requires improvement_id or improvement_name')
+ 
+         return ValidationResult(True)
+-
+diff --git a/freeciv-proxy/civcom.py b/freeciv-proxy/civcom.py
+index 02e3d7d..6f0ed60 100755
+--- a/freeciv-proxy/civcom.py
++++ b/freeciv-proxy/civcom.py
+@@ -44,6 +44,7 @@ from packet_constants import (
+     PACKET_RULESET_TERRAIN,
+     PACKET_RULESET_EXTRA,
+     PACKET_RULESET_UNIT_CLASS,
++    PACKET_RULESETS_READY,
+     PACKET_WEB_RULESET_UNIT_ADDITION,
+     PACKET_WEB_CITY_INFO_ADDITION,
+     PACKET_CONN_PING,
+@@ -370,6 +371,9 @@ class CivCom(Thread):
+         self.player_id = None  # Will be set from PACKET_PLAYER_INFO
+         self.nations = {}  # Will be populated from PACKET_RULESET_NATION (pid=148)
+         self.research_info = {}  # {player_id: PACKET_RESEARCH_INFO} - tracks tech progress
++        self.player_packets = {}  # {player_id: complete PACKET_PLAYER_INFO}
++        self.source_seq = 0  # Monotonic packet sequence for snapshot identity
++        self.rulesets_ready = False  # Set only by PACKET_RULESETS_READY
+         self.spaceship_info = {}  # {player_id: spaceship_data} - tracks spaceship progress per player
+         self.initial_units_received = False  # Set True when first PACKET_UNIT_INFO for our player arrives
+ 
+@@ -587,6 +591,12 @@ class CivCom(Thread):
+ 
+         return -1
+ 
++    def _authoritative_unit_type_name(self, unit_type_id):
++        """Resolve names from the active ruleset packets before legacy fallbacks."""
++        definition = getattr(self, 'unit_types', {}).get(unit_type_id, {})
++        name = definition.get('rule_name') or definition.get('name')
++        return str(name) if name else get_unit_type_name(unit_type_id)
++
+     def _get_nation_name(self, nation_id):
+         """Convert nation ID to human-readable name using nations registry.
+ 
+@@ -1469,6 +1479,7 @@ class CivCom(Thread):
+         try:
+             packet = json.loads(packet_json)
+             packet_type = packet.get('pid')
++            self.source_seq += 1
+ 
+             # Configurable packet logging for debugging (set CIVCOM_PACKET_LOG_LIMIT env var)
+             if not hasattr(self, '_packet_type_log_count'):
+@@ -1586,6 +1597,7 @@ class CivCom(Thread):
+                 packet_username = packet.get('username', '')
+                 logger.debug(f"Received PACKET_PLAYER_INFO: playerno={player_id}, username='{packet_username}' for {self.username}")
+                 if player_id is not None:
++                    self.player_packets[player_id] = packet
+                     # Check if this player info is for our connection
+                     if packet_username == self.username:
+                         # This is OUR player! Store the player_id (fallback if CONN_INFO didn't set it)
+@@ -1628,7 +1640,7 @@ class CivCom(Thread):
+                     unit_type_raw = packet.get('type')
+ 
+                     # Convert integer type ID to human-readable string name
+-                    unit_type_name = get_unit_type_name(unit_type_raw)
++                    unit_type_name = self._authoritative_unit_type_name(unit_type_raw)
+ 
+                     def get_coords_from_tile_index(tile_idx):
+                         # tile['index'] = x + y * map['xsize'];
+@@ -1653,6 +1665,7 @@ class CivCom(Thread):
+                         'type_id': unit_type_raw,  # Preserve original integer for debugging/reference
+                         'tile': tile_idx,
+                         'homecity': packet.get('homecity', 0),
++                        'upkeep': packet.get('upkeep', []),
+                         'moves_left': packet.get('movesleft', 0), 
+                         'hp': packet.get('hp', 0),
+                         'veteran': packet.get('veteran', 0),
+@@ -1720,6 +1733,9 @@ class CivCom(Thread):
+                         # surplus and prod are arrays indexed by O_FOOD, O_SHIELD, O_TRADE, etc.
+                         'surplus': packet.get('surplus', []),
+                         'prod': packet.get('prod', []),
++                        'usage': packet.get('usage', []),
++                        'waste': packet.get('waste', []),
++                        'improvements': packet.get('improvements', []),
+                     }
+ 
+                     # Convert player_cities to dict if it's still a list
+@@ -1788,6 +1804,12 @@ class CivCom(Thread):
+                             })
+ 
+                     city['can_build'] = can_build
++                    city['buildability'] = {
++                        'available': True,
++                        'unit_ids': can_build_unit_bv.to_list(),
++                        'improvement_ids': can_build_impr_bv.to_list(),
++                        'options': can_build,
++                    }
+ 
+                     # Also store granary info if present
+                     if 'granary_size' in packet:
+@@ -1844,10 +1866,39 @@ class CivCom(Thread):
+                 unit_id = packet.get('id')
+                 owner = packet.get('owner')
+                 if unit_id is not None:
+-                    logger.debug(f"Unit short info for unit {unit_id} (owner={owner})")
+-                    # Could update existing unit data in self.player_units if needed
++                    tile_idx = packet.get('tile')
++                    xsize = self.map_info.get('width', 1)
++                    unit_data = {
++                        'id': unit_id,
++                        'owner': owner,
++                        'type': self._authoritative_unit_type_name(packet.get('type')),
++                        'type_id': packet.get('type'),
++                        'tile': tile_idx,
++                        'upkeep': [],
++                        'moves_left': None,
++                        'hp': packet.get('hp'),
++                        'veteran': packet.get('veteran', 0),
++                        'transported': packet.get('transported', False),
++                        'activity': get_activity_name(packet.get('activity')),
++                        'x': None if tile_idx is None else tile_idx % xsize,
++                        'y': None if tile_idx is None else tile_idx // xsize,
++                    }
++                    if not isinstance(self.player_units, dict):
++                        self.player_units = {}
++                    # A full packet can carry fields the short form omits.  Retain
++                    # those fields if the server alternates packet representations.
++                    existing = self.player_units.get(unit_id, {})
++                    existing.update({key: value for key, value in unit_data.items()
++                                     if value is not None})
++                    self.player_units[unit_id] = existing
++                    logger.debug(
++                        f"Stored packet-visible short unit {unit_id} (owner={owner})")
+ 
+             # Ruleset nation packet - stores nation ID to name mappings
++            elif packet_type == PACKET_RULESETS_READY:
++                self.rulesets_ready = True
++                logger.info("Authoritative ruleset packets are complete")
++
+             elif packet_type == PACKET_RULESET_NATION:
+                 nation_id = packet.get('id')
+                 # Try multiple fields for nation name (different packet versions use different fields)
+@@ -2438,13 +2489,71 @@ class CivCom(Thread):
+ 
+     def handle_state_query(self, player_id, format='full'):
+         """Handle LLM state query requests with different formats"""
+-        if format == 'llm_optimized':
++        if format == 'pln_authoritative':
++            return self.build_pln_authoritative_state(player_id)
++        elif format == 'llm_optimized':
+             return self.build_llm_optimized_state(player_id)
+         elif format == 'delta':
+             return self.get_state_delta(player_id)
+         else:
+             return self.get_full_state(player_id)
+ 
++    def build_pln_authoritative_state(self, player_id):
++        """Return packet-backed state without replacing missing values with permission."""
++        state = self.build_llm_optimized_state(player_id)
++        player = self.player_packets.get(player_id, {})
++        research = self.research_info.get(player_id, {})
++        own_cities = [city for city in self._normalize_to_dict(self.player_cities).values()
++                      if city.get('owner') == player_id]
++
++        def output_total(index, field):
++            total = 0
++            for city in own_cities:
++                values = city.get(field)
++                if not isinstance(values, list) or len(values) <= index:
++                    return None
++                total += values[index]
++            return total
++
++        gross_beakers = output_total(5, 'prod')
++        tech_upkeep = player.get('tech_upkeep')
++        beakers_per_turn = None
++        if gross_beakers is not None and tech_upkeep is not None:
++            beakers_per_turn = gross_beakers - tech_upkeep
++        gold_per_turn = output_total(3, 'surplus')
++        researching = research.get('researching')
++        researching_def = self.techs.get(researching, {})
++
++        state['format'] = 'pln_authoritative'
++        state['authoritative'] = {
++            'source_seq': self.source_seq,
++            'player': {
++                'gold': player.get('gold'),
++                'gold_per_turn': gold_per_turn,
++                'tax': player.get('tax'),
++                'science': player.get('science'),
++                'luxury': player.get('luxury'),
++                'tech_upkeep': tech_upkeep,
++            },
++            'research': {
++                'researching': researching,
++                'researching_name': researching_def.get('name'),
++                'researching_cost': research.get('researching_cost'),
++                'bulbs_researched': research.get('bulbs_researched'),
++                'beakers_per_turn': beakers_per_turn,
++                'total_bulbs_prod': research.get('total_bulbs_prod'),
++                'inventions': research.get('inventions'),
++            },
++            'ruleset': {
++                'ready': self.rulesets_ready,
++                'unit_types': len(self.unit_types),
++                'improvements': len(self.improvements),
++                'techs': len(self.techs),
++                'diagnostic': None if self.rulesets_ready else 'PACKET_RULESETS_READY not received',
++            },
++        }
++        return state
++
+     def build_llm_optimized_state(self, player_id):
+         """Build compressed state for LLMs (target < 4KB)"""
+         # Ensure we always have valid game state values (defensive against early queries)
+@@ -2966,6 +3075,12 @@ class CivCom(Thread):
+         diplomacy_actions = self._get_diplomacy_actions(player_id)
+         all_actions.extend(diplomacy_actions)
+ 
++        # Turn completion is always a legal player-level control action while
++        # the game is active. Exposing it here lets fail-closed clients require
++        # exact membership in the same advertised legal-action set as every
++        # other engine submission.
++        all_actions.append({'type': 'end_turn', 'is_valid': True})
++
+         return all_actions
+ 
+     def _score_and_filter_actions(self, actions, max_actions):
+@@ -3096,9 +3211,12 @@ class CivCom(Thread):
+         for pid, research_packet in research_info.items():
+             inventions = research_packet.get('inventions', [])
+             known_tech_names = [
+-                tech_defs.get(idx + 1, {}).get('name')
++                # PACKET_RESEARCH_INFO.inventions is indexed by the exact
++                # Tech_type_id used by PACKET_RULESET_TECH. Adding one here
++                # shifts every authoritative name by one technology.
++                tech_defs.get(idx, {}).get('name')
+                 for idx, state in enumerate(inventions)
+-                if state == '2' and tech_defs.get(idx + 1, {}).get('name')
++                if state == '2' and tech_defs.get(idx, {}).get('name')
+             ]
+             techs_dict[f'player{pid}'] = known_tech_names
+ 
+diff --git a/freeciv-proxy/game_session_manager.py b/freeciv-proxy/game_session_manager.py
+index 2f69128..378e8a6 100644
+--- a/freeciv-proxy/game_session_manager.py
++++ b/freeciv-proxy/game_session_manager.py
+@@ -383,6 +383,48 @@ class GameSession:
+         # Build list of /set commands from config
+         commands = []
+ 
++        # Ruleset selection must precede every /set because loading a ruleset can
++        # restore setting defaults.  Only identifiers are admitted; arbitrary
++        # console text is never interpolated.
++        if 'ruleset' in config:
++            ruleset = str(config['ruleset'])
++            if re.match(r'^[A-Za-z0-9_-]{1,64}$', ruleset):
++                commands.append(f"/rulesetdir {ruleset}")
++            else:
++                logger.warning(f"Game {self.game_id}: Invalid ruleset '{ruleset}', ignoring")
++
++        for setting, minimum, maximum in (
++            ('minplayers', 1, 30), ('aifill', 0, 30),
++            ('mapseed', 0, 2147483647), ('gameseed', 0, 2147483647),
++            ('sciencebox', 1, 1000), ('techlevel', 0, 100),
++        ):
++            if setting not in config:
++                continue
++            value = config[setting]
++            if isinstance(value, int) and not isinstance(value, bool) and minimum <= value <= maximum:
++                commands.append(f"/set {setting} {value}")
++                if setting == 'minplayers':
++                    self.min_players = value
++            else:
++                logger.warning(
++                    f"Game {self.game_id}: Invalid {setting} value {value}, ignoring")
++
++        if 'fogofwar' in config:
++            if isinstance(config['fogofwar'], bool):
++                value = "enabled" if config['fogofwar'] else "disabled"
++                commands.append(f"/set fogofwar {value}")
++            else:
++                logger.warning(
++                    f"Game {self.game_id}: Invalid fogofwar value {config['fogofwar']}, ignoring")
++
++        if 'startcity' in config:
++            if isinstance(config['startcity'], bool):
++                value = "enabled" if config['startcity'] else "disabled"
++                commands.append(f"/set startcity {value}")
++            else:
++                logger.warning(
++                    f"Game {self.game_id}: Invalid startcity value {config['startcity']}, ignoring")
++
+         # Map size
+         if 'map_size' in config:
+             dims = MAP_SIZE_DIMENSIONS.get(config['map_size'], (80, 80))
+@@ -399,7 +441,12 @@ class GameSession:
+ 
+         # Start position
+         if 'startpos' in config:
+-            commands.append(f"/set startpos {config['startpos']}")
++            value = str(config['startpos']).lower()
++            if value in ('default', 'single', '2or3', 'all', 'variable'):
++                commands.append(f"/set startpos {value}")
++            else:
++                logger.warning(
++                    f"Game {self.game_id}: Invalid startpos value {config['startpos']}, ignoring")
+ 
+         # Dispersion - how far apart each player's starting units are scattered (0-10)
+         if 'dispersion' in config:
+@@ -456,6 +503,14 @@ class GameSession:
+             else:
+                 logger.warning(f"Game {self.game_id}: Invalid endturn/max_turns value {endturn}, ignoring")
+ 
++        if 'ai_skill_level' in config:
++            level = str(config['ai_skill_level']).lower()
++            if level in ('away', 'novice', 'easy', 'normal', 'hard', 'cheating', 'experimental'):
++                commands.append(f"/{level}")
++            else:
++                logger.warning(
++                    f"Game {self.game_id}: Invalid ai_skill_level '{level}', ignoring")
++
+         if not commands:
+             logger.info(f"Game {self.game_id}: No configuration changes requested")
+             self.config_applied = True
+diff --git a/freeciv-proxy/llm_handler.py b/freeciv-proxy/llm_handler.py
+index 9be5668..09266c8 100644
+--- a/freeciv-proxy/llm_handler.py
++++ b/freeciv-proxy/llm_handler.py
+@@ -587,10 +587,24 @@ class LLMWSHandler(websocket.WebSocketHandler):
+                     f"   Civserver Port: {civserver_port} (restored from session)"
+                 )
+             else:
+-                # First player: allocates new port (e.g., 6001)
+-                # Second player: reuses the same port (6001)
+-                # Players are automatically assigned slots by civserver when they connect
+-                civserver_port = await game_session_manager.allocate_civserver_port(game_id)
++                # Release/evaluation jobs may pin an isolated server slot. The field has
++                # always been part of the validated wire contract, but historically it was
++                # ignored here and the metaserver could hand a job a stale autosave. Honor
++                # it for fresh sessions while preserving metaserver allocation as default.
++                requested_port = msg_data.get('port')
++                if requested_port is not None:
++                    if not isinstance(requested_port, int) or not 6001 <= requested_port <= 6009:
++                        raise ValueError(
++                            f"Requested multiplayer civserver port must be 6001-6009, got {requested_port!r}")
++                    civserver_port = requested_port
++                    logger.info(
++                        f"Agent {self.agent_id} using explicitly requested isolated civserver port "
++                        f"{civserver_port} for game {game_id}"
++                    )
++                else:
++                    # First player allocates a new port; later players reuse the local
++                    # game session mapping created by the allocator.
++                    civserver_port = await game_session_manager.allocate_civserver_port(game_id)
+                 port_type = (
+                     "MULTIPLAYER (6001-6009)" if 6001 <= civserver_port <= 6009
+                     else "SINGLEPLAYER (6000)" if civserver_port == 6000
+@@ -2886,6 +2900,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
+         # Map format_type to StateFormat enum
+         format_map = {
+             'llm_optimized': StateFormat.LLM_OPTIMIZED,
++            'pln_authoritative': StateFormat.PLN_AUTHORITATIVE,
+             'full': StateFormat.FULL,
+             'delta': StateFormat.DELTA
+         }
+@@ -5061,6 +5076,21 @@ class LLMWSHandler(websocket.WebSocketHandler):
+ 
+         session = session_manager.validate_session(self.session_id)
+         if session:
++            # Treat the configured timeout as an inactivity window. Long-running
++            # release agents can spend tens of seconds in a model call, and a
++            # resumed session may have much less than a full window remaining.
++            # Renew only in the final half of the window so normal message
++            # traffic cannot grow the expiry without bound.
++            remaining = session.expires_at - time.time()
++            renewal_threshold = max(1, session_manager.session_timeout // 2)
++            if remaining <= renewal_threshold:
++                extension = max(
++                    1, int(session_manager.session_timeout - max(0, remaining)))
++                if not session_manager.extend_session(self.session_id, extension):
++                    logger.error(
++                        f"Failed to renew active session {self.session_id} "
++                        f"for {self.agent_id}")
++                    return False
+             self.session_info = session
+             return True
+ 
+diff --git a/freeciv-proxy/message_validator.py b/freeciv-proxy/message_validator.py
+index 8570765..6ba646e 100644
+--- a/freeciv-proxy/message_validator.py
++++ b/freeciv-proxy/message_validator.py
+@@ -123,7 +123,7 @@ class MessageValidator:
+                 "correlation_id": str,
+             },
+             "field_constraints": {
+-                "format": {"allowed_values": ["full", "delta", "llm_optimized"]},
++                "format": {"allowed_values": ["full", "delta", "llm_optimized", "pln_authoritative"]},
+                 "player_id": {"min_value": 1, "max_value": 8},
+                 "trace_context": {"max_keys": 5},
+                 "correlation_id": {"max_length": 64, "pattern": r"^[a-zA-Z0-9_-]+$"},
+diff --git a/freeciv-proxy/security.py b/freeciv-proxy/security.py
+index 2815c8c..c209bb7 100644
+--- a/freeciv-proxy/security.py
++++ b/freeciv-proxy/security.py
+@@ -295,7 +295,7 @@ class InputSanitizer:
+ 
+         if 'format' in params:
+             format_val = params['format']
+-            if format_val in ['full', 'delta', 'llm_optimized']:
++            if format_val in ['full', 'delta', 'llm_optimized', 'pln_authoritative']:
+                 sanitized['format'] = format_val
+             else:
+                 raise SecurityError(f"Invalid format: {format_val}")
+diff --git a/freeciv-proxy/state_extractor.py b/freeciv-proxy/state_extractor.py
+index 803966c..d55b358 100644
+--- a/freeciv-proxy/state_extractor.py
++++ b/freeciv-proxy/state_extractor.py
+@@ -447,7 +447,7 @@ def validate_request_parameters(game_id: str, player_id: Any, format_str: str =
+         validated_player_id = InputSanitizer.sanitize_player_id(player_id)
+ 
+         # Validate format
+-        valid_formats = ['full', 'delta', 'llm_optimized']
++        valid_formats = ['full', 'delta', 'llm_optimized', 'pln_authoritative']
+         if format_str not in valid_formats:
+             raise ValidationError(f"Format must be one of: {', '.join(valid_formats)}",
+                                 parameter="format", value=format_str)
+@@ -477,6 +477,7 @@ class StateFormat(Enum):
+     FULL = "full"
+     DELTA = "delta"
+     LLM_OPTIMIZED = "llm_optimized"
++    PLN_AUTHORITATIVE = "pln_authoritative"
+ 
+ 
+ class StateExtractor:
+@@ -561,6 +562,8 @@ class StateExtractor:
+                 # Use civcom.build_llm_optimized_state() directly as it already
+                 # includes legal_actions from _get_legal_actions_optimized()
+                 state = civcom.build_llm_optimized_state(player_id)
++            elif format_type == StateFormat.PLN_AUTHORITATIVE:
++                state = civcom.build_pln_authoritative_state(player_id)
+             else:
+                 raw_state = civcom.get_full_state(player_id)
+ 
+@@ -2614,9 +2617,9 @@ class StateExtractorHandler(web.RequestHandler):
+             since_turn = self.get_argument('since_turn', None)
+ 
+             # Validate format parameter (must match validate_request_parameters accepted formats)
+-            if format_str not in ['full', 'delta', 'llm_optimized']:
++            if format_str not in ['full', 'delta', 'llm_optimized', 'pln_authoritative']:
+                 self.set_status(400)
+-                self.write({"error": f"Invalid format '{format_str}'. Allowed: full, delta, llm_optimized"})
++                self.write({"error": f"Invalid format '{format_str}'. Allowed: full, delta, llm_optimized, pln_authoritative"})
+                 return
+ 
+             # Validate since_turn parameter if provided
+diff --git a/freeciv-proxy/tests/test_pln_authoritative_state.py b/freeciv-proxy/tests/test_pln_authoritative_state.py
+new file mode 100644
+index 0000000..ee7ffa6
+--- /dev/null
++++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
+@@ -0,0 +1,116 @@
++"""Contract tests for the packet-backed PLN authoritative state format."""
++
++import json
++
++from civcom import CivCom
++from message_validator import MessageValidator
++from packet_constants import PACKET_UNIT_SHORT_INFO
++from security import InputSanitizer
++from state_extractor import StateExtractor, StateFormat
++
++
++def make_civcom():
++    civcom = object.__new__(CivCom)
++    civcom.source_seq = 44
++    civcom.rulesets_ready = True
++    civcom.player_packets = {
++        0: {"gold": 31, "tax": 30, "science": 60, "luxury": 10,
++            "tech_upkeep": 1}
++    }
++    civcom.research_info = {
++        0: {"researching": 2, "researching_cost": 50,
++            "bulbs_researched": 17, "total_bulbs_prod": 9,
++            "inventions": ["2", "1"]}
++    }
++    civcom.techs = {2: {"name": "Writing"}}
++    civcom.unit_types = {1: {"name": "Warriors"}}
++    civcom.improvements = {1: {"name": "Barracks"}}
++    civcom.player_cities = {
++        4: {"id": 4, "owner": 0, "prod": [5, 4, 3, 2, 0, 10],
++            "surplus": [2, 3, 3, 4, 0, 10]},
++        5: {"id": 5, "owner": 1, "prod": [5, 4, 3, 99, 0, 99],
++            "surplus": [2, 3, 3, 99, 0, 99]},
++    }
++    civcom._normalize_to_dict = CivCom._normalize_to_dict.__get__(civcom)
++    civcom.build_llm_optimized_state = lambda player_id: {
++        "format": "llm_optimized", "player_id": player_id,
++        "cities": civcom.player_cities,
++    }
++    civcom.get_full_state = lambda player_id: civcom.build_llm_optimized_state(player_id)
++    civcom.game_turn = 12
++    return civcom
++
++
++def test_authoritative_state_uses_player_packet_and_owned_city_outputs():
++    state = CivCom.build_pln_authoritative_state(make_civcom(), 0)
++    assert state["format"] == "pln_authoritative"
++    assert state["authoritative"]["source_seq"] == 44
++    assert state["authoritative"]["player"]["gold"] == 31
++    assert state["authoritative"]["player"]["gold_per_turn"] == 4
++    assert state["authoritative"]["research"]["beakers_per_turn"] == 9
++    assert state["authoritative"]["research"]["researching_name"] == "Writing"
++    assert state["authoritative"]["ruleset"]["ready"] is True
++
++
++def test_known_technology_names_use_exact_invention_array_indices():
++    civcom = make_civcom()
++    civcom.techs = {
++        0: {"name": "Alphabet"},
++        1: {"name": "Bronze Working"},
++        2: {"name": "Writing"},
++    }
++    civcom.research_info[0]["inventions"] = ["2", "1", "2"]
++
++    assert CivCom._build_techs_dict(civcom) == {
++        "player0": ["Alphabet", "Writing"]}
++
++
++def test_missing_output_vector_is_unavailable_not_zero():
++    civcom = make_civcom()
++    civcom.player_cities[4].pop("prod")
++    state = CivCom.build_pln_authoritative_state(civcom, 0)
++    assert state["authoritative"]["research"]["beakers_per_turn"] is None
++
++
++def test_authoritative_format_passes_protocol_security_and_extractor_layers():
++    message = MessageValidator().validate_message(json.dumps({
++        "type": "state_query", "format": "pln_authoritative"}))
++    assert message["format"] == "pln_authoritative"
++    assert InputSanitizer.sanitize_state_query_params(
++        {"format": "pln_authoritative"})["format"] == "pln_authoritative"
++    state = StateExtractor(civcom=make_civcom()).extract_state(
++        "contract-game", 0, StateFormat.PLN_AUTHORITATIVE)
++    assert state["format"] == "pln_authoritative"
++
++
++def test_packet_visible_foreign_short_unit_is_preserved_as_observation_input():
++    civcom = object.__new__(CivCom)
++    civcom.source_seq = 0
++    civcom.username = "packet-observer"
++    civcom.map_info = {"width": 20, "height": 20}
++    civcom.player_units = {}
++    civcom.unit_types = {9: {"name": "Diplomat"}}
++    CivCom.parse_and_store_packet(civcom, json.dumps({
++        "pid": PACKET_UNIT_SHORT_INFO, "id": 81, "owner": 1,
++        "tile": 63, "type": 9, "hp": 10, "activity": 0,
++    }))
++    assert civcom.player_units[81]["owner"] == 1
++    assert civcom.player_units[81]["type"] == "Diplomat"
++    assert civcom.player_units[81]["x"] == 3
++    assert civcom.player_units[81]["y"] == 3
++
++
++def test_active_ruleset_unit_name_precedes_legacy_static_table():
++    civcom = object.__new__(CivCom)
++    civcom.unit_types = {49: {"name": "Spy"}}
++    assert CivCom._authoritative_unit_type_name(civcom, 49) == "Spy"
++
++
++def test_optimized_legal_actions_always_advertise_turn_completion():
++    civcom = object.__new__(CivCom)
++    civcom._get_unit_actions = lambda _player: []
++    civcom._get_city_production_actions = lambda _player: []
++    civcom._get_tech_research_actions = lambda _player: []
++    civcom._get_diplomacy_actions = lambda _player: []
++    assert CivCom._get_legal_actions_optimized(civcom, 0) == [
++        {"type": "end_turn", "is_valid": True}]
+diff --git a/freeciv-proxy/tests/test_release_game_configuration.py b/freeciv-proxy/tests/test_release_game_configuration.py
+new file mode 100644
+index 0000000..2b6bf2d
+--- /dev/null
++++ b/freeciv-proxy/tests/test_release_game_configuration.py
+@@ -0,0 +1,106 @@
++"""Release-harness game settings are validated and ordered before start."""
++
++import ast
++import json
++import time
++from pathlib import Path
++from types import SimpleNamespace
++from unittest.mock import Mock
++
++import pytest
++
++from game_session_manager import GameSession
++from action_validator import LLMActionValidator
++import llm_handler
++
++
++@pytest.mark.asyncio
++async def test_release_settings_are_safe_complete_and_ruleset_first():
++    civcom = Mock()
++    session = GameSession("release", 6001)
++    config = {
++        "ruleset": "civ2civ3", "minplayers": 1, "aifill": 2,
++        "mapseed": 104729, "gameseed": 104729, "sciencebox": 1,
++        "techlevel": 100, "startpos": "all", "startcity": True,
++        "fogofwar": False, "max_turns": 20,
++        "ai_skill_level": "experimental",
++    }
++    assert await session.configure_game_settings(config, civcom)
++    commands = [json.loads(call.args[0])["message"]
++                for call in civcom.queue_to_civserver.call_args_list]
++    assert commands == [
++        "/rulesetdir civ2civ3", "/set minplayers 1", "/set aifill 2",
++        "/set mapseed 104729", "/set gameseed 104729", "/set sciencebox 1",
++        "/set techlevel 100", "/set fogofwar disabled", "/set startcity enabled",
++        "/set startpos all",
++        "/set endturn 20", "/experimental",
++    ]
++    civcom.send_packets_to_civserver.assert_called_once_with()
++    assert session.game_config == config
++    assert session.min_players == 1
++
++
++@pytest.mark.asyncio
++async def test_release_settings_reject_command_injection_and_bad_ranges():
++    civcom = Mock()
++    session = GameSession("release", 6001)
++    await session.configure_game_settings({
++        "ruleset": "classic\n/quit", "minplayers": 0, "aifill": 31,
++        "mapseed": -1, "gameseed": True, "sciencebox": 0,
++        "techlevel": 101, "startpos": "all\n/quit", "fogofwar": "FALSE",
++        "ai_skill_level": "hard\n/quit",
++    }, civcom)
++    civcom.queue_to_civserver.assert_not_called()
++
++
++def test_llm_handler_honors_validated_explicit_release_port():
++    """The validated ``port`` handshake field must not be silently ignored."""
++    source = (Path(__file__).resolve().parents[1] / "llm_handler.py").read_text(
++        encoding="utf-8")
++    ast.parse(source)
++    assert "requested_port = msg_data.get('port')" in source
++    assert "6001 <= requested_port <= 6009" in source
++    assert "civserver_port = requested_port" in source
++
++
++def test_llm_handler_renews_active_sessions_before_expiry(monkeypatch):
++    """Long model turns must not expire an otherwise active proxy session."""
++    session = SimpleNamespace(expires_at=time.time() + 10)
++
++    class FakeSessionManager:
++        session_timeout = 100
++
++        def __init__(self):
++            self.extensions = []
++
++        def validate_session(self, session_id):
++            assert session_id == "session-1"
++            return session
++
++        def extend_session(self, session_id, extension):
++            self.extensions.append((session_id, extension))
++            return True
++
++    manager = FakeSessionManager()
++    monkeypatch.setattr(llm_handler, "session_manager", manager)
++    handler = object.__new__(llm_handler.LLMWSHandler)
++    handler.session_id = "session-1"
++    handler.session_info = None
++    handler.agent_id = "release-agent"
++
++    assert handler._validate_session()
++    assert handler.session_info is session
++    assert len(manager.extensions) == 1
++    assert manager.extensions[0][0] == "session-1"
++    assert 89 <= manager.extensions[0][1] <= 91
++
++
++def test_research_validation_defers_runtime_ruleset_names_to_mapper():
++    validator = LLMActionValidator()
++    for name in ("communism", "genetic engineering", "advanced flight"):
++        result = validator.validate_action(
++            {"type": "tech_research", "tech_name": name, "player_id": 0}, 0, {})
++        assert result.is_valid
++    invalid = validator.validate_action(
++        {"type": "tech_research", "tech_name": "bad; /quit", "player_id": 0}, 0, {})
++    assert not invalid.is_valid and invalid.error_code == "E041"

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omegaclaw.local/schemas/freeciv-events/v1/envelope.schema.json",
+  "title": "PLN-FreeCiv event envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "event_id", "game_id", "turn", "seq", "ts",
+    "type", "caused_by", "payload"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "event_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "game_id": {"type": "string", "minLength": 1, "maxLength": 256},
+    "turn": {"type": "integer", "minimum": 0},
+    "seq": {"type": "integer", "minimum": 0},
+    "ts": {"type": "string", "format": "date-time"},
+    "type": {"type": "string", "minLength": 1, "maxLength": 128},
+    "caused_by": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1, "maxLength": 128},
+      "uniqueItems": true
+    },
+    "payload": {"type": "object"}
+  }
+}

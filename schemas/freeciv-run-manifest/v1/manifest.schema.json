@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omegaclaw.local/schemas/freeciv-run-manifest/v1/manifest.schema.json",
+  "title": "PLN-FreeCiv run manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "run_id", "manifest_identity", "created_at", "condition",
+    "source", "engine", "rulebase", "llm", "game", "beliefs", "events", "runtime"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "run_id": {"type": "string", "minLength": 1},
+    "manifest_identity": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "condition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "capabilities"],
+      "properties": {
+        "id": {"enum": ["a_stock_llm", "b_state_oracle", "c_dependency_scheduler", "d_uncertain_monitor", "e_full_loop"]},
+        "description": {"type": "string", "minLength": 1},
+        "capabilities": {
+          "type": "object",
+          "additionalProperties": {"type": "boolean"},
+          "required": ["authoritative_state", "dependency_oracle", "scheduler", "uncertain_beliefs", "assumption_monitor", "constrained_llm"]
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commit", "dirty", "dirty_sha256", "agent_package_version"],
+      "properties": {
+        "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "dirty": {"type": "boolean"},
+        "dirty_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "agent_package_version": {"type": "string"}
+      }
+    },
+    "engine": {"$ref": "#/$defs/engine"},
+    "rulebase": {"$ref": "#/$defs/rulebase"},
+    "llm": {"$ref": "#/$defs/llm"},
+    "game": {"$ref": "#/$defs/game"},
+    "beliefs": {"type": "object"},
+    "events": {
+      "type": "object",
+      "required": ["schema_version"],
+      "properties": {"schema_version": {"type": "string"}}
+    },
+    "runtime": {
+      "type": "object",
+      "required": ["python", "platform"],
+      "properties": {"python": {"type": "string"}, "platform": {"type": "string"}}
+    }
+  },
+  "$defs": {
+    "nullableHash": {"type": ["string", "null"], "pattern": "^[0-9a-f]{40,64}$"},
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["freeciv_commit", "proxy_commit", "image_digest", "ruleset", "ruleset_source_sha256"],
+      "properties": {
+        "freeciv_commit": {"$ref": "#/$defs/nullableHash"},
+        "proxy_commit": {"$ref": "#/$defs/nullableHash"},
+        "image_digest": {"type": ["string", "null"]},
+        "ruleset": {"type": "string", "minLength": 1},
+        "ruleset_source_sha256": {"$ref": "#/$defs/nullableHash"}
+      }
+    },
+    "rulebase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compiler_version", "artifact_sha256"],
+      "properties": {
+        "compiler_version": {"type": "string"},
+        "artifact_sha256": {"$ref": "#/$defs/nullableHash"}
+      }
+    },
+    "llm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "model", "base_url", "sampling"],
+      "properties": {
+        "provider": {"type": "string"},
+        "model": {"type": "string"},
+        "base_url": {"type": ["string", "null"]},
+        "sampling": {
+          "type": "object",
+          "required": ["temperature", "max_tokens"],
+          "properties": {
+            "temperature": {"type": ["number", "null"]},
+            "max_tokens": {"type": ["integer", "null"], "minimum": 1}
+          }
+        }
+      }
+    },
+    "game": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["game_id", "seed", "opponent", "difficulty", "turn_limit"],
+      "properties": {
+        "game_id": {"type": "string", "minLength": 1},
+        "seed": {"type": "integer"},
+        "opponent": {"type": "string"},
+        "difficulty": {"type": "string"},
+        "turn_limit": {"type": "integer", "minimum": 1}
+      }
+    }
+  }
+}

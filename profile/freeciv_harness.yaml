@@ -1,0 +1,78 @@
+schema_version: "1.0"
+ruleset: civ2civ3
+turn_limit: 30
+live:
+  civserver_port: 6001
+  topology: dedicated-serial-process-recycle
+  ws_url_env: FREECIV_PROXY_WS
+  api_token_env: FREECIV_API_TOKEN
+  ruleset_root_env: FREECIV_RULESET_ROOT
+  server_container_env: FREECIV_SERVER_CONTAINER
+opponent:
+  id: builtin-ai-experimental
+  difficulty: experimental
+machine_profile: codex-dev-linux
+engine:
+  freeciv_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018
+  proxy_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:2c0fae26da7936470fe00eb4d4eb9096e0b8c2620defa2eff27e6b4b104f23f0
+rulebase:
+  compiler_version: freeciv-ruleset-compiler/1.0
+  source_sha256: 8f6914743d8380fabd9bf1294556a53ba5e447532e4b9e9763d3d69c0c0120b4
+  ir_sha256: c7306b497f156462bd45b330186746a2304aadcc61bd05679c72fe36c1acadfd
+  atomese_sha256: 73b7a33242ada1188accbeaa7eb546cb76f8d8d68034ae276c8412206774d277
+model:
+  provider: Ollama-local
+  name: qwen3-coder-next:latest
+  think: false
+  temperature: 0.0
+  turn_timeout_seconds: 30
+  corrective_attempts: 2
+  max_tokens: 400
+seeds:
+  - 104729
+  - 104743
+  - 104759
+  - 104761
+  - 104773
+  - 104779
+  - 104789
+  - 104801
+  - 104803
+  - 104827
+  - 104831
+  - 104849
+  - 104851
+  - 104869
+  - 104879
+  - 104891
+  - 104911
+  - 104917
+  - 104933
+  - 104947
+  - 104953
+  - 104959
+  - 104971
+  - 104987
+  - 104999
+  - 105019
+  - 105023
+  - 105031
+  - 105037
+  - 105071
+induction:
+  games: 20
+  opponent_id: builtin-ai-consistent-01
+statistics:
+  confidence: 0.95
+  bootstrap_samples: 2000
+  bootstrap_seed: 7717
+calibration:
+  bucket_width: 0.1
+  minimum_bucket_samples: 10
+  tolerance: 0.15
+conditions:
+  - a_stock_llm
+  - b_state_oracle
+  - c_dependency_scheduler
+  - d_uncertain_monitor
+  - e_full_loop

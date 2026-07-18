@@ -1,0 +1,341 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omegaclaw.local/schemas/freeciv-events/v1/payloads.schema.json",
+  "title": "PLN-FreeCiv known event payloads",
+  "$defs": {
+    "jsonValue": {
+      "description": "Any value accepted by the JSON parser; nested JSON validity is structural.",
+      "type": ["null", "boolean", "number", "string", "array", "object"]
+    },
+    "truthValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strength", "confidence"],
+      "properties": {
+        "strength": {"type": "number", "minimum": 0, "maximum": 1},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "atom": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["atom_id", "predicate", "args", "tv", "crisp", "provenance_ids"],
+      "properties": {
+        "atom_id": {"type": "string", "minLength": 1},
+        "predicate": {"type": "string", "minLength": 1},
+        "args": {"type": "array", "items": {"$ref": "#/$defs/jsonValue"}},
+        "tv": {"$ref": "#/$defs/truthValue"},
+        "crisp": {"type": "boolean"},
+        "provenance_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    },
+    "proofNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id", "kind", "atom", "tv", "crisp", "satisfied",
+        "rule_applied", "premise_node_refs", "subtree_hash"
+      ],
+      "properties": {
+        "node_id": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["goal", "and", "or", "premise", "grounded", "cycle", "unreachable"]},
+        "atom": {"$ref": "#/$defs/atom"},
+        "tv": {"$ref": "#/$defs/truthValue"},
+        "crisp": {"type": "boolean"},
+        "satisfied": {"type": "boolean"},
+        "rule_applied": {"type": ["string", "null"]},
+        "premise_node_refs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "subtree_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "grounded_result": {"$ref": "#/$defs/jsonValue"},
+        "scope": {"$ref": "#/$defs/jsonValue"},
+        "rule_source": {"type": ["object", "null"], "additionalProperties": {"$ref": "#/$defs/jsonValue"}},
+        "formula": {"type": ["object", "null"], "additionalProperties": {"$ref": "#/$defs/jsonValue"}},
+        "dampening_lambda": {"type": ["number", "null"], "minimum": 0}
+      }
+    },
+    "proofTree": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["root_node_id", "nodes", "structural_hash"],
+      "properties": {
+        "root_node_id": {"type": "string", "minLength": 1},
+        "nodes": {"type": "array", "items": {"$ref": "#/$defs/proofNode"}},
+        "structural_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "frontierItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node_id", "blocker_type", "atom_id", "detail"],
+      "properties": {
+        "node_id": {"type": "string"},
+        "blocker_type": {"enum": ["missing-tech", "missing-building", "grounded-predicate", "disabled-goal", "cycle", "unreachable"]},
+        "atom_id": {"type": "string"},
+        "detail": {"type": "string"}
+      }
+    },
+    "assumption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["atom_id", "threshold", "accepted_tv", "affected_step_ids"],
+      "properties": {
+        "atom_id": {"type": "string"},
+        "threshold": {"type": "number", "minimum": 0, "maximum": 1},
+        "accepted_tv": {"$ref": "#/$defs/truthValue"},
+        "affected_step_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "proof_node_id": {"type": ["string", "null"]},
+        "subtree_hash": {"type": ["string", "null"]},
+        "provenance_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    },
+    "planStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["step_id", "kind", "target", "predicted_turn", "actual_turn", "status", "cost", "spatial"],
+      "properties": {
+        "step_id": {"type": "string"},
+        "kind": {"type": "string"},
+        "target": {"$ref": "#/$defs/jsonValue"},
+        "predicted_turn": {"type": "integer", "minimum": 0},
+        "actual_turn": {"type": ["integer", "null"], "minimum": 0},
+        "status": {"enum": ["PENDING", "ACTIVE", "COMPLETED", "FAILED", "CANCELLED"]},
+        "cost": {"type": "number", "minimum": 0},
+        "spatial": {"type": ["object", "null"], "additionalProperties": {"$ref": "#/$defs/jsonValue"}},
+        "duration_turns": {"type": "integer", "minimum": 0},
+        "snapshot_id": {"type": ["string", "null"]},
+        "legal_actions_digest": {"type": ["string", "null"]}
+      }
+    },
+    "ledgerEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resource", "available", "allocated", "remaining", "step_id"],
+      "properties": {
+        "resource": {"type": "string"},
+        "available": {"type": "number"},
+        "allocated": {"type": "number", "minimum": 0},
+        "remaining": {"type": "number"},
+        "step_id": {"type": "string"}
+      }
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plan_id", "status", "goal_atom_id", "source_proof_hash", "snapshot_id",
+        "feasibility_grade", "scheduler_cost", "cost_profile", "steps", "ledger", "assumptions"
+      ],
+      "properties": {
+        "plan_id": {"type": "string"},
+        "status": {"enum": ["ACTIVE", "COMPLETED", "INVALID", "FAILED"]},
+        "goal_atom_id": {"type": "string"},
+        "source_proof_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "snapshot_id": {"type": "string"},
+        "feasibility_grade": {"type": "number", "minimum": 0, "maximum": 1},
+        "scheduler_cost": {"type": "number", "minimum": 0},
+        "cost_profile": {"type": "string"},
+        "steps": {"type": "array", "items": {"$ref": "#/$defs/planStep"}},
+        "ledger": {"type": "array", "items": {"$ref": "#/$defs/ledgerEntry"}},
+        "assumptions": {"type": "array", "items": {"$ref": "#/$defs/assumption"}},
+        "branch_scores": {"type": "array", "items": {
+          "type": "object", "additionalProperties": false,
+          "required": ["branch_id", "feasibility_grade", "scheduler_cost", "predicted_turns", "feasible", "reason"],
+          "properties": {
+            "branch_id": {"type": "string"}, "feasibility_grade": {"type": "number", "minimum": 0, "maximum": 1},
+            "scheduler_cost": {"type": "number", "minimum": 0}, "predicted_turns": {"type": "integer", "minimum": 0},
+            "feasible": {"type": "boolean"}, "reason": {"type": ["string", "null"]}
+          }
+        }},
+        "selected_branch_id": {"type": "string"},
+        "predicted_turns": {"type": "integer", "minimum": 0},
+        "solver_identity": {"type": "string"},
+        "schema_version": {"type": "string"},
+        "reused_subtree_hashes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "rederived_subtree_hashes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    },
+    "run_started": {
+      "type": "object", "additionalProperties": false,
+      "required": ["manifest_identity", "condition_id"],
+      "properties": {"manifest_identity": {"type": "string"}, "condition_id": {"type": "string"}}
+    },
+    "run_completed": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "summary"],
+      "properties": {"status": {"enum": ["completed", "failed", "aborted"]}, "summary": {"type": "object"}}
+    },
+    "ruleset_compiled": {
+      "type": "object", "additionalProperties": false,
+      "required": ["ruleset", "source_hash", "ir_hash", "atomese_hash", "counts"],
+      "properties": {
+        "ruleset": {"type": "string"}, "source_hash": {"type": "string"},
+        "ir_hash": {"type": "string"}, "atomese_hash": {"type": "string"},
+        "counts": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}}
+      }
+    },
+    "state_snapshot": {
+      "type": "object", "additionalProperties": false,
+      "required": ["snapshot_id", "player_id", "state_hash", "own_state", "uncertain_atoms", "map"],
+      "properties": {
+        "snapshot_id": {"type": "string"}, "player_id": {"type": "integer"},
+        "state_hash": {"type": "string"}, "source_seq": {"type": "integer", "minimum": 0},
+        "legal_actions_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "own_state": {"type": "object"},
+        "uncertain_atoms": {"type": "array", "items": {"$ref": "#/$defs/atom"}},
+        "map": {"type": "object"}
+      }
+    },
+    "observation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["observation_id", "provenance_id", "atom", "source", "age_turns"],
+      "properties": {
+        "observation_id": {"type": "string"}, "provenance_id": {"type": "string"},
+        "atom": {"$ref": "#/$defs/atom"}, "source": {"type": "string"},
+        "age_turns": {"type": "integer", "minimum": 0}
+      }
+    },
+    "revision": {
+      "type": "object", "additionalProperties": false,
+      "required": ["target_atom", "prior_tv", "evidence_tv", "posterior_tv", "provenance_id", "operation", "formula"],
+      "properties": {
+        "target_atom": {"$ref": "#/$defs/atom"},
+        "prior_tv": {"oneOf": [{"$ref": "#/$defs/truthValue"}, {"type": "null"}]},
+        "evidence_tv": {"$ref": "#/$defs/truthValue"}, "posterior_tv": {"$ref": "#/$defs/truthValue"},
+        "provenance_id": {"type": "string"}, "operation": {"enum": ["apply", "decay", "retract"]},
+        "formula": {"type": "object", "required": ["name", "inputs"],
+          "properties": {"name": {"type": "string"}, "inputs": {"type": "object"}}}
+      }
+    },
+    "llm_proposal": {
+      "type": "object", "additionalProperties": false,
+      "required": ["proposal_id", "model", "prompt_version", "goals", "claims"],
+      "properties": {
+        "proposal_id": {"type": "string"}, "model": {"type": "string"},
+        "prompt_version": {"type": "string"},
+        "goals": {"type": "array", "items": {"type": "object"}},
+        "claims": {"type": "array", "items": {
+          "type": "object", "additionalProperties": false, "required": ["claim_id", "text", "atom"],
+          "properties": {"claim_id": {"type": "string"}, "text": {"type": "string"},
+            "atom": {"oneOf": [{"$ref": "#/$defs/atom"}, {"type": "null"}]}}
+        }}
+      }
+    },
+    "verification": {
+      "type": "object", "additionalProperties": false,
+      "required": ["verification_id", "proposal_id", "claim_id", "verdict", "check", "evidence_atom_ids"],
+      "properties": {
+        "verification_id": {"type": "string"}, "proposal_id": {"type": "string"},
+        "claim_id": {"type": "string"}, "verdict": {"enum": ["believe", "disbelieve", "quarantine"]},
+        "check": {"type": "string"}, "evidence_atom_ids": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "quarantine": {
+      "type": "object", "additionalProperties": false,
+      "required": ["quarantine_id", "proposal_id", "claim_id", "claim", "failed_check", "evidence_atoms"],
+      "properties": {
+        "quarantine_id": {"type": "string"}, "proposal_id": {"type": "string"},
+        "claim_id": {"type": "string"}, "claim": {"type": "string"},
+        "failed_check": {"type": "string"},
+        "evidence_atoms": {"type": "array", "items": {"$ref": "#/$defs/atom"}},
+        "model": {"type": "string"},
+        "model_config": {"type": "object", "additionalProperties": {"$ref": "#/$defs/jsonValue"}},
+        "quarantined_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "pln_query": {
+      "type": "object", "additionalProperties": false,
+      "required": ["query_id", "query_atom", "query_type", "invoking_layer"],
+      "properties": {
+        "query_id": {"type": "string"}, "query_atom": {"$ref": "#/$defs/atom"},
+        "query_type": {"enum": ["deps", "verify", "grade"]},
+        "invoking_layer": {"enum": ["llm-verification", "planner", "monitor", "state-oracle", "test"]}
+      }
+    },
+    "pln_result": {
+      "type": "object", "additionalProperties": false,
+      "required": ["query_id", "status", "proof", "unsatisfied_frontier", "latency_ms", "chain_depth", "dampening_lambda"],
+      "properties": {
+        "query_id": {"type": "string"}, "status": {"enum": ["PROVED", "BLOCKED", "UNREACHABLE", "ERROR"]},
+        "proof": {"$ref": "#/$defs/proofTree"},
+        "unsatisfied_frontier": {"type": "array", "items": {"$ref": "#/$defs/frontierItem"}},
+        "latency_ms": {"type": "number", "minimum": 0}, "chain_depth": {"type": "integer", "minimum": 0},
+        "dampening_lambda": {"type": ["number", "null"], "minimum": 0},
+        "cache_status": {"enum": ["hit", "miss", "error"]},
+        "prerequisite_atoms": {"type": "array", "items": {"$ref": "#/$defs/atom"}},
+        "error": {"type": ["object", "null"], "additionalProperties": {"$ref": "#/$defs/jsonValue"}},
+        "tree_size": {"type": "integer", "minimum": 0}
+      }
+    },
+    "plan_created": {
+      "type": "object", "additionalProperties": false, "required": ["plan"],
+      "properties": {"plan": {"$ref": "#/$defs/plan"}}
+    },
+    "monitor_trigger": {
+      "type": "object", "additionalProperties": false,
+      "required": ["trigger_id", "atom_id", "prior_tv", "posterior_tv", "threshold", "affected_plan_ids"],
+      "properties": {
+        "trigger_id": {"type": "string"}, "atom_id": {"type": "string"},
+        "prior_tv": {"$ref": "#/$defs/truthValue"}, "posterior_tv": {"$ref": "#/$defs/truthValue"},
+        "threshold": {"type": "number", "minimum": 0, "maximum": 1},
+        "affected_plan_ids": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "plan_invalidated": {
+      "type": "object", "additionalProperties": false,
+      "required": ["plan_id", "reason", "broken_assumption", "affected_step_ids", "reused_subtree_hashes", "rederived_subtree_hashes"],
+      "properties": {
+        "plan_id": {"type": "string"}, "reason": {"type": "string"},
+        "broken_assumption": {"$ref": "#/$defs/assumption"},
+        "broken_assumptions": {"type": "array", "items": {"$ref": "#/$defs/assumption"}, "minItems": 1},
+        "prior_tv": {"$ref": "#/$defs/truthValue"},
+        "posterior_tv": {"$ref": "#/$defs/truthValue"},
+        "revision_event_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "affected_step_ids": {"type": "array", "items": {"type": "string"}},
+        "reused_subtree_hashes": {"type": "array", "items": {"type": "string"}},
+        "rederived_subtree_hashes": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "plan_step_executed": {
+      "type": "object", "additionalProperties": false,
+      "required": ["plan_id", "step_id", "snapshot_id", "status"],
+      "properties": {"plan_id": {"type": "string"}, "step_id": {"type": "string"},
+        "snapshot_id": {"type": "string"}, "status": {"enum": ["started", "completed", "failed", "rejected"]}}
+    },
+    "action_sent": {
+      "type": "object", "additionalProperties": false,
+      "required": ["action_id", "action", "snapshot_id", "legal_actions_digest", "plan_id", "step_id"],
+      "properties": {
+        "action_id": {"type": "string"}, "action": {"type": "object"},
+        "snapshot_id": {"type": "string"}, "legal_actions_digest": {"type": "string"},
+        "plan_id": {"type": ["string", "null"]}, "step_id": {"type": ["string", "null"]}
+      }
+    },
+    "action_result": {
+      "type": "object", "additionalProperties": false,
+      "required": ["action_id", "status", "engine_response", "engine_turn"],
+      "properties": {"action_id": {"type": "string"},
+        "status": {"enum": ["accepted", "rejected", "timeout", "unknown"]},
+        "engine_response": {"$ref": "#/$defs/jsonValue"}, "engine_turn": {"type": "integer", "minimum": 0}}
+    },
+    "grounded_check": {
+      "type": "object", "additionalProperties": false,
+      "required": ["check_id", "predicate", "args", "snapshot_id", "value", "satisfied", "diagnostic"],
+      "properties": {"check_id": {"type": "string"}, "predicate": {"type": "string"},
+        "args": {"type": "array", "items": {"$ref": "#/$defs/jsonValue"}},
+        "snapshot_id": {"type": "string"}, "value": {"$ref": "#/$defs/jsonValue"},
+        "satisfied": {"type": "boolean"}, "available": {"type": "boolean"},
+        "diagnostic": {"type": ["string", "null"]}}
+    },
+    "metric_sample": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "value", "unit", "labels"],
+      "properties": {"name": {"type": "string"}, "value": {"type": "number"},
+        "unit": {"type": "string"}, "labels": {"type": "object", "additionalProperties": {"type": "string"}}}
+    },
+    "logging_gap": {
+      "type": "object", "additionalProperties": false,
+      "required": ["component", "missing", "detail"],
+      "properties": {"component": {"type": "string"}, "missing": {"type": "string"}, "detail": {"type": "string"}}
+    }
+  }
+}

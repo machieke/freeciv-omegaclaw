@@ -43,7 +43,7 @@ _BUILTIN_DEFAULTS = {
             "base_url": "https://api.anthropic.com/v1/", "api_style": "chat_completions",
         },
         "Ollama-local": {
-            "api_key_env": "OLLAMA_API_KEY", "model": "qwen3.5:9b",
+            "api_key_env": "OLLAMA_API_KEY", "model": "qwen3-coder-next:latest",
             "base_url": "http://localhost:11434/v1", "api_style": "chat_completions",
         },
         "ASIOne": {

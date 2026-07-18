@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omegaclaw.local/schemas/freeciv-beliefs/v1/config.schema.json",
+  "title": "PLN-FreeCiv uncertain belief configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "actionable_threshold", "minimum_logged_confidence", "dampening_lambda", "observation_strength", "observation_confidence", "abduction_strength", "abduction_confidence", "induction_default_probability", "induction_decision_threshold", "induction_minimum_samples", "decay", "sweep"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "actionable_threshold": {"type": "number", "minimum": 0, "maximum": 1},
+    "minimum_logged_confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "dampening_lambda": {"type": "number", "minimum": 0, "maximum": 1},
+    "observation_strength": {"type": "number", "minimum": 0, "maximum": 1},
+    "observation_confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "abduction_strength": {"type": "number", "minimum": 0, "maximum": 1},
+    "abduction_confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "induction_default_probability": {"type": "number", "minimum": 0, "maximum": 1},
+    "induction_decision_threshold": {"type": "number", "minimum": 0, "maximum": 1},
+    "induction_minimum_samples": {"type": "integer", "minimum": 1},
+    "decay": {
+      "type": "object",
+      "required": ["default"],
+      "additionalProperties": {"$ref": "#/$defs/schedule"}
+    },
+    "sweep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dampening_lambda", "actionable_threshold", "decay_window_multiplier"],
+      "properties": {
+        "dampening_lambda": {"type": "array", "minItems": 1, "items": {"type": "number", "minimum": 0, "maximum": 1}},
+        "actionable_threshold": {"type": "array", "minItems": 1, "items": {"type": "number", "minimum": 0, "maximum": 1}},
+        "decay_window_multiplier": {"type": "array", "minItems": 1, "items": {"type": "number", "exclusiveMinimum": 0}}
+      }
+    }
+  },
+  "$defs": {
+    "schedule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["formula", "window_turns"],
+      "properties": {
+        "formula": {"const": "linear-window"},
+        "window_turns": {"type": "integer", "minimum": 1}
+      }
+    }
+  }
+}

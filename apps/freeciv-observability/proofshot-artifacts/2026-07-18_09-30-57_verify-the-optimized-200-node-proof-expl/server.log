@@ -1,0 +1,11 @@
+1784367058006	
+1784367058006	> @omegaclaw/freeciv-observability@0.1.0 dev
+1784367058006	> vite --host 127.0.0.1 --port 4174
+1784367058006	
+1784367058332	
+1784367058332	  VITE v7.3.6  ready in 206 ms
+1784367058332	
+1784367058332	  ➜  Local:   http://127.0.0.1:4174/
+1784367114481	9:31:54 AM [vite] (client) page reload proofshot-artifacts/2026-07-18_09-30-57_verify-the-optimized-200-node-proof-expl/viewer.html
+1784369198235	10:06:38 AM [vite] (client) hmr update /src/App.tsx
+1784369198239	10:06:38 AM [vite] (client) hmr update /src/styles.css

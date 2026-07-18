@@ -1,0 +1,6 @@
+{
+  "branch": "feature/pln-freeciv-agent",
+  "commitSha": "6cdef3936552dd7c2f37eabb157ae4bb41c95119",
+  "startedAt": "2026-07-18T09:23:22.806Z",
+  "description": "Verify FreeCiv Decision Observatory replay navigation, causal timeline, proof explorer, plan/map/audit/metrics views, and browser error-free rendering"
+}

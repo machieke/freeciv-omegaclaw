@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0",
+  "observed_upstream_commit": "26ba7124249f34fd3050ef29bf191bd4d8808018",
+  "http": {
+    "state_path": "/api/game/{game_id}/state?player_id={player_id}&format={format}",
+    "legal_actions_path": "/api/game/{game_id}/legal_actions?player_id={player_id}"
+  },
+  "websocket": {
+    "endpoint_semantics": "complete-url-used-verbatim",
+    "connect": {
+      "type": "llm_connect",
+      "agent_id": "contract-agent",
+      "api_token": "REDACTED",
+      "game_id": "contract-game",
+      "port": 6001
+    },
+    "auth_success": {"type": "auth_success", "player_id": 1},
+    "action": {
+      "type": "action",
+      "action": {
+        "action_type": "unit_move",
+        "actor_id": 7,
+        "dest_x": 2,
+        "dest_y": 3
+      }
+    },
+    "end_turn": {"type": "action", "action": {"action_type": "end_turn"}}
+  },
+  "state_fixture": {
+    "format": "llm_optimized",
+    "turn": 1,
+    "phase": "movement",
+    "player_perspective": 1,
+    "players": {"1": {"id": 1, "name": "Romans", "gold": 20}},
+    "units": {"7": {"id": 7, "owner": 1, "type": "Warriors", "x": 1, "y": 2}},
+    "cities": {"1": {"id": 1, "owner": 1, "name": "Rome", "x": 1, "y": 2, "population": 2}},
+    "techs": {"player1": ["Alphabet"]},
+    "economic": {"gold": 20, "research": 4},
+    "strategic": {"score": 10},
+    "tactical": {}
+  },
+  "legal_actions_fixture": [
+    {"type": "unit_move", "unit_id": 7, "target": {"x": 2, "y": 3}},
+    {"type": "unit_fortify", "unit_id": 7},
+    {"type": "end_turn"}
+  ],
+  "invariants": [
+    "authenticate-before-action",
+    "full-legal-payload-match",
+    "end-turn-uses-action-envelope",
+    "turn-advance-is-observed-not-assumed",
+    "missing-authoritative-data-is-unavailable"
+  ]
+}

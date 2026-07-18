@@ -1,0 +1,6 @@
+{
+  "branch": "feature/pln-freeciv-agent",
+  "commitSha": "6cdef3936552dd7c2f37eabb157ae4bb41c95119",
+  "startedAt": "2026-07-18T10:07:09.176Z",
+  "description": "Verify deep proof expansion and bounded atom windows in the FreeCiv Decision Observatory"
+}

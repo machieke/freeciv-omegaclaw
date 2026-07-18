@@ -1,0 +1,1 @@
+{"caused_by":[],"event_id":"event-000001","game_id":"synthetic-bad-orphan","payload":{"action":{"type":"end_turn"},"action_id":"orphan","legal_actions_digest":"0000000000000000000000000000000000000000000000000000000000000000","plan_id":null,"snapshot_id":"missing","step_id":null},"schema_version":"1.0","seq":0,"ts":"2026-01-01T00:00:00Z","turn":1,"type":"action_sent"}

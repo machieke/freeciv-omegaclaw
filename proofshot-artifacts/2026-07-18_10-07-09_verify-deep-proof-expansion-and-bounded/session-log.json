@@ -1,0 +1,57 @@
+[
+  {
+    "action": "open http://127.0.0.1:4175/?view=proofs&turn=1&seq=4",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-18T10:07:44.910Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 5.7,
+    "timestamp": "2026-07-18T10:07:45.583Z"
+  },
+  {
+    "action": "upload @e15 /home/purplezky/work/takopi/freeciv-omegaclaw/artifacts/freeciv/m7-engine-cognitive-index-fix/games/cognitive_index_fix/e_full_loop/104729-10/events.jsonl",
+    "relativeTimeSec": 49.1,
+    "timestamp": "2026-07-18T10:08:28.923Z"
+  },
+  {
+    "action": "upload input[type=file] /home/purplezky/work/takopi/freeciv-omegaclaw/artifacts/freeciv/m7-engine-cognitive-index-fix/games/cognitive_index_fix/e_full_loop/104729-10/events.jsonl",
+    "relativeTimeSec": 55.7,
+    "timestamp": "2026-07-18T10:08:35.568Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 56.1,
+    "timestamp": "2026-07-18T10:08:35.971Z"
+  },
+  {
+    "action": "screenshot proof-tree-real-engine.png",
+    "relativeTimeSec": 62.6,
+    "timestamp": "2026-07-18T10:08:42.476Z"
+  },
+  {
+    "action": "click @e25",
+    "relativeTimeSec": 64.1,
+    "timestamp": "2026-07-18T10:08:43.985Z"
+  },
+  {
+    "action": "screenshot proof-node-selected.png",
+    "relativeTimeSec": 64.7,
+    "timestamp": "2026-07-18T10:08:44.529Z"
+  },
+  {
+    "action": "click @e10",
+    "relativeTimeSec": 66.1,
+    "timestamp": "2026-07-18T10:08:45.981Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 66.5,
+    "timestamp": "2026-07-18T10:08:46.376Z"
+  },
+  {
+    "action": "screenshot atom-window-controls.png",
+    "relativeTimeSec": 66.9,
+    "timestamp": "2026-07-18T10:08:46.759Z"
+  }
+]

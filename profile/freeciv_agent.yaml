@@ -1,0 +1,88 @@
+schema_version: "1.0"
+
+defaults:
+  condition: a_stock_llm
+  events_schema_version: "1.0"
+  ruleset: civ2civ3
+  turn_limit: 200
+
+beliefs:
+  schema_version: "1.0"
+  actionable_threshold: 0.50
+  minimum_logged_confidence: 0.05
+  dampening_lambda: 0.10
+  observation_strength: 1.0
+  observation_confidence: 0.90
+  abduction_strength: 0.95
+  abduction_confidence: 0.90
+  induction_default_probability: 0.50
+  induction_decision_threshold: 0.50
+  induction_minimum_samples: 1
+  decay:
+    default:
+      formula: linear-window
+      window_turns: 8
+    at:
+      formula: linear-window
+      window_turns: 4
+    threat-at:
+      formula: linear-window
+      window_turns: 6
+    has-tech:
+      formula: linear-window
+      window_turns: 20
+  sweep:
+    dampening_lambda: [0.0, 0.1, 0.2]
+    actionable_threshold: [0.4, 0.5, 0.6]
+    decay_window_multiplier: [0.5, 1.0, 2.0]
+
+conditions:
+  a_stock_llm:
+    description: Stock plain-LLM agent using the proven transport and action gate.
+    capabilities:
+      authoritative_state: false
+      dependency_oracle: false
+      scheduler: false
+      uncertain_beliefs: false
+      assumption_monitor: false
+      constrained_llm: false
+
+  b_state_oracle:
+    description: Query-only authoritative state oracle without dependency inference.
+    capabilities:
+      authoritative_state: true
+      dependency_oracle: false
+      scheduler: false
+      uncertain_beliefs: false
+      assumption_monitor: false
+      constrained_llm: false
+
+  c_dependency_scheduler:
+    description: Crisp dependency oracle and resource-consistent scheduler.
+    capabilities:
+      authoritative_state: true
+      dependency_oracle: true
+      scheduler: true
+      uncertain_beliefs: false
+      assumption_monitor: false
+      constrained_llm: false
+
+  d_uncertain_monitor:
+    description: Crisp stack plus uncertain beliefs and assumption monitoring.
+    capabilities:
+      authoritative_state: true
+      dependency_oracle: true
+      scheduler: true
+      uncertain_beliefs: true
+      assumption_monitor: true
+      constrained_llm: false
+
+  e_full_loop:
+    description: Full constrained proposer, verifier, grader, planner, and monitored beliefs.
+    capabilities:
+      authoritative_state: true
+      dependency_oracle: true
+      scheduler: true
+      uncertain_beliefs: true
+      assumption_monitor: true
+      constrained_llm: true

@@ -1,0 +1,47 @@
+[
+  {
+    "action": "open http://127.0.0.1:4174",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-18T09:31:31.746Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 5.7,
+    "timestamp": "2026-07-18T09:31:32.447Z"
+  },
+  {
+    "action": "screenshot proofshot-timeline-before.png",
+    "relativeTimeSec": 10.5,
+    "timestamp": "2026-07-18T09:31:37.332Z"
+  },
+  {
+    "action": "click @e9",
+    "relativeTimeSec": 11.9,
+    "timestamp": "2026-07-18T09:31:38.677Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 12.3,
+    "timestamp": "2026-07-18T09:31:39.059Z"
+  },
+  {
+    "action": "screenshot proofshot-proof-after.png",
+    "relativeTimeSec": 12.6,
+    "timestamp": "2026-07-18T09:31:39.423Z"
+  },
+  {
+    "action": "click @e21",
+    "relativeTimeSec": 17.9,
+    "timestamp": "2026-07-18T09:31:44.663Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 18.3,
+    "timestamp": "2026-07-18T09:31:45.049Z"
+  },
+  {
+    "action": "screenshot proofshot-proof-selected.png",
+    "relativeTimeSec": 18.6,
+    "timestamp": "2026-07-18T09:31:45.383Z"
+  }
+]

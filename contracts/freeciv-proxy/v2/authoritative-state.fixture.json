@@ -1,0 +1,108 @@
+{
+  "format": "pln_authoritative",
+  "turn": 12,
+  "phase": "movement",
+  "player_id": 0,
+  "game": {"turn": 12, "phase": "movement", "current_player": 0},
+  "authoritative": {
+    "source_seq": 431,
+    "player": {
+      "gold": 37,
+      "gold_per_turn": 4,
+      "tax": 30,
+      "science": 60,
+      "luxury": 10,
+      "tech_upkeep": 1
+    },
+    "research": {
+      "researching": 11,
+      "researching_name": "Writing",
+      "researching_cost": 80,
+      "bulbs_researched": 24,
+      "beakers_per_turn": 9,
+      "inventions": ["2", "2", "1"]
+    },
+    "ruleset": {
+      "ready": true,
+      "unit_types": 54,
+      "improvements": 69,
+      "techs": 87
+    }
+  },
+  "techs": {"player0": ["Alphabet", "Bronze Working"]},
+  "economic": {
+    "gold": 37,
+    "gold_per_turn": 4,
+    "research": 24,
+    "research_target": "Writing"
+  },
+  "units": {
+    "7": {
+      "id": 7,
+      "owner": 0,
+      "type": "Warriors",
+      "type_id": 4,
+      "tile": 82,
+      "x": 2,
+      "y": 2,
+      "moves_left": 3,
+      "hp": 10,
+      "activity": "idle",
+      "upkeep": [0, 0, 0, 0, 0, 0]
+    }
+  },
+  "cities": {
+    "3": {
+      "id": 3,
+      "owner": 0,
+      "name": "Rome",
+      "tile": 82,
+      "x": 2,
+      "y": 2,
+      "size": 3,
+      "production_kind": 0,
+      "production_value": 4,
+      "food_stock": 11,
+      "shield_stock": 6,
+      "surplus": [2, 3, 4, 1, 0, 9],
+      "prod": [8, 5, 7, 2, 0, 10],
+      "buildability": {
+        "available": true,
+        "unit_ids": [4],
+        "improvement_ids": [1],
+        "options": [
+          {"type": "unit", "id": 4, "name": "Warriors"},
+          {"type": "improvement", "id": 1, "name": "Barracks I"}
+        ]
+      }
+    }
+  },
+  "map": {
+    "width": 40,
+    "height": 25,
+    "tiles": [{"index": 82, "terrain": 1, "known": 2}],
+    "visibility": {"82": true, "83": false}
+  },
+  "visible_tiles": [82],
+  "legal_actions": [
+    {
+      "action_type": "unit_move",
+      "actor_id": 7,
+      "target": {"direction": "e", "x": 3, "y": 2},
+      "is_valid": true
+    },
+    {
+      "action_type": "city_production",
+      "city_id": 3,
+      "production_kind": 0,
+      "production_value": 4,
+      "is_valid": true
+    },
+    {
+      "action_type": "unit_disband",
+      "actor_id": 7,
+      "is_valid": false,
+      "reason": "fixture invalid action"
+    }
+  ]
+}

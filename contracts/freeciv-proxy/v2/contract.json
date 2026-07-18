@@ -1,0 +1,29 @@
+{
+  "schema_version": "2.0",
+  "upstream_base_commit": "26ba7124249f34fd3050ef29bf191bd4d8808018",
+  "format": "pln_authoritative",
+  "state_path": "/api/game/{game_id}/state?player_id={player_id}&format=pln_authoritative",
+  "identity": ["game_id", "turn", "authoritative.source_seq", "state_hash"],
+  "required_authoritative_packets": [
+    "PACKET_PLAYER_INFO",
+    "PACKET_RESEARCH_INFO",
+    "PACKET_CITY_INFO",
+    "PACKET_WEB_CITY_INFO_ADDITION",
+    "PACKET_RULESETS_READY"
+  ],
+  "output_indexes": {
+    "food": 0,
+    "shield": 1,
+    "trade": 2,
+    "gold": 3,
+    "luxury": 4,
+    "science": 5
+  },
+  "fail_closed": [
+    "missing ruleset-ready packet blocks all action submission",
+    "missing city buildability bitvector blocks production for that city",
+    "missing rate fields makes the corresponding grounded accessor unavailable",
+    "legal actions are exact canonical payload matches, not inferred permissions"
+  ],
+  "fixture": "authoritative-state.fixture.json"
+}

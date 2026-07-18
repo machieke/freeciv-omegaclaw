@@ -1,0 +1,102 @@
+[
+  {
+    "action": "click button:has-text(\"07 Metrics\")",
+    "relativeTimeSec": 4.8,
+    "timestamp": "2026-07-18T09:23:32.682Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 5.2,
+    "timestamp": "2026-07-18T09:23:33.023Z"
+  },
+  {
+    "action": "screenshot 07-metrics-selector.png",
+    "relativeTimeSec": 5.6,
+    "timestamp": "2026-07-18T09:23:33.424Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll(\"button\")).map((b,i)=>[i,b.textContent])",
+    "relativeTimeSec": 13.9,
+    "timestamp": "2026-07-18T09:23:41.812Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll(\"button\")).find(b=>b.textContent.includes(\"07Metrics\")).click()",
+    "relativeTimeSec": 20,
+    "timestamp": "2026-07-18T09:23:47.909Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 20.4,
+    "timestamp": "2026-07-18T09:23:48.273Z"
+  },
+  {
+    "action": "screenshot 08-metrics.png",
+    "relativeTimeSec": 20.7,
+    "timestamp": "2026-07-18T09:23:48.591Z"
+  },
+  {
+    "action": "open http://127.0.0.1:4174",
+    "relativeTimeSec": 29.6,
+    "timestamp": "2026-07-18T09:23:57.454Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 30.2,
+    "timestamp": "2026-07-18T09:23:58.108Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll(\"button\")).find(b=>b.textContent.includes(\"04Plan board\")).click()",
+    "relativeTimeSec": 30.7,
+    "timestamp": "2026-07-18T09:23:58.548Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 31.1,
+    "timestamp": "2026-07-18T09:23:58.926Z"
+  },
+  {
+    "action": "screenshot 09-plan-board.png",
+    "relativeTimeSec": 31.4,
+    "timestamp": "2026-07-18T09:23:59.286Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll(\"button\")).find(b=>b.textContent.includes(\"05Map overlay\")).click()",
+    "relativeTimeSec": 31.8,
+    "timestamp": "2026-07-18T09:23:59.712Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 32.2,
+    "timestamp": "2026-07-18T09:24:00.065Z"
+  },
+  {
+    "action": "screenshot 10-map-overlay.png",
+    "relativeTimeSec": 32.5,
+    "timestamp": "2026-07-18T09:24:00.413Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll(\"button\")).find(b=>b.textContent.includes(\"06Epistemic audit\")).click()",
+    "relativeTimeSec": 32.9,
+    "timestamp": "2026-07-18T09:24:00.820Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 33.3,
+    "timestamp": "2026-07-18T09:24:01.197Z"
+  },
+  {
+    "action": "screenshot 11-epistemic-audit.png",
+    "relativeTimeSec": 33.7,
+    "timestamp": "2026-07-18T09:24:01.542Z"
+  },
+  {
+    "action": "screenshot 01-timeline.png",
+    "relativeTimeSec": 38.5,
+    "timestamp": "2026-07-18T09:24:06.409Z"
+  },
+  {
+    "action": "click @e28",
+    "relativeTimeSec": 39.9,
+    "timestamp": "2026-07-18T09:24:07.748Z"
+  }
+]

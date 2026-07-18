@@ -1,0 +1,10 @@
+
+executable('freeciv-research-parity',
+  'tools/research_parity.c',
+  'client/helpdata.c',
+  link_with: [common_lib, server_lib, tool_lib, ais],
+  include_directories: [tool_inc,
+                        include_directories('client', 'client/include')],
+  dependencies: [m_dep, net_dep, readline_dep, gettext_dep],
+  install: false
+  )

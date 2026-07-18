@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omegaclaw.local/schemas/freeciv-state/v1/snapshot.schema.json",
+  "title": "PLN-FreeCiv authoritative proxy state",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["turn", "phase", "player_id", "authoritative", "techs", "units", "cities", "map", "legal_actions"],
+  "properties": {
+    "turn": {"type": "integer", "minimum": 0},
+    "phase": {"type": "string"},
+    "player_id": {"type": "integer", "minimum": 0},
+    "authoritative": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_seq", "player", "research", "ruleset"],
+      "properties": {
+        "source_seq": {"type": "integer", "minimum": 0},
+        "player": {
+          "type": "object",
+          "required": ["gold", "gold_per_turn", "tax", "science", "luxury"],
+          "properties": {
+            "gold": {"type": "integer"}, "gold_per_turn": {"type": "integer"},
+            "tax": {"type": "integer", "minimum": 0, "maximum": 100},
+            "science": {"type": "integer", "minimum": 0, "maximum": 100},
+            "luxury": {"type": "integer", "minimum": 0, "maximum": 100}
+          }
+        },
+        "research": {
+          "type": "object",
+          "required": ["bulbs_researched", "beakers_per_turn"],
+          "properties": {
+            "bulbs_researched": {"type": "integer"},
+            "beakers_per_turn": {"type": "integer"},
+            "researching": {"type": ["integer", "null"]},
+            "researching_cost": {"type": ["integer", "null"]}
+          }
+        },
+        "ruleset": {
+          "type": "object",
+          "required": ["ready"],
+          "properties": {"ready": {"const": true}}
+        }
+      }
+    },
+    "techs": {"type": "object"},
+    "units": {"oneOf": [{"type": "object"}, {"type": "array"}]},
+    "cities": {"oneOf": [{"type": "object"}, {"type": "array"}]},
+    "map": {"type": "object", "required": ["width", "height", "tiles"]},
+    "legal_actions": {"oneOf": [{"type": "object"}, {"type": "array"}]}
+  }
+}

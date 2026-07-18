@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omegaclaw.local/schemas/freeciv-harness/v1/aggregate.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "configuration_hash", "conditions", "marginal_deltas", "induction", "grading_ab", "failures", "methods"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "configuration_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "calibration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bucket_width", "minimum_bucket_samples", "tolerance", "pooled", "per_condition", "per_opponent"],
+      "properties": {
+        "bucket_width": {"const": 0.1},
+        "minimum_bucket_samples": {"type": "integer", "minimum": 1},
+        "tolerance": {"type": "number", "minimum": 0, "maximum": 1},
+        "pooled": {"$ref": "#/$defs/calibrationGroup"},
+        "per_condition": {"type": "object", "additionalProperties": {"$ref": "#/$defs/calibrationGroup"}},
+        "per_opponent": {"type": "object", "additionalProperties": {"$ref": "#/$defs/calibrationGroup"}}
+      }
+    },
+    "conditions": {"type": "object"},
+    "marginal_deltas": {"type": "object"},
+    "induction": {"type": "object"},
+    "grading_ab": {"type": "object"},
+    "failures": {"type": "array", "items": {"type": "object"}},
+    "methods": {"type": "object"}
+  },
+  "$defs": {
+    "calibrationGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["samples", "buckets"],
+      "properties": {
+        "samples": {"type": "integer", "minimum": 0},
+        "buckets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["bucket", "bucket_strength", "samples", "true", "empirical_frequency", "absolute_error", "sufficient_sample", "within_tolerance"],
+            "properties": {
+              "bucket": {"type": "string", "pattern": "^[0-9]\\.[0-9]$"},
+              "bucket_strength": {"type": "number", "minimum": 0, "maximum": 1},
+              "samples": {"type": "integer", "minimum": 1},
+              "true": {"type": "integer", "minimum": 0},
+              "empirical_frequency": {"type": "number", "minimum": 0, "maximum": 1},
+              "absolute_error": {"type": "number", "minimum": 0, "maximum": 1},
+              "sufficient_sample": {"type": "boolean"},
+              "within_tolerance": {"type": ["boolean", "null"]}
+            }
+          }
+        }
+      }
+    }
+  }
+}

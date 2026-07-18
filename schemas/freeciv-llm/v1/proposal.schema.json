@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omegaclaw.local/schemas/freeciv-llm/v1/proposal.schema.json",
+  "title": "PLN-FreeCiv constrained LLM proposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "proposal_id", "goals", "claims", "rationale", "selection"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "proposal_id": {"type": "string", "minLength": 1},
+    "goals": {
+      "type": "array", "minItems": 1, "maxItems": 5,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["goal_id", "target_id", "predicate", "arguments"],
+        "properties": {
+          "goal_id": {"type": "string", "minLength": 1},
+          "target_id": {"type": "string", "minLength": 1},
+          "predicate": {"enum": ["researchable", "buildable"]},
+          "arguments": {"type": "array", "minItems": 2, "items": {"type": ["string", "number"]}}
+        }
+      }
+    },
+    "claims": {
+      "type": "array", "maxItems": 20,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["claim_id", "text", "predicate", "arguments", "asserted"],
+        "properties": {
+          "claim_id": {"type": "string", "minLength": 1},
+          "text": {"type": "string", "minLength": 1},
+          "predicate": {"type": "string", "minLength": 1},
+          "arguments": {"type": "array", "items": {"type": ["string", "number", "boolean"]}},
+          "asserted": {"type": "boolean"}
+        }
+      }
+    },
+    "rationale": {"type": "string", "maxLength": 2000},
+    "selection": {"type": ["string", "null"]}
+  }
+}
