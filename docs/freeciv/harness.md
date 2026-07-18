@@ -45,6 +45,13 @@ PYTHONPATH=src:benchmarks python3 scripts/freeciv/run_harness.py \
   --workers 1 --limit-seeds 1 --main-only --condition e_full_loop
 ```
 
+Scheduler-enabled engine conditions also use the declared grounded gameplay impact
+policy in `impact_policy`. See [impact-policy.md](impact-policy.md) for its exact
+action priorities, safety boundaries, and decision-impact metrics. For CPU-hosted
+Ollama, preload the configured model before timed runs if its cold load exceeds the
+per-turn model budget; the harness reports any resulting safe fallbacks rather than
+hiding them.
+
 Only one engine-live controller may run at once. It owns
 `artifacts/freeciv/.engine-live.lock`; its workers receive fixed ports within
 6001-6009 and each worker serializes its own games. Induction games are globally

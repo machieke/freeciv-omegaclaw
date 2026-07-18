@@ -29,6 +29,11 @@ model:
   turn_timeout_seconds: 30
   corrective_attempts: 2
   max_tokens: 400
+impact_policy:
+  max_actions_per_turn: 8
+  expansion_city_target: 3
+  settle_min_distance: 3
+  preserve_city_defenders: true
 seeds:
   - 104729
   - 104743

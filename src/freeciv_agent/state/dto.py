@@ -122,13 +122,32 @@ def _executable_action(row, player_id=None):
         }
     if kind == "unit_action":
         action = str(row.get("action", ""))
+        action_type = action if action.startswith("unit_") else "unit_" + action
         normalized = {
-            "action_type": action if action.startswith("unit_") else "unit_" + action,
-            "actor_id": row.get("unit_id", row.get("actor_id")),
+            "action_type": action_type,
+            "actor_id": _integer(
+                row.get("unit_id", row.get("actor_id")),
+                "legal_actions.{}.actor_id".format(action_type), required=True),
         }
         params = row.get("params")
         if isinstance(params, dict) and params:
-            normalized["target"] = copy.deepcopy(params)
+            # StateExtractor wraps positional action parameters as
+            # ``params.target``.  The public LLM action handler expects those
+            # coordinates directly under ``target``; retaining the wrapper
+            # makes a proxy-advertised attack fail its own E235 validation.
+            positional = params.get("target")
+            if (action_type in (
+                    "unit_attack", "unit_suicide_attack", "unit_bombard",
+                    "unit_capture", "unit_wipe", "unit_conquer_city",
+                    "unit_nuke", "unit_nuke_city", "unit_nuke_units")
+                    and isinstance(positional, dict)):
+                target = copy.deepcopy(positional)
+                for field in ("target_unit_id", "target_city_id"):
+                    if field in params:
+                        target[field] = copy.deepcopy(params[field])
+                normalized["target"] = target
+            else:
+                normalized["target"] = copy.deepcopy(params)
         return normalized
     normalized = {"action_type": kind}
     if row.get("unit_id") is not None:

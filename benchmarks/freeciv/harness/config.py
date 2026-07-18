@@ -46,6 +46,18 @@ def load(path=None):
     tolerance = calibration.get("tolerance")
     if not isinstance(tolerance, (int, float)) or not 0 <= tolerance <= 1:
         raise ValueError("calibration.tolerance must be in [0,1]")
+    impact = value.get("impact_policy")
+    if not isinstance(impact, dict):
+        raise ValueError("impact_policy configuration is required")
+    for key, lower, upper in (
+            ("max_actions_per_turn", 1, 32),
+            ("expansion_city_target", 1, 20),
+            ("settle_min_distance", 1, 12)):
+        setting = impact.get(key)
+        if isinstance(setting, bool) or not isinstance(setting, int) or not lower <= setting <= upper:
+            raise ValueError("impact_policy.{} must be in {}..{}".format(key, lower, upper))
+    if not isinstance(impact.get("preserve_city_defenders"), bool):
+        raise ValueError("impact_policy.preserve_city_defenders must be boolean")
     value["beliefs"] = belief_config()
     value["capabilities"] = {
         name: condition(name)["capabilities"] for name in CONDITION_ORDER}

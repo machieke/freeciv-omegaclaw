@@ -1,0 +1,272 @@
+[
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 4.4,
+    "timestamp": "2026-07-18T13:57:01.791Z"
+  },
+  {
+    "action": "upload input[type=file] /home/purplezky/work/takopi/freeciv-omegaclaw/artifacts/freeciv/verify-session-smoke/games/main/e_full_loop/104729-00/events.jsonl",
+    "relativeTimeSec": 11.2,
+    "timestamp": "2026-07-18T13:57:08.578Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 12.5,
+    "timestamp": "2026-07-18T13:57:09.912Z"
+  },
+  {
+    "action": "click @e19",
+    "relativeTimeSec": 21,
+    "timestamp": "2026-07-18T13:57:18.366Z"
+  },
+  {
+    "action": "screenshot verify-01-timeline.png",
+    "relativeTimeSec": 21.3,
+    "timestamp": "2026-07-18T13:57:18.748Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 21.8,
+    "timestamp": "2026-07-18T13:57:19.188Z"
+  },
+  {
+    "action": "click @e50",
+    "relativeTimeSec": 27.2,
+    "timestamp": "2026-07-18T13:57:24.639Z"
+  },
+  {
+    "action": "screenshot verify-02-event-detail.png",
+    "relativeTimeSec": 27.6,
+    "timestamp": "2026-07-18T13:57:25.044Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 28.1,
+    "timestamp": "2026-07-18T13:57:25.466Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 28.5,
+    "timestamp": "2026-07-18T13:57:25.861Z"
+  },
+  {
+    "action": "click @e18",
+    "relativeTimeSec": 35.8,
+    "timestamp": "2026-07-18T13:57:33.239Z"
+  },
+  {
+    "action": "click @e9",
+    "relativeTimeSec": 37.2,
+    "timestamp": "2026-07-18T13:57:34.587Z"
+  },
+  {
+    "action": "screenshot verify-03-proof.png",
+    "relativeTimeSec": 37.6,
+    "timestamp": "2026-07-18T13:57:34.967Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 38,
+    "timestamp": "2026-07-18T13:57:35.399Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 42.9,
+    "timestamp": "2026-07-18T13:57:40.294Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 46.1,
+    "timestamp": "2026-07-18T13:57:43.553Z"
+  },
+  {
+    "action": "upload input[type=file] /home/purplezky/work/takopi/freeciv-omegaclaw/Autotests/fixtures/freeciv-events/v1/normal-crisp.jsonl",
+    "relativeTimeSec": 55.3,
+    "timestamp": "2026-07-18T13:57:52.700Z"
+  },
+  {
+    "action": "click @e19",
+    "relativeTimeSec": 57.8,
+    "timestamp": "2026-07-18T13:57:55.169Z"
+  },
+  {
+    "action": "screenshot verify-04-proof-tree.png",
+    "relativeTimeSec": 58.2,
+    "timestamp": "2026-07-18T13:57:55.562Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 58.6,
+    "timestamp": "2026-07-18T13:57:55.983Z"
+  },
+  {
+    "action": "upload input[type=file] /home/purplezky/work/takopi/freeciv-omegaclaw/Autotests/fixtures/freeciv-events/v1/bad-seq-gap.jsonl",
+    "relativeTimeSec": 66.9,
+    "timestamp": "2026-07-18T13:58:04.320Z"
+  },
+  {
+    "action": "screenshot verify-05-seq-gap.png",
+    "relativeTimeSec": 68.3,
+    "timestamp": "2026-07-18T13:58:05.699Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 68.7,
+    "timestamp": "2026-07-18T13:58:06.074Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 73,
+    "timestamp": "2026-07-18T13:58:10.373Z"
+  },
+  {
+    "action": "click @e13",
+    "relativeTimeSec": 78,
+    "timestamp": "2026-07-18T13:58:15.411Z"
+  },
+  {
+    "action": "screenshot verify-06-audit-seqgap.png",
+    "relativeTimeSec": 78.4,
+    "timestamp": "2026-07-18T13:58:15.775Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 78.8,
+    "timestamp": "2026-07-18T13:58:16.235Z"
+  },
+  {
+    "action": "click @e8",
+    "relativeTimeSec": 86.7,
+    "timestamp": "2026-07-18T13:58:24.063Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 87.1,
+    "timestamp": "2026-07-18T13:58:24.467Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 87.4,
+    "timestamp": "2026-07-18T13:58:24.830Z"
+  },
+  {
+    "action": "eval document.querySelector('.anomaly-bar')?.textContent ?? 'NO ANOMALY BAR'",
+    "relativeTimeSec": 108.6,
+    "timestamp": "2026-07-18T13:58:46.029Z"
+  },
+  {
+    "action": "upload input[type=file] /home/purplezky/work/takopi/freeciv-omegaclaw/Autotests/fixtures/freeciv-events/v1/bad-write-through.jsonl",
+    "relativeTimeSec": 175.2,
+    "timestamp": "2026-07-18T13:59:52.572Z"
+  },
+  {
+    "action": "click @e13",
+    "relativeTimeSec": 177.5,
+    "timestamp": "2026-07-18T13:59:54.882Z"
+  },
+  {
+    "action": "screenshot verify-07-write-through.png",
+    "relativeTimeSec": 177.9,
+    "timestamp": "2026-07-18T13:59:55.262Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 178.3,
+    "timestamp": "2026-07-18T13:59:55.660Z"
+  },
+  {
+    "action": "upload input[type=file] /home/purplezky/work/takopi/freeciv-omegaclaw/Autotests/fixtures/freeciv-events/v1/bad-crisp-drift.jsonl",
+    "relativeTimeSec": 184,
+    "timestamp": "2026-07-18T14:00:01.453Z"
+  },
+  {
+    "action": "click @e9",
+    "relativeTimeSec": 186.3,
+    "timestamp": "2026-07-18T14:00:03.741Z"
+  },
+  {
+    "action": "screenshot verify-08-crisp-drift.png",
+    "relativeTimeSec": 186.7,
+    "timestamp": "2026-07-18T14:00:04.115Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 187.2,
+    "timestamp": "2026-07-18T14:00:04.564Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 190.2,
+    "timestamp": "2026-07-18T14:00:07.560Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 197,
+    "timestamp": "2026-07-18T14:00:14.385Z"
+  },
+  {
+    "action": "eval document.querySelector('.violation')?.textContent ?? 'NO VIOLATION BADGE'",
+    "relativeTimeSec": 200.8,
+    "timestamp": "2026-07-18T14:00:18.174Z"
+  },
+  {
+    "action": "upload input[type=file] /tmp/garbage.jsonl",
+    "relativeTimeSec": 224.8,
+    "timestamp": "2026-07-18T14:00:42.158Z"
+  },
+  {
+    "action": "eval document.querySelector('.anomaly-bar')?.textContent ?? 'NO ANOMALY BAR'",
+    "relativeTimeSec": 226.1,
+    "timestamp": "2026-07-18T14:00:43.520Z"
+  },
+  {
+    "action": "screenshot verify-09-garbage.png",
+    "relativeTimeSec": 226.5,
+    "timestamp": "2026-07-18T14:00:43.885Z"
+  },
+  {
+    "action": "upload input[type=file] /home/purplezky/work/takopi/freeciv-omegaclaw/artifacts/freeciv/verify-session-smoke/aggregate-events.jsonl",
+    "relativeTimeSec": 231,
+    "timestamp": "2026-07-18T14:00:48.410Z"
+  },
+  {
+    "action": "click @e14",
+    "relativeTimeSec": 233.3,
+    "timestamp": "2026-07-18T14:00:50.702Z"
+  },
+  {
+    "action": "screenshot verify-10-metrics.png",
+    "relativeTimeSec": 233.7,
+    "timestamp": "2026-07-18T14:00:51.068Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 234.1,
+    "timestamp": "2026-07-18T14:00:51.476Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 239.7,
+    "timestamp": "2026-07-18T14:00:57.147Z"
+  },
+  {
+    "action": "click text=07",
+    "relativeTimeSec": 240.1,
+    "timestamp": "2026-07-18T14:00:57.512Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Metrics'))?.click()",
+    "relativeTimeSec": 240.5,
+    "timestamp": "2026-07-18T14:00:57.874Z"
+  },
+  {
+    "action": "screenshot verify-10-metrics.png",
+    "relativeTimeSec": 241.4,
+    "timestamp": "2026-07-18T14:00:58.820Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 241.9,
+    "timestamp": "2026-07-18T14:00:59.262Z"
+  }
+]

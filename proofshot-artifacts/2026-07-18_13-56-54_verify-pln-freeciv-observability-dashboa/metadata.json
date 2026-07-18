@@ -1,0 +1,6 @@
+{
+  "branch": "feature/pln-freeciv-agent",
+  "commitSha": "0b202c13ec677aeb4f705da9dc90599d18f5f681",
+  "startedAt": "2026-07-18T13:56:54.297Z",
+  "description": "Verify PLN FreeCiv observability dashboard: replay a harness-generated events.jsonl and check diagnostics on bad fixtures"
+}

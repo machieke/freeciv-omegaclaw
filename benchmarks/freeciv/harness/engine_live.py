@@ -26,7 +26,7 @@ from freeciv_agent.monitoring import AtomRevision, LocalRepairer, PlanMonitor
 from freeciv_agent.oracle import CrispStateView, DependencyOracle, Goal
 from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     PlanStep, PlanningSnapshot, ProofScheduler,
-                                    ResourceLedger)
+                                    ResourceLedger, GroundedImpactPlanner)
 from freeciv_agent.rulesets.compiler import compile_ruleset
 from freeciv_agent.state import ProxyStateDTO, SnapshotStore, StateSummaryService
 
@@ -797,6 +797,8 @@ async def _play(run_dir, manifest, context):
                  if context.capabilities["uncertain_beliefs"] else None)
     execution_monitor = (PlanMonitor()
                          if context.capabilities["scheduler"] else None)
+    impact_planner = (GroundedImpactPlanner(manifest["impact_policy"])
+                      if context.capabilities["scheduler"] else None)
     memory = None
     induction_prediction = None
     induction_estimate = None
@@ -818,6 +820,13 @@ async def _play(run_dir, manifest, context):
     blocked_moves = set()
     prior_scout = None
     action_count = attempted_count = rejected = zombie_blocked = 0
+    decision_stats = {
+        "impact_actions": 0, "meaningful_actions": 0,
+        "production_changes": 0, "tactical_actions": 0,
+        "effect_observed": 0, "no_effect": 0, "safe_model_fallbacks": 0,
+    }
+    action_type_counts = {}
+    impact_turns = set()
     replan_latencies = []
     model_latencies = []
     full_loop_latencies = []
@@ -864,6 +873,28 @@ async def _play(run_dir, manifest, context):
         opponent_rows = [row for row in global_state["players"].values()
                          if row.get("id") != player_id and row.get("score", -1) >= 0]
         opponent = opponent_rows[0] if opponent_rows else {"id": 1, "name": "builtin-ai"}
+        if impact_planner is not None:
+            impact_planner.observe(snapshot)
+        initial_city_count = len(snapshot.cities)
+        initial_tech_count = len(snapshot.research.known_techs)
+        initial_position_count = (len(impact_planner.visited_positions)
+                                  if impact_planner is not None else 0)
+        initial_player_row = global_state.get("players", {}).get(str(player_id), {})
+        initial_score = float(initial_player_row.get("score", 0))
+
+        def record_meaningful_action(action, impact=False, category=None):
+            action_type = str(action.get("action_type", "unknown"))
+            if action_type == "end_turn":
+                return
+            decision_stats["meaningful_actions"] += 1
+            action_type_counts[action_type] = action_type_counts.get(action_type, 0) + 1
+            if impact:
+                decision_stats["impact_actions"] += 1
+                impact_turns.add(snapshot.turn)
+            if action_type == "city_production":
+                decision_stats["production_changes"] += 1
+            if category in ("tactical_attack", "tactical_move"):
+                decision_stats["tactical_actions"] += 1
 
         distance = _enemy_distance(
             raw, global_state, player_id, snapshot.map_width, snapshot.map_height)
@@ -939,6 +970,7 @@ async def _play(run_dir, manifest, context):
                 ir, catalog, oracle, scheduler, writer, parent)
             model_latencies.append(turn_model_latency)
             corrections += turn_corrections
+            decision_stats["safe_model_fallbacks"] += int(safe_model_fallback)
             if isinstance(active_plan, Plan):
                 execution_monitor.register(active_plan)
 
@@ -955,6 +987,7 @@ async def _play(run_dir, manifest, context):
                 rejected += int(outcome.submitted and outcome.status != "accepted")
                 if outcome.status != "accepted":
                     raise RuntimeError("found-city action failed: {}".format(outcome.reason))
+                record_meaningful_action(found_city)
                 raw, snapshot, parent = await refresh_after_action(
                     snapshot, parent, predicate=lambda value: bool(value.cities))
 
@@ -969,6 +1002,7 @@ async def _play(run_dir, manifest, context):
                 if outcome.status != "accepted":
                     raise RuntimeError("planned action failed: {}".format(outcome.reason))
                 planned_actions += 1
+                record_meaningful_action(planned_action)
                 raw, snapshot, parent = await refresh_after_action(
                     snapshot, parent,
                     predicate=lambda value: value.research.target_name is not None)
@@ -986,10 +1020,56 @@ async def _play(run_dir, manifest, context):
                     if outcome.status != "accepted":
                         raise RuntimeError(
                             "model-selected action failed: {}".format(outcome.reason))
+                    record_meaningful_action(direct_action)
                     raw, snapshot, parent = await refresh_after_action(
                         snapshot, parent,
                         predicate=lambda value: value.research.target_name is not None)
-            action = (None if safe_model_fallback else _scout_action(
+
+            # Scheduler-enabled conditions convert exact, current legal actions
+            # into short strategic plans.  Refresh after every action so the
+            # next candidate is grounded in a new snapshot and legal digest.
+            excluded_impact_actions = set()
+            used_impact_scopes = set()
+            if impact_planner is not None and not safe_model_fallback:
+                context.use("scheduler")
+                for _ in range(impact_planner.max_actions_per_turn):
+                    decision = impact_planner.plan(
+                        snapshot, excluded=excluded_impact_actions,
+                        excluded_scopes=used_impact_scopes)
+                    if decision is None:
+                        break
+                    impact_action = decision.candidate.action
+                    prior_state_hash = snapshot.identity.state_hash
+                    plan_event = writer.emit(
+                        "plan_created", snapshot.turn,
+                        {"plan": decision.plan.to_dict()}, caused_by=[parent])
+                    parent = plan_event["event_id"]
+                    execution_monitor.register(decision.plan)
+                    outcome, parent = await _execute_action(
+                        gate, manifest["game_id"], player_id, snapshot,
+                        impact_action, parent, attempted_count, decision.plan)
+                    attempted_count += 1
+                    action_count += int(outcome.submitted)
+                    rejected += int(outcome.submitted and outcome.status != "accepted")
+                    if outcome.status != "accepted":
+                        raise RuntimeError(
+                            "impact plan action failed: {}".format(outcome.reason))
+                    planned_actions += 1
+                    record_meaningful_action(
+                        impact_action, impact=True,
+                        category=decision.candidate.category)
+                    impact_planner.commit(decision.candidate)
+                    excluded_impact_actions.add(decision.candidate.action_key)
+                    used_impact_scopes.add(decision.candidate.scope)
+                    raw, snapshot, parent = await refresh_after_action(snapshot, parent)
+                    if snapshot.identity.state_hash != prior_state_hash:
+                        decision_stats["effect_observed"] += 1
+                    else:
+                        decision_stats["no_effect"] += 1
+                    impact_planner.observe(snapshot)
+
+            action = (None if (safe_model_fallback or impact_planner is not None)
+                      else _scout_action(
                 raw, global_state, player_id,
                 snapshot.map_width, snapshot.map_height, blocked_moves))
             if action is not None:
@@ -1006,6 +1086,7 @@ async def _play(run_dir, manifest, context):
                 rejected += int(outcome.submitted and outcome.status != "accepted")
                 if outcome.status != "accepted":
                     raise RuntimeError("scout action failed: {}".format(outcome.reason))
+                record_meaningful_action(action)
                 raw, snapshot, parent = await refresh_after_action(snapshot, parent)
             control_plan = None
             if (context.capabilities["assumption_monitor"] and monitor_belief
@@ -1081,6 +1162,14 @@ async def _play(run_dir, manifest, context):
     player_score = float(player_row.get("score", 0))
     opponent_score = float(opponent_row.get("score", 0))
     won = player_score > opponent_score
+    city_gain = max(0, len(snapshot.cities) - initial_city_count)
+    technology_gain = max(0, len(snapshot.research.known_techs) - initial_tech_count)
+    explored_positions = (max(0, len(impact_planner.visited_positions) - initial_position_count)
+                          if impact_planner is not None else 0)
+    meaningful_per_turn = float(decision_stats["meaningful_actions"]) / max(1, turns_executed)
+    impact_turn_rate = float(len(impact_turns)) / max(1, turns_executed)
+    effect_observed_rate = (float(decision_stats["effect_observed"])
+                            / max(1, decision_stats["impact_actions"]))
     metrics = [
         ("game_win", int(won)), ("score_turn_n", player_score),
         ("engine_rejected_action_rate", float(rejected) / max(1, action_count)),
@@ -1091,6 +1180,21 @@ async def _play(run_dir, manifest, context):
         ("full_loop_under_30s_rate", full_loop_under_30),
         ("zombie_action_attempt_blocked", zombie_blocked),
         ("planned_engine_actions", planned_actions),
+        ("meaningful_actions_per_turn", meaningful_per_turn),
+        ("decision_impact_actions", decision_stats["impact_actions"]),
+        ("decision_impact_turn_rate", impact_turn_rate),
+        ("decision_effect_observed_rate", effect_observed_rate),
+        ("decision_no_effect_actions", decision_stats["no_effect"]),
+        ("model_safe_fallback_rate",
+         float(decision_stats["safe_model_fallbacks"]) / max(1, turns_executed)),
+        ("model_corrections_per_turn", float(corrections) / max(1, turns_executed)),
+        ("action_type_diversity", len(action_type_counts)),
+        ("cities_founded", city_gain),
+        ("technologies_acquired", technology_gain),
+        ("positions_explored", explored_positions),
+        ("production_changes", decision_stats["production_changes"]),
+        ("tactical_actions", decision_stats["tactical_actions"]),
+        ("score_gain", player_score - initial_score),
         ("abduction_truth_accuracy", (sum(correct) / len(correct)) if correct else 0.0),
     ]
     if replan_latencies:
@@ -1114,6 +1218,8 @@ async def _play(run_dir, manifest, context):
         "status": "completed", "summary": {
             "actions": action_count, "calibration_samples": len(predictions),
             "model_corrections": corrections, "opponent": opponent.get("name"),
+            "decision_impact_actions": decision_stats["impact_actions"],
+            "meaningful_actions": decision_stats["meaningful_actions"],
             "planned_engine_actions": planned_actions,
             "score": player_score, "won": won, "zombie_attempts_blocked": zombie_blocked,
         }}, caused_by=[parent])
@@ -1122,6 +1228,8 @@ async def _play(run_dir, manifest, context):
         "completed": True, "engine_actions": action_count,
         "infrastructure_failure": False, "loss": not won,
         "model_latency_ms": model_latency, "rejected_actions": rejected,
+        "decision_impact_actions": decision_stats["impact_actions"],
+        "meaningful_actions": decision_stats["meaningful_actions"],
         "planned_engine_actions": planned_actions,
         "zombie_attempts_blocked": zombie_blocked,
     }

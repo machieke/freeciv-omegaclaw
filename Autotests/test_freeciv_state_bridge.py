@@ -238,7 +238,7 @@ def test_proxy_research_action_is_canonical_and_executable():
     assert submitted == [action]
 
 
-def test_proxy_internal_move_and_found_city_actions_are_canonical():
+def test_proxy_internal_move_found_city_and_attack_actions_are_canonical():
     payload = _payload()
     payload["legal_actions"] = [
         {"type": "unit_move", "action": "move", "unit_id": 7,
@@ -246,14 +246,20 @@ def test_proxy_internal_move_and_found_city_actions_are_canonical():
          "is_valid": True, "priority": 5},
         {"type": "unit_action", "action": "build_city", "unit_id": 8,
          "params": {}, "is_valid": True, "action_id": 27},
+        {"type": "unit_action", "action": "attack", "unit_id": 7,
+         "params": {"direction": "e", "target": {"x": 4, "y": 2}},
+         "is_valid": True, "action_id": 29},
     ]
     snapshot = _snapshot(payload=payload)
     actions = [json.loads(row) for row in snapshot.legal_action_json]
     assert {row["action_type"] for row in actions} == {
-        "unit_move", "unit_build_city"}
+        "unit_move", "unit_build_city", "unit_attack"}
     assert next(row for row in actions if row["action_type"] == "unit_move") == {
         "action_type": "unit_move", "actor_id": 7,
         "target": {"x": 3, "y": 2}}
+    assert next(row for row in actions if row["action_type"] == "unit_attack") == {
+        "action_type": "unit_attack", "actor_id": 7,
+        "target": {"x": 4, "y": 2}}
 
 
 def test_summary_is_query_only_and_does_not_expose_raw_snapshot_or_legal_payloads():

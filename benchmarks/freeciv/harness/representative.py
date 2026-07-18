@@ -102,6 +102,24 @@ def run_game(run_dir, manifest, context):
         ("engine_rejected_action_rate", 0.0),
         ("confabulation_write_through", 0.0), ("loop_latency_ms", latency),
     ]
+    impact_actions = (0, 0, 8, 9, 11)[index]
+    metrics.extend((
+        ("planned_engine_actions", impact_actions),
+        ("meaningful_actions_per_turn", impact_actions / float(manifest["turn_limit"])),
+        ("decision_impact_actions", impact_actions),
+        ("decision_impact_turn_rate", min(1.0, impact_actions / float(manifest["turn_limit"]))),
+        ("decision_effect_observed_rate", (0.0, 0.0, 0.9, 0.92, 0.95)[index]),
+        ("decision_no_effect_actions", (0, 0, 1, 1, 1)[index]),
+        ("model_safe_fallback_rate", 0.0),
+        ("model_corrections_per_turn", 0.0),
+        ("action_type_diversity", (1, 1, 3, 3, 4)[index]),
+        ("cities_founded", (0, 0, 1, 1, 2)[index]),
+        ("technologies_acquired", (0, 0, 1, 1, 2)[index]),
+        ("positions_explored", (0, 0, 5, 6, 8)[index]),
+        ("production_changes", (0, 0, 1, 1, 2)[index]),
+        ("tactical_actions", (0, 0, 1, 2, 3)[index]),
+        ("score_gain", score_shift),
+    ))
     if context.capabilities["scheduler"]:
         metrics.append(("plan_eta_absolute_error_turns", randomizer.choice((0, 0, 1))))
     if context.capabilities["uncertain_beliefs"]:

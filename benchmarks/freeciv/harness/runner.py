@@ -129,6 +129,7 @@ class HarnessRunner(object):
             # operational details.
             "controller_workers": self.workers,
             "engine": self.config["engine"], "game_id": game_id,
+            "impact_policy": self.config["impact_policy"],
             "machine_profile": self.config["machine_profile"],
             "model": self.config["model"]["name"], "model_config": self.config["model"],
             "opponent": (self.config["induction"] if job["track"] == "induction"
