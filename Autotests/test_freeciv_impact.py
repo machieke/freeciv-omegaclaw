@@ -183,7 +183,8 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
         {"action_type": "end_turn", "is_valid": True}])
     assert GroundedImpactPlanner().plan(snapshot) is None
     for config in ({"max_actions_per_turn": 0}, {"max_actions_per_turn": 33},
-                   {"settle_min_distance": 0}, {"expansion_city_target": 21}):
+                   {"settle_min_distance": 0}, {"expansion_city_target": 21},
+                   {"no_effect_retry_limit": 0}, {"no_effect_retry_limit": 9}):
         try:
             GroundedImpactPlanner(config)
         except ValueError:
@@ -224,3 +225,51 @@ def test_committed_fortification_is_not_reissued_every_turn():
     assert decision.candidate.category == "city_defense"
     planner.commit(decision.candidate)
     assert planner.plan(snapshot) is None
+
+
+def test_no_effect_action_is_suppressed_until_local_grounding_changes():
+    preferred = {"action_type": "unit_move", "actor_id": 20,
+                 "target": {"x": 0, "y": 2}, "is_valid": True}
+    alternative = {"action_type": "unit_move", "actor_id": 20,
+                   "target": {"x": 1, "y": 0}, "is_valid": True}
+    actions = [preferred, alternative, {"action_type": "end_turn", "is_valid": True}]
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops"), _unit(20, "Explorer")], actions)
+    planner = GroundedImpactPlanner({"no_effect_retry_limit": 1})
+
+    first = planner.plan(snapshot)
+    assert first.candidate.action["target"] == preferred["target"]
+    planner.record_outcome(first.candidate, snapshot, effect_observed=False)
+
+    second = planner.plan(snapshot)
+    assert second.candidate.action["target"] == alternative["target"]
+    assert planner.no_effect_retries_blocked == 1
+    # Re-evaluating one snapshot does not inflate the suppression telemetry.
+    planner.plan(snapshot)
+    assert planner.no_effect_retries_blocked == 1
+
+    refreshed = _snapshot(
+        [_unit(11, "Alpine Troops"), _unit(20, "Explorer")],
+        actions, source_seq=2)
+    assert planner.plan(refreshed).candidate.action["target"] == alternative["target"]
+
+    moved = _snapshot(
+        [_unit(11, "Alpine Troops"), _unit(20, "Explorer", x=0, y=1)],
+        actions, source_seq=3)
+    assert planner.plan(moved).candidate.action["target"] == preferred["target"]
+
+
+def test_configured_no_effect_retry_limit_allows_one_controlled_retry():
+    move = {"action_type": "unit_move", "actor_id": 20,
+            "target": {"x": 0, "y": 2}, "is_valid": True}
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops"), _unit(20, "Explorer")],
+        [move, {"action_type": "end_turn", "is_valid": True}])
+    planner = GroundedImpactPlanner({"no_effect_retry_limit": 2})
+
+    first = planner.plan(snapshot)
+    planner.record_outcome(first.candidate, snapshot, effect_observed=False)
+    assert planner.plan(snapshot) is not None
+    planner.record_outcome(first.candidate, snapshot, effect_observed=False)
+    assert planner.plan(snapshot) is None
+    assert planner.no_effect_retries_blocked == 1

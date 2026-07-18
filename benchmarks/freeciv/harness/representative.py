@@ -110,6 +110,7 @@ def run_game(run_dir, manifest, context):
         ("decision_impact_turn_rate", min(1.0, impact_actions / float(manifest["turn_limit"]))),
         ("decision_effect_observed_rate", (0.0, 0.0, 0.9, 0.92, 0.95)[index]),
         ("decision_no_effect_actions", (0, 0, 1, 1, 1)[index]),
+        ("decision_no_effect_retries_blocked", (0, 0, 0, 1, 2)[index]),
         ("model_safe_fallback_rate", 0.0),
         ("model_corrections_per_turn", 0.0),
         ("action_type_diversity", (1, 1, 3, 3, 4)[index]),

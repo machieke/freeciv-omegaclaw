@@ -1039,6 +1039,7 @@ async def _play(run_dir, manifest, context):
                     if decision is None:
                         break
                     impact_action = decision.candidate.action
+                    action_snapshot = snapshot
                     prior_state_hash = snapshot.identity.state_hash
                     plan_event = writer.emit(
                         "plan_created", snapshot.turn,
@@ -1058,11 +1059,13 @@ async def _play(run_dir, manifest, context):
                     record_meaningful_action(
                         impact_action, impact=True,
                         category=decision.candidate.category)
-                    impact_planner.commit(decision.candidate)
                     excluded_impact_actions.add(decision.candidate.action_key)
                     used_impact_scopes.add(decision.candidate.scope)
                     raw, snapshot, parent = await refresh_after_action(snapshot, parent)
-                    if snapshot.identity.state_hash != prior_state_hash:
+                    effect_observed = snapshot.identity.state_hash != prior_state_hash
+                    impact_planner.record_outcome(
+                        decision.candidate, action_snapshot, effect_observed)
+                    if effect_observed:
                         decision_stats["effect_observed"] += 1
                     else:
                         decision_stats["no_effect"] += 1
@@ -1185,6 +1188,8 @@ async def _play(run_dir, manifest, context):
         ("decision_impact_turn_rate", impact_turn_rate),
         ("decision_effect_observed_rate", effect_observed_rate),
         ("decision_no_effect_actions", decision_stats["no_effect"]),
+        ("decision_no_effect_retries_blocked",
+         impact_planner.no_effect_retries_blocked if impact_planner is not None else 0),
         ("model_safe_fallback_rate",
          float(decision_stats["safe_model_fallbacks"]) / max(1, turns_executed)),
         ("model_corrections_per_turn", float(corrections) / max(1, turns_executed)),
@@ -1219,6 +1224,9 @@ async def _play(run_dir, manifest, context):
             "actions": action_count, "calibration_samples": len(predictions),
             "model_corrections": corrections, "opponent": opponent.get("name"),
             "decision_impact_actions": decision_stats["impact_actions"],
+            "decision_no_effect_retries_blocked": (
+                impact_planner.no_effect_retries_blocked
+                if impact_planner is not None else 0),
             "meaningful_actions": decision_stats["meaningful_actions"],
             "planned_engine_actions": planned_actions,
             "score": player_score, "won": won, "zombie_attempts_blocked": zombie_blocked,
@@ -1229,6 +1237,9 @@ async def _play(run_dir, manifest, context):
         "infrastructure_failure": False, "loss": not won,
         "model_latency_ms": model_latency, "rejected_actions": rejected,
         "decision_impact_actions": decision_stats["impact_actions"],
+        "decision_no_effect_retries_blocked": (
+            impact_planner.no_effect_retries_blocked
+            if impact_planner is not None else 0),
         "meaningful_actions": decision_stats["meaningful_actions"],
         "planned_engine_actions": planned_actions,
         "zombie_attempts_blocked": zombie_blocked,

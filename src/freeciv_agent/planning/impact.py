@@ -92,6 +92,7 @@ class GroundedImpactPlanner(object):
         self.max_actions_per_turn = int(values.get("max_actions_per_turn", 8))
         self.expansion_city_target = int(values.get("expansion_city_target", 3))
         self.settle_min_distance = int(values.get("settle_min_distance", 3))
+        self.no_effect_retry_limit = int(values.get("no_effect_retry_limit", 1))
         self.preserve_city_defenders = bool(values.get("preserve_city_defenders", True))
         if not 1 <= self.max_actions_per_turn <= 32:
             raise ValueError("max_actions_per_turn must be in 1..32")
@@ -99,8 +100,13 @@ class GroundedImpactPlanner(object):
             raise ValueError("expansion_city_target must be in 1..20")
         if not 1 <= self.settle_min_distance <= 12:
             raise ValueError("settle_min_distance must be in 1..12")
+        if not 1 <= self.no_effect_retry_limit <= 8:
+            raise ValueError("no_effect_retry_limit must be in 1..8")
         self.visited_positions = set()
         self._fortified_units = set()
+        self._no_effect_attempts = {}
+        self._reported_suppressions = set()
+        self.no_effect_retries_blocked = 0
 
     @staticmethod
     def _actions(snapshot):
@@ -115,6 +121,75 @@ class GroundedImpactPlanner(object):
         """Record a successfully transported persistent policy decision."""
         if candidate.category == "city_defense":
             self._fortified_units.add(candidate.action.get("actor_id"))
+
+    @staticmethod
+    def _unit_grounding(unit):
+        if unit is None:
+            return None
+        # Moves refresh at every turn and are therefore deliberately omitted.
+        # A retry becomes eligible only when the actor's material local state
+        # changes, rather than merely because another turn started.
+        return {
+            "activity": unit.activity, "hp": unit.hp, "type": unit.unit_type,
+            "unit_id": unit.unit_id, "x": unit.x, "y": unit.y,
+        }
+
+    def _grounding_signature(self, snapshot, candidate):
+        """Hash only the local authoritative facts that can change an outcome."""
+        action = candidate.action
+        actor_id = action.get("actor_id")
+        city_id = action.get("city_id")
+        actor = snapshot.unit(actor_id) if actor_id is not None else None
+        city = snapshot.city(city_id) if city_id is not None else None
+        target = action.get("target")
+        target_unit = None
+        if isinstance(target, dict):
+            target_unit_id = target.get("target_unit_id")
+            if target_unit_id is not None:
+                target_unit = snapshot.visible_enemy_unit(target_unit_id)
+            elif target.get("x") is not None and target.get("y") is not None:
+                target_unit = next((row for row in snapshot.visible_enemy_units
+                                    if (row.x, row.y) == (target["x"], target["y"])), None)
+        city_grounding = None if city is None else {
+            "city_id": city.city_id, "production_kind": city.production_kind,
+            "production_value": city.production_value, "shield_stock": city.shield_stock,
+            "size": city.size, "x": city.x, "y": city.y,
+        }
+        city_layout = (
+            sorted((row.city_id, row.x, row.y) for row in snapshot.cities)
+            if candidate.category in ("city_founding", "expansion_move") else [])
+        return structural_hash({
+            "action": action,
+            "actor": self._unit_grounding(actor),
+            "cities": city_layout,
+            "city": city_grounding,
+            "target_unit": self._unit_grounding(target_unit),
+        })
+
+    def record_outcome(self, candidate, snapshot, effect_observed):
+        """Learn from an accepted action without treating acceptance as effect.
+
+        Exact no-effect actions are suppressed while their local authoritative
+        grounding is unchanged.  Movement refreshes and unrelated economic state
+        cannot make an unreachable order eligible again; actor, city, or visible
+        target changes can.
+        """
+        self.commit(candidate)
+        key = (candidate.action_key, self._grounding_signature(snapshot, candidate))
+        if effect_observed:
+            self._no_effect_attempts.pop(key, None)
+        else:
+            self._no_effect_attempts[key] = self._no_effect_attempts.get(key, 0) + 1
+
+    def _no_effect_suppressed(self, snapshot, candidate):
+        key = (candidate.action_key, self._grounding_signature(snapshot, candidate))
+        if self._no_effect_attempts.get(key, 0) < self.no_effect_retry_limit:
+            return False
+        reported = (snapshot.snapshot_id, key)
+        if reported not in self._reported_suppressions:
+            self._reported_suppressions.add(reported)
+            self.no_effect_retries_blocked += 1
+        return True
 
     @staticmethod
     def _founders(snapshot):
@@ -307,7 +382,8 @@ class GroundedImpactPlanner(object):
                         action, "city_defense", 680.0,
                         "fortify the sole grounded city defender")
             if candidate is not None and candidate.scope not in excluded_scopes:
-                result.append(candidate)
+                if not self._no_effect_suppressed(snapshot, candidate):
+                    result.append(candidate)
         return tuple(sorted(result, key=lambda row: (
             -row.utility, row.category, row.action_key)))
 
