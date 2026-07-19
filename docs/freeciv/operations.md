@@ -32,6 +32,10 @@ job; it hard-clears and recycles again afterward. A killed server must be observ
 before the next connection is allowed. Each retry uses a new operational `attempt_id`, so an
 old suspended authentication session cannot be resumed accidentally.
 
+Paired game IDs use deterministic short cohort/arm tokens and remain within the proxy's
+50-character termination-contract limit. Pre-run hard-termination errors fail the arm as
+infrastructure failures; they are never silently ignored before a server recycle.
+
 ## Resuming the harness
 
 Rerun the identical command without `--no-resume`. A game is resumed only when:

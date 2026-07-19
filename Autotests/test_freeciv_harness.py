@@ -3,6 +3,7 @@
 import json
 import io
 import os
+import re
 import sys
 import tempfile
 from unittest import mock
@@ -277,8 +278,8 @@ def test_engine_live_workers_are_bounded_to_dedicated_server_ports():
 def test_engine_live_clears_stale_proxy_game_before_server_recycle(monkeypatch):
     calls = []
 
-    def terminate(game_id, token):
-        calls.append(("terminate", game_id, token))
+    def terminate(game_id, token, required=False):
+        calls.append(("terminate", game_id, token, required))
 
     def recycle(port):
         calls.append(("recycle", port))
@@ -296,10 +297,10 @@ def test_engine_live_clears_stale_proxy_game_before_server_recycle(monkeypatch):
 
     assert result == {"completed": True}
     assert calls == [
-        ("terminate", "release-retry", "test-token-fc3d-001"),
+        ("terminate", "release-retry", "test-token-fc3d-001", True),
         ("recycle", 6001),
         ("play", "/tmp/run", "release-retry", context),
-        ("terminate", "release-retry", "test-token-fc3d-001"),
+        ("terminate", "release-retry", "test-token-fc3d-001", False),
         ("recycle", 6001),
     ]
 
@@ -350,6 +351,9 @@ def test_paired_impact_jobs_alternate_order_and_override_only_declared_policy():
     treatment = runner._manifest(jobs[1], 0)
     assert baseline["impact_pair"]["within_pair_order"] == 0
     assert baseline["impact_pair"]["cohort"] == "development"
+    assert len(baseline["game_id"]) <= 50
+    assert re.fullmatch(r"[A-Za-z0-9_-]+", baseline["game_id"])
+    assert baseline["game_id"] != treatment["game_id"]
     assert treatment["impact_pair"]["within_pair_order"] == 1
     assert treatment["impact_outcomes"]["win_metric"] == "score_lead_turn_n"
     assert baseline["impact_policy"]["max_no_effect_failovers_per_scope"] == 0

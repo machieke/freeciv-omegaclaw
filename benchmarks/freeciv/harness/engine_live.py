@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import threading
 import time
+import urllib.error
 import urllib.request
 
 from freeciv import turncycle
@@ -1277,7 +1278,7 @@ async def _play(run_dir, manifest, context):
     }
 
 
-def _terminate_proxy(game_id, token):
+def _terminate_proxy(game_id, token, required=False):
     request = urllib.request.Request(
         "http://127.0.0.1:8002/api/game/{}/terminate".format(game_id),
         data=b'{"mode":"hard"}', method="POST",
@@ -1285,8 +1286,16 @@ def _terminate_proxy(game_id, token):
     try:
         with urllib.request.urlopen(request, timeout=10) as response:
             response.read()
-    except Exception:
-        pass
+    except Exception as error:
+        if required:
+            detail = ""
+            if isinstance(error, urllib.error.HTTPError):
+                try:
+                    detail = ": " + error.read().decode("utf-8", "replace")
+                except Exception:
+                    detail = ""
+            raise RuntimeError(
+                "proxy hard termination failed for {}{}".format(game_id, detail))
 
 
 def _recycle_server(port):
@@ -1325,7 +1334,7 @@ def run_game(run_dir, manifest, context):
     # civserver has gone away. Clear that metadata before recycling the dedicated
     # server; otherwise the proxy may report the old configuration as already
     # applied and skip configuring the fresh process.
-    _terminate_proxy(manifest["game_id"], token)
+    _terminate_proxy(manifest["game_id"], token, required=True)
     # Every job starts from a newly spawned process so no autosave/session state can
     # leak across seeds or conditions.
     _recycle_server(int(manifest["port"]))

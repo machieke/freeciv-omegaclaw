@@ -141,9 +141,15 @@ class HarnessRunner(object):
 
     def _manifest(self, job, worker):
         arm = job.get("policy_arm")
-        game_id = ("m7-{}-{}-{}-{}-{}-{:02d}".format(
-            job["track"], job["cohort"], arm, job["condition"],
-            job["seed"], job["sequence"])
+        cohort_tokens = {
+            "development": "dev", "pilot": "pilot",
+            "confirmatory_score": "cscore",
+            "confirmatory_joint": "cjoint",
+        }
+        game_id = ("m7-ip-{}-{}-{}-{:02d}-{}".format(
+            cohort_tokens[job["cohort"]], arm[0], job["seed"], job["sequence"],
+            structural_hash([
+                job["track"], job["cohort"], arm, job["condition"]])[:8])
                    if arm is not None else "m7-{}-{}-{}-{:02d}".format(
             job["track"], job["condition"], job["seed"], job["sequence"]))
         run_parts = [self.out, "games", job["track"]]
