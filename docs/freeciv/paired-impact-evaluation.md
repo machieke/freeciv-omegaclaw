@@ -44,10 +44,15 @@ execution and again after the last arm; a dirty, unavailable, or changed identit
 invalidates the run. Confirmatory cohorts also reject `--limit-pairs`.
 
 If implementation hardening exposes any confirmatory seed before the final source is
-frozen, that whole cohort is retired. The score-confirmatory `v3` namespace uses the
-fresh range `1000000..1099999`. The superseded `v1` and `v2` namespaces are
+frozen, that whole cohort is retired. The score-confirmatory `v4` namespace uses the
+fresh range `1100000..1199999`. The superseded `v1`, `v2`, and `v3` namespaces are
 development diagnostics and cannot be resumed into the final claim; `v2` exposed an
-accepted-unit/no-authoritative-update edge case that required implementation changes.
+accepted-unit/no-authoritative-update edge case, while `v3` exposed cold-model
+unloading that produced bounded-timeout fallbacks. The v4 engine runner performs an
+operational native Ollama readiness request before every arm, with a 90-second cold
+load allowance and a 30-minute keep-alive. A claim-eligible arm fails closed if any
+turn still needs a model fallback; it is retried only as a fresh attempt and never
+silently counted as a completed pair.
 
 ## Statistical declaration
 

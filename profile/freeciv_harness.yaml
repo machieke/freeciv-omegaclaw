@@ -26,6 +26,8 @@ model:
   think: false
   temperature: 0.0
   turn_timeout_seconds: 30
+  readiness_timeout_seconds: 90
+  keep_alive: 30m
   corrective_attempts: 2
   max_tokens: 400
 impact_policy:
@@ -207,10 +209,10 @@ paired_impact:
       planned_pairs: 100
       seed_derivation:
         algorithm: sha256-counter-v1
-        namespace: pln-freeciv-impact-confirmatory-score-v3
+        namespace: pln-freeciv-impact-confirmatory-score-v4
         count: 100
-        minimum: 1000000
-        maximum: 1099999
+        minimum: 1100000
+        maximum: 1199999
     confirmatory_joint:
       purpose: confirmatory
       claim_eligible: true

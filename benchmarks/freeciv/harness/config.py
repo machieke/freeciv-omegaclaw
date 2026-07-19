@@ -282,6 +282,15 @@ def load(path=None):
         raise ValueError("harness model must match the configured evaluation model")
     if not isinstance(value.get("model", {}).get("think"), bool):
         raise ValueError("harness model.think must be an explicit boolean")
+    model_config = value.get("model", {})
+    readiness_timeout = model_config.get("readiness_timeout_seconds")
+    if (not isinstance(readiness_timeout, (int, float))
+            or isinstance(readiness_timeout, bool) or readiness_timeout <= 0):
+        raise ValueError(
+            "harness model.readiness_timeout_seconds must be positive")
+    if (not isinstance(model_config.get("keep_alive"), str)
+            or not model_config["keep_alive"].strip()):
+        raise ValueError("harness model.keep_alive must be a non-empty string")
     rulebase = value.get("rulebase", {})
     if rulebase.get("compiler_version") != "freeciv-ruleset-compiler/1.0":
         raise ValueError("harness rulebase compiler version is not pinned")

@@ -30,7 +30,8 @@ from freeciv.harness.aggregate import _calibration_report  # noqa: E402
 from freeciv.harness.impact_evaluation import _claim_evaluation  # noqa: E402
 from freeciv.harness.engine_live import (  # noqa: E402
     _available_research_names, _needs_cognitive_stack, _opponent_memory_path,
-    _plain_prompt_state, _plain_state_summary, _refresh_accepted_impact_action,
+    _claim_eligible_manifest, _ollama_readiness, _plain_prompt_state,
+    _plain_state_summary, _refresh_accepted_impact_action,
     _release_configuration_active, _validate_compact_goal_proposal)
 from freeciv.harness import engine_live  # noqa: E402
 from freeciv_agent.events.schema import canonical_json_bytes, structural_hash  # noqa: E402
@@ -72,8 +73,8 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     score_derivation = paired["cohorts"]["confirmatory_score"]["seed_derivation"]
     assert score_derivation == {
         "algorithm": "sha256-counter-v1",
-        "namespace": "pln-freeciv-impact-confirmatory-score-v3",
-        "count": 100, "minimum": 1000000, "maximum": 1099999,
+        "namespace": "pln-freeciv-impact-confirmatory-score-v4",
+        "count": 100, "minimum": 1100000, "maximum": 1199999,
     }
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.0",
@@ -252,6 +253,42 @@ def test_live_model_transport_reuses_identical_verified_decision_context(monkeyp
     engine_live._MODEL_JSON_CACHE.clear()
 
 
+def test_live_model_readiness_uses_native_keep_alive_endpoint(monkeypatch):
+    calls = []
+
+    class Response(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            self.close()
+
+    def urlopen(request, timeout):
+        calls.append((request.full_url, timeout, json.loads(request.data)))
+        return Response(json.dumps({
+            "model": "qwen3-coder-next:latest", "done": True,
+            "response": "{}",
+        }).encode("utf-8"))
+
+    monkeypatch.setenv("OLLAMA_OPENAI_BASE_URL", "http://ollama.test:11434/v1/")
+    monkeypatch.setattr(engine_live.urllib.request, "urlopen", urlopen)
+    manifest = {"model": "qwen3-coder-next:latest", "model_config": {
+        "readiness_timeout_seconds": 91, "keep_alive": "30m", "think": False}}
+    result = _ollama_readiness(manifest)
+    assert result["done"] is True
+    assert calls == [("http://ollama.test:11434/api/generate", 91.0, {
+        "model": "qwen3-coder-next:latest", "prompt": "{}", "stream": False,
+        "think": False, "keep_alive": "30m",
+        "options": {"temperature": 0, "num_predict": 1},
+    })]
+
+
+def test_claim_eligible_arms_fail_closed_on_model_fallback():
+    assert _claim_eligible_manifest({"impact_pair": {"claim_eligible": True}})
+    assert _claim_eligible_manifest({"claim_eligible": True})
+    assert not _claim_eligible_manifest({"impact_pair": {"claim_eligible": False}})
+
+
 def test_live_model_lock_wait_is_inside_whole_turn_budget(monkeypatch):
     calls = []
 
@@ -297,6 +334,7 @@ def test_engine_live_clears_stale_proxy_game_before_server_recycle(monkeypatch):
 
     monkeypatch.setattr(engine_live, "_terminate_proxy", terminate)
     monkeypatch.setattr(engine_live, "_recycle_server", recycle)
+    monkeypatch.setattr(engine_live, "_ollama_readiness", lambda _manifest: None)
     monkeypatch.setattr(engine_live, "_play", play)
     context = object()
     result = engine_live.run_game(

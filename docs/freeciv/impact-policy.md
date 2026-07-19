@@ -184,7 +184,10 @@ predeclared alpha; the stronger two-point claim repeats both gates at that margi
 ## Operational note
 
 On the recorded CPU host, a cold load of `qwen3-coder-next:latest` took 41.6 seconds,
-which exceeds the configured 28-second generation budget. Preload the model with a
-long keep-alive before a timed release run, then verify `model_safe_fallback_rate=0`.
-Cold-start failures remain valid fail-closed behavior and must not be silently removed
-from benchmark artifacts.
+which exceeds the configured 28-second generation budget. The runner now handles this
+operationally with a native `/api/generate` readiness request before every engine arm,
+using the declared 90-second readiness timeout and 30-minute keep-alive. Verify
+`model_safe_fallback_rate=0` before interpreting a confirmatory result. Readiness or
+cold-start failures remain visible infrastructure failures; claim-eligible arms also
+fail closed on any in-game model fallback and must be retried as fresh attempts rather
+than silently counted as completed evidence.

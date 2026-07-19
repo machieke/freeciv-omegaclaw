@@ -37,6 +37,7 @@ _IR = None
 _STACK = None
 _MODEL_JSON_CACHE = {}
 _MODEL_CACHE_LOCK = threading.RLock()
+_MODEL_READINESS_LOCK = threading.Lock()
 _STACK_LOCK = threading.RLock()
 
 
@@ -115,12 +116,73 @@ def _ollama_json(manifest, prompt, expected_keys, attempts=2, validator=None):
         _MODEL_CACHE_LOCK.release()
 
 
-def _ollama_json_locked(manifest, prompt, expected_keys, attempts=2, validator=None,
-                        turn_started=None):
-    endpoint = os.environ.get("OLLAMA_OPENAI_BASE_URL", "http://127.0.0.1:11434/v1")
+def _ollama_native_endpoint():
+    """Return the native Ollama API root for the configured OpenAI-compatible URL."""
+    endpoint = os.environ.get(
+        "OLLAMA_OPENAI_BASE_URL", "http://127.0.0.1:11434/v1")
     native_endpoint = endpoint.rstrip("/")
     if native_endpoint.endswith("/v1"):
         native_endpoint = native_endpoint[:-3]
+    return native_endpoint
+
+
+def _ollama_readiness(manifest):
+    """Load and keep the configured model resident before an engine arm.
+
+    The verified-response cache can make a long arm appear model-idle.  Ollama
+    may unload the model during that idle period, turning the next real request
+    into a cold load that exceeds the bounded turn budget.  A tiny native API
+    request is operational-only: it does not enter the event stream or affect
+    outcome metrics, but it establishes that the declared model is loaded and
+    keeps it resident for the duration of the arm.
+    """
+    model_config = manifest.get("model_config", {})
+    timeout = float(model_config.get("readiness_timeout_seconds", 90))
+    if timeout <= 0:
+        raise ValueError("model readiness timeout must be positive")
+    payload = {
+        "model": manifest["model"],
+        "prompt": "{}",
+        "stream": False,
+        "think": bool(model_config.get("think", False)),
+        "keep_alive": str(model_config.get("keep_alive", "30m")),
+        "options": {"temperature": 0, "num_predict": 1},
+    }
+    request = urllib.request.Request(
+        _ollama_native_endpoint() + "/api/generate",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"})
+    # Multiple engine workers may begin at once. Serialize readiness calls so a
+    # cold model load is never duplicated or CPU-contended.
+    if not _MODEL_READINESS_LOCK.acquire(timeout=timeout):
+        raise RuntimeError("model readiness budget exhausted waiting for local model")
+    try:
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                body = json.load(response)
+        except Exception as exc:
+            raise RuntimeError(
+                "configured Ollama model readiness failed: {}".format(exc))
+    finally:
+        _MODEL_READINESS_LOCK.release()
+    if not isinstance(body, dict) or body.get("error"):
+        raise RuntimeError(
+            "configured Ollama model readiness returned an error: {}".format(
+                body.get("error") if isinstance(body, dict) else body))
+    if body.get("done") is False:
+        raise RuntimeError("configured Ollama model readiness did not complete")
+    return body
+
+
+def _claim_eligible_manifest(manifest):
+    """Return whether this arm is allowed to contribute to a formal claim."""
+    return bool(manifest.get("claim_eligible") or manifest.get(
+        "impact_pair", {}).get("claim_eligible"))
+
+
+def _ollama_json_locked(manifest, prompt, expected_keys, attempts=2, validator=None,
+                        turn_started=None):
+    native_endpoint = _ollama_native_endpoint()
     cache_key = structural_hash([
         manifest["model"], prompt, sorted(expected_keys),
         manifest.get("model_config", {}).get("temperature", 0)])
@@ -143,7 +205,9 @@ def _ollama_json_locked(manifest, prompt, expected_keys, attempts=2, validator=N
         if request_timeout <= 0:
             break
         payload = {
-            "model": manifest["model"], "stream": False, "keep_alive": "30m",
+            "model": manifest["model"], "stream": False,
+            "keep_alive": str(manifest.get("model_config", {}).get(
+                "keep_alive", "30m")),
             # The release prompt asks for a bounded JSON object, not a reasoning
             # trace. Ollama enables thinking by default for Qwen 3 models, so
             # pin this explicitly and retain the setting in every manifest.
@@ -721,6 +785,10 @@ def _cognitive_turn(manifest, context, store, player_id, raw, snapshot,
             "detail": "{}; bounded safe end-turn fallback".format(
                 type(model_error).__name__),
         }, caused_by=[verification["event_id"]])
+        if _claim_eligible_manifest(manifest):
+            raise RuntimeError(
+                "claim-eligible arm cannot use model fallback: {}".format(
+                    type(model_error).__name__))
         return None, "end_turn", gap["event_id"], latency, corrections, True
 
     if proposal is not None:
@@ -1362,6 +1430,7 @@ def run_game(run_dir, manifest, context):
     # leak across seeds or conditions.
     _recycle_server(int(manifest["port"]))
     try:
+        _ollama_readiness(manifest)
         return asyncio.run(_play(run_dir, manifest, context))
     finally:
         _terminate_proxy(manifest["game_id"], token)
