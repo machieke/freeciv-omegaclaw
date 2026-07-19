@@ -37,6 +37,7 @@ impact_policy:
   horizon_turn: 30
   production_minimum_remaining_turns: 8
   expansion_minimum_remaining_turns: 12
+  refresh_timeout_seconds: 2.0
   no_effect_retry_limit: 1
   max_no_effect_failovers_per_scope: 4
   preserve_city_defenders: true
@@ -217,6 +218,19 @@ paired_impact:
         count: 40
         minimum: 1200000
         maximum: 1299999
+    pilot_horizon_60_v2:
+      purpose: pilot
+      claim_eligible: false
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 40
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pln-freeciv-impact-pilot-horizon60-v2
+        count: 40
+        minimum: 1300000
+        maximum: 1399999
     confirmatory_score:
       purpose: confirmatory
       claim_eligible: true

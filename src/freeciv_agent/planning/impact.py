@@ -88,12 +88,12 @@ class ImpactTurnBudget(object):
     def excluded_scopes(self):
         return frozenset(self.used_scopes)
 
-    def record(self, candidate, effect_observed):
+    def record(self, candidate, effect_observed, authoritative_refresh=True):
         scope = candidate.scope
         is_failover = self.failed_attempts.get(scope, 0) > 0
         if is_failover:
             self.failover_attempts += 1
-        if (effect_observed or candidate.terminal_on_accept
+        if (not authoritative_refresh or effect_observed or candidate.terminal_on_accept
                 or candidate.unit_scope_consumed_on_accept):
             self.used_scopes.add(scope)
             self.recoveries += int(is_failover and effect_observed)
@@ -139,6 +139,8 @@ class GroundedImpactPlanner(object):
             values.get("production_minimum_remaining_turns", 8))
         self.expansion_minimum_remaining_turns = int(
             values.get("expansion_minimum_remaining_turns", 12))
+        self.refresh_timeout_seconds = float(
+            values.get("refresh_timeout_seconds", 2.0))
         self.no_effect_retry_limit = int(values.get("no_effect_retry_limit", 1))
         self.max_no_effect_failovers_per_scope = int(
             values.get("max_no_effect_failovers_per_scope", 4))
@@ -158,6 +160,8 @@ class GroundedImpactPlanner(object):
         if self.expansion_minimum_remaining_turns < self.production_minimum_remaining_turns:
             raise ValueError(
                 "expansion_minimum_remaining_turns cannot be shorter than production")
+        if not 0.25 <= self.refresh_timeout_seconds <= 10.0:
+            raise ValueError("refresh_timeout_seconds must be in [0.25,10]")
         if not 1 <= self.no_effect_retry_limit <= 8:
             raise ValueError("no_effect_retry_limit must be in 1..8")
         if not 0 <= self.max_no_effect_failovers_per_scope <= 8:

@@ -29,9 +29,15 @@ fresh confirmatory cohort is frozen. It does not reinterpret or extend v4.
 6. Production changes require at least eight turns of scoring runway; founder
    production requires twelve. The thresholds are explicit policy settings, and
    the planner receives the cohort's actual fixed horizon.
-7. A fresh, non-claim-eligible `pilot_horizon_60` cohort contains 40 disjoint,
-   deterministically derived seed pairs. Its manifests use 60 turns for the
-   engine, policy, and outcome declaration.
+7. Non-claim-eligible 60-turn pilot cohorts use disjoint, deterministically
+   derived seed pairs. Their manifests use 60 turns for the engine, policy, and
+   outcome declaration.
+8. The first 60-turn pilot iteration exposed an accepted production order with
+   no subsequent source-sequence update, two initial legal-action mismatches,
+   and one over-budget turn. The hardened `pilot_horizon_60_v2` cohort therefore
+   uses a bounded two-second action refresh, closes ambiguous unrefreshed scopes,
+   requires five stable initial samples after a quiet period, and stops impact
+   work before the whole-turn budget is exhausted.
 
 ## Evaluation sequence
 
@@ -40,9 +46,9 @@ Run a small engine-backed plumbing check first:
 ```bash
 PYTHONPATH=src:benchmarks python scripts/freeciv/run_impact_evaluation.py \
   --backend engine-live \
-  --cohort pilot_horizon_60 \
+  --cohort pilot_horizon_60_v2 \
   --limit-pairs 1 \
-  --out artifacts/freeciv/impact-pilot-horizon60-smoke
+  --out artifacts/freeciv/impact-pilot-horizon60-v2-smoke
 ```
 
 After the source is committed and clean, run the complete pilot without a pair
@@ -51,8 +57,8 @@ limit:
 ```bash
 PYTHONPATH=src:benchmarks python scripts/freeciv/run_impact_evaluation.py \
   --backend engine-live \
-  --cohort pilot_horizon_60 \
-  --out artifacts/freeciv/impact-pilot-horizon60-v1
+  --cohort pilot_horizon_60_v2 \
+  --out artifacts/freeciv/impact-pilot-horizon60-v2
 ```
 
 The pilot must be used for mechanism and variance estimation only. Inspect

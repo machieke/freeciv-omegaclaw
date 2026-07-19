@@ -323,6 +323,15 @@ def _decision_state_fingerprint(snapshot):
     })
 
 
+def _legal_action_family_fingerprints(snapshot):
+    families = {}
+    for encoded in snapshot.legal_action_json:
+        action_type = str(json.loads(encoded).get("action_type", "unknown"))
+        families.setdefault(action_type, []).append(encoded)
+    return {key: structural_hash(sorted(values))
+            for key, values in sorted(families.items())}
+
+
 def _decision_state_ready(snapshot, require_own_units=False):
     """Reject partial packet assemblies before they can drive a paired arm."""
     if not (snapshot.ruleset_ready and snapshot.economy.available
@@ -352,7 +361,13 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
     stable_fingerprint = None
     stable_count = 0
     while time.monotonic() < deadline:
-        raw = await turncycle.get_state(ws, "pln_authoritative")
+        remaining = deadline - time.monotonic()
+        try:
+            raw = await asyncio.wait_for(
+                turncycle.get_state(ws, "pln_authoritative"),
+                timeout=max(0.05, remaining))
+        except asyncio.TimeoutError:
+            break
         source_seq = raw.get("authoritative", {}).get("source_seq") if raw else None
         if (raw and raw.get("units") and int(raw.get("turn", 0)) >= minimum_turn
                 and (minimum_source_seq is None
@@ -611,22 +626,26 @@ async def _execute_action(gate, game_id, player_id, snapshot, action, parent,
     return outcome, outcome.result_event_id or parent
 
 
-async def _refresh_accepted_impact_action(refresh, raw, snapshot, parent, candidate):
-    """Refresh an accepted impact action, preserving unit no-effect outcomes.
+async def _refresh_accepted_impact_action(
+        refresh, raw, snapshot, parent, candidate, refresh_timeout=None):
+    """Refresh an accepted impact action, preserving bounded no-effect outcomes.
 
     The proxy acknowledges transport acceptance before civserver necessarily
     emits a new authoritative packet.  A unit order can therefore be accepted
     while producing no source-sequence change (for example, a mechanically
     legal move that the server cannot execute).  Those outcomes must reach the
-    planner's no-effect accounting so the accepted actor scope is closed; they
-    are not an infrastructure failure.  Non-unit actions retain the strict
-    authoritative-refresh requirement.
+    planner's no-effect accounting so the accepted actor scope is closed. An
+    accepted production order can likewise produce no source-sequence update.
+    After the bounded wait, return a no-refresh outcome so the turn budget can
+    close that ambiguous scope without sending a stale same-scope failover.
     """
     try:
-        next_raw, next_snapshot, next_parent = await refresh(snapshot, parent)
+        if refresh_timeout is None:
+            next_raw, next_snapshot, next_parent = await refresh(snapshot, parent)
+        else:
+            next_raw, next_snapshot, next_parent = await refresh(
+                snapshot, parent, timeout=refresh_timeout)
     except TimeoutError:
-        if not candidate.unit_scope_consumed_on_accept:
-            raise
         return raw, snapshot, parent, False
     return next_raw, next_snapshot, next_parent, True
 
@@ -1027,9 +1046,13 @@ async def _play(run_dir, manifest, context):
             }
 
         gate = ExecutionGate(store, submit, writer, execution_monitor)
+        # ``game_ready`` can precede the final burst of unit-action packets.
+        # Require a short quiet period plus five identical canonical samples so
+        # paired arms do not latch different stable-looking legal action sets.
+        await asyncio.sleep(0.5)
         raw, snapshot = await _state(
             ws, manifest["game_id"], require_decision_ready=True,
-            require_own_units=True, stable_samples=2)
+            require_own_units=True, stable_samples=5)
         store.replace(snapshot)
         state_event = writer.emit("state_snapshot", snapshot.turn, snapshot.event_payload(),
                                   caused_by=[parent])
@@ -1056,6 +1079,7 @@ async def _play(run_dir, manifest, context):
             "opponent_score": float(initial_opponent_row["score"]),
             "player_score": initial_score,
         })
+        initial_legal_action_families = _legal_action_family_fingerprints(snapshot)
 
         def record_meaningful_action(action, impact=False, category=None):
             action_type = str(action.get("action_type", "unknown"))
@@ -1081,9 +1105,9 @@ async def _play(run_dir, manifest, context):
             monitor_belief, parent = _emit_opponent_presence(
                 raw, snapshot, manifest, belief_store, writer, parent, player_id)
 
-        async def refresh_after_action(current, cause, predicate=None):
+        async def refresh_after_action(current, cause, predicate=None, timeout=15.0):
             minimum_seq = current.identity.source_seq + 1
-            deadline = time.monotonic() + 15.0
+            deadline = time.monotonic() + float(timeout)
             while True:
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
@@ -1214,6 +1238,11 @@ async def _play(run_dir, manifest, context):
             if impact_planner is not None and not safe_model_fallback:
                 context.use("scheduler")
                 for _ in range(impact_planner.max_actions_per_turn):
+                    turn_timeout = float(manifest.get(
+                        "model_config", {}).get("turn_timeout_seconds", 30))
+                    if (time.perf_counter() - full_turn_started
+                            >= turn_timeout - impact_planner.refresh_timeout_seconds - 0.5):
+                        break
                     decision = impact_planner.plan(
                         snapshot, excluded=excluded_impact_actions,
                         excluded_scopes=impact_budget.excluded_scopes)
@@ -1243,13 +1272,16 @@ async def _play(run_dir, manifest, context):
                     raw, snapshot, parent, authoritative_refresh = (
                         await _refresh_accepted_impact_action(
                             refresh_after_action, raw, snapshot, parent,
-                            decision.candidate))
+                            decision.candidate,
+                            refresh_timeout=impact_planner.refresh_timeout_seconds))
                     effect_observed = (authoritative_refresh
                                        and impact_planner.candidate_effect_observed(
                                            decision.candidate, action_snapshot, snapshot))
                     impact_planner.record_outcome(
                         decision.candidate, action_snapshot, effect_observed)
-                    impact_budget.record(decision.candidate, effect_observed)
+                    impact_budget.record(
+                        decision.candidate, effect_observed,
+                        authoritative_refresh=authoritative_refresh)
                     if effect_observed:
                         decision_stats["effect_observed"] += 1
                     else:
@@ -1450,6 +1482,7 @@ async def _play(run_dir, manifest, context):
             if impact_planner is not None else 0),
         "decision_no_effect_failover_attempts": decision_stats["failover_attempts"],
         "decision_no_effect_failover_recoveries": decision_stats["failover_recoveries"],
+        "initial_legal_action_families": initial_legal_action_families,
         "initial_state_fingerprint": initial_state_fingerprint,
         "meaningful_actions": decision_stats["meaningful_actions"],
         "planned_engine_actions": planned_actions,

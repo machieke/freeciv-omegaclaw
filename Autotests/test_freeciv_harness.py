@@ -33,7 +33,7 @@ from freeciv.harness.engine_live import (  # noqa: E402
     _claim_eligible_manifest, _ollama_readiness, _plain_prompt_state,
     _plain_state_summary, _refresh_accepted_impact_action,
     _decision_state_fingerprint, _decision_state_ready, _global_state_ready,
-    _release_configuration_active, _validate_compact_goal_proposal)
+    _release_configuration_active, _state, _validate_compact_goal_proposal)
 from freeciv.harness import engine_live  # noqa: E402
 from freeciv_agent.events.schema import canonical_json_bytes, structural_hash  # noqa: E402
 from freeciv_agent.events.validator import validate_file  # noqa: E402
@@ -54,11 +54,13 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert config["impact_policy"]["max_no_effect_failovers_per_scope"] == 4
     assert config["impact_policy"]["horizon_turn"] == 30
     assert config["impact_policy"]["production_minimum_remaining_turns"] == 8
+    assert config["impact_policy"]["refresh_timeout_seconds"] == 2.0
     paired = config["paired_impact"]
     assert paired["default_cohort"] == "development"
     assert {name: len(row["seeds"]) for name, row in paired["cohorts"].items()} == {
         "development": 100, "pilot": 40,
         "pilot_horizon_60": 40,
+        "pilot_horizon_60_v2": 40,
         "confirmatory_score": 100, "confirmatory_joint": 450,
     }
     seed_sets = [set(row["seeds"]) for row in paired["cohorts"].values()]
@@ -92,6 +94,11 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "count": 40, "minimum": 1200000, "maximum": 1299999,
         },
         "seeds": paired["cohorts"]["pilot_horizon_60"]["seeds"],
+    }
+    assert paired["cohorts"]["pilot_horizon_60_v2"]["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": "pln-freeciv-impact-pilot-horizon60-v2",
+        "count": 40, "minimum": 1300000, "maximum": 1399999,
     }
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.0",
@@ -355,6 +362,18 @@ def test_global_state_readiness_requires_both_authoritative_scores():
     assert not _global_state_ready(state, player_id=0)
 
 
+def test_state_poll_enforces_the_callers_deadline(monkeypatch):
+    async def blocked_state(_ws, _format):
+        await asyncio.sleep(1.0)
+        return None
+
+    monkeypatch.setattr(engine_live.turncycle, "get_state", blocked_state)
+    started = engine_live.time.monotonic()
+    with pytest.raises(TimeoutError, match="did not reach turn"):
+        asyncio.run(_state(object(), "deadline-test", timeout=0.05))
+    assert engine_live.time.monotonic() - started < 0.5
+
+
 def test_claim_eligible_arms_fail_closed_on_model_fallback():
     assert _claim_eligible_manifest({"impact_pair": {"claim_eligible": True}})
     assert _claim_eligible_manifest({"claim_eligible": True})
@@ -440,16 +459,19 @@ def test_accepted_unit_no_update_reaches_no_effect_accounting():
     assert result == (raw, snapshot, parent, False)
 
 
-def test_accepted_non_unit_action_still_requires_authoritative_update():
+def test_accepted_non_unit_no_update_closes_as_bounded_no_effect():
     class Candidate:
         unit_scope_consumed_on_accept = False
 
-    async def no_update(_current, _cause):
+    async def no_update(_current, _cause, timeout):
+        assert timeout == 2.0
         raise TimeoutError("authoritative state did not reach turn 1")
 
-    with pytest.raises(TimeoutError, match="did not reach turn"):
-        asyncio.run(_refresh_accepted_impact_action(
-            no_update, {}, object(), "accepted-result", Candidate()))
+    snapshot = object()
+    assert asyncio.run(_refresh_accepted_impact_action(
+        no_update, {}, snapshot, "accepted-result", Candidate(),
+        refresh_timeout=2.0)) == (
+            {}, snapshot, "accepted-result", False)
 
 
 def test_worker_assignment_does_not_change_behavioral_manifest_identity():
@@ -515,7 +537,7 @@ def test_paired_impact_jobs_alternate_order_and_override_only_declared_policy():
     assert pilot_manifest["impact_pair"]["require_clean_source"] is True
     long_pilot = HarnessRunner(
         "unused", seed_limit=1, conditions=("e_full_loop",),
-        impact_cohort="pilot_horizon_60")
+        impact_cohort="pilot_horizon_60_v2")
     long_manifest = long_pilot._manifest(long_pilot._impact_jobs()[0], 0)
     assert long_manifest["turn_limit"] == long_manifest["engine_max_turns"] == 60
     assert long_manifest["impact_policy"]["horizon_turn"] == 60

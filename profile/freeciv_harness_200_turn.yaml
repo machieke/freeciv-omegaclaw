@@ -38,6 +38,7 @@ impact_policy:
   horizon_turn: 200
   production_minimum_remaining_turns: 8
   expansion_minimum_remaining_turns: 12
+  refresh_timeout_seconds: 2.0
   no_effect_retry_limit: 1
   max_no_effect_failovers_per_scope: 4
   preserve_city_defenders: true

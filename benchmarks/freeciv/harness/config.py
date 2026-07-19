@@ -35,6 +35,12 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
             raise ValueError("{}.{} must be in {}..{}".format(prefix, key, lower, upper))
     if not isinstance(impact.get("preserve_city_defenders"), bool):
         raise ValueError("{}.preserve_city_defenders must be boolean".format(prefix))
+    refresh_timeout = impact.get("refresh_timeout_seconds")
+    if (isinstance(refresh_timeout, bool)
+            or not isinstance(refresh_timeout, (int, float))
+            or not 0.25 <= refresh_timeout <= 10.0):
+        raise ValueError(
+            "{}.refresh_timeout_seconds must be in [0.25,10]".format(prefix))
     if (impact["expansion_minimum_remaining_turns"]
             < impact["production_minimum_remaining_turns"]):
         raise ValueError(

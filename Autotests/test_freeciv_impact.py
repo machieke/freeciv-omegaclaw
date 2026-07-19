@@ -188,6 +188,8 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
                    {"production_minimum_remaining_turns": 0},
                    {"production_minimum_remaining_turns": 9,
                     "expansion_minimum_remaining_turns": 8},
+                   {"refresh_timeout_seconds": 0.1},
+                   {"refresh_timeout_seconds": 11},
                    {"no_effect_retry_limit": 0}, {"no_effect_retry_limit": 9},
                    {"max_no_effect_failovers_per_scope": -1},
                    {"max_no_effect_failovers_per_scope": 9}):
@@ -387,6 +389,12 @@ def test_turn_budget_releases_failed_scope_for_bounded_alternative_recovery():
     fail_closed = ImpactTurnBudget(max_no_effect_failovers=0)
     fail_closed.record(first.candidate, effect_observed=False)
     assert first.candidate.scope in fail_closed.excluded_scopes
+
+    ambiguous = ImpactTurnBudget(max_no_effect_failovers=4)
+    ambiguous.record(
+        first.candidate, effect_observed=False, authoritative_refresh=False)
+    assert first.candidate.scope in ambiguous.excluded_scopes
+    assert ambiguous.failover_attempts == 0
 
 
 def test_accepted_terminal_action_closes_actor_scope_before_delayed_state_effect():

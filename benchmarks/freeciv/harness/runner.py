@@ -144,6 +144,7 @@ class HarnessRunner(object):
         cohort_tokens = {
             "development": "dev", "pilot": "pilot",
             "pilot_horizon_60": "p60",
+            "pilot_horizon_60_v2": "p60v2",
             "confirmatory_score": "cscore",
             "confirmatory_joint": "cjoint",
         }
