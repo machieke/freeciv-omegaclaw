@@ -61,7 +61,9 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "development": 100, "pilot": 40,
         "pilot_horizon_60": 40,
         "pilot_horizon_60_v2": 40,
-        "confirmatory_score": 100, "confirmatory_joint": 450,
+        "confirmatory_score": 100,
+        "confirmatory_score_horizon_60_v1": 200,
+        "confirmatory_joint": 450,
     }
     seed_sets = [set(row["seeds"]) for row in paired["cohorts"].values()]
     assert all(not left & right for index, left in enumerate(seed_sets)
@@ -82,6 +84,17 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "algorithm": "sha256-counter-v1",
         "namespace": "pln-freeciv-impact-confirmatory-score-v4",
         "count": 100, "minimum": 1100000, "maximum": 1199999,
+    }
+    assert paired["cohorts"]["confirmatory_score"]["claim_eligible"] is False
+    fresh_score = paired["cohorts"]["confirmatory_score_horizon_60_v1"]
+    assert fresh_score["score_design"] == {
+        "minimum_detectable_delta": 0.2,
+        "maximum_planning_sd": 1.0,
+    }
+    assert fresh_score["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": "pln-freeciv-impact-confirmatory-score-horizon60-v1",
+        "count": 200, "minimum": 1400000, "maximum": 1699999,
     }
     assert paired["cohorts"]["pilot_horizon_60"] == {
         "purpose": "pilot", "claim_eligible": False,
@@ -119,6 +132,24 @@ def test_config_rejects_an_underpowered_predeclared_win_design():
         with open(path, "w", encoding="utf-8") as stream:
             stream.write(source)
         with pytest.raises(ValueError, match="win planned_pairs does not meet"):
+            load(path)
+
+
+def test_config_rejects_an_underpowered_cohort_specific_score_design():
+    source = open(os.path.join(
+        REPO, "profile", "freeciv_harness.yaml"), encoding="utf-8").read()
+    source = source.replace(
+        "      planned_pairs: 200\n      score_design:\n",
+        "      planned_pairs: 100\n      score_design:\n", 1).replace(
+            "        namespace: pln-freeciv-impact-confirmatory-score-horizon60-v1\n"
+            "        count: 200\n",
+            "        namespace: pln-freeciv-impact-confirmatory-score-horizon60-v1\n"
+            "        count: 100\n", 1)
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "underpowered-score.yaml")
+        with open(path, "w", encoding="utf-8") as stream:
+            stream.write(source)
+        with pytest.raises(ValueError, match="underpowered for the declared score design"):
             load(path)
 
 
@@ -543,6 +574,16 @@ def test_paired_impact_jobs_alternate_order_and_override_only_declared_policy():
     assert long_manifest["impact_policy"]["horizon_turn"] == 60
     assert long_manifest["impact_outcomes"]["horizon_turn"] == 60
     assert long_manifest["impact_pair"]["horizon_turn"] == 60
+    confirmatory = HarnessRunner(
+        "unused", seed_limit=1, conditions=("e_full_loop",),
+        impact_cohort="confirmatory_score_horizon_60_v1")
+    confirmatory_manifest = confirmatory._manifest(
+        confirmatory._impact_jobs()[0], 0)
+    assert confirmatory_manifest["turn_limit"] == 60
+    assert confirmatory_manifest["impact_pair"]["score_design"] == {
+        "minimum_detectable_delta": 0.2,
+        "maximum_planning_sd": 1.0,
+    }
 
 
 def test_paired_impact_smoke_is_reproducible_and_reports_power_and_order():
@@ -615,7 +656,7 @@ def test_pilot_and_confirmatory_cohorts_fail_closed_on_source_or_partial_run():
 
         confirmatory = HarnessRunner(
             directory, seed_limit=1, conditions=("e_full_loop",),
-            impact_cohort="confirmatory_score")
+            impact_cohort="confirmatory_score_horizon_60_v1")
         with pytest.raises(ValueError, match="cannot use a pair limit"):
             confirmatory.run_impact_pairs(resume=False)
 
@@ -624,16 +665,17 @@ def test_complete_clean_score_cohort_is_the_only_claim_eligible_score_path():
     with tempfile.TemporaryDirectory() as directory:
         runner = HarnessRunner(
             directory, conditions=("e_full_loop",),
-            impact_cohort="confirmatory_score")
+            impact_cohort="confirmatory_score_horizon_60_v1")
         clean = dict(runner.source_identity, commit="a" * 40, dirty=False)
         with mock.patch("freeciv.harness.runner._source_identity", return_value=clean):
             summary = runner.run_impact_pairs(resume=False)
-        assert summary["completed"] == 200 and summary["claim_eligible"] is True
+        assert summary["completed"] == 400 and summary["claim_eligible"] is True
         aggregate = aggregate_impact_pairs(
-            directory, cohort="confirmatory_score")
-        assert aggregate["complete_pairs"] == 100
+            directory, cohort="confirmatory_score_horizon_60_v1")
+        assert aggregate["complete_pairs"] == 200
         assert aggregate["source_freeze"]["passed"] is True
         assert aggregate["power_analysis"]["ready"] is True
+        assert aggregate["power_analysis"]["minimum_detectable_delta"] == 0.2
         assert aggregate["claim_evaluation"]["score"]["status"] == "passed"
         assert aggregate["claim_evaluation"]["win_rate"]["status"] == "not_declared"
         assert aggregate["claim_evaluation"]["claimable"] == ["score_improvement"]

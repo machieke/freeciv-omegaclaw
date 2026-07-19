@@ -202,6 +202,10 @@ def aggregate_impact_pairs(out, config_path=None, cohort=None):
     cohort_design = design["cohorts"][cohort_name]
     design["outcomes"]["horizon_turn"] = cohort_design.get(
         "horizon_turn", design["outcomes"]["horizon_turn"])
+    if "score_design" in cohort_design:
+        design["power"]["score"] = dict(
+            cohort_design["score_design"],
+            planned_pairs=cohort_design["planned_pairs"])
     declared_seeds = set(cohort_design["seeds"])
     records = []
     failures = []

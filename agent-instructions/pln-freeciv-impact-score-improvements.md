@@ -66,6 +66,31 @@ initial-state fidelity, score tie rate, treatment activation timing, exact
 production effects, paired score variance, and safety gates. Then freeze a new,
 disjoint confirmatory namespace and sample size before running any of its arms.
 
+## Completed hardened pilot
+
+The engine-backed `pilot_horizon_60_v2` run completed all 40 pairs on commit
+`d43638439d069535d8dd0b4c429f7260d5921207`. One baseline engine attempt timed
+out waiting for turn 12; resume mode archived that attempt and the exact arm then
+completed successfully. The active cohort has 80 completed arms, zero active
+failures, matching initial-state fingerprints for all pairs, zero rejected actions,
+zero model fallbacks, and a 100% under-30-second full-loop rate.
+
+The treatment-minus-baseline score estimate is `+0.20`, with bootstrap 95% CI
+`[-0.05, +0.475]` and exact paired sign-flip `p=0.25`. The pilot is therefore not
+a positive score claim. Thirty-five pairs tied, four favored treatment, and one
+favored baseline. Treatment failover activated in 14/40 pairs, made 29 attempts,
+and recorded 26 exact recoveries. Activated pairs averaged `+0.571` score while
+non-activated pairs tied, which supports the intended mechanism but is a
+post-treatment diagnostic subgroup rather than a claimable causal estimand.
+
+The observed paired score SD is `0.8533`. A fresh score-only design is frozen as
+`confirmatory_score_horizon_60_v1`: 200 turn-60 pairs, minimum detectable score
+delta `0.20`, maximum planning SD `1.0`, 80% target power, and namespace
+`pln-freeciv-impact-confirmatory-score-horizon60-v1`. The normal planning bound
+requires 197 pairs. Its 200 seeds occupy `1400000..1699999`, disjoint from every
+development, pilot, and prior confirmatory cohort. The previously exposed V4 score
+cohort is retired from claim eligibility.
+
 ## Acceptance criteria for a future claim cohort
 
 - Every predeclared pair completes under one clean committed implementation.

@@ -26,7 +26,7 @@ arms consecutively and alternates which arm goes first across seed pairs.
 
 ## Cohorts and fresh seeds
 
-`profile/freeciv_harness.yaml` predeclares four mutually disjoint cohorts. Literal
+`profile/freeciv_harness.yaml` predeclares mutually disjoint cohorts. Literal
 development seeds are retained for regression evidence. Fresh cohorts use
 `sha256-counter-v1`; the committed namespace, counter rule, range, and count determine
 every seed before any game is observed.
@@ -35,7 +35,10 @@ every seed before any game is observed.
 |---|---|---:|---|---|
 | `development` | prior development/regression seeds | 100 | no | score, lead rate |
 | `pilot` | variance and discordance estimation | 40 | no | score, lead rate |
-| `confirmatory_score` | fixed score test | 100 | yes | score only |
+| `pilot_horizon_60` | superseded turn-60 planning pilot | 40 | no | score, lead rate |
+| `pilot_horizon_60_v2` | hardened turn-60 planning pilot | 40 | no | score, lead rate |
+| `confirmatory_score` | retired exposed V4 score cohort | 100 | no | score only |
+| `confirmatory_score_horizon_60_v1` | fixed turn-60 score test | 200 | yes | score only |
 | `confirmatory_joint` | hierarchical score then lead-rate test | 450 | yes | score, lead rate |
 
 Configuration validation rejects overlapping cohorts. Pilot and confirmatory cohorts
@@ -56,11 +59,19 @@ silently counted as a completed pair.
 
 ## Statistical declaration
 
-The score design uses two-sided alpha `0.05`, 80% target power, and a two-point minimum
-detectable difference. Observed paired variance and achieved-power fields are
-suppressed until at least 30 pairs complete. A 100-pair score design supports the
-two-point target when paired SD is no greater than the predeclared planning bound
-`7.13`.
+The score design uses two-sided alpha `0.05` and 80% target power. Observed paired
+variance and achieved-power fields are suppressed until at least 30 pairs complete.
+The original 100-pair design used a two-point minimum detectable difference and a
+paired-SD bound of `7.13`. It is retained only as historical configuration because
+its seeds were already exposed.
+
+The hardened turn-60 pilot estimated a `+0.20` score delta and paired SD `0.8533`.
+The fresh `confirmatory_score_horizon_60_v1` cohort therefore predeclares a
+`0.20`-point minimum detectable difference, raises the maximum planning SD to `1.0`,
+and fixes 200 pairs. The paired-normal calculation requires 197 pairs at that bound;
+200 is frozen before any confirmatory arm is observed. This powers a claim of any
+positive score improvement. It does not redefine the separate two-point meaningful
+effect threshold.
 
 Primary score and paired lead-rate intervals use 20,000 fixed-seed bootstrap samples
 over seed-pair differences. The score endpoint also uses an exact two-sided paired
@@ -108,18 +119,18 @@ pilot:
 ```bash
 FREECIV_RULESET_ROOT="$FREECIV_LLM_ROOT/freeciv/freeciv/data" \
 PYTHONPATH=src:benchmarks python3 scripts/freeciv/run_impact_evaluation.py \
-  --out artifacts/freeciv/impact-pilot-engine \
-  --backend engine-live --cohort pilot
+  --out artifacts/freeciv/impact-pilot-horizon60-v2-engine \
+  --backend engine-live --cohort pilot_horizon_60_v2
 ```
 
-Run exactly one preselected confirmatory design. The score design executes 200 games;
+Run exactly one preselected confirmatory design. The fresh score design executes 400 games;
 the joint design executes 900 games:
 
 ```bash
 FREECIV_RULESET_ROOT="$FREECIV_LLM_ROOT/freeciv/freeciv/data" \
 PYTHONPATH=src:benchmarks python3 scripts/freeciv/run_impact_evaluation.py \
   --out artifacts/freeciv/impact-confirmatory-score-engine \
-  --backend engine-live --cohort confirmatory_score
+  --backend engine-live --cohort confirmatory_score_horizon_60_v1
 
 FREECIV_RULESET_ROOT="$FREECIV_LLM_ROOT/freeciv/freeciv/data" \
 PYTHONPATH=src:benchmarks python3 scripts/freeciv/run_impact_evaluation.py \

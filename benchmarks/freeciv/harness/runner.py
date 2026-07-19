@@ -146,6 +146,7 @@ class HarnessRunner(object):
             "pilot_horizon_60": "p60",
             "pilot_horizon_60_v2": "p60v2",
             "confirmatory_score": "cscore",
+            "confirmatory_score_horizon_60_v1": "cs60v1",
             "confirmatory_joint": "cjoint",
         }
         game_id = ("m7-ip-{}-{}-{}-{:02d}-{}".format(
@@ -208,6 +209,7 @@ class HarnessRunner(object):
                 "planned_pairs": cohort_design["planned_pairs"],
                 "require_clean_source": cohort_design["require_clean_source"],
                 "seed_derivation": cohort_design.get("seed_derivation"),
+                "score_design": cohort_design.get("score_design"),
                 "horizon_turn": horizon_turn,
                 "within_pair_order": job["within_pair_order"],
             }

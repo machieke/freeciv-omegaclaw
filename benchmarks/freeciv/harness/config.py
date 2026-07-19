@@ -250,9 +250,10 @@ def _validate_paired_impact(value):
         if (isinstance(horizon_turn, bool) or not isinstance(horizon_turn, int)
                 or not 1 <= horizon_turn <= 500):
             raise ValueError("{}.horizon_turn must be in 1..500".format(prefix))
-        if purpose != "pilot" and horizon_turn != outcomes["horizon_turn"]:
+        if purpose == "development" and horizon_turn != outcomes["horizon_turn"]:
             raise ValueError(
-                "{}.horizon_turn may differ from the declared outcome only for pilots"
+                "{}.horizon_turn may differ from the default outcome only for "
+                "pilot or confirmatory cohorts"
                 .format(prefix))
         endpoints = cohort.get("endpoints")
         if (not isinstance(endpoints, list) or not endpoints
@@ -273,8 +274,39 @@ def _validate_paired_impact(value):
         if purpose != "confirmatory" and cohort["claim_eligible"]:
             raise ValueError("{} cannot be claim eligible".format(prefix))
         if outcomes["score_metric"] in endpoints and purpose == "confirmatory":
-            if len(seeds) < score_pairs:
+            cohort_score = cohort.get("score_design")
+            if cohort_score is None:
+                effective_score = score_power
+            else:
+                if (not isinstance(cohort_score, dict)
+                        or set(cohort_score) != {
+                            "minimum_detectable_delta", "maximum_planning_sd"}):
+                    raise ValueError(
+                        "{}.score_design must declare minimum_detectable_delta "
+                        "and maximum_planning_sd".format(prefix))
+                effective_score = cohort_score
+            effective_delta = effective_score.get("minimum_detectable_delta")
+            effective_sd = effective_score.get("maximum_planning_sd")
+            if (not isinstance(effective_delta, (int, float))
+                    or isinstance(effective_delta, bool) or effective_delta <= 0):
+                raise ValueError(
+                    "{}.score_design minimum detectable delta must be positive"
+                    .format(prefix))
+            if (not isinstance(effective_sd, (int, float))
+                    or isinstance(effective_sd, bool) or effective_sd <= 0):
+                raise ValueError(
+                    "{}.score_design maximum planning SD must be positive"
+                    .format(prefix))
+            effective_required = math.ceil((
+                (normal.inv_cdf(1.0 - float(power["alpha"]) / 2.0)
+                 + normal.inv_cdf(float(power["target_power"])))
+                * float(effective_sd) / float(effective_delta)) ** 2)
+            if len(seeds) < effective_required:
                 raise ValueError("{} is underpowered for the declared score design".format(prefix))
+        elif "score_design" in cohort:
+            raise ValueError(
+                "{}.score_design is only valid for a confirmatory score endpoint"
+                .format(prefix))
         if outcomes["win_metric"] in endpoints and purpose == "confirmatory":
             if len(seeds) < win_pairs:
                 raise ValueError("{} is underpowered for the declared win design".format(prefix))
