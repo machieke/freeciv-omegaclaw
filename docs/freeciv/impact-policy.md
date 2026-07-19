@@ -65,6 +65,12 @@ actor position, activity, health, existence, or movement points change, even if 
 proxy's broader state hash remains unchanged. This closes the successful actor scope
 before another same-turn order can spend already-consumed movement points.
 
+The actor scope also closes conservatively when an accepted unit order has no visible
+effect in the first refreshed snapshot. Live confirmatory preflight showed that the
+engine can consume movement points while the proxy continues to publish stale actor
+position and movement values; failover remains enabled only for non-unit scopes where
+acceptance cannot silently exhaust that actor budget.
+
 ## Impact telemetry
 
 The harness now aggregates these paired metrics with the same bootstrap method as

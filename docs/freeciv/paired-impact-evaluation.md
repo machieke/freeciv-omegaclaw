@@ -43,6 +43,11 @@ require a clean Git checkout. The runner refreshes source identity immediately b
 execution and again after the last arm; a dirty, unavailable, or changed identity
 invalidates the run. Confirmatory cohorts also reject `--limit-pairs`.
 
+If implementation hardening exposes any confirmatory seed before the final source is
+frozen, that whole cohort is retired. The score-confirmatory `v2` namespace uses the
+fresh range `900000..999999`; results from the superseded `v1` namespace are
+development diagnostics and cannot be resumed into the final claim.
+
 ## Statistical declaration
 
 The score design uses two-sided alpha `0.05`, 80% target power, and a two-point minimum
@@ -137,6 +142,6 @@ null or negative treatment effect into a positive claim.
 The hardened 100-pair development fixture at
 `artifacts/freeciv/impact-paired-representative-hardening-100` completed all 200 arms,
 balanced order 50/50, retained zero failures, and re-aggregated byte-identically to
-SHA-256 `2b8173bcd73c3824d8882341b1141ad765815b0323e8e43b1f7c0f5a01e9d1ec`.
+SHA-256 `a93bb0e884d2ae014089d2e469ca6b60ed4fa759b8dcb503b8eada7dfd536d4b`.
 Its deliberately favorable synthetic endpoints remain marked `ineligible` because
 the cohort is development-only and its manifests record a dirty implementation tree.

@@ -302,10 +302,8 @@ def test_configured_no_effect_retry_limit_allows_one_controlled_retry():
 
 
 def test_turn_budget_releases_failed_scope_for_bounded_alternative_recovery():
-    preferred = {"action_type": "unit_move", "actor_id": 20,
-                 "target": {"x": 0, "y": 2}, "is_valid": True}
-    alternative = {"action_type": "unit_move", "actor_id": 20,
-                   "target": {"x": 1, "y": 0}, "is_valid": True}
+    preferred = _production(10, "Settlers", 6, 0)
+    alternative = _production(10, "Granary", 3, 14)
     snapshot = _snapshot(
         [_unit(11, "Alpine Troops"), _unit(20, "Explorer")],
         [preferred, alternative, {"action_type": "end_turn", "is_valid": True}])
@@ -345,3 +343,18 @@ def test_accepted_terminal_action_closes_actor_scope_before_delayed_state_effect
     assert decision.candidate.scope in budget.excluded_scopes
     assert budget.failover_attempts == 0
     assert budget.recoveries == 0
+
+
+def test_accepted_unit_order_closes_scope_when_proxy_snapshot_stays_stale():
+    move = {"action_type": "unit_move", "actor_id": 20,
+            "target": {"x": 0, "y": 2}, "is_valid": True}
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops"), _unit(20, "Explorer")],
+        [move, {"action_type": "end_turn", "is_valid": True}])
+    decision = GroundedImpactPlanner().plan(snapshot)
+    assert decision.candidate.unit_scope_consumed_on_accept
+
+    budget = ImpactTurnBudget(max_no_effect_failovers=4)
+    budget.record(decision.candidate, effect_observed=False)
+    assert decision.candidate.scope in budget.excluded_scopes
+    assert budget.failover_attempts == 0

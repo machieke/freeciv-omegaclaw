@@ -54,6 +54,11 @@ class ImpactCandidate:
         return self.action.get("action_type") in (
             "unit_build_city", "unit_suicide_attack")
 
+    @property
+    def unit_scope_consumed_on_accept(self):
+        """Whether acceptance can spend an actor resource hidden by a stale snapshot."""
+        return str(self.action.get("action_type", "")).startswith("unit_")
+
     def to_dict(self):
         return {
             "action": dict(self.action), "category": self.category,
@@ -88,7 +93,8 @@ class ImpactTurnBudget(object):
         is_failover = self.failed_attempts.get(scope, 0) > 0
         if is_failover:
             self.failover_attempts += 1
-        if effect_observed or candidate.terminal_on_accept:
+        if (effect_observed or candidate.terminal_on_accept
+                or candidate.unit_scope_consumed_on_accept):
             self.used_scopes.add(scope)
             self.recoveries += int(is_failover and effect_observed)
         else:
