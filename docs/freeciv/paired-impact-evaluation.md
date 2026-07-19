@@ -44,9 +44,10 @@ execution and again after the last arm; a dirty, unavailable, or changed identit
 invalidates the run. Confirmatory cohorts also reject `--limit-pairs`.
 
 If implementation hardening exposes any confirmatory seed before the final source is
-frozen, that whole cohort is retired. The score-confirmatory `v2` namespace uses the
-fresh range `900000..999999`; results from the superseded `v1` namespace are
-development diagnostics and cannot be resumed into the final claim.
+frozen, that whole cohort is retired. The score-confirmatory `v3` namespace uses the
+fresh range `1000000..1099999`. The superseded `v1` and `v2` namespaces are
+development diagnostics and cannot be resumed into the final claim; `v2` exposed an
+accepted-unit/no-authoritative-update edge case that required implementation changes.
 
 ## Statistical declaration
 

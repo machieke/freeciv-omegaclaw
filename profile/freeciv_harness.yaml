@@ -207,10 +207,10 @@ paired_impact:
       planned_pairs: 100
       seed_derivation:
         algorithm: sha256-counter-v1
-        namespace: pln-freeciv-impact-confirmatory-score-v2
+        namespace: pln-freeciv-impact-confirmatory-score-v3
         count: 100
-        minimum: 900000
-        maximum: 999999
+        minimum: 1000000
+        maximum: 1099999
     confirmatory_joint:
       purpose: confirmatory
       claim_eligible: true

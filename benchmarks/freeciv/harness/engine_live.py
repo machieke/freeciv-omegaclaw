@@ -475,6 +475,26 @@ async def _execute_action(gate, game_id, player_id, snapshot, action, parent,
     return outcome, outcome.result_event_id or parent
 
 
+async def _refresh_accepted_impact_action(refresh, raw, snapshot, parent, candidate):
+    """Refresh an accepted impact action, preserving unit no-effect outcomes.
+
+    The proxy acknowledges transport acceptance before civserver necessarily
+    emits a new authoritative packet.  A unit order can therefore be accepted
+    while producing no source-sequence change (for example, a mechanically
+    legal move that the server cannot execute).  Those outcomes must reach the
+    planner's no-effect accounting so the accepted actor scope is closed; they
+    are not an infrastructure failure.  Non-unit actions retain the strict
+    authoritative-refresh requirement.
+    """
+    try:
+        next_raw, next_snapshot, next_parent = await refresh(snapshot, parent)
+    except TimeoutError:
+        if not candidate.unit_scope_consumed_on_accept:
+            raise
+        return raw, snapshot, parent, False
+    return next_raw, next_snapshot, next_parent, True
+
+
 def _control_plan(snapshot, assumption=None):
     action = {"action_type": "end_turn"}
     suffix = structural_hash([snapshot.snapshot_id, "control", assumption.atom_id if assumption else None])
@@ -1065,8 +1085,11 @@ async def _play(run_dir, manifest, context):
                         impact_action, impact=True,
                         category=decision.candidate.category)
                     excluded_impact_actions.add(decision.candidate.action_key)
-                    raw, snapshot, parent = await refresh_after_action(snapshot, parent)
-                    effect_observed = (
+                    raw, snapshot, parent, authoritative_refresh = (
+                        await _refresh_accepted_impact_action(
+                            refresh_after_action, raw, snapshot, parent,
+                            decision.candidate))
+                    effect_observed = authoritative_refresh and (
                         snapshot.identity.state_hash != prior_state_hash
                         or impact_planner.local_actor_effect_observed(
                             decision.candidate, action_snapshot, snapshot))

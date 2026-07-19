@@ -66,10 +66,14 @@ proxy's broader state hash remains unchanged. This closes the successful actor s
 before another same-turn order can spend already-consumed movement points.
 
 The actor scope also closes conservatively when an accepted unit order has no visible
-effect in the first refreshed snapshot. Live confirmatory preflight showed that the
-engine can consume movement points while the proxy continues to publish stale actor
-position and movement values; failover remains enabled only for non-unit scopes where
-acceptance cannot silently exhaust that actor budget.
+effect in the first refreshed snapshot, including when civserver emits no newer
+authoritative sequence before the bounded refresh deadline. Live confirmatory
+preflight showed that the engine can consume movement points while the proxy continues
+to publish stale actor position and movement values, or acknowledges a mechanically
+legal order that produces no packet at all. The unchanged snapshot is recorded as a
+no-effect outcome; failover remains enabled only for non-unit scopes where acceptance
+cannot silently exhaust that actor budget. Non-unit actions still require a newer
+authoritative sequence and fail closed when it is absent.
 
 ## Impact telemetry
 

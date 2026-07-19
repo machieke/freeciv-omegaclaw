@@ -1,7 +1,8 @@
 """M7 controller, reproducibility, statistics, fidelity, and capability gates."""
 
-import json
+import asyncio
 import io
+import json
 import os
 import re
 import sys
@@ -29,8 +30,8 @@ from freeciv.harness.aggregate import _calibration_report  # noqa: E402
 from freeciv.harness.impact_evaluation import _claim_evaluation  # noqa: E402
 from freeciv.harness.engine_live import (  # noqa: E402
     _available_research_names, _needs_cognitive_stack, _opponent_memory_path,
-    _plain_prompt_state, _plain_state_summary, _release_configuration_active,
-    _validate_compact_goal_proposal)
+    _plain_prompt_state, _plain_state_summary, _refresh_accepted_impact_action,
+    _release_configuration_active, _validate_compact_goal_proposal)
 from freeciv.harness import engine_live  # noqa: E402
 from freeciv_agent.events.schema import canonical_json_bytes, structural_hash  # noqa: E402
 from freeciv_agent.events.validator import validate_file  # noqa: E402
@@ -67,6 +68,12 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert config["paired_impact"]["arms"] == {
         "baseline": {"max_no_effect_failovers_per_scope": 0},
         "treatment": {"max_no_effect_failovers_per_scope": 4},
+    }
+    score_derivation = paired["cohorts"]["confirmatory_score"]["seed_derivation"]
+    assert score_derivation == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": "pln-freeciv-impact-confirmatory-score-v3",
+        "count": 100, "minimum": 1000000, "maximum": 1099999,
     }
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.0",
@@ -303,6 +310,36 @@ def test_engine_live_clears_stale_proxy_game_before_server_recycle(monkeypatch):
         ("terminate", "release-retry", "test-token-fc3d-001", False),
         ("recycle", 6001),
     ]
+
+
+def test_accepted_unit_no_update_reaches_no_effect_accounting():
+    raw = {"turn": 1}
+    snapshot = object()
+    parent = "accepted-result"
+
+    class Candidate:
+        unit_scope_consumed_on_accept = True
+
+    async def no_update(current, cause):
+        assert current is snapshot and cause == parent
+        raise TimeoutError("authoritative state did not reach turn 1")
+
+    result = asyncio.run(_refresh_accepted_impact_action(
+        no_update, raw, snapshot, parent, Candidate()))
+
+    assert result == (raw, snapshot, parent, False)
+
+
+def test_accepted_non_unit_action_still_requires_authoritative_update():
+    class Candidate:
+        unit_scope_consumed_on_accept = False
+
+    async def no_update(_current, _cause):
+        raise TimeoutError("authoritative state did not reach turn 1")
+
+    with pytest.raises(TimeoutError, match="did not reach turn"):
+        asyncio.run(_refresh_accepted_impact_action(
+            no_update, {}, object(), "accepted-result", Candidate()))
 
 
 def test_worker_assignment_does_not_change_behavioral_manifest_identity():
