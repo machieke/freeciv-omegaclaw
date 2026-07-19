@@ -16,7 +16,9 @@ from .statistics import bootstrap_mean, paired_delta, wilson
 
 
 METRICS = (
-    "game_win", "score_turn_n", "engine_rejected_action_rate",
+    "game_win", "score_lead_turn_n", "score_turn_n",
+    "opponent_score_turn_n", "score_margin_turn_n",
+    "engine_rejected_action_rate",
     "confabulation_write_through", "calibration_absolute_error",
     "plan_eta_absolute_error_turns", "replan_latency_ms", "loop_latency_ms",
     "induction_prediction_accuracy", "model_latency_ms",
@@ -127,7 +129,7 @@ def _calibration_report(rows, calibration=None):
 
 
 def _summary(values, metric, statistics):
-    if metric == "game_win":
+    if metric in ("game_win", "score_lead_turn_n"):
         return wilson(sum(value[metric] for value in values if metric in value),
                       sum(metric in value for value in values))
     return bootstrap_mean(

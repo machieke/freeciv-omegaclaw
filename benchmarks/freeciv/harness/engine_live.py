@@ -1170,7 +1170,11 @@ async def _play(run_dir, manifest, context):
     opponent_row = (final_global or {}).get("players", {}).get(str(opponent.get("id", 1)), {})
     player_score = float(player_row.get("score", 0))
     opponent_score = float(opponent_row.get("score", 0))
-    won = player_score > opponent_score
+    score_margin = player_score - opponent_score
+    score_lead = player_score > opponent_score
+    # ``game_win`` is retained for the original M7 aggregate contract. Paired
+    # impact claims use the explicitly named fixed-horizon score-lead endpoint.
+    won = score_lead
     city_gain = max(0, len(snapshot.cities) - initial_city_count)
     technology_gain = max(0, len(snapshot.research.known_techs) - initial_tech_count)
     explored_positions = (max(0, len(impact_planner.visited_positions) - initial_position_count)
@@ -1182,7 +1186,10 @@ async def _play(run_dir, manifest, context):
     failover_recovery_rate = (float(decision_stats["failover_recoveries"])
                               / max(1, decision_stats["failover_attempts"]))
     metrics = [
-        ("game_win", int(won)), ("score_turn_n", player_score),
+        ("game_win", int(won)), ("score_lead_turn_n", int(score_lead)),
+        ("score_turn_n", player_score),
+        ("opponent_score_turn_n", opponent_score),
+        ("score_margin_turn_n", score_margin),
         ("engine_rejected_action_rate", float(rejected) / max(1, action_count)),
         ("confabulation_write_through", 0.0),
         ("calibration_absolute_error", calibration_error),
@@ -1244,7 +1251,11 @@ async def _play(run_dir, manifest, context):
                 decision_stats["failover_recoveries"]),
             "meaningful_actions": decision_stats["meaningful_actions"],
             "planned_engine_actions": planned_actions,
-            "score": player_score, "won": won, "zombie_attempts_blocked": zombie_blocked,
+            "opponent_score": opponent_score,
+            "outcome_definition": "fixed_horizon_score_lead",
+            "score": player_score, "score_lead": score_lead,
+            "score_margin": score_margin, "won": won,
+            "zombie_attempts_blocked": zombie_blocked,
         }}, caused_by=[parent])
     return {
         "capability_audit": context.audit(), "calibration_samples": len(predictions),

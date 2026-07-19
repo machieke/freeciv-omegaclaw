@@ -1,6 +1,7 @@
 """Resumable, isolated, deterministically assigned harness controller."""
 
 import concurrent.futures
+import copy
 import datetime
 import hashlib
 import json
@@ -68,7 +69,8 @@ def _source_identity():
 
 class HarnessRunner(object):
     def __init__(self, out, config_path=None, backend="representative",
-                 workers=1, base_port=6100, seed_limit=None, conditions=None):
+                 workers=1, base_port=6100, seed_limit=None, conditions=None,
+                 impact_cohort=None):
         self.out = os.path.abspath(out)
         self.config = load(config_path)
         self.backend = backend
@@ -77,6 +79,10 @@ class HarnessRunner(object):
         self.seed_limit = None if seed_limit is None else max(1, int(seed_limit))
         self.conditions = tuple(conditions or self.config["conditions"])
         self.source_identity = _source_identity()
+        paired = self.config.get("paired_impact", {})
+        self.impact_cohort = impact_cohort or paired.get("default_cohort")
+        if paired and self.impact_cohort not in paired.get("cohorts", {}):
+            raise ValueError("unknown paired impact cohort {}".format(self.impact_cohort))
         unknown = sorted(set(self.conditions) - set(self.config["conditions"]))
         if unknown:
             raise ValueError("unknown harness conditions {}".format(unknown))
@@ -114,11 +120,42 @@ class HarnessRunner(object):
                         "track": "grading_{}".format(mode), "sequence": 0})
         return jobs
 
+    def _impact_jobs(self):
+        paired = self.config.get("paired_impact")
+        if paired is None:
+            raise ValueError("configuration does not declare paired_impact")
+        cohort = paired["cohorts"][self.impact_cohort]
+        seeds = cohort["seeds"][:self.seed_limit]
+        jobs = []
+        for pair_index, seed in enumerate(seeds):
+            order = (("baseline", "treatment") if pair_index % 2 == 0
+                     else ("treatment", "baseline"))
+            for within_pair_order, arm in enumerate(order):
+                jobs.append({
+                    "cohort": self.impact_cohort,
+                    "condition": paired["condition"], "pair_index": pair_index,
+                    "policy_arm": arm, "seed": seed, "sequence": 0,
+                    "track": "impact_pair", "within_pair_order": within_pair_order,
+                })
+        return jobs
+
     def _manifest(self, job, worker):
-        game_id = "m7-{}-{}-{}-{:02d}".format(
-            job["track"], job["condition"], job["seed"], job["sequence"])
-        run_dir = os.path.join(self.out, "games", job["track"], job["condition"],
-                               "{}-{:02d}".format(job["seed"], job["sequence"]))
+        arm = job.get("policy_arm")
+        game_id = ("m7-{}-{}-{}-{}-{}-{:02d}".format(
+            job["track"], job["cohort"], arm, job["condition"],
+            job["seed"], job["sequence"])
+                   if arm is not None else "m7-{}-{}-{}-{:02d}".format(
+            job["track"], job["condition"], job["seed"], job["sequence"]))
+        run_parts = [self.out, "games", job["track"]]
+        if arm is not None:
+            run_parts.append(job["cohort"])
+            run_parts.append(arm)
+        run_parts.extend((job["condition"],
+                          "{}-{:02d}".format(job["seed"], job["sequence"])))
+        run_dir = os.path.join(*run_parts)
+        impact_policy = copy.deepcopy(self.config["impact_policy"])
+        if arm is not None:
+            impact_policy.update(self.config["paired_impact"]["arms"][arm])
         material = {
             "backend": self.backend, "beliefs": self.config["beliefs"],
             "capabilities": self.config["capabilities"][job["condition"]],
@@ -129,7 +166,7 @@ class HarnessRunner(object):
             # operational details.
             "controller_workers": self.workers,
             "engine": self.config["engine"], "game_id": game_id,
-            "impact_policy": self.config["impact_policy"],
+            "impact_policy": impact_policy,
             "machine_profile": self.config["machine_profile"],
             "model": self.config["model"]["name"], "model_config": self.config["model"],
             "opponent": (self.config["induction"] if job["track"] == "induction"
@@ -148,6 +185,20 @@ class HarnessRunner(object):
                 "engine_max_turns", self.config["turn_limit"]),
             "worker": worker,
         }
+        if arm is not None:
+            cohort_design = self.config["paired_impact"]["cohorts"][job["cohort"]]
+            material["impact_pair"] = {
+                "arm": arm, "experimental_unit": "seed_pair",
+                "cohort": job["cohort"],
+                "cohort_purpose": cohort_design["purpose"],
+                "claim_eligible": cohort_design["claim_eligible"],
+                "pair_index": job["pair_index"],
+                "planned_pairs": cohort_design["planned_pairs"],
+                "require_clean_source": cohort_design["require_clean_source"],
+                "seed_derivation": cohort_design.get("seed_derivation"),
+                "within_pair_order": job["within_pair_order"],
+            }
+            material["impact_outcomes"] = self.config["paired_impact"]["outcomes"]
         identity_material = {key: value for key, value in material.items()
                              if key not in ("runtime", "worker")}
         material["manifest_identity"] = structural_hash(identity_material)
@@ -178,6 +229,22 @@ class HarnessRunner(object):
                 report = validate_file(events_path)
                 if report.valid:
                     return dict(manifest=manifest, status=status, resumed=True)
+        # Preserve every superseded attempt outside ``games`` so aggregation
+        # sees only the active arm while paired failure reporting can retain
+        # the full operational history.
+        persisted_path = os.path.join(run_dir, "manifest.json")
+        if os.path.isfile(status_path) and os.path.isfile(persisted_path):
+            persisted = json.load(open(persisted_path, encoding="utf-8"))
+            attempt_id = persisted.get("attempt_id") or structural_hash([
+                persisted.get("manifest_identity"), persisted.get("runtime")])[:16]
+            relative = os.path.relpath(run_dir, os.path.join(self.out, "games"))
+            archive = os.path.join(
+                self.out, "attempt-history", relative, str(attempt_id))
+            os.makedirs(archive, exist_ok=True)
+            for name in ("manifest.json", "status.json", "events.jsonl"):
+                source = os.path.join(run_dir, name)
+                if os.path.isfile(source):
+                    shutil.copy2(source, os.path.join(archive, name))
         os.makedirs(run_dir, exist_ok=True)
         if os.path.exists(events_path):
             os.remove(events_path)
@@ -244,4 +311,56 @@ class HarnessRunner(object):
             "resumed": sum(row["resumed"] for row in results),
         }
         _atomic_json(os.path.join(self.out, "run-summary.json"), summary)
+        return summary
+
+    def run_impact_pairs(self, resume=True):
+        """Run paired policy arms serially in predeclared alternating order."""
+        if self.workers != 1:
+            raise ValueError("paired impact evaluation requires workers=1")
+        cohort = self.config["paired_impact"]["cohorts"][self.impact_cohort]
+        if cohort["claim_eligible"] and self.seed_limit is not None:
+            raise ValueError(
+                "confirmatory cohort {} cannot use a pair limit".format(
+                    self.impact_cohort))
+        if cohort["require_clean_source"]:
+            # Refresh immediately before the first arm so a runner constructed
+            # before later edits cannot retain a stale clean identity.
+            self.source_identity = _source_identity()
+            if self.source_identity.get("commit") in (None, "", "unavailable"):
+                raise RuntimeError(
+                    "{} cohort requires a readable committed source identity".format(
+                        self.impact_cohort))
+            if self.source_identity.get("dirty"):
+                raise RuntimeError(
+                    "{} cohort requires a clean source tree; commit all changes first".format(
+                        self.impact_cohort))
+        os.makedirs(self.out, exist_ok=True)
+        jobs = list(enumerate(self._impact_jobs()))
+        results = [self._run_one(job, resume) for job in jobs]
+        summary = {
+            "backend": self.backend,
+            "completed": sum(row["status"].get("status") == "completed"
+                             for row in results),
+            "configuration_hash": self.config["configuration_hash"],
+            "infrastructure_failures": sum(
+                row["status"].get("status") == "infrastructure_failure"
+                for row in results),
+            "jobs": len(results), "machine": platform.platform(),
+            "paired_impact": True,
+            "cohort": self.impact_cohort,
+            "cohort_purpose": cohort["purpose"],
+            "claim_eligible": cohort["claim_eligible"],
+            "pairs": len(self._impact_jobs()) // 2,
+            "resumed": sum(row["resumed"] for row in results),
+        }
+        if cohort["require_clean_source"]:
+            ending_source = _source_identity()
+            summary["source_stable"] = ending_source == self.source_identity
+        else:
+            summary["source_stable"] = None
+        _atomic_json(os.path.join(self.out, "impact-run-summary.json"), summary)
+        if summary["source_stable"] is False:
+            raise RuntimeError(
+                "{} cohort source changed during execution; artifacts are not claim eligible"
+                .format(self.impact_cohort))
         return summary

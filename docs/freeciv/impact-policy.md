@@ -95,10 +95,11 @@ the 30-turn full loop completed with:
 - 30/30 turns under 30 seconds, maximum 3.714 seconds and mean 0.325 seconds;
 - zero model fallback and zero corrective retry.
 
-This is a development smoke, not evidence of a statistically reliable score or win
-improvement. The next release comparison must rerun paired seeds for every condition;
-100 paired seeds is the recommended first power-estimation run before choosing the
-final sample size from the observed effect.
+This is a development smoke, not evidence of a statistically reliable score or
+fixed-horizon lead-rate improvement. The hardened track uses 40 fresh pilot pairs to
+estimate nuisance variance and discordance without making a claim, followed by a
+separate predeclared confirmatory cohort. Sample size is never chosen from a favorable
+observed treatment effect.
 
 The retained trace also exposed 28 accepted actions with no immediate effect: 26
 repeated diplomat moves toward one unchanged unreachable tile and two repeated city
@@ -154,6 +155,16 @@ and a stale follow-up move was rejected. That run remains an infrastructure fail
 the terminal-action scope guard was added from its evidence, and the final rerun had
 zero rejection. As with the preceding smokes, this is behavioral evidence on one
 seed, not a conclusive score or win-rate result.
+
+The next measurement gate is executable through the hardened paired track described
+in [paired-impact-evaluation.md](paired-impact-evaluation.md). Previously exercised
+seeds are development-only. Fresh pilot and confirmatory cohorts require a clean,
+stable source commit; the baseline disables same-turn failover while retaining every
+other policy setting, and treatment uses the declared four-failover bound. The binary
+endpoint is explicitly a score lead at the fixed horizon, not an engine-reported
+terminal victory. A confirmatory score claim requires both a paired confidence
+interval excluding zero and an exact paired sign-flip randomization test at the
+predeclared alpha; the stronger two-point claim repeats both gates at that margin.
 
 ## Operational note
 

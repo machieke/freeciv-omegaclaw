@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omegaclaw.local/schemas/freeciv-harness/v1/impact-paired.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "configuration_hash",
+    "design",
+    "attempted_pairs",
+    "complete_pairs",
+    "complete_seeds",
+    "incomplete_pairs",
+    "arms",
+    "paired_deltas",
+    "primary_outcome",
+    "score_randomization",
+    "score_meaningful_randomization",
+    "win_discordance",
+    "win_rate_difference",
+    "power_analysis",
+    "win_power_analysis",
+    "source_freeze",
+    "claim_evaluation",
+    "safety_gates",
+    "failures",
+    "methods"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "configuration_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "design": {"type": "object"},
+    "attempted_pairs": {"type": "integer", "minimum": 0, "maximum": 10000},
+    "complete_pairs": {"type": "integer", "minimum": 0, "maximum": 10000},
+    "complete_seeds": {
+      "type": "array",
+      "items": {"type": "integer"},
+      "uniqueItems": true
+    },
+    "incomplete_pairs": {"type": "array", "items": {"type": "object"}},
+    "arms": {
+      "type": "object",
+      "required": ["baseline", "treatment"],
+      "additionalProperties": false,
+      "properties": {
+        "baseline": {"type": "object"},
+        "treatment": {"type": "object"}
+      }
+    },
+    "paired_deltas": {"type": "object"},
+    "primary_outcome": {"type": "object"},
+    "score_randomization": {"$ref": "#/$defs/scoreRandomization"},
+    "score_meaningful_randomization": {"$ref": "#/$defs/scoreRandomization"},
+    "win_discordance": {"type": "object"},
+    "win_rate_difference": {"type": "object"},
+    "power_analysis": {"type": "object"},
+    "win_power_analysis": {"type": "object"},
+    "source_freeze": {
+      "type": "object",
+      "required": ["commits", "dirty_games", "implementation_sha256s", "required", "passed", "run_source_stable", "unavailable_games"],
+      "properties": {
+        "commits": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "dirty_games": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "implementation_sha256s": {"type": "array", "items": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "uniqueItems": true},
+        "required": {"type": "boolean"},
+        "passed": {"type": "boolean"},
+        "run_source_stable": {"type": ["boolean", "null"]},
+        "unavailable_games": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      },
+      "additionalProperties": false
+    },
+    "claim_evaluation": {"type": "object"},
+    "safety_gates": {"type": "object"},
+    "failures": {"type": "array", "items": {"type": "object"}},
+    "methods": {"type": "object"}
+  },
+  "$defs": {
+    "scoreRandomization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "alternative",
+        "exact",
+        "margin",
+        "maximum_states",
+        "method",
+        "nonzero_pairs",
+        "observed_mean_difference",
+        "p_value",
+        "pairs",
+        "ready",
+        "reason",
+        "states_evaluated"
+      ],
+      "properties": {
+        "alternative": {"const": "two_sided"},
+        "exact": {"const": true},
+        "margin": {"type": "number"},
+        "maximum_states": {"type": "integer", "minimum": 1},
+        "method": {"const": "exact-paired-sign-flip-randomization"},
+        "nonzero_pairs": {"type": "integer", "minimum": 0},
+        "observed_mean_difference": {"type": ["number", "null"]},
+        "p_value": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "pairs": {"type": "integer", "minimum": 0},
+        "ready": {"type": "boolean"},
+        "reason": {"type": ["string", "null"]},
+        "states_evaluated": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

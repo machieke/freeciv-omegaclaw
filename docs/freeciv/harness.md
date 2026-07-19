@@ -52,6 +52,12 @@ Ollama, preload the configured model before timed runs if its cold load exceeds 
 per-turn model budget; the harness reports any resulting safe fallbacks rather than
 hiding them.
 
+The outcome experiment for that policy is a separate paired baseline/treatment track
+so the five-condition release matrix remains unchanged. It has disjoint development,
+pilot, 100-pair score-confirmatory, and 450-pair joint-confirmatory cohorts. See
+[paired-impact-evaluation.md](paired-impact-evaluation.md) for endpoint semantics,
+fresh-seed derivation, clean-source gates, power declarations, and claim rules.
+
 Only one engine-live controller may run at once. It owns
 `artifacts/freeciv/.engine-live.lock`; its workers receive fixed ports within
 6001-6009 and each worker serializes its own games. Induction games are globally
@@ -84,8 +90,12 @@ the same fidelity as wins.
 
 ## Statistics and release checks
 
-Binary intervals use Wilson scores. Continuous and paired deltas use the predeclared
-deterministic percentile bootstrap, paired by seed. Calibration uses 0.1 buckets,
+Binary arm intervals use Wilson scores. Continuous and paired deltas use the
+predeclared deterministic percentile bootstrap, paired by seed. Paired score-lead
+rates additionally use an exact two-sided McNemar test and a seed-pair bootstrap risk
+difference interval. A confirmatory score claim additionally requires an exact
+two-sided within-seed sign-flip randomization test; the confidence interval and
+randomization test must both pass. Calibration uses 0.1 buckets,
 minimum ten samples per populated acceptance bucket, and +/-0.15 tolerance. The
 release gate requires:
 

@@ -35,6 +35,194 @@ impact_policy:
   no_effect_retry_limit: 1
   max_no_effect_failovers_per_scope: 4
   preserve_city_defenders: true
+paired_impact:
+  schema_version: "1.0"
+  condition: e_full_loop
+  experimental_unit: seed_pair
+  order: alternating_within_pair
+  primary_metric: score_turn_n
+  outcomes:
+    horizon_turn: 30
+    score_metric: score_turn_n
+    score_margin_metric: score_margin_turn_n
+    opponent_score_metric: opponent_score_turn_n
+    win_metric: score_lead_turn_n
+    win_definition: fixed_horizon_score_lead
+    terminal_win_metric: null
+    tie_handling: non_win
+  arms:
+    baseline:
+      max_no_effect_failovers_per_scope: 0
+    treatment:
+      max_no_effect_failovers_per_scope: 4
+  default_cohort: development
+  power:
+    alpha: 0.05
+    target_power: 0.8
+    minimum_variance_pairs: 30
+    primary_bootstrap_samples: 20000
+    score:
+      minimum_detectable_delta: 2.0
+      planned_pairs: 100
+      maximum_planning_sd: 7.13
+    win:
+      minimum_detectable_delta: 0.10
+      planned_discordance: 0.50
+      planned_pairs: 450
+  claims:
+    multiplicity: hierarchical_score_then_win
+    score_test:
+      method: exact_paired_sign_flip
+      alternative: two_sided
+      maximum_states: 1000000
+    score_superiority_margin: 0.0
+    win_superiority_margin: 0.0
+    meaningful_score_delta: 2.0
+    meaningful_win_rate_delta: 0.10
+  cohorts:
+    development:
+      purpose: development
+      claim_eligible: false
+      require_clean_source: false
+      endpoints: [score_turn_n, score_lead_turn_n]
+      planned_pairs: 100
+      seeds:
+        - 104729
+        - 104743
+        - 104759
+        - 104761
+        - 104773
+        - 104779
+        - 104789
+        - 104801
+        - 104803
+        - 104827
+        - 104831
+        - 104849
+        - 104851
+        - 104869
+        - 104879
+        - 104891
+        - 104911
+        - 104917
+        - 104933
+        - 104947
+        - 104953
+        - 104959
+        - 104971
+        - 104987
+        - 104999
+        - 105019
+        - 105023
+        - 105031
+        - 105037
+        - 105071
+        - 105097
+        - 105107
+        - 105137
+        - 105143
+        - 105167
+        - 105173
+        - 105199
+        - 105211
+        - 105227
+        - 105229
+        - 105239
+        - 105251
+        - 105253
+        - 105263
+        - 105269
+        - 105277
+        - 105319
+        - 105323
+        - 105331
+        - 105337
+        - 105341
+        - 105359
+        - 105361
+        - 105367
+        - 105373
+        - 105379
+        - 105389
+        - 105397
+        - 105401
+        - 105407
+        - 105437
+        - 105449
+        - 105467
+        - 105491
+        - 105499
+        - 105503
+        - 105509
+        - 105517
+        - 105527
+        - 105529
+        - 105533
+        - 105541
+        - 105557
+        - 105563
+        - 105601
+        - 105607
+        - 105613
+        - 105619
+        - 105649
+        - 105653
+        - 105667
+        - 105673
+        - 105683
+        - 105691
+        - 105701
+        - 105727
+        - 105733
+        - 105751
+        - 105761
+        - 105767
+        - 105769
+        - 105817
+        - 105829
+        - 105863
+        - 105871
+        - 105883
+        - 105899
+        - 105907
+        - 105913
+        - 105929
+    pilot:
+      purpose: pilot
+      claim_eligible: false
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      planned_pairs: 40
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pln-freeciv-impact-pilot-v1
+        count: 40
+        minimum: 200000
+        maximum: 299999
+    confirmatory_score:
+      purpose: confirmatory
+      claim_eligible: true
+      require_clean_source: true
+      endpoints: [score_turn_n]
+      planned_pairs: 100
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pln-freeciv-impact-confirmatory-score-v1
+        count: 100
+        minimum: 300000
+        maximum: 399999
+    confirmatory_joint:
+      purpose: confirmatory
+      claim_eligible: true
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      planned_pairs: 450
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pln-freeciv-impact-confirmatory-joint-v1
+        count: 450
+        minimum: 400000
+        maximum: 899999
 seeds:
   - 104729
   - 104743

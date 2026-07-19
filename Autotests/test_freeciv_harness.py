@@ -16,10 +16,16 @@ for path in (os.path.join(REPO, "src"), os.path.join(REPO, "benchmarks")):
     if path not in sys.path:
         sys.path.insert(0, path)
 
-from freeciv.harness import HarnessRunner, aggregate_runs, write_report  # noqa: E402
+from freeciv.harness import (HarnessRunner, aggregate_impact_pairs,  # noqa: E402
+                             aggregate_runs, write_impact_report, write_report)
 from freeciv.harness.config import CapabilityContext, load  # noqa: E402
-from freeciv.harness.statistics import paired_delta, wilson  # noqa: E402
+from freeciv.harness.statistics import (paired_binary_discordance,  # noqa: E402
+                                        paired_binary_effect, paired_delta,
+                                        paired_power, paired_score_randomization,
+                                        paired_win_design_power,
+                                        wilson)
 from freeciv.harness.aggregate import _calibration_report  # noqa: E402
+from freeciv.harness.impact_evaluation import _claim_evaluation  # noqa: E402
 from freeciv.harness.engine_live import (  # noqa: E402
     _available_research_names, _needs_cognitive_stack, _opponent_memory_path,
     _plain_prompt_state, _plain_state_summary, _release_configuration_active,
@@ -41,6 +47,26 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert config["model"]["think"] is False
     assert config["impact_policy"]["no_effect_retry_limit"] == 1
     assert config["impact_policy"]["max_no_effect_failovers_per_scope"] == 4
+    paired = config["paired_impact"]
+    assert paired["default_cohort"] == "development"
+    assert {name: len(row["seeds"]) for name, row in paired["cohorts"].items()} == {
+        "development": 100, "pilot": 40,
+        "confirmatory_score": 100, "confirmatory_joint": 450,
+    }
+    seed_sets = [set(row["seeds"]) for row in paired["cohorts"].values()]
+    assert all(not left & right for index, left in enumerate(seed_sets)
+               for right in seed_sets[index + 1:])
+    assert paired["outcomes"]["win_metric"] == "score_lead_turn_n"
+    assert paired["outcomes"]["win_definition"] == "fixed_horizon_score_lead"
+    assert paired["power"]["minimum_variance_pairs"] == 30
+    assert paired["claims"]["multiplicity"] == "hierarchical_score_then_win"
+    assert paired["claims"]["score_test"] == {
+        "alternative": "two_sided", "maximum_states": 1000000,
+        "method": "exact_paired_sign_flip"}
+    assert config["paired_impact"]["arms"] == {
+        "baseline": {"max_no_effect_failovers_per_scope": 0},
+        "treatment": {"max_no_effect_failovers_per_scope": 4},
+    }
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.0",
         "source_sha256": "8f6914743d8380fabd9bf1294556a53ba5e447532e4b9e9763d3d69c0c0120b4",
@@ -49,12 +75,70 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     }
 
 
+def test_config_rejects_an_underpowered_predeclared_win_design():
+    source = open(os.path.join(
+        REPO, "profile", "freeciv_harness.yaml"), encoding="utf-8").read()
+    source = source.replace(
+        "      planned_pairs: 450\n  claims:",
+        "      planned_pairs: 100\n  claims:")
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "underpowered.yaml")
+        with open(path, "w", encoding="utf-8") as stream:
+            stream.write(source)
+        with pytest.raises(ValueError, match="win planned_pairs does not meet"):
+            load(path)
+
+
 def test_wilson_and_paired_bootstrap_are_bounded_and_deterministic():
     interval = wilson(20, 30)
     assert 0 <= interval["lower"] <= interval["estimate"] <= interval["upper"] <= 1
     first = paired_delta({1: 1, 2: 3}, {1: 2, 2: 7}, samples=1000, seed=9)
     second = paired_delta({2: 3, 1: 1}, {2: 7, 1: 2}, samples=1000, seed=9)
     assert first == second and first["paired_seeds"] == [1, 2]
+
+
+def test_paired_binary_discordance_and_power_keep_games_as_experimental_units():
+    binary = paired_binary_discordance(
+        {1: 1, 2: 0, 3: 1, 4: 0}, {1: 1, 2: 1, 3: 0, 4: 0})
+    assert binary["both_win"] == binary["both_lose"] == 1
+    assert binary["baseline_only_win"] == binary["treatment_only_win"] == 1
+    assert binary["discordant_pairs"] == 2
+    assert binary["exact_mcnemar_p"] == 1.0
+    effect = paired_binary_effect(
+        {1: 1, 2: 0, 3: 1, 4: 0}, {1: 1, 2: 1, 3: 0, 4: 0},
+        samples=1000, seed=9)
+    assert effect["estimate"] == 0 and effect["n"] == 4
+    assert effect["lower"] <= 0 <= effect["upper"]
+    suppressed = paired_power([-2, 0, 2, 4, 6], minimum_detectable_delta=2)
+    assert suppressed["achieved_pairs"] == 5
+    assert suppressed["ready"] is False
+    assert suppressed["observed_paired_sd"] is None
+    power = paired_power(([-2, 0, 2, 4, 6] * 6), minimum_detectable_delta=2)
+    assert power["achieved_pairs"] == 30 and power["ready"] is True
+    assert power["observed_paired_sd"] > 0
+    assert power["required_pairs"] >= 30
+    assert power["detectable_delta_at_achieved_n"] > 0
+    win_power = paired_win_design_power(450, 0.10, 0.50)
+    assert win_power["planned_power"] >= 0.8
+    assert win_power["target_met"] is True
+
+
+def test_exact_paired_score_randomization_is_deterministic_and_fails_closed():
+    strong = paired_score_randomization([2] * 10)
+    assert strong["ready"] is True
+    assert strong["exact"] is True
+    assert strong["p_value"] == pytest.approx(2.0 / (2 ** 10))
+    assert strong["states_evaluated"] == 11
+    assert strong["nonzero_pairs"] == 10
+
+    null = paired_score_randomization([-2, -1, 0, 1, 2])
+    assert null["ready"] is True and null["p_value"] == 1.0
+    bounded = paired_score_randomization([1, 2, 4, 8], maximum_states=4)
+    assert bounded["ready"] is False
+    assert "state bound" in bounded["reason"]
+    fractional = paired_score_randomization([1.5, 2.5])
+    assert fractional["ready"] is False
+    assert "integer score differences" in fractional["reason"]
 
 
 def test_condition_capability_access_fails_closed():
@@ -250,6 +334,244 @@ def test_smoke_filters_use_a_seed_prefix_and_selected_condition_only():
     assert jobs == [{
         "condition": "e_full_loop", "seed": runner.config["seeds"][0],
         "track": "main", "sequence": 0}]
+
+
+def test_paired_impact_jobs_alternate_order_and_override_only_declared_policy():
+    runner = HarnessRunner(
+        "unused", seed_limit=3, conditions=("e_full_loop",))
+    jobs = runner._impact_jobs()
+    seeds = runner.config["paired_impact"]["cohorts"]["development"]["seeds"]
+    assert [(row["seed"], row["policy_arm"]) for row in jobs] == [
+        (seeds[0], "baseline"), (seeds[0], "treatment"),
+        (seeds[1], "treatment"), (seeds[1], "baseline"),
+        (seeds[2], "baseline"), (seeds[2], "treatment"),
+    ]
+    baseline = runner._manifest(jobs[0], 0)
+    treatment = runner._manifest(jobs[1], 0)
+    assert baseline["impact_pair"]["within_pair_order"] == 0
+    assert baseline["impact_pair"]["cohort"] == "development"
+    assert treatment["impact_pair"]["within_pair_order"] == 1
+    assert treatment["impact_outcomes"]["win_metric"] == "score_lead_turn_n"
+    assert baseline["impact_policy"]["max_no_effect_failovers_per_scope"] == 0
+    assert treatment["impact_policy"]["max_no_effect_failovers_per_scope"] == 4
+    assert baseline["manifest_identity"] != treatment["manifest_identity"]
+    pilot = HarnessRunner(
+        "unused", seed_limit=1, conditions=("e_full_loop",),
+        impact_cohort="pilot")
+    pilot_manifest = pilot._manifest(pilot._impact_jobs()[0], 0)
+    assert pilot_manifest["impact_pair"]["seed_derivation"]["namespace"] == (
+        "pln-freeciv-impact-pilot-v1")
+    assert pilot_manifest["impact_pair"]["require_clean_source"] is True
+
+
+def test_paired_impact_smoke_is_reproducible_and_reports_power_and_order():
+    with tempfile.TemporaryDirectory() as directory:
+        runner = HarnessRunner(
+            directory, seed_limit=5, conditions=("e_full_loop",))
+        summary = runner.run_impact_pairs(resume=False)
+        assert summary["jobs"] == summary["completed"] == 10
+        assert summary["pairs"] == 5 and summary["infrastructure_failures"] == 0
+        aggregate = aggregate_impact_pairs(directory)
+        assert aggregate["complete_pairs"] == aggregate["attempted_pairs"] == 5
+        assert aggregate["primary_outcome"]["estimate"] == pytest.approx(2.0)
+        assert aggregate["primary_outcome"]["n"] == 5
+        assert aggregate["paired_deltas"]["decision_effect_observed_rate"][
+            "estimate"] > 0
+        assert aggregate["design"]["order_counts"] == {
+            "baseline_first": 3, "treatment_first": 2}
+        assert aggregate["design"]["order_violations"] == []
+        assert aggregate["win_discordance"]["pairs"] == 5
+        assert aggregate["win_rate_difference"]["n"] == 5
+        assert aggregate["power_analysis"]["ready"] is False
+        assert aggregate["power_analysis"]["required_pairs"] is None
+        assert aggregate["win_power_analysis"]["target_met"] is True
+        assert aggregate["claim_evaluation"]["status"] == "ineligible"
+        assert aggregate["source_freeze"]["required"] is False
+        assert aggregate["safety_gates"]["engine_rejected_action_rate"]["passed"]
+        assert aggregate["safety_gates"]["model_safe_fallback_rate"]["passed"]
+        assert aggregate["safety_gates"]["full_loop_under_30s_rate"]["passed"] is None
+        assert aggregate["safety_gates"]["overall_passed"]
+        first = canonical_json_bytes(aggregate)
+        assert first == canonical_json_bytes(aggregate_impact_pairs(directory))
+        path = write_impact_report(directory, aggregate)
+        assert open(path, "rb").read() == first + b"\n"
+        report = open(os.path.join(
+            directory, "impact-report.md"), encoding="utf-8").read()
+        assert "Treatment minus baseline score" in report
+        assert "score_margin_turn_n" in report
+        assert "It is not labeled as an engine-reported terminal victory" in report
+        assert "Overall status: `ineligible`" in report
+        assert "must not be used to stop early" in report
+        event_report = validate_file(os.path.join(
+            directory, "impact-aggregate-events.jsonl"))
+        assert event_report.valid, event_report.to_dict()
+
+
+def test_pilot_and_confirmatory_cohorts_fail_closed_on_source_or_partial_run():
+    with tempfile.TemporaryDirectory() as directory:
+        pilot = HarnessRunner(
+            directory, seed_limit=1, conditions=("e_full_loop",),
+            impact_cohort="pilot")
+        dirty = dict(pilot.source_identity, commit="a" * 40, dirty=True)
+        with mock.patch("freeciv.harness.runner._source_identity", return_value=dirty):
+            with pytest.raises(RuntimeError, match="requires a clean source tree"):
+                pilot.run_impact_pairs(resume=False)
+
+        clean = dict(pilot.source_identity, commit="a" * 40, dirty=False)
+        changed = dict(clean, implementation_sha256="b" * 64)
+        with mock.patch(
+                "freeciv.harness.runner._source_identity",
+                side_effect=(clean, changed)):
+            with pytest.raises(RuntimeError, match="source changed during execution"):
+                pilot.run_impact_pairs(resume=False)
+        assert json.load(open(os.path.join(
+            directory, "impact-run-summary.json"), encoding="utf-8"))[
+                "source_stable"] is False
+
+        confirmatory = HarnessRunner(
+            directory, seed_limit=1, conditions=("e_full_loop",),
+            impact_cohort="confirmatory_score")
+        with pytest.raises(ValueError, match="cannot use a pair limit"):
+            confirmatory.run_impact_pairs(resume=False)
+
+
+def test_complete_clean_score_cohort_is_the_only_claim_eligible_score_path():
+    with tempfile.TemporaryDirectory() as directory:
+        runner = HarnessRunner(
+            directory, conditions=("e_full_loop",),
+            impact_cohort="confirmatory_score")
+        clean = dict(runner.source_identity, commit="a" * 40, dirty=False)
+        with mock.patch("freeciv.harness.runner._source_identity", return_value=clean):
+            summary = runner.run_impact_pairs(resume=False)
+        assert summary["completed"] == 200 and summary["claim_eligible"] is True
+        aggregate = aggregate_impact_pairs(
+            directory, cohort="confirmatory_score")
+        assert aggregate["complete_pairs"] == 100
+        assert aggregate["source_freeze"]["passed"] is True
+        assert aggregate["power_analysis"]["ready"] is True
+        assert aggregate["claim_evaluation"]["score"]["status"] == "passed"
+        assert aggregate["claim_evaluation"]["win_rate"]["status"] == "not_declared"
+        assert aggregate["claim_evaluation"]["claimable"] == ["score_improvement"]
+
+
+def test_joint_claims_are_hierarchical_and_require_score_gate_first():
+    design = load()["paired_impact"]
+    cohort = design["cohorts"]["confirmatory_joint"]
+    safety = {"overall_passed": True}
+    source = {"passed": True}
+    power = {"ready": True}
+    win = {"estimate": 0.12, "lower": 0.04, "upper": 0.20}
+    discordance = {"exact_mcnemar_p": 0.03}
+    score = {"estimate": 2.0, "lower": 0.5, "upper": 3.5}
+    score_test = {"ready": True, "p_value": 0.01}
+    meaningful_score_test = {"ready": True, "p_value": 0.50}
+    passed = _claim_evaluation(
+        design, cohort, 450, [], [], [], safety, source,
+        score, score_test, meaningful_score_test, win, discordance, power)
+    assert passed["status"] == "claim_supported"
+    assert passed["claimable"] == [
+        "score_improvement", "fixed_horizon_score_lead_rate_improvement"]
+    assert passed["score"]["interval_passed"] is True
+    assert passed["score"]["randomization_passed"] is True
+
+    score["lower"] = -0.1
+    gated = _claim_evaluation(
+        design, cohort, 450, [], [], [], safety, source,
+        score, score_test, meaningful_score_test, win, discordance, power)
+    assert gated["score"]["status"] == "failed"
+    assert gated["win_rate"]["status"] == "gated"
+    assert gated["claimable"] == [] and gated["status"] == "no_claim"
+
+    score["lower"] = 0.5
+    score_test["p_value"] = 0.08
+    randomization_failed = _claim_evaluation(
+        design, cohort, 450, [], [], [], safety, source,
+        score, score_test, meaningful_score_test, win, discordance, power)
+    assert randomization_failed["score"]["interval_passed"] is True
+    assert randomization_failed["score"]["randomization_passed"] is False
+    assert randomization_failed["score"]["status"] == "failed"
+    assert randomization_failed["win_rate"]["status"] == "gated"
+
+    score.update({"estimate": 3.0, "lower": 2.25, "upper": 3.75})
+    score_test["p_value"] = 0.001
+    meaningful_score_test["p_value"] = 0.02
+    meaningful = _claim_evaluation(
+        design, cohort, 450, [], [], [], safety, source,
+        score, score_test, meaningful_score_test, win, discordance, power)
+    assert meaningful["score"]["meaningful_passed"] is True
+    assert meaningful["claimable"] == [
+        "score_improvement", "meaningful_score_improvement",
+        "fixed_horizon_score_lead_rate_improvement"]
+
+
+def test_paired_impact_excludes_both_sides_of_incomplete_pair_and_retains_failure():
+    with tempfile.TemporaryDirectory() as directory:
+        runner = HarnessRunner(
+            directory, seed_limit=2, conditions=("e_full_loop",))
+        runner.run_impact_pairs(resume=False)
+        seed = runner.config["paired_impact"]["cohorts"]["development"]["seeds"][0]
+        status_path = os.path.join(
+            directory, "games", "impact_pair", "development", "treatment", "e_full_loop",
+            "{}-00".format(seed), "status.json")
+        with open(status_path, "w", encoding="utf-8") as stream:
+            json.dump({
+                "completed": False, "error": "synthetic retained failure",
+                "infrastructure_failure": True, "status": "infrastructure_failure",
+            }, stream)
+        aggregate = aggregate_impact_pairs(directory)
+        assert aggregate["complete_pairs"] == 1
+        assert aggregate["incomplete_pairs"] == [{
+            "completed_arms": ["baseline"], "seed": seed}]
+        assert aggregate["failures"][0]["error"] == "synthetic retained failure"
+        assert aggregate["failures"][0]["historical"] is False
+        assert aggregate["primary_outcome"]["n"] == 1
+
+
+def test_paired_aggregate_rejects_manifest_from_another_configuration():
+    with tempfile.TemporaryDirectory() as directory:
+        runner = HarnessRunner(
+            directory, seed_limit=1, conditions=("e_full_loop",))
+        runner.run_impact_pairs(resume=False)
+        seed = runner.config["paired_impact"]["cohorts"]["development"]["seeds"][0]
+        manifest_path = os.path.join(
+            directory, "games", "impact_pair", "development", "baseline",
+            "e_full_loop", "{}-00".format(seed), "manifest.json")
+        manifest = json.load(open(manifest_path, encoding="utf-8"))
+        manifest["configuration_hash"] = "0" * 64
+        with open(manifest_path, "w", encoding="utf-8") as stream:
+            json.dump(manifest, stream)
+        with pytest.raises(ValueError, match="belongs to another configuration"):
+            aggregate_impact_pairs(directory)
+
+
+def test_paired_impact_resume_archives_failed_attempt_after_successful_retry():
+    with tempfile.TemporaryDirectory() as directory:
+        runner = HarnessRunner(
+            directory, seed_limit=1, conditions=("e_full_loop",))
+        runner.run_impact_pairs(resume=True)
+        seed = runner.config["paired_impact"]["cohorts"]["development"]["seeds"][0]
+        run_dir = os.path.join(
+            directory, "games", "impact_pair", "development", "treatment", "e_full_loop",
+            "{}-00".format(seed))
+        status_path = os.path.join(run_dir, "status.json")
+        with open(status_path, "w", encoding="utf-8") as stream:
+            json.dump({
+                "completed": False, "error": "first attempt failed",
+                "infrastructure_failure": True, "status": "infrastructure_failure",
+            }, stream)
+
+        summary = runner.run_impact_pairs(resume=True)
+        assert summary["completed"] == 2 and summary["resumed"] == 1
+        aggregate = aggregate_impact_pairs(directory)
+        assert aggregate["complete_pairs"] == 1
+        assert aggregate["incomplete_pairs"] == []
+        assert len(aggregate["failures"]) == 1
+        failure = aggregate["failures"][0]
+        assert failure["historical"] is True
+        assert failure["error"] == "first attempt failed"
+        assert failure["attempt_id"]
+        history = os.path.join(directory, "attempt-history")
+        assert any("events.jsonl" in files for _, _, files in os.walk(history))
 
 
 def test_induction_memory_is_condition_isolated():

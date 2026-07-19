@@ -93,36 +93,71 @@ def run_game(run_dir, manifest, context):
     # The effect pattern intentionally contains improvements, null effects, and a
     # regression so the report's negative-result path is continuously exercised.
     score_shift = (0.0, 8.0, 3.0, -1.0, 4.0)[index]
+    impact_pair = manifest.get("impact_pair")
+    pair_pattern = manifest.get("impact_pair", {}).get("pair_index", 0) % 5
+    if impact_pair and impact_pair["arm"] == "treatment":
+        score_shift += (-2.0, 0.0, 2.0, 4.0, 6.0)[pair_pattern]
     score = 100.0 + score_shift + randomizer.uniform(-12, 12)
     win_probability = (0.30, 0.47, 0.51, 0.49, 0.55)[index]
+    if impact_pair:
+        win_probability = 0.50
+        if impact_pair["arm"] == "treatment":
+            win_probability += (-0.10, 0.0, 0.05, 0.10, 0.15)[pair_pattern]
     won = randomizer.random() < win_probability
+    opponent_score = score - 1.0 if won else score + 1.0
+    score_margin = score - opponent_score
     latency = (5000, 300, 500, 650, 850)[index] + randomizer.uniform(0, 120)
     metrics = [
-        ("game_win", int(won)), ("score_turn_n", score),
+        ("game_win", int(won)), ("score_lead_turn_n", int(won)),
+        ("score_turn_n", score), ("opponent_score_turn_n", opponent_score),
+        ("score_margin_turn_n", score_margin),
         ("engine_rejected_action_rate", 0.0),
         ("confabulation_write_through", 0.0), ("loop_latency_ms", latency),
     ]
     impact_actions = (0, 0, 8, 9, 11)[index]
+    impact_values = {
+        "effect_rate": (0.0, 0.0, 0.9, 0.92, 0.95)[index],
+        "failover_attempts": (0, 0, 1, 2, 3)[index],
+        "failover_recoveries": (0, 0, 1, 1, 2)[index],
+        "no_effect": (0, 0, 1, 1, 1)[index],
+        "positions": (0, 0, 5, 6, 8)[index],
+        "retries_blocked": (0, 0, 0, 1, 2)[index],
+        "tactical": (0, 0, 1, 2, 3)[index],
+    }
+    if impact_pair:
+        treatment = impact_pair["arm"] == "treatment"
+        impact_actions = 58 if treatment else 49
+        impact_values = {
+            "effect_rate": 0.776 if treatment else 0.571,
+            "failover_attempts": 11 if treatment else 0,
+            "failover_recoveries": 7 if treatment else 0,
+            "no_effect": 13 if treatment else 21,
+            "positions": 36 if treatment else 19,
+            "retries_blocked": 2 if treatment else 60,
+            "tactical": 9 if treatment else 2,
+        }
+    failover_rate = (float(impact_values["failover_recoveries"])
+                     / max(1, impact_values["failover_attempts"]))
     metrics.extend((
-        ("planned_engine_actions", impact_actions),
-        ("meaningful_actions_per_turn", impact_actions / float(manifest["turn_limit"])),
+        ("planned_engine_actions", impact_actions + int(bool(impact_pair))),
+        ("meaningful_actions_per_turn", (impact_actions + int(bool(impact_pair)))
+         / float(manifest["turn_limit"])),
         ("decision_impact_actions", impact_actions),
         ("decision_impact_turn_rate", min(1.0, impact_actions / float(manifest["turn_limit"]))),
-        ("decision_effect_observed_rate", (0.0, 0.0, 0.9, 0.92, 0.95)[index]),
-        ("decision_no_effect_actions", (0, 0, 1, 1, 1)[index]),
-        ("decision_no_effect_retries_blocked", (0, 0, 0, 1, 2)[index]),
-        ("decision_no_effect_failover_attempts", (0, 0, 1, 2, 3)[index]),
-        ("decision_no_effect_failover_recoveries", (0, 0, 1, 1, 2)[index]),
-        ("decision_no_effect_failover_recovery_rate",
-         (0.0, 0.0, 1.0, 0.5, 2.0 / 3.0)[index]),
+        ("decision_effect_observed_rate", impact_values["effect_rate"]),
+        ("decision_no_effect_actions", impact_values["no_effect"]),
+        ("decision_no_effect_retries_blocked", impact_values["retries_blocked"]),
+        ("decision_no_effect_failover_attempts", impact_values["failover_attempts"]),
+        ("decision_no_effect_failover_recoveries", impact_values["failover_recoveries"]),
+        ("decision_no_effect_failover_recovery_rate", failover_rate),
         ("model_safe_fallback_rate", 0.0),
         ("model_corrections_per_turn", 0.0),
         ("action_type_diversity", (1, 1, 3, 3, 4)[index]),
         ("cities_founded", (0, 0, 1, 1, 2)[index]),
         ("technologies_acquired", (0, 0, 1, 1, 2)[index]),
-        ("positions_explored", (0, 0, 5, 6, 8)[index]),
+        ("positions_explored", impact_values["positions"]),
         ("production_changes", (0, 0, 1, 1, 2)[index]),
-        ("tactical_actions", (0, 0, 1, 2, 3)[index]),
+        ("tactical_actions", impact_values["tactical"]),
         ("score_gain", score_shift),
     ))
     if context.capabilities["scheduler"]:
@@ -152,7 +187,11 @@ def run_game(run_dir, manifest, context):
                         seed=seed, sequence=manifest.get("sequence", 0))
         metric_parent = event["event_id"]
     writer.emit("run_completed", manifest["turn_limit"], {
-        "status": "completed", "summary": {"score": score, "won": won}},
+        "status": "completed", "summary": {
+            "opponent_score": opponent_score,
+            "outcome_definition": "fixed_horizon_score_lead",
+            "score": score, "score_lead": won,
+            "score_margin": score_margin, "won": won}},
         caused_by=[metric_parent])
     return {"capability_audit": context.audit(), "completed": True,
             "infrastructure_failure": False, "loss": not won}
