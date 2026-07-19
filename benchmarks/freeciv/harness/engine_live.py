@@ -1065,7 +1065,10 @@ async def _play(run_dir, manifest, context):
                         category=decision.candidate.category)
                     excluded_impact_actions.add(decision.candidate.action_key)
                     raw, snapshot, parent = await refresh_after_action(snapshot, parent)
-                    effect_observed = snapshot.identity.state_hash != prior_state_hash
+                    effect_observed = (
+                        snapshot.identity.state_hash != prior_state_hash
+                        or impact_planner.local_actor_effect_observed(
+                            decision.candidate, action_snapshot, snapshot))
                     impact_planner.record_outcome(
                         decision.candidate, action_snapshot, effect_observed)
                     impact_budget.record(decision.candidate, effect_observed)

@@ -60,6 +60,11 @@ first refreshed packet has not caught up. This prevents a delayed city-founding 
 suicide-attack effect from creating a stale follow-up action against an actor the
 engine has already consumed.
 
+An accepted unit action also counts as an observed local effect when the authoritative
+actor position, activity, health, existence, or movement points change, even if the
+proxy's broader state hash remains unchanged. This closes the successful actor scope
+before another same-turn order can spend already-consumed movement points.
+
 ## Impact telemetry
 
 The harness now aggregates these paired metrics with the same bootstrap method as

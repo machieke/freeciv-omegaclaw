@@ -174,6 +174,31 @@ class GroundedImpactPlanner(object):
             "unit_id": unit.unit_id, "x": unit.x, "y": unit.y,
         }
 
+    @staticmethod
+    def _unit_effect_grounding(unit):
+        """Actor facts that prove an accepted unit action consumed resources."""
+        if unit is None:
+            return None
+        return {
+            "activity": unit.activity, "hp": unit.hp,
+            "moves_left": unit.moves_left, "type": unit.unit_type,
+            "unit_id": unit.unit_id, "x": unit.x, "y": unit.y,
+        }
+
+    def local_actor_effect_observed(self, candidate, before, after):
+        """Detect actor-local effects omitted by the proxy's general state hash.
+
+        In particular, FreeCiv can publish a movement-point update without
+        changing the proxy state hash.  Treating that accepted action as a
+        no-effect failure would permit a stale same-turn failover and can send a
+        second order after the unit has exhausted its moves.
+        """
+        actor_id = candidate.action.get("actor_id")
+        if actor_id is None:
+            return False
+        return self._unit_effect_grounding(before.unit(actor_id)) != (
+            self._unit_effect_grounding(after.unit(actor_id)))
+
     def _grounding_signature(self, snapshot, candidate):
         """Hash only the local authoritative facts that can change an outcome."""
         action = candidate.action

@@ -261,6 +261,30 @@ def test_no_effect_action_is_suppressed_until_local_grounding_changes():
     assert planner.plan(moved).candidate.action["target"] == preferred["target"]
 
 
+def test_actor_resource_change_is_an_observed_effect_even_when_position_is_stable():
+    move = {"action_type": "unit_move", "actor_id": 20,
+            "target": {"x": 0, "y": 2}, "is_valid": True}
+    before_unit = _unit(20, "Explorer")
+    before_unit["moves_left"] = 6
+    before = _snapshot(
+        [_unit(11, "Alpine Troops"), before_unit],
+        [move, {"action_type": "end_turn", "is_valid": True}])
+    decision = GroundedImpactPlanner().plan(before)
+
+    unchanged = _snapshot(
+        [_unit(11, "Alpine Troops"), before_unit],
+        [move, {"action_type": "end_turn", "is_valid": True}], source_seq=2)
+    assert not GroundedImpactPlanner().local_actor_effect_observed(
+        decision.candidate, before, unchanged)
+
+    spent_unit = dict(before_unit, moves_left=0)
+    spent = _snapshot(
+        [_unit(11, "Alpine Troops"), spent_unit],
+        [move, {"action_type": "end_turn", "is_valid": True}], source_seq=3)
+    assert GroundedImpactPlanner().local_actor_effect_observed(
+        decision.candidate, before, spent)
+
+
 def test_configured_no_effect_retry_limit_allows_one_controlled_retry():
     move = {"action_type": "unit_move", "actor_id": 20,
             "target": {"x": 0, "y": 2}, "is_valid": True}
