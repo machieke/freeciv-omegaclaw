@@ -143,6 +143,7 @@ class HarnessRunner(object):
         arm = job.get("policy_arm")
         cohort_tokens = {
             "development": "dev", "pilot": "pilot",
+            "pilot_horizon_60": "p60",
             "confirmatory_score": "cscore",
             "confirmatory_joint": "cjoint",
         }
@@ -160,8 +161,13 @@ class HarnessRunner(object):
                           "{}-{:02d}".format(job["seed"], job["sequence"])))
         run_dir = os.path.join(*run_parts)
         impact_policy = copy.deepcopy(self.config["impact_policy"])
+        horizon_turn = self.config["turn_limit"]
         if arm is not None:
+            cohort_design = self.config["paired_impact"]["cohorts"][job["cohort"]]
+            horizon_turn = cohort_design.get(
+                "horizon_turn", self.config["paired_impact"]["outcomes"]["horizon_turn"])
             impact_policy.update(self.config["paired_impact"]["arms"][arm])
+            impact_policy["horizon_turn"] = horizon_turn
         material = {
             "backend": self.backend, "beliefs": self.config["beliefs"],
             "capabilities": self.config["capabilities"][job["condition"]],
@@ -186,13 +192,12 @@ class HarnessRunner(object):
                 "ended_at": None, "platform": platform.platform(),
                 "python": platform.python_version(), "started_at": None,
             },
-            "turn_limit": self.config["turn_limit"],
-            "engine_max_turns": self.config.get(
-                "engine_max_turns", self.config["turn_limit"]),
+            "turn_limit": horizon_turn,
+            "engine_max_turns": max(
+                horizon_turn, self.config.get("engine_max_turns", horizon_turn)),
             "worker": worker,
         }
         if arm is not None:
-            cohort_design = self.config["paired_impact"]["cohorts"][job["cohort"]]
             material["impact_pair"] = {
                 "arm": arm, "experimental_unit": "seed_pair",
                 "cohort": job["cohort"],
@@ -202,9 +207,12 @@ class HarnessRunner(object):
                 "planned_pairs": cohort_design["planned_pairs"],
                 "require_clean_source": cohort_design["require_clean_source"],
                 "seed_derivation": cohort_design.get("seed_derivation"),
+                "horizon_turn": horizon_turn,
                 "within_pair_order": job["within_pair_order"],
             }
-            material["impact_outcomes"] = self.config["paired_impact"]["outcomes"]
+            material["impact_outcomes"] = copy.deepcopy(
+                self.config["paired_impact"]["outcomes"])
+            material["impact_outcomes"]["horizon_turn"] = horizon_turn
         identity_material = {key: value for key, value in material.items()
                              if key not in ("runtime", "worker")}
         material["manifest_identity"] = structural_hash(identity_material)

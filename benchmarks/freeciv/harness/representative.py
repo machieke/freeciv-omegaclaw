@@ -193,5 +193,13 @@ def run_game(run_dir, manifest, context):
             "score": score, "score_lead": won,
             "score_margin": score_margin, "won": won}},
         caused_by=[metric_parent])
-    return {"capability_audit": context.audit(), "completed": True,
-            "infrastructure_failure": False, "loss": not won}
+    return {
+        "capability_audit": context.audit(), "completed": True,
+        "infrastructure_failure": False,
+        # The compact backend has no packet assembly. Both paired arms are
+        # deliberately assigned the same seed-grounded initial state identity
+        # so aggregate fidelity gates exercise the same contract as engine-live.
+        "initial_state_fingerprint": structural_hash([
+            "representative-initial-state", seed]),
+        "loss": not won,
+    }

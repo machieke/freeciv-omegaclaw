@@ -134,6 +134,11 @@ class GroundedImpactPlanner(object):
         self.max_actions_per_turn = int(values.get("max_actions_per_turn", 8))
         self.expansion_city_target = int(values.get("expansion_city_target", 3))
         self.settle_min_distance = int(values.get("settle_min_distance", 3))
+        self.horizon_turn = int(values.get("horizon_turn", 30))
+        self.production_minimum_remaining_turns = int(
+            values.get("production_minimum_remaining_turns", 8))
+        self.expansion_minimum_remaining_turns = int(
+            values.get("expansion_minimum_remaining_turns", 12))
         self.no_effect_retry_limit = int(values.get("no_effect_retry_limit", 1))
         self.max_no_effect_failovers_per_scope = int(
             values.get("max_no_effect_failovers_per_scope", 4))
@@ -144,6 +149,15 @@ class GroundedImpactPlanner(object):
             raise ValueError("expansion_city_target must be in 1..20")
         if not 1 <= self.settle_min_distance <= 12:
             raise ValueError("settle_min_distance must be in 1..12")
+        if not 1 <= self.horizon_turn <= 500:
+            raise ValueError("horizon_turn must be in 1..500")
+        if not 1 <= self.production_minimum_remaining_turns <= 100:
+            raise ValueError("production_minimum_remaining_turns must be in 1..100")
+        if not 1 <= self.expansion_minimum_remaining_turns <= 100:
+            raise ValueError("expansion_minimum_remaining_turns must be in 1..100")
+        if self.expansion_minimum_remaining_turns < self.production_minimum_remaining_turns:
+            raise ValueError(
+                "expansion_minimum_remaining_turns cannot be shorter than production")
         if not 1 <= self.no_effect_retry_limit <= 8:
             raise ValueError("no_effect_retry_limit must be in 1..8")
         if not 0 <= self.max_no_effect_failovers_per_scope <= 8:
@@ -204,6 +218,28 @@ class GroundedImpactPlanner(object):
             return False
         return self._unit_effect_grounding(before.unit(actor_id)) != (
             self._unit_effect_grounding(after.unit(actor_id)))
+
+    def candidate_effect_observed(self, candidate, before, after):
+        """Require an authoritative effect attributable to the submitted action.
+
+        A source-sequence or general state-hash change can be caused by economy,
+        research, or opponent packets.  In particular it does not prove that a
+        requested production target was installed.  Production therefore uses
+        an exact city-target predicate; unit actions use actor-local resource
+        changes; only action kinds without a local grounding use the general
+        state hash as a final fallback.
+        """
+        action = candidate.action
+        if action.get("action_type") == "city_production":
+            city = after.city(action.get("city_id"))
+            kind = action.get("production_kind")
+            value = action.get("production_value")
+            return bool(city is not None and kind is not None and value is not None
+                        and city.production_kind == int(kind)
+                        and city.production_value == int(value))
+        if action.get("actor_id") is not None:
+            return self.local_actor_effect_observed(candidate, before, after)
+        return before.identity.state_hash != after.identity.state_hash
 
     def _grounding_signature(self, snapshot, candidate):
         """Hash only the local authoritative facts that can change an outcome."""
@@ -321,12 +357,20 @@ class GroundedImpactPlanner(object):
         current_name = self._current_production_name(city)
         current_normalized = _normalized_type(current_name)
         needs_founder = city_count < self.expansion_city_target and not founders
+        remaining_turns = self.horizon_turn - snapshot.turn
         if needs_founder and current_normalized in FOUNDER_TYPES:
             return None
-        if needs_founder and normalized in FOUNDER_TYPES:
+        if (needs_founder and normalized in FOUNDER_TYPES
+                and remaining_turns >= self.expansion_minimum_remaining_turns):
             return ImpactCandidate(
-                action, "production_expansion", 920.0,
-                "produce one founder while below the configured city target")
+                action, "production_expansion", 920.0 + remaining_turns,
+                "produce one founder with enough fixed-horizon runway to found a city")
+
+        # A late accepted switch can register as transport activity while being
+        # unable to finish before fixed-horizon scoring.  Do not spend policy
+        # budget or trigger a treatment failover on such non-evaluable changes.
+        if remaining_turns < self.production_minimum_remaining_turns:
+            return None
 
         defenders = self._combat_units(snapshot)
         defense_deficit = len(defenders) < max(1, city_count)
@@ -336,8 +380,8 @@ class GroundedImpactPlanner(object):
             for index, target in enumerate(DEFENDER_PRIORITY):
                 if name.lower() == target.lower():
                     return ImpactCandidate(
-                        action, "production_defense", 850.0 - index,
-                        "cover the current city-defense deficit")
+                        action, "production_defense", 850.0 - index + remaining_turns,
+                        "cover the city-defense deficit before fixed-horizon scoring")
 
         if current_name in IMPROVEMENT_PRIORITY:
             return None
@@ -345,14 +389,14 @@ class GroundedImpactPlanner(object):
         for index, target in enumerate(IMPROVEMENT_PRIORITY):
             if name.lower() == target.lower():
                 return ImpactCandidate(
-                    action, "production_economy", 740.0 - index,
-                    "select the highest-priority available growth/economy improvement")
+                    action, "production_economy", 740.0 - index + remaining_turns,
+                    "select growth/economy production with enough scoring runway")
 
         for index, target in enumerate(DEFENDER_PRIORITY):
             if name.lower() == target.lower():
                 return ImpactCandidate(
-                    action, "production_military", 520.0 - index,
-                    "add a useful military unit after expansion and infrastructure")
+                    action, "production_military", 520.0 - index + remaining_turns,
+                    "add a military unit early enough to affect the fixed horizon")
         return None
 
     def _move_candidate(self, snapshot, action):
@@ -418,7 +462,6 @@ class GroundedImpactPlanner(object):
         return any((row.x, row.y) == (x, y) for row in snapshot.visible_enemy_units)
 
     def candidates(self, snapshot, excluded=(), excluded_scopes=()):
-        self.observe(snapshot)
         excluded = set(excluded)
         excluded_scopes = set(excluded_scopes)
         result = []

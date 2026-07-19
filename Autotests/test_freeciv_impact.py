@@ -14,7 +14,7 @@ from freeciv_agent.planning import GroundedImpactPlanner, ImpactTurnBudget  # no
 from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 
 
-def _snapshot(units, actions, cities=None, source_seq=1):
+def _snapshot(units, actions, cities=None, source_seq=1, turn=4):
     cities = cities if cities is not None else [{
         "id": 10, "owner": 0, "name": "Rome", "tile": 0, "x": 0, "y": 0,
         "size": 2, "production_kind": 6, "production_value": 11,
@@ -28,7 +28,7 @@ def _snapshot(units, actions, cities=None, source_seq=1):
         ]},
     }]
     payload = {
-        "format": "pln_authoritative", "turn": 4, "phase": "movement",
+        "format": "pln_authoritative", "turn": turn, "phase": "movement",
         "player_id": 0,
         "authoritative": {
             "source_seq": source_seq,
@@ -184,6 +184,10 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
     assert GroundedImpactPlanner().plan(snapshot) is None
     for config in ({"max_actions_per_turn": 0}, {"max_actions_per_turn": 33},
                    {"settle_min_distance": 0}, {"expansion_city_target": 21},
+                   {"horizon_turn": 0},
+                   {"production_minimum_remaining_turns": 0},
+                   {"production_minimum_remaining_turns": 9,
+                    "expansion_minimum_remaining_turns": 8},
                    {"no_effect_retry_limit": 0}, {"no_effect_retry_limit": 9},
                    {"max_no_effect_failovers_per_scope": -1},
                    {"max_no_effect_failovers_per_scope": 9}):
@@ -283,6 +287,62 @@ def test_actor_resource_change_is_an_observed_effect_even_when_position_is_stabl
         [move, {"action_type": "end_turn", "is_valid": True}], source_seq=3)
     assert GroundedImpactPlanner().local_actor_effect_observed(
         decision.candidate, before, spent)
+
+
+def test_production_effect_requires_the_exact_requested_city_target():
+    action = _production(10, "Granary", 3, 14)
+    before = _snapshot(
+        [_unit(1, "Settlers"), _unit(11, "Alpine Troops")],
+        [action, {"action_type": "end_turn", "is_valid": True}])
+    planner = GroundedImpactPlanner()
+    candidate = planner.plan(before).candidate
+
+    unrelated_refresh = _snapshot(
+        [_unit(1, "Settlers"), _unit(11, "Alpine Troops")],
+        [action, {"action_type": "end_turn", "is_valid": True}], source_seq=2)
+    assert not planner.candidate_effect_observed(
+        candidate, before, unrelated_refresh)
+
+    city = before.cities[0].to_dict()
+    city.update({"id": city.pop("city_id"), "production_kind": 3,
+                 "production_value": 14})
+    city["prod"] = city.pop("production")
+    city["buildability"] = {"available": True, "options": [
+        {"type": kind, "id": item_id, "name": name}
+        for kind, item_id, name in city.pop("buildable")]}
+    city.pop("buildability_available")
+    city.pop("buildability_diagnostic")
+    applied = _snapshot(
+        [_unit(1, "Settlers"), _unit(11, "Alpine Troops")],
+        [action, {"action_type": "end_turn", "is_valid": True}],
+        cities=[city], source_seq=3)
+    assert planner.candidate_effect_observed(candidate, before, applied)
+
+
+def test_production_candidates_require_fixed_horizon_runway():
+    granary = _production(10, "Granary", 3, 14)
+    actions = [granary, {"action_type": "end_turn", "is_valid": True}]
+    units = [_unit(1, "Settlers"), _unit(11, "Alpine Troops")]
+    planner = GroundedImpactPlanner({
+        "horizon_turn": 30, "production_minimum_remaining_turns": 8,
+        "expansion_minimum_remaining_turns": 12})
+
+    assert planner.plan(_snapshot(units, actions, turn=22)) is not None
+    assert planner.plan(_snapshot(units, actions, turn=23)) is None
+
+
+def test_candidate_enumeration_does_not_mutate_exploration_history():
+    move = {"action_type": "unit_move", "actor_id": 20,
+            "target": {"x": 0, "y": 2}, "is_valid": True}
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops"), _unit(20, "Explorer")],
+        [move, {"action_type": "end_turn", "is_valid": True}])
+    planner = GroundedImpactPlanner()
+
+    planner.plan(snapshot)
+    assert planner.visited_positions == set()
+    planner.observe(snapshot)
+    assert planner.visited_positions == {(0, 0)}
 
 
 def test_configured_no_effect_retry_limit_allows_one_controlled_retry():

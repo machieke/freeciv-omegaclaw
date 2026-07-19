@@ -1,5 +1,6 @@
 """Predeclared paired-policy aggregation, power planning, and fidelity report."""
 
+import copy
 import json
 import os
 
@@ -197,7 +198,10 @@ def aggregate_impact_pairs(out, config_path=None, cohort=None):
     cohort_name = cohort or design["default_cohort"]
     if cohort_name not in design["cohorts"]:
         raise ValueError("unknown paired impact cohort {}".format(cohort_name))
+    design = copy.deepcopy(design)
     cohort_design = design["cohorts"][cohort_name]
+    design["outcomes"]["horizon_turn"] = cohort_design.get(
+        "horizon_turn", design["outcomes"]["horizon_turn"])
     declared_seeds = set(cohort_design["seeds"])
     records = []
     failures = []
@@ -362,6 +366,25 @@ def aggregate_impact_pairs(out, config_path=None, cohort=None):
             "passed": (all(value == expected for value in values.values())
                        if evaluated else None),
         }
+    initial_state_mismatches = []
+    initial_state_unavailable = []
+    for seed in complete_seeds:
+        rows = by_seed[seed]
+        fingerprints = {
+            arm: rows[arm]["status_row"].get("initial_state_fingerprint")
+            for arm in ("baseline", "treatment")}
+        if not all(fingerprints.values()):
+            initial_state_unavailable.append(seed)
+        elif fingerprints["baseline"] != fingerprints["treatment"]:
+            initial_state_mismatches.append(seed)
+    fidelity_evaluated = bool(complete_seeds) and not initial_state_unavailable
+    safety["paired_initial_state_fidelity"] = {
+        "evaluated": fidelity_evaluated,
+        "mismatch_count": len(initial_state_mismatches),
+        "mismatch_seeds": initial_state_mismatches,
+        "passed": bool(fidelity_evaluated and not initial_state_mismatches),
+        "unavailable_seeds": initial_state_unavailable,
+    }
     active_failures = [row for row in failures if not row["historical"]]
     safety["overall_passed"] = (
         not active_failures and not order_violations
@@ -504,7 +527,13 @@ def write_impact_report(out, aggregate):
         lines.append("| {} | {} | {} | {} | {} |".format(
             metric, gate["arms"]["baseline"], gate["arms"]["treatment"],
             gate["expected"], result))
+    fidelity = aggregate["safety_gates"]["paired_initial_state_fidelity"]
     lines.extend([
+        "", "Paired initial-state fidelity: `{}`; mismatches: `{}`; "
+        "unavailable: `{}`.".format(
+            "pass" if fidelity["passed"] else (
+                "fail" if fidelity["passed"] is False else "not evaluated"),
+            fidelity["mismatch_count"], len(fidelity["unavailable_seeds"])),
         "", "## Power planning", "",
         "Score planning ready: `{}`. Observed paired SD: `{}`. "
         "Minimum detectable score delta: `{}`. "

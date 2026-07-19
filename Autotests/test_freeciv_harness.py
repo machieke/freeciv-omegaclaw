@@ -32,11 +32,13 @@ from freeciv.harness.engine_live import (  # noqa: E402
     _available_research_names, _needs_cognitive_stack, _opponent_memory_path,
     _claim_eligible_manifest, _ollama_readiness, _plain_prompt_state,
     _plain_state_summary, _refresh_accepted_impact_action,
+    _decision_state_fingerprint, _decision_state_ready, _global_state_ready,
     _release_configuration_active, _validate_compact_goal_proposal)
 from freeciv.harness import engine_live  # noqa: E402
 from freeciv_agent.events.schema import canonical_json_bytes, structural_hash  # noqa: E402
 from freeciv_agent.events.validator import validate_file  # noqa: E402
 from freeciv_agent.events.writer import EventWriter  # noqa: E402
+from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 
 
 def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
@@ -50,10 +52,13 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert config["model"]["think"] is False
     assert config["impact_policy"]["no_effect_retry_limit"] == 1
     assert config["impact_policy"]["max_no_effect_failovers_per_scope"] == 4
+    assert config["impact_policy"]["horizon_turn"] == 30
+    assert config["impact_policy"]["production_minimum_remaining_turns"] == 8
     paired = config["paired_impact"]
     assert paired["default_cohort"] == "development"
     assert {name: len(row["seeds"]) for name, row in paired["cohorts"].items()} == {
         "development": 100, "pilot": 40,
+        "pilot_horizon_60": 40,
         "confirmatory_score": 100, "confirmatory_joint": 450,
     }
     seed_sets = [set(row["seeds"]) for row in paired["cohorts"].values()]
@@ -75,6 +80,18 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "algorithm": "sha256-counter-v1",
         "namespace": "pln-freeciv-impact-confirmatory-score-v4",
         "count": 100, "minimum": 1100000, "maximum": 1199999,
+    }
+    assert paired["cohorts"]["pilot_horizon_60"] == {
+        "purpose": "pilot", "claim_eligible": False,
+        "require_clean_source": True,
+        "endpoints": ["score_turn_n", "score_lead_turn_n"],
+        "horizon_turn": 60, "planned_pairs": 40,
+        "seed_derivation": {
+            "algorithm": "sha256-counter-v1",
+            "namespace": "pln-freeciv-impact-pilot-horizon60-v1",
+            "count": 40, "minimum": 1200000, "maximum": 1299999,
+        },
+        "seeds": paired["cohorts"]["pilot_horizon_60"]["seeds"],
     }
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.0",
@@ -283,6 +300,61 @@ def test_live_model_readiness_uses_native_keep_alive_endpoint(monkeypatch):
     })]
 
 
+def _ready_snapshot(source_seq=1, moves_left=3, buildability=True):
+    raw = {
+        "format": "pln_authoritative", "turn": 1, "phase": "movement",
+        "player_id": 0,
+        "authoritative": {
+            "source_seq": source_seq,
+            "player": {"gold": 10, "gold_per_turn": 1, "tax": 40,
+                       "science": 60, "luxury": 0},
+            "research": {"researching": 1, "researching_name": "Alphabet",
+                         "researching_cost": 10, "bulbs_researched": 0,
+                         "beakers_per_turn": 1},
+            "ruleset": {"ready": True},
+        },
+        "techs": {"player0": []},
+        "units": {"1": {"id": 1, "owner": 0, "type": "Settlers",
+                            "type_id": 0, "tile": 0, "x": 0, "y": 0,
+                            "moves_left": moves_left, "hp": 20,
+                            "activity": "idle", "upkeep": []}},
+        "cities": {"10": {
+            "id": 10, "owner": 0, "name": "Rome", "tile": 0,
+            "x": 0, "y": 0, "size": 1, "production_kind": 6,
+            "production_value": 0, "food_stock": 0, "shield_stock": 0,
+            "surplus": [0], "prod": [1],
+            "buildability": {"available": buildability, "options": []},
+        }},
+        "map": {"width": 10, "height": 10, "tiles": []},
+        "visible_tiles": [],
+        "legal_actions": [{"action_type": "end_turn", "is_valid": True}],
+    }
+    return ProxyStateDTO.parse(
+        "readiness-test", source_seq, raw).to_snapshot()
+
+
+def test_decision_readiness_waits_for_complete_active_state_and_ignores_cadence():
+    first = _ready_snapshot(source_seq=1)
+    second = _ready_snapshot(source_seq=2)
+    assert _decision_state_ready(first, require_own_units=True)
+    assert _decision_state_fingerprint(first) == _decision_state_fingerprint(second)
+    assert not _decision_state_ready(_ready_snapshot(moves_left=0))
+    assert not _decision_state_ready(_ready_snapshot(buildability=False))
+
+
+def test_global_state_readiness_requires_both_authoritative_scores():
+    state = {
+        "units": {"1": {"id": 1}}, "techs": {"player0": []},
+        "players": {
+            "0": {"id": 0, "score": 4},
+            "1": {"id": 1, "score": 3},
+        },
+    }
+    assert _global_state_ready(state, player_id=0)
+    state["players"]["1"].pop("score")
+    assert not _global_state_ready(state, player_id=0)
+
+
 def test_claim_eligible_arms_fail_closed_on_model_fallback():
     assert _claim_eligible_manifest({"impact_pair": {"claim_eligible": True}})
     assert _claim_eligible_manifest({"claim_eligible": True})
@@ -441,6 +513,14 @@ def test_paired_impact_jobs_alternate_order_and_override_only_declared_policy():
     assert pilot_manifest["impact_pair"]["seed_derivation"]["namespace"] == (
         "pln-freeciv-impact-pilot-v1")
     assert pilot_manifest["impact_pair"]["require_clean_source"] is True
+    long_pilot = HarnessRunner(
+        "unused", seed_limit=1, conditions=("e_full_loop",),
+        impact_cohort="pilot_horizon_60")
+    long_manifest = long_pilot._manifest(long_pilot._impact_jobs()[0], 0)
+    assert long_manifest["turn_limit"] == long_manifest["engine_max_turns"] == 60
+    assert long_manifest["impact_policy"]["horizon_turn"] == 60
+    assert long_manifest["impact_outcomes"]["horizon_turn"] == 60
+    assert long_manifest["impact_pair"]["horizon_turn"] == 60
 
 
 def test_paired_impact_smoke_is_reproducible_and_reports_power_and_order():
@@ -469,6 +549,10 @@ def test_paired_impact_smoke_is_reproducible_and_reports_power_and_order():
         assert aggregate["safety_gates"]["engine_rejected_action_rate"]["passed"]
         assert aggregate["safety_gates"]["model_safe_fallback_rate"]["passed"]
         assert aggregate["safety_gates"]["full_loop_under_30s_rate"]["passed"] is None
+        assert aggregate["safety_gates"]["paired_initial_state_fidelity"] == {
+            "evaluated": True, "mismatch_count": 0, "mismatch_seeds": [],
+            "passed": True, "unavailable_seeds": [],
+        }
         assert aggregate["safety_gates"]["overall_passed"]
         first = canonical_json_bytes(aggregate)
         assert first == canonical_json_bytes(aggregate_impact_pairs(directory))
@@ -604,6 +688,27 @@ def test_paired_impact_excludes_both_sides_of_incomplete_pair_and_retains_failur
         assert aggregate["failures"][0]["error"] == "synthetic retained failure"
         assert aggregate["failures"][0]["historical"] is False
         assert aggregate["primary_outcome"]["n"] == 1
+
+
+def test_paired_aggregate_fails_closed_on_initial_state_mismatch():
+    with tempfile.TemporaryDirectory() as directory:
+        runner = HarnessRunner(
+            directory, seed_limit=1, conditions=("e_full_loop",))
+        runner.run_impact_pairs(resume=False)
+        seed = runner.config["paired_impact"]["cohorts"]["development"]["seeds"][0]
+        status_path = os.path.join(
+            directory, "games", "impact_pair", "development", "treatment",
+            "e_full_loop", "{}-00".format(seed), "status.json")
+        status = json.load(open(status_path, encoding="utf-8"))
+        status["initial_state_fingerprint"] = "f" * 64
+        with open(status_path, "w", encoding="utf-8") as stream:
+            json.dump(status, stream)
+
+        aggregate = aggregate_impact_pairs(directory)
+        fidelity = aggregate["safety_gates"]["paired_initial_state_fidelity"]
+        assert fidelity["passed"] is False
+        assert fidelity["mismatch_seeds"] == [seed]
+        assert aggregate["safety_gates"]["overall_passed"] is False
 
 
 def test_paired_aggregate_rejects_manifest_from_another_configuration():

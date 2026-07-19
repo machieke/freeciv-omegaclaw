@@ -25,6 +25,9 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
             ("max_actions_per_turn", 1, 32),
             ("expansion_city_target", 1, 20),
             ("settle_min_distance", 1, 12),
+            ("horizon_turn", 1, 500),
+            ("production_minimum_remaining_turns", 1, 100),
+            ("expansion_minimum_remaining_turns", 1, 100),
             ("no_effect_retry_limit", 1, 8),
             ("max_no_effect_failovers_per_scope", 0, 8)):
         setting = impact.get(key)
@@ -32,6 +35,11 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
             raise ValueError("{}.{} must be in {}..{}".format(prefix, key, lower, upper))
     if not isinstance(impact.get("preserve_city_defenders"), bool):
         raise ValueError("{}.preserve_city_defenders must be boolean".format(prefix))
+    if (impact["expansion_minimum_remaining_turns"]
+            < impact["production_minimum_remaining_turns"]):
+        raise ValueError(
+            "{}.expansion_minimum_remaining_turns cannot be shorter than production"
+            .format(prefix))
 
 
 def _derive_seeds(spec, prefix):
@@ -232,6 +240,14 @@ def _validate_paired_impact(value):
         for key in ("claim_eligible", "require_clean_source"):
             if not isinstance(cohort.get(key), bool):
                 raise ValueError("{}.{} must be boolean".format(prefix, key))
+        horizon_turn = cohort.get("horizon_turn", outcomes["horizon_turn"])
+        if (isinstance(horizon_turn, bool) or not isinstance(horizon_turn, int)
+                or not 1 <= horizon_turn <= 500):
+            raise ValueError("{}.horizon_turn must be in 1..500".format(prefix))
+        if purpose != "pilot" and horizon_turn != outcomes["horizon_turn"]:
+            raise ValueError(
+                "{}.horizon_turn may differ from the declared outcome only for pilots"
+                .format(prefix))
         endpoints = cohort.get("endpoints")
         if (not isinstance(endpoints, list) or not endpoints
                 or len(endpoints) != len(set(endpoints))

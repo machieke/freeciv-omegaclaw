@@ -7,6 +7,7 @@ player connection's packet-visible foreign units.
 
 import asyncio
 import json
+import math
 import os
 import re
 import shutil
@@ -311,20 +312,91 @@ def _constrained_proposal(manifest, summary, catalog, targets):
     return proposal, value, latency, corrections
 
 
-async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=20.0):
+def _decision_state_fingerprint(snapshot):
+    """Hash authoritative decision inputs without transport/cadence identity."""
+    return structural_hash({
+        "map": snapshot.map_dict(),
+        "own_state": snapshot.own_state_dict(),
+        "phase": snapshot.phase,
+        "player_id": snapshot.player_id,
+        "visible_enemy_units": [row.to_dict() for row in snapshot.visible_enemy_units],
+    })
+
+
+def _decision_state_ready(snapshot, require_own_units=False):
+    """Reject partial packet assemblies before they can drive a paired arm."""
+    if not (snapshot.ruleset_ready and snapshot.economy.available
+            and snapshot.research.available):
+        return False
+    if require_own_units and not snapshot.units:
+        return False
+    if any(not city.buildability_available for city in snapshot.cities):
+        return False
+    if snapshot.units:
+        if any(unit.moves_left is None for unit in snapshot.units):
+            return False
+        if not any(int(unit.moves_left) > 0 for unit in snapshot.units):
+            return False
+        if _first_legal_action(snapshot, "end_turn") is None:
+            return False
+    return True
+
+
+async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=20.0,
+                 require_decision_ready=False, require_own_units=False,
+                 stable_samples=1):
+    if (isinstance(stable_samples, bool) or not isinstance(stable_samples, int)
+            or not 1 <= stable_samples <= 5):
+        raise ValueError("stable_samples must be in 1..5")
     deadline = time.monotonic() + timeout
+    stable_fingerprint = None
+    stable_count = 0
     while time.monotonic() < deadline:
         raw = await turncycle.get_state(ws, "pln_authoritative")
         source_seq = raw.get("authoritative", {}).get("source_seq") if raw else None
         if (raw and raw.get("units") and int(raw.get("turn", 0)) >= minimum_turn
                 and (minimum_source_seq is None
                      or (source_seq is not None and int(source_seq) >= minimum_source_seq))):
-            return raw, ProxyStateDTO.parse(game_id, source_seq, raw).to_snapshot()
+            snapshot = ProxyStateDTO.parse(game_id, source_seq, raw).to_snapshot()
+            ready = (not require_decision_ready or _decision_state_ready(
+                snapshot, require_own_units=require_own_units))
+            if ready:
+                fingerprint = _decision_state_fingerprint(snapshot)
+                if fingerprint == stable_fingerprint:
+                    stable_count += 1
+                else:
+                    stable_fingerprint = fingerprint
+                    stable_count = 1
+                if stable_count >= stable_samples:
+                    return raw, snapshot
+            else:
+                stable_fingerprint = None
+                stable_count = 0
         await asyncio.sleep(0.1)
     raise TimeoutError("authoritative state did not reach turn {}".format(minimum_turn))
 
 
-async def _global_state(ws, timeout=15.0):
+def _global_state_ready(state, player_id=None):
+    if not (state.get("units") and state.get("players") and state.get("techs")):
+        return False
+    scored = []
+    for row in state["players"].values():
+        score = row.get("score") if isinstance(row, dict) else None
+        if (isinstance(score, (int, float)) and not isinstance(score, bool)
+                and math.isfinite(float(score)) and float(score) >= 0):
+            scored.append(row)
+    if player_id is None:
+        return bool(scored)
+    return (any(row.get("id") == player_id for row in scored)
+            and any(row.get("id") != player_id for row in scored))
+
+
+def _player_row(state, player_id):
+    return next((row for row in state.get("players", {}).values()
+                 if isinstance(row, dict) and row.get("id") == player_id), {})
+
+
+async def _global_state(ws, timeout=15.0, player_id=None):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         await ws.send(json.dumps({"type": "global_state_query"}))
@@ -332,7 +404,7 @@ async def _global_state(ws, timeout=15.0):
             ws, {"global_state_response", "error"}, timeout=10)
         if response and response.get("type") == "global_state_response":
             state = response.get("data", {})
-            if state.get("units") and state.get("players") and state.get("techs"):
+            if _global_state_ready(state, player_id=player_id):
                 return state
         await asyncio.sleep(0.25)
     raise TimeoutError("observer global state was not populated")
@@ -955,14 +1027,18 @@ async def _play(run_dir, manifest, context):
             }
 
         gate = ExecutionGate(store, submit, writer, execution_monitor)
-        raw, snapshot = await _state(ws, manifest["game_id"])
+        raw, snapshot = await _state(
+            ws, manifest["game_id"], require_decision_ready=True,
+            require_own_units=True, stable_samples=2)
         store.replace(snapshot)
         state_event = writer.emit("state_snapshot", snapshot.turn, snapshot.event_payload(),
                                   caused_by=[parent])
         parent = state_event["event_id"]
-        global_state = await _global_state(ws)
-        opponent_rows = [row for row in global_state["players"].values()
-                         if row.get("id") != player_id and row.get("score", -1) >= 0]
+        global_state = await _global_state(ws, player_id=player_id)
+        opponent_rows = sorted(
+            (row for row in global_state["players"].values()
+             if row.get("id") != player_id and row.get("score", -1) >= 0),
+            key=lambda row: (row.get("id", 2147483647), row.get("name", "")))
         opponent = opponent_rows[0] if opponent_rows else {"id": 1, "name": "builtin-ai"}
         if impact_planner is not None:
             impact_planner.observe(snapshot)
@@ -970,8 +1046,16 @@ async def _play(run_dir, manifest, context):
         initial_tech_count = len(snapshot.research.known_techs)
         initial_position_count = (len(impact_planner.visited_positions)
                                   if impact_planner is not None else 0)
-        initial_player_row = global_state.get("players", {}).get(str(player_id), {})
-        initial_score = float(initial_player_row.get("score", 0))
+        initial_player_row = _player_row(global_state, player_id)
+        initial_opponent_row = _player_row(global_state, opponent.get("id", 1))
+        if "score" not in initial_player_row or "score" not in initial_opponent_row:
+            raise RuntimeError("initial paired scores were not authoritative")
+        initial_score = float(initial_player_row["score"])
+        initial_state_fingerprint = structural_hash({
+            "decision_state": _decision_state_fingerprint(snapshot),
+            "opponent_score": float(initial_opponent_row["score"]),
+            "player_score": initial_score,
+        })
 
         def record_meaningful_action(action, impact=False, category=None):
             action_type = str(action.get("action_type", "unknown"))
@@ -1006,7 +1090,8 @@ async def _play(run_dir, manifest, context):
                     raise TimeoutError("accepted action produced no authoritative state update")
                 next_raw, next_snapshot = await _state(
                     ws, manifest["game_id"], minimum_turn=current.turn,
-                    minimum_source_seq=minimum_seq, timeout=remaining)
+                    minimum_source_seq=minimum_seq, timeout=remaining,
+                    stable_samples=2)
                 if predicate is not None and not predicate(next_snapshot):
                     minimum_seq = next_snapshot.identity.source_seq + 1
                     await asyncio.sleep(0.05)
@@ -1024,13 +1109,16 @@ async def _play(run_dir, manifest, context):
         for turn_index in range(1, manifest["turn_limit"] + 1):
             if turn_index > 1:
                 raw, snapshot = await _state(
-                    ws, manifest["game_id"], minimum_turn=snapshot.turn + 1)
+                    ws, manifest["game_id"], minimum_turn=snapshot.turn + 1,
+                    require_decision_ready=True, stable_samples=2)
                 store.replace(snapshot)
                 state_event = writer.emit(
                     "state_snapshot", snapshot.turn, snapshot.event_payload(),
                     caused_by=[parent])
                 parent = state_event["event_id"]
-                global_state = await _global_state(ws)
+                global_state = await _global_state(ws, player_id=player_id)
+                if impact_planner is not None:
+                    impact_planner.observe(snapshot)
                 if prior_scout is not None:
                     actor_id, source_x, source_y, target_x, target_y = prior_scout
                     row = next((unit for unit in raw.get("units", {}).values()
@@ -1133,7 +1221,6 @@ async def _play(run_dir, manifest, context):
                         break
                     impact_action = decision.candidate.action
                     action_snapshot = snapshot
-                    prior_state_hash = snapshot.identity.state_hash
                     plan_event = writer.emit(
                         "plan_created", snapshot.turn,
                         {"plan": decision.plan.to_dict()}, caused_by=[parent])
@@ -1157,10 +1244,9 @@ async def _play(run_dir, manifest, context):
                         await _refresh_accepted_impact_action(
                             refresh_after_action, raw, snapshot, parent,
                             decision.candidate))
-                    effect_observed = authoritative_refresh and (
-                        snapshot.identity.state_hash != prior_state_hash
-                        or impact_planner.local_actor_effect_observed(
-                            decision.candidate, action_snapshot, snapshot))
+                    effect_observed = (authoritative_refresh
+                                       and impact_planner.candidate_effect_observed(
+                                           decision.candidate, action_snapshot, snapshot))
                     impact_planner.record_outcome(
                         decision.candidate, action_snapshot, effect_observed)
                     impact_budget.record(decision.candidate, effect_observed)
@@ -1168,7 +1254,6 @@ async def _play(run_dir, manifest, context):
                         decision_stats["effect_observed"] += 1
                     else:
                         decision_stats["no_effect"] += 1
-                    impact_planner.observe(snapshot)
                 decision_stats["failover_attempts"] += impact_budget.failover_attempts
                 decision_stats["failover_recoveries"] += impact_budget.recoveries
 
@@ -1237,7 +1322,7 @@ async def _play(run_dir, manifest, context):
         # Allow endgame packets and observer totals to settle before audit.
         await asyncio.sleep(0.25)
         try:
-            final_global = await _global_state(ws, timeout=5)
+            final_global = await _global_state(ws, timeout=5, player_id=player_id)
         except TimeoutError:
             pass
 
@@ -1261,10 +1346,12 @@ async def _play(run_dir, manifest, context):
     calibration_error = (sum(abs(belief.strength - int(value))
                              for belief, value in zip(predictions, correct)) / len(correct)
                          if correct else 0.0)
-    player_row = (final_global or {}).get("players", {}).get(str(player_id), {})
-    opponent_row = (final_global or {}).get("players", {}).get(str(opponent.get("id", 1)), {})
-    player_score = float(player_row.get("score", 0))
-    opponent_score = float(opponent_row.get("score", 0))
+    player_row = _player_row(final_global or {}, player_id)
+    opponent_row = _player_row(final_global or {}, opponent.get("id", 1))
+    if "score" not in player_row or "score" not in opponent_row:
+        raise RuntimeError("final paired scores were not authoritative")
+    player_score = float(player_row["score"])
+    opponent_score = float(opponent_row["score"])
     score_margin = player_score - opponent_score
     score_lead = player_score > opponent_score
     # ``game_win`` is retained for the original M7 aggregate contract. Paired
@@ -1363,6 +1450,7 @@ async def _play(run_dir, manifest, context):
             if impact_planner is not None else 0),
         "decision_no_effect_failover_attempts": decision_stats["failover_attempts"],
         "decision_no_effect_failover_recoveries": decision_stats["failover_recoveries"],
+        "initial_state_fingerprint": initial_state_fingerprint,
         "meaningful_actions": decision_stats["meaningful_actions"],
         "planned_engine_actions": planned_actions,
         "zombie_attempts_blocked": zombie_blocked,
