@@ -79,6 +79,52 @@ class ImpactDecision:
     plan: Plan
 
 
+@dataclass(frozen=True)
+class DeferredImpactResolution:
+    """One accepted action resolved by a later authoritative snapshot."""
+
+    candidate: ImpactCandidate
+    before_snapshot: object
+    after_snapshot: object
+    effect_observed: bool
+
+
+class DeferredImpactOutcomeLedger(object):
+    """Reconcile accepted actions whose effects outlive the bounded wait.
+
+    Freeciv may execute an accepted order later in the same turn or while the
+    turn is closing.  A timeout is therefore not proof of no effect.  Entries
+    remain pending while only same-turn snapshots disagree, resolve as soon as
+    the candidate-specific effect is visible, and expire as a grounded
+    no-effect outcome on the first later-turn snapshot.
+    """
+
+    def __init__(self):
+        self._pending = []
+
+    def __len__(self):
+        return len(self._pending)
+
+    def defer(self, candidate, before_snapshot):
+        self._pending.append((candidate, before_snapshot))
+
+    def resolve(self, planner, after_snapshot):
+        resolved = []
+        pending = []
+        for candidate, before_snapshot in self._pending:
+            effect_observed = planner.candidate_effect_observed(
+                candidate, before_snapshot, after_snapshot)
+            if (effect_observed
+                    or int(after_snapshot.turn) > int(before_snapshot.turn)):
+                resolved.append(DeferredImpactResolution(
+                    candidate, before_snapshot, after_snapshot,
+                    bool(effect_observed)))
+            else:
+                pending.append((candidate, before_snapshot))
+        self._pending = pending
+        return tuple(resolved)
+
+
 class ImpactTurnBudget(object):
     """Bound no-effect failover without consuming a successful action scope."""
 

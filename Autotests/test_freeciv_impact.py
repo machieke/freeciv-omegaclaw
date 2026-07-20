@@ -11,7 +11,8 @@ SRC = os.path.join(REPO, "src")
 if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
-from freeciv_agent.planning import (GroundedImpactPlanner, ImpactCandidate,
+from freeciv_agent.planning import (DeferredImpactOutcomeLedger,
+                                    GroundedImpactPlanner, ImpactCandidate,
                                     ImpactTurnBudget)  # noqa: E402
 from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 
@@ -342,6 +343,69 @@ def test_founder_route_continues_only_a_pre_spacing_cardinal_corridor():
     decision = diagonal_planner.plan(continuation)
     assert decision.candidate.action["target"] == {"x": 4, "y": 5}
     assert not decision.candidate.projection["cardinal_corridor_match"]
+
+
+def test_deferred_confirmation_recovers_late_founder_route_effect():
+    ir = _ruleset_ir((("Settlers", "unit", 30),))
+    planner = GroundedImpactPlanner(ruleset_ir=ir)
+    ledger = DeferredImpactOutcomeLedger()
+    action = {"action_type": "unit_move", "actor_id": 1,
+              "target": {"x": 1, "y": 0}}
+    candidate = ImpactCandidate(
+        action, "expansion_move", 1.0, "delayed route effect")
+    before = _snapshot(
+        [_unit(1, "Settlers")],
+        [dict(action, is_valid=True),
+         {"action_type": "end_turn", "is_valid": True}], turn=4)
+    unrelated = _snapshot(
+        [_unit(1, "Settlers")],
+        [{"action_type": "end_turn", "is_valid": True}],
+        source_seq=2, turn=4)
+    applied = _snapshot(
+        [_unit(1, "Settlers", 1, 0)],
+        [{"action_type": "end_turn", "is_valid": True}],
+        source_seq=3, turn=5)
+
+    ledger.defer(candidate, before)
+
+    assert ledger.resolve(planner, unrelated) == ()
+    assert len(ledger) == 1
+    resolutions = ledger.resolve(planner, applied)
+    assert len(resolutions) == 1
+    assert resolutions[0].effect_observed
+    assert len(ledger) == 0
+
+    planner.record_outcome(
+        resolutions[0].candidate, resolutions[0].before_snapshot,
+        resolutions[0].effect_observed,
+        after_snapshot=resolutions[0].after_snapshot)
+    assert planner.founder_route_successes == 1
+    assert planner.founder_route_failures == 0
+
+
+def test_deferred_confirmation_expires_unchanged_action_on_next_turn():
+    planner = GroundedImpactPlanner()
+    ledger = DeferredImpactOutcomeLedger()
+    action = {"action_type": "unit_move", "actor_id": 20,
+              "target": {"x": 1, "y": 0}}
+    candidate = ImpactCandidate(
+        action, "exploration_move", 1.0, "unchanged delayed action")
+    before = _snapshot(
+        [_unit(20, "Explorer")],
+        [dict(action, is_valid=True),
+         {"action_type": "end_turn", "is_valid": True}], turn=4)
+    unchanged_next_turn = _snapshot(
+        [_unit(20, "Explorer")],
+        [dict(action, is_valid=True),
+         {"action_type": "end_turn", "is_valid": True}],
+        source_seq=2, turn=5)
+
+    ledger.defer(candidate, before)
+    resolutions = ledger.resolve(planner, unchanged_next_turn)
+
+    assert len(resolutions) == 1
+    assert not resolutions[0].effect_observed
+    assert len(ledger) == 0
 
 
 def test_founder_route_prunes_stationary_actor_edge_and_penalizes_shared_failure():

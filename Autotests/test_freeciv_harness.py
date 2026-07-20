@@ -549,6 +549,13 @@ def test_accepted_impact_refresh_waits_for_candidate_specific_effect():
     assert result == ({"turn": 1}, applied, "effect-state", True)
 
 
+def test_state_poll_interval_is_bounded_before_transport():
+    with pytest.raises(ValueError, match="poll_interval"):
+        asyncio.run(_state(None, "game", poll_interval=0.01))
+    with pytest.raises(ValueError, match="poll_interval"):
+        asyncio.run(_state(None, "game", poll_interval=1.01))
+
+
 def test_worker_assignment_does_not_change_behavioral_manifest_identity():
     runner = HarnessRunner("unused", backend="engine-live", workers=3)
     job = {"condition": "a_stock_llm", "seed": 104729,

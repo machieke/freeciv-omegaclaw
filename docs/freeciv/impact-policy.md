@@ -113,10 +113,12 @@ effect in the first refreshed snapshot, including when civserver emits no newer
 authoritative sequence before the bounded refresh deadline. Live confirmatory
 preflight showed that the engine can consume movement points while the proxy continues
 to publish stale actor position and movement values, or acknowledges a mechanically
-legal order that produces no packet at all. The unchanged snapshot is recorded as a
-no-effect outcome; failover remains enabled only for non-unit scopes where acceptance
-cannot silently exhaust that actor budget. Non-unit actions still require a newer
-authoritative sequence and fail closed when it is absent.
+legal order that produces no packet until turn closure. A missed bounded wait now enters
+a deferred-confirmation ledger rather than being mislabeled as no effect. Any later
+same-turn snapshot can prove the exact candidate effect; the first later-turn snapshot
+either recovers that effect or expires the entry as a grounded no-effect outcome. The
+scope remains closed while confirmation is pending, so deferred accounting cannot send
+a stale second unit order. Non-unit actions still require candidate-specific evidence.
 
 ## Impact telemetry
 
@@ -126,6 +128,8 @@ the existing score and latency metrics:
 - `planned_engine_actions` and `meaningful_actions_per_turn`;
 - `decision_impact_actions` and `decision_impact_turn_rate`;
 - `decision_effect_observed_rate` and `decision_no_effect_actions`;
+- confirmation latency/timeouts plus deferred, recovered, expired, and still-pending
+  confirmation counts, which distinguish a bounded wait from an actual failed action;
 - `decision_no_effect_retries_blocked` for exact actions rejected by grounded
   no-effect feedback;
 - `decision_no_effect_failover_attempts`, `decision_no_effect_failover_recoveries`,
@@ -146,6 +150,13 @@ the existing score and latency metrics:
 - population-ready, settlement ETA/runway, founder-deficit, and compiler-source
   production projection metrics;
 - `model_safe_fallback_rate` and `model_corrections_per_turn`.
+
+The seed-104729 engine-backed deferred-confirmation probe recovered 28 of 40
+baseline timeouts and 25 of 34 treatment timeouts. Both arms then learned three
+exact founder-route successes and one settlement completion; the earlier
+timeout-as-failure accounting reported neither. Reducing confirmation polling
+from 10 Hz to 5 Hz also eliminated an observed proxy `E429` without changing
+the two-second confirmation deadline or the two-identical-snapshot stability gate.
 
 ## Capability and movement-progress smoke evidence
 

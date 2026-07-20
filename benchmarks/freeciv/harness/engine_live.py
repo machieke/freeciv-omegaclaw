@@ -29,6 +29,7 @@ from freeciv_agent.oracle import CrispStateView, DependencyOracle, Goal
 from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     PlanStep, PlanningSnapshot, ProofScheduler,
                                     ResourceLedger, GroundedImpactPlanner,
+                                    DeferredImpactOutcomeLedger,
                                     ImpactTurnBudget)
 from freeciv_agent.rulesets.compiler import compile_ruleset
 from freeciv_agent.state import ProxyStateDTO, SnapshotStore, StateSummaryService
@@ -353,10 +354,12 @@ def _decision_state_ready(snapshot, require_own_units=False):
 
 async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=20.0,
                  require_decision_ready=False, require_own_units=False,
-                 stable_samples=1):
+                 stable_samples=1, poll_interval=0.1):
     if (isinstance(stable_samples, bool) or not isinstance(stable_samples, int)
             or not 1 <= stable_samples <= 5):
         raise ValueError("stable_samples must be in 1..5")
+    if not 0.05 <= float(poll_interval) <= 1.0:
+        raise ValueError("poll_interval must be in [0.05,1]")
     deadline = time.monotonic() + timeout
     stable_fingerprint = None
     stable_count = 0
@@ -387,7 +390,7 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
             else:
                 stable_fingerprint = None
                 stable_count = 0
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(min(float(poll_interval), max(0.0, remaining)))
     raise TimeoutError("authoritative state did not reach turn {}".format(minimum_turn))
 
 
@@ -1019,7 +1022,11 @@ async def _play(run_dir, manifest, context):
         "effect_observed": 0, "no_effect": 0, "safe_model_fallbacks": 0,
         "failover_attempts": 0, "failover_recoveries": 0,
         "effect_confirmation_timeouts": 0,
+        "effect_confirmation_deferred": 0,
+        "effect_confirmation_recovered": 0,
+        "effect_confirmation_expired": 0,
     }
+    pending_impact_outcomes = DeferredImpactOutcomeLedger()
     action_type_counts = {}
     impact_turns = set()
     capability_pruned_worker_moves = set()
@@ -1135,6 +1142,32 @@ async def _play(run_dir, manifest, context):
             if category in ("tactical_attack", "tactical_move"):
                 decision_stats["tactical_actions"] += 1
 
+        def record_impact_resolution(candidate, before, after, effect_observed,
+                                     deferred=False):
+            """Commit one candidate-specific authoritative outcome exactly once."""
+            impact_planner.record_outcome(
+                candidate, before, effect_observed, after_snapshot=after)
+            if effect_observed:
+                decision_stats["effect_observed"] += 1
+                if candidate.action.get("action_type") == "unit_build_city":
+                    decision_stats["settlement_completions"] += 1
+                if deferred:
+                    decision_stats["effect_confirmation_recovered"] += 1
+            else:
+                decision_stats["no_effect"] += 1
+                if deferred:
+                    decision_stats["effect_confirmation_expired"] += 1
+
+        def reconcile_deferred_impact_outcomes(current):
+            if impact_planner is None:
+                return
+            for resolution in pending_impact_outcomes.resolve(
+                    impact_planner, current):
+                record_impact_resolution(
+                    resolution.candidate, resolution.before_snapshot,
+                    resolution.after_snapshot, resolution.effect_observed,
+                    deferred=True)
+
         distance = _enemy_distance(
             raw, global_state, player_id, snapshot.map_width, snapshot.map_height)
         if distance is not None:
@@ -1155,7 +1188,7 @@ async def _play(run_dir, manifest, context):
                 next_raw, next_snapshot = await _state(
                     ws, manifest["game_id"], minimum_turn=current.turn,
                     minimum_source_seq=minimum_seq, timeout=remaining,
-                    stable_samples=2)
+                    stable_samples=2, poll_interval=0.2)
                 if predicate is not None and not predicate(next_snapshot):
                     minimum_seq = next_snapshot.identity.source_seq + 1
                     await asyncio.sleep(0.05)
@@ -1209,6 +1242,7 @@ async def _play(run_dir, manifest, context):
             final_turn = snapshot.turn
             turns_executed += 1
             final_global = global_state
+            reconcile_deferred_impact_outcomes(snapshot)
             if context.capabilities["uncertain_beliefs"]:
                 context.use("uncertain_beliefs")
                 rows, parent = _emit_observations(
@@ -1384,18 +1418,24 @@ async def _play(run_dir, manifest, context):
                     effect_observed = (authoritative_refresh
                                        and impact_planner.candidate_effect_observed(
                                            decision.candidate, action_snapshot, snapshot))
-                    impact_planner.record_outcome(
-                        decision.candidate, action_snapshot, effect_observed,
-                        after_snapshot=(snapshot if authoritative_refresh else None))
                     impact_budget.record(
                         decision.candidate, effect_observed,
                         authoritative_refresh=authoritative_refresh)
                     if effect_observed:
-                        decision_stats["effect_observed"] += 1
-                        if impact_action.get("action_type") == "unit_build_city":
-                            decision_stats["settlement_completions"] += 1
+                        record_impact_resolution(
+                            decision.candidate, action_snapshot, snapshot, True)
+                    elif (authoritative_refresh
+                          and snapshot.turn > action_snapshot.turn):
+                        record_impact_resolution(
+                            decision.candidate, action_snapshot, snapshot, False)
                     else:
-                        decision_stats["no_effect"] += 1
+                        pending_impact_outcomes.defer(
+                            decision.candidate, action_snapshot)
+                        decision_stats["effect_confirmation_deferred"] += 1
+                    if authoritative_refresh:
+                        # A fresh packet may also reveal effects from older
+                        # accepted actions that exceeded their bounded wait.
+                        reconcile_deferred_impact_outcomes(snapshot)
                 decision_stats["failover_attempts"] += impact_budget.failover_attempts
                 decision_stats["failover_recoveries"] += impact_budget.recoveries
 
@@ -1535,6 +1575,13 @@ async def _play(run_dir, manifest, context):
          sum(effect_confirmation_latencies) / max(1, len(effect_confirmation_latencies))),
         ("decision_effect_confirmation_timeouts",
          decision_stats["effect_confirmation_timeouts"]),
+        ("decision_effect_confirmation_deferred",
+         decision_stats["effect_confirmation_deferred"]),
+        ("decision_effect_confirmation_recovered",
+         decision_stats["effect_confirmation_recovered"]),
+        ("decision_effect_confirmation_expired",
+         decision_stats["effect_confirmation_expired"]),
+        ("decision_effect_confirmation_pending", len(pending_impact_outcomes)),
         ("decision_no_effect_actions", decision_stats["no_effect"]),
         ("decision_no_effect_retries_blocked",
          impact_planner.no_effect_retries_blocked if impact_planner is not None else 0),
@@ -1663,6 +1710,13 @@ async def _play(run_dir, manifest, context):
                 decision_stats["failover_recoveries"]),
             "decision_effect_confirmation_timeouts": (
                 decision_stats["effect_confirmation_timeouts"]),
+            "decision_effect_confirmation_deferred": (
+                decision_stats["effect_confirmation_deferred"]),
+            "decision_effect_confirmation_recovered": (
+                decision_stats["effect_confirmation_recovered"]),
+            "decision_effect_confirmation_expired": (
+                decision_stats["effect_confirmation_expired"]),
+            "decision_effect_confirmation_pending": len(pending_impact_outcomes),
             "meaningful_actions": decision_stats["meaningful_actions"],
             "founder_production_changes": (
                 decision_stats["founder_production_changes"]),
@@ -1716,6 +1770,13 @@ async def _play(run_dir, manifest, context):
             if impact_planner is not None else 0),
         "decision_no_effect_failover_attempts": decision_stats["failover_attempts"],
         "decision_no_effect_failover_recoveries": decision_stats["failover_recoveries"],
+        "decision_effect_confirmation_deferred": (
+            decision_stats["effect_confirmation_deferred"]),
+        "decision_effect_confirmation_recovered": (
+            decision_stats["effect_confirmation_recovered"]),
+        "decision_effect_confirmation_expired": (
+            decision_stats["effect_confirmation_expired"]),
+        "decision_effect_confirmation_pending": len(pending_impact_outcomes),
         "initial_legal_action_families": initial_legal_action_families,
         "initial_state_fingerprint": initial_state_fingerprint,
         "meaningful_actions": decision_stats["meaningful_actions"],

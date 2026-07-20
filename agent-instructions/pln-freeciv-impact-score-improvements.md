@@ -324,6 +324,31 @@ remains the current claim.
 
 The probe also exposed the next optimization target: geometrically generated
 unit moves and city-founding actions still produce many bounded confirmation
-timeouts. Those actions need stronger server-grounded tile/action legality or
-more aggressive route no-effect suppression before another multi-pair policy
-cohort.
+timeouts. Trace reconstruction showed that a timeout is not necessarily an
+illegal action: early-turn founder moves and both city-founding orders became
+visible at turn closure after exceeding the two-second wait. The planner now
+uses a bounded deferred-confirmation ledger. Pending accepted actions retain
+their closed actor/city scope, resolve on an exact later same-turn effect, and
+otherwise resolve or expire on the first later-turn authoritative snapshot.
+Recovered founder movement is fed back into route success, cardinal-corridor,
+and observed route-ETA learning instead of being silently discarded. Telemetry
+separates raw timeouts from deferred, recovered, expired, and pending outcomes.
+A fresh engine-backed seed must confirm this mechanism before a multi-pair
+policy cohort; stronger server-grounded tile/action legality remains the next
+target for entries that genuinely expire unchanged.
+
+The engine-backed development probe at
+`artifacts/freeciv/impact-deferred-confirmation-probe-104729-20260720`
+completed a fresh baseline/treatment pair on seed `104729` after reducing
+post-action state polling from 10 Hz to 5 Hz. The first treatment attempt is
+preserved as historical infrastructure evidence: 10 Hz polling exhausted the
+proxy message quota and caused an `E429` on `end_turn`. The clean rerun had
+zero infrastructure failures and zero rejected engine actions. Baseline
+deferred 40 confirmations, recovered 28, expired 10, and ended with two
+final-turn entries pending; treatment deferred 34, recovered 25, expired 9,
+and ended with none pending. Candidate-specific effect rate was `70.73%`
+baseline and `81.25%` treatment. Both arms learned three exact founder-route
+successes and counted one settlement completion; the pre-ledger probe reported
+zero route successes and zero settlement completions despite cities appearing.
+Both arms scored `107`, so this single development pair validates accounting
+and feedback correctness but provides no score-improvement claim.
