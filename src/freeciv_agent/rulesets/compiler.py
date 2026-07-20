@@ -9,7 +9,7 @@ from .ir import Requirement, Rule, RulesetIR
 from .secfile import SecTable, SecfileError, parse
 
 
-COMPILER_VERSION = "freeciv-ruleset-compiler/1.0"
+COMPILER_VERSION = "freeciv-ruleset-compiler/1.1"
 FILES = ("techs.ruleset", "units.ruleset", "buildings.ruleset")
 ALLOWED_REQUIREMENT_COLUMNS = {"type", "name", "range", "present", "quiet", "survives"}
 REQUIREMENT_PREDICATES = {
@@ -166,6 +166,36 @@ def _quantitative(section, ruleset, filename):
     return result
 
 
+def _traits(section, ruleset, filename, kind):
+    """Retain ruleset-declared categorical unit behavior with provenance.
+
+    Flags and roles are not build prerequisites, so they do not belong in the
+    implication antecedent.  They are still authoritative ruleset facts needed
+    by downstream planners (for example, ``Cities`` distinguishes a real city
+    founder from units that merely have the ``Settlers`` worker flag).
+    """
+    if kind != "unit":
+        return {}
+    result = {}
+    for field_name in ("flags", "roles"):
+        field = section.fields.get(field_name)
+        if field is None:
+            continue
+        values = field.value
+        if isinstance(values, str):
+            values = [] if not values else [values]
+        if not isinstance(values, list) or not all(
+                isinstance(value, str) for value in values):
+            raise CompileError("{}:{}: [{}] {}: expected string vector".format(
+                _logical_path(ruleset, filename), field.location.line,
+                section.name, field_name))
+        result[field_name] = {
+            "source": _source(field.location, ruleset, filename),
+            "values": sorted(set(values)),
+        }
+    return result
+
+
 def _compile_tech(section, ruleset, filename):
     display_name = _display(_field(section, "name"))
     rule_name = _display(_field(section, "rule_name", display_name))
@@ -215,6 +245,7 @@ def _compile_build_target(section, ruleset, filename, kind):
         obsolescence=_canonical_requirements(obsolete),
         quantitative=_quantitative(section, ruleset, filename), disabled=False,
         source=_target_source(section, ruleset, filename),
+        traits=_traits(section, ruleset, filename, kind),
     )
 
 

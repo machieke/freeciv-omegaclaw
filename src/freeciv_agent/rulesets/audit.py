@@ -43,6 +43,7 @@ def extract_reference(ruleset_root, ruleset):
     buildings = parse(os.path.join(ruleset_root, ruleset, "buildings.ruleset"))
     targets = {}
     edges = set()
+    traits = {}
     for section in techs.matching("advance_"):
         target = _name(section)
         antecedents = []
@@ -66,7 +67,17 @@ def extract_reference(ruleset_root, ruleset):
             targets[(kind, target)] = sorted(antecedents, key=str)
             for item in antecedents:
                 edges.add((kind, target, "reqs", json.dumps(item)))
-    return {"targets": targets, "edges": edges}
+            if kind == "unit":
+                traits[(kind, target)] = {}
+                for field_name in ("flags", "roles"):
+                    trait_field = section.fields.get(field_name)
+                    if trait_field is None:
+                        continue
+                    values = trait_field.value
+                    if isinstance(values, str):
+                        values = [] if not values else [values]
+                    traits[(kind, target)][field_name] = sorted(set(values))
+    return {"targets": targets, "edges": edges, "traits": traits}
 
 
 def _compiler_tuple(requirement):
@@ -76,6 +87,7 @@ def _compiler_tuple(requirement):
 def compiler_projection(ir):
     targets = {}
     edges = set()
+    traits = {}
     for rule in ir.rules:
         key = (rule.target_kind, rule.rule_name)
         targets[key] = sorted((_compiler_tuple(req) for req in rule.antecedents), key=str)
@@ -84,7 +96,12 @@ def compiler_projection(ir):
             encoded = req.name if rule.target_kind == "tech" and field in (
                 "req1", "req2", "root_req") else json.dumps(_compiler_tuple(req))
             edges.add((rule.target_kind, rule.rule_name, field, str(encoded)))
-    return {"targets": targets, "edges": edges}
+        if rule.target_kind == "unit":
+            traits[key] = {
+                name: list(value.get("values", ()))
+                for name, value in getattr(rule, "traits", {}).items()
+            }
+    return {"targets": targets, "edges": edges, "traits": traits}
 
 
 def audit(ir, ruleset_root, sample_seed=20260717, sample_size=20):
@@ -94,6 +111,14 @@ def audit(ir, ruleset_root, sample_seed=20260717, sample_size=20):
     extra_targets = sorted(set(compiled["targets"]) - set(reference["targets"]))
     missing_edges = sorted(reference["edges"] - compiled["edges"], key=str)
     extra_edges = sorted(compiled["edges"] - reference["edges"], key=str)
+    trait_mismatches = []
+    for key in sorted(reference["traits"]):
+        if reference["traits"][key] != compiled["traits"].get(key):
+            trait_mismatches.append({
+                "target": list(key),
+                "reference": reference["traits"][key],
+                "compiled": compiled["traits"].get(key),
+            })
     rng = random.Random(sample_seed)
     samples = {}
     sample_mismatches = []
@@ -122,10 +147,11 @@ def audit(ir, ruleset_root, sample_seed=20260717, sample_size=20):
         "missing_edges": missing_edges,
         "missing_targets": missing_targets,
         "passed": not any((missing_targets, extra_targets, missing_edges, extra_edges,
-                           sample_mismatches)),
+                           sample_mismatches, trait_mismatches)),
         "sample_mismatches": sample_mismatches,
         "sample_seed": sample_seed,
         "samples": samples,
+        "trait_mismatches": trait_mismatches,
     }
 
 

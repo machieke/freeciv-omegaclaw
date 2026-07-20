@@ -363,7 +363,7 @@ def load(path=None):
             or not model_config["keep_alive"].strip()):
         raise ValueError("harness model.keep_alive must be a non-empty string")
     rulebase = value.get("rulebase", {})
-    if rulebase.get("compiler_version") != "freeciv-ruleset-compiler/1.0":
+    if rulebase.get("compiler_version") != "freeciv-ruleset-compiler/1.1":
         raise ValueError("harness rulebase compiler version is not pinned")
     for key in ("source_sha256", "ir_sha256", "atomese_sha256"):
         digest = rulebase.get(key)

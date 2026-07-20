@@ -45,6 +45,7 @@ class Rule:
     quantitative: dict
     disabled: bool
     source: dict
+    traits: dict = field(default_factory=dict)
     tv: dict = field(default_factory=lambda: dict(CRISP_TV))
 
     def to_dict(self):
@@ -60,6 +61,7 @@ class Rule:
             "target": {"arguments": list(self.target_arguments),
                        "predicate": self.target_predicate},
             "target_kind": self.target_kind,
+            "traits": self.traits,
             "tv": self.tv,
         }
 
@@ -80,6 +82,6 @@ class RulesetIR:
             "predicate_catalog": list(self.predicate_catalog),
             "rules": [rule.to_dict() for rule in self.rules],
             "ruleset": self.ruleset,
-            "schema_version": "1.0",
+            "schema_version": "1.1",
             "source_hashes": self.source_hashes,
         }

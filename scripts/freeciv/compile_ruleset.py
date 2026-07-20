@@ -38,7 +38,7 @@ def compile_to_directory(ruleset_root, ruleset, out, event_log=None):
     ir_bytes = canonical_json(ir.to_dict())
     metta_bytes = render_metta(ir).encode("utf-8")
     audit_bytes = canonical_json(report)
-    signature_bytes = canonical_json({"schema_version": "1.0",
+    signature_bytes = canonical_json({"schema_version": "1.1",
                                       "signatures": list(ir.grounded_signatures)})
     markdown = (
         "# Generated ruleset audit: {ruleset}\n\n"
@@ -70,7 +70,7 @@ def compile_to_directory(ruleset_root, ruleset, out, event_log=None):
         "compiler_version": COMPILER_VERSION,
         "output_hashes": output_hashes,
         "ruleset": ruleset,
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "source_hash": _hash(combined_source),
         "source_hashes": ir.source_hashes,
     }

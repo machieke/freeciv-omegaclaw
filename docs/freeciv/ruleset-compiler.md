@@ -23,12 +23,14 @@ context-stripped display name. All requirements retain their file, line, section
 One implication is emitted per tech, unit, or building target. Its antecedent is the complete
 conjunction of requirements. Negative `present` requirements are explicit `Not` atoms. Numeric
 costs and rates are metadata or grounded procedure signatures; the generated rulebase contains
-no arithmetic accumulation conclusion.
+no arithmetic accumulation conclusion. Unit `flags` and `roles` are retained as sorted,
+source-provenanced traits in the IR. This lets planners distinguish capabilities such as the
+`Cities` city-founder flag from the broader `Settlers` worker flag without display-name guesses.
 
 The audit extractor shares only lexical secfile parsing with the compiler. It independently
-compares target identities, every prerequisite edge, and deterministic samples of 20 techs and
-20 units. An unsupported requirement kind or table column stops compilation and reports logical
-file, line, section, field, and reason.
+compares target identities, every prerequisite edge, all unit flags and roles, and deterministic
+samples of 20 techs and 20 units. An unsupported requirement kind or table column stops
+compilation and reports logical file, line, section, field, and reason.
 
-Compiler version `freeciv-ruleset-compiler/1.0` and IR schema version `1.0` are compatibility
+Compiler version `freeciv-ruleset-compiler/1.1` and IR schema version `1.1` are compatibility
 boundaries. Any semantic mapping change increments the compiler version and changes output hashes.

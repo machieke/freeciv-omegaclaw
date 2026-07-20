@@ -70,11 +70,20 @@ def _production(city_id, name, kind, value):
             "production_value": value, "is_valid": True}
 
 
-def _ruleset_ir(costs):
-    return SimpleNamespace(rules=tuple(SimpleNamespace(
-        target_kind=kind, display_name=name, rule_name=name,
-        quantitative={"build_cost": {"value": cost, "source": {}}})
-        for name, kind, cost in costs))
+def _ruleset_ir(costs, founders=("Settlers",),
+                workers=("Settlers", "Migrants", "Workers", "Engineers")):
+    rules = []
+    for name, kind, cost in costs:
+        flags = []
+        if name in workers:
+            flags.append("Settlers")
+        if name in founders:
+            flags.append("Cities")
+        rules.append(SimpleNamespace(
+            target_kind=kind, display_name=name, rule_name=name,
+            quantitative={"build_cost": {"value": cost, "source": {}}},
+            traits={"flags": {"values": flags, "source": {}}}))
+    return SimpleNamespace(rules=tuple(rules))
 
 
 def test_policy_produces_founder_then_infrastructure_without_midbuild_switching():
@@ -85,7 +94,12 @@ def test_policy_produces_founder_then_infrastructure_without_midbuild_switching(
         _production(10, "Library", 3, 17),
         {"action_type": "end_turn", "is_valid": True},
     ]
-    planner = GroundedImpactPlanner({"expansion_city_target": 3})
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 30), ("Alpine Troops", "unit", 60),
+        ("Granary", "improvement", 40), ("Library", "improvement", 60),
+    ))
+    planner = GroundedImpactPlanner(
+        {"expansion_city_target": 3}, ruleset_ir=ir)
     without_founder = _snapshot([_unit(11, "Alpine Troops")], actions)
     decision = planner.plan(without_founder)
     assert decision.candidate.category == "production_expansion"
@@ -93,10 +107,7 @@ def test_policy_produces_founder_then_infrastructure_without_midbuild_switching(
 
     with_founder = _snapshot([
         _unit(1, "Settlers"), _unit(11, "Alpine Troops")], actions, source_seq=2)
-    planner = GroundedImpactPlanner(ruleset_ir=_ruleset_ir((
-        ("Settlers", "unit", 30), ("Alpine Troops", "unit", 60),
-        ("Granary", "improvement", 40), ("Library", "improvement", 60),
-    )))
+    planner = GroundedImpactPlanner(ruleset_ir=ir)
     decision = planner.plan(with_founder)
     assert decision.candidate.category == "production_economy"
     assert decision.candidate.action["target"]["production_type"] == "Library"
@@ -112,7 +123,7 @@ def test_policy_produces_founder_then_infrastructure_without_midbuild_switching(
     granary_city[0]["prod"] = granary_city[0].pop("production")
     granary_city[0].pop("buildability_available", None)
     granary_city[0].pop("buildability_diagnostic", None)
-    zero_stock_switch = GroundedImpactPlanner().plan(_snapshot(
+    zero_stock_switch = GroundedImpactPlanner(ruleset_ir=ir).plan(_snapshot(
         [_unit(1, "Settlers"), _unit(11, "Alpine Troops")], actions,
         cities=granary_city, source_seq=4))
     assert zero_stock_switch.candidate.action["target"]["production_type"] == "Library"
@@ -126,7 +137,7 @@ def test_policy_produces_founder_then_infrastructure_without_midbuild_switching(
     midbuild_city[0]["prod"] = midbuild_city[0].pop("production")
     midbuild_city[0].pop("buildability_available", None)
     midbuild_city[0].pop("buildability_diagnostic", None)
-    assert GroundedImpactPlanner().plan(_snapshot(
+    assert GroundedImpactPlanner(ruleset_ir=ir).plan(_snapshot(
         [_unit(1, "Settlers"), _unit(11, "Alpine Troops")], actions,
         cities=midbuild_city, source_seq=3)) is None
 
@@ -138,7 +149,9 @@ def test_founder_moves_outward_then_founds_only_at_configured_spacing():
                 "target": {"x": 2, "y": 0}, "is_valid": True}
     snapshot = _snapshot(
         [_unit(1, "Settlers"), _unit(11, "Alpine Troops")],
-        [move_near, move_far, {"action_type": "end_turn", "is_valid": True}])
+        [move_near, move_far,
+         {"action_type": "unit_build_city", "actor_id": 1, "is_valid": True},
+         {"action_type": "end_turn", "is_valid": True}])
     decision = GroundedImpactPlanner().plan(snapshot)
     assert decision.candidate.category == "expansion_move"
     assert decision.candidate.action["target"] == {"x": 2, "y": 0}
@@ -175,18 +188,57 @@ def test_policy_preserves_sole_garrison_and_uses_explorer_with_exact_plan_identi
 
 def test_offensive_action_wins_ranking_and_exclusions_bound_retries():
     attack = {"action_type": "unit_attack", "actor_id": 11,
-              "target": {"x": 1, "y": 0}, "is_valid": True}
+              "target": {"x": 2, "y": 0}, "is_valid": True}
     move = {"action_type": "unit_move", "actor_id": 20,
-            "target": {"x": 0, "y": 1}, "is_valid": True}
+            "target": {"x": 1, "y": 0}, "is_valid": True}
     snapshot = _snapshot(
         [_unit(11, "Alpine Troops"), _unit(20, "Explorer"),
-         _enemy(99, "Warriors", 1, 0)],
+         _enemy(99, "Warriors", 2, 0)],
         [attack, move, {"action_type": "end_turn", "is_valid": True}])
-    planner = GroundedImpactPlanner()
+    planner = GroundedImpactPlanner(ruleset_ir=_ruleset_ir((
+        ("Settlers", "unit", 30), ("Granary", "improvement", 40),
+        ("Library", "improvement", 60))))
     decision = planner.plan(snapshot)
     assert decision.candidate.category == "tactical_attack"
     fallback = planner.plan(snapshot, excluded=(decision.candidate.action_key,))
     assert fallback.candidate.category == "tactical_move"
+
+
+def test_moves_require_novel_exploration_or_strict_tactical_progress():
+    targetless = {"action_type": "unit_move", "actor_id": 11,
+                  "target": {"x": 3, "y": 2}, "is_valid": True}
+    no_enemy = _snapshot(
+        [_unit(11, "Alpine Troops", 2, 2)],
+        [targetless, {"action_type": "end_turn", "is_valid": True}])
+    planner = GroundedImpactPlanner()
+    assert planner.plan(no_enemy) is None
+    assert planner.nonprogress_move_keys(no_enemy) == (
+        json.dumps({key: value for key, value in targetless.items()
+                    if key != "is_valid"},
+                   sort_keys=True, separators=(",", ":")),)
+
+    away = {"action_type": "unit_move", "actor_id": 11,
+            "target": {"x": 1, "y": 2}, "is_valid": True}
+    closer = {"action_type": "unit_move", "actor_id": 11,
+              "target": {"x": 3, "y": 2}, "is_valid": True}
+    tactical = _snapshot(
+        [_unit(11, "Alpine Troops", 2, 2), _enemy(99, "Warriors", 5, 2)],
+        [away, closer, {"action_type": "end_turn", "is_valid": True}],
+        source_seq=2)
+    candidates = planner.candidates(tactical)
+    assert len(candidates) == 1
+    assert candidates[0].category == "tactical_move"
+    assert candidates[0].action["target"] == {"x": 3, "y": 2}
+
+    revisit = {"action_type": "unit_move", "actor_id": 20,
+               "target": {"x": 1, "y": 0}, "is_valid": True}
+    explored = _snapshot(
+        [_unit(20, "Explorer")],
+        [revisit, {"action_type": "end_turn", "is_valid": True}],
+        source_seq=3)
+    planner.visited_positions.add((1, 0))
+    assert planner.plan(explored) is None
+    assert len(planner.nonprogress_move_keys(explored)) == 1
 
 
 def test_attack_order_without_packet_visible_target_is_not_counted_as_impact():
@@ -235,7 +287,9 @@ def test_action_scopes_limit_one_unit_and_one_city_choice_per_turn():
     snapshot = _snapshot(
         [_unit(1, "Settlers"), _unit(11, "Alpine Troops"), _unit(20, "Explorer")],
         actions)
-    planner = GroundedImpactPlanner()
+    planner = GroundedImpactPlanner(ruleset_ir=_ruleset_ir((
+        ("Settlers", "unit", 30), ("Granary", "improvement", 40),
+        ("Library", "improvement", 60))))
     first = planner.plan(snapshot)
     assert first.candidate.scope == ("unit", 1)
     second = planner.plan(snapshot, excluded_scopes=(first.candidate.scope,))
@@ -350,6 +404,7 @@ def test_production_candidates_require_fixed_horizon_runway():
     planner = GroundedImpactPlanner({
             "horizon_turn": 30, "production_minimum_remaining_turns": 8,
         "expansion_minimum_remaining_turns": 12}, ruleset_ir=_ruleset_ir((
+            ("Settlers", "unit", 30),
             ("Alpine Troops", "unit", 1000),
             ("Granary", "building", 8),
         )))
@@ -369,6 +424,7 @@ def test_paired_production_strategy_contrasts_static_and_horizon_value():
     snapshot = _snapshot(
         [_unit(1, "Settlers"), _unit(11, "Alpine Troops")], actions)
     ir = _ruleset_ir((
+        ("Settlers", "unit", 30),
         ("Alpine Troops", "unit", 60),
         ("Granary", "improvement", 40),
         ("Library", "improvement", 60),
@@ -383,33 +439,78 @@ def test_paired_production_strategy_contrasts_static_and_horizon_value():
     assert treatment.candidate.projection["score_value"] > 0
 
 
-def test_horizon_policy_avoids_military_churn_and_short_runway_population_loss():
+def test_horizon_policy_avoids_military_churn_and_nonfounder_worker_production():
     military = [_production(10, "Warriors", 6, 4),
                 {"action_type": "end_turn", "is_valid": True}]
     military_ir = _ruleset_ir((
-        ("Alpine Troops", "unit", 60), ("Warriors", "unit", 10)))
+        ("Settlers", "unit", 30), ("Alpine Troops", "unit", 60),
+        ("Warriors", "unit", 10)))
     assert GroundedImpactPlanner(ruleset_ir=military_ir).plan(_snapshot(
         [_unit(1, "Settlers"), _unit(11, "Alpine Troops")], military)) is None
 
-    founder_ir = SimpleNamespace(rules=tuple((
-        SimpleNamespace(
-            target_kind="unit", display_name=name, rule_name=name,
-            quantitative={
-                "build_cost": {"value": cost, "source": {}},
-                "pop_cost": {"value": pop, "source": {}},
-            })
-        for name, cost, pop in (
-            ("Alpine Troops", 60, 0), ("Migrants", 10, 1),
-            ("Engineers", 30, 0)))))
+    founder_ir = _ruleset_ir((
+        ("Settlers", "unit", 30), ("Alpine Troops", "unit", 60),
+        ("Migrants", "unit", 10), ("Engineers", "unit", 30)))
     founders = [
+        _production(10, "Settlers", 6, 0),
         _production(10, "Migrants", 6, 1),
         _production(10, "Engineers", 6, 3),
         {"action_type": "end_turn", "is_valid": True},
     ]
     decision = GroundedImpactPlanner(ruleset_ir=founder_ir).plan(_snapshot(
         [_unit(11, "Alpine Troops")], founders, turn=15))
-    assert decision.candidate.action["target"]["production_type"] == "Engineers"
-    assert decision.candidate.projection["pop_cost"] == 0
+    assert decision.candidate.action["target"]["production_type"] == "Settlers"
+    assert decision.candidate.projection["founder_capable"]
+    assert decision.candidate.projection["founder_capability_source"] == (
+        "ruleset_flag:Cities")
+
+
+def test_ruleset_and_server_capabilities_exclude_nonfounder_workers():
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 30), ("Migrants", "unit", 10),
+        ("Workers", "unit", 20), ("Engineers", "unit", 30),
+        ("Alpine Troops", "unit", 60)))
+    actions = [
+        {"action_type": "unit_build_city", "actor_id": 1, "is_valid": True},
+        {"action_type": "unit_move", "actor_id": 1,
+         "target": {"x": 2, "y": 0}, "is_valid": True},
+        {"action_type": "unit_move", "actor_id": 3,
+         "target": {"x": 2, "y": 0}, "is_valid": True},
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    snapshot = _snapshot([
+        _unit(1, "Settlers"), _unit(3, "Engineers"),
+        _unit(11, "Alpine Troops")], actions)
+    planner = GroundedImpactPlanner(ruleset_ir=ir)
+
+    assert tuple(unit.unit_type for unit in planner._founders(snapshot)) == ("Settlers",)
+    assert planner.founder_capable_types == ("settlers",)
+    candidates = planner.candidates(snapshot)
+    assert any(row.category == "expansion_move" and row.action["actor_id"] == 1
+               for row in candidates)
+    assert not any(row.action.get("actor_id") == 3 for row in candidates)
+    assert planner.capability_pruned_worker_move_keys(snapshot) == (
+        json.dumps({key: value for key, value in actions[2].items()
+                    if key != "is_valid"},
+                   sort_keys=True, separators=(",", ":")),)
+    assert planner.visited_positions == set()
+
+
+def test_observed_server_city_action_caches_founder_type_without_ruleset_traits():
+    demonstrated = _snapshot(
+        [_unit(7, "Colony Pod", 3, 0), _unit(11, "Alpine Troops")],
+        [{"action_type": "unit_build_city", "actor_id": 7, "is_valid": True},
+         {"action_type": "end_turn", "is_valid": True}])
+    planner = GroundedImpactPlanner()
+    planner.observe(demonstrated)
+    later = _snapshot(
+        [_unit(8, "Colony Pod"), _unit(11, "Alpine Troops")],
+        [{"action_type": "unit_move", "actor_id": 8,
+          "target": {"x": 2, "y": 0}, "is_valid": True},
+         {"action_type": "end_turn", "is_valid": True}], source_seq=2)
+
+    assert planner.founder_capable_types == ("colony pod",)
+    assert planner.plan(later).candidate.category == "expansion_move"
 
 
 def test_candidate_enumeration_does_not_mutate_exploration_history():
@@ -418,12 +519,41 @@ def test_candidate_enumeration_does_not_mutate_exploration_history():
     snapshot = _snapshot(
         [_unit(11, "Alpine Troops"), _unit(20, "Explorer")],
         [move, {"action_type": "end_turn", "is_valid": True}])
-    planner = GroundedImpactPlanner()
+    planner = GroundedImpactPlanner(ruleset_ir=_ruleset_ir((
+        ("Settlers", "unit", 30), ("Granary", "improvement", 40))))
 
     planner.plan(snapshot)
     assert planner.visited_positions == set()
     planner.observe(snapshot)
     assert planner.visited_positions == {(0, 0)}
+
+
+def test_candidate_enumeration_decodes_legal_actions_once():
+    actions = [
+        _production(10, "Settlers", 6, 0),
+        {"action_type": "unit_move", "actor_id": 1,
+         "target": {"x": 2, "y": 0}, "is_valid": True},
+        {"action_type": "unit_move", "actor_id": 3,
+         "target": {"x": 1, "y": 0}, "is_valid": True},
+        {"action_type": "unit_fortify", "actor_id": 11, "is_valid": True},
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    snapshot = _snapshot([
+        _unit(1, "Settlers"), _unit(3, "Engineers"),
+        _unit(11, "Alpine Troops")], actions)
+    planner = GroundedImpactPlanner(ruleset_ir=_ruleset_ir((
+        ("Settlers", "unit", 30), ("Engineers", "unit", 30),
+        ("Alpine Troops", "unit", 60))))
+    calls = []
+    original = planner._actions
+
+    def counted(value):
+        calls.append(value.snapshot_id)
+        return original(value)
+
+    planner._actions = counted
+    planner.candidates(snapshot)
+    assert calls == [snapshot.snapshot_id]
 
 
 def test_configured_no_effect_retry_limit_allows_one_controlled_retry():
@@ -448,7 +578,8 @@ def test_turn_budget_releases_failed_scope_for_bounded_alternative_recovery():
     snapshot = _snapshot(
         [_unit(11, "Alpine Troops"), _unit(20, "Explorer")],
         [preferred, alternative, {"action_type": "end_turn", "is_valid": True}])
-    planner = GroundedImpactPlanner()
+    planner = GroundedImpactPlanner(ruleset_ir=_ruleset_ir((
+        ("Settlers", "unit", 30), ("Granary", "improvement", 40))))
     budget = ImpactTurnBudget(max_no_effect_failovers=2)
 
     first = planner.plan(snapshot, excluded_scopes=budget.excluded_scopes)

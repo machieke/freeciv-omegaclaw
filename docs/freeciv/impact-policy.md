@@ -31,12 +31,20 @@ The deterministic priority order is:
 
 1. Attack only a packet-visible unit at the advertised target.
 2. Found a city only below the city target and at the declared minimum spacing.
-3. Move a founder outward while expansion is incomplete.
+3. Move only a ruleset-declared founder outward while expansion is incomplete.
 4. Fill a grounded city-defense deficit and preserve the sole garrison.
 5. Select one founder, defender, or growth/economy production per city without
    switching away from accumulated shields or a useful current production.
-6. Explore with diplomats, spies, caravans, and explorers; non-garrison military
-   units may advance toward visible opponents or the frontier.
+6. Explore with diplomats, spies, caravans, and explorers only when the advertised
+   destination has not already been observed.
+7. Move a non-garrison unit tactically only when the advertised destination strictly
+   reduces distance to a packet-visible opponent. Targetless frontier movement is
+   not an impact candidate.
+
+Founder and worker roles come from source-provenanced ruleset traits. The FreeCiv
+`Cities` flag denotes city-founding capability; the broader `Settlers` flag denotes
+terrain workers and does not make Migrants, Workers, or Engineers founders. A
+server-advertised `unit_build_city` action corroborates and caches a founder type.
 
 One successful unit-scoped strategic action and one successful production change per
 city are allowed per turn. After a no-effect action, up to
@@ -89,7 +97,29 @@ the existing score and latency metrics:
   and `decision_no_effect_failover_recovery_rate` for bounded same-turn recovery;
 - `action_type_diversity`, `positions_explored`, and `tactical_actions`;
 - `cities_founded`, `technologies_acquired`, `production_changes`, and `score_gain`;
+- `founder_production_changes`, `settlement_attempts`, and
+  `settlement_completions`;
+- `planner_founder_capable_unit_types`,
+  `planner_capability_pruned_worker_moves`, and
+  `planner_nonprogress_moves_pruned`;
 - `model_safe_fallback_rate` and `model_corrections_per_turn`.
+
+## Capability and movement-progress smoke evidence
+
+The paired development smokes at
+`artifacts/freeciv/impact-founder-capability-smoke-20260720` and
+`artifacts/freeciv/impact-movement-progress-smoke-20260720` use the same seed and
+30-turn engine configuration. They are mechanism checks, not claim-eligible cohorts.
+The refined planner observed exactly one founder-capable civ2civ3 unit type in each
+arm and completed both settlement attempts without rejection.
+
+On the treatment arm, requiring grounded movement progress reduced impact actions
+from 70 to 38, no-effect actions from 30 to 19, and retry suppressions from 132 to
+42. All 29 targetless `frontier_move` selections disappeared. The score remained
+107, cities founded remained one, initial-state fidelity passed, and every absolute
+safety gate remained green. The engine recorded 54 distinct non-progress move
+candidates pruned in the treatment arm and 14 in baseline; baseline selected-action
+volume was unchanged because those candidates had not won its ranking.
 
 Transport acceptance and observed state effect are intentionally separate. An action
 can be legal and accepted without changing the authoritative state; the report must

@@ -13,7 +13,9 @@ from ..events.schema import canonical_json_bytes, structural_hash
 from .model import BranchScore, Plan, PlanStep, ResourceLedger
 
 
-FOUNDER_TYPES = frozenset(("settlers", "migrants", "engineers"))
+LEGACY_FOUNDER_TYPES = frozenset(("settlers", "migrants", "engineers"))
+RULESET_FOUNDER_FLAG = "cities"
+RULESET_WORKER_FLAG = "settlers"
 EXPLORER_TYPES = frozenset(("explorer", "diplomat", "spy", "caravan"))
 DEFENDER_PRIORITY = (
     "Mech. Inf.", "Alpine Troops", "Riflemen", "Musketeers", "Pikemen",
@@ -183,6 +185,9 @@ class GroundedImpactPlanner(object):
         self.no_effect_retries_blocked = 0
         self._build_costs = {}
         self._production_specs = {}
+        self._ruleset_founder_types = set()
+        self._ruleset_worker_types = set()
+        self._server_founder_types = set()
         for rule in getattr(ruleset_ir, "rules", ()):
             quantitative = getattr(rule, "quantitative", {})
             cost = quantitative.get("build_cost")
@@ -208,15 +213,85 @@ class GroundedImpactPlanner(object):
                                      else max(0, int(pop_cost))),
                         "target_kind": getattr(rule, "target_kind", None),
                     }
+                    flags = self._trait_values(rule, "flags")
+                    if RULESET_FOUNDER_FLAG in flags:
+                        self._ruleset_founder_types.add(key)
+                    if RULESET_WORKER_FLAG in flags:
+                        self._ruleset_worker_types.add(key)
+
+    @staticmethod
+    def _trait_values(rule, name):
+        trait = getattr(rule, "traits", {}).get(name, {})
+        values = trait.get("values", ()) if isinstance(trait, dict) else ()
+        return frozenset(_normalized_type(value) for value in values)
 
     @staticmethod
     def _actions(snapshot):
         return tuple(json.loads(value) for value in snapshot.legal_action_json)
 
+    def _legal_unit_types(self, snapshot, action_type, actions=None):
+        result = set()
+        for action in self._actions(snapshot) if actions is None else actions:
+            if action.get("action_type") != action_type:
+                continue
+            unit = snapshot.unit(action.get("actor_id"))
+            if unit is not None:
+                result.add(_normalized_type(unit.unit_type))
+        return frozenset(result)
+
+    def _founder_types(self, snapshot, actions=None):
+        return frozenset(
+            self._ruleset_founder_types | self._server_founder_types
+            | set(self._legal_unit_types(snapshot, "unit_build_city", actions)))
+
+    @property
+    def founder_capable_types(self):
+        """Normalized types backed by ruleset flags or observed legal actions."""
+        return tuple(sorted(self._ruleset_founder_types | self._server_founder_types))
+
+    def _founder_capability_source(self, normalized):
+        if normalized in self._ruleset_founder_types:
+            return "ruleset_flag:Cities"
+        if normalized in self._server_founder_types:
+            return "server_legal_action:unit_build_city"
+        return None
+
     def observe(self, snapshot):
+        actions = self._actions(snapshot)
+        self._server_founder_types.update(self._legal_unit_types(
+            snapshot, "unit_build_city", actions))
         for unit in snapshot.units:
             if unit.x is not None and unit.y is not None:
                 self.visited_positions.add((unit.x, unit.y))
+
+    def capability_pruned_worker_move_keys(self, snapshot):
+        """Return legal worker moves rejected because the actor cannot found cities.
+
+        This helper and candidate enumeration are deliberately read-only. The live
+        harness owns aggregation so inspecting a snapshot cannot alter a decision.
+        """
+        actions = self._actions(snapshot)
+        founder_types = self._founder_types(snapshot, actions)
+        result = []
+        for action in actions:
+            if action.get("action_type") != "unit_move":
+                continue
+            unit = snapshot.unit(action.get("actor_id"))
+            normalized = _normalized_type(unit.unit_type) if unit is not None else ""
+            if normalized in self._ruleset_worker_types - founder_types:
+                result.append(canonical_json_bytes(action).decode("utf-8"))
+        return tuple(sorted(result))
+
+    def nonprogress_move_keys(self, snapshot):
+        """Return legal moves rejected for lacking observable strategic progress."""
+        actions = self._actions(snapshot)
+        founder_types = self._founder_types(snapshot, actions)
+        return tuple(sorted(
+            canonical_json_bytes(action).decode("utf-8")
+            for action in actions
+            if action.get("action_type") == "unit_move"
+            and self._move_candidate(snapshot, action, founder_types) is None
+            and self._move_is_nonprogress(snapshot, action, founder_types)))
 
     def commit(self, candidate):
         """Record a successfully transported persistent policy decision."""
@@ -339,31 +414,43 @@ class GroundedImpactPlanner(object):
             self.no_effect_retries_blocked += 1
         return True
 
-    @staticmethod
-    def _founders(snapshot):
+    def _founders(self, snapshot, founder_types=None):
+        founder_types = (self._founder_types(snapshot)
+                         if founder_types is None else founder_types)
         return tuple(unit for unit in snapshot.units
-                     if _normalized_type(unit.unit_type) in FOUNDER_TYPES)
+                     if _normalized_type(unit.unit_type) in founder_types)
+
+    def _combat_units(self, snapshot, founder_types=None):
+        founder_types = (self._founder_types(snapshot)
+                         if founder_types is None else founder_types)
+        excluded = self._ruleset_worker_types | set(founder_types) | EXPLORER_TYPES
+        return tuple(unit for unit in snapshot.units
+                     if _normalized_type(unit.unit_type) not in excluded)
 
     @staticmethod
-    def _combat_units(snapshot):
+    def _legacy_combat_units(snapshot):
         return tuple(unit for unit in snapshot.units
-                     if _normalized_type(unit.unit_type) not in FOUNDER_TYPES | EXPLORER_TYPES)
+                     if _normalized_type(unit.unit_type)
+                     not in LEGACY_FOUNDER_TYPES | EXPLORER_TYPES)
 
     def _distance_from_cities(self, snapshot, x, y):
         rows = [_distance(x, y, city.x, city.y, snapshot.map_width, snapshot.map_height)
                 for city in snapshot.cities]
         return min(rows) if rows else self.settle_min_distance
 
-    def _city_defender_is_required(self, snapshot, unit):
+    def _city_defender_is_required(self, snapshot, unit, founder_types=None):
         if not self.preserve_city_defenders:
             return False
-        if _normalized_type(unit.unit_type) in FOUNDER_TYPES | EXPLORER_TYPES:
+        founder_types = (self._founder_types(snapshot)
+                         if founder_types is None else founder_types)
+        if (_normalized_type(unit.unit_type) in self._ruleset_worker_types
+                | set(founder_types) | EXPLORER_TYPES):
             return False
         city = next((row for row in snapshot.cities
                      if (row.x, row.y) == (unit.x, unit.y)), None)
         if city is None:
             return False
-        defenders = [row for row in self._combat_units(snapshot)
+        defenders = [row for row in self._combat_units(snapshot, founder_types)
                      if (row.x, row.y) == (city.x, city.y)]
         return len(defenders) <= 1
 
@@ -389,7 +476,8 @@ class GroundedImpactPlanner(object):
             return 0
         return max(0, int(city.surplus[index]))
 
-    def _production_projection(self, city, name, remaining_turns, snapshot=None):
+    def _production_projection(
+            self, city, name, remaining_turns, snapshot=None, founder_types=()):
         """Estimate whether production can affect the declared score horizon.
 
         This is deliberately a small, auditable projection rather than a game
@@ -418,6 +506,11 @@ class GroundedImpactPlanner(object):
             "pop_cost": int(spec.get("pop_cost", 0)),
             "shield_surplus": shields, "score_value": 0.0,
         }
+        if normalized in founder_types:
+            projection["founder_capable"] = True
+            projection["founder_capability_source"] = (
+                self._founder_capability_source(normalized)
+                or "current_server_legal_action:unit_build_city")
         if eta is None:
             return projection
 
@@ -427,10 +520,10 @@ class GroundedImpactPlanner(object):
         growth_eta = int(math.ceil(max(
             0, growth_cost - max(0, int(city.food_stock or 0)))
             / float(max(1, food)))) if food else None
-        if normalized in FOUNDER_TYPES:
+        if normalized in founder_types:
             # A completed founder needs time to move and establish a score-bearing
-            # city. Charge its exact ruleset population cost so a fast Migrant or
-            # zero-population Engineer is preferred to destructive Settler churn.
+            # city. Charge its exact ruleset population cost rather than assuming
+            # that every terrain worker is able to establish a city.
             projection["score_value"] = max(
                 0.0, 1.0 - projection["pop_cost"] * 2.0
                 + (active_turns - 3) * 0.15)
@@ -481,16 +574,16 @@ class GroundedImpactPlanner(object):
             current_normalized, founders, city_count, needs_founder,
             remaining_turns):
         """Frozen pre-hardening production policy for paired baselines."""
-        if needs_founder and current_normalized in FOUNDER_TYPES:
+        if needs_founder and current_normalized in LEGACY_FOUNDER_TYPES:
             return None
-        if (needs_founder and normalized in FOUNDER_TYPES
+        if (needs_founder and normalized in LEGACY_FOUNDER_TYPES
                 and remaining_turns >= self.expansion_minimum_remaining_turns):
             return ImpactCandidate(
                 action, "production_expansion", 920.0 + remaining_turns,
                 "static baseline: produce one founder with fixed runway")
         if remaining_turns < self.production_minimum_remaining_turns:
             return None
-        defenders = self._combat_units(snapshot)
+        defenders = self._legacy_combat_units(snapshot)
         defense_deficit = len(defenders) < max(1, city_count)
         if defense_deficit and current_name in DEFENDER_PRIORITY:
             return None
@@ -524,7 +617,7 @@ class GroundedImpactPlanner(object):
         return bool(eta is not None and active is not None
                     and active >= int(minimum_active_turns))
 
-    def _production_candidate(self, snapshot, action):
+    def _production_candidate(self, snapshot, action, founder_types):
         city = snapshot.city(action.get("city_id"))
         if city is None or not city.buildability_available:
             return None
@@ -534,25 +627,33 @@ class GroundedImpactPlanner(object):
             return None
         name = _target_name(action)
         normalized = _normalized_type(name)
-        founders = self._founders(snapshot)
         city_count = len(snapshot.cities)
         current_name = self._current_production_name(city)
         current_normalized = _normalized_type(current_name)
-        needs_founder = city_count < self.expansion_city_target and not founders
         remaining_turns = self.horizon_turn - snapshot.turn
         if self.production_strategy == "static_priority":
+            legacy_founders = tuple(
+                unit for unit in snapshot.units
+                if _normalized_type(unit.unit_type) in LEGACY_FOUNDER_TYPES)
+            legacy_needs_founder = (
+                city_count < self.expansion_city_target and not legacy_founders)
             return self._static_production_candidate(
                 snapshot, action, city, name, normalized, current_name,
-                current_normalized, founders, city_count, needs_founder,
+                current_normalized, legacy_founders, city_count,
+                legacy_needs_founder,
                 remaining_turns)
+        founders = self._founders(snapshot, founder_types)
+        needs_founder = city_count < self.expansion_city_target and not founders
         projection = self._production_projection(
-            city, name, remaining_turns, snapshot=snapshot)
+            city, name, remaining_turns, snapshot=snapshot,
+            founder_types=founder_types)
         current_projection = (self._production_projection(
-            city, current_name, remaining_turns, snapshot=snapshot)
+            city, current_name, remaining_turns, snapshot=snapshot,
+            founder_types=founder_types)
                               if current_name else None)
-        if needs_founder and current_normalized in FOUNDER_TYPES:
+        if needs_founder and current_normalized in founder_types:
             return None
-        if (needs_founder and normalized in FOUNDER_TYPES
+        if (needs_founder and normalized in founder_types
                 and remaining_turns >= self.expansion_minimum_remaining_turns
                 and self._projection_can_affect_horizon(projection, 4)):
             if (projection["pop_cost"] > 0
@@ -580,7 +681,7 @@ class GroundedImpactPlanner(object):
         if not self._projection_can_affect_horizon(projection):
             return None
 
-        defenders = self._combat_units(snapshot)
+        defenders = self._combat_units(snapshot, founder_types)
         defense_deficit = len(defenders) < max(1, city_count)
         if defense_deficit and current_name in DEFENDER_PRIORITY:
             return None
@@ -617,7 +718,35 @@ class GroundedImpactPlanner(object):
         # current build instead of churning to a cheaper military target.
         return None
 
-    def _move_candidate(self, snapshot, action):
+    def _move_is_nonprogress(self, snapshot, action, founder_types):
+        """Distinguish targetless/revisiting moves from safety exclusions."""
+        unit = snapshot.unit(action.get("actor_id"))
+        target = action.get("target", {})
+        if unit is None or not isinstance(target, dict):
+            return False
+        x, y = target.get("x"), target.get("y")
+        if x is None or y is None or (unit.x, unit.y) == (x, y):
+            return False
+        unit_type = _normalized_type(unit.unit_type)
+        if unit_type in founder_types or unit_type in self._ruleset_worker_types:
+            return False
+        if self._city_defender_is_required(snapshot, unit, founder_types):
+            return False
+        enemies = [row for row in snapshot.visible_enemy_units
+                   if row.x is not None and row.y is not None]
+        if enemies:
+            current_distance = min(_distance(
+                unit.x, unit.y, row.x, row.y,
+                snapshot.map_width, snapshot.map_height) for row in enemies)
+            target_distance = min(_distance(
+                x, y, row.x, row.y, snapshot.map_width, snapshot.map_height)
+                                  for row in enemies)
+            if target_distance < current_distance:
+                return False
+        return not (unit_type in EXPLORER_TYPES
+                    and (x, y) not in self.visited_positions)
+
+    def _move_candidate(self, snapshot, action, founder_types):
         unit = snapshot.unit(action.get("actor_id"))
         target = action.get("target", {})
         if unit is None or not isinstance(target, dict):
@@ -628,7 +757,7 @@ class GroundedImpactPlanner(object):
         unit_type = _normalized_type(unit.unit_type)
         novelty = 1.0 if (x, y) not in self.visited_positions else 0.0
         city_distance = self._distance_from_cities(snapshot, x, y)
-        if unit_type in FOUNDER_TYPES:
+        if unit_type in founder_types:
             if len(snapshot.cities) >= self.expansion_city_target:
                 return None
             return ImpactCandidate(
@@ -636,27 +765,34 @@ class GroundedImpactPlanner(object):
                 800.0 + city_distance * 20.0 + novelty * 15.0,
                 "move a founder away from existing cities toward a legal settlement tile")
 
-        if self._city_defender_is_required(snapshot, unit):
+        # The ruleset's worker flag is broader than city-founding capability.
+        # Sending non-founder workers toward the frontier consumed movement and
+        # action budget without creating any score-bearing settlement path.
+        if unit_type in self._ruleset_worker_types:
+            return None
+
+        if self._city_defender_is_required(snapshot, unit, founder_types):
             return None
         enemies = [row for row in snapshot.visible_enemy_units
                    if row.x is not None and row.y is not None]
         if enemies:
-            enemy_distance = min(_distance(
+            current_enemy_distance = min(_distance(
+                unit.x, unit.y, row.x, row.y,
+                snapshot.map_width, snapshot.map_height) for row in enemies)
+            target_enemy_distance = min(_distance(
                 x, y, row.x, row.y, snapshot.map_width, snapshot.map_height)
-                                 for row in enemies)
-            return ImpactCandidate(
-                action, "tactical_move",
-                700.0 - enemy_distance * 12.0 + novelty * 5.0,
-                "move a non-essential unit toward a packet-visible opponent")
-        if unit_type in EXPLORER_TYPES:
+                                        for row in enemies)
+            if target_enemy_distance < current_enemy_distance:
+                return ImpactCandidate(
+                    action, "tactical_move",
+                    700.0 - target_enemy_distance * 12.0 + novelty * 5.0,
+                    "strictly reduce distance to a packet-visible opponent")
+        if unit_type in EXPLORER_TYPES and novelty:
             return ImpactCandidate(
                 action, "exploration_move",
                 610.0 + city_distance * 5.0 + novelty * 25.0,
                 "reveal a new position with an exploration-capable unit")
-        return ImpactCandidate(
-            action, "frontier_move",
-            360.0 + city_distance * 4.0 + novelty * 20.0,
-            "advance a non-garrison unit toward the visible frontier")
+        return None
 
     @staticmethod
     def _offensive_target_is_visible(snapshot, action):
@@ -683,7 +819,9 @@ class GroundedImpactPlanner(object):
         excluded = set(excluded)
         excluded_scopes = set(excluded_scopes)
         result = []
-        for action in self._actions(snapshot):
+        actions = self._actions(snapshot)
+        founder_types = self._founder_types(snapshot, actions)
+        for action in actions:
             key = canonical_json_bytes(action).decode("utf-8")
             if key in excluded:
                 continue
@@ -703,13 +841,15 @@ class GroundedImpactPlanner(object):
                         action, "city_founding", 1000.0,
                         "found a city at or beyond the configured spacing")
             elif action_type == "city_production":
-                candidate = self._production_candidate(snapshot, action)
+                candidate = self._production_candidate(
+                    snapshot, action, founder_types)
             elif action_type == "unit_move":
-                candidate = self._move_candidate(snapshot, action)
+                candidate = self._move_candidate(snapshot, action, founder_types)
             elif action_type == "unit_fortify":
                 unit = snapshot.unit(action.get("actor_id"))
                 if (unit is not None and unit.unit_id not in self._fortified_units
-                        and self._city_defender_is_required(snapshot, unit)):
+                        and self._city_defender_is_required(
+                            snapshot, unit, founder_types)):
                     candidate = ImpactCandidate(
                         action, "city_defense", 680.0,
                         "fortify the sole grounded city defender")

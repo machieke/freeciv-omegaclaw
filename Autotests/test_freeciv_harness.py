@@ -128,10 +128,10 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "count": 40, "minimum": 1700000, "maximum": 1799999,
     }
     assert config["rulebase"] == {
-        "compiler_version": "freeciv-ruleset-compiler/1.0",
+        "compiler_version": "freeciv-ruleset-compiler/1.1",
         "source_sha256": "8f6914743d8380fabd9bf1294556a53ba5e447532e4b9e9763d3d69c0c0120b4",
-        "ir_sha256": "c7306b497f156462bd45b330186746a2304aadcc61bd05679c72fe36c1acadfd",
-        "atomese_sha256": "73b7a33242ada1188accbeaa7eb546cb76f8d8d68034ae276c8412206774d277",
+        "ir_sha256": "d077431b4adbc9ba66d6b8d6f07a13f7b10ebbc3958b8e159ba088dca4977b05",
+        "atomese_sha256": "0f766db85213145d025112c99e4b262c56c1a59b8d58402d043b8b5a62fad134",
     }
 
 

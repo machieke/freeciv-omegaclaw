@@ -1011,13 +1011,16 @@ async def _play(run_dir, manifest, context):
     action_count = attempted_count = rejected = zombie_blocked = 0
     decision_stats = {
         "impact_actions": 0, "meaningful_actions": 0,
-        "production_changes": 0, "tactical_actions": 0,
+        "production_changes": 0, "founder_production_changes": 0,
+        "settlement_attempts": 0, "tactical_actions": 0,
         "effect_observed": 0, "no_effect": 0, "safe_model_fallbacks": 0,
         "failover_attempts": 0, "failover_recoveries": 0,
         "effect_confirmation_timeouts": 0,
     }
     action_type_counts = {}
     impact_turns = set()
+    capability_pruned_worker_moves = set()
+    nonprogress_moves = set()
     replan_latencies = []
     model_latencies = []
     full_loop_latencies = []
@@ -1081,6 +1084,9 @@ async def _play(run_dir, manifest, context):
         opponent = opponent_rows[0] if opponent_rows else {"id": 1, "name": "builtin-ai"}
         if impact_planner is not None:
             impact_planner.observe(snapshot)
+            capability_pruned_worker_moves.update(
+                impact_planner.capability_pruned_worker_move_keys(snapshot))
+            nonprogress_moves.update(impact_planner.nonprogress_move_keys(snapshot))
         initial_city_count = len(snapshot.cities)
         initial_citizens = sum(max(0, int(city.size or 0)) for city in snapshot.cities)
         initial_tech_count = len(snapshot.research.known_techs)
@@ -1109,6 +1115,10 @@ async def _play(run_dir, manifest, context):
                 impact_turns.add(snapshot.turn)
             if action_type == "city_production":
                 decision_stats["production_changes"] += 1
+                if category == "production_expansion":
+                    decision_stats["founder_production_changes"] += 1
+            if action_type == "unit_build_city":
+                decision_stats["settlement_attempts"] += 1
             if category in ("tactical_attack", "tactical_move"):
                 decision_stats["tactical_actions"] += 1
 
@@ -1138,6 +1148,12 @@ async def _play(run_dir, manifest, context):
                     await asyncio.sleep(0.05)
                     continue
                 store.replace(next_snapshot)
+                if impact_planner is not None:
+                    impact_planner.observe(next_snapshot)
+                    capability_pruned_worker_moves.update(
+                        impact_planner.capability_pruned_worker_move_keys(next_snapshot))
+                    nonprogress_moves.update(
+                        impact_planner.nonprogress_move_keys(next_snapshot))
                 event = writer.emit(
                     "state_snapshot", next_snapshot.turn, next_snapshot.event_payload(),
                     caused_by=[cause])
@@ -1160,6 +1176,10 @@ async def _play(run_dir, manifest, context):
                 global_state = await _global_state(ws, player_id=player_id)
                 if impact_planner is not None:
                     impact_planner.observe(snapshot)
+                    capability_pruned_worker_moves.update(
+                        impact_planner.capability_pruned_worker_move_keys(snapshot))
+                    nonprogress_moves.update(
+                        impact_planner.nonprogress_move_keys(snapshot))
                 if prior_scout is not None:
                     actor_id, source_x, source_y, target_x, target_y = prior_scout
                     row = next((unit for unit in raw.get("units", {}).values()
@@ -1486,6 +1506,16 @@ async def _play(run_dir, manifest, context):
         ("technologies_acquired", technology_gain),
         ("positions_explored", explored_positions),
         ("production_changes", decision_stats["production_changes"]),
+        ("founder_production_changes",
+         decision_stats["founder_production_changes"]),
+        ("settlement_attempts", decision_stats["settlement_attempts"]),
+        ("settlement_completions", city_gain),
+        ("planner_capability_pruned_worker_moves",
+         len(capability_pruned_worker_moves)),
+        ("planner_nonprogress_moves_pruned", len(nonprogress_moves)),
+        ("planner_founder_capable_unit_types",
+         len(impact_planner.founder_capable_types)
+         if impact_planner is not None else 0),
         ("tactical_actions", decision_stats["tactical_actions"]),
         ("production_projected_completion_eta_turns",
          sum(production_projection_etas) / max(1, len(production_projection_etas))),
@@ -1539,6 +1569,16 @@ async def _play(run_dir, manifest, context):
             "decision_effect_confirmation_timeouts": (
                 decision_stats["effect_confirmation_timeouts"]),
             "meaningful_actions": decision_stats["meaningful_actions"],
+            "founder_production_changes": (
+                decision_stats["founder_production_changes"]),
+            "settlement_attempts": decision_stats["settlement_attempts"],
+            "settlement_completions": city_gain,
+            "planner_capability_pruned_worker_moves": (
+                len(capability_pruned_worker_moves)),
+            "planner_nonprogress_moves_pruned": len(nonprogress_moves),
+            "planner_founder_capable_unit_types": (
+                len(impact_planner.founder_capable_types)
+                if impact_planner is not None else 0),
             "planned_engine_actions": planned_actions,
             "opponent_score": opponent_score,
             "outcome_definition": "fixed_horizon_score_lead",
@@ -1560,6 +1600,15 @@ async def _play(run_dir, manifest, context):
         "initial_legal_action_families": initial_legal_action_families,
         "initial_state_fingerprint": initial_state_fingerprint,
         "meaningful_actions": decision_stats["meaningful_actions"],
+        "founder_production_changes": decision_stats["founder_production_changes"],
+        "settlement_attempts": decision_stats["settlement_attempts"],
+        "settlement_completions": city_gain,
+        "planner_capability_pruned_worker_moves": (
+            len(capability_pruned_worker_moves)),
+        "planner_nonprogress_moves_pruned": len(nonprogress_moves),
+        "planner_founder_capable_unit_types": (
+            len(impact_planner.founder_capable_types)
+            if impact_planner is not None else 0),
         "planned_engine_actions": planned_actions,
         "zombie_attempts_blocked": zombie_blocked,
     }

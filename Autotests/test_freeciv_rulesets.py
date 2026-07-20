@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from dataclasses import replace
 
 import pytest
 
@@ -72,11 +73,39 @@ def test_pinned_rulesets_compile_with_exact_independent_target_edge_and_sample_p
     assert len(result["samples"]["tech"]) == 20
     assert len(result["samples"]["unit"]) == 20
     assert not result["sample_mismatches"]
+    assert not result["trait_mismatches"]
     assert all(rule.tv == {"strength": 1.0, "confidence": 0.99} for rule in ir.rules)
     assert all(rule.target_predicate in ("researchable", "buildable") for rule in ir.rules)
     assert {item["name"] for item in ir.predicate_catalog} >= {
         "has-tech", "researchable", "buildable", "has-building", "usable-action"
     }
+    settlers = next(rule for rule in ir.rules
+                    if rule.target_kind == "unit" and rule.display_name == "Settlers")
+    assert "Cities" in settlers.traits["flags"]["values"]
+    assert settlers.traits["flags"]["source"]["file"] == (
+        ruleset + "/units.ruleset")
+    nonfounders = {"Migrants", "Workers", "Engineers"}
+    for rule in ir.rules:
+        if rule.target_kind == "unit" and rule.display_name in nonfounders:
+            assert "Settlers" in rule.traits["flags"]["values"]
+            assert "Cities" not in rule.traits["flags"]["values"]
+
+
+def test_independent_audit_detects_compiled_unit_trait_drift():
+    root = _external_root()
+    ir = compile_ruleset(root, "civ2civ3")
+    rules = []
+    for rule in ir.rules:
+        if rule.target_kind == "unit" and rule.display_name == "Settlers":
+            traits = dict(rule.traits)
+            flags = dict(traits["flags"])
+            flags["values"] = [value for value in flags["values"] if value != "Cities"]
+            traits["flags"] = flags
+            rule = replace(rule, traits=traits)
+        rules.append(rule)
+    report = audit(replace(ir, rules=tuple(rules)), root)
+    assert not report["passed"]
+    assert report["trait_mismatches"][0]["target"] == ["unit", "Settlers"]
 
 
 def test_unsupported_requirement_fails_loudly_with_file_section_field_and_reason():
