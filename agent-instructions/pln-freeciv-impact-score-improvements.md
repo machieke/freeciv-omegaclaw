@@ -390,3 +390,30 @@ actions, matching initial state, and every safety gate green. Baseline effect ra
 `83.72%` with seven expirations; treatment effect rate was `85.42%` with seven
 expirations. Both arms scored `107`, so this validates planner feedback correctness
 and action efficiency but does not revise the immutable 200-pair `+0.435` score claim.
+
+## Target-grounded transport legality
+
+Destination reconstruction of the activity-enum probe showed that six of seven
+expirations in each arm targeted terrain ID `2`, ocean in the active ruleset. The
+proxy's movement validator allowed these moves whenever the Diplomat unit type had
+the static Embark action capability. That capability proves only that the unit may
+be cargo; it does not prove an executable transport exists at the destination.
+
+The proxy now retains `carrying` and `transported_by` from authoritative unit
+packets and reads the exact ruleset `unit_class_id`. A non-native ocean move is
+advertised only when an owned, packet-visible transport is on the exact target,
+has spare `transport_capacity`, and its cargo bitvector includes the passenger's
+unit class. Missing, foreign, full, or incompatible transports fail closed. Focused
+tests cover all four cases without relying on unit names.
+
+The clean engine-backed pair at
+`artifacts/freeciv/impact-transport-legality-probe-104729-20260720` used patch
+identity
+`26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:3c7d199fbf2308037d3e66c0c2190e14667b55522365276342411ace23699005`.
+Both arms completed 30 turns with matching initial state, zero rejected actions,
+and every safety gate green. All six known ocean expirations per arm disappeared.
+Baseline effect rate rose from `83.72%` to `90.00%` and expirations fell from seven
+to four; treatment effect rate rose from `85.42%` to `93.75%` and expirations fell
+from seven to two. The two arms explored 27 and 32 positions respectively, versus
+26 and 31 in the preceding probe. Both scored `107`, so this validates legality and
+action efficiency but does not revise the immutable 200-pair `+0.435` score claim.

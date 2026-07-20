@@ -14,7 +14,7 @@ The patch is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. Its SHA-256 is
-`f8cde28288090c4f4479400864d5e6172c23b8500f33e0c792e3071fea0b98fb`.
+`3c7d199fbf2308037d3e66c0c2190e14667b55522365276342411ace23699005`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 State-response cache identity includes both turn and the monotonic packet sequence. Same-turn
@@ -40,6 +40,13 @@ irrigation. The engine-backed activity probe at
 `artifacts/freeciv/impact-activity-enum-probe-104729-v2-20260720` observed the exact
 `fortifying` to `fortified` transition, completed both 30-turn arms with zero rejected
 actions, and passed every paired safety gate.
+
+Non-native movement legality also distinguishes a unit type's static embark capability from
+an executable move. An ocean move is advertised only when a packet-visible, owned transport
+is present at the exact target, its ruleset cargo bitvector includes the passenger's exact
+`unit_class_id`, and its current `carrying` count is below `transport_capacity`. Full,
+incompatible, missing, or foreign transports fail closed. The proxy retains current cargo and
+transport identity from unit packets so this check does not infer availability from unit names.
 
 `ProxyStateDTO` validates and immediately converts transport data into an immutable
 `AuthoritativeSnapshot`; it does not retain the raw response. The snapshot identity is

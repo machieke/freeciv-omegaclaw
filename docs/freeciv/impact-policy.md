@@ -172,6 +172,17 @@ expirations fell from 10 to 8 and effect rate rose from 70.73% to 77.5%; treatme
 expirations fell from 9 to 7 and effect rate rose from 81.25% to 85.42%. Both arms
 still scored 107, founded one city, and learned three founder-route successes.
 
+The next same-seed trace classified six of the remaining seven expirations in each
+arm as moves onto ocean terrain. The proxy had treated the Diplomat type's static
+Embark action capability as proof that a transport existed. Movement advertisement
+now requires an owned, packet-visible transport on the exact target, compatible
+ruleset cargo bits, and spare authoritative cargo capacity. In the clean
+`artifacts/freeciv/impact-transport-legality-probe-104729-20260720` pair, those
+ocean attempts disappeared. Baseline effect rate rose from 83.72% to 90.00% and
+expirations fell from seven to four; treatment effect rate rose from 85.42% to
+93.75% and expirations fell from seven to two. Both arms passed every safety gate
+and again scored 107, so this remains mechanism evidence rather than a score claim.
+
 ## Capability and movement-progress smoke evidence
 
 The paired development smokes at
