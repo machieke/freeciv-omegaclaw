@@ -14,8 +14,17 @@ The patch is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. Its SHA-256 is
-`042ad24ea67ee8a8839d20241499ebd09474ede8529d6255c1fea7fdcf07a548`.
+`f2e4956d33d4ab896adf9eb4cd2ed52b89c70ee35849dbaaa85b3c4d021986c8`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
+
+State-response cache identity includes both turn and the monotonic packet sequence. Same-turn
+engine changes therefore cannot reuse a pre-action response, and incoming authoritative packets
+also invalidate cached city and technology actions. Player ID `0` is treated as an ordinary,
+valid cache owner during targeted eviction.
+
+City-production advertisements prefer the current server-normalized buildability IDs over
+legacy raw bitvectors. This prevents obsolete or otherwise non-buildable targets from being
+presented as legal merely because the raw web packet field was not retained.
 
 Freeciv's `PACKET_RESEARCH_INFO.inventions` array is indexed by the exact zero-based
 technology ID. The patch preserves that indexing when it materializes known technology

@@ -161,7 +161,7 @@ this arm-level distinction, better common transport would remove treatment
 activation and the experiment would estimate only a shrinking failover effect.
 
 The proxy patch identity for this hardening is
-`26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:042ad24ea67ee8a8839d20241499ebd09474ede8529d6255c1fea7fdcf07a548`.
+`26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:f2e4956d33d4ab896adf9eb4cd2ed52b89c70ee35849dbaaa85b3c4d021986c8`.
 Any score estimate for this new policy requires a new disjoint development
 cohort first; the completed 200-pair result remains the current claim and is not
 evidence for the new policy.
@@ -277,3 +277,53 @@ from 23 to 14. The release audit, including the consolidated reversible upstream
 patch, passed. A larger disjoint pilot is required before freezing any new
 confirmatory cohort; the immutable 200-pair `+0.435` prior-policy claim remains
 the current statistical claim.
+
+## Authoritative revision and production-legality hardening
+
+A follow-up trace showed that production retirement was being acknowledged by
+the proxy without changing the engine city. Two independent proxy defects were
+responsible for misleading the planner and its confirmation loop. State
+responses were cached by player, format, and turn only, so a successful
+same-turn action could reuse a pre-action snapshot for five seconds. Targeted
+cache invalidation also treated valid player ID `0` as false. State cache keys
+now include the monotonic server-packet sequence, every incoming authoritative
+packet invalidates per-turn city/technology action caches, and player zero can
+be evicted normally.
+
+Fresh snapshots then exposed the underlying production rejection. The proxy
+had normalized `PACKET_WEB_CITY_INFO_ADDITION` into
+`city.buildability.unit_ids` and `improvement_ids`, but production action
+generation consulted only absent legacy raw bitvectors and failed open to every
+ruleset object. In the high-technology development game, obsolete Warriors ID
+`4` was therefore advertised even though the server's current buildable list
+excluded it; FreeCiv correctly ignored `PACKET_CITY_CHANGE`. Production
+legality now gives the current normalized server buildability IDs precedence,
+while retaining the legacy-bitvector path for older packet states.
+
+The three-pair diagnostic run at
+`artifacts/freeciv/impact-state-revision-dev-3-20260720` completed all six arms
+without rejection or infrastructure failure. It made the false Warriors action
+observable as a genuine no-effect and produced an exploratory treatment-minus-
+baseline score delta of `+2.333` with bootstrap interval `[1, 4]`. This run
+predates the final buildability filter and is diagnostic, not evidence for the
+final policy.
+
+The final engine-backed acceptance probe at
+`artifacts/freeciv/impact-buildability-probe-104759-20260720` uses patch
+identity
+`26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:f2e4956d33d4ab896adf9eb4cd2ed52b89c70ee35849dbaaa85b3c4d021986c8`.
+At turn 21, treatment selected server-buildable Musketeers (`kind=6`,
+`value=9`) instead of unbuildable Warriors, and the next authoritative city
+snapshot changed city 103 from `(6, 0)` to exactly `(6, 9)`. Baseline's
+buildable Library change likewise applied as `(3, 17)`. Both arms completed
+with no engine rejection or infrastructure failure. The single pair scored
+`116` treatment versus `114` baseline and confirmed six population points
+recovered, but it is a deliberately reordered development probe and cannot
+revise the statistical score claim. The immutable 200-pair `+0.435` result
+remains the current claim.
+
+The probe also exposed the next optimization target: geometrically generated
+unit moves and city-founding actions still produce many bounded confirmation
+timeouts. Those actions need stronger server-grounded tile/action legality or
+more aggressive route no-effect suppression before another multi-pair policy
+cohort.
