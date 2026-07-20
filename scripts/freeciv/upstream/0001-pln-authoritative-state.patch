@@ -119,8 +119,69 @@ index 96d166c..3c2fb11 100644
  
          return ValidationResult(True)
 -
+diff --git a/freeciv-proxy/activity_constants.py b/freeciv-proxy/activity_constants.py
+index 29695b7..0859534 100644
+--- a/freeciv-proxy/activity_constants.py
++++ b/freeciv-proxy/activity_constants.py
+@@ -1,18 +1,49 @@
+-"""
+-FreeCiv ACTIVITY_* constants used by the proxy.
++"""Freeciv ``unit_activity`` protocol constants.
+ 
+-Centralizes activity enum values to avoid magic numbers in the codebase.
++Keep this table synchronized with the pinned server source at
++``freeciv/common/fc_types.h``. These values cross the network boundary, so a
++stale value can turn a valid planner action into a different server command.
+ """
+ 
+ ACTIVITY_IDLE = 0
+-# POLLUTION/cleanup activity (value 7 in FreeCiv enums)
+-ACTIVITY_POLLUTION = 7
++ACTIVITY_POLLUTION = 1
+ ACTIVITY_MINE = 2
+ ACTIVITY_IRRIGATE = 3
++ACTIVITY_FORTIFIED = 4
+ ACTIVITY_SENTRY = 5
+-ACTIVITY_TRANSFORM = 8
++ACTIVITY_PILLAGE = 6
++ACTIVITY_GOTO = 7
++ACTIVITY_EXPLORE = 8
++ACTIVITY_TRANSFORM = 9
+ ACTIVITY_FORTIFYING = 10
+ ACTIVITY_FALLOUT = 11
++ACTIVITY_BASE = 12
+ ACTIVITY_GEN_ROAD = 13
+-# ACTIVITY_LAST is used by the web client as a filler value in some packet fields
++ACTIVITY_CONVERT = 14
++ACTIVITY_CULTIVATE = 15
++ACTIVITY_PLANT = 16
++ACTIVITY_CLEAN = 17
++
++# Enum count. The web client also uses this as a filler in order packets.
+ ACTIVITY_LAST = 18
++
++ACTIVITY_NAMES = {
++    ACTIVITY_IDLE: "idle",
++    ACTIVITY_POLLUTION: "pollution",
++    ACTIVITY_MINE: "mine",
++    ACTIVITY_IRRIGATE: "irrigate",
++    ACTIVITY_FORTIFIED: "fortified",
++    ACTIVITY_SENTRY: "sentry",
++    ACTIVITY_PILLAGE: "pillage",
++    ACTIVITY_GOTO: "goto",
++    ACTIVITY_EXPLORE: "explore",
++    ACTIVITY_TRANSFORM: "transform",
++    ACTIVITY_FORTIFYING: "fortifying",
++    ACTIVITY_FALLOUT: "fallout",
++    ACTIVITY_BASE: "base",
++    ACTIVITY_GEN_ROAD: "road",
++    ACTIVITY_CONVERT: "convert",
++    ACTIVITY_CULTIVATE: "cultivate",
++    ACTIVITY_PLANT: "plant",
++    ACTIVITY_CLEAN: "clean",
++}
 diff --git a/freeciv-proxy/civcom.py b/freeciv-proxy/civcom.py
-index 02e3d7d..f0f135f 100755
+index 02e3d7d..ed1c01b 100755
 --- a/freeciv-proxy/civcom.py
 +++ b/freeciv-proxy/civcom.py
 @@ -44,6 +44,7 @@ from packet_constants import (
@@ -131,7 +192,66 @@ index 02e3d7d..f0f135f 100755
      PACKET_WEB_RULESET_UNIT_ADDITION,
      PACKET_WEB_CITY_INFO_ADDITION,
      PACKET_CONN_PING,
-@@ -370,6 +371,9 @@ class CivCom(Thread):
+@@ -76,6 +77,7 @@ from ruleset_mapper import RulesetMapper, VUT_IMPROVEMENT, VUT_UTYPE
+ 
+ # Import BitVector for parsing bitvector fields from packets
+ from bitvector import BitVector
++from activity_constants import ACTIVITY_NAMES
+ 
+ # Tech research constants (from freeciv/common/tech.h and fc_types.js)
+ # A_UNSET indicates that no tech is selected (for research)
+@@ -280,30 +282,6 @@ def get_unit_type_name(type_id):
+         return UNIT_TYPE_NAMES.get(type_id, f'unit_{type_id}')
+     return 'unknown'
+ 
+-# Activity type ID to name mapping (FreeCiv activity enum)
+-# Source: freeciv/common/unit.h enum unit_activity
+-# Maps integer activity IDs from PACKET_UNIT_INFO to human-readable activity names
+-ACTIVITY_NAMES = {
+-    0: 'idle',           # ACTIVITY_IDLE
+-    1: 'pollution',      # ACTIVITY_POLLUTION
+-    2: 'road',           # ACTIVITY_ROAD
+-    3: 'mine',           # ACTIVITY_MINE
+-    4: 'irrigate',       # ACTIVITY_IRRIGATE
+-    5: 'fortified',      # ACTIVITY_FORTIFIED
+-    6: 'fortress',       # ACTIVITY_FORTRESS
+-    7: 'sentry',         # ACTIVITY_SENTRY
+-    8: 'railroad',       # ACTIVITY_RAILROAD
+-    9: 'pillage',        # ACTIVITY_PILLAGE
+-    10: 'goto',          # ACTIVITY_GOTO
+-    11: 'explore',       # ACTIVITY_EXPLORE
+-    12: 'transform',     # ACTIVITY_TRANSFORM
+-    13: 'airbase',       # ACTIVITY_AIRBASE
+-    14: 'fortifying',    # ACTIVITY_FORTIFYING
+-    15: 'fallout',       # ACTIVITY_FALLOUT
+-    16: 'patrol',        # ACTIVITY_PATROL
+-    17: 'base',          # ACTIVITY_BASE
+-}
+-
+ def get_activity_name(activity_id):
+     """Convert FreeCiv activity ID to human-readable name.
+ 
+@@ -316,7 +294,7 @@ def get_activity_name(activity_id):
+     Examples:
+         >>> get_activity_name(0)
+         'idle'
+-        >>> get_activity_name(7)
++        >>> get_activity_name(5)
+         'sentry'
+         >>> get_activity_name(None)
+         None
+@@ -328,8 +306,8 @@ def get_activity_name(activity_id):
+     if isinstance(activity_id, str):
+         return activity_id.lower()
+     if isinstance(activity_id, int):
+-        return ACTIVITY_NAMES.get(activity_id, 'idle')
+-    return 'idle'
++        return ACTIVITY_NAMES.get(activity_id, 'unknown')
++    return 'unknown'
+ 
+ # The CivCom handles communication between freeciv-proxy and the Freeciv C
+ # server.
+@@ -370,6 +348,9 @@ class CivCom(Thread):
          self.player_id = None  # Will be set from PACKET_PLAYER_INFO
          self.nations = {}  # Will be populated from PACKET_RULESET_NATION (pid=148)
          self.research_info = {}  # {player_id: PACKET_RESEARCH_INFO} - tracks tech progress
@@ -141,7 +261,7 @@ index 02e3d7d..f0f135f 100755
          self.spaceship_info = {}  # {player_id: spaceship_data} - tracks spaceship progress per player
          self.initial_units_received = False  # Set True when first PACKET_UNIT_INFO for our player arrives
  
-@@ -472,9 +476,13 @@ class CivCom(Thread):
+@@ -472,9 +453,13 @@ class CivCom(Thread):
              player_id: Specific player to invalidate, or None for all players
              cache_type: 'tech', 'city', or None for all types
          """
@@ -156,7 +276,7 @@ index 02e3d7d..f0f135f 100755
              # Cache key format: "{turn}_{player_id}_{type}_actions"
              if player_id is not None and f"_{player_id}_" not in key:
                  continue
-@@ -483,7 +491,7 @@ class CivCom(Thread):
+@@ -483,7 +468,7 @@ class CivCom(Thread):
              keys_to_remove.append(key)
  
          for key in keys_to_remove:
@@ -165,7 +285,7 @@ index 02e3d7d..f0f135f 100755
  
          if keys_to_remove:
              logger.debug(f"Invalidated {len(keys_to_remove)} action cache entries for player={player_id}, type={cache_type}")
-@@ -587,6 +595,12 @@ class CivCom(Thread):
+@@ -587,6 +572,12 @@ class CivCom(Thread):
  
          return -1
  
@@ -178,7 +298,7 @@ index 02e3d7d..f0f135f 100755
      def _get_nation_name(self, nation_id):
          """Convert nation ID to human-readable name using nations registry.
  
-@@ -846,6 +860,14 @@ class CivCom(Thread):
+@@ -846,6 +837,14 @@ class CivCom(Thread):
          Returns:
              True if city can build the unit, False otherwise
          """
@@ -193,7 +313,7 @@ index 02e3d7d..f0f135f 100755
          can_build_bitvector = city.get('can_build_unit')
          if not can_build_bitvector:
              # No bitvector available - fallback to allowing (server hasn't sent build info yet)
-@@ -873,6 +895,12 @@ class CivCom(Thread):
+@@ -873,6 +872,12 @@ class CivCom(Thread):
          Returns:
              True if city can build the improvement, False otherwise
          """
@@ -206,7 +326,7 @@ index 02e3d7d..f0f135f 100755
          can_build_bitvector = city.get('can_build_improvement')
          if not can_build_bitvector:
              # No bitvector available - fallback to allowing (server hasn't sent build info yet)
-@@ -1469,6 +1497,12 @@ class CivCom(Thread):
+@@ -1469,6 +1474,12 @@ class CivCom(Thread):
          try:
              packet = json.loads(packet_json)
              packet_type = packet.get('pid')
@@ -219,7 +339,7 @@ index 02e3d7d..f0f135f 100755
  
              # Configurable packet logging for debugging (set CIVCOM_PACKET_LOG_LIMIT env var)
              if not hasattr(self, '_packet_type_log_count'):
-@@ -1586,6 +1620,7 @@ class CivCom(Thread):
+@@ -1586,6 +1597,7 @@ class CivCom(Thread):
                  packet_username = packet.get('username', '')
                  logger.debug(f"Received PACKET_PLAYER_INFO: playerno={player_id}, username='{packet_username}' for {self.username}")
                  if player_id is not None:
@@ -227,7 +347,7 @@ index 02e3d7d..f0f135f 100755
                      # Check if this player info is for our connection
                      if packet_username == self.username:
                          # This is OUR player! Store the player_id (fallback if CONN_INFO didn't set it)
-@@ -1628,7 +1663,7 @@ class CivCom(Thread):
+@@ -1628,7 +1640,7 @@ class CivCom(Thread):
                      unit_type_raw = packet.get('type')
  
                      # Convert integer type ID to human-readable string name
@@ -236,7 +356,7 @@ index 02e3d7d..f0f135f 100755
  
                      def get_coords_from_tile_index(tile_idx):
                          # tile['index'] = x + y * map['xsize'];
-@@ -1653,6 +1688,7 @@ class CivCom(Thread):
+@@ -1653,6 +1665,7 @@ class CivCom(Thread):
                          'type_id': unit_type_raw,  # Preserve original integer for debugging/reference
                          'tile': tile_idx,
                          'homecity': packet.get('homecity', 0),
@@ -244,7 +364,7 @@ index 02e3d7d..f0f135f 100755
                          'moves_left': packet.get('movesleft', 0), 
                          'hp': packet.get('hp', 0),
                          'veteran': packet.get('veteran', 0),
-@@ -1720,6 +1756,9 @@ class CivCom(Thread):
+@@ -1720,6 +1733,9 @@ class CivCom(Thread):
                          # surplus and prod are arrays indexed by O_FOOD, O_SHIELD, O_TRADE, etc.
                          'surplus': packet.get('surplus', []),
                          'prod': packet.get('prod', []),
@@ -254,7 +374,7 @@ index 02e3d7d..f0f135f 100755
                      }
  
                      # Convert player_cities to dict if it's still a list
-@@ -1788,6 +1827,12 @@ class CivCom(Thread):
+@@ -1788,6 +1804,12 @@ class CivCom(Thread):
                              })
  
                      city['can_build'] = can_build
@@ -267,7 +387,7 @@ index 02e3d7d..f0f135f 100755
  
                      # Also store granary info if present
                      if 'granary_size' in packet:
-@@ -1844,10 +1889,39 @@ class CivCom(Thread):
+@@ -1844,10 +1866,39 @@ class CivCom(Thread):
                  unit_id = packet.get('id')
                  owner = packet.get('owner')
                  if unit_id is not None:
@@ -309,7 +429,7 @@ index 02e3d7d..f0f135f 100755
              elif packet_type == PACKET_RULESET_NATION:
                  nation_id = packet.get('id')
                  # Try multiple fields for nation name (different packet versions use different fields)
-@@ -2438,13 +2512,71 @@ class CivCom(Thread):
+@@ -2438,13 +2489,71 @@ class CivCom(Thread):
  
      def handle_state_query(self, player_id, format='full'):
          """Handle LLM state query requests with different formats"""
@@ -382,7 +502,7 @@ index 02e3d7d..f0f135f 100755
      def build_llm_optimized_state(self, player_id):
          """Build compressed state for LLMs (target < 4KB)"""
          # Ensure we always have valid game state values (defensive against early queries)
-@@ -2966,6 +3098,12 @@ class CivCom(Thread):
+@@ -2966,6 +3075,12 @@ class CivCom(Thread):
          diplomacy_actions = self._get_diplomacy_actions(player_id)
          all_actions.extend(diplomacy_actions)
  
@@ -395,7 +515,7 @@ index 02e3d7d..f0f135f 100755
          return all_actions
  
      def _score_and_filter_actions(self, actions, max_actions):
-@@ -3096,9 +3234,12 @@ class CivCom(Thread):
+@@ -3096,9 +3211,12 @@ class CivCom(Thread):
          for pid, research_packet in research_info.items():
              inventions = research_packet.get('inventions', [])
              known_tech_names = [
@@ -849,17 +969,58 @@ index 803966c..a311b23 100644
                  return
  
              # Validate since_turn parameter if provided
+diff --git a/freeciv-proxy/tests/test_packet_converters.py b/freeciv-proxy/tests/test_packet_converters.py
+index dc8c8ab..fc7810b 100644
+--- a/freeciv-proxy/tests/test_packet_converters.py
++++ b/freeciv-proxy/tests/test_packet_converters.py
+@@ -796,7 +796,7 @@ class TestAdditionalUnitActionConverters:
+         assert result['action_type'] == ACTION_JOIN_CITY
+     
+     def test_unit_clean_pollution_conversion(self):
+-        """Test unit_clean_pollution uses ACTIVITY_POLLUTION (7)."""
++        """Test unit_clean_pollution uses ACTIVITY_POLLUTION (1)."""
+         action = {
+             'type': 'unit_clean_pollution',
+             'unit_id': 101
+@@ -805,7 +805,7 @@ class TestAdditionalUnitActionConverters:
+         result = _convert_action_to_packet(action)
+         
+         assert result['pid'] == PACKET_UNIT_CHANGE_ACTIVITY
+-        assert result['activity'] == 7  # ACTIVITY_POLLUTION
++        assert result['activity'] == 1  # ACTIVITY_POLLUTION
+     
+     def test_unit_clean_fallout_conversion(self):
+         """Test unit_clean_fallout uses ACTIVITY_FALLOUT (11)."""
+@@ -820,7 +820,7 @@ class TestAdditionalUnitActionConverters:
+         assert result['activity'] == 11  # ACTIVITY_FALLOUT
+     
+     def test_unit_transform_conversion(self):
+-        """Test unit_transform uses ACTIVITY_TRANSFORM (8)."""
++        """Test unit_transform uses ACTIVITY_TRANSFORM (9)."""
+         action = {
+             'type': 'unit_transform',
+             'unit_id': 101
+@@ -829,7 +829,7 @@ class TestAdditionalUnitActionConverters:
+         result = _convert_action_to_packet(action)
+         
+         assert result['pid'] == PACKET_UNIT_CHANGE_ACTIVITY
+-        assert result['activity'] == 8  # ACTIVITY_TRANSFORM
++        assert result['activity'] == 9  # ACTIVITY_TRANSFORM
+     
+     def test_unit_disband_conversion(self):
+         """Test unit_disband converts to action_type 30."""
 diff --git a/freeciv-proxy/tests/test_pln_authoritative_state.py b/freeciv-proxy/tests/test_pln_authoritative_state.py
 new file mode 100644
-index 0000000..6de31ea
+index 0000000..1b9499f
 --- /dev/null
 +++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
-@@ -0,0 +1,135 @@
+@@ -0,0 +1,164 @@
 +"""Contract tests for the packet-backed PLN authoritative state format."""
 +
 +import json
 +
-+from civcom import CivCom
++from activity_constants import ACTIVITY_NAMES
++from civcom import CivCom, get_activity_name
 +from message_validator import MessageValidator
 +from packet_constants import PACKET_UNIT_SHORT_INFO
 +from security import InputSanitizer
@@ -990,6 +1151,34 @@ index 0000000..6de31ea
 +    assert not CivCom.can_city_build_unit(civcom, city, 4)
 +    assert CivCom.can_city_build_improvement(civcom, city, 14)
 +    assert not CivCom.can_city_build_improvement(civcom, city, 13)
++
++
++def test_activity_enum_matches_pinned_freeciv_network_protocol():
++    assert ACTIVITY_NAMES == {
++        0: "idle",
++        1: "pollution",
++        2: "mine",
++        3: "irrigate",
++        4: "fortified",
++        5: "sentry",
++        6: "pillage",
++        7: "goto",
++        8: "explore",
++        9: "transform",
++        10: "fortifying",
++        11: "fallout",
++        12: "base",
++        13: "road",
++        14: "convert",
++        15: "cultivate",
++        16: "plant",
++        17: "clean",
++    }
++
++
++def test_unknown_activity_is_not_misreported_as_idle():
++    assert get_activity_name(18) == "unknown"
++    assert get_activity_name(object()) == "unknown"
 diff --git a/freeciv-proxy/tests/test_release_game_configuration.py b/freeciv-proxy/tests/test_release_game_configuration.py
 new file mode 100644
 index 0000000..8140dcf
@@ -1220,4 +1409,3 @@ index 0000000..8140dcf
 +
 +    assert cache.get("player-zero") is None
 +    assert cache.get("player-one")["turn"] == 1
-

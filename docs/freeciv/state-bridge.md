@@ -14,7 +14,7 @@ The patch is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. Its SHA-256 is
-`f2e4956d33d4ab896adf9eb4cd2ed52b89c70ee35849dbaaa85b3c4d021986c8`.
+`f8cde28288090c4f4479400864d5e6172c23b8500f33e0c792e3071fea0b98fb`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 State-response cache identity includes both turn and the monotonic packet sequence. Same-turn
@@ -30,6 +30,16 @@ Freeciv's `PACKET_RESEARCH_INFO.inventions` array is indexed by the exact zero-b
 technology ID. The patch preserves that indexing when it materializes known technology
 names; a focused proxy regression and the live cognitive-loop smoke both guard against the
 former one-position shift.
+
+Freeciv's pinned `unit_activity` network enum is also centralized at the proxy boundary.
+Incoming unit packets and outgoing activity commands share the exact 0--17 mapping from
+`freeciv/common/fc_types.h`; unknown values remain explicitly `unknown` rather than being
+reported as idle. This fixes stale outgoing pollution (`1`, formerly `7`) and transform (`9`,
+formerly `8`) encodings and prevents completed fortification (`4`) from being mislabeled as
+irrigation. The engine-backed activity probe at
+`artifacts/freeciv/impact-activity-enum-probe-104729-v2-20260720` observed the exact
+`fortifying` to `fortified` transition, completed both 30-turn arms with zero rejected
+actions, and passed every paired safety gate.
 
 `ProxyStateDTO` validates and immediately converts transport data into an immutable
 `AuthoritativeSnapshot`; it does not retain the raw response. The snapshot identity is

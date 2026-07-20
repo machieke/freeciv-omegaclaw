@@ -369,3 +369,24 @@ treatment expirations fell from 9 to 7 and effect rate rose from `81.25%` to
 `85.42%`. Both arms again scored `107`, founded one city, and learned three
 founder-route successes. This validates the targeted efficiency/correctness
 mechanism but does not change the score claim.
+
+## Authoritative activity-enum hardening
+
+The next correctness pass traced a live fortification effect that the proxy reported
+as irrigation to the state boundary. The proxy carried an obsolete Freeciv activity
+name table while its outgoing constants also encoded pollution cleanup and terrain
+transformation with stale values. The tracked upstream patch now centralizes all 18
+values from the pinned server's `unit_activity` network enum. Incoming packets and
+outgoing commands use that single table, and unknown values remain explicit instead
+of silently becoming idle.
+
+The clean engine-backed pair at
+`artifacts/freeciv/impact-activity-enum-probe-104729-v2-20260720` used patch identity
+`26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:f8cde28288090c4f4479400864d5e6172c23b8500f33e0c792e3071fea0b98fb`.
+Seven fortify orders across the two arms were accepted. Authoritative snapshots
+observed one in-progress `fortifying` state and 128 completed `fortified` unit rows,
+with none mislabeled as irrigation. Both 30-turn arms completed with zero rejected
+actions, matching initial state, and every safety gate green. Baseline effect rate was
+`83.72%` with seven expirations; treatment effect rate was `85.42%` with seven
+expirations. Both arms scored `107`, so this validates planner feedback correctness
+and action efficiency but does not revise the immutable 200-pair `+0.435` score claim.
