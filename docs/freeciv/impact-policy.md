@@ -328,6 +328,32 @@ rose from 9 to 14, final score from 113 to 117, and no-effect actions fell from
 23 to 14. This is mechanism and development evidence, not a new statistical
 claim. A disjoint, adequately sized pilot remains necessary.
 
+## Combat attribution, occupancy, and hut-entry hardening
+
+Offensive actions retain an exact pre-action fingerprint of the packet-visible enemy
+stack at their grounded target. An accepted attack is now confirmed when either its
+actor-local state or that target stack changes, so removing a defender counts even
+when the attacker remains stationary. An unchanged actor and unchanged target remain
+a no-effect result. Plain movement separately excludes an exact packet-visible
+non-allied unit or city at the destination; allied and unoccupied targets are not
+discarded.
+
+The proxy also distinguishes a Freeciv hut action from ordinary movement. It converts
+the move to `PACKET_UNIT_DO_ACTION` only when the exact destination tile's extras,
+the referenced ruleset extra's `EC_HUT` cause, the actor unit type, and a statically
+enabled hut action (`90`--`97`) are all packet-grounded. Missing or conflicting facts
+fall back to the ordinary move path rather than guessing from terrain or names.
+
+The clean warm engine pair at
+`artifacts/freeciv/impact-hut-action-probe-104729-v3-20260720` passed all safety and
+fidelity gates with zero rejection or model fallback. The exact hut move succeeded;
+baseline scored `107` at a `95.12%` candidate-effect rate and treatment scored `109`
+at `97.92%`. Expirations fell from two per arm in the preceding probe to one per arm.
+The remaining expiry had no hut fact and is correctly still ordinary movement. The
+observed `+2` delta is one development pair on a reused seed, not a revised claim;
+the immutable disjoint 200-pair result remains `+0.435` until a fresh predeclared
+cohort passes both paired inference gates.
+
 ## Operational note
 
 On the recorded CPU host, a cold load of `qwen3-coder-next:latest` took 41.6 seconds,

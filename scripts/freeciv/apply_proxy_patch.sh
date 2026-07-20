@@ -5,7 +5,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 upstream_root="${1:-${FREECIV_LLM_ROOT:-}}"
 patch_file="$repo_root/scripts/freeciv/upstream/0001-pln-authoritative-state.patch"
 pinned_commit="26ba7124249f34fd3050ef29bf191bd4d8808018"
-pinned_patch_sha256="3c7d199fbf2308037d3e66c0c2190e14667b55522365276342411ace23699005"
+pinned_patch_sha256="7dd7a2ae14adae37cc19977dd2ffc2b49d6f07debb1d2082f2db34ab1ed0f2af"
 
 if [[ -z "$upstream_root" ]]; then
   echo "usage: $0 /path/to/freeciv-llm (or set FREECIV_LLM_ROOT)" >&2

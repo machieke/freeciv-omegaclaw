@@ -14,7 +14,7 @@ The patch is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. Its SHA-256 is
-`3c7d199fbf2308037d3e66c0c2190e14667b55522365276342411ace23699005`.
+`7dd7a2ae14adae37cc19977dd2ffc2b49d6f07debb1d2082f2db34ab1ed0f2af`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 State-response cache identity includes both turn and the monotonic packet sequence. Same-turn
@@ -47,6 +47,21 @@ is present at the exact target, its ruleset cargo bitvector includes the passeng
 `unit_class_id`, and its current `carrying` count is below `transport_capacity`. Full,
 incompatible, missing, or foreign transports fail closed. The proxy retains current cargo and
 transport identity from unit packets so this check does not infer availability from unit names.
+
+Plain movement also respects exact packet-visible occupancy. A destination containing a
+non-allied unit or city is not advertised as an ordinary move; alliance status is read from
+authoritative player/diplomacy state. This guard does not replace attack, city-action, or
+transport action grounding, and it does not infer invisible occupancy.
+
+Hut movement uses explicit protocol semantics. The converter reads the destination tile's
+`extras` as a Freeciv byte bitvector, resolves each selected ruleset extra, and requires its
+exact `EC_HUT` cause bit. It then resolves the actor's numeric unit type and a statically
+enabled hut-entry or hut-frighten action in the pinned `90`--`97` range. With all facts
+present, it emits `PACKET_UNIT_DO_ACTION` (`pid=84`) against the exact tile; otherwise it
+keeps the ordinary movement encoding. The clean engine probe at
+`artifacts/freeciv/impact-hut-action-probe-104729-v3-20260720` confirmed the known hut
+through this path with zero engine rejection or model fallback and all release-audit gates
+green.
 
 `ProxyStateDTO` validates and immediately converts transport data into an immutable
 `AuthoritativeSnapshot`; it does not retain the raw response. The snapshot identity is

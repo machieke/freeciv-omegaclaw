@@ -714,6 +714,38 @@ def test_actor_resource_change_is_an_observed_effect_even_when_position_is_stabl
         decision.candidate, before, spent)
 
 
+def test_offensive_effect_observes_target_stack_when_attacker_is_unchanged():
+    attack = {"action_type": "unit_attack", "actor_id": 11,
+              "target": {"x": 2, "y": 0}, "is_valid": True}
+    actor = _unit(11, "Riflemen", 1, 0)
+    target = _enemy(99, "Diplomat", 2, 0)
+    before = _snapshot(
+        [actor, target], [attack, {"action_type": "end_turn", "is_valid": True}])
+    candidate = ImpactCandidate(
+        attack, "tactical_attack", 1.0, "target effect regression")
+
+    unchanged = _snapshot(
+        [actor, target], [attack, {"action_type": "end_turn", "is_valid": True}],
+        source_seq=2)
+    assert not GroundedImpactPlanner().candidate_effect_observed(
+        candidate, before, unchanged)
+
+    target_removed = _snapshot(
+        [actor], [{"action_type": "end_turn", "is_valid": True}], source_seq=3)
+    assert GroundedImpactPlanner().candidate_effect_observed(
+        candidate, before, target_removed)
+
+
+def test_plain_move_into_packet_visible_foreign_stack_is_not_a_candidate():
+    move = {"action_type": "unit_move", "actor_id": 20,
+            "target": {"x": 1, "y": 0}, "is_valid": True}
+    snapshot = _snapshot(
+        [_unit(20, "Diplomat"), _enemy(99, "Warriors", 1, 0)],
+        [move, {"action_type": "end_turn", "is_valid": True}])
+
+    assert GroundedImpactPlanner().plan(snapshot) is None
+
+
 def test_production_effect_requires_the_exact_requested_city_target():
     action = _production(10, "Granary", 3, 14)
     before = _snapshot(

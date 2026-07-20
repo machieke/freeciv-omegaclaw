@@ -417,3 +417,55 @@ to four; treatment effect rate rose from `85.42%` to `93.75%` and expirations fe
 from seven to two. The two arms explored 27 and 32 positions respectively, versus
 26 and 31 in the preceding probe. Both scored `107`, so this validates legality and
 action efficiency but does not revise the immutable 200-pair `+0.435` score claim.
+
+## Target-stack effects and packet-visible occupancy
+
+Combat effect attribution now follows both sides of an offensive action. The planner
+captures the exact packet-visible enemy stack at the grounded target before transport;
+an accepted attack is confirmed when either the actor changes or that target stack
+changes. This correctly credits a defender removal when the attacking unit remains on
+its source tile. An unchanged attacker and unchanged target stack still cannot count as
+an effect.
+
+The proxy and planner also exclude a plain move onto a packet-visible non-allied unit
+or city. Alliance checks use exact player/diplomacy facts, and unknown occupancy is not
+invented. Attack, city action, and transport-specific action paths remain separate from
+plain movement. Focused regressions cover enemy-unit, enemy-city, allied, and empty-tile
+cases at the proxy boundary, plus target-stack removal and unchanged-stack outcomes in
+the planner.
+
+The clean engine-backed development pair at
+`artifacts/freeciv/impact-occupancy-effect-probe-104729-v2-20260720` completed with
+matching initial state, zero rejection, zero fallback, and passing fidelity checks.
+Baseline and treatment scored `107`; their candidate-specific effect rates were
+`95.00%` and `93.75%`. The retained trace demonstrates correct combat attribution,
+but the two remaining expirations per arm were ordinary Diplomat moves rather than
+visible-occupancy conflicts, so this probe does not revise the score claim.
+
+## Explicit packet-grounded hut entry
+
+Freeciv hut entry is an explicit unit action, not always a successful plain move. The
+proxy now reconstructs huts only when the exact destination tile's `extras` byte
+bitvector selects a ruleset extra whose exact `causes` bitvector contains `EC_HUT`.
+It resolves the actor's numeric unit type and chooses the first statically enabled hut
+entry or frighten action in the pinned protocol range (`90`--`97`). Only then is a
+grounded `unit_move` encoded as `PACKET_UNIT_DO_ACTION` (`pid=84`) against that exact
+tile; absent any required packet fact, conversion falls back to ordinary movement.
+Numbered action variants, inactive/non-hut extras, and the ordinary fallback all have
+focused proxy regressions.
+
+The first valid engine pair is retained at
+`artifacts/freeciv/impact-hut-action-probe-104729-v2-20260720`, but is not interpretable
+because its baseline arm had two cold-model fallbacks. The clean warm confirmation at
+`artifacts/freeciv/impact-hut-action-probe-104729-v3-20260720` completed with matching
+initial state, zero rejection, zero fallback, passing fidelity, and every release-audit
+safety gate green. The known hut destination was sent through `pid=84` and succeeded.
+Baseline scored `107` with a `95.12%` effect rate and one final pending action;
+treatment scored `109` with a `97.92%` effect rate and no pending action. Each arm had
+one expiry, down from two in the preceding same-seed probe. The remaining destination
+was correctly encoded as an ordinary move because no packet-visible hut fact existed;
+its obstruction remains a separate investigation.
+
+The `+2` score delta is a one-pair development observation on an already exercised
+seed. It is mechanism evidence only and does not revise the immutable disjoint
+200-pair `+0.435` score claim or satisfy the predeclared paired inference gates.

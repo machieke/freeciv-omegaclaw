@@ -1,3 +1,25 @@
+diff --git a/freeciv-proxy/action_constants.py b/freeciv-proxy/action_constants.py
+index cab9980..291f8ec 100644
+--- a/freeciv-proxy/action_constants.py
++++ b/freeciv-proxy/action_constants.py
+@@ -44,6 +44,17 @@ ACTION_ATTACK = 45
+ ACTION_SUICIDE_ATTACK = 46
+ ACTION_BOMBARD = 53
+ 
++# Hut interactions. FreeCiv models entering a hut as an explicit action rather
++# than ordinary movement. Rulesets may enable any of the numbered variants.
++ACTION_HUT_ENTER = 90
++ACTION_HUT_ENTER2 = 91
++ACTION_HUT_ENTER3 = 92
++ACTION_HUT_ENTER4 = 93
++ACTION_HUT_FRIGHTEN = 94
++ACTION_HUT_FRIGHTEN2 = 95
++ACTION_HUT_FRIGHTEN3 = 96
++ACTION_HUT_FRIGHTEN4 = 97
++
+ # Transport
+ ACTION_TRANSPORT_BOARD = 68
+ ACTION_TRANSPORT_EMBARK = 72
 diff --git a/freeciv-proxy/action_validator.py b/freeciv-proxy/action_validator.py
 index 96d166c..3c2fb11 100644
 --- a/freeciv-proxy/action_validator.py
@@ -766,10 +788,156 @@ index 8570765..6ba646e 100644
                  "trace_context": {"max_keys": 5},
                  "correlation_id": {"max_length": 64, "pattern": r"^[a-zA-Z0-9_-]+$"},
 diff --git a/freeciv-proxy/packet_converter.py b/freeciv-proxy/packet_converter.py
-index e16064b..a85d01c 100644
+index e16064b..051149a 100644
 --- a/freeciv-proxy/packet_converter.py
 +++ b/freeciv-proxy/packet_converter.py
-@@ -259,16 +259,33 @@ def _convert_action_to_packet_impl(
+@@ -46,6 +46,20 @@ from pathlib import Path
+ # Cache mapping pid -> allowed top-level field names parsed from Freeciv packets.def
+ _PACKET_FIELD_MAP = None
+ 
++# extra_cause enum value for EC_HUT. PACKET_RULESET_EXTRA.causes and
++# PACKET_TILE_INFO.extras are byte-array bitvectors on the JSON wire.
++EXTRA_CAUSE_HUT = 6
++HUT_ACTIONS = (
++    ACTION_HUT_ENTER,
++    ACTION_HUT_ENTER2,
++    ACTION_HUT_ENTER3,
++    ACTION_HUT_ENTER4,
++    ACTION_HUT_FRIGHTEN,
++    ACTION_HUT_FRIGHTEN2,
++    ACTION_HUT_FRIGHTEN3,
++    ACTION_HUT_FRIGHTEN4,
++)
++
+ 
+ def _load_packet_field_map() -> dict:
+     """Parse the Freeciv `packets.def` to extract allowed fields for each
+@@ -158,6 +172,100 @@ def _get_unit_tile(unit_id: int, civcom: Optional[Any]) -> int:
+     return -1
+ 
+ 
++def _mapping_get(mapping: Any, key: int) -> Optional[Any]:
++    """Read an integer-keyed packet cache that may have JSON string keys."""
++    if not isinstance(mapping, dict):
++        return None
++    value = mapping.get(key)
++    if value is None:
++        value = mapping.get(str(key))
++    return value
++
++
++def _bitvector_is_set(raw: Any, bit_number: int) -> bool:
++    """Read a bit from FreeCiv's JSON byte-array bitvector representation."""
++    if bit_number < 0:
++        return False
++    if hasattr(raw, "is_set"):
++        try:
++            return bool(raw.is_set(bit_number))
++        except Exception:
++            return False
++    if isinstance(raw, int):
++        return bool(raw & (1 << bit_number))
++    if not isinstance(raw, (list, tuple)):
++        return False
++    byte_index = bit_number // 8
++    if byte_index >= len(raw):
++        return False
++    try:
++        return bool(int(raw[byte_index]) & (1 << (bit_number % 8)))
++    except (TypeError, ValueError):
++        return False
++
++
++def _target_has_hut(civcom: Optional[Any], tile_id: int) -> bool:
++    """Return whether exact tile/ruleset packets identify an active hut extra."""
++    if not civcom:
++        return False
++    tile = _mapping_get(getattr(civcom, "tiles", None), tile_id)
++    if not isinstance(tile, dict):
++        return False
++    tile_extras = tile.get("extras", [])
++    extras = getattr(civcom, "extras", None)
++    if not isinstance(extras, dict):
++        return False
++    for raw_extra_id, extra in extras.items():
++        if not isinstance(extra, dict):
++            continue
++        try:
++            extra_id = int(raw_extra_id)
++        except (TypeError, ValueError):
++            continue
++        if (
++            _bitvector_is_set(tile_extras, extra_id)
++            and _bitvector_is_set(extra.get("causes", []), EXTRA_CAUSE_HUT)
++        ):
++            return True
++    return False
++
++
++def _unit_type_id(civcom: Optional[Any], unit_id: int) -> Optional[int]:
++    """Resolve a packet-visible unit's authoritative ruleset type id."""
++    if not civcom:
++        return None
++    for cache_name in ("player_units", "other_units"):
++        unit = _mapping_get(getattr(civcom, cache_name, None), unit_id)
++        if isinstance(unit, dict):
++            raw_type_id = unit.get("type_id")
++            if raw_type_id is None and isinstance(unit.get("type"), int):
++                raw_type_id = unit.get("type")
++            try:
++                return int(raw_type_id)
++            except (TypeError, ValueError):
++                return None
++    return None
++
++
++def _hut_action_for_move(
++    civcom: Optional[Any], unit_id: int, dest_tile: int
++) -> Optional[int]:
++    """Choose the first ruleset-enabled hut action for a grounded move."""
++    if not _target_has_hut(civcom, dest_tile):
++        return None
++    unit_type_id = _unit_type_id(civcom, unit_id)
++    can_do_action = getattr(civcom, "utype_can_do_action", None)
++    if unit_type_id is None or not callable(can_do_action):
++        return None
++    for action_id in HUT_ACTIONS:
++        try:
++            if can_do_action(unit_type_id, action_id):
++                return action_id
++        except Exception:
++            return None
++    return None
++
++
+ def _convert_action_to_packet_impl(
+     action: Dict[str, Any], civcom: Optional[Any] = None
+ ) -> Dict[str, Any]:
+@@ -231,6 +339,23 @@ def _convert_action_to_packet_impl(
+         if dx == 0 and dy == 0:
+             direction = -1
+ 
++        # A regular Unit Move is intentionally disabled by FreeCiv when the
++        # destination has a hut. Preserve the planner's grounded move intent,
++        # but encode the exact ruleset-enabled hut action required by the
++        # server. This is based only on packet-visible tile/ruleset facts.
++        hut_action = _hut_action_for_move(civcom, action["unit_id"], dest_tile)
++        if hut_action is not None:
++            return _sanitize_packet(
++                {
++                    "pid": PACKET_UNIT_DO_ACTION,
++                    "actor_id": action["unit_id"],
++                    "target_id": dest_tile,
++                    "sub_tgt_id": 0,
++                    "name": "",
++                    "action_type": hut_action,
++                }
++            )
++
+         return _sanitize_packet(
+             {
+                 "pid": PACKET_UNIT_ORDERS,
+@@ -259,16 +384,33 @@ def _convert_action_to_packet_impl(
              raise ValueError("city_production requires 'production_type' field")
          mapper = RulesetMapper(civcom) if civcom else None
          if not mapper:
@@ -806,7 +974,7 @@ index e16064b..a85d01c 100644
          return _sanitize_packet(
              {
                  "pid": PACKET_CITY_CHANGE,
-@@ -770,10 +787,13 @@ def _convert_action_to_packet_impl(
+@@ -770,10 +912,13 @@ def _convert_action_to_packet_impl(
              "action_type": ACTION_UPGRADE_UNIT,
          }
      elif action_type == "unit_join_city":
@@ -911,7 +1079,7 @@ index 778e7d1..08bca43 100644
  
                  if should_remove:
 diff --git a/freeciv-proxy/state_extractor.py b/freeciv-proxy/state_extractor.py
-index 803966c..f6052b1 100644
+index 803966c..5d2f0f5 100644
 --- a/freeciv-proxy/state_extractor.py
 +++ b/freeciv-proxy/state_extractor.py
 @@ -447,7 +447,7 @@ def validate_request_parameters(game_id: str, player_id: Any, format_str: str =
@@ -940,7 +1108,7 @@ index 803966c..f6052b1 100644
              else:
                  raw_state = civcom.get_full_state(player_id)
  
-@@ -1075,6 +1078,44 @@ class StateExtractor:
+@@ -1075,6 +1078,94 @@ class StateExtractor:
                  return civcom.utype_can_do_action(unit_type_id, action_id)
              # Fallback to name-based heuristics if no ruleset data
              return self._fallback_can_do_action(unit_type_name, action_id)
@@ -982,10 +1150,83 @@ index 803966c..f6052b1 100644
 +                        transport_type.get('cargo'), passenger_class_id):
 +                    return True
 +            return False
++
++        # Ground occupancy in the exact entities carried by this connection's
++        # packet-visible state.  CivCom.player_units/player_cities are named
++        # historically and may contain foreign observations too, while
++        # other_units/other_cities are not populated by every packet path.
++        # The state passed into this method is therefore the authoritative
++        # perspective for deciding whether a plain move can enter a tile.
++        visible_units_by_tile = {}
++        for visible_unit in self._dict_to_list(state.get('units', {})):
++            visible_tile = visible_unit.get('tile')
++            if visible_tile is not None:
++                visible_units_by_tile.setdefault(visible_tile, []).append(
++                    visible_unit)
++
++        city_tiles = set()
++        city_owners = {}
++        for visible_city in self._dict_to_list(state.get('cities', {})):
++            visible_tile = visible_city.get('tile')
++            if visible_tile is not None:
++                city_tiles.add(visible_tile)
++                city_owners[visible_tile] = visible_city.get('owner')
++        if civcom:
++            # Preserve packet-backed entities that a legacy formatted state
++            # may omit, without overriding the current perspective.
++            for city in getattr(civcom, 'player_cities', {}).values():
++                visible_tile = city.get('tile')
++                if visible_tile is not None:
++                    city_tiles.add(visible_tile)
++                    city_owners.setdefault(visible_tile, city.get('owner'))
++            for city in getattr(civcom, 'other_cities', {}).values():
++                visible_tile = city.get('tile')
++                if visible_tile is not None:
++                    city_tiles.add(visible_tile)
++                    city_owners.setdefault(visible_tile, city.get('owner'))
++
++        def non_allied_occupant(target_index: int):
++            """Return a visible entity that blocks a plain movement order."""
++            for visible_unit in visible_units_by_tile.get(target_index, ()):
++                owner = visible_unit.get('owner')
++                if owner is None or owner == player_id:
++                    continue
++                ds = civcom.get_diplstate(player_id, owner) if civcom else None
++                if not ds or ds.get('type') != DS_ALLIANCE:
++                    return ('unit', owner)
++            owner = city_owners.get(target_index)
++            if owner is not None and owner != player_id:
++                ds = civcom.get_diplstate(player_id, owner) if civcom else None
++                if not ds or ds.get('type') != DS_ALLIANCE:
++                    return ('city', owner)
++            return None
          
          # Helper to get target tile info
          def get_target_tile(direction: str) -> tuple:
-@@ -1127,7 +1168,8 @@ class StateExtractor:
+@@ -1096,22 +1187,6 @@ class StateExtractor:
+ 
+         # === MOVEMENT ACTIONS ===
+         if moves_left > 0:
+-            # Pre-compute city tile indexes for efficient lookup
+-            city_tiles = set()
+-            city_owners = {}  # Map tile index to city owner
+-            if civcom:
+-                for city_id, city in civcom.player_cities.items():
+-                    city_tile = city.get('tile')
+-                    if city_tile is not None:
+-                        city_tiles.add(city_tile)
+-                        city_owners[city_tile] = city.get('owner')
+-                # Also check enemy cities
+-                for city in getattr(civcom, 'other_cities', {}).values():
+-                    city_tile = city.get('tile')
+-                    if city_tile is not None:
+-                        city_tiles.add(city_tile)
+-                        city_owners[city_tile] = city.get('owner')
+-
+             for direction in directions:
+                 target_x, target_y, target_index = get_target_tile(direction)
+ 
+@@ -1127,7 +1202,8 @@ class StateExtractor:
  
                          # Get unit class info for terrain checking
                          unit_type_data = civcom.unit_types.get(unit_type_id, {})
@@ -995,7 +1236,7 @@ index 803966c..f6052b1 100644
  
                          # Check if target tile has a city (cities allow entry for most unit types)
                          tile_has_city = target_index in city_tiles
-@@ -1138,9 +1180,11 @@ class StateExtractor:
+@@ -1138,9 +1214,11 @@ class StateExtractor:
                              if not is_native and not tile_has_city:
                                  # Not native terrain and no city - check if can embark on transport
                                  if terrain_class == TC_OCEAN:
@@ -1009,7 +1250,7 @@ index 803966c..f6052b1 100644
                                  else:
                                      is_valid = False
                                      reason = "Cannot enter non-native terrain"
-@@ -1153,9 +1197,11 @@ class StateExtractor:
+@@ -1153,15 +1231,30 @@ class StateExtractor:
                                  # Check if unit class can enter ocean
                                  # Sea, Trireme, Air, Helicopter can enter ocean
                                  if class_name not in ('sea', 'trireme', 'air', 'helicopter', 'missile'):
@@ -1023,7 +1264,26 @@ index 803966c..f6052b1 100644
                              elif terrain_class == TC_LAND and not tile_has_city:
                                  # Sea and Trireme classes cannot enter land (except through cities)
                                  if class_name in ('sea', 'trireme'):
-@@ -1222,15 +1268,22 @@ class StateExtractor:
+                                     is_valid = False
+                                     reason = "Cannot enter land (naval unit)"
+ 
++                # A movement packet is not an attack, conquest, or diplomatic
++                # action.  Non-allied units and cities require one of those
++                # explicit server actions even during war; advertising a plain
++                # move makes the server accept transport but perform no move.
++                if is_valid and target_index is not None:
++                    blocker = non_allied_occupant(target_index)
++                    if blocker is not None:
++                        entity, owner = blocker
++                        is_valid = False
++                        reason = (
++                            f"Cannot move onto packet-visible non-allied "
++                            f"{entity} owned by player {owner}")
++
+                 # Diplomatic state validation: block movement into foreign territory during peace/alliance
+                 # Per FreeCiv rules: "Peace prevents moving military units into other's territory"
+                 if is_valid and civcom and target_index is not None:
+@@ -1222,15 +1315,22 @@ class StateExtractor:
              # Check if unit is in a city
              in_city = False
              city_name = None
@@ -1049,7 +1309,7 @@ index 803966c..f6052b1 100644
          
          # === FORTIFY ACTION ===
          if can_do_action(ACTION_FORTIFY):
-@@ -2614,9 +2667,9 @@ class StateExtractorHandler(web.RequestHandler):
+@@ -2614,9 +2714,9 @@ class StateExtractorHandler(web.RequestHandler):
              since_turn = self.get_argument('since_turn', None)
  
              # Validate format parameter (must match validate_request_parameters accepted formats)
@@ -1062,7 +1322,7 @@ index 803966c..f6052b1 100644
  
              # Validate since_turn parameter if provided
 diff --git a/freeciv-proxy/tests/test_packet_converters.py b/freeciv-proxy/tests/test_packet_converters.py
-index dc8c8ab..fc7810b 100644
+index dc8c8ab..3a7887d 100644
 --- a/freeciv-proxy/tests/test_packet_converters.py
 +++ b/freeciv-proxy/tests/test_packet_converters.py
 @@ -796,7 +796,7 @@ class TestAdditionalUnitActionConverters:
@@ -1101,12 +1361,92 @@ index dc8c8ab..fc7810b 100644
      
      def test_unit_disband_conversion(self):
          """Test unit_disband converts to action_type 30."""
+@@ -1028,7 +1028,8 @@ class TestExistingActionConverters:
+         assert result['pid'] == PACKET_UNIT_ORDERS
+         assert result['unit_id'] == 101
+         assert result['dest_tile'] == 500
+-    
++
++
+     @pytest.mark.skip(reason="Requires self.civcom for ruleset lookup")
+     def test_city_production_conversion(self):
+         """Test city_production converts to PACKET_CITY_CHANGE."""
+@@ -1117,3 +1118,69 @@ class TestExistingActionConverters:
+         
+         assert result['pid'] == PACKET_UNIT_SERVER_SIDE_AGENT_SET
+         assert result['agent'] == 1  # SSA_AUTOEXPLORE
++
++
++class TestPacketGroundedHutMovement:
++    """Hut tiles require an explicit action instead of PACKET_UNIT_ORDERS."""
++
++    class FakeCivCom:
++        map_info = {'width': 10}
++        player_units = {105: {'id': 105, 'tile': 55, 'type_id': 48}}
++        other_units = {}
++
++        def __init__(self, *, hut_cause=True, active_extra=True, action_id=ACTION_HUT_ENTER):
++            cause_bits = [1 << 6] if hut_cause else [0]
++            tile_bits = [1 << 5] if active_extra else [0]
++            self.extras = {5: {'id': 5, 'causes': cause_bits}}
++            self.tiles = {56: {'index': 56, 'extras': tile_bits}}
++            self.action_id = action_id
++
++        def get_unit_tile(self, unit_id):
++            return self.player_units[unit_id]['tile']
++
++        def utype_can_do_action(self, unit_type_id, action_id):
++            return unit_type_id == 48 and action_id == self.action_id
++
++    @staticmethod
++    def move_action():
++        return {
++            'type': 'unit_move',
++            'unit_id': 105,
++            'target': {'x': 6, 'y': 5},
++        }
++
++    def test_visible_hut_move_uses_ruleset_enabled_enter_action(self):
++        civcom = self.FakeCivCom()
++
++        result = _convert_action_to_packet(self.move_action(), civcom)
++
++        assert result == {
++            'pid': PACKET_UNIT_DO_ACTION,
++            'actor_id': 105,
++            'target_id': 56,
++            'sub_tgt_id': 0,
++            'name': '',
++            'action_type': ACTION_HUT_ENTER,
++        }
++
++    def test_numbered_or_frighten_variant_is_selected_from_unit_ruleset(self):
++        civcom = self.FakeCivCom(action_id=ACTION_HUT_FRIGHTEN2)
++
++        result = _convert_action_to_packet(self.move_action(), civcom)
++
++        assert result['pid'] == PACKET_UNIT_DO_ACTION
++        assert result['action_type'] == ACTION_HUT_FRIGHTEN2
++
++    @pytest.mark.parametrize(
++        'civcom',
++        [
++            FakeCivCom(hut_cause=False),
++            FakeCivCom(active_extra=False),
++        ],
++        ids=['extra-is-not-hut', 'hut-extra-is-not-active'],
++    )
++    def test_non_hut_destination_remains_regular_move(self, civcom):
++        result = _convert_action_to_packet(self.move_action(), civcom)
++
++        assert result['pid'] == PACKET_UNIT_ORDERS
++        assert result['dest_tile'] == 56
 diff --git a/freeciv-proxy/tests/test_pln_authoritative_state.py b/freeciv-proxy/tests/test_pln_authoritative_state.py
 new file mode 100644
-index 0000000..d29be45
+index 0000000..3799814
 --- /dev/null
 +++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
-@@ -0,0 +1,248 @@
+@@ -0,0 +1,321 @@
 +"""Contract tests for the packet-backed PLN authoritative state format."""
 +
 +import json
@@ -1114,7 +1454,7 @@ index 0000000..d29be45
 +from activity_constants import ACTIVITY_NAMES
 +from civcom import ACTION_TRANSPORT_EMBARK, CivCom, get_activity_name
 +from message_validator import MessageValidator
-+from packet_constants import PACKET_UNIT_SHORT_INFO
++from packet_constants import DS_ALLIANCE, DS_WAR, PACKET_UNIT_SHORT_INFO
 +from security import InputSanitizer
 +from state_extractor import StateExtractor, StateFormat
 +
@@ -1355,6 +1695,79 @@ index 0000000..d29be45
 +        "carrying": 1,
 +    }))
 +    assert available["is_valid"]
++
++
++def test_plain_move_requires_packet_visible_target_to_be_unoccupied_or_allied():
++    class FakeCivCom:
++        player_id = 0
++        map_info = {
++            "width": 10, "height": 10,
++            "wrap_x": False, "wrap_y": False,
++        }
++        player_cities = {}
++        other_cities = {}
++        other_units = {}
++        player_units = {}
++        unit_classes = {1: {"name": "Land"}}
++        unit_types = {48: {"name": "Diplomat", "unit_class_id": 1}}
++        tiles = {56: {"terrain": 11}}
++
++        def __init__(self, diplomatic_state):
++            self.diplomatic_state = diplomatic_state
++
++        @staticmethod
++        def utype_can_do_action(_unit_type, _action_id):
++            return False
++
++        @staticmethod
++        def get_terrain_class(_terrain_id):
++            return 0
++
++        @staticmethod
++        def is_unit_class_native_to_terrain(_unit_class, _terrain_id):
++            return True
++
++        def get_diplstate(self, _player, _owner):
++            return {"type": self.diplomatic_state}
++
++    unit = {
++        "id": 105, "owner": 0, "type_id": 48, "type": "Diplomat",
++        "x": 5, "y": 5, "tile": 55, "moves_left": 12,
++        "activity": "idle", "transported": False,
++    }
++
++    def east_move(civcom, state):
++        actions = StateExtractor(civcom=civcom)._generate_unit_actions(
++            unit, state, 0)
++        return next(row for row in actions
++                    if row["action"] == "move"
++                    and row["params"]["target"] == {"x": 6, "y": 5})
++
++    enemy = {
++        "id": 201, "owner": 1, "type_id": 48, "type": "Diplomat",
++        "x": 6, "y": 5, "tile": 56, "moves_left": None,
++        "activity": "idle",
++    }
++    at_war = FakeCivCom(DS_WAR)
++    occupied = east_move(
++        at_war, {"units": {"105": unit, "201": enemy}, "cities": {}})
++    assert not occupied["is_valid"]
++    assert occupied["reason"] == (
++        "Cannot move onto packet-visible non-allied unit owned by player 1")
++
++    allied = FakeCivCom(DS_ALLIANCE)
++    assert east_move(
++        allied, {"units": {"105": unit, "201": enemy}, "cities": {}}
++    )["is_valid"]
++
++    foreign_city = {
++        "id": 301, "owner": 1, "tile": 56, "x": 6, "y": 5,
++    }
++    city_occupied = east_move(
++        at_war, {"units": {"105": unit}, "cities": {"301": foreign_city}})
++    assert not city_occupied["is_valid"]
++    assert city_occupied["reason"] == (
++        "Cannot move onto packet-visible non-allied city owned by player 1")
 diff --git a/freeciv-proxy/tests/test_release_game_configuration.py b/freeciv-proxy/tests/test_release_game_configuration.py
 new file mode 100644
 index 0000000..8140dcf

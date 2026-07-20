@@ -423,6 +423,25 @@ class GroundedImpactPlanner(object):
             "unit_id": unit.unit_id, "x": unit.x, "y": unit.y,
         }
 
+    @staticmethod
+    def _combat_target_grounding(snapshot, action):
+        """Packet-visible target facts that can prove an offensive effect."""
+        target = action.get("target")
+        if not isinstance(target, dict):
+            return ()
+        target_unit_id = target.get("target_unit_id")
+        if target_unit_id is not None:
+            rows = (snapshot.visible_enemy_unit(target_unit_id),)
+        else:
+            x, y = target.get("x"), target.get("y")
+            if x is None or y is None:
+                return ()
+            rows = tuple(row for row in snapshot.visible_enemy_units
+                         if (row.x, row.y) == (x, y))
+        return tuple(sorted(
+            (row.unit_id, row.owner, row.unit_type, row.hp, row.x, row.y)
+            for row in rows if row is not None))
+
     def local_actor_effect_observed(self, candidate, before, after):
         """Detect actor-local effects omitted by the proxy's general state hash.
 
@@ -443,9 +462,11 @@ class GroundedImpactPlanner(object):
         A source-sequence or general state-hash change can be caused by economy,
         research, or opponent packets.  In particular it does not prove that a
         requested production target was installed.  Production therefore uses
-        an exact city-target predicate; unit actions use actor-local resource
-        changes; only action kinds without a local grounding use the general
-        state hash as a final fallback.
+        an exact city-target predicate. Offensive actions additionally compare
+        their packet-visible target stack so a destroyed defender counts even
+        when the attacker remains fortified with unchanged hit points. Other
+        unit actions use actor-local resource changes; only action kinds without
+        a local grounding use the general state hash as a final fallback.
         """
         action = candidate.action
         if action.get("action_type") == "city_production":
@@ -473,6 +494,10 @@ class GroundedImpactPlanner(object):
                         and after.unit(actor_id) is None
                         and before_city is not None and after_city is not None
                         and after_city.size == before_city.size + recovered)
+        if action.get("action_type") in OFFENSIVE_ACTIONS:
+            return (self.local_actor_effect_observed(candidate, before, after)
+                    or self._combat_target_grounding(before, action)
+                    != self._combat_target_grounding(after, action))
         if action.get("actor_id") is not None:
             return self.local_actor_effect_observed(candidate, before, after)
         return before.identity.state_hash != after.identity.state_hash
@@ -1161,6 +1186,12 @@ class GroundedImpactPlanner(object):
             return None
         x, y = target.get("x"), target.get("y")
         if x is None or y is None or (unit.x, unit.y) == (x, y):
+            return None
+        # A plain move cannot enter a packet-visible non-owned stack. The
+        # server must advertise an explicit attack, conquest, or diplomatic
+        # action for that target instead.
+        if any((row.x, row.y) == (x, y)
+               for row in snapshot.visible_enemy_units):
             return None
         unit_type = _normalized_type(unit.unit_type)
         novelty = 1.0 if (x, y) not in self.visited_positions else 0.0

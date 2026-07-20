@@ -15,7 +15,7 @@ opponent:
 machine_profile: codex-dev-linux
 engine:
   freeciv_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018
-  proxy_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:3c7d199fbf2308037d3e66c0c2190e14667b55522365276342411ace23699005
+  proxy_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:7dd7a2ae14adae37cc19977dd2ffc2b49d6f07debb1d2082f2db34ab1ed0f2af
 rulebase:
   compiler_version: freeciv-ruleset-compiler/1.2
   source_sha256: 3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e
