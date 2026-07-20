@@ -55,6 +55,19 @@ def test_action_envelopes_satisfy_action_schema():
     assert end_turn_message() == {"type": "action", "action": {"action_type": "end_turn"}}
 
 
+def test_city_production_preserves_authoritative_numeric_target_ids():
+    message = action_message({
+        "action_type": "city_production", "city_id": 10,
+        "production_type": "Granary", "production_kind": 3,
+        "production_value": 14,
+    })
+    assert message["action"] == {
+        "action_type": "city_production", "city_id": 10,
+        "production_type": "Granary", "production_kind": 3,
+        "production_value": 14,
+    }
+
+
 def test_actor_id_preserved_when_passed_directly():
     am = action_message({"type": "unit_fortify", "actor_id": 9})
     assert am["action"]["actor_id"] == 9

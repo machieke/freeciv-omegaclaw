@@ -14,7 +14,7 @@ opponent:
 machine_profile: codex-dev-linux
 engine:
   freeciv_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018
-  proxy_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:2c0fae26da7936470fe00eb4d4eb9096e0b8c2620defa2eff27e6b4b104f23f0
+  proxy_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:311f9a3b8e9b930ae12a2d7670e4bea04ea4ba7ca33d6f51f03b17967e1579ae
 rulebase:
   compiler_version: freeciv-ruleset-compiler/1.0
   source_sha256: 8f6914743d8380fabd9bf1294556a53ba5e447532e4b9e9763d3d69c0c0120b4
@@ -41,6 +41,7 @@ impact_policy:
   no_effect_retry_limit: 1
   max_no_effect_failovers_per_scope: 4
   preserve_city_defenders: true
+  production_strategy: horizon_score
 paired_impact:
   schema_version: "1.0"
   condition: e_full_loop
@@ -59,8 +60,10 @@ paired_impact:
   arms:
     baseline:
       max_no_effect_failovers_per_scope: 0
+      production_strategy: static_priority
     treatment:
       max_no_effect_failovers_per_scope: 4
+      production_strategy: horizon_score
   default_cohort: development
   power:
     alpha: 0.05
@@ -80,6 +83,10 @@ paired_impact:
     score_test:
       method: exact_paired_sign_flip
       alternative: two_sided
+      maximum_states: 1000000
+    meaningful_score_test:
+      method: exact_paired_sign_flip
+      alternative: greater
       maximum_states: 1000000
     score_superiority_margin: 0.0
     win_superiority_margin: 0.0
@@ -231,6 +238,19 @@ paired_impact:
         count: 40
         minimum: 1300000
         maximum: 1399999
+    pilot_horizon_60_v3:
+      purpose: pilot
+      claim_eligible: false
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 40
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pln-freeciv-impact-pilot-horizon60-v3
+        count: 40
+        minimum: 1700000
+        maximum: 1799999
     confirmatory_score:
       purpose: development
       claim_eligible: false

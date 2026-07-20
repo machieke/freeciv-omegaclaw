@@ -27,13 +27,22 @@ METRICS = (
     "planned_engine_actions", "meaningful_actions_per_turn",
     "decision_impact_actions", "decision_impact_turn_rate",
     "decision_effect_observed_rate", "decision_no_effect_actions",
+    "decision_effect_confirmation_latency_ms",
+    "decision_effect_confirmation_timeouts",
     "decision_no_effect_retries_blocked",
     "decision_no_effect_failover_attempts",
     "decision_no_effect_failover_recoveries",
     "decision_no_effect_failover_recovery_rate",
     "model_safe_fallback_rate", "model_corrections_per_turn",
     "action_type_diversity", "cities_founded", "technologies_acquired",
-    "positions_explored", "production_changes", "tactical_actions", "score_gain",
+    "positions_explored", "production_changes", "tactical_actions",
+    "production_projected_completion_eta_turns",
+    "production_projected_score_value",
+    "production_projected_build_cost", "production_projected_shield_surplus",
+    "production_projected_pop_cost", "production_projection_ruleset_source_rate",
+    "score_component_citizens_turn_n", "score_component_technology_turn_n",
+    "score_component_residual_turn_n", "score_component_citizen_delta",
+    "score_component_technology_delta", "score_gain",
 )
 
 

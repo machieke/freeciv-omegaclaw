@@ -418,7 +418,25 @@ index 9be5668..09266c8 100644
                  port_type = (
                      "MULTIPLAYER (6001-6009)" if 6001 <= civserver_port <= 6009
                      else "SINGLEPLAYER (6000)" if civserver_port == 6000
-@@ -2886,6 +2900,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1648,8 +1662,17 @@ class LLMWSHandler(websocket.WebSocketHandler):
+             # If production is empty, don't set the field - let action_validator E030 handle it
+             # with a clearer "Missing required field" error instead of cryptic S001 format error
+             if production:
+                 normalized["production_type"] = str(production).lower()
++            # Legal actions already carry the active ruleset's exact numeric
++            # universal kind and target ID. Preserve them through normalization;
++            # packet conversion cross-checks them against the human-readable name.
++            for field in ("production_kind", "production_value"):
++                value = action_data.get(field)
++                if value is None and isinstance(target, dict):
++                    value = target.get(field)
++                if value is not None:
++                    normalized[field] = value
+ 
+         elif action_type == "unit_build_city":
+             # Extract unit_id
+             if "unit_id" in action_data:
+@@ -2886,6 +2909,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
          # Map format_type to StateFormat enum
          format_map = {
              'llm_optimized': StateFormat.LLM_OPTIMIZED,
@@ -426,7 +444,7 @@ index 9be5668..09266c8 100644
              'full': StateFormat.FULL,
              'delta': StateFormat.DELTA
          }
-@@ -5061,6 +5076,21 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -5061,6 +5085,21 @@ class LLMWSHandler(websocket.WebSocketHandler):
  
          session = session_manager.validate_session(self.session_id)
          if session:
@@ -461,11 +479,72 @@ index 8570765..6ba646e 100644
                  "player_id": {"min_value": 1, "max_value": 8},
                  "trace_context": {"max_keys": 5},
                  "correlation_id": {"max_length": 64, "pattern": r"^[a-zA-Z0-9_-]+$"},
+diff --git a/freeciv-proxy/packet_converter.py b/freeciv-proxy/packet_converter.py
+index e16064b..643b48b 100644
+--- a/freeciv-proxy/packet_converter.py
++++ b/freeciv-proxy/packet_converter.py
+@@ -259,16 +259,33 @@ def _convert_action_to_packet_impl(
+             raise ValueError("city_production requires 'production_type' field")
+         mapper = RulesetMapper(civcom) if civcom else None
+         if not mapper:
+-            # If no mapper available, tests generally provide production_kind/value
++            # Offline callers must supply both exact ruleset IDs.
+             kind = action.get("production_kind")
+             value = action.get("production_value")
++            if (kind is None) != (value is None) or kind is None:
++                raise ValueError(
++                    "city_production requires both production_kind and production_value "
++                    "when no ruleset mapper is available")
+         else:
+             if not hasattr(convert_action_to_packet, "_ruleset_mapper_cache"):
+                 convert_action_to_packet._ruleset_mapper_cache = mapper
+-            kind, value = mapper.map_production_to_kind_value(production_name)
+-            if kind is None:
++            mapped_kind, mapped_value = mapper.map_production_to_kind_value(production_name)
++            if mapped_kind is None:
+                 available = mapper.get_available_productions()
+                 raise ValueError(f"Unknown production: '{production_name}'")
++            supplied_kind = action.get("production_kind")
++            supplied_value = action.get("production_value")
++            if (supplied_kind is None) != (supplied_value is None):
++                raise ValueError(
++                    "city_production requires both production_kind and production_value")
++            if supplied_kind is None:
++                kind, value = mapped_kind, mapped_value
++            else:
++                kind, value = int(supplied_kind), int(supplied_value)
++                if (kind, value) != (mapped_kind, mapped_value):
++                    raise ValueError(
++                        f"Production target IDs ({kind}, {value}) do not match "
++                        f"'{production_name}' ({mapped_kind}, {mapped_value})")
+         return _sanitize_packet(
+             {
+                 "pid": PACKET_CITY_CHANGE,
 diff --git a/freeciv-proxy/security.py b/freeciv-proxy/security.py
 index 2815c8c..c209bb7 100644
 --- a/freeciv-proxy/security.py
 +++ b/freeciv-proxy/security.py
-@@ -295,7 +295,7 @@ class InputSanitizer:
+@@ -205,8 +205,19 @@ class InputSanitizer:
+             if 'production_type' in action:
+                 sanitized['production_type'] = cls.sanitize_string_field(
+                     action['production_type'], 'production_type'
+                 )
++            for field in ('production_kind', 'production_value'):
++                if field in action:
++                    value = action[field]
++                    if (isinstance(value, bool) or not isinstance(value, int)
++                            or value < 0 or value > 65535):
++                        raise SecurityError(f"Invalid {field}: {value!r}")
++                    sanitized[field] = value
++            if ('production_kind' in sanitized
++                    and sanitized['production_kind'] not in (3, 6)):
++                raise SecurityError(
++                    f"Invalid production_kind: {sanitized['production_kind']!r}")
+             if 'player_id' in action:
+                 sanitized['player_id'] = cls.sanitize_player_id(action['player_id'])
+ 
+         elif action_type == 'tech_research':
+@@ -295,7 +306,7 @@ class InputSanitizer:
  
          if 'format' in params:
              format_val = params['format']
@@ -643,7 +722,7 @@ new file mode 100644
 index 0000000..2b6bf2d
 --- /dev/null
 +++ b/freeciv-proxy/tests/test_release_game_configuration.py
-@@ -0,0 +1,106 @@
+@@ -0,0 +1,151 @@
 +"""Release-harness game settings are validated and ordered before start."""
 +
 +import ast
@@ -658,6 +737,8 @@ index 0000000..2b6bf2d
 +from game_session_manager import GameSession
 +from action_validator import LLMActionValidator
 +import llm_handler
++import packet_converter
++from security import InputSanitizer, SecurityError
 +
 +
 +@pytest.mark.asyncio
@@ -750,3 +831,46 @@ index 0000000..2b6bf2d
 +    invalid = validator.validate_action(
 +        {"type": "tech_research", "tech_name": "bad; /quit", "player_id": 0}, 0, {})
 +    assert not invalid.is_valid and invalid.error_code == "E041"
++
++
++def test_city_production_preserves_and_sanitizes_exact_ruleset_ids():
++    handler = object.__new__(llm_handler.LLMWSHandler)
++    normalized = handler._normalize_agent_action({
++        "action_type": "city_production", "city_id": 10,
++        "target": {"production_type": "Granary"},
++        "production_kind": 3, "production_value": 14,
++    })
++    assert normalized == {
++        "type": "city_production", "city_id": 10,
++        "production_type": "granary", "production_kind": 3,
++        "production_value": 14,
++    }
++    assert InputSanitizer.sanitize_action_data(normalized) == normalized
++    with pytest.raises(SecurityError):
++        InputSanitizer.sanitize_action_data(dict(normalized, production_kind=7))
++
++
++def test_city_production_numeric_ids_are_cross_checked_before_transport(monkeypatch):
++    class Mapper:
++        def __init__(self, _civcom):
++            pass
++
++        def map_production_to_kind_value(self, _name):
++            return 3, 14
++
++    monkeypatch.setattr(packet_converter, "RulesetMapper", Mapper)
++    handler = object.__new__(llm_handler.LLMWSHandler)
++    handler.civcom = object()
++    packet = handler._convert_action_to_packet({
++        "type": "city_production", "city_id": 10,
++        "production_type": "granary", "production_kind": 3,
++        "production_value": 14,
++    })
++    assert packet["production_kind"] == 3
++    assert packet["production_value"] == 14
++    with pytest.raises(ValueError, match="do not match"):
++        handler._convert_action_to_packet({
++            "type": "city_production", "city_id": 10,
++            "production_type": "granary", "production_kind": 3,
++            "production_value": 17,
++        })

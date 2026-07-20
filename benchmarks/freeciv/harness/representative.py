@@ -124,8 +124,8 @@ def run_game(run_dir, manifest, context):
         "retries_blocked": (0, 0, 0, 1, 2)[index],
         "tactical": (0, 0, 1, 2, 3)[index],
     }
+    treatment = bool(impact_pair and impact_pair["arm"] == "treatment")
     if impact_pair:
-        treatment = impact_pair["arm"] == "treatment"
         impact_actions = 58 if treatment else 49
         impact_values = {
             "effect_rate": 0.776 if treatment else 0.571,
@@ -145,6 +145,8 @@ def run_game(run_dir, manifest, context):
         ("decision_impact_actions", impact_actions),
         ("decision_impact_turn_rate", min(1.0, impact_actions / float(manifest["turn_limit"]))),
         ("decision_effect_observed_rate", impact_values["effect_rate"]),
+        ("decision_effect_confirmation_latency_ms", 25.0 if treatment else 30.0),
+        ("decision_effect_confirmation_timeouts", impact_values["no_effect"]),
         ("decision_no_effect_actions", impact_values["no_effect"]),
         ("decision_no_effect_retries_blocked", impact_values["retries_blocked"]),
         ("decision_no_effect_failover_attempts", impact_values["failover_attempts"]),
@@ -158,6 +160,17 @@ def run_game(run_dir, manifest, context):
         ("positions_explored", impact_values["positions"]),
         ("production_changes", (0, 0, 1, 1, 2)[index]),
         ("tactical_actions", impact_values["tactical"]),
+        ("production_projected_completion_eta_turns", 6.0 if treatment else 0.0),
+        ("production_projected_score_value", 1.0 if treatment else 0.0),
+        ("production_projected_build_cost", 40.0 if treatment else 0.0),
+        ("production_projected_shield_surplus", 5.0 if treatment else 0.0),
+        ("production_projected_pop_cost", 0.0),
+        ("production_projection_ruleset_source_rate", 1.0 if treatment else 0.0),
+        ("score_component_citizens_turn_n", 2 + (1 if treatment else 0)),
+        ("score_component_technology_turn_n", 2.0),
+        ("score_component_residual_turn_n", score_shift - 4.0),
+        ("score_component_citizen_delta", 1 if treatment else 0),
+        ("score_component_technology_delta", 0.0),
         ("score_gain", score_shift),
     ))
     if context.capabilities["scheduler"]:

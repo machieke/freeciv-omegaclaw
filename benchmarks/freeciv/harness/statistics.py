@@ -48,8 +48,9 @@ def paired_delta(left_by_seed, right_by_seed, **kwargs):
     return result
 
 
-def paired_score_randomization(differences, margin=0.0, maximum_states=1000000):
-    """Exact two-sided paired sign-flip test for an integer score effect.
+def paired_score_randomization(differences, margin=0.0, maximum_states=1000000,
+                               alternative="two_sided"):
+    """Exact paired sign-flip test for an integer score effect.
 
     FreeCiv scores are integers.  Under the sharp null, swapping treatment and
     baseline within every seed pair is equivalent to independently flipping the
@@ -60,11 +61,13 @@ def paired_score_randomization(differences, margin=0.0, maximum_states=1000000):
     """
     margin = float(margin)
     maximum_states = int(maximum_states)
+    if alternative not in ("two_sided", "greater"):
+        raise ValueError("alternative must be 'two_sided' or 'greater'")
     if maximum_states < 1:
         raise ValueError("maximum_states must be positive")
     adjusted = [float(value) - margin for value in differences]
     result = {
-        "alternative": "two_sided", "exact": True,
+        "alternative": alternative, "exact": True,
         "margin": margin, "maximum_states": maximum_states,
         "method": "exact-paired-sign-flip-randomization",
         "nonzero_pairs": 0, "observed_mean_difference": mean(adjusted),
@@ -94,7 +97,7 @@ def paired_score_randomization(differences, margin=0.0, maximum_states=1000000):
     for value in weights[1:]:
         divisor = math.gcd(divisor, value)
     weights = [value // divisor for value in weights]
-    observed = abs(sum(integral)) // divisor
+    observed_signed = sum(integral) // divisor
     distribution = {0: 1}
     for weight in weights:
         updated = {}
@@ -110,8 +113,13 @@ def paired_score_randomization(differences, margin=0.0, maximum_states=1000000):
             })
             return result
         distribution = updated
-    extreme = sum(count for total, count in distribution.items()
-                  if abs(total) >= observed)
+    if alternative == "greater":
+        extreme = sum(count for total, count in distribution.items()
+                      if total >= observed_signed)
+    else:
+        observed = abs(observed_signed)
+        extreme = sum(count for total, count in distribution.items()
+                      if abs(total) >= observed)
     result.update({
         "p_value": extreme / float(2 ** len(weights)), "ready": True,
         "reason": None, "states_evaluated": len(distribution),

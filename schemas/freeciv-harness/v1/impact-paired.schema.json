@@ -93,7 +93,7 @@
         "states_evaluated"
       ],
       "properties": {
-        "alternative": {"const": "two_sided"},
+        "alternative": {"enum": ["two_sided", "greater"]},
         "exact": {"const": true},
         "margin": {"type": "number"},
         "maximum_states": {"type": "integer", "minimum": 1},

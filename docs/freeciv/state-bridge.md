@@ -14,7 +14,7 @@ The patch is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. Its SHA-256 is
-`2c0fae26da7936470fe00eb4d4eb9096e0b8c2620defa2eff27e6b4b104f23f0`.
+`311f9a3b8e9b930ae12a2d7670e4bea04ea4ba7ca33d6f51f03b17967e1579ae`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 Freeciv's `PACKET_RESEARCH_INFO.inventions` array is indexed by the exact zero-based

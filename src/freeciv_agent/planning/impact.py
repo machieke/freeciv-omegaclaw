@@ -6,6 +6,7 @@ through :class:`ExecutionGate` immediately before transport.
 """
 
 import json
+import math
 from dataclasses import dataclass
 
 from ..events.schema import canonical_json_bytes, structural_hash
@@ -34,6 +35,7 @@ class ImpactCandidate:
     category: str
     utility: float
     rationale: str
+    projection: dict = None
 
     @property
     def action_key(self):
@@ -60,10 +62,13 @@ class ImpactCandidate:
         return str(self.action.get("action_type", "")).startswith("unit_")
 
     def to_dict(self):
-        return {
+        result = {
             "action": dict(self.action), "category": self.category,
             "rationale": self.rationale, "utility": self.utility,
         }
+        if self.projection is not None:
+            result["projection"] = dict(self.projection)
+        return result
 
 
 @dataclass(frozen=True)
@@ -129,7 +134,7 @@ class GroundedImpactPlanner(object):
 
     SOLVER_IDENTITY = "grounded-impact-planner/1.0"
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, ruleset_ir=None):
         values = dict(config or {})
         self.max_actions_per_turn = int(values.get("max_actions_per_turn", 8))
         self.expansion_city_target = int(values.get("expansion_city_target", 3))
@@ -145,6 +150,8 @@ class GroundedImpactPlanner(object):
         self.max_no_effect_failovers_per_scope = int(
             values.get("max_no_effect_failovers_per_scope", 4))
         self.preserve_city_defenders = bool(values.get("preserve_city_defenders", True))
+        self.production_strategy = str(values.get(
+            "production_strategy", "horizon_score"))
         if not 1 <= self.max_actions_per_turn <= 32:
             raise ValueError("max_actions_per_turn must be in 1..32")
         if not 1 <= self.expansion_city_target <= 20:
@@ -166,11 +173,41 @@ class GroundedImpactPlanner(object):
             raise ValueError("no_effect_retry_limit must be in 1..8")
         if not 0 <= self.max_no_effect_failovers_per_scope <= 8:
             raise ValueError("max_no_effect_failovers_per_scope must be in 0..8")
+        if self.production_strategy not in ("static_priority", "horizon_score"):
+            raise ValueError(
+                "production_strategy must be 'static_priority' or 'horizon_score'")
         self.visited_positions = set()
         self._fortified_units = set()
         self._no_effect_attempts = {}
         self._reported_suppressions = set()
         self.no_effect_retries_blocked = 0
+        self._build_costs = {}
+        self._production_specs = {}
+        for rule in getattr(ruleset_ir, "rules", ()):
+            quantitative = getattr(rule, "quantitative", {})
+            cost = quantitative.get("build_cost")
+            if isinstance(cost, dict):
+                cost = cost.get("value")
+            pop_cost = quantitative.get("pop_cost", 0)
+            if isinstance(pop_cost, dict):
+                pop_cost = pop_cost.get("value", 0)
+            if (getattr(rule, "target_kind", None) not in (
+                    "unit", "building", "improvement")
+                    or isinstance(cost, bool) or not isinstance(cost, (int, float))
+                    or cost <= 0):
+                continue
+            for label in (getattr(rule, "display_name", None),
+                          getattr(rule, "rule_name", None)):
+                if label:
+                    key = _normalized_type(label)
+                    self._build_costs[key] = int(cost)
+                    self._production_specs[key] = {
+                        "build_cost": int(cost),
+                        "pop_cost": (0 if isinstance(pop_cost, bool)
+                                     or not isinstance(pop_cost, (int, float))
+                                     else max(0, int(pop_cost))),
+                        "target_kind": getattr(rule, "target_kind", None),
+                    }
 
     @staticmethod
     def _actions(snapshot):
@@ -346,6 +383,147 @@ class GroundedImpactPlanner(object):
                 return str(name)
         return None
 
+    @staticmethod
+    def _city_output(city, index):
+        if len(city.surplus) <= index:
+            return 0
+        return max(0, int(city.surplus[index]))
+
+    def _production_projection(self, city, name, remaining_turns, snapshot=None):
+        """Estimate whether production can affect the declared score horizon.
+
+        This is deliberately a small, auditable projection rather than a game
+        simulator.  Ruleset build cost and authoritative city surplus establish
+        completion time.  The value terms mirror score-bearing mechanisms:
+        population growth, technology throughput, expansion, and unit output.
+        """
+        normalized = _normalized_type(name)
+        cost = self._build_costs.get(normalized)
+        spec = self._production_specs.get(normalized, {})
+        shields = self._city_output(city, 1)
+        stock = max(0, int(city.shield_stock or 0))
+        if cost is None and normalized:
+            # Unit tests and lightweight consumers may construct the planner
+            # without a compiled IR. Preserve a conservative bounded fallback;
+            # release evaluation always injects the active ruleset IR.
+            eta = self.production_minimum_remaining_turns
+        else:
+            eta = (None if cost is None else int(math.ceil(
+                max(0, cost - stock) / float(max(1, shields)))))
+        active_turns = (None if eta is None else max(0, int(remaining_turns) - eta))
+        projection = {
+            "active_turns": active_turns, "build_cost": cost,
+            "cost_source": "ruleset_ir" if cost is not None else "bounded_fallback",
+            "completion_eta_turns": eta, "remaining_turns": int(remaining_turns),
+            "pop_cost": int(spec.get("pop_cost", 0)),
+            "shield_surplus": shields, "score_value": 0.0,
+        }
+        if eta is None:
+            return projection
+
+        food = self._city_output(city, 0)
+        science = self._city_output(city, 5)
+        growth_cost = 20 + max(1, int(city.size or 1)) * 10
+        growth_eta = int(math.ceil(max(
+            0, growth_cost - max(0, int(city.food_stock or 0)))
+            / float(max(1, food)))) if food else None
+        if normalized in FOUNDER_TYPES:
+            # A completed founder needs time to move and establish a score-bearing
+            # city. Charge its exact ruleset population cost so a fast Migrant or
+            # zero-population Engineer is preferred to destructive Settler churn.
+            projection["score_value"] = max(
+                0.0, 1.0 - projection["pop_cost"] * 2.0
+                + (active_turns - 3) * 0.15)
+            projection["settlement_runway_turns"] = max(0, active_turns - 3)
+        elif normalized == "granary":
+            useful_growths = (0 if not food or active_turns <= 0 else
+                              max(0, 1 + (active_turns - max(1, growth_eta))
+                                  // max(1, growth_cost // max(1, food))))
+            projection["growth_eta_turns"] = growth_eta
+            projection["projected_growth_opportunities"] = useful_growths
+            projection["score_value"] = float(useful_growths)
+            if cost is None and active_turns > 0:
+                projection["score_value"] = active_turns / 100.0
+        elif normalized == "library":
+            research = getattr(snapshot, "research", None)
+            research_cost = int(getattr(research, "cost", 0) or 0)
+            research_progress = int(getattr(research, "progress", 0) or 0)
+            beakers_per_turn = int(getattr(research, "beakers_per_turn", 0) or 0)
+            library_bonus = int(math.ceil(science * 0.5))
+            natural_bulbs = research_progress + beakers_per_turn * remaining_turns
+            projected_bulbs = natural_bulbs + library_bonus * active_turns
+            natural_techs = natural_bulbs // research_cost if research_cost else 0
+            projected_techs = projected_bulbs // research_cost if research_cost else 0
+            score_techs = max(0, projected_techs - natural_techs)
+            projection["projected_science_bonus"] = library_bonus * active_turns
+            projection["projected_additional_technologies"] = score_techs
+            projection["research_cost"] = research_cost
+            projection["score_value"] = float(score_techs * 2)
+        elif normalized == "marketplace":
+            trade = self._city_output(city, 2)
+            projection["projected_trade"] = trade * active_turns
+            # Gold and trade are not direct FreeCiv score components. Keep the
+            # telemetry, but do not claim a fixed-horizon score gain.
+            projection["score_value"] = 0.0
+        elif name in DEFENDER_PRIORITY:
+            projection["score_value"] = 0.1 + active_turns / 1000.0
+        elif name in IMPROVEMENT_PRIORITY:
+            projection["score_value"] = 0.0
+        else:
+            # Unknown current targets still receive a completion value. This
+            # prevents destructive churn away from a ruleset-valid near-finished
+            # build while permitting a switch away from one that cannot finish.
+            projection["score_value"] = 0.5 if active_turns > 0 else 0.0
+        return projection
+
+    def _static_production_candidate(
+            self, snapshot, action, city, name, normalized, current_name,
+            current_normalized, founders, city_count, needs_founder,
+            remaining_turns):
+        """Frozen pre-hardening production policy for paired baselines."""
+        if needs_founder and current_normalized in FOUNDER_TYPES:
+            return None
+        if (needs_founder and normalized in FOUNDER_TYPES
+                and remaining_turns >= self.expansion_minimum_remaining_turns):
+            return ImpactCandidate(
+                action, "production_expansion", 920.0 + remaining_turns,
+                "static baseline: produce one founder with fixed runway")
+        if remaining_turns < self.production_minimum_remaining_turns:
+            return None
+        defenders = self._combat_units(snapshot)
+        defense_deficit = len(defenders) < max(1, city_count)
+        if defense_deficit and current_name in DEFENDER_PRIORITY:
+            return None
+        if defense_deficit:
+            for index, target in enumerate(DEFENDER_PRIORITY):
+                if name.lower() == target.lower():
+                    return ImpactCandidate(
+                        action, "production_defense",
+                        850.0 - index + remaining_turns,
+                        "static baseline: cover the city-defense deficit")
+        if current_name in IMPROVEMENT_PRIORITY:
+            return None
+        for index, target in enumerate(IMPROVEMENT_PRIORITY):
+            if name.lower() == target.lower():
+                return ImpactCandidate(
+                    action, "production_economy",
+                    740.0 - index + remaining_turns,
+                    "static baseline: select priority-ordered economy production")
+        for index, target in enumerate(DEFENDER_PRIORITY):
+            if name.lower() == target.lower():
+                return ImpactCandidate(
+                    action, "production_military",
+                    520.0 - index + remaining_turns,
+                    "static baseline: select priority-ordered military production")
+        return None
+
+    @staticmethod
+    def _projection_can_affect_horizon(projection, minimum_active_turns=1):
+        eta = projection.get("completion_eta_turns")
+        active = projection.get("active_turns")
+        return bool(eta is not None and active is not None
+                    and active >= int(minimum_active_turns))
+
     def _production_candidate(self, snapshot, action):
         city = snapshot.city(action.get("city_id"))
         if city is None or not city.buildability_available:
@@ -362,18 +540,44 @@ class GroundedImpactPlanner(object):
         current_normalized = _normalized_type(current_name)
         needs_founder = city_count < self.expansion_city_target and not founders
         remaining_turns = self.horizon_turn - snapshot.turn
+        if self.production_strategy == "static_priority":
+            return self._static_production_candidate(
+                snapshot, action, city, name, normalized, current_name,
+                current_normalized, founders, city_count, needs_founder,
+                remaining_turns)
+        projection = self._production_projection(
+            city, name, remaining_turns, snapshot=snapshot)
+        current_projection = (self._production_projection(
+            city, current_name, remaining_turns, snapshot=snapshot)
+                              if current_name else None)
         if needs_founder and current_normalized in FOUNDER_TYPES:
             return None
         if (needs_founder and normalized in FOUNDER_TYPES
-                and remaining_turns >= self.expansion_minimum_remaining_turns):
+                and remaining_turns >= self.expansion_minimum_remaining_turns
+                and self._projection_can_affect_horizon(projection, 4)):
+            if (projection["pop_cost"] > 0
+                    and remaining_turns < self.expansion_minimum_remaining_turns * 2):
+                return None
             return ImpactCandidate(
-                action, "production_expansion", 920.0 + remaining_turns,
-                "produce one founder with enough fixed-horizon runway to found a city")
+                action, "production_expansion",
+                920.0 + projection["score_value"] * 10.0
+                - projection["completion_eta_turns"],
+                "produce one founder only when build ETA leaves settlement runway",
+                projection)
+
+        # Protect expansion capacity: when the target has not been met and no
+        # founder exists, economy or military production must not displace the
+        # legal founder opportunity.
+        if needs_founder:
+            return None
 
         # A late accepted switch can register as transport activity while being
         # unable to finish before fixed-horizon scoring.  Do not spend policy
         # budget or trigger a treatment failover on such non-evaluable changes.
         if remaining_turns < self.production_minimum_remaining_turns:
+            return None
+
+        if not self._projection_can_affect_horizon(projection):
             return None
 
         defenders = self._combat_units(snapshot)
@@ -384,23 +588,33 @@ class GroundedImpactPlanner(object):
             for index, target in enumerate(DEFENDER_PRIORITY):
                 if name.lower() == target.lower():
                     return ImpactCandidate(
-                        action, "production_defense", 850.0 - index + remaining_turns,
-                        "cover the city-defense deficit before fixed-horizon scoring")
-
-        if current_name in IMPROVEMENT_PRIORITY:
-            return None
+                        action, "production_defense",
+                        850.0 + projection["score_value"] * 10.0
+                        - projection["completion_eta_turns"] - index * 0.01,
+                        "cover the city-defense deficit with a horizon-completing unit",
+                        projection)
 
         for index, target in enumerate(IMPROVEMENT_PRIORITY):
             if name.lower() == target.lower():
+                # Keep a current valid target when it completes in time and is
+                # projected at least as valuable. Switching at zero shields is
+                # lossless mechanically, but can still destroy a good trajectory.
+                if (current_projection is not None
+                        and self._projection_can_affect_horizon(current_projection)
+                        and current_projection["score_value"] >= projection["score_value"]):
+                    return None
+                if projection["score_value"] <= 0:
+                    return None
                 return ImpactCandidate(
-                    action, "production_economy", 740.0 - index + remaining_turns,
-                    "select growth/economy production with enough scoring runway")
+                    action, "production_economy",
+                    740.0 + projection["score_value"] * 10.0
+                    - projection["completion_eta_turns"] - index * 0.01,
+                    "select score-bearing economy production using build ETA and city output",
+                    projection)
 
-        for index, target in enumerate(DEFENDER_PRIORITY):
-            if name.lower() == target.lower():
-                return ImpactCandidate(
-                    action, "production_military", 520.0 - index + remaining_turns,
-                    "add a military unit early enough to affect the fixed horizon")
+        # A single non-deficit unit contributes only one tenth of the unit score
+        # category and may not change the integer total at all. Preserve the
+        # current build instead of churning to a cheaper military target.
         return None
 
     def _move_candidate(self, snapshot, action):
@@ -513,6 +727,7 @@ class GroundedImpactPlanner(object):
         candidate = rows[0]
         proof_hash = structural_hash({
             "action": candidate.action, "category": candidate.category,
+            "projection": candidate.projection,
             "snapshot_id": snapshot.snapshot_id,
         })
         step_id = "impact-step-" + proof_hash[:16]

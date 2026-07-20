@@ -627,7 +627,8 @@ async def _execute_action(gate, game_id, player_id, snapshot, action, parent,
 
 
 async def _refresh_accepted_impact_action(
-        refresh, raw, snapshot, parent, candidate, refresh_timeout=None):
+        refresh, raw, snapshot, parent, candidate, refresh_timeout=None,
+        effect_predicate=None):
     """Refresh an accepted impact action, preserving bounded no-effect outcomes.
 
     The proxy acknowledges transport acceptance before civserver necessarily
@@ -641,10 +642,17 @@ async def _refresh_accepted_impact_action(
     """
     try:
         if refresh_timeout is None:
-            next_raw, next_snapshot, next_parent = await refresh(snapshot, parent)
+            if effect_predicate is None:
+                next_raw, next_snapshot, next_parent = await refresh(snapshot, parent)
+            else:
+                next_raw, next_snapshot, next_parent = await refresh(
+                    snapshot, parent, predicate=effect_predicate)
         else:
+            kwargs = {"timeout": refresh_timeout}
+            if effect_predicate is not None:
+                kwargs["predicate"] = effect_predicate
             next_raw, next_snapshot, next_parent = await refresh(
-                snapshot, parent, timeout=refresh_timeout)
+                snapshot, parent, **kwargs)
     except TimeoutError:
         return raw, snapshot, parent, False
     return next_raw, next_snapshot, next_parent, True
@@ -978,7 +986,7 @@ async def _play(run_dir, manifest, context):
                  if context.capabilities["uncertain_beliefs"] else None)
     execution_monitor = (PlanMonitor()
                          if context.capabilities["scheduler"] else None)
-    impact_planner = (GroundedImpactPlanner(manifest["impact_policy"])
+    impact_planner = (GroundedImpactPlanner(manifest["impact_policy"], ruleset_ir=ir)
                       if context.capabilities["scheduler"] else None)
     memory = None
     induction_prediction = None
@@ -1006,12 +1014,20 @@ async def _play(run_dir, manifest, context):
         "production_changes": 0, "tactical_actions": 0,
         "effect_observed": 0, "no_effect": 0, "safe_model_fallbacks": 0,
         "failover_attempts": 0, "failover_recoveries": 0,
+        "effect_confirmation_timeouts": 0,
     }
     action_type_counts = {}
     impact_turns = set()
     replan_latencies = []
     model_latencies = []
     full_loop_latencies = []
+    effect_confirmation_latencies = []
+    production_projection_etas = []
+    production_projection_values = []
+    production_projection_costs = []
+    production_projection_shields = []
+    production_projection_pop_costs = []
+    production_projection_ruleset_sources = []
     corrections = 0
     final_global = None
     async with websockets.connect(
@@ -1066,6 +1082,7 @@ async def _play(run_dir, manifest, context):
         if impact_planner is not None:
             impact_planner.observe(snapshot)
         initial_city_count = len(snapshot.cities)
+        initial_citizens = sum(max(0, int(city.size or 0)) for city in snapshot.cities)
         initial_tech_count = len(snapshot.research.known_techs)
         initial_position_count = (len(impact_planner.visited_positions)
                                   if impact_planner is not None else 0)
@@ -1268,12 +1285,41 @@ async def _play(run_dir, manifest, context):
                     record_meaningful_action(
                         impact_action, impact=True,
                         category=decision.candidate.category)
+                    projection = decision.candidate.projection or {}
+                    if impact_action.get("action_type") == "city_production":
+                        if projection.get("completion_eta_turns") is not None:
+                            production_projection_etas.append(float(
+                                projection["completion_eta_turns"]))
+                        if projection.get("score_value") is not None:
+                            production_projection_values.append(float(
+                                projection["score_value"]))
+                        if projection.get("build_cost") is not None:
+                            production_projection_costs.append(float(
+                                projection["build_cost"]))
+                        if projection.get("shield_surplus") is not None:
+                            production_projection_shields.append(float(
+                                projection["shield_surplus"]))
+                        if projection.get("pop_cost") is not None:
+                            production_projection_pop_costs.append(float(
+                                projection["pop_cost"]))
+                        production_projection_ruleset_sources.append(int(
+                            projection.get("cost_source") == "ruleset_ir"))
                     excluded_impact_actions.add(decision.candidate.action_key)
+                    confirmation_started = time.perf_counter()
                     raw, snapshot, parent, authoritative_refresh = (
                         await _refresh_accepted_impact_action(
                             refresh_after_action, raw, snapshot, parent,
                             decision.candidate,
-                            refresh_timeout=impact_planner.refresh_timeout_seconds))
+                            refresh_timeout=impact_planner.refresh_timeout_seconds,
+                            effect_predicate=(
+                                (lambda value: impact_planner.candidate_effect_observed(
+                                    decision.candidate, action_snapshot, value))
+                                if impact_action.get("action_type") == "city_production"
+                                else None)))
+                    effect_confirmation_latencies.append(
+                        (time.perf_counter() - confirmation_started) * 1000.0)
+                    decision_stats["effect_confirmation_timeouts"] += int(
+                        not authoritative_refresh)
                     effect_observed = (authoritative_refresh
                                        and impact_planner.candidate_effect_observed(
                                            decision.candidate, action_snapshot, snapshot))
@@ -1390,7 +1436,12 @@ async def _play(run_dir, manifest, context):
     # impact claims use the explicitly named fixed-horizon score-lead endpoint.
     won = score_lead
     city_gain = max(0, len(snapshot.cities) - initial_city_count)
+    final_citizens = sum(max(0, int(city.size or 0)) for city in snapshot.cities)
     technology_gain = max(0, len(snapshot.research.known_techs) - initial_tech_count)
+    score_citizen_component = float(final_citizens)
+    score_technology_component = float(len(snapshot.research.known_techs) * 2)
+    score_residual_component = (
+        player_score - score_citizen_component - score_technology_component)
     explored_positions = (max(0, len(impact_planner.visited_positions) - initial_position_count)
                           if impact_planner is not None else 0)
     meaningful_per_turn = float(decision_stats["meaningful_actions"]) / max(1, turns_executed)
@@ -1416,6 +1467,10 @@ async def _play(run_dir, manifest, context):
         ("decision_impact_actions", decision_stats["impact_actions"]),
         ("decision_impact_turn_rate", impact_turn_rate),
         ("decision_effect_observed_rate", effect_observed_rate),
+        ("decision_effect_confirmation_latency_ms",
+         sum(effect_confirmation_latencies) / max(1, len(effect_confirmation_latencies))),
+        ("decision_effect_confirmation_timeouts",
+         decision_stats["effect_confirmation_timeouts"]),
         ("decision_no_effect_actions", decision_stats["no_effect"]),
         ("decision_no_effect_retries_blocked",
          impact_planner.no_effect_retries_blocked if impact_planner is not None else 0),
@@ -1432,6 +1487,24 @@ async def _play(run_dir, manifest, context):
         ("positions_explored", explored_positions),
         ("production_changes", decision_stats["production_changes"]),
         ("tactical_actions", decision_stats["tactical_actions"]),
+        ("production_projected_completion_eta_turns",
+         sum(production_projection_etas) / max(1, len(production_projection_etas))),
+        ("production_projected_score_value",
+         sum(production_projection_values) / max(1, len(production_projection_values))),
+        ("production_projected_build_cost",
+         sum(production_projection_costs) / max(1, len(production_projection_costs))),
+        ("production_projected_shield_surplus",
+         sum(production_projection_shields) / max(1, len(production_projection_shields))),
+        ("production_projected_pop_cost",
+         sum(production_projection_pop_costs) / max(1, len(production_projection_pop_costs))),
+        ("production_projection_ruleset_source_rate",
+         sum(production_projection_ruleset_sources)
+         / float(max(1, len(production_projection_ruleset_sources)))),
+        ("score_component_citizens_turn_n", score_citizen_component),
+        ("score_component_technology_turn_n", score_technology_component),
+        ("score_component_residual_turn_n", score_residual_component),
+        ("score_component_citizen_delta", final_citizens - initial_citizens),
+        ("score_component_technology_delta", technology_gain * 2),
         ("score_gain", player_score - initial_score),
         ("abduction_truth_accuracy", (sum(correct) / len(correct)) if correct else 0.0),
     ]
@@ -1463,6 +1536,8 @@ async def _play(run_dir, manifest, context):
             "decision_no_effect_failover_attempts": decision_stats["failover_attempts"],
             "decision_no_effect_failover_recoveries": (
                 decision_stats["failover_recoveries"]),
+            "decision_effect_confirmation_timeouts": (
+                decision_stats["effect_confirmation_timeouts"]),
             "meaningful_actions": decision_stats["meaningful_actions"],
             "planned_engine_actions": planned_actions,
             "opponent_score": opponent_score,

@@ -3,6 +3,7 @@
 import json
 import os
 import sys
+from types import SimpleNamespace
 
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -10,11 +11,12 @@ SRC = os.path.join(REPO, "src")
 if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
-from freeciv_agent.planning import GroundedImpactPlanner, ImpactTurnBudget  # noqa: E402
+from freeciv_agent.planning import (GroundedImpactPlanner, ImpactCandidate,
+                                    ImpactTurnBudget)  # noqa: E402
 from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 
 
-def _snapshot(units, actions, cities=None, source_seq=1, turn=4):
+def _snapshot(units, actions, cities=None, source_seq=1, turn=4, city_surplus=None):
     cities = cities if cities is not None else [{
         "id": 10, "owner": 0, "name": "Rome", "tile": 0, "x": 0, "y": 0,
         "size": 2, "production_kind": 6, "production_value": 11,
@@ -27,6 +29,8 @@ def _snapshot(units, actions, cities=None, source_seq=1, turn=4):
             {"type": "improvement", "id": 17, "name": "Library"},
         ]},
     }]
+    if city_surplus is not None:
+        cities[0]["surplus"] = list(city_surplus)
     payload = {
         "format": "pln_authoritative", "turn": turn, "phase": "movement",
         "player_id": 0,
@@ -66,11 +70,19 @@ def _production(city_id, name, kind, value):
             "production_value": value, "is_valid": True}
 
 
+def _ruleset_ir(costs):
+    return SimpleNamespace(rules=tuple(SimpleNamespace(
+        target_kind=kind, display_name=name, rule_name=name,
+        quantitative={"build_cost": {"value": cost, "source": {}}})
+        for name, kind, cost in costs))
+
+
 def test_policy_produces_founder_then_infrastructure_without_midbuild_switching():
     actions = [
         _production(10, "Settlers", 6, 0),
         _production(10, "Alpine Troops", 6, 11),
         _production(10, "Granary", 3, 14),
+        _production(10, "Library", 3, 17),
         {"action_type": "end_turn", "is_valid": True},
     ]
     planner = GroundedImpactPlanner({"expansion_city_target": 3})
@@ -81,9 +93,16 @@ def test_policy_produces_founder_then_infrastructure_without_midbuild_switching(
 
     with_founder = _snapshot([
         _unit(1, "Settlers"), _unit(11, "Alpine Troops")], actions, source_seq=2)
-    decision = GroundedImpactPlanner().plan(with_founder)
+    planner = GroundedImpactPlanner(ruleset_ir=_ruleset_ir((
+        ("Settlers", "unit", 30), ("Alpine Troops", "unit", 60),
+        ("Granary", "improvement", 40), ("Library", "improvement", 60),
+    )))
+    decision = planner.plan(with_founder)
     assert decision.candidate.category == "production_economy"
-    assert decision.candidate.action["target"]["production_type"] == "Granary"
+    assert decision.candidate.action["target"]["production_type"] == "Library"
+    assert decision.candidate.projection["build_cost"] == 60
+    assert decision.candidate.projection["completion_eta_turns"] == 15
+    assert decision.candidate.projection["cost_source"] == "ruleset_ir"
 
     granary_city = [dict(json.loads(json.dumps(with_founder.cities[0].to_dict())),
                          id=10, production_kind=3, production_value=14)]
@@ -93,9 +112,10 @@ def test_policy_produces_founder_then_infrastructure_without_midbuild_switching(
     granary_city[0]["prod"] = granary_city[0].pop("production")
     granary_city[0].pop("buildability_available", None)
     granary_city[0].pop("buildability_diagnostic", None)
-    assert GroundedImpactPlanner().plan(_snapshot(
+    zero_stock_switch = GroundedImpactPlanner().plan(_snapshot(
         [_unit(1, "Settlers"), _unit(11, "Alpine Troops")], actions,
-        cities=granary_city, source_seq=4)) is None
+        cities=granary_city, source_seq=4))
+    assert zero_stock_switch.candidate.action["target"]["production_type"] == "Library"
 
     midbuild_city = [dict(json.loads(json.dumps(with_founder.cities[0].to_dict())),
                           id=10, shield_stock=7)]
@@ -192,7 +212,8 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
                    {"refresh_timeout_seconds": 11},
                    {"no_effect_retry_limit": 0}, {"no_effect_retry_limit": 9},
                    {"max_no_effect_failovers_per_scope": -1},
-                   {"max_no_effect_failovers_per_scope": 9}):
+                   {"max_no_effect_failovers_per_scope": 9},
+                   {"production_strategy": "unknown"}):
         try:
             GroundedImpactPlanner(config)
         except ValueError:
@@ -297,7 +318,8 @@ def test_production_effect_requires_the_exact_requested_city_target():
         [_unit(1, "Settlers"), _unit(11, "Alpine Troops")],
         [action, {"action_type": "end_turn", "is_valid": True}])
     planner = GroundedImpactPlanner()
-    candidate = planner.plan(before).candidate
+    candidate = ImpactCandidate(
+        action, "production_economy", 1.0, "effect predicate regression")
 
     unrelated_refresh = _snapshot(
         [_unit(1, "Settlers"), _unit(11, "Alpine Troops")],
@@ -326,11 +348,68 @@ def test_production_candidates_require_fixed_horizon_runway():
     actions = [granary, {"action_type": "end_turn", "is_valid": True}]
     units = [_unit(1, "Settlers"), _unit(11, "Alpine Troops")]
     planner = GroundedImpactPlanner({
-        "horizon_turn": 30, "production_minimum_remaining_turns": 8,
-        "expansion_minimum_remaining_turns": 12})
+            "horizon_turn": 30, "production_minimum_remaining_turns": 8,
+        "expansion_minimum_remaining_turns": 12}, ruleset_ir=_ruleset_ir((
+            ("Alpine Troops", "unit", 1000),
+            ("Granary", "building", 8),
+        )))
 
-    assert planner.plan(_snapshot(units, actions, turn=22)) is not None
-    assert planner.plan(_snapshot(units, actions, turn=23)) is None
+    assert planner.plan(_snapshot(
+        units, actions, turn=22, city_surplus=(10, 4, 2, 1, 0, 3))) is not None
+    assert planner.plan(_snapshot(
+        units, actions, turn=23, city_surplus=(10, 4, 2, 1, 0, 3))) is None
+
+
+def test_paired_production_strategy_contrasts_static_and_horizon_value():
+    actions = [
+        _production(10, "Granary", 3, 14),
+        _production(10, "Library", 3, 17),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    snapshot = _snapshot(
+        [_unit(1, "Settlers"), _unit(11, "Alpine Troops")], actions)
+    ir = _ruleset_ir((
+        ("Alpine Troops", "unit", 60),
+        ("Granary", "improvement", 40),
+        ("Library", "improvement", 60),
+    ))
+    baseline = GroundedImpactPlanner(
+        {"production_strategy": "static_priority"}, ruleset_ir=ir).plan(snapshot)
+    treatment = GroundedImpactPlanner(
+        {"production_strategy": "horizon_score"}, ruleset_ir=ir).plan(snapshot)
+    assert baseline.candidate.action["target"]["production_type"] == "Granary"
+    assert baseline.candidate.projection is None
+    assert treatment.candidate.action["target"]["production_type"] == "Library"
+    assert treatment.candidate.projection["score_value"] > 0
+
+
+def test_horizon_policy_avoids_military_churn_and_short_runway_population_loss():
+    military = [_production(10, "Warriors", 6, 4),
+                {"action_type": "end_turn", "is_valid": True}]
+    military_ir = _ruleset_ir((
+        ("Alpine Troops", "unit", 60), ("Warriors", "unit", 10)))
+    assert GroundedImpactPlanner(ruleset_ir=military_ir).plan(_snapshot(
+        [_unit(1, "Settlers"), _unit(11, "Alpine Troops")], military)) is None
+
+    founder_ir = SimpleNamespace(rules=tuple((
+        SimpleNamespace(
+            target_kind="unit", display_name=name, rule_name=name,
+            quantitative={
+                "build_cost": {"value": cost, "source": {}},
+                "pop_cost": {"value": pop, "source": {}},
+            })
+        for name, cost, pop in (
+            ("Alpine Troops", 60, 0), ("Migrants", 10, 1),
+            ("Engineers", 30, 0)))))
+    founders = [
+        _production(10, "Migrants", 6, 1),
+        _production(10, "Engineers", 6, 3),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    decision = GroundedImpactPlanner(ruleset_ir=founder_ir).plan(_snapshot(
+        [_unit(11, "Alpine Troops")], founders, turn=15))
+    assert decision.candidate.action["target"]["production_type"] == "Engineers"
+    assert decision.candidate.projection["pop_cost"] == 0
 
 
 def test_candidate_enumeration_does_not_mutate_exploration_history():
@@ -380,11 +459,11 @@ def test_turn_budget_releases_failed_scope_for_bounded_alternative_recovery():
     second = planner.plan(
         snapshot, excluded=(first.candidate.action_key,),
         excluded_scopes=budget.excluded_scopes)
-    assert second.candidate.action["target"] == alternative["target"]
-    assert budget.record(second.candidate, effect_observed=True) is True
-    assert second.candidate.scope in budget.excluded_scopes
-    assert budget.failover_attempts == 1
-    assert budget.recoveries == 1
+    assert second is None
+    # Expansion protection intentionally refuses to convert a failed founder
+    # request into economy production while no founder exists.
+    assert budget.failover_attempts == 0
+    assert budget.recoveries == 0
 
     fail_closed = ImpactTurnBudget(max_no_effect_failovers=0)
     fail_closed.record(first.candidate, effect_observed=False)

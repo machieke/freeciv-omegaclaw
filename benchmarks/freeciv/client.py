@@ -38,7 +38,10 @@ class FreecivClientError(Exception):
 
 # Fields copied into the action payload, with the unit_id -> actor_id rename the proxy's
 # agent format uses (freeciv-proxy/llm_handler.py:_normalize_agent_action).
-_ACTION_FIELD_KEYS = ("unit_id", "dest_x", "dest_y", "city_id", "production_type", "tech_id", "name")
+_ACTION_FIELD_KEYS = (
+    "unit_id", "dest_x", "dest_y", "city_id", "production_type",
+    "production_kind", "production_value", "tech_id", "name",
+)
 
 
 def action_message(action):

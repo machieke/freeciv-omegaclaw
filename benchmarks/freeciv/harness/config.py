@@ -35,6 +35,9 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
             raise ValueError("{}.{} must be in {}..{}".format(prefix, key, lower, upper))
     if not isinstance(impact.get("preserve_city_defenders"), bool):
         raise ValueError("{}.preserve_city_defenders must be boolean".format(prefix))
+    if impact.get("production_strategy") not in ("static_priority", "horizon_score"):
+        raise ValueError(
+            "{}.production_strategy must be static_priority or horizon_score".format(prefix))
     refresh_timeout = impact.get("refresh_timeout_seconds")
     if (isinstance(refresh_timeout, bool)
             or not isinstance(refresh_timeout, (int, float))
@@ -215,6 +218,20 @@ def _validate_paired_impact(value):
             or maximum_states < 10000):
         raise ValueError(
             "paired_impact score randomization requires at least 10000 states")
+    meaningful_score_test = claims.get("meaningful_score_test")
+    if (not isinstance(meaningful_score_test, dict)
+            or set(meaningful_score_test) != {"method", "alternative", "maximum_states"}
+            or meaningful_score_test.get("method") != "exact_paired_sign_flip"
+            or meaningful_score_test.get("alternative") != "greater"):
+        raise ValueError(
+            "paired_impact meaningful score claim requires a greater-than exact "
+            "paired sign-flip test")
+    meaningful_maximum_states = meaningful_score_test.get("maximum_states")
+    if (isinstance(meaningful_maximum_states, bool)
+            or not isinstance(meaningful_maximum_states, int)
+            or meaningful_maximum_states < 10000):
+        raise ValueError(
+            "paired_impact meaningful score randomization requires at least 10000 states")
     for key in ("score_superiority_margin", "win_superiority_margin"):
         setting = claims.get(key)
         if not isinstance(setting, (int, float)) or setting != 0:

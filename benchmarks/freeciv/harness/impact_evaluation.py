@@ -126,6 +126,7 @@ def _claim_evaluation(design, cohort, complete_pairs, incomplete_pairs,
             primary["lower"] is not None and primary["lower"] > meaningful)
         meaningful_randomization_passed = bool(
             meaningful_score_test["ready"]
+            and meaningful_score_test["observed_mean_difference"] > 0
             and meaningful_score_test["p_value"] <= design["power"]["alpha"])
         meaningful_passed = (
             passed and meaningful_interval_passed
@@ -320,7 +321,8 @@ def aggregate_impact_pairs(out, config_path=None, cohort=None):
     score_meaningful_randomization = paired_score_randomization(
         score_differences,
         margin=design["claims"]["meaningful_score_delta"],
-        maximum_states=score_test_config["maximum_states"])
+        maximum_states=design["claims"]["meaningful_score_test"]["maximum_states"],
+        alternative=design["claims"]["meaningful_score_test"]["alternative"])
     power = paired_power(
         score_differences, alpha=design["power"]["alpha"],
         target_power=design["power"]["target_power"],
@@ -442,8 +444,9 @@ def aggregate_impact_pairs(out, config_path=None, cohort=None):
             "confidence": statistics["confidence"],
             "continuous": "deterministic percentile bootstrap of paired seed deltas",
             "score_test": (
-                "exact two-sided paired sign-flip randomization test; fails closed "
-                "above the predeclared state bound"),
+                "exact two-sided paired sign-flip test for superiority and exact "
+                "one-sided greater-than sign-flip test for the meaningful margin; "
+                "both fail closed above the predeclared state bound"),
             "bootstrap_samples": statistics["bootstrap_samples"],
             "primary_bootstrap_samples": design["power"]["primary_bootstrap_samples"],
             "bootstrap_seed": statistics["bootstrap_seed"],
@@ -488,8 +491,9 @@ def write_impact_report(out, aggregate):
         "Treatment minus baseline score: `{}`. This interval uses games/seeds as the "
         "experimental units, not actions.".format(_interval(primary, 2)), "",
         "Exact two-sided paired sign-flip test against the zero-point superiority "
-        "margin: ready `{}`, p `{}`, states `{}`. The stronger test against the "
-        "declared meaningful margin of `{}` points is ready `{}`, p `{}`.".format(
+        "margin: ready `{}`, p `{}`, states `{}`. The one-sided greater-than test "
+        "against the declared meaningful margin of `{}` points is ready `{}`, p `{}`."
+        .format(
             score_randomization["ready"], score_randomization["p_value"],
             score_randomization["states_evaluated"],
             meaningful_score_randomization["margin"],
@@ -512,9 +516,19 @@ def write_impact_report(out, aggregate):
     ]
     for metric in (
             "opponent_score_turn_n", "score_margin_turn_n",
-            "decision_effect_observed_rate", "decision_no_effect_failover_recovery_rate",
+            "decision_effect_observed_rate", "decision_effect_confirmation_latency_ms",
+            "decision_effect_confirmation_timeouts",
+            "decision_no_effect_failover_recovery_rate",
             "positions_explored", "tactical_actions", "cities_founded",
             "technologies_acquired", "engine_rejected_action_rate",
+            "production_projected_completion_eta_turns",
+            "production_projected_score_value",
+            "production_projected_build_cost",
+            "production_projected_shield_surplus",
+            "production_projected_pop_cost",
+            "production_projection_ruleset_source_rate",
+            "score_component_citizen_delta", "score_component_technology_delta",
+            "score_component_residual_turn_n",
             "full_loop_under_30s_rate", "model_safe_fallback_rate"):
         result = aggregate["paired_deltas"][metric]
         lines.append("| {} | {} | {} |".format(metric, _interval(result), result["n"]))

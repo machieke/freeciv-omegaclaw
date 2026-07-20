@@ -55,12 +55,14 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert config["impact_policy"]["horizon_turn"] == 30
     assert config["impact_policy"]["production_minimum_remaining_turns"] == 8
     assert config["impact_policy"]["refresh_timeout_seconds"] == 2.0
+    assert config["impact_policy"]["production_strategy"] == "horizon_score"
     paired = config["paired_impact"]
     assert paired["default_cohort"] == "development"
     assert {name: len(row["seeds"]) for name, row in paired["cohorts"].items()} == {
         "development": 100, "pilot": 40,
         "pilot_horizon_60": 40,
         "pilot_horizon_60_v2": 40,
+        "pilot_horizon_60_v3": 40,
         "confirmatory_score": 100,
         "confirmatory_score_horizon_60_v1": 200,
         "confirmatory_joint": 450,
@@ -75,9 +77,16 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert paired["claims"]["score_test"] == {
         "alternative": "two_sided", "maximum_states": 1000000,
         "method": "exact_paired_sign_flip"}
+    assert paired["claims"]["meaningful_score_test"] == {
+        "alternative": "greater", "maximum_states": 1000000,
+        "method": "exact_paired_sign_flip"}
     assert config["paired_impact"]["arms"] == {
-        "baseline": {"max_no_effect_failovers_per_scope": 0},
-        "treatment": {"max_no_effect_failovers_per_scope": 4},
+        "baseline": {
+            "max_no_effect_failovers_per_scope": 0,
+            "production_strategy": "static_priority"},
+        "treatment": {
+            "max_no_effect_failovers_per_scope": 4,
+            "production_strategy": "horizon_score"},
     }
     score_derivation = paired["cohorts"]["confirmatory_score"]["seed_derivation"]
     assert score_derivation == {
@@ -112,6 +121,11 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "algorithm": "sha256-counter-v1",
         "namespace": "pln-freeciv-impact-pilot-horizon60-v2",
         "count": 40, "minimum": 1300000, "maximum": 1399999,
+    }
+    assert paired["cohorts"]["pilot_horizon_60_v3"]["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": "pln-freeciv-impact-pilot-horizon60-v3",
+        "count": 40, "minimum": 1700000, "maximum": 1799999,
     }
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.0",
@@ -203,6 +217,18 @@ def test_exact_paired_score_randomization_is_deterministic_and_fails_closed():
     fractional = paired_score_randomization([1.5, 2.5])
     assert fractional["ready"] is False
     assert "integer score differences" in fractional["reason"]
+
+    meaningful = paired_score_randomization(
+        [3] * 10, margin=2, alternative="greater")
+    assert meaningful["alternative"] == "greater"
+    assert meaningful["observed_mean_difference"] == 1.0
+    assert meaningful["p_value"] == pytest.approx(1.0 / (2 ** 10))
+    wrong_direction = paired_score_randomization(
+        [0] * 10, margin=2, alternative="greater")
+    assert wrong_direction["observed_mean_difference"] == -2.0
+    assert wrong_direction["p_value"] == 1.0
+    with pytest.raises(ValueError, match="alternative"):
+        paired_score_randomization([1], alternative="less")
 
 
 def test_condition_capability_access_fails_closed():
@@ -505,6 +531,24 @@ def test_accepted_non_unit_no_update_closes_as_bounded_no_effect():
             {}, snapshot, "accepted-result", False)
 
 
+def test_accepted_impact_refresh_waits_for_candidate_specific_effect():
+    snapshot = object()
+    applied = object()
+    seen = []
+
+    async def refresh(current, cause, predicate, timeout):
+        assert current is snapshot and cause == "accepted-result"
+        assert timeout == 2.0
+        seen.append(predicate(applied))
+        return {"turn": 1}, applied, "effect-state"
+
+    result = asyncio.run(_refresh_accepted_impact_action(
+        refresh, {}, snapshot, "accepted-result", object(),
+        refresh_timeout=2.0, effect_predicate=lambda value: value is applied))
+    assert seen == [True]
+    assert result == ({"turn": 1}, applied, "effect-state", True)
+
+
 def test_worker_assignment_does_not_change_behavioral_manifest_identity():
     runner = HarnessRunner("unused", backend="engine-live", workers=3)
     job = {"condition": "a_stock_llm", "seed": 104729,
@@ -558,6 +602,8 @@ def test_paired_impact_jobs_alternate_order_and_override_only_declared_policy():
     assert treatment["impact_outcomes"]["win_metric"] == "score_lead_turn_n"
     assert baseline["impact_policy"]["max_no_effect_failovers_per_scope"] == 0
     assert treatment["impact_policy"]["max_no_effect_failovers_per_scope"] == 4
+    assert baseline["impact_policy"]["production_strategy"] == "static_priority"
+    assert treatment["impact_policy"]["production_strategy"] == "horizon_score"
     assert baseline["manifest_identity"] != treatment["manifest_identity"]
     pilot = HarnessRunner(
         "unused", seed_limit=1, conditions=("e_full_loop",),
@@ -568,7 +614,7 @@ def test_paired_impact_jobs_alternate_order_and_override_only_declared_policy():
     assert pilot_manifest["impact_pair"]["require_clean_source"] is True
     long_pilot = HarnessRunner(
         "unused", seed_limit=1, conditions=("e_full_loop",),
-        impact_cohort="pilot_horizon_60_v2")
+        impact_cohort="pilot_horizon_60_v3")
     long_manifest = long_pilot._manifest(long_pilot._impact_jobs()[0], 0)
     assert long_manifest["turn_limit"] == long_manifest["engine_max_turns"] == 60
     assert long_manifest["impact_policy"]["horizon_turn"] == 60
@@ -691,7 +737,8 @@ def test_joint_claims_are_hierarchical_and_require_score_gate_first():
     discordance = {"exact_mcnemar_p": 0.03}
     score = {"estimate": 2.0, "lower": 0.5, "upper": 3.5}
     score_test = {"ready": True, "p_value": 0.01}
-    meaningful_score_test = {"ready": True, "p_value": 0.50}
+    meaningful_score_test = {
+        "ready": True, "p_value": 0.50, "observed_mean_difference": 0.0}
     passed = _claim_evaluation(
         design, cohort, 450, [], [], [], safety, source,
         score, score_test, meaningful_score_test, win, discordance, power)
@@ -722,6 +769,7 @@ def test_joint_claims_are_hierarchical_and_require_score_gate_first():
     score.update({"estimate": 3.0, "lower": 2.25, "upper": 3.75})
     score_test["p_value"] = 0.001
     meaningful_score_test["p_value"] = 0.02
+    meaningful_score_test["observed_mean_difference"] = 1.0
     meaningful = _claim_evaluation(
         design, cohort, 450, [], [], [], safety, source,
         score, score_test, meaningful_score_test, win, discordance, power)
