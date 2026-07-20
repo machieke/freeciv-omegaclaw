@@ -185,3 +185,70 @@ support a new score or win-rate claim. The next statistical step is a disjoint
 multi-pair development/pilot cohort at the intended 60-turn horizon, followed by
 a newly frozen confirmation only if its mechanism diagnostics and variance
 justify one.
+
+## Completed horizon-policy v3 pilot
+
+The disjoint engine-backed `pilot_horizon_60_v3` cohort completed all 40
+predeclared pairs under clean commit
+`cbd0a05bf6d1ca7da229f6a8b17cd0549bdf1870` and configuration hash
+`75f3f7c2fe89009eafdded39ec68c8ee0dbd0eb077c313579f6b013c82fe57fc`.
+Its namespace is
+`pln-freeciv-impact-pilot-horizon60-v3`, with seeds derived only from
+`1700000..1799999`. The order was balanced at 20 baseline-first and 20
+treatment-first pairs. All paired initial-state fingerprints matched, both arms
+had zero rejected actions and zero model fallbacks, and every full loop stayed
+under 30 seconds. One treatment attempt timed out while waiting for authoritative
+turn 3; resume mode retained that failure and the same manifest then completed
+successfully. The final active cohort has 80 completed arms, zero active
+infrastructure failures, and a stable source/implementation identity. The
+historical failed attempt remains visible in the aggregate.
+
+Treatment minus baseline score at turn 60 was `+0.175`, with bootstrap 95% CI
+`[-0.65, +0.975]` and exact two-sided paired sign-flip `p=0.72484`. Eighteen
+pairs favored treatment, nine tied, and thirteen favored baseline. The observed
+paired score SD was `2.659`; at 40 pairs the detectable delta for 80% power was
+approximately `1.178` points. The one-sided exact test above the predeclared
+meaningful `+2` margin had `p=0.99998`. Fixed-horizon score-lead rate changed by
+`-0.025` with interval `[-0.10, +0.05]`. This pilot is not claim eligible and
+does not justify freezing a confirmation cohort for the new policy. A normal
+planning approximation would require roughly 1,813 fresh pairs to detect the
+observed `+0.175` mean at 80% power, so merely increasing the sample for the
+unchanged policy is rejected.
+
+The mechanism trace identifies a ruleset-capability error rather than a lack of
+policy activation. Across all production changes, treatment selected
+`Engineers` 39 times in 33/40 games, while baseline selected `Settlers` 43 times
+in 36/40 games. Treatment then averaged 171.98 move actions and 1.28 city-build
+attempts per game, versus 85.73 moves and 2.30 city-build attempts for baseline.
+Across all treatment games, every
+`unit_build_city` attempt was made by an existing `Settlers` unit; no produced
+`Engineers` unit ever received that action. Consequently, treatment founded
+`0.70` fewer cities per seed (95% CI `[-0.825, -0.55]`) while exploring 12.68
+more positions and taking 4.0 fewer tactical actions. Its residual score
+component moved `+0.25`, citizen score moved `-0.075`, and technology score did
+not move. Twenty-eight pairs lost one treatment city. Those pairs averaged
+`-0.143` score, whereas the 12 pairs with equal city counts averaged `+0.917`;
+this subgroup contrast is diagnostic, not a causal claim.
+
+The active `civ2civ3` ruleset explains the mismatch. Its `Found City` action
+enabler requires the unit flag `Cities`. `Settlers` has that flag, but
+`Engineers` and `Migrants` do not, even though all are workers with a
+`Settlers` role. The planner's name-based `FOUNDER_TYPES` set incorrectly treats
+those concepts as equivalent. The horizon projection therefore rewards a
+zero-population Engineer as a founder, continuously produces it, and the movement
+policy spends extra actions sending those workers toward settlement tiles they
+cannot convert into cities.
+
+Before another fresh cohort, founder eligibility must be compiled from the
+ruleset action enabler and unit flags, or otherwise be demonstrated by the
+server-advertised `unit_build_city` capability. Worker, city-founder, join-city,
+and terrain-improvement roles must remain distinct. Production projections must
+also model repeated output after completion and stop producing workers when no
+score-bearing consumer exists. Acceptance requires a unit-capability test using
+the real `civ2civ3` distinctions, a live smoke in which every selected expansion
+unit can actually receive `unit_build_city`, and telemetry showing that extra
+worker production does not inflate move/no-effect actions. Founder-produced,
+settlement-attempted, settlement-completed, and founder-idle-turn telemetry must
+distinguish production, routing, legality, and timing failures. Only then should
+a new disjoint pilot be run. The immutable 200-pair `+0.435` confirmation
+remains the current positive score claim for the prior implementation.
