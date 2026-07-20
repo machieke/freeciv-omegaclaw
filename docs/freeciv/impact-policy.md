@@ -138,6 +138,9 @@ the existing score and latency metrics:
 - `planner_founder_capable_unit_types`,
   `planner_capability_pruned_worker_moves`, and
   `planner_nonprogress_moves_pruned`;
+- `population_recovery_attempts`, `population_recovery_completions`, and
+  `population_recovered` for exact ruleset-valued surplus-founder joins after
+  the expansion target is complete;
 - `planner_founder_unreachable_moves_pruned`, founder route successes, failures,
   success rate, cardinal-corridor attempts/successes, and observed-evidence route ETA;
 - population-ready, settlement ETA/runway, founder-deficit, and compiler-source
@@ -270,6 +273,24 @@ endpoint is explicitly a score lead at the fixed horizon, not an engine-reported
 terminal victory. A confirmatory score claim requires both a paired confidence
 interval excluding zero and an exact paired sign-flip randomization test at the
 predeclared alpha; the stronger two-point claim repeats both gates at that margin.
+
+## Surplus-founder population recovery evidence
+
+The development run at
+`artifacts/freeciv/impact-population-recovery-dev-3-20260720` validates an
+immediate score-preservation path for repeated Settler output after the three-city
+target is complete. Treatment selects only an exact server-advertised
+`unit_join_city` action whose actor is a ruleset `Cities` founder with positive
+`pop_cost`, is co-located with the owned target city, and carries that city's
+numeric ID through the proxy. The effect is counted only when the actor disappears
+and that exact city's size rises by the compiled population cost.
+
+All three pairs completed without infrastructure failure or engine rejection.
+The exploratory mean score delta was `+2.0` with bootstrap interval `[0, 4]`.
+On seed `104759`, five joins recovered 10 cumulative population; final citizens
+rose from 9 to 14, final score from 113 to 117, and no-effect actions fell from
+23 to 14. This is mechanism and development evidence, not a new statistical
+claim. A disjoint, adequately sized pilot remains necessary.
 
 ## Operational note
 

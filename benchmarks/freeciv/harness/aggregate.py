@@ -45,6 +45,8 @@ METRICS = (
     "planner_founder_cardinal_corridor_successes",
     "planner_founder_cardinal_corridor_success_rate",
     "planner_founder_capable_unit_types",
+    "population_recovery_attempts", "population_recovery_completions",
+    "population_recovered",
     "production_projected_completion_eta_turns",
     "production_projected_score_value",
     "production_projected_build_cost", "production_projected_shield_surplus",

@@ -1374,7 +1374,8 @@ async def _play(run_dir, manifest, context):
                                 (lambda value: impact_planner.candidate_effect_observed(
                                     decision.candidate, action_snapshot, value))
                                 if impact_action.get("action_type") in (
-                                    "city_production", "unit_build_city")
+                                    "city_production", "unit_build_city",
+                                    "unit_join_city")
                                 else None)))
                     effect_confirmation_latencies.append(
                         (time.perf_counter() - confirmation_started) * 1000.0)
@@ -1581,6 +1582,14 @@ async def _play(run_dir, manifest, context):
         ("planner_founder_capable_unit_types",
          len(impact_planner.founder_capable_types)
          if impact_planner is not None else 0),
+        ("population_recovery_attempts",
+         impact_planner.population_recovery_attempts
+         if impact_planner is not None else 0),
+        ("population_recovery_completions",
+         impact_planner.population_recovery_completions
+         if impact_planner is not None else 0),
+        ("population_recovered",
+         impact_planner.population_recovered if impact_planner is not None else 0),
         ("tactical_actions", decision_stats["tactical_actions"]),
         ("production_projected_completion_eta_turns",
          sum(production_projection_etas) / max(1, len(production_projection_etas))),
@@ -1680,6 +1689,15 @@ async def _play(run_dir, manifest, context):
             "planner_founder_capable_unit_types": (
                 len(impact_planner.founder_capable_types)
                 if impact_planner is not None else 0),
+            "population_recovery_attempts": (
+                impact_planner.population_recovery_attempts
+                if impact_planner is not None else 0),
+            "population_recovery_completions": (
+                impact_planner.population_recovery_completions
+                if impact_planner is not None else 0),
+            "population_recovered": (
+                impact_planner.population_recovered
+                if impact_planner is not None else 0),
             "planned_engine_actions": planned_actions,
             "opponent_score": opponent_score,
             "outcome_definition": "fixed_horizon_score_lead",
@@ -1723,6 +1741,15 @@ async def _play(run_dir, manifest, context):
             if impact_planner is not None else 0),
         "planner_founder_capable_unit_types": (
             len(impact_planner.founder_capable_types)
+            if impact_planner is not None else 0),
+        "population_recovery_attempts": (
+            impact_planner.population_recovery_attempts
+            if impact_planner is not None else 0),
+        "population_recovery_completions": (
+            impact_planner.population_recovery_completions
+            if impact_planner is not None else 0),
+        "population_recovered": (
+            impact_planner.population_recovered
             if impact_planner is not None else 0),
         "planned_engine_actions": planned_actions,
         "zombie_attempts_blocked": zombie_blocked,

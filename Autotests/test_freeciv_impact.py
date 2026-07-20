@@ -659,6 +659,91 @@ def test_settlement_effect_requires_actor_consumption_and_a_new_city():
         candidate, before, completed)
 
 
+def test_surplus_founder_recovers_exact_ruleset_population_after_city_target():
+    cities = [_city()]
+    for city_id, name, x in ((12, "Antium", 3), (13, "Cumae", 6)):
+        city = _city()
+        city.update({"id": city_id, "name": name, "tile": x, "x": x})
+        cities.append(city)
+    join = {
+        "action_type": "unit_join_city", "actor_id": 1,
+        "target": {"city": "Rome", "city_id": 10}, "is_valid": True,
+    }
+    actions = [join, {"action_type": "end_turn", "is_valid": True}]
+    ir = _ruleset_ir(
+        (("Settlers", "unit", 30), ("Migrants", "unit", 20)),
+        founders=("Settlers",), pop_costs={"Settlers": 2, "Migrants": 1})
+    snapshot = _snapshot(
+        [_unit(1, "Settlers")], actions, cities=cities, turn=18)
+
+    planner = GroundedImpactPlanner(ruleset_ir=ir)
+    decision = planner.plan(snapshot)
+
+    assert decision.candidate.category == "population_recovery"
+    assert decision.candidate.action["target"]["city_id"] == 10
+    assert decision.candidate.projection == {
+        "recovered_population": 2,
+        "population_value_source": "ruleset_ir",
+        "target_city_id": 10,
+    }
+    assert decision.candidate.terminal_on_accept
+
+    # The paired static baseline stays unchanged, and expansion capacity is not
+    # sacrificed before the configured city target has actually been reached.
+    assert GroundedImpactPlanner(
+        {"production_strategy": "static_priority"}, ruleset_ir=ir
+    ).plan(snapshot) is None
+    assert GroundedImpactPlanner(ruleset_ir=ir).plan(_snapshot(
+        [_unit(1, "Settlers")], actions, cities=cities[:2], turn=18)) is None
+
+    # Worker/AddToCity capability is not enough: only a ruleset Cities founder
+    # may be retired by this score policy.
+    migrant_join = dict(join, actor_id=2)
+    assert GroundedImpactPlanner(ruleset_ir=ir).plan(_snapshot(
+        [_unit(2, "Migrants")], [migrant_join, actions[-1]],
+        cities=cities, turn=18)) is None
+
+
+def test_population_recovery_effect_requires_unit_consumption_and_exact_city_gain():
+    cities = [_city()]
+    for city_id, x in ((12, 3), (13, 6)):
+        city = _city()
+        city.update({"id": city_id, "tile": x, "x": x})
+        cities.append(city)
+    action = {
+        "action_type": "unit_join_city", "actor_id": 1,
+        "target": {"city": "Rome", "city_id": 10}, "is_valid": True,
+    }
+    ir = _ruleset_ir(
+        (("Settlers", "unit", 30),), pop_costs={"Settlers": 2})
+    before = _snapshot([_unit(1, "Settlers")], [
+        action, {"action_type": "end_turn", "is_valid": True}], cities=cities)
+    planner = GroundedImpactPlanner(ruleset_ir=ir)
+    candidate = planner.plan(before).candidate
+
+    unchanged = _snapshot([_unit(1, "Settlers")], [
+        action, {"action_type": "end_turn", "is_valid": True}],
+        cities=cities, source_seq=2)
+    assert not planner.candidate_effect_observed(candidate, before, unchanged)
+
+    grown = [dict(city) for city in cities]
+    grown[0]["size"] = 4
+    completed = _snapshot([], [{"action_type": "end_turn", "is_valid": True}],
+                          cities=grown, source_seq=3)
+    assert planner.candidate_effect_observed(candidate, before, completed)
+    planner.record_outcome(candidate, before, True, completed)
+    assert planner.population_recovery_attempts == 1
+    assert planner.population_recovery_completions == 1
+    assert planner.population_recovered == 2
+
+    wrong_gain = [dict(city) for city in cities]
+    wrong_gain[0]["size"] = 3
+    assert not planner.candidate_effect_observed(
+        candidate, before, _snapshot(
+            [], [{"action_type": "end_turn", "is_valid": True}],
+            cities=wrong_gain, source_seq=4))
+
+
 def test_production_candidates_require_fixed_horizon_runway():
     granary = _production(10, "Granary", 3, 14)
     actions = [granary, {"action_type": "end_turn", "is_valid": True}]

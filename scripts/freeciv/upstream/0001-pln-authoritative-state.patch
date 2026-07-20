@@ -1,8 +1,58 @@
 diff --git a/freeciv-proxy/action_validator.py b/freeciv-proxy/action_validator.py
-index 96d166c..772b354 100644
+index 96d166c..3c2fb11 100644
 --- a/freeciv-proxy/action_validator.py
 +++ b/freeciv-proxy/action_validator.py
-@@ -473,50 +473,17 @@ class LLMActionValidator:
+@@ -325,6 +325,8 @@ class LLMActionValidator:
+             result = self._validate_unit_move(action, player_id, game_state)
+         elif action_type == ActionType.UNIT_BUILD_CITY:
+             result = self._validate_unit_build_city(action, player_id, game_state)
++        elif action_type == ActionType.UNIT_JOIN_CITY:
++            result = self._validate_unit_join_city(action, player_id, game_state)
+         elif action_type in (ActionType.CITY_PRODUCTION, ActionType.CITY_CHANGE_PRODUCTION):
+             result = self._validate_city_production(action, player_id, game_state)
+         elif action_type == ActionType.TECH_RESEARCH:
+@@ -432,6 +434,40 @@ class LLMActionValidator:
+ 
+         return ValidationResult(True)
+ 
++    def _validate_unit_join_city(self, action: Dict[str, Any], player_id: int,
++                                 game_state: Optional[Dict[str, Any]]) -> ValidationResult:
++        """Validate an exact, owned, co-located join-city target."""
++        if 'city_id' not in action:
++            return self._validation_error('E025', 'Join city requires city_id')
++
++        unit_result = self._validate_unit_can_act(
++            action, player_id, game_state, 'Join city')
++        if not unit_result.is_valid:
++            return unit_result
++        city_result = self._validate_city_ownership(
++            action, player_id, game_state, 'E025', 'E026', 'E027', 'Join city')
++        if not city_result.is_valid:
++            return city_result
++
++        if game_state and 'units' in game_state and 'cities' in game_state:
++            units = (game_state['units'].values()
++                     if isinstance(game_state['units'], dict)
++                     else game_state['units'])
++            cities = (game_state['cities'].values()
++                      if isinstance(game_state['cities'], dict)
++                      else game_state['cities'])
++            unit = next((row for row in units if isinstance(row, dict)
++                         and row.get('id') == action.get('unit_id')), None)
++            city = next((row for row in cities if isinstance(row, dict)
++                         and row.get('id') == action.get('city_id')), None)
++            if (unit is not None and city is not None
++                    and unit.get('tile') is not None and city.get('tile') is not None
++                    and unit.get('tile') != city.get('tile')):
++                return self._validation_error(
++                    'E028', 'Unit must be on the target city tile')
++
++        return ValidationResult(True)
++
+     def _validate_city_production(self, action: Dict[str, Any], player_id: int, game_state: Optional[Dict[str, Any]]) -> ValidationResult:
+         """Validate city production change"""
+         required_fields = ['city_id', 'production_type']
+@@ -473,50 +509,17 @@ class LLMActionValidator:
          if 'tech_name' not in action:
              return self._validation_error('E040', 'Tech research requires tech_name field')
  
@@ -64,7 +114,7 @@ index 96d166c..772b354 100644
  
          return ValidationResult(True)
  
-@@ -1109,4 +1076,3 @@ class LLMActionValidator:
+@@ -1109,4 +1112,3 @@ class LLMActionValidator:
                  return self._validation_error('E323', 'city_sell_improvement requires improvement_id or improvement_name')
  
          return ValidationResult(True)
@@ -386,7 +436,7 @@ index 2f69128..378e8a6 100644
              logger.info(f"Game {self.game_id}: No configuration changes requested")
              self.config_applied = True
 diff --git a/freeciv-proxy/llm_handler.py b/freeciv-proxy/llm_handler.py
-index 9be5668..09266c8 100644
+index 9be5668..e373aba 100644
 --- a/freeciv-proxy/llm_handler.py
 +++ b/freeciv-proxy/llm_handler.py
 @@ -587,10 +587,24 @@ class LLMWSHandler(websocket.WebSocketHandler):
@@ -418,8 +468,7 @@ index 9be5668..09266c8 100644
                  port_type = (
                      "MULTIPLAYER (6001-6009)" if 6001 <= civserver_port <= 6009
                      else "SINGLEPLAYER (6000)" if civserver_port == 6000
-@@ -1648,8 +1662,17 @@ class LLMWSHandler(websocket.WebSocketHandler):
-             # If production is empty, don't set the field - let action_validator E030 handle it
+@@ -1649,6 +1663,15 @@ class LLMWSHandler(websocket.WebSocketHandler):
              # with a clearer "Missing required field" error instead of cryptic S001 format error
              if production:
                  normalized["production_type"] = str(production).lower()
@@ -435,8 +484,34 @@ index 9be5668..09266c8 100644
  
          elif action_type == "unit_build_city":
              # Extract unit_id
-             if "unit_id" in action_data:
-@@ -2886,6 +2909,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1660,6 +1683,17 @@ class LLMWSHandler(websocket.WebSocketHandler):
+             if isinstance(target, dict) and "name" in target:
+                 normalized["name"] = target["name"]
+ 
++        elif action_type == "unit_join_city":
++            # Join-city is a unit action whose packet target is an exact city ID.
++            # Preserve the server-advertised identifier; a city name alone is not
++            # sufficient to construct PACKET_UNIT_DO_ACTION safely.
++            target = action_data.get("target", {})
++            city_id = action_data.get("city_id")
++            if city_id is None and isinstance(target, dict):
++                city_id = target.get("city_id")
++            if city_id is not None:
++                normalized["city_id"] = city_id
++
+         elif action_type in ("unit_attack", "unit_suicide_attack", "unit_bombard",
+                              "unit_capture", "unit_wipe", "unit_conquer_city",
+                              "unit_nuke", "unit_nuke_city", "unit_nuke_units"):
+@@ -2621,6 +2655,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
+                     formatted['target'] = {'improvement': params['improvement']}
+                 elif 'city' in params:
+                     formatted['target'] = {'city': params['city']}
++                    if 'city_id' in params:
++                        formatted['target']['city_id'] = params['city_id']
+                 elif params:  # Pass through any other params
+                     formatted['target'] = params
+             
+@@ -2886,6 +2922,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
          # Map format_type to StateFormat enum
          format_map = {
              'llm_optimized': StateFormat.LLM_OPTIMIZED,
@@ -444,7 +519,7 @@ index 9be5668..09266c8 100644
              'full': StateFormat.FULL,
              'delta': StateFormat.DELTA
          }
-@@ -5061,6 +5085,21 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -5061,6 +5098,21 @@ class LLMWSHandler(websocket.WebSocketHandler):
  
          session = session_manager.validate_session(self.session_id)
          if session:
@@ -480,7 +555,7 @@ index 8570765..6ba646e 100644
                  "trace_context": {"max_keys": 5},
                  "correlation_id": {"max_length": 64, "pattern": r"^[a-zA-Z0-9_-]+$"},
 diff --git a/freeciv-proxy/packet_converter.py b/freeciv-proxy/packet_converter.py
-index e16064b..643b48b 100644
+index e16064b..a85d01c 100644
 --- a/freeciv-proxy/packet_converter.py
 +++ b/freeciv-proxy/packet_converter.py
 @@ -259,16 +259,33 @@ def _convert_action_to_packet_impl(
@@ -520,12 +595,26 @@ index e16064b..643b48b 100644
          return _sanitize_packet(
              {
                  "pid": PACKET_CITY_CHANGE,
+@@ -770,10 +787,13 @@ def _convert_action_to_packet_impl(
+             "action_type": ACTION_UPGRADE_UNIT,
+         }
+     elif action_type == "unit_join_city":
++        city_id = action.get("city_id", action.get("target_id"))
++        if isinstance(city_id, bool) or not isinstance(city_id, int) or city_id < 0:
++            raise ValueError("unit_join_city requires a non-negative city_id")
+         return {
+             "pid": PACKET_UNIT_DO_ACTION,
+             "actor_id": action["unit_id"],
+-            "target_id": action.get("city_id", action.get("target_id", -1)),
++            "target_id": city_id,
+             "sub_tgt_id": action.get("sub_tgt_id", -1),
+             "sub_target": action.get("sub_tgt_id", -1),
+             "name": "",
 diff --git a/freeciv-proxy/security.py b/freeciv-proxy/security.py
-index 2815c8c..c209bb7 100644
+index 2815c8c..72bbf66 100644
 --- a/freeciv-proxy/security.py
 +++ b/freeciv-proxy/security.py
-@@ -205,8 +205,19 @@ class InputSanitizer:
-             if 'production_type' in action:
+@@ -206,6 +206,17 @@ class InputSanitizer:
                  sanitized['production_type'] = cls.sanitize_string_field(
                      action['production_type'], 'production_type'
                  )
@@ -543,8 +632,22 @@ index 2815c8c..c209bb7 100644
              if 'player_id' in action:
                  sanitized['player_id'] = cls.sanitize_player_id(action['player_id'])
  
-         elif action_type == 'tech_research':
-@@ -295,7 +306,7 @@ class InputSanitizer:
+@@ -226,6 +237,14 @@ class InputSanitizer:
+             if 'name' in action:
+                 sanitized['name'] = cls.sanitize_string_field(action['name'], 'city_name')
+ 
++        elif action_type == 'unit_join_city':
++            if 'unit_id' in action:
++                sanitized['unit_id'] = cls.sanitize_unit_id(action['unit_id'])
++            if 'city_id' in action:
++                sanitized['city_id'] = cls.sanitize_city_id(action['city_id'])
++            if 'player_id' in action:
++                sanitized['player_id'] = cls.sanitize_player_id(action['player_id'])
++
+         # Handler for diplomacy_* actions (diplomacy_declare_war, diplomacy_propose_peace, etc.)
+         elif action_type.startswith('diplomacy_'):
+             if 'target_player_id' in action:
+@@ -295,7 +314,7 @@ class InputSanitizer:
  
          if 'format' in params:
              format_val = params['format']
@@ -554,7 +657,7 @@ index 2815c8c..c209bb7 100644
              else:
                  raise SecurityError(f"Invalid format: {format_val}")
 diff --git a/freeciv-proxy/state_extractor.py b/freeciv-proxy/state_extractor.py
-index 803966c..d55b358 100644
+index 803966c..a311b23 100644
 --- a/freeciv-proxy/state_extractor.py
 +++ b/freeciv-proxy/state_extractor.py
 @@ -447,7 +447,7 @@ def validate_request_parameters(game_id: str, player_id: Any, format_str: str =
@@ -583,7 +686,33 @@ index 803966c..d55b358 100644
              else:
                  raw_state = civcom.get_full_state(player_id)
  
-@@ -2614,9 +2617,9 @@ class StateExtractorHandler(web.RequestHandler):
+@@ -1222,15 +1225,22 @@ class StateExtractor:
+             # Check if unit is in a city
+             in_city = False
+             city_name = None
++            target_city_id = None
+             if civcom:
+                 for city_id, city in civcom.player_cities.items():
+                     if city.get('tile') == tile_index:
+                         in_city = True
+                         city_name = city.get('name')
++                        target_city_id = city.get('id', city_id)
+                         break
+-            
+-            add_action('join_city', {'city': city_name} if city_name else {}, 
+-                      in_city, None if in_city else "Not in a city", ACTION_JOIN_CITY)
++
++            join_params = ({'city': city_name, 'city_id': target_city_id}
++                           if in_city and target_city_id is not None else {})
++            join_valid = in_city and moves_left > 0
++            join_reason = (None if join_valid else
++                           "No moves left" if in_city else "Not in a city")
++            add_action('join_city', join_params, join_valid, join_reason,
++                       ACTION_JOIN_CITY)
+         
+         # === FORTIFY ACTION ===
+         if can_do_action(ACTION_FORTIFY):
+@@ -2614,9 +2624,9 @@ class StateExtractorHandler(web.RequestHandler):
              since_turn = self.get_argument('since_turn', None)
  
              # Validate format parameter (must match validate_request_parameters accepted formats)
@@ -719,10 +848,10 @@ index 0000000..ee7ffa6
 +        {"type": "end_turn", "is_valid": True}]
 diff --git a/freeciv-proxy/tests/test_release_game_configuration.py b/freeciv-proxy/tests/test_release_game_configuration.py
 new file mode 100644
-index 0000000..2b6bf2d
+index 0000000..5f8ec79
 --- /dev/null
 +++ b/freeciv-proxy/tests/test_release_game_configuration.py
-@@ -0,0 +1,151 @@
+@@ -0,0 +1,200 @@
 +"""Release-harness game settings are validated and ordered before start."""
 +
 +import ast
@@ -874,3 +1003,52 @@ index 0000000..2b6bf2d
 +            "production_type": "granary", "production_kind": 3,
 +            "production_value": 17,
 +        })
++
++
++def test_join_city_preserves_and_requires_exact_owned_colocated_target():
++    handler = object.__new__(llm_handler.LLMWSHandler)
++    normalized = handler._normalize_agent_action({
++        "action_type": "unit_join_city", "actor_id": 7,
++        "target": {"city": "Rome", "city_id": 10},
++    })
++    assert normalized == {
++        "type": "unit_join_city", "unit_id": 7, "city_id": 10}
++    assert InputSanitizer.sanitize_action_data(normalized) == normalized
++
++    game_state = {
++        "units": {"7": {"id": 7, "owner": 0, "tile": 55,
++                         "moves_left": 3}},
++        "cities": {"10": {"id": 10, "owner": 0, "tile": 55}},
++    }
++    validator = LLMActionValidator()
++    assert validator.validate_action(
++        dict(normalized, player_id=0), 0, game_state).is_valid
++    missing = validator.validate_action(
++        {"type": "unit_join_city", "unit_id": 7, "player_id": 0},
++        0, game_state)
++    assert not missing.is_valid and missing.error_code == "E025"
++    displaced = validator.validate_action(
++        dict(normalized, player_id=0), 0,
++        dict(game_state, cities={"10": dict(game_state["cities"]["10"],
++                                             tile=56)}))
++    assert not displaced.is_valid and displaced.error_code == "E028"
++
++    handler.civcom = object()
++    packet = handler._convert_action_to_packet(normalized)
++    assert packet["actor_id"] == 7
++    assert packet["target_id"] == 10
++    with pytest.raises(ValueError, match="requires a non-negative city_id"):
++        handler._convert_action_to_packet({
++            "type": "unit_join_city", "unit_id": 7})
++
++
++def test_join_city_action_response_keeps_city_id():
++    handler = object.__new__(llm_handler.LLMWSHandler)
++    rows = handler._format_unit_actions_for_response(7, {"actions": [{
++        "action": "join_city", "params": {"city": "Rome", "city_id": 10},
++        "is_valid": True, "action_id": 28,
++    }]})
++    assert rows == [{
++        "action_type": "unit_join_city", "actor_id": 7, "is_valid": True,
++        "action_id": 28, "target": {"city": "Rome", "city_id": 10},
++    }]

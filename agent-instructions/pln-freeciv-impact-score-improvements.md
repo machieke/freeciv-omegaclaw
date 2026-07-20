@@ -161,7 +161,7 @@ this arm-level distinction, better common transport would remove treatment
 activation and the experiment would estimate only a shrinking failover effect.
 
 The proxy patch identity for this hardening is
-`26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:311f9a3b8e9b930ae12a2d7670e4bea04ea4ba7ca33d6f51f03b17967e1579ae`.
+`26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:042ad24ea67ee8a8839d20241499ebd09474ede8529d6255c1fea7fdcf07a548`.
 Any score estimate for this new policy requires a new disjoint development
 cohort first; the completed 200-pair result remains the current claim and is not
 evidence for the new policy.
@@ -252,3 +252,28 @@ settlement-attempted, settlement-completed, and founder-idle-turn telemetry must
 distinguish production, routing, legality, and timing failures. Only then should
 a new disjoint pilot be run. The immutable 200-pair `+0.435` confirmation
 remains the current positive score claim for the prior implementation.
+
+## Surplus-founder population recovery development result
+
+The next development iteration closes a repeated-production score leak without
+inventing a production action the server does not honor. Once the configured
+three-city expansion target is complete, treatment may select a server-advertised
+`unit_join_city` action for a co-located unit only when the compiled ruleset gives
+that exact unit type both the `Cities` founder flag and a positive `pop_cost`.
+The proxy now carries the exact target city ID through legal-action extraction,
+normalization, sanitization, ownership/co-location validation, and packet
+conversion; a missing target fails closed. Completion requires the founder to
+disappear and the exact target city's size to rise by the ruleset population cost.
+
+The engine-backed three-pair development run at
+`artifacts/freeciv/impact-population-recovery-dev-3-20260720` completed all six
+arms with zero engine rejection or infrastructure failure. Treatment-minus-
+baseline score was `+2.0` with exploratory bootstrap interval `[0, 4]`; the
+sample is intentionally too small and development-only, so this is not a revised
+score claim. On regression seed `104759`, treatment completed five of five exact
+population recoveries, recovered 10 cumulative population, increased final
+citizens from 9 to 14 and score from 113 to 117, and reduced no-effect actions
+from 23 to 14. The release audit, including the consolidated reversible upstream
+patch, passed. A larger disjoint pilot is required before freezing any new
+confirmatory cohort; the immutable 200-pair `+0.435` prior-policy claim remains
+the current statistical claim.

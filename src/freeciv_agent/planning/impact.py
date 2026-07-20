@@ -56,7 +56,7 @@ class ImpactCandidate:
     def terminal_on_accept(self):
         """Whether transport acceptance can consume the actor before state catches up."""
         return self.action.get("action_type") in (
-            "unit_build_city", "unit_suicide_attack")
+            "unit_build_city", "unit_join_city", "unit_suicide_attack")
 
     @property
     def unit_scope_consumed_on_accept(self):
@@ -207,6 +207,9 @@ class GroundedImpactPlanner(object):
         self.founder_route_failures = 0
         self.founder_cardinal_corridor_attempts = 0
         self.founder_cardinal_corridor_successes = 0
+        self.population_recovery_attempts = 0
+        self.population_recovery_completions = 0
+        self.population_recovered = 0
         parameters = getattr(ruleset_ir, "parameters", {})
         initial_food = parameters.get("granary_food_ini", {})
         incremental_food = parameters.get("granary_food_inc", {})
@@ -409,6 +412,19 @@ class GroundedImpactPlanner(object):
             return bool(actor_id is not None and before.unit(actor_id) is not None
                         and after.unit(actor_id) is None
                         and len(after.cities) > len(before.cities))
+        if action.get("action_type") == "unit_join_city":
+            actor_id = action.get("actor_id")
+            target = action.get("target")
+            city_id = target.get("city_id") if isinstance(target, dict) else None
+            recovered = int((candidate.projection or {}).get(
+                "recovered_population", 0))
+            before_city = before.city(city_id) if city_id is not None else None
+            after_city = after.city(city_id) if city_id is not None else None
+            return bool(actor_id is not None and recovered > 0
+                        and before.unit(actor_id) is not None
+                        and after.unit(actor_id) is None
+                        and before_city is not None and after_city is not None
+                        and after_city.size == before_city.size + recovered)
         if action.get("actor_id") is not None:
             return self.local_actor_effect_observed(candidate, before, after)
         return before.identity.state_hash != after.identity.state_hash
@@ -418,9 +434,11 @@ class GroundedImpactPlanner(object):
         action = candidate.action
         actor_id = action.get("actor_id")
         city_id = action.get("city_id")
+        target = action.get("target")
+        if city_id is None and isinstance(target, dict):
+            city_id = target.get("city_id")
         actor = snapshot.unit(actor_id) if actor_id is not None else None
         city = snapshot.city(city_id) if city_id is not None else None
-        target = action.get("target")
         target_unit = None
         if isinstance(target, dict):
             target_unit_id = target.get("target_unit_id")
@@ -455,6 +473,12 @@ class GroundedImpactPlanner(object):
         target changes can.
         """
         self.commit(candidate)
+        if candidate.category == "population_recovery":
+            self.population_recovery_attempts += 1
+            if effect_observed:
+                self.population_recovery_completions += 1
+                self.population_recovered += int((candidate.projection or {}).get(
+                    "recovered_population", 0))
         if candidate.category == "city_founding":
             # A settlement attempt ends the current movement corridor whether
             # the site succeeds or the unit must search from the same tile.
@@ -1120,6 +1144,34 @@ class GroundedImpactPlanner(object):
                 "reveal a new position with an exploration-capable unit")
         return None
 
+    def _population_recovery_candidate(self, snapshot, action, founder_types):
+        """Recover ruleset-declared founder population after expansion is complete."""
+        if (self.production_strategy != "horizon_score"
+                or len(snapshot.cities) < self.expansion_city_target):
+            return None
+        unit = snapshot.unit(action.get("actor_id"))
+        target = action.get("target")
+        city_id = target.get("city_id") if isinstance(target, dict) else None
+        city = snapshot.city(city_id) if city_id is not None else None
+        if unit is None or city is None or unit.tile is None or city.tile is None:
+            return None
+        normalized = _normalized_type(unit.unit_type)
+        # Only the ruleset's exact Cities capability is strong enough to prove
+        # that consuming this unit cannot discard an unrelated AddToCity unit.
+        if normalized not in self._ruleset_founder_types:
+            return None
+        spec = self._production_specs.get(normalized, {})
+        population = int(spec.get("pop_cost", 0))
+        if population <= 0 or unit.tile != city.tile:
+            return None
+        return ImpactCandidate(
+            action, "population_recovery", 990.0 + population,
+            "restore a surplus founder's exact ruleset population cost after "
+            "the expansion target is complete",
+            {"recovered_population": population,
+             "population_value_source": "ruleset_ir",
+             "target_city_id": city.city_id})
+
     @staticmethod
     def _offensive_target_is_visible(snapshot, action):
         """Require packet-visible opposition before issuing an attack order.
@@ -1166,6 +1218,9 @@ class GroundedImpactPlanner(object):
                     candidate = ImpactCandidate(
                         action, "city_founding", 1000.0,
                         "found a city at or beyond the configured spacing")
+            elif action_type == "unit_join_city":
+                candidate = self._population_recovery_candidate(
+                    snapshot, action, founder_types)
             elif action_type == "city_production":
                 candidate = self._production_candidate(
                     snapshot, action, founder_types)

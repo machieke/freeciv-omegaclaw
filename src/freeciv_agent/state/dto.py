@@ -79,6 +79,13 @@ def _executable_action(row, player_id=None):
         normalized = copy.deepcopy(row)
         normalized.pop("reason", None)
         normalized.pop("is_valid", None)
+        if normalized.get("action_type") == "unit_join_city":
+            target = normalized.get("target")
+            if not isinstance(target, dict):
+                raise ContractError("unit_join_city action is missing target city")
+            target["city_id"] = _integer(
+                target.get("city_id"),
+                "legal_actions.unit_join_city.target.city_id", required=True)
         return normalized
     kind = row.get("type")
     if kind == "tech_research":
@@ -136,7 +143,15 @@ def _executable_action(row, player_id=None):
             # coordinates directly under ``target``; retaining the wrapper
             # makes a proxy-advertised attack fail its own E235 validation.
             positional = params.get("target")
-            if (action_type in (
+            if action_type == "unit_join_city":
+                target = {}
+                if params.get("city") is not None:
+                    target["city"] = str(params["city"])
+                target["city_id"] = _integer(
+                    params.get("city_id"),
+                    "legal_actions.unit_join_city.target.city_id", required=True)
+                normalized["target"] = target
+            elif (action_type in (
                     "unit_attack", "unit_suicide_attack", "unit_bombard",
                     "unit_capture", "unit_wipe", "unit_conquer_city",
                     "unit_nuke", "unit_nuke_city", "unit_nuke_units")

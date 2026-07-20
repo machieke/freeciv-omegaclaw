@@ -19,8 +19,9 @@ from freeciv_agent.events.validator import validate_file  # noqa: E402
 from freeciv_agent.events.writer import EventWriter  # noqa: E402
 from freeciv_agent.execution import ExecutionGate, ProposedAction  # noqa: E402
 from freeciv_agent.rulesets.compiler import compile_ruleset  # noqa: E402
-from freeciv_agent.state import (GroundedRegistry, ProxyStateDTO, SnapshotConflict,  # noqa: E402
-                                 SnapshotStore, StateSummaryService)
+from freeciv_agent.state import (ContractError, GroundedRegistry, ProxyStateDTO,  # noqa: E402
+                                 SnapshotConflict, SnapshotStore,
+                                 StateSummaryService)
 from freeciv_agent.state.atoms import QUANTITATIVE_PREDICATES  # noqa: E402
 from freeciv_agent.state.parity import run_state_action_parity  # noqa: E402
 
@@ -260,6 +261,21 @@ def test_proxy_internal_move_found_city_and_attack_actions_are_canonical():
     assert next(row for row in actions if row["action_type"] == "unit_attack") == {
         "action_type": "unit_attack", "actor_id": 7,
         "target": {"x": 4, "y": 2}}
+
+
+def test_proxy_join_city_action_requires_and_preserves_exact_city_id():
+    payload = _payload()
+    payload["legal_actions"] = [{
+        "action_type": "unit_join_city", "actor_id": 7,
+        "target": {"city": "Rome", "city_id": 3}, "is_valid": True,
+        "action_id": 28,
+    }]
+    action = json.loads(_snapshot(payload=payload).legal_action_json[0])
+    assert action["target"] == {"city": "Rome", "city_id": 3}
+
+    payload["legal_actions"][0]["target"].pop("city_id")
+    with pytest.raises(ContractError, match="target.city_id"):
+        _snapshot(payload=payload)
 
 
 def test_summary_is_query_only_and_does_not_expose_raw_snapshot_or_legal_payloads():
