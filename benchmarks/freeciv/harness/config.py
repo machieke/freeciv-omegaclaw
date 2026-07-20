@@ -28,6 +28,7 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
             ("horizon_turn", 1, 500),
             ("production_minimum_remaining_turns", 1, 100),
             ("expansion_minimum_remaining_turns", 1, 100),
+            ("foodbox_percent", 1, 1000),
             ("no_effect_retry_limit", 1, 8),
             ("max_no_effect_failovers_per_scope", 0, 8)):
         setting = impact.get(key)
@@ -363,7 +364,7 @@ def load(path=None):
             or not model_config["keep_alive"].strip()):
         raise ValueError("harness model.keep_alive must be a non-empty string")
     rulebase = value.get("rulebase", {})
-    if rulebase.get("compiler_version") != "freeciv-ruleset-compiler/1.1":
+    if rulebase.get("compiler_version") != "freeciv-ruleset-compiler/1.2":
         raise ValueError("harness rulebase compiler version is not pinned")
     for key in ("source_sha256", "ir_sha256", "atomese_sha256"):
         digest = rulebase.get(key)

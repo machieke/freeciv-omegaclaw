@@ -74,14 +74,16 @@ class RulesetIR:
     rules: tuple
     grounded_signatures: tuple
     predicate_catalog: tuple
+    parameters: dict = field(default_factory=dict)
 
     def to_dict(self):
         return {
             "compiler_version": self.compiler_version,
             "grounded_signatures": list(self.grounded_signatures),
             "predicate_catalog": list(self.predicate_catalog),
+            "parameters": self.parameters,
             "rules": [rule.to_dict() for rule in self.rules],
             "ruleset": self.ruleset,
-            "schema_version": "1.1",
+            "schema_version": "1.2",
             "source_hashes": self.source_hashes,
         }

@@ -970,7 +970,9 @@ async def _play(run_dir, manifest, context):
     config = {
         "ruleset": manifest["ruleset"], "minplayers": 1, "aifill": 2,
         "mapseed": manifest["seed"], "gameseed": manifest["seed"],
-        "sciencebox": 100, "techlevel": 50, "map_size": "tiny",
+        "sciencebox": 100,
+        "foodbox": manifest["impact_policy"].get("foodbox_percent", 100),
+        "techlevel": 50, "map_size": "tiny",
         # Founder + mobile diplomat + stationary defender: the defender gives
         # fog-of-war calibration a repeatable visible opponent unit while the
         # diplomat drives the real scouting path.
@@ -1012,7 +1014,8 @@ async def _play(run_dir, manifest, context):
     decision_stats = {
         "impact_actions": 0, "meaningful_actions": 0,
         "production_changes": 0, "founder_production_changes": 0,
-        "settlement_attempts": 0, "tactical_actions": 0,
+        "settlement_attempts": 0, "settlement_completions": 0,
+        "tactical_actions": 0,
         "effect_observed": 0, "no_effect": 0, "safe_model_fallbacks": 0,
         "failover_attempts": 0, "failover_recoveries": 0,
         "effect_confirmation_timeouts": 0,
@@ -1031,6 +1034,11 @@ async def _play(run_dir, manifest, context):
     production_projection_shields = []
     production_projection_pop_costs = []
     production_projection_ruleset_sources = []
+    production_projection_population_etas = []
+    production_projection_settlement_etas = []
+    production_projection_settlement_runways = []
+    production_projection_growth_ruleset_sources = []
+    production_founder_deficits = []
     corrections = 0
     final_global = None
     async with websockets.connect(
@@ -1324,6 +1332,21 @@ async def _play(run_dir, manifest, context):
                                 projection["pop_cost"]))
                         production_projection_ruleset_sources.append(int(
                             projection.get("cost_source") == "ruleset_ir"))
+                        if projection.get("population_ready_eta_turns") is not None:
+                            production_projection_population_etas.append(float(
+                                projection["population_ready_eta_turns"]))
+                        if projection.get("settlement_eta_turns") is not None:
+                            production_projection_settlement_etas.append(float(
+                                projection["settlement_eta_turns"]))
+                        if projection.get("settlement_runway_turns") is not None:
+                            production_projection_settlement_runways.append(float(
+                                projection["settlement_runway_turns"]))
+                        if projection.get("growth_cost_source") is not None:
+                            production_projection_growth_ruleset_sources.append(int(
+                                projection["growth_cost_source"] == "ruleset_ir"))
+                        if projection.get("founder_deficit_before") is not None:
+                            production_founder_deficits.append(float(
+                                projection["founder_deficit_before"]))
                     excluded_impact_actions.add(decision.candidate.action_key)
                     confirmation_started = time.perf_counter()
                     raw, snapshot, parent, authoritative_refresh = (
@@ -1334,7 +1357,8 @@ async def _play(run_dir, manifest, context):
                             effect_predicate=(
                                 (lambda value: impact_planner.candidate_effect_observed(
                                     decision.candidate, action_snapshot, value))
-                                if impact_action.get("action_type") == "city_production"
+                                if impact_action.get("action_type") in (
+                                    "city_production", "unit_build_city")
                                 else None)))
                     effect_confirmation_latencies.append(
                         (time.perf_counter() - confirmation_started) * 1000.0)
@@ -1350,6 +1374,8 @@ async def _play(run_dir, manifest, context):
                         authoritative_refresh=authoritative_refresh)
                     if effect_observed:
                         decision_stats["effect_observed"] += 1
+                        if impact_action.get("action_type") == "unit_build_city":
+                            decision_stats["settlement_completions"] += 1
                     else:
                         decision_stats["no_effect"] += 1
                 decision_stats["failover_attempts"] += impact_budget.failover_attempts
@@ -1502,14 +1528,15 @@ async def _play(run_dir, manifest, context):
          float(decision_stats["safe_model_fallbacks"]) / max(1, turns_executed)),
         ("model_corrections_per_turn", float(corrections) / max(1, turns_executed)),
         ("action_type_diversity", len(action_type_counts)),
-        ("cities_founded", city_gain),
+        ("cities_gained", city_gain),
+        ("cities_founded", decision_stats["settlement_completions"]),
         ("technologies_acquired", technology_gain),
         ("positions_explored", explored_positions),
         ("production_changes", decision_stats["production_changes"]),
         ("founder_production_changes",
          decision_stats["founder_production_changes"]),
         ("settlement_attempts", decision_stats["settlement_attempts"]),
-        ("settlement_completions", city_gain),
+        ("settlement_completions", decision_stats["settlement_completions"]),
         ("planner_capability_pruned_worker_moves",
          len(capability_pruned_worker_moves)),
         ("planner_nonprogress_moves_pruned", len(nonprogress_moves)),
@@ -1530,6 +1557,21 @@ async def _play(run_dir, manifest, context):
         ("production_projection_ruleset_source_rate",
          sum(production_projection_ruleset_sources)
          / float(max(1, len(production_projection_ruleset_sources)))),
+        ("production_projected_population_ready_eta_turns",
+         sum(production_projection_population_etas)
+         / float(max(1, len(production_projection_population_etas)))),
+        ("production_projected_settlement_eta_turns",
+         sum(production_projection_settlement_etas)
+         / float(max(1, len(production_projection_settlement_etas)))),
+        ("production_projected_settlement_runway_turns",
+         sum(production_projection_settlement_runways)
+         / float(max(1, len(production_projection_settlement_runways)))),
+        ("production_projection_growth_ruleset_source_rate",
+         sum(production_projection_growth_ruleset_sources)
+         / float(max(1, len(production_projection_growth_ruleset_sources)))),
+        ("production_founder_deficit_before",
+         sum(production_founder_deficits)
+         / float(max(1, len(production_founder_deficits)))),
         ("score_component_citizens_turn_n", score_citizen_component),
         ("score_component_technology_turn_n", score_technology_component),
         ("score_component_residual_turn_n", score_residual_component),
@@ -1572,7 +1614,8 @@ async def _play(run_dir, manifest, context):
             "founder_production_changes": (
                 decision_stats["founder_production_changes"]),
             "settlement_attempts": decision_stats["settlement_attempts"],
-            "settlement_completions": city_gain,
+            "cities_gained": city_gain,
+            "settlement_completions": decision_stats["settlement_completions"],
             "planner_capability_pruned_worker_moves": (
                 len(capability_pruned_worker_moves)),
             "planner_nonprogress_moves_pruned": len(nonprogress_moves),
@@ -1602,7 +1645,8 @@ async def _play(run_dir, manifest, context):
         "meaningful_actions": decision_stats["meaningful_actions"],
         "founder_production_changes": decision_stats["founder_production_changes"],
         "settlement_attempts": decision_stats["settlement_attempts"],
-        "settlement_completions": city_gain,
+        "cities_gained": city_gain,
+        "settlement_completions": decision_stats["settlement_completions"],
         "planner_capability_pruned_worker_moves": (
             len(capability_pruned_worker_moves)),
         "planner_nonprogress_moves_pruned": len(nonprogress_moves),

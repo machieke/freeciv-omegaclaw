@@ -84,6 +84,10 @@ def test_pinned_rulesets_compile_with_exact_independent_target_edge_and_sample_p
     assert "Cities" in settlers.traits["flags"]["values"]
     assert settlers.traits["flags"]["source"]["file"] == (
         ruleset + "/units.ruleset")
+    assert ir.parameters["granary_food_ini"]["source"]["file"] == (
+        ruleset + "/game.ruleset")
+    assert ir.parameters["granary_food_ini"]["value"]
+    assert ir.parameters["granary_food_inc"]["value"] >= 0
     nonfounders = {"Migrants", "Workers", "Engineers"}
     for rule in ir.rules:
         if rule.target_kind == "unit" and rule.display_name in nonfounders:
@@ -106,6 +110,25 @@ def test_independent_audit_detects_compiled_unit_trait_drift():
     report = audit(replace(ir, rules=tuple(rules)), root)
     assert not report["passed"]
     assert report["trait_mismatches"][0]["target"] == ["unit", "Settlers"]
+
+
+def test_independent_audit_detects_compiled_growth_parameter_drift():
+    root = _external_root()
+    ir = compile_ruleset(root, "civ2civ3")
+    parameters = dict(ir.parameters)
+    initial = dict(parameters["granary_food_ini"])
+    initial["value"] = list(initial["value"])
+    initial["value"][0] += 1
+    parameters["granary_food_ini"] = initial
+
+    report = audit(replace(ir, parameters=parameters), root)
+
+    assert not report["passed"]
+    assert report["parameter_mismatches"] == [{
+        "parameter": "granary_food_ini",
+        "reference": ir.parameters["granary_food_ini"]["value"],
+        "compiled": initial["value"],
+    }]
 
 
 def test_unsupported_requirement_fails_loudly_with_file_section_field_and_reason():

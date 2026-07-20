@@ -9,8 +9,8 @@ from .ir import Requirement, Rule, RulesetIR
 from .secfile import SecTable, SecfileError, parse
 
 
-COMPILER_VERSION = "freeciv-ruleset-compiler/1.1"
-FILES = ("techs.ruleset", "units.ruleset", "buildings.ruleset")
+COMPILER_VERSION = "freeciv-ruleset-compiler/1.2"
+FILES = ("techs.ruleset", "units.ruleset", "buildings.ruleset", "game.ruleset")
 ALLOWED_REQUIREMENT_COLUMNS = {"type", "name", "range", "present", "quiet", "survives"}
 REQUIREMENT_PREDICATES = {
     "Tech": ("has-tech", "symbolic"),
@@ -196,6 +196,34 @@ def _traits(section, ruleset, filename, kind):
     return result
 
 
+def _game_parameters(document, ruleset):
+    """Compile the city-growth parameters needed by bounded projections."""
+    section = next((row for row in document.sections if row.name == "civstyle"), None)
+    if section is None:
+        raise CompileError("{}/game.ruleset: missing [civstyle] section".format(ruleset))
+    result = {}
+    for field_name in ("granary_food_ini", "granary_food_inc"):
+        field = section.fields.get(field_name)
+        if field is None:
+            raise CompileError("{}/game.ruleset: [{}] {}: missing field".format(
+                ruleset, section.name, field_name))
+        value = field.value
+        values = value if isinstance(value, list) else [value]
+        minimum = 0 if field_name == "granary_food_inc" else 1
+        if (not values or any(isinstance(item, bool)
+                              or not isinstance(item, (int, float))
+                              or item < minimum for item in values)):
+            raise CompileError("{}:{}: [{}] {}: expected numeric value(s) >= {}".format(
+                _logical_path(ruleset, "game.ruleset"), field.location.line,
+                section.name, field_name, minimum))
+        result[field_name] = {
+            "source": _source(field.location, ruleset, "game.ruleset"),
+            "value": ([int(item) for item in values]
+                      if isinstance(value, list) else int(value)),
+        }
+    return result
+
+
 def _compile_tech(section, ruleset, filename):
     display_name = _display(_field(section, "name"))
     rule_name = _display(_field(section, "rule_name", display_name))
@@ -278,6 +306,7 @@ def compile_ruleset(ruleset_root, ruleset):
         rules=tuple(sorted(rules, key=lambda rule: rule.rule_id)),
         grounded_signatures=tuple(sorted(GROUNDED_SIGNATURES, key=lambda row: row["name"])),
         predicate_catalog=tuple(sorted(PREDICATE_CATALOG, key=lambda row: row["name"])),
+        parameters=_game_parameters(parsed["game.ruleset"], ruleset),
     )
 
 

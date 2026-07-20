@@ -22,6 +22,10 @@ impact_policy:
   max_actions_per_turn: 8
   expansion_city_target: 3
   settle_min_distance: 3
+  horizon_turn: 30
+  production_minimum_remaining_turns: 8
+  expansion_minimum_remaining_turns: 12
+  foodbox_percent: 100
   no_effect_retry_limit: 1
   max_no_effect_failovers_per_scope: 4
   preserve_city_defenders: true
@@ -45,6 +49,19 @@ Founder and worker roles come from source-provenanced ruleset traits. The FreeCi
 `Cities` flag denotes city-founding capability; the broader `Settlers` flag denotes
 terrain workers and does not make Migrants, Workers, or Engineers founders. A
 server-advertised `unit_build_city` action corroborates and caches a founder type.
+
+Expansion demand is capacity-based: current cities, legal founder units, and founder
+builds already queued with enough runway each count toward `expansion_city_target`.
+This permits one founder to be pipelined while an earlier founder is routing, but stops
+additional cities from selecting redundant settlers once the target is covered.
+
+Founder completion ETA is the maximum of shield completion and population readiness.
+Population readiness uses the compiled active-ruleset `granary_food_ini` and
+`granary_food_inc` parameters, the pinned runtime `foodbox_percent`, and authoritative
+city size, food stock, and food surplus. No unobserved food retention is assumed. A
+founder production candidate must leave `expansion_minimum_remaining_turns` after
+completion and minimum-distance routing; this rejects late settlers that would consume
+population and movement without reaching a score-bearing settlement before the horizon.
 
 One successful unit-scoped strategic action and one successful production change per
 city are allowed per turn. After a no-effect action, up to
@@ -96,12 +113,15 @@ the existing score and latency metrics:
 - `decision_no_effect_failover_attempts`, `decision_no_effect_failover_recoveries`,
   and `decision_no_effect_failover_recovery_rate` for bounded same-turn recovery;
 - `action_type_diversity`, `positions_explored`, and `tactical_actions`;
-- `cities_founded`, `technologies_acquired`, `production_changes`, and `score_gain`;
+- `cities_gained`, exact `cities_founded`, `technologies_acquired`,
+  `production_changes`, and `score_gain`;
 - `founder_production_changes`, `settlement_attempts`, and
   `settlement_completions`;
 - `planner_founder_capable_unit_types`,
   `planner_capability_pruned_worker_moves`, and
   `planner_nonprogress_moves_pruned`;
+- population-ready, settlement ETA/runway, founder-deficit, and compiler-source
+  production projection metrics;
 - `model_safe_fallback_rate` and `model_corrections_per_turn`.
 
 ## Capability and movement-progress smoke evidence

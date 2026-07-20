@@ -1,9 +1,9 @@
 # FreeCiv ruleset compiler
 
 The M0 compiler has one data-selected code path for `civ2civ3` and `classic`. It reads the
-upstream `techs.ruleset`, `units.ruleset`, and `buildings.ruleset` secfiles and produces canonical
-JSON IR, generated MeTTa/Atomese, grounded signatures, an independent audit, and a hash manifest.
-Generated output is ignored under `build/freeciv/rulesets/`.
+upstream `techs.ruleset`, `units.ruleset`, `buildings.ruleset`, and `game.ruleset` secfiles and
+produces canonical JSON IR, generated MeTTa/Atomese, grounded signatures, an independent audit,
+and a hash manifest. Generated output is ignored under `build/freeciv/rulesets/`.
 
 Set the source root to a pinned FreeCiv `data` directory:
 
@@ -26,11 +26,14 @@ costs and rates are metadata or grounded procedure signatures; the generated rul
 no arithmetic accumulation conclusion. Unit `flags` and `roles` are retained as sorted,
 source-provenanced traits in the IR. This lets planners distinguish capabilities such as the
 `Cities` city-founder flag from the broader `Settlers` worker flag without display-name guesses.
+The `[civstyle]` granary-food initial values and increment are retained as source-provenanced
+global parameters. Together with the pinned runtime `foodbox` percentage, these let the impact
+planner account for population readiness before a population-costing unit can complete.
 
 The audit extractor shares only lexical secfile parsing with the compiler. It independently
-compares target identities, every prerequisite edge, all unit flags and roles, and deterministic
-samples of 20 techs and 20 units. An unsupported requirement kind or table column stops
-compilation and reports logical file, line, section, field, and reason.
+compares target identities, every prerequisite edge, all unit flags and roles, both city-growth
+parameters, and deterministic samples of 20 techs and 20 units. An unsupported requirement kind
+or table column stops compilation and reports logical file, line, section, field, and reason.
 
-Compiler version `freeciv-ruleset-compiler/1.1` and IR schema version `1.1` are compatibility
+Compiler version `freeciv-ruleset-compiler/1.2` and IR schema version `1.2` are compatibility
 boundaries. Any semantic mapping change increments the compiler version and changes output hashes.

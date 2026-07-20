@@ -41,6 +41,7 @@ def extract_reference(ruleset_root, ruleset):
     techs = parse(os.path.join(ruleset_root, ruleset, "techs.ruleset"))
     units = parse(os.path.join(ruleset_root, ruleset, "units.ruleset"))
     buildings = parse(os.path.join(ruleset_root, ruleset, "buildings.ruleset"))
+    game = parse(os.path.join(ruleset_root, ruleset, "game.ruleset"))
     targets = {}
     edges = set()
     traits = {}
@@ -77,7 +78,13 @@ def extract_reference(ruleset_root, ruleset):
                     if isinstance(values, str):
                         values = [] if not values else [values]
                     traits[(kind, target)][field_name] = sorted(set(values))
-    return {"targets": targets, "edges": edges, "traits": traits}
+    civstyle = next(row for row in game.sections if row.name == "civstyle")
+    parameters = {
+        name: civstyle.fields[name].value
+        for name in ("granary_food_ini", "granary_food_inc")
+    }
+    return {"targets": targets, "edges": edges, "traits": traits,
+            "parameters": parameters}
 
 
 def _compiler_tuple(requirement):
@@ -101,7 +108,12 @@ def compiler_projection(ir):
                 name: list(value.get("values", ()))
                 for name, value in getattr(rule, "traits", {}).items()
             }
-    return {"targets": targets, "edges": edges, "traits": traits}
+    parameters = {
+        name: row.get("value")
+        for name, row in getattr(ir, "parameters", {}).items()
+    }
+    return {"targets": targets, "edges": edges, "traits": traits,
+            "parameters": parameters}
 
 
 def audit(ir, ruleset_root, sample_seed=20260717, sample_size=20):
@@ -118,6 +130,14 @@ def audit(ir, ruleset_root, sample_seed=20260717, sample_size=20):
                 "target": list(key),
                 "reference": reference["traits"][key],
                 "compiled": compiled["traits"].get(key),
+            })
+    parameter_mismatches = []
+    for name in sorted(reference["parameters"]):
+        if reference["parameters"][name] != compiled["parameters"].get(name):
+            parameter_mismatches.append({
+                "parameter": name,
+                "reference": reference["parameters"][name],
+                "compiled": compiled["parameters"].get(name),
             })
     rng = random.Random(sample_seed)
     samples = {}
@@ -146,8 +166,10 @@ def audit(ir, ruleset_root, sample_seed=20260717, sample_size=20):
         "extra_targets": extra_targets,
         "missing_edges": missing_edges,
         "missing_targets": missing_targets,
+        "parameter_mismatches": parameter_mismatches,
         "passed": not any((missing_targets, extra_targets, missing_edges, extra_edges,
-                           sample_mismatches, trait_mismatches)),
+                           sample_mismatches, trait_mismatches,
+                           parameter_mismatches)),
         "sample_mismatches": sample_mismatches,
         "sample_seed": sample_seed,
         "samples": samples,

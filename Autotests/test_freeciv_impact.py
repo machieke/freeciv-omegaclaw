@@ -17,18 +17,7 @@ from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 
 
 def _snapshot(units, actions, cities=None, source_seq=1, turn=4, city_surplus=None):
-    cities = cities if cities is not None else [{
-        "id": 10, "owner": 0, "name": "Rome", "tile": 0, "x": 0, "y": 0,
-        "size": 2, "production_kind": 6, "production_value": 11,
-        "food_stock": 4, "shield_stock": 0,
-        "surplus": [1, 4, 2, 1, 0, 3], "prod": [2, 5, 3, 1, 0, 4],
-        "buildability": {"available": True, "options": [
-            {"type": "unit", "id": 0, "name": "Settlers"},
-            {"type": "unit", "id": 11, "name": "Alpine Troops"},
-            {"type": "improvement", "id": 14, "name": "Granary"},
-            {"type": "improvement", "id": 17, "name": "Library"},
-        ]},
-    }]
+    cities = cities if cities is not None else [_city()]
     if city_surplus is not None:
         cities[0]["surplus"] = list(city_surplus)
     payload = {
@@ -70,8 +59,27 @@ def _production(city_id, name, kind, value):
             "production_value": value, "is_valid": True}
 
 
+def _city(size=2, food_stock=4, shield_stock=0,
+          surplus=(1, 4, 2, 1, 0, 3), production_kind=6, production_value=11):
+    return {
+        "id": 10, "owner": 0, "name": "Rome", "tile": 0, "x": 0, "y": 0,
+        "size": size, "production_kind": production_kind,
+        "production_value": production_value,
+        "food_stock": food_stock, "shield_stock": shield_stock,
+        "surplus": list(surplus), "prod": [2, 5, 3, 1, 0, 4],
+        "buildability": {"available": True, "options": [
+            {"type": "unit", "id": 0, "name": "Settlers"},
+            {"type": "unit", "id": 11, "name": "Alpine Troops"},
+            {"type": "improvement", "id": 14, "name": "Granary"},
+            {"type": "improvement", "id": 17, "name": "Library"},
+        ]},
+    }
+
+
 def _ruleset_ir(costs, founders=("Settlers",),
-                workers=("Settlers", "Migrants", "Workers", "Engineers")):
+                workers=("Settlers", "Migrants", "Workers", "Engineers"),
+                pop_costs=None, growth_food=(20,), growth_increment=10):
+    pop_costs = dict(pop_costs or {})
     rules = []
     for name, kind, cost in costs:
         flags = []
@@ -81,9 +89,15 @@ def _ruleset_ir(costs, founders=("Settlers",),
             flags.append("Cities")
         rules.append(SimpleNamespace(
             target_kind=kind, display_name=name, rule_name=name,
-            quantitative={"build_cost": {"value": cost, "source": {}}},
+            quantitative={
+                "build_cost": {"value": cost, "source": {}},
+                "pop_cost": {"value": pop_costs.get(name, 0), "source": {}},
+            },
             traits={"flags": {"values": flags, "source": {}}}))
-    return SimpleNamespace(rules=tuple(rules))
+    return SimpleNamespace(rules=tuple(rules), parameters={
+        "granary_food_ini": {"value": list(growth_food), "source": {}},
+        "granary_food_inc": {"value": growth_increment, "source": {}},
+    })
 
 
 def test_policy_produces_founder_then_infrastructure_without_midbuild_switching():
@@ -99,7 +113,7 @@ def test_policy_produces_founder_then_infrastructure_without_midbuild_switching(
         ("Granary", "improvement", 40), ("Library", "improvement", 60),
     ))
     planner = GroundedImpactPlanner(
-        {"expansion_city_target": 3}, ruleset_ir=ir)
+        {"expansion_city_target": 2}, ruleset_ir=ir)
     without_founder = _snapshot([_unit(11, "Alpine Troops")], actions)
     decision = planner.plan(without_founder)
     assert decision.candidate.category == "production_expansion"
@@ -107,7 +121,8 @@ def test_policy_produces_founder_then_infrastructure_without_midbuild_switching(
 
     with_founder = _snapshot([
         _unit(1, "Settlers"), _unit(11, "Alpine Troops")], actions, source_seq=2)
-    planner = GroundedImpactPlanner(ruleset_ir=ir)
+    planner = GroundedImpactPlanner(
+        {"expansion_city_target": 2}, ruleset_ir=ir)
     decision = planner.plan(with_founder)
     assert decision.candidate.category == "production_economy"
     assert decision.candidate.action["target"]["production_type"] == "Library"
@@ -123,7 +138,8 @@ def test_policy_produces_founder_then_infrastructure_without_midbuild_switching(
     granary_city[0]["prod"] = granary_city[0].pop("production")
     granary_city[0].pop("buildability_available", None)
     granary_city[0].pop("buildability_diagnostic", None)
-    zero_stock_switch = GroundedImpactPlanner(ruleset_ir=ir).plan(_snapshot(
+    zero_stock_switch = GroundedImpactPlanner(
+        {"expansion_city_target": 2}, ruleset_ir=ir).plan(_snapshot(
         [_unit(1, "Settlers"), _unit(11, "Alpine Troops")], actions,
         cities=granary_city, source_seq=4))
     assert zero_stock_switch.candidate.action["target"]["production_type"] == "Library"
@@ -137,7 +153,8 @@ def test_policy_produces_founder_then_infrastructure_without_midbuild_switching(
     midbuild_city[0]["prod"] = midbuild_city[0].pop("production")
     midbuild_city[0].pop("buildability_available", None)
     midbuild_city[0].pop("buildability_diagnostic", None)
-    assert GroundedImpactPlanner(ruleset_ir=ir).plan(_snapshot(
+    assert GroundedImpactPlanner(
+        {"expansion_city_target": 2}, ruleset_ir=ir).plan(_snapshot(
         [_unit(1, "Settlers"), _unit(11, "Alpine Troops")], actions,
         cities=midbuild_city, source_seq=3)) is None
 
@@ -195,7 +212,8 @@ def test_offensive_action_wins_ranking_and_exclusions_bound_retries():
         [_unit(11, "Alpine Troops"), _unit(20, "Explorer"),
          _enemy(99, "Warriors", 2, 0)],
         [attack, move, {"action_type": "end_turn", "is_valid": True}])
-    planner = GroundedImpactPlanner(ruleset_ir=_ruleset_ir((
+    planner = GroundedImpactPlanner(
+        {"expansion_city_target": 2}, ruleset_ir=_ruleset_ir((
         ("Settlers", "unit", 30), ("Granary", "improvement", 40),
         ("Library", "improvement", 60))))
     decision = planner.plan(snapshot)
@@ -258,6 +276,7 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
                    {"settle_min_distance": 0}, {"expansion_city_target": 21},
                    {"horizon_turn": 0},
                    {"production_minimum_remaining_turns": 0},
+                   {"foodbox_percent": 0},
                    {"production_minimum_remaining_turns": 9,
                     "expansion_minimum_remaining_turns": 8},
                    {"refresh_timeout_seconds": 0.1},
@@ -287,7 +306,8 @@ def test_action_scopes_limit_one_unit_and_one_city_choice_per_turn():
     snapshot = _snapshot(
         [_unit(1, "Settlers"), _unit(11, "Alpine Troops"), _unit(20, "Explorer")],
         actions)
-    planner = GroundedImpactPlanner(ruleset_ir=_ruleset_ir((
+    planner = GroundedImpactPlanner(
+        {"expansion_city_target": 2}, ruleset_ir=_ruleset_ir((
         ("Settlers", "unit", 30), ("Granary", "improvement", 40),
         ("Library", "improvement", 60))))
     first = planner.plan(snapshot)
@@ -397,13 +417,41 @@ def test_production_effect_requires_the_exact_requested_city_target():
     assert planner.candidate_effect_observed(candidate, before, applied)
 
 
+def test_settlement_effect_requires_actor_consumption_and_a_new_city():
+    action = {"action_type": "unit_build_city", "actor_id": 1}
+    candidate = ImpactCandidate(
+        action, "city_founding", 1.0, "exact settlement effect regression")
+    before = _snapshot(
+        [_unit(1, "Settlers", 3, 0), _unit(11, "Alpine Troops")],
+        [dict(action, is_valid=True),
+         {"action_type": "end_turn", "is_valid": True}])
+    spent = _unit(1, "Settlers", 3, 0)
+    spent["moves_left"] = 0
+    only_spent_movement = _snapshot(
+        [spent, _unit(11, "Alpine Troops")],
+        [dict(action, is_valid=True),
+         {"action_type": "end_turn", "is_valid": True}], source_seq=2)
+    assert not GroundedImpactPlanner().candidate_effect_observed(
+        candidate, before, only_spent_movement)
+
+    founded_city = _city()
+    founded_city.update({"id": 12, "name": "Neapolis", "tile": 3, "x": 3})
+    completed = _snapshot(
+        [_unit(11, "Alpine Troops")],
+        [{"action_type": "end_turn", "is_valid": True}],
+        cities=[_city(), founded_city], source_seq=3)
+    assert GroundedImpactPlanner().candidate_effect_observed(
+        candidate, before, completed)
+
+
 def test_production_candidates_require_fixed_horizon_runway():
     granary = _production(10, "Granary", 3, 14)
     actions = [granary, {"action_type": "end_turn", "is_valid": True}]
     units = [_unit(1, "Settlers"), _unit(11, "Alpine Troops")]
     planner = GroundedImpactPlanner({
             "horizon_turn": 30, "production_minimum_remaining_turns": 8,
-        "expansion_minimum_remaining_turns": 12}, ruleset_ir=_ruleset_ir((
+        "expansion_minimum_remaining_turns": 12,
+        "expansion_city_target": 2}, ruleset_ir=_ruleset_ir((
             ("Settlers", "unit", 30),
             ("Alpine Troops", "unit", 1000),
             ("Granary", "building", 8),
@@ -432,7 +480,8 @@ def test_paired_production_strategy_contrasts_static_and_horizon_value():
     baseline = GroundedImpactPlanner(
         {"production_strategy": "static_priority"}, ruleset_ir=ir).plan(snapshot)
     treatment = GroundedImpactPlanner(
-        {"production_strategy": "horizon_score"}, ruleset_ir=ir).plan(snapshot)
+        {"production_strategy": "horizon_score", "expansion_city_target": 2},
+        ruleset_ir=ir).plan(snapshot)
     assert baseline.candidate.action["target"]["production_type"] == "Granary"
     assert baseline.candidate.projection is None
     assert treatment.candidate.action["target"]["production_type"] == "Library"
@@ -458,11 +507,72 @@ def test_horizon_policy_avoids_military_churn_and_nonfounder_worker_production()
         {"action_type": "end_turn", "is_valid": True},
     ]
     decision = GroundedImpactPlanner(ruleset_ir=founder_ir).plan(_snapshot(
-        [_unit(11, "Alpine Troops")], founders, turn=15))
+        [_unit(11, "Alpine Troops")], founders, turn=4))
     assert decision.candidate.action["target"]["production_type"] == "Settlers"
     assert decision.candidate.projection["founder_capable"]
     assert decision.candidate.projection["founder_capability_source"] == (
         "ruleset_flag:Cities")
+
+
+def test_horizon_policy_pipelines_only_the_missing_ruleset_capable_founder():
+    actions = [
+        _production(10, "Settlers", 6, 0),
+        _production(10, "Library", 3, 17),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 30), ("Library", "improvement", 60),
+    ), pop_costs={"Settlers": 2}, growth_food=(20, 20), growth_increment=0)
+    snapshot = _snapshot(
+        [_unit(1, "Settlers"), _unit(11, "Alpine Troops")], actions,
+        cities=[_city(size=1, food_stock=0,
+                      surplus=(5, 4, 2, 1, 0, 3))], turn=1)
+    planner = GroundedImpactPlanner(ruleset_ir=ir)
+
+    decision = planner.plan(snapshot)
+    assert decision.candidate.category == "production_expansion"
+    assert decision.candidate.projection["existing_founders"] == 1
+    assert decision.candidate.projection["queued_founders"] == 0
+    assert decision.candidate.projection["founder_deficit_before"] == 1
+    assert decision.candidate.projection["population_ready_eta_turns"] == 8
+    assert decision.candidate.projection["completion_eta_turns"] == 8
+    assert decision.candidate.projection["settlement_runway_turns"] == 18
+
+    city = dict(json.loads(json.dumps(snapshot.cities[0].to_dict())),
+                id=10, production_kind=6, production_value=0)
+    city["buildability"] = {"available": True, "options": [
+        {"type": kind, "id": item_id, "name": name}
+        for kind, item_id, name in snapshot.cities[0].buildable]}
+    city["prod"] = city.pop("production")
+    city.pop("buildability_available", None)
+    city.pop("buildability_diagnostic", None)
+    queued = _snapshot(
+        [_unit(1, "Settlers"), _unit(11, "Alpine Troops")], actions,
+        cities=[city], source_seq=2, city_surplus=(5, 4, 2, 1, 0, 3))
+    assert not any(candidate.category == "production_expansion"
+                   for candidate in planner.candidates(queued))
+
+
+def test_population_bound_founder_is_rejected_without_post_build_runway():
+    founder = _production(10, "Settlers", 6, 0)
+    ir = _ruleset_ir(
+        (("Settlers", "unit", 30),), pop_costs={"Settlers": 2},
+        growth_food=(20, 20), growth_increment=0)
+    planner = GroundedImpactPlanner(ruleset_ir=ir)
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops")],
+        [founder, {"action_type": "end_turn", "is_valid": True}], turn=4,
+        cities=[_city(size=1, food_stock=0,
+                      surplus=(2, 4, 2, 1, 0, 3))])
+
+    projection = planner._production_projection(
+        snapshot.cities[0], "Settlers", 26, snapshot=snapshot,
+        founder_types=frozenset(("settlers",)))
+    assert projection["shield_completion_eta_turns"] == 8
+    assert projection["population_ready_eta_turns"] == 20
+    assert projection["completion_eta_turns"] == 20
+    assert projection["settlement_runway_turns"] == 3
+    assert planner.plan(snapshot) is None
 
 
 def test_ruleset_and_server_capabilities_exclude_nonfounder_workers():

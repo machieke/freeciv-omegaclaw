@@ -146,6 +146,7 @@ class GroundedImpactPlanner(object):
             values.get("production_minimum_remaining_turns", 8))
         self.expansion_minimum_remaining_turns = int(
             values.get("expansion_minimum_remaining_turns", 12))
+        self.foodbox_percent = int(values.get("foodbox_percent", 100))
         self.refresh_timeout_seconds = float(
             values.get("refresh_timeout_seconds", 2.0))
         self.no_effect_retry_limit = int(values.get("no_effect_retry_limit", 1))
@@ -169,6 +170,8 @@ class GroundedImpactPlanner(object):
         if self.expansion_minimum_remaining_turns < self.production_minimum_remaining_turns:
             raise ValueError(
                 "expansion_minimum_remaining_turns cannot be shorter than production")
+        if not 1 <= self.foodbox_percent <= 1000:
+            raise ValueError("foodbox_percent must be in 1..1000")
         if not 0.25 <= self.refresh_timeout_seconds <= 10.0:
             raise ValueError("refresh_timeout_seconds must be in [0.25,10]")
         if not 1 <= self.no_effect_retry_limit <= 8:
@@ -188,6 +191,22 @@ class GroundedImpactPlanner(object):
         self._ruleset_founder_types = set()
         self._ruleset_worker_types = set()
         self._server_founder_types = set()
+        parameters = getattr(ruleset_ir, "parameters", {})
+        initial_food = parameters.get("granary_food_ini", {})
+        incremental_food = parameters.get("granary_food_inc", {})
+        initial_values = (initial_food.get("value")
+                          if isinstance(initial_food, dict) else None)
+        if not isinstance(initial_values, list):
+            initial_values = ([initial_values]
+                              if isinstance(initial_values, (int, float)) else [20])
+        self._granary_food_ini = tuple(max(1, int(value)) for value in initial_values)
+        incremental_value = (incremental_food.get("value")
+                             if isinstance(incremental_food, dict) else None)
+        self._granary_food_inc = (max(0, int(incremental_value))
+                                  if isinstance(incremental_value, (int, float)) else 10)
+        self._growth_cost_source = (
+            "ruleset_ir" if isinstance(initial_food, dict)
+            and isinstance(incremental_food, dict) else "bounded_fallback")
         for rule in getattr(ruleset_ir, "rules", ()):
             quantitative = getattr(rule, "quantitative", {})
             cost = quantitative.get("build_cost")
@@ -353,6 +372,11 @@ class GroundedImpactPlanner(object):
             return bool(city is not None and kind is not None and value is not None
                         and city.production_kind == int(kind)
                         and city.production_value == int(value))
+        if action.get("action_type") == "unit_build_city":
+            actor_id = action.get("actor_id")
+            return bool(actor_id is not None and before.unit(actor_id) is not None
+                        and after.unit(actor_id) is None
+                        and len(after.cities) > len(before.cities))
         if action.get("actor_id") is not None:
             return self.local_actor_effect_observed(candidate, before, after)
         return before.identity.state_hash != after.identity.state_hash
@@ -476,6 +500,39 @@ class GroundedImpactPlanner(object):
             return 0
         return max(0, int(city.surplus[index]))
 
+    def _growth_food_cost(self, city_size):
+        """Return the active ruleset's food box for one city-size transition."""
+        size = max(1, int(city_size or 1))
+        if size <= len(self._granary_food_ini):
+            base = self._granary_food_ini[size - 1]
+        else:
+            base = (self._granary_food_ini[-1]
+                    + self._granary_food_inc * (size - len(self._granary_food_ini)))
+        return max(1, int(math.ceil(base * self.foodbox_percent / 100.0)))
+
+    def _population_ready_eta(self, city, required_size):
+        """Conservatively project turns until a population-costing build can finish.
+
+        Food surplus is held at its current authoritative value and food retained
+        by unknown city improvements is not assumed. This may reject a marginal
+        build, but it cannot invent population that the city has not grown yet.
+        """
+        size = max(1, int(city.size or 1))
+        target = max(1, int(required_size))
+        if size >= target:
+            return 0
+        food = self._city_output(city, 0)
+        if food <= 0:
+            return None
+        stock = max(0, int(city.food_stock or 0))
+        turns = 0
+        while size < target:
+            cost = self._growth_food_cost(size)
+            turns += int(math.ceil(max(0, cost - stock) / float(food)))
+            size += 1
+            stock = 0
+        return turns
+
     def _production_projection(
             self, city, name, remaining_turns, snapshot=None, founder_types=()):
         """Estimate whether production can affect the declared score horizon.
@@ -494,16 +551,24 @@ class GroundedImpactPlanner(object):
             # Unit tests and lightweight consumers may construct the planner
             # without a compiled IR. Preserve a conservative bounded fallback;
             # release evaluation always injects the active ruleset IR.
-            eta = self.production_minimum_remaining_turns
+            shield_eta = self.production_minimum_remaining_turns
         else:
-            eta = (None if cost is None else int(math.ceil(
+            shield_eta = (None if cost is None else int(math.ceil(
                 max(0, cost - stock) / float(max(1, shields)))))
+        eta = shield_eta
+        population_eta = 0
+        if normalized in founder_types and int(spec.get("pop_cost", 0)) > 0:
+            population_eta = self._population_ready_eta(
+                city, int(spec.get("pop_cost", 0)) + 1)
+            eta = (None if shield_eta is None or population_eta is None
+                   else max(shield_eta, population_eta))
         active_turns = (None if eta is None else max(0, int(remaining_turns) - eta))
         projection = {
             "active_turns": active_turns, "build_cost": cost,
             "cost_source": "ruleset_ir" if cost is not None else "bounded_fallback",
             "completion_eta_turns": eta, "remaining_turns": int(remaining_turns),
             "pop_cost": int(spec.get("pop_cost", 0)),
+            "shield_completion_eta_turns": shield_eta,
             "shield_surplus": shields, "score_value": 0.0,
         }
         if normalized in founder_types:
@@ -511,23 +576,26 @@ class GroundedImpactPlanner(object):
             projection["founder_capability_source"] = (
                 self._founder_capability_source(normalized)
                 or "current_server_legal_action:unit_build_city")
+            projection["growth_cost_source"] = self._growth_cost_source
+            projection["population_ready_eta_turns"] = population_eta
         if eta is None:
             return projection
 
         food = self._city_output(city, 0)
         science = self._city_output(city, 5)
-        growth_cost = 20 + max(1, int(city.size or 1)) * 10
-        growth_eta = int(math.ceil(max(
-            0, growth_cost - max(0, int(city.food_stock or 0)))
-            / float(max(1, food)))) if food else None
+        growth_cost = self._growth_food_cost(city.size)
+        growth_eta = self._population_ready_eta(city, int(city.size or 1) + 1)
         if normalized in founder_types:
             # A completed founder needs time to move and establish a score-bearing
             # city. Charge its exact ruleset population cost rather than assuming
             # that every terrain worker is able to establish a city.
+            settlement_runway = max(0, active_turns - self.settle_min_distance)
             projection["score_value"] = max(
-                0.0, 1.0 - projection["pop_cost"] * 2.0
-                + (active_turns - 3) * 0.15)
-            projection["settlement_runway_turns"] = max(0, active_turns - 3)
+                0.0, 1.0 - projection["pop_cost"]
+                + settlement_runway * 0.15)
+            projection["settlement_eta_turns"] = (
+                eta + self.settle_min_distance)
+            projection["settlement_runway_turns"] = settlement_runway
         elif normalized == "granary":
             useful_growths = (0 if not food or active_turns <= 0 else
                               max(0, 1 + (active_turns - max(1, growth_eta))
@@ -617,6 +685,22 @@ class GroundedImpactPlanner(object):
         return bool(eta is not None and active is not None
                     and active >= int(minimum_active_turns))
 
+    def _queued_founder_count(self, snapshot, founder_types, remaining_turns):
+        """Count only founder builds projected to retain settlement runway."""
+        count = 0
+        for queued_city in snapshot.cities:
+            queued_name = self._current_production_name(queued_city)
+            if _normalized_type(queued_name) not in founder_types:
+                continue
+            projection = self._production_projection(
+                queued_city, queued_name, remaining_turns, snapshot=snapshot,
+                founder_types=founder_types)
+            if (projection.get("settlement_runway_turns") is not None
+                    and projection["settlement_runway_turns"]
+                    >= self.expansion_minimum_remaining_turns):
+                count += 1
+        return count
+
     def _production_candidate(self, snapshot, action, founder_types):
         city = snapshot.city(action.get("city_id"))
         if city is None or not city.buildability_available:
@@ -643,10 +727,21 @@ class GroundedImpactPlanner(object):
                 legacy_needs_founder,
                 remaining_turns)
         founders = self._founders(snapshot, founder_types)
-        needs_founder = city_count < self.expansion_city_target and not founders
+        queued_founders = self._queued_founder_count(
+            snapshot, founder_types, remaining_turns)
+        expansion_capacity = city_count + len(founders) + queued_founders
+        founder_deficit = max(0, self.expansion_city_target - expansion_capacity)
+        needs_founder = founder_deficit > 0
         projection = self._production_projection(
             city, name, remaining_turns, snapshot=snapshot,
             founder_types=founder_types)
+        if normalized in founder_types:
+            projection.update({
+                "existing_founders": len(founders),
+                "expansion_capacity_before": expansion_capacity,
+                "founder_deficit_before": founder_deficit,
+                "queued_founders": queued_founders,
+            })
         current_projection = (self._production_projection(
             city, current_name, remaining_turns, snapshot=snapshot,
             founder_types=founder_types)
@@ -654,16 +749,15 @@ class GroundedImpactPlanner(object):
         if needs_founder and current_normalized in founder_types:
             return None
         if (needs_founder and normalized in founder_types
-                and remaining_turns >= self.expansion_minimum_remaining_turns
-                and self._projection_can_affect_horizon(projection, 4)):
-            if (projection["pop_cost"] > 0
-                    and remaining_turns < self.expansion_minimum_remaining_turns * 2):
-                return None
+                and projection.get("settlement_runway_turns") is not None
+                and projection["settlement_runway_turns"]
+                >= self.expansion_minimum_remaining_turns):
             return ImpactCandidate(
                 action, "production_expansion",
                 920.0 + projection["score_value"] * 10.0
                 - projection["completion_eta_turns"],
-                "produce one founder only when build ETA leaves settlement runway",
+                "fill the grounded city-plus-founder capacity deficit when ruleset "
+                "population and build ETA leave settlement runway",
                 projection)
 
         # Protect expansion capacity: when the target has not been met and no
