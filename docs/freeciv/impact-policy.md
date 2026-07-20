@@ -26,6 +26,7 @@ impact_policy:
   production_minimum_remaining_turns: 8
   expansion_minimum_remaining_turns: 12
   foodbox_percent: 100
+  unit_build_score_divisor: 10
   no_effect_retry_limit: 1
   max_no_effect_failovers_per_scope: 4
   preserve_city_defenders: true
@@ -86,6 +87,26 @@ corridor bends. An exact successful horizontal or vertical step may bias one mat
 step while the founder remains inside minimum settlement spacing. A failed matching move,
 a settlement attempt, changed city layout, or reaching minimum spacing clears that bias.
 Static-priority paired baselines keep their frozen movement ranking.
+
+The pinned server scores cumulative unit production in groups of
+`unit_build_score_divisor` (10 for this engine). Horizon-score projections therefore
+model the first completion plus conservative repeated completions at the current shield
+surplus. A non-deficit military switch is eligible only when those completions guarantee
+a whole fixed-horizon score point, except that a founder build made redundant by completed
+expansion may be retired earlier to avoid further population cost. Zero shield surplus
+cannot project a completion. Static-priority baselines retain their frozen one-target
+production behavior.
+
+The three-pair development cohort at
+`artifacts/freeciv/impact-repeated-unit-production-dev-3-20260720` completed with
+matched initial state, zero infrastructure failure, rejection, or model fallback, and
+all safety gates green. No arm selected `production_repurpose` or
+`production_military_score` at the 30-turn horizon, so the observed score deltas
+(`-2`, `0`, `+1`) do not estimate this new mechanism. Seed `104759` did independently
+reconfirm three population joins, six recovered population, and a one-point treatment
+citizen/score gain. Repeat-unit telemetry excludes founders and other population-bound
+units because their production cadence is not stationary. A clean longer-horizon probe
+must exercise one of the new categories before a statistical cohort is justified.
 
 One successful unit-scoped strategic action and one successful production change per
 city are allowed per turn. After a no-effect action, up to
@@ -156,6 +177,8 @@ the existing score and latency metrics:
   success rate, cardinal-corridor attempts/successes, and observed-evidence route ETA;
 - population-ready, settlement ETA/runway, founder-deficit, and compiler-source
   production projection metrics;
+- repeated unit completions, cumulative unit-score progress, and guaranteed whole
+  units-built score points for treatment production choices;
 - `model_safe_fallback_rate` and `model_corrections_per_turn`.
 
 The seed-104729 engine-backed deferred-confirmation probe recovered 28 of 40

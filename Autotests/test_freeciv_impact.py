@@ -607,6 +607,7 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
                    {"horizon_turn": 0},
                    {"production_minimum_remaining_turns": 0},
                    {"foodbox_percent": 0},
+                   {"unit_build_score_divisor": 0},
                    {"production_minimum_remaining_turns": 9,
                     "expansion_minimum_remaining_turns": 8},
                    {"refresh_timeout_seconds": 0.1},
@@ -1018,6 +1019,71 @@ def test_horizon_policy_avoids_military_churn_and_nonfounder_worker_production()
         "ruleset_flag:Cities")
 
 
+def test_horizon_policy_projects_repeated_units_and_guaranteed_score():
+    warriors = [_production(10, "Warriors", 6, 4),
+                {"action_type": "end_turn", "is_valid": True}]
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 30), ("Alpine Troops", "unit", 60),
+        ("Warriors", "unit", 10)))
+    snapshot = _snapshot(
+        [_unit(1, "Settlers"), _unit(11, "Alpine Troops")], warriors,
+        turn=1, city_surplus=(1, 5, 2, 1, 0, 3))
+
+    decision = GroundedImpactPlanner(
+        {"expansion_city_target": 2}, ruleset_ir=ir).plan(snapshot)
+
+    assert decision.candidate.category == "production_military_score"
+    assert decision.candidate.projection["completion_eta_turns"] == 2
+    assert decision.candidate.projection["repeat_completion_eta_turns"] == 2
+    assert decision.candidate.projection["projected_unit_completions"] == 14
+    assert decision.candidate.projection["unit_build_score_divisor"] == 10
+    assert decision.candidate.projection["guaranteed_unit_score_points"] == 1
+    assert decision.candidate.projection["score_value"] == 1.4
+
+
+def test_horizon_policy_retires_redundant_founder_production():
+    defender = [_production(10, "Alpine Troops", 6, 11),
+                {"action_type": "end_turn", "is_valid": True}]
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 30), ("Alpine Troops", "unit", 60),
+    ), pop_costs={"Settlers": 2})
+    city = _city(
+        production_kind=6, production_value=0,
+        surplus=(1, 5, 2, 1, 0, 3))
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops")], defender, cities=[city], turn=1)
+
+    decision = GroundedImpactPlanner(
+        {"expansion_city_target": 1}, ruleset_ir=ir).plan(snapshot)
+
+    assert decision.candidate.category == "production_repurpose"
+    assert decision.candidate.action["target"]["production_type"] == (
+        "Alpine Troops")
+    assert decision.candidate.projection["projected_unit_completions"] == 2
+    assert decision.candidate.projection["guaranteed_unit_score_points"] == 0
+    baseline = GroundedImpactPlanner(
+        {"expansion_city_target": 1, "production_strategy": "static_priority"},
+        ruleset_ir=ir).plan(snapshot)
+    assert baseline.candidate.category == "production_military"
+    assert baseline.candidate.projection is None
+
+
+def test_production_projection_fails_closed_without_shield_surplus():
+    ir = _ruleset_ir((("Warriors", "unit", 10),), founders=(), workers=())
+    planner = GroundedImpactPlanner(ruleset_ir=ir)
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops")],
+        [_production(10, "Warriors", 6, 4),
+         {"action_type": "end_turn", "is_valid": True}],
+        cities=[_city(surplus=(1, 0, 2, 1, 0, 3))])
+
+    projection = planner._production_projection(
+        snapshot.cities[0], "Warriors", 20, snapshot=snapshot)
+
+    assert projection["completion_eta_turns"] is None
+    assert projection["score_value"] == 0.0
+
+
 def test_horizon_policy_pipelines_only_the_missing_ruleset_capable_founder():
     actions = [
         _production(10, "Settlers", 6, 0),
@@ -1041,6 +1107,7 @@ def test_horizon_policy_pipelines_only_the_missing_ruleset_capable_founder():
     assert decision.candidate.projection["population_ready_eta_turns"] == 8
     assert decision.candidate.projection["completion_eta_turns"] == 8
     assert decision.candidate.projection["settlement_runway_turns"] == 18
+    assert "projected_unit_completions" not in decision.candidate.projection
 
     city = dict(json.loads(json.dumps(snapshot.cities[0].to_dict())),
                 id=10, production_kind=6, production_value=0)

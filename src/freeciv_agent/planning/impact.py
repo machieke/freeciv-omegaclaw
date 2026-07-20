@@ -201,6 +201,8 @@ class GroundedImpactPlanner(object):
         self.expansion_minimum_remaining_turns = int(
             values.get("expansion_minimum_remaining_turns", 12))
         self.foodbox_percent = int(values.get("foodbox_percent", 100))
+        self.unit_build_score_divisor = int(values.get(
+            "unit_build_score_divisor", 10))
         self.refresh_timeout_seconds = float(
             values.get("refresh_timeout_seconds", 2.0))
         self.no_effect_retry_limit = int(values.get("no_effect_retry_limit", 1))
@@ -226,6 +228,8 @@ class GroundedImpactPlanner(object):
                 "expansion_minimum_remaining_turns cannot be shorter than production")
         if not 1 <= self.foodbox_percent <= 1000:
             raise ValueError("foodbox_percent must be in 1..1000")
+        if not 1 <= self.unit_build_score_divisor <= 100:
+            raise ValueError("unit_build_score_divisor must be in 1..100")
         if not 0.25 <= self.refresh_timeout_seconds <= 10.0:
             raise ValueError("refresh_timeout_seconds must be in [0.25,10]")
         if not 1 <= self.no_effect_retry_limit <= 8:
@@ -909,8 +913,10 @@ class GroundedImpactPlanner(object):
             # release evaluation always injects the active ruleset IR.
             shield_eta = self.production_minimum_remaining_turns
         else:
-            shield_eta = (None if cost is None else int(math.ceil(
-                max(0, cost - stock) / float(max(1, shields)))))
+            shield_eta = (
+                0 if stock >= cost else
+                None if shields <= 0 else
+                int(math.ceil((cost - stock) / float(shields))))
         eta = shield_eta
         population_eta = 0
         if normalized in founder_types and int(spec.get("pop_cost", 0)) > 0:
@@ -936,6 +942,26 @@ class GroundedImpactPlanner(object):
             projection["population_ready_eta_turns"] = population_eta
         if eta is None:
             return projection
+
+        if (spec.get("target_kind") == "unit"
+                and normalized not in founder_types
+                and int(spec.get("pop_cost", 0)) == 0):
+            repeat_eta = (None if cost is None or shields <= 0 else
+                          max(1, int(math.ceil(cost / float(shields)))))
+            projected_completions = (
+                0 if repeat_eta is None or active_turns < 0 else
+                1 + active_turns // repeat_eta)
+            unit_score_progress = (
+                projected_completions / float(self.unit_build_score_divisor))
+            projection.update({
+                "projected_unit_completions": projected_completions,
+                "repeat_completion_eta_turns": repeat_eta,
+                "projected_unit_score_progress": unit_score_progress,
+                "guaranteed_unit_score_points": (
+                    projected_completions // self.unit_build_score_divisor),
+                "unit_build_score_divisor": self.unit_build_score_divisor,
+                "score_value": unit_score_progress,
+            })
 
         food = self._city_output(city, 0)
         science = self._city_output(city, 5)
@@ -985,7 +1011,10 @@ class GroundedImpactPlanner(object):
             # telemetry, but do not claim a fixed-horizon score gain.
             projection["score_value"] = 0.0
         elif name in DEFENDER_PRIORITY:
-            projection["score_value"] = 0.1 + active_turns / 1000.0
+            # The pinned server scores cumulative units built in groups. The
+            # repeated-production projection above records both fractional
+            # progress and whole guaranteed score points.
+            pass
         elif name in IMPROVEMENT_PRIORITY:
             projection["score_value"] = 0.0
         else:
@@ -1103,6 +1132,8 @@ class GroundedImpactPlanner(object):
             city, current_name, remaining_turns, snapshot=snapshot,
             founder_types=founder_types)
                               if current_name else None)
+        current_is_redundant_founder = (
+            current_normalized in founder_types and not needs_founder)
         if needs_founder and current_normalized in founder_types:
             return None
         if (needs_founder and normalized in founder_types
@@ -1155,6 +1186,7 @@ class GroundedImpactPlanner(object):
                 # lossless mechanically, but can still destroy a good trajectory.
                 if (current_projection is not None
                         and self._projection_can_affect_horizon(current_projection)
+                        and not current_is_redundant_founder
                         and current_projection["score_value"] >= projection["score_value"]):
                     return None
                 if projection["score_value"] <= 0:
@@ -1166,9 +1198,34 @@ class GroundedImpactPlanner(object):
                     "select score-bearing economy production using build ETA and city output",
                     projection)
 
-        # A single non-deficit unit contributes only one tenth of the unit score
-        # category and may not change the integer total at all. Preserve the
-        # current build instead of churning to a cheaper military target.
+        for index, target in enumerate(DEFENDER_PRIORITY):
+            if name.lower() != target.lower():
+                continue
+            guaranteed = int(projection.get("guaranteed_unit_score_points", 0))
+            if not current_is_redundant_founder and guaranteed <= 0:
+                continue
+            if (not current_is_redundant_founder
+                    and current_projection is not None
+                    and self._projection_can_affect_horizon(current_projection)
+                    and current_projection["score_value"] >= projection["score_value"]):
+                continue
+            category = ("production_repurpose" if current_is_redundant_founder
+                        else "production_military_score")
+            base_utility = 700.0 if current_is_redundant_founder else 740.0
+            reason = (
+                "retire redundant founder production into a horizon-completing "
+                "defender without further population cost"
+                if current_is_redundant_founder else
+                "select repeated unit production that guarantees fixed-horizon "
+                "units-built score")
+            return ImpactCandidate(
+                action, category,
+                base_utility + projection["score_value"] * 10.0
+                - projection["completion_eta_turns"] - index * 0.01,
+                reason, projection)
+
+        # Sub-threshold non-deficit unit churn remains excluded unless it
+        # retires a now-redundant founder build.
         return None
 
     def _move_is_nonprogress(self, snapshot, action, founder_types):

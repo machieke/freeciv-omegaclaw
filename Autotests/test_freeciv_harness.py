@@ -54,6 +54,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert config["impact_policy"]["max_no_effect_failovers_per_scope"] == 4
     assert config["impact_policy"]["horizon_turn"] == 30
     assert config["impact_policy"]["production_minimum_remaining_turns"] == 8
+    assert config["impact_policy"]["unit_build_score_divisor"] == 10
     assert config["impact_policy"]["refresh_timeout_seconds"] == 2.0
     assert config["impact_policy"]["production_strategy"] == "horizon_score"
     paired = config["paired_impact"]

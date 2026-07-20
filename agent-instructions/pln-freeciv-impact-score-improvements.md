@@ -497,3 +497,28 @@ fallback. Its treatment-minus-baseline score delta was `-2`, entirely one techno
 is retained as counter-evidence that deterministic earlier hut collection changes a
 stochastic reward trajectory but does not guarantee a better paired score. It does not
 revise the immutable disjoint 200-pair `+0.435` claim.
+
+## Repeated unit-production scoring
+
+The pinned Freeciv server computes the unit-production score component as cumulative
+`units_built / 10` (integer division), while the prior horizon policy projected only a
+single completion and rejected every non-deficit military choice. The declared policy
+now carries `unit_build_score_divisor: 10`. For zero-population, non-founder units, it
+projects a conservative first completion and repeated completions at current shield
+surplus, publishes fractional score progress and guaranteed whole points, and permits a
+non-deficit switch only when a whole fixed-horizon point is guaranteed. A redundant
+founder build may be repurposed earlier so it does not keep consuming population after
+expansion capacity is complete. Zero shield surplus fails closed, and the static-priority
+baseline is unchanged.
+
+Focused tests cover a 14-unit/one-guaranteed-point projection, a sub-threshold redundant
+founder retirement, preservation of the frozen baseline choice, zero-shield rejection,
+and exclusion of population-bound founders from stationary-repeat telemetry. The clean
+three-pair development cohort at
+`artifacts/freeciv/impact-repeated-unit-production-dev-3-20260720` passed initial-state
+fidelity and all safety gates with no failure, rejection, or fallback. Its paired score
+deltas were `-2`, `0`, and `+1`; neither new production category activated at turn 30,
+so those values are not an effect estimate for repeated-unit scoring. Seed `104759`
+independently reconfirmed three population joins, six population recovered, and a
+one-point citizen/score treatment gain. A clean longer-horizon mechanism probe must
+activate `production_repurpose` or `production_military_score` before a larger new cohort.

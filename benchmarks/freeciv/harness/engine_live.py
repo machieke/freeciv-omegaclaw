@@ -1038,6 +1038,9 @@ async def _play(run_dir, manifest, context):
     effect_confirmation_latencies = []
     production_projection_etas = []
     production_projection_values = []
+    production_projection_unit_completions = []
+    production_projection_unit_score_progress = []
+    production_projection_guaranteed_unit_score = []
     production_projection_costs = []
     production_projection_shields = []
     production_projection_pop_costs = []
@@ -1364,6 +1367,15 @@ async def _play(run_dir, manifest, context):
                         if projection.get("score_value") is not None:
                             production_projection_values.append(float(
                                 projection["score_value"]))
+                        if projection.get("projected_unit_completions") is not None:
+                            production_projection_unit_completions.append(float(
+                                projection["projected_unit_completions"]))
+                        if projection.get("projected_unit_score_progress") is not None:
+                            production_projection_unit_score_progress.append(float(
+                                projection["projected_unit_score_progress"]))
+                        if projection.get("guaranteed_unit_score_points") is not None:
+                            production_projection_guaranteed_unit_score.append(float(
+                                projection["guaranteed_unit_score_points"]))
                         if projection.get("build_cost") is not None:
                             production_projection_costs.append(float(
                                 projection["build_cost"]))
@@ -1645,6 +1657,15 @@ async def _play(run_dir, manifest, context):
          sum(production_projection_etas) / max(1, len(production_projection_etas))),
         ("production_projected_score_value",
          sum(production_projection_values) / max(1, len(production_projection_values))),
+        ("production_projected_unit_completions",
+         sum(production_projection_unit_completions)
+         / max(1, len(production_projection_unit_completions))),
+        ("production_projected_unit_score_progress",
+         sum(production_projection_unit_score_progress)
+         / max(1, len(production_projection_unit_score_progress))),
+        ("production_guaranteed_unit_score_points",
+         sum(production_projection_guaranteed_unit_score)
+         / max(1, len(production_projection_guaranteed_unit_score))),
         ("production_projected_build_cost",
          sum(production_projection_costs) / max(1, len(production_projection_costs))),
         ("production_projected_shield_surplus",

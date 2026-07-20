@@ -39,6 +39,7 @@ impact_policy:
   production_minimum_remaining_turns: 8
   expansion_minimum_remaining_turns: 12
   foodbox_percent: 100
+  unit_build_score_divisor: 10
   refresh_timeout_seconds: 2.0
   no_effect_retry_limit: 1
   max_no_effect_failovers_per_scope: 4
