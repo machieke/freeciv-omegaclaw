@@ -319,6 +319,13 @@ class ProxyStateDTO:
         if not isinstance(tiles, list):
             raise ContractError("map.tiles must be an array")
         visible = _visibility(payload, map_data)
+        known_hut_tiles = tuple(sorted(set(_numbers(
+            authoritative.get("known_hut_tiles"),
+            "authoritative.known_hut_tiles"))))
+        tile_count = width * height
+        if any(tile < 0 or tile >= tile_count for tile in known_hut_tiles):
+            raise ContractError(
+                "authoritative.known_hut_tiles entries must be within the map")
         legal_json = _canonical_action_json(
             payload.get("legal_actions") if legal_actions is None else legal_actions,
             player_id=player_id)
@@ -336,7 +343,9 @@ class ProxyStateDTO:
             "economy": EconomicState(gold, gold_per_turn, tax, science, luxury,
                                       economy_available, economy_diagnostic).to_dict(),
             "game_id": str(game_id), "legal_action_json": list(legal_json),
-            "map": {"height": height, "tiles": tiles, "visible_tile_ids": list(visible),
+            "map": {"height": height,
+                    "known_hut_tile_ids": list(known_hut_tiles),
+                    "tiles": tiles, "visible_tile_ids": list(visible),
                     "width": width},
             "phase": phase, "player_id": player_id,
             "research": ResearchState(tuple(sorted(set(known))), target_id, target_name,
@@ -361,7 +370,8 @@ class ProxyStateDTO:
             units=tuple(sorted(units, key=lambda item: item.unit_id)),
             visible_enemy_units=tuple(sorted(
                 visible_enemy_units, key=lambda item: item.unit_id)),
-            visible_tile_ids=visible, map_width=width, map_height=height,
+            visible_tile_ids=visible, known_hut_tile_ids=known_hut_tiles,
+            map_width=width, map_height=height,
             map_tiles=tuple(copy.deepcopy(tiles)), legal_action_json=legal_json,
             legal_actions_digest=legal_digest))
 

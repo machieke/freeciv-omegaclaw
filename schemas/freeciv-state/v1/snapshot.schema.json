@@ -12,9 +12,14 @@
     "authoritative": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["source_seq", "player", "research", "ruleset"],
+      "required": ["source_seq", "player", "research", "ruleset", "known_hut_tiles"],
       "properties": {
         "source_seq": {"type": "integer", "minimum": 0},
+        "known_hut_tiles": {
+          "type": "array",
+          "items": {"type": "integer", "minimum": 0},
+          "uniqueItems": true
+        },
         "player": {
           "type": "object",
           "required": ["gold", "gold_per_turn", "tax", "science", "luxury"],

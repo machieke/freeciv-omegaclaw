@@ -66,6 +66,27 @@ def test_authoritative_contract_fixture_schema_and_stable_identity():
     assert first.city(3).production[1] == 5
     assert first.city(3).buildability_available
     assert first.visible_tile_ids == (82,)
+    assert first.known_hut_tile_ids == ()
+
+
+def test_packet_known_hut_tiles_are_typed_and_part_of_snapshot_identity():
+    payload = _payload()
+    payload["authoritative"]["known_hut_tiles"] = [82, 41, 82]
+    with_huts = _snapshot(payload=payload)
+    without_huts = _snapshot()
+
+    assert with_huts.known_hut_tile_ids == (41, 82)
+    assert with_huts.map_dict()["known_hut_tile_ids"] == [41, 82]
+    assert with_huts.identity.state_hash != without_huts.identity.state_hash
+
+
+@pytest.mark.parametrize("tile_id", (-1, 1000))
+def test_packet_known_hut_tiles_must_be_within_map(tile_id):
+    payload = _payload()
+    payload["authoritative"]["known_hut_tiles"] = [tile_id]
+
+    with pytest.raises(ContractError, match="must be within the map"):
+        _snapshot(payload=payload)
 
 
 def test_old_optimized_proxy_response_is_readable_but_fail_closed():

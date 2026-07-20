@@ -140,11 +140,12 @@ confirmation:
    valuable as a proposed switch. Reject builds that cannot finish early enough
    to influence the declared horizon.
 5. Protect expansion production: below the city target, if no founder exists,
-   only a founder with enough build-and-settlement runway is eligible. A failed
-   founder request cannot fall through to economy or military production.
-   Short-runway population-costing founders are rejected; legal zero-population
-   founders are preferred. Non-deficit military production is not churned for a
-   fractional unit-score projection.
+   only a founder started before the configured cutoff, projected to settle by
+   the horizon, and carrying positive score value is eligible. A failed founder
+   request cannot fall through to economy or military production. Late
+   population-costing founders are rejected; legal zero-population founders are
+   preferred. Non-deficit military production is not churned for a fractional
+   unit-score projection.
 6. Emit separate citizen, technology, and residual score components, plus
    production ETA/value telemetry, so future paired reports identify which
    mechanism moved the score and whether the intervention completed in time.
@@ -469,3 +470,30 @@ its obstruction remains a separate investigation.
 The `+2` score delta is a one-pair development observation on an already exercised
 seed. It is mechanism evidence only and does not revise the immutable disjoint
 200-pair `+0.435` score claim or satisfy the predeclared paired inference gates.
+
+## Exact hut routing and founder-horizon semantics
+
+The authoritative proxy now exposes sorted tile IDs only when packet-retained tile
+extras select a ruleset extra whose cause bitvector contains `EC_HUT`. The immutable
+snapshot validates and hashes this field. Explorer-role units rank only advertised
+one-step moves that strictly reduce wrapped map distance to a known hut, while the packet
+converter independently repeats the exact extra-cause check before emitting a hut action.
+No observer-only tile, terrain-name heuristic, or inferred hidden occupancy enters the
+planner.
+
+Founder horizon logic now gives `expansion_minimum_remaining_turns` one coherent meaning:
+it is the minimum remaining horizon at which a new founder build may start. A new build
+must also have positive projected value and an exact population/build/route ETA that
+settles by the horizon. A founder already queued counts as capacity whenever its projected
+settlement lands by the horizon; it is not incorrectly required to retain the start cutoff
+again after settlement. Focused tests cover a population-delayed founder that settles in
+time and the late-start rejection.
+
+The clean engine pair at
+`artifacts/freeciv/impact-known-hut-route-probe-104729-20260720` exercised packet-known hut
+routing from turn 1 and reached its first two huts by turns 3 and 7. It passed initial-state
+fidelity, all safety gates, and the complete release audit with no engine rejection or model
+fallback. Its treatment-minus-baseline score delta was `-2`, entirely one technology, so it
+is retained as counter-evidence that deterministic earlier hut collection changes a
+stochastic reward trajectory but does not guarantee a better paired score. It does not
+revise the immutable disjoint 200-pair `+0.435` claim.

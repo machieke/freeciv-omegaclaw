@@ -75,6 +75,7 @@ class StateSummaryService(object):
                 "x": unit.x, "y": unit.y,
             } for unit in snapshot.visible_enemy_units),
             map_summary={"width": snapshot.map_width, "height": snapshot.map_height,
+                         "known_huts": len(snapshot.known_hut_tile_ids),
                          "visible_tiles": len(snapshot.visible_tile_ids)},
             legal_action_kinds=tuple(sorted(action_kinds)),
             diagnostics=tuple(sorted(set(diagnostics))))

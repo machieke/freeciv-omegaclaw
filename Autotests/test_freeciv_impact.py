@@ -17,7 +17,8 @@ from freeciv_agent.planning import (DeferredImpactOutcomeLedger,
 from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 
 
-def _snapshot(units, actions, cities=None, source_seq=1, turn=4, city_surplus=None):
+def _snapshot(units, actions, cities=None, source_seq=1, turn=4,
+              city_surplus=None, known_hut_tiles=None):
     cities = cities if cities is not None else [_city()]
     if city_surplus is not None:
         cities[0]["surplus"] = list(city_surplus)
@@ -32,6 +33,7 @@ def _snapshot(units, actions, cities=None, source_seq=1, turn=4, city_surplus=No
                          "researching_cost": 40, "bulbs_researched": 10,
                          "beakers_per_turn": 5},
             "ruleset": {"ready": True},
+            "known_hut_tiles": list(known_hut_tiles or ()),
         },
         "techs": {"player0": ["Alphabet"]},
         "units": {str(row["id"]): row for row in units},
@@ -746,6 +748,31 @@ def test_plain_move_into_packet_visible_foreign_stack_is_not_a_candidate():
     assert GroundedImpactPlanner().plan(snapshot) is None
 
 
+def test_explorer_routes_toward_exact_packet_known_hut():
+    toward_hut = {"action_type": "unit_move", "actor_id": 20,
+                  "target": {"x": 1, "y": 0}, "is_valid": True}
+    wandering = {"action_type": "unit_move", "actor_id": 20,
+                 "target": {"x": 0, "y": 1}, "is_valid": True}
+    snapshot = _snapshot(
+        [_unit(20, "Diplomat")],
+        [wandering, toward_hut,
+         {"action_type": "end_turn", "is_valid": True}],
+        known_hut_tiles=[2])
+
+    decision = GroundedImpactPlanner().plan(snapshot)
+
+    assert decision.candidate.category == "hut_exploration"
+    assert decision.candidate.action == {
+        "action_type": "unit_move", "actor_id": 20,
+        "target": {"x": 1, "y": 0},
+    }
+    assert decision.candidate.projection == {
+        "current_hut_distance": 2,
+        "target_hut_distance": 1,
+        "target_is_known_hut": False,
+    }
+
+
 def test_production_effect_requires_the_exact_requested_city_target():
     action = _production(10, "Granary", 3, 14)
     before = _snapshot(
@@ -906,6 +933,38 @@ def test_production_candidates_require_fixed_horizon_runway():
         units, actions, turn=22, city_surplus=(10, 4, 2, 1, 0, 3))) is not None
     assert planner.plan(_snapshot(
         units, actions, turn=23, city_surplus=(10, 4, 2, 1, 0, 3))) is None
+
+
+def test_population_delayed_founder_uses_start_runway_and_settles_by_horizon():
+    founder = _production(10, "Settlers", 6, 0)
+    actions = [founder, {"action_type": "end_turn", "is_valid": True}]
+    city = _city(size=1, food_stock=0, shield_stock=0,
+                 surplus=(1, 5, 4, 3, 0, 2),
+                 production_kind=6, production_value=11)
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 40),
+        ("Alpine Troops", "unit", 60),
+    ), pop_costs={"Settlers": 1})
+    values = {
+        "horizon_turn": 30,
+        "expansion_city_target": 2,
+        "expansion_minimum_remaining_turns": 12,
+    }
+
+    decision = GroundedImpactPlanner(values, ruleset_ir=ir).plan(_snapshot(
+        [_unit(11, "Alpine Troops")], actions, cities=[city], turn=1))
+
+    assert decision.candidate.category == "production_expansion"
+    assert decision.candidate.projection["population_ready_eta_turns"] == 20
+    assert decision.candidate.projection["settlement_eta_turns"] == 23
+    assert decision.candidate.projection["settlement_runway_turns"] == 6
+    assert decision.candidate.projection["score_value"] > 0
+
+    # A build that begins after the configured expansion-start cutoff remains
+    # excluded even if a mature city could technically complete it by turn 30.
+    mature = dict(city, size=2, food_stock=20)
+    assert GroundedImpactPlanner(values, ruleset_ir=ir).plan(_snapshot(
+        [_unit(11, "Alpine Troops")], actions, cities=[mature], turn=19)) is None
 
 
 def test_paired_production_strategy_contrasts_static_and_horizon_value():

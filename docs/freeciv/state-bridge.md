@@ -14,7 +14,7 @@ The patch is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. Its SHA-256 is
-`7dd7a2ae14adae37cc19977dd2ffc2b49d6f07debb1d2082f2db34ab1ed0f2af`.
+`91d3a9470d74eb3a2df5a04dc9841ba33ca10b59eb0d3effd4ce392e391b4c4a`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 State-response cache identity includes both turn and the monotonic packet sequence. Same-turn
@@ -62,6 +62,14 @@ keeps the ordinary movement encoding. The clean engine probe at
 `artifacts/freeciv/impact-hut-action-probe-104729-v3-20260720` confirmed the known hut
 through this path with zero engine rejection or model fallback and all release-audit gates
 green.
+
+The same exact extra-cause resolver publishes sorted `known_hut_tiles` in the authoritative
+state. `ProxyStateDTO` types and hashes those IDs as `known_hut_tile_ids`; the impact planner
+may therefore route an explorer only along advertised moves that strictly reduce distance to
+a packet-known hut. The converter still revalidates the tile immediately before transport,
+so stale remembered extras fail closed to ordinary movement. The engine-backed route probe at
+`artifacts/freeciv/impact-known-hut-route-probe-104729-20260720` exercised the field from the
+first snapshot and passed the complete release audit.
 
 `ProxyStateDTO` validates and immediately converts transport data into an immutable
 `AuthoritativeSnapshot`; it does not retain the raw response. The snapshot identity is

@@ -27,7 +27,8 @@
       "unit_types": 54,
       "improvements": 69,
       "techs": 87
-    }
+    },
+    "known_hut_tiles": []
   },
   "techs": {"player0": ["Alphabet", "Bronze Working"]},
   "economic": {

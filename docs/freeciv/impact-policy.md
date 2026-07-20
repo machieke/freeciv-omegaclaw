@@ -40,9 +40,11 @@ The deterministic priority order is:
 4. Fill a grounded city-defense deficit and preserve the sole garrison.
 5. Select one founder, defender, or growth/economy production per city without
    switching away from accumulated shields or a useful current production.
-6. Explore with diplomats, spies, caravans, and explorers only when the advertised
-   destination has not already been observed.
-7. Move a non-garrison unit tactically only when the advertised destination strictly
+6. Route diplomats, spies, caravans, and explorers toward the nearest exact
+   packet-known hut whenever an advertised move strictly reduces that distance.
+7. Otherwise explore with those units only when the advertised destination has not
+   already been observed.
+8. Move a non-garrison unit tactically only when the advertised destination strictly
    reduces distance to a packet-visible opponent. Targetless frontier movement is
    not an impact candidate.
 
@@ -52,17 +54,21 @@ terrain workers and does not make Migrants, Workers, or Engineers founders. A
 server-advertised `unit_build_city` action corroborates and caches a founder type.
 
 Expansion demand is capacity-based: current cities, legal founder units, and founder
-builds already queued with enough runway each count toward `expansion_city_target`.
+builds already queued with an exact projected settlement no later than the horizon each
+count toward `expansion_city_target`.
 This permits one founder to be pipelined while an earlier founder is routing, but stops
 additional cities from selecting redundant settlers once the target is covered.
 
 Founder completion ETA is the maximum of shield completion and population readiness.
 Population readiness uses the compiled active-ruleset `granary_food_ini` and
 `granary_food_inc` parameters, the pinned runtime `foodbox_percent`, and authoritative
-city size, food stock, and food surplus. No unobserved food retention is assumed. A
-founder production candidate must leave `expansion_minimum_remaining_turns` after
-completion and minimum-distance routing; this rejects late settlers that would consume
-population and movement without reaching a score-bearing settlement before the horizon.
+city size, food stock, and food surplus. No unobserved food retention is assumed.
+`expansion_minimum_remaining_turns` is a founder-production start cutoff, not a second
+post-settlement runway. A new founder candidate must start while at least that many turns
+remain, have positive projected score value, and complete its minimum-distance route no
+later than the horizon. This rejects late settlers that would consume population and
+movement without reaching a score-bearing settlement while allowing a population-delayed
+build that still settles in time.
 
 Founder routing is feedback-driven in the horizon-score policy. On the first step from
 a city, aggregate distance from the complete city network breaks minimum-distance ties
@@ -353,6 +359,21 @@ The remaining expiry had no hut fact and is correctly still ordinary movement. T
 observed `+2` delta is one development pair on a reused seed, not a revised claim;
 the immutable disjoint 200-pair result remains `+0.435` until a fresh predeclared
 cohort passes both paired inference gates.
+
+The authoritative bridge now also publishes the exact tile IDs whose packet-retained
+extras resolve to `EC_HUT`. Explorer-role movement ranks only advertised steps that
+strictly reduce wrapped map distance to one of those tiles; it never derives a hut from
+terrain, a name, or observer-only state. The destination converter independently repeats
+the exact tile-extra and ruleset-cause check before selecting the explicit hut action.
+
+The clean development pair at
+`artifacts/freeciv/impact-known-hut-route-probe-104729-20260720` exercised this route from
+turn 1, reached the first two packet-known huts by turns 3 and 7, passed paired initial-state
+fidelity and every release-audit safety check, and had zero engine rejection or model
+fallback. Baseline scored `109` and treatment `107`; the `-2` delta came entirely from one
+technology and demonstrates that faster hut collection can alter a stochastic reward and
+action trajectory without guaranteeing a better paired score. This is correctness and
+mechanism evidence only, not a revised score claim.
 
 ## Operational note
 

@@ -816,6 +816,25 @@ class GroundedImpactPlanner(object):
         return len(defenders) <= 1
 
     @staticmethod
+    def _known_hut_positions(snapshot):
+        if snapshot.map_width <= 0:
+            return ()
+        return tuple((tile % snapshot.map_width, tile // snapshot.map_width)
+                     for tile in snapshot.known_hut_tile_ids)
+
+    def _hut_route_distances(self, snapshot, unit, x, y):
+        huts = self._known_hut_positions(snapshot)
+        if not huts:
+            return None
+        current = min(_distance(
+            unit.x, unit.y, hx, hy, snapshot.map_width, snapshot.map_height)
+                      for hx, hy in huts)
+        target = min(_distance(
+            x, y, hx, hy, snapshot.map_width, snapshot.map_height)
+                     for hx, hy in huts)
+        return current, target
+
+    @staticmethod
     def _current_production_matches(city, action):
         kind = action.get("production_kind")
         value = action.get("production_value")
@@ -1025,7 +1044,7 @@ class GroundedImpactPlanner(object):
                     and active >= int(minimum_active_turns))
 
     def _queued_founder_count(self, snapshot, founder_types, remaining_turns):
-        """Count only founder builds projected to retain settlement runway."""
+        """Count only founder builds projected to settle by the horizon."""
         count = 0
         for queued_city in snapshot.cities:
             queued_name = self._current_production_name(queued_city)
@@ -1034,9 +1053,8 @@ class GroundedImpactPlanner(object):
             projection = self._production_projection(
                 queued_city, queued_name, remaining_turns, snapshot=snapshot,
                 founder_types=founder_types)
-            if (projection.get("settlement_runway_turns") is not None
-                    and projection["settlement_runway_turns"]
-                    >= self.expansion_minimum_remaining_turns):
+            if (projection.get("settlement_eta_turns") is not None
+                    and projection["settlement_eta_turns"] <= remaining_turns):
                 count += 1
         return count
 
@@ -1088,15 +1106,17 @@ class GroundedImpactPlanner(object):
         if needs_founder and current_normalized in founder_types:
             return None
         if (needs_founder and normalized in founder_types
-                and projection.get("settlement_runway_turns") is not None
-                and projection["settlement_runway_turns"]
-                >= self.expansion_minimum_remaining_turns):
+                and remaining_turns >= self.expansion_minimum_remaining_turns
+                and projection.get("settlement_eta_turns") is not None
+                and projection["settlement_eta_turns"] <= remaining_turns
+                and projection["score_value"] > 0):
             return ImpactCandidate(
                 action, "production_expansion",
                 920.0 + projection["score_value"] * 10.0
                 - projection["completion_eta_turns"],
-                "fill the grounded city-plus-founder capacity deficit when ruleset "
-                "population and build ETA leave settlement runway",
+                "fill the grounded city-plus-founder capacity deficit when the "
+                "configured start runway and exact ruleset build, population, and "
+                "route ETA project positive score value by the horizon",
                 projection)
 
         # Protect expansion capacity: when the target has not been met and no
@@ -1165,6 +1185,10 @@ class GroundedImpactPlanner(object):
             return False
         if self._city_defender_is_required(snapshot, unit, founder_types):
             return False
+        if unit_type in EXPLORER_TYPES:
+            hut_distances = self._hut_route_distances(snapshot, unit, x, y)
+            if hut_distances is not None and hut_distances[1] < hut_distances[0]:
+                return False
         enemies = [row for row in snapshot.visible_enemy_units
                    if row.x is not None and row.y is not None]
         if enemies:
@@ -1250,6 +1274,17 @@ class GroundedImpactPlanner(object):
 
         if self._city_defender_is_required(snapshot, unit, founder_types):
             return None
+        if unit_type in EXPLORER_TYPES:
+            hut_distances = self._hut_route_distances(snapshot, unit, x, y)
+            if hut_distances is not None and hut_distances[1] < hut_distances[0]:
+                current_hut_distance, target_hut_distance = hut_distances
+                return ImpactCandidate(
+                    action, "hut_exploration",
+                    940.0 - target_hut_distance * 8.0 + novelty * 5.0,
+                    "strictly reduce distance to an exact packet-known hut",
+                    {"current_hut_distance": current_hut_distance,
+                     "target_hut_distance": target_hut_distance,
+                     "target_is_known_hut": target_hut_distance == 0})
         enemies = [row for row in snapshot.visible_enemy_units
                    if row.x is not None and row.y is not None]
         if enemies:

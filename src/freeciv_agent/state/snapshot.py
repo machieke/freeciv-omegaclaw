@@ -141,6 +141,7 @@ class AuthoritativeSnapshot:
     units: Tuple[UnitState, ...]
     visible_enemy_units: Tuple[UnitState, ...]
     visible_tile_ids: Tuple[int, ...]
+    known_hut_tile_ids: Tuple[int, ...]
     map_width: int
     map_height: int
     map_tiles: Tuple[object, ...]
@@ -181,7 +182,9 @@ class AuthoritativeSnapshot:
 
     def map_dict(self):
         return {
-            "height": self.map_height, "tiles": list(self.map_tiles),
+            "height": self.map_height,
+            "known_hut_tile_ids": list(self.known_hut_tile_ids),
+            "tiles": list(self.map_tiles),
             "visible_tile_ids": list(self.visible_tile_ids), "width": self.map_width,
         }
 

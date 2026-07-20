@@ -19,6 +19,12 @@
     "luxury": 4,
     "science": 5
   },
+  "packet_derived_fields": {
+    "authoritative.known_hut_tiles": {
+      "sources": ["PACKET_TILE_INFO.extras", "PACKET_RULESET_EXTRA.causes"],
+      "semantics": "sorted packet-known tile IDs whose selected extra has EC_HUT"
+    }
+  },
   "fail_closed": [
     "missing ruleset-ready packet blocks all action submission",
     "missing city buildability bitvector blocks production for that city",
