@@ -35,7 +35,8 @@ The deterministic priority order is:
 
 1. Attack only a packet-visible unit at the advertised target.
 2. Found a city only below the city target and at the declared minimum spacing.
-3. Move only a ruleset-declared founder outward while expansion is incomplete.
+3. Move only a ruleset-declared founder outward while expansion is incomplete,
+   preferring city-network separation and grounded traversability evidence.
 4. Fill a grounded city-defense deficit and preserve the sole garrison.
 5. Select one founder, defender, or growth/economy production per city without
    switching away from accumulated shields or a useful current production.
@@ -63,6 +64,20 @@ founder production candidate must leave `expansion_minimum_remaining_turns` afte
 completion and minimum-distance routing; this rejects late settlers that would consume
 population and movement without reaching a score-bearing settlement before the horizon.
 
+Founder routing is feedback-driven in the horizon-score policy. On the first step from
+a city, aggregate distance from the complete city network breaks minimum-distance ties
+in favor of open expansion space. A move target becomes a proven traversable edge only
+when the authoritative post-action actor position exactly equals that target; transport
+acceptance or movement-point consumption alone is insufficient. Exact failed edges are
+pruned for the unchanged actor and penalized, but not prohibited, for another founder
+because occupancy can be transient. Failed actor edges are scoped to the unchanged city
+layout so a newly established city can reopen routing choices. The observed
+success/failure ratio also inflates later founder settlement ETA instead of continuing to
+assume one successful tile per turn after the engine has shown otherwise. No directional
+momentum is inferred from a successful step: engine-backed evaluation showed that a
+diagonal-heading preference can overshoot a productive legal city site when the terrain
+corridor bends. Static-priority paired baselines keep their frozen movement ranking.
+
 One successful unit-scoped strategic action and one successful production change per
 city are allowed per turn. After a no-effect action, up to
 `max_no_effect_failovers_per_scope` alternative exact actions may use the same scope,
@@ -76,9 +91,9 @@ exact action and a local grounding signature for its actor, city, visible target
 city layout. The action is suppressed after `no_effect_retry_limit` attempts while
 that signature remains unchanged. A material local change makes it eligible again;
 turn advancement and movement-point refresh alone do not. When another advertised
-action exists for the same actor, it can be selected immediately in the same turn.
-The first alternative that produces an authoritative change closes that actor/city
-scope for the rest of the turn.
+non-unit action exists for the same scope, it can be selected immediately in the same
+turn. The first alternative that produces an authoritative change closes that scope
+for the rest of the turn.
 
 Transport-accepted terminal actions close their actor scope immediately even if the
 first refreshed packet has not caught up. This prevents a delayed city-founding or
@@ -120,6 +135,8 @@ the existing score and latency metrics:
 - `planner_founder_capable_unit_types`,
   `planner_capability_pruned_worker_moves`, and
   `planner_nonprogress_moves_pruned`;
+- `planner_founder_unreachable_moves_pruned`, founder route successes, failures,
+  success rate, and observed-evidence route ETA;
 - population-ready, settlement ETA/runway, founder-deficit, and compiler-source
   production projection metrics;
 - `model_safe_fallback_rate` and `model_corrections_per_turn`.
@@ -144,6 +161,26 @@ volume was unchanged because those candidates had not won its ranking.
 Transport acceptance and observed state effect are intentionally separate. An action
 can be legal and accepted without changing the authoritative state; the report must
 not count that distinction as proven gameplay value.
+
+## Founder-routing development evidence
+
+The five-pair engine-backed development cohort at
+`artifacts/freeciv/impact-founder-routing-dev-3-v4-20260720` evaluates the final
+first-step-only city-separation policy. All ten games completed, initial fingerprints
+matched, and engine rejection, model fallback, and turn-latency safety gates passed.
+Treatment minus baseline founder-route failures fell by `2.8 [-5.2,-0.4]`, route
+success rate rose by `0.181 [0.032,0.338]`, no-effect actions fell by
+`3.0 [0.4,6.6]`, and retry suppressions fell by `17.8 [2.4,34.0]` per game (intervals
+are paired bootstrap intervals; decreases are written here as positive reductions).
+
+On diagnostic seed `104759`, the earlier treatment needed three stagnant turns before
+the second founder entered the usable corridor and founded on turn 14. The final policy
+moved through `(20,10)`, `(20,11)`, and `(20,12)` on turns 8--10 and founded on turn 11:
+six exact founder-route successes, zero failures, 13 rather than 23 no-effect actions,
+and score 114 in both treatment versions. Across the five matched pairs, score delta
+remained `+1.0 [0.2,1.8]` with exact sign-flip `p=0.25`; score-lead-rate delta remained
+zero. This dirty-source development cohort is mechanism evidence, not a statistical
+score or win-rate claim.
 
 ## Development smoke evidence
 

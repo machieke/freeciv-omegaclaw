@@ -1024,6 +1024,7 @@ async def _play(run_dir, manifest, context):
     impact_turns = set()
     capability_pruned_worker_moves = set()
     nonprogress_moves = set()
+    unreachable_founder_moves = set()
     replan_latencies = []
     model_latencies = []
     full_loop_latencies = []
@@ -1037,6 +1038,8 @@ async def _play(run_dir, manifest, context):
     production_projection_population_etas = []
     production_projection_settlement_etas = []
     production_projection_settlement_runways = []
+    production_projection_route_etas = []
+    production_projection_route_eta_sources = []
     production_projection_growth_ruleset_sources = []
     production_founder_deficits = []
     corrections = 0
@@ -1095,6 +1098,8 @@ async def _play(run_dir, manifest, context):
             capability_pruned_worker_moves.update(
                 impact_planner.capability_pruned_worker_move_keys(snapshot))
             nonprogress_moves.update(impact_planner.nonprogress_move_keys(snapshot))
+            unreachable_founder_moves.update(
+                impact_planner.founder_unreachable_move_keys(snapshot))
         initial_city_count = len(snapshot.cities)
         initial_citizens = sum(max(0, int(city.size or 0)) for city in snapshot.cities)
         initial_tech_count = len(snapshot.research.known_techs)
@@ -1162,6 +1167,8 @@ async def _play(run_dir, manifest, context):
                         impact_planner.capability_pruned_worker_move_keys(next_snapshot))
                     nonprogress_moves.update(
                         impact_planner.nonprogress_move_keys(next_snapshot))
+                    unreachable_founder_moves.update(
+                        impact_planner.founder_unreachable_move_keys(next_snapshot))
                 event = writer.emit(
                     "state_snapshot", next_snapshot.turn, next_snapshot.event_payload(),
                     caused_by=[cause])
@@ -1188,6 +1195,8 @@ async def _play(run_dir, manifest, context):
                         impact_planner.capability_pruned_worker_move_keys(snapshot))
                     nonprogress_moves.update(
                         impact_planner.nonprogress_move_keys(snapshot))
+                    unreachable_founder_moves.update(
+                        impact_planner.founder_unreachable_move_keys(snapshot))
                 if prior_scout is not None:
                     actor_id, source_x, source_y, target_x, target_y = prior_scout
                     row = next((unit for unit in raw.get("units", {}).values()
@@ -1341,6 +1350,13 @@ async def _play(run_dir, manifest, context):
                         if projection.get("settlement_runway_turns") is not None:
                             production_projection_settlement_runways.append(float(
                                 projection["settlement_runway_turns"]))
+                        if projection.get("founder_route_eta_turns") is not None:
+                            production_projection_route_etas.append(float(
+                                projection["founder_route_eta_turns"]))
+                        if projection.get("founder_route_eta_source") is not None:
+                            production_projection_route_eta_sources.append(int(
+                                projection["founder_route_eta_source"]
+                                == "observed_route_effects"))
                         if projection.get("growth_cost_source") is not None:
                             production_projection_growth_ruleset_sources.append(int(
                                 projection["growth_cost_source"] == "ruleset_ir"))
@@ -1368,7 +1384,8 @@ async def _play(run_dir, manifest, context):
                                        and impact_planner.candidate_effect_observed(
                                            decision.candidate, action_snapshot, snapshot))
                     impact_planner.record_outcome(
-                        decision.candidate, action_snapshot, effect_observed)
+                        decision.candidate, action_snapshot, effect_observed,
+                        after_snapshot=(snapshot if authoritative_refresh else None))
                     impact_budget.record(
                         decision.candidate, effect_observed,
                         authoritative_refresh=authoritative_refresh)
@@ -1540,6 +1557,17 @@ async def _play(run_dir, manifest, context):
         ("planner_capability_pruned_worker_moves",
          len(capability_pruned_worker_moves)),
         ("planner_nonprogress_moves_pruned", len(nonprogress_moves)),
+        ("planner_founder_unreachable_moves_pruned",
+         len(unreachable_founder_moves)),
+        ("planner_founder_route_successes",
+         impact_planner.founder_route_successes if impact_planner is not None else 0),
+        ("planner_founder_route_failures",
+         impact_planner.founder_route_failures if impact_planner is not None else 0),
+        ("planner_founder_route_success_rate",
+         (float(impact_planner.founder_route_successes)
+          / max(1, impact_planner.founder_route_successes
+                + impact_planner.founder_route_failures))
+         if impact_planner is not None else 0.0),
         ("planner_founder_capable_unit_types",
          len(impact_planner.founder_capable_types)
          if impact_planner is not None else 0),
@@ -1566,6 +1594,12 @@ async def _play(run_dir, manifest, context):
         ("production_projected_settlement_runway_turns",
          sum(production_projection_settlement_runways)
          / float(max(1, len(production_projection_settlement_runways)))),
+        ("production_projected_founder_route_eta_turns",
+         sum(production_projection_route_etas)
+         / float(max(1, len(production_projection_route_etas)))),
+        ("production_projection_route_observed_source_rate",
+         sum(production_projection_route_eta_sources)
+         / float(max(1, len(production_projection_route_eta_sources)))),
         ("production_projection_growth_ruleset_source_rate",
          sum(production_projection_growth_ruleset_sources)
          / float(max(1, len(production_projection_growth_ruleset_sources)))),
@@ -1619,6 +1653,14 @@ async def _play(run_dir, manifest, context):
             "planner_capability_pruned_worker_moves": (
                 len(capability_pruned_worker_moves)),
             "planner_nonprogress_moves_pruned": len(nonprogress_moves),
+            "planner_founder_unreachable_moves_pruned": (
+                len(unreachable_founder_moves)),
+            "planner_founder_route_successes": (
+                impact_planner.founder_route_successes
+                if impact_planner is not None else 0),
+            "planner_founder_route_failures": (
+                impact_planner.founder_route_failures
+                if impact_planner is not None else 0),
             "planner_founder_capable_unit_types": (
                 len(impact_planner.founder_capable_types)
                 if impact_planner is not None else 0),
@@ -1650,6 +1692,13 @@ async def _play(run_dir, manifest, context):
         "planner_capability_pruned_worker_moves": (
             len(capability_pruned_worker_moves)),
         "planner_nonprogress_moves_pruned": len(nonprogress_moves),
+        "planner_founder_unreachable_moves_pruned": len(unreachable_founder_moves),
+        "planner_founder_route_successes": (
+            impact_planner.founder_route_successes
+            if impact_planner is not None else 0),
+        "planner_founder_route_failures": (
+            impact_planner.founder_route_failures
+            if impact_planner is not None else 0),
         "planner_founder_capable_unit_types": (
             len(impact_planner.founder_capable_types)
             if impact_planner is not None else 0),

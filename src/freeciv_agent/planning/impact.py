@@ -134,7 +134,14 @@ def _target_name(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.0"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.1"
+
+    # Routing evidence is deliberately a tie-breaker within the strategic
+    # expansion policy.  It must never manufacture legality or bypass the
+    # execution gate's one-unit-action safety boundary.
+    FOUNDER_CITY_SEPARATION_WEIGHT = 24.0
+    FOUNDER_TRAVERSABLE_EDGE_BONUS = 36.0
+    FOUNDER_FAILED_EDGE_PENALTY = 30.0
 
     def __init__(self, config=None, ruleset_ir=None):
         values = dict(config or {})
@@ -191,6 +198,11 @@ class GroundedImpactPlanner(object):
         self._ruleset_founder_types = set()
         self._ruleset_worker_types = set()
         self._server_founder_types = set()
+        self._founder_traversable_edges = set()
+        self._founder_failed_edges = {}
+        self._founder_actor_failed_edges = set()
+        self.founder_route_successes = 0
+        self.founder_route_failures = 0
         parameters = getattr(ruleset_ir, "parameters", {})
         initial_food = parameters.get("granary_food_ini", {})
         incremental_food = parameters.get("granary_food_inc", {})
@@ -312,6 +324,22 @@ class GroundedImpactPlanner(object):
             and self._move_candidate(snapshot, action, founder_types) is None
             and self._move_is_nonprogress(snapshot, action, founder_types)))
 
+    def founder_unreachable_move_keys(self, snapshot):
+        """Return founder moves pruned by actor-local reachability evidence.
+
+        Like candidate enumeration, this inspection is read-only.  The live
+        harness aggregates the returned canonical keys without allowing
+        telemetry collection to alter routing state.
+        """
+        actions = self._actions(snapshot)
+        founder_types = self._founder_types(snapshot, actions)
+        return tuple(sorted(
+            canonical_json_bytes(action).decode("utf-8")
+            for action in actions
+            if action.get("action_type") == "unit_move"
+            and self._founder_move_evidence(
+                snapshot, action, founder_types).get("actor_failed")))
+
     def commit(self, candidate):
         """Record a successfully transported persistent policy decision."""
         if candidate.category == "city_defense":
@@ -413,7 +441,8 @@ class GroundedImpactPlanner(object):
             "target_unit": self._unit_grounding(target_unit),
         })
 
-    def record_outcome(self, candidate, snapshot, effect_observed):
+    def record_outcome(
+            self, candidate, snapshot, effect_observed, after_snapshot=None):
         """Learn from an accepted action without treating acceptance as effect.
 
         Exact no-effect actions are suppressed while their local authoritative
@@ -422,6 +451,8 @@ class GroundedImpactPlanner(object):
         target changes can.
         """
         self.commit(candidate)
+        self._record_founder_route_outcome(
+            candidate, snapshot, after_snapshot)
         key = (candidate.action_key, self._grounding_signature(snapshot, candidate))
         if effect_observed:
             self._no_effect_attempts.pop(key, None)
@@ -461,6 +492,100 @@ class GroundedImpactPlanner(object):
         rows = [_distance(x, y, city.x, city.y, snapshot.map_width, snapshot.map_height)
                 for city in snapshot.cities]
         return min(rows) if rows else self.settle_min_distance
+
+    @staticmethod
+    def _city_layout(snapshot):
+        return tuple(sorted(
+            (city.city_id, city.x, city.y) for city in snapshot.cities))
+
+    def _founder_edge(self, snapshot, action, founder_types):
+        unit = snapshot.unit(action.get("actor_id"))
+        target = action.get("target", {})
+        if unit is None or not isinstance(target, dict):
+            return None
+        unit_type = _normalized_type(unit.unit_type)
+        x, y = target.get("x"), target.get("y")
+        if (unit_type not in founder_types or None in (unit.x, unit.y, x, y)
+                or (unit.x, unit.y) == (x, y)):
+            return None
+        return (unit_type, int(unit.x), int(unit.y), int(x), int(y))
+
+    def _founder_actor_edge(self, snapshot, unit, edge):
+        return (
+            int(unit.unit_id), edge, self._city_layout(snapshot),
+        )
+
+    def _founder_move_evidence(self, snapshot, action, founder_types):
+        """Read grounded routing evidence for one advertised founder move."""
+        edge = self._founder_edge(snapshot, action, founder_types)
+        if edge is None:
+            return {}
+        unit = snapshot.unit(action.get("actor_id"))
+        return {
+            "actor_failed": (
+                self._founder_actor_edge(snapshot, unit, edge)
+                in self._founder_actor_failed_edges),
+            "edge": edge,
+            "failed_attempts": self._founder_failed_edges.get(edge, 0),
+            "traversable_edge": edge in self._founder_traversable_edges,
+        }
+
+    def _record_founder_route_outcome(self, candidate, before, after):
+        """Record only an exact post-action position as traversability proof."""
+        if candidate.category != "expansion_move" or after is None:
+            return
+        founder_types = self._founder_types(before)
+        edge = self._founder_edge(before, candidate.action, founder_types)
+        unit = before.unit(candidate.action.get("actor_id"))
+        if edge is None or unit is None:
+            return
+        actor_edge = self._founder_actor_edge(before, unit, edge)
+        target = (edge[3], edge[4])
+        after_unit = after.unit(unit.unit_id)
+        traversed = bool(
+            after_unit is not None
+            and (after_unit.x, after_unit.y) == target
+            and (unit.x, unit.y) != target)
+        if traversed:
+            self.founder_route_successes += 1
+            self._founder_traversable_edges.add(edge)
+            self._founder_actor_failed_edges.discard(actor_edge)
+            return
+
+        self.founder_route_failures += 1
+        self._founder_failed_edges[edge] = (
+            self._founder_failed_edges.get(edge, 0) + 1)
+        self._founder_actor_failed_edges.add(actor_edge)
+
+    def _founder_city_separation_gain(self, snapshot, unit, x, y):
+        """Measure outward progress across all established cities.
+
+        Minimum city distance remains the settlement constraint.  This aggregate
+        delta resolves the otherwise arbitrary first step from a city tile by
+        favoring the side of the city network with more expansion room.
+        """
+        current = sum(_distance(
+            unit.x, unit.y, city.x, city.y,
+            snapshot.map_width, snapshot.map_height) for city in snapshot.cities)
+        target = sum(_distance(
+            x, y, city.x, city.y,
+            snapshot.map_width, snapshot.map_height) for city in snapshot.cities)
+        return ((target - current) / float(len(snapshot.cities))
+                if snapshot.cities else 0.0)
+
+    def _founder_route_eta(self):
+        """Estimate movement turns from observed successful/failed route orders."""
+        attempts = self.founder_route_successes + self.founder_route_failures
+        if attempts <= 0:
+            return self.settle_min_distance, "minimum_distance"
+        if self.founder_route_successes <= 0:
+            return (self.settle_min_distance
+                    + min(self.settle_min_distance, self.founder_route_failures),
+                    "observed_route_effects")
+        eta = int(math.ceil(
+            self.settle_min_distance * attempts
+            / float(self.founder_route_successes)))
+        return max(self.settle_min_distance, eta), "observed_route_effects"
 
     def _city_defender_is_required(self, snapshot, unit, founder_types=None):
         if not self.preserve_city_defenders:
@@ -589,12 +714,14 @@ class GroundedImpactPlanner(object):
             # A completed founder needs time to move and establish a score-bearing
             # city. Charge its exact ruleset population cost rather than assuming
             # that every terrain worker is able to establish a city.
-            settlement_runway = max(0, active_turns - self.settle_min_distance)
+            route_eta, route_eta_source = self._founder_route_eta()
+            settlement_runway = max(0, active_turns - route_eta)
             projection["score_value"] = max(
                 0.0, 1.0 - projection["pop_cost"]
                 + settlement_runway * 0.15)
-            projection["settlement_eta_turns"] = (
-                eta + self.settle_min_distance)
+            projection["founder_route_eta_turns"] = route_eta
+            projection["founder_route_eta_source"] = route_eta_source
+            projection["settlement_eta_turns"] = eta + route_eta
             projection["settlement_runway_turns"] = settlement_runway
         elif normalized == "granary":
             useful_growths = (0 if not food or active_turns <= 0 else
@@ -854,10 +981,44 @@ class GroundedImpactPlanner(object):
         if unit_type in founder_types:
             if len(snapshot.cities) >= self.expansion_city_target:
                 return None
+            projection = None
+            route_utility = 0.0
+            utility = 800.0 + city_distance * 20.0 + novelty * 15.0
+            if self.production_strategy == "horizon_score":
+                evidence = self._founder_move_evidence(
+                    snapshot, action, founder_types)
+                # Direct actor-local evidence is strong enough to prune this
+                # unchanged edge. Cross-actor evidence is only a preference:
+                # transient occupancy must not make a legal corridor disappear.
+                if evidence.get("actor_failed"):
+                    return None
+                separation_gain = self._founder_city_separation_gain(
+                    snapshot, unit, x, y)
+                current_city_distance = self._distance_from_cities(
+                    snapshot, unit.x, unit.y)
+                route_progress = city_distance >= current_city_distance
+                route_utility = (
+                    separation_gain * int(current_city_distance == 0)
+                    * self.FOUNDER_CITY_SEPARATION_WEIGHT
+                    + int(route_progress and evidence.get("traversable_edge", False))
+                    * self.FOUNDER_TRAVERSABLE_EDGE_BONUS
+                    - min(2, int(evidence.get("failed_attempts", 0)))
+                    * self.FOUNDER_FAILED_EDGE_PENALTY)
+                projection = {
+                    "city_separation_gain": separation_gain,
+                    "city_separation_tiebreak_active": (
+                        current_city_distance == 0),
+                    "failed_edge_attempts": int(
+                        evidence.get("failed_attempts", 0)),
+                    "founder_route_eta_turns": self._founder_route_eta()[0],
+                    "traversable_edge": bool(
+                        route_progress and evidence.get("traversable_edge", False)),
+                }
+                utility += route_utility
             return ImpactCandidate(
-                action, "expansion_move",
-                800.0 + city_distance * 20.0 + novelty * 15.0,
-                "move a founder away from existing cities toward a legal settlement tile")
+                action, "expansion_move", utility,
+                "move a founder toward settlement using grounded route evidence",
+                projection)
 
         # The ruleset's worker flag is broader than city-founding capability.
         # Sending non-founder workers toward the frontier consumed movement and

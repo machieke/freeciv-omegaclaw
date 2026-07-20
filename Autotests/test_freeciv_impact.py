@@ -183,6 +183,146 @@ def test_founder_moves_outward_then_founds_only_at_configured_spacing():
     assert decision.candidate.action == {"action_type": "unit_build_city", "actor_id": 1}
 
 
+def test_founder_route_uses_city_network_separation_instead_of_action_order():
+    capital = _city()
+    capital.update({"tile": 33, "x": 3, "y": 3})
+    neighbor = _city()
+    neighbor.update({"id": 12, "name": "Antium", "tile": 31, "x": 1, "y": 3})
+    toward_network = {"action_type": "unit_move", "actor_id": 1,
+                      "target": {"x": 2, "y": 3}, "is_valid": True}
+    toward_frontier = {"action_type": "unit_move", "actor_id": 1,
+                       "target": {"x": 4, "y": 3}, "is_valid": True}
+    snapshot = _snapshot(
+        [_unit(1, "Settlers", 3, 3), _unit(11, "Alpine Troops", 3, 3)],
+        [toward_network, toward_frontier,
+         {"action_type": "end_turn", "is_valid": True}],
+        cities=[capital, neighbor])
+    planner = GroundedImpactPlanner(ruleset_ir=_ruleset_ir((
+        ("Settlers", "unit", 30), ("Alpine Troops", "unit", 60))))
+    # Exploration history alone must not pull the founder back toward the city
+    # network when the outward edge has already been visited by another unit.
+    planner.visited_positions.add((4, 3))
+
+    decision = planner.plan(snapshot)
+
+    assert decision.candidate.action["target"] == {"x": 4, "y": 3}
+    assert decision.candidate.projection["city_separation_gain"] == 1.0
+    assert decision.candidate.projection["founder_route_eta_turns"] == 3
+
+    baseline = GroundedImpactPlanner(
+        {"production_strategy": "static_priority"}, ruleset_ir=_ruleset_ir((
+            ("Settlers", "unit", 30), ("Alpine Troops", "unit", 60))))
+    baseline.visited_positions.add((4, 3))
+    assert baseline.plan(snapshot).candidate.action["target"] == {"x": 2, "y": 3}
+
+    # Once routing has left a city tile, city-network separation no longer
+    # imposes straight-line momentum over the established distance ranking.
+    bent_capital = _city()
+    bent_capital.update({"tile": 33, "x": 3, "y": 3})
+    bent_neighbor = _city()
+    bent_neighbor.update({"id": 12, "name": "Antium", "tile": 40,
+                          "x": 0, "y": 4})
+    bend = _snapshot(
+        [_unit(1, "Settlers", 4, 4)], [
+            {"action_type": "unit_move", "actor_id": 1,
+             "target": {"x": 4, "y": 5}, "is_valid": True},
+            {"action_type": "unit_move", "actor_id": 1,
+             "target": {"x": 5, "y": 4}, "is_valid": True},
+            {"action_type": "end_turn", "is_valid": True},
+        ], cities=[bent_capital, bent_neighbor], source_seq=2)
+    bent_decision = planner.plan(bend)
+    assert bent_decision.candidate.action["target"] == {"x": 4, "y": 5}
+    assert not bent_decision.candidate.projection[
+        "city_separation_tiebreak_active"]
+
+
+def test_founder_route_learns_exact_traversal_for_another_founder():
+    ir = _ruleset_ir((("Settlers", "unit", 30),))
+    planner = GroundedImpactPlanner(ruleset_ir=ir)
+    east = {"action_type": "unit_move", "actor_id": 1,
+            "target": {"x": 1, "y": 0}, "is_valid": True}
+    before = _snapshot(
+        [_unit(1, "Settlers")],
+        [east, {"action_type": "end_turn", "is_valid": True}])
+    candidate = ImpactCandidate(
+        {key: value for key, value in east.items() if key != "is_valid"},
+        "expansion_move", 1.0, "route evidence regression")
+    after = _snapshot(
+        [_unit(1, "Settlers", 1, 0)],
+        [{"action_type": "end_turn", "is_valid": True}], source_seq=2)
+
+    planner.record_outcome(
+        candidate, before, effect_observed=True, after_snapshot=after)
+
+    assert planner.founder_route_successes == 1
+    assert planner.founder_route_failures == 0
+    demonstrated = _snapshot(
+        [_unit(2, "Settlers")], [
+            {"action_type": "unit_move", "actor_id": 2,
+             "target": {"x": 0, "y": 1}, "is_valid": True},
+            {"action_type": "unit_move", "actor_id": 2,
+             "target": {"x": 1, "y": 0}, "is_valid": True},
+            {"action_type": "end_turn", "is_valid": True},
+        ], source_seq=3)
+    decision = planner.plan(demonstrated)
+    assert decision.candidate.action["target"] == {"x": 1, "y": 0}
+    assert decision.candidate.projection["traversable_edge"]
+
+
+def test_founder_route_prunes_stationary_actor_edge_and_penalizes_shared_failure():
+    ir = _ruleset_ir((("Settlers", "unit", 30),))
+    planner = GroundedImpactPlanner(ruleset_ir=ir)
+    north = {"action_type": "unit_move", "actor_id": 1,
+             "target": {"x": 0, "y": 1}, "is_valid": True}
+    east = {"action_type": "unit_move", "actor_id": 1,
+            "target": {"x": 1, "y": 0}, "is_valid": True}
+    before = _snapshot(
+        [_unit(1, "Settlers")],
+        [north, east, {"action_type": "end_turn", "is_valid": True}])
+    failed_action = {key: value for key, value in north.items()
+                     if key != "is_valid"}
+    candidate = ImpactCandidate(
+        failed_action, "expansion_move", 1.0, "route failure regression")
+    spent = _unit(1, "Settlers")
+    spent["moves_left"] = 0
+    stationary = _snapshot(
+        [spent], [north, east, {"action_type": "end_turn", "is_valid": True}],
+        source_seq=2)
+
+    # Movement-point consumption is an actor effect, but not proof that the
+    # advertised destination was traversable.
+    planner.record_outcome(
+        candidate, before, effect_observed=True, after_snapshot=stationary)
+
+    assert planner.founder_route_failures == 1
+    assert planner.founder_route_successes == 0
+    assert planner.founder_unreachable_move_keys(stationary) == (
+        json.dumps(failed_action, sort_keys=True, separators=(",", ":")),)
+    assert planner.plan(stationary).candidate.action["target"] == {"x": 1, "y": 0}
+
+    changed_city = _city()
+    changed_city.update({"id": 12, "name": "Antium", "tile": 55, "x": 5, "y": 5})
+    changed_layout = _snapshot(
+        [spent], [north, {"action_type": "end_turn", "is_valid": True}],
+        cities=[_city(), changed_city], source_seq=3)
+    assert planner.plan(changed_layout).candidate.action["target"] == {"x": 0, "y": 1}
+
+    other_actor = _snapshot(
+        [_unit(2, "Settlers")], [
+            dict(north, actor_id=2), dict(east, actor_id=2),
+            {"action_type": "end_turn", "is_valid": True},
+        ], source_seq=4)
+    decision = planner.plan(other_actor)
+    assert decision.candidate.action["target"] == {"x": 1, "y": 0}
+    assert decision.candidate.projection["failed_edge_attempts"] == 0
+
+    projection = planner._production_projection(
+        other_actor.cities[0], "Settlers", 20, snapshot=other_actor,
+        founder_types=frozenset(("settlers",)))
+    assert projection["founder_route_eta_turns"] == 4
+    assert projection["founder_route_eta_source"] == "observed_route_effects"
+
+
 def test_policy_preserves_sole_garrison_and_uses_explorer_with_exact_plan_identity():
     garrison_move = {"action_type": "unit_move", "actor_id": 11,
                      "target": {"x": 1, "y": 0}, "is_valid": True}
@@ -634,6 +774,11 @@ def test_candidate_enumeration_does_not_mutate_exploration_history():
 
     planner.plan(snapshot)
     assert planner.visited_positions == set()
+    assert planner.founder_route_successes == 0
+    assert planner.founder_route_failures == 0
+    assert planner._founder_traversable_edges == set()
+    assert planner._founder_failed_edges == {}
+    assert planner._founder_actor_failed_edges == set()
     planner.observe(snapshot)
     assert planner.visited_positions == {(0, 0)}
 
