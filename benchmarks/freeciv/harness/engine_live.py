@@ -1568,6 +1568,16 @@ async def _play(run_dir, manifest, context):
           / max(1, impact_planner.founder_route_successes
                 + impact_planner.founder_route_failures))
          if impact_planner is not None else 0.0),
+        ("planner_founder_cardinal_corridor_attempts",
+         impact_planner.founder_cardinal_corridor_attempts
+         if impact_planner is not None else 0),
+        ("planner_founder_cardinal_corridor_successes",
+         impact_planner.founder_cardinal_corridor_successes
+         if impact_planner is not None else 0),
+        ("planner_founder_cardinal_corridor_success_rate",
+         (float(impact_planner.founder_cardinal_corridor_successes)
+          / max(1, impact_planner.founder_cardinal_corridor_attempts))
+         if impact_planner is not None else 0.0),
         ("planner_founder_capable_unit_types",
          len(impact_planner.founder_capable_types)
          if impact_planner is not None else 0),
@@ -1661,6 +1671,12 @@ async def _play(run_dir, manifest, context):
             "planner_founder_route_failures": (
                 impact_planner.founder_route_failures
                 if impact_planner is not None else 0),
+            "planner_founder_cardinal_corridor_attempts": (
+                impact_planner.founder_cardinal_corridor_attempts
+                if impact_planner is not None else 0),
+            "planner_founder_cardinal_corridor_successes": (
+                impact_planner.founder_cardinal_corridor_successes
+                if impact_planner is not None else 0),
             "planner_founder_capable_unit_types": (
                 len(impact_planner.founder_capable_types)
                 if impact_planner is not None else 0),
@@ -1698,6 +1714,12 @@ async def _play(run_dir, manifest, context):
             if impact_planner is not None else 0),
         "planner_founder_route_failures": (
             impact_planner.founder_route_failures
+            if impact_planner is not None else 0),
+        "planner_founder_cardinal_corridor_attempts": (
+            impact_planner.founder_cardinal_corridor_attempts
+            if impact_planner is not None else 0),
+        "planner_founder_cardinal_corridor_successes": (
+            impact_planner.founder_cardinal_corridor_successes
             if impact_planner is not None else 0),
         "planner_founder_capable_unit_types": (
             len(impact_planner.founder_capable_types)

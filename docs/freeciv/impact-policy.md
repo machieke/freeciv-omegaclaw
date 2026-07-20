@@ -74,9 +74,12 @@ because occupancy can be transient. Failed actor edges are scoped to the unchang
 layout so a newly established city can reopen routing choices. The observed
 success/failure ratio also inflates later founder settlement ETA instead of continuing to
 assume one successful tile per turn after the engine has shown otherwise. No directional
-momentum is inferred from a successful step: engine-backed evaluation showed that a
+momentum is inferred from a diagonal step: engine-backed evaluation showed that a
 diagonal-heading preference can overshoot a productive legal city site when the terrain
-corridor bends. Static-priority paired baselines keep their frozen movement ranking.
+corridor bends. An exact successful horizontal or vertical step may bias one matching
+step while the founder remains inside minimum settlement spacing. A failed matching move,
+a settlement attempt, changed city layout, or reaching minimum spacing clears that bias.
+Static-priority paired baselines keep their frozen movement ranking.
 
 One successful unit-scoped strategic action and one successful production change per
 city are allowed per turn. After a no-effect action, up to
@@ -136,7 +139,7 @@ the existing score and latency metrics:
   `planner_capability_pruned_worker_moves`, and
   `planner_nonprogress_moves_pruned`;
 - `planner_founder_unreachable_moves_pruned`, founder route successes, failures,
-  success rate, and observed-evidence route ETA;
+  success rate, cardinal-corridor attempts/successes, and observed-evidence route ETA;
 - population-ready, settlement ETA/runway, founder-deficit, and compiler-source
   production projection metrics;
 - `model_safe_fallback_rate` and `model_corrections_per_turn`.

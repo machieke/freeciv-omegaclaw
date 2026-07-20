@@ -269,6 +269,81 @@ def test_founder_route_learns_exact_traversal_for_another_founder():
     assert decision.candidate.projection["traversable_edge"]
 
 
+def test_founder_route_continues_only_a_pre_spacing_cardinal_corridor():
+    ir = _ruleset_ir((("Settlers", "unit", 30),))
+    capital = _city()
+    capital.update({"tile": 33, "x": 3, "y": 3})
+    neighbor = _city()
+    neighbor.update({"id": 12, "name": "Antium", "tile": 40,
+                     "x": 0, "y": 4})
+    cities = [capital, neighbor]
+    east = {"action_type": "unit_move", "actor_id": 1,
+            "target": {"x": 4, "y": 4}}
+    before = _snapshot(
+        [_unit(1, "Settlers", 3, 4)],
+        [dict(east, is_valid=True),
+         {"action_type": "end_turn", "is_valid": True}], cities=cities)
+    after = _snapshot(
+        [_unit(1, "Settlers", 4, 4)],
+        [{"action_type": "end_turn", "is_valid": True}],
+        cities=cities, source_seq=2)
+    planner = GroundedImpactPlanner(ruleset_ir=ir)
+    planner.record_outcome(
+        ImpactCandidate(east, "expansion_move", 1.0, "cardinal route"),
+        before, effect_observed=True, after_snapshot=after)
+
+    continuation = _snapshot(
+        [_unit(1, "Settlers", 4, 4)], [
+            {"action_type": "unit_move", "actor_id": 1,
+             "target": {"x": 4, "y": 5}, "is_valid": True},
+            {"action_type": "unit_move", "actor_id": 1,
+             "target": {"x": 5, "y": 4}, "is_valid": True},
+            {"action_type": "end_turn", "is_valid": True},
+        ], cities=cities, source_seq=3)
+    decision = planner.plan(continuation)
+    assert decision.candidate.action["target"] == {"x": 5, "y": 4}
+    assert decision.candidate.projection["cardinal_corridor_match"]
+
+    counter = GroundedImpactPlanner(ruleset_ir=ir)
+    counter.record_outcome(
+        ImpactCandidate(east, "expansion_move", 1.0, "cardinal route"),
+        before, effect_observed=True, after_snapshot=after)
+    corridor_decision = counter.plan(continuation)
+    corridor_after = _snapshot(
+        [_unit(1, "Settlers", 5, 4)],
+        [{"action_type": "end_turn", "is_valid": True}],
+        cities=cities, source_seq=4)
+    counter.record_outcome(
+        corridor_decision.candidate, continuation, effect_observed=True,
+        after_snapshot=corridor_after)
+    assert counter.founder_cardinal_corridor_attempts == 1
+    assert counter.founder_cardinal_corridor_successes == 1
+
+    # A settlement attempt proves that the current movement corridor has ended,
+    # including when the advertised site itself has no effect.
+    planner.record_outcome(
+        ImpactCandidate({"action_type": "unit_build_city", "actor_id": 1},
+                        "city_founding", 1.0, "site search"),
+        continuation, effect_observed=False)
+    decision = planner.plan(continuation)
+    assert decision.candidate.action["target"] == {"x": 4, "y": 5}
+    assert not decision.candidate.projection["cardinal_corridor_match"]
+
+    diagonal_planner = GroundedImpactPlanner(ruleset_ir=ir)
+    diagonal_before = _snapshot(
+        [_unit(1, "Settlers", 3, 3)], [
+            {"action_type": "unit_move", "actor_id": 1,
+             "target": {"x": 4, "y": 4}, "is_valid": True},
+            {"action_type": "end_turn", "is_valid": True},
+        ], cities=cities, source_seq=5)
+    diagonal_planner.record_outcome(
+        ImpactCandidate(east, "expansion_move", 1.0, "diagonal route"),
+        diagonal_before, effect_observed=True, after_snapshot=after)
+    decision = diagonal_planner.plan(continuation)
+    assert decision.candidate.action["target"] == {"x": 4, "y": 5}
+    assert not decision.candidate.projection["cardinal_corridor_match"]
+
+
 def test_founder_route_prunes_stationary_actor_edge_and_penalizes_shared_failure():
     ir = _ruleset_ir((("Settlers", "unit", 30),))
     planner = GroundedImpactPlanner(ruleset_ir=ir)
@@ -776,6 +851,9 @@ def test_candidate_enumeration_does_not_mutate_exploration_history():
     assert planner.visited_positions == set()
     assert planner.founder_route_successes == 0
     assert planner.founder_route_failures == 0
+    assert planner.founder_cardinal_corridor_attempts == 0
+    assert planner.founder_cardinal_corridor_successes == 0
+    assert planner._founder_cardinal_intents == {}
     assert planner._founder_traversable_edges == set()
     assert planner._founder_failed_edges == {}
     assert planner._founder_actor_failed_edges == set()

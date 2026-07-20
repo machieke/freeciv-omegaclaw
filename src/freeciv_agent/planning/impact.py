@@ -134,12 +134,13 @@ def _target_name(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.1"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.2"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
     # execution gate's one-unit-action safety boundary.
     FOUNDER_CITY_SEPARATION_WEIGHT = 24.0
+    FOUNDER_CARDINAL_CORRIDOR_BONUS = 18.0
     FOUNDER_TRAVERSABLE_EDGE_BONUS = 36.0
     FOUNDER_FAILED_EDGE_PENALTY = 30.0
 
@@ -198,11 +199,14 @@ class GroundedImpactPlanner(object):
         self._ruleset_founder_types = set()
         self._ruleset_worker_types = set()
         self._server_founder_types = set()
+        self._founder_cardinal_intents = {}
         self._founder_traversable_edges = set()
         self._founder_failed_edges = {}
         self._founder_actor_failed_edges = set()
         self.founder_route_successes = 0
         self.founder_route_failures = 0
+        self.founder_cardinal_corridor_attempts = 0
+        self.founder_cardinal_corridor_successes = 0
         parameters = getattr(ruleset_ir, "parameters", {})
         initial_food = parameters.get("granary_food_ini", {})
         incremental_food = parameters.get("granary_food_inc", {})
@@ -451,6 +455,11 @@ class GroundedImpactPlanner(object):
         target changes can.
         """
         self.commit(candidate)
+        if candidate.category == "city_founding":
+            # A settlement attempt ends the current movement corridor whether
+            # the site succeeds or the unit must search from the same tile.
+            self._founder_cardinal_intents.pop(
+                candidate.action.get("actor_id"), None)
         self._record_founder_route_outcome(
             candidate, snapshot, after_snapshot)
         key = (candidate.action_key, self._grounding_signature(snapshot, candidate))
@@ -498,6 +507,24 @@ class GroundedImpactPlanner(object):
         return tuple(sorted(
             (city.city_id, city.x, city.y) for city in snapshot.cities))
 
+    @staticmethod
+    def _axis_heading(source, target, size):
+        if source is None or target is None or source == target:
+            return 0
+        if size <= 0:
+            return 1 if int(target) > int(source) else -1
+        forward = (int(target) - int(source)) % int(size)
+        backward = (int(source) - int(target)) % int(size)
+        if forward == backward:
+            return 1 if int(target) > int(source) else -1
+        return 1 if forward < backward else -1
+
+    def _move_heading(self, snapshot, source, target):
+        return (
+            self._axis_heading(source[0], target[0], snapshot.map_width),
+            self._axis_heading(source[1], target[1], snapshot.map_height),
+        )
+
     def _founder_edge(self, snapshot, action, founder_types):
         unit = snapshot.unit(action.get("actor_id"))
         target = action.get("target", {})
@@ -515,24 +542,45 @@ class GroundedImpactPlanner(object):
             int(unit.unit_id), edge, self._city_layout(snapshot),
         )
 
+    def _founder_cardinal_intent(self, snapshot, unit):
+        intent = self._founder_cardinal_intents.get(unit.unit_id)
+        if (intent is None
+                or intent["unit_type"] != _normalized_type(unit.unit_type)
+                or intent["city_layout"] != self._city_layout(snapshot)
+                or intent["position"] != (unit.x, unit.y)
+                or self._distance_from_cities(snapshot, unit.x, unit.y)
+                >= self.settle_min_distance):
+            return None
+        return intent
+
     def _founder_move_evidence(self, snapshot, action, founder_types):
         """Read grounded routing evidence for one advertised founder move."""
         edge = self._founder_edge(snapshot, action, founder_types)
         if edge is None:
             return {}
         unit = snapshot.unit(action.get("actor_id"))
+        heading = self._move_heading(
+            snapshot, (edge[1], edge[2]), (edge[3], edge[4]))
+        intent = self._founder_cardinal_intent(snapshot, unit)
         return {
             "actor_failed": (
                 self._founder_actor_edge(snapshot, unit, edge)
                 in self._founder_actor_failed_edges),
             "edge": edge,
             "failed_attempts": self._founder_failed_edges.get(edge, 0),
+            "cardinal_corridor_match": bool(
+                intent is not None and intent["heading"] == heading),
             "traversable_edge": edge in self._founder_traversable_edges,
         }
 
     def _record_founder_route_outcome(self, candidate, before, after):
         """Record only an exact post-action position as traversability proof."""
-        if candidate.category != "expansion_move" or after is None:
+        if candidate.category != "expansion_move":
+            return
+        corridor_attempt = bool(
+            (candidate.projection or {}).get("cardinal_corridor_match", False))
+        self.founder_cardinal_corridor_attempts += int(corridor_attempt)
+        if after is None:
             return
         founder_types = self._founder_types(before)
         edge = self._founder_edge(before, candidate.action, founder_types)
@@ -548,14 +596,33 @@ class GroundedImpactPlanner(object):
             and (unit.x, unit.y) != target)
         if traversed:
             self.founder_route_successes += 1
+            self.founder_cardinal_corridor_successes += int(corridor_attempt)
             self._founder_traversable_edges.add(edge)
             self._founder_actor_failed_edges.discard(actor_edge)
+            heading = self._move_heading(
+                before, (unit.x, unit.y), target)
+            if (heading[0] == 0) != (heading[1] == 0):
+                self._founder_cardinal_intents[unit.unit_id] = {
+                    "city_layout": self._city_layout(before),
+                    "heading": heading,
+                    "position": target,
+                    "unit_type": _normalized_type(unit.unit_type),
+                }
+            else:
+                # A diagonal step proves only that exact edge. Carrying its
+                # vector forward previously overshot productive city sites.
+                self._founder_cardinal_intents.pop(unit.unit_id, None)
             return
 
         self.founder_route_failures += 1
         self._founder_failed_edges[edge] = (
             self._founder_failed_edges.get(edge, 0) + 1)
         self._founder_actor_failed_edges.add(actor_edge)
+        intent = self._founder_cardinal_intents.get(unit.unit_id)
+        if (intent is not None and intent["position"] == (unit.x, unit.y)
+                and intent["heading"] == self._move_heading(
+                    before, (unit.x, unit.y), target)):
+            self._founder_cardinal_intents.pop(unit.unit_id, None)
 
     def _founder_city_separation_gain(self, snapshot, unit, x, y):
         """Measure outward progress across all established cities.
@@ -1000,6 +1067,8 @@ class GroundedImpactPlanner(object):
                 route_utility = (
                     separation_gain * int(current_city_distance == 0)
                     * self.FOUNDER_CITY_SEPARATION_WEIGHT
+                    + int(evidence.get("cardinal_corridor_match", False))
+                    * self.FOUNDER_CARDINAL_CORRIDOR_BONUS
                     + int(route_progress and evidence.get("traversable_edge", False))
                     * self.FOUNDER_TRAVERSABLE_EDGE_BONUS
                     - min(2, int(evidence.get("failed_attempts", 0)))
@@ -1008,6 +1077,8 @@ class GroundedImpactPlanner(object):
                     "city_separation_gain": separation_gain,
                     "city_separation_tiebreak_active": (
                         current_city_distance == 0),
+                    "cardinal_corridor_match": bool(
+                        evidence.get("cardinal_corridor_match", False)),
                     "failed_edge_attempts": int(
                         evidence.get("failed_attempts", 0)),
                     "founder_route_eta_turns": self._founder_route_eta()[0],
