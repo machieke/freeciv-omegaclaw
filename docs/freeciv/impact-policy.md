@@ -141,7 +141,8 @@ the existing score and latency metrics:
   `settlement_completions`;
 - `planner_founder_capable_unit_types`,
   `planner_capability_pruned_worker_moves`, and
-  `planner_nonprogress_moves_pruned`;
+  `planner_nonprogress_moves_pruned`, plus repeated failed exploration
+  destinations pruned after distinct-source confirmation;
 - `population_recovery_attempts`, `population_recovery_completions`, and
   `population_recovered` for exact ruleset-valued surplus-founder joins after
   the expansion target is complete;
@@ -157,6 +158,19 @@ exact founder-route successes and one settlement completion; the earlier
 timeout-as-failure accounting reported neither. Reducing confirmation polling
 from 10 Hz to 5 Hz also eliminated an observed proxy `E429` without changing
 the two-second confirmation deadline or the two-identical-snapshot stability gate.
+
+Exploration destinations also gain conservative cross-source failure evidence.
+One failed move remains retryable because occupancy and tactical obstructions can
+be transient. After the same unit type remains stationary while targeting the
+same destination from two distinct adjacent sources, that destination is pruned
+from exploration choices. A later exact successful traversal clears the evidence,
+and packet-visible enemy occupancy is never recorded as terrain evidence.
+
+On the fresh seed-104729 failed-destination probe, both arms pruned three such
+destinations. Compared with the preceding same-seed probe, baseline confirmation
+expirations fell from 10 to 8 and effect rate rose from 70.73% to 77.5%; treatment
+expirations fell from 9 to 7 and effect rate rose from 81.25% to 85.42%. Both arms
+still scored 107, founded one city, and learned three founder-route successes.
 
 ## Capability and movement-progress smoke evidence
 

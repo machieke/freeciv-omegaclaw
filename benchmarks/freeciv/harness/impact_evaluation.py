@@ -527,6 +527,7 @@ def write_impact_report(out, aggregate):
             "founder_production_changes", "settlement_attempts",
             "settlement_completions", "planner_capability_pruned_worker_moves",
             "planner_nonprogress_moves_pruned",
+            "planner_repeated_failed_destination_moves_pruned",
             "planner_founder_unreachable_moves_pruned",
             "planner_founder_route_successes",
             "planner_founder_route_failures",

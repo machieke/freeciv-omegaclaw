@@ -352,3 +352,20 @@ successes and counted one settlement completion; the pre-ledger probe reported
 zero route successes and zero settlement completions despite cities appearing.
 Both arms scored `107`, so this single development pair validates accounting
 and feedback correctness but provides no score-improvement claim.
+
+The next fresh engine-backed pair at
+`artifacts/freeciv/impact-failed-destination-probe-104729-20260720`
+separated the remaining true failures by destination. Every treatment expiry
+in the preceding trace was a Diplomat move whose actor remained stationary;
+several destination tiles were retried from multiple adjacent sources. The
+planner now preserves a single failure as transient, but prunes an exploration
+destination for that unit type after stationary failures from two distinct
+sources. Packet-visible enemy occupancy is excluded, and a later exact
+traversal clears the evidence. Both fresh arms completed without rejection or
+infrastructure failure and each pruned three repeated failed destinations.
+Against the immediately preceding same-seed probe, baseline expirations fell
+from 10 to 8 and candidate-specific effect rate rose from `70.73%` to `77.5%`;
+treatment expirations fell from 9 to 7 and effect rate rose from `81.25%` to
+`85.42%`. Both arms again scored `107`, founded one city, and learned three
+founder-route successes. This validates the targeted efficiency/correctness
+mechanism but does not change the score claim.

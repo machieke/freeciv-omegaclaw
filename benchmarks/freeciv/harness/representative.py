@@ -171,6 +171,8 @@ def run_game(run_dir, manifest, context):
         ("settlement_completions", 2 if treatment else 1),
         ("planner_capability_pruned_worker_moves", 4 if treatment else 0),
         ("planner_nonprogress_moves_pruned", 6 if treatment else 2),
+        ("planner_repeated_failed_destination_moves_pruned",
+         3 if treatment else 1),
         ("planner_founder_unreachable_moves_pruned", 2 if treatment else 0),
         ("planner_founder_route_successes", 4 if treatment else 2),
         ("planner_founder_route_failures", 1 if treatment else 2),

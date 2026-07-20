@@ -249,6 +249,8 @@ class GroundedImpactPlanner(object):
         self._founder_traversable_edges = set()
         self._founder_failed_edges = {}
         self._founder_actor_failed_edges = set()
+        self._failed_exploration_target_sources = {}
+        self._failed_exploration_prunes = set()
         self.founder_route_successes = 0
         self.founder_route_failures = 0
         self.founder_cardinal_corridor_attempts = 0
@@ -532,6 +534,8 @@ class GroundedImpactPlanner(object):
                 candidate.action.get("actor_id"), None)
         self._record_founder_route_outcome(
             candidate, snapshot, after_snapshot)
+        self._record_exploration_destination_outcome(
+            candidate, snapshot, after_snapshot)
         key = (candidate.action_key, self._grounding_signature(snapshot, candidate))
         if effect_observed:
             self._no_effect_attempts.pop(key, None)
@@ -547,6 +551,52 @@ class GroundedImpactPlanner(object):
             self._reported_suppressions.add(reported)
             self.no_effect_retries_blocked += 1
         return True
+
+    def _exploration_destination_key(self, snapshot, action):
+        unit = snapshot.unit(action.get("actor_id"))
+        target = action.get("target")
+        if unit is None or not isinstance(target, dict):
+            return None
+        x, y = target.get("x"), target.get("y")
+        if x is None or y is None:
+            return None
+        return (_normalized_type(unit.unit_type), snapshot.map_width,
+                snapshot.map_height, int(x), int(y))
+
+    def _record_exploration_destination_outcome(self, candidate, before, after):
+        """Learn only repeated source-independent exploration obstructions."""
+        if candidate.category != "exploration_move" or after is None:
+            return
+        action = candidate.action
+        key = self._exploration_destination_key(before, action)
+        before_unit = before.unit(action.get("actor_id"))
+        after_unit = after.unit(action.get("actor_id"))
+        target = action.get("target")
+        if (key is None or before_unit is None or after_unit is None
+                or not isinstance(target, dict)):
+            return
+        target_position = (int(target["x"]), int(target["y"]))
+        if (after_unit.x, after_unit.y) == target_position:
+            self._failed_exploration_target_sources.pop(key, None)
+            return
+        if (after_unit.x, after_unit.y) != (before_unit.x, before_unit.y):
+            return
+        # A packet-visible opponent is a transient tactical obstruction, not
+        # evidence that the destination itself is untraversable.
+        if any((row.x, row.y) == target_position
+               for row in before.visible_enemy_units):
+            return
+        self._failed_exploration_target_sources.setdefault(key, set()).add(
+            (before_unit.x, before_unit.y))
+
+    def _exploration_destination_reliably_failed(self, snapshot, action):
+        key = self._exploration_destination_key(snapshot, action)
+        return bool(key is not None and len(
+            self._failed_exploration_target_sources.get(key, ())) >= 2)
+
+    @property
+    def repeated_failed_destination_moves_pruned(self):
+        return len(self._failed_exploration_prunes)
 
     def _founders(self, snapshot, founder_types=None):
         founder_types = (self._founder_types(snapshot)
@@ -1184,6 +1234,10 @@ class GroundedImpactPlanner(object):
                     700.0 - target_enemy_distance * 12.0 + novelty * 5.0,
                     "strictly reduce distance to a packet-visible opponent")
         if unit_type in EXPLORER_TYPES and novelty:
+            if self._exploration_destination_reliably_failed(snapshot, action):
+                self._failed_exploration_prunes.add(
+                    canonical_json_bytes(action).decode("utf-8"))
+                return None
             return ImpactCandidate(
                 action, "exploration_move",
                 610.0 + city_distance * 5.0 + novelty * 25.0,

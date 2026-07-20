@@ -408,6 +408,55 @@ def test_deferred_confirmation_expires_unchanged_action_on_next_turn():
     assert len(ledger) == 0
 
 
+def test_explorer_prunes_destination_only_after_two_distinct_source_failures():
+    planner = GroundedImpactPlanner()
+    target = {"x": 2, "y": 2}
+
+    def failure(source_x, source_y, turn):
+        action = {"action_type": "unit_move", "actor_id": 20,
+                  "target": dict(target)}
+        before = _snapshot(
+            [_unit(20, "Explorer", source_x, source_y)],
+            [dict(action, is_valid=True),
+             {"action_type": "end_turn", "is_valid": True}], turn=turn)
+        after = _snapshot(
+            [_unit(20, "Explorer", source_x, source_y)],
+            [{"action_type": "end_turn", "is_valid": True}],
+            source_seq=turn + 1, turn=turn + 1)
+        candidate = ImpactCandidate(
+            action, "exploration_move", 1.0, "failed destination evidence")
+        planner.record_outcome(
+            candidate, before, effect_observed=False, after_snapshot=after)
+        return before, action
+
+    first, action = failure(1, 1, 4)
+    assert not planner._exploration_destination_reliably_failed(first, action)
+
+    second, action = failure(2, 1, 6)
+    assert planner._exploration_destination_reliably_failed(second, action)
+
+    alternative = {"action_type": "unit_move", "actor_id": 20,
+                   "target": {"x": 1, "y": 3}, "is_valid": True}
+    current = _snapshot(
+        [_unit(20, "Explorer", 1, 2)],
+        [dict(action, is_valid=True), alternative,
+         {"action_type": "end_turn", "is_valid": True}], turn=8)
+    decision = planner.plan(current)
+
+    assert decision.candidate.action["target"] == {"x": 1, "y": 3}
+    assert planner.repeated_failed_destination_moves_pruned == 1
+
+    reached = _snapshot(
+        [_unit(20, "Explorer", 2, 2)],
+        [{"action_type": "end_turn", "is_valid": True}],
+        source_seq=10, turn=9)
+    planner.record_outcome(
+        ImpactCandidate(action, "exploration_move", 1.0,
+                        "successful destination evidence"),
+        current, effect_observed=True, after_snapshot=reached)
+    assert not planner._exploration_destination_reliably_failed(current, action)
+
+
 def test_founder_route_prunes_stationary_actor_edge_and_penalizes_shared_failure():
     ir = _ruleset_ir((("Settlers", "unit", 30),))
     planner = GroundedImpactPlanner(ruleset_ir=ir)

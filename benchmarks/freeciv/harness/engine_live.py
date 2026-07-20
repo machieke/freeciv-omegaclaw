@@ -1605,6 +1605,9 @@ async def _play(run_dir, manifest, context):
         ("planner_capability_pruned_worker_moves",
          len(capability_pruned_worker_moves)),
         ("planner_nonprogress_moves_pruned", len(nonprogress_moves)),
+        ("planner_repeated_failed_destination_moves_pruned",
+         impact_planner.repeated_failed_destination_moves_pruned
+         if impact_planner is not None else 0),
         ("planner_founder_unreachable_moves_pruned",
          len(unreachable_founder_moves)),
         ("planner_founder_route_successes",
@@ -1726,6 +1729,9 @@ async def _play(run_dir, manifest, context):
             "planner_capability_pruned_worker_moves": (
                 len(capability_pruned_worker_moves)),
             "planner_nonprogress_moves_pruned": len(nonprogress_moves),
+            "planner_repeated_failed_destination_moves_pruned": (
+                impact_planner.repeated_failed_destination_moves_pruned
+                if impact_planner is not None else 0),
             "planner_founder_unreachable_moves_pruned": (
                 len(unreachable_founder_moves)),
             "planner_founder_route_successes": (
@@ -1787,6 +1793,9 @@ async def _play(run_dir, manifest, context):
         "planner_capability_pruned_worker_moves": (
             len(capability_pruned_worker_moves)),
         "planner_nonprogress_moves_pruned": len(nonprogress_moves),
+        "planner_repeated_failed_destination_moves_pruned": (
+            impact_planner.repeated_failed_destination_moves_pruned
+            if impact_planner is not None else 0),
         "planner_founder_unreachable_moves_pruned": len(unreachable_founder_moves),
         "planner_founder_route_successes": (
             impact_planner.founder_route_successes
