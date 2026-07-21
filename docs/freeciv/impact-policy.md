@@ -508,6 +508,12 @@ improves all three historical asymmetric outcomes (`0` to `+4`, `-1` to `0`, and
 `+3`). Selection on prior trace behavior means those deltas cannot estimate population-wide
 impact and do not revise the immutable score claim.
 
+The next population-level checkpoint is the predeclared, disjoint
+`pilot_horizon_60_v4` namespace: 40 seeds deterministically derived in the committed
+`1800000..1899999` range. It is pilot-only and cannot produce a formal claim. A clean,
+untouched prefix may estimate current-policy direction and identify the next bottleneck;
+stopping or expanding that diagnostic does not convert it into confirmatory evidence.
+
 ## Combat attribution, occupancy, and hut-entry hardening
 
 Offensive actions retain an exact pre-action fingerprint of the packet-visible enemy

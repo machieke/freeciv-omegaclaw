@@ -253,6 +253,19 @@ paired_impact:
         count: 40
         minimum: 1700000
         maximum: 1799999
+    pilot_horizon_60_v4:
+      purpose: pilot
+      claim_eligible: false
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 40
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pln-freeciv-impact-pilot-horizon60-v4
+        count: 40
+        minimum: 1800000
+        maximum: 1899999
     confirmatory_score:
       purpose: development
       claim_eligible: false

@@ -37,6 +37,8 @@ every seed before any game is observed.
 | `pilot` | variance and discordance estimation | 40 | no | score, lead rate |
 | `pilot_horizon_60` | superseded turn-60 planning pilot | 40 | no | score, lead rate |
 | `pilot_horizon_60_v2` | hardened turn-60 planning pilot | 40 | no | score, lead rate |
+| `pilot_horizon_60_v3` | pre-confirmation turn-60 pilot | 40 | no | score, lead rate |
+| `pilot_horizon_60_v4` | current-policy turn-60 pilot | 40 | no | score, lead rate |
 | `confirmatory_score` | retired exposed V4 score cohort | 100 | no | score only |
 | `confirmatory_score_horizon_60_v1` | fixed turn-60 score test | 200 | yes | score only |
 | `confirmatory_joint` | hierarchical score then lead-rate test | 450 | yes | score, lead rate |

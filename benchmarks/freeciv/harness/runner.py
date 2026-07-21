@@ -25,6 +25,7 @@ _IMPACT_COHORT_TOKENS = {
     "pilot_horizon_60": "p60",
     "pilot_horizon_60_v2": "p60v2",
     "pilot_horizon_60_v3": "p60v3",
+    "pilot_horizon_60_v4": "p60v4",
     "confirmatory_score": "cscore",
     "confirmatory_score_horizon_60_v1": "cs60v1",
     "confirmatory_joint": "cjoint",

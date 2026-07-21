@@ -65,6 +65,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "pilot_horizon_60": 40,
         "pilot_horizon_60_v2": 40,
         "pilot_horizon_60_v3": 40,
+        "pilot_horizon_60_v4": 40,
         "confirmatory_score": 100,
         "confirmatory_score_horizon_60_v1": 200,
         "confirmatory_joint": 450,
@@ -128,6 +129,11 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "algorithm": "sha256-counter-v1",
         "namespace": "pln-freeciv-impact-pilot-horizon60-v3",
         "count": 40, "minimum": 1700000, "maximum": 1799999,
+    }
+    assert paired["cohorts"]["pilot_horizon_60_v4"]["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": "pln-freeciv-impact-pilot-horizon60-v4",
+        "count": 40, "minimum": 1800000, "maximum": 1899999,
     }
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.2",
@@ -629,6 +635,12 @@ def test_paired_impact_jobs_alternate_order_and_override_only_declared_policy():
     assert long_manifest["impact_policy"]["horizon_turn"] == 60
     assert long_manifest["impact_outcomes"]["horizon_turn"] == 60
     assert long_manifest["impact_pair"]["horizon_turn"] == 60
+    current_pilot = HarnessRunner(
+        "unused", seed_limit=1, conditions=("e_full_loop",),
+        impact_cohort="pilot_horizon_60_v4")
+    assert current_pilot._impact_jobs()[0]["seed"] == (
+        current_pilot.config["paired_impact"]["cohorts"]
+        ["pilot_horizon_60_v4"]["seeds"][0])
     confirmatory = HarnessRunner(
         "unused", seed_limit=1, conditions=("e_full_loop",),
         impact_cohort="confirmatory_score_horizon_60_v1")

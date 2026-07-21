@@ -734,3 +734,10 @@ audit passed. Across the three selected mechanism replays, historical-to-current
 deltas changed `0` to `+4`, `-1` to `0`, and `-2` to `+3`. These seeds were selected using
 old outcomes and cycle traces, so they validate the mechanism but cannot update the formal
 effect estimate.
+
+The next population-level checkpoint is predeclared as `pilot_horizon_60_v4`: 40 seeds
+derived by `sha256-counter-v1` from namespace
+`pln-freeciv-impact-pilot-horizon60-v4` in the disjoint `1800000..1899999` range. It is a
+clean-source, pilot-only cohort and cannot update a claim. Run an untouched prefix to measure
+current-policy direction and discover the next optimization target without selecting on the
+immutable confirmation traces.
