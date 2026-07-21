@@ -194,7 +194,8 @@ the existing score and latency metrics:
 - `planner_founder_unreachable_moves_pruned`, founder route successes, failures,
   success rate, cardinal-corridor attempts/successes, and observed-evidence route ETA;
 - population-ready, settlement ETA/runway, founder-deficit, and compiler-source
-  production projection metrics, plus population cost avoided, conservative
+  production projection metrics, plus pre-expansion growth/founder handoffs,
+  population cost avoided, conservative
   shield stock discarded, and replacement horizon-completion rate when retiring
   a repeated founder queue;
 - repeated unit completions, cumulative unit-score progress, civilization-wide batch
@@ -557,6 +558,30 @@ next non-selected check is frozen as V4 seed indices 5--9:
 declaration. They form a post-fix pilot holdout and must be reported separately from the
 original five-pair prefix; the adaptive split is not claim evidence and the two slices must
 not be pooled into a confirmatory estimate.
+
+That fixed holdout completed at
+`artifacts/freeciv/impact-current-policy-pilot-v4-holdout5-9-20260721`. Its paired deltas
+were `0, -2, 0, +3, +5`, mean `+1.2`, with a deliberately wide paired-bootstrap interval
+`[-0.8, 3.6]`. All ten arms completed from clean commit `0f8dd42` with matched initial state,
+zero rejection/fallback, stable implementation identity, and a passing 15,273-event release
+audit. The positive direction does not overcome `n=5` uncertainty and does not update the
+immutable claim.
+
+The sole negative holdout seed, `1884108`, exposed an incomplete Granary-first sequence.
+Treatment's capital queued a founder but stalled permanently at size two with zero food
+surplus. A second city correctly selected Granary on turn 21, but after completion the
+server's automatic next target immediately accumulated three shields. The ordinary lossless
+switch guard then prevented the promised founder handoff for the rest of the horizon;
+treatment ended with two cities and score 111 versus baseline's three cities and score 113.
+
+A confirmed pre-expansion selection now persists its exact city and founder target. Once
+Granary is no longer current, the handoff may discard automatic completion overflow or at
+most one current shield-surplus tick, and only while expansion is still deficient and the
+exact founder still projects settlement by the horizon. Missing that boundary does not
+authorize a later destructive switch. `production_preexpansion_founder_changes` reports the
+followup separately from growth selection. Acceptance requires synthetic proof of the exact
+handoff and discard bound, the full FreeCiv suite, and a clean seed-`1884108` replay before
+any untouched evaluation.
 
 ## Combat attribution, occupancy, and hut-entry hardening
 

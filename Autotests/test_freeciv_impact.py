@@ -1165,11 +1165,12 @@ def test_horizon_policy_sequences_granary_before_last_slow_growth_founder():
     snapshot = _snapshot(
         [_unit(1, "Settlers")], actions, cities=[city], turn=1)
 
-    decision = GroundedImpactPlanner({
+    planner = GroundedImpactPlanner({
         "horizon_turn": 60, "expansion_city_target": 3,
         "production_minimum_remaining_turns": 8,
         "expansion_minimum_remaining_turns": 12,
-    }, ruleset_ir=ir).plan(snapshot)
+    }, ruleset_ir=ir)
+    decision = planner.plan(snapshot)
 
     assert decision.candidate.category == "production_preexpansion_growth"
     assert decision.candidate.action["target"]["production_type"] == "Granary"
@@ -1185,6 +1186,46 @@ def test_horizon_policy_sequences_granary_before_last_slow_growth_founder():
         "preexpansion_sequence_settlement_runway_turns"] == 17
     assert decision.candidate.projection[
         "preexpansion_shield_stock_assumption"] == 0
+
+    granary_installed = _snapshot(
+        [_unit(1, "Settlers")], actions,
+        cities=[_city(
+            size=1, food_stock=0, shield_stock=0,
+            surplus=(2, 3, 4, 3, 0, 2),
+            production_kind=3, production_value=14)],
+        turn=2, source_seq=2)
+    planner.record_outcome(
+        decision.candidate, snapshot, effect_observed=True,
+        after_snapshot=granary_installed)
+
+    followup_actions = [
+        _production(10, "Settlers", 6, 0),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    completed = _snapshot(
+        [_unit(1, "Settlers")], followup_actions,
+        cities=[_city(
+            size=3, food_stock=0, shield_stock=3,
+            surplus=(2, 3, 4, 3, 0, 2),
+            production_kind=3, production_value=17)],
+        turn=18, source_seq=3)
+    followup = planner.plan(completed)
+    assert followup.candidate.category == "production_preexpansion_founder"
+    assert followup.candidate.action["target"]["production_type"] == "Settlers"
+    assert followup.candidate.projection["preexpansion_followup"]
+    assert followup.candidate.projection[
+        "preexpansion_followup_discarded_shield_stock"] == 3
+    assert followup.candidate.projection[
+        "preexpansion_followup_discard_limit"] == 3
+
+    missed_boundary = _snapshot(
+        [_unit(1, "Settlers")], followup_actions,
+        cities=[_city(
+            size=3, food_stock=0, shield_stock=4,
+            surplus=(2, 3, 4, 3, 0, 2),
+            production_kind=3, production_value=17)],
+        turn=19, source_seq=4)
+    assert planner.plan(missed_boundary) is None
 
     zero_pop_ir = _ruleset_ir((
         ("Settlers", "unit", 30), ("Granary", "improvement", 40),

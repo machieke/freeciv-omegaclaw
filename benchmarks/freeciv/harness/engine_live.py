@@ -1019,6 +1019,7 @@ async def _play(run_dir, manifest, context):
         "production_changes": 0, "founder_production_changes": 0,
         "production_repurpose_changes": 0,
         "production_preexpansion_growth_changes": 0,
+        "production_preexpansion_founder_changes": 0,
         "production_military_score_changes": 0,
         "settlement_attempts": 0, "settlement_completions": 0,
         "tactical_actions": 0,
@@ -1157,6 +1158,8 @@ async def _play(run_dir, manifest, context):
                     decision_stats["production_repurpose_changes"] += 1
                 if category == "production_preexpansion_growth":
                     decision_stats["production_preexpansion_growth_changes"] += 1
+                if category == "production_preexpansion_founder":
+                    decision_stats["production_preexpansion_founder_changes"] += 1
                 if category == "production_military_score":
                     decision_stats["production_military_score_changes"] += 1
             if action_type == "unit_build_city":
@@ -1665,6 +1668,8 @@ async def _play(run_dir, manifest, context):
          decision_stats["production_repurpose_changes"]),
         ("production_preexpansion_growth_changes",
          decision_stats["production_preexpansion_growth_changes"]),
+        ("production_preexpansion_founder_changes",
+         decision_stats["production_preexpansion_founder_changes"]),
         ("production_military_score_changes",
          decision_stats["production_military_score_changes"]),
         ("settlement_attempts", decision_stats["settlement_attempts"]),
@@ -1833,6 +1838,8 @@ async def _play(run_dir, manifest, context):
                 decision_stats["production_repurpose_changes"]),
             "production_preexpansion_growth_changes": (
                 decision_stats["production_preexpansion_growth_changes"]),
+            "production_preexpansion_founder_changes": (
+                decision_stats["production_preexpansion_founder_changes"]),
             "production_military_score_changes": (
                 decision_stats["production_military_score_changes"]),
             "settlement_attempts": decision_stats["settlement_attempts"],
@@ -1909,6 +1916,8 @@ async def _play(run_dir, manifest, context):
         "production_repurpose_changes": decision_stats["production_repurpose_changes"],
         "production_preexpansion_growth_changes": (
             decision_stats["production_preexpansion_growth_changes"]),
+        "production_preexpansion_founder_changes": (
+            decision_stats["production_preexpansion_founder_changes"]),
         "production_military_score_changes": (
             decision_stats["production_military_score_changes"]),
         "settlement_attempts": decision_stats["settlement_attempts"],

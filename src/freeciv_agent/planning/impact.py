@@ -258,6 +258,7 @@ class GroundedImpactPlanner(object):
         self._founder_actor_failed_edges = set()
         self._failed_exploration_target_sources = {}
         self._failed_exploration_prunes = set()
+        self._preexpansion_sequences = {}
         self._unit_score_batch_intent = None
         self._unit_score_batch_cache_key = None
         self._unit_score_batch_cache = {}
@@ -595,6 +596,25 @@ class GroundedImpactPlanner(object):
                 self.population_recovery_completions += 1
                 self.population_recovered += int((candidate.projection or {}).get(
                     "recovered_population", 0))
+        if (candidate.category == "production_preexpansion_growth"
+                and effect_observed):
+            projection = candidate.projection or {}
+            city_id = candidate.action.get("city_id")
+            founder_kind = projection.get("preexpansion_founder_kind")
+            founder_value = projection.get("preexpansion_founder_value")
+            if None not in (city_id, founder_kind, founder_value):
+                self._preexpansion_sequences[int(city_id)] = {
+                    "founder_kind": int(founder_kind),
+                    "founder_name": projection.get("preexpansion_founder"),
+                    "founder_value": int(founder_value),
+                    "granary_kind": candidate.action.get("production_kind"),
+                    "granary_value": candidate.action.get("production_value"),
+                    "selected_turn": int(snapshot.turn),
+                }
+        if (candidate.category == "production_preexpansion_founder"
+                and effect_observed):
+            self._preexpansion_sequences.pop(
+                candidate.action.get("city_id"), None)
         if candidate.category == "population_recovery_move":
             self.population_recovery_route_attempts += 1
             target = candidate.action.get("target", {})
@@ -1335,14 +1355,17 @@ class GroundedImpactPlanner(object):
             action_key = canonical_json_bytes(founder_action).decode("utf-8")
             rank = (combined_eta, action_key)
             if best is None or rank < best[0]:
-                best = (rank, founder_name, founder_projection,
+                best = (rank, founder_action, founder_name, founder_projection,
                         combined_eta, settlement_runway)
         if best is None:
             return None
-        _, founder_name, founder_projection, combined_eta, settlement_runway = best
+        (_, founder_action, founder_name, founder_projection,
+         combined_eta, settlement_runway) = best
         projection.update({
             "founder_deficit_before": founder_deficit,
             "preexpansion_founder": founder_name,
+            "preexpansion_founder_kind": founder_action.get("production_kind"),
+            "preexpansion_founder_value": founder_action.get("production_value"),
             "preexpansion_founder_completion_eta_turns": (
                 founder_projection.get("completion_eta_turns")),
             "preexpansion_founder_population_ready_eta_turns": (
@@ -1358,6 +1381,51 @@ class GroundedImpactPlanner(object):
             "complete score-bearing growth infrastructure before the final "
             "population-costing founder while preserving conservative settlement "
             "and active-city runway",
+            projection)
+
+    def _preexpansion_founder_followup_candidate(
+            self, snapshot, action, city, founder_types, current_normalized,
+            needs_founder, remaining_turns):
+        """Complete a confirmed Granary-first sequence at its first boundary."""
+        intent = self._preexpansion_sequences.get(city.city_id)
+        if not isinstance(intent, dict) or not needs_founder:
+            return None
+        if (_normalized_type(_target_name(action)) not in founder_types
+                or action.get("production_kind") != intent.get("founder_kind")
+                or action.get("production_value") != intent.get("founder_value")):
+            return None
+        if (city.production_kind == intent.get("granary_kind")
+                and city.production_value == intent.get("granary_value")):
+            return None
+        # Only the automatic target's first shield tick or completion overflow
+        # may be discarded. Missing that boundary does not authorize destroying
+        # a later, materially accumulated production trajectory.
+        discarded_stock = max(0, int(city.shield_stock or 0))
+        if discarded_stock > self._city_output(city, 1):
+            return None
+        projection = self._production_projection(
+            city, _target_name(action), remaining_turns, snapshot=snapshot,
+            founder_types=founder_types, shield_stock_override=0)
+        settlement_eta = projection.get("settlement_eta_turns")
+        if (remaining_turns < self.expansion_minimum_remaining_turns
+                or settlement_eta is None
+                or settlement_eta > remaining_turns
+                or projection.get("score_value", 0.0) <= 0):
+            return None
+        projection.update({
+            "preexpansion_followup": True,
+            "preexpansion_followup_selected_turn": intent.get("selected_turn"),
+            "preexpansion_followup_discarded_shield_stock": discarded_stock,
+            "preexpansion_followup_discard_limit": self._city_output(city, 1),
+            "preexpansion_followup_shield_stock_assumption": 0,
+            "preexpansion_followup_previous_target": current_normalized,
+        })
+        return ImpactCandidate(
+            action, "production_preexpansion_founder",
+            960.0 + projection["score_value"] * 10.0
+            - projection["completion_eta_turns"],
+            "complete the confirmed Granary-first sequence at the bounded "
+            "automatic-production boundary",
             projection)
 
     def _production_candidate(self, snapshot, action, founder_types, actions):
@@ -1412,6 +1480,11 @@ class GroundedImpactPlanner(object):
             current_projection is not None
             and current_projection.get("completion_eta_turns") is not None
             and current_projection["completion_eta_turns"] <= remaining_turns)
+        preexpansion_followup = self._preexpansion_founder_followup_candidate(
+            snapshot, action, city, founder_types, current_normalized,
+            needs_founder, remaining_turns)
+        if preexpansion_followup is not None:
+            return preexpansion_followup
         urgent_founder_repurpose = bool(
             current_is_redundant_founder and current_pop_cost > 0
             and current_completes_by_horizon)

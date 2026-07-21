@@ -782,3 +782,25 @@ evaluation slice before inspecting it as V4 indices 5--9, literal seeds
 `1873237, 1884108, 1850973, 1850591, 1866769`. Report this post-fix pilot holdout separately
 from the original prefix. It is an adaptive development checkpoint, cannot update a claim,
 and must not be pooled with indices 0--4 as though one implementation generated all ten.
+
+The fixed holdout at
+`artifacts/freeciv/impact-current-policy-pilot-v4-holdout5-9-20260721` completed with deltas
+`0, -2, 0, +3, +5`, mean `+1.2`, and paired-bootstrap interval `[-0.8, 3.6]`. All ten arms
+used clean commit `0f8dd42`, matched initial state, had zero rejection/fallback, and passed
+the complete 15,273-event release audit. This remains an underpowered adaptive pilot slice,
+not a claim update.
+
+The `-2` seed `1884108` exposed an incomplete pre-expansion sequence. Treatment's capital
+founder queue stalled at size two with zero food surplus. City two selected Granary on turn
+21, but the automatic target after Granary completion gained three shields before the next
+planning boundary. The ordinary nonzero-stock guard therefore never installed the promised
+founder; treatment ended with two cities and score 111 versus baseline's three cities and
+score 113.
+
+Persist an exact city/founder intent only after the Granary selection is confirmed. Permit
+the followup founder switch only once Granary is no longer current, expansion remains
+deficient, the founder still settles by the horizon, and discarded stock is no greater than
+the city's current shield surplus. This bounds the exception to completion overflow or one
+automatic production tick; a missed boundary cannot destroy a later trajectory. Expose
+`production_preexpansion_founder_changes`, test exact target selection and the discard bound,
+then require a clean seed-`1884108` activation before touching untouched seeds.

@@ -42,6 +42,7 @@ METRICS = (
     "positions_explored", "production_changes", "tactical_actions",
     "founder_production_changes", "settlement_attempts",
     "production_repurpose_changes", "production_preexpansion_growth_changes",
+    "production_preexpansion_founder_changes",
     "production_military_score_changes",
     "settlement_completions", "planner_capability_pruned_worker_moves",
     "planner_nonprogress_moves_pruned", "planner_founder_unreachable_moves_pruned",
