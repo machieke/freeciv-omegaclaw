@@ -188,9 +188,9 @@ the existing score and latency metrics:
   `planner_capability_pruned_worker_moves`, and
   `planner_nonprogress_moves_pruned`, plus repeated failed exploration
   destinations pruned after distinct-source confirmation;
-- `population_recovery_attempts`, `population_recovery_completions`, and
-  `population_recovered` for exact ruleset-valued surplus-founder joins after
-  the expansion target is complete;
+- `population_recovery_route_attempts`, route successes/rate, exact join
+  attempts/completions, and `population_recovered` for ruleset-valued
+  surplus-founder return and recovery after the expansion target is complete;
 - `planner_founder_unreachable_moves_pruned`, founder route successes, failures,
   success rate, cardinal-corridor attempts/successes, and observed-evidence route ETA;
 - population-ready, settlement ETA/runway, founder-deficit, and compiler-source
@@ -374,6 +374,19 @@ On seed `104759`, five joins recovered 10 cumulative population; final citizens
 rose from 9 to 14, final score from 113 to 117, and no-effect actions fell from
 23 to 14. This is mechanism and development evidence, not a new statistical
 claim. A disjoint, adequately sized pilot remains necessary.
+
+Historical treatment traces from the immutable 200-pair horizon-60 confirmation
+(`impact-confirmatory-score-horizon60-v1-engine-1ca6b35-v1`) show that immediate
+co-location was too restrictive: 28 of 200 games (14%) reached the three-city target
+while retaining at least one `Settlers` unit away from every owned city. The planner
+previously made those founders inert. Treatment now considers an advertised unit move
+only when the compiled unit has all three exact properties needed by this path:
+`Cities`, `AddToCity`, and positive `pop_cost`. It accepts only a step that strictly
+reduces wrapped map distance to an owned city. At arrival, the existing independent
+join rule still requires an exact server-advertised `unit_join_city` action and confirms
+both unit consumption and the target city's exact population gain. The static-priority
+baseline is unchanged. Route attempts and exact-position successes are reported
+separately from completed joins so movement cannot be mistaken for score impact.
 
 ## Combat attribution, occupancy, and hut-entry hardening
 

@@ -16,6 +16,7 @@ from .model import BranchScore, Plan, PlanStep, ResourceLedger
 LEGACY_FOUNDER_TYPES = frozenset(("settlers", "migrants", "engineers"))
 RULESET_FOUNDER_FLAG = "cities"
 RULESET_WORKER_FLAG = "settlers"
+RULESET_ADD_TO_CITY_FLAG = "addtocity"
 EXPLORER_TYPES = frozenset(("explorer", "diplomat", "spy", "caravan"))
 DEFENDER_PRIORITY = (
     "Mech. Inf.", "Alpine Troops", "Riflemen", "Musketeers", "Pikemen",
@@ -248,6 +249,7 @@ class GroundedImpactPlanner(object):
         self._production_specs = {}
         self._ruleset_founder_types = set()
         self._ruleset_worker_types = set()
+        self._ruleset_add_to_city_types = set()
         self._server_founder_types = set()
         self._founder_cardinal_intents = {}
         self._founder_traversable_edges = set()
@@ -265,6 +267,8 @@ class GroundedImpactPlanner(object):
         self.population_recovery_attempts = 0
         self.population_recovery_completions = 0
         self.population_recovered = 0
+        self.population_recovery_route_attempts = 0
+        self.population_recovery_route_successes = 0
         parameters = getattr(ruleset_ir, "parameters", {})
         initial_food = parameters.get("granary_food_ini", {})
         incremental_food = parameters.get("granary_food_inc", {})
@@ -311,6 +315,8 @@ class GroundedImpactPlanner(object):
                         self._ruleset_founder_types.add(key)
                     if RULESET_WORKER_FLAG in flags:
                         self._ruleset_worker_types.add(key)
+                    if RULESET_ADD_TO_CITY_FLAG in flags:
+                        self._ruleset_add_to_city_types.add(key)
 
     @staticmethod
     def _trait_values(rule, name):
@@ -572,6 +578,16 @@ class GroundedImpactPlanner(object):
                 self.population_recovery_completions += 1
                 self.population_recovered += int((candidate.projection or {}).get(
                     "recovered_population", 0))
+        if candidate.category == "population_recovery_move":
+            self.population_recovery_route_attempts += 1
+            target = candidate.action.get("target", {})
+            actor_id = candidate.action.get("actor_id")
+            after_unit = (after_snapshot.unit(actor_id)
+                          if after_snapshot is not None else None)
+            if (after_unit is not None and isinstance(target, dict)
+                    and (after_unit.x, after_unit.y)
+                    == (target.get("x"), target.get("y"))):
+                self.population_recovery_route_successes += 1
         if candidate.category == "city_founding":
             # A settlement attempt ends the current movement corridor whether
             # the site succeeds or the unit must search from the same tile.
@@ -1401,7 +1417,37 @@ class GroundedImpactPlanner(object):
         city_distance = self._distance_from_cities(snapshot, x, y)
         if unit_type in founder_types:
             if len(snapshot.cities) >= self.expansion_city_target:
-                return None
+                if (self.production_strategy != "horizon_score"
+                        or unit_type not in self._ruleset_add_to_city_types):
+                    return None
+                spec = self._production_specs.get(unit_type, {})
+                population = int(spec.get("pop_cost", 0))
+                if population <= 0 or not snapshot.cities:
+                    return None
+                current_distance = min(_distance(
+                    unit.x, unit.y, city.x, city.y,
+                    snapshot.map_width, snapshot.map_height)
+                                       for city in snapshot.cities)
+                target_distance = min(_distance(
+                    x, y, city.x, city.y,
+                    snapshot.map_width, snapshot.map_height)
+                                      for city in snapshot.cities)
+                if target_distance >= current_distance:
+                    return None
+                nearest_city_ids = sorted(
+                    city.city_id for city in snapshot.cities
+                    if _distance(x, y, city.x, city.y,
+                                 snapshot.map_width, snapshot.map_height)
+                    == target_distance)
+                return ImpactCandidate(
+                    action, "population_recovery_move",
+                    970.0 + population * 5.0 - target_distance,
+                    "strictly reduce a surplus founder's distance to an owned "
+                    "city for exact ruleset population recovery",
+                    {"current_city_distance": current_distance,
+                     "recovered_population": population,
+                     "target_city_distance": target_distance,
+                     "target_city_ids": nearest_city_ids})
             projection = None
             route_utility = 0.0
             utility = 800.0 + city_distance * 20.0 + novelty * 15.0
@@ -1501,9 +1547,10 @@ class GroundedImpactPlanner(object):
         if unit is None or city is None or unit.tile is None or city.tile is None:
             return None
         normalized = _normalized_type(unit.unit_type)
-        # Only the ruleset's exact Cities capability is strong enough to prove
-        # that consuming this unit cannot discard an unrelated AddToCity unit.
-        if normalized not in self._ruleset_founder_types:
+        # Exact Cities and AddToCity capabilities together prove that this is
+        # a founder the server may consume for the advertised recovery action.
+        if (normalized not in self._ruleset_founder_types
+                or normalized not in self._ruleset_add_to_city_types):
             return None
         spec = self._production_specs.get(normalized, {})
         population = int(spec.get("pop_cost", 0))

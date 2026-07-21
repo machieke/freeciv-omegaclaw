@@ -545,3 +545,32 @@ authoritative snapshots from all 40 prior horizon-60 treatment games. It found z
 incremental-ten-build and no-score-bearing-displacement rules. This is evidence that the
 rule is a dormant correctness guard in the observed distribution, not the next score lever.
 Do not enlarge a cohort for it without a newly observed activating state.
+
+## Route surplus founders back for population recovery
+
+The next distribution-supported lever is completion of the already validated population
+recovery path. A read-only scan of the immutable 200-pair horizon-60 confirmation treatment
+traces found 28 games (14%) that had reached the three-city target while at least one
+`Settlers` unit remained away from every owned city. The old planner only joined a founder
+that happened to be co-located with a city and otherwise made it inert.
+
+Treatment must route such a unit only from exact compiled capability evidence: its unit type
+must have both `Cities` and `AddToCity`, and its ruleset `pop_cost` must be positive. Every
+selected action must be server-advertised and strictly reduce wrapped distance from the actor
+to an owned city. This is routing evidence, not permission to infer a join. Once co-located,
+the existing recovery rule must still require an exact advertised `unit_join_city` action and
+must count a completion only when the actor disappears and that exact city's size rises by the
+compiled population cost. The frozen static-priority baseline must never use the route.
+
+Acceptance criteria:
+
+- a focused planner regression chooses the uniquely distance-reducing advertised step and
+  records its exact target city IDs and compiled population value;
+- removing `AddToCity`, `Cities`, or positive `pop_cost` fails closed;
+- a non-reducing move and the static-priority baseline remain ineligible;
+- route attempts, exact-position successes, join attempts/completions, and recovered
+  population are separately visible in events, aggregates, and the report;
+- focused and full repository tests pass; and
+- an engine-backed development cohort exercises the route or records its non-activation
+  without changing the immutable score claim. Any observed development delta remains
+  mechanism evidence until a fresh, disjoint, predeclared cohort passes the paired gates.

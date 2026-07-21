@@ -1662,6 +1662,16 @@ async def _play(run_dir, manifest, context):
         ("planner_founder_capable_unit_types",
          len(impact_planner.founder_capable_types)
          if impact_planner is not None else 0),
+        ("population_recovery_route_attempts",
+         impact_planner.population_recovery_route_attempts
+         if impact_planner is not None else 0),
+        ("population_recovery_route_successes",
+         impact_planner.population_recovery_route_successes
+         if impact_planner is not None else 0),
+        ("population_recovery_route_success_rate",
+         (float(impact_planner.population_recovery_route_successes)
+          / max(1, impact_planner.population_recovery_route_attempts))
+         if impact_planner is not None else 0.0),
         ("population_recovery_attempts",
          impact_planner.population_recovery_attempts
          if impact_planner is not None else 0),
@@ -1798,6 +1808,12 @@ async def _play(run_dir, manifest, context):
             "planner_founder_capable_unit_types": (
                 len(impact_planner.founder_capable_types)
                 if impact_planner is not None else 0),
+            "population_recovery_route_attempts": (
+                impact_planner.population_recovery_route_attempts
+                if impact_planner is not None else 0),
+            "population_recovery_route_successes": (
+                impact_planner.population_recovery_route_successes
+                if impact_planner is not None else 0),
             "population_recovery_attempts": (
                 impact_planner.population_recovery_attempts
                 if impact_planner is not None else 0),
@@ -1863,6 +1879,12 @@ async def _play(run_dir, manifest, context):
             if impact_planner is not None else 0),
         "planner_founder_capable_unit_types": (
             len(impact_planner.founder_capable_types)
+            if impact_planner is not None else 0),
+        "population_recovery_route_attempts": (
+            impact_planner.population_recovery_route_attempts
+            if impact_planner is not None else 0),
+        "population_recovery_route_successes": (
+            impact_planner.population_recovery_route_successes
             if impact_planner is not None else 0),
         "population_recovery_attempts": (
             impact_planner.population_recovery_attempts

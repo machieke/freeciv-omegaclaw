@@ -81,8 +81,10 @@ def _city(size=2, food_stock=4, shield_stock=0,
 
 def _ruleset_ir(costs, founders=("Settlers",),
                 workers=("Settlers", "Migrants", "Workers", "Engineers"),
-                pop_costs=None, growth_food=(20,), growth_increment=10):
+                add_to_city=None, pop_costs=None,
+                growth_food=(20,), growth_increment=10):
     pop_costs = dict(pop_costs or {})
+    add_to_city = set(founders if add_to_city is None else add_to_city)
     rules = []
     for name, kind, cost in costs:
         flags = []
@@ -90,6 +92,8 @@ def _ruleset_ir(costs, founders=("Settlers",),
             flags.append("Settlers")
         if name in founders:
             flags.append("Cities")
+        if name in add_to_city:
+            flags.append("AddToCity")
         rules.append(SimpleNamespace(
             target_kind=kind, display_name=name, rule_name=name,
             quantitative={
@@ -874,6 +878,82 @@ def test_surplus_founder_recovers_exact_ruleset_population_after_city_target():
     migrant_join = dict(join, actor_id=2)
     assert GroundedImpactPlanner(ruleset_ir=ir).plan(_snapshot(
         [_unit(2, "Migrants")], [migrant_join, actions[-1]],
+        cities=cities, turn=18)) is None
+
+
+def test_surplus_founder_routes_back_for_packet_grounded_population_recovery():
+    cities = [_city()]
+    for city_id, x in ((12, 3), (13, 8)):
+        city = _city()
+        city.update({"id": city_id, "tile": x, "x": x})
+        cities.append(city)
+    toward = {"action_type": "unit_move", "actor_id": 1,
+              "target": {"x": 4, "y": 0}, "is_valid": True}
+    away = {"action_type": "unit_move", "actor_id": 1,
+            "target": {"x": 5, "y": 1}, "is_valid": True}
+    snapshot = _snapshot(
+        [_unit(1, "Settlers", 5, 0)],
+        [away, toward, {"action_type": "end_turn", "is_valid": True}],
+        cities=cities, turn=18)
+    ir = _ruleset_ir(
+        (("Settlers", "unit", 30),), pop_costs={"Settlers": 2})
+    planner = GroundedImpactPlanner(ruleset_ir=ir)
+
+    decision = planner.plan(snapshot)
+
+    assert decision.candidate.category == "population_recovery_move"
+    assert decision.candidate.action["target"] == {"x": 4, "y": 0}
+    assert decision.candidate.projection == {
+        "current_city_distance": 2,
+        "recovered_population": 2,
+        "target_city_distance": 1,
+        "target_city_ids": [12],
+    }
+    assert GroundedImpactPlanner(
+        {"production_strategy": "static_priority"},
+        ruleset_ir=ir).plan(snapshot) is None
+
+    arrived = _snapshot(
+        [_unit(1, "Settlers", 4, 0)],
+        [{"action_type": "end_turn", "is_valid": True}],
+        cities=cities, turn=18, source_seq=2)
+    planner.record_outcome(
+        decision.candidate, snapshot, True, after_snapshot=arrived)
+    assert planner.population_recovery_route_attempts == 1
+    assert planner.population_recovery_route_successes == 1
+
+
+def test_population_recovery_route_fails_closed_without_exact_capabilities_or_progress():
+    cities = [_city()]
+    for city_id, x in ((12, 3), (13, 8)):
+        city = _city()
+        city.update({"id": city_id, "tile": x, "x": x})
+        cities.append(city)
+    move = {"action_type": "unit_move", "actor_id": 1,
+            "target": {"x": 4, "y": 0}, "is_valid": True}
+    snapshot = _snapshot(
+        [_unit(1, "Settlers", 5, 0)],
+        [move, {"action_type": "end_turn", "is_valid": True}],
+        cities=cities, turn=18)
+    invalid_rulesets = (
+        _ruleset_ir(
+            (("Settlers", "unit", 30),), add_to_city=(),
+            pop_costs={"Settlers": 2}),
+        _ruleset_ir(
+            (("Settlers", "unit", 30),), founders=(),
+            add_to_city=("Settlers",), pop_costs={"Settlers": 2}),
+        _ruleset_ir(
+            (("Settlers", "unit", 30),), pop_costs={"Settlers": 0}),
+    )
+    for ruleset in invalid_rulesets:
+        assert GroundedImpactPlanner(ruleset_ir=ruleset).plan(snapshot) is None
+
+    nonprogress = dict(move, target={"x": 5, "y": 1})
+    ruleset = _ruleset_ir(
+        (("Settlers", "unit", 30),), pop_costs={"Settlers": 2})
+    assert GroundedImpactPlanner(ruleset_ir=ruleset).plan(_snapshot(
+        [_unit(1, "Settlers", 5, 0)],
+        [nonprogress, {"action_type": "end_turn", "is_valid": True}],
         cities=cities, turn=18)) is None
 
 

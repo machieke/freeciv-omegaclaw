@@ -51,6 +51,8 @@ METRICS = (
     "planner_founder_cardinal_corridor_successes",
     "planner_founder_cardinal_corridor_success_rate",
     "planner_founder_capable_unit_types",
+    "population_recovery_route_attempts", "population_recovery_route_successes",
+    "population_recovery_route_success_rate",
     "population_recovery_attempts", "population_recovery_completions",
     "population_recovered",
     "production_projected_completion_eta_turns",
