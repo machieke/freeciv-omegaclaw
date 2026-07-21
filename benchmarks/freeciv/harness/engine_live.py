@@ -1056,6 +1056,9 @@ async def _play(run_dir, manifest, context):
     production_projection_route_eta_sources = []
     production_projection_growth_ruleset_sources = []
     production_founder_deficits = []
+    production_repurpose_avoided_population = []
+    production_repurpose_discarded_shields = []
+    production_repurpose_target_completions = []
     corrections = 0
     final_global = None
     async with websockets.connect(
@@ -1423,6 +1426,16 @@ async def _play(run_dir, manifest, context):
                         if projection.get("founder_deficit_before") is not None:
                             production_founder_deficits.append(float(
                                 projection["founder_deficit_before"]))
+                        if projection.get("avoided_population_cost") is not None:
+                            production_repurpose_avoided_population.append(float(
+                                projection["avoided_population_cost"]))
+                        if projection.get("repurpose_discarded_shield_stock") is not None:
+                            production_repurpose_discarded_shields.append(float(
+                                projection["repurpose_discarded_shield_stock"]))
+                        if projection.get(
+                                "repurpose_target_completes_by_horizon") is not None:
+                            production_repurpose_target_completions.append(int(
+                                projection["repurpose_target_completes_by_horizon"]))
                     excluded_impact_actions.add(decision.candidate.action_key)
                     confirmation_started = time.perf_counter()
                     raw, snapshot, parent, authoritative_refresh = (
@@ -1730,6 +1743,13 @@ async def _play(run_dir, manifest, context):
         ("production_founder_deficit_before",
          sum(production_founder_deficits)
          / float(max(1, len(production_founder_deficits)))),
+        ("production_repurpose_avoided_population_cost",
+         sum(production_repurpose_avoided_population)),
+        ("production_repurpose_discarded_shield_stock",
+         sum(production_repurpose_discarded_shields)),
+        ("production_repurpose_target_completion_rate",
+         sum(production_repurpose_target_completions)
+         / float(max(1, len(production_repurpose_target_completions)))),
         ("score_component_citizens_turn_n", score_citizen_component),
         ("score_component_technology_turn_n", score_technology_component),
         ("score_component_residual_turn_n", score_residual_component),

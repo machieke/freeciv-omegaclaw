@@ -20,6 +20,23 @@ from .representative import run_game as representative_game
 from .engine_live import run_game as engine_live_game
 
 
+_IMPACT_COHORT_TOKENS = {
+    "development": "dev", "pilot": "pilot",
+    "pilot_horizon_60": "p60",
+    "pilot_horizon_60_v2": "p60v2",
+    "pilot_horizon_60_v3": "p60v3",
+    "confirmatory_score": "cscore",
+    "confirmatory_score_horizon_60_v1": "cs60v1",
+    "confirmatory_joint": "cjoint",
+}
+
+
+def _impact_cohort_token(name):
+    """Keep declared IDs stable and safely identify arbitrary valid cohorts."""
+    return _IMPACT_COHORT_TOKENS.get(
+        name, "x" + structural_hash(["impact-cohort", name])[:10])
+
+
 def _atomic_json(path, value):
     temporary = path + ".tmp.{}".format(os.getpid())
     with open(temporary, "w", encoding="utf-8") as stream:
@@ -141,17 +158,9 @@ class HarnessRunner(object):
 
     def _manifest(self, job, worker):
         arm = job.get("policy_arm")
-        cohort_tokens = {
-            "development": "dev", "pilot": "pilot",
-            "pilot_horizon_60": "p60",
-            "pilot_horizon_60_v2": "p60v2",
-            "pilot_horizon_60_v3": "p60v3",
-            "confirmatory_score": "cscore",
-            "confirmatory_score_horizon_60_v1": "cs60v1",
-            "confirmatory_joint": "cjoint",
-        }
         game_id = ("m7-ip-{}-{}-{}-{:02d}-{}".format(
-            cohort_tokens[job["cohort"]], arm[0], job["seed"], job["sequence"],
+            _impact_cohort_token(job["cohort"]), arm[0], job["seed"],
+            job["sequence"],
             structural_hash([
                 job["track"], job["cohort"], arm, job["condition"]])[:8])
                    if arm is not None else "m7-{}-{}-{}-{:02d}".format(

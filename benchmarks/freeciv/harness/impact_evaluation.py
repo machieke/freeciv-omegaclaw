@@ -563,6 +563,9 @@ def write_impact_report(out, aggregate):
             "production_projection_route_observed_source_rate",
             "production_projection_growth_ruleset_source_rate",
             "production_founder_deficit_before",
+            "production_repurpose_avoided_population_cost",
+            "production_repurpose_discarded_shield_stock",
+            "production_repurpose_target_completion_rate",
             "score_component_citizen_delta", "score_component_technology_delta",
             "score_component_residual_turn_n",
             "full_loop_under_30s_rate", "model_safe_fallback_rate"):

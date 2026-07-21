@@ -1269,6 +1269,80 @@ def test_horizon_policy_retires_redundant_founder_production():
     assert baseline.candidate.projection is None
 
 
+def test_horizon_policy_stops_repeated_population_founders_midbuild():
+    cities = []
+    for city_id, x in ((10, 0), (12, 3), (13, 6)):
+        city = _city(
+            size=5, shield_stock=25 if city_id == 10 else 4,
+            surplus=(5, 5, 2, 1, 0, 3),
+            production_kind=6 if city_id == 10 else 3,
+            production_value=0 if city_id == 10 else 14)
+        city.update({"id": city_id, "tile": x, "x": x})
+        cities.append(city)
+    actions = [
+        _production(10, "Granary", 3, 14),
+        _production(10, "Alpine Troops", 6, 11),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 30), ("Alpine Troops", "unit", 60),
+        ("Granary", "improvement", 40),
+    ), pop_costs={"Settlers": 2})
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops")], actions, cities=cities, turn=1)
+
+    decision = GroundedImpactPlanner(
+        {"expansion_city_target": 3}, ruleset_ir=ir).plan(snapshot)
+
+    assert decision.candidate.category == "production_repurpose"
+    assert decision.candidate.action["target"]["production_type"] == "Granary"
+    assert decision.candidate.projection["avoided_population_cost"] == 2
+    assert decision.candidate.projection[
+        "expansion_capacity_without_current"] == 3
+    assert decision.candidate.projection["repurpose_discarded_shield_stock"] == 25
+    assert decision.candidate.projection["repurpose_shield_stock_assumption"] == 0
+    assert decision.candidate.projection["projected_shield_stock"] == 0
+    assert decision.candidate.projection["completion_eta_turns"] == 8
+    assert decision.candidate.projection[
+        "repurpose_target_completes_by_horizon"] is True
+    assert GroundedImpactPlanner(
+        {"expansion_city_target": 3, "production_strategy": "static_priority"},
+        ruleset_ir=ir).plan(snapshot) is None
+
+
+def test_horizon_policy_preserves_necessary_or_noncompleting_founder_queue():
+    actions = [
+        _production(10, "Granary", 3, 14),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 30), ("Granary", "improvement", 40),
+    ), pop_costs={"Settlers": 2})
+    necessary_city = _city(
+        size=5, shield_stock=25, surplus=(5, 5, 2, 1, 0, 3),
+        production_kind=6, production_value=0)
+    necessary = _snapshot(
+        [_unit(1, "Settlers")], actions, cities=[necessary_city], turn=1)
+    planner = GroundedImpactPlanner(
+        {"expansion_city_target": 3}, ruleset_ir=ir)
+
+    # City + existing founder + this queue exactly meets the target. Excluding
+    # the queue leaves a deficit, so it is necessary rather than redundant.
+    assert planner.plan(necessary) is None
+
+    late_cities = []
+    for city_id, x in ((10, 0), (12, 3), (13, 6)):
+        city = dict(necessary_city)
+        city.update({"id": city_id, "tile": x, "x": x,
+                     "shield_stock": 1})
+        late_cities.append(city)
+    late = _snapshot([], actions, cities=late_cities, turn=29)
+    # The current founder cannot complete by turn 30, so its population cost
+    # cannot affect the fixed-horizon score and does not justify shield loss.
+    assert GroundedImpactPlanner(
+        {"expansion_city_target": 3}, ruleset_ir=ir).plan(late) is None
+
+
 def test_production_projection_fails_closed_without_shield_surplus():
     ir = _ruleset_ir((("Warriors", "unit", 10),), founders=(), workers=())
     planner = GroundedImpactPlanner(ruleset_ir=ir)

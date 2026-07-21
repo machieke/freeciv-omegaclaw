@@ -926,7 +926,8 @@ class GroundedImpactPlanner(object):
         return turns
 
     def _production_projection(
-            self, city, name, remaining_turns, snapshot=None, founder_types=()):
+            self, city, name, remaining_turns, snapshot=None, founder_types=(),
+            shield_stock_override=None):
         """Estimate whether production can affect the declared score horizon.
 
         This is deliberately a small, auditable projection rather than a game
@@ -938,7 +939,9 @@ class GroundedImpactPlanner(object):
         cost = self._build_costs.get(normalized)
         spec = self._production_specs.get(normalized, {})
         shields = self._city_output(city, 1)
-        stock = max(0, int(city.shield_stock or 0))
+        stock = max(0, int(
+            city.shield_stock or 0) if shield_stock_override is None
+            else int(shield_stock_override))
         if cost is None and normalized:
             # Unit tests and lightweight consumers may construct the planner
             # without a compiled IR. Preserve a conservative bounded fallback;
@@ -962,6 +965,7 @@ class GroundedImpactPlanner(object):
             "cost_source": "ruleset_ir" if cost is not None else "bounded_fallback",
             "completion_eta_turns": eta, "remaining_turns": int(remaining_turns),
             "pop_cost": int(spec.get("pop_cost", 0)),
+            "projected_shield_stock": stock,
             "shield_completion_eta_turns": shield_eta,
             "shield_surplus": shields, "score_value": 0.0,
         }
@@ -1224,9 +1228,7 @@ class GroundedImpactPlanner(object):
         city = snapshot.city(action.get("city_id"))
         if city is None or not city.buildability_available:
             return None
-        # Mid-build switching loses shields in FreeCiv.  Only select a new item
-        # at an empty stock boundary, even though the proxy advertises all choices.
-        if city.shield_stock not in (None, 0) or self._current_production_matches(city, action):
+        if self._current_production_matches(city, action):
             return None
         name = _target_name(action)
         normalized = _normalized_type(name)
@@ -1235,6 +1237,9 @@ class GroundedImpactPlanner(object):
         current_normalized = _normalized_type(current_name)
         remaining_turns = self.horizon_turn - snapshot.turn
         if self.production_strategy == "static_priority":
+            # The paired baseline retains its original lossless-boundary rule.
+            if city.shield_stock not in (None, 0):
+                return None
             legacy_founders = tuple(
                 unit for unit in snapshot.units
                 if _normalized_type(unit.unit_type) in LEGACY_FOUNDER_TYPES)
@@ -1251,9 +1256,41 @@ class GroundedImpactPlanner(object):
         expansion_capacity = city_count + len(founders) + queued_founders
         founder_deficit = max(0, self.expansion_city_target - expansion_capacity)
         needs_founder = founder_deficit > 0
+        current_projection = (self._production_projection(
+            city, current_name, remaining_turns, snapshot=snapshot,
+            founder_types=founder_types)
+                              if current_name else None)
+        current_queue_counted = int(
+            current_normalized in founder_types
+            and current_projection is not None
+            and current_projection.get("settlement_eta_turns") is not None
+            and current_projection["settlement_eta_turns"] <= remaining_turns)
+        expansion_capacity_without_current = (
+            expansion_capacity - current_queue_counted)
+        current_is_redundant_founder = (
+            current_normalized in founder_types
+            and expansion_capacity_without_current >= self.expansion_city_target)
+        current_pop_cost = int(self._production_specs.get(
+            current_normalized, {}).get("pop_cost", 0))
+        current_completes_by_horizon = bool(
+            current_projection is not None
+            and current_projection.get("completion_eta_turns") is not None
+            and current_projection["completion_eta_turns"] <= remaining_turns)
+        urgent_founder_repurpose = bool(
+            current_is_redundant_founder and current_pop_cost > 0
+            and current_completes_by_horizon)
+
+        # Normal changes remain lossless at an empty stock boundary. A redundant
+        # positive-population founder is the sole exception: completing it and
+        # automatically repeating it costs citizens. Project the replacement as
+        # if every accumulated shield were discarded, so the exception cannot
+        # invent carry-over value.
+        if city.shield_stock not in (None, 0) and not urgent_founder_repurpose:
+            return None
         projection = self._production_projection(
             city, name, remaining_turns, snapshot=snapshot,
-            founder_types=founder_types)
+            founder_types=founder_types,
+            shield_stock_override=(0 if urgent_founder_repurpose else None))
         if normalized in founder_types:
             projection.update({
                 "existing_founders": len(founders),
@@ -1261,12 +1298,40 @@ class GroundedImpactPlanner(object):
                 "founder_deficit_before": founder_deficit,
                 "queued_founders": queued_founders,
             })
-        current_projection = (self._production_projection(
-            city, current_name, remaining_turns, snapshot=snapshot,
-            founder_types=founder_types)
-                              if current_name else None)
-        current_is_redundant_founder = (
-            current_normalized in founder_types and not needs_founder)
+
+        if urgent_founder_repurpose:
+            target_pop_cost = int(self._production_specs.get(
+                normalized, {}).get("pop_cost", 0))
+            priorities = IMPROVEMENT_PRIORITY + DEFENDER_PRIORITY
+            target_index = next((
+                index for index, target in enumerate(priorities)
+                if name.lower() == target.lower()), None)
+            if (target_index is None or normalized in founder_types
+                    or target_pop_cost > 0):
+                return None
+            completion_eta = projection.get("completion_eta_turns")
+            projection.update({
+                "avoided_population_cost": current_pop_cost,
+                "expansion_capacity_without_current": (
+                    expansion_capacity_without_current),
+                "repurpose_discarded_shield_stock": max(
+                    0, int(city.shield_stock or 0)),
+                "repurpose_shield_stock_assumption": 0,
+                "repurpose_target_completes_by_horizon": bool(
+                    completion_eta is not None
+                    and completion_eta <= remaining_turns),
+            })
+            eta_penalty = (remaining_turns + 1 if completion_eta is None
+                           else completion_eta)
+            return ImpactCandidate(
+                action, "production_repurpose",
+                900.0 + current_pop_cost * 20.0
+                + projection["score_value"] * 10.0
+                - eta_penalty - target_index * 0.01,
+                "retire population-costing founder production while expansion "
+                "capacity remains at target without its current queue",
+                projection)
+
         unit_score_batch = self._unit_score_batch_members(
             snapshot, actions, founder_types).get(
                 canonical_json_bytes(action).decode("utf-8"))

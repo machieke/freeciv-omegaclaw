@@ -28,6 +28,7 @@ from freeciv.harness.statistics import (paired_binary_discordance,  # noqa: E402
                                         wilson)
 from freeciv.harness.aggregate import _calibration_report  # noqa: E402
 from freeciv.harness.impact_evaluation import _claim_evaluation  # noqa: E402
+from freeciv.harness.runner import _impact_cohort_token  # noqa: E402
 from freeciv.harness.engine_live import (  # noqa: E402
     _available_research_names, _needs_cognitive_stack, _opponent_memory_path,
     _claim_eligible_manifest, _ollama_readiness, _plain_prompt_state,
@@ -638,6 +639,14 @@ def test_paired_impact_jobs_alternate_order_and_override_only_declared_policy():
         "minimum_detectable_delta": 0.2,
         "maximum_planning_sd": 1.0,
     }
+
+
+def test_arbitrary_declared_impact_cohorts_have_stable_safe_manifest_tokens():
+    assert _impact_cohort_token("development") == "dev"
+    token = _impact_cohort_token("population route/replay")
+    assert token == _impact_cohort_token("population route/replay")
+    assert token != _impact_cohort_token("population route replay")
+    assert re.fullmatch(r"x[0-9a-f]{10}", token)
 
 
 def test_paired_impact_smoke_is_reproducible_and_reports_power_and_order():

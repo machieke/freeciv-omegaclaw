@@ -194,7 +194,9 @@ the existing score and latency metrics:
 - `planner_founder_unreachable_moves_pruned`, founder route successes, failures,
   success rate, cardinal-corridor attempts/successes, and observed-evidence route ETA;
 - population-ready, settlement ETA/runway, founder-deficit, and compiler-source
-  production projection metrics;
+  production projection metrics, plus population cost avoided, conservative
+  shield stock discarded, and replacement horizon-completion rate when retiring
+  a repeated founder queue;
 - repeated unit completions, cumulative unit-score progress, civilization-wide batch
   increments, and guaranteed whole units-built score points for treatment production;
 - `model_safe_fallback_rate` and `model_corrections_per_turn`.
@@ -387,6 +389,26 @@ join rule still requires an exact server-advertised `unit_join_city` action and 
 both unit consumption and the target city's exact population gain. The static-priority
 baseline is unchanged. Route attempts and exact-position successes are reported
 separately from completed joins so movement cannot be mistaken for score impact.
+
+The clean three-pair development rerun at
+`artifacts/freeciv/impact-population-recovery-route-dev-3-20260720` did not activate
+the return route, but seed `104759` completed three already-co-located joins and
+reported six gross population recovered. Pair score deltas were `-2`, `0`, and `+6`
+(mean `+1.33`); one baseline model fallback failed the absolute safety gate. The full
+release audit still passed across all 4,584 events. These are development diagnostics,
+not evidence for a revised claim.
+
+A post-hoc horizon-60 replay of historical seed `1406156` then exposed a more important
+accounting error. Treatment completed five exact joins and reported ten gross population
+recovered, but ended with 13 citizens and score 118 versus baseline's 15 citizens and
+score 120. The city had remained on automatic repeated Settler production after the
+expansion target, paying population before joining those units back. Gross join recovery
+therefore is not an incremental population gain. Treatment now retires such a queue even
+with nonzero shield stock only when the current founder would complete by the horizon and
+city, existing-founder, and other projected-settler capacity still meets the target after
+excluding that exact queue. Replacement ETA assumes zero carried shields. A necessary
+queue, a queue that cannot complete by the horizon, and the static baseline remain
+unchanged.
 
 ## Combat attribution, occupancy, and hut-entry hardening
 

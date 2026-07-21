@@ -574,3 +574,48 @@ Acceptance criteria:
 - an engine-backed development cohort exercises the route or records its non-activation
   without changing the immutable score claim. Any observed development delta remains
   mechanism evidence until a fresh, disjoint, predeclared cohort passes the paired gates.
+
+The first three-pair engine rerun recorded zero route attempts. It did reconfirm three
+direct joins and six gross population recovered on seed `104759`; pair deltas were `-2`,
+`0`, and `+6` (mean `+1.33`). One baseline model fallback failed the absolute safety gate,
+while the complete 4,584-event release audit passed. This is a documented non-activation,
+not a score update.
+
+## Stop repeated population-costing founder production
+
+The post-hoc horizon-60 seed-`1406156` replay falsified the assumption that a completed
+join's compiled `pop_cost` is itself incremental impact. Treatment completed five joins
+and reported ten gross population recovered, yet finished at 13 citizens and score 118;
+baseline finished at 15 citizens and score 120. Exact snapshots showed that treatment
+left its capital on repeated Settler production after expansion capacity was complete.
+Each completion first deducted two population; joining the unit back restored gross
+population but did not recover the disrupted natural-growth trajectory.
+
+Treatment must retire a positive-population founder queue before another horizon-relevant
+completion when capacity excluding that exact queue still meets the expansion target.
+The calculation must not count the queue as evidence of its own redundancy. An emergency
+mid-build switch is allowed only for this case; its replacement projection must assume
+zero carried shield stock because switching may discard all accumulated shields. The
+replacement must have exact compiled zero `pop_cost`, be a declared economy/defender
+priority, and use a server-advertised action. A necessary founder queue, a founder that
+cannot complete before scoring, ordinary mid-build production, and the frozen baseline
+must remain untouched.
+
+Acceptance criteria:
+
+- a three-city state with a mid-build redundant Settler chooses
+  `production_repurpose`, reports exact avoided population and discarded stock, and
+  projects the replacement from zero shields;
+- a queue that is itself required to reach the target is not called redundant;
+- a queue unable to complete by the horizon does not justify shield loss;
+- live events and paired reports expose repurpose count, avoided population cost,
+  discarded shields, and replacement completion rate;
+- all focused and full FreeCiv tests pass; and
+- a same-seed horizon-60 engine rerun confirms that repeated Settler production stops
+  without rejection/fallback before any larger cohort is considered.
+
+The custom replay also exposed a harness consistency issue: configuration validation
+accepts arbitrary declared cohort names while manifest generation previously used a
+closed token table. Existing cohort IDs remain byte-for-byte stable; other valid names
+now receive a deterministic hash-derived, identifier-safe token. This supports isolated
+mechanism probes without making them claim eligible.
