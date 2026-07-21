@@ -469,6 +469,17 @@ confirmed two-tile corridor cannot dominate a new branch forever. If the reverse
 only grounded move, it remains eligible; this allows a founder to leave an actual dead end.
 `planner_founder_cycle_moves_pruned` reports the distinct suppressed legal actions.
 
+The clean engine replay at
+`artifacts/freeciv/impact-founder-cycle-escape-1491731-20260721` confirmed the escape on
+the exact reused seed. Treatment followed the old route through `(20,9)` and `(19,10)`,
+then selected `(20,11)` instead of returning to `(20,9)`, traversed three more new positions,
+and founded city three on turn 46. It recorded eight distinct cycle moves pruned, two settlement
+completions, ten citizens, and score 115, compared with the pre-fix treatment's one settlement,
+seven citizens, and score 111. The current baseline remained at seven citizens and score 111,
+so the paired delta was `+4`. Both arms had zero rejection/fallback, matched initial state, used
+clean commit `3aff906`, and passed the complete 3,573-event release audit. This is one reused
+development seed and does not revise the immutable score claim.
+
 ## Combat attribution, occupancy, and hut-entry hardening
 
 Offensive actions retain an exact pre-action fingerprint of the packet-visible enemy

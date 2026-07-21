@@ -699,3 +699,13 @@ an immediate reverse edge when another advertised, non-failed move exists. It de
 allows the reverse edge when it is the only legal escape. Acceptance requires a synthetic
 branch/dead-end/return trace to choose the alternate branch, an only-exit trace to retain the
 backtrack, read-only cycle-prune telemetry, and an engine-backed same-seed replay.
+
+The clean confirmation at
+`artifacts/freeciv/impact-founder-cycle-escape-1491731-20260721` met those criteria. On the
+treatment route, the historical `(20,9)`/`(19,10)` loop ended on turn 42 with a move to
+`(20,11)`; the founder traversed three further new positions and founded city three on turn
+46. Treatment recorded eight distinct cycle prunes, two settlements, ten citizens, and score
+115, improving its pre-fix trajectory of one settlement, seven citizens, and score 111. The
+current baseline retained seven citizens and score 111, giving a `+4` paired delta. Both arms
+had matching initial state, zero rejection/fallback, clean commit `3aff906`, and a passing
+3,573-event release audit. This is a reused-seed mechanism confirmation, not a claim update.
