@@ -844,3 +844,21 @@ must be strictly greater than its shield-completion ETA. When the direct build i
 select `production_expansion` immediately. Preserve the validated slow-growth case (population
 ETA 25 versus shield ETA 10), expose both direct ETAs in the sequence projection, and require
 a clean seed-`1884108` replay to recover the early-founder trajectory before proceeding.
+
+The clean confirmation at
+`artifacts/freeciv/impact-direct-founder-1884108-20260721` met the causal gate. Treatment
+selected direct Settlers on turn 21, completed founder 115 on turn 28, followed the
+baseline-proven route, and founded city three on turn 33. It finished with 13 citizens and
+score 116 versus baseline's ten citizens and score 113. Relative to the inspected holdout
+run, treatment improved from eight citizens/111 to 13/116 and the paired delta changed from
+`-2` to `+3`. Both arms recorded two settlement completions, eight successful founder moves,
+zero route failures/rejections/fallbacks, clean source `35a7bcc`, matched initial state, and
+the complete 2,748-event release audit. This five-point selected-seed swing validates the
+population-bound sequencing correction but cannot revise the formal claim.
+
+Freeze the next untouched checkpoint as V4 indices 10--14, literal seeds
+`1847487, 1825421, 1856447, 1859499, 1836213`, before inspecting any of their traces or
+outcomes. Run them as one clean-source pilot slice under the current policy, report the five
+paired deltas and interval separately, and do not pool them with V4 indices 0--9 because
+different adaptive implementations generated those earlier slices. This remains development
+evidence and cannot update the immutable confirmatory claim.

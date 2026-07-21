@@ -583,6 +583,29 @@ followup separately from growth selection. Acceptance requires synthetic proof o
 handoff and discard bound, the full FreeCiv suite, and a clean seed-`1884108` replay before
 any untouched evaluation.
 
+The first clean engine replay confirmed that the persisted handoff itself worked but did not
+improve seed `1884108`: two late replacement founders were destroyed, leaving treatment at
+score 111 versus baseline 113. A bounded authoritative attrition guard then activated once
+without changing that outcome; it is retained as route correctness hardening, not as score
+evidence. The upstream projection was the material defect: at turn 21 city 109 was already
+population-ready for the two-population founder, so Granary-first delayed a shield-bound
+build by eight turns. Pre-expansion growth is now eligible only when the direct founder's
+population-readiness ETA is strictly greater than its shield-completion ETA.
+
+The clean corrected replay at
+`artifacts/freeciv/impact-direct-founder-1884108-20260721` selected Settlers on turn 21,
+completed the founder on turn 28, and founded city three on turn 33. Treatment ended with
+13 citizens and score 116 versus baseline's ten citizens and score 113, changing the reused
+seed's paired delta from `-2` to `+3`. Both arms had two settlements, eight successful route
+moves, zero route failures/rejections/fallbacks, clean source `35a7bcc`, matched initial
+state, and a passing 2,748-event release audit. This is selected-seed mechanism evidence,
+not a revised formal estimate.
+
+Before inspecting further outcomes, the next untouched pilot checkpoint is frozen as V4
+indices 10--14: `1847487, 1825421, 1856447, 1859499, 1836213`. It must be reported as its
+own adaptive five-pair slice and not pooled with indices 0--9 or the immutable confirmatory
+cohort.
+
 ## Combat attribution, occupancy, and hut-entry hardening
 
 Offensive actions retain an exact pre-action fingerprint of the packet-visible enemy
