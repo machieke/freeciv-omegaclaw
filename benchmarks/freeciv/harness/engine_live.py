@@ -1017,6 +1017,8 @@ async def _play(run_dir, manifest, context):
     decision_stats = {
         "impact_actions": 0, "meaningful_actions": 0,
         "production_changes": 0, "founder_production_changes": 0,
+        "production_repurpose_changes": 0,
+        "production_military_score_changes": 0,
         "settlement_attempts": 0, "settlement_completions": 0,
         "tactical_actions": 0,
         "effect_observed": 0, "no_effect": 0, "safe_model_fallbacks": 0,
@@ -1041,6 +1043,8 @@ async def _play(run_dir, manifest, context):
     production_projection_unit_completions = []
     production_projection_unit_score_progress = []
     production_projection_guaranteed_unit_score = []
+    production_batch_incremental_unit_completions = []
+    production_batch_guaranteed_unit_score = []
     production_projection_costs = []
     production_projection_shields = []
     production_projection_pop_costs = []
@@ -1140,6 +1144,10 @@ async def _play(run_dir, manifest, context):
                 decision_stats["production_changes"] += 1
                 if category == "production_expansion":
                     decision_stats["founder_production_changes"] += 1
+                if category == "production_repurpose":
+                    decision_stats["production_repurpose_changes"] += 1
+                if category == "production_military_score":
+                    decision_stats["production_military_score_changes"] += 1
             if action_type == "unit_build_city":
                 decision_stats["settlement_attempts"] += 1
             if category in ("tactical_attack", "tactical_move"):
@@ -1376,6 +1384,12 @@ async def _play(run_dir, manifest, context):
                         if projection.get("guaranteed_unit_score_points") is not None:
                             production_projection_guaranteed_unit_score.append(float(
                                 projection["guaranteed_unit_score_points"]))
+                        if projection.get("batch_incremental_unit_completions") is not None:
+                            production_batch_incremental_unit_completions.append(float(
+                                projection["batch_incremental_unit_completions"]))
+                        if projection.get("batch_guaranteed_unit_score_points") is not None:
+                            production_batch_guaranteed_unit_score.append(float(
+                                projection["batch_guaranteed_unit_score_points"]))
                         if projection.get("build_cost") is not None:
                             production_projection_costs.append(float(
                                 projection["build_cost"]))
@@ -1612,6 +1626,10 @@ async def _play(run_dir, manifest, context):
         ("production_changes", decision_stats["production_changes"]),
         ("founder_production_changes",
          decision_stats["founder_production_changes"]),
+        ("production_repurpose_changes",
+         decision_stats["production_repurpose_changes"]),
+        ("production_military_score_changes",
+         decision_stats["production_military_score_changes"]),
         ("settlement_attempts", decision_stats["settlement_attempts"]),
         ("settlement_completions", decision_stats["settlement_completions"]),
         ("planner_capability_pruned_worker_moves",
@@ -1666,6 +1684,12 @@ async def _play(run_dir, manifest, context):
         ("production_guaranteed_unit_score_points",
          sum(production_projection_guaranteed_unit_score)
          / max(1, len(production_projection_guaranteed_unit_score))),
+        ("production_batch_incremental_unit_completions",
+         sum(production_batch_incremental_unit_completions)
+         / max(1, len(production_batch_incremental_unit_completions))),
+        ("production_batch_guaranteed_unit_score_points",
+         sum(production_batch_guaranteed_unit_score)
+         / max(1, len(production_batch_guaranteed_unit_score))),
         ("production_projected_build_cost",
          sum(production_projection_costs) / max(1, len(production_projection_costs))),
         ("production_projected_shield_surplus",
@@ -1744,6 +1768,10 @@ async def _play(run_dir, manifest, context):
             "meaningful_actions": decision_stats["meaningful_actions"],
             "founder_production_changes": (
                 decision_stats["founder_production_changes"]),
+            "production_repurpose_changes": (
+                decision_stats["production_repurpose_changes"]),
+            "production_military_score_changes": (
+                decision_stats["production_military_score_changes"]),
             "settlement_attempts": decision_stats["settlement_attempts"],
             "cities_gained": city_gain,
             "settlement_completions": decision_stats["settlement_completions"],
@@ -1808,6 +1836,9 @@ async def _play(run_dir, manifest, context):
         "initial_state_fingerprint": initial_state_fingerprint,
         "meaningful_actions": decision_stats["meaningful_actions"],
         "founder_production_changes": decision_stats["founder_production_changes"],
+        "production_repurpose_changes": decision_stats["production_repurpose_changes"],
+        "production_military_score_changes": (
+            decision_stats["production_military_score_changes"]),
         "settlement_attempts": decision_stats["settlement_attempts"],
         "cities_gained": city_gain,
         "settlement_completions": decision_stats["settlement_completions"],

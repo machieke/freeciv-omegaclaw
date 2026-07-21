@@ -505,11 +505,15 @@ The pinned Freeciv server computes the unit-production score component as cumula
 single completion and rejected every non-deficit military choice. The declared policy
 now carries `unit_build_score_divisor: 10`. For zero-population, non-founder units, it
 projects a conservative first completion and repeated completions at current shield
-surplus, publishes fractional score progress and guaranteed whole points, and permits a
-non-deficit switch only when a whole fixed-horizon point is guaranteed. A redundant
-founder build may be repurposed earlier so it does not keep consuming population after
-expansion capacity is complete. Zero shield surplus fails closed, and the static-priority
-baseline is unchanged.
+surplus and publishes fractional score progress. The units-built counter is
+civilization-wide, so the policy compares the best exact legal batch across cities with
+their current unit-production trajectory. It commits one member at a time only when the
+batch guarantees at least ten additional zero-population, non-founder units; every member
+must receive exact same-turn production confirmation before the next. A failure, deferred
+effect, or turn change cancels the remainder, and a score-bearing non-unit current build
+is not displaced. A redundant founder build may be repurposed earlier so it does not keep
+consuming population after expansion capacity is complete. Zero shield surplus fails
+closed, and the static-priority baseline is unchanged.
 
 Focused tests cover a 14-unit/one-guaranteed-point projection, a sub-threshold redundant
 founder retirement, preservation of the frozen baseline choice, zero-shield rejection,
@@ -520,5 +524,24 @@ fidelity and all safety gates with no failure, rejection, or fallback. Its paire
 deltas were `-2`, `0`, and `+1`; neither new production category activated at turn 30,
 so those values are not an effect estimate for repeated-unit scoring. Seed `104759`
 independently reconfirmed three population joins, six population recovered, and a
-one-point citizen/score treatment gain. A clean longer-horizon mechanism probe must
-activate `production_repurpose` or `production_military_score` before a larger new cohort.
+one-point citizen/score treatment gain.
+
+The clean-source 60-turn probe at
+`artifacts/freeciv/impact-repeated-unit-horizon60-activation-20260720` also left both new
+categories dormant and recorded zero repeat-unit projections. It passed source freeze,
+paired fidelity, all safety gates, and the full release audit. Treatment scored `112`
+versus baseline `110` solely through four exact population joins and eight recovered
+population. This falsified the single-city activation hypothesis; the `+2` is one pilot
+pair and not a revised claim. Focused batch regressions now cover three cities contributing
+four completions each, confirmation-ordered continuation, and cancellation when the first
+member has no authoritative effect. A fresh engine probe must activate the batch before a
+larger statistical cohort.
+
+The batch implementation is memoized by snapshot, legal-action set, and founder-capability
+set; a focused regression proves that repeated candidate enumeration does not recompute it.
+A read-only reconstruction of exact buildable production actions then evaluated 1,718
+authoritative snapshots from all 40 prior horizon-60 treatment games. It found zero
+`production_repurpose` or `production_military_score` opportunities under the strict
+incremental-ten-build and no-score-bearing-displacement rules. This is evidence that the
+rule is a dormant correctness guard in the observed distribution, not the next score lever.
+Do not enlarge a cohort for it without a newly observed activating state.

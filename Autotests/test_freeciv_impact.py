@@ -1041,6 +1041,127 @@ def test_horizon_policy_projects_repeated_units_and_guaranteed_score():
     assert decision.candidate.projection["score_value"] == 1.4
 
 
+def test_horizon_policy_commits_civilization_wide_unit_score_batch():
+    cities = []
+    actions = []
+    for city_id, x in ((10, 0), (12, 3), (13, 6)):
+        city = _city(
+            production_kind=3, production_value=18,
+            surplus=(1, 5, 2, 1, 0, 3))
+        city.update({"id": city_id, "name": "City{}".format(city_id),
+                     "tile": x, "x": x})
+        city["buildability"]["options"].extend([
+            {"type": "improvement", "id": 18, "name": "Marketplace"},
+            {"type": "unit", "id": 9, "name": "Musketeers"},
+        ])
+        cities.append(city)
+        actions.append(_production(city_id, "Musketeers", 6, 9))
+    actions.append({"action_type": "end_turn", "is_valid": True})
+    ir = _ruleset_ir((
+        ("Alpine Troops", "unit", 60),
+        ("Musketeers", "unit", 30),
+        ("Marketplace", "improvement", 40),
+    ), founders=(), workers=())
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops"), _unit(12, "Alpine Troops"),
+         _unit(13, "Alpine Troops")],
+        actions, cities=cities, turn=1)
+    planner = GroundedImpactPlanner(
+        {"expansion_city_target": 3}, ruleset_ir=ir)
+
+    first = planner.plan(snapshot)
+
+    assert first.candidate.category == "production_military_score"
+    assert first.candidate.projection["projected_unit_completions"] == 4
+    assert first.candidate.projection["guaranteed_unit_score_points"] == 0
+    assert first.candidate.projection["batch_current_projected_unit_completions"] == 0
+    assert first.candidate.projection["batch_optimized_projected_unit_completions"] == 12
+    assert first.candidate.projection["batch_incremental_unit_completions"] == 12
+    assert first.candidate.projection["batch_guaranteed_unit_score_points"] == 1
+    assert first.candidate.projection["batch_selected_city_count"] == 3
+
+    # A batch member must be authoritatively confirmed before the next member.
+    assert planner.plan(
+        snapshot, excluded=(first.candidate.action_key,)) is None
+    changed = [dict(city) for city in cities]
+    changed_city_id = first.candidate.action["city_id"]
+    for city in changed:
+        if city["id"] == changed_city_id:
+            city["production_kind"] = 6
+            city["production_value"] = 9
+    after = _snapshot(
+        [_unit(11, "Alpine Troops"), _unit(12, "Alpine Troops"),
+         _unit(13, "Alpine Troops")], actions, cities=changed,
+        turn=1, source_seq=2)
+    planner.record_outcome(first.candidate, snapshot, True, after)
+    second = planner.plan(after, excluded=(first.candidate.action_key,))
+    assert second.candidate.category == "production_military_score"
+    assert second.candidate.action["city_id"] != changed_city_id
+
+
+def test_failed_unit_score_batch_member_cancels_remaining_switches():
+    cities = []
+    actions = []
+    for city_id, x in ((10, 0), (12, 3), (13, 6)):
+        city = _city(production_kind=3, production_value=18,
+                     surplus=(1, 5, 2, 1, 0, 3))
+        city.update({"id": city_id, "tile": x, "x": x})
+        city["buildability"]["options"].extend([
+            {"type": "improvement", "id": 18, "name": "Marketplace"},
+            {"type": "unit", "id": 9, "name": "Musketeers"},
+        ])
+        cities.append(city)
+        actions.append(_production(city_id, "Musketeers", 6, 9))
+    actions.append({"action_type": "end_turn", "is_valid": True})
+    ir = _ruleset_ir((
+        ("Alpine Troops", "unit", 60), ("Musketeers", "unit", 30),
+        ("Marketplace", "improvement", 40)), founders=(), workers=())
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops"), _unit(12, "Alpine Troops"),
+         _unit(13, "Alpine Troops")], actions, cities=cities, turn=1)
+    planner = GroundedImpactPlanner(
+        {"expansion_city_target": 3}, ruleset_ir=ir)
+    first = planner.plan(snapshot)
+
+    planner.record_outcome(first.candidate, snapshot, False, snapshot)
+
+    assert planner.plan(
+        snapshot, excluded=(first.candidate.action_key,)) is None
+
+
+def test_unit_score_batch_is_memoized_per_snapshot_and_legal_set():
+    city = _city(production_kind=3, production_value=18,
+                 surplus=(1, 5, 2, 1, 0, 3))
+    city["buildability"]["options"].extend([
+        {"type": "improvement", "id": 18, "name": "Marketplace"},
+        {"type": "unit", "id": 9, "name": "Musketeers"},
+    ])
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops")],
+        [_production(10, "Musketeers", 6, 9),
+         {"action_type": "end_turn", "is_valid": True}],
+        cities=[city], turn=1)
+    planner = GroundedImpactPlanner(ruleset_ir=_ruleset_ir((
+        ("Alpine Troops", "unit", 60), ("Musketeers", "unit", 30),
+        ("Marketplace", "improvement", 40)), founders=(), workers=()))
+    actions = planner._actions(snapshot)
+    original = planner._production_projection
+    calls = []
+
+    def counted(*args, **kwargs):
+        calls.append(1)
+        return original(*args, **kwargs)
+
+    planner._production_projection = counted
+    first = planner._unit_score_batch_members(snapshot, actions, frozenset())
+    first_call_count = len(calls)
+    second = planner._unit_score_batch_members(snapshot, actions, frozenset())
+
+    assert first == second
+    assert first_call_count > 0
+    assert len(calls) == first_call_count
+
+
 def test_horizon_policy_retires_redundant_founder_production():
     defender = [_production(10, "Alpine Troops", 6, 11),
                 {"action_type": "end_turn", "is_valid": True}]

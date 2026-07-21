@@ -255,6 +255,9 @@ class GroundedImpactPlanner(object):
         self._founder_actor_failed_edges = set()
         self._failed_exploration_target_sources = {}
         self._failed_exploration_prunes = set()
+        self._unit_score_batch_intent = None
+        self._unit_score_batch_cache_key = None
+        self._unit_score_batch_cache = {}
         self.founder_route_successes = 0
         self.founder_route_failures = 0
         self.founder_cardinal_corridor_attempts = 0
@@ -550,6 +553,19 @@ class GroundedImpactPlanner(object):
         target changes can.
         """
         self.commit(candidate)
+        if candidate.category == "production_military_score":
+            intent = self._unit_score_batch_intent
+            if (not isinstance(intent, dict)
+                    or intent.get("awaiting") != candidate.action_key
+                    or not effect_observed
+                    or (after_snapshot is not None
+                        and int(after_snapshot.turn) != int(intent["turn"]))):
+                self._unit_score_batch_intent = None
+            else:
+                intent["remaining"].discard(candidate.action_key)
+                intent["awaiting"] = None
+                if not intent["remaining"]:
+                    self._unit_score_batch_intent = None
         if candidate.category == "population_recovery":
             self.population_recovery_attempts += 1
             if effect_observed:
@@ -1087,7 +1103,108 @@ class GroundedImpactPlanner(object):
                 count += 1
         return count
 
-    def _production_candidate(self, snapshot, action, founder_types):
+    def _unit_score_batch_members(self, snapshot, actions, founder_types):
+        """Select a lossless city batch that guarantees incremental unit score.
+
+        Freeciv's units-built counter is civilization-wide. A city-local threshold
+        misses batches where several productive cities jointly add ten builds. The
+        batch compares optimized future completions with the exact current production
+        trajectory and commits its members one confirmed production change at a time.
+        """
+        intent = self._unit_score_batch_intent
+        legal_keys = frozenset(
+            canonical_json_bytes(action).decode("utf-8") for action in actions)
+        if isinstance(intent, dict):
+            if int(intent.get("turn", -1)) != int(snapshot.turn):
+                self._unit_score_batch_intent = None
+            elif intent.get("awaiting") is not None:
+                return {}
+            else:
+                intent["remaining"].intersection_update(legal_keys)
+                if not intent["remaining"]:
+                    self._unit_score_batch_intent = None
+                else:
+                    return {
+                        key: dict(intent["projection"])
+                        for key in intent["remaining"]}
+
+        cache_key = (
+            snapshot.snapshot_id, tuple(sorted(legal_keys)),
+            tuple(sorted(founder_types)))
+        if cache_key == self._unit_score_batch_cache_key:
+            return {key: dict(value)
+                    for key, value in self._unit_score_batch_cache.items()}
+
+        remaining_turns = self.horizon_turn - snapshot.turn
+        current_by_city = {}
+        current_score_bearing_nonunit = set()
+        best_by_city = {}
+        best_action_by_city = {}
+        for city in snapshot.cities:
+            current_name = self._current_production_name(city)
+            current_projection = self._production_projection(
+                city, current_name, remaining_turns, snapshot=snapshot,
+                founder_types=founder_types) if current_name else {}
+            completions = int(current_projection.get(
+                "projected_unit_completions", 0))
+            if ("projected_unit_completions" not in current_projection
+                    and float(current_projection.get("score_value", 0.0)) > 0):
+                current_score_bearing_nonunit.add(city.city_id)
+            current_by_city[city.city_id] = completions
+            best_by_city[city.city_id] = completions
+
+        for action in actions:
+            if action.get("action_type") != "city_production":
+                continue
+            city = snapshot.city(action.get("city_id"))
+            if (city is None or not city.buildability_available
+                    or city.shield_stock != 0
+                    or city.city_id in current_score_bearing_nonunit
+                    or self._current_production_matches(city, action)):
+                continue
+            name = _target_name(action)
+            if not any(name.lower() == target.lower()
+                       for target in DEFENDER_PRIORITY):
+                continue
+            projection = self._production_projection(
+                city, name, remaining_turns, snapshot=snapshot,
+                founder_types=founder_types)
+            if not self._projection_can_affect_horizon(projection):
+                continue
+            completions = int(projection.get("projected_unit_completions", 0))
+            action_key = canonical_json_bytes(action).decode("utf-8")
+            previous = best_action_by_city.get(city.city_id)
+            if (completions > best_by_city[city.city_id]
+                    or (completions == best_by_city[city.city_id]
+                        and completions > current_by_city[city.city_id]
+                        and (previous is None or action_key < previous[0]))):
+                best_by_city[city.city_id] = completions
+                best_action_by_city[city.city_id] = (action_key, projection)
+
+        current_total = sum(current_by_city.values())
+        optimized_total = sum(best_by_city.values())
+        incremental = optimized_total - current_total
+        guaranteed = incremental // self.unit_build_score_divisor
+        if guaranteed <= 0:
+            self._unit_score_batch_cache_key = cache_key
+            self._unit_score_batch_cache = {}
+            return {}
+        action_keys = tuple(sorted(
+            row[0] for row in best_action_by_city.values()))
+        batch_projection = {
+            "batch_action_keys": list(action_keys),
+            "batch_current_projected_unit_completions": current_total,
+            "batch_optimized_projected_unit_completions": optimized_total,
+            "batch_incremental_unit_completions": incremental,
+            "batch_guaranteed_unit_score_points": guaranteed,
+            "batch_selected_city_count": len(action_keys),
+        }
+        result = {key: dict(batch_projection) for key in action_keys}
+        self._unit_score_batch_cache_key = cache_key
+        self._unit_score_batch_cache = result
+        return {key: dict(value) for key, value in result.items()}
+
+    def _production_candidate(self, snapshot, action, founder_types, actions):
         city = snapshot.city(action.get("city_id"))
         if city is None or not city.buildability_available:
             return None
@@ -1134,6 +1251,9 @@ class GroundedImpactPlanner(object):
                               if current_name else None)
         current_is_redundant_founder = (
             current_normalized in founder_types and not needs_founder)
+        unit_score_batch = self._unit_score_batch_members(
+            snapshot, actions, founder_types).get(
+                canonical_json_bytes(action).decode("utf-8"))
         if needs_founder and current_normalized in founder_types:
             return None
         if (needs_founder and normalized in founder_types
@@ -1201,23 +1321,25 @@ class GroundedImpactPlanner(object):
         for index, target in enumerate(DEFENDER_PRIORITY):
             if name.lower() != target.lower():
                 continue
-            guaranteed = int(projection.get("guaranteed_unit_score_points", 0))
-            if not current_is_redundant_founder and guaranteed <= 0:
+            if not current_is_redundant_founder and unit_score_batch is None:
                 continue
             if (not current_is_redundant_founder
+                    and unit_score_batch is None
                     and current_projection is not None
                     and self._projection_can_affect_horizon(current_projection)
                     and current_projection["score_value"] >= projection["score_value"]):
                 continue
             category = ("production_repurpose" if current_is_redundant_founder
                         else "production_military_score")
+            if unit_score_batch is not None:
+                projection.update(unit_score_batch)
             base_utility = 700.0 if current_is_redundant_founder else 740.0
             reason = (
                 "retire redundant founder production into a horizon-completing "
                 "defender without further population cost"
                 if current_is_redundant_founder else
-                "select repeated unit production that guarantees fixed-horizon "
-                "units-built score")
+                "select a confirmed city batch whose incremental repeated unit "
+                "production guarantees fixed-horizon units-built score")
             return ImpactCandidate(
                 action, category,
                 base_utility + projection["score_value"] * 10.0
@@ -1421,6 +1543,9 @@ class GroundedImpactPlanner(object):
         excluded_scopes = set(excluded_scopes)
         result = []
         actions = self._actions(snapshot)
+        available_actions = tuple(
+            action for action in actions
+            if canonical_json_bytes(action).decode("utf-8") not in excluded)
         founder_types = self._founder_types(snapshot, actions)
         for action in actions:
             key = canonical_json_bytes(action).decode("utf-8")
@@ -1446,7 +1571,7 @@ class GroundedImpactPlanner(object):
                     snapshot, action, founder_types)
             elif action_type == "city_production":
                 candidate = self._production_candidate(
-                    snapshot, action, founder_types)
+                    snapshot, action, founder_types, available_actions)
             elif action_type == "unit_move":
                 candidate = self._move_candidate(snapshot, action, founder_types)
             elif action_type == "unit_fortify":
@@ -1469,6 +1594,22 @@ class GroundedImpactPlanner(object):
         if not rows:
             return None
         candidate = rows[0]
+        if (candidate.category == "production_military_score"
+                and self._unit_score_batch_intent is None):
+            projection = candidate.projection or {}
+            action_keys = projection.get("batch_action_keys", ())
+            if action_keys:
+                self._unit_score_batch_intent = {
+                    "awaiting": candidate.action_key,
+                    "projection": {
+                        key: value for key, value in projection.items()
+                        if key.startswith("batch_")},
+                    "remaining": set(action_keys),
+                    "turn": int(snapshot.turn),
+                }
+        elif (candidate.category == "production_military_score"
+              and isinstance(self._unit_score_batch_intent, dict)):
+            self._unit_score_batch_intent["awaiting"] = candidate.action_key
         proof_hash = structural_hash({
             "action": candidate.action, "category": candidate.category,
             "projection": candidate.projection,

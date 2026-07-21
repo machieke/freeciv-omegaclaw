@@ -91,8 +91,12 @@ Static-priority paired baselines keep their frozen movement ranking.
 The pinned server scores cumulative unit production in groups of
 `unit_build_score_divisor` (10 for this engine). Horizon-score projections therefore
 model the first completion plus conservative repeated completions at the current shield
-surplus. A non-deficit military switch is eligible only when those completions guarantee
-a whole fixed-horizon score point, except that a founder build made redundant by completed
+surplus. Because the engine counter is civilization-wide, the planner compares the
+optimized batch across all losslessly switchable cities with their current production
+trajectory. It commits one member at a time, waits for exact authoritative confirmation,
+and proceeds only when the batch guarantees at least ten additional completions. A failed,
+deferred, or next-turn member cancels the remaining batch. Score-bearing non-unit builds
+are never displaced by this calculation. A founder build made redundant by completed
 expansion may be retired earlier to avoid further population cost. Zero shield surplus
 cannot project a completion. Static-priority baselines retain their frozen one-target
 production behavior.
@@ -105,8 +109,22 @@ all safety gates green. No arm selected `production_repurpose` or
 (`-2`, `0`, `+1`) do not estimate this new mechanism. Seed `104759` did independently
 reconfirm three population joins, six recovered population, and a one-point treatment
 citizen/score gain. Repeat-unit telemetry excludes founders and other population-bound
-units because their production cadence is not stationary. A clean longer-horizon probe
-must exercise one of the new categories before a statistical cohort is justified.
+units because their production cadence is not stationary.
+
+The subsequent clean-source 60-turn pair at
+`artifacts/freeciv/impact-repeated-unit-horizon60-activation-20260720` also selected no
+repeat-unit category and recorded zero projected unit completions. It passed source freeze,
+fidelity, all safety gates, and the full release audit; treatment scored `112` versus
+baseline `110` through four exact population joins and eight recovered population instead.
+This falsified the single-city activation hypothesis and motivated civilization-wide batch
+accounting. The `+2` remains one pilot pair and is not a revised claim.
+
+A read-only replay then reconstructed exact production choices for 1,718 authoritative
+snapshots across all 40 prior horizon-60 treatment games. The civilization-wide rule found
+zero eligible batch or repurpose decisions. Batch membership is memoized once per snapshot
+and legal-action set to avoid quadratic work across large buildable lists. This establishes
+the rule as a dormant correctness guard for the observed distribution, not a current score
+improvement target; no live statistical cohort is warranted for it.
 
 One successful unit-scoped strategic action and one successful production change per
 city are allowed per turn. After a no-effect action, up to
@@ -177,8 +195,8 @@ the existing score and latency metrics:
   success rate, cardinal-corridor attempts/successes, and observed-evidence route ETA;
 - population-ready, settlement ETA/runway, founder-deficit, and compiler-source
   production projection metrics;
-- repeated unit completions, cumulative unit-score progress, and guaranteed whole
-  units-built score points for treatment production choices;
+- repeated unit completions, cumulative unit-score progress, civilization-wide batch
+  increments, and guaranteed whole units-built score points for treatment production;
 - `model_safe_fallback_rate` and `model_corrections_per_turn`.
 
 The seed-104729 engine-backed deferred-confirmation probe recovered 28 of 40
