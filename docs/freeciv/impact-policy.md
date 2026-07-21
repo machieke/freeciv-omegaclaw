@@ -453,6 +453,22 @@ giving a one-pair `+1` delta. Initial state, zero rejection/fallback, clean comm
 and the full release audit passed. This boundary validation is still reused-seed development
 evidence, not a score estimate.
 
+The clean two-pair targeted run at
+`artifacts/freeciv/impact-population-route-targeted-2-20260721` used historical
+stranded-founder seeds `1425299` and `1491731` after production-name transport was
+hardened. Both current attempts matched initial state and completed with zero rejection or
+fallback; their paired score deltas were `+3` and `0` (development-only mean `+1.5`). No
+population-recovery route activated because repeated-founder retirement prevented the old
+surplus units. Seed `1491731` instead exposed a route-efficiency defect: founder `126`
+alternated between `(20,9)` and `(19,10)` on every turn from 42 through 60, leaving the
+required third city unbuilt.
+
+Founder routing now retains a bounded actor-local history of confirmed positions. An exact
+reverse edge is suppressed when another server-advertised, actor-reachable move exists, so a
+confirmed two-tile corridor cannot dominate a new branch forever. If the reverse edge is the
+only grounded move, it remains eligible; this allows a founder to leave an actual dead end.
+`planner_founder_cycle_moves_pruned` reports the distinct suppressed legal actions.
+
 ## Combat attribution, occupancy, and hut-entry hardening
 
 Offensive actions retain an exact pre-action fingerprint of the packet-visible enemy

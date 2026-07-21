@@ -1035,6 +1035,7 @@ async def _play(run_dir, manifest, context):
     capability_pruned_worker_moves = set()
     nonprogress_moves = set()
     unreachable_founder_moves = set()
+    founder_cycle_moves = set()
     replan_latencies = []
     model_latencies = []
     full_loop_latencies = []
@@ -1120,6 +1121,8 @@ async def _play(run_dir, manifest, context):
             nonprogress_moves.update(impact_planner.nonprogress_move_keys(snapshot))
             unreachable_founder_moves.update(
                 impact_planner.founder_unreachable_move_keys(snapshot))
+            founder_cycle_moves.update(
+                impact_planner.founder_cycle_move_keys(snapshot))
         initial_city_count = len(snapshot.cities)
         initial_citizens = sum(max(0, int(city.size or 0)) for city in snapshot.cities)
         initial_tech_count = len(snapshot.research.known_techs)
@@ -1221,6 +1224,8 @@ async def _play(run_dir, manifest, context):
                         impact_planner.nonprogress_move_keys(next_snapshot))
                     unreachable_founder_moves.update(
                         impact_planner.founder_unreachable_move_keys(next_snapshot))
+                    founder_cycle_moves.update(
+                        impact_planner.founder_cycle_move_keys(next_snapshot))
                 event = writer.emit(
                     "state_snapshot", next_snapshot.turn, next_snapshot.event_payload(),
                     caused_by=[cause])
@@ -1249,6 +1254,8 @@ async def _play(run_dir, manifest, context):
                         impact_planner.nonprogress_move_keys(snapshot))
                     unreachable_founder_moves.update(
                         impact_planner.founder_unreachable_move_keys(snapshot))
+                    founder_cycle_moves.update(
+                        impact_planner.founder_cycle_move_keys(snapshot))
                 if prior_scout is not None:
                     actor_id, source_x, source_y, target_x, target_y = prior_scout
                     row = next((unit for unit in raw.get("units", {}).values()
@@ -1670,6 +1677,7 @@ async def _play(run_dir, manifest, context):
          if impact_planner is not None else 0),
         ("planner_founder_unreachable_moves_pruned",
          len(unreachable_founder_moves)),
+        ("planner_founder_cycle_moves_pruned", len(founder_cycle_moves)),
         ("planner_founder_route_successes",
          impact_planner.founder_route_successes if impact_planner is not None else 0),
         ("planner_founder_route_failures",
@@ -1838,6 +1846,7 @@ async def _play(run_dir, manifest, context):
                 if impact_planner is not None else 0),
             "planner_founder_unreachable_moves_pruned": (
                 len(unreachable_founder_moves)),
+            "planner_founder_cycle_moves_pruned": len(founder_cycle_moves),
             "planner_founder_route_successes": (
                 impact_planner.founder_route_successes
                 if impact_planner is not None else 0),
@@ -1912,6 +1921,7 @@ async def _play(run_dir, manifest, context):
             impact_planner.repeated_failed_destination_moves_pruned
             if impact_planner is not None else 0),
         "planner_founder_unreachable_moves_pruned": len(unreachable_founder_moves),
+        "planner_founder_cycle_moves_pruned": len(founder_cycle_moves),
         "planner_founder_route_successes": (
             impact_planner.founder_route_successes
             if impact_planner is not None else 0),

@@ -252,6 +252,7 @@ class GroundedImpactPlanner(object):
         self._ruleset_add_to_city_types = set()
         self._server_founder_types = set()
         self._founder_cardinal_intents = {}
+        self._founder_route_positions = {}
         self._founder_traversable_edges = set()
         self._founder_failed_edges = {}
         self._founder_actor_failed_edges = set()
@@ -407,6 +408,22 @@ class GroundedImpactPlanner(object):
             if action.get("action_type") == "unit_move"
             and self._founder_move_evidence(
                 snapshot, action, founder_types).get("actor_failed")))
+
+    def founder_cycle_move_keys(self, snapshot):
+        """Return immediate founder backtracks suppressed by an alternative.
+
+        Backtracking remains eligible at a real dead end. Once the actor has
+        returned to the branch point, however, the just-traversed edge must not
+        dominate another advertised route and recreate a two-tile loop.
+        """
+        actions = self._actions(snapshot)
+        founder_types = self._founder_types(snapshot, actions)
+        return tuple(sorted(
+            canonical_json_bytes(action).decode("utf-8")
+            for action in actions
+            if action.get("action_type") == "unit_move"
+            and self._founder_backtrack_has_alternative(
+                snapshot, action, founder_types, actions)))
 
     def commit(self, candidate):
         """Record a successfully transported persistent policy decision."""
@@ -593,6 +610,8 @@ class GroundedImpactPlanner(object):
             # the site succeeds or the unit must search from the same tile.
             self._founder_cardinal_intents.pop(
                 candidate.action.get("actor_id"), None)
+            self._founder_route_positions.pop(
+                candidate.action.get("actor_id"), None)
         self._record_founder_route_outcome(
             candidate, snapshot, after_snapshot)
         self._record_exploration_destination_outcome(
@@ -743,6 +762,11 @@ class GroundedImpactPlanner(object):
         heading = self._move_heading(
             snapshot, (edge[1], edge[2]), (edge[3], edge[4]))
         intent = self._founder_cardinal_intent(snapshot, unit)
+        history = self._founder_route_positions.get(unit.unit_id, ())
+        immediate_backtrack = bool(
+            len(history) >= 2
+            and history[-1] == (unit.x, unit.y)
+            and history[-2] == (edge[3], edge[4]))
         return {
             "actor_failed": (
                 self._founder_actor_edge(snapshot, unit, edge)
@@ -751,8 +775,31 @@ class GroundedImpactPlanner(object):
             "failed_attempts": self._founder_failed_edges.get(edge, 0),
             "cardinal_corridor_match": bool(
                 intent is not None and intent["heading"] == heading),
+            "immediate_backtrack": immediate_backtrack,
             "traversable_edge": edge in self._founder_traversable_edges,
         }
+
+    def _founder_backtrack_has_alternative(
+            self, snapshot, action, founder_types, actions=None):
+        """Suppress a reverse edge only when another grounded move exists."""
+        if len(snapshot.cities) >= self.expansion_city_target:
+            return False
+        evidence = self._founder_move_evidence(
+            snapshot, action, founder_types)
+        if not evidence.get("immediate_backtrack"):
+            return False
+        actor_id = action.get("actor_id")
+        action_key = canonical_json_bytes(action).decode("utf-8")
+        for alternative in self._actions(snapshot) if actions is None else actions:
+            if (alternative.get("action_type") != "unit_move"
+                    or alternative.get("actor_id") != actor_id
+                    or canonical_json_bytes(alternative).decode("utf-8") == action_key):
+                continue
+            other_evidence = self._founder_move_evidence(
+                snapshot, alternative, founder_types)
+            if other_evidence and not other_evidence.get("actor_failed"):
+                return True
+        return False
 
     def _record_founder_route_outcome(self, candidate, before, after):
         """Record only an exact post-action position as traversability proof."""
@@ -780,6 +827,13 @@ class GroundedImpactPlanner(object):
             self.founder_cardinal_corridor_successes += int(corridor_attempt)
             self._founder_traversable_edges.add(edge)
             self._founder_actor_failed_edges.discard(actor_edge)
+            source = (unit.x, unit.y)
+            history = list(self._founder_route_positions.get(
+                unit.unit_id, ()))
+            if not history or history[-1] != source:
+                history = [source]
+            history.append(target)
+            self._founder_route_positions[unit.unit_id] = tuple(history[-4:])
             heading = self._move_heading(
                 before, (unit.x, unit.y), target)
             if (heading[0] == 0) != (heading[1] == 0):
@@ -1588,6 +1642,9 @@ class GroundedImpactPlanner(object):
                      "recovered_population": population,
                      "target_city_distance": target_distance,
                      "target_city_ids": nearest_city_ids})
+            if self._founder_backtrack_has_alternative(
+                    snapshot, action, founder_types):
+                return None
             projection = None
             route_utility = 0.0
             utility = 800.0 + city_distance * 20.0 + novelty * 15.0
@@ -1622,6 +1679,8 @@ class GroundedImpactPlanner(object):
                     "failed_edge_attempts": int(
                         evidence.get("failed_attempts", 0)),
                     "founder_route_eta_turns": self._founder_route_eta()[0],
+                    "immediate_backtrack": bool(
+                        evidence.get("immediate_backtrack", False)),
                     "traversable_edge": bool(
                         route_progress and evidence.get("traversable_edge", False)),
                 }

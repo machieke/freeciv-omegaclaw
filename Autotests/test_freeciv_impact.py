@@ -335,7 +335,6 @@ def test_founder_route_continues_only_a_pre_spacing_cardinal_corridor():
     decision = planner.plan(continuation)
     assert decision.candidate.action["target"] == {"x": 4, "y": 5}
     assert not decision.candidate.projection["cardinal_corridor_match"]
-
     diagonal_planner = GroundedImpactPlanner(ruleset_ir=ir)
     diagonal_before = _snapshot(
         [_unit(1, "Settlers", 3, 3)], [
@@ -349,6 +348,58 @@ def test_founder_route_continues_only_a_pre_spacing_cardinal_corridor():
     decision = diagonal_planner.plan(continuation)
     assert decision.candidate.action["target"] == {"x": 4, "y": 5}
     assert not decision.candidate.projection["cardinal_corridor_match"]
+
+
+def test_founder_route_breaks_two_tile_cycle_but_allows_only_escape():
+    ir = _ruleset_ir((("Settlers", "unit", 30),))
+    planner = GroundedImpactPlanner(ruleset_ir=ir)
+    branch = (1, 0)
+    dead_end = (2, 0)
+    alternative = (1, 1)
+
+    def move(source, target):
+        action = {"action_type": "unit_move", "actor_id": 1,
+                  "target": {"x": target[0], "y": target[1]}}
+        before = _snapshot(
+            [_unit(1, "Settlers", source[0], source[1])],
+            [dict(action, is_valid=True),
+             {"action_type": "end_turn", "is_valid": True}])
+        after = _snapshot(
+            [_unit(1, "Settlers", target[0], target[1])],
+            [{"action_type": "end_turn", "is_valid": True}], source_seq=2)
+        planner.record_outcome(
+            ImpactCandidate(action, "expansion_move", 1.0, "route history"),
+            before, effect_observed=True, after_snapshot=after)
+
+    move(branch, dead_end)
+    move(dead_end, branch)
+    backtrack = {"action_type": "unit_move", "actor_id": 1,
+                 "target": {"x": dead_end[0], "y": dead_end[1]},
+                 "is_valid": True}
+    detour = {"action_type": "unit_move", "actor_id": 1,
+              "target": {"x": alternative[0], "y": alternative[1]},
+              "is_valid": True}
+    cycle = _snapshot(
+        [_unit(1, "Settlers", branch[0], branch[1])],
+        [backtrack, detour, {"action_type": "end_turn", "is_valid": True}],
+        source_seq=3)
+
+    assert planner.founder_cycle_move_keys(cycle) == (
+        json.dumps({key: value for key, value in backtrack.items()
+                    if key != "is_valid"}, sort_keys=True, separators=(",", ":")),)
+    decision = planner.plan(cycle)
+    assert decision.candidate.action["target"] == {
+        "x": alternative[0], "y": alternative[1]}
+    assert not decision.candidate.projection["immediate_backtrack"]
+
+    trapped = _snapshot(
+        [_unit(1, "Settlers", branch[0], branch[1])],
+        [backtrack, {"action_type": "end_turn", "is_valid": True}],
+        source_seq=4)
+    assert planner.founder_cycle_move_keys(trapped) == ()
+    escape = planner.plan(trapped)
+    assert escape.candidate.action["target"] == backtrack["target"]
+    assert escape.candidate.projection["immediate_backtrack"]
 
 
 def test_deferred_confirmation_recovers_late_founder_route_effect():

@@ -680,3 +680,22 @@ no join cycles, and still finished with 12 citizens and score 116—the same abs
 outcome as the prior direct-founder run. Its clean baseline scored 115 for a `+1` paired
 delta. Initial-state fidelity, zero rejection/fallback, clean commit `805a15b`, and the full
 release audit passed. This confirms the boundary without changing the immutable claim.
+
+## Founder route cycle escape
+
+The clean two-pair targeted development run at
+`artifacts/freeciv/impact-population-route-targeted-2-20260721` completed the current arms
+with paired initial-state fidelity, zero active rejection/fallback, and score deltas `+3`
+and `0`. The mean `+1.5` is mechanism evidence only. The first attempt's rejection of the
+exact advertised name `Aqueduct, River` is retained as a historical failure; aligned bounded
+punctuation validation and the final exact runtime name/kind/value check eliminated it in the
+current attempt.
+
+Neither seed activated surplus-population recovery because repeated-founder retirement had
+already removed that cause. Seed `1491731` revealed the next bottleneck: the required founder
+moved successfully but alternated between two tiles for turns 42--60 and never founded the
+third city. The planner now records only confirmed actor-local founder positions and suppresses
+an immediate reverse edge when another advertised, non-failed move exists. It deliberately
+allows the reverse edge when it is the only legal escape. Acceptance requires a synthetic
+branch/dead-end/return trace to choose the alternate branch, an only-exit trace to retain the
+backtrack, read-only cycle-prune telemetry, and an engine-backed same-seed replay.
