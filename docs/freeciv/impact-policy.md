@@ -182,8 +182,8 @@ the existing score and latency metrics:
 - `action_type_diversity`, `positions_explored`, and `tactical_actions`;
 - `cities_gained`, exact `cities_founded`, `technologies_acquired`,
   `production_changes`, and `score_gain`;
-- `founder_production_changes`, `settlement_attempts`,
-  `settlement_reentry_retries`, and `settlement_completions`;
+- `founder_production_changes`, `settlement_attempts`, and
+  `settlement_completions`;
 - `planner_founder_capable_unit_types`,
   `planner_capability_pruned_worker_moves`, and
   `planner_nonprogress_moves_pruned`, plus repeated failed exploration
@@ -536,22 +536,6 @@ founder moves, seven cycle prunes, and no route failures. Both arms matched init
 had zero rejection/fallback, used clean commit `130ee33`, and passed the complete 2,976-event
 release audit. This confirms the generalized mechanism on a fresh defect-discovery seed but
 is post-pilot reuse, so it does not revise the prefix estimate or formal claim.
-
-The other incomplete-expansion trace, seed `1874789`, remained unresolved by generalized
-cycle escape. Its clean replay at
-`artifacts/freeciv/impact-founder-bounded-cycle-1874789-20260721` completed safely, but
-treatment still had nine accepted settlement attempts, only two completions, and two cities
-at the horizon. In the original prefix it attempted `(7,21)` on turn 50, left the site, and
-returned on turn 57; the unchanged-grounding no-effect ledger then suppressed another
-founding order even though the confirmed excursion distinguished this from a stale retry.
-The prior baseline had successfully founded at the same site on turn 53.
-
-Settlement recovery now permits exactly one retry after the same actor is confirmed to leave
-a failed site and later re-enter it under the same city layout. Departure alone is
-insufficient, an unchanged site remains suppressed, and another failed retry requires another
-confirmed departure/re-entry cycle. `settlement_reentry_retries` exposes activations. A
-synthetic trace must prove all three boundaries, and the seed-`1874789` replay must activate
-the rule without rejection/fallback before this change is evaluated on untouched seeds.
 
 ## Combat attribution, occupancy, and hut-entry hardening
 

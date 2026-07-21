@@ -256,9 +256,6 @@ class GroundedImpactPlanner(object):
         self._founder_traversable_edges = set()
         self._founder_failed_edges = {}
         self._founder_actor_failed_edges = set()
-        self._failed_founder_settlement_sites = set()
-        self._departed_founder_settlement_sites = set()
-        self._reentered_founder_settlement_sites = set()
         self._failed_exploration_target_sources = {}
         self._failed_exploration_prunes = set()
         self._unit_score_batch_intent = None
@@ -268,7 +265,6 @@ class GroundedImpactPlanner(object):
         self.founder_route_failures = 0
         self.founder_cardinal_corridor_attempts = 0
         self.founder_cardinal_corridor_successes = 0
-        self.settlement_reentry_retries = 0
         self.population_recovery_attempts = 0
         self.population_recovery_completions = 0
         self.population_recovered = 0
@@ -579,13 +575,6 @@ class GroundedImpactPlanner(object):
         cannot make an unreachable order eligible again; actor, city, or visible
         target changes can.
         """
-        settlement_site = (
-            self._founder_settlement_site_key(snapshot, candidate.action)
-            if candidate.category == "city_founding" else None)
-        settlement_reentry_retry = bool(
-            candidate.category == "city_founding"
-            and self._founder_settlement_reentry_ready(
-                snapshot, candidate.action))
         self.commit(candidate)
         if candidate.category == "production_military_score":
             intent = self._unit_score_batch_intent
@@ -623,8 +612,6 @@ class GroundedImpactPlanner(object):
                 candidate.action.get("actor_id"), None)
             self._founder_route_positions.pop(
                 candidate.action.get("actor_id"), None)
-            self._record_founder_settlement_outcome(
-                settlement_site, effect_observed, settlement_reentry_retry)
         self._record_founder_route_outcome(
             candidate, snapshot, after_snapshot)
         self._record_exploration_destination_outcome(
@@ -636,10 +623,6 @@ class GroundedImpactPlanner(object):
             self._no_effect_attempts[key] = self._no_effect_attempts.get(key, 0) + 1
 
     def _no_effect_suppressed(self, snapshot, candidate):
-        if (candidate.category == "city_founding"
-                and self._founder_settlement_reentry_ready(
-                    snapshot, candidate.action)):
-            return False
         key = (candidate.action_key, self._grounding_signature(snapshot, candidate))
         if self._no_effect_attempts.get(key, 0) < self.no_effect_retry_limit:
             return False
@@ -723,59 +706,6 @@ class GroundedImpactPlanner(object):
     def _city_layout(snapshot):
         return tuple(sorted(
             (city.city_id, city.x, city.y) for city in snapshot.cities))
-
-    def _founder_settlement_site_key(self, snapshot, action):
-        unit = snapshot.unit(action.get("actor_id"))
-        if unit is None or unit.x is None or unit.y is None:
-            return None
-        return (
-            int(unit.unit_id), int(snapshot.map_width), int(snapshot.map_height),
-            int(unit.x), int(unit.y), self._city_layout(snapshot),
-        )
-
-    def _founder_settlement_reentry_ready(self, snapshot, action):
-        site = self._founder_settlement_site_key(snapshot, action)
-        return bool(
-            site is not None
-            and site in self._reentered_founder_settlement_sites)
-
-    def _record_founder_settlement_route_step(self, snapshot, unit, target):
-        """Ground a failed-site departure and later return for one retry."""
-        source = (int(unit.x), int(unit.y))
-        target = (int(target[0]), int(target[1]))
-        layout = self._city_layout(snapshot)
-        for site in tuple(self._failed_founder_settlement_sites):
-            actor_id, width, height, x, y, site_layout = site
-            if (actor_id != int(unit.unit_id)
-                    or width != int(snapshot.map_width)
-                    or height != int(snapshot.map_height)
-                    or site_layout != layout):
-                continue
-            position = (x, y)
-            if source == position and target != position:
-                self._departed_founder_settlement_sites.add(site)
-            if (target == position
-                    and site in self._departed_founder_settlement_sites):
-                self._reentered_founder_settlement_sites.add(site)
-
-    def _record_founder_settlement_outcome(
-            self, site, effect_observed, reentry_retry):
-        if site is None:
-            return
-        actor_id = site[0]
-        if reentry_retry:
-            self.settlement_reentry_retries += 1
-        if effect_observed:
-            for collection in (
-                    self._failed_founder_settlement_sites,
-                    self._departed_founder_settlement_sites,
-                    self._reentered_founder_settlement_sites):
-                collection.difference_update(
-                    row for row in tuple(collection) if row[0] == actor_id)
-            return
-        self._failed_founder_settlement_sites.add(site)
-        self._departed_founder_settlement_sites.discard(site)
-        self._reentered_founder_settlement_sites.discard(site)
 
     @staticmethod
     def _axis_heading(source, target, size):
@@ -910,7 +840,6 @@ class GroundedImpactPlanner(object):
             self._founder_traversable_edges.add(edge)
             self._founder_actor_failed_edges.discard(actor_edge)
             source = (unit.x, unit.y)
-            self._record_founder_settlement_route_step(before, unit, target)
             history = list(self._founder_route_positions.get(
                 unit.unit_id, ()))
             if not history or history[-1] != source:
@@ -1898,10 +1827,7 @@ class GroundedImpactPlanner(object):
                         >= self.settle_min_distance):
                     candidate = ImpactCandidate(
                         action, "city_founding", 1000.0,
-                        "found a city at or beyond the configured spacing",
-                        {"settlement_site_reentry_retry":
-                         self._founder_settlement_reentry_ready(
-                             snapshot, action)})
+                        "found a city at or beyond the configured spacing")
             elif action_type == "unit_join_city":
                 candidate = self._population_recovery_candidate(
                     snapshot, action, founder_types)

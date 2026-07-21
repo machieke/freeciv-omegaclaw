@@ -41,7 +41,6 @@ METRICS = (
     "action_type_diversity", "cities_gained", "cities_founded", "technologies_acquired",
     "positions_explored", "production_changes", "tactical_actions",
     "founder_production_changes", "settlement_attempts",
-    "settlement_reentry_retries",
     "production_repurpose_changes", "production_preexpansion_growth_changes",
     "production_military_score_changes",
     "settlement_completions", "planner_capability_pruned_worker_moves",
