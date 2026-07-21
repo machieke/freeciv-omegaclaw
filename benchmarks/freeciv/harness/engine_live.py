@@ -1668,6 +1668,9 @@ async def _play(run_dir, manifest, context):
         ("production_military_score_changes",
          decision_stats["production_military_score_changes"]),
         ("settlement_attempts", decision_stats["settlement_attempts"]),
+        ("settlement_reentry_retries",
+         impact_planner.settlement_reentry_retries
+         if impact_planner is not None else 0),
         ("settlement_completions", decision_stats["settlement_completions"]),
         ("planner_capability_pruned_worker_moves",
          len(capability_pruned_worker_moves)),
@@ -1836,6 +1839,9 @@ async def _play(run_dir, manifest, context):
             "production_military_score_changes": (
                 decision_stats["production_military_score_changes"]),
             "settlement_attempts": decision_stats["settlement_attempts"],
+            "settlement_reentry_retries": (
+                impact_planner.settlement_reentry_retries
+                if impact_planner is not None else 0),
             "cities_gained": city_gain,
             "settlement_completions": decision_stats["settlement_completions"],
             "planner_capability_pruned_worker_moves": (
@@ -1912,6 +1918,9 @@ async def _play(run_dir, manifest, context):
         "production_military_score_changes": (
             decision_stats["production_military_score_changes"]),
         "settlement_attempts": decision_stats["settlement_attempts"],
+        "settlement_reentry_retries": (
+            impact_planner.settlement_reentry_retries
+            if impact_planner is not None else 0),
         "cities_gained": city_gain,
         "settlement_completions": decision_stats["settlement_completions"],
         "planner_capability_pruned_worker_moves": (

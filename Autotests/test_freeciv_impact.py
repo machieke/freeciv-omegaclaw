@@ -453,6 +453,49 @@ def test_founder_route_breaks_four_tile_cycle_with_fresh_exit():
     assert only_exit.candidate.projection["route_cycle_length"] == 4
 
 
+def test_failed_settlement_retries_once_only_after_confirmed_reentry():
+    ir = _ruleset_ir((("Settlers", "unit", 30),))
+    planner = GroundedImpactPlanner(ruleset_ir=ir)
+    founding = {"action_type": "unit_build_city", "actor_id": 1,
+                "is_valid": True}
+    site = _snapshot(
+        [_unit(1, "Settlers", 3, 0)],
+        [founding, {"action_type": "end_turn", "is_valid": True}])
+
+    first = planner.plan(site)
+    assert first.candidate.category == "city_founding"
+    assert not first.candidate.projection["settlement_site_reentry_retry"]
+    planner.record_outcome(first.candidate, site, effect_observed=False)
+    assert planner.plan(site) is None
+
+    def record_move(source, target, source_seq):
+        action = {"action_type": "unit_move", "actor_id": 1,
+                  "target": {"x": target[0], "y": target[1]}}
+        before = _snapshot(
+            [_unit(1, "Settlers", source[0], source[1])],
+            [dict(action, is_valid=True),
+             {"action_type": "end_turn", "is_valid": True}],
+            source_seq=source_seq)
+        after = _snapshot(
+            [_unit(1, "Settlers", target[0], target[1])],
+            [{"action_type": "end_turn", "is_valid": True}],
+            source_seq=source_seq + 1)
+        planner.record_outcome(
+            ImpactCandidate(action, "expansion_move", 1.0, "site excursion"),
+            before, effect_observed=True, after_snapshot=after)
+
+    record_move((3, 0), (4, 0), 2)
+    assert planner.plan(site) is None
+    record_move((4, 0), (3, 0), 4)
+
+    retry = planner.plan(site)
+    assert retry.candidate.category == "city_founding"
+    assert retry.candidate.projection["settlement_site_reentry_retry"]
+    planner.record_outcome(retry.candidate, site, effect_observed=False)
+    assert planner.settlement_reentry_retries == 1
+    assert planner.plan(site) is None
+
+
 def test_deferred_confirmation_recovers_late_founder_route_effect():
     ir = _ruleset_ir((("Settlers", "unit", 30),))
     planner = GroundedImpactPlanner(ruleset_ir=ir)

@@ -171,6 +171,7 @@ def run_game(run_dir, manifest, context):
         ("production_preexpansion_growth_changes", 1 if treatment else 0),
         ("production_military_score_changes", 1 if treatment else 0),
         ("settlement_attempts", 2 if treatment else 1),
+        ("settlement_reentry_retries", 1 if treatment else 0),
         ("settlement_completions", 2 if treatment else 1),
         ("planner_capability_pruned_worker_moves", 4 if treatment else 0),
         ("planner_nonprogress_moves_pruned", 6 if treatment else 2),

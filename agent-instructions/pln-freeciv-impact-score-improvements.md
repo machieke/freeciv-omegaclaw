@@ -763,3 +763,18 @@ zero route failures. Both arms had matched initial state, zero rejection/fallbac
 commit `130ee33`, stable implementation identity, and a passing 2,976-event release audit.
 Because the seed was selected after inspecting the five-pair prefix, this is mechanism
 confirmation only and cannot be folded back into that pilot estimate.
+
+Fresh seed `1874789` exposed a separate settlement-recovery defect. Generalized cycle escape
+did not resolve it: the clean replay at
+`artifacts/freeciv/impact-founder-bounded-cycle-1874789-20260721` still recorded nine
+accepted treatment settlement attempts, two completions, and only two cities at turn 60.
+In the original prefix, treatment attempted `(7,21)` on turn 50, left, and returned on turn
+57; generic unchanged-grounding suppression prevented another attempt, although the prior
+baseline had successfully founded at the same site on turn 53.
+
+Permit one settlement retry only after the same actor has a confirmed move away from the
+failed site followed by a confirmed return under the same city layout. Do not retry from an
+unchanged snapshot or after departure alone; a second failed attempt requires another full
+excursion. Expose `settlement_reentry_retries`, cover each boundary synthetically, and require
+a clean seed-`1874789` engine activation with zero rejection/fallback before evaluating the
+policy on untouched seeds.

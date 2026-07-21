@@ -525,6 +525,7 @@ def write_impact_report(out, aggregate):
             "decision_no_effect_failover_recovery_rate",
             "positions_explored", "tactical_actions", "cities_gained", "cities_founded",
             "founder_production_changes", "settlement_attempts",
+            "settlement_reentry_retries",
             "production_repurpose_changes",
             "production_preexpansion_growth_changes",
             "production_military_score_changes",
