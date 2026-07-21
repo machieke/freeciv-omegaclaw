@@ -74,7 +74,20 @@ index 96d166c..3c2fb11 100644
      def _validate_city_production(self, action: Dict[str, Any], player_id: int, game_state: Optional[Dict[str, Any]]) -> ValidationResult:
          """Validate city production change"""
          required_fields = ['city_id', 'production_type']
-@@ -473,50 +509,17 @@ class LLMActionValidator:
+@@ -449,7 +485,10 @@ class LLMActionValidator:
+             return self._validation_error('E031', 'production_type cannot be empty')
+         if len(production_type) > 64:
+             return self._validation_error('E031', f'production_type too long: {len(production_type)} chars')
+-        # Check for valid characters (alphanumeric, spaces, hyphens, periods allowed)
++        # Permit the same bounded punctuation as the input sanitizer. Runtime
++        # rulesets advertise names such as ``Aqueduct, River`` and
++        # ``Women's Suffrage``; RulesetMapper performs the authoritative exact
++        # name-to-ID check before packet transport.
+         import re
+-        if not re.match(r'^[a-zA-Z0-9\s\-\.]+$', production_type):
++        if not re.match(r"^[a-zA-Z0-9_\s',\.\-]+$", production_type):
+             return self._validation_error('E031', f'Invalid characters in production_type: {production_type}')
+@@ -473,50 +512,17 @@ class LLMActionValidator:
          if 'tech_name' not in action:
              return self._validation_error('E040', 'Tech research requires tech_name field')
  
@@ -136,7 +149,7 @@ index 96d166c..3c2fb11 100644
  
          return ValidationResult(True)
  
-@@ -1109,4 +1112,3 @@ class LLMActionValidator:
+@@ -1109,4 +1115,3 @@ class LLMActionValidator:
                  return self._validation_error('E323', 'city_sell_improvement requires improvement_id or improvement_name')
  
          return ValidationResult(True)
@@ -1067,7 +1080,20 @@ diff --git a/freeciv-proxy/security.py b/freeciv-proxy/security.py
 index 2815c8c..72bbf66 100644
 --- a/freeciv-proxy/security.py
 +++ b/freeciv-proxy/security.py
-@@ -206,6 +206,17 @@ class InputSanitizer:
+@@ -32,7 +32,11 @@ class InputSanitizer:
+         'agent_id': r'^[a-zA-Z0-9_-]{1,50}$',  # Agent IDs alphanumeric with _ and -
+         'tech_name': r'^[a-zA-Z0-9_\s\'\.\-]{1,48}$',  # Technology names (allow apostrophe, period, hyphen)
+         'unit_type': r'^[a-zA-Z0-9_\s\'\.\-]{1,48}$',  # Unit types (allow apostrophe, period, hyphen)
+-        'production_type': r'^[a-zA-Z0-9_\s\'\.\-]{1,48}$',  # Production types (allow apostrophe, period, hyphen)
++        # Exact runtime ruleset names include punctuation such as
++        # ``Aqueduct, River`` and ``Women's Suffrage``. These characters are
++        # data, not commands; the mapper still cross-checks the name against
++        # the advertised numeric kind/value before transport.
++        'production_type': r'^[a-zA-Z0-9_\s\',\.\-]{1,48}$',
+         'city_name': r'^[a-zA-Z0-9_\s\'\.\-]{1,48}$',  # City names (allow apostrophe, period, hyphen, spaces)
+         'game_phase': r'^[a-zA-Z0-9_]{1,20}$',  # Game phases
+     }
+@@ -206,6 +210,17 @@ class InputSanitizer:
                  sanitized['production_type'] = cls.sanitize_string_field(
                      action['production_type'], 'production_type'
                  )
@@ -1876,7 +1902,7 @@ new file mode 100644
 index 0000000..8140dcf
 --- /dev/null
 +++ b/freeciv-proxy/tests/test_release_game_configuration.py
-@@ -0,0 +1,224 @@
+@@ -0,0 +1,234 @@
 +"""Release-harness game settings are validated and ordered before start."""
 +
 +import ast
@@ -2002,6 +2028,16 @@ index 0000000..8140dcf
 +        "production_value": 14,
 +    }
 +    assert InputSanitizer.sanitize_action_data(normalized) == normalized
++    for ruleset_name in ("aqueduct, river", "women's suffrage"):
++        exact = dict(normalized, production_type=ruleset_name)
++        assert InputSanitizer.sanitize_action_data(exact) == exact
++        assert LLMActionValidator().validate_action(
++            dict(exact, player_id=0), 0, {}).is_valid
++    invalid_name = dict(normalized, production_type="granary; /quit")
++    with pytest.raises(SecurityError):
++        InputSanitizer.sanitize_action_data(invalid_name)
++    assert not LLMActionValidator().validate_action(
++        dict(invalid_name, player_id=0), 0, {}).is_valid
 +    with pytest.raises(SecurityError):
 +        InputSanitizer.sanitize_action_data(dict(normalized, production_kind=7))
 +
