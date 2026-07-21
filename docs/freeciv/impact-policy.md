@@ -626,6 +626,18 @@ They remain reusable by another founder while the layout is unchanged, but canno
 fresh city-network separation after a city is founded. A clean same-seed replay is required
 before this post-hoc hardening is treated as causal mechanism evidence.
 
+The clean replay at `artifacts/freeciv/impact-founder-layout-1847487-20260721` confirmed the
+mechanism. The treatment founder took the fresh northward route `(7,4) -> (7,3) -> (6,2)`,
+founded city three on turn 27, and finished at score 112 versus the current baseline's 109.
+Both arms completed two settlements with zero route failures/rejections/fallbacks, paired
+fidelity, required clean source `2e597d0`, and a passing 2,996-event release audit. The
+current `+3` pair replaces a prior `-2` directional result on this selected seed, but does
+not revise a population estimate.
+
+Before further outcome inspection, V4 indices 15--19 are frozen as the next untouched
+current-policy checkpoint: `1887134, 1818337, 1881562, 1825420, 1844064`. This adaptive
+five-pair slice remains separate from all earlier V4 slices and from the immutable claim.
+
 ## Combat attribution, occupancy, and hut-entry hardening
 
 Offensive actions retain an exact pre-action fingerprint of the packet-visible enemy

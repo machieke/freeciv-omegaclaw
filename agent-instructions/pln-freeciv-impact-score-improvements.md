@@ -895,3 +895,19 @@ within an unchanged layout, same- and cross-founder evidence remains available. 
 cycle, sole-exit, legality, and execution-gate behavior are unchanged. Require a synthetic
 changed-layout regression, the full suite, and a clean seed-`1847487` replay showing a fresh
 outward route and a second settlement before considering another untouched slice.
+
+The clean confirmation at
+`artifacts/freeciv/impact-founder-layout-1847487-20260721` met that gate. Treatment founder
+116 left the capital northward via `(7,4) -> (7,3) -> (6,2)` and founded city three on turn
+27, instead of reusing the old southern corridor and making a no-effect attempt at `(6,8)`.
+Treatment completed two settlements, ended with nine citizens and score 112, versus the
+current baseline's two settlements, six citizens, and score 109. The current paired delta
+was `+3`; the preceding untouched pair was `-2`, a five-point directional correction despite
+baseline trajectory variation. Both arms had zero route failures/rejections/fallbacks,
+required clean-source stability at `2e597d0`, paired initial-state fidelity, and a passing
+2,996-event release audit. This selected-seed replay validates the route mechanism only.
+
+Freeze the next untouched current-policy checkpoint as V4 indices 15--19, literal seeds
+`1887134, 1818337, 1881562, 1825420, 1844064`. Execute all five pairs from one clean source
+without mid-slice inspection-driven changes, report their deltas and interval separately,
+and do not pool them with indices 0--14 or the immutable claim cohort.
