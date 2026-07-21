@@ -636,8 +636,7 @@ After repeated production was stopped, seed `1406156` retained a one-citizen tre
 deficit. Exact initial state explains it: treatment queued the last required founder at
 food/shield surplus 2/3, while baseline built Granary first. Treatment reached three cities
 earlier but ended with capital size 4 instead of 5. This must not become an unconditional
-Granary-first heuristic: current 30-turn seed `104759`, with food/shield surplus 5/4, gained
-six citizens and score points from direct founder production.
+Granary-first heuristic; exact combined runway remains the eligibility boundary.
 
 For a deficit of exactly one founder, treatment may sequence Granary first only if the same
 city advertises an exact founder production action and the conservative combined projection
@@ -651,7 +650,7 @@ Acceptance criteria:
 
 - the slow-food 60-turn state projects Granary plus founder plus route at 42 turns and
   17 remaining settlement turns, selecting `production_preexpansion_growth`;
-- the fast-food 30-turn state projects only six remaining settlement turns and continues
+- a short-runway 30-turn fixture projects only six remaining settlement turns and continues
   to select `production_expansion` directly;
 - the founder projection assumes zero post-Granary shield stock and does not invent a
   Granary food-retention effect;
@@ -670,3 +669,14 @@ treatment improved from 13/118 before repeat retirement to 14/119 after retireme
 15/120 after sequencing. There were no joins, rejected actions, or model fallbacks; source
 commit `1f71c35`, paired initial state, and the full release audit passed. This is a
 same-seed causal validation, not an independent effect estimate or claim update.
+
+The clean boundary run at
+`artifacts/freeciv/impact-preexpansion-fast-104759-horizon30-20260720` showed why live
+evidence must remain part of the projection. After the starting founder's observed route,
+the exact state projected 21 combined turns and eight settlement-runway turns, meeting the
+configured boundary even though the earlier source snapshot fixture projected six. Treatment
+therefore selected Granary-first, produced the required founder, retired its repeat, emitted
+no join cycles, and still finished with 12 citizens and score 116—the same absolute treatment
+outcome as the prior direct-founder run. Its clean baseline scored 115 for a `+1` paired
+delta. Initial-state fidelity, zero rejection/fallback, clean commit `805a15b`, and the full
+release audit passed. This confirms the boundary without changing the immutable claim.

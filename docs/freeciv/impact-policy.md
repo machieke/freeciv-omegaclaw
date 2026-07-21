@@ -423,16 +423,14 @@ a statistical estimate or revised score claim.
 
 The remaining same-seed citizen gap came from the initial build order rather than repeated
 production. Treatment started the last required Settler immediately; baseline completed a
-Granary first. A universal Granary-first rule would discard the observed `+6` citizen/score
-result on the fast-food 30-turn seed `104759`, so sequencing is conditional. For a deficit
+Granary first. Sequencing remains conditional rather than a fixed build order. For a deficit
 of exactly one founder, treatment may select Granary first only when an exact legal founder
 choice exists in that city and a deliberately conservative sequence still fits: Granary
 completion, then the founder from zero shields, then the observed/default route ETA, followed
 by at least `production_minimum_remaining_turns` of active settlement runway. The projection
-grants no food-retention benefit from the Granary. Slow-food seed `1406156` retains 17 runway
-turns and qualifies; fast 30-turn seed `104759` retains only six and continues to build the
-founder directly. Sequence selection count, settlement ETA, and remaining runway are reported
-separately.
+grants no food-retention benefit from the Granary. A synthetic six-runway state remains on
+direct founder production; live route evidence can make an otherwise similar state qualify.
+Sequence selection count, settlement ETA, and remaining runway are reported separately.
 
 The clean v3 replay at
 `artifacts/freeciv/impact-preexpansion-growth-1406156-horizon60-v3-20260720`
@@ -444,6 +442,16 @@ before repeated-founder retirement to 14/119 after retirement and finally 15/120
 sequencing. It recorded zero joins, rejection, or fallback; initial-state fidelity, clean
 commit `1f71c35`, and the full release audit passed. This closes the targeted mechanism
 deficit on one reused seed but remains post-hoc development evidence, not a revised claim.
+
+The clean 30-turn boundary check at
+`artifacts/freeciv/impact-preexpansion-fast-104759-horizon30-20260720` used live route
+evidence and projected 21 combined turns with exactly eight runway turns, so it correctly
+qualified rather than matching the more conservative six-runway unit fixture. It eliminated
+all previous join/rebuild cycles and treatment still scored 116 with 12 citizens, the same
+absolute treatment outcome as the earlier direct-founder run. The clean baseline scored 115,
+giving a one-pair `+1` delta. Initial state, zero rejection/fallback, clean commit `805a15b`,
+and the full release audit passed. This boundary validation is still reused-seed development
+evidence, not a score estimate.
 
 ## Combat attribution, occupancy, and hut-entry hardening
 
