@@ -410,6 +410,17 @@ excluding that exact queue. Replacement ETA assumes zero carried shields. A nece
 queue, a queue that cannot complete by the horizon, and the static baseline remain
 unchanged.
 
+The clean same-seed confirmation at
+`artifacts/freeciv/impact-population-recovery-stop-repeat-1406156-horizon60-v2-20260720`
+activated one repurpose on turn 17. It reported two population cost avoided, charged all
+24 accumulated shields as discarded, completed the Granary replacement by the horizon,
+and eliminated the five prior Settler join/rebuild cycles. Treatment citizens improved
+from 13 to 14 and its score from 118 to 119; the unchanged baseline remained at 15
+citizens and score 120. Both arms had zero rejection/fallback, matched initial state,
+used clean commit `736c500`, and passed the complete cognitive-trace release audit. The
+one-point causal improvement on a reused post-hoc seed validates the mechanism but is not
+a statistical estimate or revised score claim.
+
 ## Combat attribution, occupancy, and hut-entry hardening
 
 Offensive actions retain an exact pre-action fingerprint of the packet-visible enemy

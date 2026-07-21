@@ -619,3 +619,13 @@ accepts arbitrary declared cohort names while manifest generation previously use
 closed token table. Existing cohort IDs remain byte-for-byte stable; other valid names
 now receive a deterministic hash-derived, identifier-safe token. This supports isolated
 mechanism probes without making them claim eligible.
+
+The clean confirmation at
+`artifacts/freeciv/impact-population-recovery-stop-repeat-1406156-horizon60-v2-20260720`
+met the acceptance criteria. Treatment emitted one `production_repurpose` on turn 17,
+reported two population cost avoided and 24 shields conservatively discarded, completed
+the Granary replacement, and emitted no join/rebuild cycle. Final treatment citizens/score
+improved from 13/118 in the preceding replay to 14/119; the frozen baseline stayed at
+15/120. Initial-state fidelity, zero rejection, zero fallback, clean source commit
+`736c500`, and the full trace release audit all passed. This is a one-point causal
+improvement on a reused post-hoc seed, not a score-claim update.
