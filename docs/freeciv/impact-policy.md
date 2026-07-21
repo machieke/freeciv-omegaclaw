@@ -549,6 +549,15 @@ infrastructure failure. Commit `5d21cfd` removes the retry and its telemetry. Th
 extra retries as the next efficiency win; the remaining trace needs better grounded site
 selection or threat handling, not more orders at previously ineffective sites.
 
+No defensive-production quick win was available in that trace: the turn-5 expansion city
+already auto-produced the cheapest advertised defender, but accumulated only six shields
+before capture on turn 8; the sole existing Alpine unit was required in the capital. The
+next non-selected check is frozen as V4 seed indices 5--9:
+`1873237, 1884108, 1850973, 1850591, 1866769`. None was executed or inspected before this
+declaration. They form a post-fix pilot holdout and must be reported separately from the
+original five-pair prefix; the adaptive split is not claim evidence and the two slices must
+not be pooled into a confirmatory estimate.
+
 ## Combat attribution, occupancy, and hut-entry hardening
 
 Offensive actions retain an exact pre-action fingerprint of the packet-visible enemy

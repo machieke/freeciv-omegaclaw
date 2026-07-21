@@ -774,3 +774,11 @@ passed, making this a valid negative policy result. The implementation and metri
 removed by `5d21cfd`; do not restore them without new grounded evidence. Further work on
 this trace must improve site selection or threat response rather than repeat ineffective
 founding orders.
+
+The early city loss has no grounded production quick win: the new city already auto-produced
+the cheapest advertised defender, accumulated only six shields by turn 7, and was captured
+on turn 8; moving the sole Alpine unit would leave the capital undefended. Freeze the next
+evaluation slice before inspecting it as V4 indices 5--9, literal seeds
+`1873237, 1884108, 1850973, 1850591, 1866769`. Report this post-fix pilot holdout separately
+from the original prefix. It is an adaptive development checkpoint, cannot update a claim,
+and must not be pooled with indices 0--4 as though one implementation generated all ten.
