@@ -606,6 +606,17 @@ indices 10--14: `1847487, 1825421, 1856447, 1859499, 1836213`. It must be report
 own adaptive five-pair slice and not pooled with indices 0--9 or the immutable confirmatory
 cohort.
 
+That frozen slice completed at
+`artifacts/freeciv/impact-current-policy-pilot-v4-holdout10-14-20260721` with paired score
+deltas `-2, +2, +5, +6, +3`, mean `+2.80`, and paired-bootstrap interval
+`[+0.20, +5.00]`. The exact two-sided sign-flip p-value was `0.1875` at five pairs. All ten
+arms passed initial-state fidelity, rejection/fallback safety, required clean-source stability
+at `8acaacb`, and the full 14,255-event release audit. This is positive development evidence
+but remains underpowered, adaptive, and claim-ineligible; it is neither pooled with earlier
+V4 slices nor used to revise the immutable formal estimate. Seed `1847487`, the sole negative
+pair and sole treatment arm missing the second settlement, is the next post-hoc diagnostic
+target.
+
 ## Combat attribution, occupancy, and hut-entry hardening
 
 Offensive actions retain an exact pre-action fingerprint of the packet-visible enemy

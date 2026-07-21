@@ -862,3 +862,22 @@ outcomes. Run them as one clean-source pilot slice under the current policy, rep
 paired deltas and interval separately, and do not pool them with V4 indices 0--9 because
 different adaptive implementations generated those earlier slices. This remains development
 evidence and cannot update the immutable confirmatory claim.
+
+The frozen V4 indices 10--14 slice completed at
+`artifacts/freeciv/impact-current-policy-pilot-v4-holdout10-14-20260721` with literal-seed
+deltas `-2, +2, +5, +6, +3`. The mean was `+2.80` with paired-bootstrap interval
+`[+0.20, +5.00]`; the exact two-sided paired sign-flip p-value was `0.1875`, and the
+one-sided test above the declared two-point meaningful margin was `0.375`. All ten arms
+completed with paired initial-state fidelity, zero rejection/fallback, required clean-source
+stability at commit `8acaacb`, and a passing 14,255-event release audit. Four of five
+treatment arms exercised the still-valid population-bound Granary sequence. The positive
+interval is useful directional evidence, but `n=5`, adaptive slice history, and ineligible
+cohort status mean it cannot revise the immutable formal claim or be pooled with V4 indices
+0--9.
+
+Seed `1847487` is the slice's sole negative pair and the only treatment arm with one rather
+than two settlement completions. It may now be inspected as a post-hoc optimization target;
+any same-seed replay is mechanism evidence only. Diagnose the missing settlement from exact
+production, founder-route, and city-state events before changing policy. Do not weaken the
+confirmed population-bound sequencing rule merely because one selected pair remained
+negative.
