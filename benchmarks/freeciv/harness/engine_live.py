@@ -1691,6 +1691,9 @@ async def _play(run_dir, manifest, context):
          len(unreachable_founder_moves)),
         ("planner_founder_cycle_moves_pruned", len(founder_cycle_moves)),
         ("planner_founder_attrition_moves_pruned", len(founder_attrition_moves)),
+        ("planner_failed_settlement_sites_pruned",
+         impact_planner.failed_settlement_sites_pruned
+         if impact_planner is not None else 0),
         ("planner_founder_route_successes",
          impact_planner.founder_route_successes if impact_planner is not None else 0),
         ("planner_founder_route_failures",
@@ -1864,6 +1867,9 @@ async def _play(run_dir, manifest, context):
             "planner_founder_cycle_moves_pruned": len(founder_cycle_moves),
             "planner_founder_attrition_moves_pruned": (
                 len(founder_attrition_moves)),
+            "planner_failed_settlement_sites_pruned": (
+                impact_planner.failed_settlement_sites_pruned
+                if impact_planner is not None else 0),
             "planner_founder_route_successes": (
                 impact_planner.founder_route_successes
                 if impact_planner is not None else 0),
@@ -1942,6 +1948,9 @@ async def _play(run_dir, manifest, context):
         "planner_founder_unreachable_moves_pruned": len(unreachable_founder_moves),
         "planner_founder_cycle_moves_pruned": len(founder_cycle_moves),
         "planner_founder_attrition_moves_pruned": len(founder_attrition_moves),
+        "planner_failed_settlement_sites_pruned": (
+            impact_planner.failed_settlement_sites_pruned
+            if impact_planner is not None else 0),
         "planner_founder_route_successes": (
             impact_planner.founder_route_successes
             if impact_planner is not None else 0),

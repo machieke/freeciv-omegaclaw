@@ -180,6 +180,7 @@ def run_game(run_dir, manifest, context):
         ("planner_founder_unreachable_moves_pruned", 2 if treatment else 0),
         ("planner_founder_cycle_moves_pruned", 1 if treatment else 0),
         ("planner_founder_attrition_moves_pruned", 1 if treatment else 0),
+        ("planner_failed_settlement_sites_pruned", 1 if treatment else 0),
         ("planner_founder_route_successes", 4 if treatment else 2),
         ("planner_founder_route_failures", 1 if treatment else 2),
         ("planner_founder_route_success_rate", 0.8 if treatment else 0.5),

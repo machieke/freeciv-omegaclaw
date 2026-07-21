@@ -926,3 +926,18 @@ treatment one, while both scored 114. It may now be inspected post hoc for route
 Seeds `1825420` and `1844064` had one settlement in both arms and are not treatment-specific
 defects. Require exact evidence before changing policy, and treat any same-seed replay only as
 mechanism confirmation.
+
+Exact inspection found repeated cross-founder site reuse. Treatment founder 114 made an
+accepted-but-no-effect attempt at `(4,10)` on turn 20. Replacement founder 119 returned to
+that exact site and repeated the ineffective order on turn 35 before trying two other sites;
+treatment recorded five attempts but only the initial settlement completed. This is distinct
+from the rejected re-entry retry: the correction suppresses, rather than adds, an order.
+
+Record a failed settlement site only after candidate-specific authoritative confirmation
+shows no new city. Key it by founder type, wrapped map dimensions, exact position, and city
+layout so another founder cannot repeat the same ineffective order while strategic state is
+unchanged. A city-layout change makes the site eligible again, successful founding creates no
+failure evidence, and movement/sole-exit legality is unaffected. Expose
+`planner_failed_settlement_sites_pruned`, require a synthetic cross-founder/layout regression,
+the full suite, and a clean seed-`1881562` replay. Do not reintroduce the previously rejected
+settlement retry.

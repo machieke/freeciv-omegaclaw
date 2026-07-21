@@ -1018,6 +1018,53 @@ def test_settlement_effect_requires_actor_consumption_and_a_new_city():
         candidate, before, completed)
 
 
+def test_failed_settlement_site_is_suppressed_across_founders_until_layout_changes():
+    action = {"action_type": "unit_build_city", "actor_id": 1}
+    candidate = ImpactCandidate(
+        action, "city_founding", 1.0, "failed settlement site")
+    before = _snapshot(
+        [_unit(1, "Settlers", 3, 0)],
+        [dict(action, is_valid=True),
+         {"action_type": "end_turn", "is_valid": True}])
+    unchanged = _snapshot(
+        [_unit(1, "Settlers", 3, 0)],
+        [{"action_type": "end_turn", "is_valid": True}], source_seq=2)
+    planner = GroundedImpactPlanner()
+
+    planner.record_outcome(
+        candidate, before, effect_observed=False, after_snapshot=unchanged)
+
+    repeated = {"action_type": "unit_build_city", "actor_id": 2,
+                "is_valid": True}
+    move = {"action_type": "unit_move", "actor_id": 2,
+            "target": {"x": 4, "y": 0}, "is_valid": True}
+    same_layout = _snapshot(
+        [_unit(2, "Settlers", 3, 0)],
+        [repeated, move, {"action_type": "end_turn", "is_valid": True}],
+        source_seq=3)
+    assert planner.failed_settlement_site_action_keys(same_layout) == (
+        json.dumps({key: value for key, value in repeated.items()
+                    if key != "is_valid"},
+                   sort_keys=True, separators=(",", ":")),)
+    assert planner.plan(same_layout).candidate.action["action_type"] == "unit_move"
+    assert planner.failed_settlement_sites_pruned == 1
+
+    added = _city()
+    added.update({"id": 12, "name": "Antium", "tile": 55,
+                  "x": 5, "y": 5})
+    changed_layout = _snapshot(
+        [_unit(2, "Settlers", 3, 0)],
+        [repeated, move, {"action_type": "end_turn", "is_valid": True}],
+        cities=[_city(), added], source_seq=4)
+    assert planner.failed_settlement_site_action_keys(changed_layout) == ()
+    assert planner.plan(changed_layout).candidate.category == "city_founding"
+
+    successful = GroundedImpactPlanner()
+    successful.record_outcome(
+        candidate, before, effect_observed=True, after_snapshot=changed_layout)
+    assert successful._failed_settlement_sites == set()
+
+
 def test_surplus_founder_recovers_exact_ruleset_population_after_city_target():
     cities = [_city()]
     for city_id, name, x in ((12, "Antium", 3), (13, "Cumae", 6)):

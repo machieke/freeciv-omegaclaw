@@ -258,6 +258,8 @@ class GroundedImpactPlanner(object):
         self._founder_actor_failed_edges = set()
         self._observed_founders = {}
         self._founder_attrition_positions = {}
+        self._failed_settlement_sites = set()
+        self._failed_settlement_site_prunes = set()
         self._failed_exploration_target_sources = {}
         self._failed_exploration_prunes = set()
         self._preexpansion_sequences = {}
@@ -479,6 +481,19 @@ class GroundedImpactPlanner(object):
             and self._founder_attrition_has_alternative(
                 snapshot, action, founder_types, actions)))
 
+    def failed_settlement_site_action_keys(self, snapshot):
+        """Return advertised founding actions suppressed by exact site evidence."""
+        return tuple(sorted(
+            canonical_json_bytes(action).decode("utf-8")
+            for action in self._actions(snapshot)
+            if (action.get("action_type") == "unit_build_city"
+                and self._settlement_site_key(snapshot, action)
+                in self._failed_settlement_sites)))
+
+    @property
+    def failed_settlement_sites_pruned(self):
+        return len(self._failed_settlement_site_prunes)
+
     def commit(self, candidate):
         """Record a successfully transported persistent policy decision."""
         if candidate.category == "city_defense":
@@ -685,6 +700,9 @@ class GroundedImpactPlanner(object):
                 candidate.action.get("actor_id"), None)
             self._founder_route_positions.pop(
                 candidate.action.get("actor_id"), None)
+            site_key = self._settlement_site_key(snapshot, candidate.action)
+            if site_key is not None and not effect_observed:
+                self._failed_settlement_sites.add(site_key)
         self._record_founder_route_outcome(
             candidate, snapshot, after_snapshot)
         self._record_exploration_destination_outcome(
@@ -813,6 +831,16 @@ class GroundedImpactPlanner(object):
     def _founder_actor_edge(self, snapshot, unit, edge):
         return (
             int(unit.unit_id), edge, self._city_layout(snapshot),
+        )
+
+    def _settlement_site_key(self, snapshot, action):
+        unit = snapshot.unit(action.get("actor_id"))
+        if unit is None or None in (unit.x, unit.y):
+            return None
+        return (
+            _normalized_type(unit.unit_type), int(snapshot.map_width),
+            int(snapshot.map_height), int(unit.x), int(unit.y),
+            self._city_layout(snapshot),
         )
 
     def _founder_traversable_edge(self, snapshot, edge):
@@ -2013,12 +2041,16 @@ class GroundedImpactPlanner(object):
                     "execute an exact server-advertised offensive action")
             elif action_type == "unit_build_city":
                 unit = snapshot.unit(action.get("actor_id"))
+                site_key = self._settlement_site_key(snapshot, action)
                 if (unit is not None and len(snapshot.cities) < self.expansion_city_target
                         and self._distance_from_cities(snapshot, unit.x, unit.y)
                         >= self.settle_min_distance):
-                    candidate = ImpactCandidate(
-                        action, "city_founding", 1000.0,
-                        "found a city at or beyond the configured spacing")
+                    if site_key in self._failed_settlement_sites:
+                        self._failed_settlement_site_prunes.add(key)
+                    else:
+                        candidate = ImpactCandidate(
+                            action, "city_founding", 1000.0,
+                            "found a city at or beyond the configured spacing")
             elif action_type == "unit_join_city":
                 candidate = self._population_recovery_candidate(
                     snapshot, action, founder_types)

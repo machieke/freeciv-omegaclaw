@@ -687,6 +687,14 @@ technology and demonstrates that faster hut collection can alter a stochastic re
 action trajectory without guaranteeing a better paired score. This is correctness and
 mechanism evidence only, not a revised score claim.
 
+Seed `1881562` then showed an exact failed-site reuse: founder 114's accepted order at
+`(4,10)` created no city, and replacement founder 119 later repeated the same order at the
+same site under the same city layout. The planner now remembers candidate-confirmed failed
+settlement sites across founder actors, scoped by founder type, map, position, and city
+layout. It suppresses the repeated order while leaving movement available; a changed layout
+restores eligibility. `planner_failed_settlement_sites_pruned` exposes activation. This is
+deliberate anti-retry hardening and does not restore the previously rejected retry policy.
+
 ## Operational note
 
 On the recorded CPU host, a cold load of `qwen3-coder-next:latest` took 41.6 seconds,
