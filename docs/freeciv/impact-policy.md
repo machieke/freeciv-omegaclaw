@@ -721,6 +721,17 @@ rejection/fallback, and the complete 3,692-event release audit passed. Retain th
 terrain legality check, but do not count this selected-seed efficiency result as a score gain
 or infer that the remaining failures share the same terrain cause.
 
+V4 indices 20--24 first produced deltas `+1,+3,+4,0,+2`, but that execution is invalid as a
+clean checkpoint because the first baseline arm fell back on turns 1 and 2. After replacing
+the one-token readiness probe with validated full-chat readiness, the fixed operational rerun
+at `artifacts/freeciv/impact-current-policy-pilot-v4-holdout20-24-chatready-rerun-20260721`
+completed with deltas `+2,+3,+4,0,+2`, mean `+2.20`, and paired-bootstrap interval
+`[+1.00,+3.20]`. The exact two-sided p-value was `0.125`; both arms had zero fallback and
+rejection, paired initial states matched, source stayed clean at `06cbe5e`, and the complete
+14,310-event release audit passed. This confirms operational stability and positive
+development direction only: the five seeds were already exposed by the invalid first run,
+`n=5` is underpowered, and the result cannot revise the immutable claim.
+
 ## Operational note
 
 On the recorded CPU host, a cold load of `qwen3-coder-next:latest` took 41.6 seconds,

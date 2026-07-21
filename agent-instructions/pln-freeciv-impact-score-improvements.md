@@ -1004,3 +1004,14 @@ object, and keep the existing 90-second readiness budget and 30-minute residency
 configured-model preflight must pass, the full repository suite must remain green, and then the
 same fixed five-seed slice may be rerun only as an operational confirmation. Its exposed seeds
 mean the rerun is not fresh evidence and still cannot revise the formal claim.
+
+The operational rerun at
+`artifacts/freeciv/impact-current-policy-pilot-v4-holdout20-24-chatready-rerun-20260721`
+met every safety gate. Literal-seed deltas were `+2, +3, +4, 0, +2`, mean `+2.20`, with
+paired-bootstrap interval `[+1.00, +3.20]`, exact two-sided p-value `0.125`, and
+meaningful-margin p-value `0.5`. All ten games had zero model fallback and engine rejection,
+matched initial states, clean stable source `06cbe5e`, and a passing 14,310-event release
+audit. Compared with the invalid first execution, the two turn-1/2 baseline fallbacks became
+zero and the affected seed's delta changed from `+1` to `+2`. This confirms the operational
+hardening and positive direction, but the exposed rerun and `n=5` remain ineligible for a
+formal score or win-rate claim.
