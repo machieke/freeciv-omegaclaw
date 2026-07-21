@@ -695,6 +695,14 @@ layout. It suppresses the repeated order while leaving movement available; a cha
 restores eligibility. `planner_failed_settlement_sites_pruned` exposes activation. This is
 deliberate anti-retry hardening and does not restore the previously rejected retry policy.
 
+The clean replay at
+`artifacts/freeciv/impact-failed-settlement-site-1881562-20260721` recorded two treatment
+prunes and removed both the immediate retry and the later cross-founder order at `(4,10)`.
+Attempts fell from five to four, but treatment still completed one settlement and the pair
+remained 114–114. Clean source `5a7be48`, paired fidelity, zero rejection/fallback, and the
+2,715-event release audit passed. This confirms bounded efficiency/correctness impact, not a
+score gain; adjacent failed sites are not generalized into an unsupported regional ban.
+
 ## Operational note
 
 On the recorded CPU host, a cold load of `qwen3-coder-next:latest` took 41.6 seconds,

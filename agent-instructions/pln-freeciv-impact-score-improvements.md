@@ -941,3 +941,15 @@ failure evidence, and movement/sole-exit legality is unaffected. Expose
 `planner_failed_settlement_sites_pruned`, require a synthetic cross-founder/layout regression,
 the full suite, and a clean seed-`1881562` replay. Do not reintroduce the previously rejected
 settlement retry.
+
+The clean confirmation at
+`artifacts/freeciv/impact-failed-settlement-site-1881562-20260721` activated two treatment
+prunes: the immediate same-actor retry after turn 20 and founder 119's cross-actor retry at
+`(4,10)` on turn 35. Treatment settlement attempts fell from five in the untouched slice to
+four, while settlement completion remained one and both current arms scored 114. The later
+distinct attempts at `(6,10)` and `(7,11)` still had no effect, so exact failed-site memory
+improved action efficiency but did not solve this map's broader site-selection problem.
+Paired fidelity, required clean-source stability at `5a7be48`, zero rejection/fallback, and
+the complete 2,715-event release audit passed. Retain the bounded anti-retry rule as
+correctness hardening; it is not score evidence. Do not infer an unsafe regional blacklist
+from adjacent failures without a server-grounded terrain/site-validity signal.
