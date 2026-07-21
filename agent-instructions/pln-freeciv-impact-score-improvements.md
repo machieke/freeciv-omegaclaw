@@ -752,3 +752,14 @@ settlement, and produced the sole negative delta. The immediate-backtrack guard 
 generalized to bounded recent-position revisits. A clean same-seed engine replay must show
 the founder taking a fresh alternative without regressing dead-end behavior before running
 more of the pilot prefix.
+
+The clean same-seed confirmation at
+`artifacts/freeciv/impact-founder-bounded-cycle-1813833-20260721` met that bar. Treatment
+followed the old route through `(11,3)` on turn 26, took fresh exit `(12,4)` on turn 27,
+reached `(13,5)`, and completed city three on turn 37. Its score rose from 114 in the pilot
+prefix to 117 while the current baseline remained 115, changing the paired delta from `-1`
+to `+2`. Treatment recorded two settlements, 15 route successes, seven cycle prunes, and
+zero route failures. Both arms had matched initial state, zero rejection/fallback, clean
+commit `130ee33`, stable implementation identity, and a passing 2,976-event release audit.
+Because the seed was selected after inspecting the five-pair prefix, this is mechanism
+confirmation only and cannot be folded back into that pilot estimate.

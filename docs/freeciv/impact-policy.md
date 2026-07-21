@@ -526,6 +526,17 @@ must choose a grounded fresh exit in a synthetic four-position trace, preserve a
 edge when it is the only exit, and pass a clean same-seed engine replay before the prefix is
 expanded. Stopping or expanding this pilot does not convert it into confirmatory evidence.
 
+The clean same-seed confirmation at
+`artifacts/freeciv/impact-founder-bounded-cycle-1813833-20260721` met that acceptance bar.
+Treatment followed the former loop through `(11,3)` on turn 26, selected the fresh exit
+`(12,4)` on turn 27, reached `(13,5)`, and completed city three on turn 37. It finished at
+score 117 versus baseline 115, changing this pair from the prefix's `-1` to `+2`; the current
+baseline remained at 115. Treatment recorded two settlement completions, 15 successful
+founder moves, seven cycle prunes, and no route failures. Both arms matched initial state,
+had zero rejection/fallback, used clean commit `130ee33`, and passed the complete 2,976-event
+release audit. This confirms the generalized mechanism on a fresh defect-discovery seed but
+is post-pilot reuse, so it does not revise the prefix estimate or formal claim.
+
 ## Combat attribution, occupancy, and hut-entry hardening
 
 Offensive actions retain an exact pre-action fingerprint of the packet-visible enemy
