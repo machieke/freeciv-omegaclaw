@@ -294,6 +294,22 @@ paired_impact:
         count: 200
         minimum: 1400000
         maximum: 1699999
+    confirmatory_score_horizon_60_v2:
+      purpose: confirmatory
+      claim_eligible: true
+      require_clean_source: true
+      endpoints: [score_turn_n]
+      horizon_turn: 60
+      planned_pairs: 450
+      score_design:
+        minimum_detectable_delta: 0.2
+        maximum_planning_sd: 1.5
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pln-freeciv-impact-confirmatory-score-horizon60-v2-current-policy
+        count: 450
+        minimum: 1900000
+        maximum: 1999999
     confirmatory_joint:
       purpose: confirmatory
       claim_eligible: true

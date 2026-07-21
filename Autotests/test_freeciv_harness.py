@@ -68,6 +68,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "pilot_horizon_60_v4": 40,
         "confirmatory_score": 100,
         "confirmatory_score_horizon_60_v1": 200,
+        "confirmatory_score_horizon_60_v2": 450,
         "confirmatory_joint": 450,
     }
     seed_sets = [set(row["seeds"]) for row in paired["cohorts"].values()]
@@ -107,6 +108,17 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "algorithm": "sha256-counter-v1",
         "namespace": "pln-freeciv-impact-confirmatory-score-horizon60-v1",
         "count": 200, "minimum": 1400000, "maximum": 1699999,
+    }
+    current_score = paired["cohorts"]["confirmatory_score_horizon_60_v2"]
+    assert current_score["score_design"] == {
+        "minimum_detectable_delta": 0.2,
+        "maximum_planning_sd": 1.5,
+    }
+    assert current_score["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": (
+            "pln-freeciv-impact-confirmatory-score-horizon60-v2-current-policy"),
+        "count": 450, "minimum": 1900000, "maximum": 1999999,
     }
     assert paired["cohorts"]["pilot_horizon_60"] == {
         "purpose": "pilot", "claim_eligible": False,
@@ -672,6 +684,16 @@ def test_paired_impact_jobs_alternate_order_and_override_only_declared_policy():
     assert confirmatory_manifest["impact_pair"]["score_design"] == {
         "minimum_detectable_delta": 0.2,
         "maximum_planning_sd": 1.0,
+    }
+    current_confirmatory = HarnessRunner(
+        "unused", seed_limit=1, conditions=("e_full_loop",),
+        impact_cohort="confirmatory_score_horizon_60_v2")
+    current_manifest = current_confirmatory._manifest(
+        current_confirmatory._impact_jobs()[0], 0)
+    assert current_manifest["turn_limit"] == 60
+    assert current_manifest["impact_pair"]["score_design"] == {
+        "minimum_detectable_delta": 0.2,
+        "maximum_planning_sd": 1.5,
     }
 
 

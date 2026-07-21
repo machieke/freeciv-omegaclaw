@@ -40,7 +40,8 @@ every seed before any game is observed.
 | `pilot_horizon_60_v3` | pre-confirmation turn-60 pilot | 40 | no | score, lead rate |
 | `pilot_horizon_60_v4` | current-policy turn-60 pilot | 40 | no | score, lead rate |
 | `confirmatory_score` | retired exposed V4 score cohort | 100 | no | score only |
-| `confirmatory_score_horizon_60_v1` | fixed turn-60 score test | 200 | yes | score only |
+| `confirmatory_score_horizon_60_v1` | completed prior-policy turn-60 score test | 200 | yes | score only |
+| `confirmatory_score_horizon_60_v2` | current-policy turn-60 score test | 450 | yes | score only |
 | `confirmatory_joint` | hierarchical score then lead-rate test | 450 | yes | score, lead rate |
 
 Configuration validation rejects overlapping cohorts. Pilot and confirmatory cohorts
@@ -69,12 +70,22 @@ paired-SD bound of `7.13`. It is retained only as historical configuration becau
 its seeds were already exposed.
 
 The hardened turn-60 pilot estimated a `+0.20` score delta and paired SD `0.8533`.
-The fresh `confirmatory_score_horizon_60_v1` cohort therefore predeclares a
+The completed `confirmatory_score_horizon_60_v1` cohort therefore predeclared a
 `0.20`-point minimum detectable difference, raises the maximum planning SD to `1.0`,
 and fixes 200 pairs. The paired-normal calculation requires 197 pairs at that bound;
-200 is frozen before any confirmatory arm is observed. This powers a claim of any
-positive score improvement. It does not redefine the separate two-point meaningful
-effect threshold.
+200 was frozen before any confirmatory arm was observed. Its observed paired SD was
+`1.4056`, for which 388 pairs would have been required at the same target; its achieved
+power was 52.1%, although its positive-improvement inference still passed.
+
+The current-policy `confirmatory_score_horizon_60_v2` design is frozen independently
+of all exposed V4 pilot seeds. It uses 450 deterministic seeds in the disjoint
+`1900000..1999999` range, a conservative maximum planning SD of `1.5`, and the same
+`0.20`-point detectable difference. The paired-normal calculation requires 442 pairs,
+leaving eight pairs of design margin. The 0.20-point resolution is also the excess
+needed to distinguish the pilot's apparent `+2.20` effect from the separately declared
+two-point meaningful-effect threshold; the actual cohort is analyzed regardless of
+whether that pilot estimate reproduces. There is no interim outcome inspection,
+adaptive stopping, seed replacement, or pooling with earlier cohorts.
 
 Primary score and paired lead-rate intervals use 20,000 fixed-seed bootstrap samples
 over seed-pair differences. The score endpoint also uses an exact two-sided paired
@@ -126,8 +137,8 @@ PYTHONPATH=src:benchmarks python3 scripts/freeciv/run_impact_evaluation.py \
   --backend engine-live --cohort pilot_horizon_60_v2
 ```
 
-Run exactly one preselected confirmatory design. The fresh score design executes 400 games;
-the joint design executes 900 games:
+Historical V1 score confirmation and the joint design execute 400 and 900 games,
+respectively:
 
 ```bash
 FREECIV_RULESET_ROOT="$FREECIV_LLM_ROOT/freeciv/freeciv/data" \
@@ -139,6 +150,15 @@ FREECIV_RULESET_ROOT="$FREECIV_LLM_ROOT/freeciv/freeciv/data" \
 PYTHONPATH=src:benchmarks python3 scripts/freeciv/run_impact_evaluation.py \
   --out artifacts/freeciv/impact-confirmatory-joint-engine \
   --backend engine-live --cohort confirmatory_joint
+```
+
+The frozen current-policy score design executes 900 games:
+
+```bash
+FREECIV_RULESET_ROOT="$FREECIV_LLM_ROOT/freeciv/freeciv/data" \
+PYTHONPATH=src:benchmarks python3 scripts/freeciv/run_impact_evaluation.py \
+  --out artifacts/freeciv/impact-confirmatory-score-horizon60-v2-engine \
+  --backend engine-live --cohort confirmatory_score_horizon_60_v2
 ```
 
 Runs resume only manifest-identical completed arms. `--aggregate-only` rebuilds a

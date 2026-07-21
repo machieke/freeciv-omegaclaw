@@ -1015,3 +1015,34 @@ audit. Compared with the invalid first execution, the two turn-1/2 baseline fall
 zero and the affected seed's delta changed from `+1` to `+2`. This confirms the operational
 hardening and positive direction, but the exposed rerun and `n=5` remain ineligible for a
 formal score or win-rate claim.
+
+## Current-policy confirmation cohort (frozen before execution)
+
+The next claim-eligible evaluation is
+`confirmatory_score_horizon_60_v2`. It contains 450 deterministic turn-60 seed pairs
+derived with `sha256-counter-v1` from namespace
+`pln-freeciv-impact-confirmatory-score-horizon60-v2-current-policy` in the disjoint
+range `1900000..1999999`. It is score-only, requires a clean and stable source tree,
+and permits neither a pair limit nor adaptive stopping.
+
+The completed V1 cohort observed paired SD `1.4056`; the most recent clean five-pair
+operational rerun observed similarly scaled variation around a substantially larger
+mean. V2 conservatively declares maximum planning SD `1.5` and a 0.20-point minimum
+detectable difference. At two-sided alpha 0.05 and 80% power this requires 442 pairs,
+so the frozen 450-pair design is adequately powered with eight pairs of margin. The
+same resolution is sufficient to test whether an effect near the operational
+`+2.20` estimate clears the already declared two-point meaningful threshold.
+
+Acceptance criteria:
+
+- all 450 predeclared pairs and both arms complete from one clean, unchanged commit;
+- paired initial-state fidelity passes for every seed;
+- rejected-action and model-fallback rates are exactly zero in both arms;
+- all full-loop turns remain within the declared bound;
+- the release audit passes over every event, manifest, and aggregate;
+- score improvement is claimed only when both its interval lower bound is above zero
+  and its exact two-sided paired sign-flip p-value is at most 0.05;
+- meaningful improvement is claimed only when the interval lower bound is above two
+  and the predeclared one-sided margin test passes;
+- any infrastructure failure is retried only as a fresh attempt, never converted into
+  an observation, and any source/configuration drift invalidates the cohort.
