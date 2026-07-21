@@ -1224,6 +1224,76 @@ class GroundedImpactPlanner(object):
         self._unit_score_batch_cache = result
         return {key: dict(value) for key, value in result.items()}
 
+    def _preexpansion_growth_candidate(
+            self, snapshot, action, actions, city, projection, founder_types,
+            founder_deficit, current_normalized, remaining_turns):
+        """Sequence a Granary before the last founder only with full runway.
+
+        Population-costing founders can erase capital growth when they are queued
+        long before their settlement is needed. The sequence is deliberately
+        conservative: it assumes zero shields carry from the Granary, grants no
+        Granary food-retention benefit to the founder ETA, and requires the new
+        city to retain the normal minimum active runway after settlement.
+        """
+        if (founder_deficit != 1 or current_normalized in founder_types
+                or _normalized_type(_target_name(action)) != "granary"
+                or projection.get("score_value", 0.0) <= 0
+                or not self._projection_can_affect_horizon(projection)):
+            return None
+        granary_eta = int(projection["completion_eta_turns"])
+        founder_remaining = int(remaining_turns) - granary_eta
+        if founder_remaining < self.expansion_minimum_remaining_turns:
+            return None
+        best = None
+        for founder_action in actions:
+            if (founder_action.get("action_type") != "city_production"
+                    or founder_action.get("city_id") != city.city_id):
+                continue
+            founder_name = _target_name(founder_action)
+            if _normalized_type(founder_name) not in founder_types:
+                continue
+            founder_projection = self._production_projection(
+                city, founder_name, founder_remaining, snapshot=snapshot,
+                founder_types=founder_types, shield_stock_override=0)
+            if int(founder_projection.get("pop_cost", 0)) <= 0:
+                continue
+            settlement_eta = founder_projection.get("settlement_eta_turns")
+            if settlement_eta is None:
+                continue
+            combined_eta = granary_eta + int(settlement_eta)
+            settlement_runway = int(remaining_turns) - combined_eta
+            if (combined_eta > remaining_turns
+                    or settlement_runway < self.production_minimum_remaining_turns
+                    or founder_projection.get("score_value", 0.0) <= 0):
+                continue
+            action_key = canonical_json_bytes(founder_action).decode("utf-8")
+            rank = (combined_eta, action_key)
+            if best is None or rank < best[0]:
+                best = (rank, founder_name, founder_projection,
+                        combined_eta, settlement_runway)
+        if best is None:
+            return None
+        _, founder_name, founder_projection, combined_eta, settlement_runway = best
+        projection.update({
+            "founder_deficit_before": founder_deficit,
+            "preexpansion_founder": founder_name,
+            "preexpansion_founder_completion_eta_turns": (
+                founder_projection.get("completion_eta_turns")),
+            "preexpansion_founder_population_ready_eta_turns": (
+                founder_projection.get("population_ready_eta_turns")),
+            "preexpansion_founder_score_value": founder_projection["score_value"],
+            "preexpansion_sequence_settlement_eta_turns": combined_eta,
+            "preexpansion_sequence_settlement_runway_turns": settlement_runway,
+            "preexpansion_shield_stock_assumption": 0,
+        })
+        return ImpactCandidate(
+            action, "production_preexpansion_growth",
+            950.0 + projection["score_value"] * 10.0 - granary_eta,
+            "complete score-bearing growth infrastructure before the final "
+            "population-costing founder while preserving conservative settlement "
+            "and active-city runway",
+            projection)
+
     def _production_candidate(self, snapshot, action, founder_types, actions):
         city = snapshot.city(action.get("city_id"))
         if city is None or not city.buildability_available:
@@ -1337,6 +1407,11 @@ class GroundedImpactPlanner(object):
                 canonical_json_bytes(action).decode("utf-8"))
         if needs_founder and current_normalized in founder_types:
             return None
+        preexpansion_growth = self._preexpansion_growth_candidate(
+            snapshot, action, actions, city, projection, founder_types,
+            founder_deficit, current_normalized, remaining_turns)
+        if preexpansion_growth is not None:
+            return preexpansion_growth
         if (needs_founder and normalized in founder_types
                 and remaining_turns >= self.expansion_minimum_remaining_turns
                 and projection.get("settlement_eta_turns") is not None

@@ -1048,6 +1048,78 @@ def test_population_delayed_founder_uses_start_runway_and_settles_by_horizon():
         [_unit(11, "Alpine Troops")], actions, cities=[mature], turn=19)) is None
 
 
+def test_horizon_policy_sequences_granary_before_last_slow_growth_founder():
+    actions = [
+        _production(10, "Settlers", 6, 0),
+        _production(10, "Granary", 3, 14),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 30), ("Granary", "improvement", 40),
+    ), pop_costs={"Settlers": 2})
+    city = _city(
+        size=1, food_stock=0, shield_stock=0,
+        surplus=(2, 3, 4, 3, 0, 2))
+    snapshot = _snapshot(
+        [_unit(1, "Settlers")], actions, cities=[city], turn=1)
+
+    decision = GroundedImpactPlanner({
+        "horizon_turn": 60, "expansion_city_target": 3,
+        "production_minimum_remaining_turns": 8,
+        "expansion_minimum_remaining_turns": 12,
+    }, ruleset_ir=ir).plan(snapshot)
+
+    assert decision.candidate.category == "production_preexpansion_growth"
+    assert decision.candidate.action["target"]["production_type"] == "Granary"
+    assert decision.candidate.projection[
+        "preexpansion_founder"] == "Settlers"
+    assert decision.candidate.projection[
+        "preexpansion_founder_completion_eta_turns"] == 25
+    assert decision.candidate.projection[
+        "preexpansion_founder_population_ready_eta_turns"] == 25
+    assert decision.candidate.projection[
+        "preexpansion_sequence_settlement_eta_turns"] == 42
+    assert decision.candidate.projection[
+        "preexpansion_sequence_settlement_runway_turns"] == 17
+    assert decision.candidate.projection[
+        "preexpansion_shield_stock_assumption"] == 0
+
+    zero_pop_ir = _ruleset_ir((
+        ("Settlers", "unit", 30), ("Granary", "improvement", 40),
+    ), pop_costs={"Settlers": 0})
+    assert GroundedImpactPlanner({
+        "horizon_turn": 60, "expansion_city_target": 3,
+        "production_minimum_remaining_turns": 8,
+        "expansion_minimum_remaining_turns": 12,
+    }, ruleset_ir=zero_pop_ir).plan(snapshot).candidate.category == (
+        "production_expansion")
+
+
+def test_horizon_policy_keeps_direct_founder_when_granary_leaves_short_runway():
+    actions = [
+        _production(10, "Settlers", 6, 0),
+        _production(10, "Granary", 3, 14),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 30), ("Granary", "improvement", 40),
+    ), pop_costs={"Settlers": 2})
+    city = _city(
+        size=1, food_stock=0, shield_stock=0,
+        surplus=(5, 4, 2, 1, 0, 1))
+    snapshot = _snapshot(
+        [_unit(1, "Settlers")], actions, cities=[city], turn=1)
+
+    decision = GroundedImpactPlanner({
+        "horizon_turn": 30, "expansion_city_target": 3,
+        "production_minimum_remaining_turns": 8,
+        "expansion_minimum_remaining_turns": 12,
+    }, ruleset_ir=ir).plan(snapshot)
+
+    assert decision.candidate.category == "production_expansion"
+    assert decision.candidate.action["target"]["production_type"] == "Settlers"
+
+
 def test_paired_production_strategy_contrasts_static_and_horizon_value():
     actions = [
         _production(10, "Granary", 3, 14),

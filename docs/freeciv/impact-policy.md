@@ -421,6 +421,19 @@ used clean commit `736c500`, and passed the complete cognitive-trace release aud
 one-point causal improvement on a reused post-hoc seed validates the mechanism but is not
 a statistical estimate or revised score claim.
 
+The remaining same-seed citizen gap came from the initial build order rather than repeated
+production. Treatment started the last required Settler immediately; baseline completed a
+Granary first. A universal Granary-first rule would discard the observed `+6` citizen/score
+result on the fast-food 30-turn seed `104759`, so sequencing is conditional. For a deficit
+of exactly one founder, treatment may select Granary first only when an exact legal founder
+choice exists in that city and a deliberately conservative sequence still fits: Granary
+completion, then the founder from zero shields, then the observed/default route ETA, followed
+by at least `production_minimum_remaining_turns` of active settlement runway. The projection
+grants no food-retention benefit from the Granary. Slow-food seed `1406156` retains 17 runway
+turns and qualifies; fast 30-turn seed `104759` retains only six and continues to build the
+founder directly. Sequence selection count, settlement ETA, and remaining runway are reported
+separately.
+
 ## Combat attribution, occupancy, and hut-entry hardening
 
 Offensive actions retain an exact pre-action fingerprint of the packet-visible enemy

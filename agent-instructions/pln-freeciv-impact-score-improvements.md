@@ -629,3 +629,33 @@ improved from 13/118 in the preceding replay to 14/119; the frozen baseline stay
 15/120. Initial-state fidelity, zero rejection, zero fallback, clean source commit
 `736c500`, and the full trace release audit all passed. This is a one-point causal
 improvement on a reused post-hoc seed, not a score-claim update.
+
+## Sequence growth before the final founder when runway is ample
+
+After repeated production was stopped, seed `1406156` retained a one-citizen treatment
+deficit. Exact initial state explains it: treatment queued the last required founder at
+food/shield surplus 2/3, while baseline built Granary first. Treatment reached three cities
+earlier but ended with capital size 4 instead of 5. This must not become an unconditional
+Granary-first heuristic: current 30-turn seed `104759`, with food/shield surplus 5/4, gained
+six citizens and score points from direct founder production.
+
+For a deficit of exactly one founder, treatment may sequence Granary first only if the same
+city advertises an exact founder production action and the conservative combined projection
+fits all of these stages: Granary completion; founder build/population readiness from zero
+carried shields and without credit for Granary food retention; founder route; and at least
+`production_minimum_remaining_turns` remaining for the settlement to affect score. Existing
+or necessary founder queues are not displaced, the static baseline is unchanged, and direct
+founder production remains preferred when the combined runway is shorter.
+
+Acceptance criteria:
+
+- the slow-food 60-turn state projects Granary plus founder plus route at 42 turns and
+  17 remaining settlement turns, selecting `production_preexpansion_growth`;
+- the fast-food 30-turn state projects only six remaining settlement turns and continues
+  to select `production_expansion` directly;
+- the founder projection assumes zero post-Granary shield stock and does not invent a
+  Granary food-retention effect;
+- live metrics expose sequence selection, combined settlement ETA, and remaining runway;
+- focused and full FreeCiv tests pass; and
+- a clean same-seed horizon-60 confirmation exercises the sequence without rejection or
+  fallback before the policy is considered for a larger development cohort.

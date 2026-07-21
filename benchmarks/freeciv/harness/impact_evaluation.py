@@ -526,6 +526,7 @@ def write_impact_report(out, aggregate):
             "positions_explored", "tactical_actions", "cities_gained", "cities_founded",
             "founder_production_changes", "settlement_attempts",
             "production_repurpose_changes",
+            "production_preexpansion_growth_changes",
             "production_military_score_changes",
             "settlement_completions", "planner_capability_pruned_worker_moves",
             "planner_nonprogress_moves_pruned",
@@ -566,6 +567,8 @@ def write_impact_report(out, aggregate):
             "production_repurpose_avoided_population_cost",
             "production_repurpose_discarded_shield_stock",
             "production_repurpose_target_completion_rate",
+            "production_preexpansion_sequence_settlement_eta_turns",
+            "production_preexpansion_sequence_settlement_runway_turns",
             "score_component_citizen_delta", "score_component_technology_delta",
             "score_component_residual_turn_n",
             "full_loop_under_30s_rate", "model_safe_fallback_rate"):

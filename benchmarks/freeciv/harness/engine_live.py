@@ -1018,6 +1018,7 @@ async def _play(run_dir, manifest, context):
         "impact_actions": 0, "meaningful_actions": 0,
         "production_changes": 0, "founder_production_changes": 0,
         "production_repurpose_changes": 0,
+        "production_preexpansion_growth_changes": 0,
         "production_military_score_changes": 0,
         "settlement_attempts": 0, "settlement_completions": 0,
         "tactical_actions": 0,
@@ -1059,6 +1060,8 @@ async def _play(run_dir, manifest, context):
     production_repurpose_avoided_population = []
     production_repurpose_discarded_shields = []
     production_repurpose_target_completions = []
+    production_preexpansion_settlement_etas = []
+    production_preexpansion_settlement_runways = []
     corrections = 0
     final_global = None
     async with websockets.connect(
@@ -1149,6 +1152,8 @@ async def _play(run_dir, manifest, context):
                     decision_stats["founder_production_changes"] += 1
                 if category == "production_repurpose":
                     decision_stats["production_repurpose_changes"] += 1
+                if category == "production_preexpansion_growth":
+                    decision_stats["production_preexpansion_growth_changes"] += 1
                 if category == "production_military_score":
                     decision_stats["production_military_score_changes"] += 1
             if action_type == "unit_build_city":
@@ -1436,6 +1441,16 @@ async def _play(run_dir, manifest, context):
                                 "repurpose_target_completes_by_horizon") is not None:
                             production_repurpose_target_completions.append(int(
                                 projection["repurpose_target_completes_by_horizon"]))
+                        if projection.get(
+                                "preexpansion_sequence_settlement_eta_turns") is not None:
+                            production_preexpansion_settlement_etas.append(float(
+                                projection[
+                                    "preexpansion_sequence_settlement_eta_turns"]))
+                        if projection.get(
+                                "preexpansion_sequence_settlement_runway_turns") is not None:
+                            production_preexpansion_settlement_runways.append(float(
+                                projection[
+                                    "preexpansion_sequence_settlement_runway_turns"]))
                     excluded_impact_actions.add(decision.candidate.action_key)
                     confirmation_started = time.perf_counter()
                     raw, snapshot, parent, authoritative_refresh = (
@@ -1641,6 +1656,8 @@ async def _play(run_dir, manifest, context):
          decision_stats["founder_production_changes"]),
         ("production_repurpose_changes",
          decision_stats["production_repurpose_changes"]),
+        ("production_preexpansion_growth_changes",
+         decision_stats["production_preexpansion_growth_changes"]),
         ("production_military_score_changes",
          decision_stats["production_military_score_changes"]),
         ("settlement_attempts", decision_stats["settlement_attempts"]),
@@ -1750,6 +1767,12 @@ async def _play(run_dir, manifest, context):
         ("production_repurpose_target_completion_rate",
          sum(production_repurpose_target_completions)
          / float(max(1, len(production_repurpose_target_completions)))),
+        ("production_preexpansion_sequence_settlement_eta_turns",
+         sum(production_preexpansion_settlement_etas)
+         / float(max(1, len(production_preexpansion_settlement_etas)))),
+        ("production_preexpansion_sequence_settlement_runway_turns",
+         sum(production_preexpansion_settlement_runways)
+         / float(max(1, len(production_preexpansion_settlement_runways)))),
         ("score_component_citizens_turn_n", score_citizen_component),
         ("score_component_technology_turn_n", score_technology_component),
         ("score_component_residual_turn_n", score_residual_component),
@@ -1800,6 +1823,8 @@ async def _play(run_dir, manifest, context):
                 decision_stats["founder_production_changes"]),
             "production_repurpose_changes": (
                 decision_stats["production_repurpose_changes"]),
+            "production_preexpansion_growth_changes": (
+                decision_stats["production_preexpansion_growth_changes"]),
             "production_military_score_changes": (
                 decision_stats["production_military_score_changes"]),
             "settlement_attempts": decision_stats["settlement_attempts"],
@@ -1873,6 +1898,8 @@ async def _play(run_dir, manifest, context):
         "meaningful_actions": decision_stats["meaningful_actions"],
         "founder_production_changes": decision_stats["founder_production_changes"],
         "production_repurpose_changes": decision_stats["production_repurpose_changes"],
+        "production_preexpansion_growth_changes": (
+            decision_stats["production_preexpansion_growth_changes"]),
         "production_military_score_changes": (
             decision_stats["production_military_score_changes"]),
         "settlement_attempts": decision_stats["settlement_attempts"],
