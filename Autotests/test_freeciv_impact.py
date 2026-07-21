@@ -453,6 +453,68 @@ def test_founder_route_breaks_four_tile_cycle_with_fresh_exit():
     assert only_exit.candidate.projection["route_cycle_length"] == 4
 
 
+def test_founder_route_avoids_observed_attrition_but_allows_only_exit():
+    ir = _ruleset_ir((("Settlers", "unit", 30),))
+    planner = GroundedImpactPlanner(ruleset_ir=ir)
+    lost = _snapshot(
+        [_unit(1, "Settlers", 2, 0)],
+        [{"action_type": "end_turn", "is_valid": True}], turn=4)
+    disappeared = _snapshot(
+        [], [{"action_type": "end_turn", "is_valid": True}],
+        source_seq=2, turn=5)
+
+    planner.observe(lost)
+    planner.observe(disappeared)
+
+    hazardous = {"action_type": "unit_move", "actor_id": 2,
+                 "target": {"x": 2, "y": 0}, "is_valid": True}
+    safe = {"action_type": "unit_move", "actor_id": 2,
+            "target": {"x": 1, "y": 1}, "is_valid": True}
+    routed = _snapshot(
+        [_unit(2, "Settlers", 1, 0)],
+        [hazardous, safe, {"action_type": "end_turn", "is_valid": True}],
+        source_seq=3, turn=6)
+
+    assert planner.founder_attrition_move_keys(routed) == (
+        json.dumps({key: value for key, value in hazardous.items()
+                    if key != "is_valid"},
+                   sort_keys=True, separators=(",", ":")),)
+    decision = planner.plan(routed)
+    assert decision.candidate.action["target"] == safe["target"]
+    assert decision.candidate.projection[
+        "founder_attrition_position_failures"] == 0
+
+    trapped = _snapshot(
+        [_unit(2, "Settlers", 1, 0)],
+        [hazardous, {"action_type": "end_turn", "is_valid": True}],
+        source_seq=4, turn=7)
+    assert planner.founder_attrition_move_keys(trapped) == ()
+    only_exit = planner.plan(trapped)
+    assert only_exit.candidate.action["target"] == hazardous["target"]
+    assert only_exit.candidate.projection[
+        "founder_attrition_position_failures"] == 1
+
+
+def test_successful_founding_is_not_learned_as_founder_attrition():
+    ir = _ruleset_ir((("Settlers", "unit", 30),))
+    planner = GroundedImpactPlanner(
+        {"expansion_city_target": 3}, ruleset_ir=ir)
+    before = _snapshot(
+        [_unit(1, "Settlers", 3, 0)],
+        [{"action_type": "end_turn", "is_valid": True}], turn=4)
+    founded = _city()
+    founded.update({"id": 12, "name": "Antium", "tile": 3,
+                    "x": 3, "y": 0})
+    after = _snapshot(
+        [], [{"action_type": "end_turn", "is_valid": True}],
+        cities=[_city(), founded], source_seq=2, turn=5)
+
+    planner.observe(before)
+    planner.observe(after)
+
+    assert planner._founder_attrition_positions == {}
+
+
 def test_deferred_confirmation_recovers_late_founder_route_effect():
     ir = _ruleset_ir((("Settlers", "unit", 30),))
     planner = GroundedImpactPlanner(ruleset_ir=ir)

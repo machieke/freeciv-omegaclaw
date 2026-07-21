@@ -804,3 +804,23 @@ the city's current shield surplus. This bounds the exception to completion overf
 automatic production tick; a missed boundary cannot destroy a later trajectory. Expose
 `production_preexpansion_founder_changes`, test exact target selection and the discard bound,
 then require a clean seed-`1884108` activation before touching untouched seeds.
+
+The clean activation replay at
+`artifacts/freeciv/impact-preexpansion-followup-1884108-20260721` confirmed the production
+mechanism but did not improve the outcome. City 109 selected Granary on turn 21, installed
+the exact Settlers target on turn 30 with only one automatic shield tick discarded, and
+subsequently completed founders 117 and 123. The dedicated growth/followup metrics each
+recorded one activation. Both founders were destroyed on their outward route, however, so
+treatment still completed one settlement and scored 111 versus baseline's two settlements
+and score 113. Paired fidelity, zero rejection/fallback, clean source `96a6707`, and the full
+2,740-event release audit passed. The persistent sequence is therefore retained as a
+correctness hardening, but this selected-seed result is explicitly not evidence of score
+improvement.
+
+The next narrow route hardening learns founder attrition only from consecutive authoritative
+observations: a founder must be present on a tile and later absent without a new city at that
+tile or an increase in city count. A learned loss tile suppresses a future move only when the
+same actor has another server-advertised route; the sole exit remains legal. Successful city
+founding and post-target population recovery cannot create attrition evidence. Expose the
+distinct `planner_founder_attrition_moves_pruned` metric and require both synthetic loss/site
+tests and a clean seed-`1884108` engine replay before evaluating untouched pilot seeds.

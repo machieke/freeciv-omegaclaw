@@ -256,6 +256,8 @@ class GroundedImpactPlanner(object):
         self._founder_traversable_edges = set()
         self._founder_failed_edges = {}
         self._founder_actor_failed_edges = set()
+        self._observed_founders = {}
+        self._founder_attrition_positions = {}
         self._failed_exploration_target_sources = {}
         self._failed_exploration_prunes = set()
         self._preexpansion_sequences = {}
@@ -361,6 +363,41 @@ class GroundedImpactPlanner(object):
         actions = self._actions(snapshot)
         self._server_founder_types.update(self._legal_unit_types(
             snapshot, "unit_build_city", actions))
+        founder_types = self._founder_types(snapshot, actions)
+        current_founders = {
+            int(unit.unit_id): {
+                "city_layout": self._city_layout(snapshot),
+                "map_height": int(snapshot.map_height),
+                "map_width": int(snapshot.map_width),
+                "position": (int(unit.x), int(unit.y)),
+                "unit_type": _normalized_type(unit.unit_type),
+            }
+            for unit in snapshot.units
+            if (_normalized_type(unit.unit_type) in founder_types
+                and None not in (unit.x, unit.y))
+        }
+        current_layout = self._city_layout(snapshot)
+        current_city_positions = {
+            (city.x, city.y) for city in snapshot.cities
+            if None not in (city.x, city.y)}
+        for actor_id, previous in self._observed_founders.items():
+            if actor_id in current_founders:
+                continue
+            # A founder that becomes a city is success, not attrition. Likewise,
+            # population recovery is allowed only after the expansion target and
+            # must not poison an otherwise safe city tile.
+            if (len(previous["city_layout"]) >= self.expansion_city_target
+                    or len(current_layout) > len(previous["city_layout"])
+                    or previous["position"] in current_city_positions):
+                continue
+            key = (
+                previous["unit_type"], previous["map_width"],
+                previous["map_height"], previous["position"][0],
+                previous["position"][1],
+            )
+            self._founder_attrition_positions[key] = (
+                self._founder_attrition_positions.get(key, 0) + 1)
+        self._observed_founders = current_founders
         for unit in snapshot.units:
             if unit.x is not None and unit.y is not None:
                 self.visited_positions.add((unit.x, unit.y))
@@ -424,6 +461,22 @@ class GroundedImpactPlanner(object):
             for action in actions
             if action.get("action_type") == "unit_move"
             and self._founder_cycle_has_alternative(
+                snapshot, action, founder_types, actions)))
+
+    def founder_attrition_move_keys(self, snapshot):
+        """Return founder moves diverted from an observed attrition tile.
+
+        The disappearance is learned only across authoritative observations and
+        the move is suppressed only while another server-advertised route exists.
+        This keeps a transient loss from manufacturing an impassable dead end.
+        """
+        actions = self._actions(snapshot)
+        founder_types = self._founder_types(snapshot, actions)
+        return tuple(sorted(
+            canonical_json_bytes(action).decode("utf-8")
+            for action in actions
+            if action.get("action_type") == "unit_move"
+            and self._founder_attrition_has_alternative(
                 snapshot, action, founder_types, actions)))
 
     def commit(self, candidate):
@@ -830,6 +883,38 @@ class GroundedImpactPlanner(object):
             if (other_evidence
                     and not other_evidence.get("actor_failed")
                     and not other_evidence.get("recent_revisit")):
+                return True
+        return False
+
+    def _founder_attrition_count(self, snapshot, action, founder_types):
+        edge = self._founder_edge(snapshot, action, founder_types)
+        if edge is None:
+            return 0
+        key = (edge[0], int(snapshot.map_width), int(snapshot.map_height),
+               edge[3], edge[4])
+        return int(self._founder_attrition_positions.get(key, 0))
+
+    def _founder_attrition_has_alternative(
+            self, snapshot, action, founder_types, actions=None):
+        """Avoid a grounded loss site only when a legal fresh route remains."""
+        if (len(snapshot.cities) >= self.expansion_city_target
+                or self._founder_attrition_count(
+                    snapshot, action, founder_types) <= 0):
+            return False
+        actor_id = action.get("actor_id")
+        action_key = canonical_json_bytes(action).decode("utf-8")
+        for alternative in self._actions(snapshot) if actions is None else actions:
+            if (alternative.get("action_type") != "unit_move"
+                    or alternative.get("actor_id") != actor_id
+                    or canonical_json_bytes(alternative).decode(
+                        "utf-8") == action_key):
+                continue
+            evidence = self._founder_move_evidence(
+                snapshot, alternative, founder_types)
+            if (evidence
+                    and not evidence.get("actor_failed")
+                    and self._founder_attrition_count(
+                        snapshot, alternative, founder_types) <= 0):
                 return True
         return False
 
@@ -1730,6 +1815,9 @@ class GroundedImpactPlanner(object):
             if self._founder_cycle_has_alternative(
                     snapshot, action, founder_types):
                 return None
+            if self._founder_attrition_has_alternative(
+                    snapshot, action, founder_types):
+                return None
             projection = None
             route_utility = 0.0
             utility = 800.0 + city_distance * 20.0 + novelty * 15.0
@@ -1763,6 +1851,9 @@ class GroundedImpactPlanner(object):
                         evidence.get("cardinal_corridor_match", False)),
                     "failed_edge_attempts": int(
                         evidence.get("failed_attempts", 0)),
+                    "founder_attrition_position_failures": (
+                        self._founder_attrition_count(
+                            snapshot, action, founder_types)),
                     "founder_route_eta_turns": self._founder_route_eta()[0],
                     "immediate_backtrack": bool(
                         evidence.get("immediate_backtrack", False)),
