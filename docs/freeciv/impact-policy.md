@@ -492,6 +492,22 @@ baseline's two. Initial state, zero rejection/fallback, clean implementation ide
 the complete 2,641-event release audit passed. This supports broad correctness and removes
 one reused negative outcome, but is still not an independent estimate.
 
+A third clean confirmation at
+`artifacts/freeciv/impact-founder-cycle-escape-1463275-20260721` targeted the strongest
+historical treatment-only cycle in that scan. The old treatment alternated founder `113`
+between `(10,22)` and `(11,22)` on turns 31--60, never founded its third city, and scored
+114 against the old baseline's 116. With cycle escape, treatment routed that founder through
+three non-repeating moves and founded city three on turn 18. It finished with 16 citizens
+and score 119, while the current baseline finished with 11 citizens and score 116; the
+paired delta therefore changed from historical `-2` to current `+3`. The current arms
+recorded seven/four distinct cycle prunes, two settlement completions each, zero route
+failures, and zero rejection/fallback. Paired initial state, clean commit `01d1011`, stable
+implementation identity, and the complete 3,095-event release audit passed. Together, the
+three deliberately selected replays show that cycle escape removes the observed defect and
+improves all three historical asymmetric outcomes (`0` to `+4`, `-1` to `0`, and `-2` to
+`+3`). Selection on prior trace behavior means those deltas cannot estimate population-wide
+impact and do not revise the immutable score claim.
+
 ## Combat attribution, occupancy, and hut-entry hardening
 
 Offensive actions retain an exact pre-action fingerprint of the packet-visible enemy

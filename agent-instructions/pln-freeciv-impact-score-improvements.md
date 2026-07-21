@@ -720,3 +720,17 @@ and changed the paired delta from `-1` to `0`. Baseline/treatment reported ten/s
 cycle prunes, while treatment needed one founder build versus baseline's two. All safety and
 initial-state gates plus the 2,641-event release audit passed. This is reused-seed directional
 evidence, not a formal claim revision.
+
+The third clean confirmation at
+`artifacts/freeciv/impact-founder-cycle-escape-1463275-20260721` targeted a historical pair
+whose treatment founder alternated between two tiles on turns 31--60. The old treatment
+never completed city three and scored 114 versus baseline 116. The current treatment took
+three non-repeating route steps, founded city three on turn 18, finished with 16 citizens,
+and scored 119 versus the current baseline's 11 citizens and score 116. The paired delta
+changed from `-2` to `+3`; current baseline/treatment recorded seven/four cycle prunes, two
+settlements each, no route failures, and no rejected actions or fallbacks. Paired fidelity,
+clean commit `01d1011`, stable implementation identity, and the complete 3,095-event release
+audit passed. Across the three selected mechanism replays, historical-to-current paired
+deltas changed `0` to `+4`, `-1` to `0`, and `-2` to `+3`. These seeds were selected using
+old outcomes and cycle traces, so they validate the mechanism but cannot update the formal
+effect estimate.
