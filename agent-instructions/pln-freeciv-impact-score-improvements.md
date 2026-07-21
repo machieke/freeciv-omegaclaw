@@ -971,3 +971,18 @@ behavior only when the packet terrain definition is genuinely unavailable. Requi
 contract tests for flagged land and ordinary land, patch-digest/release-audit stability, the
 full repository suite, and a clean seed-`1825420` engine replay. This is a legality fix first;
 only a changed settlement or score outcome can count as selected-seed mechanism evidence.
+
+The clean confirmation at `artifacts/freeciv/impact-nocities-1825420-20260721` exercised the
+new proxy boundary. Each arm omitted founding at two packet-known `NoCities` sites and reduced
+total attempts from nine to seven. Six other distinct attempts remained ineffective; each arm
+completed one settlement, retained five citizens, and scored 110. Both games used clean source
+`d0562f2`, matched initial state, had zero rejection/fallback, and passed the complete
+3,692-event release audit. The exact terrain rule is retained as legal-action correctness
+hardening, not score evidence. It also bounds the diagnosis: the remaining failures must not
+be labeled `NoCities` without a new authoritative signal.
+
+Freeze the next untouched current-policy checkpoint as V4 indices 20--24, literal seeds
+`1838062, 1889362, 1842823, 1832144, 1824032`. Execute the five pairs from one clean source
+with the updated proxy identity, report their deltas and interval separately, and do not pool
+them with indices 0--19 or the immutable confirmatory claim. This remains adaptive
+development evidence and cannot revise the formal score or win-rate claim.

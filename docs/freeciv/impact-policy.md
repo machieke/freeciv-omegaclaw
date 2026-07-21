@@ -713,6 +713,14 @@ and city spacing, while the active ruleset also requires the current terrain not
 `unit_build_city`. A clean same-seed engine replay is required before treating this as more
 than legal-action correctness hardening.
 
+The clean confirmation at `artifacts/freeciv/impact-nocities-1825420-20260721` removed the
+founding orders at two packet-known `NoCities` sites in each arm, reducing attempts from nine
+to seven. Six other distinct sites still had no effect, both arms completed one settlement,
+and both scored 110. Clean source `d0562f2`, paired initial-state fidelity, zero
+rejection/fallback, and the complete 3,692-event release audit passed. Retain the exact
+terrain legality check, but do not count this selected-seed efficiency result as a score gain
+or infer that the remaining failures share the same terrain cause.
+
 ## Operational note
 
 On the recorded CPU host, a cold load of `qwen3-coder-next:latest` took 41.6 seconds,
