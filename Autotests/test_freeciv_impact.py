@@ -1243,6 +1243,10 @@ def test_horizon_policy_sequences_granary_before_last_slow_growth_founder():
     assert decision.candidate.projection[
         "preexpansion_founder_population_ready_eta_turns"] == 25
     assert decision.candidate.projection[
+        "preexpansion_direct_founder_population_ready_eta_turns"] == 25
+    assert decision.candidate.projection[
+        "preexpansion_direct_founder_shield_completion_eta_turns"] == 10
+    assert decision.candidate.projection[
         "preexpansion_sequence_settlement_eta_turns"] == 42
     assert decision.candidate.projection[
         "preexpansion_sequence_settlement_runway_turns"] == 17
@@ -1298,6 +1302,22 @@ def test_horizon_policy_sequences_granary_before_last_slow_growth_founder():
         "expansion_minimum_remaining_turns": 12,
     }, ruleset_ir=zero_pop_ir).plan(snapshot).candidate.category == (
         "production_expansion")
+
+    population_ready = _snapshot(
+        [_unit(1, "Settlers")], actions,
+        cities=[_city(
+            size=4, food_stock=16, shield_stock=0,
+            surplus=(3, 4, 6, 2, 0, 4))],
+        turn=21, source_seq=5)
+    direct = GroundedImpactPlanner({
+        "horizon_turn": 60, "expansion_city_target": 3,
+        "production_minimum_remaining_turns": 8,
+        "expansion_minimum_remaining_turns": 12,
+    }, ruleset_ir=ir).plan(population_ready)
+    assert direct.candidate.category == "production_expansion"
+    assert direct.candidate.action["target"]["production_type"] == "Settlers"
+    assert direct.candidate.projection["population_ready_eta_turns"] == 0
+    assert direct.candidate.projection["shield_completion_eta_turns"] == 8
 
 
 def test_horizon_policy_keeps_direct_founder_when_granary_leaves_short_runway():

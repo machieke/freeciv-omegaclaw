@@ -824,3 +824,23 @@ same actor has another server-advertised route; the sole exit remains legal. Suc
 founding and post-target population recovery cannot create attrition evidence. Expose the
 distinct `planner_founder_attrition_moves_pruned` metric and require both synthetic loss/site
 tests and a clean seed-`1884108` engine replay before evaluating untouched pilot seeds.
+
+The clean attrition replay at
+`artifacts/freeciv/impact-founder-attrition-1884108-20260721` recorded one treatment prune
+and changed the second replacement founder's route, while preserving a legal sole exit.
+It did not change settlement count, citizens, or score: treatment again completed one
+settlement with eight citizens and score 111 versus baseline's two settlements, ten citizens,
+and score 113. Both arms were byte-count stable with the preceding replay, used clean commit
+`b5b11d7`, had zero rejection/fallback, and passed the 2,740-event release audit. Retain the
+bounded rule as route correctness hardening, but do not describe this selected-seed result as
+a score gain.
+
+The unchanged outcome exposes an earlier projection error. At turn 21 city 109 was already
+size four, so the two-population Settler was immediately population-ready and direct production
+was shield-bound: eight build turns plus route. Granary-first delayed that same founder until
+turn 36 and exposed it to a later hostile corridor. Restrict `production_preexpansion_growth`
+to the case it was designed for: the direct founder's authoritative population-readiness ETA
+must be strictly greater than its shield-completion ETA. When the direct build is shield-bound,
+select `production_expansion` immediately. Preserve the validated slow-growth case (population
+ETA 25 versus shield ETA 10), expose both direct ETAs in the sequence projection, and require
+a clean seed-`1884108` replay to recover the early-founder trajectory before proceeding.

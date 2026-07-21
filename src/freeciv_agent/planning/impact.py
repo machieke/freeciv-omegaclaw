@@ -1423,6 +1423,20 @@ class GroundedImpactPlanner(object):
             founder_name = _target_name(founder_action)
             if _normalized_type(founder_name) not in founder_types:
                 continue
+            direct_founder_projection = self._production_projection(
+                city, founder_name, remaining_turns, snapshot=snapshot,
+                founder_types=founder_types)
+            direct_population_eta = direct_founder_projection.get(
+                "population_ready_eta_turns")
+            direct_shield_eta = direct_founder_projection.get(
+                "shield_completion_eta_turns")
+            # Granary-first is a population-timing optimization, not a generic
+            # infrastructure preference. If the direct founder is already
+            # shield-bound, sequencing can only delay settlement and expose the
+            # founder/new city to additional horizon risk.
+            if (direct_population_eta is None or direct_shield_eta is None
+                    or int(direct_population_eta) <= int(direct_shield_eta)):
+                continue
             founder_projection = self._production_projection(
                 city, founder_name, founder_remaining, snapshot=snapshot,
                 founder_types=founder_types, shield_stock_override=0)
@@ -1440,11 +1454,13 @@ class GroundedImpactPlanner(object):
             action_key = canonical_json_bytes(founder_action).decode("utf-8")
             rank = (combined_eta, action_key)
             if best is None or rank < best[0]:
-                best = (rank, founder_action, founder_name, founder_projection,
+                best = (rank, founder_action, founder_name,
+                        direct_founder_projection, founder_projection,
                         combined_eta, settlement_runway)
         if best is None:
             return None
-        (_, founder_action, founder_name, founder_projection,
+        (_, founder_action, founder_name, direct_founder_projection,
+         founder_projection,
          combined_eta, settlement_runway) = best
         projection.update({
             "founder_deficit_before": founder_deficit,
@@ -1455,6 +1471,10 @@ class GroundedImpactPlanner(object):
                 founder_projection.get("completion_eta_turns")),
             "preexpansion_founder_population_ready_eta_turns": (
                 founder_projection.get("population_ready_eta_turns")),
+            "preexpansion_direct_founder_population_ready_eta_turns": (
+                direct_founder_projection.get("population_ready_eta_turns")),
+            "preexpansion_direct_founder_shield_completion_eta_turns": (
+                direct_founder_projection.get("shield_completion_eta_turns")),
             "preexpansion_founder_score_value": founder_projection["score_value"],
             "preexpansion_sequence_settlement_eta_turns": combined_eta,
             "preexpansion_sequence_settlement_runway_turns": settlement_runway,
