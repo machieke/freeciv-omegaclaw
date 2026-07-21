@@ -638,6 +638,14 @@ Before further outcome inspection, V4 indices 15--19 are frozen as the next unto
 current-policy checkpoint: `1887134, 1818337, 1881562, 1825420, 1844064`. This adaptive
 five-pair slice remains separate from all earlier V4 slices and from the immutable claim.
 
+That slice completed at
+`artifacts/freeciv/impact-current-policy-pilot-v4-holdout15-19-20260721` with deltas
+`0, +1, 0, 0, 0`, mean `+0.20`, and interval `[0.00, 0.60]`. All ten arms passed paired
+fidelity, zero rejection/fallback, required clean-source stability at `2e5f2b8`, and the
+15,038-event release audit. The result is non-regressive but small, adaptive, and
+claim-ineligible. Seed `1881562` is the only treatment-specific missing-settlement case and
+is the next post-hoc route diagnostic; two other one-settlement pairs affected both arms.
+
 ## Combat attribution, occupancy, and hut-entry hardening
 
 Offensive actions retain an exact pre-action fingerprint of the packet-visible enemy

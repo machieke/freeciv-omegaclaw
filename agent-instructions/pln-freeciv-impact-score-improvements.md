@@ -911,3 +911,18 @@ Freeze the next untouched current-policy checkpoint as V4 indices 15--19, litera
 `1887134, 1818337, 1881562, 1825420, 1844064`. Execute all five pairs from one clean source
 without mid-slice inspection-driven changes, report their deltas and interval separately,
 and do not pool them with indices 0--14 or the immutable claim cohort.
+
+The frozen V4 indices 15--19 slice completed at
+`artifacts/freeciv/impact-current-policy-pilot-v4-holdout15-19-20260721` with deltas
+`0, +1, 0, 0, 0`, mean `+0.20`, and paired-bootstrap interval `[0.00, 0.60]`. All ten arms
+completed with paired initial-state fidelity, zero rejection/fallback, required clean-source
+stability at `2e5f2b8`, and a passing 15,038-event release audit. The exact sign-flip and
+meaningful-margin tests both had p-value `1.0`; this small adaptive slice is compatible with
+non-regression, not a materially improved score claim, and remains separate from every prior
+slice.
+
+Seed `1881562` is the only asymmetric expansion case: baseline completed two settlements,
+treatment one, while both scored 114. It may now be inspected post hoc for route correctness.
+Seeds `1825420` and `1844064` had one settlement in both arms and are not treatment-specific
+defects. Require exact evidence before changing policy, and treat any same-seed replay only as
+mechanism confirmation.
