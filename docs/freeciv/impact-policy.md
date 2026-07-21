@@ -617,6 +617,15 @@ V4 slices nor used to revise the immutable formal estimate. Seed `1847487`, the 
 pair and sole treatment arm missing the second settlement, is the next post-hoc diagnostic
 target.
 
+That trace showed the next route-boundary issue. Exact edges learned while the civilization
+had one city were still receiving a positive corridor bonus after city two changed the
+expansion geometry. The replacement founder therefore followed the already-consumed route,
+made an accepted-but-no-effect founding attempt between the existing cities, and was later
+lost. Traversability bonuses are now keyed by both exact edge and authoritative city layout.
+They remain reusable by another founder while the layout is unchanged, but cannot override
+fresh city-network separation after a city is founded. A clean same-seed replay is required
+before this post-hoc hardening is treated as causal mechanism evidence.
+
 ## Combat attribution, occupancy, and hut-entry hardening
 
 Offensive actions retain an exact pre-action fingerprint of the packet-visible enemy

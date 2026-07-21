@@ -881,3 +881,17 @@ any same-seed replay is mechanism evidence only. Diagnose the missing settlement
 production, founder-route, and city-state events before changing policy. Do not weaken the
 confirmed population-bound sequencing rule merely because one selected pair remained
 negative.
+
+Exact inspection of seed `1847487` found a route-evidence scope error. Founder 104's route
+to city two proved edges traversable under the original one-city layout. After that city was
+founded, treatment founder 116 received the same edge bonuses, followed the already-consumed
+corridor, and attempted to found at `(6,8)`, exactly distance three from both existing cities.
+The server advertised and accepted the order but no city appeared; the founder then moved
+twice and was lost. Baseline's later founder instead went north and founded at `(6,2)`.
+
+Keep exact traversability evidence, but scope its route-preference bonus to the authoritative
+city layout under which it was observed. A city-layout change must remove the stale bonus;
+within an unchanged layout, same- and cross-founder evidence remains available. Failed-edge,
+cycle, sole-exit, legality, and execution-gate behavior are unchanged. Require a synthetic
+changed-layout regression, the full suite, and a clean seed-`1847487` replay showing a fresh
+outward route and a second settlement before considering another untouched slice.

@@ -815,6 +815,10 @@ class GroundedImpactPlanner(object):
             int(unit.unit_id), edge, self._city_layout(snapshot),
         )
 
+    def _founder_traversable_edge(self, snapshot, edge):
+        """Scope route-preference evidence to its strategic city geometry."""
+        return (edge, self._city_layout(snapshot))
+
     def _founder_cardinal_intent(self, snapshot, unit):
         intent = self._founder_cardinal_intents.get(unit.unit_id)
         if (intent is None
@@ -859,7 +863,9 @@ class GroundedImpactPlanner(object):
             "immediate_backtrack": immediate_backtrack,
             "recent_revisit": recent_revisit,
             "route_cycle_length": route_cycle_length,
-            "traversable_edge": edge in self._founder_traversable_edges,
+            "traversable_edge": (
+                self._founder_traversable_edge(snapshot, edge)
+                in self._founder_traversable_edges),
         }
 
     def _founder_cycle_has_alternative(
@@ -942,7 +948,8 @@ class GroundedImpactPlanner(object):
         if traversed:
             self.founder_route_successes += 1
             self.founder_cardinal_corridor_successes += int(corridor_attempt)
-            self._founder_traversable_edges.add(edge)
+            self._founder_traversable_edges.add(
+                self._founder_traversable_edge(before, edge))
             self._founder_actor_failed_edges.discard(actor_edge)
             source = (unit.x, unit.y)
             history = list(self._founder_route_positions.get(

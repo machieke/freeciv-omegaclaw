@@ -275,6 +275,24 @@ def test_founder_route_learns_exact_traversal_for_another_founder():
     assert decision.candidate.action["target"] == {"x": 1, "y": 0}
     assert decision.candidate.projection["traversable_edge"]
 
+    # Founding a city changes which outward corridor is strategically useful.
+    # The exact edge remains terrain evidence, but must not receive a stale
+    # route bonus under a different city layout.
+    frontier_city = _city()
+    frontier_city.update({"id": 12, "name": "Antium", "tile": 5,
+                          "x": 5, "y": 0})
+    changed_layout = _snapshot(
+        [_unit(2, "Settlers")], [
+            {"action_type": "unit_move", "actor_id": 2,
+             "target": {"x": 0, "y": 1}, "is_valid": True},
+            {"action_type": "unit_move", "actor_id": 2,
+             "target": {"x": 1, "y": 0}, "is_valid": True},
+            {"action_type": "end_turn", "is_valid": True},
+        ], cities=[_city(), frontier_city], source_seq=4)
+    changed_decision = planner.plan(changed_layout)
+    assert changed_decision.candidate.action["target"] == {"x": 0, "y": 1}
+    assert not changed_decision.candidate.projection["traversable_edge"]
+
 
 def test_founder_route_continues_only_a_pre_spacing_cardinal_corridor():
     ir = _ruleset_ir((("Settlers", "unit", 30),))
