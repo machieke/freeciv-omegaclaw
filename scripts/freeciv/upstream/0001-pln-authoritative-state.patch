@@ -21,7 +21,7 @@ index cab9980..291f8ec 100644
  ACTION_TRANSPORT_BOARD = 68
  ACTION_TRANSPORT_EMBARK = 72
 diff --git a/freeciv-proxy/action_validator.py b/freeciv-proxy/action_validator.py
-index 96d166c..3c2fb11 100644
+index 96d166c..057b810 100644
 --- a/freeciv-proxy/action_validator.py
 +++ b/freeciv-proxy/action_validator.py
 @@ -325,6 +325,8 @@ class LLMActionValidator:
@@ -248,7 +248,7 @@ index 44cefa7..53f4558 100644
  
  class BitVector:
 diff --git a/freeciv-proxy/civcom.py b/freeciv-proxy/civcom.py
-index 02e3d7d..4a55df1 100755
+index 02e3d7d..0481126 100755
 --- a/freeciv-proxy/civcom.py
 +++ b/freeciv-proxy/civcom.py
 @@ -44,6 +44,7 @@ from packet_constants import (
@@ -269,17 +269,19 @@ index 02e3d7d..4a55df1 100755
  
  # Tech research constants (from freeciv/common/tech.h and fc_types.js)
  # A_UNSET indicates that no tech is selected (for research)
-@@ -83,6 +85,9 @@ MAX_NUM_ADVANCES = 250
+@@ -83,6 +85,11 @@ MAX_NUM_ADVANCES = 250
  A_LAST = MAX_NUM_ADVANCES + 1  # 251
  A_UNSET = A_LAST + 2  # 253
  
 +# `extra_cause` enum value from the pinned server protocol.
 +EXTRA_CAUSE_HUT = 6
++# `terrain_flag_id` enum value from freeciv/common/terrain.h.
++TERRAIN_FLAG_NO_CITIES = 1
 +
  # FreeCiv Action IDs - from freeciv/freeciv-web/src/main/webapp/javascript/fc_types.js
  # These define the action types that units can perform
  ACTION_ESTABLISH_EMBASSY = 0
-@@ -280,30 +285,6 @@ def get_unit_type_name(type_id):
+@@ -280,30 +287,6 @@ def get_unit_type_name(type_id):
          return UNIT_TYPE_NAMES.get(type_id, f'unit_{type_id}')
      return 'unknown'
  
@@ -310,7 +312,7 @@ index 02e3d7d..4a55df1 100755
  def get_activity_name(activity_id):
      """Convert FreeCiv activity ID to human-readable name.
  
-@@ -316,7 +297,7 @@ def get_activity_name(activity_id):
+@@ -316,7 +299,7 @@ def get_activity_name(activity_id):
      Examples:
          >>> get_activity_name(0)
          'idle'
@@ -319,7 +321,7 @@ index 02e3d7d..4a55df1 100755
          'sentry'
          >>> get_activity_name(None)
          None
-@@ -328,8 +309,8 @@ def get_activity_name(activity_id):
+@@ -328,8 +311,8 @@ def get_activity_name(activity_id):
      if isinstance(activity_id, str):
          return activity_id.lower()
      if isinstance(activity_id, int):
@@ -330,7 +332,7 @@ index 02e3d7d..4a55df1 100755
  
  # The CivCom handles communication between freeciv-proxy and the Freeciv C
  # server.
-@@ -370,6 +351,9 @@ class CivCom(Thread):
+@@ -370,6 +353,9 @@ class CivCom(Thread):
          self.player_id = None  # Will be set from PACKET_PLAYER_INFO
          self.nations = {}  # Will be populated from PACKET_RULESET_NATION (pid=148)
          self.research_info = {}  # {player_id: PACKET_RESEARCH_INFO} - tracks tech progress
@@ -340,7 +342,7 @@ index 02e3d7d..4a55df1 100755
          self.spaceship_info = {}  # {player_id: spaceship_data} - tracks spaceship progress per player
          self.initial_units_received = False  # Set True when first PACKET_UNIT_INFO for our player arrives
  
-@@ -472,9 +456,13 @@ class CivCom(Thread):
+@@ -472,9 +458,13 @@ class CivCom(Thread):
              player_id: Specific player to invalidate, or None for all players
              cache_type: 'tech', 'city', or None for all types
          """
@@ -355,7 +357,7 @@ index 02e3d7d..4a55df1 100755
              # Cache key format: "{turn}_{player_id}_{type}_actions"
              if player_id is not None and f"_{player_id}_" not in key:
                  continue
-@@ -483,7 +471,7 @@ class CivCom(Thread):
+@@ -483,7 +473,7 @@ class CivCom(Thread):
              keys_to_remove.append(key)
  
          for key in keys_to_remove:
@@ -364,7 +366,7 @@ index 02e3d7d..4a55df1 100755
  
          if keys_to_remove:
              logger.debug(f"Invalidated {len(keys_to_remove)} action cache entries for player={player_id}, type={cache_type}")
-@@ -587,6 +575,12 @@ class CivCom(Thread):
+@@ -587,6 +577,12 @@ class CivCom(Thread):
  
          return -1
  
@@ -377,7 +379,7 @@ index 02e3d7d..4a55df1 100755
      def _get_nation_name(self, nation_id):
          """Convert nation ID to human-readable name using nations registry.
  
-@@ -846,6 +840,14 @@ class CivCom(Thread):
+@@ -846,6 +842,14 @@ class CivCom(Thread):
          Returns:
              True if city can build the unit, False otherwise
          """
@@ -392,7 +394,7 @@ index 02e3d7d..4a55df1 100755
          can_build_bitvector = city.get('can_build_unit')
          if not can_build_bitvector:
              # No bitvector available - fallback to allowing (server hasn't sent build info yet)
-@@ -873,6 +875,12 @@ class CivCom(Thread):
+@@ -873,6 +877,12 @@ class CivCom(Thread):
          Returns:
              True if city can build the improvement, False otherwise
          """
@@ -405,7 +407,23 @@ index 02e3d7d..4a55df1 100755
          can_build_bitvector = city.get('can_build_improvement')
          if not can_build_bitvector:
              # No bitvector available - fallback to allowing (server hasn't sent build info yet)
-@@ -1469,6 +1477,12 @@ class CivCom(Thread):
+@@ -1008,2 +1018,4 @@ class CivCom(Thread):
+-        # Check terrain - can't build on ocean
++        # Mirror the active ruleset's terrain precondition for Found City.
++        # Ocean class alone is insufficient: Glacier, Lake, and ruleset-defined
++        # land terrain may carry the NoCities flag as well.
+         tile = self.tiles.get(tile_index)
+@@ -1011,3 +1023,8 @@ class CivCom(Thread):
+             terrain_id = tile.get('terrain')
+-            if terrain_id is not None and self.get_terrain_class(terrain_id) == TC_OCEAN:
++            terrain = self.terrains.get(terrain_id) if terrain_id is not None else None
++            if terrain and bitvector_is_set(
++                    terrain.get('flags', []), TERRAIN_FLAG_NO_CITIES):
++                return (False, "Terrain has NoCities flag")
++            if (terrain_id is not None
++                    and self.get_terrain_class(terrain_id) == TC_OCEAN):
+                 return (False, "Cannot found city on ocean")
+@@ -1469,6 +1486,12 @@ class CivCom(Thread):
          try:
              packet = json.loads(packet_json)
              packet_type = packet.get('pid')
@@ -418,7 +436,7 @@ index 02e3d7d..4a55df1 100755
  
              # Configurable packet logging for debugging (set CIVCOM_PACKET_LOG_LIMIT env var)
              if not hasattr(self, '_packet_type_log_count'):
-@@ -1586,6 +1600,7 @@ class CivCom(Thread):
+@@ -1586,6 +1609,7 @@ class CivCom(Thread):
                  packet_username = packet.get('username', '')
                  logger.debug(f"Received PACKET_PLAYER_INFO: playerno={player_id}, username='{packet_username}' for {self.username}")
                  if player_id is not None:
@@ -426,7 +444,7 @@ index 02e3d7d..4a55df1 100755
                      # Check if this player info is for our connection
                      if packet_username == self.username:
                          # This is OUR player! Store the player_id (fallback if CONN_INFO didn't set it)
-@@ -1628,7 +1643,7 @@ class CivCom(Thread):
+@@ -1628,7 +1652,7 @@ class CivCom(Thread):
                      unit_type_raw = packet.get('type')
  
                      # Convert integer type ID to human-readable string name
@@ -435,7 +453,7 @@ index 02e3d7d..4a55df1 100755
  
                      def get_coords_from_tile_index(tile_idx):
                          # tile['index'] = x + y * map['xsize'];
-@@ -1653,10 +1668,15 @@ class CivCom(Thread):
+@@ -1653,10 +1677,15 @@ class CivCom(Thread):
                          'type_id': unit_type_raw,  # Preserve original integer for debugging/reference
                          'tile': tile_idx,
                          'homecity': packet.get('homecity', 0),
@@ -451,7 +469,7 @@ index 02e3d7d..4a55df1 100755
                          'done_moving': packet.get('done_moving', False),
                          'activity': activity_name,  # String name (e.g., 'idle', 'sentry') or None
                          'x': x,
-@@ -1720,6 +1740,9 @@ class CivCom(Thread):
+@@ -1720,6 +1749,9 @@ class CivCom(Thread):
                          # surplus and prod are arrays indexed by O_FOOD, O_SHIELD, O_TRADE, etc.
                          'surplus': packet.get('surplus', []),
                          'prod': packet.get('prod', []),
@@ -461,7 +479,7 @@ index 02e3d7d..4a55df1 100755
                      }
  
                      # Convert player_cities to dict if it's still a list
-@@ -1788,6 +1811,12 @@ class CivCom(Thread):
+@@ -1788,6 +1820,12 @@ class CivCom(Thread):
                              })
  
                      city['can_build'] = can_build
@@ -474,7 +492,7 @@ index 02e3d7d..4a55df1 100755
  
                      # Also store granary info if present
                      if 'granary_size' in packet:
-@@ -1844,10 +1873,40 @@ class CivCom(Thread):
+@@ -1844,10 +1882,40 @@ class CivCom(Thread):
                  unit_id = packet.get('id')
                  owner = packet.get('owner')
                  if unit_id is not None:
@@ -517,7 +535,7 @@ index 02e3d7d..4a55df1 100755
              elif packet_type == PACKET_RULESET_NATION:
                  nation_id = packet.get('id')
                  # Try multiple fields for nation name (different packet versions use different fields)
-@@ -2438,13 +2497,110 @@ class CivCom(Thread):
+@@ -2438,13 +2506,110 @@ class CivCom(Thread):
  
      def handle_state_query(self, player_id, format='full'):
          """Handle LLM state query requests with different formats"""
@@ -629,7 +647,7 @@ index 02e3d7d..4a55df1 100755
      def build_llm_optimized_state(self, player_id):
          """Build compressed state for LLMs (target < 4KB)"""
          # Ensure we always have valid game state values (defensive against early queries)
-@@ -2966,6 +3122,12 @@ class CivCom(Thread):
+@@ -2966,6 +3131,12 @@ class CivCom(Thread):
          diplomacy_actions = self._get_diplomacy_actions(player_id)
          all_actions.extend(diplomacy_actions)
  
@@ -642,7 +660,7 @@ index 02e3d7d..4a55df1 100755
          return all_actions
  
      def _score_and_filter_actions(self, actions, max_actions):
-@@ -3096,9 +3258,12 @@ class CivCom(Thread):
+@@ -3096,9 +3267,12 @@ class CivCom(Thread):
          for pid, research_packet in research_info.items():
              inventions = research_packet.get('inventions', [])
              known_tech_names = [
@@ -1077,7 +1095,7 @@ index e16064b..8ad4e05 100644
              "sub_target": action.get("sub_tgt_id", -1),
              "name": "",
 diff --git a/freeciv-proxy/security.py b/freeciv-proxy/security.py
-index 2815c8c..72bbf66 100644
+index 2815c8c..c9727ca 100644
 --- a/freeciv-proxy/security.py
 +++ b/freeciv-proxy/security.py
 @@ -32,7 +32,11 @@ class InputSanitizer:
@@ -1111,7 +1129,7 @@ index 2815c8c..72bbf66 100644
              if 'player_id' in action:
                  sanitized['player_id'] = cls.sanitize_player_id(action['player_id'])
  
-@@ -226,6 +237,14 @@ class InputSanitizer:
+@@ -226,6 +241,14 @@ class InputSanitizer:
              if 'name' in action:
                  sanitized['name'] = cls.sanitize_string_field(action['name'], 'city_name')
  
@@ -1126,7 +1144,7 @@ index 2815c8c..72bbf66 100644
          # Handler for diplomacy_* actions (diplomacy_declare_war, diplomacy_propose_peace, etc.)
          elif action_type.startswith('diplomacy_'):
              if 'target_player_id' in action:
-@@ -295,7 +314,7 @@ class InputSanitizer:
+@@ -295,7 +318,7 @@ class InputSanitizer:
  
          if 'format' in params:
              format_val = params['format']
@@ -1553,10 +1571,10 @@ index dc8c8ab..77ed308 100644
 +        assert result['dest_tile'] == 56
 diff --git a/freeciv-proxy/tests/test_pln_authoritative_state.py b/freeciv-proxy/tests/test_pln_authoritative_state.py
 new file mode 100644
-index 0000000..966f28d
+index 0000000..13a459e
 --- /dev/null
 +++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
-@@ -0,0 +1,340 @@
+@@ -0,0 +1,357 @@
 +"""Contract tests for the packet-backed PLN authoritative state format."""
 +
 +import json
@@ -1629,6 +1647,23 @@ index 0000000..966f28d
 +    assert state["authoritative"]["known_hut_tiles"] == [56]
 +    assert CivCom.tile_has_extra_cause(civcom, 56, 6)
 +    assert not CivCom.tile_has_extra_cause(civcom, 57, 6)
++
++
++def test_city_founding_rejects_packet_known_no_cities_terrain():
++    civcom = make_civcom()
++    civcom.map_info = {"width": 10, "height": 10}
++    civcom.citymindist = 3
++    civcom.player_cities = {}
++    civcom.tiles = {56: {"terrain": 4}}
++    civcom.terrains = {
++        4: {"tclass": 0, "flags": [1 << 1]},
++        5: {"tclass": 0, "flags": [0]},
++    }
++
++    assert CivCom.can_city_be_founded_at(civcom, 56) == (
++        False, "Terrain has NoCities flag")
++    civcom.tiles[56]["terrain"] = 5
++    assert CivCom.can_city_be_founded_at(civcom, 56) == (True, None)
 +
 +
 +def test_known_technology_names_use_exact_invention_array_indices():
@@ -1899,7 +1934,7 @@ index 0000000..966f28d
 +        "Cannot move onto packet-visible non-allied city owned by player 1")
 diff --git a/freeciv-proxy/tests/test_release_game_configuration.py b/freeciv-proxy/tests/test_release_game_configuration.py
 new file mode 100644
-index 0000000..8140dcf
+index 0000000..d6223ee
 --- /dev/null
 +++ b/freeciv-proxy/tests/test_release_game_configuration.py
 @@ -0,0 +1,234 @@

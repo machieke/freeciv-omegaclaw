@@ -14,7 +14,7 @@ The patch is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. Its SHA-256 is
-`eeb0b3c5fbf6d3a6ea44264fdc7dc940f9073b8c06ef1cbfdc5d6c3c806c2fed`.
+`edae0c82f91e0a385f438d8691744c3cdae68aade1daceb78be3ec9653dbacb5`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 State-response cache identity includes both turn and the monotonic packet sequence. Same-turn
@@ -25,6 +25,13 @@ valid cache owner during targeted eviction.
 City-production advertisements prefer the current server-normalized buildability IDs over
 legacy raw bitvectors. This prevents obsolete or otherwise non-buildable targets from being
 presented as legal merely because the raw web packet field was not retained.
+
+City-founding advertisements also mirror the active ruleset's packet-known terrain gate.
+The proxy reads bit `1` (`NoCities`) from the exact `PACKET_RULESET_TERRAIN.flags`
+bitvector for the founder's current `PACKET_TILE_INFO.terrain`; a matching flag removes
+`unit_build_city` from the legal set. This covers non-ocean terrain such as Glacier and
+ruleset-specific land that the earlier terrain-class-only check missed. Unknown tile or
+terrain packets remain unavailable rather than being guessed to carry the flag.
 
 Production-name sanitization accepts the bounded punctuation present in the compiled runtime
 rulesets, including the comma in `Aqueduct, River` and the apostrophe in

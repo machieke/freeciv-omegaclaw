@@ -703,6 +703,16 @@ remained 114–114. Clean source `5a7be48`, paired fidelity, zero rejection/fall
 2,715-event release audit passed. This confirms bounded efficiency/correctness impact, not a
 score gain; adjacent failed sites are not generalized into an unsupported regional ban.
 
+A separate clean replay of V4 seed `1825420` at
+`artifacts/freeciv/impact-failed-site-route-1825420-20260721` showed why regional failure
+memory would be the wrong abstraction. Each arm tried eight distinct post-expansion sites in
+the compact `(8..10, 10..13)` area; exact-site memory activated once, but both still completed
+one settlement and scored 111. The proxy advertised founding after checking only ocean class
+and city spacing, while the active ruleset also requires the current terrain not to carry
+`NoCities`. The pinned proxy patch now evaluates that exact packet bit before advertising
+`unit_build_city`. A clean same-seed engine replay is required before treating this as more
+than legal-action correctness hardening.
+
 ## Operational note
 
 On the recorded CPU host, a cold load of `qwen3-coder-next:latest` took 41.6 seconds,

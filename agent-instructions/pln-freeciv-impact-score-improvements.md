@@ -953,3 +953,21 @@ Paired fidelity, required clean-source stability at `5a7be48`, zero rejection/fa
 the complete 2,715-event release audit passed. Retain the bounded anti-retry rule as
 correctness hardening; it is not score evidence. Do not infer an unsafe regional blacklist
 from adjacent failures without a server-grounded terrain/site-validity signal.
+
+The clean current-policy replay at
+`artifacts/freeciv/impact-failed-site-route-1825420-20260721` tested exact-site memory on the
+other incomplete-expansion trace. Both arms again completed one settlement and scored 111;
+each made eight distinct post-expansion attempts, while exact failed-site memory activated
+only once. The founder remained in `(8..10, 10..13)`, and the snapshot exposed no typed map
+tiles. The release audit passed across all 3,786 events, so this is a valid negative result:
+do not generalize exact failure into a regional blacklist.
+
+The transport boundary supplies a stronger causal correction. The pinned proxy's founding
+legality checks terrain class and city spacing, but omits the engine/ruleset requirement that
+`TerrainFlag NoCities` be absent. Add an exact `PACKET_TILE_INFO.terrain` to
+`PACKET_RULESET_TERRAIN.flags` bitvector check in `can_city_be_founded_at`, using pinned
+terrain flag ID `1`; when present, do not advertise `unit_build_city`. Preserve fail-open
+behavior only when the packet terrain definition is genuinely unavailable. Require proxy
+contract tests for flagged land and ordinary land, patch-digest/release-audit stability, the
+full repository suite, and a clean seed-`1825420` engine replay. This is a legality fix first;
+only a changed settlement or score outcome can count as selected-seed mechanism evidence.
