@@ -694,11 +694,12 @@ current attempt.
 Neither seed activated surplus-population recovery because repeated-founder retirement had
 already removed that cause. Seed `1491731` revealed the next bottleneck: the required founder
 moved successfully but alternated between two tiles for turns 42--60 and never founded the
-third city. The planner now records only confirmed actor-local founder positions and suppresses
-an immediate reverse edge when another advertised, non-failed move exists. It deliberately
-allows the reverse edge when it is the only legal escape. Acceptance requires a synthetic
-branch/dead-end/return trace to choose the alternate branch, an only-exit trace to retain the
-backtrack, read-only cycle-prune telemetry, and an engine-backed same-seed replay.
+third city. The planner now records only confirmed actor-local founder positions and
+suppresses a move to any recent route position only when another advertised, non-failed move
+reaches a fresh position. It deliberately allows a revisiting edge when every grounded exit
+revisits the bounded history. Acceptance covers synthetic two- and four-position cycles
+choosing a fresh branch, only-exit traces retaining their backtrack/revisit, read-only
+cycle-prune telemetry, and an engine-backed same-seed replay.
 
 The clean confirmation at
 `artifacts/freeciv/impact-founder-cycle-escape-1491731-20260721` met those criteria. On the
@@ -735,9 +736,19 @@ deltas changed `0` to `+4`, `-1` to `0`, and `-2` to `+3`. These seeds were sele
 old outcomes and cycle traces, so they validate the mechanism but cannot update the formal
 effect estimate.
 
-The next population-level checkpoint is predeclared as `pilot_horizon_60_v4`: 40 seeds
+The next population-level checkpoint was predeclared as `pilot_horizon_60_v4`: 40 seeds
 derived by `sha256-counter-v1` from namespace
 `pln-freeciv-impact-pilot-horizon60-v4` in the disjoint `1800000..1899999` range. It is a
-clean-source, pilot-only cohort and cannot update a claim. Run an untouched prefix to measure
-current-policy direction and discover the next optimization target without selecting on the
-immutable confirmation traces.
+clean-source, pilot-only cohort and cannot update a claim. Its untouched five-pair prefix at
+`artifacts/freeciv/impact-current-policy-pilot-v4-prefix5-20260721` produced score deltas
+`+4, +1, 0, -1, 0`, mean `+0.8`, and paired-bootstrap interval `[-0.4, 2.4]`. All ten arms
+completed from stable clean commit `fa510a4` with paired initial-state fidelity, zero
+rejection/fallback, and a passing 14,704-event release audit. The interval is intentionally
+not interpreted as reliable population evidence at `n=5`.
+
+Fresh seed `1813833` revealed the next optimization target: treatment's second founder
+repeated `(10,2) -> (11,2) -> (12,2) -> (11,3)` through turn 60, completed only one
+settlement, and produced the sole negative delta. The immediate-backtrack guard is therefore
+generalized to bounded recent-position revisits. A clean same-seed engine replay must show
+the founder taking a fresh alternative without regressing dead-end behavior before running
+more of the pilot prefix.

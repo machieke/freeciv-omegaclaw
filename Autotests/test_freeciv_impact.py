@@ -402,6 +402,57 @@ def test_founder_route_breaks_two_tile_cycle_but_allows_only_escape():
     assert escape.candidate.projection["immediate_backtrack"]
 
 
+def test_founder_route_breaks_four_tile_cycle_with_fresh_exit():
+    ir = _ruleset_ir((("Settlers", "unit", 30),))
+    planner = GroundedImpactPlanner(ruleset_ir=ir)
+    route = ((1, 0), (2, 0), (2, 1), (1, 1))
+
+    def record_move(source, target):
+        action = {"action_type": "unit_move", "actor_id": 1,
+                  "target": {"x": target[0], "y": target[1]}}
+        before = _snapshot(
+            [_unit(1, "Settlers", source[0], source[1])],
+            [dict(action, is_valid=True),
+             {"action_type": "end_turn", "is_valid": True}])
+        after = _snapshot(
+            [_unit(1, "Settlers", target[0], target[1])],
+            [{"action_type": "end_turn", "is_valid": True}], source_seq=2)
+        planner.record_outcome(
+            ImpactCandidate(action, "expansion_move", 1.0, "route history"),
+            before, effect_observed=True, after_snapshot=after)
+
+    for source, target in zip(route, route[1:]):
+        record_move(source, target)
+
+    closing = {"action_type": "unit_move", "actor_id": 1,
+               "target": {"x": route[0][0], "y": route[0][1]},
+               "is_valid": True}
+    fresh = {"action_type": "unit_move", "actor_id": 1,
+             "target": {"x": 0, "y": 2}, "is_valid": True}
+    snapshot = _snapshot(
+        [_unit(1, "Settlers", route[-1][0], route[-1][1])],
+        [closing, fresh, {"action_type": "end_turn", "is_valid": True}],
+        source_seq=4)
+
+    assert planner.founder_cycle_move_keys(snapshot) == (
+        json.dumps({key: value for key, value in closing.items()
+                    if key != "is_valid"}, sort_keys=True, separators=(",", ":")),)
+    decision = planner.plan(snapshot)
+    assert decision.candidate.action["target"] == fresh["target"]
+    assert not decision.candidate.projection["recent_route_revisit"]
+    assert decision.candidate.projection["route_cycle_length"] == 0
+
+    trapped = _snapshot(
+        [_unit(1, "Settlers", route[-1][0], route[-1][1])],
+        [closing, {"action_type": "end_turn", "is_valid": True}],
+        source_seq=5)
+    assert planner.founder_cycle_move_keys(trapped) == ()
+    only_exit = planner.plan(trapped)
+    assert only_exit.candidate.action["target"] == closing["target"]
+    assert only_exit.candidate.projection["recent_route_revisit"]
+    assert only_exit.candidate.projection["route_cycle_length"] == 4
+
+
 def test_deferred_confirmation_recovers_late_founder_route_effect():
     ir = _ruleset_ir((("Settlers", "unit", 30),))
     planner = GroundedImpactPlanner(ruleset_ir=ir)

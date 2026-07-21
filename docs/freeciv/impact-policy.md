@@ -464,10 +464,12 @@ alternated between `(20,9)` and `(19,10)` on every turn from 42 through 60, leav
 required third city unbuilt.
 
 Founder routing now retains a bounded actor-local history of confirmed positions. An exact
-reverse edge is suppressed when another server-advertised, actor-reachable move exists, so a
-confirmed two-tile corridor cannot dominate a new branch forever. If the reverse edge is the
-only grounded move, it remains eligible; this allows a founder to leave an actual dead end.
-`planner_founder_cycle_moves_pruned` reports the distinct suppressed legal actions.
+move to any recently visited position is suppressed only when another server-advertised,
+actor-reachable move leads to a fresh position. This covers both immediate reversals and
+longer bounded loops. If every grounded exit revisits the recent route, the move remains
+eligible; this allows a founder to leave an actual dead end without pruning every option.
+`planner_founder_cycle_moves_pruned` reports the distinct suppressed legal actions, while
+candidate projections distinguish immediate backtracks from longer route-cycle lengths.
 
 The clean engine replay at
 `artifacts/freeciv/impact-founder-cycle-escape-1491731-20260721` confirmed the escape on
@@ -508,11 +510,21 @@ improves all three historical asymmetric outcomes (`0` to `+4`, `-1` to `0`, and
 `+3`). Selection on prior trace behavior means those deltas cannot estimate population-wide
 impact and do not revise the immutable score claim.
 
-The next population-level checkpoint is the predeclared, disjoint
+The next population-level checkpoint was predeclared as the disjoint
 `pilot_horizon_60_v4` namespace: 40 seeds deterministically derived in the committed
-`1800000..1899999` range. It is pilot-only and cannot produce a formal claim. A clean,
-untouched prefix may estimate current-policy direction and identify the next bottleneck;
-stopping or expanding that diagnostic does not convert it into confirmatory evidence.
+`1800000..1899999` range. Its untouched five-pair prefix ran at clean commit `fa510a4` in
+`artifacts/freeciv/impact-current-policy-pilot-v4-prefix5-20260721`. Paired deltas were
+`+4, +1, 0, -1, 0`, for mean `+0.8` and a wide paired-bootstrap interval `[-0.4, 2.4]`.
+All ten arms completed with stable source identity, matched paired initial states, zero
+rejection/fallback, and a passing 14,704-event release audit. This small pilot is directional
+and cannot revise the formal claim.
+
+The prefix exposed the next route defect without selecting on old outcomes. Treatment seed
+`1813833` completed only one settlement while a founder repeated the four-position route
+`(10,2) -> (11,2) -> (12,2) -> (11,3)` through turn 60. The generalized recent-revisit guard
+must choose a grounded fresh exit in a synthetic four-position trace, preserve a revisiting
+edge when it is the only exit, and pass a clean same-seed engine replay before the prefix is
+expanded. Stopping or expanding this pilot does not convert it into confirmatory evidence.
 
 ## Combat attribution, occupancy, and hut-entry hardening
 

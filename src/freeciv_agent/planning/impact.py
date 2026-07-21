@@ -410,11 +410,11 @@ class GroundedImpactPlanner(object):
                 snapshot, action, founder_types).get("actor_failed")))
 
     def founder_cycle_move_keys(self, snapshot):
-        """Return immediate founder backtracks suppressed by an alternative.
+        """Return recent founder revisits suppressed by a fresh alternative.
 
-        Backtracking remains eligible at a real dead end. Once the actor has
-        returned to the branch point, however, the just-traversed edge must not
-        dominate another advertised route and recreate a two-tile loop.
+        A revisit remains eligible at a real dead end. When a fresh grounded
+        move exists, however, the recently traversed route must not dominate it
+        and recreate a bounded multi-tile loop.
         """
         actions = self._actions(snapshot)
         founder_types = self._founder_types(snapshot, actions)
@@ -422,7 +422,7 @@ class GroundedImpactPlanner(object):
             canonical_json_bytes(action).decode("utf-8")
             for action in actions
             if action.get("action_type") == "unit_move"
-            and self._founder_backtrack_has_alternative(
+            and self._founder_cycle_has_alternative(
                 snapshot, action, founder_types, actions)))
 
     def commit(self, candidate):
@@ -767,6 +767,14 @@ class GroundedImpactPlanner(object):
             len(history) >= 2
             and history[-1] == (unit.x, unit.y)
             and history[-2] == (edge[3], edge[4]))
+        revisit_indices = (
+            tuple(index for index, position in enumerate(history[:-1])
+                  if position == (edge[3], edge[4]))
+            if history and history[-1] == (unit.x, unit.y) else ())
+        recent_revisit = bool(revisit_indices)
+        route_cycle_length = (
+            len(history) - revisit_indices[-1]
+            if revisit_indices else 0)
         return {
             "actor_failed": (
                 self._founder_actor_edge(snapshot, unit, edge)
@@ -776,17 +784,19 @@ class GroundedImpactPlanner(object):
             "cardinal_corridor_match": bool(
                 intent is not None and intent["heading"] == heading),
             "immediate_backtrack": immediate_backtrack,
+            "recent_revisit": recent_revisit,
+            "route_cycle_length": route_cycle_length,
             "traversable_edge": edge in self._founder_traversable_edges,
         }
 
-    def _founder_backtrack_has_alternative(
+    def _founder_cycle_has_alternative(
             self, snapshot, action, founder_types, actions=None):
-        """Suppress a reverse edge only when another grounded move exists."""
+        """Suppress a recent revisit only when a fresh grounded move exists."""
         if len(snapshot.cities) >= self.expansion_city_target:
             return False
         evidence = self._founder_move_evidence(
             snapshot, action, founder_types)
-        if not evidence.get("immediate_backtrack"):
+        if not evidence.get("recent_revisit"):
             return False
         actor_id = action.get("actor_id")
         action_key = canonical_json_bytes(action).decode("utf-8")
@@ -797,7 +807,9 @@ class GroundedImpactPlanner(object):
                 continue
             other_evidence = self._founder_move_evidence(
                 snapshot, alternative, founder_types)
-            if other_evidence and not other_evidence.get("actor_failed"):
+            if (other_evidence
+                    and not other_evidence.get("actor_failed")
+                    and not other_evidence.get("recent_revisit")):
                 return True
         return False
 
@@ -1642,7 +1654,7 @@ class GroundedImpactPlanner(object):
                      "recovered_population": population,
                      "target_city_distance": target_distance,
                      "target_city_ids": nearest_city_ids})
-            if self._founder_backtrack_has_alternative(
+            if self._founder_cycle_has_alternative(
                     snapshot, action, founder_types):
                 return None
             projection = None
@@ -1681,6 +1693,10 @@ class GroundedImpactPlanner(object):
                     "founder_route_eta_turns": self._founder_route_eta()[0],
                     "immediate_backtrack": bool(
                         evidence.get("immediate_backtrack", False)),
+                    "recent_route_revisit": bool(
+                        evidence.get("recent_revisit", False)),
+                    "route_cycle_length": int(
+                        evidence.get("route_cycle_length", 0)),
                     "traversable_edge": bool(
                         route_progress and evidence.get("traversable_edge", False)),
                 }
