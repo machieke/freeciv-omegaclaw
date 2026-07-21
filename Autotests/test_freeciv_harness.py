@@ -342,7 +342,7 @@ def test_live_model_transport_reuses_identical_verified_decision_context(monkeyp
     engine_live._MODEL_JSON_CACHE.clear()
 
 
-def test_live_model_readiness_uses_native_keep_alive_endpoint(monkeypatch):
+def test_live_model_readiness_uses_native_chat_and_validates_json(monkeypatch):
     calls = []
 
     class Response(io.BytesIO):
@@ -356,7 +356,7 @@ def test_live_model_readiness_uses_native_keep_alive_endpoint(monkeypatch):
         calls.append((request.full_url, timeout, json.loads(request.data)))
         return Response(json.dumps({
             "model": "qwen3-coder-next:latest", "done": True,
-            "response": "{}",
+            "message": {"content": "{\"ready\": true}"},
         }).encode("utf-8"))
 
     monkeypatch.setenv("OLLAMA_OPENAI_BASE_URL", "http://ollama.test:11434/v1/")
@@ -365,11 +365,33 @@ def test_live_model_readiness_uses_native_keep_alive_endpoint(monkeypatch):
         "readiness_timeout_seconds": 91, "keep_alive": "30m", "think": False}}
     result = _ollama_readiness(manifest)
     assert result["done"] is True
-    assert calls == [("http://ollama.test:11434/api/generate", 91.0, {
-        "model": "qwen3-coder-next:latest", "prompt": "{}", "stream": False,
+    assert calls == [("http://ollama.test:11434/api/chat", 91.0, {
+        "model": "qwen3-coder-next:latest", "stream": False, "format": "json",
         "think": False, "keep_alive": "30m",
-        "options": {"temperature": 0, "num_predict": 1},
+        "options": {"temperature": 0, "num_predict": 16},
+        "messages": [
+            {"role": "system", "content": "Return one JSON object only; no markdown."},
+            {"role": "user", "content": "Return exactly {\"ready\":true}."},
+        ],
     })]
+
+
+def test_live_model_readiness_rejects_invalid_json(monkeypatch):
+    class Response(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            self.close()
+
+    monkeypatch.setattr(engine_live.urllib.request, "urlopen", lambda *_args, **_kwargs:
+                        Response(json.dumps({
+                            "done": True, "message": {"content": "not-json"},
+                        }).encode("utf-8")))
+    with pytest.raises(RuntimeError, match="readiness returned invalid JSON"):
+        _ollama_readiness({"model": "qwen3-coder-next:latest", "model_config": {
+            "readiness_timeout_seconds": 91,
+        }})
 
 
 def _ready_snapshot(source_seq=1, moves_left=3, buildability=True):

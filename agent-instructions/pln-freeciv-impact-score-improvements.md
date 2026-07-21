@@ -986,3 +986,21 @@ Freeze the next untouched current-policy checkpoint as V4 indices 20--24, litera
 with the updated proxy identity, report their deltas and interval separately, and do not pool
 them with indices 0--19 or the immutable confirmatory claim. This remains adaptive
 development evidence and cannot revise the formal score or win-rate claim.
+
+The first execution at
+`artifacts/freeciv/impact-current-policy-pilot-v4-holdout20-24-20260721` completed all ten
+games with deltas `+1, +3, +4, 0, +2`, mean `+2.00`, paired-bootstrap interval
+`[+0.80, +3.20]`, exact two-sided p-value `0.125`, and meaningful-margin p-value `0.625`.
+Initial states matched, source stayed clean at `95f2fbb`, engine rejection remained zero,
+and the 14,293-event trace audit passed. The aggregate is nevertheless safety-invalid: the
+first baseline arm used bounded model fallback on turns 1 and 2, for a `3.33%` game-level
+fallback rate and `0.67%` baseline-arm mean. Do not interpret or pool this favorable slice as
+a clean policy checkpoint.
+
+The failure exposed an operational mismatch: the pre-arm readiness probe generated only one
+token through `/api/generate`, while timed proposals use `/api/chat` plus JSON decoding. Replace
+that probe with a complete native chat asking for exact `{"ready":true}`, validate the decoded
+object, and keep the existing 90-second readiness budget and 30-minute residency. The live
+configured-model preflight must pass, the full repository suite must remain green, and then the
+same fixed five-seed slice may be rerun only as an operational confirmation. Its exposed seeds
+mean the rerun is not fresh evidence and still cannot revise the formal claim.

@@ -54,10 +54,11 @@ fresh range `1100000..1199999`. The superseded `v1`, `v2`, and `v3` namespaces a
 development diagnostics and cannot be resumed into the final claim; `v2` exposed an
 accepted-unit/no-authoritative-update edge case, while `v3` exposed cold-model
 unloading that produced bounded-timeout fallbacks. The v4 engine runner performs an
-operational native Ollama readiness request before every arm, with a 90-second cold
-load allowance and a 30-minute keep-alive. A claim-eligible arm fails closed if any
-turn still needs a model fallback; it is retried only as a fresh attempt and never
-silently counted as a completed pair.
+operational native Ollama chat request before every arm, validates its complete JSON
+response, and uses a 90-second cold-load allowance plus a 30-minute keep-alive. This exercises
+the same endpoint and decoder as a timed proposal instead of stopping after a one-token
+generation. A claim-eligible arm fails closed if any turn still needs a model fallback; it is
+retried only as a fresh attempt and never silently counted as a completed pair.
 
 ## Statistical declaration
 

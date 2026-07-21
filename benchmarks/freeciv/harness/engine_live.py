@@ -133,10 +133,11 @@ def _ollama_readiness(manifest):
 
     The verified-response cache can make a long arm appear model-idle.  Ollama
     may unload the model during that idle period, turning the next real request
-    into a cold load that exceeds the bounded turn budget.  A tiny native API
-    request is operational-only: it does not enter the event stream or affect
-    outcome metrics, but it establishes that the declared model is loaded and
-    keeps it resident for the duration of the arm.
+    into a cold load that exceeds the bounded turn budget.  A complete native
+    chat request is operational-only: it does not enter the event stream or
+    affect outcome metrics, but it loads the declared model, exercises the same
+    endpoint and JSON response path as a game turn, and keeps it resident for
+    the duration of the arm.
     """
     model_config = manifest.get("model_config", {})
     timeout = float(model_config.get("readiness_timeout_seconds", 90))
@@ -144,14 +145,18 @@ def _ollama_readiness(manifest):
         raise ValueError("model readiness timeout must be positive")
     payload = {
         "model": manifest["model"],
-        "prompt": "{}",
         "stream": False,
         "think": bool(model_config.get("think", False)),
         "keep_alive": str(model_config.get("keep_alive", "30m")),
-        "options": {"temperature": 0, "num_predict": 1},
+        "format": "json",
+        "options": {"temperature": 0, "num_predict": 16},
+        "messages": [
+            {"role": "system", "content": "Return one JSON object only; no markdown."},
+            {"role": "user", "content": "Return exactly {\"ready\":true}."},
+        ],
     }
     request = urllib.request.Request(
-        _ollama_native_endpoint() + "/api/generate",
+        _ollama_native_endpoint() + "/api/chat",
         data=json.dumps(payload).encode("utf-8"),
         headers={"Content-Type": "application/json"})
     # Multiple engine workers may begin at once. Serialize readiness calls so a
@@ -173,6 +178,15 @@ def _ollama_readiness(manifest):
                 body.get("error") if isinstance(body, dict) else body))
     if body.get("done") is False:
         raise RuntimeError("configured Ollama model readiness did not complete")
+    try:
+        ready = json.loads(body["message"]["content"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise RuntimeError(
+            "configured Ollama model readiness returned invalid JSON: {}".format(exc))
+    if ready != {"ready": True}:
+        raise RuntimeError(
+            "configured Ollama model readiness returned unexpected JSON: {}".format(
+                ready))
     return body
 
 
