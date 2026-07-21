@@ -659,3 +659,14 @@ Acceptance criteria:
 - focused and full FreeCiv tests pass; and
 - a clean same-seed horizon-60 confirmation exercises the sequence without rejection or
   fallback before the policy is considered for a larger development cohort.
+
+The clean confirmation at
+`artifacts/freeciv/impact-preexpansion-growth-1406156-horizon60-v3-20260720`
+met these criteria. Treatment selected Granary on turn 1, the final founder on turn 25,
+then retired the automatic repeat once capacity was complete. The live projection recorded
+37 combined turns and 22 remaining settlement turns. Treatment and baseline both finished
+with three size-5 cities, 15 citizens, and score 120. Across the three controlled replays,
+treatment improved from 13/118 before repeat retirement to 14/119 after retirement and
+15/120 after sequencing. There were no joins, rejected actions, or model fallbacks; source
+commit `1f71c35`, paired initial state, and the full release audit passed. This is a
+same-seed causal validation, not an independent effect estimate or claim update.

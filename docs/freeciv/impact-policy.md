@@ -434,6 +434,17 @@ turns and qualifies; fast 30-turn seed `104759` retains only six and continues t
 founder directly. Sequence selection count, settlement ETA, and remaining runway are reported
 separately.
 
+The clean v3 replay at
+`artifacts/freeciv/impact-preexpansion-growth-1406156-horizon60-v3-20260720`
+selected Granary on turn 1, the required founder on turn 25, and one later repurpose
+before automatic repetition. Its live conservative sequence projection was 37 turns with
+22 settlement-runway turns. Treatment ended with the same three size-5 cities, 15 total
+citizens, and score 120 as baseline, improving the same treatment trajectory from 13/118
+before repeated-founder retirement to 14/119 after retirement and finally 15/120 after
+sequencing. It recorded zero joins, rejection, or fallback; initial-state fidelity, clean
+commit `1f71c35`, and the full release audit passed. This closes the targeted mechanism
+deficit on one reused seed but remains post-hoc development evidence, not a revised claim.
+
 ## Combat attribution, occupancy, and hut-entry hardening
 
 Offensive actions retain an exact pre-action fingerprint of the packet-visible enemy
