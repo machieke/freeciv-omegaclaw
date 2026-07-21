@@ -537,6 +537,18 @@ had zero rejection/fallback, used clean commit `130ee33`, and passed the complet
 release audit. This confirms the generalized mechanism on a fresh defect-discovery seed but
 is post-pilot reuse, so it does not revise the prefix estimate or formal claim.
 
+An attempted follow-up on seed `1874789` tested whether a confirmed departure and re-entry
+should permit one retry of an accepted-but-no-effect founding order. The implementation at
+`5ecd095` passed 236 tests and activated in
+`artifacts/freeciv/impact-settlement-reentry-1874789-20260721`, but the causal result was
+negative: baseline used one re-entry retry and treatment used four, while settlement
+completions remained three and two respectively. Treatment score fell from 113 in the
+preceding bounded-cycle replay to 112, and neither arm ended with the third city. All safety
+gates and the 2,616-event release audit passed, so this was a policy result rather than an
+infrastructure failure. Commit `5d21cfd` removes the retry and its telemetry. This rules out
+extra retries as the next efficiency win; the remaining trace needs better grounded site
+selection or threat handling, not more orders at previously ineffective sites.
+
 ## Combat attribution, occupancy, and hut-entry hardening
 
 Offensive actions retain an exact pre-action fingerprint of the packet-visible enemy

@@ -763,3 +763,14 @@ zero route failures. Both arms had matched initial state, zero rejection/fallbac
 commit `130ee33`, stable implementation identity, and a passing 2,976-event release audit.
 Because the seed was selected after inspecting the five-pair prefix, this is mechanism
 confirmation only and cannot be folded back into that pilot estimate.
+
+A bounded settlement re-entry retry was implemented at `5ecd095` and tested on the other
+incomplete-expansion seed, `1874789`. The clean engine run at
+`artifacts/freeciv/impact-settlement-reentry-1874789-20260721` activated one baseline and
+four treatment retries, but did not add a settlement: completions remained three/two and
+both arms still lacked city three at the horizon. Treatment scored 112 versus 113 in the
+preceding replay. Safety, fidelity, source identity, and the 2,616-event release audit all
+passed, making this a valid negative policy result. The implementation and metric were
+removed by `5d21cfd`; do not restore them without new grounded evidence. Further work on
+this trace must improve site selection or threat response rather than repeat ineffective
+founding orders.
