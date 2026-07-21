@@ -709,3 +709,14 @@ treatment route, the historical `(20,9)`/`(19,10)` loop ended on turn 42 with a 
 current baseline retained seven citizens and score 111, giving a `+4` paired delta. Both arms
 had matching initial state, zero rejection/fallback, clean commit `3aff906`, and a passing
 3,573-event release audit. This is a reused-seed mechanism confirmation, not a claim update.
+
+The immutable 200-pair trace scan found founder two-tile cycles in 13 pairs and 23 arms
+(10 baseline, 13 treatment). Twenty arms repeated at least six moves and 15 repeated at
+least ten, so the defect was not seed-specific. A second clean confirmation at
+`artifacts/freeciv/impact-founder-cycle-escape-1483352-20260721` targeted a historical
+negative pair: its old scores were 111 baseline and 110 treatment, with treatment cycling
+18 times. The current arms both founded three cities, ended with ten citizens and score 115,
+and changed the paired delta from `-1` to `0`. Baseline/treatment reported ten/six distinct
+cycle prunes, while treatment needed one founder build versus baseline's two. All safety and
+initial-state gates plus the 2,641-event release audit passed. This is reused-seed directional
+evidence, not a formal claim revision.

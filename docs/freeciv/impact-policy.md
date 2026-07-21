@@ -480,6 +480,18 @@ so the paired delta was `+4`. Both arms had zero rejection/fallback, matched ini
 clean commit `3aff906`, and passed the complete 3,573-event release audit. This is one reused
 development seed and does not revise the immutable score claim.
 
+An offline scan of the immutable 200-pair cohort found founder two-tile cycles in 13 pairs
+(23 arms: 10 baseline and 13 treatment); 20 arms repeated for at least six moves and 15 for
+at least ten. The second clean replay at
+`artifacts/freeciv/impact-founder-cycle-escape-1483352-20260721` targeted an old asymmetric
+case. The former pair scored 111 baseline versus 110 treatment while treatment cycled 18
+times. With cycle escape, both arms founded all three cities, finished with ten citizens and
+score 115, and the paired delta improved from `-1` to `0`. Baseline and treatment reported
+ten and six distinct cycle prunes respectively; treatment used one founder build versus
+baseline's two. Initial state, zero rejection/fallback, clean implementation identity, and
+the complete 2,641-event release audit passed. This supports broad correctness and removes
+one reused negative outcome, but is still not an independent estimate.
+
 ## Combat attribution, occupancy, and hut-entry hardening
 
 Offensive actions retain an exact pre-action fingerprint of the packet-visible enemy
