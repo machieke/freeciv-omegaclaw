@@ -35,6 +35,14 @@ Final release evidence includes:
 - a passing cognitive-trace release audit, 152 Python tests, 18 observability tests,
   a production UI build, and 12 patched-proxy contract tests.
 
+Subsequent impact-evaluation hardening preserves that realization while extending P11.R4. The
+paired seed remains the experimental unit: its two arms execute serially, in the predeclared
+alternating order, on one dedicated server port, while independent pairs may execute on three
+workers. Worker count is part of behavioral manifest identity and is frozen for claim-eligible
+cohorts. The proxy cache is game-scoped, the effective per-agent state-polling budget is tested,
+and each next arm retains the authoritative pre-arm hard recycle. The redundant post-arm recycle
+was removed because it duplicated the next pre-arm isolation boundary.
+
 The original agent specification's A6.3 positive-effect prediction remains explicitly
 recorded as `NOT MET`: the representative grading result is null, while the engine
 grading win-rate point estimate is `+0.0333` with an interval including zero and its

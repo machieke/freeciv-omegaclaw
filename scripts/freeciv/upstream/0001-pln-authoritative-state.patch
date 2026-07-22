@@ -74,7 +74,7 @@ index 96d166c..057b810 100644
      def _validate_city_production(self, action: Dict[str, Any], player_id: int, game_state: Optional[Dict[str, Any]]) -> ValidationResult:
          """Validate city production change"""
          required_fields = ['city_id', 'production_type']
-@@ -449,7 +485,10 @@ class LLMActionValidator:
+@@ -449,9 +485,12 @@ class LLMActionValidator:
              return self._validation_error('E031', 'production_type cannot be empty')
          if len(production_type) > 64:
              return self._validation_error('E031', f'production_type too long: {len(production_type)} chars')
@@ -87,6 +87,8 @@ index 96d166c..057b810 100644
 -        if not re.match(r'^[a-zA-Z0-9\s\-\.]+$', production_type):
 +        if not re.match(r"^[a-zA-Z0-9_\s',\.\-]+$", production_type):
              return self._validation_error('E031', f'Invalid characters in production_type: {production_type}')
+ 
+         # If game state available, verify city ownership
 @@ -473,50 +512,17 @@ class LLMActionValidator:
          if 'tech_name' not in action:
              return self._validation_error('E040', 'Tech research requires tech_name field')
@@ -407,13 +409,16 @@ index 02e3d7d..0481126 100755
          can_build_bitvector = city.get('can_build_improvement')
          if not can_build_bitvector:
              # No bitvector available - fallback to allowing (server hasn't sent build info yet)
-@@ -1008,2 +1018,4 @@ class CivCom(Thread):
+@@ -1005,11 +1015,18 @@ class CivCom(Thread):
+         tile_x = tile_index % xsize
+         tile_y = tile_index // xsize
+         
 -        # Check terrain - can't build on ocean
 +        # Mirror the active ruleset's terrain precondition for Found City.
 +        # Ocean class alone is insufficient: Glacier, Lake, and ruleset-defined
 +        # land terrain may carry the NoCities flag as well.
          tile = self.tiles.get(tile_index)
-@@ -1011,3 +1023,8 @@ class CivCom(Thread):
+         if tile:
              terrain_id = tile.get('terrain')
 -            if terrain_id is not None and self.get_terrain_class(terrain_id) == TC_OCEAN:
 +            terrain = self.terrains.get(terrain_id) if terrain_id is not None else None
@@ -423,6 +428,8 @@ index 02e3d7d..0481126 100755
 +            if (terrain_id is not None
 +                    and self.get_terrain_class(terrain_id) == TC_OCEAN):
                  return (False, "Cannot found city on ocean")
+         
+         # Check distance to all cities
 @@ -1469,6 +1486,12 @@ class CivCom(Thread):
          try:
              packet = json.loads(packet_json)
@@ -757,8 +764,23 @@ index 2f69128..378e8a6 100644
          if not commands:
              logger.info(f"Game {self.game_id}: No configuration changes requested")
              self.config_applied = True
+diff --git a/freeciv-proxy/llm_config.json b/freeciv-proxy/llm_config.json
+index 045d314..9a9d8fb 100644
+--- a/freeciv-proxy/llm_config.json
++++ b/freeciv-proxy/llm_config.json
+@@ -21,8 +21,8 @@
+         "strict": true,
+         "log_failures": true,
+         "rate_limit": {
+-            "requests_per_second": 100,
+-            "burst_capacity": 300,
++            "requests_per_second": 600,
++            "burst_capacity": 1200,
+             "window_seconds": 60,
+             "reset_on_turn_end": true
+         }
 diff --git a/freeciv-proxy/llm_handler.py b/freeciv-proxy/llm_handler.py
-index 9be5668..b47e827 100644
+index 9be5668..7c1bdf8 100644
 --- a/freeciv-proxy/llm_handler.py
 +++ b/freeciv-proxy/llm_handler.py
 @@ -16,7 +16,7 @@ import socket
@@ -799,7 +821,7 @@ index 9be5668..b47e827 100644
                  port_type = (
                      "MULTIPLAYER (6001-6009)" if 6001 <= civserver_port <= 6009
                      else "SINGLEPLAYER (6000)" if civserver_port == 6000
-@@ -1312,10 +1326,12 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1312,10 +1326,13 @@ class LLMWSHandler(websocket.WebSocketHandler):
                      elapsed_ms = (time.time() - wait_start) * 1000
                      logger.warning(f"⚠️ Turn start timeout after {elapsed_ms/1000:.1f}s - returning current state")
  
@@ -811,11 +833,12 @@ index 9be5668..b47e827 100644
 -            cache_key = f"state_{self.player_id}_{query_format}_turn_{current_turn}"
 +            source_seq = self.civcom.source_seq if self.civcom and hasattr(self.civcom, 'source_seq') else 0
 +            cache_key = build_state_cache_key(
-+                self.player_id, query_format, current_turn, source_seq)
++                self.player_id, query_format, current_turn, source_seq,
++                game_id=self.game_id)
  
              # Try cache first
              cached_state = state_cache.get(cache_key)
-@@ -1649,6 +1665,15 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1649,6 +1666,15 @@ class LLMWSHandler(websocket.WebSocketHandler):
              # with a clearer "Missing required field" error instead of cryptic S001 format error
              if production:
                  normalized["production_type"] = str(production).lower()
@@ -831,7 +854,7 @@ index 9be5668..b47e827 100644
  
          elif action_type == "unit_build_city":
              # Extract unit_id
-@@ -1660,6 +1685,17 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1660,6 +1686,17 @@ class LLMWSHandler(websocket.WebSocketHandler):
              if isinstance(target, dict) and "name" in target:
                  normalized["name"] = target["name"]
  
@@ -849,7 +872,7 @@ index 9be5668..b47e827 100644
          elif action_type in ("unit_attack", "unit_suicide_attack", "unit_bombard",
                               "unit_capture", "unit_wipe", "unit_conquer_city",
                               "unit_nuke", "unit_nuke_city", "unit_nuke_units"):
-@@ -2621,6 +2657,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -2621,6 +2658,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
                      formatted['target'] = {'improvement': params['improvement']}
                  elif 'city' in params:
                      formatted['target'] = {'city': params['city']}
@@ -858,7 +881,7 @@ index 9be5668..b47e827 100644
                  elif params:  # Pass through any other params
                      formatted['target'] = params
              
-@@ -2886,6 +2924,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -2886,6 +2925,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
          # Map format_type to StateFormat enum
          format_map = {
              'llm_optimized': StateFormat.LLM_OPTIMIZED,
@@ -866,7 +889,7 @@ index 9be5668..b47e827 100644
              'full': StateFormat.FULL,
              'delta': StateFormat.DELTA
          }
-@@ -5061,6 +5100,21 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -5061,6 +5101,21 @@ class LLMWSHandler(websocket.WebSocketHandler):
  
          session = session_manager.validate_session(self.session_id)
          if session:
@@ -1154,16 +1177,16 @@ index 2815c8c..c9727ca 100644
              else:
                  raise SecurityError(f"Invalid format: {format_val}")
 diff --git a/freeciv-proxy/state_cache.py b/freeciv-proxy/state_cache.py
-index 778e7d1..08bca43 100644
+index 778e7d1..cc24a84 100644
 --- a/freeciv-proxy/state_cache.py
 +++ b/freeciv-proxy/state_cache.py
-@@ -24,6 +24,21 @@ logger = logging.getLogger("freeciv-proxy")
+@@ -24,6 +24,26 @@ logger = logging.getLogger("freeciv-proxy")
  # Configurable constants
  MAX_CITIES_FOR_OPTIMIZATION = int(os.getenv('MAX_CITIES_FOR_OPTIMIZATION', '5'))
  
 +
 +def build_state_cache_key(player_id: int, query_format: str, turn: int,
-+                          source_seq: int) -> str:
++                          source_seq: int, game_id: str = None) -> str:
 +    """Return a cache identity for one authoritative state revision.
 +
 +    A turn alone is not a state revision: founding a city, moving a unit, or
@@ -1172,14 +1195,19 @@ index 778e7d1..08bca43 100644
 +    server, so a cache hit is only possible while the packet-backed state is
 +    unchanged.
 +    """
-+    return "state_{}_{}_turn_{}_seq_{}".format(
-+        int(player_id), str(query_format), int(turn), int(source_seq))
++    # Player identifiers, turns, and packet sequence counters are local to one
++    # civserver process. Parallel games therefore collide on all four legacy
++    # fields. Scope the shared process cache by game before using those fields.
++    game_scope = (hashlib.sha256(str(game_id).encode("utf-8")).hexdigest()[:16]
++                  if game_id is not None else "legacy")
++    return "state_game_{}_player_{}_{}_turn_{}_seq_{}".format(
++        game_scope, int(player_id), str(query_format), int(turn), int(source_seq))
 +
 +
  @dataclass
  class CacheEntry:
      """Represents a cached state entry with metadata"""
-@@ -37,6 +52,7 @@ class CacheEntry:
+@@ -37,6 +57,7 @@ class CacheEntry:
      compressed_data: Optional[bytes] = None  # Compressed data if applicable
      last_accessed: float = 0.0  # For LRU tracking
  
@@ -1187,7 +1215,7 @@ index 778e7d1..08bca43 100644
  class StateCache:
      """
      In-memory state cache with TTL support for LLM agents
-@@ -200,7 +216,7 @@ class StateCache:
+@@ -200,7 +221,7 @@ class StateCache:
  
                  if pattern and pattern in key:
                      should_remove = True
@@ -1934,10 +1962,10 @@ index 0000000..13a459e
 +        "Cannot move onto packet-visible non-allied city owned by player 1")
 diff --git a/freeciv-proxy/tests/test_release_game_configuration.py b/freeciv-proxy/tests/test_release_game_configuration.py
 new file mode 100644
-index 0000000..d6223ee
+index 0000000..47a0fbd
 --- /dev/null
 +++ b/freeciv-proxy/tests/test_release_game_configuration.py
-@@ -0,0 +1,234 @@
+@@ -0,0 +1,257 @@
 +"""Release-harness game settings are validated and ordered before start."""
 +
 +import ast
@@ -1956,6 +1984,18 @@ index 0000000..d6223ee
 +import llm_handler
 +import packet_converter
 +from security import InputSanitizer, SecurityError
++
++
++def test_release_rate_budget_supports_authoritative_state_polling():
++    """The limiter value is a per-window count despite its legacy name."""
++    config_path = Path(__file__).resolve().parents[1] / "llm_config.json"
++    config = json.loads(config_path.read_text(encoding="utf-8"))
++    rate_limit = config["validation"]["rate_limit"]
++
++    effective_requests_per_second = (
++        rate_limit["requests_per_second"] / rate_limit["window_seconds"])
++    assert effective_requests_per_second >= 10
++    assert rate_limit["burst_capacity"] >= rate_limit["requests_per_second"]
 +
 +
 +@pytest.mark.asyncio
@@ -2158,6 +2198,17 @@ index 0000000..d6223ee
 +    updated = build_state_cache_key(0, "pln_authoritative", 21, 411)
 +    assert first == unchanged
 +    assert first != updated
++
++
++def test_state_cache_identity_is_scoped_to_parallel_game():
++    left = build_state_cache_key(
++        0, "pln_authoritative", 21, 410, game_id="parallel-left")
++    right = build_state_cache_key(
++        0, "pln_authoritative", 21, 410, game_id="parallel-right")
++
++    assert left != right
++    assert left == build_state_cache_key(
++        0, "pln_authoritative", 21, 410, game_id="parallel-left")
 +
 +
 +def test_state_cache_can_invalidate_player_zero(monkeypatch):

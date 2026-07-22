@@ -2076,4 +2076,8 @@ def run_game(run_dir, manifest, context):
         return asyncio.run(_play(run_dir, manifest, context))
     finally:
         _terminate_proxy(manifest["game_id"], token)
-        _recycle_server(int(manifest["port"]))
+        # The next arm always performs a hard pre-arm recycle before connecting.
+        # Recycling here as well duplicated the same isolation boundary and added
+        # roughly six seconds to every arm. Proxy termination is sufficient to
+        # close the completed session; the following pre-arm reset remains the
+        # authoritative clean-process guarantee, including after a failed arm.

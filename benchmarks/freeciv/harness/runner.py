@@ -88,7 +88,7 @@ def _source_identity():
 class HarnessRunner(object):
     def __init__(self, out, config_path=None, backend="representative",
                  workers=1, base_port=6100, seed_limit=None, conditions=None,
-                 impact_cohort=None):
+                 impact_cohort=None, server_ports=None):
         self.out = os.path.abspath(out)
         self.config = load(config_path)
         self.backend = backend
@@ -105,12 +105,20 @@ class HarnessRunner(object):
         if unknown:
             raise ValueError("unknown harness conditions {}".format(unknown))
         self._lock = threading.Lock()
+        self.server_ports = None
         if backend not in ("representative", "engine-live"):
             raise ValueError("unknown harness backend {}".format(backend))
         if backend == "engine-live":
             self.base_port = int(self.config.get("live", {}).get("civserver_port", base_port))
-            if self.workers > 9 or self.base_port < 6001 or self.base_port + self.workers - 1 > 6009:
+            ports = (list(server_ports) if server_ports is not None else
+                     list(range(self.base_port, self.base_port + self.workers)))
+            if (len(ports) != self.workers
+                    or any(isinstance(port, bool) or not isinstance(port, int)
+                           or not 6001 <= port <= 6009 for port in ports)
+                    or len(set(ports)) != len(ports)):
                 raise ValueError("engine-live workers require dedicated ports within 6001-6009")
+            self.server_ports = tuple(ports)
+            self.base_port = self.server_ports[0]
 
     def _jobs(self, include_induction=True, include_grading=True):
         jobs = []
@@ -236,12 +244,15 @@ class HarnessRunner(object):
         material["attempt_id"] = None
         material["events_path"] = "events.jsonl"
         material["_run_dir"] = run_dir
-        material["port"] = self.base_port + worker
+        material["port"] = (self.server_ports[worker]
+                            if self.server_ports is not None else self.base_port + worker)
         return material
 
-    def _run_one(self, indexed_job, resume):
+    def _run_one(self, indexed_job, resume, worker=None):
         index, job = indexed_job
-        worker = index % self.workers
+        worker = index % self.workers if worker is None else int(worker)
+        if not 0 <= worker < self.workers:
+            raise ValueError("worker must identify a configured worker slot")
         manifest = self._manifest(job, worker)
         run_dir = manifest["_run_dir"]
         events_path = os.path.join(run_dir, manifest["events_path"])
@@ -342,10 +353,13 @@ class HarnessRunner(object):
         return summary
 
     def run_impact_pairs(self, resume=True):
-        """Run paired policy arms serially in predeclared alternating order."""
-        if self.workers != 1:
-            raise ValueError("paired impact evaluation requires workers=1")
+        """Run each pair serially while independent seed pairs may run concurrently."""
         cohort = self.config["paired_impact"]["cohorts"][self.impact_cohort]
+        declared_workers = int(cohort.get("controller_workers", 1))
+        if cohort["claim_eligible"] and self.workers != declared_workers:
+            raise ValueError(
+                "confirmatory cohort {} requires controller_workers={}".format(
+                    self.impact_cohort, declared_workers))
         if cohort["claim_eligible"] and self.seed_limit is not None:
             raise ValueError(
                 "confirmatory cohort {} cannot use a pair limit".format(
@@ -364,7 +378,28 @@ class HarnessRunner(object):
                         self.impact_cohort))
         os.makedirs(self.out, exist_ok=True)
         jobs = list(enumerate(self._impact_jobs()))
-        results = [self._run_one(job, resume) for job in jobs]
+        if self.workers == 1:
+            results = [self._run_one(job, resume, worker=0) for job in jobs]
+        else:
+            # The seed pair is the experimental unit. Assign both arms to one
+            # serial worker bucket so concurrency can never reverse or overlap
+            # the predeclared within-pair order. Independent pairs are safe to
+            # execute on their own dedicated civserver ports.
+            buckets = [[] for _ in range(self.workers)]
+            for offset in range(0, len(jobs), 2):
+                pair = jobs[offset:offset + 2]
+                if len(pair) != 2 or pair[0][1]["pair_index"] != pair[1][1]["pair_index"]:
+                    raise RuntimeError("impact jobs are not contiguous complete seed pairs")
+                worker = pair[0][1]["pair_index"] % self.workers
+                buckets[worker].extend(pair)
+
+            def run_pair_bucket(worker):
+                return [self._run_one(job, resume, worker=worker)
+                        for job in buckets[worker]]
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=self.workers) as pool:
+                grouped = list(pool.map(run_pair_bucket, range(self.workers)))
+            results = [row for group in grouped for row in group]
         summary = {
             "backend": self.backend,
             "completed": sum(row["status"].get("status") == "completed"
@@ -378,6 +413,7 @@ class HarnessRunner(object):
             "cohort": self.impact_cohort,
             "cohort_purpose": cohort["purpose"],
             "claim_eligible": cohort["claim_eligible"],
+            "controller_workers": self.workers,
             "pairs": len(self._impact_jobs()) // 2,
             "resumed": sum(row["resumed"] for row in results),
         }

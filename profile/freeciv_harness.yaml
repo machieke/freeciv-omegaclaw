@@ -14,7 +14,7 @@ opponent:
 machine_profile: codex-dev-linux
 engine:
   freeciv_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018
-  proxy_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:edae0c82f91e0a385f438d8691744c3cdae68aade1daceb78be3ec9653dbacb5
+  proxy_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:24c7c8759a727a83e4bfe0053537bc41efa2b17abff19dc4c02cb60011c3ddbe
 rulebase:
   compiler_version: freeciv-ruleset-compiler/1.2
   source_sha256: 3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e
@@ -301,22 +301,30 @@ paired_impact:
         count: 200
         minimum: 1400000
         maximum: 1699999
-    confirmatory_score_horizon_60_v3:
+    timing_parity_v1:
+      purpose: development
+      claim_eligible: false
+      require_clean_source: false
+      endpoints: [score_turn_n]
+      planned_pairs: 3
+      seeds: [2017463, 2028597, 2005305]
+    confirmatory_score_horizon_60_v4:
       purpose: confirmatory
       claim_eligible: true
       require_clean_source: true
       endpoints: [score_turn_n]
       horizon_turn: 60
       planned_pairs: 450
+      controller_workers: 3
       score_design:
         minimum_detectable_delta: 0.2
         maximum_planning_sd: 1.5
       seed_derivation:
         algorithm: sha256-counter-v1
-        namespace: pln-freeciv-impact-confirmatory-score-horizon60-v3-unitless-state
+        namespace: pln-freeciv-impact-confirmatory-score-horizon60-v4-pair-parallel
         count: 450
-        minimum: 2000000
-        maximum: 2099999
+        minimum: 2100000
+        maximum: 2199999
     confirmatory_joint:
       purpose: confirmatory
       claim_eligible: true
@@ -347,6 +355,24 @@ paired_impact:
         count: 450
         minimum: 1900000
         maximum: 1999999
+    confirmatory_score_horizon_60_v3:
+      retired_reason: operational_latency_retirement_before_outcome_inspection
+      source_commit: e36ad4b6513761f0267ce552353247ac1e6643d4
+      completed_arms: 38
+      planned_arms: 900
+      outcome_values_inspected: false
+      endpoints: [score_turn_n]
+      horizon_turn: 60
+      planned_pairs: 450
+      score_design:
+        minimum_detectable_delta: 0.2
+        maximum_planning_sd: 1.5
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pln-freeciv-impact-confirmatory-score-horizon60-v3-unitless-state
+        count: 450
+        minimum: 2000000
+        maximum: 2099999
 seeds:
   - 104729
   - 104743

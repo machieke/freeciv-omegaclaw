@@ -14,13 +14,21 @@ The patch is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. Its SHA-256 is
-`edae0c82f91e0a385f438d8691744c3cdae68aade1daceb78be3ec9653dbacb5`.
+`24c7c8759a727a83e4bfe0053537bc41efa2b17abff19dc4c02cb60011c3ddbe`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
-State-response cache identity includes both turn and the monotonic packet sequence. Same-turn
-engine changes therefore cannot reuse a pre-action response, and incoming authoritative packets
-also invalidate cached city and technology actions. Player ID `0` is treated as an ordinary,
-valid cache owner during targeted eviction.
+State-response cache identity includes the game ID, player, format, turn, and monotonic packet
+sequence. Parallel games therefore cannot reuse one another's response even when their player,
+turn, and packet counters coincide. Same-turn engine changes cannot reuse a pre-action response,
+and incoming authoritative packets also invalidate cached city and technology actions. Player ID
+`0` is treated as an ordinary, valid cache owner during targeted eviction.
+
+The release proxy's legacy `requests_per_second` setting is implemented as a count over
+`window_seconds`, not as a literal per-second rate. The pinned configuration therefore declares
+600 messages per 60-second window (10/second sustained) and a 1,200-message burst budget. Limits
+remain scoped by unique agent ID and reset on turn end. This accommodates authoritative-state
+polling by isolated parallel workers while retaining a bounded abuse ceiling; a proxy contract
+test asserts the effective release rate.
 
 City-production advertisements prefer the current server-normalized buildability IDs over
 legacy raw bitvectors. This prevents obsolete or otherwise non-buildable targets from being

@@ -24,6 +24,10 @@ def main(argv=None):
         REPO, "profile", "freeciv_harness.yaml"))
     parser.add_argument("--backend", default="representative",
                         choices=("representative", "engine-live"))
+    parser.add_argument("--workers", type=int, default=1,
+                        help="pair workers; both arms of a seed remain serial on one worker")
+    parser.add_argument("--server-ports",
+                        help="comma-separated dedicated engine ports, one per worker")
     parser.add_argument("--cohort", default=None,
                         help="paired cohort (default: configuration default_cohort)")
     parser.add_argument("--limit-pairs", type=int,
@@ -31,6 +35,15 @@ def main(argv=None):
     parser.add_argument("--no-resume", action="store_true")
     parser.add_argument("--aggregate-only", action="store_true")
     args = parser.parse_args(argv)
+    server_ports = None
+    if args.server_ports:
+        try:
+            server_ports = tuple(int(value.strip())
+                                 for value in args.server_ports.split(",") if value.strip())
+        except ValueError:
+            parser.error("--server-ports must be comma-separated integers")
+        if len(server_ports) != args.workers:
+            parser.error("--server-ports must provide exactly --workers ports")
 
     lock_stream = None
     if args.backend == "engine-live" and not args.aggregate_only:
@@ -51,9 +64,10 @@ def main(argv=None):
     runner_summary = None
     if not args.aggregate_only:
         runner = HarnessRunner(
-            args.out, args.config, args.backend, workers=1,
+            args.out, args.config, args.backend, workers=args.workers,
             seed_limit=args.limit_pairs,
-            conditions=("e_full_loop",), impact_cohort=args.cohort)
+            conditions=("e_full_loop",), impact_cohort=args.cohort,
+            server_ports=server_ports)
         runner_summary = runner.run_impact_pairs(resume=not args.no_resume)
     aggregate = aggregate_impact_pairs(args.out, args.config, cohort=args.cohort)
     write_impact_report(args.out, aggregate)

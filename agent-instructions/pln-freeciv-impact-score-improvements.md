@@ -1077,3 +1077,66 @@ range `2000000..2099999`. Preserve V2's 0.20-point detectable difference and 1.5
 maximum planning SD. Do not inspect or reuse V2 outcomes in the V3 design or
 inference. V3 must meet every source, completeness, safety, interval, and exact-test
 acceptance criterion declared for V2.
+
+### V3 operational-latency retirement and timed diagnosis
+
+V3 was stopped after 38 of 900 arms, before any score, win, or paired outcome values were
+inspected. Its immutable retirement reason is
+`operational_latency_retirement_before_outcome_inspection`; its seeds and partial artifacts must
+not be reused or pooled with a replacement cohort. The decision used controller timing only.
+
+Eight completed turn-60 arms averaged 136.7 seconds per arm. Instrumented trace and lifecycle
+timing attributed that mean as follows:
+
+- 68.9 seconds (50.4%) to fixed two-second confirmation windows whose action effect was not yet
+  visible;
+- 21.1 seconds (15.4%) to confirmation polls that did observe an authoritative refresh;
+- 20.0 seconds (14.6%) to next-turn synchronization;
+- 7.4 seconds (5.4%) to startup, hard reset, and readiness;
+- 6.4 seconds (4.7%) to a second hard reset after the arm;
+- 2.4 seconds (1.8%) to action acknowledgements; and
+- 10.5 seconds (7.7%) to planning, event persistence, aggregation, and other work.
+
+Two tempting confirmation changes were rejected empirically. Action-specific 0.75-second
+deadlines produced an engine rejection, and 100 ms stable-state polling with the original
+two-second deadline also produced an engine rejection. The fixed two-second deadline and 200 ms
+poll interval therefore remain correctness boundaries. The safe lifecycle optimization removes
+only the post-arm reset: proxy termination still occurs after every arm and the next arm always
+performs the authoritative pre-arm hard reset. A six-arm serial diagnostic completed without
+failure in 493.87 seconds.
+
+### Pair-preserving parallel controller
+
+Independent seed pairs may run concurrently, but both arms of any pair remain serial and share
+one dedicated worker/port. Pair order remains the predeclared baseline/treatment alternation, so
+the 450-pair design has exactly balanced first-arm exposure. Claim-eligible cohorts must use their
+predeclared `controller_workers`; concurrency is included in behavioral manifest identity because
+local scheduling can affect when authoritative packet updates become visible.
+
+The first three-worker diagnostic exposed two genuine proxy isolation limits before producing a
+usable result. The state cache key omitted game ID, allowing equal player/turn/packet counters in
+parallel games to collide, and the configured value named `requests_per_second: 100` was actually
+enforced as 100 requests per 60 seconds. The pinned proxy now scopes state cache keys by game and
+declares a tested 600-message/60-second sustained budget plus a 1,200-message burst budget per
+agent. The corresponding proxy contract suite passes.
+
+The hardened run at
+`artifacts/freeciv/impact-timing-parity-v1-parallel3-cache-and-rate-scoped-20260722`
+completed all three pairs and six arms with zero infrastructure failures, zero engine rejection,
+zero model fallback, matched initial state within every pair, and every full-loop turn below 30
+seconds. Wall time was 239.08 seconds versus 493.87 seconds serially: a measured 2.07x speedup and
+51.6% reduction. Five of six normalized action trajectories and outcomes matched the serial run
+exactly. One baseline arm received a fortify-state packet update during its confirmation window,
+whereas two independent serial executions timed out on the preceding snapshot; that legal timing
+difference changed its later route and score. The repeat serial pair completed in 99.32 seconds
+and exactly reproduced the original serial trajectory. This evidence establishes safe isolation
+and also proves that serial and concurrent artifacts must not be mixed as one execution protocol.
+
+Freeze the replacement as `confirmatory_score_horizon_60_v4`: 450 fresh deterministic turn-60
+pairs from namespace `pln-freeciv-impact-confirmatory-score-horizon60-v4-pair-parallel` in the
+disjoint range `2100000..2199999`, with exactly three controller workers. Preserve the V3 score
+design, all source/completeness/safety/statistical gates, and the no-adaptive-stopping rule. The
+three-worker mode, pinned proxy identity, model configuration, and alternating pair order must
+remain unchanged for the complete cohort. Based on observed turn-60 cost and removal of the
+duplicate reset, the planning estimate is approximately 11 hours, subject to engine trajectory
+variance.

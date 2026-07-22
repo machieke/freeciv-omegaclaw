@@ -69,7 +69,8 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "pilot_horizon_60_v4": 40,
         "confirmatory_score": 100,
         "confirmatory_score_horizon_60_v1": 200,
-        "confirmatory_score_horizon_60_v3": 450,
+        "timing_parity_v1": 3,
+        "confirmatory_score_horizon_60_v4": 450,
         "confirmatory_joint": 450,
     }
     seed_sets = [set(row["seeds"]) for row in paired["cohorts"].values()]
@@ -124,7 +125,12 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "pln-freeciv-impact-confirmatory-score-horizon60-v2-current-policy"),
         "count": 450, "minimum": 1900000, "maximum": 1999999,
     }
-    current_score = paired["cohorts"]["confirmatory_score_horizon_60_v3"]
+    retired_latency = paired["retired_cohorts"]["confirmatory_score_horizon_60_v3"]
+    assert retired_latency["retired_reason"] == (
+        "operational_latency_retirement_before_outcome_inspection")
+    assert retired_latency["completed_arms"] == 38
+    assert retired_latency["outcome_values_inspected"] is False
+    current_score = paired["cohorts"]["confirmatory_score_horizon_60_v4"]
     assert current_score["score_design"] == {
         "minimum_detectable_delta": 0.2,
         "maximum_planning_sd": 1.5,
@@ -132,9 +138,10 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert current_score["seed_derivation"] == {
         "algorithm": "sha256-counter-v1",
         "namespace": (
-            "pln-freeciv-impact-confirmatory-score-horizon60-v3-unitless-state"),
-        "count": 450, "minimum": 2000000, "maximum": 2099999,
+            "pln-freeciv-impact-confirmatory-score-horizon60-v4-pair-parallel"),
+        "count": 450, "minimum": 2100000, "maximum": 2199999,
     }
+    assert current_score["controller_workers"] == 3
     assert paired["cohorts"]["pilot_horizon_60"] == {
         "purpose": "pilot", "claim_eligible": False,
         "require_clean_source": True,
@@ -558,6 +565,24 @@ def test_engine_live_workers_are_bounded_to_dedicated_server_ports():
         HarnessRunner("unused", backend="engine-live", workers=10)
 
 
+def test_engine_live_workers_accept_explicit_noncontiguous_server_ports():
+    runner = HarnessRunner(
+        "unused", backend="engine-live", workers=3,
+        server_ports=(6001, 6003, 6004))
+    job = {"condition": "a_stock_llm", "seed": 1,
+           "track": "main", "sequence": 0}
+    assert [runner._manifest(job, worker)["port"] for worker in range(3)] == [
+        6001, 6003, 6004]
+    with pytest.raises(ValueError, match="dedicated ports"):
+        HarnessRunner(
+            "unused", backend="engine-live", workers=3,
+            server_ports=(6001, 6001, 6003))
+    with pytest.raises(ValueError, match="dedicated ports"):
+        HarnessRunner(
+            "unused", backend="engine-live", workers=3,
+            server_ports=(6001, 6003))
+
+
 def test_engine_live_clears_stale_proxy_game_before_server_recycle(monkeypatch):
     calls = []
 
@@ -585,7 +610,6 @@ def test_engine_live_clears_stale_proxy_game_before_server_recycle(monkeypatch):
         ("recycle", 6001),
         ("play", "/tmp/run", "release-retry", context),
         ("terminate", "release-retry", "test-token-fc3d-001", False),
-        ("recycle", 6001),
     ]
 
 
@@ -744,7 +768,7 @@ def test_paired_impact_jobs_alternate_order_and_override_only_declared_policy():
     assert diagnostic_manifest["impact_pair"]["claim_eligible"] is False
     current_confirmatory = HarnessRunner(
         "unused", seed_limit=1, conditions=("e_full_loop",),
-        impact_cohort="confirmatory_score_horizon_60_v3")
+        impact_cohort="confirmatory_score_horizon_60_v4", workers=3)
     current_manifest = current_confirmatory._manifest(
         current_confirmatory._impact_jobs()[0], 0)
     assert current_manifest["turn_limit"] == 60
@@ -752,6 +776,42 @@ def test_paired_impact_jobs_alternate_order_and_override_only_declared_policy():
         "minimum_detectable_delta": 0.2,
         "maximum_planning_sd": 1.5,
     }
+
+
+def test_parallel_impact_execution_keeps_each_pair_serial_on_one_worker(monkeypatch):
+    with tempfile.TemporaryDirectory() as directory:
+        runner = HarnessRunner(
+            directory, workers=3, seed_limit=6,
+            conditions=("e_full_loop",))
+        calls = []
+        lock = runner._lock
+
+        def run_one(indexed_job, resume, worker=None):
+            _, job = indexed_job
+            with lock:
+                calls.append((len(calls), job["pair_index"],
+                              job["within_pair_order"], job["policy_arm"], worker))
+            return {"manifest": {}, "status": {"status": "completed"},
+                    "resumed": False}
+
+        monkeypatch.setattr(runner, "_run_one", run_one)
+        summary = runner.run_impact_pairs(resume=False)
+
+    assert summary["completed"] == summary["jobs"] == 12
+    assert summary["controller_workers"] == 3
+    for pair_index in range(6):
+        rows = sorted((row for row in calls if row[1] == pair_index),
+                      key=lambda row: row[0])
+        assert [row[2] for row in rows] == [0, 1]
+        assert {row[4] for row in rows} == {pair_index % 3}
+
+
+def test_parallel_confirmatory_cohort_requires_predeclared_worker_count():
+    runner = HarnessRunner(
+        "unused", workers=1, conditions=("e_full_loop",),
+        impact_cohort="confirmatory_score_horizon_60_v4")
+    with pytest.raises(ValueError, match="requires controller_workers=3"):
+        runner.run_impact_pairs(resume=False)
 
 
 def test_arbitrary_declared_impact_cohorts_have_stable_safe_manifest_tokens():

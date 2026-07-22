@@ -265,6 +265,11 @@ def _validate_paired_impact(value):
         for key in ("claim_eligible", "require_clean_source"):
             if not isinstance(cohort.get(key), bool):
                 raise ValueError("{}.{} must be boolean".format(prefix, key))
+        controller_workers = cohort.get("controller_workers", 1)
+        if (isinstance(controller_workers, bool)
+                or not isinstance(controller_workers, int)
+                or not 1 <= controller_workers <= 9):
+            raise ValueError("{}.controller_workers must be in 1..9".format(prefix))
         horizon_turn = cohort.get("horizon_turn", outcomes["horizon_turn"])
         if (isinstance(horizon_turn, bool) or not isinstance(horizon_turn, int)
                 or not 1 <= horizon_turn <= 500):
