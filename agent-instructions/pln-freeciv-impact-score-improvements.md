@@ -1062,3 +1062,18 @@ Accept city-owned states with zero units, and define elimination as owning neith
 cities nor units. Validate that contract synthetically and with the non-claim-eligible
 turn-30 `diagnostic_unitless_city_v1` replay before freezing a fresh, disjoint V3
 confirmation cohort.
+
+The engine-backed diagnostic at
+`artifacts/freeciv/impact-unitless-city-1905459-20260722` met this gate from clean
+commit `eb20498`: treatment crossed the former boundary with two cities and zero
+units at turns 25 and 30, both arms completed, rejection and fallback were zero,
+paired initial state matched, source remained stable, and the complete 1,457-event
+release audit passed.
+
+Freeze the replacement as `confirmatory_score_horizon_60_v3`: 450 deterministic
+turn-60 pairs from namespace
+`pln-freeciv-impact-confirmatory-score-horizon60-v3-unitless-state` in the disjoint
+range `2000000..2099999`. Preserve V2's 0.20-point detectable difference and 1.5
+maximum planning SD. Do not inspect or reuse V2 outcomes in the V3 design or
+inference. V3 must meet every source, completeness, safety, interval, and exact-test
+acceptance criterion declared for V2.

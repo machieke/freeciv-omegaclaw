@@ -43,6 +43,7 @@ every seed before any game is observed.
 | `confirmatory_score` | retired exposed V4 score cohort | 100 | no | score only |
 | `confirmatory_score_horizon_60_v1` | completed prior-policy turn-60 score test | 200 | yes | score only |
 | `confirmatory_score_horizon_60_v2` | retired incomplete current-policy test | 450 | no | score only |
+| `confirmatory_score_horizon_60_v3` | corrected current-policy turn-60 score test | 450 | yes | score only |
 | `confirmatory_joint` | hierarchical score then lead-rate test | 450 | yes | score, lead rate |
 
 Configuration validation rejects overlapping cohorts. Pilot and confirmatory cohorts
@@ -96,6 +97,15 @@ contract changes the implementation identity, the 899 completed arms remain immu
 diagnostic evidence and cannot be completed or pooled into a claim. The one-pair
 `diagnostic_unitless_city_v1` cohort validates the correction at the default turn-30
 horizon before a new disjoint confirmation design is frozen.
+
+That diagnostic completed both arms from clean commit `eb20498`. The treatment
+authoritative snapshots at turns 25 and 30 each contained two cities and zero units;
+all safety and paired-fidelity gates passed, and the complete 1,457-event release audit
+passed. V3 therefore freezes the unchanged 450-pair score design in the fresh
+`2000000..2099999` range under namespace
+`pln-freeciv-impact-confirmatory-score-horizon60-v3-unitless-state`. Its 0.20-point
+detectable difference, 1.5 planning-SD bound, source-freeze rules, and claim gates are
+identical to V2. V2 outcomes are not used for V3 sizing, seed selection, or inference.
 
 Primary score and paired lead-rate intervals use 20,000 fixed-seed bootstrap samples
 over seed-pair differences. The score endpoint also uses an exact two-sided paired
@@ -171,6 +181,15 @@ FREECIV_RULESET_ROOT="$FREECIV_LLM_ROOT/freeciv/freeciv/data" \
 PYTHONPATH=src:benchmarks python3 scripts/freeciv/run_impact_evaluation.py \
   --out artifacts/freeciv/impact-unitless-city-1905459 \
   --backend engine-live --cohort diagnostic_unitless_city_v1
+```
+
+Run the corrected current-policy confirmation only from its committed clean source:
+
+```bash
+FREECIV_RULESET_ROOT="$FREECIV_LLM_ROOT/freeciv/freeciv/data" \
+PYTHONPATH=src:benchmarks python3 scripts/freeciv/run_impact_evaluation.py \
+  --out artifacts/freeciv/impact-confirmatory-score-horizon60-v3-engine \
+  --backend engine-live --cohort confirmatory_score_horizon_60_v3
 ```
 
 Runs resume only manifest-identical completed arms. `--aggregate-only` rebuilds a
