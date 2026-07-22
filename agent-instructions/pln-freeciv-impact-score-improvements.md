@@ -1046,3 +1046,19 @@ Acceptance criteria:
   and the predeclared one-sided margin test passes;
 - any infrastructure failure is retried only as a fresh attempt, never converted into
   an observation, and any source/configuration drift invalidates the cohort.
+
+### V2 retirement: unitless city-owned state
+
+V2 completed 899 of 900 arms from clean source `d078114`. Treatment seed `1905459`
+failed three fresh attempts at the same transition: its sole unit was destroyed by an
+accepted turn-24 attack, `PACKET_BEGIN_TURN` and a packet-backed turn-25 state arrived,
+and the player still owned two cities. The harness nevertheless required raw `units`
+to be nonempty before parsing the state and separately treated an empty typed unit
+collection as elimination. Proxy logs prove this was not a missing turn or unhealthy
+server. The cohort is retired because repairing either assumption changes source
+identity; its 899 arms must never be pooled with a corrected run.
+
+Accept city-owned states with zero units, and define elimination as owning neither
+cities nor units. Validate that contract synthetically and with the non-claim-eligible
+turn-30 `diagnostic_unitless_city_v1` replay before freezing a fresh, disjoint V3
+confirmation cohort.

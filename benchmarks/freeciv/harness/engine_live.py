@@ -366,6 +366,17 @@ def _decision_state_ready(snapshot, require_own_units=False):
     return True
 
 
+def _player_eliminated(snapshot):
+    """Return true only when the player owns neither cities nor units.
+
+    A player can validly have cities but temporarily own zero units, for example
+    after losing its sole attacker before a replacement completes.  Such a state
+    must continue through the fixed horizon rather than being treated as either
+    partial packet assembly or elimination.
+    """
+    return not snapshot.cities and not snapshot.units
+
+
 async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=20.0,
                  require_decision_ready=False, require_own_units=False,
                  stable_samples=1, poll_interval=0.1):
@@ -386,7 +397,7 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
         except asyncio.TimeoutError:
             break
         source_seq = raw.get("authoritative", {}).get("source_seq") if raw else None
-        if (raw and raw.get("units") and int(raw.get("turn", 0)) >= minimum_turn
+        if (raw and int(raw.get("turn", 0)) >= minimum_turn
                 and (minimum_source_seq is None
                      or (source_seq is not None and int(source_seq) >= minimum_source_seq))):
             snapshot = ProxyStateDTO.parse(game_id, source_seq, raw).to_snapshot()
@@ -1298,10 +1309,10 @@ async def _play(run_dir, manifest, context):
                 rows, parent = _emit_observations(
                     snapshot, manifest, belief_store, inference, writer, parent, seen)
                 predictions.extend(rows)
-            # Elimination is a valid game loss, not infrastructure failure. The
-            # player stream may still contain visible foreign units, so test the
-            # typed authoritative own-unit collection rather than raw truthiness.
-            if not snapshot.units:
+            # Elimination is a valid game loss, not infrastructure failure. A
+            # city-owning player may temporarily have no units, so both typed
+            # authoritative asset collections must be empty before stopping.
+            if _player_eliminated(snapshot):
                 break
 
             full_turn_started = time.perf_counter()

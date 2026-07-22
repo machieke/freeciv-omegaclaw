@@ -34,7 +34,8 @@ from freeciv.harness.engine_live import (  # noqa: E402
     _claim_eligible_manifest, _ollama_readiness, _plain_prompt_state,
     _plain_state_summary, _refresh_accepted_impact_action,
     _decision_state_fingerprint, _decision_state_ready, _global_state_ready,
-    _release_configuration_active, _state, _validate_compact_goal_proposal)
+    _player_eliminated, _release_configuration_active, _state,
+    _validate_compact_goal_proposal)
 from freeciv.harness import engine_live  # noqa: E402
 from freeciv_agent.events.schema import canonical_json_bytes, structural_hash  # noqa: E402
 from freeciv_agent.events.validator import validate_file  # noqa: E402
@@ -61,14 +62,13 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     paired = config["paired_impact"]
     assert paired["default_cohort"] == "development"
     assert {name: len(row["seeds"]) for name, row in paired["cohorts"].items()} == {
-        "development": 100, "pilot": 40,
+        "development": 100, "diagnostic_unitless_city_v1": 1, "pilot": 40,
         "pilot_horizon_60": 40,
         "pilot_horizon_60_v2": 40,
         "pilot_horizon_60_v3": 40,
         "pilot_horizon_60_v4": 40,
         "confirmatory_score": 100,
         "confirmatory_score_horizon_60_v1": 200,
-        "confirmatory_score_horizon_60_v2": 450,
         "confirmatory_joint": 450,
     }
     seed_sets = [set(row["seeds"]) for row in paired["cohorts"].values()]
@@ -109,12 +109,15 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "namespace": "pln-freeciv-impact-confirmatory-score-horizon60-v1",
         "count": 200, "minimum": 1400000, "maximum": 1699999,
     }
-    current_score = paired["cohorts"]["confirmatory_score_horizon_60_v2"]
-    assert current_score["score_design"] == {
+    retired_score = paired["retired_cohorts"]["confirmatory_score_horizon_60_v2"]
+    assert retired_score["retired_reason"] == (
+        "unitless_city_state_rejected_at_seed_1905459_turn_25")
+    assert retired_score["completed_arms"] == 899
+    assert retired_score["score_design"] == {
         "minimum_detectable_delta": 0.2,
         "maximum_planning_sd": 1.5,
     }
-    assert current_score["seed_derivation"] == {
+    assert retired_score["seed_derivation"] == {
         "algorithm": "sha256-counter-v1",
         "namespace": (
             "pln-freeciv-impact-confirmatory-score-horizon60-v2-current-policy"),
@@ -406,9 +409,10 @@ def test_live_model_readiness_rejects_invalid_json(monkeypatch):
         }})
 
 
-def _ready_snapshot(source_seq=1, moves_left=3, buildability=True):
+def _ready_raw(source_seq=1, moves_left=3, buildability=True,
+               include_units=True, include_cities=True, turn=1):
     raw = {
-        "format": "pln_authoritative", "turn": 1, "phase": "movement",
+        "format": "pln_authoritative", "turn": turn, "phase": "movement",
         "player_id": 0,
         "authoritative": {
             "source_seq": source_seq,
@@ -435,6 +439,19 @@ def _ready_snapshot(source_seq=1, moves_left=3, buildability=True):
         "visible_tiles": [],
         "legal_actions": [{"action_type": "end_turn", "is_valid": True}],
     }
+    if not include_units:
+        raw["units"] = {}
+    if not include_cities:
+        raw["cities"] = {}
+    return raw
+
+
+def _ready_snapshot(source_seq=1, moves_left=3, buildability=True,
+                    include_units=True, include_cities=True, turn=1):
+    raw = _ready_raw(
+        source_seq=source_seq, moves_left=moves_left,
+        buildability=buildability, include_units=include_units,
+        include_cities=include_cities, turn=turn)
     return ProxyStateDTO.parse(
         "readiness-test", source_seq, raw).to_snapshot()
 
@@ -446,6 +463,26 @@ def test_decision_readiness_waits_for_complete_active_state_and_ignores_cadence(
     assert _decision_state_fingerprint(first) == _decision_state_fingerprint(second)
     assert not _decision_state_ready(_ready_snapshot(moves_left=0))
     assert not _decision_state_ready(_ready_snapshot(buildability=False))
+
+
+def test_unitless_city_state_is_decision_ready_and_not_eliminated(monkeypatch):
+    raw = _ready_raw(
+        source_seq=25, include_units=False, include_cities=True, turn=25)
+
+    async def city_only_state(_ws, _format):
+        return raw
+
+    monkeypatch.setattr(engine_live.turncycle, "get_state", city_only_state)
+    returned, snapshot = asyncio.run(_state(
+        object(), "unitless-city", minimum_turn=25,
+        require_decision_ready=True, stable_samples=1, timeout=0.2))
+    assert returned is raw
+    assert snapshot.turn == 25
+    assert not snapshot.units and snapshot.cities
+    assert _decision_state_ready(snapshot)
+    assert not _player_eliminated(snapshot)
+    assert _player_eliminated(_ready_snapshot(
+        include_units=False, include_cities=False))
 
 
 def test_global_state_readiness_requires_both_authoritative_scores():
@@ -685,16 +722,14 @@ def test_paired_impact_jobs_alternate_order_and_override_only_declared_policy():
         "minimum_detectable_delta": 0.2,
         "maximum_planning_sd": 1.0,
     }
-    current_confirmatory = HarnessRunner(
+    unitless_diagnostic = HarnessRunner(
         "unused", seed_limit=1, conditions=("e_full_loop",),
-        impact_cohort="confirmatory_score_horizon_60_v2")
-    current_manifest = current_confirmatory._manifest(
-        current_confirmatory._impact_jobs()[0], 0)
-    assert current_manifest["turn_limit"] == 60
-    assert current_manifest["impact_pair"]["score_design"] == {
-        "minimum_detectable_delta": 0.2,
-        "maximum_planning_sd": 1.5,
-    }
+        impact_cohort="diagnostic_unitless_city_v1")
+    diagnostic_manifest = unitless_diagnostic._manifest(
+        unitless_diagnostic._impact_jobs()[0], 0)
+    assert diagnostic_manifest["turn_limit"] == 30
+    assert diagnostic_manifest["seed"] == 1905459
+    assert diagnostic_manifest["impact_pair"]["claim_eligible"] is False
 
 
 def test_arbitrary_declared_impact_cohorts_have_stable_safe_manifest_tokens():
