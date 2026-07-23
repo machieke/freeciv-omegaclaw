@@ -229,6 +229,14 @@ class GroundedImpactPlanner(object):
                 or not 1 <= int(pressure_max_routes) <= 10000):
             raise ValueError(
                 "pressure_max_routes_per_conclusion must be in 1..10000")
+        pressure_survival_threat_radius = values.get(
+            "pressure_survival_threat_radius", 3)
+        if (isinstance(pressure_survival_threat_radius, bool)
+                or not 1 <= int(pressure_survival_threat_radius) <= 12):
+            raise ValueError(
+                "pressure_survival_threat_radius must be in 1..12")
+        self.pressure_survival_threat_radius = int(
+            pressure_survival_threat_radius)
         for name, lower, upper, upper_inclusive in (
                 ("pressure_damping", 0.0, 1.0, False),
                 ("pressure_exploration_floor", 0.0, 1.0, True),
@@ -2328,7 +2336,8 @@ class GroundedImpactPlanner(object):
         pressure_artifact = None
         if self._pressure_ranker is not None:
             rows, pressure_artifact = self._pressure_ranker.rank(
-                snapshot, rows, self.expansion_city_target, self.horizon_turn)
+                snapshot, rows, self.expansion_city_target, self.horizon_turn,
+                self.pressure_survival_threat_radius)
         candidate = rows[0]
         if (candidate.category == "production_military_score"
                 and self._unit_score_batch_intent is None):

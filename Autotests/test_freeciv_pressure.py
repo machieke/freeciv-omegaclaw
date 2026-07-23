@@ -436,26 +436,43 @@ def test_live_goal_truth_is_grounded_in_authoritative_threat_state():
         _Candidate("production_economy", 1000.0, "produce"),
         _Candidate("tactical_move", 900.0, "advance"),
     )
+    city = SimpleNamespace(x=0, y=0)
     safe = SimpleNamespace(
-        cities=(object(),), turn=5, visible_enemy_units=())
+        cities=(city,), units=(), turn=5, visible_enemy_units=(),
+        map_width=100, map_height=100)
+    distant = SimpleNamespace(
+        cities=(city,), units=(), turn=5,
+        visible_enemy_units=(SimpleNamespace(x=20, y=20),),
+        map_width=100, map_height=100)
+    # Wrapping makes x=99 one tile from the city at x=0.
     threatened = SimpleNamespace(
-        cities=(object(),), turn=5, visible_enemy_units=(object(),))
+        cities=(city,), units=(), turn=5,
+        visible_enemy_units=(SimpleNamespace(x=99, y=0),),
+        map_width=100, map_height=100)
     safe_ordered, safe_artifact = ImpactPressureRanker().rank(
         safe, candidates, expansion_city_target=3, horizon_turn=30)
+    distant_ordered, distant_artifact = ImpactPressureRanker().rank(
+        distant, candidates, expansion_city_target=3, horizon_turn=30)
     threat_ordered, threat_artifact = ImpactPressureRanker().rank(
         threatened, candidates, expansion_city_target=3, horizon_turn=30)
 
     assert safe_ordered[0].category == "production_economy"
+    assert distant_ordered[0].category == "production_economy"
     assert threat_ordered[0].category == "tactical_move"
     safe_goals = dict(
         (row["goal_id"], row) for row in safe_artifact["pressure"]["goals"])
     threat_goals = dict(
         (row["goal_id"], row)
         for row in threat_artifact["pressure"]["goals"])
+    distant_goals = dict(
+        (row["goal_id"], row)
+        for row in distant_artifact["pressure"]["goals"])
     assert safe_goals["pf-impact:survival"]["context"] == [
-        "authoritative:no-visible-threat-or-defense-deficit"]
+        "authoritative:no-proximate-visible-threat-or-defense-deficit"]
+    assert distant_goals["pf-impact:survival"]["context"] == [
+        "authoritative:no-proximate-visible-threat-or-defense-deficit"]
     assert threat_goals["pf-impact:survival"]["context"] == [
-        "authoritative:visible-enemy-or-defense-deficit"]
+        "authoritative:visible-enemy-within-city-threat-radius:3"]
 
 
 def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
@@ -470,6 +487,10 @@ def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
     assert {goal["goal_id"] for goal in artifact["pressure"]["goals"]} == {
         "pf-impact:survival", "pf-impact:expansion",
         "pf-impact:score", "pf-impact:exploration"}
+    goals = dict(
+        (row["goal_id"], row) for row in artifact["pressure"]["goals"])
+    assert goals["pf-impact:survival"]["context"] == [
+        "authoritative:grounded-defense-deficit"]
 
     pressure = artifact["pressure"]
     pressure_hash = structural_hash(pressure)

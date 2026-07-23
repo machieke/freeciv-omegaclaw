@@ -61,6 +61,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert config["impact_policy"]["production_strategy"] == "horizon_score"
     assert config["impact_policy"]["pressure_learning_enabled"] is True
     assert config["impact_policy"]["pressure_max_routes_per_conclusion"] == 32
+    assert config["impact_policy"]["pressure_survival_threat_radius"] == 3
     assert config["impact_policy"]["pressure_learning_rate"] == 0.10
     assert config["impact_policy"]["pressure_no_progress_rate"] == 0.10
     assert config["impact_policy"]["pressure_initial_conductance"] == 1.00
@@ -80,6 +81,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "pressure_ablation_pilot_v1": 40,
         "pressure_ablation_pilot_v2": 40,
         "pressure_goal_relief_pilot_v1": 40,
+        "pressure_threat_relevance_pilot_v1": 40,
     }
     seed_sets = [set(row["seeds"]) for row in paired["cohorts"].values()]
     assert all(not left & right for index, left in enumerate(seed_sets)
@@ -214,6 +216,14 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "count": 40, "minimum": 2500000, "maximum": 2599999,
     }
     assert goal_relief_pilot["isolated_policy_keys"] == [
+        "pressure_enabled", "pressure_learning_enabled"]
+    threat_pilot = paired["cohorts"]["pressure_threat_relevance_pilot_v1"]
+    assert threat_pilot["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": "pf-pln-pressure-threat-relevance-pilot-v1",
+        "count": 40, "minimum": 2600000, "maximum": 2699999,
+    }
+    assert threat_pilot["isolated_policy_keys"] == [
         "pressure_enabled", "pressure_learning_enabled"]
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.2",

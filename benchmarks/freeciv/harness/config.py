@@ -32,6 +32,7 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
             ("unit_build_score_divisor", 1, 100),
             ("no_effect_retry_limit", 1, 8),
             ("max_no_effect_failovers_per_scope", 0, 8),
+            ("pressure_survival_threat_radius", 1, 12),
             ("pressure_max_routes_per_conclusion", 1, 10000)):
         setting = impact.get(key)
         if isinstance(setting, bool) or not isinstance(setting, int) or not lower <= setting <= upper:

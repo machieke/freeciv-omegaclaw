@@ -191,9 +191,49 @@ class ImpactPressureRanker(object):
             return "score"
         return "score"
 
+    @staticmethod
+    def _wrapped_distance(left, right, width, height):
+        if any(getattr(row, key, None) is None
+               for row in (left, right) for key in ("x", "y")):
+            return None
+        dx = abs(int(left.x) - int(right.x))
+        dy = abs(int(left.y) - int(right.y))
+        if int(width or 0) > 0:
+            dx %= int(width)
+            dx = min(dx, int(width) - dx)
+        if int(height or 0) > 0:
+            dy %= int(height)
+            dy = min(dy, int(height) - dy)
+        return max(dx, dy)
+
+    @classmethod
+    def _relevant_visible_threats(cls, snapshot, radius):
+        """Return only opponents grounded near an owned survival anchor."""
+        enemies = tuple(
+            getattr(snapshot, "visible_enemy_units", ()) or ())
+        cities = tuple(getattr(snapshot, "cities", ()) or ())
+        anchors = cities or tuple(getattr(snapshot, "units", ()) or ())
+        if not enemies or not anchors:
+            return ()
+        width = getattr(snapshot, "map_width", 0)
+        height = getattr(snapshot, "map_height", 0)
+        relevant = []
+        for enemy in enemies:
+            distances = tuple(
+                cls._wrapped_distance(enemy, anchor, width, height)
+                for anchor in anchors)
+            # Missing coordinates fail safe. Engine snapshots normally carry
+            # them, while retaining this behavior protects partial consumers.
+            if any(value is None for value in distances):
+                relevant.append(enemy)
+            elif min(distances) <= int(radius):
+                relevant.append(enemy)
+        return tuple(relevant)
+
     @classmethod
     def _grounded_goal_specs(
-            cls, snapshot, candidates, expansion_city_target):
+            cls, snapshot, candidates, expansion_city_target,
+            survival_threat_radius):
         """Derive live goal truth from authoritative state and legal candidates.
 
         Candidate presence is admissible grounding here because candidates are
@@ -206,12 +246,12 @@ class ImpactPressureRanker(object):
         expansion_truth = min(
             1.0, float(current_cities) / max(
                 1, int(expansion_city_target)))
-        visible_enemies = tuple(
-            getattr(snapshot, "visible_enemy_units", ()) or ())
+        relevant_threats = cls._relevant_visible_threats(
+            snapshot, survival_threat_radius)
         defense_deficit = bool(categories & {
             "city_defense", "production_defense"})
         survival_truth = (
-            0.0 if visible_enemies or defense_deficit else 1.0)
+            0.0 if relevant_threats or defense_deficit else 1.0)
         exploration_actionable = any(
             cls.goal_for_category(category) == "exploration"
             for category in categories)
@@ -221,9 +261,12 @@ class ImpactPressureRanker(object):
         return {
             "survival": (
                 survival_truth, 1.50, True,
-                ("authoritative:visible-enemy-or-defense-deficit"
-                 if survival_truth < 1.0
-                 else "authoritative:no-visible-threat-or-defense-deficit")),
+                ("authoritative:grounded-defense-deficit"
+                 if defense_deficit else
+                 "authoritative:visible-enemy-within-city-threat-radius:{}".format(
+                     int(survival_threat_radius))
+                 if relevant_threats else
+                 "authoritative:no-proximate-visible-threat-or-defense-deficit")),
             "expansion": (
                 expansion_truth, 1.25, False,
                 "authoritative:city-count-over-target"),
@@ -239,13 +282,19 @@ class ImpactPressureRanker(object):
                  else "authoritative:no-grounded-exploration-action")),
         }
 
-    def rank(self, snapshot, candidates, expansion_city_target, horizon_turn):
+    def rank(
+            self, snapshot, candidates, expansion_city_target, horizon_turn,
+            survival_threat_radius=3):
         candidates = tuple(candidates)
         if not candidates:
             return (), None
+        if (isinstance(survival_threat_radius, bool)
+                or not 1 <= int(survival_threat_radius) <= 12):
+            raise ValueError("survival threat radius must be in 1..12")
         graph = PressureGraph()
         goal_specs = self._grounded_goal_specs(
-            snapshot, candidates, expansion_city_target)
+            snapshot, candidates, expansion_city_target,
+            survival_threat_radius)
         goals = []
         grouped = dict((key, {}) for key in goal_specs)
         candidate_by_operation = {}

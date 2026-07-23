@@ -65,6 +65,7 @@ impact_policy:
   pressure_exploration_floor: 0.05
   pressure_temperature: 0.15
   pressure_max_routes_per_conclusion: 32
+  pressure_survival_threat_radius: 3
   pressure_learning_enabled: true
   pressure_learning_rate: 0.10
   pressure_no_progress_rate: 0.10
@@ -78,11 +79,14 @@ routes, and ranks the resulting operations. The selected action still becomes
 a snapshot-bound `Plan` and passes through the unchanged execution gate.
 
 Live goal truth is derived from the same immutable authoritative snapshot and
-grounded legal-candidate set. Survival is satisfied when there is no
-packet-visible opponent and no grounded city-defense deficit; expansion is the
-bounded owned-city count divided by the configured city target; score and
-exploration remain active only while the current legal set contains a grounded
-operation for them. Each derivation is recorded in the goal context carried by
+grounded legal-candidate set. Survival is satisfied when there is no grounded
+city-defense deficit and no packet-visible opponent within the configured
+wrapped distance of an owned city (or an owned unit when no city exists).
+Distant visible opponents remain authoritative observations but do not create
+existential safety pressure. Expansion is the bounded owned-city count divided
+by the configured city target; score and exploration remain active only while
+the current legal set contains a grounded operation for them. Each derivation
+and the threat radius are recorded in the goal context carried by
 `pressure_propagated`.
 
 Candidate categories have separate learned routes. Immediate action effect and

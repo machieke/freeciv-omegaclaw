@@ -17,7 +17,7 @@ legal actions, execution, and evaluation.
 | 6 — induction and analogy | Existing opponent memory and rule proposal infrastructure retained | Partial | Route induction/analogy invocation through `expand` pressure and replay gates |
 | 7 — LLM gateway | Existing constrained proposer, verification, quarantine, and token configuration retained | Partial | Make expansion pressure, expected proposal value, and validation cost control call timing |
 | 8 — differentiable execution | No automatic-differentiation truth engine added | Not implemented | Add the delimited differentiable subset and compare adjoint with requirement/counterfactual pressure |
-| 9 — full multi-goal field | Per-goal pressure, derived weights, double-count prevention, cross-goal harm, hard safety veto, budget allocation; live goal truth is grounded in authoritative threat, defense-deficit, city-count, and legal-candidate state; category routing assigns defense production to survival and population recovery to score; three fresh 40-pair pressure pilots completed with exact isolation | Goal-relief pilot outcome-neutral; coarse visible-enemy survival activation diagnosed | Ground survival urgency in threat proximity/relevance; do not freeze confirmatory evidence |
+| 9 — full multi-goal field | Per-goal pressure, derived weights, double-count prevention, cross-goal harm, hard safety veto, budget allocation; survival now requires a defense deficit or a visible opponent within configured wrapped distance of an owned city/unit anchor; category routing assigns defense production to survival and population recovery to score; three fresh 40-pair pressure pilots completed with exact isolation | Threat-relevance offline acceptance passed; goal-relief pilot outcome-neutral | Run predeclared threat-relevance smoke/pilot; do not freeze confirmatory evidence |
 
 ## Non-negotiable integration rules
 
@@ -32,13 +32,13 @@ legal actions, execution, and evaluation.
 
 ## Next empirical gates
 
-1. Replace the global “any visible opponent” survival deficit with a grounded
-   proximity or direct-threat predicate connected to owned cities/units.
-2. Add offline regressions proving distant visible opponents cannot preempt
-   score-bearing expansion, exploration, or production while near threats
-   still activate safety pressure.
-3. Predeclare another seed-disjoint pilot only after threat-relevance replay
-   passes; do not pool its estimates with any prior pressure pilot.
+1. Run the one-pair prefix of predeclared
+   `pressure_threat_relevance_pilot_v1` and require schema-valid grounded
+   threat contexts plus zero exact-replay integrity failures.
+2. Run its remaining seed-disjoint pairs only if the smoke passes; do not pool
+   its estimates with any prior pressure pilot.
+3. Report distant-safe versus proximate-threat context counts and the dominant
+   changed category transitions before considering another semantic change.
 4. Do not freeze confirmatory evidence from `pressure_goal_relief_pilot_v1`.
    Its score estimate was -0.05 with interval [-0.775, 0.600], and all three
    lead discordances favored baseline.
