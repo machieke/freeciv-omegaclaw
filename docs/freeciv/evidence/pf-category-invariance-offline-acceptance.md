@@ -1,6 +1,6 @@
 # PF-PLN category enumeration-invariance offline acceptance
 
-Status: deterministic acceptance passed; engine evaluation pending
+Status: deterministic acceptance and 40-pair engine evaluation passed
 
 The defense-relevance pilot removed routine fortification overactivation but
 showed that expansion often lost to exploration because expansion exposed
@@ -36,8 +36,11 @@ PYTHONPATH=src:benchmarks python3 -m pytest -q \
   Autotests/test_freeciv_harness.py
 ```
 
-The predeclared `pressure_category_invariance_pilot_v1` uses 40 fresh
-SHA-256-derived seed pairs in the range 2,800,000–2,899,999. It retains the
-pressure-only two-key arm isolation, turn-60 horizon, and alternating 20/20
-execution order. Its one-pair prefix must pass engine, schema, source, safety,
-and exact-replay gates before the remaining pairs run.
+The predeclared `pressure_category_invariance_pilot_v1` then completed 40
+fresh SHA-256-derived seed pairs in the range 2,800,000–2,899,999. All engine,
+schema, safety, source, and exact-replay gates passed, and all 2,553 treatment
+decisions preserved category-level priority invariance. The score delta was
+-0.225 with interval [-0.800, 0.325], so no performance claim or confirmatory
+cohort is warranted. Full results and the next cross-goal opportunity-cost
+target are recorded in
+[`pf-pressure-category-invariance-pilot-v1.md`](pf-pressure-category-invariance-pilot-v1.md).

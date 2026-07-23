@@ -294,6 +294,24 @@ alternatives no longer changes the winning goal. Full defense evidence is in
 Deterministic category-invariance acceptance is in
 [`evidence/pf-category-invariance-offline-acceptance.md`](evidence/pf-category-invariance-offline-acceptance.md).
 
+The category-invariance correction then passed its fresh 40-pair engine/replay
+pilot with zero failures and zero invariant violations across 2,553 treatment
+decisions. Expansion-to-exploration substitutions fell from 66 in the prior
+seed-disjoint pilot to 29, but score changed by -0.225 with interval
+[-0.800, 0.325], fixed-horizon lead rate changed by -2.5 percentage points,
+and settlement attempts changed by -0.20. This is semantic acceptance only,
+not evidence of a performance improvement.
+
+Replay now exposes the next issue without relying on goal-weight tuning:
+absolute grounded action value is normalized independently within each goal
+before category pressures are compared. High-value immediate hut exploration
+and city founding can therefore lose to lower-value operations from another
+non-safety goal. Cross-goal opportunity cost must be integrated exactly once
+while retaining category invariance and allowing authoritative urgent survival
+pressure to preempt non-safety value. Full pilot evidence and artifact
+identities are in
+[`evidence/pf-pressure-category-invariance-pilot-v1.md`](evidence/pf-pressure-category-invariance-pilot-v1.md).
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` defaults to `false` unless the runtime profile enables it.
 This preserves unit-level policy isolation and makes an unpressured ablation
