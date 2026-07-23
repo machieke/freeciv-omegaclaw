@@ -68,7 +68,7 @@ impact_policy:
   pressure_learning_enabled: true
   pressure_learning_rate: 0.10
   pressure_no_progress_rate: 0.10
-  pressure_initial_conductance: 0.50
+  pressure_initial_conductance: 1.00
 ```
 
 The impact planner still enumerates only server-advertised legal actions.
@@ -77,6 +77,14 @@ score, and exploration goals, propagates pressure through procedural OR
 routes, and ranks the resulting operations. The selected action still becomes
 a snapshot-bound `Plan` and passes through the unchanged execution gate.
 
+Live goal truth is derived from the same immutable authoritative snapshot and
+grounded legal-candidate set. Survival is satisfied when there is no
+packet-visible opponent and no grounded city-defense deficit; expansion is the
+bounded owned-city count divided by the configured city target; score and
+exploration remain active only while the current legal set contains a grounded
+operation for them. Each derivation is recorded in the goal context carried by
+`pressure_propagated`.
+
 Candidate categories have separate learned routes. Credit is applied only
 after the candidate-specific authoritative effect predicate succeeds.
 Authoritative next-turn no-effect resolution applies bounded no-progress
@@ -84,6 +92,11 @@ decay; transport acceptance alone never receives credit. Deferred effects keep
 the originating action-result ID so replay cannot apply the same update twice.
 The ledger is written atomically to `pressure-conductance.json`, scoped to one
 run attempt, and archived with superseded attempts.
+
+Server-advertised but untried category routes start optimistically at
+conductance 1.0. Grounded no-progress feedback decays them from that prior.
+This prevents a frequently exercised instrumental movement route from
+automatically suppressing a rare, immediately legal goal-completion route.
 
 Reverse expansion uses a deterministic expected-transport beam, configured by
 `pressure_max_routes_per_conclusion`. Conclusions with at most 32 routes are
@@ -188,6 +201,23 @@ prior for untried routes and replace constant goal strengths with
 authoritative snapshot-derived values, then run a fresh seed-disjoint pilot.
 Full results and artifact hashes are in
 [`evidence/pf-pressure-ablation-pilot-v1.md`](evidence/pf-pressure-ablation-pilot-v1.md).
+
+`pressure_ablation_pilot_v2` is the fresh, claim-ineligible validation cohort
+for the grounded-goal and optimistic-prior correction. It contains 40 new
+SHA-derived pairs in the disjoint 2400000-2499999 range and retains the exact
+same two-key arm isolation. Run a committed smoke prefix with:
+
+```bash
+PYTHONPATH=src:benchmarks python3 scripts/freeciv/run_impact_evaluation.py \
+  --out artifacts/freeciv/pf-pressure-ablation-pilot-v2 \
+  --backend engine-live \
+  --cohort pressure_ablation_pilot_v2 \
+  --limit-pairs 1
+```
+
+Omit `--limit-pairs` only after the smoke trace demonstrates grounded goal
+contexts, optimistic initial conductance, exact replay, and direct
+goal-completion preservation. V1 and v2 results must not be pooled.
 
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` defaults to `false` unless the runtime profile enables it.

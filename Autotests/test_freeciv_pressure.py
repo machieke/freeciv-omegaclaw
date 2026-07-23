@@ -350,6 +350,55 @@ def test_learned_category_conductance_can_abandon_a_no_progress_branch():
         "production_economy"]["no_progress"] == 8
 
 
+def test_optimistic_untried_route_preserves_direct_goal_completion():
+    snapshot = SimpleNamespace(
+        cities=(object(),), turn=5, visible_enemy_units=())
+    candidates = (
+        _Candidate("city_founding", 1000.0, "found"),
+        _Candidate("expansion_move", 850.0, "move"),
+    )
+    state = ConductanceState(
+        identity="optimistic-rare-route", initial_conductance=1.0)
+    for index in range(20):
+        state.feedback(
+            "expansion_move", True, "move-success-{}".format(index))
+    ordered, artifact = ImpactPressureRanker(
+        conductance_state=state).rank(
+            snapshot, candidates, expansion_city_target=3, horizon_turn=30)
+    assert ordered[0].category == "city_founding"
+    routes = artifact["conductance_state"]["routes"]
+    assert routes["expansion_move"]["successes"] == 20
+    assert state.value("city_founding") == 1.0
+    assert state.value("expansion_move") < state.value("city_founding")
+
+
+def test_live_goal_truth_is_grounded_in_authoritative_threat_state():
+    candidates = (
+        _Candidate("production_economy", 1000.0, "produce"),
+        _Candidate("tactical_move", 900.0, "advance"),
+    )
+    safe = SimpleNamespace(
+        cities=(object(),), turn=5, visible_enemy_units=())
+    threatened = SimpleNamespace(
+        cities=(object(),), turn=5, visible_enemy_units=(object(),))
+    safe_ordered, safe_artifact = ImpactPressureRanker().rank(
+        safe, candidates, expansion_city_target=3, horizon_turn=30)
+    threat_ordered, threat_artifact = ImpactPressureRanker().rank(
+        threatened, candidates, expansion_city_target=3, horizon_turn=30)
+
+    assert safe_ordered[0].category == "production_economy"
+    assert threat_ordered[0].category == "tactical_move"
+    safe_goals = dict(
+        (row["goal_id"], row) for row in safe_artifact["pressure"]["goals"])
+    threat_goals = dict(
+        (row["goal_id"], row)
+        for row in threat_artifact["pressure"]["goals"])
+    assert safe_goals["pf-impact:survival"]["context"] == [
+        "authoritative:no-visible-threat-or-defense-deficit"]
+    assert threat_goals["pf-impact:survival"]["context"] == [
+        "authoritative:visible-enemy-or-defense-deficit"]
+
+
 def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
     snapshot = SimpleNamespace(cities=(), turn=5)
     candidates = (

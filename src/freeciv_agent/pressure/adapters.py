@@ -190,20 +190,61 @@ class ImpactPressureRanker(object):
             return "score"
         return "score"
 
+    @classmethod
+    def _grounded_goal_specs(
+            cls, snapshot, candidates, expansion_city_target):
+        """Derive live goal truth from authoritative state and legal candidates.
+
+        Candidate presence is admissible grounding here because candidates are
+        created only from the current server-advertised legal-action set.  It
+        does not establish that an action will succeed; it establishes that the
+        corresponding unresolved deficit is currently actionable.
+        """
+        categories = set(str(candidate.category) for candidate in candidates)
+        current_cities = len(getattr(snapshot, "cities", ()) or ())
+        expansion_truth = min(
+            1.0, float(current_cities) / max(
+                1, int(expansion_city_target)))
+        visible_enemies = tuple(
+            getattr(snapshot, "visible_enemy_units", ()) or ())
+        defense_deficit = bool(categories & {
+            "city_defense", "production_defense"})
+        survival_truth = (
+            0.0 if visible_enemies or defense_deficit else 1.0)
+        exploration_actionable = any(
+            cls.goal_for_category(category) == "exploration"
+            for category in categories)
+        score_actionable = any(
+            cls.goal_for_category(category) == "score"
+            for category in categories)
+        return {
+            "survival": (
+                survival_truth, 1.50, True,
+                ("authoritative:visible-enemy-or-defense-deficit"
+                 if survival_truth < 1.0
+                 else "authoritative:no-visible-threat-or-defense-deficit")),
+            "expansion": (
+                expansion_truth, 1.25, False,
+                "authoritative:city-count-over-target"),
+            "score": (
+                0.0 if score_actionable else 1.0, 1.00, False,
+                ("authoritative:grounded-score-action"
+                 if score_actionable
+                 else "authoritative:no-grounded-score-action")),
+            "exploration": (
+                0.0 if exploration_actionable else 1.0, 0.35, False,
+                ("authoritative:grounded-exploration-action"
+                 if exploration_actionable
+                 else "authoritative:no-grounded-exploration-action")),
+        }
+
     def rank(self, snapshot, candidates, expansion_city_target, horizon_turn):
         candidates = tuple(candidates)
         if not candidates:
             return (), None
         graph = PressureGraph()
-        current_cities = len(getattr(snapshot, "cities", ()))
-        expansion_truth = min(
-            1.0, float(current_cities) / max(1, int(expansion_city_target)))
-        goal_specs = {
-            "survival": (0.0, 1.50, True),
-            "expansion": (expansion_truth, 1.25, False),
-            "score": (0.0, 1.00, False),
-            "exploration": (0.0, 0.35, False),
-        }
+        goal_specs = self._grounded_goal_specs(
+            snapshot, candidates, expansion_city_target)
         goals = []
         grouped = dict((key, {}) for key in goal_specs)
         candidate_by_operation = {}
@@ -214,11 +255,16 @@ class ImpactPressureRanker(object):
         conductance_snapshot = (
             self.conductance_state.decision_snapshot()
             if self.conductance_state is not None else None)
-        for name, (strength, utility, safety) in sorted(goal_specs.items()):
+        for name, (strength, utility, safety, grounding) in sorted(
+                goal_specs.items()):
             atom_id = "pf-impact-goal:{}".format(name)
             graph.add_atom(
                 AtomState(atom_id, TruthState(strength, 1.0, crisp=True),
-                          expression={"goal": name}),
+                          expression={
+                              "goal": name,
+                              "grounding": grounding,
+                              "strength": strength,
+                          }),
                 Resolvability(retain=0.1))
             urgency = (
                 1.0 + 1.0 / max(
@@ -226,7 +272,7 @@ class ImpactPressureRanker(object):
                 if name == "score" else 1.0)
             goals.append(GoalState(
                 "pf-impact:{}".format(name), atom_id, 1.0, utility,
-                urgency, safety=safety))
+                urgency, safety=safety, context=(grounding,)))
         for index, candidate in enumerate(candidates):
             goal_name = self.goal_for_category(candidate.category)
             atom_id = "pf-impact-candidate:{}".format(structural_hash({

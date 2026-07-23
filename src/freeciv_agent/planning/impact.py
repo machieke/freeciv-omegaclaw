@@ -233,7 +233,7 @@ class GroundedImpactPlanner(object):
             setting = float(values.get(name, {
                 "pressure_learning_rate": 0.10,
                 "pressure_no_progress_rate": 0.10,
-                "pressure_initial_conductance": 0.50,
+                "pressure_initial_conductance": 1.00,
             }[name]))
             valid_lower = setting >= lower if lower_inclusive else setting > lower
             if not valid_lower or setting > upper:
@@ -326,7 +326,7 @@ class GroundedImpactPlanner(object):
                     no_progress_rate=float(values.get(
                         "pressure_no_progress_rate", 0.10)),
                     initial_conductance=float(values.get(
-                        "pressure_initial_conductance", 0.50)))
+                        "pressure_initial_conductance", 1.00)))
             self._pressure_ranker = ImpactPressureRanker(PressureConfig(
                 damping=float(values.get("pressure_damping", 0.85)),
                 exploration_floor=float(values.get(

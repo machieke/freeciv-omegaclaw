@@ -63,7 +63,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert config["impact_policy"]["pressure_max_routes_per_conclusion"] == 32
     assert config["impact_policy"]["pressure_learning_rate"] == 0.10
     assert config["impact_policy"]["pressure_no_progress_rate"] == 0.10
-    assert config["impact_policy"]["pressure_initial_conductance"] == 0.50
+    assert config["impact_policy"]["pressure_initial_conductance"] == 1.00
     paired = config["paired_impact"]
     assert paired["default_cohort"] == "development"
     assert {name: len(row["seeds"]) for name, row in paired["cohorts"].items()} == {
@@ -78,6 +78,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "diagnostic_terminal_elimination_v1": 2,
         "confirmatory_joint": 450,
         "pressure_ablation_pilot_v1": 40,
+        "pressure_ablation_pilot_v2": 40,
     }
     seed_sets = [set(row["seeds"]) for row in paired["cohorts"].values()]
     assert all(not left & right for index, left in enumerate(seed_sets)
@@ -196,6 +197,14 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "count": 40, "minimum": 2300000, "maximum": 2399999,
     }
     assert pressure_pilot["isolated_policy_keys"] == [
+        "pressure_enabled", "pressure_learning_enabled"]
+    pressure_pilot_v2 = paired["cohorts"]["pressure_ablation_pilot_v2"]
+    assert pressure_pilot_v2["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": "pf-pln-pressure-ablation-pilot-v2",
+        "count": 40, "minimum": 2400000, "maximum": 2499999,
+    }
+    assert pressure_pilot_v2["isolated_policy_keys"] == [
         "pressure_enabled", "pressure_learning_enabled"]
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.2",
