@@ -42,5 +42,7 @@ PYTHONPATH=src:benchmarks python3 -m pytest -q \
 ```
 
 This is a semantic and replay claim only. It does not establish a score or
-win-rate improvement. A fresh engine smoke must validate event provenance and
-exact decision replay before a new seed-disjoint paired pilot is predeclared.
+win-rate improvement. The seed-disjoint `pressure_goal_relief_pilot_v1`
+design uses 40 SHA-256-derived seeds in the predeclared range
+2,500,000–2,599,999. Its one-pair prefix must validate engine event provenance
+and exact decision replay before the remaining pairs are run.

@@ -32,10 +32,11 @@ legal actions, execution, and evaluation.
 
 ## Next empirical gates
 
-1. Run a fresh engine smoke which proves v2 conductance events carry explicit
+1. Run the one-pair prefix of predeclared `pressure_goal_relief_pilot_v1` as
+   a fresh engine smoke which proves v2 conductance events carry explicit
    direct/effect-only/downstream provenance and remain exact-replay eligible.
-2. Predeclare a seed-disjoint goal-relief pilot only after the smoke passes;
-   do not pool its estimates with v1 or v2.
+2. Run the remaining seed-disjoint goal-relief pilot only after the smoke
+   passes; do not pool its estimates with v1 or v2.
 3. Use the v1 paired SD of 3.0875 as a planning input only. A two-point score
    effect requires at least 30 fresh pairs at 80% target power; freeze a
    confirmatory cohort only after the revised pilot shows a positive signal.

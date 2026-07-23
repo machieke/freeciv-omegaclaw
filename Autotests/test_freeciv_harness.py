@@ -79,6 +79,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "confirmatory_joint": 450,
         "pressure_ablation_pilot_v1": 40,
         "pressure_ablation_pilot_v2": 40,
+        "pressure_goal_relief_pilot_v1": 40,
     }
     seed_sets = [set(row["seeds"]) for row in paired["cohorts"].values()]
     assert all(not left & right for index, left in enumerate(seed_sets)
@@ -205,6 +206,14 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "count": 40, "minimum": 2400000, "maximum": 2499999,
     }
     assert pressure_pilot_v2["isolated_policy_keys"] == [
+        "pressure_enabled", "pressure_learning_enabled"]
+    goal_relief_pilot = paired["cohorts"]["pressure_goal_relief_pilot_v1"]
+    assert goal_relief_pilot["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": "pf-pln-pressure-goal-relief-pilot-v1",
+        "count": 40, "minimum": 2500000, "maximum": 2599999,
+    }
+    assert goal_relief_pilot["isolated_policy_keys"] == [
         "pressure_enabled", "pressure_learning_enabled"]
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.2",
