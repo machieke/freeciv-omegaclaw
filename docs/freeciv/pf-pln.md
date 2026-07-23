@@ -312,6 +312,23 @@ pressure to preempt non-safety value. Full pilot evidence and artifact
 identities are in
 [`evidence/pf-pressure-category-invariance-pilot-v1.md`](evidence/pf-pressure-category-invariance-pilot-v1.md).
 
+Cross-goal opportunity cost is now applied only by the scheduler. Every
+operation serving one goal shares the difference between that goal's best
+grounded action value and the best currently actionable goal value. This
+retains category enumeration invariance and within-goal conductance learning.
+When an authoritative survival deficit is active and a grounded survival
+operation exists, non-survival operations are explicitly rejected by the
+lexicographic safety firewall; if no survival operation exists, the legal set
+is not exhausted by the firewall.
+
+Read-only counterfactual replay over the preceding 2,553 decisions removes 82
+substitutions, reduces grounded utility regret by 51.3%, and eliminates all
+safe city-founding, known-hut, and expansion-to-exploration displacements.
+The replay holds outcomes fixed and therefore is not score evidence. The
+correction, limitations, reproduction command, and fresh predeclared
+`pressure_opportunity_cost_pilot_v1` gate are recorded in
+[`evidence/pf-opportunity-cost-offline-acceptance.md`](evidence/pf-opportunity-cost-offline-acceptance.md).
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` defaults to `false` unless the runtime profile enables it.
 This preserves unit-level policy isolation and makes an unpressured ablation

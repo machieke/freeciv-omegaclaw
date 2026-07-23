@@ -346,18 +346,34 @@ class ImpactPressureRanker(object):
                 Resolvability(act=1.0))
             grouped[goal_name].setdefault(
                 str(candidate.category), []).append((candidate, atom_id))
+        category_maximum_utility = dict(
+            (category, max(
+                max(0.0, float(candidate.utility))
+                for candidate, _ in rows))
+            for categories in grouped.values()
+            for category, rows in categories.items())
+        goal_maximum_utility = dict(
+            (goal_name, max(
+                (category_maximum_utility[category]
+                 for category in categories),
+                default=0.0))
+            for goal_name, categories in grouped.items())
+        # Safety is lexicographic only when an authoritative survival deficit
+        # is active and the current legal set contains a grounded survival
+        # operation. Otherwise rejecting all non-safety work would leave no
+        # actionable route for the cycle.
+        safety_actionable = bool(grouped["survival"])
+        safety_active = (
+            float(goal_specs["survival"][0]) < 1.0 and safety_actionable)
+        opportunity_ceiling = (
+            goal_maximum_utility["survival"] if safety_active else
+            max(goal_maximum_utility.values(), default=0.0))
         for goal_name in sorted(grouped):
-            goal_maximum_utility = max(
-                (max(max(0.0, float(candidate.utility))
-                     for candidate, _ in rows)
-                 for rows in grouped[goal_name].values()),
-                default=1.0)
-            goal_maximum_utility = max(goal_maximum_utility, 1e-12)
+            goal_utility_ceiling = max(
+                goal_maximum_utility[goal_name], 1e-12)
             for category in sorted(grouped[goal_name]):
                 rows = grouped[goal_name][category]
-                category_utility = max(
-                    max(0.0, float(candidate.utility))
-                    for candidate, _ in rows)
+                category_utility = category_maximum_utility[category]
                 category_atom_id = "pf-impact-category:{}".format(
                     structural_hash([goal_name, category])[:20])
                 graph.add_atom(AtomState(
@@ -375,13 +391,15 @@ class ImpactPressureRanker(object):
                     "pf-impact-goal:{}".format(goal_name),
                     causal_kind="procedural", conductance=conductance,
                     success_probability=(
-                        category_utility / goal_maximum_utility),
+                        category_utility / goal_utility_ceiling),
                     source={
                         "adapter": "grounded-impact-planner",
                         "category": category,
                         "conductance_state_hash": (
                             conductance_snapshot["state_hash"]
                             if conductance_snapshot is not None else None),
+                        "grounded_category_utility": category_utility,
+                        "grounded_goal_utility_ceiling": goal_utility_ceiling,
                     }))
                 graph.add_rule(PressureRule(
                     "pf-impact-candidate-route:{}".format(category),
@@ -410,10 +428,23 @@ class ImpactPressureRanker(object):
         result = self.engine.propagate(graph, tuple(goals))
         operations = []
         for operation_id, candidate in sorted(candidate_by_operation.items()):
+            goal_name = self.goal_for_category(candidate.category)
+            # The Impact planner's utility is a grounded cross-category action
+            # value. Its loss relative to the best currently actionable goal
+            # is therefore an opportunity cost, not another truth or pressure
+            # input. All operations for one goal share the cost so category
+            # cardinality and within-goal conductance learning remain intact.
+            opportunity_cost = max(
+                0.0,
+                opportunity_ceiling - goal_maximum_utility[goal_name])
             operations.append(Operation(
                 operation_id, operation_atom_by_candidate[id(candidate)],
-                "act", CostVector(compute=1.0),
-                causal_kind="procedural", payload=candidate.to_dict()))
+                "act", CostVector(
+                    compute=1.0, opportunity=opportunity_cost),
+                causal_kind="procedural",
+                safety_compatible=(
+                    not safety_active or goal_name == "survival"),
+                payload=candidate.to_dict()))
         scores = self.scheduler.score_all(operations, result)
         rank = dict((row.operation_id, index) for index, row in enumerate(scores)
                     if row.admissible)

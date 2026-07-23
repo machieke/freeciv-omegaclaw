@@ -95,7 +95,7 @@ class PressureScheduler(object):
         if (operation.mode == "act"
                 and operation.causal_kind not in ACTION_CAUSAL_KINDS):
             return OperationScore(
-                operation, False, "causal_firewall", float("-inf"), 0.0,
+                operation, False, "causal_firewall", 0.0, 0.0,
                 operation.cost.scalar(self.config.cost_weights), 0.0, ())
 
         signed_value = 0.0
@@ -126,7 +126,7 @@ class PressureScheduler(object):
             safety_harm = True
         if safety_harm:
             return OperationScore(
-                operation, False, "safety_firewall", float("-inf"), 0.0,
+                operation, False, "safety_firewall", 0.0, 0.0,
                 operation.cost.scalar(self.config.cost_weights),
                 conflict_penalty, tuple(effects))
 

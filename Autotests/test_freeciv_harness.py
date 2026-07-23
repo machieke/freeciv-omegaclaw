@@ -84,6 +84,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "pressure_threat_relevance_pilot_v1": 40,
         "pressure_defense_relevance_pilot_v1": 40,
         "pressure_category_invariance_pilot_v1": 40,
+        "pressure_opportunity_cost_pilot_v1": 40,
     }
     seed_sets = [set(row["seeds"]) for row in paired["cohorts"].values()]
     assert all(not left & right for index, left in enumerate(seed_sets)
@@ -242,6 +243,15 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "count": 40, "minimum": 2800000, "maximum": 2899999,
     }
     assert category_pilot["isolated_policy_keys"] == [
+        "pressure_enabled", "pressure_learning_enabled"]
+    opportunity_pilot = paired["cohorts"][
+        "pressure_opportunity_cost_pilot_v1"]
+    assert opportunity_pilot["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": "pf-pln-pressure-opportunity-cost-pilot-v1",
+        "count": 40, "minimum": 2900000, "maximum": 2999999,
+    }
+    assert opportunity_pilot["isolated_policy_keys"] == [
         "pressure_enabled", "pressure_learning_enabled"]
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.2",

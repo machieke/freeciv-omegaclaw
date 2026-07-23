@@ -17,7 +17,7 @@ legal actions, execution, and evaluation.
 | 6 — induction and analogy | Existing opponent memory and rule proposal infrastructure retained | Partial | Route induction/analogy invocation through `expand` pressure and replay gates |
 | 7 — LLM gateway | Existing constrained proposer, verification, quarantine, and token configuration retained | Partial | Make expansion pressure, expected proposal value, and validation cost control call timing |
 | 8 — differentiable execution | No automatic-differentiation truth engine added | Not implemented | Add the delimited differentiable subset and compare adjoint with requirement/counterfactual pressure |
-| 9 — full multi-goal field | Per-goal pressure, derived weights, double-count prevention, cross-goal harm, hard safety veto, budget allocation; survival now requires a grounded production coverage deficit or a visible opponent within configured wrapped distance of an owned city/unit anchor; a fortification opportunity alone does not create a deficit; grounded Impact operations receive category-level pressure so legal alternative count cannot dilute a goal; category routing assigns defense production to survival and population recovery to score; six fresh 40-pair pressure pilots completed with exact isolation | Category-invariance deterministic, engine, and replay acceptance passed; score outcome neutral-to-negative | Integrate grounded cross-goal opportunity cost without weakening urgent safety or category invariance; do not freeze confirmatory evidence |
+| 9 — full multi-goal field | Per-goal pressure, derived weights, double-count prevention, cross-goal harm, lexicographic actionable-safety firewall, budget allocation; survival requires a grounded production coverage deficit or a visible opponent within configured wrapped distance of an owned city/unit anchor; a fortification opportunity alone does not create a deficit; grounded Impact operations receive category-level pressure so legal alternative count cannot dilute a goal; cross-goal grounded utility loss is scheduled once as a goal-shared opportunity cost; category routing assigns defense production to survival and population recovery to score; six fresh 40-pair pressure pilots completed with exact isolation | Opportunity-cost deterministic and retrospective replay acceptance passed; fresh engine evaluation pending | Run the predeclared opportunity-cost smoke/pilot; do not freeze confirmatory evidence |
 
 ## Non-negotiable integration rules
 
@@ -32,19 +32,16 @@ legal actions, execution, and evaluation.
 
 ## Next empirical gates
 
-1. Preserve the accepted category-level priority invariant: equivalent legal
-   alternatives within one category must not change cross-goal pressure.
-2. Add deterministic cross-goal opportunity-cost acceptance. A lower-value
-   non-safety action must not displace a higher-value immediate grounded
-   action solely because its goal normalizes pressure independently.
-3. Preserve the authoritative proximate-threat and production-defense-deficit
-   gates, and prove that urgent grounded survival can still preempt a
-   high-value non-safety action.
-4. Use a fresh, predeclared, seed-disjoint pilot only after deterministic,
-   schema, source, safety, and exact-replay smoke gates pass. Do not tune goal
-   weights against any completed cohort.
-5. Do not pool the category-invariance estimate (-0.225, interval
+1. Run the one-pair prefix of predeclared
+   `pressure_opportunity_cost_pilot_v1` and require finite schema-valid
+   rejected scores, correct safety admissibility, and zero exact-replay
+   failures.
+2. Continue the remaining seed-disjoint pairs only if engine, schema, source,
+   safety, candidate-isolation, and replay smoke gates pass.
+3. Report safe city-founding and known-hut displacement, safety selection,
+   settlement outcomes, and paired score without tuning goal weights.
+4. Do not pool the category-invariance estimate (-0.225, interval
    [-0.800, 0.325]) with earlier pilots and do not freeze confirmatory
    evidence without a positive fresh signal.
-6. Enable live clone splitting only after the per-atom cap and lineage
+5. Enable live clone splitting only after the per-atom cap and lineage
    forwarding are persisted transactionally.

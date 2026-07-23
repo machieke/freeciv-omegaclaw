@@ -18,6 +18,8 @@ from freeciv.pf_pressure_benchmark import (  # noqa: E402
     run_pressure_concentration_benchmark,
 )
 from freeciv.pf_pressure_replay import (  # noqa: E402
+    opportunity_counterfactual_paths,
+    opportunity_rescore,
     replay_event_file,
     replay_paths,
     replay_snapshot_file,
@@ -473,6 +475,15 @@ def test_live_goal_truth_is_grounded_in_authoritative_threat_state():
         "authoritative:no-proximate-visible-threat-or-defense-deficit"]
     assert threat_goals["pf-impact:survival"]["context"] == [
         "authoritative:visible-enemy-within-city-threat-radius:3"]
+    threat_scores = threat_artifact["schedule"]["scores"]
+    assert next(
+        row for row in threat_scores
+        if row["operation"]["payload"]["category"] == "production_economy"
+    )["reason"] == "safety_firewall"
+    assert next(
+        row for row in threat_scores
+        if row["operation"]["payload"]["category"] == "tactical_move"
+    )["operation"]["cost"]["opportunity"] == 0.0
 
 
 def test_fortification_opportunity_is_not_a_defense_deficit():
@@ -545,9 +556,44 @@ def test_impact_category_selection_is_invariant_to_legal_alternative_count():
         row["priority"] for row in many_scores
         if row["operation"]["payload"]["category"] == "expansion_move"}
     assert many_expansion_priorities == {one_expansion_priority}
+    one_expansion_cost = next(
+        row["scalar_cost"] for row in one_scores
+        if row["operation"]["payload"]["category"] == "expansion_move")
+    many_expansion_costs = {
+        row["scalar_cost"] for row in many_scores
+        if row["operation"]["payload"]["category"] == "expansion_move"}
+    assert many_expansion_costs == {one_expansion_cost} == {1.0}
     assert max(many_expansion_priorities) > next(
         row["priority"] for row in many_scores
         if row["operation"]["payload"]["category"] == "exploration_move")
+
+
+def test_cross_goal_opportunity_cost_preserves_higher_grounded_action_value():
+    snapshot = SimpleNamespace(
+        cities=(SimpleNamespace(x=0, y=0),), units=(), turn=5,
+        visible_enemy_units=(), map_width=100, map_height=100)
+    hut = _Candidate("hut_exploration", 937.0, "resolve-known-hut")
+    expansion = _Candidate("expansion_move", 859.0, "advance-founder")
+
+    ordered, artifact = ImpactPressureRanker().rank(
+        snapshot, (expansion, hut),
+        expansion_city_target=3, horizon_turn=30)
+
+    assert ordered[0] is hut
+    scores = artifact["schedule"]["scores"]
+    hut_score = next(
+        row for row in scores
+        if row["operation"]["payload"]["category"] == "hut_exploration")
+    expansion_score = next(
+        row for row in scores
+        if row["operation"]["payload"]["category"] == "expansion_move")
+    assert hut_score["operation"]["cost"]["opportunity"] == 0.0
+    assert expansion_score["operation"]["cost"]["opportunity"] == 78.0
+    assert hut_score["priority"] > expansion_score["priority"]
+    rescored = opportunity_rescore(
+        scores, artifact["pressure"])
+    assert rescored["selected_operation_id"] == artifact[
+        "schedule"]["selected_operation_id"]
 
 
 def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
@@ -610,6 +656,8 @@ def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
         replay = replay_event_file(path, "pressure-fixture")
         aggregate_replay = replay_paths(
             (path,), relative_to=directory)
+        counterfactual = opportunity_counterfactual_paths(
+            (path,), relative_to=directory)
     assert report.valid, report.to_dict()
     assert replay["eligibility"] == "exact_candidate_replay"
     assert replay["source_unchanged"]
@@ -621,6 +669,12 @@ def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
     assert aggregate_replay["decision_change_rate"] == 1.0
     assert aggregate_replay["integrity_failures"] == 0
     assert aggregate_replay["sources_unchanged"]
+    assert counterfactual["total_decisions"] == 1
+    assert counterfactual["safety_active_decisions"] == 1
+    assert counterfactual[
+        "baseline_to_counterfactual_changed_decisions"] == 1
+    assert counterfactual["counterfactual_changed_from_recorded"] == 0
+    assert counterfactual["sources_unchanged"]
 
 
 def test_legacy_event_trace_is_explicitly_audit_only_and_read_only():
