@@ -1140,3 +1140,23 @@ three-worker mode, pinned proxy identity, model configuration, and alternating p
 remain unchanged for the complete cohort. Based on observed turn-60 cost and removal of the
 duplicate reset, the planning estimate is approximately 11 hours, subject to engine trajectory
 variance.
+
+### V4 retirement: packet-backed player elimination
+
+V4 executed all 900 arm slots but completed 897 arms and 448 complete pairs. Three
+active arms failed three deterministic attempts each after FreeCiv emitted “The Romans
+are no more!”: baseline and treatment seed `2119913` stopped at turns 54 and 52, and
+baseline seed `2146151` stopped at turn 49. Each retry reproduced the exact normalized
+action sequence. The player-facing cache retained stale cities, so the asset-based
+`not cities and not units` fallback missed elimination and waited for a next turn that
+an eliminated player never receives.
+
+Retire V4 at source `b59205c57a481bda657d7a71af9657fd014f87fb`. Its 897
+old-code completions must not be combined with corrected arms. Carry the exact
+`PACKET_PLAYER_INFO.is_alive` field through the authoritative proxy contract and typed
+snapshot, suppress terminal actions and stale own assets, accept a terminal snapshot
+without requiring turn advance, and preserve the valid city-owned/unitless state.
+Predeclare early elimination as an absorbing authoritative terminal score carried to
+the fixed horizon, with the observation turn and terminal reason retained. Validate
+the exposed seeds only in non-claim cohort `diagnostic_terminal_elimination_v1` before
+freezing any fresh confirmation cohort.

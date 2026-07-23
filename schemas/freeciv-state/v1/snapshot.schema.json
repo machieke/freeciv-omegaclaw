@@ -22,8 +22,9 @@
         },
         "player": {
           "type": "object",
-          "required": ["gold", "gold_per_turn", "tax", "science", "luxury"],
+          "required": ["is_alive", "gold", "gold_per_turn", "tax", "science", "luxury"],
           "properties": {
+            "is_alive": {"type": "boolean"},
             "gold": {"type": "integer"}, "gold_per_turn": {"type": "integer"},
             "tax": {"type": "integer", "minimum": 0, "maximum": 100},
             "science": {"type": "integer", "minimum": 0, "maximum": 100},

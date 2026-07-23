@@ -126,6 +126,7 @@ def _validate_paired_impact(value):
         "win_definition": "fixed_horizon_score_lead",
         "terminal_win_metric": None,
         "tie_handling": "non_win",
+        "early_terminal_score": "terminal_absorbing_score_carried_to_horizon",
     }
     if outcomes != expected_outcomes:
         raise ValueError("paired_impact outcomes must explicitly declare fixed-horizon semantics")
@@ -260,7 +261,7 @@ def _validate_paired_impact(value):
         if not isinstance(cohort, dict):
             raise ValueError("{} must be an object".format(prefix))
         purpose = cohort.get("purpose")
-        if purpose not in ("development", "pilot", "confirmatory"):
+        if purpose not in ("development", "diagnostic", "pilot", "confirmatory"):
             raise ValueError("{}.purpose is invalid".format(prefix))
         for key in ("claim_eligible", "require_clean_source"):
             if not isinstance(cohort.get(key), bool):
@@ -277,7 +278,7 @@ def _validate_paired_impact(value):
         if purpose == "development" and horizon_turn != outcomes["horizon_turn"]:
             raise ValueError(
                 "{}.horizon_turn may differ from the default outcome only for "
-                "pilot or confirmatory cohorts"
+                "diagnostic, pilot, or confirmatory cohorts"
                 .format(prefix))
         endpoints = cohort.get("endpoints")
         if (not isinstance(endpoints, list) or not endpoints
@@ -291,7 +292,8 @@ def _validate_paired_impact(value):
             raise ValueError("{}.planned_pairs must equal its predeclared seed count".format(prefix))
         if purpose == "pilot" and len(seeds) < minimum_pairs:
             raise ValueError("{} requires at least {} pilot pairs".format(prefix, minimum_pairs))
-        if purpose in ("pilot", "confirmatory") and not cohort["require_clean_source"]:
+        if purpose in ("diagnostic", "pilot", "confirmatory") and not cohort[
+                "require_clean_source"]:
             raise ValueError("{} must require a clean source tree".format(prefix))
         if purpose == "confirmatory" and not cohort["claim_eligible"]:
             raise ValueError("{} must be claim eligible".format(prefix))

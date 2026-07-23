@@ -349,7 +349,8 @@ def _legal_action_family_fingerprints(snapshot):
 
 def _decision_state_ready(snapshot, require_own_units=False):
     """Reject partial packet assemblies before they can drive a paired arm."""
-    if not (snapshot.ruleset_ready and snapshot.economy.available
+    if not (snapshot.player_alive is True
+            and snapshot.ruleset_ready and snapshot.economy.available
             and snapshot.research.available):
         return False
     if require_own_units and not snapshot.units:
@@ -367,14 +368,13 @@ def _decision_state_ready(snapshot, require_own_units=False):
 
 
 def _player_eliminated(snapshot):
-    """Return true only when the player owns neither cities nor units.
+    """Return the exact packet-backed terminal player state.
 
-    A player can validly have cities but temporarily own zero units, for example
-    after losing its sole attacker before a replacement completes.  Such a state
-    must continue through the fixed horizon rather than being treated as either
-    partial packet assembly or elimination.
+    Asset collections are not a safe death signal: a living player may own cities
+    but no units, while an eliminated connection may retain stale city packets.
+    Missing player status therefore fails closed instead of being inferred.
     """
-    return not snapshot.cities and not snapshot.units
+    return snapshot.player_alive is False
 
 
 async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=20.0,
@@ -397,12 +397,20 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
         except asyncio.TimeoutError:
             break
         source_seq = raw.get("authoritative", {}).get("source_seq") if raw else None
-        if (raw and int(raw.get("turn", 0)) >= minimum_turn
-                and (minimum_source_seq is None
-                     or (source_seq is not None and int(source_seq) >= minimum_source_seq))):
+        source_ready = (
+            minimum_source_seq is None
+            or (source_seq is not None and int(source_seq) >= minimum_source_seq))
+        if raw and source_ready:
             snapshot = ProxyStateDTO.parse(game_id, source_seq, raw).to_snapshot()
-            ready = (not require_decision_ready or _decision_state_ready(
-                snapshot, require_own_units=require_own_units))
+            # A dead player receives no next begin-turn packet. Accept the exact
+            # terminal player packet at its current turn even when the caller is
+            # waiting for ``minimum_turn = current + 1``.
+            if _player_eliminated(snapshot):
+                return raw, snapshot
+            turn_ready = int(raw.get("turn", 0)) >= minimum_turn
+            ready = (snapshot.player_alive is not None and turn_ready
+                     and (not require_decision_ready or _decision_state_ready(
+                         snapshot, require_own_units=require_own_units)))
             if ready:
                 fingerprint = _decision_state_fingerprint(snapshot)
                 if fingerprint == stable_fingerprint:
@@ -1268,6 +1276,7 @@ async def _play(run_dir, manifest, context):
         final_turn = snapshot.turn
         turns_executed = 0
         planned_actions = 0
+        terminal_player_elimination = False
         for turn_index in range(1, manifest["turn_limit"] + 1):
             if turn_index > 1:
                 raw, snapshot = await _state(
@@ -1309,10 +1318,8 @@ async def _play(run_dir, manifest, context):
                 rows, parent = _emit_observations(
                     snapshot, manifest, belief_store, inference, writer, parent, seen)
                 predictions.extend(rows)
-            # Elimination is a valid game loss, not infrastructure failure. A
-            # city-owning player may temporarily have no units, so both typed
-            # authoritative asset collections must be empty before stopping.
             if _player_eliminated(snapshot):
+                terminal_player_elimination = True
                 break
 
             full_turn_started = time.perf_counter()
@@ -1632,6 +1639,10 @@ async def _play(run_dir, manifest, context):
     opponent_score = float(opponent_row["score"])
     score_margin = player_score - opponent_score
     score_lead = player_score > opponent_score
+    horizon_reached = final_turn >= manifest["turn_limit"]
+    score_observation_semantics = (
+        "terminal_absorbing_score_carried_to_horizon"
+        if terminal_player_elimination else "observed_at_fixed_horizon")
     # ``game_win`` is retained for the original M7 aggregate contract. Paired
     # impact claims use the explicitly named fixed-horizon score-lead endpoint.
     won = score_lead
@@ -1928,14 +1939,22 @@ async def _play(run_dir, manifest, context):
             "planned_engine_actions": planned_actions,
             "opponent_score": opponent_score,
             "outcome_definition": "fixed_horizon_score_lead",
+            "horizon_reached": horizon_reached,
+            "score_observation_semantics": score_observation_semantics,
+            "score_observation_turn": final_turn,
             "score": player_score, "score_lead": score_lead,
             "score_margin": score_margin, "won": won,
+            "terminal_player_elimination": terminal_player_elimination,
             "zombie_attempts_blocked": zombie_blocked,
         }}, caused_by=[parent])
     return {
         "capability_audit": context.audit(), "calibration_samples": len(predictions),
         "completed": True, "engine_actions": action_count,
         "infrastructure_failure": False, "loss": not won,
+        "horizon_reached": horizon_reached,
+        "score_observation_semantics": score_observation_semantics,
+        "score_observation_turn": final_turn,
+        "terminal_player_elimination": terminal_player_elimination,
         "model_latency_ms": model_latency, "rejected_actions": rejected,
         "decision_impact_actions": decision_stats["impact_actions"],
         "decision_no_effect_retries_blocked": (

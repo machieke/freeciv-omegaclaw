@@ -356,9 +356,9 @@ class HarnessRunner(object):
         """Run each pair serially while independent seed pairs may run concurrently."""
         cohort = self.config["paired_impact"]["cohorts"][self.impact_cohort]
         declared_workers = int(cohort.get("controller_workers", 1))
-        if cohort["claim_eligible"] and self.workers != declared_workers:
+        if ("controller_workers" in cohort and self.workers != declared_workers):
             raise ValueError(
-                "confirmatory cohort {} requires controller_workers={}".format(
+                "cohort {} requires controller_workers={}".format(
                     self.impact_cohort, declared_workers))
         if cohort["claim_eligible"] and self.seed_limit is not None:
             raise ValueError(

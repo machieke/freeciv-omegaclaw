@@ -23,6 +23,16 @@ def _integer(value, field, required=False):
     return int(value)
 
 
+def _boolean(value, field, required=False):
+    if value is None:
+        if required:
+            raise ContractError("missing required boolean {}".format(field))
+        return None
+    if not isinstance(value, bool):
+        raise ContractError("{} must be a boolean".format(field))
+    return value
+
+
 def _collection(value, field):
     if value is None:
         return []
@@ -215,6 +225,7 @@ class ProxyStateDTO:
         authoritative = payload.get("authoritative")
         authoritative = authoritative if isinstance(authoritative, dict) else {}
         player = authoritative.get("player") if isinstance(authoritative.get("player"), dict) else {}
+        player_alive = _boolean(player.get("is_alive"), "player.is_alive")
         research_packet = (authoritative.get("research")
                            if isinstance(authoritative.get("research"), dict) else {})
         ruleset = authoritative.get("ruleset") if isinstance(authoritative.get("ruleset"), dict) else {}
@@ -347,7 +358,7 @@ class ProxyStateDTO:
                     "known_hut_tile_ids": list(known_hut_tiles),
                     "tiles": tiles, "visible_tile_ids": list(visible),
                     "width": width},
-            "phase": phase, "player_id": player_id,
+            "phase": phase, "player_alive": player_alive, "player_id": player_id,
             "research": ResearchState(tuple(sorted(set(known))), target_id, target_name,
                                       progress, research_cost, beakers,
                                       research_available, research_diagnostic).to_dict(),
@@ -359,7 +370,7 @@ class ProxyStateDTO:
         state_hash = hashlib.sha256(canonical_json_bytes(body)).hexdigest()
         identity = SnapshotIdentity(str(game_id), turn, source_seq, state_hash)
         return cls(AuthoritativeSnapshot(
-            identity=identity, player_id=player_id, phase=phase,
+            identity=identity, player_id=player_id, player_alive=player_alive, phase=phase,
             ruleset_ready=ruleset_ready, ruleset_diagnostic=ruleset_diagnostic,
             research=ResearchState(tuple(sorted(set(known))), target_id, target_name,
                                    progress, research_cost, beakers,

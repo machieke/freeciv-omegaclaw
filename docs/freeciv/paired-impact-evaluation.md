@@ -13,6 +13,14 @@ The fixed-horizon endpoints are deliberately explicit:
 - `score_margin_turn_n`: player minus opponent score;
 - `score_lead_turn_n`: one only when player score exceeds opponent score at the horizon.
 
+If `PACKET_PLAYER_INFO.is_alive` becomes false before the horizon, the exact
+authoritative terminal score is an absorbing observation carried forward to the
+horizon. An eliminated player cannot accrue further score. The run records
+`score_observation_turn`, `horizon_reached=false`,
+`terminal_player_elimination=true`, and
+`score_observation_semantics=terminal_absorbing_score_carried_to_horizon`.
+Asset emptiness is never used to infer this terminal state.
+
 `score_lead_turn_n` is a fixed-horizon lead-rate endpoint. It is not described as an
 engine-reported terminal FreeCiv victory; `terminal_win_metric` is explicitly null
 until that engine contract exists. Ties are predeclared as non-wins. The legacy
@@ -35,6 +43,7 @@ every seed before any game is observed.
 |---|---|---:|---|---|
 | `development` | prior development/regression seeds | 100 | no | score, lead rate |
 | `diagnostic_unitless_city_v1` | unitless-city state regression | 1 | no | score, lead rate |
+| `diagnostic_terminal_elimination_v1` | exposed terminal-state regression | 2 | no | score, lead rate |
 | `pilot` | variance and discordance estimation | 40 | no | score, lead rate |
 | `pilot_horizon_60` | superseded turn-60 planning pilot | 40 | no | score, lead rate |
 | `pilot_horizon_60_v2` | hardened turn-60 planning pilot | 40 | no | score, lead rate |
@@ -43,11 +52,12 @@ every seed before any game is observed.
 | `confirmatory_score` | retired exposed V4 score cohort | 100 | no | score only |
 | `confirmatory_score_horizon_60_v1` | completed prior-policy turn-60 score test | 200 | yes | score only |
 | `confirmatory_score_horizon_60_v2` | retired incomplete current-policy test | 450 | no | score only |
-| `confirmatory_score_horizon_60_v3` | corrected current-policy turn-60 score test | 450 | yes | score only |
+| `confirmatory_score_horizon_60_v3` | retired operational-latency test | 450 | no | score only |
+| `confirmatory_score_horizon_60_v4` | retired terminal-state-contract test | 450 | no | score only |
 | `confirmatory_joint` | hierarchical score then lead-rate test | 450 | yes | score, lead rate |
 
-Configuration validation rejects overlapping cohorts. Pilot and confirmatory cohorts
-require a clean Git checkout. The runner refreshes source identity immediately before
+Configuration validation rejects overlapping active cohorts. Diagnostic, pilot, and
+confirmatory cohorts require a clean Git checkout. The runner refreshes source identity immediately before
 execution and again after the last arm; a dirty, unavailable, or changed identity
 invalidates the run. Confirmatory cohorts also reject `--limit-pairs`.
 
@@ -183,14 +193,22 @@ PYTHONPATH=src:benchmarks python3 scripts/freeciv/run_impact_evaluation.py \
   --backend engine-live --cohort diagnostic_unitless_city_v1
 ```
 
-Run the corrected current-policy confirmation only from its committed clean source:
+Validate the packet-backed terminal correction against both exposed failing seeds.
+This runs four arms so both seed pairs remain complete; three are the former failures
+and treatment seed `2146151` is their paired control:
 
 ```bash
 FREECIV_RULESET_ROOT="$FREECIV_LLM_ROOT/freeciv/freeciv/data" \
 PYTHONPATH=src:benchmarks python3 scripts/freeciv/run_impact_evaluation.py \
-  --out artifacts/freeciv/impact-confirmatory-score-horizon60-v3-engine \
-  --backend engine-live --cohort confirmatory_score_horizon_60_v3
+  --out artifacts/freeciv/impact-terminal-elimination-v1-engine \
+  --backend engine-live --cohort diagnostic_terminal_elimination_v1 \
+  --workers 2 --server-ports 6001,6002
 ```
+
+The original `confirmatory_score_horizon_60_v4` remains reproducible from commit
+`b59205c57a481bda657d7a71af9657fd014f87fb`, but its 897 old-code completions
+cannot be pooled with corrected terminal arms. It is retired with three active
+infrastructure failures rather than relabeled or source-mixed.
 
 Runs resume only manifest-identical completed arms. `--aggregate-only` rebuilds a
 selected cohort report without executing games. Superseded attempts remain under

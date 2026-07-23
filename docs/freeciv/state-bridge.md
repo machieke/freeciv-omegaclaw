@@ -14,7 +14,7 @@ The patch is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. Its SHA-256 is
-`24c7c8759a727a83e4bfe0053537bc41efa2b17abff19dc4c02cb60011c3ddbe`.
+`647596e2d2bc613da30bbdb3b5e7bb39213ed21d8268babebb23198663ec2aa9`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 State-response cache identity includes the game ID, player, format, turn, and monotonic packet
@@ -22,6 +22,14 @@ sequence. Parallel games therefore cannot reuse one another's response even when
 turn, and packet counters coincide. Same-turn engine changes cannot reuse a pre-action response,
 and incoming authoritative packets also invalidate cached city and technology actions. Player ID
 `0` is treated as an ordinary, valid cache owner during targeted eviction.
+
+`PACKET_PLAYER_INFO.is_alive` is retained as
+`authoritative.player.is_alive` and typed as `AuthoritativeSnapshot.player_alive`.
+An exact false value suppresses stale cached own cities, units, and legal actions and
+bypasses the proxy's post-`end_turn` wait for a new begin-turn packet. Missing status
+fails closed for active decisions; it is never inferred from asset collections. This
+preserves living city-owned states with zero units while making player elimination a
+terminal game loss rather than an infrastructure timeout.
 
 The release proxy's legacy `requests_per_second` setting is implemented as a count over
 `window_seconds`, not as a literal per-second rate. The pinned configuration therefore declares

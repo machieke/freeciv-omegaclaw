@@ -20,12 +20,17 @@
     "science": 5
   },
   "packet_derived_fields": {
+    "authoritative.player.is_alive": {
+      "sources": ["PACKET_PLAYER_INFO.is_alive"],
+      "semantics": "exact player terminal status; false overrides stale cached own assets"
+    },
     "authoritative.known_hut_tiles": {
       "sources": ["PACKET_TILE_INFO.extras", "PACKET_RULESET_EXTRA.causes"],
       "semantics": "sorted packet-known tile IDs whose selected extra has EC_HUT"
     }
   },
   "fail_closed": [
+    "missing player is_alive blocks active decision state and cannot be inferred from assets",
     "missing ruleset-ready packet blocks all action submission",
     "missing city buildability bitvector blocks production for that city",
     "missing rate fields makes the corresponding grounded accessor unavailable",

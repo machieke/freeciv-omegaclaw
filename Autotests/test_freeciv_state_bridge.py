@@ -63,6 +63,7 @@ def test_authoritative_contract_fixture_schema_and_stable_identity():
     assert first.snapshot_id != later_sequence.snapshot_id
     assert first.research.beakers_per_turn == 9
     assert first.economy.gold == 37
+    assert first.player_alive is True
     assert first.city(3).production[1] == 5
     assert first.city(3).buildability_available
     assert first.visible_tile_ids == (82,)
@@ -97,7 +98,27 @@ def test_old_optimized_proxy_response_is_readable_but_fail_closed():
     assert not snapshot.ruleset_ready
     assert not snapshot.research.available
     assert not snapshot.economy.available
+    assert snapshot.player_alive is None
     assert snapshot.ruleset_diagnostic
+
+
+def test_player_alive_must_be_an_exact_boolean():
+    payload = _payload()
+    payload["authoritative"]["player"]["is_alive"] = 0
+
+    with pytest.raises(ContractError, match="player.is_alive must be a boolean"):
+        _snapshot(payload=payload)
+
+
+def test_player_alive_is_part_of_snapshot_identity():
+    alive = _snapshot()
+    payload = _payload()
+    payload["authoritative"]["player"]["is_alive"] = False
+    eliminated = _snapshot(payload=payload)
+
+    assert eliminated.player_alive is False
+    assert eliminated.own_state_dict()["player_alive"] is False
+    assert alive.identity.state_hash != eliminated.identity.state_hash
 
 
 def test_visible_foreign_units_are_observations_not_authoritative_own_state():

@@ -132,6 +132,7 @@ class CityState:
 class AuthoritativeSnapshot:
     identity: SnapshotIdentity
     player_id: int
+    player_alive: Optional[bool]
     phase: str
     ruleset_ready: bool
     ruleset_diagnostic: Optional[str]
@@ -174,6 +175,7 @@ class AuthoritativeSnapshot:
             "cities": [city.to_dict() for city in self.cities],
             "economy": self.economy.to_dict(),
             "legal_actions_digest": self.legal_actions_digest,
+            "player_alive": self.player_alive,
             "research": self.research.to_dict(),
             "ruleset_diagnostic": self.ruleset_diagnostic,
             "ruleset_ready": self.ruleset_ready,

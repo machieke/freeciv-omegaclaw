@@ -70,7 +70,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "confirmatory_score": 100,
         "confirmatory_score_horizon_60_v1": 200,
         "timing_parity_v1": 3,
-        "confirmatory_score_horizon_60_v4": 450,
+        "diagnostic_terminal_elimination_v1": 2,
         "confirmatory_joint": 450,
     }
     seed_sets = [set(row["seeds"]) for row in paired["cohorts"].values()]
@@ -78,6 +78,8 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
                for right in seed_sets[index + 1:])
     assert paired["outcomes"]["win_metric"] == "score_lead_turn_n"
     assert paired["outcomes"]["win_definition"] == "fixed_horizon_score_lead"
+    assert paired["outcomes"]["early_terminal_score"] == (
+        "terminal_absorbing_score_carried_to_horizon")
     assert paired["power"]["minimum_variance_pairs"] == 30
     assert paired["claims"]["multiplicity"] == "hierarchical_score_then_win"
     assert paired["claims"]["score_test"] == {
@@ -130,18 +132,30 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "operational_latency_retirement_before_outcome_inspection")
     assert retired_latency["completed_arms"] == 38
     assert retired_latency["outcome_values_inspected"] is False
-    current_score = paired["cohorts"]["confirmatory_score_horizon_60_v4"]
-    assert current_score["score_design"] == {
+    retired_terminal = paired["retired_cohorts"]["confirmatory_score_horizon_60_v4"]
+    assert retired_terminal["retired_reason"] == (
+        "terminal_player_elimination_misclassified_as_infrastructure_timeout")
+    assert retired_terminal["completed_arms"] == 897
+    assert retired_terminal["active_infrastructure_failures"] == 3
+    assert retired_terminal["score_design"] == {
         "minimum_detectable_delta": 0.2,
         "maximum_planning_sd": 1.5,
     }
-    assert current_score["seed_derivation"] == {
+    assert retired_terminal["seed_derivation"] == {
         "algorithm": "sha256-counter-v1",
         "namespace": (
             "pln-freeciv-impact-confirmatory-score-horizon60-v4-pair-parallel"),
         "count": 450, "minimum": 2100000, "maximum": 2199999,
     }
-    assert current_score["controller_workers"] == 3
+    assert retired_terminal["controller_workers"] == 3
+    terminal_diagnostic = paired["cohorts"]["diagnostic_terminal_elimination_v1"]
+    assert terminal_diagnostic == {
+        "purpose": "diagnostic", "claim_eligible": False,
+        "require_clean_source": True,
+        "endpoints": ["score_turn_n", "score_lead_turn_n"],
+        "horizon_turn": 60, "planned_pairs": 2, "controller_workers": 2,
+        "seeds": [2119913, 2146151],
+    }
     assert paired["cohorts"]["pilot_horizon_60"] == {
         "purpose": "pilot", "claim_eligible": False,
         "require_clean_source": True,
@@ -429,13 +443,14 @@ def test_live_model_readiness_rejects_invalid_json(monkeypatch):
 
 
 def _ready_raw(source_seq=1, moves_left=3, buildability=True,
-               include_units=True, include_cities=True, turn=1):
+               include_units=True, include_cities=True, turn=1, player_alive=True):
     raw = {
         "format": "pln_authoritative", "turn": turn, "phase": "movement",
         "player_id": 0,
         "authoritative": {
             "source_seq": source_seq,
-            "player": {"gold": 10, "gold_per_turn": 1, "tax": 40,
+            "player": {"is_alive": player_alive,
+                       "gold": 10, "gold_per_turn": 1, "tax": 40,
                        "science": 60, "luxury": 0},
             "research": {"researching": 1, "researching_name": "Alphabet",
                          "researching_cost": 10, "bulbs_researched": 0,
@@ -466,11 +481,12 @@ def _ready_raw(source_seq=1, moves_left=3, buildability=True,
 
 
 def _ready_snapshot(source_seq=1, moves_left=3, buildability=True,
-                    include_units=True, include_cities=True, turn=1):
+                    include_units=True, include_cities=True, turn=1,
+                    player_alive=True):
     raw = _ready_raw(
         source_seq=source_seq, moves_left=moves_left,
         buildability=buildability, include_units=include_units,
-        include_cities=include_cities, turn=turn)
+        include_cities=include_cities, turn=turn, player_alive=player_alive)
     return ProxyStateDTO.parse(
         "readiness-test", source_seq, raw).to_snapshot()
 
@@ -500,8 +516,40 @@ def test_unitless_city_state_is_decision_ready_and_not_eliminated(monkeypatch):
     assert not snapshot.units and snapshot.cities
     assert _decision_state_ready(snapshot)
     assert not _player_eliminated(snapshot)
-    assert _player_eliminated(_ready_snapshot(
-        include_units=False, include_cities=False))
+    assert not _player_eliminated(_ready_snapshot(
+        include_units=False, include_cities=False, player_alive=True))
+
+
+def test_packet_backed_elimination_overrides_stale_city_and_current_turn(monkeypatch):
+    raw = _ready_raw(
+        source_seq=54, include_units=False, include_cities=True, turn=54,
+        player_alive=False)
+
+    async def eliminated_state(_ws, _format):
+        return raw
+
+    monkeypatch.setattr(engine_live.turncycle, "get_state", eliminated_state)
+    returned, snapshot = asyncio.run(_state(
+        object(), "eliminated-player", minimum_turn=55,
+        require_decision_ready=True, stable_samples=2, timeout=0.2))
+
+    assert returned is raw
+    assert snapshot.turn == 54
+    assert snapshot.player_alive is False
+    assert snapshot.cities and not snapshot.units
+    assert _player_eliminated(snapshot)
+    assert not _decision_state_ready(snapshot)
+
+
+def test_missing_player_status_fails_closed_for_decisions():
+    raw = _ready_raw()
+    raw["authoritative"]["player"].pop("is_alive")
+    snapshot = ProxyStateDTO.parse(
+        "missing-player-status", 1, raw).to_snapshot()
+
+    assert snapshot.player_alive is None
+    assert not _player_eliminated(snapshot)
+    assert not _decision_state_ready(snapshot)
 
 
 def test_global_state_readiness_requires_both_authoritative_scores():
@@ -766,16 +814,17 @@ def test_paired_impact_jobs_alternate_order_and_override_only_declared_policy():
     assert diagnostic_manifest["turn_limit"] == 30
     assert diagnostic_manifest["seed"] == 1905459
     assert diagnostic_manifest["impact_pair"]["claim_eligible"] is False
-    current_confirmatory = HarnessRunner(
+    terminal_diagnostic = HarnessRunner(
         "unused", seed_limit=1, conditions=("e_full_loop",),
-        impact_cohort="confirmatory_score_horizon_60_v4", workers=3)
-    current_manifest = current_confirmatory._manifest(
-        current_confirmatory._impact_jobs()[0], 0)
-    assert current_manifest["turn_limit"] == 60
-    assert current_manifest["impact_pair"]["score_design"] == {
-        "minimum_detectable_delta": 0.2,
-        "maximum_planning_sd": 1.5,
-    }
+        impact_cohort="diagnostic_terminal_elimination_v1", workers=2)
+    terminal_manifest = terminal_diagnostic._manifest(
+        terminal_diagnostic._impact_jobs()[0], 0)
+    assert terminal_manifest["turn_limit"] == 60
+    assert terminal_manifest["seed"] == 2119913
+    assert terminal_manifest["impact_pair"]["cohort_purpose"] == "diagnostic"
+    assert terminal_manifest["impact_pair"]["claim_eligible"] is False
+    assert terminal_manifest["impact_outcomes"]["early_terminal_score"] == (
+        "terminal_absorbing_score_carried_to_horizon")
 
 
 def test_parallel_impact_execution_keeps_each_pair_serial_on_one_worker(monkeypatch):
@@ -806,11 +855,11 @@ def test_parallel_impact_execution_keeps_each_pair_serial_on_one_worker(monkeypa
         assert {row[4] for row in rows} == {pair_index % 3}
 
 
-def test_parallel_confirmatory_cohort_requires_predeclared_worker_count():
+def test_parallel_cohort_requires_predeclared_worker_count():
     runner = HarnessRunner(
         "unused", workers=1, conditions=("e_full_loop",),
-        impact_cohort="confirmatory_score_horizon_60_v4")
-    with pytest.raises(ValueError, match="requires controller_workers=3"):
+        impact_cohort="diagnostic_terminal_elimination_v1")
+    with pytest.raises(ValueError, match="requires controller_workers=2"):
         runner.run_impact_pairs(resume=False)
 
 
