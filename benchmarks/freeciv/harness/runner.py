@@ -187,7 +187,9 @@ class HarnessRunner(object):
             cohort_design = self.config["paired_impact"]["cohorts"][job["cohort"]]
             horizon_turn = cohort_design.get(
                 "horizon_turn", self.config["paired_impact"]["outcomes"]["horizon_turn"])
-            impact_policy.update(self.config["paired_impact"]["arms"][arm])
+            arm_design = cohort_design.get(
+                "arms", self.config["paired_impact"]["arms"])
+            impact_policy.update(arm_design[arm])
             impact_policy["horizon_turn"] = horizon_turn
         material = {
             "backend": self.backend, "beliefs": self.config["beliefs"],
@@ -229,6 +231,9 @@ class HarnessRunner(object):
                 "require_clean_source": cohort_design["require_clean_source"],
                 "seed_derivation": cohort_design.get("seed_derivation"),
                 "score_design": cohort_design.get("score_design"),
+                "isolated_policy_keys": cohort_design.get(
+                    "isolated_policy_keys"),
+                "policy_override": copy.deepcopy(arm_design[arm]),
                 "horizon_turn": horizon_turn,
                 "within_pair_order": job["within_pair_order"],
             }

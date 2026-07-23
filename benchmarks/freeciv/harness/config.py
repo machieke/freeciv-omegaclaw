@@ -165,19 +165,42 @@ def _validate_paired_impact(value):
     }
     if outcomes != expected_outcomes:
         raise ValueError("paired_impact outcomes must explicitly declare fixed-horizon semantics")
-    arms = paired.get("arms")
-    if not isinstance(arms, dict) or set(arms) != {"baseline", "treatment"}:
-        raise ValueError("paired_impact arms must be baseline and treatment")
     allowed = set(value["impact_policy"])
-    merged = {}
-    for arm in ("baseline", "treatment"):
-        override = arms[arm]
-        if not isinstance(override, dict) or not override or set(override) - allowed:
-            raise ValueError("paired_impact.{} has invalid policy overrides".format(arm))
-        merged[arm] = dict(value["impact_policy"], **override)
-        _validate_impact_policy(merged[arm], "paired_impact.{}".format(arm))
-    if merged["baseline"] == merged["treatment"]:
-        raise ValueError("paired_impact arms must differ")
+
+    def validate_arms(arms, prefix, isolated_policy_keys=None):
+        if not isinstance(arms, dict) or set(arms) != {"baseline", "treatment"}:
+            raise ValueError("{} arms must be baseline and treatment".format(prefix))
+        merged = {}
+        for arm in ("baseline", "treatment"):
+            override = arms[arm]
+            if (not isinstance(override, dict) or not override
+                    or set(override) - allowed):
+                raise ValueError(
+                    "{}.{} has invalid policy overrides".format(prefix, arm))
+            merged[arm] = dict(value["impact_policy"], **override)
+            _validate_impact_policy(
+                merged[arm], "{}.{}".format(prefix, arm))
+        differences = sorted(
+            key for key in allowed
+            if merged["baseline"].get(key) != merged["treatment"].get(key))
+        if not differences:
+            raise ValueError("{} arms must differ".format(prefix))
+        if isolated_policy_keys is not None:
+            if (not isinstance(isolated_policy_keys, list)
+                    or not isolated_policy_keys
+                    or len(isolated_policy_keys)
+                    != len(set(isolated_policy_keys))
+                    or set(isolated_policy_keys) - allowed):
+                raise ValueError(
+                    "{}.isolated_policy_keys are invalid".format(prefix))
+            if differences != sorted(isolated_policy_keys):
+                raise ValueError(
+                    "{} arm differences must exactly match isolated_policy_keys"
+                    .format(prefix))
+        return merged
+
+    arms = paired.get("arms")
+    validate_arms(arms, "paired_impact")
     power = paired.get("power")
     if not isinstance(power, dict):
         raise ValueError("paired_impact power declaration is required")
@@ -334,6 +357,17 @@ def _validate_paired_impact(value):
             raise ValueError("{} must be claim eligible".format(prefix))
         if purpose != "confirmatory" and cohort["claim_eligible"]:
             raise ValueError("{} cannot be claim eligible".format(prefix))
+        cohort_arms = cohort.get("arms")
+        isolated_policy_keys = cohort.get("isolated_policy_keys")
+        if cohort_arms is None:
+            if isolated_policy_keys is not None:
+                raise ValueError(
+                    "{}.isolated_policy_keys requires cohort arms".format(
+                        prefix))
+        else:
+            validate_arms(
+                cohort_arms, prefix,
+                isolated_policy_keys=isolated_policy_keys)
         if outcomes["score_metric"] in endpoints and purpose == "confirmatory":
             cohort_score = cohort.get("score_design")
             if cohort_score is None:

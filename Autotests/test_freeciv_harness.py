@@ -77,6 +77,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "timing_parity_v1": 3,
         "diagnostic_terminal_elimination_v1": 2,
         "confirmatory_joint": 450,
+        "pressure_ablation_pilot_v1": 40,
     }
     seed_sets = [set(row["seeds"]) for row in paired["cohorts"].values()]
     assert all(not left & right for index, left in enumerate(seed_sets)
@@ -188,6 +189,14 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "namespace": "pln-freeciv-impact-pilot-horizon60-v4",
         "count": 40, "minimum": 1800000, "maximum": 1899999,
     }
+    pressure_pilot = paired["cohorts"]["pressure_ablation_pilot_v1"]
+    assert pressure_pilot["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": "pf-pln-pressure-ablation-pilot-v1",
+        "count": 40, "minimum": 2300000, "maximum": 2399999,
+    }
+    assert pressure_pilot["isolated_policy_keys"] == [
+        "pressure_enabled", "pressure_learning_enabled"]
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.2",
         "source_sha256": "3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e",
@@ -225,6 +234,25 @@ def test_config_rejects_an_underpowered_cohort_specific_score_design():
         with open(path, "w", encoding="utf-8") as stream:
             stream.write(source)
         with pytest.raises(ValueError, match="underpowered for the declared score design"):
+            load(path)
+
+
+def test_config_rejects_pressure_cohort_with_an_undeclared_arm_difference():
+    source = open(os.path.join(
+        REPO, "profile", "freeciv_harness.yaml"), encoding="utf-8").read()
+    source = source.replace(
+        "      isolated_policy_keys:\n"
+        "        - pressure_enabled\n"
+        "        - pressure_learning_enabled\n",
+        "      isolated_policy_keys:\n"
+        "        - pressure_enabled\n",
+        1)
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "invalid-pressure-isolation.yaml")
+        with open(path, "w", encoding="utf-8") as stream:
+            stream.write(source)
+        with pytest.raises(
+                ValueError, match="exactly match isolated_policy_keys"):
             load(path)
 
 
@@ -831,6 +859,29 @@ def test_paired_impact_jobs_alternate_order_and_override_only_declared_policy():
     assert terminal_manifest["impact_outcomes"]["early_terminal_score"] == (
         "terminal_absorbing_score_carried_to_horizon")
 
+    pressure_runner = HarnessRunner(
+        "unused", seed_limit=1, conditions=("e_full_loop",),
+        impact_cohort="pressure_ablation_pilot_v1")
+    pressure_jobs = pressure_runner._impact_jobs()
+    pressure_baseline = pressure_runner._manifest(pressure_jobs[0], 0)
+    pressure_treatment = pressure_runner._manifest(pressure_jobs[1], 0)
+    differing = sorted(
+        key for key in pressure_baseline["impact_policy"]
+        if pressure_baseline["impact_policy"][key]
+        != pressure_treatment["impact_policy"][key])
+    assert differing == [
+        "pressure_enabled", "pressure_learning_enabled"]
+    assert pressure_baseline["impact_policy"]["pressure_enabled"] is False
+    assert pressure_baseline[
+        "impact_policy"]["pressure_learning_enabled"] is False
+    assert pressure_treatment["impact_policy"]["pressure_enabled"] is True
+    assert pressure_treatment[
+        "impact_policy"]["pressure_learning_enabled"] is True
+    assert pressure_baseline["impact_pair"]["isolated_policy_keys"] == differing
+    assert pressure_treatment["impact_pair"]["isolated_policy_keys"] == differing
+    assert pressure_baseline["turn_limit"] == pressure_treatment[
+        "turn_limit"] == 60
+
 
 def test_parallel_impact_execution_keeps_each_pair_serial_on_one_worker(monkeypatch):
     with tempfile.TemporaryDirectory() as directory:
@@ -874,6 +925,47 @@ def test_arbitrary_declared_impact_cohorts_have_stable_safe_manifest_tokens():
     assert token == _impact_cohort_token("population route/replay")
     assert token != _impact_cohort_token("population route replay")
     assert re.fullmatch(r"x[0-9a-f]{10}", token)
+
+
+def test_pressure_ablation_pilot_runs_and_aggregates_as_an_isolated_pair(
+        monkeypatch):
+    clean_source = {
+        "commit": "pressure-test-commit", "dirty": False,
+        "implementation_sha256": "a" * 64, "source_files": 1,
+    }
+    monkeypatch.setattr(
+        "freeciv.harness.runner._source_identity",
+        lambda: dict(clean_source))
+    with tempfile.TemporaryDirectory() as directory:
+        runner = HarnessRunner(
+            directory, seed_limit=1, conditions=("e_full_loop",),
+            impact_cohort="pressure_ablation_pilot_v1")
+        summary = runner.run_impact_pairs(resume=False)
+        aggregate = aggregate_impact_pairs(
+            directory, cohort="pressure_ablation_pilot_v1")
+        resumed = runner.run_impact_pairs(resume=True)
+        replayed_aggregate = aggregate_impact_pairs(
+            directory, cohort="pressure_ablation_pilot_v1")
+    assert summary["completed"] == 2
+    assert aggregate["complete_pairs"] == 1
+    assert aggregate["design"]["claim_eligible"] is False
+    assert aggregate["design"]["isolated_policy_keys"] == [
+        "pressure_enabled", "pressure_learning_enabled"]
+    assert aggregate["design"]["arms"] == {
+        "baseline": {
+            "pressure_enabled": False,
+            "pressure_learning_enabled": False,
+        },
+        "treatment": {
+            "pressure_enabled": True,
+            "pressure_learning_enabled": True,
+        },
+    }
+    assert aggregate["claim_evaluation"]["status"] == "ineligible"
+    assert aggregate["source_freeze"]["passed"]
+    assert resumed["resumed"] == 2
+    assert canonical_json_bytes(replayed_aggregate) == canonical_json_bytes(
+        aggregate)
 
 
 def test_paired_impact_smoke_is_reproducible_and_reports_power_and_order():

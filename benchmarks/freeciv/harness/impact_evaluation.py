@@ -201,6 +201,8 @@ def aggregate_impact_pairs(out, config_path=None, cohort=None):
         raise ValueError("unknown paired impact cohort {}".format(cohort_name))
     design = copy.deepcopy(design)
     cohort_design = design["cohorts"][cohort_name]
+    design["arms"] = copy.deepcopy(
+        cohort_design.get("arms", design["arms"]))
     design["outcomes"]["horizon_turn"] = cohort_design.get(
         "horizon_turn", design["outcomes"]["horizon_turn"])
     if "score_design" in cohort_design:
@@ -229,6 +231,13 @@ def aggregate_impact_pairs(out, config_path=None, cohort=None):
         key = (manifest["seed"], arm)
         if arm not in ("baseline", "treatment") or key in seen:
             raise ValueError("invalid or duplicate impact pair arm {}".format(key))
+        expected_policy = dict(
+            config["impact_policy"], **design["arms"][arm])
+        expected_policy["horizon_turn"] = design["outcomes"]["horizon_turn"]
+        if manifest.get("impact_policy") != expected_policy:
+            raise ValueError(
+                "impact pair arm {} does not match its isolated policy"
+                .format(key))
         seen.add(key)
         source_rows.append({
             "arm": arm, "game_id": manifest["game_id"],
@@ -418,6 +427,8 @@ def aggregate_impact_pairs(out, config_path=None, cohort=None):
             "cohort": cohort_name,
             "cohort_purpose": cohort_design["purpose"],
             "claim_eligible": cohort_design["claim_eligible"],
+            "isolated_policy_keys": cohort_design.get(
+                "isolated_policy_keys"),
             "endpoints": cohort_design["endpoints"],
             "outcomes": design["outcomes"],
             "order": design["order"], "order_counts": order_counts,

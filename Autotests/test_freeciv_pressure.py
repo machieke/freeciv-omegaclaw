@@ -17,6 +17,12 @@ for candidate in (SRC, BENCHMARKS):
 from freeciv.pf_pressure_benchmark import (  # noqa: E402
     run_pressure_concentration_benchmark,
 )
+from freeciv.pf_pressure_replay import (  # noqa: E402
+    replay_event_file,
+    replay_paths,
+    replay_snapshot_file,
+    replay_snapshot_paths,
+)
 from freeciv_agent.events.schema import structural_hash  # noqa: E402
 from freeciv_agent.events.validator import validate_file  # noqa: E402
 from freeciv_agent.events.writer import EventWriter  # noqa: E402
@@ -388,4 +394,66 @@ def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
             "conductance_updated", 5, update.to_dict(),
             caused_by=[propagated["event_id"]])
         report = validate_file(path)
+        replay = replay_event_file(path, "pressure-fixture")
+        aggregate_replay = replay_paths(
+            (path,), relative_to=directory)
     assert report.valid, report.to_dict()
+    assert replay["eligibility"] == "exact_candidate_replay"
+    assert replay["source_unchanged"]
+    assert len(replay["decisions"]) == 1
+    assert replay["decisions"][0]["changed"]
+    assert replay["decisions"][0]["integrity_passed"]
+    assert aggregate_replay["files_scanned"] == 1
+    assert aggregate_replay["exact_replay_files"] == 1
+    assert aggregate_replay["decision_change_rate"] == 1.0
+    assert aggregate_replay["integrity_failures"] == 0
+    assert aggregate_replay["sources_unchanged"]
+
+
+def test_legacy_event_trace_is_explicitly_audit_only_and_read_only():
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "events.jsonl")
+        writer = EventWriter(path, "legacy-pressure-test", durable=False)
+        writer.emit("run_started", 0, {
+            "condition_id": "e_full_loop", "manifest_identity": "legacy"})
+        first = replay_event_file(path, "legacy-fixture")
+        second = replay_event_file(path, "legacy-fixture")
+    assert first == second
+    assert first["eligibility"] == "audit_only"
+    assert first["reason"] == "legacy_missing_operation_scored"
+    assert first["source_unchanged"]
+
+
+def test_byte_real_snapshot_pressure_ablation_is_exact_and_read_only():
+    turn_zero = os.path.join(
+        REPO, "benchmarks", "freeciv", "samples",
+        "real_state_turn0.json")
+    turn_one = os.path.join(
+        REPO, "benchmarks", "freeciv", "samples",
+        "real_state_turn1.json")
+    first = replay_snapshot_file(turn_one, "turn-one")
+    second = replay_snapshot_file(turn_one, "turn-one")
+    assert first == second
+    assert first["source_unchanged"] and first["snapshot_unchanged"]
+    assert first["candidate_sets_match"]
+    assert first["legal_action_count"] == 134
+    assert first["baseline"]["category"] == "city_founding"
+    assert first["pressure"]["category"] == "city_founding"
+    assert first["baseline"]["action"]["actor_id"] == 102
+    assert first["pressure"]["action"]["actor_id"] == 102
+    assert not first["changed_action"] and not first["changed_category"]
+    assert first["pressure_integrity_passed"]
+
+    aggregate = replay_snapshot_paths(
+        (turn_zero, turn_one), relative_to=REPO)
+    assert aggregate["snapshots_scanned"] == 2
+    assert aggregate["comparable_snapshots"] == 1
+    assert aggregate["changed_actions"] == 0
+    assert aggregate["changed_categories"] == 0
+    assert aggregate["changed_action_rate"] == 0.0
+    assert aggregate["sources_unchanged"]
+    assert aggregate["states_unchanged"]
+    with open(os.path.join(
+            REPO, "docs", "freeciv", "evidence",
+            "pf-pressure-snapshot-replay.json"), encoding="utf-8") as stream:
+        assert json.load(stream) == aggregate

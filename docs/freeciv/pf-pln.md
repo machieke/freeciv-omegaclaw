@@ -106,6 +106,69 @@ than 516 premise edges—a 75.19% reduction. These are synthetic control-path
 metrics, not gameplay or score claims. The checked result is stored in
 [`evidence/pf-pressure-concentration.json`](evidence/pf-pressure-concentration.json).
 
+## Offline pressure replay
+
+Complete authoritative captures can be replayed without an engine:
+
+```bash
+python3 scripts/freeciv/replay_pressure_snapshots.py \
+  benchmarks/freeciv/samples/real_state_turn0.json \
+  benchmarks/freeciv/samples/real_state_turn1.json
+```
+
+The replay constructs one immutable snapshot, enumerates candidates independently
+with pressure off and on, verifies identical candidate sets, checks the pressure
+decision artifact, and hashes the source before and after. The turn-one capture
+contains 134 legal actions and 35 grounded impact candidates. Initial replay
+exposed a hash-based tie-ordering defect between equivalent founding actions;
+the ranker now preserves canonical planner order when pressure priorities tie.
+After that correction both modes select the same actor and category. The checked
+artifact is
+[`evidence/pf-pressure-snapshot-replay.json`](evidence/pf-pressure-snapshot-replay.json).
+
+Legacy event logs can be classified or replayed with:
+
+```bash
+python3 scripts/freeciv/replay_pressure_decisions.py PATH
+```
+
+Pre-PF `state_snapshot` events retain the legal-action digest but not the full
+legal-action set, so the tool marks them audit-only instead of inventing missing
+candidates. PF-enabled `operation_scored` events contain the complete grounded
+candidate set and support exact pressure-selection versus unpressured-order
+comparison plus schedule-hash verification. The checked two-arm legacy finding
+is stored in
+[`evidence/pf-pressure-replay-legacy-cohort.json`](evidence/pf-pressure-replay-legacy-cohort.json).
+
+## Pressure-only paired pilot
+
+`pressure_ablation_pilot_v1` predeclares 40 fresh, seed-disjoint pairs at a
+60-turn horizon. It reuses the existing paired-seed ordering, fixed-horizon
+outcomes, source-freeze, retry, initial-state-fidelity, and safety gates. The
+fully merged arm policies are validated to differ in exactly two coupled keys:
+
+```text
+baseline:  pressure_enabled=false, pressure_learning_enabled=false
+treatment: pressure_enabled=true,  pressure_learning_enabled=true
+```
+
+All production, horizon scoring, no-effect handling, model, ruleset, engine,
+and controller settings remain identical. Run a smoke prefix only after
+committing the source:
+
+```bash
+PYTHONPATH=src:benchmarks python3 scripts/freeciv/run_impact_evaluation.py \
+  --out artifacts/freeciv/pf-pressure-ablation-pilot-v1 \
+  --backend engine-live \
+  --cohort pressure_ablation_pilot_v1 \
+  --limit-pairs 1
+```
+
+Omit `--limit-pairs` to execute the full pilot. The cohort is intentionally
+claim-ineligible: it estimates paired variance and operational behavior for a
+new confirmatory design. It cannot be combined with the earlier
+static-priority versus horizon-score experiment.
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` defaults to `false` unless the runtime profile enables it.
 This preserves unit-level policy isolation and makes an unpressured ablation

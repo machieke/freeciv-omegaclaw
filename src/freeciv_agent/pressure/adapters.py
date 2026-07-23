@@ -207,6 +207,10 @@ class ImpactPressureRanker(object):
         goals = []
         grouped = dict((key, {}) for key in goal_specs)
         candidate_by_operation = {}
+        operation_by_candidate = {}
+        candidate_order = dict(
+            (id(candidate), index)
+            for index, candidate in enumerate(candidates))
         conductance_snapshot = (
             self.conductance_state.decision_snapshot()
             if self.conductance_state is not None else None)
@@ -281,9 +285,11 @@ class ImpactPressureRanker(object):
                         "category": category,
                     }))
                 for candidate, atom_id in rows:
-                    operation_id = "pf-impact-op:{}".format(
+                    operation_id = "pf-impact-op:{:08d}:{}".format(
+                        candidate_order[id(candidate)],
                         structural_hash(candidate.action)[:20])
                     candidate_by_operation[operation_id] = candidate
+                    operation_by_candidate[id(candidate)] = operation_id
         result = self.engine.propagate(graph, tuple(goals))
         operations = []
         for operation_id, candidate in sorted(candidate_by_operation.items()):
@@ -297,9 +303,7 @@ class ImpactPressureRanker(object):
         rank = dict((row.operation_id, index) for index, row in enumerate(scores)
                     if row.admissible)
         ordered = tuple(sorted(candidates, key=lambda candidate: (
-            rank.get(
-                "pf-impact-op:{}".format(
-                    structural_hash(candidate.action)[:20]), len(rank)),
+            rank.get(operation_by_candidate[id(candidate)], len(rank)),
             -candidate.utility, candidate.category, candidate.action_key)))
         artifact = {
             "conductance_state": (
