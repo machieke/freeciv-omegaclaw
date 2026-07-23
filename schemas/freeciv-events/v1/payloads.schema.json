@@ -317,7 +317,19 @@
         "conductance": {"type": "number", "minimum": 0, "maximum": 1},
         "successes": {"type": "integer", "minimum": 0},
         "no_progress": {"type": "integer", "minimum": 0},
-        "learning_method": {"const": "grounded-effect-ema-v1"},
+        "learning_method": {
+          "enum": ["grounded-effect-ema-v1", "grounded-goal-relief-ema-v2"]
+        },
+        "credit_kind": {
+          "enum": [
+            "no_progress", "effect_without_goal_relief", "direct_goal_relief",
+            "downstream_goal_relief"
+          ]
+        },
+        "realized_relief": {"type": "number", "minimum": 0, "maximum": 1},
+        "relief_source": {"type": "string", "minLength": 1},
+        "caused_by_feedback_id": {"type": "string", "minLength": 1},
+        "no_progress_amount": {"type": "number", "minimum": 0, "maximum": 1},
         "state_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
       }
     },

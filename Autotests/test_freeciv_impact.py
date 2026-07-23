@@ -893,6 +893,64 @@ def test_pressure_feedback_replays_idempotently_through_impact_planner():
         assert duplicate.conductance == update.conductance
 
 
+def test_downstream_city_progress_credits_one_pending_expansion_route():
+    move_action = {
+        "action_type": "unit_move", "actor_id": 1,
+        "target": {"x": 4, "y": 5}, "is_valid": True,
+    }
+    found_action = {
+        "action_type": "unit_build_city", "actor_id": 1,
+        "target": {"x": 4, "y": 5}, "is_valid": True,
+    }
+    before_move = _snapshot(
+        [_unit(1, "Settlers", x=4, y=4)],
+        [move_action, {"action_type": "end_turn", "is_valid": True}],
+        source_seq=1)
+    after_move = _snapshot(
+        [_unit(1, "Settlers", x=4, y=5)],
+        [found_action, {"action_type": "end_turn", "is_valid": True}],
+        source_seq=2)
+    second_city = dict(_city(), id=20, name="Antium", tile=54, x=4, y=5)
+    after_founding = _snapshot(
+        [], [{"action_type": "end_turn", "is_valid": True}],
+        cities=[_city(), second_city], source_seq=3)
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 3,
+        "pressure_enabled": True,
+        "pressure_learning_enabled": True,
+    })
+    move = ImpactCandidate(
+        move_action, "expansion_move", 800.0, "grounded expansion step")
+    moved = planner.record_outcome(
+        move, before_move, True, after_move, feedback_id="move-result")
+    assert moved.credit_kind == "effect_without_goal_relief"
+    assert moved.realized_relief == 0.0
+    assert moved.conductance < moved.previous_conductance
+    assert planner.drain_conductance_updates() == ()
+
+    founding = ImpactCandidate(
+        found_action, "city_founding", 1000.0, "grounded city completion")
+    assert planner.candidate_effect_observed(
+        founding, after_move, after_founding)
+    relief = planner.candidate_goal_relief(
+        founding, after_move, after_founding, True)
+    assert relief.goal == "expansion"
+    assert abs(relief.realized_relief - 1.0 / 3.0) < 1e-12
+    direct = planner.record_outcome(
+        founding, after_move, True, after_founding,
+        feedback_id="found-result")
+    downstream = planner.drain_conductance_updates()
+    assert direct.credit_kind == "direct_goal_relief"
+    assert len(downstream) == 1
+    assert downstream[0].category == "expansion_move"
+    assert downstream[0].credit_kind == "downstream_goal_relief"
+    assert downstream[0].caused_by_feedback_id == "found-result"
+    assert downstream[0].successes == moved.successes
+    assert downstream[0].conductance > moved.conductance
+    # Draining is idempotent and a goal event cannot multiply route credit.
+    assert planner.drain_conductance_updates() == ()
+
+
 def test_no_effect_action_is_suppressed_until_local_grounding_changes():
     preferred = {"action_type": "unit_move", "actor_id": 20,
                  "target": {"x": 0, "y": 2}, "is_valid": True}

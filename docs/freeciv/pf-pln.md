@@ -85,13 +85,29 @@ exploration remain active only while the current legal set contains a grounded
 operation for them. Each derivation is recorded in the goal context carried by
 `pressure_propagated`.
 
-Candidate categories have separate learned routes. Credit is applied only
-after the candidate-specific authoritative effect predicate succeeds.
-Authoritative next-turn no-effect resolution applies bounded no-progress
-decay; transport acceptance alone never receives credit. Deferred effects keep
-the originating action-result ID so replay cannot apply the same update twice.
-The ledger is written atomically to `pressure-conductance.json`, scoped to one
-run attempt, and archived with superseded attempts.
+Candidate categories have separate learned routes. Immediate action effect and
+goal relief are distinct observations. A candidate-specific no-effect result
+receives full no-progress decay. A local effect with no measurable goal
+progress receives one-quarter decay and no positive teleological credit.
+Authoritative direct goal progress receives monotonic bounded credit.
+
+The planner also retains at most one successful, goal-neutral route per
+category and goal. When a later candidate produces authoritative progress for
+that same goal, each distinct pending category can receive one idempotent
+downstream update. Repeated movement therefore cannot multiply credit. Each
+update identifies whether it is no-effect, effect-without-relief, direct
+relief, or downstream relief, names the relief source, and links downstream
+credit to the feedback event which established goal progress. City-count,
+owned-population recovery, visible-target hit-point reduction, fortified
+defense posture, new visible map area, and resolved known huts are the only
+currently admitted relief predicates. Production-target changes and actor
+movement alone are not relief.
+
+Deferred effects keep the originating action-result ID so replay cannot apply
+the same update twice. The conductance ledger is written atomically to
+`pressure-conductance.json`, scoped to one run attempt, and archived with
+superseded attempts. Pending route traces are process-local and conservative
+on restart: losing a trace can omit downstream credit but cannot invent it.
 
 Server-advertised but untried category routes start optimistically at
 conductance 1.0. Grounded no-progress feedback decays them from that prior.
@@ -236,9 +252,12 @@ another expansion move each followed exactly four grounded no-progress
 outcomes. Action-rate and latency overhead became indistinguishable from zero.
 
 The observed paired score SD was 0.6938 and the upper score-effect interval was
-only 0.300 points. A confirmatory cohort is therefore not frozen. The next
-implementation target is downstream goal-relief credit, followed by offline
-replay and another fresh pilot. Full evidence is in
+only 0.300 points. A confirmatory cohort is therefore not frozen. Downstream
+goal-relief credit and deterministic offline acceptance were added after v2.
+The next empirical gate is a fresh engine smoke followed by a predeclared
+seed-disjoint pilot. The semantic gate is recorded in
+[`evidence/pf-goal-relief-offline-acceptance.md`](evidence/pf-goal-relief-offline-acceptance.md).
+Full v2 engine evidence is in
 [`evidence/pf-pressure-ablation-pilot-v2.md`](evidence/pf-pressure-ablation-pilot-v2.md).
 
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
@@ -255,7 +274,9 @@ Three schema-validated events expose the control path:
 - `operation_scored`: per-goal effects, conflict penalty, scalarized cost,
   priority, budget allocation, and selected operation.
 - `conductance_updated`: grounded feedback identity, prior and posterior route
-  conductance, outcome counters, application status, and state hash.
+  conductance, outcome counters, application status, direct/effect-only/
+  downstream credit kind, realized relief, relief provenance, causal feedback
+  link, no-progress amount, and state hash. Legacy v1 events remain valid.
 
 In live runs the causal chain is:
 
@@ -318,7 +339,8 @@ It covers:
 - causal, contextual, and safety firewalls;
 - cost appearing only at scheduling;
 - exact token union, overlap, decay, and selection-policy provenance;
-- conductance credit and no-progress decay;
+- conductance effect/relief separation, partial and full no-progress decay,
+  monotonic direct credit, and bounded downstream credit;
 - confidence loss under maximally disagreeing clones;
 - existing proof-DAG adaptation;
 - multi-goal impact ranking;

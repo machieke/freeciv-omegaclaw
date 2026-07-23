@@ -165,8 +165,9 @@ class ImpactPressureRanker(object):
         "city_founding": "expansion",
         "expansion_move": "expansion",
         "hut_exploration": "exploration",
-        "population_recovery": "expansion",
-        "population_recovery_move": "expansion",
+        "population_recovery": "score",
+        "population_recovery_move": "score",
+        "production_defense": "survival",
         "tactical_attack": "survival",
         "tactical_move": "survival",
     }
@@ -359,8 +360,24 @@ class ImpactPressureRanker(object):
         }
         return ordered, artifact
 
-    def record_outcome(self, candidate, effect_observed, feedback_id):
+    def record_category_outcome(
+            self, category, effect_observed, feedback_id,
+            realized_relief=None, relief_source=None,
+            caused_by_feedback_id=None):
         if self.conductance_state is None:
             return None
+        if realized_relief is None:
+            return self.conductance_state.feedback(
+                category, effect_observed, feedback_id)
         return self.conductance_state.feedback(
-            candidate.category, effect_observed, feedback_id)
+            category, effect_observed, feedback_id,
+            realized_relief=realized_relief,
+            relief_source=relief_source,
+            caused_by_feedback_id=caused_by_feedback_id)
+
+    def record_outcome(
+            self, candidate, effect_observed, feedback_id,
+            realized_relief=None, relief_source=None):
+        return self.record_category_outcome(
+            candidate.category, effect_observed, feedback_id,
+            realized_relief, relief_source)

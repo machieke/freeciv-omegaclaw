@@ -92,6 +92,22 @@ class DeferredImpactResolution:
     feedback_id: object = None
 
 
+@dataclass(frozen=True)
+class GroundedGoalRelief:
+    """Candidate-relative goal progress measured from authoritative snapshots."""
+
+    goal: str
+    realized_relief: float
+    source: str
+
+    def to_dict(self):
+        return {
+            "goal": self.goal,
+            "realized_relief": float(self.realized_relief),
+            "source": self.source,
+        }
+
+
 class DeferredImpactOutcomeLedger(object):
     """Reconcile accepted actions whose effects outlive the bounded wait.
 
@@ -311,6 +327,11 @@ class GroundedImpactPlanner(object):
         self._unit_score_batch_intent = None
         self._unit_score_batch_cache_key = None
         self._unit_score_batch_cache = {}
+        # At most one successful-but-not-yet-relieving route is retained per
+        # category and goal. A later authoritative goal change may credit that
+        # bounded procedural trace once; repeated moves cannot multiply credit.
+        self._pending_goal_routes = {}
+        self._queued_conductance_updates = []
         self._pressure_ranker = None
         if self.pressure_enabled:
             from ..pressure import (
@@ -671,6 +692,136 @@ class GroundedImpactPlanner(object):
             return self.local_actor_effect_observed(candidate, before, after)
         return before.identity.state_hash != after.identity.state_hash
 
+    @staticmethod
+    def _fortified_activity(value):
+        return "fort" in str(value or "").strip().lower()
+
+    def candidate_goal_relief(
+            self, candidate, before, after, effect_observed):
+        """Measure candidate-relative progress without revising engine truth.
+
+        Only packet-grounded state changes which are specific to the selected
+        goal are eligible.  Merely changing an actor's position, movement
+        points, or a city's production target is not goal relief.
+        """
+        if self._pressure_ranker is None:
+            raise RuntimeError("goal relief requires pressure ranking")
+        goal = self._pressure_ranker.goal_for_category(candidate.category)
+        if not effect_observed:
+            return GroundedGoalRelief(
+                goal, 0.0, "authoritative:candidate-specific-no-effect")
+
+        if goal == "expansion":
+            target = max(1, self.expansion_city_target)
+            before_strength = min(1.0, float(len(before.cities)) / target)
+            after_strength = min(1.0, float(len(after.cities)) / target)
+            relief = max(0.0, after_strength - before_strength)
+            if relief > 0.0:
+                return GroundedGoalRelief(
+                    goal, min(1.0, relief),
+                    "authoritative:owned-city-count-progress")
+
+        if (goal == "score"
+                and candidate.category == "population_recovery"):
+            target = candidate.action.get("target")
+            city_id = target.get("city_id") if isinstance(target, dict) else None
+            before_city = before.city(city_id) if city_id is not None else None
+            after_city = after.city(city_id) if city_id is not None else None
+            expected = int((candidate.projection or {}).get(
+                "recovered_population", 0))
+            recovered = (
+                int(after_city.size) - int(before_city.size)
+                if before_city is not None and after_city is not None else 0)
+            if expected > 0 and recovered > 0:
+                return GroundedGoalRelief(
+                    goal, min(1.0, float(recovered) / expected),
+                    "authoritative:owned-city-population-recovery")
+
+        if goal == "survival":
+            if candidate.category == "tactical_attack":
+                before_targets = self._combat_target_grounding(
+                    before, candidate.action)
+                after_targets = dict(
+                    (row[0], row) for row in self._combat_target_grounding(
+                        after, candidate.action))
+                before_hp = sum(max(0, int(row[3] or 0))
+                                for row in before_targets)
+                after_hp = sum(max(
+                    0, int(after_targets.get(row[0], (None,) * 4)[3] or 0))
+                               for row in before_targets)
+                if before_hp > after_hp:
+                    return GroundedGoalRelief(
+                        goal, min(
+                            1.0, float(before_hp - after_hp) / before_hp),
+                        "authoritative:visible-target-hitpoint-reduction")
+            if candidate.category == "city_defense":
+                actor_id = candidate.action.get("actor_id")
+                before_unit = (
+                    before.unit(actor_id) if actor_id is not None else None)
+                after_unit = (
+                    after.unit(actor_id) if actor_id is not None else None)
+                if (before_unit is not None and after_unit is not None
+                        and not self._fortified_activity(before_unit.activity)
+                        and self._fortified_activity(after_unit.activity)):
+                    return GroundedGoalRelief(
+                        goal, 1.0,
+                        "authoritative:city-defender-fortified")
+
+        if goal == "exploration":
+            before_visible = set(before.visible_tile_ids)
+            after_visible = set(after.visible_tile_ids)
+            newly_visible = len(after_visible - before_visible)
+            map_area = max(
+                1, int(after.map_width or 0) * int(after.map_height or 0))
+            visibility_relief = min(
+                1.0, float(newly_visible) / map_area)
+            before_huts = set(before.known_hut_tile_ids)
+            after_huts = set(after.known_hut_tile_ids)
+            resolved_huts = len(before_huts - after_huts)
+            hut_relief = min(
+                1.0, float(resolved_huts) / max(1, len(before_huts)))
+            relief = max(visibility_relief, hut_relief)
+            if relief > 0.0:
+                return GroundedGoalRelief(
+                    goal, relief,
+                    ("authoritative:known-hut-resolution"
+                     if hut_relief >= visibility_relief
+                     else "authoritative:new-visible-map-area"))
+
+        return GroundedGoalRelief(
+            goal, 0.0,
+            "authoritative:no-measurable-{}-goal-progress".format(goal))
+
+    def drain_conductance_updates(self):
+        """Return downstream updates once in deterministic causal order."""
+        rows = tuple(self._queued_conductance_updates)
+        self._queued_conductance_updates = []
+        return rows
+
+    def _record_downstream_goal_relief(
+            self, candidate, feedback_id, observation):
+        """Credit one pending category route per newly relieved goal."""
+        pending = self._pending_goal_routes.pop(observation.goal, {})
+        for category in sorted(pending):
+            # One goal-progress event updates a category route at most once.
+            # The direct category is already credited by the current feedback.
+            if category == candidate.category:
+                continue
+            trace = pending[category]
+            downstream_feedback_id = (
+                "pressure-downstream-" + structural_hash([
+                    observation.goal, category, trace["feedback_id"],
+                    feedback_id, observation.realized_relief,
+                ])[:24])
+            update = self._pressure_ranker.record_category_outcome(
+                category, True, downstream_feedback_id,
+                observation.realized_relief,
+                "authoritative:downstream-{}-goal-trace".format(
+                    observation.goal),
+                caused_by_feedback_id=feedback_id)
+            if update is not None:
+                self._queued_conductance_updates.append(update)
+
     def _grounding_signature(self, snapshot, candidate):
         """Hash only the local authoritative facts that can change an outcome."""
         action = candidate.action
@@ -792,8 +943,22 @@ class GroundedImpactPlanner(object):
             bool(effect_observed),
             self._no_effect_attempts.get(key, 0),
         ])[:24]
-        return self._pressure_ranker.record_outcome(
-            candidate, effect_observed, feedback_id)
+        relief = self.candidate_goal_relief(
+            candidate, snapshot, after_snapshot or snapshot, effect_observed)
+        update = self._pressure_ranker.record_outcome(
+            candidate, effect_observed, feedback_id,
+            relief.realized_relief, relief.source)
+        if effect_observed and relief.realized_relief > 0.0:
+            self._record_downstream_goal_relief(
+                candidate, feedback_id, relief)
+        elif effect_observed:
+            self._pending_goal_routes.setdefault(
+                relief.goal, {})[candidate.category] = {
+                    "feedback_id": feedback_id,
+                    "snapshot_id": getattr(snapshot, "snapshot_id", None),
+                    "turn": int(getattr(snapshot, "turn", 0)),
+                }
+        return update
 
     def _no_effect_suppressed(self, snapshot, candidate):
         key = (candidate.action_key, self._grounding_signature(snapshot, candidate))

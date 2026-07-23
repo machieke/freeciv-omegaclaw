@@ -250,6 +250,65 @@ def test_conductance_feedback_is_persisted_idempotent_and_truth_free():
     assert truth.to_dict() == before
 
 
+def test_goal_relief_feedback_separates_effect_decay_from_positive_credit():
+    state = ConductanceState(
+        identity="goal-relief-semantics", initial_conductance=1.0)
+    effect_only = state.feedback(
+        "expansion_move", True, "move-effect",
+        realized_relief=0.0,
+        relief_source="authoritative:no-measurable-expansion-goal-progress")
+    assert effect_only.credit_kind == "effect_without_goal_relief"
+    assert effect_only.no_progress_amount == 0.25
+    assert effect_only.realized_relief == 0.0
+    assert effect_only.conductance < effect_only.previous_conductance
+
+    credited = state.feedback(
+        "expansion_move", True, "move-downstream-credit",
+        realized_relief=1.0 / 3.0,
+        relief_source="authoritative:downstream-expansion-goal-trace",
+        caused_by_feedback_id="city-founded")
+    assert credited.credit_kind == "downstream_goal_relief"
+    assert credited.caused_by_feedback_id == "city-founded"
+    assert credited.no_progress_amount == 0.0
+    assert credited.conductance > effect_only.conductance
+    # The downstream update credits the already counted movement effect.
+    assert credited.successes == effect_only.successes == 1
+
+    duplicate = state.feedback(
+        "expansion_move", True, "move-downstream-credit",
+        realized_relief=1.0 / 3.0,
+        relief_source="authoritative:downstream-expansion-goal-trace",
+        caused_by_feedback_id="city-founded")
+    assert not duplicate.applied
+    assert duplicate.conductance == credited.conductance
+
+
+def test_goal_relief_feedback_rejects_unobserved_or_ungrounded_credit():
+    state = ConductanceState(identity="invalid-goal-relief")
+    for values in (
+            {"effect_observed": False, "realized_relief": 0.5,
+             "relief_source": "authoritative:impossible"},
+            {"effect_observed": True, "realized_relief": 0.5,
+             "relief_source": None}):
+        try:
+            state.feedback(
+                "city_founding", values["effect_observed"], "invalid",
+                realized_relief=values["realized_relief"],
+                relief_source=values["relief_source"])
+            assert False, "invalid goal credit was accepted"
+        except ValueError:
+            pass
+
+
+def test_impact_category_goal_mapping_matches_outcome_semantics():
+    assert ImpactPressureRanker.goal_for_category(
+        "production_defense") == "survival"
+    assert ImpactPressureRanker.goal_for_category(
+        "population_recovery") == "score"
+    assert ImpactPressureRanker.goal_for_category(
+        "population_recovery_move") == "score"
+
+
 def test_clone_projection_loses_confidence_under_maximal_disagreement():
     manager = CloneManager()
     clones = (
@@ -441,6 +500,15 @@ def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
             "city_defense", True, "result-event")
         writer.emit(
             "conductance_updated", 5, update.to_dict(),
+            caused_by=[propagated["event_id"]])
+        relief_update = ConductanceState(
+            identity="event-relief-test").feedback(
+                "expansion_move", True, "result-relief-event",
+                realized_relief=0.0,
+                relief_source=(
+                    "authoritative:no-measurable-expansion-goal-progress"))
+        writer.emit(
+            "conductance_updated", 5, relief_update.to_dict(),
             caused_by=[propagated["event_id"]])
         report = validate_file(path)
         replay = replay_event_file(path, "pressure-fixture")

@@ -3,8 +3,8 @@
 
 from .bounded import ProductionGoal, ProductionScheduler
 from .impact import (DeferredImpactOutcomeLedger, DeferredImpactResolution,
-                     GroundedImpactPlanner, ImpactCandidate, ImpactDecision,
-                     ImpactTurnBudget)
+                     GroundedGoalRelief, GroundedImpactPlanner,
+                     ImpactCandidate, ImpactDecision, ImpactTurnBudget)
 from .model import (BranchScore, NonPlan, Plan, PlanAssumption, PlanStep,
                     PlanningSnapshot, ResourceLedger, ResourceLedgerEntry)
 from .scheduler import ProofScheduler, research_duration_turns, validate_next_step
@@ -12,7 +12,8 @@ from .scheduler import ProofScheduler, research_duration_turns, validate_next_st
 __all__ = [
     "BranchScore", "NonPlan", "Plan", "PlanAssumption", "PlanStep",
     "DeferredImpactOutcomeLedger", "DeferredImpactResolution",
-    "GroundedImpactPlanner", "ImpactCandidate", "ImpactDecision", "ImpactTurnBudget",
+    "GroundedGoalRelief", "GroundedImpactPlanner", "ImpactCandidate",
+    "ImpactDecision", "ImpactTurnBudget",
     "PlanningSnapshot",
     "ProductionGoal", "ProductionScheduler", "ProofScheduler",
     "ResourceLedger", "ResourceLedgerEntry", "research_duration_turns", "validate_next_step",

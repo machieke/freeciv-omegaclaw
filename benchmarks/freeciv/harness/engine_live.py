@@ -1219,7 +1219,10 @@ async def _play(run_dir, manifest, context):
             conductance_update = impact_planner.record_outcome(
                 candidate, before, effect_observed, after_snapshot=after,
                 feedback_id=feedback_id)
-            if conductance_update is not None:
+            conductance_updates = (
+                (() if conductance_update is None else (conductance_update,))
+                + impact_planner.drain_conductance_updates())
+            for conductance_update in conductance_updates:
                 event = writer.emit(
                     "conductance_updated", int(after.turn),
                     conductance_update.to_dict(), caused_by=[parent])

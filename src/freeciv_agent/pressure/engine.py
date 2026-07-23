@@ -378,6 +378,20 @@ class ConductanceLearner(object):
             + self.learning_rate * target)
         return replace(rule, conductance=min(1.0, max(0.0, conductance)))
 
+    def credit(self, rule, realized_relief):
+        """Apply bounded positive credit without lowering an optimistic prior."""
+        if not isinstance(rule, PressureRule):
+            raise TypeError("conductance learner accepts PressureRule")
+        if isinstance(realized_relief, bool):
+            raise ValueError("realized relief must be numeric")
+        relief = float(realized_relief)
+        if not 0.0 <= relief <= 1.0:
+            raise ValueError("realized relief must be in [0,1]")
+        conductance = (
+            rule.conductance
+            + self.learning_rate * relief * (1.0 - rule.conductance))
+        return replace(rule, conductance=min(1.0, max(0.0, conductance)))
+
     def no_progress(self, rule, amount=1.0):
         if not isinstance(rule, PressureRule):
             raise TypeError("conductance learner accepts PressureRule")
