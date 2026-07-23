@@ -1,6 +1,6 @@
 # PF-PLN threat-relevance offline acceptance
 
-Status: deterministic acceptance passed; engine evaluation pending
+Status: deterministic acceptance and 40-pair engine evaluation passed
 
 The grounded goal-relief pilot showed that the largest pressure substitutions
 sent expansion and exploration units into tactical movement. Survival truth
@@ -36,7 +36,11 @@ PYTHONPATH=src:benchmarks python3 -m pytest -q \
   Autotests/test_freeciv_harness.py
 ```
 
-This establishes goal-grounding behavior only. The predeclared
-`pressure_threat_relevance_pilot_v1` uses 40 fresh SHA-256-derived seeds in
-the range 2,600,000–2,699,999. Its one-pair prefix must pass engine and exact
-replay gates before the remaining pairs run.
+This establishes goal-grounding behavior. The predeclared
+`pressure_threat_relevance_pilot_v1` then completed 40 fresh
+SHA-256-derived seed pairs in the range 2,600,000–2,699,999. All engine,
+schema, safety, source, and exact-replay gates passed. The score delta was
++0.10 with interval [-0.725, 1.050], so the correction is operationally
+accepted but no performance claim or confirmatory cohort is warranted.
+Full results and the next defense-relevance target are recorded in
+[`pf-pressure-threat-relevance-pilot-v1.md`](pf-pressure-threat-relevance-pilot-v1.md).

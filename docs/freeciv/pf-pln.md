@@ -259,13 +259,25 @@ The observed paired score SD was 0.6938 and the upper score-effect interval was
 only 0.300 points. A confirmatory cohort is therefore not frozen. Downstream
 goal-relief credit and deterministic offline acceptance were added after v2.
 The fresh 40-pair goal-relief pilot then found a -0.05 score delta with
-interval [-0.775, 0.600], so no confirmatory cohort is frozen. The dominant
-remaining issue is coarse survival activation from any visible opponent,
-regardless of proximity to owned assets. The semantic gate is recorded in
+interval [-0.775, 0.600], so no confirmatory cohort is frozen. Threat-relevant
+survival grounding was then accepted in a fresh 40-pair engine/replay pilot.
+It reduced inappropriate tactical substitutions and improved explored
+positions, but its score delta was only +0.10 with interval
+[-0.725, 1.050], and fixed-horizon lead rate changed by -2.5 percentage
+points. No confirmatory cohort is frozen.
+
+The 81 remaining substitutions into `city_defense` expose the next semantic
+issue: a legal fortification opportunity currently counts as a defense
+deficit even though a combat unit is already on the city tile. The next
+correction must preserve urgent fortification under a proximate threat while
+preventing routine fortification from preempting score-bearing production.
+The initial goal-relief semantic gate is recorded in
 [`evidence/pf-goal-relief-offline-acceptance.md`](evidence/pf-goal-relief-offline-acceptance.md).
 Full engine evidence is in
 [`evidence/pf-pressure-goal-relief-pilot-v1.md`](evidence/pf-pressure-goal-relief-pilot-v1.md)
-and the preceding v2 evidence is in
+and
+[`evidence/pf-pressure-threat-relevance-pilot-v1.md`](evidence/pf-pressure-threat-relevance-pilot-v1.md);
+the preceding v2 evidence is in
 [`evidence/pf-pressure-ablation-pilot-v2.md`](evidence/pf-pressure-ablation-pilot-v2.md).
 
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
