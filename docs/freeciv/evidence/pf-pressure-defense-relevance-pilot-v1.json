@@ -1,0 +1,156 @@
+{
+  "artifacts": {
+    "impact_aggregate": {
+      "path": "artifacts/freeciv/pf-pressure-defense-relevance-pilot-v1/impact-aggregate.json",
+      "sha256": "e7c0095a00a89cb17028a055f004a91bc59f92caa63d163d85f598ebbe3b6ef1"
+    },
+    "impact_report": {
+      "path": "artifacts/freeciv/pf-pressure-defense-relevance-pilot-v1/impact-report.md",
+      "sha256": "94a6a14da04712b42059a6bd655054037236a344181d3c1c5180e77fe1bebdc9"
+    },
+    "pressure_replay": {
+      "path": "artifacts/freeciv/pf-pressure-defense-relevance-pilot-v1/pressure-replay-40.json",
+      "sha256": "a07072d31bb0092b256ac546ec159fe38d502e288511244dbbfc5ef10bb924d6"
+    },
+    "run_summary": {
+      "path": "artifacts/freeciv/pf-pressure-defense-relevance-pilot-v1/impact-run-summary.json",
+      "sha256": "9de690a797989e824ad3f2dd340023bf7b85f6f9ed3416e693dec2b781f9082e"
+    }
+  },
+  "claim_status": "ineligible_pilot",
+  "cohort": {
+    "completed_arms": 80,
+    "completed_pairs": 40,
+    "controller_workers": 3,
+    "horizon_turn": 60,
+    "infrastructure_failures": 0,
+    "order_counts": {
+      "baseline_first": 20,
+      "treatment_first": 20
+    },
+    "planned_pairs": 40,
+    "seed_namespace": "pf-pln-pressure-defense-relevance-pilot-v1"
+  },
+  "conductance_feedback": {
+    "credit_kind_counts": {
+      "direct_goal_relief": 409,
+      "downstream_goal_relief": 319,
+      "effect_without_goal_relief": 2171,
+      "no_progress": 126
+    },
+    "learning_method": "grounded-goal-relief-ema-v2",
+    "total_updates": 3025
+  },
+  "decision_replay": {
+    "changed_decisions": 220,
+    "decision_change_rate": 0.08124076809453472,
+    "exact_replay_files": 40,
+    "integrity_failures": 0,
+    "source_set_hash": "392acd937643f1206ab58f7f3da407895070bd8c91d0980b577c6bc045fa6a57",
+    "sources_unchanged": true,
+    "total_decisions": 2708
+  },
+  "design_conclusion": {
+    "confirmatory_action": "do_not_freeze",
+    "reason": "The score estimate is near zero and its interval contains both harm and only a sub-point benefit.",
+    "recommended_next_target": "Remove legal-action enumeration bias by comparing category pressure across goals and grounded utility within a category."
+  },
+  "diagnostics": {
+    "all_event_files_schema_valid": true,
+    "largest_changed_category_transitions": [
+      {
+        "baseline": "expansion_move",
+        "count": 66,
+        "pressure": "exploration_move"
+      },
+      {
+        "baseline": "city_defense",
+        "count": 44,
+        "pressure": "exploration_move"
+      },
+      {
+        "baseline": "tactical_move",
+        "count": 43,
+        "pressure": "exploration_move"
+      },
+      {
+        "baseline": "exploration_move",
+        "count": 20,
+        "pressure": "tactical_move"
+      },
+      {
+        "baseline": "hut_exploration",
+        "count": 9,
+        "pressure": "expansion_move"
+      }
+    ],
+    "meaningful_action_rate_delta": {
+      "estimate": -0.007916666666666674,
+      "lower": -0.08083333333333334,
+      "upper": 0.06291666666666665
+    },
+    "positions_explored_delta": {
+      "estimate": 0.8,
+      "lower": -1.7,
+      "upper": 3.3
+    },
+    "settlement_attempts_delta": {
+      "estimate": 0.05,
+      "lower": -0.05,
+      "upper": 0.175
+    },
+    "survival_context_counts": {
+      "authoritative:grounded-production-defense-deficit": 8,
+      "authoritative:no-proximate-visible-threat-or-defense-deficit": 2202,
+      "authoritative:visible-enemy-within-city-threat-radius:3": 498
+    },
+    "transitions_to_city_defense": 4
+  },
+  "invariants": {
+    "arm_policy_isolation_passed": true,
+    "engine_rejected_action_rate": {
+      "baseline": 0,
+      "treatment": 0
+    },
+    "paired_initial_state_fidelity_passed": true,
+    "pressure_replay_integrity_passed": true,
+    "safety_gates_passed": true,
+    "source_freeze_passed": true
+  },
+  "outcomes": {
+    "baseline_score_mean": 117.5,
+    "baseline_win_rate": 0.225,
+    "score_delta": {
+      "estimate": 0.05,
+      "lower": -0.3,
+      "paired_randomization_p": 0.90673828125,
+      "upper": 0.475
+    },
+    "score_margin_delta": {
+      "estimate": -0.425,
+      "lower": -2.65,
+      "upper": 1.85
+    },
+    "treatment_score_mean": 117.55,
+    "treatment_win_rate": 0.225,
+    "win_rate_delta": {
+      "baseline_only_wins": 1,
+      "estimate": 0.0,
+      "exact_mcnemar_p": 1.0,
+      "lower": -0.075,
+      "treatment_only_wins": 1,
+      "upper": 0.075
+    }
+  },
+  "power": {
+    "detectable_delta_at_40_pairs": 0.5580676686499955,
+    "observed_paired_score_sd": 1.259833118781804
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "29a0b9c725c8ccb81ff1cd4e8a9292edbb7079db",
+    "configuration_hash": "5c1ba415d7b131762d89e8deebab058356a61b8fa5b45f4d51eec61969c156e9",
+    "dirty": false,
+    "implementation_sha256": "2004c6a0bbc589d7e1c06397714c035f7f2b32e647aa73a9b70a9faea4b715a8"
+  }
+}

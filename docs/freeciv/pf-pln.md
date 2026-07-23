@@ -266,11 +266,11 @@ positions, but its score delta was only +0.10 with interval
 [-0.725, 1.050], and fixed-horizon lead rate changed by -2.5 percentage
 points. No confirmatory cohort is frozen.
 
-The 81 remaining substitutions into `city_defense` expose the next semantic
-issue: a legal fortification opportunity currently counts as a defense
-deficit even though a combat unit is already on the city tile. The next
-correction must preserve urgent fortification under a proximate threat while
-preventing routine fortification from preempting score-bearing production.
+The 81 remaining substitutions into `city_defense` exposed another semantic
+issue: a legal fortification opportunity counted as a defense deficit even
+though a combat unit was already on the city tile. Defense-relevance grounding
+now preserves urgent fortification under a proximate threat while preventing
+routine fortification from manufacturing survival pressure.
 The initial goal-relief semantic gate is recorded in
 [`evidence/pf-goal-relief-offline-acceptance.md`](evidence/pf-goal-relief-offline-acceptance.md).
 Full engine evidence is in
@@ -279,6 +279,16 @@ and
 [`evidence/pf-pressure-threat-relevance-pilot-v1.md`](evidence/pf-pressure-threat-relevance-pilot-v1.md);
 the preceding v2 evidence is in
 [`evidence/pf-pressure-ablation-pilot-v2.md`](evidence/pf-pressure-ablation-pilot-v2.md).
+
+Defense-relevance grounding subsequently passed a fresh 40-pair engine/replay
+pilot. Substitutions into `city_defense` fell from 81 to 4, but score changed
+by only +0.05 with interval [-0.300, 0.475] and fixed-horizon lead rate was
+unchanged. The dominant remaining bias is action enumeration: category
+pressure is divided across every legal alternative before cross-goal
+comparison, so adding equivalent expansion moves can make exploration win.
+The next adapter correction must compare pressure at category level and use
+grounded utility within each category. Full evidence is in
+[`evidence/pf-pressure-defense-relevance-pilot-v1.md`](evidence/pf-pressure-defense-relevance-pilot-v1.md).
 
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` defaults to `false` unless the runtime profile enables it.

@@ -1,6 +1,6 @@
 # PF-PLN defense-relevance offline acceptance
 
-Status: deterministic acceptance passed; engine evaluation pending
+Status: deterministic acceptance and 40-pair engine evaluation passed
 
 The threat-relevance pilot removed most pressure-induced tactical diversion
 from distant visible opponents but found 81 substitutions into
@@ -36,9 +36,11 @@ PYTHONPATH=src:benchmarks python3 -m pytest -q \
   Autotests/test_freeciv_harness.py
 ```
 
-The predeclared `pressure_defense_relevance_pilot_v1` uses 40 fresh
-SHA-256-derived seed pairs in the range 2,700,000–2,799,999. It retains the
-same pressure-only two-key arm isolation, turn-60 horizon, and alternating
-20/20 execution order as the preceding pilots. Its one-pair prefix must pass
-engine, schema, source, safety, and exact-replay gates before the remaining
-pairs run.
+The predeclared `pressure_defense_relevance_pilot_v1` then completed 40 fresh
+SHA-256-derived seed pairs in the range 2,700,000–2,799,999. All engine,
+schema, safety, source, and exact-replay gates passed. Substitutions into
+`city_defense` fell from 81 to 4, accepting the correction operationally. The
+score delta was +0.05 with interval [-0.300, 0.475], so no performance claim
+or confirmatory cohort is warranted. Full results and the next
+enumeration-invariance target are recorded in
+[`pf-pressure-defense-relevance-pilot-v1.md`](pf-pressure-defense-relevance-pilot-v1.md).
