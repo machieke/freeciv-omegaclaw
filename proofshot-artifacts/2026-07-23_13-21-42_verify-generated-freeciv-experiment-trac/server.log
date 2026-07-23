@@ -1,0 +1,10 @@
+1784812904377
+1784812904377	> @omegaclaw/freeciv-observability@0.1.0 dev
+1784812904377	> vite --host 127.0.0.1 --port 4178
+1784812904377
+1784812904709
+1784812904709	  VITE v7.3.6  ready in 198 ms
+1784812904709
+1784812904710	  ➜  Local:   http://127.0.0.1:4178/
+1784812982271	1:23:02 PM [vite] (client) hmr update /src/App.tsx
+1784812982272	1:23:02 PM [vite] (client) hmr update /src/styles.css

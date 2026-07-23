@@ -1,0 +1,117 @@
+[
+  {
+    "action": "open http://127.0.0.1:4178/",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-23T13:21:58.964Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 6,
+    "timestamp": "2026-07-23T13:21:59.943Z"
+  },
+  {
+    "action": "screenshot 01-observatory-with-experiment-traces.png",
+    "relativeTimeSec": 15.6,
+    "timestamp": "2026-07-23T13:22:09.608Z"
+  },
+  {
+    "action": "click @e15",
+    "relativeTimeSec": 17,
+    "timestamp": "2026-07-23T13:22:10.962Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 17.3,
+    "timestamp": "2026-07-23T13:22:11.306Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 30.3,
+    "timestamp": "2026-07-23T13:22:24.233Z"
+  },
+  {
+    "action": "click @e15",
+    "relativeTimeSec": 36.5,
+    "timestamp": "2026-07-23T13:22:30.440Z"
+  },
+  {
+    "action": "screenshot 02-experiment-trace-catalog.png",
+    "relativeTimeSec": 36.8,
+    "timestamp": "2026-07-23T13:22:30.803Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 37.3,
+    "timestamp": "2026-07-23T13:22:31.253Z"
+  },
+  {
+    "action": "open http://127.0.0.1:4178/",
+    "relativeTimeSec": 75.8,
+    "timestamp": "2026-07-23T13:23:09.776Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 76.3,
+    "timestamp": "2026-07-23T13:23:10.305Z"
+  },
+  {
+    "action": "screenshot 01-selector-visible.png",
+    "relativeTimeSec": 83.7,
+    "timestamp": "2026-07-23T13:23:17.686Z"
+  },
+  {
+    "action": "click @e8",
+    "relativeTimeSec": 85.1,
+    "timestamp": "2026-07-23T13:23:19.039Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 85.5,
+    "timestamp": "2026-07-23T13:23:19.490Z"
+  },
+  {
+    "action": "screenshot 02-experiment-trace-catalog.png",
+    "relativeTimeSec": 101.1,
+    "timestamp": "2026-07-23T13:23:35.114Z"
+  },
+  {
+    "action": "fill @e35 2146151",
+    "relativeTimeSec": 102.8,
+    "timestamp": "2026-07-23T13:23:36.782Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 103.2,
+    "timestamp": "2026-07-23T13:23:37.218Z"
+  },
+  {
+    "action": "screenshot 03-filtered-terminal-traces.png",
+    "relativeTimeSec": 115.3,
+    "timestamp": "2026-07-23T13:23:49.279Z"
+  },
+  {
+    "action": "click @e36",
+    "relativeTimeSec": 116.8,
+    "timestamp": "2026-07-23T13:23:50.754Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 117.1,
+    "timestamp": "2026-07-23T13:23:51.109Z"
+  },
+  {
+    "action": "screenshot 04-loaded-terminal-trace.png",
+    "relativeTimeSec": 124.6,
+    "timestamp": "2026-07-23T13:23:58.608Z"
+  },
+  {
+    "action": "click @e15",
+    "relativeTimeSec": 126,
+    "timestamp": "2026-07-23T13:23:59.962Z"
+  },
+  {
+    "action": "screenshot 05-loaded-trace-metrics.png",
+    "relativeTimeSec": 126.4,
+    "timestamp": "2026-07-23T13:24:00.369Z"
+  }
+]

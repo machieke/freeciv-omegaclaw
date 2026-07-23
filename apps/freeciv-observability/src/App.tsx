@@ -6,9 +6,16 @@ import {
   type AtomView, type Cursor, type ReplayState, type TraceEvent,
   cursorOf, eventOrder, formatAtom, maxCursor,
 } from "./events";
+import {
+  type ArtifactCatalogEntry,
+  fetchArtifactCatalog,
+  fetchArtifactEventStream,
+} from "./artifacts";
 import { LiveEventClient, type LiveStatus } from "./live";
 import { ancestry, densityByTurn, foldEvents } from "./store";
-import { parseJsonl, parseJsonlStream, type QuarantinedLine } from "./validation";
+import {
+  parseJsonl, parseJsonlStream, type ParseResult, type QuarantinedLine,
+} from "./validation";
 import { decodeUrlState, encodeUrlState, type ViewName } from "./url-state";
 
 type Selection =
@@ -518,6 +525,128 @@ function Inspector({ selection }: { selection?: Selection }) {
     <pre>{JSON.stringify(value, null, 2)}</pre></aside>;
 }
 
+const formatBytes = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+function ArtifactBrowser({ open, onClose, onLoad }: {
+  open: boolean;
+  onClose: () => void;
+  onLoad: (entry: ArtifactCatalogEntry) => Promise<void>;
+}) {
+  const [entries, setEntries] = useState<ArtifactCatalogEntry[]>([]);
+  const [query, setQuery] = useState("");
+  const [catalogStatus, setCatalogStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [loadingPath, setLoadingPath] = useState<string>();
+  const [error, setError] = useState<string>();
+
+  useEffect(() => {
+    if (!open) return;
+    const controller = new AbortController();
+    setCatalogStatus("loading");
+    setError(undefined);
+    void fetchArtifactCatalog(controller.signal).then((catalog) => {
+      setEntries(catalog.entries);
+      setCatalogStatus("ready");
+    }).catch((reason: unknown) => {
+      if (controller.signal.aborted) return;
+      setCatalogStatus("error");
+      setError(reason instanceof Error ? reason.message : "Artifact catalog unavailable");
+    });
+    return () => controller.abort();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent): void => {
+      if (event.key === "Escape" && !loadingPath) onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [loadingPath, onClose, open]);
+
+  if (!open) return null;
+  const normalizedQuery = query.trim().toLowerCase();
+  const matches = normalizedQuery
+    ? entries.filter((entry) => [
+      entry.experiment, entry.cohort, entry.arm, entry.condition, entry.run, entry.path,
+    ].some((value) => value?.toLowerCase().includes(normalizedQuery)))
+    : entries;
+  const visible = matches.slice(0, 200);
+
+  const select = async (entry: ArtifactCatalogEntry): Promise<void> => {
+    setLoadingPath(entry.path);
+    setError(undefined);
+    try {
+      await onLoad(entry);
+      onClose();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Trace could not be loaded");
+    } finally {
+      setLoadingPath(undefined);
+    }
+  };
+
+  return <div className="artifact-backdrop" onMouseDown={(event) => {
+    if (event.target === event.currentTarget && !loadingPath) onClose();
+  }}>
+    <section className="artifact-dialog" role="dialog" aria-modal="true"
+      aria-labelledby="artifact-dialog-title">
+      <header>
+        <div>
+          <span className="eyebrow">repository / generated evidence</span>
+          <h2 id="artifact-dialog-title">Experiment traces</h2>
+          <p>Select an active game stream. Archived failed attempts stay excluded.</p>
+        </div>
+        <button aria-label="Close experiment traces" onClick={onClose}
+          disabled={Boolean(loadingPath)}>×</button>
+      </header>
+      <div className="artifact-tools">
+        <label>
+          <span>Filter traces</span>
+          <input autoFocus aria-label="Filter experiment traces"
+            placeholder="experiment, cohort, arm, seed…" value={query}
+            onChange={(event) => setQuery(event.target.value)} />
+        </label>
+        <div>
+          <strong>{matches.length.toLocaleString()}</strong>
+          <span>matches / {entries.length.toLocaleString()} active traces</span>
+        </div>
+      </div>
+      {catalogStatus === "loading" && <div className="artifact-state">Scanning generated artifacts…</div>}
+      {catalogStatus === "error" && <div className="artifact-state error">{error}</div>}
+      {catalogStatus === "ready" && visible.length === 0 &&
+        <div className="artifact-state">No generated traces match this filter.</div>}
+      {visible.length > 0 && <div className="artifact-list" aria-label="Generated experiment traces">
+        {visible.map((entry) => <button key={entry.path}
+          aria-label={`Load ${entry.label}`}
+          disabled={Boolean(loadingPath)}
+          className={loadingPath === entry.path ? "loading" : ""}
+          onClick={() => void select(entry)}>
+          <span className="artifact-kind">{entry.arm ?? "trace"}</span>
+          <span className="artifact-name">
+            <strong>{entry.experiment}</strong>
+            <small>{[entry.cohort, entry.run].filter(Boolean).join(" / ")}</small>
+          </span>
+          <span className="artifact-meta">
+            <strong>{formatBytes(entry.sizeBytes)}</strong>
+            <small>{new Date(entry.modifiedAt).toLocaleString()}</small>
+          </span>
+          <span className="artifact-action">
+            {loadingPath === entry.path ? "loading…" : "open →"}
+          </span>
+        </button>)}
+      </div>}
+      {matches.length > visible.length && <footer>
+        Showing the newest {visible.length} matches. Refine the filter to find an older trace.
+      </footer>}
+      {error && catalogStatus !== "error" && <div className="artifact-load-error" role="alert">{error}</div>}
+    </section>
+  </div>;
+}
+
 export function App({ initialText = demoTrace }: { initialText?: string }) {
   const eventLimit = 250_000;
   const initial = useMemo(() => parseJsonl(initialText), [initialText]);
@@ -531,6 +660,8 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
   const [search, setSearch] = useState(decoded.search ?? "");
   const [channel, setChannel] = useState<"all" | "crisp" | "uncertain">(decoded.channel ?? "all");
   const [mode, setMode] = useState<"replay" | "live">("replay");
+  const [artifactBrowserOpen, setArtifactBrowserOpen] = useState(false);
+  const [traceSource, setTraceSource] = useState("bundled demonstration");
   const [liveStatus, setLiveStatus] = useState<LiveStatus>("idle");
   const [liveUrl, setLiveUrl] = useState(
     String(import.meta.env.VITE_FREECIV_LIVE_URL ?? "ws://127.0.0.1:8765"));
@@ -570,10 +701,7 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
   }, [view, cursor, selection, search, channel]);
   useEffect(() => () => liveClient.current?.stop(), []);
 
-  const loadFile = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const parsed = await parseJsonlStream(file.stream());
+  const applyReplay = (parsed: ParseResult, source: string): void => {
     const sorted = parsed.events.sort(eventOrder);
     if (sorted.length > eventLimit) {
       parsed.quarantined.push({
@@ -584,7 +712,24 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
     liveClient.current?.stop();
     setMode("replay"); setLiveStatus("idle");
     setEvents(sorted); setInvalidLines(parsed.quarantined); setCursor(maxCursor(sorted));
+    setLiveGameId(sorted[0]?.game_id ?? "freeciv-live");
+    setTraceSource(source);
     setSelection(undefined);
+  };
+
+  const loadFile = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    applyReplay(await parseJsonlStream(file.stream()), file.name);
+    event.target.value = "";
+  };
+
+  const loadArtifact = async (entry: ArtifactCatalogEntry): Promise<void> => {
+    const parsed = await parseJsonlStream(await fetchArtifactEventStream(entry));
+    if (parsed.events.length === 0) {
+      throw new Error("The selected artifact contains no valid trace events");
+    }
+    applyReplay(parsed, entry.label);
   };
 
   const stopLive = (): void => {
@@ -643,6 +788,9 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
           <button className={mode === "replay" ? "active" : ""} onClick={stopLive}>Replay</button>
           <button className={mode === "live" ? "active" : ""} onClick={startLive}>Live</button>
         </div>
+        <button className="artifact-browser-trigger" onClick={() => setArtifactBrowserOpen(true)}>
+          <span>↗</span>Experiment traces
+        </button>
         <div className="live-config" aria-label="Live event-tail configuration">
           <label>endpoint<input aria-label="Live endpoint" value={liveUrl}
             onChange={(event) => setLiveUrl(event.target.value)} /></label>
@@ -654,10 +802,15 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
           onClick={() => setView(item.view)}><span>{item.key}</span>{item.label}</button>)}
         <label className="file-loader">Load JSONL<input type="file" accept=".jsonl,application/x-ndjson"
           onChange={(event) => void loadFile(event)} /></label>
+        <div className="trace-source" title={traceSource}>
+          <span>loaded trace</span><strong>{traceSource}</strong>
+        </div>
         <div className="schema-lock"><span>schema lock</span><strong>v1.0</strong><small>strict / lossless</small></div>
       </nav>
       <main>{main}</main>
       <Inspector selection={selection} />
     </div>
+    <ArtifactBrowser open={artifactBrowserOpen} onClose={() => setArtifactBrowserOpen(false)}
+      onLoad={loadArtifact} />
   </div>;
 }

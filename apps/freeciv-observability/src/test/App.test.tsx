@@ -1,6 +1,6 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import demoTrace from "../../../../Autotests/fixtures/freeciv-events/v1/normal-crisp.jsonl?raw";
 import decayTrace from "../../../../Autotests/fixtures/freeciv-events/v1/decay-rescout.jsonl?raw";
@@ -88,5 +88,73 @@ describe("Decision Observatory", () => {
     expect(screen.getByText("loop_latency_ms")).toBeInTheDocument();
     expect(screen.getByText("10")).toBeInTheDocument();
     expect(screen.getByText(/UI calculations disabled/)).toBeInTheDocument();
+  });
+
+  it("filters and loads a generated experiment trace from the repository catalog", async () => {
+    const user = userEvent.setup();
+    const artifactText = demoTrace.split("\n").filter(Boolean).map((line) => {
+      const event = JSON.parse(line) as Record<string, unknown>;
+      event.game_id = "artifact-selected-game";
+      return JSON.stringify(event);
+    }).join("\n");
+    const terminal = {
+      arm: "baseline",
+      cohort: "diagnostic_terminal_elimination_v1",
+      condition: "e_full_loop",
+      experiment: "impact-terminal-elimination-v1-engine",
+      label: "impact-terminal-elimination-v1-engine / baseline / 2146151-00",
+      modifiedAt: "2026-07-23T10:57:39.000Z",
+      path: "artifacts/freeciv/terminal/games/impact_pair/diagnostic/baseline/e_full_loop/2146151-00/events.jsonl",
+      run: "2146151-00",
+      sizeBytes: artifactText.length,
+    };
+    const unrelated = {
+      ...terminal,
+      experiment: "impact-confirmatory-v4",
+      label: "impact-confirmatory-v4 / treatment / 2199160-00",
+      path: "artifacts/freeciv/v4/games/impact_pair/confirmatory/treatment/e_full_loop/2199160-00/events.jsonl",
+      run: "2199160-00",
+    };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/freeciv-artifacts") {
+        return new Response(JSON.stringify({
+          entries: [terminal, unrelated],
+          generatedAt: "2026-07-23T11:00:00.000Z",
+          root: "artifacts/freeciv",
+        }), { headers: { "Content-Type": "application/json" } });
+      }
+      if (url.startsWith("/api/freeciv-artifacts/events?path=")) {
+        return new Response(artifactText, {
+          headers: { "Content-Type": "application/x-ndjson" },
+        });
+      }
+      return new Response("not found", { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const { container } = render(<App initialText={demoTrace} />);
+      await user.click(screen.getByRole("button", { name: /Experiment traces/ }));
+      const dialog = await screen.findByRole("dialog", { name: "Experiment traces" });
+      expect(within(dialog).getByText(/2 active traces/)).toBeInTheDocument();
+      await user.type(within(dialog).getByRole("textbox", {
+        name: "Filter experiment traces",
+      }), "2146151");
+      expect(within(dialog).getByRole("button", {
+        name: /Load impact-terminal-elimination-v1-engine/,
+      })).toBeInTheDocument();
+      expect(within(dialog).queryByText("impact-confirmatory-v4")).not.toBeInTheDocument();
+      await user.click(within(dialog).getByRole("button", {
+        name: /Load impact-terminal-elimination-v1-engine/,
+      }));
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      const topbar = container.querySelector(".topbar");
+      expect(topbar).not.toBeNull();
+      expect(within(topbar as HTMLElement).getByText("artifact-selected-game")).toBeInTheDocument();
+      expect(screen.getByTitle(terminal.label)).toBeInTheDocument();
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

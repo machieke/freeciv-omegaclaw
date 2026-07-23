@@ -78,9 +78,60 @@ input[type="range"] { width: 100%; height: 2px; accent-color: var(--cyan); curso
 .file-loader { margin: auto 2px 12px; border: 1px dashed var(--line-strong); padding: 9px; color: var(--muted); text-align: center;
   text-transform: uppercase; font: 500 9px "JetBrains Mono"; cursor: pointer; }
 .file-loader:hover { border-color: var(--cyan); color: var(--cyan); }.file-loader input { display: none; }
+.side-nav > button.artifact-browser-trigger { margin: 0 2px 12px; border-color: #21434a; color: var(--cyan);
+  background: linear-gradient(90deg, rgba(93,216,208,.1), rgba(93,216,208,.02)); }
+.trace-source { min-width: 0; margin: 0 3px 10px; display: grid; gap: 3px; }
+.trace-source span { color: #58727b; text-transform: uppercase; font: 500 7px "JetBrains Mono"; letter-spacing: .08em; }
+.trace-source strong { color: #8da8b0; font: 500 8px "JetBrains Mono"; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .schema-lock { border-top: 1px solid var(--line); padding: 14px 8px 4px; display: grid; grid-template-columns: 1fr auto; color: var(--muted); }
 .schema-lock span, .schema-lock small { text-transform: uppercase; font: 500 8px "JetBrains Mono"; letter-spacing: .1em; }
 .schema-lock strong { color: var(--green); font: 600 11px "JetBrains Mono"; }.schema-lock small { grid-column: 1 / -1; margin-top: 4px; }
+
+.artifact-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 34px;
+  background: rgba(2,8,11,.78); backdrop-filter: blur(8px); }
+.artifact-dialog { width: min(980px, calc(100vw - 68px)); max-height: calc(100vh - 68px); display: grid;
+  grid-template-rows: auto auto minmax(160px,1fr) auto; border: 1px solid #31535d; background: #081419;
+  box-shadow: 0 24px 80px rgba(0,0,0,.55), 0 0 0 1px rgba(93,216,208,.05); }
+.artifact-dialog > header { display: flex; align-items: start; justify-content: space-between; gap: 30px; padding: 20px 22px;
+  border-bottom: 1px solid var(--line); background: linear-gradient(110deg, rgba(93,216,208,.08), transparent 45%); }
+.artifact-dialog > header h2 { margin: 5px 0 3px; font-size: 22px; letter-spacing: -.02em; }
+.artifact-dialog > header p { margin: 0; color: var(--muted); font-size: 10px; }
+.artifact-dialog > header button { width: 34px; height: 34px; border: 1px solid var(--line-strong); background: #0c1c22;
+  color: var(--muted); font: 400 21px "JetBrains Mono"; cursor: pointer; }
+.artifact-dialog > header button:hover { border-color: var(--cyan); color: var(--cyan); }
+.artifact-dialog > header button:disabled { opacity: .4; cursor: default; }
+.artifact-tools { display: grid; grid-template-columns: minmax(320px,1fr) auto; gap: 18px; align-items: end; padding: 14px 22px;
+  border-bottom: 1px solid var(--line); background: #0a171c; }
+.artifact-tools label { display: grid; gap: 5px; }
+.artifact-tools label span, .artifact-tools > div span { color: var(--muted); text-transform: uppercase;
+  font: 500 8px "JetBrains Mono"; letter-spacing: .08em; }
+.artifact-tools input { width: 100%; padding: 9px 11px; border: 1px solid var(--line-strong); outline: 0;
+  background: #0d1e24; color: #d5e5e9; font: 500 10px "JetBrains Mono"; }
+.artifact-tools input:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(93,216,208,.08); }
+.artifact-tools > div { display: grid; text-align: right; gap: 3px; }
+.artifact-tools > div strong { color: var(--cyan); font: 600 15px "JetBrains Mono"; }
+.artifact-list { min-height: 0; overflow: auto; }
+.artifact-list > button { width: 100%; display: grid; grid-template-columns: 78px minmax(320px,1fr) 170px 72px;
+  gap: 14px; align-items: center; padding: 11px 22px; border: 0; border-bottom: 1px solid #14272e;
+  background: transparent; text-align: left; cursor: pointer; }
+.artifact-list > button:hover { background: #0d2026; box-shadow: inset 3px 0 var(--cyan); }
+.artifact-list > button.loading { background: rgba(93,216,208,.08); box-shadow: inset 3px 0 var(--cyan); }
+.artifact-list > button:disabled:not(.loading) { opacity: .45; cursor: wait; }
+.artifact-kind { justify-self: start; max-width: 78px; padding: 4px 6px; border: 1px solid #2d4b54; color: var(--cyan);
+  text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; font: 600 7px "JetBrains Mono"; }
+.artifact-name, .artifact-meta { min-width: 0; display: grid; gap: 3px; }
+.artifact-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #c9dce1; font-size: 11px; }
+.artifact-name small, .artifact-meta small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted);
+  font: 400 8px "JetBrains Mono"; }
+.artifact-meta { text-align: right; }.artifact-meta strong { color: #9eb6bd; font: 500 9px "JetBrains Mono"; }
+.artifact-action { color: var(--cyan); text-align: right; text-transform: uppercase; font: 600 8px "JetBrains Mono"; }
+.artifact-state { min-height: 180px; display: grid; place-items: center; color: var(--muted); text-transform: uppercase;
+  font: 500 9px "JetBrains Mono"; letter-spacing: .06em; }
+.artifact-state.error, .artifact-load-error { color: #f09a97; }
+.artifact-dialog > footer { padding: 9px 22px; border-top: 1px solid var(--line); color: var(--muted);
+  background: #09151a; font: 500 8px "JetBrains Mono"; }
+.artifact-load-error { padding: 9px 22px; border-top: 1px solid rgba(239,106,103,.35);
+  background: rgba(239,106,103,.08); font: 500 9px "JetBrains Mono"; }
 
 main { min-width: 0; overflow: auto; background: rgba(8,18,23,.65); }
 .view-content { padding: 24px; min-height: 100%; }

@@ -17,6 +17,14 @@ npm --prefix apps/freeciv-observability run dev -- --port 4178
 event-only source boundary, runs as-of/deep-link/interaction/performance/live tests,
 and makes a production build. Load any `events.jsonl` through Replay.
 
+When the application is served by its Vite development or preview server, choose
+**Experiment traces** to search and open generated streams under
+`artifacts/freeciv`. The read-only catalog excludes archived `attempt-history`
+streams, rejects traversal and out-of-root symlinks, and streams the selected JSONL
+through the same strict parser and event limit as a manual file upload. At most 200
+matching rows are rendered; refine the experiment, cohort, arm, or seed filter to
+find older traces. Manual **Load JSONL** remains available.
+
 The UI exposes one global `(turn, seq)` cursor across:
 
 - the decision timeline and complete causal ancestry;
