@@ -1406,6 +1406,38 @@ async def _play(run_dir, manifest, context):
                         break
                     impact_action = decision.candidate.action
                     action_snapshot = snapshot
+                    if decision.pressure_artifact is not None:
+                        pressure_value = decision.pressure_artifact["pressure"]
+                        pressure_hash = structural_hash(pressure_value)
+                        pressure_id = "pressure-" + pressure_hash[:20]
+                        pressure_event = writer.emit(
+                            "pressure_propagated", snapshot.turn, {
+                                "config": pressure_value["config"],
+                                "dependency": pressure_value["dependency"],
+                                "goals": pressure_value["goals"],
+                                "graph_hash": pressure_value["graph_hash"],
+                                "operational_pressure": pressure_value["pressure"],
+                                "pressure_id": pressure_id,
+                                "result_hash": pressure_hash,
+                                "traces": pressure_value["traces"],
+                            }, caused_by=[parent])
+                        schedule_value = decision.pressure_artifact["schedule"]
+                        decision_id = "pressure-decision-" + schedule_value[
+                            "structural_hash"][:20]
+                        scored_event = writer.emit(
+                            "operation_scored", snapshot.turn, {
+                                "allocations": schedule_value["allocations"],
+                                "decision_id": decision_id,
+                                "pressure_id": pressure_id,
+                                "scores": schedule_value["scores"],
+                                "selected_operation_id": schedule_value[
+                                    "selected_operation_id"],
+                                "solver_identity": schedule_value[
+                                    "solver_identity"],
+                                "structural_hash": schedule_value[
+                                    "structural_hash"],
+                            }, caused_by=[pressure_event["event_id"]])
+                        parent = scored_event["event_id"]
                     plan_event = writer.emit(
                         "plan_created", snapshot.turn,
                         {"plan": decision.plan.to_dict()}, caused_by=[parent])

@@ -13,6 +13,11 @@ The planner consumes only an `AuthoritativeSnapshot` and its canonical
 ID and legal-action digest. `ExecutionGate` still revalidates the plan, snapshot,
 legal digest, server membership, and monitor status immediately before transport.
 
+On the `experimental/pln-pressure` branch, the harness enables the
+[PF-PLN control layer](pf-pln.md). Candidate enumeration and legality remain
+unchanged; goal-indexed pressure replaces the final global utility sort and emits
+its own causal trace before `plan_created`.
+
 ## Declared policy
 
 `profile/freeciv_harness*.yaml` records all behavioral controls:

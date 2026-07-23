@@ -37,6 +37,7 @@ class Evidence:
     opponent_id: str
     ruleset: str
     model_version: str
+    selection_policy: object = None
 
     def __post_init__(self):
         _bounded(self.strength, "strength")
@@ -56,6 +57,10 @@ class Evidence:
             },
             "opponent_id": self.opponent_id, "provenance_id": self.provenance_id,
             "ruleset": self.ruleset, "source_sensor": self.source_sensor,
+            "selection_policy": (
+                self.selection_policy.to_dict()
+                if hasattr(self.selection_policy, "to_dict")
+                else self.selection_policy),
             "strength": self.strength, "turn": self.turn,
         }
 

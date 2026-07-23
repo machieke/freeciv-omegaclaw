@@ -78,6 +78,7 @@ class ImpactCandidate:
 class ImpactDecision:
     candidate: ImpactCandidate
     plan: Plan
+    pressure_artifact: object = None
 
 
 @dataclass(frozen=True)
@@ -193,6 +194,23 @@ class GroundedImpactPlanner(object):
 
     def __init__(self, config=None, ruleset_ir=None):
         values = dict(config or {})
+        pressure_enabled = values.get("pressure_enabled", False)
+        if not isinstance(pressure_enabled, bool):
+            raise ValueError("pressure_enabled must be boolean")
+        self.pressure_enabled = pressure_enabled
+        for name, lower, upper, upper_inclusive in (
+                ("pressure_damping", 0.0, 1.0, False),
+                ("pressure_exploration_floor", 0.0, 1.0, True),
+                ("pressure_temperature", 0.0, float("inf"), False)):
+            setting = float(values.get(name, {
+                "pressure_damping": 0.85,
+                "pressure_exploration_floor": 0.05,
+                "pressure_temperature": 0.15,
+            }[name]))
+            valid_upper = setting <= upper if upper_inclusive else setting < upper
+            if (setting < lower or not valid_upper
+                    or (name == "pressure_temperature" and setting == 0)):
+                raise ValueError("{} is outside its valid range".format(name))
         self.max_actions_per_turn = int(values.get("max_actions_per_turn", 8))
         self.expansion_city_target = int(values.get("expansion_city_target", 3))
         self.settle_min_distance = int(values.get("settle_min_distance", 3))
@@ -266,6 +284,15 @@ class GroundedImpactPlanner(object):
         self._unit_score_batch_intent = None
         self._unit_score_batch_cache_key = None
         self._unit_score_batch_cache = {}
+        self._pressure_ranker = None
+        if self.pressure_enabled:
+            from ..pressure import ImpactPressureRanker, PressureConfig
+            self._pressure_ranker = ImpactPressureRanker(PressureConfig(
+                damping=float(values.get("pressure_damping", 0.85)),
+                exploration_floor=float(values.get(
+                    "pressure_exploration_floor", 0.05)),
+                softmax_temperature=float(values.get(
+                    "pressure_temperature", 0.15))))
         self.founder_route_successes = 0
         self.founder_route_failures = 0
         self.founder_cardinal_corridor_attempts = 0
@@ -2078,6 +2105,10 @@ class GroundedImpactPlanner(object):
             snapshot, excluded=excluded, excluded_scopes=excluded_scopes)
         if not rows:
             return None
+        pressure_artifact = None
+        if self._pressure_ranker is not None:
+            rows, pressure_artifact = self._pressure_ranker.rank(
+                snapshot, rows, self.expansion_city_target, self.horizon_turn)
         candidate = rows[0]
         if (candidate.category == "production_military_score"
                 and self._unit_score_batch_intent is None):
@@ -2115,4 +2146,4 @@ class GroundedImpactPlanner(object):
             snapshot.snapshot_id, (step,), ResourceLedger(), (branch,),
             branch.branch_id, "grounded-impact-utility", scheduler_cost, 1.0, 0,
             self.SOLVER_IDENTITY)
-        return ImpactDecision(candidate, plan)
+        return ImpactDecision(candidate, plan, pressure_artifact)

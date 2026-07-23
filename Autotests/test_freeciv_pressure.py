@@ -1,0 +1,314 @@
+"""PF-PLN transport, scheduling, provenance, clone, and adapter gates."""
+
+import os
+import sys
+import tempfile
+from types import SimpleNamespace
+
+
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SRC = os.path.join(REPO, "src")
+if SRC not in sys.path:
+    sys.path.insert(0, SRC)
+
+from freeciv_agent.events.schema import structural_hash  # noqa: E402
+from freeciv_agent.events.validator import validate_file  # noqa: E402
+from freeciv_agent.events.writer import EventWriter  # noqa: E402
+from freeciv_agent.pressure import (  # noqa: E402
+    AtomState,
+    CloneManager,
+    CloneState,
+    ConductanceLearner,
+    CostVector,
+    EvidenceLedger,
+    EvidenceToken,
+    GoalState,
+    ImpactPressureRanker,
+    ObservationPolicy,
+    Operation,
+    PressureConfig,
+    PressureEngine,
+    PressureGraph,
+    PressureRule,
+    PressureScheduler,
+    PressureVector,
+    ProofPressureAdapter,
+    Resolvability,
+    TruthState,
+    confidence_to_weight,
+)
+
+
+def _atom(atom_id, strength=0.0, confidence=1.0, resolvability=None):
+    return (
+        AtomState(atom_id, TruthState(strength, confidence, crisp=True)),
+        resolvability or Resolvability(infer=1.0),
+    )
+
+
+def _capital_graph():
+    graph = PressureGraph()
+    rows = (
+        _atom("survives", 0.42, 0.65, Resolvability(infer=0.5, retain=0.5)),
+        _atom("no-attack", 0.25, 0.8, Resolvability(observe=0.8, act=0.2)),
+        _atom("defense", 0.25, 0.9, Resolvability(infer=0.3, act=0.8)),
+        _atom("treasury", 0.70, 0.70, Resolvability(observe=1.0, infer=0.2)),
+        _atom("archer-available", 0.95, 0.90, Resolvability(observe=0.1, infer=0.2)),
+        _atom("buy-archer", 0.0, 1.0, Resolvability(act=1.0)),
+    )
+    for atom, resolvability in rows:
+        graph.add_atom(atom, resolvability)
+    graph.add_rule(PressureRule(
+        "survival-routes", ("defense", "no-attack"), "survives",
+        kind="or", causal_kind="procedural", premise_weights=(0.69, 0.31)))
+    graph.add_rule(PressureRule(
+        "buy-route", ("treasury", "archer-available", "buy-archer"),
+        "defense", kind="and", causal_kind="procedural"))
+    return graph
+
+
+def test_capital_pressure_is_reproducible_and_truth_is_firewalled():
+    graph = _capital_graph()
+    before = [atom.to_dict() for atom in graph.atoms]
+    goal = GoalState("defend-capital", "survives", 0.90, utility=100.0)
+    engine = PressureEngine()
+    first = engine.propagate(graph, (goal,))
+    second = engine.propagate(graph, (goal,))
+
+    assert first.artifact_hash == second.artifact_hash
+    assert abs(first.dependency("defend-capital", "survives") - 48.0) < 1e-12
+    assert first.dependency("defend-capital", "defense") > (
+        first.dependency("defend-capital", "no-attack"))
+    assert first.pressure("defend-capital", "buy-archer").act > 0
+    assert first.pressure("defend-capital", "treasury").observe > 0
+    assert [atom.to_dict() for atom in graph.atoms] == before
+
+
+def test_requirement_pressure_reaches_multiple_false_and_prerequisites():
+    graph = PressureGraph()
+    for atom_id in ("goal", "left", "right"):
+        atom, resolvability = _atom(atom_id, 0.0, 1.0)
+        graph.add_atom(atom, resolvability)
+    graph.add_rule(PressureRule(
+        "both-required", ("left", "right"), "goal",
+        kind="and", causal_kind="definitional"))
+    result = PressureEngine().propagate(
+        graph, (GoalState("g", "goal", 1.0),))
+    assert result.dependency("g", "left") > 0
+    assert result.dependency("g", "right") > 0
+    assert result.dependency("g", "left") == result.dependency("g", "right")
+
+
+def test_cycles_are_damped_bounded_and_deterministic():
+    graph = PressureGraph()
+    for atom_id in ("a", "b"):
+        atom, resolvability = _atom(atom_id)
+        graph.add_atom(atom, resolvability)
+    graph.add_rule(PressureRule(
+        "a-from-b", ("b",), "a", causal_kind="definitional"))
+    graph.add_rule(PressureRule(
+        "b-from-a", ("a",), "b", causal_kind="definitional"))
+    config = PressureConfig(damping=0.5, max_hops=100, residual_floor=1e-12)
+    result = PressureEngine(config).propagate(
+        graph, (GoalState("g", "a"),))
+    assert result.dependency("g", "a") < 4.0
+    assert result.dependency("g", "b") < 4.0
+    assert result.artifact_hash == PressureEngine(config).propagate(
+        graph, (GoalState("g", "a"),)).artifact_hash
+
+
+def test_causal_context_and_safety_firewalls_block_action_pressure():
+    graph = PressureGraph()
+    goal_atom, goal_resolvability = _atom(
+        "goal", resolvability=Resolvability(act=1.0))
+    correlate, correlate_resolvability = _atom(
+        "correlate", resolvability=Resolvability(infer=1.0, act=1.0))
+    graph.add_atom(goal_atom, goal_resolvability)
+    graph.add_atom(correlate, correlate_resolvability)
+    graph.add_rule(PressureRule(
+        "association", ("correlate",), "goal",
+        causal_kind="associative"))
+    result = PressureEngine().propagate(
+        graph, (GoalState("safe-goal", "goal", safety=True),))
+    assert result.pressure("safe-goal", "correlate").infer > 0
+    assert result.pressure("safe-goal", "correlate").act == 0
+
+    scheduler = PressureScheduler()
+    associative_action = Operation(
+        "bad-action", "goal", "act", CostVector(compute=1),
+        causal_kind="associative")
+    assert scheduler.score(associative_action, result).reason == "causal_firewall"
+    harmful_action = Operation(
+        "harmful", "goal", "act", CostVector(compute=1),
+        causal_kind="procedural", goal_effects=(("safe-goal", -1.0),))
+    assert scheduler.score(harmful_action, result).reason == "safety_firewall"
+
+
+def test_cost_is_applied_by_scheduler_not_dependency_transport():
+    graph = PressureGraph()
+    atom, resolvability = _atom("goal", resolvability=Resolvability(act=1.0))
+    graph.add_atom(atom, resolvability)
+    result = PressureEngine().propagate(
+        graph, (GoalState("g", "goal", utility=10.0),))
+    before = result.pressure("g", "goal").act
+    cheap = Operation(
+        "cheap", "goal", "act", CostVector(compute=1),
+        causal_kind="procedural")
+    costly = Operation(
+        "costly", "goal", "act", CostVector(compute=10),
+        causal_kind="procedural")
+    scores = PressureScheduler().score_all((costly, cheap), result)
+    assert scores[0].operation_id == "cheap"
+    assert result.pressure("g", "goal").act == before
+
+
+def test_exact_token_union_overlap_conflict_and_observation_policy():
+    ledger = EvidenceLedger(
+        confidence_k=1.0, decay_rates=(("default", 0.0), ("volatile", 0.1)))
+    policy = ObservationPolicy("defend", "observe", 4.2, propensity=0.5)
+    ledger.register(EvidenceToken(
+        "one", 1.0, confidence_to_weight(0.8), 1, "volatile",
+        "scout", policy))
+    ledger.register(EvidenceToken(
+        "two", 0.0, confidence_to_weight(0.8), 1, "volatile",
+        "independent-scout"))
+    once = ledger.truth(("one",), 1)
+    duplicated = ledger.truth(("one", "one"), 1)
+    assert once == duplicated
+    assert ledger.union(("one",), ("one", "two")) == ("one", "two")
+    assert abs(ledger.overlap(("one",), ("one", "two"), 1) - 0.5) < 1e-12
+    assert ledger.conflict_severity(("one",), ("two",), 1) > 0
+    assert ledger.token("one").observation_policy == policy
+    assert ledger.truth(("one",), 5).confidence < once.confidence
+
+
+def test_conductance_credit_and_no_progress_never_change_truth():
+    rule = PressureRule(
+        "r", ("a",), "b", conductance=0.5, causal_kind="procedural")
+    learner = ConductanceLearner(learning_rate=0.5, no_progress_rate=0.5)
+    credited = learner.update(rule, 1.0, 1.0, 0.5, 0.0, 0.0)
+    penalized = learner.no_progress(credited)
+    assert credited.conductance > rule.conductance
+    assert penalized.conductance < credited.conductance
+    assert credited.premise_ids == rule.premise_ids
+    assert not hasattr(credited, "truth")
+
+
+def test_clone_projection_loses_confidence_under_maximal_disagreement():
+    manager = CloneManager()
+    clones = (
+        CloneState("left", "visible", 0.5, TruthState(
+            0.0, 0.9, ("left-evidence",))),
+        CloneState("right", "visible", 0.5, TruthState(
+            1.0, 0.9, ("right-evidence",))),
+    )
+    visible = manager.visible_truth(clones)
+    assert visible.strength == 0.5
+    assert visible.confidence == 0.0
+    assert manager.split_score(1, 1, 1, 1) == 1.0
+    assert manager.accept_split(2, 3.0, 2, 1.0)
+
+
+def _proof_query():
+    leaf_atom = {
+        "args": ["player", "Alphabet"], "atom_id": "leaf-atom",
+        "crisp": True, "predicate": "has-tech", "provenance_ids": [],
+        "tv": {"confidence": 0.99, "strength": 1.0},
+    }
+    goal_atom = {
+        "args": ["player", "Writing"], "atom_id": "goal-atom",
+        "crisp": True, "predicate": "researchable", "provenance_ids": [],
+        "tv": {"confidence": 0.99, "strength": 1.0},
+    }
+    nodes = [
+        {
+            "atom": goal_atom, "crisp": True, "kind": "goal",
+            "node_id": "root", "premise_node_refs": ["leaf"],
+            "rule_applied": "compiled-writing", "satisfied": False,
+            "subtree_hash": "1" * 64,
+            "tv": {"confidence": 0.99, "strength": 0.0},
+        },
+        {
+            "atom": leaf_atom, "crisp": True, "kind": "premise",
+            "node_id": "leaf", "premise_node_refs": [],
+            "rule_applied": None, "satisfied": False,
+            "subtree_hash": "2" * 64,
+            "tv": {"confidence": 0.99, "strength": 0.0},
+        },
+    ]
+    return SimpleNamespace(
+        goal=SimpleNamespace(goal_id="research-writing"),
+        proof={"nodes": nodes, "root_node_id": "root",
+               "structural_hash": structural_hash(nodes)})
+
+
+def test_existing_proof_dag_adapts_to_pressure_without_truth_recalculation():
+    query = _proof_query()
+    adapter = ProofPressureAdapter()
+    context, result = adapter.evaluate(query, utility=4.0)
+    leaf_id = dict(context.node_atom_ids)["leaf"]
+    assert result.pressure(context.goal.goal_id, leaf_id).act > 0
+    artifact = adapter.decision_artifact(query, utility=4.0)
+    assert artifact["schedule"]["selected_operation_id"] is not None
+    assert query.proof["nodes"][0]["tv"] == {
+        "confidence": 0.99, "strength": 0.0}
+
+
+class _Candidate(object):
+    def __init__(self, category, utility, suffix):
+        self.category = category
+        self.utility = utility
+        self.action = {"action_type": suffix}
+        self.rationale = suffix
+        self.projection = None
+
+    @property
+    def action_key(self):
+        return self.action["action_type"]
+
+    def to_dict(self):
+        return {
+            "action": self.action, "category": self.category,
+            "rationale": self.rationale, "utility": self.utility,
+        }
+
+
+def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
+    snapshot = SimpleNamespace(cities=(), turn=5)
+    candidates = (
+        _Candidate("production_economy", 1000.0, "produce"),
+        _Candidate("city_defense", 600.0, "fortify"),
+    )
+    ordered, artifact = ImpactPressureRanker().rank(
+        snapshot, candidates, expansion_city_target=3, horizon_turn=30)
+    assert ordered[0].category == "city_defense"
+    assert {goal["goal_id"] for goal in artifact["pressure"]["goals"]} == {
+        "pf-impact:survival", "pf-impact:expansion",
+        "pf-impact:score", "pf-impact:exploration"}
+
+    pressure = artifact["pressure"]
+    pressure_hash = structural_hash(pressure)
+    pressure_id = "pressure-" + pressure_hash[:20]
+    schedule = artifact["schedule"]
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "events.jsonl")
+        writer = EventWriter(path, "pressure-test", durable=False)
+        root = writer.emit("run_started", 0, {
+            "condition_id": "e_full_loop", "manifest_identity": "m"})
+        propagated = writer.emit("pressure_propagated", 5, {
+            "config": pressure["config"], "dependency": pressure["dependency"],
+            "goals": pressure["goals"], "graph_hash": pressure["graph_hash"],
+            "operational_pressure": pressure["pressure"],
+            "pressure_id": pressure_id, "result_hash": pressure_hash,
+            "traces": pressure["traces"],
+        }, caused_by=[root["event_id"]])
+        writer.emit("operation_scored", 5, {
+            "allocations": schedule["allocations"],
+            "decision_id": "decision-" + schedule["structural_hash"][:20],
+            "pressure_id": pressure_id, "scores": schedule["scores"],
+            "selected_operation_id": schedule["selected_operation_id"],
+            "solver_identity": schedule["solver_identity"],
+            "structural_hash": schedule["structural_hash"],
+        }, caused_by=[propagated["event_id"]])
+        report = validate_file(path)
+    assert report.valid, report.to_dict()

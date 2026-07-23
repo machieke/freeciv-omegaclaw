@@ -40,6 +40,21 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
     if impact.get("production_strategy") not in ("static_priority", "horizon_score"):
         raise ValueError(
             "{}.production_strategy must be static_priority or horizon_score".format(prefix))
+    if not isinstance(impact.get("pressure_enabled", False), bool):
+        raise ValueError("{}.pressure_enabled must be boolean".format(prefix))
+    for key, lower, upper, upper_inclusive in (
+            ("pressure_damping", 0.0, 1.0, False),
+            ("pressure_exploration_floor", 0.0, 1.0, True),
+            ("pressure_temperature", 0.0, float("inf"), False)):
+        setting = impact.get(key)
+        if setting is None:
+            continue
+        if isinstance(setting, bool) or not isinstance(setting, (int, float)):
+            raise ValueError("{}.{} must be numeric".format(prefix, key))
+        valid_upper = setting <= upper if upper_inclusive else setting < upper
+        if (setting < lower or not valid_upper
+                or (key == "pressure_temperature" and setting == 0)):
+            raise ValueError("{}.{} is outside its valid range".format(prefix, key))
     refresh_timeout = impact.get("refresh_timeout_seconds")
     if (isinstance(refresh_timeout, bool)
             or not isinstance(refresh_timeout, (int, float))

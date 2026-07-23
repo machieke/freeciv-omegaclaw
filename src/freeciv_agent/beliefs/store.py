@@ -1,10 +1,10 @@
 """Provenance-idempotent uncertain belief store with declared decay."""
 
 import copy
-import math
 import threading
 
 from ..events.schema import canonical_json_bytes, structural_hash
+from ..pressure.provenance import confidence_to_weight, weight_to_confidence
 from .model import BeliefKey, Contribution, Evidence, Revision, UncertainBelief
 
 
@@ -34,9 +34,14 @@ class BeliefStore(object):
     def _posterior(rows):
         if not rows:
             return 0.0, 0.0
-        confidence = 1.0 - math.prod(1.0 - row[1] for row in rows)
-        weight = sum(row[1] for row in rows)
-        strength = sum(row[0] * row[1] for row in rows) / weight if weight else 0.0
+        weighted = [
+            (row[0], confidence_to_weight(min(row[1], 1.0 - 1e-12)))
+            for row in rows]
+        weight = sum(row[1] for row in weighted)
+        strength = (
+            sum(row[0] * row[1] for row in weighted) / weight
+            if weight else 0.0)
+        confidence = weight_to_confidence(weight)
         return round(strength, 12), round(confidence, 12)
 
     def _recompute(self, key, turn, operation, evidence_tv, formula):
@@ -151,6 +156,31 @@ class BeliefStore(object):
         with self._lock:
             return tuple(self._beliefs[key] for key in sorted(self._beliefs)
                          if self._beliefs[key].confidence >= floor)
+
+    def lineage_overlap(self, left_key, right_key, turn):
+        """Weighted Jaccard overlap over current decayed provenance support."""
+        with self._lock:
+            left = self._contributions.get(left_key, {})
+            right = self._contributions.get(right_key, {})
+            union = set(left) | set(right)
+            if not union:
+                return 0.0
+            weights = {}
+            for provenance_id in union:
+                values = []
+                if provenance_id in left:
+                    values.append(self._decay(
+                        left_key.predicate, left[provenance_id], turn))
+                if provenance_id in right:
+                    values.append(self._decay(
+                        right_key.predicate, right[provenance_id], turn))
+                confidence = max(values)
+                weights[provenance_id] = confidence_to_weight(
+                    min(confidence, 1.0 - 1e-12))
+            denominator = sum(weights.values())
+            return (
+                sum(weights[value] for value in set(left) & set(right))
+                / denominator if denominator else 0.0)
 
     @property
     def evidence(self):

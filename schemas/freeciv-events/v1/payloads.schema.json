@@ -266,6 +266,39 @@
         "tree_size": {"type": "integer", "minimum": 0}
       }
     },
+    "pressure_propagated": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "pressure_id", "graph_hash", "result_hash", "goals",
+        "dependency", "operational_pressure", "traces", "config"
+      ],
+      "properties": {
+        "pressure_id": {"type": "string", "minLength": 1},
+        "graph_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "result_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "goals": {"type": "array", "items": {"type": "object"}},
+        "dependency": {"type": "object"},
+        "operational_pressure": {"type": "object"},
+        "traces": {"type": "array", "items": {"type": "object"}},
+        "config": {"type": "object"}
+      }
+    },
+    "operation_scored": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "decision_id", "pressure_id", "solver_identity",
+        "selected_operation_id", "scores", "allocations", "structural_hash"
+      ],
+      "properties": {
+        "decision_id": {"type": "string", "minLength": 1},
+        "pressure_id": {"type": "string", "minLength": 1},
+        "solver_identity": {"type": "string", "minLength": 1},
+        "selected_operation_id": {"type": ["string", "null"]},
+        "scores": {"type": "array", "items": {"type": "object"}},
+        "allocations": {"type": "array", "items": {"type": "object"}},
+        "structural_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
     "plan_created": {
       "type": "object", "additionalProperties": false, "required": ["plan"],
       "properties": {"plan": {"$ref": "#/$defs/plan"}}

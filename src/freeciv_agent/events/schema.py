@@ -27,6 +27,8 @@ KNOWN_EVENT_TYPES = (
     "quarantine",
     "pln_query",
     "pln_result",
+    "pressure_propagated",
+    "operation_scored",
     "plan_created",
     "monitor_trigger",
     "plan_invalidated",
@@ -109,4 +111,3 @@ def assert_event_schema(event):
 
 def published_schemas():
     return copy.deepcopy(_ENVELOPE_SCHEMA), copy.deepcopy(_PAYLOADS_SCHEMA)
-

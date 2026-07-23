@@ -801,7 +801,11 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
                    {"no_effect_retry_limit": 0}, {"no_effect_retry_limit": 9},
                    {"max_no_effect_failovers_per_scope": -1},
                    {"max_no_effect_failovers_per_scope": 9},
-                   {"production_strategy": "unknown"}):
+                   {"production_strategy": "unknown"},
+                   {"pressure_enabled": "yes"},
+                   {"pressure_damping": 1.0},
+                   {"pressure_exploration_floor": 1.1},
+                   {"pressure_temperature": 0.0}):
         try:
             GroundedImpactPlanner(config)
         except ValueError:

@@ -228,6 +228,41 @@ export type PlnResult = {
   "unsatisfied_frontier": Array<FrontierItem>;
 };
 
+export type PressurePropagated = {
+  "config": {
+    [key: string]: unknown;
+  };
+  "dependency": {
+    [key: string]: unknown;
+  };
+  "goals": Array<{
+    [key: string]: unknown;
+  }>;
+  "graph_hash": string;
+  "operational_pressure": {
+    [key: string]: unknown;
+  };
+  "pressure_id": string;
+  "result_hash": string;
+  "traces": Array<{
+    [key: string]: unknown;
+  }>;
+};
+
+export type OperationScored = {
+  "allocations": Array<{
+    [key: string]: unknown;
+  }>;
+  "decision_id": string;
+  "pressure_id": string;
+  "scores": Array<{
+    [key: string]: unknown;
+  }>;
+  "selected_operation_id": string | null;
+  "solver_identity": string;
+  "structural_hash": string;
+};
+
 export type PlanCreated = {
   "plan": Plan;
 };
@@ -305,7 +340,7 @@ export type LoggingGap = {
   "missing": string;
 };
 
-export type KnownEventType = "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "observation" | "revision" | "llm_proposal" | "verification" | "quarantine" | "pln_query" | "pln_result" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
+export type KnownEventType = "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "observation" | "revision" | "llm_proposal" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
 
 export interface EventEnvelope<T extends string = string, P extends object = Record<string, unknown>> {
   schema_version: typeof EVENT_SCHEMA_VERSION;
@@ -331,6 +366,8 @@ export interface KnownPayloadMap {
   "quarantine": Quarantine;
   "pln_query": PlnQuery;
   "pln_result": PlnResult;
+  "pressure_propagated": PressurePropagated;
+  "operation_scored": OperationScored;
   "plan_created": PlanCreated;
   "monitor_trigger": MonitorTrigger;
   "plan_invalidated": PlanInvalidated;

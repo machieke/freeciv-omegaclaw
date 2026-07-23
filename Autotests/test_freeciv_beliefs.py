@@ -77,6 +77,22 @@ def test_one_provenance_across_three_paths_contributes_once():
     assert len(store.get(key).support_paths) == 1
 
 
+def test_live_belief_revision_uses_weighted_token_union_and_exposes_overlap():
+    store = _store()
+    first = _evidence("p-1", predicate="left", confidence=0.8, strength=1.0)
+    second = _evidence("p-2", predicate="left", confidence=0.8, strength=0.0)
+    store.observe(first)
+    belief, revision = store.observe(second)
+    assert belief.strength == 0.5
+    # Two independent c=.8 tokens carry weight 4 each -> c=8/9.
+    assert abs(belief.confidence - 8.0 / 9.0) < 1e-12
+    right = BeliefKey("right", ("enemy", "Phalanx"))
+    store.derive(right, ("p-1",), 1, 1.0, 0.8, "shared")
+    overlap = store.lineage_overlap(first.key, right, 1)
+    assert 0 < overlap < 1
+    assert revision.formula["name"] == "provenance-union"
+
+
 def test_decay_crosses_actionable_threshold_and_never_refreshes_from_derivation():
     store = _store()
     store.observe(_evidence(predicate="at", arguments=("enemy", 3, 3)))

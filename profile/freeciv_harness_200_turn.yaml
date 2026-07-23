@@ -45,6 +45,10 @@ impact_policy:
   max_no_effect_failovers_per_scope: 4
   preserve_city_defenders: true
   production_strategy: horizon_score
+  pressure_enabled: true
+  pressure_damping: 0.85
+  pressure_exploration_floor: 0.05
+  pressure_temperature: 0.15
 seeds:
   - 104729
   - 104743
