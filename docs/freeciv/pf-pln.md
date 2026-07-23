@@ -169,6 +169,26 @@ claim-ineligible: it estimates paired variance and operational behavior for a
 new confirmatory design. It cannot be combined with the earlier
 static-priority versus horizon-score experiment.
 
+### Completed v1 result
+
+All 40 v1 pairs completed under clean commit `e790316` with zero infrastructure
+failures and passing source, initial-state, policy-isolation, and safety gates.
+The pressure treatment changed mean score by -0.175 points (95% paired
+bootstrap interval [-1.05, 0.825], paired randomization p=0.789). Its observed
+fixed-horizon lead rate was 22.5% versus 17.5% for baseline, but only four
+pairs were discordant (McNemar p=0.625). This is a neutral,
+claim-ineligible pilot result.
+
+The paired score SD was 3.0875, so the predeclared power calculation recommends
+at least 30 fresh pairs to detect a two-point effect at 80% power. The
+confirmatory cohort is intentionally deferred. Exact replay found that pressure
+changed 566 of 3,061 decisions and displaced an immediately legal
+city-founding action 230 times. The adapter must first correct its pessimistic
+prior for untried routes and replace constant goal strengths with
+authoritative snapshot-derived values, then run a fresh seed-disjoint pilot.
+Full results and artifact hashes are in
+[`evidence/pf-pressure-ablation-pilot-v1.md`](evidence/pf-pressure-ablation-pilot-v1.md).
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` defaults to `false` unless the runtime profile enables it.
 This preserves unit-level policy isolation and makes an unpressured ablation

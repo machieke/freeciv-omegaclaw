@@ -1,0 +1,119 @@
+{
+  "artifacts": {
+    "impact_aggregate": {
+      "path": "artifacts/freeciv/pf-pressure-ablation-pilot-v1/impact-aggregate.json",
+      "sha256": "2946af51b8460ab57c2e5ec8a8b63580f7120e58f548276f4ea93a75a7ccdb31"
+    },
+    "impact_report": {
+      "path": "artifacts/freeciv/pf-pressure-ablation-pilot-v1/impact-report.md",
+      "sha256": "f89fa2aaad7ed10409b4ed6d61efc21d7a325a528f91ede8d205f3109881f233"
+    },
+    "pressure_replay": {
+      "path": "artifacts/freeciv/pf-pressure-ablation-pilot-v1/pressure-replay.json",
+      "sha256": "cab7bb8c0a2be0541e335090c9c91b6102b5b95180eeade6141ed57fa59564eb"
+    },
+    "run_summary": {
+      "path": "artifacts/freeciv/pf-pressure-ablation-pilot-v1/impact-run-summary.json",
+      "sha256": "370a7fbed68e823eaa139669387340f8b3ca96c1897424e83836eb4ea01386e3"
+    }
+  },
+  "claim_status": "ineligible_pilot",
+  "cohort": {
+    "arms": {
+      "baseline": {
+        "pressure_enabled": false,
+        "pressure_learning_enabled": false
+      },
+      "treatment": {
+        "pressure_enabled": true,
+        "pressure_learning_enabled": true
+      }
+    },
+    "completed_arms": 80,
+    "completed_pairs": 40,
+    "controller_workers": 3,
+    "horizon_turn": 60,
+    "infrastructure_failures": 0,
+    "order_counts": {
+      "baseline_first": 20,
+      "treatment_first": 20
+    },
+    "planned_pairs": 40,
+    "seed_namespace": "pf-pln-pressure-ablation-pilot-v1"
+  },
+  "decision_replay": {
+    "changed_decisions": 566,
+    "decision_change_rate": 0.18490689317216596,
+    "exact_replay_files": 40,
+    "integrity_failures": 0,
+    "source_set_hash": "3c37d42afccfb83a724a51ee93393556d631be09f19330b63161dae2763abac6",
+    "sources_unchanged": true,
+    "total_decisions": 3061
+  },
+  "design_conclusion": {
+    "confirmatory_action": "do_not_freeze_before_semantic_correction_and_new_pilot",
+    "minimum_fresh_pairs_for_two_point_score_effect": 30,
+    "observed_paired_score_sd": 3.0875058392968757,
+    "reason": "The pilot estimated variance but found no positive score signal and exposed systematic displacement of immediately legal goal-completion actions."
+  },
+  "environment": {
+    "freeciv_image": "sha256:ea7652a9ee42aceb0ba4e71ec859f44eedf589794c49c0bfaaa9406d56924ea0",
+    "model": "qwen3-coder-next:latest",
+    "model_provider": "Ollama-local",
+    "model_temperature": 0,
+    "ollama_version": "0.31.1",
+    "pytest_version": "8.3.5",
+    "python_version": "3.8.10"
+  },
+  "invariants": {
+    "arm_policy_isolation_passed": true,
+    "engine_rejected_action_rate": {
+      "baseline": 0,
+      "treatment": 0
+    },
+    "paired_initial_state_fidelity_passed": true,
+    "pressure_replay_integrity_passed": true,
+    "safety_gates_passed": true,
+    "source_freeze_passed": true
+  },
+  "observed_failure_mode": {
+    "changed_decisions_with_city_founding_baseline": 230,
+    "city_founding_to_expansion_move": 139,
+    "interpretation": "Frequently credited movement routes can outrank an untried immediately legal city-founding route, while constant non-expansion goal gaps can divert pressure across goals."
+  },
+  "outcomes": {
+    "baseline_score_mean": 117.65,
+    "baseline_win_rate": 0.175,
+    "meaningful_action_rate_delta": {
+      "estimate": 0.10625,
+      "lower": 0.03541666666666666,
+      "upper": 0.1791666666666667
+    },
+    "score_delta": {
+      "estimate": -0.175,
+      "lower": -1.05,
+      "paired_randomization_p": 0.7894475162029266,
+      "upper": 0.825
+    },
+    "score_margin_delta": {
+      "estimate": -0.125,
+      "lower": -1.275,
+      "upper": 1.075
+    },
+    "treatment_score_mean": 117.475,
+    "treatment_win_rate": 0.225,
+    "win_rate_delta": {
+      "estimate": 0.05,
+      "exact_mcnemar_p": 0.625,
+      "lower": -0.05,
+      "upper": 0.15
+    }
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "e790316817441dc2c0ca17a4d843ce09ae0d8d58",
+    "configuration_hash": "9e120420e4bf17922217e6a78a041a56fe07b1a728259ea00069a582213c1168",
+    "dirty": false,
+    "implementation_sha256": "382d47a44a444c30de8d97e7d44ca24b9e17b8510a6c8ed7539a2e857d9b1014"
+  }
+}
