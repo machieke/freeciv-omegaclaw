@@ -1,0 +1,143 @@
+{
+  "artifacts": {
+    "impact_aggregate": {
+      "path": "artifacts/freeciv/pf-pressure-ablation-pilot-v2/impact-aggregate.json",
+      "sha256": "0d94999af044dceeb2c6923bf645cc5e3bf48cd0e3d5eb8535d165214e1e0e61"
+    },
+    "impact_report": {
+      "path": "artifacts/freeciv/pf-pressure-ablation-pilot-v2/impact-report.md",
+      "sha256": "bb80b63cc2993cdcb36e4053a66ba802b4414cc6de503505370b501974421606"
+    },
+    "pressure_replay": {
+      "path": "artifacts/freeciv/pf-pressure-ablation-pilot-v2/pressure-replay.json",
+      "sha256": "9f66dc30f36e3b37b435e64fdba621a72579335f8e04afe09b29ea964241da12"
+    },
+    "run_summary": {
+      "path": "artifacts/freeciv/pf-pressure-ablation-pilot-v2/impact-run-summary.json",
+      "sha256": "ee6c1cdb441d6066d9e7fd865ef46835562158a649f43254d66949ec6a998903"
+    }
+  },
+  "branch_abandonment": {
+    "city_founding_to_expansion_move_cases": 3,
+    "grounded_no_progress_outcomes_before_each_case": [
+      4,
+      4,
+      4
+    ],
+    "interpretation": "Every remaining same-goal substitution away from a legal city-founding branch followed four grounded no-progress outcomes; none was caused by an untried-route prior disadvantage.",
+    "total_no_progress_updates": 82
+  },
+  "claim_status": "ineligible_pilot",
+  "cohort": {
+    "arms": {
+      "baseline": {
+        "pressure_enabled": false,
+        "pressure_learning_enabled": false
+      },
+      "treatment": {
+        "pressure_enabled": true,
+        "pressure_learning_enabled": true
+      }
+    },
+    "completed_arms": 80,
+    "completed_pairs": 40,
+    "controller_workers": 3,
+    "horizon_turn": 60,
+    "infrastructure_failures": 0,
+    "order_counts": {
+      "baseline_first": 20,
+      "treatment_first": 20
+    },
+    "planned_pairs": 40,
+    "seed_namespace": "pf-pln-pressure-ablation-pilot-v2"
+  },
+  "decision_replay": {
+    "changed_decisions": 289,
+    "decision_change_rate": 0.10310381733856583,
+    "exact_replay_files": 40,
+    "grounded_goal_context_failures": 0,
+    "initial_conductance_failures": 0,
+    "integrity_failures": 0,
+    "source_set_hash": "7ec031b26b915647849887c29972d92f0d0f885532bea3a4676a452241efbab8",
+    "sources_unchanged": true,
+    "total_decisions": 2803
+  },
+  "design_conclusion": {
+    "confirmatory_action": "do_not_freeze",
+    "reason": "The correction removed the v1 instability and overhead but the upper score-effect interval is only 0.300 points, far below the predeclared two-point meaningful effect.",
+    "recommended_next_target": "Tie pressure credit and operation relief to authoritative downstream goal progress, then use offline replay and a fresh pilot before confirmatory evaluation."
+  },
+  "diagnostic_comparison_to_v1": {
+    "city_founding_displacements": {
+      "v1": 230,
+      "v2": 16
+    },
+    "decision_change_rate": {
+      "v1": 0.18490689317216596,
+      "v2": 0.10310381733856583
+    },
+    "interpretation": "The cohorts use different seeds, so these are implementation diagnostics rather than a paired causal estimate."
+  },
+  "invariants": {
+    "arm_policy_isolation_passed": true,
+    "engine_rejected_action_rate": {
+      "baseline": 0,
+      "treatment": 0
+    },
+    "goal_context_grounding_passed": true,
+    "optimistic_initial_conductance_passed": true,
+    "paired_initial_state_fidelity_passed": true,
+    "pressure_replay_integrity_passed": true,
+    "safety_gates_passed": true,
+    "source_freeze_passed": true
+  },
+  "outcomes": {
+    "baseline_score_mean": 116.45,
+    "baseline_win_rate": 0.075,
+    "cities_founded_delta": {
+      "estimate": -0.05,
+      "lower": -0.125,
+      "upper": 0
+    },
+    "loop_latency_ms_delta": {
+      "estimate": 7.678314509297112,
+      "lower": -66.96509170578796,
+      "upper": 57.30222352819207
+    },
+    "meaningful_action_rate_delta": {
+      "estimate": 0.01708333333333334,
+      "lower": -0.03124999999999999,
+      "upper": 0.07083333333333333
+    },
+    "score_delta": {
+      "estimate": 0.075,
+      "lower": -0.125,
+      "paired_randomization_p": 0.653564453125,
+      "upper": 0.3
+    },
+    "score_margin_delta": {
+      "estimate": -0.475,
+      "lower": -1.8,
+      "upper": 0.675
+    },
+    "treatment_score_mean": 116.525,
+    "treatment_win_rate": 0.1,
+    "win_rate_delta": {
+      "estimate": 0.025,
+      "exact_mcnemar_p": 1,
+      "lower": 0,
+      "upper": 0.075
+    }
+  },
+  "power": {
+    "detectable_delta_at_40_pairs": 0.30734879231283224,
+    "observed_paired_score_sd": 0.6938373414643064
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "c2ad56391ab20ebff9d2bcfda4eb3790edc52840",
+    "configuration_hash": "918e19e3d64081ef98b0cde063622c8192667620b7716ac0042ca851ae793b63",
+    "dirty": false,
+    "implementation_sha256": "c820659efa56cfedea4e2bcde94827c8fea81c8fd0dd1627136a5fd39400eb0f"
+  }
+}

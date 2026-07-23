@@ -219,6 +219,28 @@ Omit `--limit-pairs` only after the smoke trace demonstrates grounded goal
 contexts, optimistic initial conductance, exact replay, and direct
 goal-completion preservation. V1 and v2 results must not be pooled.
 
+### Completed v2 result
+
+All 40 v2 pairs completed under clean commit `c2ad563` with zero
+infrastructure failures and passing source, initial-state, policy-isolation,
+safety, grounded-context, and exact-replay gates. The pressure treatment
+changed mean score by +0.075 points (95% paired-bootstrap interval
+[-0.125, 0.300], paired randomization p=0.654). Fixed-horizon lead rate was
+10.0% versus 7.5%, but only one pair was discordant (McNemar p=1). V2 is a
+neutral, claim-ineligible result.
+
+The semantic correction reduced decision changes from 18.49% in v1 to 10.31%
+in v2 and reduced city-founding displacements from 230 to 16 across the
+separate diagnostic cohorts. The remaining three same-goal substitutions to
+another expansion move each followed exactly four grounded no-progress
+outcomes. Action-rate and latency overhead became indistinguishable from zero.
+
+The observed paired score SD was 0.6938 and the upper score-effect interval was
+only 0.300 points. A confirmatory cohort is therefore not frozen. The next
+implementation target is downstream goal-relief credit, followed by offline
+replay and another fresh pilot. Full evidence is in
+[`evidence/pf-pressure-ablation-pilot-v2.md`](evidence/pf-pressure-ablation-pilot-v2.md).
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` defaults to `false` unless the runtime profile enables it.
 This preserves unit-level policy isolation and makes an unpressured ablation
