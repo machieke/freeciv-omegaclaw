@@ -119,6 +119,7 @@ def generate(envelope, payloads):
         "run_started", "run_completed", "ruleset_compiled", "state_snapshot",
         "observation", "revision", "llm_proposal", "verification", "quarantine",
         "pln_query", "pln_result", "pressure_propagated", "operation_scored",
+        "conductance_updated",
         "plan_created", "monitor_trigger",
         "plan_invalidated", "plan_step_executed", "action_sent", "action_result",
         "grounded_check", "metric_sample", "logging_gap")]

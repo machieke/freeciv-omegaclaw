@@ -3,6 +3,7 @@
 import json
 import os
 import sys
+import tempfile
 from types import SimpleNamespace
 
 
@@ -554,13 +555,14 @@ def test_deferred_confirmation_recovers_late_founder_route_effect():
         [{"action_type": "end_turn", "is_valid": True}],
         source_seq=3, turn=5)
 
-    ledger.defer(candidate, before)
+    ledger.defer(candidate, before, feedback_id="action-result-late")
 
     assert ledger.resolve(planner, unrelated) == ()
     assert len(ledger) == 1
     resolutions = ledger.resolve(planner, applied)
     assert len(resolutions) == 1
     assert resolutions[0].effect_observed
+    assert resolutions[0].feedback_id == "action-result-late"
     assert len(ledger) == 0
 
     planner.record_outcome(
@@ -803,9 +805,18 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
                    {"max_no_effect_failovers_per_scope": 9},
                    {"production_strategy": "unknown"},
                    {"pressure_enabled": "yes"},
+                   {"pressure_learning_enabled": "yes"},
+                   {"pressure_learning_enabled": True},
                    {"pressure_damping": 1.0},
                    {"pressure_exploration_floor": 1.1},
-                   {"pressure_temperature": 0.0}):
+                   {"pressure_temperature": 0.0},
+                   {"pressure_max_routes_per_conclusion": 0},
+                   {"pressure_enabled": True,
+                    "pressure_learning_rate": 0.0},
+                   {"pressure_enabled": True,
+                    "pressure_no_progress_rate": -0.1},
+                   {"pressure_enabled": True,
+                    "pressure_initial_conductance": 1.1}):
         try:
             GroundedImpactPlanner(config)
         except ValueError:
@@ -849,6 +860,37 @@ def test_committed_fortification_is_not_reissued_every_turn():
     assert decision.candidate.category == "city_defense"
     planner.commit(decision.candidate)
     assert planner.plan(snapshot) is None
+
+
+def test_pressure_feedback_replays_idempotently_through_impact_planner():
+    fortify = {"action_type": "unit_fortify", "actor_id": 11, "is_valid": True}
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops")],
+        [fortify, {"action_type": "end_turn", "is_valid": True}])
+    config = {
+        "pressure_enabled": True,
+        "pressure_learning_enabled": True,
+    }
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "pressure-conductance.json")
+        planner = GroundedImpactPlanner(
+            config, pressure_state_path=path,
+            pressure_state_identity="impact-attempt")
+        decision = planner.plan(snapshot)
+        update = planner.record_outcome(
+            decision.candidate, snapshot, False, snapshot,
+            feedback_id="action-result-1")
+        assert update.applied
+        assert update.no_progress == 1
+
+        replay = GroundedImpactPlanner(
+            config, pressure_state_path=path,
+            pressure_state_identity="impact-attempt")
+        duplicate = replay.record_outcome(
+            decision.candidate, snapshot, False, snapshot,
+            feedback_id="action-result-1")
+        assert not duplicate.applied
+        assert duplicate.conductance == update.conductance
 
 
 def test_no_effect_action_is_suppressed_until_local_grounding_changes():

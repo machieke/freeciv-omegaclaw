@@ -89,6 +89,7 @@ class DeferredImpactResolution:
     before_snapshot: object
     after_snapshot: object
     effect_observed: bool
+    feedback_id: object = None
 
 
 class DeferredImpactOutcomeLedger(object):
@@ -107,22 +108,22 @@ class DeferredImpactOutcomeLedger(object):
     def __len__(self):
         return len(self._pending)
 
-    def defer(self, candidate, before_snapshot):
-        self._pending.append((candidate, before_snapshot))
+    def defer(self, candidate, before_snapshot, feedback_id=None):
+        self._pending.append((candidate, before_snapshot, feedback_id))
 
     def resolve(self, planner, after_snapshot):
         resolved = []
         pending = []
-        for candidate, before_snapshot in self._pending:
+        for candidate, before_snapshot, feedback_id in self._pending:
             effect_observed = planner.candidate_effect_observed(
                 candidate, before_snapshot, after_snapshot)
             if (effect_observed
                     or int(after_snapshot.turn) > int(before_snapshot.turn)):
                 resolved.append(DeferredImpactResolution(
                     candidate, before_snapshot, after_snapshot,
-                    bool(effect_observed)))
+                    bool(effect_observed), feedback_id))
             else:
-                pending.append((candidate, before_snapshot))
+                pending.append((candidate, before_snapshot, feedback_id))
         self._pending = pending
         return tuple(resolved)
 
@@ -192,12 +193,26 @@ class GroundedImpactPlanner(object):
     FOUNDER_TRAVERSABLE_EDGE_BONUS = 36.0
     FOUNDER_FAILED_EDGE_PENALTY = 30.0
 
-    def __init__(self, config=None, ruleset_ir=None):
+    def __init__(self, config=None, ruleset_ir=None, pressure_state_path=None,
+                 pressure_state_identity=None):
         values = dict(config or {})
         pressure_enabled = values.get("pressure_enabled", False)
         if not isinstance(pressure_enabled, bool):
             raise ValueError("pressure_enabled must be boolean")
         self.pressure_enabled = pressure_enabled
+        pressure_learning_enabled = values.get(
+            "pressure_learning_enabled", False)
+        if not isinstance(pressure_learning_enabled, bool):
+            raise ValueError("pressure_learning_enabled must be boolean")
+        if pressure_learning_enabled and not pressure_enabled:
+            raise ValueError("pressure learning requires pressure_enabled")
+        self.pressure_learning_enabled = pressure_learning_enabled
+        pressure_max_routes = values.get(
+            "pressure_max_routes_per_conclusion", 32)
+        if (isinstance(pressure_max_routes, bool)
+                or not 1 <= int(pressure_max_routes) <= 10000):
+            raise ValueError(
+                "pressure_max_routes_per_conclusion must be in 1..10000")
         for name, lower, upper, upper_inclusive in (
                 ("pressure_damping", 0.0, 1.0, False),
                 ("pressure_exploration_floor", 0.0, 1.0, True),
@@ -210,6 +225,18 @@ class GroundedImpactPlanner(object):
             valid_upper = setting <= upper if upper_inclusive else setting < upper
             if (setting < lower or not valid_upper
                     or (name == "pressure_temperature" and setting == 0)):
+                raise ValueError("{} is outside its valid range".format(name))
+        for name, lower, upper, lower_inclusive in (
+                ("pressure_learning_rate", 0.0, 1.0, False),
+                ("pressure_no_progress_rate", 0.0, 1.0, True),
+                ("pressure_initial_conductance", 0.0, 1.0, True)):
+            setting = float(values.get(name, {
+                "pressure_learning_rate": 0.10,
+                "pressure_no_progress_rate": 0.10,
+                "pressure_initial_conductance": 0.50,
+            }[name]))
+            valid_lower = setting >= lower if lower_inclusive else setting > lower
+            if not valid_lower or setting > upper:
                 raise ValueError("{} is outside its valid range".format(name))
         self.max_actions_per_turn = int(values.get("max_actions_per_turn", 8))
         self.expansion_city_target = int(values.get("expansion_city_target", 3))
@@ -286,13 +313,29 @@ class GroundedImpactPlanner(object):
         self._unit_score_batch_cache = {}
         self._pressure_ranker = None
         if self.pressure_enabled:
-            from ..pressure import ImpactPressureRanker, PressureConfig
+            from ..pressure import (
+                ConductanceState, ImpactPressureRanker, PressureConfig)
+            conductance_state = None
+            if self.pressure_learning_enabled:
+                conductance_state = ConductanceState(
+                    pressure_state_path,
+                    identity=(pressure_state_identity
+                              or "grounded-impact-planner"),
+                    learning_rate=float(values.get(
+                        "pressure_learning_rate", 0.10)),
+                    no_progress_rate=float(values.get(
+                        "pressure_no_progress_rate", 0.10)),
+                    initial_conductance=float(values.get(
+                        "pressure_initial_conductance", 0.50)))
             self._pressure_ranker = ImpactPressureRanker(PressureConfig(
                 damping=float(values.get("pressure_damping", 0.85)),
                 exploration_floor=float(values.get(
                     "pressure_exploration_floor", 0.05)),
                 softmax_temperature=float(values.get(
-                    "pressure_temperature", 0.15))))
+                    "pressure_temperature", 0.15)),
+                max_routes_per_conclusion=int(values.get(
+                    "pressure_max_routes_per_conclusion", 32))),
+                conductance_state=conductance_state)
         self.founder_route_successes = 0
         self.founder_route_failures = 0
         self.founder_cardinal_corridor_attempts = 0
@@ -663,7 +706,8 @@ class GroundedImpactPlanner(object):
         })
 
     def record_outcome(
-            self, candidate, snapshot, effect_observed, after_snapshot=None):
+            self, candidate, snapshot, effect_observed, after_snapshot=None,
+            feedback_id=None):
         """Learn from an accepted action without treating acceptance as effect.
 
         Exact no-effect actions are suppressed while their local authoritative
@@ -739,6 +783,17 @@ class GroundedImpactPlanner(object):
             self._no_effect_attempts.pop(key, None)
         else:
             self._no_effect_attempts[key] = self._no_effect_attempts.get(key, 0) + 1
+        if self._pressure_ranker is None:
+            return None
+        feedback_id = feedback_id or "pressure-feedback-" + structural_hash([
+            candidate.category, candidate.action,
+            getattr(snapshot, "snapshot_id", None),
+            getattr(after_snapshot, "snapshot_id", None),
+            bool(effect_observed),
+            self._no_effect_attempts.get(key, 0),
+        ])[:24]
+        return self._pressure_ranker.record_outcome(
+            candidate, effect_observed, feedback_id)
 
     def _no_effect_suppressed(self, snapshot, candidate):
         key = (candidate.action_key, self._grounding_signature(snapshot, candidate))

@@ -171,10 +171,11 @@ class ImpactPressureRanker(object):
         "tactical_move": "survival",
     }
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, conductance_state=None):
         self.config = config or PressureConfig()
         self.engine = PressureEngine(self.config)
         self.scheduler = PressureScheduler(self.config)
+        self.conductance_state = conductance_state
 
     @classmethod
     def goal_for_category(cls, category):
@@ -204,8 +205,11 @@ class ImpactPressureRanker(object):
             "exploration": (0.0, 0.35, False),
         }
         goals = []
-        grouped = dict((key, []) for key in goal_specs)
+        grouped = dict((key, {}) for key in goal_specs)
         candidate_by_operation = {}
+        conductance_snapshot = (
+            self.conductance_state.decision_snapshot()
+            if self.conductance_state is not None else None)
         for name, (strength, utility, safety) in sorted(goal_specs.items()):
             atom_id = "pf-impact-goal:{}".format(name)
             graph.add_atom(
@@ -228,23 +232,58 @@ class ImpactPressureRanker(object):
                 AtomState(atom_id, TruthState(0.0, 1.0, crisp=True),
                           expression=candidate.to_dict()),
                 Resolvability(act=1.0))
-            grouped[goal_name].append((candidate, atom_id))
+            grouped[goal_name].setdefault(
+                str(candidate.category), []).append((candidate, atom_id))
         for goal_name in sorted(grouped):
-            rows = grouped[goal_name]
-            if not rows:
-                continue
-            graph.add_rule(PressureRule(
-                "pf-impact-route:{}".format(goal_name),
-                tuple(atom_id for _, atom_id in rows),
-                "pf-impact-goal:{}".format(goal_name),
-                kind="or", causal_kind="procedural",
-                premise_weights=tuple(
-                    max(0.0, float(candidate.utility)) for candidate, _ in rows),
-                source={"adapter": "grounded-impact-planner"}))
-            for candidate, atom_id in rows:
-                operation_id = "pf-impact-op:{}".format(
-                    structural_hash(candidate.action)[:20])
-                candidate_by_operation[operation_id] = candidate
+            goal_maximum_utility = max(
+                (max(max(0.0, float(candidate.utility))
+                     for candidate, _ in rows)
+                 for rows in grouped[goal_name].values()),
+                default=1.0)
+            goal_maximum_utility = max(goal_maximum_utility, 1e-12)
+            for category in sorted(grouped[goal_name]):
+                rows = grouped[goal_name][category]
+                category_utility = max(
+                    max(0.0, float(candidate.utility))
+                    for candidate, _ in rows)
+                category_atom_id = "pf-impact-category:{}".format(
+                    structural_hash([goal_name, category])[:20])
+                graph.add_atom(AtomState(
+                    category_atom_id, TruthState(0.0, 1.0, crisp=True),
+                    expression={"category": category, "goal": goal_name}))
+                conductance = (
+                    self.conductance_state.value(category)
+                    if self.conductance_state is not None else 1.0)
+                graph.add_rule(PressureRule(
+                    "pf-impact-category-route:{}".format(category),
+                    (category_atom_id,),
+                    "pf-impact-goal:{}".format(goal_name),
+                    causal_kind="procedural", conductance=conductance,
+                    success_probability=(
+                        category_utility / goal_maximum_utility),
+                    source={
+                        "adapter": "grounded-impact-planner",
+                        "category": category,
+                        "conductance_state_hash": (
+                            conductance_snapshot["state_hash"]
+                            if conductance_snapshot is not None else None),
+                    }))
+                graph.add_rule(PressureRule(
+                    "pf-impact-candidate-route:{}".format(category),
+                    tuple(atom_id for _, atom_id in rows),
+                    category_atom_id,
+                    kind="or", causal_kind="procedural",
+                    premise_weights=tuple(
+                        max(0.0, float(candidate.utility))
+                        for candidate, _ in rows),
+                    source={
+                        "adapter": "grounded-impact-planner",
+                        "category": category,
+                    }))
+                for candidate, atom_id in rows:
+                    operation_id = "pf-impact-op:{}".format(
+                        structural_hash(candidate.action)[:20])
+                    candidate_by_operation[operation_id] = candidate
         result = self.engine.propagate(graph, tuple(goals))
         operations = []
         for operation_id, candidate in sorted(candidate_by_operation.items()):
@@ -263,7 +302,15 @@ class ImpactPressureRanker(object):
                     structural_hash(candidate.action)[:20]), len(rank)),
             -candidate.utility, candidate.category, candidate.action_key)))
         artifact = {
+            "conductance_state": (
+                conductance_snapshot),
             "pressure": result.to_dict(),
             "schedule": self.scheduler.decision_artifact(operations, result),
         }
         return ordered, artifact
+
+    def record_outcome(self, candidate, effect_observed, feedback_id):
+        if self.conductance_state is None:
+            return None
+        return self.conductance_state.feedback(
+            candidate.category, effect_observed, feedback_id)

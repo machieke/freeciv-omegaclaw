@@ -29,6 +29,7 @@ KNOWN_EVENT_TYPES = (
     "pln_result",
     "pressure_propagated",
     "operation_scored",
+    "conductance_updated",
     "plan_created",
     "monitor_trigger",
     "plan_invalidated",

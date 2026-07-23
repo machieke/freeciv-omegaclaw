@@ -59,6 +59,11 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert config["impact_policy"]["unit_build_score_divisor"] == 10
     assert config["impact_policy"]["refresh_timeout_seconds"] == 2.0
     assert config["impact_policy"]["production_strategy"] == "horizon_score"
+    assert config["impact_policy"]["pressure_learning_enabled"] is True
+    assert config["impact_policy"]["pressure_max_routes_per_conclusion"] == 32
+    assert config["impact_policy"]["pressure_learning_rate"] == 0.10
+    assert config["impact_policy"]["pressure_no_progress_rate"] == 0.10
+    assert config["impact_policy"]["pressure_initial_conductance"] == 0.50
     paired = config["paired_impact"]
     assert paired["default_cohort"] == "development"
     assert {name: len(row["seeds"]) for name, row in paired["cohorts"].items()} == {
@@ -1094,6 +1099,10 @@ def test_paired_impact_resume_archives_failed_attempt_after_successful_retry():
                 "completed": False, "error": "first attempt failed",
                 "infrastructure_failure": True, "status": "infrastructure_failure",
             }, stream)
+        with open(os.path.join(
+                run_dir, "pressure-conductance.json"),
+                "w", encoding="utf-8") as stream:
+            json.dump({"attempt": "first"}, stream)
 
         summary = runner.run_impact_pairs(resume=True)
         assert summary["completed"] == 2 and summary["resumed"] == 1
@@ -1107,6 +1116,11 @@ def test_paired_impact_resume_archives_failed_attempt_after_successful_retry():
         assert failure["attempt_id"]
         history = os.path.join(directory, "attempt-history")
         assert any("events.jsonl" in files for _, _, files in os.walk(history))
+        assert any(
+            "pressure-conductance.json" in files
+            for _, _, files in os.walk(history))
+        assert not os.path.exists(os.path.join(
+            run_dir, "pressure-conductance.json"))
 
 
 def test_induction_memory_is_condition_isolated():

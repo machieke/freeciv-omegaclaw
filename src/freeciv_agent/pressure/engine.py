@@ -197,15 +197,22 @@ class PressureEngine(object):
     def _rule_shares(self, rules):
         if len(rules) == 1:
             return (1.0,)
-        values = [
-            (rule.success_probability * rule.deadline_fit
-             * rule.conductance * rule.compatibility)
-            / (rule.route_cost + self.config.cost_epsilon)
-            for rule in rules
-        ]
+        values = [self._route_value(rule) for rule in rules]
         return _exploratory_shares(
             values, self.config.softmax_temperature,
             self.config.exploration_floor)
+
+    def _route_value(self, rule):
+        return (
+            rule.success_probability * rule.deadline_fit
+            * rule.conductance * rule.compatibility
+            / (rule.route_cost + self.config.cost_epsilon))
+
+    def _active_rules(self, rules):
+        return tuple(sorted(
+            rules, key=lambda rule: (
+                -self._route_value(rule) * rule.residual, rule.rule_id)
+        )[:self.config.max_routes_per_conclusion])
 
     def _premise_shares(self, graph, rule):
         if rule.premise_weights:
@@ -277,7 +284,8 @@ class PressureEngine(object):
                 following = defaultdict(lambda: [0.0, 0.0])
                 for conclusion_id in sorted(frontier):
                     incoming, incoming_action = frontier[conclusion_id]
-                    rules = graph.rules_for(conclusion_id)
+                    rules = self._active_rules(
+                        graph.rules_for(conclusion_id))
                     for rule, rule_share in zip(rules, self._rule_shares(rules)):
                         gated = (
                             incoming * self.config.damping * rule.transport_gate

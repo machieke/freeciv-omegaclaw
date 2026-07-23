@@ -8,11 +8,11 @@ legal actions, execution, and evaluation.
 
 | PF-PLN phase | Repository realization | Status | Remaining acceptance work |
 |---|---|---|---|
-| 0 — executable semantics | Typed atoms, truth views, goals, pressure vectors, reverse rules, deterministic scheduler, proof adapter, capital-defense regression | Implemented | Record a standalone worked-example artifact if required for release |
-| 1 — goal regression planner | AND blocker allocation, OR route allocation, deadlines, procedural gating, proof-DAG and grounded-impact adapters | Implemented vertical slice | Measure PF pressure concentration and rule-instantiation reduction against plain backward chaining |
+| 0 — executable semantics | Typed atoms, truth views, goals, pressure vectors, reverse rules, deterministic scheduler, proof adapter, capital-defense regression, standalone concentration artifact | Implemented | None |
+| 1 — goal regression planner | AND blocker allocation, OR route allocation, deadlines, procedural gating, proof-DAG and grounded-impact adapters; deterministic route beam benchmark measures 99.54% relevant pressure concentration and 75.19% fewer premise expansions | Implemented with synthetic acceptance benchmark | Replay authoritative FreeCiv snapshots to measure real graph concentration |
 | 2 — provenance and contradiction | Immutable token ledger, token-set union, weighted overlap, conflict severity; live belief fusion moved to evidence-weight space | Implemented core | Materialize live conflict atoms and contextual quarantine operations |
 | 3 — observation and simulation pressure | `observe` channel, information gain in operation value, observation-policy provenance | Implemented core | Add exhaustive small-graph VOI parity and simulator-backed FreeCiv observation choices |
-| 4 — conductance learning | Credit and no-progress conductance updates, with truth kept separate | Implemented core | Connect updates to live outcomes and measure branch-abandonment latency |
+| 4 — conductance learning | Grounded credit and no-progress updates are connected to live and deferred action outcomes; attempt-scoped state is atomic and feedback-ID idempotent | Implemented and live-enabled | Measure branch-abandonment latency in historical replay and paired engine cohorts |
 | 5 — lifecycle clones | Clone posterior update, variance-matched truth, pressure projection, complexity/cap/merge gates | Implemented core | Persist clone lineage and run hidden-context gameplay benchmarks |
 | 6 — induction and analogy | Existing opponent memory and rule proposal infrastructure retained | Partial | Route induction/analogy invocation through `expand` pressure and replay gates |
 | 7 — LLM gateway | Existing constrained proposer, verification, quarantine, and token configuration retained | Partial | Make expansion pressure, expected proposal value, and validation cost control call timing |
@@ -32,12 +32,11 @@ legal actions, execution, and evaluation.
 
 ## Next empirical gates
 
-1. Add a synthetic pressure-concentration benchmark with irrelevant subgraphs.
-2. Replay historical authoritative snapshots with pressure enabled and compare
+1. Replay historical authoritative snapshots with pressure enabled and compare
    selected grounded actions before spending engine time.
-3. Predeclare a pressure-off versus pressure-on paired cohort. Do not reuse the
+2. Predeclare a pressure-off versus pressure-on paired cohort. Do not reuse the
    current static-priority versus horizon-score claim as evidence for PF-PLN.
-4. Enable online conductance credit only after replay proves deterministic
-   updates and no truth-state changes.
-5. Enable live clone splitting only after the per-atom cap and lineage
+3. Replay historical authoritative snapshots to measure how many grounded
+   no-progress outcomes are required before a category route is abandoned.
+4. Enable live clone splitting only after the per-atom cap and lineage
    forwarding are persisted transactionally.

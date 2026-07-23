@@ -1,5 +1,6 @@
 """PF-PLN transport, scheduling, provenance, clone, and adapter gates."""
 
+import json
 import os
 import sys
 import tempfile
@@ -8,9 +9,14 @@ from types import SimpleNamespace
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(REPO, "src")
-if SRC not in sys.path:
-    sys.path.insert(0, SRC)
+BENCHMARKS = os.path.join(REPO, "benchmarks")
+for candidate in (SRC, BENCHMARKS):
+    if candidate not in sys.path:
+        sys.path.insert(0, candidate)
 
+from freeciv.pf_pressure_benchmark import (  # noqa: E402
+    run_pressure_concentration_benchmark,
+)
 from freeciv_agent.events.schema import structural_hash  # noqa: E402
 from freeciv_agent.events.validator import validate_file  # noqa: E402
 from freeciv_agent.events.writer import EventWriter  # noqa: E402
@@ -19,6 +25,7 @@ from freeciv_agent.pressure import (  # noqa: E402
     CloneManager,
     CloneState,
     ConductanceLearner,
+    ConductanceState,
     CostVector,
     EvidenceLedger,
     EvidenceToken,
@@ -82,6 +89,22 @@ def test_capital_pressure_is_reproducible_and_truth_is_firewalled():
     assert first.pressure("defend-capital", "buy-archer").act > 0
     assert first.pressure("defend-capital", "treasury").observe > 0
     assert [atom.to_dict() for atom in graph.atoms] == before
+
+
+def test_pressure_concentrates_and_bounds_irrelevant_route_expansion():
+    first = run_pressure_concentration_benchmark()
+    second = run_pressure_concentration_benchmark()
+    assert first.to_dict() == second.to_dict()
+    assert first.truth_unchanged
+    assert first.relevant_route_selected
+    assert len(first.selected_root_routes) == 32
+    assert first.pressure_concentration >= 0.90
+    assert first.expansion_reduction >= 0.70
+    assert first.pressure_expansions < first.exhaustive_expansions
+    with open(os.path.join(
+            REPO, "docs", "freeciv", "evidence",
+            "pf-pressure-concentration.json"), encoding="utf-8") as stream:
+        assert json.load(stream) == first.to_dict()
 
 
 def test_requirement_pressure_reaches_multiple_false_and_prerequisites():
@@ -194,6 +217,33 @@ def test_conductance_credit_and_no_progress_never_change_truth():
     assert not hasattr(credited, "truth")
 
 
+def test_conductance_feedback_is_persisted_idempotent_and_truth_free():
+    truth = TruthState(0.61, 0.73, ("engine-packet",))
+    before = truth.to_dict()
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "conductance.json")
+        state = ConductanceState(path, "attempt-1")
+        credited = state.feedback(
+            "city_defense", True, "action-result-success")
+        assert credited.applied
+        assert credited.conductance > credited.previous_conductance
+        persisted_hash = state.state_hash
+
+        replay = ConductanceState(path, "attempt-1")
+        duplicate = replay.feedback(
+            "city_defense", True, "action-result-success")
+        assert not duplicate.applied
+        assert duplicate.conductance == credited.conductance
+        assert replay.state_hash == persisted_hash
+
+        penalized = replay.feedback(
+            "city_defense", False, "action-result-no-progress")
+        assert penalized.applied
+        assert penalized.conductance < credited.conductance
+        assert ConductanceState(path, "attempt-1").state_hash == replay.state_hash
+    assert truth.to_dict() == before
+
+
 def test_clone_projection_loses_confidence_under_maximal_disagreement():
     manager = CloneManager()
     clones = (
@@ -273,6 +323,27 @@ class _Candidate(object):
         }
 
 
+def test_learned_category_conductance_can_abandon_a_no_progress_branch():
+    snapshot = SimpleNamespace(cities=(), turn=5)
+    candidates = (
+        _Candidate("production_economy", 1000.0, "economy"),
+        _Candidate("production_military_score", 900.0, "military"),
+    )
+    state = ConductanceState(identity="branch-abandonment")
+    ranker = ImpactPressureRanker(conductance_state=state)
+    initial, _ = ranker.rank(
+        snapshot, candidates, expansion_city_target=3, horizon_turn=30)
+    assert initial[0].category == "production_economy"
+    for index in range(8):
+        state.feedback(
+            "production_economy", False, "no-progress-{}".format(index))
+    revised, artifact = ranker.rank(
+        snapshot, candidates, expansion_city_target=3, horizon_turn=30)
+    assert revised[0].category == "production_military_score"
+    assert artifact["conductance_state"]["routes"][
+        "production_economy"]["no_progress"] == 8
+
+
 def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
     snapshot = SimpleNamespace(cities=(), turn=5)
     candidates = (
@@ -296,6 +367,7 @@ def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
         root = writer.emit("run_started", 0, {
             "condition_id": "e_full_loop", "manifest_identity": "m"})
         propagated = writer.emit("pressure_propagated", 5, {
+            "conductance_state": artifact["conductance_state"],
             "config": pressure["config"], "dependency": pressure["dependency"],
             "goals": pressure["goals"], "graph_hash": pressure["graph_hash"],
             "operational_pressure": pressure["pressure"],
@@ -310,5 +382,10 @@ def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
             "solver_identity": schedule["solver_identity"],
             "structural_hash": schedule["structural_hash"],
         }, caused_by=[propagated["event_id"]])
+        update = ConductanceState(identity="event-test").feedback(
+            "city_defense", True, "result-event")
+        writer.emit(
+            "conductance_updated", 5, update.to_dict(),
+            caused_by=[propagated["event_id"]])
         report = validate_file(path)
     assert report.valid, report.to_dict()

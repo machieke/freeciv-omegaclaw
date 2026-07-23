@@ -229,6 +229,7 @@ export type PlnResult = {
 };
 
 export type PressurePropagated = {
+  "conductance_state"?: Record<string, unknown> | null;
   "config": {
     [key: string]: unknown;
   };
@@ -261,6 +262,20 @@ export type OperationScored = {
   "selected_operation_id": string | null;
   "solver_identity": string;
   "structural_hash": string;
+};
+
+export type ConductanceUpdated = {
+  "applied": boolean;
+  "category": string;
+  "conductance": number;
+  "effect_observed": boolean;
+  "feedback_id": string;
+  "learning_method": "grounded-effect-ema-v1";
+  "no_progress": number;
+  "previous_conductance": number;
+  "rule_id": string;
+  "state_hash": string;
+  "successes": number;
 };
 
 export type PlanCreated = {
@@ -340,7 +355,7 @@ export type LoggingGap = {
   "missing": string;
 };
 
-export type KnownEventType = "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "observation" | "revision" | "llm_proposal" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
+export type KnownEventType = "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "observation" | "revision" | "llm_proposal" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
 
 export interface EventEnvelope<T extends string = string, P extends object = Record<string, unknown>> {
   schema_version: typeof EVENT_SCHEMA_VERSION;
@@ -368,6 +383,7 @@ export interface KnownPayloadMap {
   "pln_result": PlnResult;
   "pressure_propagated": PressurePropagated;
   "operation_scored": OperationScored;
+  "conductance_updated": ConductanceUpdated;
   "plan_created": PlanCreated;
   "monitor_trigger": MonitorTrigger;
   "plan_invalidated": PlanInvalidated;

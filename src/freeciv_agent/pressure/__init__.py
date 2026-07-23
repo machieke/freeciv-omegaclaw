@@ -14,6 +14,7 @@ from .engine import (
     PressureTrace,
 )
 from .lifecycle import CloneManager, CloneState
+from .learning import ConductanceState, ConductanceUpdate
 from .model import (
     ACTION_CAUSAL_KINDS,
     CAUSAL_KINDS,
@@ -51,6 +52,8 @@ __all__ = [
     "CloneManager",
     "CloneState",
     "ConductanceLearner",
+    "ConductanceState",
+    "ConductanceUpdate",
     "CostVector",
     "EvidenceLedger",
     "EvidenceToken",

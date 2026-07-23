@@ -1024,8 +1024,17 @@ async def _play(run_dir, manifest, context):
                  if context.capabilities["uncertain_beliefs"] else None)
     execution_monitor = (PlanMonitor()
                          if context.capabilities["scheduler"] else None)
-    impact_planner = (GroundedImpactPlanner(manifest["impact_policy"], ruleset_ir=ir)
-                      if context.capabilities["scheduler"] else None)
+    pressure_state_identity = structural_hash([
+        manifest["manifest_identity"], manifest["attempt_id"],
+        manifest["ruleset"], manifest["impact_policy"],
+        "pf-impact-conductance/1.0",
+    ])
+    impact_planner = (GroundedImpactPlanner(
+        manifest["impact_policy"], ruleset_ir=ir,
+        pressure_state_path=os.path.join(
+            run_dir, "pressure-conductance.json"),
+        pressure_state_identity=pressure_state_identity)
+        if context.capabilities["scheduler"] else None)
     memory = None
     induction_prediction = None
     induction_estimate = None
@@ -1204,10 +1213,17 @@ async def _play(run_dir, manifest, context):
                 decision_stats["tactical_actions"] += 1
 
         def record_impact_resolution(candidate, before, after, effect_observed,
-                                     deferred=False):
+                                     deferred=False, feedback_id=None):
             """Commit one candidate-specific authoritative outcome exactly once."""
-            impact_planner.record_outcome(
-                candidate, before, effect_observed, after_snapshot=after)
+            nonlocal parent
+            conductance_update = impact_planner.record_outcome(
+                candidate, before, effect_observed, after_snapshot=after,
+                feedback_id=feedback_id)
+            if conductance_update is not None:
+                event = writer.emit(
+                    "conductance_updated", int(after.turn),
+                    conductance_update.to_dict(), caused_by=[parent])
+                parent = event["event_id"]
             if effect_observed:
                 decision_stats["effect_observed"] += 1
                 if candidate.action.get("action_type") == "unit_build_city":
@@ -1227,7 +1243,7 @@ async def _play(run_dir, manifest, context):
                 record_impact_resolution(
                     resolution.candidate, resolution.before_snapshot,
                     resolution.after_snapshot, resolution.effect_observed,
-                    deferred=True)
+                    deferred=True, feedback_id=resolution.feedback_id)
 
         distance = _enemy_distance(
             raw, global_state, player_id, snapshot.map_width, snapshot.map_height)
@@ -1412,6 +1428,8 @@ async def _play(run_dir, manifest, context):
                         pressure_id = "pressure-" + pressure_hash[:20]
                         pressure_event = writer.emit(
                             "pressure_propagated", snapshot.turn, {
+                                "conductance_state": decision.pressure_artifact[
+                                    "conductance_state"],
                                 "config": pressure_value["config"],
                                 "dependency": pressure_value["dependency"],
                                 "goals": pressure_value["goals"],
@@ -1446,6 +1464,7 @@ async def _play(run_dir, manifest, context):
                     outcome, parent = await _execute_action(
                         gate, manifest["game_id"], player_id, snapshot,
                         impact_action, parent, attempted_count, decision.plan)
+                    impact_feedback_id = outcome.result_event_id or parent
                     attempted_count += 1
                     action_count += int(outcome.submitted)
                     rejected += int(outcome.submitted and outcome.status != "accepted")
@@ -1558,14 +1577,17 @@ async def _play(run_dir, manifest, context):
                         authoritative_refresh=authoritative_refresh)
                     if effect_observed:
                         record_impact_resolution(
-                            decision.candidate, action_snapshot, snapshot, True)
+                            decision.candidate, action_snapshot, snapshot, True,
+                            feedback_id=impact_feedback_id)
                     elif (authoritative_refresh
                           and snapshot.turn > action_snapshot.turn):
                         record_impact_resolution(
-                            decision.candidate, action_snapshot, snapshot, False)
+                            decision.candidate, action_snapshot, snapshot, False,
+                            feedback_id=impact_feedback_id)
                     else:
                         pending_impact_outcomes.defer(
-                            decision.candidate, action_snapshot)
+                            decision.candidate, action_snapshot,
+                            feedback_id=impact_feedback_id)
                         decision_stats["effect_confirmation_deferred"] += 1
                     if authoritative_refresh:
                         # A fresh packet may also reveal effects from older

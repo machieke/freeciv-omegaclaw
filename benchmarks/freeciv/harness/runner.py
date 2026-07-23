@@ -280,13 +280,19 @@ class HarnessRunner(object):
             archive = os.path.join(
                 self.out, "attempt-history", relative, str(attempt_id))
             os.makedirs(archive, exist_ok=True)
-            for name in ("manifest.json", "status.json", "events.jsonl"):
+            for name in (
+                    "manifest.json", "status.json", "events.jsonl",
+                    "pressure-conductance.json"):
                 source = os.path.join(run_dir, name)
                 if os.path.isfile(source):
                     shutil.copy2(source, os.path.join(archive, name))
         os.makedirs(run_dir, exist_ok=True)
         if os.path.exists(events_path):
             os.remove(events_path)
+        pressure_state_path = os.path.join(
+            run_dir, "pressure-conductance.json")
+        if os.path.exists(pressure_state_path):
+            os.remove(pressure_state_path)
         started_at = _utc_now()
         manifest["runtime"]["started_at"] = started_at
         manifest["attempt_id"] = structural_hash([

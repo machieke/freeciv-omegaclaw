@@ -280,7 +280,8 @@
         "dependency": {"type": "object"},
         "operational_pressure": {"type": "object"},
         "traces": {"type": "array", "items": {"type": "object"}},
-        "config": {"type": "object"}
+        "config": {"type": "object"},
+        "conductance_state": {"type": ["object", "null"]}
       }
     },
     "operation_scored": {
@@ -297,6 +298,27 @@
         "scores": {"type": "array", "items": {"type": "object"}},
         "allocations": {"type": "array", "items": {"type": "object"}},
         "structural_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "conductance_updated": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "feedback_id", "category", "rule_id", "effect_observed", "applied",
+        "previous_conductance", "conductance", "successes", "no_progress",
+        "learning_method", "state_hash"
+      ],
+      "properties": {
+        "feedback_id": {"type": "string", "minLength": 1},
+        "category": {"type": "string", "minLength": 1},
+        "rule_id": {"type": "string", "minLength": 1},
+        "effect_observed": {"type": "boolean"},
+        "applied": {"type": "boolean"},
+        "previous_conductance": {"type": "number", "minimum": 0, "maximum": 1},
+        "conductance": {"type": "number", "minimum": 0, "maximum": 1},
+        "successes": {"type": "integer", "minimum": 0},
+        "no_progress": {"type": "integer", "minimum": 0},
+        "learning_method": {"const": "grounded-effect-ema-v1"},
+        "state_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
       }
     },
     "plan_created": {

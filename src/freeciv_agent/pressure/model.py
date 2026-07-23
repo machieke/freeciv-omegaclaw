@@ -399,6 +399,7 @@ class PressureConfig:
     residual_floor: float = 1e-8
     materialization_floor: float = 1e-6
     max_hops: int = 64
+    max_routes_per_conclusion: int = 32
     information_gain_weight: float = 0.10
     coherence_weight: float = 0.05
     future_option_weight: float = 0.05
@@ -422,6 +423,10 @@ class PressureConfig:
         _nonnegative(self.materialization_floor, "materialization floor")
         if isinstance(self.max_hops, bool) or not 1 <= int(self.max_hops) <= 10000:
             raise ValueError("max_hops must be in 1..10000")
+        if (isinstance(self.max_routes_per_conclusion, bool)
+                or not 1 <= int(self.max_routes_per_conclusion) <= 10000):
+            raise ValueError(
+                "max_routes_per_conclusion must be in 1..10000")
         for name in (
                 "information_gain_weight", "coherence_weight",
                 "future_option_weight", "cost_epsilon"):
@@ -449,6 +454,8 @@ class PressureConfig:
             "information_gain_weight": float(self.information_gain_weight),
             "materialization_floor": float(self.materialization_floor),
             "max_hops": int(self.max_hops),
+            "max_routes_per_conclusion": int(
+                self.max_routes_per_conclusion),
             "residual_floor": float(self.residual_floor),
             "softmax_temperature": float(self.softmax_temperature),
         }

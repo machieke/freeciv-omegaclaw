@@ -31,7 +31,8 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
             ("foodbox_percent", 1, 1000),
             ("unit_build_score_divisor", 1, 100),
             ("no_effect_retry_limit", 1, 8),
-            ("max_no_effect_failovers_per_scope", 0, 8)):
+            ("max_no_effect_failovers_per_scope", 0, 8),
+            ("pressure_max_routes_per_conclusion", 1, 10000)):
         setting = impact.get(key)
         if isinstance(setting, bool) or not isinstance(setting, int) or not lower <= setting <= upper:
             raise ValueError("{}.{} must be in {}..{}".format(prefix, key, lower, upper))
@@ -42,6 +43,13 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
             "{}.production_strategy must be static_priority or horizon_score".format(prefix))
     if not isinstance(impact.get("pressure_enabled", False), bool):
         raise ValueError("{}.pressure_enabled must be boolean".format(prefix))
+    if not isinstance(impact.get("pressure_learning_enabled", False), bool):
+        raise ValueError(
+            "{}.pressure_learning_enabled must be boolean".format(prefix))
+    if (impact.get("pressure_learning_enabled", False)
+            and not impact.get("pressure_enabled", False)):
+        raise ValueError(
+            "{}.pressure learning requires pressure_enabled".format(prefix))
     for key, lower, upper, upper_inclusive in (
             ("pressure_damping", 0.0, 1.0, False),
             ("pressure_exploration_floor", 0.0, 1.0, True),
@@ -54,6 +62,18 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
         valid_upper = setting <= upper if upper_inclusive else setting < upper
         if (setting < lower or not valid_upper
                 or (key == "pressure_temperature" and setting == 0)):
+            raise ValueError("{}.{} is outside its valid range".format(prefix, key))
+    for key, lower, upper, lower_inclusive in (
+            ("pressure_learning_rate", 0.0, 1.0, False),
+            ("pressure_no_progress_rate", 0.0, 1.0, True),
+            ("pressure_initial_conductance", 0.0, 1.0, True)):
+        setting = impact.get(key)
+        if setting is None:
+            continue
+        if isinstance(setting, bool) or not isinstance(setting, (int, float)):
+            raise ValueError("{}.{} must be numeric".format(prefix, key))
+        valid_lower = setting >= lower if lower_inclusive else setting > lower
+        if not valid_lower or setting > upper:
             raise ValueError("{}.{} is outside its valid range".format(prefix, key))
     refresh_timeout = impact.get("refresh_timeout_seconds")
     if (isinstance(refresh_timeout, bool)

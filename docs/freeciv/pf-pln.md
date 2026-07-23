@@ -64,6 +64,11 @@ impact_policy:
   pressure_damping: 0.85
   pressure_exploration_floor: 0.05
   pressure_temperature: 0.15
+  pressure_max_routes_per_conclusion: 32
+  pressure_learning_enabled: true
+  pressure_learning_rate: 0.10
+  pressure_no_progress_rate: 0.10
+  pressure_initial_conductance: 0.50
 ```
 
 The impact planner still enumerates only server-advertised legal actions.
@@ -72,6 +77,35 @@ score, and exploration goals, propagates pressure through procedural OR
 routes, and ranks the resulting operations. The selected action still becomes
 a snapshot-bound `Plan` and passes through the unchanged execution gate.
 
+Candidate categories have separate learned routes. Credit is applied only
+after the candidate-specific authoritative effect predicate succeeds.
+Authoritative next-turn no-effect resolution applies bounded no-progress
+decay; transport acceptance alone never receives credit. Deferred effects keep
+the originating action-result ID so replay cannot apply the same update twice.
+The ledger is written atomically to `pressure-conductance.json`, scoped to one
+run attempt, and archived with superseded attempts.
+
+Reverse expansion uses a deterministic expected-transport beam, configured by
+`pressure_max_routes_per_conclusion`. Conclusions with at most 32 routes are
+unchanged; wider conclusions expand the 32 highest-value routes with stable
+rule-ID tie breaking.
+
+## Pressure-concentration benchmark
+
+Run the host-only benchmark with:
+
+```bash
+python3 scripts/freeciv/benchmark_pressure.py
+```
+
+The checked 128-decoy, depth-four fixture compares the pressure beam with
+exhaustive backward premise expansion. The current deterministic artifact
+selects the relevant route, leaves truth unchanged, concentrates 99.54% of
+transported non-root pressure on the relevant chain, and expands 128 rather
+than 516 premise edges—a 75.19% reduction. These are synthetic control-path
+metrics, not gameplay or score claims. The checked result is stored in
+[`evidence/pf-pressure-concentration.json`](evidence/pf-pressure-concentration.json).
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` defaults to `false` unless the runtime profile enables it.
 This preserves unit-level policy isolation and makes an unpressured ablation
@@ -79,12 +113,14 @@ available without a code fork.
 
 ## Event contract
 
-Two schema-validated events expose the control path:
+Three schema-validated events expose the control path:
 
 - `pressure_propagated`: goals, graph identity, dependency pressure,
   operational pressure, transport trace, and configuration;
 - `operation_scored`: per-goal effects, conflict penalty, scalarized cost,
   priority, budget allocation, and selected operation.
+- `conductance_updated`: grounded feedback identity, prior and posterior route
+  conductance, outcome counters, application status, and state hash.
 
 In live runs the causal chain is:
 
@@ -95,6 +131,8 @@ prior event
   -> plan_created
   -> action_sent
   -> action_result
+  -> state_snapshot
+  -> conductance_updated
 ```
 
 The observability application remains trace-only; no pressure formula is
@@ -141,6 +179,7 @@ It covers:
 - reproducible capital-defense pressure and an unchanged truth graph;
 - pressure reaching multiple false AND prerequisites;
 - bounded cyclic transport;
+- deterministic wide-route pruning and pressure concentration;
 - causal, contextual, and safety firewalls;
 - cost appearing only at scheduling;
 - exact token union, overlap, decay, and selection-policy provenance;
@@ -157,8 +196,10 @@ changing pressure defaults.
 
 The implementation is a production-connected PF-PLN vertical slice, not a
 claim that all research phases are empirically complete. In particular,
-online conductance learning, live clone split/merge, pressure-triggered LLM
-expansion, differentiable truth execution, and a new paired engine-backed
-impact claim require dedicated experiments before they can be enabled or
-claimed. See the [phase map](pf-pln-phase-map.md) for the exact implemented,
-partial, and pending acceptance work.
+live clone split/merge, pressure-triggered LLM expansion, differentiable truth
+execution, and a new paired engine-backed impact claim still require dedicated
+experiments before they can be enabled or claimed. Online conductance learning
+is enabled for the experimental profile, but no performance claim is made
+until historical replay and a fresh paired engine cohort measure it. See the
+[phase map](pf-pln-phase-map.md) for the exact implemented, partial, and
+pending acceptance work.

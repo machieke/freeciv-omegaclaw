@@ -49,6 +49,11 @@ impact_policy:
   pressure_damping: 0.85
   pressure_exploration_floor: 0.05
   pressure_temperature: 0.15
+  pressure_max_routes_per_conclusion: 32
+  pressure_learning_enabled: true
+  pressure_learning_rate: 0.10
+  pressure_no_progress_rate: 0.10
+  pressure_initial_conductance: 0.50
 seeds:
   - 104729
   - 104743
