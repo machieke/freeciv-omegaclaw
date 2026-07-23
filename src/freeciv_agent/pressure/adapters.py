@@ -304,9 +304,16 @@ class ImpactPressureRanker(object):
         grouped = dict((key, {}) for key in goal_specs)
         candidate_by_operation = {}
         operation_by_candidate = {}
+        operation_atom_by_candidate = {}
+        # Operation IDs are utility ordered so operations sharing one category
+        # pressure atom still select the best grounded action deterministically.
+        # The caller normally supplies this order already, but the adapter must
+        # not make correctness depend on caller enumeration.
         candidate_order = dict(
             (id(candidate), index)
-            for index, candidate in enumerate(candidates))
+            for index, candidate in enumerate(sorted(
+                candidates, key=lambda row: (
+                    -float(row.utility), str(row.category), row.action_key))))
         conductance_snapshot = (
             self.conductance_state.decision_snapshot()
             if self.conductance_state is not None else None)
@@ -355,7 +362,10 @@ class ImpactPressureRanker(object):
                     structural_hash([goal_name, category])[:20])
                 graph.add_atom(AtomState(
                     category_atom_id, TruthState(0.0, 1.0, crisp=True),
-                    expression={"category": category, "goal": goal_name}))
+                    expression={"category": category, "goal": goal_name}),
+                    # A category is actionable when at least one of its member
+                    # operations is grounded in the legal-action set.
+                    Resolvability(act=1.0))
                 conductance = (
                     self.conductance_state.value(category)
                     if self.conductance_state is not None else 1.0)
@@ -391,14 +401,18 @@ class ImpactPressureRanker(object):
                         structural_hash(candidate.action)[:20])
                     candidate_by_operation[operation_id] = candidate
                     operation_by_candidate[id(candidate)] = operation_id
+                    # Candidate atoms retain the complete OR-route provenance,
+                    # but cross-goal operation scoring happens at category
+                    # level. Otherwise adding equivalent legal alternatives
+                    # divides the category's pressure and can change the
+                    # winning goal without changing state or best action.
+                    operation_atom_by_candidate[id(candidate)] = category_atom_id
         result = self.engine.propagate(graph, tuple(goals))
         operations = []
         for operation_id, candidate in sorted(candidate_by_operation.items()):
-            atom_id = next(
-                atom.atom_id for atom in graph.atoms
-                if atom.expression == candidate.to_dict())
             operations.append(Operation(
-                operation_id, atom_id, "act", CostVector(compute=1.0),
+                operation_id, operation_atom_by_candidate[id(candidate)],
+                "act", CostVector(compute=1.0),
                 causal_kind="procedural", payload=candidate.to_dict()))
         scores = self.scheduler.score_all(operations, result)
         rank = dict((row.operation_id, index) for index, row in enumerate(scores)

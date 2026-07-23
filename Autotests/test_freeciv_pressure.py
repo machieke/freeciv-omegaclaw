@@ -516,6 +516,40 @@ def test_fortification_opportunity_is_not_a_defense_deficit():
         "authoritative:visible-enemy-within-city-threat-radius:3"]
 
 
+def test_impact_category_selection_is_invariant_to_legal_alternative_count():
+    snapshot = SimpleNamespace(
+        cities=(SimpleNamespace(x=0, y=0),), units=(), turn=5,
+        visible_enemy_units=(), map_width=100, map_height=100)
+    exploration = _Candidate("exploration_move", 650.0, "explore")
+    one_expansion = (
+        _Candidate("expansion_move", 900.0, "best expansion"),)
+    many_expansion = tuple(
+        _Candidate("expansion_move", 700.0 + index, "expansion {}".format(index))
+        for index in range(8)) + one_expansion
+
+    one_ordered, one_artifact = ImpactPressureRanker().rank(
+        snapshot, one_expansion + (exploration,),
+        expansion_city_target=3, horizon_turn=30)
+    many_ordered, many_artifact = ImpactPressureRanker().rank(
+        snapshot, many_expansion + (exploration,),
+        expansion_city_target=3, horizon_turn=30)
+
+    assert one_ordered[0] is one_expansion[0]
+    assert many_ordered[0] is one_expansion[0]
+    one_scores = one_artifact["schedule"]["scores"]
+    many_scores = many_artifact["schedule"]["scores"]
+    one_expansion_priority = next(
+        row["priority"] for row in one_scores
+        if row["operation"]["payload"]["category"] == "expansion_move")
+    many_expansion_priorities = {
+        row["priority"] for row in many_scores
+        if row["operation"]["payload"]["category"] == "expansion_move"}
+    assert many_expansion_priorities == {one_expansion_priority}
+    assert max(many_expansion_priorities) > next(
+        row["priority"] for row in many_scores
+        if row["operation"]["payload"]["category"] == "exploration_move")
+
+
 def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
     snapshot = SimpleNamespace(cities=(), turn=5)
     candidates = (

@@ -12,12 +12,12 @@ legal actions, execution, and evaluation.
 | 1 — goal regression planner | AND blocker allocation, OR route allocation, deadlines, procedural gating, proof-DAG and grounded-impact adapters; deterministic route beam benchmark measures 99.54% relevant pressure concentration and 75.19% fewer premise expansions; byte-real legal-set replay verifies pressure-off/on selection parity | Implemented with synthetic and captured-snapshot acceptance | Expand the complete-legal-set replay corpus before engine evaluation |
 | 2 — provenance and contradiction | Immutable token ledger, token-set union, weighted overlap, conflict severity; live belief fusion moved to evidence-weight space | Implemented core | Materialize live conflict atoms and contextual quarantine operations |
 | 3 — observation and simulation pressure | `observe` channel, information gain in operation value, observation-policy provenance | Implemented core | Add exhaustive small-graph VOI parity and simulator-backed FreeCiv observation choices |
-| 4 — conductance learning | Immediate execution effects and goal relief are separate; goal-neutral effects receive bounded no-progress decay, authoritative direct relief receives monotonic credit, and one pending route per category may receive idempotent downstream credit from a later same-goal change; attempt-scoped state remains atomic and truth-free; v1 direct callers and events remain compatible | Offline acceptance and three fresh 40-pair engine/replay gates passed; outcome neutral | Correct category enumeration bias before changing learning |
+| 4 — conductance learning | Immediate execution effects and goal relief are separate; goal-neutral effects receive bounded no-progress decay, authoritative direct relief receives monotonic credit, and one pending route per category may receive idempotent downstream credit from a later same-goal change; attempt-scoped state remains atomic and truth-free; v1 direct callers and events remain compatible | Offline acceptance and three fresh 40-pair engine/replay gates passed; outcome neutral | Run category-invariance engine pilot before changing learning |
 | 5 — lifecycle clones | Clone posterior update, variance-matched truth, pressure projection, complexity/cap/merge gates | Implemented core | Persist clone lineage and run hidden-context gameplay benchmarks |
 | 6 — induction and analogy | Existing opponent memory and rule proposal infrastructure retained | Partial | Route induction/analogy invocation through `expand` pressure and replay gates |
 | 7 — LLM gateway | Existing constrained proposer, verification, quarantine, and token configuration retained | Partial | Make expansion pressure, expected proposal value, and validation cost control call timing |
 | 8 — differentiable execution | No automatic-differentiation truth engine added | Not implemented | Add the delimited differentiable subset and compare adjoint with requirement/counterfactual pressure |
-| 9 — full multi-goal field | Per-goal pressure, derived weights, double-count prevention, cross-goal harm, hard safety veto, budget allocation; survival now requires a grounded production coverage deficit or a visible opponent within configured wrapped distance of an owned city/unit anchor; a fortification opportunity alone does not create a deficit; category routing assigns defense production to survival and population recovery to score; five fresh 40-pair pressure pilots completed with exact isolation | Defense-relevance engine/replay acceptance passed; score outcome neutral | Make grounded category selection invariant to the number of equivalent legal alternatives; do not freeze confirmatory evidence |
+| 9 — full multi-goal field | Per-goal pressure, derived weights, double-count prevention, cross-goal harm, hard safety veto, budget allocation; survival now requires a grounded production coverage deficit or a visible opponent within configured wrapped distance of an owned city/unit anchor; a fortification opportunity alone does not create a deficit; grounded Impact operations receive category-level pressure so legal alternative count cannot dilute a goal; category routing assigns defense production to survival and population recovery to score; five fresh 40-pair pressure pilots completed with exact isolation | Category-invariance offline acceptance passed; defense-relevance score outcome neutral | Run the predeclared category-invariance smoke/pilot; do not freeze confirmatory evidence |
 
 ## Non-negotiable integration rules
 
@@ -32,15 +32,15 @@ legal actions, execution, and evaluation.
 
 ## Next empirical gates
 
-1. Correct the Impact adapter so all legal operations that resolve one
-   category receive that category's pressure; use grounded action utility only
-   to select within the category.
-2. Prove enumeration invariance: adding dominated legal alternatives to one
-   category must not change the winning category.
-3. Preserve generic PF-PLN OR-route pressure allocation and change only the
-   grounded Impact operation adapter.
-4. Use another fresh seed namespace for engine evaluation; do not pool the
-   defense-relevance estimate (+0.05, interval [-0.300, 0.475]) and do not
-   freeze confirmatory evidence without a positive fresh pilot signal.
+1. Run the one-pair prefix of predeclared
+   `pressure_category_invariance_pilot_v1` and require schema-valid
+   category-level operation scoring plus zero exact-replay failures.
+2. Run the remaining seed-disjoint pairs only if engine, schema, safety,
+   source, and replay smoke gates pass.
+3. Report expansion-to-exploration substitutions, settlement outcomes, and
+   paired score before considering another semantic change.
+4. Do not pool the defense-relevance estimate (+0.05, interval
+   [-0.300, 0.475]) with the new cohort and do not freeze confirmatory
+   evidence without a positive fresh pilot signal.
 5. Enable live clone splitting only after the per-atom cap and lineage
    forwarding are persisted transactionally.

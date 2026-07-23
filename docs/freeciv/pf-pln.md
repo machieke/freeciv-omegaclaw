@@ -286,9 +286,13 @@ by only +0.05 with interval [-0.300, 0.475] and fixed-horizon lead rate was
 unchanged. The dominant remaining bias is action enumeration: category
 pressure is divided across every legal alternative before cross-goal
 comparison, so adding equivalent expansion moves can make exploration win.
-The next adapter correction must compare pressure at category level and use
-grounded utility within each category. Full evidence is in
+The grounded Impact adapter now compares pressure at category level and uses
+grounded utility within each category. Candidate atoms and generic OR-route
+transport remain intact for complete provenance, while adding dominated legal
+alternatives no longer changes the winning goal. Full defense evidence is in
 [`evidence/pf-pressure-defense-relevance-pilot-v1.md`](evidence/pf-pressure-defense-relevance-pilot-v1.md).
+Deterministic category-invariance acceptance is in
+[`evidence/pf-category-invariance-offline-acceptance.md`](evidence/pf-category-invariance-offline-acceptance.md).
 
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` defaults to `false` unless the runtime profile enables it.
