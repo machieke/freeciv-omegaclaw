@@ -248,8 +248,13 @@ class ImpactPressureRanker(object):
                 1, int(expansion_city_target)))
         relevant_threats = cls._relevant_visible_threats(
             snapshot, survival_threat_radius)
-        defense_deficit = bool(categories & {
-            "city_defense", "production_defense"})
+        # A production_defense candidate is generated only when the
+        # authoritative unit/city counts show missing defense coverage.
+        # city_defense is different: it is a legal fortification opportunity
+        # for a combat unit already occupying its city.  Treating that
+        # opportunity as a deficit manufactures survival pressure and lets
+        # routine fortification preempt score-bearing work in a safe state.
+        defense_deficit = "production_defense" in categories
         survival_truth = (
             0.0 if relevant_threats or defense_deficit else 1.0)
         exploration_actionable = any(
@@ -261,7 +266,7 @@ class ImpactPressureRanker(object):
         return {
             "survival": (
                 survival_truth, 1.50, True,
-                ("authoritative:grounded-defense-deficit"
+                ("authoritative:grounded-production-defense-deficit"
                  if defense_deficit else
                  "authoritative:visible-enemy-within-city-threat-radius:{}".format(
                      int(survival_threat_radius))
