@@ -254,10 +254,14 @@ outcomes. Action-rate and latency overhead became indistinguishable from zero.
 The observed paired score SD was 0.6938 and the upper score-effect interval was
 only 0.300 points. A confirmatory cohort is therefore not frozen. Downstream
 goal-relief credit and deterministic offline acceptance were added after v2.
-The next empirical gate is a fresh engine smoke followed by a predeclared
-seed-disjoint pilot. The semantic gate is recorded in
+The fresh 40-pair goal-relief pilot then found a -0.05 score delta with
+interval [-0.775, 0.600], so no confirmatory cohort is frozen. The dominant
+remaining issue is coarse survival activation from any visible opponent,
+regardless of proximity to owned assets. The semantic gate is recorded in
 [`evidence/pf-goal-relief-offline-acceptance.md`](evidence/pf-goal-relief-offline-acceptance.md).
-Full v2 engine evidence is in
+Full engine evidence is in
+[`evidence/pf-pressure-goal-relief-pilot-v1.md`](evidence/pf-pressure-goal-relief-pilot-v1.md)
+and the preceding v2 evidence is in
 [`evidence/pf-pressure-ablation-pilot-v2.md`](evidence/pf-pressure-ablation-pilot-v2.md).
 
 Direct `GroundedImpactPlanner` consumers remain backward compatible:

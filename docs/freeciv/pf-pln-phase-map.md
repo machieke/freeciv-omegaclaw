@@ -12,12 +12,12 @@ legal actions, execution, and evaluation.
 | 1 — goal regression planner | AND blocker allocation, OR route allocation, deadlines, procedural gating, proof-DAG and grounded-impact adapters; deterministic route beam benchmark measures 99.54% relevant pressure concentration and 75.19% fewer premise expansions; byte-real legal-set replay verifies pressure-off/on selection parity | Implemented with synthetic and captured-snapshot acceptance | Expand the complete-legal-set replay corpus before engine evaluation |
 | 2 — provenance and contradiction | Immutable token ledger, token-set union, weighted overlap, conflict severity; live belief fusion moved to evidence-weight space | Implemented core | Materialize live conflict atoms and contextual quarantine operations |
 | 3 — observation and simulation pressure | `observe` channel, information gain in operation value, observation-policy provenance | Implemented core | Add exhaustive small-graph VOI parity and simulator-backed FreeCiv observation choices |
-| 4 — conductance learning | Immediate execution effects and goal relief are separate; goal-neutral effects receive bounded no-progress decay, authoritative direct relief receives monotonic credit, and one pending route per category may receive idempotent downstream credit from a later same-goal change; attempt-scoped state remains atomic and truth-free; v1 direct callers and events remain compatible | Offline deterministic acceptance passed | Run a fresh engine smoke and seed-disjoint pilot before making an outcome claim |
+| 4 — conductance learning | Immediate execution effects and goal relief are separate; goal-neutral effects receive bounded no-progress decay, authoritative direct relief receives monotonic credit, and one pending route per category may receive idempotent downstream credit from a later same-goal change; attempt-scoped state remains atomic and truth-free; v1 direct callers and events remain compatible | Offline acceptance and fresh 40-pair engine/replay gate passed; outcome neutral | Refine threat relevance before another outcome pilot |
 | 5 — lifecycle clones | Clone posterior update, variance-matched truth, pressure projection, complexity/cap/merge gates | Implemented core | Persist clone lineage and run hidden-context gameplay benchmarks |
 | 6 — induction and analogy | Existing opponent memory and rule proposal infrastructure retained | Partial | Route induction/analogy invocation through `expand` pressure and replay gates |
 | 7 — LLM gateway | Existing constrained proposer, verification, quarantine, and token configuration retained | Partial | Make expansion pressure, expected proposal value, and validation cost control call timing |
 | 8 — differentiable execution | No automatic-differentiation truth engine added | Not implemented | Add the delimited differentiable subset and compare adjoint with requirement/counterfactual pressure |
-| 9 — full multi-goal field | Per-goal pressure, derived weights, double-count prevention, cross-goal harm, hard safety veto, budget allocation; live goal truth is grounded in authoritative threat, defense-deficit, city-count, and legal-candidate state; category routing assigns defense production to survival and population recovery to score; both fresh 40-pair pressure-only pilots completed with exact isolation and zero failures | V2 stable but outcome-neutral; downstream-relief correction implemented after v2 | Run a fresh smoke and seed-disjoint pilot; do not freeze confirmatory evidence yet |
+| 9 — full multi-goal field | Per-goal pressure, derived weights, double-count prevention, cross-goal harm, hard safety veto, budget allocation; live goal truth is grounded in authoritative threat, defense-deficit, city-count, and legal-candidate state; category routing assigns defense production to survival and population recovery to score; three fresh 40-pair pressure pilots completed with exact isolation | Goal-relief pilot outcome-neutral; coarse visible-enemy survival activation diagnosed | Ground survival urgency in threat proximity/relevance; do not freeze confirmatory evidence |
 
 ## Non-negotiable integration rules
 
@@ -32,16 +32,15 @@ legal actions, execution, and evaluation.
 
 ## Next empirical gates
 
-1. Run the one-pair prefix of predeclared `pressure_goal_relief_pilot_v1` as
-   a fresh engine smoke which proves v2 conductance events carry explicit
-   direct/effect-only/downstream provenance and remain exact-replay eligible.
-2. Run the remaining seed-disjoint goal-relief pilot only after the smoke
-   passes; do not pool its estimates with v1 or v2.
-3. Use the v1 paired SD of 3.0875 as a planning input only. A two-point score
-   effect requires at least 30 fresh pairs at 80% target power; freeze a
-   confirmatory cohort only after the revised pilot shows a positive signal.
-4. Require the new pilot to report counts and conductance deltas separately
-   for no-effect, effect-without-relief, direct-relief, and downstream-relief
-   updates.
+1. Replace the global “any visible opponent” survival deficit with a grounded
+   proximity or direct-threat predicate connected to owned cities/units.
+2. Add offline regressions proving distant visible opponents cannot preempt
+   score-bearing expansion, exploration, or production while near threats
+   still activate safety pressure.
+3. Predeclare another seed-disjoint pilot only after threat-relevance replay
+   passes; do not pool its estimates with any prior pressure pilot.
+4. Do not freeze confirmatory evidence from `pressure_goal_relief_pilot_v1`.
+   Its score estimate was -0.05 with interval [-0.775, 0.600], and all three
+   lead discordances favored baseline.
 5. Enable live clone splitting only after the per-atom cap and lineage
    forwarding are persisted transactionally.

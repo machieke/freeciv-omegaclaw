@@ -1,0 +1,161 @@
+{
+  "artifacts": {
+    "impact_aggregate": {
+      "path": "artifacts/freeciv/pf-pressure-goal-relief-pilot-v1/impact-aggregate.json",
+      "sha256": "352f78202709ecb02a5a0e7b10f0cb01260304a556aade505fdbe35ba5543960"
+    },
+    "impact_report": {
+      "path": "artifacts/freeciv/pf-pressure-goal-relief-pilot-v1/impact-report.md",
+      "sha256": "7d0b54f806791fdd07cdd068a0663b6aeb6dff2373da5a9f2c280b5b4e32b019"
+    },
+    "pressure_replay": {
+      "path": "artifacts/freeciv/pf-pressure-goal-relief-pilot-v1/pressure-replay-40.json",
+      "sha256": "213b9f02177a21de239c4b825a2b595f715441bc69ea22ad47ec470cb3fdcf09"
+    },
+    "run_summary": {
+      "path": "artifacts/freeciv/pf-pressure-goal-relief-pilot-v1/impact-run-summary.json",
+      "sha256": "ce8316527f8ad8d0a6abace210e2f4b8c9f5b016f36fda429616114a11d7ba57"
+    }
+  },
+  "claim_status": "ineligible_pilot",
+  "cohort": {
+    "completed_arms": 80,
+    "completed_pairs": 40,
+    "controller_workers": 3,
+    "horizon_turn": 60,
+    "infrastructure_failures": 0,
+    "order_counts": {
+      "baseline_first": 20,
+      "treatment_first": 20
+    },
+    "planned_pairs": 40,
+    "seed_namespace": "pf-pln-pressure-goal-relief-pilot-v1"
+  },
+  "conductance_feedback": {
+    "credit_kind_counts": {
+      "direct_goal_relief": 492,
+      "downstream_goal_relief": 390,
+      "effect_without_goal_relief": 2243,
+      "no_progress": 107
+    },
+    "learning_method": "grounded-goal-relief-ema-v2",
+    "mean_conductance_delta": {
+      "direct_goal_relief": 0.0001548514445372522,
+      "downstream_goal_relief": 0.014501904122775426,
+      "effect_without_goal_relief": -0.0190747232931734,
+      "no_progress": -0.05430129538309643
+    },
+    "positive_relief_updates": 882,
+    "total_updates": 3232
+  },
+  "decision_replay": {
+    "changed_decisions": 282,
+    "decision_change_rate": 0.09873949579831932,
+    "exact_replay_files": 40,
+    "grounded_goal_context_failures": 0,
+    "initial_conductance_failures": 0,
+    "integrity_failures": 0,
+    "source_set_hash": "8820421cc1829edf0b4147889270934447969fc4200b862737e7861928791a98",
+    "sources_unchanged": true,
+    "total_decisions": 2856
+  },
+  "design_conclusion": {
+    "confirmatory_action": "do_not_freeze",
+    "reason": "The score estimate is effectively zero, its interval includes material harm and only a 0.600-point benefit, and all three lead discordances favor baseline.",
+    "recommended_next_target": "Ground survival urgency in threat relevance and proximity so distant visible opponents cannot redirect expansion, exploration, and score-bearing production into tactical movement."
+  },
+  "diagnostics": {
+    "all_event_files_schema_valid": true,
+    "city_founding_delta": {
+      "estimate": 0,
+      "lower": 0,
+      "upper": 0
+    },
+    "largest_changed_category_transitions": [
+      {
+        "baseline": "expansion_move",
+        "count": 58,
+        "pressure": "tactical_move"
+      },
+      {
+        "baseline": "exploration_move",
+        "count": 47,
+        "pressure": "tactical_move"
+      },
+      {
+        "baseline": "expansion_move",
+        "count": 39,
+        "pressure": "exploration_move"
+      },
+      {
+        "baseline": "production_preexpansion_growth",
+        "count": 22,
+        "pressure": "city_defense"
+      }
+    ],
+    "loop_latency_ms_delta": {
+      "estimate": -6.085031464851158,
+      "lower": -52.66545280872377,
+      "upper": 41.72355503619959
+    },
+    "meaningful_action_rate_delta": {
+      "estimate": 0.0066666666666666706,
+      "lower": -0.08750000000000001,
+      "upper": 0.10041666666666671
+    },
+    "positions_explored_delta": {
+      "estimate": -2.4,
+      "lower": -5.625,
+      "upper": 0.775
+    }
+  },
+  "invariants": {
+    "arm_policy_isolation_passed": true,
+    "engine_rejected_action_rate": {
+      "baseline": 0,
+      "treatment": 0
+    },
+    "goal_context_grounding_passed": true,
+    "optimistic_initial_conductance_passed": true,
+    "paired_initial_state_fidelity_passed": true,
+    "pressure_replay_integrity_passed": true,
+    "safety_gates_passed": true,
+    "source_freeze_passed": true
+  },
+  "outcomes": {
+    "baseline_score_mean": 118.55,
+    "baseline_win_rate": 0.325,
+    "score_delta": {
+      "estimate": -0.05,
+      "lower": -0.775,
+      "paired_randomization_p": 0.946044921875,
+      "upper": 0.6
+    },
+    "score_margin_delta": {
+      "estimate": -0.65,
+      "lower": -1.875,
+      "upper": 0.475
+    },
+    "treatment_score_mean": 118.5,
+    "treatment_win_rate": 0.25,
+    "win_rate_delta": {
+      "baseline_only_wins": 3,
+      "estimate": -0.075,
+      "exact_mcnemar_p": 0.25,
+      "lower": -0.175,
+      "treatment_only_wins": 0,
+      "upper": 0
+    }
+  },
+  "power": {
+    "detectable_delta_at_40_pairs": 0.9927931137152268,
+    "observed_paired_score_sd": 2.2412221940443393
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "38cc3f990ff9136fcd7d73bde980ee111cc5ac05",
+    "configuration_hash": "ab21114ee604dea14915feca4e9273f26e186cb8fcdf1fc2454633565649fce2",
+    "dirty": false,
+    "implementation_sha256": "91178bab822447837f16164bcf15cc20cbb3e32cf457eaac16361592c31dbae5"
+  }
+}
