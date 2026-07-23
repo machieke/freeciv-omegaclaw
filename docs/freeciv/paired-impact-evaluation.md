@@ -202,13 +202,26 @@ FREECIV_RULESET_ROOT="$FREECIV_LLM_ROOT/freeciv/freeciv/data" \
 PYTHONPATH=src:benchmarks python3 scripts/freeciv/run_impact_evaluation.py \
   --out artifacts/freeciv/impact-terminal-elimination-v1-engine \
   --backend engine-live --cohort diagnostic_terminal_elimination_v1 \
-  --workers 2 --server-ports 6001,6002
+  --workers 2 --server-ports 6001,6003
 ```
 
 The original `confirmatory_score_horizon_60_v4` remains reproducible from commit
 `b59205c57a481bda657d7a71af9657fd014f87fb`, but its 897 old-code completions
 cannot be pooled with corrected terminal arms. It is retired with three active
 infrastructure failures rather than relabeled or source-mixed.
+
+The completed diagnostic is frozen at source
+`224fb704e7aa731433a83bdf84553a3f82974196`. All four arms completed and both
+pairs are complete. The three exposed failures now terminate authoritatively at
+turns 54 (baseline `2119913`), 52 (treatment `2119913`), and 49 (baseline
+`2146151`); treatment `2146151` reaches the fixed turn-60 horizon. The final run
+has zero active infrastructure failures, matching initial states, stable clean
+source, and passing safety gates. Two earlier pregame port-recycle failures remain
+under `attempt-history/` as historical operational evidence. All event streams and
+the cognitive-trace release audit pass. The aggregate SHA-256 is
+`153d89970ef495175735486225ff09c174336b8a2b0fa96d59e5836cb85aa09f`.
+This exposed two-pair diagnostic remains claim-ineligible and cannot update or be
+pooled into a score or win-rate claim.
 
 Runs resume only manifest-identical completed arms. `--aggregate-only` rebuilds a
 selected cohort report without executing games. Superseded attempts remain under

@@ -1160,3 +1160,40 @@ Predeclare early elimination as an absorbing authoritative terminal score carrie
 the fixed horizon, with the observation turn and terminal reason retained. Validate
 the exposed seeds only in non-claim cohort `diagnostic_terminal_elimination_v1` before
 freezing any fresh confirmation cohort.
+
+### Terminal-elimination correction confirmation
+
+The correction was implemented and frozen at source
+`224fb704e7aa731433a83bdf84553a3f82974196`. The packet-backed
+`PACKET_PLAYER_INFO.is_alive` value now reaches the authoritative proxy response,
+typed DTO, immutable snapshot, and live harness. A false value suppresses stale own
+assets and legal actions, permits an exact terminal snapshot at the current turn,
+blocks a post-elimination action, and records the predeclared absorbing terminal
+score. Asset emptiness is no longer treated as proof of elimination, preserving the
+valid city-owned/unitless state.
+
+The engine-backed diagnostic at
+`artifacts/freeciv/impact-terminal-elimination-v1-engine` completed all four arms and
+both pairs. The three former timeout arms ended from the authoritative packet:
+
+- baseline seed `2119913`: terminal at turn 54;
+- treatment seed `2119913`: terminal at turn 52;
+- baseline seed `2146151`: terminal at turn 49.
+
+Treatment seed `2146151`, the paired control, reached the fixed turn-60 horizon.
+Every arm completed without an active infrastructure failure, engine rejection, or
+model fallback; paired initial-state fidelity, source freeze, and all safety gates
+passed. All four event streams passed schema validation, and the release audit
+passed with cognitive-trace enforcement. Aggregate SHA-256 is
+`153d89970ef495175735486225ff09c174336b8a2b0fa96d59e5836cb85aa09f`.
+
+The first diagnostic attempt retained two pregame port-recycle failures for seed
+`2146151` as historical attempt evidence. Resuming on a healthy isolated port reused
+the two manifest-identical completed arms and ran only the affected pair; the final
+run summary reports four completed arms, zero active infrastructure failures, and two
+resumed arms.
+
+This diagnostic is deliberately claim-ineligible. Its two-pair score delta of `+8`
+(`+2` to `+14` paired-bootstrap interval; exact paired randomization `p=0.5`) is
+mechanism evidence only and must not update a score or win-rate claim. V4 remains
+retired, and its 897 old-code completions remain unpooled.
