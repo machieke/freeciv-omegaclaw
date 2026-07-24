@@ -362,6 +362,16 @@ lead-rate evidence remained sparse and inconclusive. The result and frozen
 100-pair score-only confirmatory design are recorded in
 [`evidence/pf-pressure-direct-completion-pilot-v1.md`](evidence/pf-pressure-direct-completion-pilot-v1.md).
 
+The predeclared confirmation subsequently completed all 100 pairs and 200
+engine arms with zero failures, exact arm-order balance, matched initial
+states, passing safety gates, 200 valid event schemas, and exact replay of all
+6,726 treatment decisions. Its standalone score delta was +0.03 with interval
+[-0.25, 0.31] and exact sign-flip p=0.8912 across 34 nonzero pairs. The
+predeclared +0.5-point superiority claim is not supported, and the pilot and
+confirmation are not pooled. Correctness, safety, provenance, artifact
+identity, and secondary diagnostics are recorded in
+[`evidence/pf-pressure-direct-completion-confirmatory-v1.md`](evidence/pf-pressure-direct-completion-confirmatory-v1.md).
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` defaults to `false` unless the runtime profile enables it.
 This preserves unit-level policy isolation and makes an unpressured ablation

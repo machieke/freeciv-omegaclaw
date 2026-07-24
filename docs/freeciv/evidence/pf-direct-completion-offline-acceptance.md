@@ -122,7 +122,12 @@ exact-replay gates. Score changed by +0.475 with interval [0.075, 0.975] and
 exact sign-flip p=0.046875. Lead rate changed by +2.5 points with only three
 discordant pairs and McNemar p=1.0.
 
-The result is directionally strong enough to justify the separately
+The result was directionally strong enough to justify the separately
 predeclared, score-only `pressure_direct_completion_confirmatory_v1` cohort,
-but remains a claim-ineligible pilot and is not pooled. Full evidence is in
-[`pf-pressure-direct-completion-pilot-v1.md`](pf-pressure-direct-completion-pilot-v1.md).
+but remained a claim-ineligible pilot and was not pooled. That 100-pair
+confirmation subsequently completed with a +0.03 score delta, interval
+[-0.25, 0.31], and exact sign-flip p=0.8912. It did not support a score
+improvement claim. Full evidence is in
+[`pf-pressure-direct-completion-pilot-v1.md`](pf-pressure-direct-completion-pilot-v1.md)
+and
+[`pf-pressure-direct-completion-confirmatory-v1.md`](pf-pressure-direct-completion-confirmatory-v1.md).

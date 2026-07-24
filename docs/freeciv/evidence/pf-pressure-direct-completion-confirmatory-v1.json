@@ -1,0 +1,103 @@
+{
+  "artifacts": {
+    "impact_aggregate": {
+      "path": "artifacts/freeciv/pf-pressure-direct-completion-confirmatory-v1/impact-aggregate.json",
+      "sha256": "b738519f1668e6ee681f9cee42c9b776bb76ae62464fea1394d4c38c93b8ba7e"
+    },
+    "impact_report": {
+      "path": "artifacts/freeciv/pf-pressure-direct-completion-confirmatory-v1/impact-report.md",
+      "sha256": "004245bb437d9f40c283191096d6b771e676ca825739fdf8fcbddffb4b5ca124"
+    },
+    "pressure_replay": {
+      "path": "artifacts/freeciv/pf-pressure-direct-completion-confirmatory-v1/pressure-replay-100.json",
+      "sha256": "00190f0add66583da403429595d4a13a265653be78f4ec3ae214d36b652ec9a7"
+    },
+    "run_summary": {
+      "path": "artifacts/freeciv/pf-pressure-direct-completion-confirmatory-v1/impact-run-summary.json",
+      "sha256": "497ffc1f91c83c548181333580012fff52baf351a95b3af9eb823beb414f0cc6"
+    }
+  },
+  "claim_evaluation": {
+    "claimable": [],
+    "score_status": "failed",
+    "status": "no_claim",
+    "win_rate_status": "not_declared"
+  },
+  "cohort": {
+    "claim_eligible": true,
+    "completed_arms": 200,
+    "completed_pairs": 100,
+    "controller_workers": 3,
+    "horizon_turn": 60,
+    "infrastructure_failures": 0,
+    "order_counts": {
+      "baseline_first": 50,
+      "treatment_first": 50
+    },
+    "planned_pairs": 100,
+    "seed_namespace": "pf-pln-pressure-direct-completion-confirmatory-v1"
+  },
+  "conductance_feedback": {
+    "credit_kind_counts": {
+      "direct_goal_relief": 1043,
+      "downstream_goal_relief": 818,
+      "effect_without_goal_relief": 5433,
+      "no_progress": 231
+    },
+    "total_updates": 7525
+  },
+  "decision_replay": {
+    "changed_decisions": 384,
+    "decision_change_rate": 0.057091882247992866,
+    "exact_replay_files": 100,
+    "integrity_failures": 0,
+    "source_set_hash": "e9b532ac1069b57fd5fc7e87fa7d8e4881e2a2def440f3f9f6a302b61aad62cf",
+    "sources_unchanged": true,
+    "total_decisions": 6726
+  },
+  "direct_completion": {
+    "city_founding_floor_decisions": 31,
+    "floor_decisions": 83,
+    "floor_selected": 76,
+    "hut_exploration_floor_decisions": 53,
+    "nonselected_due_to_safety": 5,
+    "preparatory_routes_floored": 0
+  },
+  "invariants": {
+    "all_event_files_schema_valid": true,
+    "category_priority_and_cost_invariance_failures": 0,
+    "engine_rejected_action_rate": {
+      "baseline": 0,
+      "treatment": 0
+    },
+    "paired_initial_state_fidelity_passed": true,
+    "pressure_replay_integrity_passed": true,
+    "safety_gates_passed": true,
+    "safety_selection_failures": 0,
+    "source_freeze_passed": true
+  },
+  "outcomes": {
+    "baseline_score_mean": 116.54,
+    "score_delta": {
+      "estimate": 0.03,
+      "lower": -0.25,
+      "nonzero_pairs": 34,
+      "paired_randomization_p": 0.8912074994295835,
+      "upper": 0.31
+    },
+    "treatment_score_mean": 116.57
+  },
+  "power": {
+    "achieved_power": 0.9351702597611058,
+    "detectable_delta": 0.4030582515943949,
+    "minimum_detectable_delta": 0.5,
+    "observed_paired_score_sd": 1.4386792484073652
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "a7099210f3c0ec6b31ba32dd8259dbf2c5730821",
+    "configuration_hash": "5f71bf1664e75d2cc1194eaafeb6eac634bae63ca4d0071dc251021ffc3d8094",
+    "dirty": false,
+    "implementation_sha256": "949f7752ca9aeb97b69b0f2e8eef195e91498a01cc2d4213f512dd94c72fac7f"
+  }
+}

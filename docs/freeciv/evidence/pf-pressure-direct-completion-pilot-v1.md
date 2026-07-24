@@ -52,14 +52,18 @@ by +1.825 with interval [-0.100, 3.975], and meaningful action rate changed by
 +0.0404 actions/turn with interval [-0.0279, 0.1121].
 
 The paired score SD was 1.4498. A fresh score-only confirmatory cohort of 100
-pairs is predeclared as
-`pressure_direct_completion_confirmatory_v1`, with a 0.5-point minimum
-detectable delta and maximum planning SD 1.5. It uses a disjoint
-SHA-256-derived 3,100,000–3,299,999 seed range, clean-source enforcement,
-three workers, and the same isolated pressure-off/pressure-on arms.
+pairs was predeclared as `pressure_direct_completion_confirmatory_v1`, with a
+0.5-point minimum detectable delta and maximum planning SD 1.5. It used a
+disjoint SHA-256-derived 3,100,000–3,299,999 seed range, clean-source
+enforcement, three workers, and the same isolated pressure-off/pressure-on
+arms.
 
-The confirmatory cohort must be committed before execution and must run
-without pair limiting. Its result stands alone; the pilot is not pooled.
+That cohort subsequently completed without pair limiting. Its standalone
+score delta was +0.03 with interval [-0.25, 0.31] and exact sign-flip
+p=0.8912. It did not replicate the pilot or support the predeclared score
+claim. The pilot and confirmation are not pooled. Full confirmatory evidence
+is in
+[`pf-pressure-direct-completion-confirmatory-v1.md`](pf-pressure-direct-completion-confirmatory-v1.md).
 
 ## Reproduction
 
