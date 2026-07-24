@@ -525,6 +525,33 @@ paired_impact:
         count: 40
         minimum: 3000000
         maximum: 3099999
+    pressure_direct_completion_confirmatory_v1:
+      purpose: confirmatory
+      claim_eligible: true
+      require_clean_source: true
+      endpoints: [score_turn_n]
+      horizon_turn: 60
+      planned_pairs: 100
+      controller_workers: 3
+      score_design:
+        minimum_detectable_delta: 0.5
+        maximum_planning_sd: 1.5
+      isolated_policy_keys:
+        - pressure_enabled
+        - pressure_learning_enabled
+      arms:
+        baseline:
+          pressure_enabled: false
+          pressure_learning_enabled: false
+        treatment:
+          pressure_enabled: true
+          pressure_learning_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-pressure-direct-completion-confirmatory-v1
+        count: 100
+        minimum: 3100000
+        maximum: 3299999
   retired_cohorts:
     confirmatory_score_horizon_60_v4:
       retired_reason: terminal_player_elimination_misclassified_as_infrastructure_timeout

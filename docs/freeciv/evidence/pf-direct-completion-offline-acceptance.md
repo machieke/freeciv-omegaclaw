@@ -1,7 +1,7 @@
 # PF-PLN candidate-scoped direct-completion offline acceptance
 
-Status: deterministic and retrospective replay acceptance passed; fresh
-engine pilot predeclared
+Status: deterministic, retrospective replay, and fresh 40-pair engine/replay
+acceptance passed
 
 ## Diagnosed scope defect
 
@@ -116,8 +116,13 @@ derived by `sha256-counter-v1` under namespace
 3,000,000–3,099,999 range. It retains turn 60, exact pressure-only arm
 isolation, clean-source enforcement, and three controller workers.
 
-This cohort is a claim-ineligible semantic pilot. It must pass source,
+This cohort subsequently completed all 40 pairs and passed source,
 initial-state, arm-isolation, safety, event-schema, decision-provenance, and
-exact-replay gates. Its outcome is not pooled with prior pilots. A larger
-precision or confirmatory cohort remains unjustified until this fresh gate
-shows that the correction is safe and directionally useful.
+exact-replay gates. Score changed by +0.475 with interval [0.075, 0.975] and
+exact sign-flip p=0.046875. Lead rate changed by +2.5 points with only three
+discordant pairs and McNemar p=1.0.
+
+The result is directionally strong enough to justify the separately
+predeclared, score-only `pressure_direct_completion_confirmatory_v1` cohort,
+but remains a claim-ineligible pilot and is not pooled. Full evidence is in
+[`pf-pressure-direct-completion-pilot-v1.md`](pf-pressure-direct-completion-pilot-v1.md).

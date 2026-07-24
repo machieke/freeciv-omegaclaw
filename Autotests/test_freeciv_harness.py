@@ -86,6 +86,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "pressure_category_invariance_pilot_v1": 40,
         "pressure_opportunity_cost_pilot_v1": 40,
         "pressure_direct_completion_pilot_v1": 40,
+        "pressure_direct_completion_confirmatory_v1": 100,
     }
     seed_sets = [set(row["seeds"]) for row in paired["cohorts"].values()]
     assert all(not left & right for index, left in enumerate(seed_sets)

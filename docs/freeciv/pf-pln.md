@@ -356,6 +356,12 @@ Candidate-scoped direct-completion optimism, deterministic gates, exact
 `pressure_direct_completion_pilot_v1` declaration are recorded in
 [`evidence/pf-direct-completion-offline-acceptance.md`](evidence/pf-direct-completion-offline-acceptance.md).
 
+That fresh 40-pair gate passed every semantic and replay invariant. Its
+claim-ineligible score delta was +0.475 with interval [0.075, 0.975], while
+lead-rate evidence remained sparse and inconclusive. The result and frozen
+100-pair score-only confirmatory design are recorded in
+[`evidence/pf-pressure-direct-completion-pilot-v1.md`](evidence/pf-pressure-direct-completion-pilot-v1.md).
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` defaults to `false` unless the runtime profile enables it.
 This preserves unit-level policy isolation and makes an unpressured ablation

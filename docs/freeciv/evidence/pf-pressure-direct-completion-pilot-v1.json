@@ -1,0 +1,109 @@
+{
+  "artifacts": {
+    "impact_aggregate": {
+      "path": "artifacts/freeciv/pf-pressure-direct-completion-pilot-v1/impact-aggregate.json",
+      "sha256": "fc703a7441bcc3b0752c3cc4928b0002cedd03dd03ca7f0ccbaa5b2c016c1b2b"
+    },
+    "impact_report": {
+      "path": "artifacts/freeciv/pf-pressure-direct-completion-pilot-v1/impact-report.md",
+      "sha256": "8147b26a0b1b6f7bba889bea0ad6409b692b11b1f238171755164a3bd5df12f3"
+    },
+    "pressure_replay": {
+      "path": "artifacts/freeciv/pf-pressure-direct-completion-pilot-v1/pressure-replay-40.json",
+      "sha256": "c3c6935aae319d589208dd8c0f426115f7626047ca764e0bbcad323db46448de"
+    },
+    "run_summary": {
+      "path": "artifacts/freeciv/pf-pressure-direct-completion-pilot-v1/impact-run-summary.json",
+      "sha256": "5ee1fd70a0ff6a7f92831900545b4864736d729d38c188d22b28cf1491545908"
+    }
+  },
+  "claim_status": "ineligible_pilot",
+  "cohort": {
+    "completed_arms": 80,
+    "completed_pairs": 40,
+    "controller_workers": 3,
+    "horizon_turn": 60,
+    "infrastructure_failures": 0,
+    "order_counts": {
+      "baseline_first": 20,
+      "treatment_first": 20
+    },
+    "planned_pairs": 40,
+    "seed_namespace": "pf-pln-pressure-direct-completion-pilot-v1"
+  },
+  "conductance_feedback": {
+    "credit_kind_counts": {
+      "direct_goal_relief": 477,
+      "downstream_goal_relief": 361,
+      "effect_without_goal_relief": 2174,
+      "no_progress": 108
+    },
+    "total_updates": 3120
+  },
+  "decision_replay": {
+    "changed_decisions": 181,
+    "decision_change_rate": 0.06543745480838756,
+    "exact_replay_files": 40,
+    "integrity_failures": 0,
+    "source_set_hash": "7296bd5855b2bf6cede4c6cafbe47053057e0bcb32c7be1c5c59e9712349d81b",
+    "sources_unchanged": true,
+    "total_decisions": 2766
+  },
+  "direct_completion": {
+    "city_founding_floor_decisions": 28,
+    "floor_decisions": 44,
+    "floor_selected": 42,
+    "hut_exploration_floor_decisions": 16,
+    "nonselected_due_to_safety": 2,
+    "preparatory_routes_floored": 0
+  },
+  "invariants": {
+    "all_event_files_schema_valid": true,
+    "engine_rejected_action_rate": {
+      "baseline": 0,
+      "treatment": 0
+    },
+    "paired_initial_state_fidelity_passed": true,
+    "pressure_replay_integrity_passed": true,
+    "safety_gates_passed": true,
+    "safety_selection_failures": 0,
+    "source_freeze_passed": true
+  },
+  "outcomes": {
+    "baseline_score_mean": 117.65,
+    "cities_founded_delta": {
+      "estimate": 0.025,
+      "lower": 0.0,
+      "upper": 0.075
+    },
+    "score_delta": {
+      "estimate": 0.475,
+      "lower": 0.075,
+      "nonzero_pairs": 9,
+      "paired_randomization_p": 0.046875,
+      "upper": 0.975
+    },
+    "treatment_score_mean": 118.125,
+    "win_rate_delta": {
+      "baseline_only_wins": 1,
+      "estimate": 0.025,
+      "exact_mcnemar_p": 1.0,
+      "lower": -0.05,
+      "treatment_only_wins": 2,
+      "upper": 0.1
+    }
+  },
+  "power": {
+    "confirmatory_minimum_detectable_delta": 0.5,
+    "confirmatory_planned_pairs": 100,
+    "maximum_planning_sd": 1.5,
+    "observed_paired_score_sd": 1.4498010473589387
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "4fb7032b01fca26bfffa27a648a96aaa2140d666",
+    "configuration_hash": "1700afe166ac62f76ea5f3f1ac4f556d52afcd51775150a1b2cbe10edaa0ee8c",
+    "dirty": false,
+    "implementation_sha256": "949f7752ca9aeb97b69b0f2e8eef195e91498a01cc2d4213f512dd94c72fac7f"
+  }
+}
