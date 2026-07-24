@@ -118,6 +118,15 @@ conductance 1.0. Grounded no-progress feedback decays them from that prior.
 This prevents a frequently exercised instrumental movement route from
 automatically suppressing a rare, immediately legal goal-completion route.
 
+Candidate/site suppression is applied before category learning. When the
+remaining legal set exposes a new direct settlement completion or an exact
+move onto a packet-known hut, failure learned under other action groundings
+cannot penalize that completion a second time. Its effective conductance is
+floored at the configured initial prior for that decision only, provided it is
+also the highest-valued current action serving its goal. The learned ledger is
+not mutated, preparatory routes retain learned conductance, and each decision
+records learned/effective values plus the authoritative floor source.
+
 Reverse expansion uses a deterministic expected-transport beam, configured by
 `pressure_max_routes_per_conclusion`. Conclusions with at most 32 routes are
 unchanged; wider conclusions expand the 32 highest-value routes with stable
@@ -339,6 +348,13 @@ pilot, but the score interval crosses zero and only two pairs are lead-rate
 discordant. The cohort remains claim-ineligible and no confirmation is frozen.
 Full results are in
 [`evidence/pf-pressure-opportunity-cost-pilot-v1.md`](evidence/pf-pressure-opportunity-cost-pilot-v1.md).
+
+The subsequent paired heterogeneity audit found that exact-site pruning and
+global category conductance were both consuming the same failure evidence.
+Candidate-scoped direct-completion optimism, deterministic gates, exact
+2,535-decision retrospective replay, and the fresh
+`pressure_direct_completion_pilot_v1` declaration are recorded in
+[`evidence/pf-direct-completion-offline-acceptance.md`](evidence/pf-direct-completion-offline-acceptance.md).
 
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` defaults to `false` unless the runtime profile enables it.

@@ -86,3 +86,9 @@ fixed-horizon lead rate changed by +5.0 percentage points with interval
 [0.0, 12.5]. The positive directional result remains statistically
 inconclusive and claim-ineligible. Full results are recorded in
 [`pf-pressure-opportunity-cost-pilot-v1.md`](pf-pressure-opportunity-cost-pilot-v1.md).
+
+The required follow-up audit subsequently found one candidate-scope defect:
+failed settlement sites were pruned exactly and also penalized later distinct
+sites through global category conductance. The isolated correction,
+retrospective replay, and next fresh gate are recorded in
+[`pf-direct-completion-offline-acceptance.md`](pf-direct-completion-offline-acceptance.md).

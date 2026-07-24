@@ -267,12 +267,17 @@ export type OperationScored = {
 export type ConductanceUpdated = {
   "applied": boolean;
   "category": string;
+  "caused_by_feedback_id"?: string;
   "conductance": number;
+  "credit_kind"?: "no_progress" | "effect_without_goal_relief" | "direct_goal_relief" | "downstream_goal_relief";
   "effect_observed": boolean;
   "feedback_id": string;
-  "learning_method": "grounded-effect-ema-v1";
+  "learning_method": "grounded-effect-ema-v1" | "grounded-goal-relief-ema-v2";
   "no_progress": number;
+  "no_progress_amount"?: number;
   "previous_conductance": number;
+  "realized_relief"?: number;
+  "relief_source"?: string;
   "rule_id": string;
   "state_hash": string;
   "successes": number;

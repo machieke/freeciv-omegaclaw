@@ -501,6 +501,30 @@ paired_impact:
         count: 40
         minimum: 2900000
         maximum: 2999999
+    pressure_direct_completion_pilot_v1:
+      purpose: pilot
+      claim_eligible: false
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 40
+      controller_workers: 3
+      isolated_policy_keys:
+        - pressure_enabled
+        - pressure_learning_enabled
+      arms:
+        baseline:
+          pressure_enabled: false
+          pressure_learning_enabled: false
+        treatment:
+          pressure_enabled: true
+          pressure_learning_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-pressure-direct-completion-pilot-v1
+        count: 40
+        minimum: 3000000
+        maximum: 3099999
   retired_cohorts:
     confirmatory_score_horizon_60_v4:
       retired_reason: terminal_player_elimination_misclassified_as_infrastructure_timeout

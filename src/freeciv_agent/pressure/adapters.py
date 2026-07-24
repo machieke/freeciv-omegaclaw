@@ -192,6 +192,27 @@ class ImpactPressureRanker(object):
         return "score"
 
     @staticmethod
+    def _direct_completion_source(category, rows):
+        """Identify a currently grounded, candidate-scoped goal completion.
+
+        Category conductance is deliberately reusable across instrumental
+        routes, but a failure at one exact settlement site or hut approach is
+        not evidence against a newly legal direct completion at another
+        grounding. The Impact planner separately suppresses unchanged failed
+        actions and settlement sites before candidates reach this adapter.
+        """
+        if category == "city_founding" and any(
+                candidate.action.get("action_type") == "unit_build_city"
+                for candidate, _ in rows):
+            return "authoritative:new-legal-settlement-site"
+        if category == "hut_exploration" and any(
+                bool((candidate.projection or {}).get(
+                    "target_is_known_hut"))
+                for candidate, _ in rows):
+            return "authoritative:move-enters-packet-known-hut"
+        return None
+
+    @staticmethod
     def _wrapped_distance(left, right, width, height):
         if any(getattr(row, key, None) is None
                for row in (left, right) for key in ("x", "y")):
@@ -289,7 +310,7 @@ class ImpactPressureRanker(object):
 
     def rank(
             self, snapshot, candidates, expansion_city_target, horizon_turn,
-            survival_threat_radius=3):
+            survival_threat_radius=3, _goal_specs_override=None):
         candidates = tuple(candidates)
         if not candidates:
             return (), None
@@ -297,9 +318,12 @@ class ImpactPressureRanker(object):
                 or not 1 <= int(survival_threat_radius) <= 12):
             raise ValueError("survival threat radius must be in 1..12")
         graph = PressureGraph()
-        goal_specs = self._grounded_goal_specs(
-            snapshot, candidates, expansion_city_target,
-            survival_threat_radius)
+        goal_specs = (
+            self._grounded_goal_specs(
+                snapshot, candidates, expansion_city_target,
+                survival_threat_radius)
+            if _goal_specs_override is None
+            else dict(_goal_specs_override))
         goals = []
         grouped = dict((key, {}) for key in goal_specs)
         candidate_by_operation = {}
@@ -358,6 +382,7 @@ class ImpactPressureRanker(object):
                  for category in categories),
                 default=0.0))
             for goal_name, categories in grouped.items())
+        decision_conductance = {}
         # Safety is lexicographic only when an authoritative survival deficit
         # is active and the current legal set contains a grounded survival
         # operation. Otherwise rejecting all non-safety work would leave no
@@ -382,9 +407,35 @@ class ImpactPressureRanker(object):
                     # A category is actionable when at least one of its member
                     # operations is grounded in the legal-action set.
                     Resolvability(act=1.0))
-                conductance = (
+                learned_conductance = (
                     self.conductance_state.value(category)
                     if self.conductance_state is not None else 1.0)
+                direct_completion_source = self._direct_completion_source(
+                    category, rows)
+                # Contextual optimism must not override the planner's own
+                # grounded preference for a more valuable operation serving
+                # the same goal (for example, moving to a demonstrably better
+                # settlement site). It only prevents stale cross-context
+                # conductance from demoting the goal's current best action.
+                if (direct_completion_source is not None
+                        and category_utility
+                        < goal_maximum_utility[goal_name]):
+                    direct_completion_source = None
+                optimistic_conductance = (
+                    self.conductance_state.initial_conductance
+                    if self.conductance_state is not None else 1.0)
+                conductance = (
+                    max(learned_conductance, optimistic_conductance)
+                    if direct_completion_source is not None
+                    else learned_conductance)
+                decision_conductance[category] = {
+                    "direct_completion_source": direct_completion_source,
+                    "effective_conductance": float(conductance),
+                    "learned_conductance": float(learned_conductance),
+                    "optimistic_floor_applied": bool(
+                        direct_completion_source is not None
+                        and conductance > learned_conductance),
+                }
                 graph.add_rule(PressureRule(
                     "pf-impact-category-route:{}".format(category),
                     (category_atom_id,),
@@ -396,10 +447,13 @@ class ImpactPressureRanker(object):
                         "adapter": "grounded-impact-planner",
                         "category": category,
                         "conductance_state_hash": (
-                            conductance_snapshot["state_hash"]
+                            conductance_snapshot.get("state_hash")
                             if conductance_snapshot is not None else None),
+                        "direct_completion_source": direct_completion_source,
+                        "effective_conductance": float(conductance),
                         "grounded_category_utility": category_utility,
                         "grounded_goal_utility_ceiling": goal_utility_ceiling,
+                        "learned_conductance": float(learned_conductance),
                     }))
                 graph.add_rule(PressureRule(
                     "pf-impact-candidate-route:{}".format(category),
@@ -451,6 +505,13 @@ class ImpactPressureRanker(object):
         ordered = tuple(sorted(candidates, key=lambda candidate: (
             rank.get(operation_by_candidate[id(candidate)], len(rank)),
             -candidate.utility, candidate.category, candidate.action_key)))
+        if conductance_snapshot is not None:
+            # The persisted state hash continues to identify only learned
+            # feedback. This decision-scoped projection records when a new
+            # direct grounding used its optimistic prior instead.
+            conductance_snapshot["decision_routes"] = dict(
+                (category, decision_conductance[category])
+                for category in sorted(decision_conductance))
         artifact = {
             "conductance_state": (
                 conductance_snapshot),

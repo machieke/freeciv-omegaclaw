@@ -5,10 +5,11 @@ import hashlib
 import json
 import os
 from collections import Counter
+from types import SimpleNamespace
 
 from freeciv_agent.events.schema import canonical_json_bytes, structural_hash
-from freeciv_agent.planning import GroundedImpactPlanner
-from freeciv_agent.pressure import ImpactPressureRanker
+from freeciv_agent.planning import GroundedImpactPlanner, ImpactCandidate
+from freeciv_agent.pressure import ImpactPressureRanker, PressureConfig
 from freeciv_agent.state import ProxyStateDTO
 
 
@@ -164,6 +165,125 @@ def opportunity_rescore(scores, pressure):
             None if selected is None
             else selected["operation"]["operation_id"]),
     }
+
+
+class _RecordedConductance(object):
+    """Read-only conductance view for decision counterfactual replay."""
+
+    def __init__(self, snapshot, direct_completion_floor):
+        self._snapshot = copy.deepcopy(snapshot or {})
+        configuration = self._snapshot.get("configuration", {})
+        self.initial_conductance = (
+            float(configuration.get("initial_conductance", 1.0))
+            if direct_completion_floor else 0.0)
+
+    def value(self, category):
+        row = self._snapshot.get("routes", {}).get(str(category), {})
+        return float(row.get(
+            "conductance",
+            self._snapshot.get("configuration", {}).get(
+                "initial_conductance", 1.0)))
+
+    def decision_snapshot(self):
+        return copy.deepcopy(self._snapshot)
+
+
+def _pressure_config(value):
+    value = dict(value or {})
+    if isinstance(value.get("cost_weights"), dict):
+        value["cost_weights"] = tuple(sorted(
+            (str(name), float(weight))
+            for name, weight in value["cost_weights"].items()))
+    return PressureConfig(**value)
+
+
+def _recorded_goal_specs(pressure):
+    """Recover adapter inputs from a complete pressure decision artifact."""
+    dependency = pressure.get("dependency", {})
+    specs = {}
+    for goal in pressure.get("goals", ()):
+        goal_id = str(goal["goal_id"])
+        name = goal_id.rsplit(":", 1)[-1]
+        utility = float(goal["utility"])
+        urgency = float(goal["urgency"])
+        commitment = float(goal["commitment"])
+        demand = float(dependency.get(goal_id, {}).get(
+            goal["target_atom_id"], 0.0))
+        weight = utility * urgency * commitment
+        gap = min(1.0, demand / weight) if weight > 0.0 else 0.0
+        strength = max(
+            0.0, min(1.0, float(goal["target_strength"]) - gap))
+        context = tuple(goal.get("context", ()))
+        specs[name] = (
+            strength, utility, bool(goal.get("safety")),
+            context[0] if context else "recorded:no-context")
+    required = {"survival", "expansion", "score", "exploration"}
+    if set(specs) != required:
+        raise ValueError(
+            "direct completion replay requires all grounded goals")
+    return specs
+
+
+def direct_completion_rescore(scores, pressure, conductance_state, turn):
+    """Recompute one recorded decision with candidate-scoped direct optimism.
+
+    Goal truth, candidates, utilities, learned conductance, and pressure
+    configuration are recovered from the immutable event artifacts. The only
+    changed input is whether a newly grounded direct completion receives the
+    conductance state's initial prior instead of another context's learned
+    category penalty.
+    """
+    candidates = []
+    by_action = {}
+    for score in scores:
+        value = _candidate(score)
+        payload = score.get("operation", {}).get("payload", {})
+        if value is None:
+            raise ValueError(
+                "direct completion rescore requires complete candidates")
+        candidate = ImpactCandidate(
+            value["action"], value["category"], value["utility"],
+            payload.get("rationale", "recorded grounded candidate"),
+            payload.get("projection"))
+        candidates.append(candidate)
+        by_action[candidate.action_key] = value["operation_id"]
+    if len(by_action) != len(candidates):
+        raise ValueError(
+            "direct completion rescore requires unique candidate actions")
+
+    goals = pressure.get("goals", ())
+    score_goal = next(
+        goal for goal in goals
+        if goal.get("goal_id") == "pf-impact:score")
+    score_urgency = float(score_goal.get("urgency", 1.0))
+    remaining = (
+        max(1, int(round(1.0 / (score_urgency - 1.0))))
+        if score_urgency > 1.0 else 1)
+    horizon_turn = int(turn) + remaining
+    specs = _recorded_goal_specs(pressure)
+    snapshot = SimpleNamespace(turn=int(turn))
+    config = _pressure_config(pressure.get("config"))
+
+    results = {}
+    for name, floor in (
+            ("recorded_semantics", False),
+            ("direct_completion_semantics", True)):
+        ordered, artifact = ImpactPressureRanker(
+            config, _RecordedConductance(
+                conductance_state, direct_completion_floor=floor)).rank(
+                    snapshot, candidates, expansion_city_target=1,
+                    horizon_turn=horizon_turn,
+                    _goal_specs_override=specs)
+        selected = ordered[0]
+        results[name] = {
+            "category": selected.category,
+            "operation_id": by_action[selected.action_key],
+            "utility": float(selected.utility),
+        }
+        if name == "direct_completion_semantics":
+            results["decision_routes"] = artifact[
+                "conductance_state"].get("decision_routes", {})
+    return results
 
 
 def _schedule_hash(operation_payload, pressure_payload):
@@ -512,6 +632,100 @@ def opportunity_counterfactual_paths(
         "source_set_hash": structural_hash(source_set),
         "sources_unchanged": True,
         "total_decisions": len(decisions),
+    }
+    value["artifact_hash"] = structural_hash(value)
+    return value
+
+
+def direct_completion_counterfactual_paths(
+        paths, maximum_files=None, relative_to=None):
+    """Replay candidate-scoped direct-completion conductance over event files."""
+    files = discover_event_files(paths, maximum_files)
+    if not files:
+        raise ValueError("no events.jsonl files found")
+    relative_to = (
+        os.path.abspath(relative_to) if relative_to is not None else None)
+    decisions = []
+    integrity_failures = 0
+    source_set = []
+    for path in files:
+        display = (
+            os.path.relpath(path, relative_to)
+            if relative_to is not None else path)
+        source_hash = _file_sha256(path)
+        events = _load_events(path)
+        pressure_by_id = dict(
+            (event.get("payload", {}).get("pressure_id"),
+             event.get("payload", {}))
+            for event in events
+            if event.get("type") == "pressure_propagated")
+        for event in events:
+            if event.get("type") != "operation_scored":
+                continue
+            payload = event.get("payload", {})
+            pressure = pressure_by_id.get(payload.get("pressure_id"))
+            scores = payload.get("scores")
+            if pressure is None or not isinstance(scores, list) or not scores:
+                continue
+            rescored = direct_completion_rescore(
+                scores, pressure, pressure.get("conductance_state"),
+                event.get("turn", 0))
+            recorded_id = payload.get("selected_operation_id")
+            old = rescored["recorded_semantics"]
+            revised = rescored["direct_completion_semantics"]
+            integrity_passed = old["operation_id"] == recorded_id
+            if not integrity_passed:
+                integrity_failures += 1
+            changed = old["operation_id"] != revised["operation_id"]
+            direct_route = rescored["decision_routes"].get(
+                revised["category"], {})
+            decisions.append({
+                "changed": changed,
+                "decision_event_id": event.get("event_id"),
+                "direct_completion_source": direct_route.get(
+                    "direct_completion_source"),
+                "integrity_passed": integrity_passed,
+                "path": display,
+                "recorded_category": old["category"],
+                "recorded_operation_id": old["operation_id"],
+                "recorded_utility": old["utility"],
+                "revised_category": revised["category"],
+                "revised_operation_id": revised["operation_id"],
+                "revised_utility": revised["utility"],
+                "turn": int(event.get("turn", 0)),
+            })
+        if _file_sha256(path) != source_hash:
+            raise RuntimeError(
+                "counterfactual source changed while it was being read")
+        source_set.append({"path": display, "sha256": source_hash})
+
+    changed = [row for row in decisions if row["changed"]]
+    transitions = Counter(
+        "{} -> {}".format(
+            row["recorded_category"], row["revised_category"])
+        for row in changed)
+    value = {
+        "changed_decisions": len(changed),
+        "changed_rate": (
+            float(len(changed)) / len(decisions) if decisions else None),
+        "decisions": decisions,
+        "files_scanned": len(files),
+        "integrity_failures": int(integrity_failures),
+        "limitations": [
+            "Counterfactual replay holds grounded goals, candidates, utilities, learned conductance, and pressure configuration fixed.",
+            "It changes only decision-scoped conductance for a newly legal city or exact known-hut completion.",
+            "It cannot measure downstream engine score and is not a gameplay win-rate claim.",
+        ],
+        "mode": "candidate-scoped-direct-completion-counterfactual",
+        "schema_version": REPLAY_SCHEMA_VERSION,
+        "source_set": source_set,
+        "source_set_hash": structural_hash(source_set),
+        "sources_unchanged": True,
+        "total_decisions": len(decisions),
+        "transitions": dict(sorted(transitions.items())),
+        "utility_delta": sum(
+            row["revised_utility"] - row["recorded_utility"]
+            for row in changed),
     }
     value["artifact_hash"] = structural_hash(value)
     return value

@@ -18,6 +18,8 @@ from freeciv.pf_pressure_benchmark import (  # noqa: E402
     run_pressure_concentration_benchmark,
 )
 from freeciv.pf_pressure_replay import (  # noqa: E402
+    direct_completion_counterfactual_paths,
+    direct_completion_rescore,
     opportunity_counterfactual_paths,
     opportunity_rescore,
     replay_event_file,
@@ -372,12 +374,12 @@ def test_existing_proof_dag_adapts_to_pressure_without_truth_recalculation():
 
 
 class _Candidate(object):
-    def __init__(self, category, utility, suffix):
+    def __init__(self, category, utility, suffix, projection=None):
         self.category = category
         self.utility = utility
         self.action = {"action_type": suffix}
         self.rationale = suffix
-        self.projection = None
+        self.projection = projection
 
     @property
     def action_key(self):
@@ -431,6 +433,174 @@ def test_optimistic_untried_route_preserves_direct_goal_completion():
     assert routes["expansion_move"]["successes"] == 20
     assert state.value("city_founding") == 1.0
     assert state.value("expansion_move") < state.value("city_founding")
+
+
+def test_failed_sites_do_not_penalize_a_new_legal_city_completion():
+    snapshot = SimpleNamespace(
+        cities=(object(),), turn=30, visible_enemy_units=())
+    candidates = (
+        _Candidate("city_founding", 1000.0, "unit_build_city"),
+        _Candidate("expansion_move", 955.0, "unit_move"),
+    )
+    state = ConductanceState(
+        identity="candidate-scoped-city-completion",
+        initial_conductance=1.0)
+    for index in range(4):
+        state.feedback(
+            "city_founding", False,
+            "failed-site-{}".format(index))
+    for index in range(13):
+        state.feedback(
+            "expansion_move", True,
+            "expansion-route-{}".format(index))
+
+    ordered, artifact = ImpactPressureRanker(
+        conductance_state=state).rank(
+            snapshot, candidates, expansion_city_target=3, horizon_turn=60)
+
+    assert state.value("city_founding") < 1.0
+    assert ordered[0].category == "city_founding"
+    route = artifact["conductance_state"]["decision_routes"][
+        "city_founding"]
+    assert route == {
+        "direct_completion_source":
+            "authoritative:new-legal-settlement-site",
+        "effective_conductance": 1.0,
+        "learned_conductance": state.value("city_founding"),
+        "optimistic_floor_applied": True,
+    }
+
+
+def test_direct_completion_floor_does_not_override_better_same_goal_action():
+    snapshot = SimpleNamespace(
+        cities=(object(),), turn=18, visible_enemy_units=())
+    candidates = (
+        _Candidate("city_founding", 1000.0, "unit_build_city"),
+        _Candidate("expansion_move", 1015.0, "unit_move"),
+    )
+    state = ConductanceState(
+        identity="better-grounded-expansion-action",
+        initial_conductance=1.0)
+    for index in range(4):
+        state.feedback(
+            "city_founding", False,
+            "failed-site-{}".format(index))
+
+    ordered, artifact = ImpactPressureRanker(
+        conductance_state=state).rank(
+            snapshot, candidates, expansion_city_target=3, horizon_turn=60)
+
+    assert ordered[0].category == "expansion_move"
+    route = artifact["conductance_state"]["decision_routes"][
+        "city_founding"]
+    assert route["direct_completion_source"] is None
+    assert route["effective_conductance"] == state.value("city_founding")
+    assert not route["optimistic_floor_applied"]
+
+
+def test_known_hut_completion_is_not_penalized_by_other_hut_approaches():
+    snapshot = SimpleNamespace(
+        cities=(object(),), turn=15, visible_enemy_units=())
+    candidates = (
+        _Candidate(
+            "hut_exploration", 945.0, "unit_move",
+            {"target_is_known_hut": True}),
+        _Candidate("exploration_move", 670.0, "explore"),
+    )
+    state = ConductanceState(
+        identity="candidate-scoped-hut-completion",
+        initial_conductance=1.0)
+    for index in range(12):
+        state.feedback(
+            "hut_exploration", False,
+            "failed-hut-approach-{}".format(index))
+
+    ordered, artifact = ImpactPressureRanker(
+        conductance_state=state).rank(
+            snapshot, candidates, expansion_city_target=3, horizon_turn=60)
+
+    assert state.value("hut_exploration") < 1.0
+    assert ordered[0].category == "hut_exploration"
+    route = artifact["conductance_state"]["decision_routes"][
+        "hut_exploration"]
+    assert route["direct_completion_source"] == (
+        "authoritative:move-enters-packet-known-hut")
+    assert route["effective_conductance"] == 1.0
+    assert route["optimistic_floor_applied"]
+
+
+def test_preparatory_hut_routes_retain_learned_conductance():
+    snapshot = SimpleNamespace(
+        cities=(object(),), turn=15, visible_enemy_units=())
+    candidates = (
+        _Candidate(
+            "hut_exploration", 929.0, "unit_move",
+            {"target_is_known_hut": False}),
+        _Candidate("exploration_move", 690.0, "explore"),
+    )
+    state = ConductanceState(
+        identity="learnable-hut-approach", initial_conductance=1.0)
+    for index in range(12):
+        state.feedback(
+            "hut_exploration", False,
+            "failed-hut-approach-{}".format(index))
+
+    _, artifact = ImpactPressureRanker(
+        conductance_state=state).rank(
+            snapshot, candidates, expansion_city_target=3, horizon_turn=60)
+
+    route = artifact["conductance_state"]["decision_routes"][
+        "hut_exploration"]
+    assert route["direct_completion_source"] is None
+    assert route["effective_conductance"] == state.value("hut_exploration")
+    assert not route["optimistic_floor_applied"]
+
+
+def test_direct_completion_rescore_reconstructs_recorded_semantics_exactly():
+    snapshot = SimpleNamespace(
+        cities=(object(),), turn=30, visible_enemy_units=())
+    candidates = (
+        _Candidate("city_founding", 1000.0, "unit_build_city"),
+        _Candidate("expansion_move", 955.0, "unit_move"),
+    )
+    state = ConductanceState(
+        identity="direct-completion-replay",
+        initial_conductance=1.0)
+    for index in range(4):
+        state.feedback(
+            "city_founding", False,
+            "failed-site-{}".format(index))
+    for index in range(13):
+        state.feedback(
+            "expansion_move", True,
+            "expansion-route-{}".format(index))
+
+    class HistoricalView(object):
+        # Disable only the new floor while retaining the complete recorded
+        # state artifact expected by counterfactual replay.
+        initial_conductance = 0.0
+
+        def value(self, category):
+            return state.value(category)
+
+        def decision_snapshot(self):
+            return state.decision_snapshot()
+
+    old_ordered, old_artifact = ImpactPressureRanker(
+        conductance_state=HistoricalView()).rank(
+            snapshot, candidates, expansion_city_target=3, horizon_turn=60)
+    rescored = direct_completion_rescore(
+        old_artifact["schedule"]["scores"],
+        old_artifact["pressure"],
+        state.decision_snapshot(),
+        turn=30)
+
+    assert old_ordered[0].category == "expansion_move"
+    assert rescored["recorded_semantics"]["category"] == "expansion_move"
+    assert rescored["direct_completion_semantics"]["category"] == (
+        "city_founding")
+    assert rescored["decision_routes"]["city_founding"][
+        "optimistic_floor_applied"]
 
 
 def test_live_goal_truth_is_grounded_in_authoritative_threat_state():
@@ -658,6 +828,8 @@ def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
             (path,), relative_to=directory)
         counterfactual = opportunity_counterfactual_paths(
             (path,), relative_to=directory)
+        direct_counterfactual = direct_completion_counterfactual_paths(
+            (path,), relative_to=directory)
     assert report.valid, report.to_dict()
     assert replay["eligibility"] == "exact_candidate_replay"
     assert replay["source_unchanged"]
@@ -668,6 +840,10 @@ def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
     assert aggregate_replay["exact_replay_files"] == 1
     assert aggregate_replay["decision_change_rate"] == 1.0
     assert aggregate_replay["integrity_failures"] == 0
+    assert direct_counterfactual["files_scanned"] == 1
+    assert direct_counterfactual["total_decisions"] == 1
+    assert direct_counterfactual["integrity_failures"] == 0
+    assert direct_counterfactual["changed_decisions"] == 0
     assert aggregate_replay["sources_unchanged"]
     assert counterfactual["total_decisions"] == 1
     assert counterfactual["safety_active_decisions"] == 1

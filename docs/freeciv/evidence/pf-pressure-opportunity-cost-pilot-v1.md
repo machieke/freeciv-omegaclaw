@@ -57,14 +57,20 @@ The largest remaining substitutions were:
 - 14 `exploration_move` choices became safety-active `tactical_move`; and
 - 10 immediate `city_founding` choices became a safety operation.
 
-Those routes follow the intended safety and relevance semantics. Six
-non-safety direct opportunities still lost within or near their own goal:
-four `city_founding` choices became `expansion_move`, one known-hut choice
-became `exploration_move`, and one known-hut choice lost by one utility point
-to `expansion_move`. They followed learned conductance differences rather than
-category cardinality. Before another change, paired outcome heterogeneity and
-these direct-relief traces should be audited to establish whether this is a
-correct learnable failure response or an avoidable delay.
+Those routes follow the intended safety and relevance semantics. Five
+non-safety direct completions still lost within or near their own goal: four
+`city_founding` choices became `expansion_move`, and one exact known-hut entry
+became `exploration_move`. One additional known-hut approach lost by one
+utility point to `expansion_move`, but that action only reduced hut distance
+from two tiles to one and was preparatory rather than a direct completion.
+They followed learned conductance differences rather than category
+cardinality.
+
+The completed paired and grounding audit demonstrated that failed sites were
+penalizing later distinct legal sites after exact-site pruning had already
+consumed the failure evidence. The narrowly scoped correction and its
+zero-failure 2,535-decision retrospective replay are recorded in
+[`pf-direct-completion-offline-acceptance.md`](pf-direct-completion-offline-acceptance.md).
 
 The paired score SD was 1.1742, making the approximate detectable effect at
 40 pairs 0.5202 points. The harness's generic recommendation to freeze 30

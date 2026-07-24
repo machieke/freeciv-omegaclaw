@@ -8,6 +8,10 @@
       "path": "artifacts/freeciv/pf-pressure-opportunity-cost-pilot-v1/impact-report.md",
       "sha256": "3a9c567fae2f040190d5b198f7c7a262331a46a1e888df2ca8e3bf6d59762621"
     },
+    "direct_completion_counterfactual": {
+      "path": "artifacts/freeciv/pf-pressure-opportunity-cost-pilot-v1/direct-completion-counterfactual-40.json",
+      "sha256": "9b57bd6744f4e3e156b2b0d3177be4376450c308d463dfb8ee985c11c74b2602"
+    },
     "pressure_replay": {
       "path": "artifacts/freeciv/pf-pressure-opportunity-cost-pilot-v1/pressure-replay-40.json",
       "sha256": "60728d422116a19d16906c80590f00436d5be42b34bca2a1337a20386883addb"
@@ -52,8 +56,22 @@
   },
   "design_conclusion": {
     "confirmatory_action": "do_not_freeze_yet",
-    "reason": "The first positive directional estimate still has a score interval crossing zero, an exact score p-value of 0.450, and only two lead-rate discordances.",
-    "recommended_next_target": "Audit the remaining safe direct-goal-completion displacements and paired outcome heterogeneity before choosing a semantic correction or a fresh precision cohort."
+    "reason": "The first positive directional estimate still has a score interval crossing zero, an exact score p-value of 0.450, and only two lead-rate discordances. The completed heterogeneity audit also demonstrated cross-context conductance double-counting exact-site failure.",
+    "recommended_next_target": "Complete the predeclared pressure_direct_completion_pilot_v1 semantic gate before designing a larger precision cohort."
+  },
+  "direct_completion_counterfactual": {
+    "artifact_hash": "b1795f6dc6be9180e1d15da8256cc677b2ca337a86c07d29ec548c2f3d79c0e2",
+    "changed_decisions": 5,
+    "changed_rate": 0.0019723865877712033,
+    "files_scanned": 40,
+    "integrity_failures": 0,
+    "source_set_hash": "d8de8ff6e65e28b14d2fc4683dfff8cc5d4367a7044d7593c0ecc2a421f8f636",
+    "total_decisions": 2535,
+    "transitions": {
+      "expansion_move -> city_founding": 4,
+      "exploration_move -> hut_exploration": 1
+    },
+    "utility_delta": 415.0
   },
   "diagnostics": {
     "actionable_safety_decisions": 107,
@@ -98,7 +116,8 @@
       "upper": 1.025
     },
     "safe_city_founding_displacements": 4,
-    "safe_known_hut_displacements": 2,
+    "safe_direct_known_hut_displacements": 1,
+    "safe_preparatory_known_hut_displacements": 1,
     "settlement_attempts_delta": {
       "estimate": -0.075,
       "lower": -0.375,
@@ -113,6 +132,19 @@
       "authoritative:grounded-production-defense-deficit": 14,
       "authoritative:no-proximate-visible-threat-or-defense-deficit": 2022,
       "authoritative:visible-enemy-within-city-threat-radius:3": 499
+    },
+    "paired_score_heterogeneity": {
+      "negative_pairs": 3,
+      "nonzero_delta_distribution": {
+        "-3": 2,
+        "-1": 1,
+        "1": 7,
+        "2": 1,
+        "5": 1
+      },
+      "positive_pairs": 9,
+      "targeted_direct_decisions_in_negative_three_point_pairs": 4,
+      "zero_pairs": 28
     }
   },
   "invariants": {

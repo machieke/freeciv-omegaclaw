@@ -16,6 +16,7 @@ for candidate in (
         sys.path.insert(0, candidate)
 
 from freeciv.pf_pressure_replay import (  # noqa: E402
+    direct_completion_counterfactual_paths,
     opportunity_counterfactual_paths,
     replay_paths,
 )
@@ -26,13 +27,20 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("paths", nargs="+")
     parser.add_argument("--maximum-files", type=int)
-    parser.add_argument("--opportunity-counterfactual", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument(
+        "--direct-completion-counterfactual", action="store_true")
+    mode.add_argument(
+        "--opportunity-counterfactual", action="store_true")
     parser.add_argument("--output")
     parser.add_argument("--relative-to", default=REPO)
     args = parser.parse_args()
     replay = (
-        opportunity_counterfactual_paths
-        if args.opportunity_counterfactual else replay_paths)
+        direct_completion_counterfactual_paths
+        if args.direct_completion_counterfactual
+        else opportunity_counterfactual_paths
+        if args.opportunity_counterfactual
+        else replay_paths)
     result = replay(args.paths, args.maximum_files, args.relative_to)
     encoded = canonical_json_bytes(result) + b"\n"
     if args.output:
