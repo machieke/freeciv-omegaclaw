@@ -1,7 +1,7 @@
 # PF-PLN cross-goal opportunity-cost offline acceptance
 
-Status: deterministic and retrospective replay acceptance passed; fresh engine
-evaluation pending
+Status: deterministic, retrospective replay, and fresh 40-pair engine/replay
+acceptance passed
 
 The grounded Impact adapter now treats the utility lost by choosing another
 goal's best current action as an opportunity cost at scheduling time. All
@@ -73,10 +73,16 @@ its source-set hash is
 This is scheduling evidence only. It cannot estimate downstream score or a
 win rate, and it is not pooled with the completed pilot.
 
-## Fresh empirical gate
+## Fresh empirical result
 
 `pressure_opportunity_cost_pilot_v1` predeclares 40 fresh SHA-256-derived seed
 pairs in the disjoint 2,900,000–2,999,999 range. It retains the turn-60
-pressure-only arm isolation and alternating 20/20 execution order. Run a
-committed one-pair prefix first. Continue only if source, engine, schema,
-safety, candidate isolation, and exact-replay gates pass.
+pressure-only arm isolation and alternating 20/20 execution order.
+
+All 40 pairs subsequently completed with zero failures under clean commit
+`a31a3a6`. Schema, source, safety, category-invariance, and exact-replay gates
+passed. Score changed by +0.175 with interval [-0.175, 0.550], while
+fixed-horizon lead rate changed by +5.0 percentage points with interval
+[0.0, 12.5]. The positive directional result remains statistically
+inconclusive and claim-ineligible. Full results are recorded in
+[`pf-pressure-opportunity-cost-pilot-v1.md`](pf-pressure-opportunity-cost-pilot-v1.md).

@@ -17,7 +17,7 @@ legal actions, execution, and evaluation.
 | 6 — induction and analogy | Existing opponent memory and rule proposal infrastructure retained | Partial | Route induction/analogy invocation through `expand` pressure and replay gates |
 | 7 — LLM gateway | Existing constrained proposer, verification, quarantine, and token configuration retained | Partial | Make expansion pressure, expected proposal value, and validation cost control call timing |
 | 8 — differentiable execution | No automatic-differentiation truth engine added | Not implemented | Add the delimited differentiable subset and compare adjoint with requirement/counterfactual pressure |
-| 9 — full multi-goal field | Per-goal pressure, derived weights, double-count prevention, cross-goal harm, lexicographic actionable-safety firewall, budget allocation; survival requires a grounded production coverage deficit or a visible opponent within configured wrapped distance of an owned city/unit anchor; a fortification opportunity alone does not create a deficit; grounded Impact operations receive category-level pressure so legal alternative count cannot dilute a goal; cross-goal grounded utility loss is scheduled once as a goal-shared opportunity cost; category routing assigns defense production to survival and population recovery to score; six fresh 40-pair pressure pilots completed with exact isolation | Opportunity-cost deterministic and retrospective replay acceptance passed; fresh engine evaluation pending | Run the predeclared opportunity-cost smoke/pilot; do not freeze confirmatory evidence |
+| 9 — full multi-goal field | Per-goal pressure, derived weights, double-count prevention, cross-goal harm, lexicographic actionable-safety firewall, budget allocation; survival requires a grounded production coverage deficit or a visible opponent within configured wrapped distance of an owned city/unit anchor; a fortification opportunity alone does not create a deficit; grounded Impact operations receive category-level pressure so legal alternative count cannot dilute a goal; cross-goal grounded utility loss is scheduled once as a goal-shared opportunity cost; category routing assigns defense production to survival and population recovery to score; seven fresh 40-pair pressure pilots completed with exact isolation | Opportunity-cost deterministic, engine, schema, safety, and exact-replay acceptance passed; first positive directional score/lead signal remains inconclusive | Audit paired heterogeneity and remaining safe direct-relief displacements before changing semantics or predeclaring a precision cohort |
 
 ## Non-negotiable integration rules
 
@@ -32,16 +32,15 @@ legal actions, execution, and evaluation.
 
 ## Next empirical gates
 
-1. Run the one-pair prefix of predeclared
-   `pressure_opportunity_cost_pilot_v1` and require finite schema-valid
-   rejected scores, correct safety admissibility, and zero exact-replay
-   failures.
-2. Continue the remaining seed-disjoint pairs only if engine, schema, source,
-   safety, candidate-isolation, and replay smoke gates pass.
-3. Report safe city-founding and known-hut displacement, safety selection,
-   settlement outcomes, and paired score without tuning goal weights.
-4. Do not pool the category-invariance estimate (-0.225, interval
-   [-0.800, 0.325]) with earlier pilots and do not freeze confirmatory
-   evidence without a positive fresh signal.
+1. Audit the 12 nonzero paired-score outcomes against exact changed-decision
+   traces without changing or fitting policy parameters.
+2. Determine whether the four safe `city_founding -> expansion_move` and two
+   safe known-hut displacements reflect correct learned failure response or a
+   missing direct-relief constraint.
+3. If no semantic defect remains, predeclare a fresh precision cohort using
+   the observed 1.1742 paired SD and an explicit effect size; do not promote or
+   pool the claim-ineligible +0.175 pilot.
+4. If a defect is demonstrated, add deterministic acceptance and a new
+   seed-disjoint pilot before considering confirmation.
 5. Enable live clone splitting only after the per-atom cap and lineage
    forwarding are persisted transactionally.

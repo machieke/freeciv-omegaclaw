@@ -329,6 +329,17 @@ correction, limitations, reproduction command, and fresh predeclared
 `pressure_opportunity_cost_pilot_v1` gate are recorded in
 [`evidence/pf-opportunity-cost-offline-acceptance.md`](evidence/pf-opportunity-cost-offline-acceptance.md).
 
+That fresh gate subsequently completed 40/40 pairs and 80/80 engine arms with
+zero failures. Score changed by +0.175 with interval [-0.175, 0.550] and
+fixed-horizon lead rate changed by +5.0 percentage points with interval
+[0.0, 12.5]. All 107 actionable-safety decisions selected survival work, all
+80 schemas passed, and all 2,535 treatment decisions replayed exactly. These
+are the first positive score and lead point estimates from a fresh pressure
+pilot, but the score interval crosses zero and only two pairs are lead-rate
+discordant. The cohort remains claim-ineligible and no confirmation is frozen.
+Full results are in
+[`evidence/pf-pressure-opportunity-cost-pilot-v1.md`](evidence/pf-pressure-opportunity-cost-pilot-v1.md).
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` defaults to `false` unless the runtime profile enables it.
 This preserves unit-level policy isolation and makes an unpressured ablation
