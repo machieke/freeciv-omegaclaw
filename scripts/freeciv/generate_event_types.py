@@ -121,6 +121,7 @@ def generate(envelope, payloads):
         "llm_proposal", "verification", "quarantine",
         "pln_query", "pln_result", "pressure_propagated", "operation_scored",
         "conductance_updated", "rule_proposed", "rule_validated",
+        "llm_call_scheduled", "llm_gateway_result",
         "plan_created", "monitor_trigger",
         "plan_invalidated", "plan_step_executed", "action_sent", "action_result",
         "grounded_check", "metric_sample", "logging_gap")]

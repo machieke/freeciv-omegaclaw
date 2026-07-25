@@ -367,6 +367,31 @@ export type RuleValidated = {
   "verdict": "promoted" | "demoted";
 };
 
+export type LlmCallScheduled = {
+  "decision": {
+    "accepted": boolean;
+    "call_id": string;
+    "expand_pressure": number;
+    "operation": Record<string, unknown> | null;
+    "quality": number;
+    "reason": string | null;
+    "request": {
+      [key: string]: unknown;
+    };
+    "total_cost": number;
+  };
+  "ledger_hash": string;
+};
+
+export type LlmGatewayResult = {
+  "call_id": string;
+  "charged_tokens": number;
+  "envelope": Record<string, unknown> | null;
+  "error": string | null;
+  "ledger_hash": string;
+  "status": "quarantined_pending_validation" | "quarantined" | "rejected" | "failed";
+};
+
 export type PlanCreated = {
   "plan": Plan;
 };
@@ -444,7 +469,7 @@ export type LoggingGap = {
   "missing": string;
 };
 
-export type KnownEventType = "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "observation" | "revision" | "belief_conflict" | "context_quarantine" | "llm_proposal" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "rule_proposed" | "rule_validated" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
+export type KnownEventType = "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "observation" | "revision" | "belief_conflict" | "context_quarantine" | "llm_proposal" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "rule_proposed" | "rule_validated" | "llm_call_scheduled" | "llm_gateway_result" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
 
 export interface EventEnvelope<T extends string = string, P extends object = Record<string, unknown>> {
   schema_version: typeof EVENT_SCHEMA_VERSION;
@@ -477,6 +502,8 @@ export interface KnownPayloadMap {
   "conductance_updated": ConductanceUpdated;
   "rule_proposed": RuleProposed;
   "rule_validated": RuleValidated;
+  "llm_call_scheduled": LlmCallScheduled;
+  "llm_gateway_result": LlmGatewayResult;
   "plan_created": PlanCreated;
   "monitor_trigger": MonitorTrigger;
   "plan_invalidated": PlanInvalidated;

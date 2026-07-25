@@ -486,6 +486,50 @@
         "ledger_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
       }
     },
+    "llm_call_scheduled": {
+      "type": "object", "additionalProperties": false,
+      "required": ["decision", "ledger_hash"],
+      "properties": {
+        "decision": {
+          "type": "object", "additionalProperties": false,
+          "required": [
+            "call_id", "accepted", "reason", "expand_pressure", "quality",
+            "total_cost", "request", "operation"
+          ],
+          "properties": {
+            "call_id": {"type": "string", "minLength": 1},
+            "accepted": {"type": "boolean"},
+            "reason": {"type": ["string", "null"]},
+            "expand_pressure": {"type": "number", "minimum": 0},
+            "quality": {"type": "number", "minimum": 0},
+            "total_cost": {"type": "number", "minimum": 0},
+            "request": {"type": "object"},
+            "operation": {"type": ["object", "null"]}
+          }
+        },
+        "ledger_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "llm_gateway_result": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "call_id", "status", "envelope", "charged_tokens", "ledger_hash",
+        "error"
+      ],
+      "properties": {
+        "call_id": {"type": "string", "minLength": 1},
+        "status": {
+          "enum": [
+            "quarantined_pending_validation", "quarantined", "rejected",
+            "failed"
+          ]
+        },
+        "envelope": {"type": ["object", "null"]},
+        "charged_tokens": {"type": "integer", "minimum": 0},
+        "ledger_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "error": {"type": ["string", "null"]}
+      }
+    },
     "plan_created": {
       "type": "object", "additionalProperties": false, "required": ["plan"],
       "properties": {"plan": {"$ref": "#/$defs/plan"}}

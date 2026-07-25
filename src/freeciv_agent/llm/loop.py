@@ -15,6 +15,31 @@ class ConstrainedTurnLoop(object):
     def _timed_out(self, started):
         return time.perf_counter() - started > self.timeout_seconds
 
+    def evaluate(self, proposal, crisp_state, numeric_snapshot, started=None):
+        """Verify, grade, and select an already structured proposal."""
+        started = time.perf_counter() if started is None else started
+        try:
+            verifications = self.router.route_proposal(proposal)
+            if self._timed_out(started):
+                raise TimeoutError("verification_timeout")
+            grades = self.grader.grade_all(
+                proposal, crisp_state, numeric_snapshot)
+            if self._timed_out(started):
+                raise TimeoutError("grading_timeout")
+            selected = self.grader.select(proposal, grades)
+            elapsed = (time.perf_counter() - started) * 1000.0
+            status = "SELECTED" if selected is not None else "NO_PLAN"
+            return TurnDecision(
+                status, proposal, selected, grades, verifications, elapsed,
+                fallback_action=(
+                    {"type": "end_turn"} if selected is None else None))
+        except Exception as exc:
+            return TurnDecision(
+                "SAFE_FALLBACK", proposal, None, (), (),
+                (time.perf_counter() - started) * 1000.0,
+                fallback_action={"type": "end_turn"},
+                error="{}: {}".format(type(exc).__name__, exc))
+
     def run(self, state_summary, crisp_state, numeric_snapshot,
             plan_status=None, invalidations=None, budgets=None):
         started = time.perf_counter()
@@ -23,17 +48,8 @@ class ConstrainedTurnLoop(object):
                 state_summary, plan_status, invalidations, budgets)
             if self._timed_out(started):
                 raise TimeoutError("proposer_timeout")
-            verifications = self.router.route_proposal(proposal)
-            if self._timed_out(started):
-                raise TimeoutError("verification_timeout")
-            grades = self.grader.grade_all(proposal, crisp_state, numeric_snapshot)
-            if self._timed_out(started):
-                raise TimeoutError("grading_timeout")
-            selected = self.grader.select(proposal, grades)
-            elapsed = (time.perf_counter() - started) * 1000.0
-            status = "SELECTED" if selected is not None else "NO_PLAN"
-            return TurnDecision(status, proposal, selected, grades, verifications, elapsed,
-                                fallback_action={"type": "end_turn"} if selected is None else None)
+            return self.evaluate(
+                proposal, crisp_state, numeric_snapshot, started)
         except Exception as exc:
             return TurnDecision(
                 "SAFE_FALLBACK", None, None, (), (),

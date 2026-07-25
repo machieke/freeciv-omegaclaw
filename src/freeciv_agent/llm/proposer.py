@@ -68,10 +68,10 @@ class ConstrainedProposer(object):
         self.parser = ProposalParser(catalog)
 
     def input_document(self, state_summary, plan_status=None, invalidations=None,
-                       budgets=None):
+                       budgets=None, expansion_request=None):
         if not hasattr(state_summary, "to_dict"):
             raise TypeError("LLM state input must be a query summary DTO")
-        return {
+        result = {
             "allowed": self.catalog.prompt_catalog(),
             "budgets": copy.deepcopy(budgets or {"max_goals": 5, "max_claims": 20}),
             "invalidations": copy.deepcopy(list(invalidations or [])),
@@ -80,9 +80,17 @@ class ConstrainedProposer(object):
             "prompt_version": PROMPT_VERSION,
             "state_query_results": state_summary.to_dict(),
         }
+        if expansion_request is not None:
+            if not isinstance(expansion_request, dict):
+                raise TypeError("LLM expansion request must be a typed object")
+            result["expansion_request"] = copy.deepcopy(expansion_request)
+        return result
 
-    def propose(self, state_summary, plan_status=None, invalidations=None, budgets=None):
-        document = self.input_document(state_summary, plan_status, invalidations, budgets)
+    def propose(self, state_summary, plan_status=None, invalidations=None,
+                budgets=None, expansion_request=None):
+        document = self.input_document(
+            state_summary, plan_status, invalidations, budgets,
+            expansion_request)
         error = None
         for attempt in range(self.max_corrections + 1):
             request = copy.deepcopy(document)

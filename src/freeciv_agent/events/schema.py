@@ -34,6 +34,8 @@ KNOWN_EVENT_TYPES = (
     "conductance_updated",
     "rule_proposed",
     "rule_validated",
+    "llm_call_scheduled",
+    "llm_gateway_result",
     "plan_created",
     "monitor_trigger",
     "plan_invalidated",
