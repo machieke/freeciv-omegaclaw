@@ -530,6 +530,25 @@
         "error": {"type": ["string", "null"]}
       }
     },
+    "rule_parameter_updated": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "update_id", "parameter_id", "prior_value", "value", "gradient",
+        "learning_rate", "prior_loss", "posterior_loss", "examples", "method"
+      ],
+      "properties": {
+        "update_id": {"type": "string", "minLength": 1},
+        "parameter_id": {"type": "string", "minLength": 1},
+        "prior_value": {"type": "number"},
+        "value": {"type": "number"},
+        "gradient": {"type": "number"},
+        "learning_rate": {"type": "number", "exclusiveMinimum": 0},
+        "prior_loss": {"type": "number", "minimum": 0},
+        "posterior_loss": {"type": "number", "minimum": 0},
+        "examples": {"type": "integer", "minimum": 1},
+        "method": {"const": "reverse-mode-mse-v1"}
+      }
+    },
     "plan_created": {
       "type": "object", "additionalProperties": false, "required": ["plan"],
       "properties": {"plan": {"$ref": "#/$defs/plan"}}

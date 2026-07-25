@@ -392,6 +392,19 @@ export type LlmGatewayResult = {
   "status": "quarantined_pending_validation" | "quarantined" | "rejected" | "failed";
 };
 
+export type RuleParameterUpdated = {
+  "examples": number;
+  "gradient": number;
+  "learning_rate": number;
+  "method": "reverse-mode-mse-v1";
+  "parameter_id": string;
+  "posterior_loss": number;
+  "prior_loss": number;
+  "prior_value": number;
+  "update_id": string;
+  "value": number;
+};
+
 export type PlanCreated = {
   "plan": Plan;
 };
@@ -469,7 +482,7 @@ export type LoggingGap = {
   "missing": string;
 };
 
-export type KnownEventType = "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "observation" | "revision" | "belief_conflict" | "context_quarantine" | "llm_proposal" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "rule_proposed" | "rule_validated" | "llm_call_scheduled" | "llm_gateway_result" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
+export type KnownEventType = "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "observation" | "revision" | "belief_conflict" | "context_quarantine" | "llm_proposal" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "rule_proposed" | "rule_validated" | "llm_call_scheduled" | "llm_gateway_result" | "rule_parameter_updated" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
 
 export interface EventEnvelope<T extends string = string, P extends object = Record<string, unknown>> {
   schema_version: typeof EVENT_SCHEMA_VERSION;
@@ -504,6 +517,7 @@ export interface KnownPayloadMap {
   "rule_validated": RuleValidated;
   "llm_call_scheduled": LlmCallScheduled;
   "llm_gateway_result": LlmGatewayResult;
+  "rule_parameter_updated": RuleParameterUpdated;
   "plan_created": PlanCreated;
   "monitor_trigger": MonitorTrigger;
   "plan_invalidated": PlanInvalidated;

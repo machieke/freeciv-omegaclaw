@@ -36,6 +36,7 @@ KNOWN_EVENT_TYPES = (
     "rule_validated",
     "llm_call_scheduled",
     "llm_gateway_result",
+    "rule_parameter_updated",
     "plan_created",
     "monitor_trigger",
     "plan_invalidated",
