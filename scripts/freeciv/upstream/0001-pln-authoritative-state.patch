@@ -934,7 +934,7 @@ index 2f69128..378e8a6 100644
              logger.info(f"Game {self.game_id}: No configuration changes requested")
              self.config_applied = True
 diff --git a/freeciv-proxy/llm_config.json b/freeciv-proxy/llm_config.json
-index 045d314..9a9d8fb 100644
+index 045d314..f87c387 100644
 --- a/freeciv-proxy/llm_config.json
 +++ b/freeciv-proxy/llm_config.json
 @@ -21,8 +21,8 @@
@@ -948,8 +948,21 @@ index 045d314..9a9d8fb 100644
              "window_seconds": 60,
              "reset_on_turn_end": true
          }
+@@ -41,9 +41,9 @@
+     },
+     "logging": {
+         "level": "INFO",
+-        "log_actions": true,
+-        "log_state_queries": true,
+-        "log_performance": true
++        "log_actions": false,
++        "log_state_queries": false,
++        "log_performance": false
+     },
+     "civserver": {
+         "default_port": 6001,
 diff --git a/freeciv-proxy/llm_handler.py b/freeciv-proxy/llm_handler.py
-index 9be5668..0361297 100644
+index 9be5668..7984208 100644
 --- a/freeciv-proxy/llm_handler.py
 +++ b/freeciv-proxy/llm_handler.py
 @@ -16,7 +16,7 @@ import socket
@@ -1230,16 +1243,54 @@ index 9be5668..0361297 100644
  
              # Validate action (additional checks beyond moves_left)
              validation_result = self.action_validator.validate_action(
-@@ -2156,7 +2256,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -2154,12 +2254,14 @@ class LLMWSHandler(websocket.WebSocketHandler):
+                 actor_id = sanitized_action.get('unit_id') or sanitized_action.get('actor_id') or 'N/A'
+                 game_state = self._get_current_game_state()
                  current_turn = game_state.get('turn', 'unknown') if game_state else 'unknown'
++                log_actions = llm_config.should_log_actions()
  
                  # Strategic logging for action validation debugging
 -                logger.warning(
-+                logger.info(
-                     f"Action accepted: agent={self.agent_id}, turn={current_turn}, "
-                     f"action_type={sanitized_action.get('type')}, actor_id={actor_id}"
-                 )
-@@ -2621,6 +2721,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
+-                    f"Action accepted: agent={self.agent_id}, turn={current_turn}, "
+-                    f"action_type={sanitized_action.get('type')}, actor_id={actor_id}"
+-                )
++                if log_actions:
++                    logger.info(
++                        f"Action accepted: agent={self.agent_id}, turn={current_turn}, "
++                        f"action_type={sanitized_action.get('type')}, actor_id={actor_id}"
++                    )
+ 
+                 # Handle end_turn: mark turn as ended and reset rate limits
+                 if sanitized_action.get('type') == 'end_turn' and self.agent_id:
+@@ -2168,16 +2270,23 @@ class LLMWSHandler(websocket.WebSocketHandler):
+                     if self.civcom:
+                         self.civcom.turn_started = False
+                         self.civcom.turn_advance_event.clear()  # Clear event to block waiters
+-                        logger.info(f"🛑 Turn {self.civcom.game_turn} ended, waiting for PACKET_BEGIN_TURN")
++                        if log_actions:
++                            logger.info(
++                                f"🛑 Turn {self.civcom.game_turn} ended, "
++                                "waiting for PACKET_BEGIN_TURN")
+ 
+                     # Reset rate limits to give agent fresh quota for next turn
+                     reset_on_turn_end = llm_config.get('validation.rate_limit.reset_on_turn_end', True)
+                     if reset_on_turn_end:
+                         distributed_rate_limiter.reset_limits(self.agent_id)
+-                        logger.info(f"Rate limits reset for {self.agent_id} after end_turn")
++                        if log_actions:
++                            logger.info(
++                                f"Rate limits reset for {self.agent_id} after end_turn")
+ 
+-                SecurityLogger.log_connection_event(self.agent_id, "ACTION_EXECUTED",
+-                                                  f"type={sanitized_action.get('type')}")
++                if log_actions:
++                    SecurityLogger.log_connection_event(
++                        self.agent_id, "ACTION_EXECUTED",
++                        f"type={sanitized_action.get('type')}")
+ 
+                 response = {
+                     'type': 'action_accepted',
+@@ -2621,6 +2730,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
                      formatted['target'] = {'improvement': params['improvement']}
                  elif 'city' in params:
                      formatted['target'] = {'city': params['city']}
@@ -1248,7 +1299,7 @@ index 9be5668..0361297 100644
                  elif params:  # Pass through any other params
                      formatted['target'] = params
              
-@@ -2858,39 +2960,51 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -2858,39 +2969,51 @@ class LLMWSHandler(websocket.WebSocketHandler):
          """Build optimized game state for LLM consumption using StateExtractor"""
          logger.debug(f"🏗️ _build_optimized_state called for agent {self.agent_id}, player_id={self.player_id}")
  
@@ -1325,7 +1376,7 @@ index 9be5668..0361297 100644
          # Use StateExtractor to format the state - this ensures map validation and proper structure
          try:
              if not self.game_id:
-@@ -2918,6 +3032,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -2918,6 +3041,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
              )
              import traceback
              logger.error(f"StateExtractor traceback: {traceback.format_exc()}")
@@ -1334,7 +1385,7 @@ index 9be5668..0361297 100644
              state = self._build_fallback_state_from_full(full_state)
  
          # Add player_id and timestamp which are handler-specific
-@@ -5061,6 +5177,21 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -5061,6 +5186,21 @@ class LLMWSHandler(websocket.WebSocketHandler):
  
          session = session_manager.validate_session(self.session_id)
          if session:
@@ -1778,7 +1829,7 @@ index 778e7d1..cc24a84 100644
  
                  if should_remove:
 diff --git a/freeciv-proxy/state_extractor.py b/freeciv-proxy/state_extractor.py
-index 803966c..f8cce06 100644
+index 803966c..2494934 100644
 --- a/freeciv-proxy/state_extractor.py
 +++ b/freeciv-proxy/state_extractor.py
 @@ -447,7 +447,7 @@ def validate_request_parameters(game_id: str, player_id: Any, format_str: str =
@@ -1841,7 +1892,7 @@ index 803966c..f8cce06 100644
              else:
                  raw_state = civcom.get_full_state(player_id)
  
-@@ -580,8 +591,13 @@ class StateExtractor:
+@@ -580,11 +591,18 @@ class StateExtractor:
                  else:
                      raise ValidationError(f"Unsupported format: {format_type}", parameter="format", value=format_type.value)
  
@@ -1856,8 +1907,14 @@ index 803966c..f8cce06 100644
 +                self.cache.set(cache_key, state, player_id)
  
              extraction_time = (time.time() - start_time) * 1000
-             logger.info(f"State extraction completed in {extraction_time:.2f}ms for {cache_key}")
-@@ -1075,6 +1091,94 @@ class StateExtractor:
+-            logger.info(f"State extraction completed in {extraction_time:.2f}ms for {cache_key}")
++            logger.debug(
++                f"State extraction completed in {extraction_time:.2f}ms "
++                f"for {cache_key}")
+ 
+             return state
+ 
+@@ -1075,6 +1093,94 @@ class StateExtractor:
                  return civcom.utype_can_do_action(unit_type_id, action_id)
              # Fallback to name-based heuristics if no ruleset data
              return self._fallback_can_do_action(unit_type_name, action_id)
@@ -1952,7 +2009,7 @@ index 803966c..f8cce06 100644
          
          # Helper to get target tile info
          def get_target_tile(direction: str) -> tuple:
-@@ -1096,22 +1200,6 @@ class StateExtractor:
+@@ -1096,22 +1202,6 @@ class StateExtractor:
  
          # === MOVEMENT ACTIONS ===
          if moves_left > 0:
@@ -1975,7 +2032,7 @@ index 803966c..f8cce06 100644
              for direction in directions:
                  target_x, target_y, target_index = get_target_tile(direction)
  
-@@ -1127,7 +1215,8 @@ class StateExtractor:
+@@ -1127,7 +1217,8 @@ class StateExtractor:
  
                          # Get unit class info for terrain checking
                          unit_type_data = civcom.unit_types.get(unit_type_id, {})
@@ -1985,7 +2042,7 @@ index 803966c..f8cce06 100644
  
                          # Check if target tile has a city (cities allow entry for most unit types)
                          tile_has_city = target_index in city_tiles
-@@ -1138,9 +1227,11 @@ class StateExtractor:
+@@ -1138,9 +1229,11 @@ class StateExtractor:
                              if not is_native and not tile_has_city:
                                  # Not native terrain and no city - check if can embark on transport
                                  if terrain_class == TC_OCEAN:
@@ -1999,7 +2056,7 @@ index 803966c..f8cce06 100644
                                  else:
                                      is_valid = False
                                      reason = "Cannot enter non-native terrain"
-@@ -1153,15 +1244,30 @@ class StateExtractor:
+@@ -1153,15 +1246,30 @@ class StateExtractor:
                                  # Check if unit class can enter ocean
                                  # Sea, Trireme, Air, Helicopter can enter ocean
                                  if class_name not in ('sea', 'trireme', 'air', 'helicopter', 'missile'):
@@ -2032,7 +2089,7 @@ index 803966c..f8cce06 100644
                  # Diplomatic state validation: block movement into foreign territory during peace/alliance
                  # Per FreeCiv rules: "Peace prevents moving military units into other's territory"
                  if is_valid and civcom and target_index is not None:
-@@ -1222,15 +1328,22 @@ class StateExtractor:
+@@ -1222,15 +1330,22 @@ class StateExtractor:
              # Check if unit is in a city
              in_city = False
              city_name = None
@@ -2058,7 +2115,7 @@ index 803966c..f8cce06 100644
          
          # === FORTIFY ACTION ===
          if can_do_action(ACTION_FORTIFY):
-@@ -2447,15 +2560,21 @@ class StateExtractor:
+@@ -2447,15 +2562,21 @@ class StateExtractor:
              logger.warning(f"Error analyzing expansion sites: {e}")
              return 2  # Conservative fallback
  
@@ -2084,7 +2141,7 @@ index 803966c..f8cce06 100644
          if since_turn is not None:
              key += f"_since_{since_turn}"
          return key
-@@ -2614,9 +2733,9 @@ class StateExtractorHandler(web.RequestHandler):
+@@ -2614,9 +2735,9 @@ class StateExtractorHandler(web.RequestHandler):
              since_turn = self.get_argument('since_turn', None)
  
              # Validate format parameter (must match validate_request_parameters accepted formats)
@@ -2860,10 +2917,10 @@ index 0000000..3f151d1
 +        "Cannot move onto packet-visible non-allied city owned by player 1")
 diff --git a/freeciv-proxy/tests/test_release_game_configuration.py b/freeciv-proxy/tests/test_release_game_configuration.py
 new file mode 100644
-index 0000000..47a0fbd
+index 0000000..3b27451
 --- /dev/null
 +++ b/freeciv-proxy/tests/test_release_game_configuration.py
-@@ -0,0 +1,257 @@
+@@ -0,0 +1,270 @@
 +"""Release-harness game settings are validated and ordered before start."""
 +
 +import ast
@@ -2894,6 +2951,19 @@ index 0000000..47a0fbd
 +        rate_limit["requests_per_second"] / rate_limit["window_seconds"])
 +    assert effective_requests_per_second >= 10
 +    assert rate_limit["burst_capacity"] >= rate_limit["requests_per_second"]
++
++
++def test_release_success_logging_is_opt_in():
++    config_path = Path(__file__).resolve().parents[1] / "llm_config.json"
++    logging_config = json.loads(
++        config_path.read_text(encoding="utf-8"))["logging"]
++
++    assert logging_config == {
++        "level": "INFO",
++        "log_actions": False,
++        "log_state_queries": False,
++        "log_performance": False,
++    }
 +
 +
 +@pytest.mark.asyncio

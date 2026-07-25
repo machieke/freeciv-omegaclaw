@@ -15,14 +15,16 @@ The patch is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. Its SHA-256 is
-`8ff1e005735076502860226a051178c23d515d6f0c343f7291d1f68f05d1500f`.
+`9ab6fbae638fd77668e04d5cafb2031e73f490aea066f181b5a25f98068081cd`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 The patch defaults the proxy logger to `INFO` and moves per-action payload,
 normalization, sanitization, validation, and full state-summary diagnostics to
-`DEBUG`. Accepted actions retain one INFO summary and warnings/errors remain
-visible. Set `FREECIV_PROXY_LOG_LEVEL=DEBUG` before starting the proxy when those
-payload-level diagnostics are required.
+`DEBUG`. Successful action, state-query, and performance logging is opt-in in
+`llm_config.json`; rejection, security-warning, warning, and error records remain
+visible. Enable the corresponding logging flags and set
+`FREECIV_PROXY_LOG_LEVEL=DEBUG` before starting the proxy when payload-level
+diagnostics are required.
 
 The same tracked external patch retains Publite2's five-second restart backoff
 for nonzero exits and launch errors but reduces clean zero-exit restarts to
