@@ -33,7 +33,10 @@ When the current sequence has not advanced, the proxy waits on a packet-update
 event and wakes only after packet dispatch and storage complete. Timeout returns
 the ordinary current `state_response`; legacy queries remain immediate. The
 harness uses this only to avoid rediscovering a known stale revision and still
-requires its separately timed identical-snapshot stability sample.
+requires its separately timed identical-snapshot stability sample. Consecutive
+samples at initial, inter-turn, and accepted-action boundaries are separated by
+50 ms and must match the complete decision fingerprint; any state,
+visible-enemy, or exact legal-action-digest change restarts the count.
 
 `PACKET_PLAYER_INFO.is_alive` is retained as
 `authoritative.player.is_alive` and typed as `AuthoritativeSnapshot.player_alive`.

@@ -479,7 +479,7 @@ def _player_eliminated(snapshot):
 
 async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=20.0,
                  require_decision_ready=False, require_own_units=False,
-                 stable_samples=1, poll_interval=0.1):
+                 stable_samples=1, poll_interval=0.05):
     if (isinstance(stable_samples, bool) or not isinstance(stable_samples, int)
             or not 1 <= stable_samples <= 5):
         raise ValueError("stable_samples must be in 1..5")

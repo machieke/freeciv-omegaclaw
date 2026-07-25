@@ -243,6 +243,16 @@ preserved exact canonical action sequences and outcomes while reducing mean
 gameplay time by 13.39%; see
 [the 300 ms confirmation smoke](evidence/confirmation-timeout-300ms-smoke.md).
 
+After the extractor cache was corrected to include packet sequence, the
+remaining inter-turn boundary cost averaged 308.8 ms. Applying the already
+accepted 50 ms identical-sample interval to initial and inter-turn readiness,
+instead of the former 100 ms default, preserved exact canonical actions and
+outcomes on both engine seeds. Mean boundary cost fell to 260.1 ms and mean
+gameplay time fell 5.03%; see
+[the turn-boundary smoke](evidence/turn-boundary-50ms-smoke.md). This is
+engineering latency evidence, not a score or population-wide performance
+claim.
+
 Exploration destinations also gain conservative cross-source failure evidence.
 One failed move remains retryable because occupancy and tactical obstructions can
 be transient. After the same unit type remains stationary while targeting the

@@ -69,6 +69,13 @@ visible in that window, the action is deferred and reconciled against the next
 authoritative snapshot. Do not treat `decision_effect_confirmation_timeouts` as
 failures; use the recovered, expired, and pending counters to audit outcomes.
 
+Initial and inter-turn readiness gates use the same 50 ms interval whenever
+they require consecutive identical decision fingerprints. This retains the
+exact state, visible-enemy, and legal-action stability condition while avoiding
+an extra 50 ms at every stable boundary. Do not reduce the interval below the
+proxy contract's 50 ms minimum guard without a new engine-backed acceptance
+cohort.
+
 ## Port isolation
 
 Real-engine workers own one dedicated port each in 6001-6009. Never run a smoke, state

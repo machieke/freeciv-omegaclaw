@@ -934,6 +934,28 @@ def test_state_waits_for_new_source_revision_then_rechecks_stability(monkeypatch
     assert calls[1] == {}
 
 
+def test_state_default_stability_interval_is_50ms(monkeypatch):
+    raw = _ready_raw(source_seq=45, turn=12)
+    sleeps = []
+
+    async def source_state(_ws, _format, **_kwargs):
+        return raw
+
+    async def record_sleep(seconds):
+        sleeps.append(seconds)
+
+    monkeypatch.setattr(engine_live.turncycle, "get_state", source_state)
+    monkeypatch.setattr(engine_live.asyncio, "sleep", record_sleep)
+
+    returned, snapshot = asyncio.run(_state(
+        object(), "stability-interval-test", minimum_turn=12,
+        stable_samples=2, timeout=0.5))
+
+    assert returned is raw
+    assert snapshot.identity.source_seq == 45
+    assert sleeps == [pytest.approx(0.05)]
+
+
 def test_claim_eligible_arms_fail_closed_on_model_fallback():
     assert _claim_eligible_manifest({"impact_pair": {"claim_eligible": True}})
     assert _claim_eligible_manifest({"claim_eligible": True})
