@@ -98,6 +98,29 @@ not a claim of unbiased causal identification.
 The exhaustive parity and abduction-selection evidence is recorded in
 [`evidence/pf-observation-voi-phase-3.md`](evidence/pf-observation-voi-phase-3.md).
 
+## Persistent latent-clone lifecycle
+
+Phase 5 adds a durable clone lifecycle store around the existing posterior,
+truth, and pressure projections. Each visible atom has a hard clone cap.
+Bayesian updates, accepted splits, and guarded merges are serialized and
+atomically replaced on disk; replaying an event ID is idempotent. Split and
+merge operations preserve posterior mass.
+
+Retired clone IDs forward through a persistent lineage DAG. A reference to a
+split parent resolves to all active children; if those children later merge,
+the same old reference resolves to the merged clone. Forwarding cycles,
+wrong-atom children, mass loss, cap overflow, dissimilar merges, and
+noncanonical transactions fail closed.
+
+Merge eligibility now includes truth, pressure, and successor-distribution
+distance. Visible pressure supports both posterior expectation and an explicit
+worst-tail projection for safety-sensitive goals. Live profiles do not
+silently enable splitting; consumers must supply the persistent store and pass
+the declared predictive-gain, complexity, split-score, cap, and merge gates.
+
+The exact hidden-context ablation and persistence evidence is recorded in
+[`evidence/pf-clone-lifecycle-phase-5.md`](evidence/pf-clone-lifecycle-phase-5.md).
+
 ## Live integration
 
 The experimental harness profiles enable the pressure ranker:
@@ -509,10 +532,9 @@ changing pressure defaults.
 
 The implementation is a production-connected PF-PLN vertical slice, not a
 claim that all research phases are empirically complete. In particular,
-live clone split/merge, pressure-triggered LLM expansion, differentiable truth
-execution, and a new paired engine-backed impact claim still require dedicated
-experiments before they can be enabled or claimed. Online conductance learning
-is enabled for the experimental profile, but no performance claim is made
-until historical replay and a fresh paired engine cohort measure it. See the
-[phase map](pf-pln-phase-map.md) for the exact implemented, partial, and
-pending acceptance work.
+pressure-triggered induction/LLM expansion, differentiable truth execution,
+and a new paired engine-backed impact claim still require dedicated
+experiments before they can be enabled or claimed. Persistent clone
+split/merge is available behind explicit lifecycle gates but is not enabled by
+default in gameplay profiles. See the [phase map](pf-pln-phase-map.md) for the
+exact implemented, partial, and pending acceptance work.

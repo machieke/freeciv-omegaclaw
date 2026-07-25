@@ -1,0 +1,49 @@
+{
+  "artifact": {
+    "path": "artifacts/freeciv/pf-clone-phase-5.json",
+    "sha256": "a3ed2a5fa2c832e0953c192d9cbceeebe11c7e06cce31aafab33256ed816defd",
+    "structural_hash": "4727d34d54c625e0f42dfdd47e5d752510bb388304c4916165559d94a5f63a61"
+  },
+  "benchmark": "pf-pln-phase-5-hidden-context",
+  "configuration": {
+    "hidden_contexts": 2,
+    "matched_action_success": 0.9,
+    "mismatched_action_success": 0.1,
+    "signal_accuracy": 0.9
+  },
+  "implementation_commit": "b01d6c6",
+  "persistence": {
+    "active_clone_ids": [
+      "attack",
+      "transit"
+    ],
+    "posterior": {
+      "attack": 0.9,
+      "transit": 0.09999999999999998
+    },
+    "reopen_matches": true,
+    "state_hash": "18e264fea33e774ecae1c7f424e417813d2ecd70a55cd1521d0fd0d9485f3ce1"
+  },
+  "planning_success": {
+    "absolute_improvement": 0.32000000000000006,
+    "clone_conditioned": 0.8200000000000001,
+    "clone_free": 0.5,
+    "relative_improvement": 0.6400000000000001
+  },
+  "predictive_likelihood": {
+    "clone_conditioned_mean_log_likelihood_nats": -0.3250829733914482,
+    "clone_free_mean_log_likelihood_nats": -0.6931471805599453,
+    "improvement_nats": 0.3680642071684971
+  },
+  "schema_version": "1.0",
+  "validation": {
+    "focused_pressure_belief_event_tests_passed": 73,
+    "freeciv_python_tests_passed": 296,
+    "lineage_forwarding_passed": true,
+    "per_atom_cap_passed": true,
+    "persistence_reopen_passed": true,
+    "risk_tail_projection_passed": true,
+    "successor_merge_guard_passed": true,
+    "transaction_replay_idempotent": true
+  }
+}
