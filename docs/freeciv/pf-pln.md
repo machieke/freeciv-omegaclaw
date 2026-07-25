@@ -54,6 +54,24 @@ contributions in evidence-weight space. Its repeated-path behavior remains
 idempotent, and it exposes weighted lineage overlap without mixing pressure
 into revision.
 
+High-confidence, provenance-distinct disagreement is now materialized as an
+explicit `Conflict` atom rather than hidden by the aggregate mean. Conflict
+creation uses declared minimum-confidence and severity thresholds, retains
+both immutable lineages, and never changes authoritative state. When the
+lineages came from different stable evidence contexts, the store exposes
+deterministic context-quarantine operations. Applying one excludes the
+incompatible lineage only from that contextual belief view; the global
+evidence ledger and the opposing contextual view remain intact.
+
+Uncertain deductions carry their complete atom/rule ancestry. The store
+rejects a derivation if its target already occurs in that ancestry or if it
+tries to derive an atom from its own observation token. Materialized
+`belief_conflict` and `context_quarantine` events are schema validated, and a
+quarantine event must directly cite and exactly partition a preceding conflict
+event. Phase 2 implementation and adversarial benchmark evidence are recorded
+in
+[`evidence/pf-provenance-contradiction-phase-2.md`](evidence/pf-provenance-contradiction-phase-2.md).
+
 ## Live integration
 
 The experimental harness profiles enable the pressure ranker:

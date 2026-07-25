@@ -1,0 +1,46 @@
+{
+  "artifact": {
+    "path": "artifacts/freeciv/pf-provenance-contradiction-phase-2.json",
+    "sha256": "b6e030ee97b8dfedb08d793c2a0b5a2900602b4ea97966549dd788eb5293c232",
+    "structural_hash": "a91a200541260453ee21dd7d61a538a457c0f0938a5b0a530c9792c9ed0f4ea6"
+  },
+  "benchmark": "pf-pln-phase-2-provenance-contradiction",
+  "configuration": {
+    "conflict_min_confidence": 0.7,
+    "conflict_severity_threshold": 0.25,
+    "cycle_trials": 256,
+    "duplicate_seeds": 64,
+    "paths_per_seed": 128
+  },
+  "context_quarantine": {
+    "aggregate_strength": 0.5,
+    "conflict_severity": 0.64,
+    "contextual_provenance_ids": [
+      "context-left"
+    ],
+    "contextual_strength": 1.0,
+    "operations_materialized": 2
+  },
+  "duplicate_evidence": {
+    "conflicts_materialized": 0,
+    "overlap_errors": 0,
+    "paths_replayed": 8192,
+    "unique_tokens_per_result": 1
+  },
+  "implementation_commit": "4b018a0",
+  "proof_cycles": {
+    "accepted": 0,
+    "rejected": 256
+  },
+  "schema_version": "1.0",
+  "validation": {
+    "event_types_current": true,
+    "freeciv_python_tests_passed": 284,
+    "observability_boundary_violations": 0,
+    "observability_fixture_events": 140,
+    "observability_fixtures_valid": 11,
+    "observability_unit_tests_passed": 20,
+    "production_build_passed": true,
+    "typescript_typecheck_passed": true
+  }
+}
