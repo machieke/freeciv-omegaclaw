@@ -50,6 +50,13 @@ collection requires `final_turn + 1`; an exact terminal player-elimination
 packet uses `final_turn` because that state has no next begin-turn. This
 turn-bound gate replaces timing-based endgame settling.
 
+The global observer is outside the planner's truth boundary. Scheduler-enabled
+runs choose grounded actions solely from the player-visible authoritative
+snapshot, so they do not refresh observer state between turns. They query it at
+startup for paired identity/fidelity and after the horizon for scoring. Plain
+test-driver conditions retain per-turn observer queries because their scout
+driver explicitly consumes global unit positions.
+
 `PACKET_PLAYER_INFO.is_alive` is retained as
 `authoritative.player.is_alive` and typed as `AuthoritativeSnapshot.player_alive`.
 An exact false value suppresses stale cached own cities, units, and legal actions and

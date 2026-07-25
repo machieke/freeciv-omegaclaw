@@ -279,6 +279,12 @@ remains the default for other callers. Two independent exact-behavior cohorts
 reduced mean gameplay time by 8.42% and 9.25%; see
 [the turn-durability smoke](evidence/turn-durable-event-writer-smoke.md).
 
+The grounded impact planner never consumes observer-global state. Removing 29
+unused inter-turn observer queries from scheduler runs, while retaining initial
+identity and fail-closed final scoring, reduced mean gameplay by 2.29% and
+3.24% in independent exact-behavior cohorts. See
+[the scheduler observer-boundary smoke](evidence/scheduler-observer-boundary-smoke.md).
+
 Exploration destinations also gain conservative cross-source failure evidence.
 One failed move remains retryable because occupancy and tactical obstructions can
 be transient. After the same unit type remains stationary while targeting the

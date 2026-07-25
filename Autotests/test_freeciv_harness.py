@@ -947,6 +947,11 @@ def test_global_state_polls_at_50ms_until_observer_reaches_required_turn(monkeyp
     assert sleeps == [pytest.approx(0.05)]
 
 
+def test_scheduler_impact_path_does_not_need_per_turn_observer_state():
+    assert engine_live._needs_turn_global_state(None)
+    assert not engine_live._needs_turn_global_state(object())
+
+
 def test_state_poll_enforces_the_callers_deadline(monkeypatch):
     async def blocked_state(_ws, _format):
         await asyncio.sleep(1.0)

@@ -96,6 +96,14 @@ terminal turn because no next begin-turn packet is expected. Inspect
 a fixed scoring sleep or accept a populated observer response without checking
 its authoritative `turn`.
 
+Scheduler-enabled engine runs use packet-visible grounded candidates and do not
+invoke the observer-backed scout driver. They therefore query global state only
+for initial opponent/score identity and final scoring; plain conditions retain
+their per-turn observer refresh for navigation. Inspect
+`observer_global_state_queries` (normally `2` for a completed scheduler game).
+Final observer timeout is an infrastructure failure—never fall back to a stale
+prior-turn score.
+
 ## Port isolation
 
 Real-engine workers own one dedicated port each in 6001-6009. Never run a smoke, state

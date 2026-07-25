@@ -93,6 +93,13 @@ persisted-first tail. The harness forces a sync after each
 boundary guard, and `run_completed` forces the final sync. Representative and
 other writers retain their existing durability mode.
 
+Scheduler-enabled engine jobs issue exactly two observer-global queries during
+a normal completed game: initial paired identity/fidelity and authoritative
+post-horizon scoring. Their grounded planner consumes only the player snapshot,
+so the former per-turn observer refresh was unused. Non-scheduler conditions
+retain per-turn queries for the observer-backed scout driver. The emitted
+`observer_global_state_queries` metric audits this boundary.
+
 An infrastructure failure remains in `status.json` and the aggregate. Retry it with
 the same command; never relabel it as a loss or completion. Game losses are completed
 outcomes. The report retains losses, null effects, negative deltas, and exclusions at

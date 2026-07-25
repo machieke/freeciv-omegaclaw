@@ -601,6 +601,14 @@ async def _global_state(ws, timeout=15.0, player_id=None, minimum_turn=None,
     raise TimeoutError("observer global state was not populated")
 
 
+def _needs_turn_global_state(impact_planner):
+    # Plain conditions navigate with the observer-backed scout driver.
+    # Scheduler conditions route through packet-visible GroundedImpactPlanner
+    # candidates and need observer state only for initial identity/fidelity and
+    # final fixed-horizon scoring.
+    return impact_planner is None
+
+
 def _target_rule(ir, known):
     candidates = [rule for rule in ir.rules if rule.target_kind == "tech" and not rule.disabled
                   and rule.rule_name != "None"]
@@ -1291,6 +1299,7 @@ async def _play(run_dir, manifest, context):
     production_preexpansion_settlement_runways = []
     corrections = 0
     final_global = None
+    observer_global_state_queries = 0
     async with websockets.connect(
             ws_url, open_timeout=30, max_size=None, ping_interval=None) as ws:
         await ws.send(json.dumps({
@@ -1336,6 +1345,7 @@ async def _play(run_dir, manifest, context):
         parent = state_event["event_id"]
         global_state = await _global_state(
             ws, player_id=player_id, minimum_turn=snapshot.turn)
+        observer_global_state_queries += 1
         opponent_rows = sorted(
             (row for row in global_state["players"].values()
              if row.get("id") != player_id and row.get("score", -1) >= 0),
@@ -1492,8 +1502,10 @@ async def _play(run_dir, manifest, context):
                     "state_snapshot", snapshot.turn, snapshot.event_payload(),
                     caused_by=[parent])
                 parent = state_event["event_id"]
-                global_state = await _global_state(
-                    ws, player_id=player_id, minimum_turn=snapshot.turn)
+                if _needs_turn_global_state(impact_planner):
+                    global_state = await _global_state(
+                        ws, player_id=player_id, minimum_turn=snapshot.turn)
+                    observer_global_state_queries += 1
                 if impact_planner is not None:
                     impact_planner.observe(snapshot)
                     capability_pruned_worker_moves.update(
@@ -1856,13 +1868,11 @@ async def _play(run_dir, manifest, context):
         # Bind final scoring to the post-horizon observer revision rather than
         # assuming a fixed sleep is long enough for endgame packets to settle.
         final_global_started = time.perf_counter()
-        try:
-            final_global = await _global_state(
-                ws, timeout=5, player_id=player_id,
-                minimum_turn=(
-                    final_turn if terminal_player_elimination else final_turn + 1))
-        except TimeoutError:
-            pass
+        observer_global_state_queries += 1
+        final_global = await _global_state(
+            ws, timeout=5, player_id=player_id,
+            minimum_turn=(
+                final_turn if terminal_player_elimination else final_turn + 1))
         final_global_settle_latency = (
             time.perf_counter() - final_global_started) * 1000.0
 
@@ -1927,6 +1937,7 @@ async def _play(run_dir, manifest, context):
         ("loop_latency_ms", loop_latency),
         ("model_latency_ms", model_latency),
         ("final_global_settle_latency_ms", final_global_settle_latency),
+        ("observer_global_state_queries", observer_global_state_queries),
         ("full_loop_under_30s_rate", full_loop_under_30),
         ("zombie_action_attempt_blocked", zombie_blocked),
         ("planned_engine_actions", planned_actions),
