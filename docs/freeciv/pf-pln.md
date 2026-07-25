@@ -501,12 +501,33 @@ An operation harmful to a safety goal is inadmissible regardless of weighted
 benefit. Action execution remains subject to the repository's independent
 commitment, monitor, snapshot, legal-action, and engine checks.
 
+### Induction and analogy
+
+`PatternMiner` searches a bounded feature-combination space inside exact
+opponent, ruleset, era, geometry, and diplomacy contexts. Its immutable
+`InducedRuleProposal` contains the complete training population and provenance,
+the canonical induction-trigger factors, and remains quarantined.
+
+`ContextGeneralizer` and `StructuralAnalogy` also return quarantined proposals.
+Analogy requires matching relational profiles, full role mapping, exact
+context, explicit provenance, and transfer reliability. `ExpansionGate`
+creates validation work only from typed `expand` pressure when expected value
+clears validation cost.
+
+`ReplayValidator` enforces disjoint episode and provenance populations. It
+promotes only rules that improve held-out Brier score and activated-rule
+calibration without raising contradiction rate. `InductionLedger` persists
+that lifecycle atomically and exposes only promoted rules. No mining,
+similarity, or replay API writes to truth or the executable pressure graph.
+
 ## Verification
 
 The PF-specific suite is:
 
 ```bash
-python3 -m pytest -q Autotests/test_freeciv_pressure.py
+python3 -m pytest -q \
+  Autotests/test_freeciv_pressure.py \
+  Autotests/test_freeciv_pressure_induction.py
 ```
 
 It covers:
@@ -521,6 +542,8 @@ It covers:
 - conductance effect/relief separation, partial and full no-progress decay,
   monotonic direct credit, and bounded downstream credit;
 - confidence loss under maximally disagreeing clones;
+- contextual mining, expansion gating, analogy uncertainty, disjoint replay,
+  overgeneralization demotion, and persistent quarantine;
 - existing proof-DAG adaptation;
 - multi-goal impact ranking;
 - schema-valid pressure and operation events.
@@ -532,9 +555,9 @@ changing pressure defaults.
 
 The implementation is a production-connected PF-PLN vertical slice, not a
 claim that all research phases are empirically complete. In particular,
-pressure-triggered induction/LLM expansion, differentiable truth execution,
-and a new paired engine-backed impact claim still require dedicated
-experiments before they can be enabled or claimed. Persistent clone
+pressure-triggered LLM expansion, differentiable truth execution, and a new
+paired engine-backed impact claim still require dedicated experiments before
+they can be enabled or claimed. Persistent clone
 split/merge is available behind explicit lifecycle gates but is not enabled by
 default in gameplay profiles. See the [phase map](pf-pln-phase-map.md) for the
 exact implemented, partial, and pending acceptance work.
