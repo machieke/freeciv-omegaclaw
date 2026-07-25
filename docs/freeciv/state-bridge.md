@@ -1,7 +1,8 @@
 # Authoritative state bridge
 
-The target agent reads the `pln_authoritative` proxy format described by
-`contracts/freeciv-proxy/v2/contract.json`. Apply the tracked patch to the pinned external
+The target agent reads the `pln_authoritative` proxy format and bounded source-wait
+extension described by `contracts/freeciv-proxy/v3/contract.json` (which extends the
+v2 state DTO). Apply the tracked patch to the pinned external
 checkout before starting its container:
 
 ```bash
@@ -14,7 +15,7 @@ The patch is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. Its SHA-256 is
-`647596e2d2bc613da30bbdb3b5e7bb39213ed21d8268babebb23198663ec2aa9`.
+`0c555b0ad9b330420e845af64695866d1f903ea6f8398b0123128d0068e7017f`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 State-response cache identity includes the game ID, player, format, turn, and monotonic packet
@@ -22,6 +23,14 @@ sequence. Parallel games therefore cannot reuse one another's response even when
 turn, and packet counters coincide. Same-turn engine changes cannot reuse a pre-action response,
 and incoming authoritative packets also invalidate cached city and technology actions. Player ID
 `0` is treated as an ordinary, valid cache owner during targeted eviction.
+
+An authoritative WebSocket state query may supply a non-negative
+`after_source_seq` together with a bounded `wait_timeout_ms` in `1..5000`.
+When the current sequence has not advanced, the proxy waits on a packet-update
+event and wakes only after packet dispatch and storage complete. Timeout returns
+the ordinary current `state_response`; legacy queries remain immediate. The
+harness uses this only to avoid rediscovering a known stale revision and still
+requires its separately timed identical-snapshot stability sample.
 
 `PACKET_PLAYER_INFO.is_alive` is retained as
 `authoritative.player.is_alive` and typed as `AuthoritativeSnapshot.player_alive`.

@@ -223,6 +223,15 @@ The same-seed development replay preserved both scores and all audited action
 outcomes while reducing mean arm wall time by 45.5%; see
 [the non-claim engineering evidence](evidence/confirmation-timeout-500ms-smoke.md).
 
+The next refresh optimization replaced known-stale client polling with the v3
+proxy source-sequence wait and versioned a 50 ms two-sample stability interval.
+The fingerprint now includes the exact legal-action digest as well as
+authoritative state projections. In a clean two-seed 200 ms/50 ms engine
+comparison, canonical actions and outcomes were identical while mean gameplay
+latency fell 5.29% and mean confirmation latency fell 10.15%. This remains
+engineering evidence rather than a general performance claim; see
+[the source-wait smoke](evidence/source-sequence-wait-50ms-smoke.md).
+
 Exploration destinations also gain conservative cross-source failure evidence.
 One failed move remains retryable because occupancy and tactical obstructions can
 be transient. After the same unit type remains stationary while targeting the

@@ -1,0 +1,36 @@
+{
+  "schema_version": "3.0",
+  "extends": "../v2/contract.json",
+  "upstream_base_commit": "26ba7124249f34fd3050ef29bf191bd4d8808018",
+  "format": "pln_authoritative",
+  "websocket_state_query": {
+    "type": "state_query",
+    "format": "pln_authoritative",
+    "optional_fields": {
+      "after_source_seq": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9223372036854775807,
+        "semantics": "wait only while the current fully stored packet revision is less than or equal to this value"
+      },
+      "wait_timeout_ms": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5000,
+        "requires": "after_source_seq",
+        "semantics": "bounded source wait; expiry returns the current state_response rather than an error"
+      }
+    }
+  },
+  "stability": {
+    "source_notification_point": "after packet dispatch and state storage complete",
+    "decision_sample_policy": "a source wait may replace stale polling but does not replace the independent identical state-and-legal-set stability sample"
+  },
+  "state_fixture": "../v2/authoritative-state.fixture.json",
+  "invariants": [
+    "legacy state_query without optional wait fields remains immediate",
+    "wait fields are strictly typed and bounded",
+    "a source wait never returns a new sequence before that packet is fully stored",
+    "wait timeout preserves ordinary current-state response semantics"
+  ]
+}

@@ -64,6 +64,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert config["impact_policy"]["production_minimum_remaining_turns"] == 8
     assert config["impact_policy"]["unit_build_score_divisor"] == 10
     assert config["impact_policy"]["refresh_timeout_seconds"] == 0.5
+    assert config["impact_policy"]["refresh_stability_interval_seconds"] == 0.05
     assert config["impact_policy"]["production_strategy"] == "horizon_score"
     assert config["impact_policy"]["pressure_learning_enabled"] is True
     assert config["impact_policy"]["pressure_max_routes_per_conclusion"] == 32
@@ -822,8 +823,15 @@ def _ready_snapshot(source_seq=1, moves_left=3, buildability=True,
 def test_decision_readiness_waits_for_complete_active_state_and_ignores_cadence():
     first = _ready_snapshot(source_seq=1)
     second = _ready_snapshot(source_seq=2)
+    changed_legal_raw = _ready_raw(source_seq=3)
+    changed_legal_raw["legal_actions"].append({
+        "action_type": "unit_fortify", "actor_id": 1, "is_valid": True})
+    changed_legal = ProxyStateDTO.parse(
+        "readiness-test", 3, changed_legal_raw).to_snapshot()
     assert _decision_state_ready(first, require_own_units=True)
     assert _decision_state_fingerprint(first) == _decision_state_fingerprint(second)
+    assert _decision_state_fingerprint(first) != _decision_state_fingerprint(
+        changed_legal)
     assert not _decision_state_ready(_ready_snapshot(moves_left=0))
     assert not _decision_state_ready(_ready_snapshot(buildability=False))
 
@@ -903,6 +911,27 @@ def test_state_poll_enforces_the_callers_deadline(monkeypatch):
     with pytest.raises(TimeoutError, match="did not reach turn"):
         asyncio.run(_state(object(), "deadline-test", timeout=0.05))
     assert engine_live.time.monotonic() - started < 0.5
+
+
+def test_state_waits_for_new_source_revision_then_rechecks_stability(monkeypatch):
+    raw = _ready_raw(source_seq=45, turn=12)
+    calls = []
+
+    async def source_state(_ws, _format, **kwargs):
+        calls.append(kwargs)
+        return raw
+
+    monkeypatch.setattr(engine_live.turncycle, "get_state", source_state)
+    returned, snapshot = asyncio.run(_state(
+        object(), "source-wait-test", minimum_turn=12,
+        minimum_source_seq=45, stable_samples=2, poll_interval=0.05,
+        timeout=0.5))
+
+    assert returned is raw
+    assert snapshot.identity.source_seq == 45
+    assert calls[0]["after_source_seq"] == 44
+    assert 1 <= calls[0]["wait_timeout_ms"] <= 450
+    assert calls[1] == {}
 
 
 def test_claim_eligible_arms_fail_closed_on_model_fallback():

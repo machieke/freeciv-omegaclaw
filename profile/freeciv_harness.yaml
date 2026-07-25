@@ -14,7 +14,7 @@ opponent:
 machine_profile: codex-dev-linux
 engine:
   freeciv_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018
-  proxy_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:647596e2d2bc613da30bbdb3b5e7bb39213ed21d8268babebb23198663ec2aa9
+  proxy_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:0c555b0ad9b330420e845af64695866d1f903ea6f8398b0123128d0068e7017f
 rulebase:
   compiler_version: freeciv-ruleset-compiler/1.2
   source_sha256: 3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e
@@ -42,6 +42,7 @@ impact_policy:
   foodbox_percent: 100
   unit_build_score_divisor: 10
   refresh_timeout_seconds: 0.5
+  refresh_stability_interval_seconds: 0.05
   no_effect_retry_limit: 1
   max_no_effect_failovers_per_scope: 4
   preserve_city_defenders: true

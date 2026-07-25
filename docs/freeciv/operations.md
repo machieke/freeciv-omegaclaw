@@ -45,8 +45,18 @@ score analysis. The same status record splits total backend time into
 `engine_gameplay_latency_ms`, and `engine_cleanup_latency_ms`, with
 `engine_backend_latency_ms` as the enclosing measurement.
 
+Authoritative refreshes use the v3 proxy contract's bounded
+`after_source_seq`/`wait_timeout_ms` hint when a caller requires a newer packet
+revision. The proxy timeout returns current state, while the harness deadline
+and independent identical-state sample remain authoritative. Repeated
+same-sequence queries before the required revision indicate an unpatched or
+stale proxy mount; verify the pinned patch digest before changing timeouts.
+
 Accepted impact actions receive a bounded 0.5-second authoritative refresh
-window with two identical samples at 5 Hz. If the packet-backed effect is not
+window with two identical samples separated by at least 50 ms. A differing
+state, enemy-observation, or exact legal-action digest restarts the stability
+count, so the shorter interval reduces settled action latency without accepting
+a changing execution catalog. If the packet-backed effect is not
 visible in that window, the action is deferred and reconciled against the next
 authoritative snapshot. Do not treat `decision_effect_confirmation_timeouts` as
 failures; use the recovered, expired, and pending counters to audit outcomes.

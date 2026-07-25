@@ -430,6 +430,10 @@ def _decision_state_fingerprint(snapshot):
         "own_state": snapshot.own_state_dict(),
         "phase": snapshot.phase,
         "player_id": snapshot.player_id,
+        # A packet burst can change executability without changing units,
+        # cities, or map facts. Stability therefore covers the exact canonical
+        # legal set consumed by ExecutionGate as well as state projections.
+        "legal_actions_digest": snapshot.legal_actions_digest,
         "visible_enemy_units": [row.to_dict() for row in snapshot.visible_enemy_units],
     })
 
@@ -484,15 +488,40 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
     deadline = time.monotonic() + timeout
     stable_fingerprint = None
     stable_count = 0
+    observed_source_seq = None
     while time.monotonic() < deadline:
         remaining = deadline - time.monotonic()
+        query_options = {}
+        # Do not spend a request/sleep cycle rediscovering a revision the
+        # caller has already consumed. Once a ready candidate is observed,
+        # query immediately after the normal settling interval so the second
+        # identical sample remains an independent stability check.
+        if stable_count == 0 and remaining > 0.05:
+            wait_after = observed_source_seq
+            if minimum_source_seq is not None and minimum_source_seq > 0:
+                wait_after = max(
+                    minimum_source_seq - 1,
+                    -1 if wait_after is None else wait_after)
+            if wait_after is not None and wait_after >= 0:
+                wait_ms = min(5000, int(max(0.001, remaining - 0.05) * 1000))
+                if wait_ms >= 1:
+                    query_options = {
+                        "after_source_seq": int(wait_after),
+                        "wait_timeout_ms": wait_ms,
+                    }
         try:
             raw = await asyncio.wait_for(
-                turncycle.get_state(ws, "pln_authoritative"),
+                turncycle.get_state(
+                    ws, "pln_authoritative", **query_options),
                 timeout=max(0.05, remaining))
         except asyncio.TimeoutError:
             break
         source_seq = raw.get("authoritative", {}).get("source_seq") if raw else None
+        if source_seq is not None:
+            try:
+                observed_source_seq = int(source_seq)
+            except (TypeError, ValueError):
+                observed_source_seq = None
         source_ready = (
             minimum_source_seq is None
             or (source_seq is not None and int(source_seq) >= minimum_source_seq))
@@ -1405,7 +1434,10 @@ async def _play(run_dir, manifest, context):
                 next_raw, next_snapshot = await _state(
                     ws, manifest["game_id"], minimum_turn=current.turn,
                     minimum_source_seq=minimum_seq, timeout=remaining,
-                    stable_samples=2, poll_interval=0.2)
+                    stable_samples=2,
+                    poll_interval=(
+                        impact_planner.refresh_stability_interval_seconds
+                        if impact_planner is not None else 0.2))
                 if predicate is not None and not predicate(next_snapshot):
                     minimum_seq = next_snapshot.identity.source_seq + 1
                     await asyncio.sleep(0.05)

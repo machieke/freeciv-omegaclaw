@@ -275,6 +275,8 @@ class GroundedImpactPlanner(object):
             "unit_build_score_divisor", 10))
         self.refresh_timeout_seconds = float(
             values.get("refresh_timeout_seconds", 2.0))
+        self.refresh_stability_interval_seconds = float(
+            values.get("refresh_stability_interval_seconds", 0.2))
         self.no_effect_retry_limit = int(values.get("no_effect_retry_limit", 1))
         self.max_no_effect_failovers_per_scope = int(
             values.get("max_no_effect_failovers_per_scope", 4))
@@ -302,6 +304,9 @@ class GroundedImpactPlanner(object):
             raise ValueError("unit_build_score_divisor must be in 1..100")
         if not 0.25 <= self.refresh_timeout_seconds <= 10.0:
             raise ValueError("refresh_timeout_seconds must be in [0.25,10]")
+        if not 0.05 <= self.refresh_stability_interval_seconds <= 0.5:
+            raise ValueError(
+                "refresh_stability_interval_seconds must be in [0.05,0.5]")
         if not 1 <= self.no_effect_retry_limit <= 8:
             raise ValueError("no_effect_retry_limit must be in 1..8")
         if not 0 <= self.max_no_effect_failovers_per_scope <= 8:

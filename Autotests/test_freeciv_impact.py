@@ -800,6 +800,8 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
                     "expansion_minimum_remaining_turns": 8},
                    {"refresh_timeout_seconds": 0.1},
                    {"refresh_timeout_seconds": 11},
+                   {"refresh_stability_interval_seconds": 0.01},
+                   {"refresh_stability_interval_seconds": 0.51},
                    {"no_effect_retry_limit": 0}, {"no_effect_retry_limit": 9},
                    {"max_no_effect_failovers_per_scope": -1},
                    {"max_no_effect_failovers_per_scope": 9},

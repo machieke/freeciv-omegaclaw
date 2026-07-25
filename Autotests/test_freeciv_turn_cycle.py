@@ -52,6 +52,43 @@ def test_unit_action_envelope_uses_actor_id_under_action():
     assert mv["action"] == {"action_type": "unit_move", "actor_id": 7, "dest_x": 4, "dest_y": 5}
 
 
+def test_state_query_carries_bounded_source_wait_hint():
+    async def go():
+        ws = MockProxyWS(start_turn=1)
+        state = await turncycle.get_state(
+            ws, "pln_authoritative", after_source_seq=44,
+            wait_timeout_ms=5000)
+        return state, ws.received[-1]
+
+    state, query = _run(go())
+    assert state["turn"] == 1
+    assert query == {
+        "type": "state_query",
+        "format": "pln_authoritative",
+        "after_source_seq": 44,
+        "wait_timeout_ms": 5000,
+    }
+
+
+def test_state_query_rejects_invalid_source_wait_hint():
+    async def query(**kwargs):
+        return await turncycle.get_state(
+            MockProxyWS(), "pln_authoritative", **kwargs)
+
+    for kwargs in (
+            {"after_source_seq": True},
+            {"after_source_seq": -1},
+            {"after_source_seq": 1, "wait_timeout_ms": 0},
+            {"after_source_seq": 1, "wait_timeout_ms": 5001},
+            {"wait_timeout_ms": 10}):
+        try:
+            _run(query(**kwargs))
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("invalid source wait hint accepted: {!r}".format(kwargs))
+
+
 # --- advancement (correct envelope) ----------------------------------------
 
 def test_await_turn_advance_detects_increment():

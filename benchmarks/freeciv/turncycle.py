@@ -46,9 +46,30 @@ def state_body(m):
     return d if isinstance(d, dict) and "turn" in d else m
 
 
-async def get_state(ws, fmt="llm_optimized"):
-    """Query and return the current ``llm_optimized`` state dict (or None)."""
-    await ws.send(json.dumps({"type": "state_query", "format": fmt}))
+async def get_state(ws, fmt="llm_optimized", after_source_seq=None,
+                    wait_timeout_ms=None):
+    """Query current state, optionally waiting for a newer packet revision.
+
+    ``after_source_seq`` and ``wait_timeout_ms`` are a bounded long-poll hint
+    supported by the pinned authoritative-state proxy patch. A timeout still
+    returns the current state, so callers retain the normal query semantics.
+    """
+    query = {"type": "state_query", "format": fmt}
+    if after_source_seq is not None:
+        if (isinstance(after_source_seq, bool)
+                or not isinstance(after_source_seq, int)
+                or after_source_seq < 0):
+            raise ValueError("after_source_seq must be a non-negative integer")
+        query["after_source_seq"] = after_source_seq
+    if wait_timeout_ms is not None:
+        if (isinstance(wait_timeout_ms, bool)
+                or not isinstance(wait_timeout_ms, int)
+                or not 1 <= wait_timeout_ms <= 5000):
+            raise ValueError("wait_timeout_ms must be in 1..5000")
+        if after_source_seq is None:
+            raise ValueError("wait_timeout_ms requires after_source_seq")
+        query["wait_timeout_ms"] = wait_timeout_ms
+    await ws.send(json.dumps(query))
     return state_body(await recv_until(ws, _STATE_TYPES, timeout=15))
 
 

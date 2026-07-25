@@ -38,8 +38,8 @@ export FREECIV_RULESET_ROOT="$FREECIV_LLM_ROOT/freeciv/freeciv/data"
 The patch is tracked at `scripts/freeciv/upstream/0001-pln-authoritative-state.patch`.
 The application script is idempotent, rejects a different upstream commit, and supports
 normal checkouts and Git worktrees. It adds the `pln_authoritative` DTO, monotonic packet
-sequence, exact release-game configuration, canonical executable actions, ruleset readiness,
-and proxy contract tests.
+sequence, bounded source-sequence waiting, exact release-game configuration, canonical
+executable actions, ruleset readiness, and proxy contract tests.
 
 Verify the patch in the FreeCiv image (the cache secret is test-only and is not persisted):
 
@@ -82,6 +82,10 @@ Configuration ownership is deliberate:
 | ruleset, seeds, opponent, statistics, model budget | `profile/freeciv_harness.yaml` |
 | provider endpoint/model mapping | `profile/llm_providers.yaml` |
 | proxy endpoints, token, container, source discovery | environment variables above |
+
+The impact policy also versions a 0.5-second accepted-action refresh deadline
+and a 50 ms two-sample stability interval. A changed fingerprint resets the
+sample count; the interval is not a single-sample shortcut.
 
 The configured evaluation model is `qwen3-coder-next:latest`, temperature `0`, with
 Ollama thinking mode explicitly disabled and a 30-second whole-turn budget. The task
