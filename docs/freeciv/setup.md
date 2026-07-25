@@ -99,10 +99,13 @@ setting is versioned in both harness profiles and retained in manifests. The
 `selection_call_policy: canonical-singleton-bypass-v1` setting also fails
 closed: a constrained turn skips model selection only when the canonical
 catalog has exactly one candidate. The
-`readiness_policy: chat-once-resident-refresh-v1` setting performs one complete
-chat validation per controller/model tuple, then permits only locked,
-residency-checked zero-token keep-alive refreshes. A local Ollama installation
-needs no API key unless its own deployment enforces one.
+`readiness_policy: chat-once-expiry-aware-resident-v2` setting performs one
+complete chat validation per controller/model tuple. A later arm can reuse the
+locked exact-model residency check only when `expires_at` is valid and at least
+`readiness_residency_floor_seconds: 300` seconds away. Otherwise it refreshes
+keep-alive without completion tokens and falls back to complete chat validation
+if that refresh fails. A local Ollama installation needs no API key unless its
+own deployment enforces one.
 
 ```bash
 ollama pull qwen3-coder-next:latest

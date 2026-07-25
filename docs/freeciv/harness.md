@@ -51,9 +51,11 @@ action priorities, safety boundaries, and decision-impact metrics. For CPU-hoste
 Ollama, preload the configured model before timed runs if its cold load exceeds the
 per-turn model budget; the harness reports any resulting safe fallbacks rather than
 hiding them. Engine runs use the fail-closed
-`chat-once-resident-refresh-v1` readiness policy: one complete chat validates each
-controller process and model tuple, while later arms only reuse it after a locked
-residency check and zero-token keep-alive refresh.
+`chat-once-expiry-aware-resident-v2` readiness policy: one complete chat validates
+each controller process and model tuple. Later arms reuse the exact `/api/ps`
+resident-model row when its parsed expiry remains at least 300 seconds away.
+Missing, malformed, or near-expiry rows take the zero-token keep-alive refresh
+path, and refresh failure falls back to the complete chat contract.
 
 The outcome experiment for that policy is a separate paired baseline/treatment track
 so the five-condition release matrix remains unchanged. It has disjoint development,

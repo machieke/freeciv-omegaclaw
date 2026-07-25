@@ -447,10 +447,15 @@ def load(path=None):
             or not model_config["keep_alive"].strip()):
         raise ValueError("harness model.keep_alive must be a non-empty string")
     if model_config.get(
-            "readiness_policy") != "chat-once-resident-refresh-v1":
+            "readiness_policy") != "chat-once-expiry-aware-resident-v2":
         raise ValueError(
             "harness model.readiness_policy must be "
-            "chat-once-resident-refresh-v1")
+            "chat-once-expiry-aware-resident-v2")
+    residency_floor = model_config.get("readiness_residency_floor_seconds")
+    if (not isinstance(residency_floor, (int, float))
+            or isinstance(residency_floor, bool) or residency_floor <= 0):
+        raise ValueError(
+            "harness model.readiness_residency_floor_seconds must be positive")
     if model_config.get(
             "selection_call_policy") != "canonical-singleton-bypass-v1":
         raise ValueError(

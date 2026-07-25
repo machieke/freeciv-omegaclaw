@@ -6,6 +6,7 @@ player connection's packet-visible foreign units.
 """
 
 import asyncio
+from datetime import datetime
 import json
 import math
 import os
@@ -48,7 +49,7 @@ _MODEL_READINESS_VERIFIED = set()
 _STACK_LOCK = threading.RLock()
 _LAST_CLEAN_SERVER_PIDS = {}
 SELECTION_CALL_POLICY = "canonical-singleton-bypass-v1"
-READINESS_POLICY = "chat-once-resident-refresh-v1"
+READINESS_POLICY = "chat-once-expiry-aware-resident-v2"
 
 
 def _opponent_memory_path(run_dir, condition_id):
@@ -136,21 +137,42 @@ def _ollama_native_endpoint():
     return native_endpoint
 
 
-def _ollama_model_resident(native_endpoint, model, timeout):
-    """Return whether Ollama reports the exact configured model as loaded."""
+def _ollama_model_residency(native_endpoint, model, timeout):
+    """Return the exact resident model row, or ``None`` when it is unavailable."""
     request = urllib.request.Request(native_endpoint + "/api/ps")
     try:
         with urllib.request.urlopen(request, timeout=min(5.0, timeout)) as response:
             body = json.load(response)
     except Exception:
-        return False
+        return None
     models = body.get("models") if isinstance(body, dict) else None
     if not isinstance(models, list):
-        return False
-    return any(
-        isinstance(row, dict)
-        and model in (row.get("name"), row.get("model"))
-        for row in models)
+        return None
+    return next((
+        row for row in models
+        if (isinstance(row, dict)
+            and model in (row.get("name"), row.get("model")))), None)
+
+
+def _ollama_residency_remaining_seconds(row, now=None):
+    """Parse Ollama's nanosecond ISO expiry conservatively."""
+    value = row.get("expires_at") if isinstance(row, dict) else None
+    if not isinstance(value, str) or not value:
+        return None
+    normalized = value.strip()
+    if normalized.endswith("Z"):
+        normalized = normalized[:-1] + "+00:00"
+    # Python 3.8 accepts microseconds; Ollama emits nanoseconds.
+    normalized = re.sub(
+        r"(\.\d{6})\d+(?=[+-]\d\d:\d\d$)", r"\1", normalized)
+    try:
+        expires_at = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if expires_at.tzinfo is None:
+        return None
+    return expires_at.timestamp() - (
+        time.time() if now is None else float(now))
 
 
 def _ollama_refresh_resident_model(native_endpoint, model, keep_alive, timeout):
@@ -200,14 +222,20 @@ def _ollama_readiness(manifest):
     may unload the model during that idle period, turning the next real request
     into a cold load that exceeds the bounded turn budget. The first preflight
     for each endpoint/model/think tuple performs a complete native chat request.
-    Later arms check residency under the same process lock and refresh keep-alive
-    without generating completion tokens. Any missing, invalid, or failed
-    residency response falls back to the complete chat validation.
+    Later arms check residency under the same process lock. An exact model row
+    whose reported expiry exceeds the configured safety floor is reused without
+    another model request. Missing, malformed, or near-expiry residency is
+    refreshed without generating completion tokens; a failed refresh falls back
+    to the complete chat validation.
     """
     model_config = manifest.get("model_config", {})
     timeout = float(model_config.get("readiness_timeout_seconds", 90))
+    residency_floor = float(model_config.get(
+        "readiness_residency_floor_seconds", 300))
     if timeout <= 0:
         raise ValueError("model readiness timeout must be positive")
+    if residency_floor <= 0:
+        raise ValueError("model readiness residency floor must be positive")
     if model_config.get("readiness_policy") != READINESS_POLICY:
         raise ValueError("unsupported Ollama readiness policy")
     native_endpoint = _ollama_native_endpoint()
@@ -235,16 +263,29 @@ def _ollama_readiness(manifest):
     if not _MODEL_READINESS_LOCK.acquire(timeout=timeout):
         raise RuntimeError("model readiness budget exhausted waiting for local model")
     try:
-        if (readiness_key in _MODEL_READINESS_VERIFIED
-                and _ollama_model_resident(
-                    native_endpoint, manifest["model"], timeout)):
-            try:
-                return _ollama_refresh_resident_model(
-                    native_endpoint, manifest["model"], keep_alive, timeout)
-            except Exception:
-                # A failed optional fast path must recover through the original
-                # full chat contract rather than weaken readiness.
-                pass
+        if readiness_key in _MODEL_READINESS_VERIFIED:
+            resident = _ollama_model_residency(
+                native_endpoint, manifest["model"], timeout)
+            if resident is not None:
+                remaining = _ollama_residency_remaining_seconds(resident)
+                if (remaining is not None
+                        and remaining >= residency_floor):
+                    return {
+                        "done": True,
+                        "model": manifest["model"],
+                        "readiness_method": "resident_expiry_reuse",
+                        "readiness_remaining_seconds": remaining,
+                        "readiness_reused": True,
+                    }
+                try:
+                    result = _ollama_refresh_resident_model(
+                        native_endpoint, manifest["model"], keep_alive, timeout)
+                    result["readiness_remaining_seconds"] = None
+                    return result
+                except Exception:
+                    # A failed optional fast path must recover through the
+                    # original full chat contract rather than weaken readiness.
+                    pass
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 body = json.load(response)
@@ -256,6 +297,7 @@ def _ollama_readiness(manifest):
         result = dict(body)
         result.update({
             "readiness_method": "complete_chat",
+            "readiness_remaining_seconds": None,
             "readiness_reused": False,
         })
         return result
@@ -2611,6 +2653,8 @@ def run_game(run_dir, manifest, context):
         "engine_server_recycle_method": server_recycle["method"],
         "model_readiness_latency_ms": readiness_latency,
         "model_readiness_method": readiness["readiness_method"],
+        "model_readiness_remaining_seconds": readiness.get(
+            "readiness_remaining_seconds"),
         "model_readiness_reused": readiness["readiness_reused"],
     })
     # Publish a reusable predecessor only after the game and its cleanup have

@@ -845,14 +845,15 @@ development direction only: the five seeds were already exposed by the invalid f
 
 On the recorded CPU host, a cold load of `qwen3-coder-next:latest` took 41.6 seconds,
 which exceeds the configured 28-second generation budget. The runner handles this
-operationally with the versioned `chat-once-resident-refresh-v1` policy and the
-declared 90-second readiness timeout plus 30-minute keep-alive. The first preflight
-for an exact endpoint/model/think tuple validates `{"ready":true}` through native
-`/api/chat`, exercising model load, chat routing, and JSON decoding outside the
-timed turn budget. Later arms check `/api/ps` under the same lock and use an empty
-`/api/generate` request to refresh a verified resident model without generating
-completion tokens. Any absent or invalid residency/refresh response falls back to
-the complete chat validation. Verify
+operationally with the versioned `chat-once-expiry-aware-resident-v2` policy and
+the declared 90-second readiness timeout plus 30-minute keep-alive. The first
+preflight for an exact endpoint/model/think tuple validates `{"ready":true}`
+through native `/api/chat`, exercising model load, chat routing, and JSON decoding
+outside the timed turn budget. Later arms check the exact model row from `/api/ps`
+under the same lock. A valid timezone-qualified expiry with at least 300 seconds
+remaining is reused directly; an absent, invalid, or near-expiry row uses an empty
+`/api/generate` request to refresh the model without generating completion tokens.
+Failed refreshes fall back to the complete chat validation. Verify
 `model_safe_fallback_rate=0` before interpreting a confirmatory result. Readiness or
 cold-start failures remain visible infrastructure failures; claim-eligible arms also
 fail closed on any in-game model fallback and must be retried as fresh attempts rather

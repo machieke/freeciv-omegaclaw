@@ -55,7 +55,8 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert config["model"]["name"] == "qwen3-coder-next:latest"
     assert config["model"]["think"] is False
     assert config["model"]["readiness_policy"] == (
-        "chat-once-resident-refresh-v1")
+        "chat-once-expiry-aware-resident-v2")
+    assert config["model"]["readiness_residency_floor_seconds"] == 300
     assert config["model"]["selection_call_policy"] == (
         "canonical-singleton-bypass-v1")
     assert config["impact_policy"]["no_effect_retry_limit"] == 1
@@ -302,13 +303,27 @@ def test_config_rejects_an_unknown_model_readiness_policy():
     source = open(os.path.join(
         REPO, "profile", "freeciv_harness.yaml"), encoding="utf-8").read()
     source = source.replace(
-        "readiness_policy: chat-once-resident-refresh-v1",
+        "readiness_policy: chat-once-expiry-aware-resident-v2",
         "readiness_policy: unchecked-residency-v2")
     with tempfile.TemporaryDirectory() as directory:
         path = os.path.join(directory, "unknown-readiness-policy.yaml")
         with open(path, "w", encoding="utf-8") as stream:
             stream.write(source)
         with pytest.raises(ValueError, match="readiness_policy"):
+            load(path)
+
+
+def test_config_rejects_a_nonpositive_model_readiness_residency_floor():
+    source = open(os.path.join(
+        REPO, "profile", "freeciv_harness.yaml"), encoding="utf-8").read()
+    source = source.replace(
+        "readiness_residency_floor_seconds: 300",
+        "readiness_residency_floor_seconds: 0")
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "invalid-readiness-floor.yaml")
+        with open(path, "w", encoding="utf-8") as stream:
+            stream.write(source)
+        with pytest.raises(ValueError, match="readiness_residency_floor_seconds"):
             load(path)
 
 
@@ -608,7 +623,7 @@ def test_live_model_readiness_uses_native_chat_and_validates_json(monkeypatch):
     engine_live._MODEL_READINESS_VERIFIED.clear()
     manifest = {"model": "qwen3-coder-next:latest", "model_config": {
         "readiness_timeout_seconds": 91,
-        "readiness_policy": "chat-once-resident-refresh-v1",
+        "readiness_policy": "chat-once-expiry-aware-resident-v2",
         "keep_alive": "30m", "think": False}}
     result = _ollama_readiness(manifest)
     assert result["done"] is True
@@ -642,6 +657,7 @@ def test_live_model_readiness_reuses_verified_resident_model_without_chat(
             body = {"models": [{
                 "name": "qwen3-coder-next:latest",
                 "model": "qwen3-coder-next:latest",
+                "expires_at": "2999-01-01T00:00:00.123456789Z",
             }]}
         elif request.full_url.endswith("/api/generate"):
             body = {"model": "qwen3-coder-next:latest", "done": True,
@@ -659,17 +675,77 @@ def test_live_model_readiness_reuses_verified_resident_model_without_chat(
     engine_live._MODEL_READINESS_VERIFIED.clear()
     manifest = {"model": "qwen3-coder-next:latest", "model_config": {
         "readiness_timeout_seconds": 91,
-        "readiness_policy": "chat-once-resident-refresh-v1",
+        "readiness_policy": "chat-once-expiry-aware-resident-v2",
+        "readiness_residency_floor_seconds": 300,
         "keep_alive": "30m", "think": False}}
     first = _ollama_readiness(manifest)
     second = _ollama_readiness(manifest)
     assert first["readiness_method"] == "complete_chat"
-    assert second["readiness_method"] == "resident_keep_alive_refresh"
+    assert second["readiness_method"] == "resident_expiry_reuse"
     assert second["readiness_reused"] is True
     assert [url.rsplit("/", 1)[-1] for url, _, _ in calls] == [
-        "chat", "ps", "generate"]
+        "chat", "ps"]
     assert calls[1][2] is None
-    assert json.loads(calls[2][2]) == {
+    assert second["readiness_remaining_seconds"] > 300
+
+
+def test_ollama_residency_expiry_parsing_is_nanosecond_and_timezone_strict():
+    now = 1784998800.0
+    assert engine_live._ollama_residency_remaining_seconds({
+        "expires_at": "2026-07-25T17:00:01.123456789Z",
+    }, now=now) == pytest.approx(1.123456)
+    assert engine_live._ollama_residency_remaining_seconds({
+        "expires_at": "2026-07-25T17:00:01.123456789+00:00",
+    }, now=now) == pytest.approx(1.123456)
+    assert engine_live._ollama_residency_remaining_seconds({
+        "expires_at": "2026-07-25T17:00:01.123456789",
+    }, now=now) is None
+    assert engine_live._ollama_residency_remaining_seconds({
+        "expires_at": "not-an-expiry",
+    }, now=now) is None
+
+
+def test_live_model_readiness_refreshes_resident_model_near_expiry(monkeypatch):
+    calls = []
+
+    class Response(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            self.close()
+
+    def urlopen(request, timeout):
+        calls.append((request.full_url.rsplit("/", 1)[-1], request.data))
+        if request.full_url.endswith("/api/ps"):
+            body = {"models": [{
+                "name": "qwen3-coder-next:latest",
+                "expires_at": "2026-07-25T17:00:01.123456789Z",
+            }]}
+        elif request.full_url.endswith("/api/generate"):
+            body = {"model": "qwen3-coder-next:latest", "done": True,
+                    "done_reason": "load"}
+        else:
+            body = {"done": True,
+                    "message": {"content": "{\"ready\": true}"}}
+        return Response(json.dumps(body).encode("utf-8"))
+
+    monkeypatch.setattr(engine_live.time, "time", lambda: 1784998800.0)
+    monkeypatch.setattr(engine_live.urllib.request, "urlopen", urlopen)
+    engine_live._MODEL_READINESS_VERIFIED.clear()
+    manifest = {"model": "qwen3-coder-next:latest", "model_config": {
+        "readiness_timeout_seconds": 91,
+        "readiness_policy": "chat-once-expiry-aware-resident-v2",
+        "readiness_residency_floor_seconds": 300,
+        "keep_alive": "30m", "think": False}}
+
+    _ollama_readiness(manifest)
+    second = _ollama_readiness(manifest)
+
+    assert second["readiness_method"] == "resident_keep_alive_refresh"
+    assert second["readiness_reused"] is True
+    assert [operation for operation, _ in calls] == ["chat", "ps", "generate"]
+    assert json.loads(calls[2][1]) == {
         "keep_alive": "30m", "model": "qwen3-coder-next:latest",
         "prompt": "", "stream": False,
     }
@@ -705,7 +781,7 @@ def test_live_model_readiness_refresh_failure_falls_back_to_full_chat(
     engine_live._MODEL_READINESS_VERIFIED.clear()
     manifest = {"model": "qwen3-coder-next:latest", "model_config": {
         "readiness_timeout_seconds": 91,
-        "readiness_policy": "chat-once-resident-refresh-v1",
+        "readiness_policy": "chat-once-expiry-aware-resident-v2",
         "keep_alive": "30m", "think": False}}
     _ollama_readiness(manifest)
     result = _ollama_readiness(manifest)
@@ -727,7 +803,10 @@ def test_concurrent_model_readiness_performs_only_one_complete_chat(monkeypatch)
         operation = request.full_url.rsplit("/", 1)[-1]
         calls.append(operation)
         if operation == "ps":
-            body = {"models": [{"name": "qwen3-coder-next:latest"}]}
+            body = {"models": [{
+                "name": "qwen3-coder-next:latest",
+                "expires_at": "2999-01-01T00:00:00.123456789Z",
+            }]}
         elif operation == "generate":
             body = {"done": True, "done_reason": "load"}
         else:
@@ -740,16 +819,17 @@ def test_concurrent_model_readiness_performs_only_one_complete_chat(monkeypatch)
     engine_live._MODEL_READINESS_VERIFIED.clear()
     manifest = {"model": "qwen3-coder-next:latest", "model_config": {
         "readiness_timeout_seconds": 91,
-        "readiness_policy": "chat-once-resident-refresh-v1",
+        "readiness_policy": "chat-once-expiry-aware-resident-v2",
         "keep_alive": "30m", "think": False}}
     with ThreadPoolExecutor(max_workers=3) as pool:
         results = list(pool.map(
             lambda _index: _ollama_readiness(manifest), range(3)))
     assert sorted(row["readiness_method"] for row in results) == [
-        "complete_chat", "resident_keep_alive_refresh",
-        "resident_keep_alive_refresh"]
+        "complete_chat", "resident_expiry_reuse",
+        "resident_expiry_reuse"]
     assert calls.count("chat") == 1
-    assert calls.count("ps") == calls.count("generate") == 2
+    assert calls.count("ps") == 2
+    assert calls.count("generate") == 0
 
 
 def test_live_model_readiness_rejects_invalid_json(monkeypatch):
@@ -767,7 +847,7 @@ def test_live_model_readiness_rejects_invalid_json(monkeypatch):
     with pytest.raises(RuntimeError, match="readiness returned invalid JSON"):
         _ollama_readiness({"model": "qwen3-coder-next:latest", "model_config": {
             "readiness_timeout_seconds": 91,
-            "readiness_policy": "chat-once-resident-refresh-v1",
+            "readiness_policy": "chat-once-expiry-aware-resident-v2",
         }})
 
 
@@ -1257,6 +1337,7 @@ def test_engine_live_clears_stale_proxy_game_before_server_recycle(monkeypatch):
     assert result["model_readiness_method"] == "test_readiness"
     assert result["model_readiness_reused"] is True
     assert result["model_readiness_latency_ms"] >= 0
+    assert result["model_readiness_remaining_seconds"] is None
     assert result["engine_preflight_latency_ms"] >= 0
     assert result["engine_server_pid"] == "42"
     assert result["engine_server_recycle_method"] == "kill-then-listener"

@@ -70,12 +70,14 @@ unloading that produced bounded-timeout fallbacks. The v4 engine hardening
 established readiness with an operational native Ollama chat request before every
 arm, validating its complete JSON response with a 90-second cold-load allowance
 plus a 30-minute keep-alive. The current versioned
-`chat-once-resident-refresh-v1` policy preserves that complete chat validation once
-per controller process and exact endpoint/model/think tuple.
-Before later arms it checks `/api/ps` under the same readiness lock and refreshes
-the verified resident model through a zero-token `/api/generate` request. Missing,
-malformed, evicted, or failed fast-path responses fall back to the complete chat
-contract. A claim-eligible arm fails closed if any turn still needs a model
+`chat-once-expiry-aware-resident-v2` policy preserves that complete chat
+validation once per controller process and exact endpoint/model/think tuple.
+Before later arms it checks the exact model row from `/api/ps` under the same
+readiness lock. A timezone-qualified expiry at least 300 seconds in the future
+is reused without another model request. A missing, malformed, evicted, or
+near-expiry row uses the zero-token `/api/generate` refresh; failed refreshes
+fall back to the complete chat contract. A claim-eligible arm fails closed if
+any turn still needs a model
 fallback; it is retried only as a fresh attempt and never silently counted as a
 completed pair.
 

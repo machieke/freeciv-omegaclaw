@@ -37,10 +37,13 @@ the versioned canonical-singleton policy; multi-candidate decisions retain
 goal-selection calls.
 
 Each completed engine arm also records `model_readiness_latency_ms`,
-`model_readiness_method`, and `model_readiness_reused` in `status.json`. These
-are operational timings, not gameplay outcomes, and make cold-chat versus
-resident-refresh cost directly measurable without contaminating the event-based
-score analysis. The same status record splits total backend time into
+`model_readiness_method`, `model_readiness_reused`, and
+`model_readiness_remaining_seconds` in `status.json`. These are operational
+timings, not gameplay outcomes, and distinguish complete-chat validation,
+expiry-aware resident reuse, and near-expiry keep-alive refresh without
+contaminating the event-based score analysis. A resident expiry is reusable only
+when the exact configured model row has at least the versioned 300-second safety
+floor remaining. The same status record splits total backend time into
 `engine_preflight_latency_ms` (proxy clear plus server recycle),
 `engine_gameplay_latency_ms`, and `engine_cleanup_latency_ms`, with
 `engine_backend_latency_ms` as the enclosing measurement.
