@@ -6,6 +6,8 @@ import sys
 import tempfile
 from types import SimpleNamespace
 
+import pytest
+
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(REPO, "src")
@@ -37,8 +39,10 @@ from freeciv_agent.beliefs import (  # noqa: E402
 )
 from freeciv_agent.pressure import (  # noqa: E402
     AtomState,
+    CloneLifecycleStore,
     CloneManager,
     CloneState,
+    CloneTransactionError,
     ConductanceLearner,
     ConductanceState,
     CostVector,
@@ -472,6 +476,111 @@ def test_clone_projection_loses_confidence_under_maximal_disagreement():
     assert visible.confidence == 0.0
     assert manager.split_score(1, 1, 1, 1) == 1.0
     assert manager.accept_split(2, 3.0, 2, 1.0)
+
+
+def test_clone_pressure_supports_expected_and_worst_tail_projection():
+    manager = CloneManager()
+    clones = (
+        CloneState(
+            "safe", "visible", 0.8, TruthState(1.0, 0.8),
+            pressure=(("survival", PressureVector(act=1.0)),)),
+        CloneState(
+            "danger", "visible", 0.2, TruthState(0.0, 0.8),
+            pressure=(("survival", PressureVector(act=9.0)),)),
+    )
+    assert manager.visible_pressure(clones, "survival").act == 2.6
+    assert manager.visible_pressure(
+        clones, "survival", risk_alpha=0.2).act == 9.0
+    with pytest.raises(ValueError):
+        manager.visible_pressure(clones, "survival", risk_alpha=0.0)
+
+
+def test_clone_merge_rejects_divergent_successor_distributions():
+    manager = CloneManager(merge_successor_tolerance=0.1)
+    left = CloneState(
+        "left", "visible", 0.5, TruthState(0.5, 0.8),
+        successor_distribution=(("attack", 0.9), ("transit", 0.1)))
+    right = CloneState(
+        "right", "visible", 0.5, TruthState(0.5, 0.8),
+        successor_distribution=(("attack", 0.1), ("transit", 0.9)))
+    assert not manager.merge_eligible(left, right)
+
+
+def test_clone_lifecycle_persists_lineage_forwards_and_enforces_cap():
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "clones.json")
+        manager = CloneManager(
+            maximum_clones=2, split_threshold=0.5,
+            merge_truth_tolerance=0.1, merge_pressure_tolerance=0.1)
+        store = CloneLifecycleStore(path, manager)
+        root = CloneState(
+            "root", "enemy-intent", 1.0,
+            TruthState(0.5, 0.4, ("root-evidence",)))
+        store.initialize("enemy-intent", (root,))
+        left = CloneState(
+            "left", "enemy-intent", 0.5,
+            TruthState(0.48, 0.8, ("left-evidence",)))
+        right = CloneState(
+            "right", "enemy-intent", 0.5,
+            TruthState(0.52, 0.8, ("right-evidence",)))
+        store.split(
+            "enemy-intent", "root", (left, right),
+            predictive_gain=2.0, added_parameters=1, split_score=1.0,
+            event_id="split-root")
+        assert store.resolve("root") == ("left", "right")
+        with pytest.raises(CloneTransactionError):
+            store.split(
+                "enemy-intent", "left", (
+                    CloneState(
+                        "left-a", "enemy-intent", 0.25,
+                        TruthState(0.4, 0.8)),
+                    CloneState(
+                        "left-b", "enemy-intent", 0.25,
+                        TruthState(0.6, 0.8)),
+                ),
+                predictive_gain=2.0, added_parameters=1, split_score=1.0,
+                event_id="split-over-cap")
+
+        merged = CloneState(
+            "merged", "enemy-intent", 1.0,
+            TruthState(0.5, 0.8, ("left-evidence", "right-evidence")))
+        store.merge(
+            "enemy-intent", "left", "right", merged, "merge-children")
+        assert store.resolve("root") == ("merged",)
+        expected_hash = store.state_hash
+        reopened = CloneLifecycleStore(path, manager)
+        assert reopened.resolve("root") == ("merged",)
+        assert reopened.state_hash == expected_hash
+        assert reopened.clones("enemy-intent") == (merged,)
+        # Replaying an already committed event is an idempotent read.
+        assert reopened.merge(
+            "enemy-intent", "left", "right", merged,
+            "merge-children") == (merged,)
+
+
+def test_clone_bayes_update_is_atomic_normalized_and_persistent():
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "clones.json")
+        store = CloneLifecycleStore(path, CloneManager(maximum_clones=2))
+        store.initialize("hidden-route", (
+            CloneState(
+                "attack", "hidden-route", 0.5,
+                TruthState(1.0, 0.8, ("attack-model",))),
+            CloneState(
+                "transit", "hidden-route", 0.5,
+                TruthState(0.0, 0.8, ("transit-model",))),
+        ))
+        updated = store.bayes_update(
+            "hidden-route", {"attack": 0.9, "transit": 0.1},
+            "observation-1")
+        assert [round(row.posterior, 12) for row in updated] == [0.9, 0.1]
+        assert abs(sum(row.posterior for row in updated) - 1.0) < 1e-12
+        persisted = CloneLifecycleStore(
+            path, CloneManager(maximum_clones=2))
+        assert persisted.clones("hidden-route") == updated
+        assert persisted.bayes_update(
+            "hidden-route", {"attack": 0.0, "transit": 1.0},
+            "observation-1") == updated
 
 
 def _proof_query():

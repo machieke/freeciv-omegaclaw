@@ -13,7 +13,12 @@ from .engine import (
     PressureResult,
     PressureTrace,
 )
-from .lifecycle import CloneManager, CloneState
+from .lifecycle import (
+    CloneLifecycleStore,
+    CloneManager,
+    CloneState,
+    CloneTransactionError,
+)
 from .learning import ConductanceState, ConductanceUpdate
 from .observation import (
     Hypothesis,
@@ -59,6 +64,8 @@ __all__ = [
     "CAUSAL_KINDS",
     "CloneManager",
     "CloneState",
+    "CloneLifecycleStore",
+    "CloneTransactionError",
     "ConductanceLearner",
     "ConductanceState",
     "ConductanceUpdate",
