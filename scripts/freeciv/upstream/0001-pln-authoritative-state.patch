@@ -949,7 +949,7 @@ index 045d314..9a9d8fb 100644
              "reset_on_turn_end": true
          }
 diff --git a/freeciv-proxy/llm_handler.py b/freeciv-proxy/llm_handler.py
-index 9be5668..79d4de2 100644
+index 9be5668..0361297 100644
 --- a/freeciv-proxy/llm_handler.py
 +++ b/freeciv-proxy/llm_handler.py
 @@ -16,7 +16,7 @@ import socket
@@ -961,7 +961,18 @@ index 9be5668..79d4de2 100644
  from state_extractor import StateExtractor, StateFormat, civcom_registry
  from observer_civcom import OBSERVER_AGENT_ID, stop_observer_civcom
  from action_validator import LLMActionValidator, ActionType, ValidationResult
-@@ -587,10 +587,24 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -77,7 +77,9 @@ logging.basicConfig(
+ )
+ 
+ logger = logging.getLogger("freeciv-proxy")
+-logger.setLevel(logging.DEBUG)  # Allow DEBUG level for file handler
++logger.setLevel(getattr(
++    logging, os.getenv("FREECIV_PROXY_LOG_LEVEL", "INFO").upper(),
++    logging.INFO))
+ 
+ # Add file handler for detailed debug logging (if directory exists)
+ try:
+@@ -587,10 +589,24 @@ class LLMWSHandler(websocket.WebSocketHandler):
                      f"   Civserver Port: {civserver_port} (restored from session)"
                  )
              else:
@@ -990,7 +1001,7 @@ index 9be5668..79d4de2 100644
                  port_type = (
                      "MULTIPLAYER (6001-6009)" if 6001 <= civserver_port <= 6009
                      else "SINGLEPLAYER (6000)" if civserver_port == 6000
-@@ -1300,7 +1314,11 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1300,7 +1316,11 @@ class LLMWSHandler(websocket.WebSocketHandler):
              # After end_turn, wait for server's authoritative BEGIN_TURN signal
              # This ensures all players have finished before we return fresh state
              # Uses asyncio.Event for efficient blocking instead of polling
@@ -1003,7 +1014,7 @@ index 9be5668..79d4de2 100644
                  logger.info(f"⏳ Waiting for new turn to begin (current: {self.civcom.game_turn})...")
                  wait_start = time.time()
                  try:
-@@ -1312,13 +1330,56 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1312,13 +1332,56 @@ class LLMWSHandler(websocket.WebSocketHandler):
                      elapsed_ms = (time.time() - wait_start) * 1000
                      logger.warning(f"⚠️ Turn start timeout after {elapsed_ms/1000:.1f}s - returning current state")
  
@@ -1064,7 +1075,7 @@ index 9be5668..79d4de2 100644
              if cached_state:
                  logger.debug(f"✓ Cache hit for agent {self.agent_id}")
                  response = {
-@@ -1336,7 +1397,23 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1336,9 +1399,25 @@ class LLMWSHandler(websocket.WebSocketHandler):
  
              # Generate fresh state
              logger.debug(f"⚙️ Generating fresh state for agent {self.agent_id}")
@@ -1087,9 +1098,12 @@ index 9be5668..79d4de2 100644
 +                state_data = self._build_optimized_state(
 +                    query_format, include_actions)
  
-             logger.info(
+-            logger.info(
++            logger.debug(
                  f"✓ STATE_QUERY SUCCESS for agent {self.agent_id}:\n"
-@@ -1350,7 +1427,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
+                 f"   Turn: {state_data.get('turn', 'N/A')}\n"
+                 f"   Phase: {state_data.get('phase', 'N/A')}\n"
+@@ -1350,7 +1429,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
              )
  
              # Cache the result
@@ -1099,7 +1113,7 @@ index 9be5668..79d4de2 100644
  
              # Send response
              response = {
-@@ -1649,6 +1727,15 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1649,6 +1729,15 @@ class LLMWSHandler(websocket.WebSocketHandler):
              # with a clearer "Missing required field" error instead of cryptic S001 format error
              if production:
                  normalized["production_type"] = str(production).lower()
@@ -1115,7 +1129,7 @@ index 9be5668..79d4de2 100644
  
          elif action_type == "unit_build_city":
              # Extract unit_id
-@@ -1660,6 +1747,17 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1660,6 +1749,17 @@ class LLMWSHandler(websocket.WebSocketHandler):
              if isinstance(target, dict) and "name" in target:
                  normalized["name"] = target["name"]
  
@@ -1133,7 +1147,99 @@ index 9be5668..79d4de2 100644
          elif action_type in ("unit_attack", "unit_suicide_attack", "unit_bombard",
                               "unit_capture", "unit_wipe", "unit_conquer_city",
                               "unit_nuke", "unit_nuke_city", "unit_nuke_units"):
-@@ -2621,6 +2719,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1752,7 +1852,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
+         elif action_type == "end_turn":
+             # end_turn is simple - just needs player_id (already mapped above)
+             # No additional fields required
+-            logger.info(f"Normalized end_turn action for player {normalized.get('player_id')}")
++            logger.debug(f"Normalized end_turn action for player {normalized.get('player_id')}")
+ 
+         # Copy any parameters field
+         if "parameters" in action_data:
+@@ -1906,7 +2006,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
+ 
+         current_turn = getattr(self.civcom, 'turn', 'unknown') if self.civcom else 'unknown'
+         action_type = msg_data.get('action', {}).get('type', msg_data.get('type', 'unknown'))
+-        logger.info(
++        logger.debug(
+             f"🎯 ACTION_RECEIVED: agent={self.agent_id} | turn={current_turn} | "
+             f"action_type={action_type} | game_id={self.game_id}{resume_context}"
+         )
+@@ -1934,18 +2034,18 @@ class LLMWSHandler(websocket.WebSocketHandler):
+             # Extract action data from either 'data' (agent format) or 'action' (legacy format)
+             # Use explicit check to avoid falsy value issues (empty dict, 0, False, etc.)
+             action_data = msg_data.get('data') if 'data' in msg_data else msg_data.get('action', {})
+-            logger.info(f"🎯 Extracted action_data: {action_data}")
+-            logger.info(f"🎯 action_data type: {type(action_data).__name__}")
++            logger.debug(f"🎯 Extracted action_data: {action_data}")
++            logger.debug(f"🎯 action_data type: {type(action_data).__name__}")
+             if isinstance(action_data, dict):
+-                logger.info(f"🎯 action_data has 'action_type': {'action_type' in action_data}")
+-                logger.info(f"🎯 action_data has 'type': {'type' in action_data}")
++                logger.debug(f"🎯 action_data has 'action_type': {'action_type' in action_data}")
++                logger.debug(f"🎯 action_data has 'type': {'type' in action_data}")
+ 
+             # Handle canonical string format from LLM agents
+             if isinstance(action_data, str):
+-                logger.info(f"📝 Received canonical action string: {action_data}")
++                logger.debug(f"📝 Received canonical action string: {action_data}")
+                 try:
+                     action_data = self._parse_canonical_action(action_data)
+-                    logger.info(f"✅ Parsed to: {action_data}")
++                    logger.debug(f"✅ Parsed to: {action_data}")
+                 except Exception as e:
+                     logger.error(f"❌ Failed to parse canonical action '{action_data}': {e}")
+                     error_response = {
+@@ -1965,13 +2065,13 @@ class LLMWSHandler(websocket.WebSocketHandler):
+ 
+             # Handle agent dict format with "action_type" instead of "type"
+             if isinstance(action_data, dict) and "action_type" in action_data and "type" not in action_data:
+-                logger.info(f"📝 NORMALIZATION TRIGGERED: agent format detected")
+-                logger.info(f"📝 Original action_data: {action_data}")
++                logger.debug(f"📝 NORMALIZATION TRIGGERED: agent format detected")
++                logger.debug(f"📝 Original action_data: {action_data}")
+                 try:
+                     action_data = self._normalize_agent_action(action_data, self.player_id, self.game_id)
+-                    logger.info(f"✅ NORMALIZATION SUCCESS: {action_data}")
+-                    logger.info(f"✅ Normalized action has 'type': {'type' in action_data}")
+-                    logger.info(f"✅ Normalized action has 'tech_name': {'tech_name' in action_data if action_data.get('type') == 'tech_research' else 'N/A'}")
++                    logger.debug(f"✅ NORMALIZATION SUCCESS: {action_data}")
++                    logger.debug(f"✅ Normalized action has 'type': {'type' in action_data}")
++                    logger.debug(f"✅ Normalized action has 'tech_name': {'tech_name' in action_data if action_data.get('type') == 'tech_research' else 'N/A'}")
+                 except Exception as e:
+                     logger.error(f"❌ Failed to normalize agent action: {e}")
+                     error_response = {
+@@ -1987,9 +2087,9 @@ class LLMWSHandler(websocket.WebSocketHandler):
+ 
+             # Sanitize action data to prevent injection attacks
+             try:
+-                logger.info(f"🧹 Sanitizing action_data: {action_data}")
++                logger.debug(f"🧹 Sanitizing action_data: {action_data}")
+                 sanitized_action = InputSanitizer.sanitize_action_data(action_data)
+-                logger.info(f"✓ Sanitized action: {sanitized_action}")
++                logger.debug(f"✓ Sanitized action: {sanitized_action}")
+             except SecurityError as e:
+                 SecurityLogger.log_security_violation(self.agent_id, "INPUT_SANITIZATION", str(e))
+                 error_response = {
+@@ -2077,7 +2177,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
+                                     )
+                                     return
+ 
+-            logger.info(f"🔍 Validating action: {sanitized_action}")
++            logger.debug(f"🔍 Validating action: {sanitized_action}")
+ 
+             # Validate action (additional checks beyond moves_left)
+             validation_result = self.action_validator.validate_action(
+@@ -2156,7 +2256,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
+                 current_turn = game_state.get('turn', 'unknown') if game_state else 'unknown'
+ 
+                 # Strategic logging for action validation debugging
+-                logger.warning(
++                logger.info(
+                     f"Action accepted: agent={self.agent_id}, turn={current_turn}, "
+                     f"action_type={sanitized_action.get('type')}, actor_id={actor_id}"
+                 )
+@@ -2621,6 +2721,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
                      formatted['target'] = {'improvement': params['improvement']}
                  elif 'city' in params:
                      formatted['target'] = {'city': params['city']}
@@ -1142,7 +1248,7 @@ index 9be5668..79d4de2 100644
                  elif params:  # Pass through any other params
                      formatted['target'] = params
              
-@@ -2858,39 +2958,51 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -2858,39 +2960,51 @@ class LLMWSHandler(websocket.WebSocketHandler):
          """Build optimized game state for LLM consumption using StateExtractor"""
          logger.debug(f"🏗️ _build_optimized_state called for agent {self.agent_id}, player_id={self.player_id}")
  
@@ -1219,7 +1325,7 @@ index 9be5668..79d4de2 100644
          # Use StateExtractor to format the state - this ensures map validation and proper structure
          try:
              if not self.game_id:
-@@ -2918,6 +3030,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -2918,6 +3032,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
              )
              import traceback
              logger.error(f"StateExtractor traceback: {traceback.format_exc()}")
@@ -1228,7 +1334,7 @@ index 9be5668..79d4de2 100644
              state = self._build_fallback_state_from_full(full_state)
  
          # Add player_id and timestamp which are handler-specific
-@@ -5061,6 +5175,21 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -5061,6 +5177,21 @@ class LLMWSHandler(websocket.WebSocketHandler):
  
          session = session_manager.validate_session(self.session_id)
          if session:
@@ -1990,6 +2096,31 @@ index 803966c..f8cce06 100644
                  return
  
              # Validate since_turn parameter if provided
+diff --git a/freeciv-proxy/tests/test_legal_actions_preconditions.py b/freeciv-proxy/tests/test_legal_actions_preconditions.py
+index 92797c1..09e3964 100644
+--- a/freeciv-proxy/tests/test_legal_actions_preconditions.py
++++ b/freeciv-proxy/tests/test_legal_actions_preconditions.py
+@@ -450,8 +450,8 @@ class TestLegalActionsOptimizedIntegration:
+                 tech_actions = [a for a in actions if a.get('type') == 'tech_research']
+                 assert len(tech_actions) > 0
+ 
+-    def test_legal_actions_skips_categories_with_no_actions(self):
+-        """Test that categories with pre-conditions not met are skipped"""
++    def test_legal_actions_keeps_end_turn_when_categories_have_no_actions(self):
++        """Categories with unmet preconditions leave only the turn fallback."""
+         civcom = create_mock_civcom()
+         civcom.game_turn = 10
+         
+@@ -499,8 +499,7 @@ class TestLegalActionsOptimizedIntegration:
+             
+             actions = civcom._get_legal_actions_optimized(player_id=0)
+             
+-            # Should have no actions from any category
+-            assert len(actions) == 0
++            assert actions == [{'type': 'end_turn', 'is_valid': True}]
+ 
+     def test_legal_actions_respects_per_category_limits(self):
+         """Test that each category respects its own limit"""
 diff --git a/freeciv-proxy/tests/test_packet_converters.py b/freeciv-proxy/tests/test_packet_converters.py
 index dc8c8ab..77ed308 100644
 --- a/freeciv-proxy/tests/test_packet_converters.py
@@ -2122,23 +2253,28 @@ index dc8c8ab..77ed308 100644
 +        assert result['dest_tile'] == 56
 diff --git a/freeciv-proxy/tests/test_pln_authoritative_state.py b/freeciv-proxy/tests/test_pln_authoritative_state.py
 new file mode 100644
-index 0000000..40d8db4
+index 0000000..3f151d1
 --- /dev/null
 +++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
-@@ -0,0 +1,596 @@
+@@ -0,0 +1,601 @@
 +"""Contract tests for the packet-backed PLN authoritative state format."""
 +
 +import asyncio
 +import json
++import logging
 +from unittest.mock import Mock
 +
 +from activity_constants import ACTIVITY_NAMES
 +from civcom import ACTION_TRANSPORT_EMBARK, CivCom, get_activity_name
-+from llm_handler import LLMWSHandler
++from llm_handler import LLMWSHandler, logger as proxy_logger
 +from message_validator import MessageValidator, ValidationError
 +from packet_constants import DS_ALLIANCE, DS_WAR, PACKET_UNIT_SHORT_INFO
 +from security import InputSanitizer
 +from state_extractor import StateExtractor, StateFormat
++
++
++def test_proxy_logging_defaults_to_non_debug_release_level():
++    assert proxy_logger.level == logging.INFO
 +
 +
 +def make_civcom():
