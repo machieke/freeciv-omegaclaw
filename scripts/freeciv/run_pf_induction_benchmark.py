@@ -2,8 +2,10 @@
 """Deterministic contextual-rule replay benchmark for PF-PLN Phase 6."""
 
 import argparse
+import hashlib
 import json
 import os
+import platform
 import sys
 
 
@@ -78,6 +80,14 @@ def _pressure(expand):
         graph, (GoalState("survive", "attack-risk"),))
 
 
+def _sha256(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as stream:
+        for block in iter(lambda: stream.read(65536), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
 def run(training_episodes=64, validation_episodes=256):
     training_episodes = int(training_episodes)
     validation_episodes = int(validation_episodes)
@@ -125,10 +135,18 @@ def run(training_episodes=64, validation_episodes=256):
     report = {
         "benchmark": "pf-pln-phase-6-contextual-induction",
         "configuration": {
+            "deterministic_pattern_schedule": True,
             "generalization_validation_episodes": len(
                 generalization_replay),
+            "random_seed": None,
             "training_episodes_per_context": training_episodes,
             "validation_episodes": validation_episodes,
+        },
+        "implementation": {
+            "benchmark_sha256": _sha256(__file__),
+            "induction_sha256": _sha256(os.path.join(
+                SRC, "freeciv_agent", "pressure", "induction.py")),
+            "python_version": platform.python_version(),
         },
         "contextual_rule": {
             "metrics": contextual.metrics.to_dict(),

@@ -136,6 +136,24 @@ def test_replay_promotes_contextual_rule_and_rejects_data_leakage():
         validation.metrics.baseline_contradiction_rate)
     with pytest.raises(ValueError, match="overlap"):
         validator.validate(proposal, _population("alpha"))
+    leaked = InductionEpisode(
+        "different-episode-id", _context("alpha"),
+        ("border-road", "military-spike"), True,
+        (proposal.provenance_ids[0],))
+    with pytest.raises(ValueError, match="provenance overlap"):
+        validator.validate(proposal, (leaked,))
+
+
+def test_pattern_support_must_have_independent_provenance():
+    episodes = (
+        InductionEpisode(
+            "one", _context("alpha"), ("border-road",), True, ("shared",)),
+        InductionEpisode(
+            "two", _context("alpha"), ("border-road",), True, ("shared",)),
+    )
+    with pytest.raises(ValueError, match="not independent"):
+        PatternMiner(minimum_support=2).mine(
+            episodes, "attack-within-six")
 
 
 def test_overgeneralized_rule_is_demoted_by_out_of_sample_replay():
