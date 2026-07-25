@@ -304,6 +304,36 @@
         }}
       }
     },
+    "goal_selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "selection_id", "proposal_id", "source", "policy", "goal",
+        "candidate_count", "model_call_avoided"
+      ],
+      "properties": {
+        "selection_id": {"type": "string", "minLength": 1},
+        "proposal_id": {"type": "string", "minLength": 1},
+        "source": {"const": "canonical_catalog"},
+        "policy": {"const": "canonical-singleton-bypass-v1"},
+        "goal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["goal_id", "target_id", "predicate", "arguments"],
+          "properties": {
+            "goal_id": {"type": "string", "minLength": 1},
+            "target_id": {"type": "string", "minLength": 1},
+            "predicate": {"enum": ["researchable", "buildable"]},
+            "arguments": {
+              "type": "array", "minItems": 2,
+              "items": {"type": ["string", "number"]}
+            }
+          }
+        },
+        "candidate_count": {"const": 1},
+        "model_call_avoided": {"const": true}
+      }
+    },
     "verification": {
       "type": "object", "additionalProperties": false,
       "required": ["verification_id", "proposal_id", "claim_id", "verdict", "check", "evidence_atom_ids"],

@@ -45,6 +45,7 @@ _MODEL_JSON_CACHE = {}
 _MODEL_CACHE_LOCK = threading.RLock()
 _MODEL_READINESS_LOCK = threading.Lock()
 _STACK_LOCK = threading.RLock()
+SELECTION_CALL_POLICY = "canonical-singleton-bypass-v1"
 
 
 def _opponent_memory_path(run_dir, condition_id):
@@ -329,6 +330,30 @@ def _constrained_proposal(manifest, summary, catalog, targets):
     # Exercise the production constrained parser and its catalog gates on model output.
     proposal = ConstrainedProposer(lambda _request: raw, catalog, manifest["model"]).propose(summary)[0]
     return proposal, value, latency, corrections
+
+
+def _canonical_singleton_proposal(manifest, summary, catalog, targets):
+    """Build the only legal canonical proposal without asking the model to echo it."""
+    if len(targets) != 1:
+        raise ValueError("canonical singleton selection requires exactly one target")
+    target = targets[0]
+    goal = {
+        "goal_id": "goal-live-1", "target_id": target.rule_id,
+        "predicate": target.target_predicate,
+        "arguments": ["player", target.rule_name],
+    }
+    expanded = {
+        "schema_version": "1.0",
+        "proposal_id": "proposal-canonical-" + structural_hash([
+            SELECTION_CALL_POLICY, target.rule_id, summary.to_dict()])[:20],
+        "goals": [goal], "claims": [],
+        "rationale": "single canonical live goal; model selection is unnecessary",
+        "selection": goal["goal_id"],
+    }
+    raw = json.dumps(expanded, sort_keys=True, separators=(",", ":"))
+    # Keep the same production parser and symbol-catalog gates as model output.
+    return ConstrainedProposer(
+        lambda _request: raw, catalog, manifest["model"]).propose(summary)[0]
 
 
 def _decision_state_fingerprint(snapshot):
@@ -869,48 +894,72 @@ def _cognitive_turn(manifest, context, store, player_id, raw, snapshot,
     plain_selection = "end_turn"
     model_started = time.perf_counter()
     model_error = None
-    try:
-        if context.capabilities["constrained_llm"]:
-            context.use("constrained_llm")
-            proposal, _, latency, corrections = _constrained_proposal(
-                manifest, summary, catalog, targets)
-            payload = {
-                "claims": [], "goals": [row.to_dict() for row in proposal.goals],
-                "model": manifest["model"],
-                "prompt_version": "engine-live-constrained/1.0",
-                "proposal_id": proposal.proposal_id,
-            }
-        else:
-            selection, raw_model, latency, corrections = _plain_proposal(
-                manifest, summary, available_research)
-            allowed = set(available_research + ["end_turn"])
-            plain_selection = (str(selection["selection"])
-                               if str(selection["selection"]) in allowed else "end_turn")
-            selected_rule = next(
-                (rule for rule in targets if rule.rule_name == plain_selection), None)
-            if selected_rule is not None:
-                target = selected_rule
-            payload = {
-                "claims": [], "goals": [{"predicate": plain_selection}],
-                "model": manifest["model"],
-                "prompt_version": "engine-live-plain/1.0",
-                "proposal_id": "proposal-" + structural_hash([
-                    raw_model, snapshot.snapshot_id])[:20],
-            }
-    except Exception as exc:
-        model_error = exc
-        latency = (time.perf_counter() - model_started) * 1000.0
-        corrections = int(manifest.get(
-            "model_config", {}).get("corrective_attempts", 2)) - 1
+    model_called = True
+    model_call_avoided = False
+    event_type = "llm_proposal"
+    if (context.capabilities["constrained_llm"] and len(targets) == 1
+            and manifest.get("model_config", {}).get(
+                "selection_call_policy") == SELECTION_CALL_POLICY):
+        context.use("constrained_llm")
+        proposal = _canonical_singleton_proposal(
+            manifest, summary, catalog, targets)
+        latency = 0.0
+        corrections = 0
+        model_called = False
+        model_call_avoided = True
+        event_type = "goal_selection"
         payload = {
-            "claims": [], "goals": [{"predicate": "safe-fallback"}],
-            "model": manifest["model"],
-            "prompt_version": "engine-live-timeout-fallback/1.0",
-            "proposal_id": "proposal-fallback-" + structural_hash([
-                snapshot.snapshot_id, type(exc).__name__])[:20],
+            "candidate_count": 1,
+            "goal": proposal.goals[0].to_dict(),
+            "model_call_avoided": True,
+            "policy": SELECTION_CALL_POLICY,
+            "proposal_id": proposal.proposal_id,
+            "selection_id": proposal.selection,
+            "source": "canonical_catalog",
         }
+    else:
+        try:
+            if context.capabilities["constrained_llm"]:
+                context.use("constrained_llm")
+                proposal, _, latency, corrections = _constrained_proposal(
+                    manifest, summary, catalog, targets)
+                payload = {
+                    "claims": [], "goals": [row.to_dict() for row in proposal.goals],
+                    "model": manifest["model"],
+                    "prompt_version": "engine-live-constrained/1.0",
+                    "proposal_id": proposal.proposal_id,
+                }
+            else:
+                selection, raw_model, latency, corrections = _plain_proposal(
+                    manifest, summary, available_research)
+                allowed = set(available_research + ["end_turn"])
+                plain_selection = (str(selection["selection"])
+                                   if str(selection["selection"]) in allowed else "end_turn")
+                selected_rule = next(
+                    (rule for rule in targets if rule.rule_name == plain_selection), None)
+                if selected_rule is not None:
+                    target = selected_rule
+                payload = {
+                    "claims": [], "goals": [{"predicate": plain_selection}],
+                    "model": manifest["model"],
+                    "prompt_version": "engine-live-plain/1.0",
+                    "proposal_id": "proposal-" + structural_hash([
+                        raw_model, snapshot.snapshot_id])[:20],
+                }
+        except Exception as exc:
+            model_error = exc
+            latency = (time.perf_counter() - model_started) * 1000.0
+            corrections = int(manifest.get(
+                "model_config", {}).get("corrective_attempts", 2)) - 1
+            payload = {
+                "claims": [], "goals": [{"predicate": "safe-fallback"}],
+                "model": manifest["model"],
+                "prompt_version": "engine-live-timeout-fallback/1.0",
+                "proposal_id": "proposal-fallback-" + structural_hash([
+                    snapshot.snapshot_id, type(exc).__name__])[:20],
+            }
     proposal_event = writer.emit(
-        "llm_proposal", snapshot.turn, payload, caused_by=[parent])
+        event_type, snapshot.turn, payload, caused_by=[parent])
     parent = proposal_event["event_id"]
     if model_error is not None:
         verification = writer.emit("verification", snapshot.turn, {
@@ -928,7 +977,8 @@ def _cognitive_turn(manifest, context, store, player_id, raw, snapshot,
             raise RuntimeError(
                 "claim-eligible arm cannot use model fallback: {}".format(
                     type(model_error).__name__))
-        return None, "end_turn", gap["event_id"], latency, corrections, True
+        return (None, "end_turn", gap["event_id"], latency, corrections, True,
+                model_called, model_call_avoided)
 
     if proposal is not None:
         grades = GoalGrader(oracle, scheduler).grade_all(proposal, crisp, numeric)
@@ -981,7 +1031,8 @@ def _cognitive_turn(manifest, context, store, player_id, raw, snapshot,
         active_plan, plan_event = scheduler.emit_plan(
             query_result, numeric, writer, snapshot.turn, [parent])
         parent = plan_event["event_id"]
-    return active_plan, plain_selection, parent, latency, corrections, False
+    return (active_plan, plain_selection, parent, latency, corrections, False,
+            model_called, model_call_avoided)
 
 
 async def _play(run_dir, manifest, context):
@@ -1084,6 +1135,7 @@ async def _play(run_dir, manifest, context):
         "settlement_attempts": 0, "settlement_completions": 0,
         "tactical_actions": 0,
         "effect_observed": 0, "no_effect": 0, "safe_model_fallbacks": 0,
+        "model_selection_calls": 0, "model_selection_calls_avoided": 0,
         "failover_attempts": 0, "failover_recoveries": 0,
         "effect_confirmation_timeouts": 0,
         "effect_confirmation_deferred": 0,
@@ -1361,12 +1413,16 @@ async def _play(run_dir, manifest, context):
 
             full_turn_started = time.perf_counter()
             (active_plan, plain_selection, parent, turn_model_latency,
-             turn_corrections, safe_model_fallback) = _cognitive_turn(
+             turn_corrections, safe_model_fallback, model_called,
+             model_call_avoided) = _cognitive_turn(
                 manifest, context, store, player_id, raw, snapshot,
                 ir, catalog, oracle, scheduler, writer, parent)
             model_latencies.append(turn_model_latency)
             corrections += turn_corrections
             decision_stats["safe_model_fallbacks"] += int(safe_model_fallback)
+            decision_stats["model_selection_calls"] += int(model_called)
+            decision_stats["model_selection_calls_avoided"] += int(
+                model_call_avoided)
             if isinstance(active_plan, Plan):
                 execution_monitor.register(active_plan)
 
@@ -1774,6 +1830,11 @@ async def _play(run_dir, manifest, context):
         ("model_safe_fallback_rate",
          float(decision_stats["safe_model_fallbacks"]) / max(1, turns_executed)),
         ("model_corrections_per_turn", float(corrections) / max(1, turns_executed)),
+        ("model_selection_call_rate",
+         float(decision_stats["model_selection_calls"]) / max(1, turns_executed)),
+        ("model_selection_call_avoided_rate",
+         float(decision_stats["model_selection_calls_avoided"])
+         / max(1, turns_executed)),
         ("action_type_diversity", len(action_type_counts)),
         ("cities_gained", city_gain),
         ("cities_founded", decision_stats["settlement_completions"]),
@@ -1937,6 +1998,9 @@ async def _play(run_dir, manifest, context):
         "status": "completed", "summary": {
             "actions": action_count, "calibration_samples": len(predictions),
             "model_corrections": corrections, "opponent": opponent.get("name"),
+            "model_selection_calls": decision_stats["model_selection_calls"],
+            "model_selection_calls_avoided": (
+                decision_stats["model_selection_calls_avoided"]),
             "decision_impact_actions": decision_stats["impact_actions"],
             "decision_no_effect_retries_blocked": (
                 impact_planner.no_effect_retries_blocked
@@ -2031,6 +2095,9 @@ async def _play(run_dir, manifest, context):
         "score_observation_turn": final_turn,
         "terminal_player_elimination": terminal_player_elimination,
         "model_latency_ms": model_latency, "rejected_actions": rejected,
+        "model_selection_calls": decision_stats["model_selection_calls"],
+        "model_selection_calls_avoided": (
+            decision_stats["model_selection_calls_avoided"]),
         "decision_impact_actions": decision_stats["impact_actions"],
         "decision_no_effect_retries_blocked": (
             impact_planner.no_effect_retries_blocked

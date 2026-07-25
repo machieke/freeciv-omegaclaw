@@ -446,6 +446,11 @@ def load(path=None):
     if (not isinstance(model_config.get("keep_alive"), str)
             or not model_config["keep_alive"].strip()):
         raise ValueError("harness model.keep_alive must be a non-empty string")
+    if model_config.get(
+            "selection_call_policy") != "canonical-singleton-bypass-v1":
+        raise ValueError(
+            "harness model.selection_call_policy must be "
+            "canonical-singleton-bypass-v1")
     rulebase = value.get("rulebase", {})
     if rulebase.get("compiler_version") != "freeciv-ruleset-compiler/1.2":
         raise ValueError("harness rulebase compiler version is not pinned")

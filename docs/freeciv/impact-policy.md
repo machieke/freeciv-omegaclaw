@@ -205,7 +205,10 @@ the existing score and latency metrics:
   a repeated founder queue;
 - repeated unit completions, cumulative unit-score progress, civilization-wide batch
   increments, and guaranteed whole units-built score points for treatment production;
-- `model_safe_fallback_rate` and `model_corrections_per_turn`.
+- `model_safe_fallback_rate` and `model_corrections_per_turn`;
+- `model_selection_call_rate` and `model_selection_call_avoided_rate`, which
+  distinguish turns that enter model-backed goal selection from constrained
+  singleton turns resolved by the versioned canonical necessity gate.
 
 The seed-104729 engine-backed deferred-confirmation probe recovered 28 of 40
 baseline timeouts and 25 of 34 treatment timeouts. Both arms then learned three

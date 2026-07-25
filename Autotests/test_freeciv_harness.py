@@ -7,6 +7,7 @@ import os
 import re
 import sys
 import tempfile
+from types import SimpleNamespace
 from unittest import mock
 
 import jsonschema
@@ -52,6 +53,8 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "d_uncertain_monitor", "e_full_loop"]
     assert config["model"]["name"] == "qwen3-coder-next:latest"
     assert config["model"]["think"] is False
+    assert config["model"]["selection_call_policy"] == (
+        "canonical-singleton-bypass-v1")
     assert config["impact_policy"]["no_effect_retry_limit"] == 1
     assert config["impact_policy"]["max_no_effect_failovers_per_scope"] == 4
     assert config["impact_policy"]["horizon_turn"] == 30
@@ -277,6 +280,20 @@ def test_config_rejects_an_underpowered_predeclared_win_design():
             load(path)
 
 
+def test_config_rejects_an_unknown_model_selection_call_policy():
+    source = open(os.path.join(
+        REPO, "profile", "freeciv_harness.yaml"), encoding="utf-8").read()
+    source = source.replace(
+        "selection_call_policy: canonical-singleton-bypass-v1",
+        "selection_call_policy: unreviewed-policy-v2")
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "unknown-selection-policy.yaml")
+        with open(path, "w", encoding="utf-8") as stream:
+            stream.write(source)
+        with pytest.raises(ValueError, match="selection_call_policy"):
+            load(path)
+
+
 def test_config_rejects_an_underpowered_cohort_specific_score_design():
     source = open(os.path.join(
         REPO, "profile", "freeciv_harness.yaml"), encoding="utf-8").read()
@@ -448,6 +465,76 @@ def test_compact_live_goal_references_are_bounded_and_claim_free():
     ):
         with pytest.raises(ValueError):
             _validate_compact_goal_proposal(invalid, 2)
+
+
+class _SelectionTestSummary:
+    def to_dict(self):
+        return {"snapshot_id": "snapshot-selection-test"}
+
+
+class _SelectionTestCatalog:
+    def __init__(self, targets):
+        self.targets = {target.rule_id: target for target in targets}
+
+    def prompt_catalog(self):
+        return {"goal_targets": sorted(self.targets), "claim_predicates": []}
+
+    def validate_goal(self, goal):
+        target = self.targets.get(goal.target_id)
+        if target is None:
+            return False, "unknown_target_id"
+        if (goal.predicate != target.target_predicate
+                or tuple(goal.arguments) != ("player", target.rule_name)):
+            return False, "target_mismatch"
+        return True, None
+
+    def validate_claim(self, _claim):
+        return False, "claims_not_allowed"
+
+
+def _selection_target(index):
+    return SimpleNamespace(
+        rule_id="civ2civ3:tech:Tech{}".format(index),
+        rule_name="Tech{}".format(index),
+        target_predicate="researchable")
+
+
+def test_canonical_singleton_selection_avoids_model_and_keeps_catalog_gates(
+        monkeypatch):
+    target = _selection_target(1)
+    catalog = _SelectionTestCatalog((target,))
+    monkeypatch.setattr(
+        engine_live, "_ollama_json",
+        lambda *_args, **_kwargs: pytest.fail("singleton selection called model"))
+    proposal = engine_live._canonical_singleton_proposal(
+        {"model": "qwen3-coder-next:latest"}, _SelectionTestSummary(),
+        catalog, (target,))
+    assert proposal.selection == "goal-live-1"
+    assert proposal.goals[0].target_id == target.rule_id
+    assert proposal.claims == ()
+    with pytest.raises(ValueError, match="exactly one target"):
+        engine_live._canonical_singleton_proposal(
+            {"model": "qwen3-coder-next:latest"}, _SelectionTestSummary(),
+            catalog, ())
+
+
+def test_multiple_canonical_candidates_still_require_model_selection(monkeypatch):
+    targets = (_selection_target(1), _selection_target(2))
+    calls = []
+
+    def choose(_manifest, _prompt, _keys, validator=None):
+        value = {"goal_indices": [0, 1], "selection": 1, "claims": []}
+        validator(value)
+        calls.append(value)
+        return value, json.dumps(value), 12.5, 0
+
+    monkeypatch.setattr(engine_live, "_ollama_json", choose)
+    proposal, _, latency, corrections = engine_live._constrained_proposal(
+        {"model": "qwen3-coder-next:latest"}, _SelectionTestSummary(),
+        _SelectionTestCatalog(targets), targets)
+    assert len(calls) == 1
+    assert proposal.selection == "goal-live-2"
+    assert latency == 12.5 and corrections == 0
 
 
 def test_live_model_transport_reuses_identical_verified_decision_context(monkeypatch):

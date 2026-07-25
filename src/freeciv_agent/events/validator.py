@@ -128,7 +128,8 @@ def _has_action_root(event_id, parents, types):
         if current in seen:
             continue
         seen.add(current)
-        if types.get(current) in ("llm_proposal", "monitor_trigger"):
+        if types.get(current) in (
+                "llm_proposal", "goal_selection", "monitor_trigger"):
             return True
         pending.extend(parents.get(current, ()))
     return False
@@ -321,7 +322,8 @@ def validate_stream(lines, require_action_roots=True):
             if not _has_action_root(event_id, parents, types):
                 report.errors.append(Diagnostic(
                     "E_CAUSAL_ACTION_ROOT",
-                    "action {} has no llm_proposal or monitor_trigger ancestor".format(action_id),
+                    "action {} has no llm_proposal, goal_selection, or "
+                    "monitor_trigger ancestor".format(action_id),
                     event_id=event_id))
     for action_id, line_number, event_id, local_rejection in result_actions:
         if action_id not in sent_actions and not local_rejection:

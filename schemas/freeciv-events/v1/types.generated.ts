@@ -227,6 +227,21 @@ export type LlmProposal = {
   "proposal_id": string;
 };
 
+export type GoalSelection = {
+  "candidate_count": 1;
+  "goal": {
+    "arguments": Array<string | number>;
+    "goal_id": string;
+    "predicate": "researchable" | "buildable";
+    "target_id": string;
+  };
+  "model_call_avoided": true;
+  "policy": "canonical-singleton-bypass-v1";
+  "proposal_id": string;
+  "selection_id": string;
+  "source": "canonical_catalog";
+};
+
 export type Verification = {
   "check": string;
   "claim_id": string;
@@ -482,7 +497,7 @@ export type LoggingGap = {
   "missing": string;
 };
 
-export type KnownEventType = "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "observation" | "revision" | "belief_conflict" | "context_quarantine" | "llm_proposal" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "rule_proposed" | "rule_validated" | "llm_call_scheduled" | "llm_gateway_result" | "rule_parameter_updated" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
+export type KnownEventType = "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "observation" | "revision" | "belief_conflict" | "context_quarantine" | "llm_proposal" | "goal_selection" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "rule_proposed" | "rule_validated" | "llm_call_scheduled" | "llm_gateway_result" | "rule_parameter_updated" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
 
 export interface EventEnvelope<T extends string = string, P extends object = Record<string, unknown>> {
   schema_version: typeof EVENT_SCHEMA_VERSION;
@@ -506,6 +521,7 @@ export interface KnownPayloadMap {
   "belief_conflict": BeliefConflict;
   "context_quarantine": ContextQuarantine;
   "llm_proposal": LlmProposal;
+  "goal_selection": GoalSelection;
   "verification": Verification;
   "quarantine": Quarantine;
   "pln_query": PlnQuery;

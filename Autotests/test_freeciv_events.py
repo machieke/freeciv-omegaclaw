@@ -228,6 +228,36 @@ def test_good_scenarios_validate_and_bad_scenarios_fail_with_stable_codes():
             assert code in _codes(report), (name, report.to_dict())
 
 
+def test_canonical_goal_selection_is_a_valid_action_root_and_strict_payload():
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "canonical-selection.jsonl")
+        synthetic.generate("normal-crisp", path)
+        rows = [json.loads(line) for line in open(path, encoding="utf-8")]
+        proposal = next(row for row in rows if row["type"] == "llm_proposal")
+        proposal["type"] = "goal_selection"
+        proposal["payload"] = {
+            "candidate_count": 1,
+            "goal": {
+                "arguments": ["player-1", "Pottery"],
+                "goal_id": "goal-live-1",
+                "predicate": "researchable",
+                "target_id": "civ2civ3:tech:Pottery",
+            },
+            "model_call_avoided": True,
+            "policy": "canonical-singleton-bypass-v1",
+            "proposal_id": "proposal-1",
+            "selection_id": "goal-live-1",
+            "source": "canonical_catalog",
+        }
+        report = validate_stream(
+            json.dumps(row, sort_keys=True, separators=(",", ":")) + "\n"
+            for row in rows)
+        assert report.valid, report.to_dict()
+        malformed = json.loads(json.dumps(proposal))
+        malformed["payload"]["candidate_count"] = 2
+        assert schema.validate_event_schema(malformed)
+
+
 def test_validator_rejects_action_sent_from_already_invalid_plan():
     with tempfile.TemporaryDirectory() as directory:
         normal_path = os.path.join(directory, "normal.jsonl")

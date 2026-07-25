@@ -118,7 +118,7 @@ def generate(envelope, payloads):
     known = [name for name in defs if name in (
         "run_started", "run_completed", "ruleset_compiled", "state_snapshot",
         "observation", "revision", "belief_conflict", "context_quarantine",
-        "llm_proposal", "verification", "quarantine",
+        "llm_proposal", "goal_selection", "verification", "quarantine",
         "pln_query", "pln_result", "pressure_propagated", "operation_scored",
         "conductance_updated", "rule_proposed", "rule_validated",
         "llm_call_scheduled", "llm_gateway_result",

@@ -86,8 +86,11 @@ Configuration ownership is deliberate:
 The configured evaluation model is `qwen3-coder-next:latest`, temperature `0`, with
 Ollama thinking mode explicitly disabled and a 30-second whole-turn budget. The task
 requires a bounded JSON proposal rather than a reasoning trace; the `think: false`
-setting is versioned in both harness profiles and retained in manifests. A local Ollama
-installation needs no API key unless its own deployment enforces one.
+setting is versioned in both harness profiles and retained in manifests. The
+`selection_call_policy: canonical-singleton-bypass-v1` setting also fails
+closed: a constrained turn skips model selection only when the canonical
+catalog has exactly one candidate. A local Ollama installation needs no API key
+unless its own deployment enforces one.
 
 ```bash
 ollama pull qwen3-coder-next:latest

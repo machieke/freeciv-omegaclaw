@@ -25,6 +25,7 @@ KNOWN_EVENT_TYPES = (
     "belief_conflict",
     "context_quarantine",
     "llm_proposal",
+    "goal_selection",
     "verification",
     "quarantine",
     "pln_query",

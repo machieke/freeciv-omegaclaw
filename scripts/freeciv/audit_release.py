@@ -120,8 +120,10 @@ def _trace_check(path, require_cognitive):
         ancestors = _ancestry(row["event_id"], parents)
         ancestor_types = {types.get(event_id) for event_id in ancestors}
         absent = sorted({
-            "state_snapshot", "llm_proposal", "verification", "pln_result", "plan_created",
+            "state_snapshot", "verification", "pln_result", "plan_created",
         } - ancestor_types)
+        if not {"llm_proposal", "goal_selection"} & ancestor_types:
+            absent.append("llm_proposal|goal_selection")
         if absent or payload["action_id"] not in results:
             incomplete.append({
                 "action_id": payload["action_id"], "missing_ancestry": absent,

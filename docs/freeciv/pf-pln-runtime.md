@@ -26,6 +26,15 @@ existing sequential `OpponentMemory` harness track is not PF-PLN Phase 6
 contextual induction, and the live `ConstrainedProposer` path is not the
 Phase 7 pressure-gated LLM gateway.
 
+The engine loop does apply the narrower
+`canonical-singleton-bypass-v1` selection policy. When the mechanically
+generated constrained catalog contains exactly one selectable goal, the host
+constructs that proposal, sends it through the same strict proposal parser and
+symbol-catalog gates, emits `goal_selection`, and does not invoke the model.
+Two or more candidates still use `llm_proposal`. This necessity optimization
+does not inspect pressure, admit an expansion request, or activate the Phase 7
+gateway, so Phase 7 remains correctly declared `component-only`.
+
 Changing a component-only row to `engine-live` fails configuration validation.
 Enabling it requires an actual engine adapter, manifest and event integration,
 new fail-closed tests, and an updated canonical declaration.

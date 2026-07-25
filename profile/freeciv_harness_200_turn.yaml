@@ -31,6 +31,7 @@ model:
   keep_alive: 30m
   corrective_attempts: 2
   max_tokens: 400
+  selection_call_policy: canonical-singleton-bypass-v1
 impact_policy:
   max_actions_per_turn: 8
   expansion_city_target: 3

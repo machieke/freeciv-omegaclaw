@@ -177,6 +177,8 @@ def run_game(run_dir, manifest, context):
         ("decision_no_effect_failover_recovery_rate", failover_rate),
         ("model_safe_fallback_rate", 0.0),
         ("model_corrections_per_turn", 0.0),
+        ("model_selection_call_rate", 0.0),
+        ("model_selection_call_avoided_rate", 0.0),
         ("action_type_diversity", (1, 1, 3, 3, 4)[index]),
         ("cities_gained", (0, 0, 1, 1, 2)[index]),
         ("cities_founded", (0, 0, 1, 1, 2)[index]),

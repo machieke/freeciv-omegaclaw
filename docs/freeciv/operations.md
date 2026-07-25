@@ -29,6 +29,13 @@ acceptance benchmark passes. A mismatch between the manifest report and the
 backend, capability matrix, or effective impact policy fails before the live
 connection is opened.
 
+For model-selection efficiency, inspect the final `metric_sample` events named
+`model_selection_call_rate` and `model_selection_call_avoided_rate`, and count
+per-turn `goal_selection` events. A `goal_selection` event is valid only for
+the versioned canonical-singleton policy; multi-candidate decisions retain
+`llm_proposal`. Readiness calls are operational warm-up and are not counted as
+goal-selection calls.
+
 ## Port isolation
 
 Real-engine workers own one dedicated port each in 6001-6009. Never run a smoke, state

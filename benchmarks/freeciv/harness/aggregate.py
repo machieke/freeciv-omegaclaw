@@ -38,6 +38,7 @@ METRICS = (
     "decision_no_effect_failover_recoveries",
     "decision_no_effect_failover_recovery_rate",
     "model_safe_fallback_rate", "model_corrections_per_turn",
+    "model_selection_call_rate", "model_selection_call_avoided_rate",
     "action_type_diversity", "cities_gained", "cities_founded", "technologies_acquired",
     "positions_explored", "production_changes", "tactical_actions",
     "founder_production_changes", "settlement_attempts",
