@@ -66,12 +66,18 @@ frozen, that whole cohort is retired. The score-confirmatory `v4` namespace uses
 fresh range `1100000..1199999`. The superseded `v1`, `v2`, and `v3` namespaces are
 development diagnostics and cannot be resumed into the final claim; `v2` exposed an
 accepted-unit/no-authoritative-update edge case, while `v3` exposed cold-model
-unloading that produced bounded-timeout fallbacks. The v4 engine runner performs an
-operational native Ollama chat request before every arm, validates its complete JSON
-response, and uses a 90-second cold-load allowance plus a 30-minute keep-alive. This exercises
-the same endpoint and decoder as a timed proposal instead of stopping after a one-token
-generation. A claim-eligible arm fails closed if any turn still needs a model fallback; it is
-retried only as a fresh attempt and never silently counted as a completed pair.
+unloading that produced bounded-timeout fallbacks. The v4 engine hardening
+established readiness with an operational native Ollama chat request before every
+arm, validating its complete JSON response with a 90-second cold-load allowance
+plus a 30-minute keep-alive. The current versioned
+`chat-once-resident-refresh-v1` policy preserves that complete chat validation once
+per controller process and exact endpoint/model/think tuple.
+Before later arms it checks `/api/ps` under the same readiness lock and refreshes
+the verified resident model through a zero-token `/api/generate` request. Missing,
+malformed, evicted, or failed fast-path responses fall back to the complete chat
+contract. A claim-eligible arm fails closed if any turn still needs a model
+fallback; it is retried only as a fresh attempt and never silently counted as a
+completed pair.
 
 ## Statistical declaration
 

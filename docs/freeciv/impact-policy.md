@@ -743,11 +743,15 @@ development direction only: the five seeds were already exposed by the invalid f
 ## Operational note
 
 On the recorded CPU host, a cold load of `qwen3-coder-next:latest` took 41.6 seconds,
-which exceeds the configured 28-second generation budget. The runner now handles this
-operationally with a complete native `/api/chat` JSON readiness request before every engine
-arm, using the declared 90-second readiness timeout and 30-minute keep-alive. The preflight
-validates the exact `{"ready":true}` response, exercising model load, chat routing, and JSON
-decoding outside the timed turn budget. Verify
+which exceeds the configured 28-second generation budget. The runner handles this
+operationally with the versioned `chat-once-resident-refresh-v1` policy and the
+declared 90-second readiness timeout plus 30-minute keep-alive. The first preflight
+for an exact endpoint/model/think tuple validates `{"ready":true}` through native
+`/api/chat`, exercising model load, chat routing, and JSON decoding outside the
+timed turn budget. Later arms check `/api/ps` under the same lock and use an empty
+`/api/generate` request to refresh a verified resident model without generating
+completion tokens. Any absent or invalid residency/refresh response falls back to
+the complete chat validation. Verify
 `model_safe_fallback_rate=0` before interpreting a confirmatory result. Readiness or
 cold-start failures remain visible infrastructure failures; claim-eligible arms also
 fail closed on any in-game model fallback and must be retried as fresh attempts rather

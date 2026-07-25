@@ -44,8 +44,10 @@ _STACK = None
 _MODEL_JSON_CACHE = {}
 _MODEL_CACHE_LOCK = threading.RLock()
 _MODEL_READINESS_LOCK = threading.Lock()
+_MODEL_READINESS_VERIFIED = set()
 _STACK_LOCK = threading.RLock()
 SELECTION_CALL_POLICY = "canonical-singleton-bypass-v1"
+READINESS_POLICY = "chat-once-resident-refresh-v1"
 
 
 def _opponent_memory_path(run_dir, condition_id):
@@ -133,50 +135,46 @@ def _ollama_native_endpoint():
     return native_endpoint
 
 
-def _ollama_readiness(manifest):
-    """Load and keep the configured model resident before an engine arm.
-
-    The verified-response cache can make a long arm appear model-idle.  Ollama
-    may unload the model during that idle period, turning the next real request
-    into a cold load that exceeds the bounded turn budget.  A complete native
-    chat request is operational-only: it does not enter the event stream or
-    affect outcome metrics, but it loads the declared model, exercises the same
-    endpoint and JSON response path as a game turn, and keeps it resident for
-    the duration of the arm.
-    """
-    model_config = manifest.get("model_config", {})
-    timeout = float(model_config.get("readiness_timeout_seconds", 90))
-    if timeout <= 0:
-        raise ValueError("model readiness timeout must be positive")
-    payload = {
-        "model": manifest["model"],
-        "stream": False,
-        "think": bool(model_config.get("think", False)),
-        "keep_alive": str(model_config.get("keep_alive", "30m")),
-        "format": "json",
-        "options": {"temperature": 0, "num_predict": 16},
-        "messages": [
-            {"role": "system", "content": "Return one JSON object only; no markdown."},
-            {"role": "user", "content": "Return exactly {\"ready\":true}."},
-        ],
-    }
-    request = urllib.request.Request(
-        _ollama_native_endpoint() + "/api/chat",
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"})
-    # Multiple engine workers may begin at once. Serialize readiness calls so a
-    # cold model load is never duplicated or CPU-contended.
-    if not _MODEL_READINESS_LOCK.acquire(timeout=timeout):
-        raise RuntimeError("model readiness budget exhausted waiting for local model")
+def _ollama_model_resident(native_endpoint, model, timeout):
+    """Return whether Ollama reports the exact configured model as loaded."""
+    request = urllib.request.Request(native_endpoint + "/api/ps")
     try:
-        try:
-            with urllib.request.urlopen(request, timeout=timeout) as response:
-                body = json.load(response)
-        except Exception as exc:
-            raise RuntimeError(
-                "configured Ollama model readiness failed: {}".format(exc))
-    finally:
-        _MODEL_READINESS_LOCK.release()
+        with urllib.request.urlopen(request, timeout=min(5.0, timeout)) as response:
+            body = json.load(response)
+    except Exception:
+        return False
+    models = body.get("models") if isinstance(body, dict) else None
+    if not isinstance(models, list):
+        return False
+    return any(
+        isinstance(row, dict)
+        and model in (row.get("name"), row.get("model"))
+        for row in models)
+
+
+def _ollama_refresh_resident_model(native_endpoint, model, keep_alive, timeout):
+    """Refresh a verified resident model without generating completion tokens."""
+    request = urllib.request.Request(
+        native_endpoint + "/api/generate",
+        data=json.dumps({
+            "model": model, "prompt": "", "stream": False,
+            "keep_alive": keep_alive,
+        }).encode("utf-8"),
+        headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(request, timeout=min(10.0, timeout)) as response:
+        body = json.load(response)
+    if (not isinstance(body, dict) or body.get("error")
+            or body.get("done") is not True):
+        raise RuntimeError("resident model keep-alive refresh was not completed")
+    result = dict(body)
+    result.update({
+        "readiness_method": "resident_keep_alive_refresh",
+        "readiness_reused": True,
+    })
+    return result
+
+
+def _validate_readiness_chat(body):
     if not isinstance(body, dict) or body.get("error"):
         raise RuntimeError(
             "configured Ollama model readiness returned an error: {}".format(
@@ -192,7 +190,76 @@ def _ollama_readiness(manifest):
         raise RuntimeError(
             "configured Ollama model readiness returned unexpected JSON: {}".format(
                 ready))
-    return body
+
+
+def _ollama_readiness(manifest):
+    """Load and keep the configured model resident before an engine arm.
+
+    The verified-response cache can make a long arm appear model-idle.  Ollama
+    may unload the model during that idle period, turning the next real request
+    into a cold load that exceeds the bounded turn budget. The first preflight
+    for each endpoint/model/think tuple performs a complete native chat request.
+    Later arms check residency under the same process lock and refresh keep-alive
+    without generating completion tokens. Any missing, invalid, or failed
+    residency response falls back to the complete chat validation.
+    """
+    model_config = manifest.get("model_config", {})
+    timeout = float(model_config.get("readiness_timeout_seconds", 90))
+    if timeout <= 0:
+        raise ValueError("model readiness timeout must be positive")
+    if model_config.get("readiness_policy") != READINESS_POLICY:
+        raise ValueError("unsupported Ollama readiness policy")
+    native_endpoint = _ollama_native_endpoint()
+    keep_alive = str(model_config.get("keep_alive", "30m"))
+    readiness_key = (
+        native_endpoint, manifest["model"], bool(model_config.get("think", False)))
+    payload = {
+        "model": manifest["model"],
+        "stream": False,
+        "think": bool(model_config.get("think", False)),
+        "keep_alive": keep_alive,
+        "format": "json",
+        "options": {"temperature": 0, "num_predict": 16},
+        "messages": [
+            {"role": "system", "content": "Return one JSON object only; no markdown."},
+            {"role": "user", "content": "Return exactly {\"ready\":true}."},
+        ],
+    }
+    request = urllib.request.Request(
+        native_endpoint + "/api/chat",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"})
+    # Multiple engine workers may begin at once. Serialize readiness calls so a
+    # cold model load is never duplicated or CPU-contended.
+    if not _MODEL_READINESS_LOCK.acquire(timeout=timeout):
+        raise RuntimeError("model readiness budget exhausted waiting for local model")
+    try:
+        if (readiness_key in _MODEL_READINESS_VERIFIED
+                and _ollama_model_resident(
+                    native_endpoint, manifest["model"], timeout)):
+            try:
+                return _ollama_refresh_resident_model(
+                    native_endpoint, manifest["model"], keep_alive, timeout)
+            except Exception:
+                # A failed optional fast path must recover through the original
+                # full chat contract rather than weaken readiness.
+                pass
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                body = json.load(response)
+        except Exception as exc:
+            raise RuntimeError(
+                "configured Ollama model readiness failed: {}".format(exc))
+        _validate_readiness_chat(body)
+        _MODEL_READINESS_VERIFIED.add(readiness_key)
+        result = dict(body)
+        result.update({
+            "readiness_method": "complete_chat",
+            "readiness_reused": False,
+        })
+        return result
+    finally:
+        _MODEL_READINESS_LOCK.release()
 
 
 def _claim_eligible_manifest(manifest):
@@ -2233,8 +2300,16 @@ def run_game(run_dir, manifest, context):
     # leak across seeds or conditions.
     _recycle_server(int(manifest["port"]))
     try:
-        _ollama_readiness(manifest)
-        return asyncio.run(_play(run_dir, manifest, context))
+        readiness_started = time.perf_counter()
+        readiness = _ollama_readiness(manifest)
+        readiness_latency = (time.perf_counter() - readiness_started) * 1000.0
+        result = asyncio.run(_play(run_dir, manifest, context))
+        result.update({
+            "model_readiness_latency_ms": readiness_latency,
+            "model_readiness_method": readiness["readiness_method"],
+            "model_readiness_reused": readiness["readiness_reused"],
+        })
+        return result
     finally:
         _terminate_proxy(manifest["game_id"], token)
         # The next arm always performs a hard pre-arm recycle before connecting.

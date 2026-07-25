@@ -447,6 +447,11 @@ def load(path=None):
             or not model_config["keep_alive"].strip()):
         raise ValueError("harness model.keep_alive must be a non-empty string")
     if model_config.get(
+            "readiness_policy") != "chat-once-resident-refresh-v1":
+        raise ValueError(
+            "harness model.readiness_policy must be "
+            "chat-once-resident-refresh-v1")
+    if model_config.get(
             "selection_call_policy") != "canonical-singleton-bypass-v1":
         raise ValueError(
             "harness model.selection_call_policy must be "

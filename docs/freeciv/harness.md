@@ -50,7 +50,10 @@ policy in `impact_policy`. See [impact-policy.md](impact-policy.md) for its exac
 action priorities, safety boundaries, and decision-impact metrics. For CPU-hosted
 Ollama, preload the configured model before timed runs if its cold load exceeds the
 per-turn model budget; the harness reports any resulting safe fallbacks rather than
-hiding them.
+hiding them. Engine runs use the fail-closed
+`chat-once-resident-refresh-v1` readiness policy: one complete chat validates each
+controller process and model tuple, while later arms only reuse it after a locked
+residency check and zero-token keep-alive refresh.
 
 The outcome experiment for that policy is a separate paired baseline/treatment track
 so the five-condition release matrix remains unchanged. It has disjoint development,

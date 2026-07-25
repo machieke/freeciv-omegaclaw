@@ -89,8 +89,11 @@ requires a bounded JSON proposal rather than a reasoning trace; the `think: fals
 setting is versioned in both harness profiles and retained in manifests. The
 `selection_call_policy: canonical-singleton-bypass-v1` setting also fails
 closed: a constrained turn skips model selection only when the canonical
-catalog has exactly one candidate. A local Ollama installation needs no API key
-unless its own deployment enforces one.
+catalog has exactly one candidate. The
+`readiness_policy: chat-once-resident-refresh-v1` setting performs one complete
+chat validation per controller/model tuple, then permits only locked,
+residency-checked zero-token keep-alive refreshes. A local Ollama installation
+needs no API key unless its own deployment enforces one.
 
 ```bash
 ollama pull qwen3-coder-next:latest

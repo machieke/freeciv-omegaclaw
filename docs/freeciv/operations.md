@@ -36,6 +36,12 @@ the versioned canonical-singleton policy; multi-candidate decisions retain
 `llm_proposal`. Readiness calls are operational warm-up and are not counted as
 goal-selection calls.
 
+Each completed engine arm also records `model_readiness_latency_ms`,
+`model_readiness_method`, and `model_readiness_reused` in `status.json`. These
+are operational timings, not gameplay outcomes, and make cold-chat versus
+resident-refresh cost directly measurable without contaminating the event-based
+score analysis.
+
 ## Port isolation
 
 Real-engine workers own one dedicated port each in 6001-6009. Never run a smoke, state

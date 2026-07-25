@@ -7,6 +7,7 @@ import os
 import re
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 from unittest import mock
 
@@ -53,6 +54,8 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "d_uncertain_monitor", "e_full_loop"]
     assert config["model"]["name"] == "qwen3-coder-next:latest"
     assert config["model"]["think"] is False
+    assert config["model"]["readiness_policy"] == (
+        "chat-once-resident-refresh-v1")
     assert config["model"]["selection_call_policy"] == (
         "canonical-singleton-bypass-v1")
     assert config["impact_policy"]["no_effect_retry_limit"] == 1
@@ -291,6 +294,20 @@ def test_config_rejects_an_unknown_model_selection_call_policy():
         with open(path, "w", encoding="utf-8") as stream:
             stream.write(source)
         with pytest.raises(ValueError, match="selection_call_policy"):
+            load(path)
+
+
+def test_config_rejects_an_unknown_model_readiness_policy():
+    source = open(os.path.join(
+        REPO, "profile", "freeciv_harness.yaml"), encoding="utf-8").read()
+    source = source.replace(
+        "readiness_policy: chat-once-resident-refresh-v1",
+        "readiness_policy: unchecked-residency-v2")
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "unknown-readiness-policy.yaml")
+        with open(path, "w", encoding="utf-8") as stream:
+            stream.write(source)
+        with pytest.raises(ValueError, match="readiness_policy"):
             load(path)
 
 
@@ -587,10 +604,15 @@ def test_live_model_readiness_uses_native_chat_and_validates_json(monkeypatch):
 
     monkeypatch.setenv("OLLAMA_OPENAI_BASE_URL", "http://ollama.test:11434/v1/")
     monkeypatch.setattr(engine_live.urllib.request, "urlopen", urlopen)
+    engine_live._MODEL_READINESS_VERIFIED.clear()
     manifest = {"model": "qwen3-coder-next:latest", "model_config": {
-        "readiness_timeout_seconds": 91, "keep_alive": "30m", "think": False}}
+        "readiness_timeout_seconds": 91,
+        "readiness_policy": "chat-once-resident-refresh-v1",
+        "keep_alive": "30m", "think": False}}
     result = _ollama_readiness(manifest)
     assert result["done"] is True
+    assert result["readiness_method"] == "complete_chat"
+    assert result["readiness_reused"] is False
     assert calls == [("http://ollama.test:11434/api/chat", 91.0, {
         "model": "qwen3-coder-next:latest", "stream": False, "format": "json",
         "think": False, "keep_alive": "30m",
@@ -600,6 +622,133 @@ def test_live_model_readiness_uses_native_chat_and_validates_json(monkeypatch):
             {"role": "user", "content": "Return exactly {\"ready\":true}."},
         ],
     })]
+
+
+def test_live_model_readiness_reuses_verified_resident_model_without_chat(
+        monkeypatch):
+    calls = []
+
+    class Response(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            self.close()
+
+    def urlopen(request, timeout):
+        calls.append((request.full_url, timeout, request.data))
+        if request.full_url.endswith("/api/ps"):
+            body = {"models": [{
+                "name": "qwen3-coder-next:latest",
+                "model": "qwen3-coder-next:latest",
+            }]}
+        elif request.full_url.endswith("/api/generate"):
+            body = {"model": "qwen3-coder-next:latest", "done": True,
+                    "done_reason": "load"}
+        else:
+            body = {
+                "model": "qwen3-coder-next:latest", "done": True,
+                "message": {"content": "{\"ready\": true}"},
+            }
+        return Response(json.dumps(body).encode("utf-8"))
+
+    monkeypatch.setenv(
+        "OLLAMA_OPENAI_BASE_URL", "http://ollama-reuse.test:11434/v1")
+    monkeypatch.setattr(engine_live.urllib.request, "urlopen", urlopen)
+    engine_live._MODEL_READINESS_VERIFIED.clear()
+    manifest = {"model": "qwen3-coder-next:latest", "model_config": {
+        "readiness_timeout_seconds": 91,
+        "readiness_policy": "chat-once-resident-refresh-v1",
+        "keep_alive": "30m", "think": False}}
+    first = _ollama_readiness(manifest)
+    second = _ollama_readiness(manifest)
+    assert first["readiness_method"] == "complete_chat"
+    assert second["readiness_method"] == "resident_keep_alive_refresh"
+    assert second["readiness_reused"] is True
+    assert [url.rsplit("/", 1)[-1] for url, _, _ in calls] == [
+        "chat", "ps", "generate"]
+    assert calls[1][2] is None
+    assert json.loads(calls[2][2]) == {
+        "keep_alive": "30m", "model": "qwen3-coder-next:latest",
+        "prompt": "", "stream": False,
+    }
+
+
+def test_live_model_readiness_refresh_failure_falls_back_to_full_chat(
+        monkeypatch):
+    calls = []
+
+    class Response(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            self.close()
+
+    def urlopen(request, timeout):
+        calls.append(request.full_url.rsplit("/", 1)[-1])
+        if request.full_url.endswith("/api/ps"):
+            body = {"models": [{"name": "qwen3-coder-next:latest"}]}
+        elif request.full_url.endswith("/api/generate"):
+            raise OSError("refresh unavailable")
+        else:
+            body = {
+                "model": "qwen3-coder-next:latest", "done": True,
+                "message": {"content": "{\"ready\": true}"},
+            }
+        return Response(json.dumps(body).encode("utf-8"))
+
+    monkeypatch.setenv(
+        "OLLAMA_OPENAI_BASE_URL", "http://ollama-fallback.test:11434/v1")
+    monkeypatch.setattr(engine_live.urllib.request, "urlopen", urlopen)
+    engine_live._MODEL_READINESS_VERIFIED.clear()
+    manifest = {"model": "qwen3-coder-next:latest", "model_config": {
+        "readiness_timeout_seconds": 91,
+        "readiness_policy": "chat-once-resident-refresh-v1",
+        "keep_alive": "30m", "think": False}}
+    _ollama_readiness(manifest)
+    result = _ollama_readiness(manifest)
+    assert result["readiness_method"] == "complete_chat"
+    assert calls == ["chat", "ps", "generate", "chat"]
+
+
+def test_concurrent_model_readiness_performs_only_one_complete_chat(monkeypatch):
+    calls = []
+
+    class Response(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            self.close()
+
+    def urlopen(request, timeout):
+        operation = request.full_url.rsplit("/", 1)[-1]
+        calls.append(operation)
+        if operation == "ps":
+            body = {"models": [{"name": "qwen3-coder-next:latest"}]}
+        elif operation == "generate":
+            body = {"done": True, "done_reason": "load"}
+        else:
+            body = {"done": True, "message": {"content": "{\"ready\":true}"}}
+        return Response(json.dumps(body).encode("utf-8"))
+
+    monkeypatch.setenv(
+        "OLLAMA_OPENAI_BASE_URL", "http://ollama-concurrent.test:11434/v1")
+    monkeypatch.setattr(engine_live.urllib.request, "urlopen", urlopen)
+    engine_live._MODEL_READINESS_VERIFIED.clear()
+    manifest = {"model": "qwen3-coder-next:latest", "model_config": {
+        "readiness_timeout_seconds": 91,
+        "readiness_policy": "chat-once-resident-refresh-v1",
+        "keep_alive": "30m", "think": False}}
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        results = list(pool.map(
+            lambda _index: _ollama_readiness(manifest), range(3)))
+    assert sorted(row["readiness_method"] for row in results) == [
+        "complete_chat", "resident_keep_alive_refresh",
+        "resident_keep_alive_refresh"]
+    assert calls.count("chat") == 1
+    assert calls.count("ps") == calls.count("generate") == 2
 
 
 def test_live_model_readiness_rejects_invalid_json(monkeypatch):
@@ -617,6 +766,7 @@ def test_live_model_readiness_rejects_invalid_json(monkeypatch):
     with pytest.raises(RuntimeError, match="readiness returned invalid JSON"):
         _ollama_readiness({"model": "qwen3-coder-next:latest", "model_config": {
             "readiness_timeout_seconds": 91,
+            "readiness_policy": "chat-once-resident-refresh-v1",
         }})
 
 
@@ -824,13 +974,19 @@ def test_engine_live_clears_stale_proxy_game_before_server_recycle(monkeypatch):
 
     monkeypatch.setattr(engine_live, "_terminate_proxy", terminate)
     monkeypatch.setattr(engine_live, "_recycle_server", recycle)
-    monkeypatch.setattr(engine_live, "_ollama_readiness", lambda _manifest: None)
+    monkeypatch.setattr(engine_live, "_ollama_readiness", lambda _manifest: {
+        "readiness_method": "test_readiness",
+        "readiness_reused": True,
+    })
     monkeypatch.setattr(engine_live, "_play", play)
     context = object()
     result = engine_live.run_game(
         "/tmp/run", {"game_id": "release-retry", "port": 6001}, context)
 
-    assert result == {"completed": True}
+    assert result["completed"] is True
+    assert result["model_readiness_method"] == "test_readiness"
+    assert result["model_readiness_reused"] is True
+    assert result["model_readiness_latency_ms"] >= 0
     assert calls == [
         ("terminate", "release-retry", "test-token-fc3d-001", True),
         ("recycle", 6001),
