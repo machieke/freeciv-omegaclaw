@@ -4,7 +4,7 @@
   "title": "PLN-FreeCiv uncertain belief configuration",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "actionable_threshold", "minimum_logged_confidence", "dampening_lambda", "observation_strength", "observation_confidence", "abduction_strength", "abduction_confidence", "induction_default_probability", "induction_decision_threshold", "induction_minimum_samples", "conflict_min_confidence", "conflict_severity_threshold", "decay", "sweep"],
+  "required": ["schema_version", "actionable_threshold", "minimum_logged_confidence", "dampening_lambda", "observation_strength", "observation_confidence", "abduction_strength", "abduction_confidence", "induction_default_probability", "induction_decision_threshold", "induction_minimum_samples", "conflict_min_confidence", "conflict_severity_threshold", "simulation_confidence_cap", "selection_unknown_discount", "decay", "sweep"],
   "properties": {
     "schema_version": {"const": "1.0"},
     "actionable_threshold": {"type": "number", "minimum": 0, "maximum": 1},
@@ -19,6 +19,8 @@
     "induction_minimum_samples": {"type": "integer", "minimum": 1},
     "conflict_min_confidence": {"type": "number", "minimum": 0, "maximum": 1},
     "conflict_severity_threshold": {"type": "number", "minimum": 0, "maximum": 1},
+    "simulation_confidence_cap": {"type": "number", "minimum": 0, "exclusiveMaximum": 1},
+    "selection_unknown_discount": {"type": "number", "exclusiveMinimum": 0, "maximum": 1},
     "decay": {
       "type": "object",
       "required": ["default"],

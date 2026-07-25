@@ -115,7 +115,8 @@ def validate_config(data):
             "observation_strength", "observation_confidence",
             "abduction_strength", "abduction_confidence",
             "induction_default_probability", "induction_decision_threshold",
-            "conflict_min_confidence", "conflict_severity_threshold"):
+            "conflict_min_confidence", "conflict_severity_threshold",
+            "simulation_confidence_cap", "selection_unknown_discount"):
         value = beliefs.get(key)
         if not isinstance(value, (int, float)) or not 0 <= value <= 1:
             raise FreecivConfigError("beliefs.{} must be in [0,1]".format(key))

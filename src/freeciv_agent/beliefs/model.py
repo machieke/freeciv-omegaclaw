@@ -5,6 +5,40 @@ from dataclasses import dataclass, field
 from ..events.schema import structural_hash
 
 
+@dataclass(frozen=True)
+class ModelProvenance:
+    """Identity and confidence boundary for a non-authoritative model."""
+
+    source_kind: str
+    model_id: str
+    model_version: str
+    model_hash: str
+    exact: bool
+    confidence_cap: float
+
+    def __post_init__(self):
+        if self.source_kind != "simulator":
+            raise ValueError("model provenance source_kind must be simulator")
+        if not self.model_id or not self.model_version:
+            raise ValueError("model provenance requires model identity and version")
+        if (len(self.model_hash) != 64
+                or any(value not in "0123456789abcdef" for value in self.model_hash)):
+            raise ValueError("model provenance hash must be lowercase SHA-256")
+        _bounded(self.confidence_cap, "confidence_cap")
+        if not self.exact and self.confidence_cap >= 1.0:
+            raise ValueError("an inexact simulator requires a finite confidence cap")
+
+    def to_dict(self):
+        return {
+            "confidence_cap": float(self.confidence_cap),
+            "exact": bool(self.exact),
+            "model_hash": self.model_hash,
+            "model_id": self.model_id,
+            "model_version": self.model_version,
+            "source_kind": self.source_kind,
+        }
+
+
 def _bounded(value, name):
     value = float(value)
     if not 0.0 <= value <= 1.0:
@@ -38,12 +72,25 @@ class Evidence:
     ruleset: str
     model_version: str
     selection_policy: object = None
+    model_provenance: object = None
 
     def __post_init__(self):
         _bounded(self.strength, "strength")
         _bounded(self.confidence, "confidence")
         if not self.provenance_id or self.turn < 0:
             raise ValueError("evidence requires provenance and nonnegative turn")
+        if (self.model_provenance is not None
+                and not isinstance(self.model_provenance, ModelProvenance)):
+            raise TypeError("model_provenance must be ModelProvenance")
+        if ((self.source_sensor == "simulator")
+                != (self.model_provenance is not None)):
+            raise ValueError(
+                "simulator evidence and model provenance must appear together")
+        if (self.model_provenance is not None
+                and not self.model_provenance.exact
+                and self.confidence > self.model_provenance.confidence_cap):
+            raise ValueError(
+                "simulator evidence exceeds its declared confidence cap")
 
     @property
     def context_id(self):
@@ -72,6 +119,9 @@ class Evidence:
                 self.selection_policy.to_dict()
                 if hasattr(self.selection_policy, "to_dict")
                 else self.selection_policy),
+            "model_provenance": (
+                None if self.model_provenance is None
+                else self.model_provenance.to_dict()),
             "strength": self.strength, "turn": self.turn,
         }
 

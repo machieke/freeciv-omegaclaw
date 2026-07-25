@@ -204,6 +204,27 @@ def validate_stream(lines, require_action_roots=True):
                 "W_UNKNOWN_TYPE", "unknown event type preserved as raw JSON", line_number, eid))
         if event["type"] == "pln_result":
             _check_proof(event, report, line_number)
+        elif event["type"] == "observation":
+            payload = event["payload"]
+            model = payload.get("model_provenance")
+            if payload.get("source") == "simulator" and model is None:
+                report.errors.append(Diagnostic(
+                    "E_SIMULATOR_PROVENANCE",
+                    "simulator observation lacks model provenance",
+                    line_number, eid))
+            if model is not None:
+                if payload.get("source") != "simulator":
+                    report.errors.append(Diagnostic(
+                        "E_SIMULATOR_SOURCE",
+                        "model provenance is only valid for simulator observations",
+                        line_number, eid))
+                if (not model.get("exact")
+                        and payload["atom"]["tv"]["confidence"]
+                        > model["confidence_cap"]):
+                    report.errors.append(Diagnostic(
+                        "E_SIMULATOR_CONFIDENCE",
+                        "simulator observation exceeds its confidence cap",
+                        line_number, eid))
         elif event["type"] == "revision" and event["payload"].get("operation") == "apply":
             key = (event["payload"]["target_atom"]["atom_id"], event["payload"]["provenance_id"])
             if key in revisions:

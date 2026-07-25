@@ -30,6 +30,11 @@ from freeciv.pf_pressure_replay import (  # noqa: E402
 from freeciv_agent.events.schema import structural_hash  # noqa: E402
 from freeciv_agent.events.validator import validate_file  # noqa: E402
 from freeciv_agent.events.writer import EventWriter  # noqa: E402
+from freeciv_agent.beliefs import (  # noqa: E402
+    BeliefKey,
+    ConflictAtom,
+    ModelProvenance,
+)
 from freeciv_agent.pressure import (  # noqa: E402
     AtomState,
     CloneManager,
@@ -40,8 +45,11 @@ from freeciv_agent.pressure import (  # noqa: E402
     EvidenceLedger,
     EvidenceToken,
     GoalState,
+    Hypothesis,
     ImpactPressureRanker,
+    ObservationOutcome,
     ObservationPolicy,
+    ObservationTest,
     Operation,
     PressureConfig,
     PressureEngine,
@@ -52,7 +60,9 @@ from freeciv_agent.pressure import (  # noqa: E402
     ProofPressureAdapter,
     Resolvability,
     TruthState,
+    ValueOfInformationPlanner,
     confidence_to_weight,
+    expected_information_value,
 )
 
 
@@ -213,6 +223,142 @@ def test_exact_token_union_overlap_conflict_and_observation_policy():
     assert ledger.conflict_severity(("one",), ("two",), 1) > 0
     assert ledger.token("one").observation_policy == policy
     assert ledger.truth(("one",), 5).confidence < once.confidence
+
+
+def _simulator_provenance(exact=False, confidence_cap=0.6):
+    return ModelProvenance(
+        "simulator", "freeciv-observation-model", "1.0",
+        structural_hash({"model": "freeciv-observation-model/1.0"}),
+        exact, confidence_cap)
+
+
+def _observation_test(test_id, atom_id, likelihoods, cost=1.0):
+    return ObservationTest(
+        test_id=test_id,
+        atom_id=atom_id,
+        outcomes=tuple(
+            ObservationOutcome(outcome_id, tuple(sorted(rows.items())))
+            for outcome_id, rows in sorted(likelihoods.items())),
+        cost=CostVector(compute=cost),
+        model_provenance=_simulator_provenance())
+
+
+def _brute_force_information_gain(hypotheses, test):
+    prior = dict(
+        (row.hypothesis_id, row.probability) for row in hypotheses)
+
+    def entropy(values):
+        import math
+        return -sum(
+            value * math.log(value, 2) for value in values if value > 0)
+
+    prior_entropy = entropy(prior.values())
+    posterior_entropy = 0.0
+    for outcome in test.outcomes:
+        probability = sum(
+            prior[key] * outcome.likelihood(key) for key in prior)
+        if probability:
+            posterior_entropy += probability * entropy(tuple(
+                prior[key] * outcome.likelihood(key) / probability
+                for key in prior))
+    return prior_entropy - posterior_entropy
+
+
+def test_small_graph_voi_matches_independent_exhaustive_ranking():
+    tests = (
+        _observation_test("perfect", "conflict", {
+            "left": {"attack": 1.0, "transit": 0.0},
+            "right": {"attack": 0.0, "transit": 1.0},
+        }),
+        _observation_test("weak", "conflict", {
+            "left": {"attack": 0.7, "transit": 0.3},
+            "right": {"attack": 0.3, "transit": 0.7},
+        }),
+        _observation_test("uninformative", "conflict", {
+            "left": {"attack": 0.5, "transit": 0.5},
+            "right": {"attack": 0.5, "transit": 0.5},
+        }),
+    )
+    for attack_probability in (0.1, 0.25, 0.5, 0.75, 0.9):
+        hypotheses = (
+            Hypothesis("attack", attack_probability),
+            Hypothesis("transit", 1.0 - attack_probability),
+        )
+        ranked = ValueOfInformationPlanner.rank(hypotheses, tests)
+        exhaustive = sorted(
+            tests,
+            key=lambda row: (
+                -_brute_force_information_gain(hypotheses, row),
+                row.test_id))
+        assert [row.test.test_id for row in ranked] == [
+            row.test_id for row in exhaustive]
+        for row in ranked:
+            assert abs(
+                row.expected_information_gain
+                - _brute_force_information_gain(hypotheses, row.test)) < 1e-12
+        assert ranked[0].test.test_id == "perfect"
+        assert ranked[-1].expected_information_gain == 0.0
+
+
+def test_conflict_observation_schedule_uses_voi_and_preserves_truth():
+    key = BeliefKey("enemy-intent", ("enemy",))
+    conflict = ConflictAtom(
+        "conflict-intent", key, ("scout",), ("diplomacy",),
+        {"strength": 1.0, "confidence": 0.8},
+        {"strength": 0.0, "confidence": 0.8},
+        0.0, 0.64, ("context-a", "context-b"), 4)
+    before = conflict.to_dict()
+    hypotheses = (
+        Hypothesis("attack", 0.5), Hypothesis("transit", 0.5))
+    tests = (
+        _observation_test("scout-destination", conflict.conflict_id, {
+            "toward-us": {"attack": 0.9, "transit": 0.1},
+            "away": {"attack": 0.1, "transit": 0.9},
+        }),
+        _observation_test("inspect-banner", conflict.conflict_id, {
+            "red": {"attack": 0.55, "transit": 0.45},
+            "blue": {"attack": 0.45, "transit": 0.55},
+        }),
+    )
+    decision = ValueOfInformationPlanner().decision_for_conflict(
+        conflict, hypotheses, tests, utility=10.0)
+    assert decision["schedule"]["selected_operation_id"] == (
+        "observe:scout-destination")
+    selected = next(
+        row for row in decision["operations"]
+        if row.operation_id == decision["schedule"]["selected_operation_id"])
+    assert selected.mode == "observe"
+    assert selected.payload["model_provenance"]["source_kind"] == "simulator"
+    assert selected.payload["observation_policy"]["channel"] == "observe"
+    assert decision["pressure"].pressure(
+        decision["goal"].goal_id, conflict.conflict_id).observe > 0
+    assert conflict.to_dict() == before
+
+
+def test_observation_and_action_share_cost_aware_scheduler():
+    graph = PressureGraph()
+    atom, _ = _atom(
+        "uncertain-threat", strength=0.2,
+        resolvability=Resolvability(observe=1.0, act=1.0))
+    graph.add_atom(atom, Resolvability(observe=1.0, act=1.0))
+    result = PressureEngine().propagate(
+        graph, (GoalState("survive", "uncertain-threat", utility=10.0),))
+    informative = Operation(
+        "observe", "uncertain-threat", "observe", CostVector(compute=1),
+        causal_kind="diagnostic", information_gain=0.8)
+    expensive_action = Operation(
+        "act", "uncertain-threat", "act", CostVector(resource=20),
+        causal_kind="procedural")
+    assert PressureScheduler().select(
+        (expensive_action, informative), result).operation_id == "observe"
+    cheap_action = Operation(
+        "cheap-act", "uncertain-threat", "act", CostVector(resource=0.1),
+        causal_kind="procedural")
+    uninformative = Operation(
+        "weak-observe", "uncertain-threat", "observe",
+        CostVector(compute=10), causal_kind="diagnostic")
+    assert PressureScheduler().select(
+        (uninformative, cheap_action), result).operation_id == "cheap-act"
 
 
 def test_conductance_credit_and_no_progress_never_change_truth():

@@ -19,11 +19,14 @@ if SRC not in sys.path:
 
 from freeciv_agent.beliefs import (BeliefKey, BeliefStore, Evidence,  # noqa: E402
                                    ContextQuarantineConflict, EvidenceConflict,
-                                   OpponentMemory, SelfSupportingProof,
+                                   ModelProvenance, OpponentMemory,
+                                   SelfSupportingProof,
                                    UncertainInference, post_game_calibration)
 from freeciv_agent.config import belief_config  # noqa: E402
 from freeciv_agent.events.validator import validate_file  # noqa: E402
 from freeciv_agent.events.writer import EventWriter  # noqa: E402
+from freeciv_agent.events.schema import structural_hash  # noqa: E402
+from freeciv_agent.pressure import ObservationPolicy  # noqa: E402
 from freeciv_agent.rulesets.compiler import compile_ruleset  # noqa: E402
 
 
@@ -186,6 +189,55 @@ def test_decay_crosses_actionable_threshold_and_never_refreshes_from_derivation(
     assert store.get(BeliefKey("at", ("enemy", 3, 3))).confidence == 0.0
 
 
+def test_selection_policy_widens_uncertainty_for_goal_selected_observation():
+    policy = ObservationPolicy(
+        "survive", "observe", priority=3.0, propensity=0.25)
+    evidence = Evidence(
+        "selected", "game-1", 1, (3, 4), "visible-map",
+        BeliefKey("enemy-route", ("enemy",)), 1.0, 0.8,
+        "fixed-ai", "civ2civ3", "opponent-model/1.0",
+        selection_policy=policy)
+    belief, revision = _store().observe(evidence)
+    assert belief.confidence == 0.2
+    assert revision.evidence_tv["confidence"] == 0.8
+    assert revision.formula["inputs"]["selection_factor"] == 0.25
+    assert evidence.to_dict()["selection_policy"]["goal_id"] == "survive"
+
+
+def test_unknown_selection_propensity_uses_declared_conservative_discount():
+    policy = ObservationPolicy(
+        "resolve-conflict", "observe", priority=1.0, propensity=None)
+    evidence = Evidence(
+        "selected-unknown-propensity", "game-1", 1, (3, 4), "visible-map",
+        BeliefKey("enemy-route", ("enemy",)), 1.0, 0.8,
+        "fixed-ai", "civ2civ3", "opponent-model/1.0",
+        selection_policy=policy)
+    belief, revision = _store().observe(evidence)
+    assert belief.confidence == 0.4
+    assert revision.formula["inputs"]["selection_factor"] == 0.5
+
+
+def test_inexact_simulator_evidence_is_capped_and_model_identified():
+    provenance = ModelProvenance(
+        "simulator", "freeciv-forward-model", "1.0",
+        structural_hash({"model": "freeciv-forward-model/1.0"}),
+        False, 0.9)
+    evidence = Evidence(
+        "simulated", "game-1", 1, (3, 4), "simulator",
+        BeliefKey("enemy-route", ("enemy",)), 1.0, 0.7,
+        "fixed-ai", "civ2civ3", "opponent-model/1.0",
+        model_provenance=provenance)
+    with pytest.raises(EvidenceConflict):
+        _store().observe(evidence)
+    accepted = Evidence(
+        "simulated-capped", "game-1", 1, (3, 4), "simulator",
+        evidence.key, 1.0, 0.6, "fixed-ai", "civ2civ3",
+        "opponent-model/1.0", model_provenance=provenance)
+    belief, _ = _store().observe(accepted)
+    assert belief.confidence == 0.6
+    assert accepted.to_dict()["model_provenance"]["exact"] is False
+
+
 def test_abduction_uses_only_compiled_rule_prerequisites_and_remains_uncertain():
     ir = compile_ruleset(_ruleset_root(), "civ2civ3")
     unit = next(rule for rule in ir.rules if rule.target_kind == "unit"
@@ -336,4 +388,31 @@ def test_conflict_and_context_quarantine_events_are_schema_valid_and_causal():
         report = validate_file(path)
         assert conflict_event["payload"]["conflict_atom"]["predicate"] == "Conflict"
         assert quarantine_event["caused_by"] == [conflict_event["event_id"]]
+        assert report.valid, report.to_dict()
+
+
+def test_simulator_observation_event_records_policy_and_model_provenance():
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "events.jsonl")
+        writer = EventWriter(path, "simulation-observation", durable=False)
+        root = writer.emit("run_started", 0, {
+            "condition_id": "d_uncertain_monitor", "manifest_identity": "m"})
+        model = ModelProvenance(
+            "simulator", "freeciv-forward-model", "1.0",
+            structural_hash({"model": "freeciv-forward-model/1.0"}),
+            False, 0.6)
+        policy = ObservationPolicy(
+            "resolve-conflict", "observe", priority=0.7, propensity=0.5)
+        evidence = Evidence(
+            "simulation-result", "game-1", 1, (3, 4), "simulator",
+            BeliefKey("enemy-route", ("enemy",)), 1.0, 0.6,
+            "fixed-ai", "civ2civ3", "opponent-model/1.0",
+            selection_policy=policy, model_provenance=model)
+        belief, observation, revision = _store().emit_observation(
+            evidence, writer, [root["event_id"]])
+        report = validate_file(path)
+        assert observation["payload"]["selection_policy"] == policy.to_dict()
+        assert observation["payload"]["model_provenance"] == model.to_dict()
+        assert revision["payload"]["posterior_tv"]["confidence"] == 0.3
+        assert belief.confidence == 0.3
         assert report.valid, report.to_dict()

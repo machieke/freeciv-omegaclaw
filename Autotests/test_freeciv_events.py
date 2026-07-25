@@ -38,6 +38,36 @@ def test_generated_types_are_current():
     assert proc.returncode == 0, proc.stderr
 
 
+def test_simulator_observation_requires_explicit_model_provenance():
+    rows = [
+        {
+            "schema_version": "1.0", "event_id": "root", "game_id": "g",
+            "turn": 0, "seq": 0, "ts": "2026-01-01T00:00:00Z",
+            "type": "run_started", "caused_by": [],
+            "payload": {"manifest_identity": "m", "condition_id": "d"},
+        },
+        {
+            "schema_version": "1.0", "event_id": "simulation", "game_id": "g",
+            "turn": 1, "seq": 0, "ts": "2026-01-01T00:00:00Z",
+            "type": "observation", "caused_by": ["root"],
+            "payload": {
+                "observation_id": "observation", "provenance_id": "p",
+                "source": "simulator", "age_turns": 0,
+                "atom": {
+                    "atom_id": "a", "predicate": "enemy-route",
+                    "args": ["enemy"], "crisp": False,
+                    "provenance_ids": ["p"],
+                    "tv": {"strength": 1.0, "confidence": 0.6},
+                },
+            },
+        },
+    ]
+    report = validate_stream(
+        [json.dumps(row) + "\n" for row in rows],
+        require_action_roots=False)
+    assert "E_SIMULATOR_PROVENANCE" in _codes(report)
+
+
 def test_writer_assigns_contiguous_turn_scoped_sequences():
     with tempfile.TemporaryDirectory() as directory:
         path = os.path.join(directory, "events.jsonl")

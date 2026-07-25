@@ -15,6 +15,14 @@ from .engine import (
 )
 from .lifecycle import CloneManager, CloneState
 from .learning import ConductanceState, ConductanceUpdate
+from .observation import (
+    Hypothesis,
+    InformationValue,
+    ObservationOutcome,
+    ObservationTest,
+    ValueOfInformationPlanner,
+    expected_information_value,
+)
 from .model import (
     ACTION_CAUSAL_KINDS,
     CAUSAL_KINDS,
@@ -60,8 +68,12 @@ __all__ = [
     "EvidenceTokenConflict",
     "GoalEffect",
     "GoalState",
+    "Hypothesis",
     "ImpactPressureRanker",
+    "InformationValue",
     "ObservationPolicy",
+    "ObservationOutcome",
+    "ObservationTest",
     "Operation",
     "OperationScore",
     "PRESSURE_CHANNELS",
@@ -77,7 +89,9 @@ __all__ = [
     "ProofPressureContext",
     "Resolvability",
     "TruthState",
+    "ValueOfInformationPlanner",
     "confidence_to_weight",
+    "expected_information_value",
     "proof_pressure_context",
     "weight_to_confidence",
 ]

@@ -9,6 +9,7 @@ from .model import (
     ContextQuarantineOperation,
     Contribution,
     Evidence,
+    ModelProvenance,
     Revision,
     UncertainBelief,
 )
@@ -21,7 +22,7 @@ from .store import (
 
 __all__ = (
     "BeliefKey", "BeliefStore", "ConflictAtom", "ContextQuarantineConflict",
-    "ContextQuarantineOperation", "Contribution", "Evidence",
+    "ContextQuarantineOperation", "Contribution", "Evidence", "ModelProvenance",
     "EvidenceConflict", "OpponentMemory", "Revision", "SelfSupportingProof",
     "UncertainBelief", "UncertainInference", "post_game_calibration",
 )

@@ -20,6 +20,8 @@ beliefs:
   induction_minimum_samples: 1
   conflict_min_confidence: 0.70
   conflict_severity_threshold: 0.25
+  simulation_confidence_cap: 0.60
+  selection_unknown_discount: 0.50
   decay:
     default:
       formula: linear-window

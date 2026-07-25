@@ -16,6 +16,35 @@
         "confidence": {"type": "number", "minimum": 0, "maximum": 1}
       }
     },
+    "observationPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["goal_id", "channel", "priority", "propensity"],
+      "properties": {
+        "goal_id": {"type": "string", "minLength": 1},
+        "channel": {"const": "observe"},
+        "priority": {"type": "number", "minimum": 0},
+        "propensity": {
+          "type": ["number", "null"], "exclusiveMinimum": 0, "maximum": 1
+        }
+      }
+    },
+    "modelProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_kind", "model_id", "model_version", "model_hash", "exact",
+        "confidence_cap"
+      ],
+      "properties": {
+        "source_kind": {"const": "simulator"},
+        "model_id": {"type": "string", "minLength": 1},
+        "model_version": {"type": "string", "minLength": 1},
+        "model_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "exact": {"type": "boolean"},
+        "confidence_cap": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
     "atom": {
       "type": "object",
       "additionalProperties": false,
@@ -191,7 +220,9 @@
       "properties": {
         "observation_id": {"type": "string"}, "provenance_id": {"type": "string"},
         "atom": {"$ref": "#/$defs/atom"}, "source": {"type": "string"},
-        "age_turns": {"type": "integer", "minimum": 0}
+        "age_turns": {"type": "integer", "minimum": 0},
+        "selection_policy": {"$ref": "#/$defs/observationPolicy"},
+        "model_provenance": {"$ref": "#/$defs/modelProvenance"}
       }
     },
     "revision": {

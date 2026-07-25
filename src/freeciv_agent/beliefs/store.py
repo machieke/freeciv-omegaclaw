@@ -169,20 +169,39 @@ class BeliefStore(object):
         if not isinstance(evidence, Evidence):
             raise TypeError("observe accepts Evidence")
         with self._lock:
+            if (evidence.model_provenance is not None
+                    and not evidence.model_provenance.exact
+                    and evidence.confidence
+                    > float(self.config["simulation_confidence_cap"])):
+                raise EvidenceConflict(
+                    "inexact simulator evidence exceeds configured confidence cap")
             prior = self._evidence.get(evidence.provenance_id)
             if prior is not None:
                 if canonical_json_bytes(prior.to_dict()) != canonical_json_bytes(evidence.to_dict()):
                     raise EvidenceConflict("provenance ID reused with different evidence")
                 return self._beliefs[evidence.key], None
             self._evidence[evidence.provenance_id] = evidence
+            selection_policy = evidence.selection_policy
+            propensity = (
+                getattr(selection_policy, "propensity", None)
+                if selection_policy is not None else None)
+            if propensity is None and isinstance(selection_policy, dict):
+                propensity = selection_policy.get("propensity")
+            selection_factor = (
+                1.0 if selection_policy is None
+                else float(self.config["selection_unknown_discount"])
+                if propensity is None
+                else float(propensity))
+            corrected_confidence = evidence.confidence * selection_factor
             contribution = Contribution(
-                evidence.provenance_id, evidence.strength, evidence.confidence,
+                evidence.provenance_id, evidence.strength, corrected_confidence,
                 evidence.turn, (), "observation", 0.0)
             self._contributions.setdefault(evidence.key, {})[evidence.provenance_id] = contribution
             return self._recompute(
                 evidence.key, evidence.turn, "apply", evidence_tv={
                     "strength": evidence.strength, "confidence": evidence.confidence,
                 }, formula={"name": "provenance-union", "inputs": {
+                    "selection_factor": selection_factor,
                     "unique_provenance": len(self._contributions[evidence.key])}},)
 
     def derive(self, key, support_ids, turn, strength, confidence,
@@ -416,11 +435,20 @@ class BeliefStore(object):
 
     def emit_observation(self, evidence, writer, caused_by=None):
         belief, revision = self.observe(evidence)
-        observation = writer.emit("observation", evidence.turn, {
+        payload = {
             "age_turns": 0, "atom": evidence.to_dict()["observed_atom"],
             "observation_id": "observation-" + structural_hash(evidence.to_dict())[:20],
             "provenance_id": evidence.provenance_id, "source": evidence.source_sensor,
-        }, caused_by=caused_by)
+        }
+        if evidence.selection_policy is not None:
+            payload["selection_policy"] = (
+                evidence.selection_policy.to_dict()
+                if hasattr(evidence.selection_policy, "to_dict")
+                else copy.deepcopy(evidence.selection_policy))
+        if evidence.model_provenance is not None:
+            payload["model_provenance"] = evidence.model_provenance.to_dict()
+        observation = writer.emit(
+            "observation", evidence.turn, payload, caused_by=caused_by)
         revision_event = None
         if revision is not None:
             revision_event = writer.emit("revision", evidence.turn, {

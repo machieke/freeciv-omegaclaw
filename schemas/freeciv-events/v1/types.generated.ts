@@ -10,6 +10,22 @@ export type TruthValue = {
   "strength": number;
 };
 
+export type ObservationPolicy = {
+  "channel": "observe";
+  "goal_id": string;
+  "priority": number;
+  "propensity": number | null;
+};
+
+export type ModelProvenance = {
+  "confidence_cap": number;
+  "exact": boolean;
+  "model_hash": string;
+  "model_id": string;
+  "model_version": string;
+  "source_kind": "simulator";
+};
+
 export type Atom = {
   "args": Array<JsonValue>;
   "atom_id": string;
@@ -149,8 +165,10 @@ export type StateSnapshot = {
 export type Observation = {
   "age_turns": number;
   "atom": Atom;
+  "model_provenance"?: ModelProvenance;
   "observation_id": string;
   "provenance_id": string;
+  "selection_policy"?: ObservationPolicy;
   "source": string;
 };
 
