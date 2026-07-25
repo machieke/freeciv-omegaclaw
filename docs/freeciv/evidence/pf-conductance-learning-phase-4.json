@@ -1,0 +1,76 @@
+{
+  "acceptance": {
+    "branch_abandoned_within_bound": true,
+    "fixed_phase_1_route_does_not_abandon": true,
+    "learned_abandonment_is_faster": true,
+    "pressure_state_is_truth_free": true
+  },
+  "artifact_hash": "51d1d193c7b9ca84dab03a2373bb0eda7250d600e1dca289f96e6b2364ee4cd7",
+  "benchmark": "pf-pln-phase-4-conductance-learning",
+  "branch_abandonment": {
+    "fixed_abandonment_attempt": null,
+    "fixed_choices": [
+      "production_economy",
+      "production_economy",
+      "production_economy",
+      "production_economy",
+      "production_economy",
+      "production_economy",
+      "production_economy",
+      "production_economy",
+      "production_economy",
+      "production_economy",
+      "production_economy",
+      "production_economy",
+      "production_economy"
+    ],
+    "learned_abandonment_attempt": 5,
+    "learned_choices": [
+      "production_economy",
+      "production_economy",
+      "production_economy",
+      "production_economy",
+      "production_economy",
+      "production_military_score"
+    ],
+    "maximum_attempts": 12
+  },
+  "configuration": {
+    "initial_conductance": 0.5,
+    "learning_rate": 0.1,
+    "no_progress_rate": 0.1
+  },
+  "final_conductance_state": {
+    "applied_feedback_count": 5,
+    "configuration": {
+      "initial_conductance": 0.5,
+      "learning_rate": 0.1,
+      "no_progress_rate": 0.1
+    },
+    "decision_routes": {
+      "production_economy": {
+        "direct_completion_source": null,
+        "effective_conductance": 0.3032653298563166,
+        "learned_conductance": 0.3032653298563166,
+        "optimistic_floor_applied": false
+      },
+      "production_military_score": {
+        "direct_completion_source": null,
+        "effective_conductance": 0.5,
+        "learned_conductance": 0.5,
+        "optimistic_floor_applied": false
+      }
+    },
+    "identity": "phase-4-learned",
+    "routes": {
+      "production_economy": {
+        "conductance": 0.3032653298563166,
+        "no_progress": 5,
+        "successes": 0
+      }
+    },
+    "schema_version": "1.0",
+    "state_hash": "e08ecef24a7fed76a221a168130dd39a019862c7e5f1427b01f46d041b5c44d0"
+  },
+  "schema_version": "1.0"
+}

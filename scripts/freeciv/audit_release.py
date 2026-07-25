@@ -245,6 +245,23 @@ def run(args):
                            and reverse.returncode == 0)
     record("pinned-external-contract", external_passed, external)
 
+    pf_audit = subprocess.run(
+        [sys.executable, os.path.join(
+            REPO, "scripts", "freeciv", "audit_pf_pln.py")],
+        cwd=REPO, text=True, capture_output=True, timeout=60)
+    try:
+        pf_report = json.loads(pf_audit.stdout)
+    except (TypeError, ValueError):
+        pf_report = None
+    record("pf-pln-phase-readiness", (
+        pf_audit.returncode == 0
+        and isinstance(pf_report, dict)
+        and pf_report.get("passed") is True
+    ), {
+        "report": pf_report,
+        "stderr": pf_audit.stderr.strip(),
+    })
+
     for path in args.events:
         passed, details = _trace_check(path, args.require_cognitive_trace)
         record("validated-trace:" + _logical_path(path), passed, details)

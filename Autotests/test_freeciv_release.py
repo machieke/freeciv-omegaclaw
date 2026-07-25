@@ -74,3 +74,32 @@ def test_release_audit_passes_all_cross_cutting_invariants():
         value = json.load(open(report, encoding="utf-8"))
         assert value["passed"]
         assert value["checks"] and all(row["passed"] for row in value["checks"])
+        pf_check = next(
+            row for row in value["checks"]
+            if row["id"] == "pf-pln-phase-readiness")
+        assert pf_check["details"]["report"]["passed"]
+
+
+def test_pf_pln_release_audit_replays_every_canonical_phase():
+    script = os.path.join(
+        REPO, "scripts", "freeciv", "audit_pf_pln.py")
+    process = subprocess.run(
+        [sys.executable, script, "--workers", "4"],
+        cwd=REPO,
+        text=True,
+        capture_output=True,
+        timeout=30,
+    )
+    assert process.returncode == 0, process.stdout + process.stderr
+    value = json.loads(process.stdout)
+    assert value["passed"]
+    phase_checks = [
+        row for row in value["checks"]
+        if row["id"].startswith("pf-pln-phase-")
+        and row["id"].endswith("-replay")
+    ]
+    assert len(phase_checks) == 10
+    assert [row["details"]["phase"] for row in phase_checks] == list(
+        range(10))
+    assert all(row["details"]["fingerprint_matches"]
+               for row in phase_checks)

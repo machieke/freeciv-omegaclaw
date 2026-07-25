@@ -1,0 +1,68 @@
+{
+  "acceptance": {
+    "capital_defense_executes_end_to_end": true,
+    "pressure_reproducible": true,
+    "schedule_reproducible": true,
+    "truth_firewall_preserved": true,
+    "typed_pressure_reaches_action_and_observation": true
+  },
+  "artifact_hash": "d1b6bb9c91626be48dff329ce387d89e3c71968d04e9b5ff1c6317e187c4da05",
+  "benchmark": "pf-pln-phase-0-executable-semantics",
+  "capital_defense": {
+    "buy_archer_action_pressure": 14.961069740740742,
+    "defense_dependency": 27.764400000000002,
+    "goal_dependency": 48.00000000000001,
+    "no_attack_dependency": 13.035600000000002,
+    "pressure_hash": "e47f7e9f4960766acc5c50bd36fc1619e1001dbbf18c0e9df7fdf1f6e378c5eb",
+    "selected_operation_id": "observe-treasury",
+    "treasury_observation_pressure": 7.822876777777777
+  },
+  "configuration": {
+    "graph_hash": "1823af85250dfb5c621495803c16bbec610a04cbbb19db389d40824f508901a3",
+    "operations": [
+      {
+        "atom_id": "treasury",
+        "cost": {
+          "commitment": 0.0,
+          "compute": 0.25,
+          "energy": 0.0,
+          "latency": 0.0,
+          "opportunity": 0.0,
+          "resource": 0.0,
+          "risk": 0.0
+        },
+        "mode": "observe",
+        "operation_id": "observe-treasury"
+      },
+      {
+        "atom_id": "buy-archer",
+        "cost": {
+          "commitment": 0.0,
+          "compute": 0.0,
+          "energy": 0.0,
+          "latency": 0.0,
+          "opportunity": 0.0,
+          "resource": 1.0,
+          "risk": 0.0
+        },
+        "mode": "act",
+        "operation_id": "buy-archer"
+      },
+      {
+        "atom_id": "archer-available",
+        "cost": {
+          "commitment": 0.0,
+          "compute": 0.25,
+          "energy": 0.0,
+          "latency": 0.0,
+          "opportunity": 0.0,
+          "resource": 0.0,
+          "risk": 0.0
+        },
+        "mode": "observe",
+        "operation_id": "observe-archer-availability"
+      }
+    ]
+  },
+  "schema_version": "1.0"
+}

@@ -261,6 +261,15 @@ apps/freeciv-observability/node_modules/.bin/vite-node \
 
 ## 10. Final release audit
 
+First replay all ten canonical PF-PLN phase gates and verify their checked
+evidence fingerprints:
+
+```bash
+PYTHONPATH=src:benchmarks python3 scripts/freeciv/audit_pf_pln.py \
+  --workers 4 \
+  --output artifacts/freeciv/pf-pln-release-audit/report.json
+```
+
 Use a completed full-loop trace that includes a planned non-control action:
 
 ```bash
@@ -275,7 +284,9 @@ PYTHONPATH=src:benchmarks python3 scripts/freeciv/audit_release.py \
 The command audits handwritten rules, independent compilation, numeric-inference separation,
 declared confidence parameters, raw-state/LLM isolation, UI boundaries, workstation paths,
 the pinned proxy patch, event validity and volume, invalid-plan exclusion, and complete
-cognitive action ancestry.
+cognitive action ancestry. It also embeds the PF-PLN audit, so a missing phase,
+drifted benchmark/evidence fingerprint, incomplete phase-map row, or stale
+generated event type fails the complete release.
 
 Failure recovery and operational checks are in `docs/freeciv/operations.md`. Protocol and
 DTO details are in `docs/freeciv/integration-contract.md` and `docs/freeciv/state-bridge.md`.

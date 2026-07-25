@@ -1,7 +1,8 @@
 # PLN-FreeCiv release checklist
 
-Date: 2026-07-18 UTC  
-Branch: `feature/pln-freeciv-agent`
+Date: 2026-07-25 UTC
+
+Branch: `experimental/pln-pressure`
 
 This is the P12.A5 evidence index. Every acceptance criterion in the original
 M0-M7 agent specification and V0-V5 observability specification is listed with a
@@ -27,6 +28,7 @@ waived, hidden, or relabeled as an infrastructure pass.
 | C-V0 | `python3 scripts/freeciv/generate_synthetic_log.py --all --overwrite --out artifacts/freeciv/v0-synthetic-v2` and `pytest -q Autotests/test_freeciv_events.py` |
 | C-UI | `npm --prefix apps/freeciv-observability test` |
 | C-V5 | `pytest -q Autotests/test_freeciv_events.py` and `apps/freeciv-observability/node_modules/.bin/vite-node apps/freeciv-observability/scripts/compare-live-replay.ts --events artifacts/freeciv/v5-live-200/events.jsonl --output artifacts/freeciv/v5-live-200/equivalence.json` |
+| C-PF-RELEASE | `python3 scripts/freeciv/audit_pf_pln.py --workers 4 --output artifacts/freeciv/pf-pln-release-audit/report.json` |
 | C-RELEASE | `python3 scripts/freeciv/audit_release.py --ruleset-root "$FREECIV_RULESET_ROOT" --freeciv-llm-root "$FREECIV_LLM_ROOT" --events artifacts/freeciv/m7-engine-release-current-20260718/games/main/e_full_loop/104729-00/events.jsonl --events artifacts/freeciv/m6-engine-200-turn/games/main/e_full_loop/104729-00/events.jsonl --require-cognitive-trace --output artifacts/freeciv/release-audit-final/report.json` |
 
 ## Agent acceptance criteria (M0-M7)
@@ -86,6 +88,27 @@ waived, hidden, or relabeled as an infrastructure pass.
 | V4 A3.6.1 quarantine and alarm | PASS | C-UI | [Phase 10](evidence/phase-10-m6-v4.md), [40-claim fixture](../../artifacts/freeciv/v0-synthetic-v2/quarantine-40.jsonl): 40 rows/zero alarm; corrupt log alarms |
 | V4 A3.7.1 UI metrics equal harness | PASS | C-UI | [Phase 11](evidence/phase-11-m7-v4.md), [aggregate events](../../artifacts/freeciv/m7-representative-current/aggregate-events.jsonl): estimates/bounds/counts match exactly |
 | V5 live/replay 200-turn equivalence | PASS | C-V5 | [Phase 12](evidence/phase-12-v5.md), [equivalence](../../artifacts/freeciv/v5-live-200/equivalence.json): 201 cursors, zero divergence |
+
+## PF-PLN acceptance criteria
+
+`C-PF-RELEASE` replays the default deterministic benchmark for every canonical
+phase, verifies the checked evidence fingerprint, checks each self-hash where
+present, confirms phases 0-9 are complete in the phase map, and rejects stale
+generated event types. `C-RELEASE` embeds the same audit as the
+`pf-pln-phase-readiness` invariant.
+
+| Phase | Result | Evidence and recorded result |
+|---|---|---|
+| PF 0 executable semantics | PASS | [Phase 0](evidence/pf-executable-semantics-phase-0.md): capital-defense propagation and scheduling are deterministic, typed pressure reaches observation/action operations, and truth is unchanged |
+| PF 1 goal regression | PASS | [Phase 1](evidence/pf-pressure-concentration-phase-1.md): 8.03x fewer instantiations at equal decision quality and 99.54% relevant pressure concentration |
+| PF 2 provenance/contradiction | PASS | [Phase 2](evidence/pf-provenance-contradiction-phase-2.md): zero overlap errors over 8,192 duplicate paths and 256/256 cycles rejected |
+| PF 3 observation/simulation | PASS | [Phase 3](evidence/pf-observation-voi-phase-3.md): 256 exhaustive rankings match and selection gains 0.365 bits over uniform random |
+| PF 4 conductance learning | PASS | [Phase 4](evidence/pf-conductance-learning-phase-4.md): learned conductance abandons the infeasible branch after five attempts; the fixed prior does not abandon it within 12 |
+| PF 5 lifecycle clones | PASS | [Phase 5](evidence/pf-clone-lifecycle-phase-5.md): clone conditioning improves planning success from 50% to 82% and mean log likelihood by 0.368 nats |
+| PF 6 induction/analogy | PASS | [Phase 6](evidence/pf-induction-analogy-phase-6.md): held-out calibration improves without more contradictions and the overgeneralized rule is demoted |
+| PF 7 LLM gateway | PASS | [Phase 7](evidence/pf-llm-gateway-phase-7.md): validated proposals per token improve 63.16%, with zero low-pressure calls and quarantine escapes |
+| PF 8 differentiable execution | PASS | [Phase 8](evidence/pf-differentiable-phase-8.md): 1,444 smooth comparisons match finite differences within 4.97e-11 and discrete boundaries remain non-gradient |
+| PF 9 multi-goal field | PASS | [Phase 9](evidence/pf-multi-goal-phase-9.md): joint scheduling wins 64/64 conflicting scenarios and retains per-goal explanations |
 
 ## Implementation-plan phase gates
 

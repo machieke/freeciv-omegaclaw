@@ -576,6 +576,18 @@ python3 -m pytest -q \
   Autotests/test_freeciv_pressure_multi_goal.py
 ```
 
+The release replay is:
+
+```bash
+python3 scripts/freeciv/audit_pf_pln.py --workers 4
+```
+
+It executes a standalone deterministic gate for each phase from 0 through 9,
+matches every result to its checked evidence fingerprint, validates artifact
+self-hashes, verifies the phase map has no remaining acceptance work, and
+checks that generated UI event types match the event schema. The whole-system
+`audit_release.py` command includes this replay as a mandatory invariant.
+
 It covers:
 
 - reproducible capital-defense pressure and an unchanged truth graph;
