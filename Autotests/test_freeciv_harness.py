@@ -988,6 +988,36 @@ def test_engine_live_workers_accept_explicit_noncontiguous_server_ports():
             server_ports=(6001, 6003))
 
 
+def test_server_recycle_waits_for_fresh_listening_pid_without_fixed_tail(
+        monkeypatch):
+    process_rows = iter((
+        " 41 /home/docker/freeciv/bin/freeciv-web --port 6002\n",
+        " 42 /home/docker/freeciv/bin/freeciv-web --port 6002\n",
+    ))
+    commands = []
+    sleeps = []
+
+    monkeypatch.setattr(
+        engine_live.subprocess, "check_output",
+        lambda *_args, **_kwargs: next(process_rows))
+
+    def run(command, **_kwargs):
+        commands.append(command)
+        return type("Completed", (), {"returncode": 0})()
+
+    monkeypatch.setattr(engine_live.subprocess, "run", run)
+    monkeypatch.setattr(
+        engine_live.time, "sleep", lambda seconds: sleeps.append(seconds))
+
+    engine_live._recycle_server(6002)
+
+    assert sleeps == [0.1]
+    assert commands[0] == ["docker", "exec", "fciv-net", "kill", "41"]
+    assert commands[1][:5] == [
+        "docker", "exec", "fciv-net", "python3", "-c"]
+    assert commands[1][-1] == "6002"
+
+
 def test_engine_live_clears_stale_proxy_game_before_server_recycle(monkeypatch):
     calls = []
 

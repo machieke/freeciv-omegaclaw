@@ -2293,6 +2293,7 @@ def _terminate_proxy(game_id, token, required=False):
 
 def _recycle_server(port):
     container = os.environ.get("FREECIV_SERVER_CONTAINER", "fciv-net")
+
     def find_pid():
         output = subprocess.check_output(
             ["docker", "exec", container, "ps", "-eo", "pid,args"], text=True)
@@ -2305,16 +2306,33 @@ def _recycle_server(port):
                 return match.group(1)
         return None
 
+    def port_is_listening():
+        # Inspect the listener table instead of opening a Freeciv connection,
+        # which could allocate a transient client slot and mutate game state.
+        probe = (
+            "import sys;"
+            "p='%04X'%int(sys.argv[1]);"
+            "r=open('/proc/net/tcp').read().splitlines()[1:]"
+            "+open('/proc/net/tcp6').read().splitlines()[1:];"
+            "sys.exit(0 if any("
+            "len(x.split())>3 and x.split()[1].rsplit(':',1)[-1]==p "
+            "and x.split()[3]=='0A' for x in r) else 1)"
+        )
+        result = subprocess.run(
+            ["docker", "exec", container, "python3", "-c", probe, str(port)],
+            check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return result.returncode == 0
+
     old_pid = find_pid()
     if old_pid is not None:
         subprocess.run(["docker", "exec", container, "kill", old_pid], check=False,
                        stdout=subprocess.DEVNULL)
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
-        time.sleep(0.25)
+        time.sleep(0.1)
         current_pid = find_pid()
-        if current_pid is not None and current_pid != old_pid:
-            time.sleep(0.5)
+        if (current_pid is not None and current_pid != old_pid
+                and port_is_listening()):
             return
     raise RuntimeError("civserver port {} did not recycle".format(port))
 

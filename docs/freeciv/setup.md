@@ -60,6 +60,9 @@ docker ps --filter name=fciv-net
 curl --fail http://127.0.0.1:8002/health
 ```
 
+Engine harness process isolation waits for a fresh dedicated-server PID and
+its exact listening socket; it does not rely on a fixed post-spawn delay.
+
 ## 3. Runtime environment
 
 The proxy token is the only required secret in the local live path. Obtain it from the

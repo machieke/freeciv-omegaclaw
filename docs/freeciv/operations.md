@@ -45,6 +45,11 @@ score analysis. The same status record splits total backend time into
 `engine_gameplay_latency_ms`, and `engine_cleanup_latency_ms`, with
 `engine_backend_latency_ms` as the enclosing measurement.
 
+Server recycle readiness requires both a fresh dedicated-server PID and an
+observed `LISTEN` socket for that port inside the container. The harness polls
+those facts at 100 ms; it does not use a fixed post-spawn sleep or open a
+protocol connection that could allocate a transient player slot.
+
 Authoritative refreshes use the v3 proxy contract's bounded
 `after_source_seq`/`wait_timeout_ms` hint when a caller requires a newer packet
 revision. The proxy timeout returns current state, while the harness deadline
