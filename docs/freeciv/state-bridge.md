@@ -15,14 +15,15 @@ The patch is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. Its SHA-256 is
-`9ab6fbae638fd77668e04d5cafb2031e73f490aea066f181b5a25f98068081cd`.
+`aec725fae2618872023fc0eb0baea4c23323e5d46e037d470f33ca10e2eb71a5`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 The patch defaults the proxy logger to `INFO` and moves per-action payload,
 normalization, sanitization, validation, and full state-summary diagnostics to
-`DEBUG`. Successful action, state-query, and performance logging is opt-in in
-`llm_config.json`; rejection, security-warning, warning, and error records remain
-visible. Enable the corresponding logging flags and set
+`DEBUG`. Successful action and extraction-performance logging is opt-in in
+`llm_config.json`; state-query lifecycle INFO, rejection, security-warning,
+warning, and error records remain visible. Enable the corresponding action and
+performance flags and set
 `FREECIV_PROXY_LOG_LEVEL=DEBUG` before starting the proxy when payload-level
 diagnostics are required.
 

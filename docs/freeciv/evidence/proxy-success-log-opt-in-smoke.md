@@ -12,12 +12,12 @@ claim.
 After verbose payload diagnostics were moved behind DEBUG, the proxy still
 performed synchronous INFO writes for every accepted action, every successful
 security action event, every authoritative extraction, and two additional
-success records at each end-turn boundary. The existing `log_actions`,
-`log_state_queries`, and `log_performance` configuration fields were not used by
-those hot paths.
+success records at each end-turn boundary. The existing `log_actions` and
+`log_performance` configuration fields were not used by those hot paths.
 
-The release configuration now makes successful action, state-query, and
-performance logging opt-in. The implementation:
+The release configuration now makes successful action and
+extraction-performance logging opt-in. State-query lifecycle INFO remains
+enabled. The implementation:
 
 1. checks `log_actions` once on each accepted action;
 2. suppresses accepted-action, executed-action, turn-ended, and rate-reset
@@ -31,8 +31,16 @@ performance logging opt-in. The implementation:
 
 The pinned patch digest is
 `9ab6fbae638fd77668e04d5cafb2031e73f490aea066f181b5a25f98068081cd`.
-A proxy contract test fixes all three successful hot-path logging flags to
-false for the release configuration.
+A proxy contract test fixes successful action and performance logging to false
+for the release configuration.
+
+The subsequently promoted digest
+`aec725fae2618872023fc0eb0baea4c23323e5d46e037d470f33ca10e2eb71a5`
+changes only the state-query logging declaration back to enabled, matching the
+retained handler after the rejected experiment below. The exact-pin
+confirmation at
+`artifacts/freeciv/proxy-success-log-final-confirmation-20260725` completed both
+seeds with exact actions, scores, margins, rejection, and fallback behavior.
 
 ## Engine confirmation
 
@@ -80,3 +88,6 @@ All four treatment games retained, per seed:
   extraction-success, turn-ended, or rate-reset success records.
 - The four-trace release audit passed all 13 top-level checks at
   `artifacts/freeciv/proxy-success-log-release-audit-20260725/report.json`.
+- The exact-final-pin two-trace audit passed all 11 applicable top-level checks
+  at
+  `artifacts/freeciv/proxy-success-log-final-release-audit-20260725/report.json`.

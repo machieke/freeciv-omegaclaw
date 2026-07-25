@@ -934,7 +934,7 @@ index 2f69128..378e8a6 100644
              logger.info(f"Game {self.game_id}: No configuration changes requested")
              self.config_applied = True
 diff --git a/freeciv-proxy/llm_config.json b/freeciv-proxy/llm_config.json
-index 045d314..f87c387 100644
+index 045d314..ec62ad1 100644
 --- a/freeciv-proxy/llm_config.json
 +++ b/freeciv-proxy/llm_config.json
 @@ -21,8 +21,8 @@
@@ -953,10 +953,9 @@ index 045d314..f87c387 100644
      "logging": {
          "level": "INFO",
 -        "log_actions": true,
--        "log_state_queries": true,
--        "log_performance": true
 +        "log_actions": false,
-+        "log_state_queries": false,
+         "log_state_queries": true,
+-        "log_performance": true
 +        "log_performance": false
      },
      "civserver": {
@@ -2917,7 +2916,7 @@ index 0000000..3f151d1
 +        "Cannot move onto packet-visible non-allied city owned by player 1")
 diff --git a/freeciv-proxy/tests/test_release_game_configuration.py b/freeciv-proxy/tests/test_release_game_configuration.py
 new file mode 100644
-index 0000000..3b27451
+index 0000000..d360696
 --- /dev/null
 +++ b/freeciv-proxy/tests/test_release_game_configuration.py
 @@ -0,0 +1,270 @@
@@ -2961,7 +2960,7 @@ index 0000000..3b27451
 +    assert logging_config == {
 +        "level": "INFO",
 +        "log_actions": False,
-+        "log_state_queries": False,
++        "log_state_queries": True,
 +        "log_performance": False,
 +    }
 +
