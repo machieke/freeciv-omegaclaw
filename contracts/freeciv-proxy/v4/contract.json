@@ -1,0 +1,46 @@
+{
+  "schema_version": "4.0",
+  "extends": "../v3/contract.json",
+  "upstream_base_commit": "26ba7124249f34fd3050ef29bf191bd4d8808018",
+  "format": "pln_authoritative",
+  "websocket_state_query": {
+    "type": "state_query",
+    "format": "pln_authoritative",
+    "optional_fields": {
+      "accept_unchanged": {
+        "type": "boolean",
+        "requires": [
+          "after_source_seq",
+          "wait_timeout_ms"
+        ],
+        "semantics": "after the bounded wait expires without a completely stored packet revision, permit a compact state_unchanged response"
+      }
+    }
+  },
+  "websocket_state_unchanged": {
+    "type": "state_unchanged",
+    "required_fields": {
+      "format": "pln_authoritative",
+      "turn": "integer",
+      "source_seq": "integer"
+    },
+    "semantics": "the prior full authoritative projection remains the independent stable sample only when turn and source_seq exactly match the caller's accepted projection"
+  },
+  "atomicity": {
+    "packet_mutation": "serialized by the CivCom state-projection lock",
+    "projection_construction": "serialized by the same CivCom state-projection lock",
+    "unchanged_check": "performed under the same lock after the bounded source wait"
+  },
+  "stability": {
+    "decision_sample_policy": "one atomic full projection followed by a bounded unchanged-revision acknowledgement is equivalent to two identical deterministic projections",
+    "changed_revision_policy": "a packet revision during the wait returns an ordinary full state_response and restarts fingerprint stability"
+  },
+  "state_fixture": "../v2/authoritative-state.fixture.json",
+  "invariants": [
+    "accept_unchanged is valid only for a bounded pln_authoritative source wait",
+    "legacy and v3 state queries preserve their response semantics",
+    "state_unchanged is never returned when source_seq differs from after_source_seq",
+    "packet mutation cannot overlap authoritative projection construction",
+    "the client accepts state_unchanged only for its retained full projection's exact turn and source sequence"
+  ]
+}

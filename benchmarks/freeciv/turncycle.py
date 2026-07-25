@@ -21,7 +21,7 @@ from . import client
 action_message = client.action_message
 end_turn_message = client.end_turn_message
 
-_STATE_TYPES = {"state_response", "state_update"}
+_STATE_TYPES = {"state_response", "state_update", "state_unchanged"}
 # Server pushes that announce a new turn/phase (best-effort; polling is the reliable path).
 TURN_PUSH_TYPES = {"begin_turn", "turn_begin", "new_turn", "phase_change"}
 
@@ -47,7 +47,7 @@ def state_body(m):
 
 
 async def get_state(ws, fmt="llm_optimized", after_source_seq=None,
-                    wait_timeout_ms=None):
+                    wait_timeout_ms=None, accept_unchanged=False):
     """Query current state, optionally waiting for a newer packet revision.
 
     ``after_source_seq`` and ``wait_timeout_ms`` are a bounded long-poll hint
@@ -69,6 +69,14 @@ async def get_state(ws, fmt="llm_optimized", after_source_seq=None,
         if after_source_seq is None:
             raise ValueError("wait_timeout_ms requires after_source_seq")
         query["wait_timeout_ms"] = wait_timeout_ms
+    if not isinstance(accept_unchanged, bool):
+        raise ValueError("accept_unchanged must be boolean")
+    if accept_unchanged:
+        if (fmt != "pln_authoritative" or after_source_seq is None
+                or wait_timeout_ms is None):
+            raise ValueError(
+                "accept_unchanged requires an authoritative bounded source wait")
+        query["accept_unchanged"] = True
     await ws.send(json.dumps(query))
     return state_body(await recv_until(ws, _STATE_TYPES, timeout=15))
 

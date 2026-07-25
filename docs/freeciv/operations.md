@@ -56,15 +56,24 @@ publish that shortcut and therefore retain unconditional kill/recycle
 isolation. `status.json` records `engine_server_pid` and
 `engine_server_recycle_method` for direct audit.
 
-Authoritative refreshes use the v3 proxy contract's bounded
+Authoritative refreshes use the v4 proxy contract's bounded
 `after_source_seq`/`wait_timeout_ms` hint when a caller requires a newer packet
-revision. The proxy timeout returns current state, while the harness deadline
-and independent identical-state sample remain authoritative. Repeated
+revision. The optional `accept_unchanged` flag lets a completed quiet wait
+return the exact turn/source revision without retransmitting the retained
+atomic projection. The harness deadline, 50 ms interval, and independent
+stability sample remain authoritative. Repeated
 same-sequence queries before the required revision indicate an unpatched or
 stale proxy mount. A response whose source sequence advances while its
 same-turn research, city, unit, or legal-action payload remains unchanged for
 the five-second cache TTL indicates the obsolete turn-only inner extractor
 cache. Verify the pinned patch digest before changing timeouts.
+
+Turn-boundary diagnostics are emitted as
+`turn_boundary_state_latency_ms`, `turn_boundary_state_query_latency_ms`,
+`turn_boundary_state_query_count`, `turn_boundary_state_parse_latency_ms`,
+`turn_boundary_state_settle_wait_ms`, `turn_boundary_nonstate_latency_ms`,
+and `turn_checkpoint_sync_latency_ms`. Use these components before adjusting
+stability or engine timeouts.
 
 Accepted impact actions receive a bounded 0.3-second authoritative refresh
 window with two identical samples separated by at least 50 ms. A differing

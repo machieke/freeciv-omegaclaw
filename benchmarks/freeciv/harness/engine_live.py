@@ -480,24 +480,52 @@ def _player_eliminated(snapshot):
 
 async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=20.0,
                  require_decision_ready=False, require_own_units=False,
-                 stable_samples=1, poll_interval=0.05):
+                 stable_samples=1, poll_interval=0.05, diagnostics=None):
     if (isinstance(stable_samples, bool) or not isinstance(stable_samples, int)
             or not 1 <= stable_samples <= 5):
         raise ValueError("stable_samples must be in 1..5")
     if not 0.05 <= float(poll_interval) <= 1.0:
         raise ValueError("poll_interval must be in [0.05,1]")
+    call_started = time.perf_counter()
+
+    def record(name, value):
+        if diagnostics is not None:
+            diagnostics[name] = diagnostics.get(name, 0.0) + value
+
+    def finish(success):
+        record("calls", 1)
+        record("successful_calls", int(success))
+        record("latency_ms", (time.perf_counter() - call_started) * 1000.0)
+
     deadline = time.monotonic() + timeout
     stable_fingerprint = None
     stable_count = 0
+    stable_raw = None
+    stable_snapshot = None
     observed_source_seq = None
     while time.monotonic() < deadline:
         remaining = deadline - time.monotonic()
         query_options = {}
+        if (stable_count > 0 and observed_source_seq is not None
+                and remaining > 0.001):
+            # The first full projection is built under the proxy's packet-state
+            # lock. Confirm later samples with a bounded conditional wait: an
+            # unchanged packet revision proves the deterministic projection and
+            # exact legal set remain identical without retransmitting them.
+            wait_ms = min(
+                5000,
+                int(max(0.001, min(float(poll_interval), remaining)) * 1000))
+            if wait_ms >= 1:
+                query_options = {
+                    "after_source_seq": int(observed_source_seq),
+                    "wait_timeout_ms": wait_ms,
+                    "accept_unchanged": True,
+                }
+                record("settle_wait_requested_ms", float(wait_ms))
         # Do not spend a request/sleep cycle rediscovering a revision the
         # caller has already consumed. Once a ready candidate is observed,
-        # query immediately after the normal settling interval so the second
-        # identical sample remains an independent stability check.
-        if stable_count == 0 and remaining > 0.05:
+        # a conditional wait above supplies the independent stability check.
+        elif stable_count == 0 and remaining > 0.05:
             wait_after = observed_source_seq
             if minimum_source_seq is not None and minimum_source_seq > 0:
                 wait_after = max(
@@ -510,13 +538,38 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
                         "after_source_seq": int(wait_after),
                         "wait_timeout_ms": wait_ms,
                     }
+        query_started = time.perf_counter()
         try:
             raw = await asyncio.wait_for(
                 turncycle.get_state(
                     ws, "pln_authoritative", **query_options),
                 timeout=max(0.05, remaining))
         except asyncio.TimeoutError:
+            record("queries", 1)
+            record("query_latency_ms", (
+                time.perf_counter() - query_started) * 1000.0)
             break
+        record("queries", 1)
+        record("query_latency_ms", (
+            time.perf_counter() - query_started) * 1000.0)
+        if raw and raw.get("type") == "state_unchanged":
+            unchanged_seq = raw.get("source_seq")
+            unchanged_turn = raw.get("turn")
+            if (stable_count > 0 and stable_raw is not None
+                    and stable_snapshot is not None
+                    and unchanged_seq == observed_source_seq
+                    and unchanged_turn is not None
+                    and int(unchanged_turn) >= minimum_turn):
+                stable_count += 1
+                if stable_count >= stable_samples:
+                    finish(True)
+                    return stable_raw, stable_snapshot
+                continue
+            stable_fingerprint = None
+            stable_count = 0
+            stable_raw = None
+            stable_snapshot = None
+            continue
         source_seq = raw.get("authoritative", {}).get("source_seq") if raw else None
         if source_seq is not None:
             try:
@@ -527,11 +580,15 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
             minimum_source_seq is None
             or (source_seq is not None and int(source_seq) >= minimum_source_seq))
         if raw and source_ready:
+            parse_started = time.perf_counter()
             snapshot = ProxyStateDTO.parse(game_id, source_seq, raw).to_snapshot()
+            record("parse_latency_ms", (
+                time.perf_counter() - parse_started) * 1000.0)
             # A dead player receives no next begin-turn packet. Accept the exact
             # terminal player packet at its current turn even when the caller is
             # waiting for ``minimum_turn = current + 1``.
             if _player_eliminated(snapshot):
+                finish(True)
                 return raw, snapshot
             turn_ready = int(raw.get("turn", 0)) >= minimum_turn
             ready = (snapshot.player_alive is not None and turn_ready
@@ -544,12 +601,22 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
                 else:
                     stable_fingerprint = fingerprint
                     stable_count = 1
+                stable_raw = raw
+                stable_snapshot = snapshot
                 if stable_count >= stable_samples:
+                    finish(True)
                     return raw, snapshot
             else:
                 stable_fingerprint = None
                 stable_count = 0
-        await asyncio.sleep(min(float(poll_interval), max(0.0, remaining)))
+                stable_raw = None
+                stable_snapshot = None
+        if stable_count > 0 and observed_source_seq is not None:
+            continue
+        settle_wait = min(float(poll_interval), max(0.0, remaining))
+        record("settle_wait_requested_ms", settle_wait * 1000.0)
+        await asyncio.sleep(settle_wait)
+    finish(False)
     raise TimeoutError("authoritative state did not reach turn {}".format(minimum_turn))
 
 
@@ -1273,6 +1340,9 @@ async def _play(run_dir, manifest, context):
     replan_latencies = []
     model_latencies = []
     full_loop_latencies = []
+    turn_boundary_latencies = []
+    turn_checkpoint_sync_latencies = []
+    transition_state_diagnostics = {}
     effect_confirmation_latencies = []
     production_projection_etas = []
     production_projection_values = []
@@ -1492,11 +1562,13 @@ async def _play(run_dir, manifest, context):
         turns_executed = 0
         planned_actions = 0
         terminal_player_elimination = False
+        turn_boundary_started = None
         for turn_index in range(1, manifest["turn_limit"] + 1):
             if turn_index > 1:
                 raw, snapshot = await _state(
                     ws, manifest["game_id"], minimum_turn=snapshot.turn + 1,
-                    require_decision_ready=True, stable_samples=2)
+                    require_decision_ready=True, stable_samples=2,
+                    diagnostics=transition_state_diagnostics)
                 store.replace(snapshot)
                 state_event = writer.emit(
                     "state_snapshot", snapshot.turn, snapshot.event_payload(),
@@ -1540,6 +1612,9 @@ async def _play(run_dir, manifest, context):
                 terminal_player_elimination = True
                 break
 
+            if turn_boundary_started is not None:
+                turn_boundary_latencies.append(
+                    (time.perf_counter() - turn_boundary_started) * 1000.0)
             full_turn_started = time.perf_counter()
             (active_plan, plain_selection, parent, turn_model_latency,
              turn_corrections, safe_model_fallback, model_called,
@@ -1863,7 +1938,11 @@ async def _play(run_dir, manifest, context):
             parent = _metric(
                 writer, snapshot.turn, parent, "turn_full_loop_latency_ms",
                 full_loop_latency, manifest, engine_turn=snapshot.turn)
+            checkpoint_started = time.perf_counter()
             writer.sync()
+            turn_checkpoint_sync_latencies.append(
+                (time.perf_counter() - checkpoint_started) * 1000.0)
+            turn_boundary_started = time.perf_counter()
 
         # Bind final scoring to the post-horizon observer revision rather than
         # assuming a fixed sleep is long enough for endgame packets to settle.
@@ -1881,6 +1960,11 @@ async def _play(run_dir, manifest, context):
                      if model_latencies else 0.0)
     full_loop_under_30 = (sum(value <= 30000 for value in full_loop_latencies)
                           / max(1, len(full_loop_latencies)))
+    transition_calls = max(1.0, transition_state_diagnostics.get("calls", 0.0))
+    mean_boundary_latency = (
+        sum(turn_boundary_latencies) / max(1, len(turn_boundary_latencies)))
+    mean_transition_state_latency = (
+        transition_state_diagnostics.get("latency_ms", 0.0) / transition_calls)
     truth_techs = set((final_global or {}).get("techs", {}).get(
         "player{}".format(opponent.get("id", 1)), []))
     correct = []
@@ -1936,6 +2020,24 @@ async def _play(run_dir, manifest, context):
         ("calibration_absolute_error", calibration_error),
         ("loop_latency_ms", loop_latency),
         ("model_latency_ms", model_latency),
+        ("turn_boundary_latency_ms", mean_boundary_latency),
+        ("turn_boundary_state_latency_ms", mean_transition_state_latency),
+        ("turn_boundary_nonstate_latency_ms", max(
+            0.0, mean_boundary_latency - mean_transition_state_latency)),
+        ("turn_boundary_state_query_latency_ms",
+         transition_state_diagnostics.get("query_latency_ms", 0.0)
+         / transition_calls),
+        ("turn_boundary_state_query_count",
+         transition_state_diagnostics.get("queries", 0.0) / transition_calls),
+        ("turn_boundary_state_parse_latency_ms",
+         transition_state_diagnostics.get("parse_latency_ms", 0.0)
+         / transition_calls),
+        ("turn_boundary_state_settle_wait_ms",
+         transition_state_diagnostics.get("settle_wait_requested_ms", 0.0)
+         / transition_calls),
+        ("turn_checkpoint_sync_latency_ms",
+         sum(turn_checkpoint_sync_latencies)
+         / max(1, len(turn_checkpoint_sync_latencies))),
         ("final_global_settle_latency_ms", final_global_settle_latency),
         ("observer_global_state_queries", observer_global_state_queries),
         ("full_loop_under_30s_rate", full_loop_under_30),

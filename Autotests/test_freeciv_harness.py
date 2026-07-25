@@ -982,12 +982,17 @@ def test_state_waits_for_new_source_revision_then_rechecks_stability(monkeypatch
     assert snapshot.identity.source_seq == 45
     assert calls[0]["after_source_seq"] == 44
     assert 1 <= calls[0]["wait_timeout_ms"] <= 450
-    assert calls[1] == {}
+    assert calls[1] == {
+        "after_source_seq": 45,
+        "wait_timeout_ms": 50,
+        "accept_unchanged": True,
+    }
 
 
 def test_state_default_stability_interval_is_50ms(monkeypatch):
     raw = _ready_raw(source_seq=45, turn=12)
     sleeps = []
+    diagnostics = {}
 
     async def source_state(_ws, _format, **_kwargs):
         return raw
@@ -1000,11 +1005,49 @@ def test_state_default_stability_interval_is_50ms(monkeypatch):
 
     returned, snapshot = asyncio.run(_state(
         object(), "stability-interval-test", minimum_turn=12,
+        stable_samples=2, timeout=0.5, diagnostics=diagnostics))
+
+    assert returned is raw
+    assert snapshot.identity.source_seq == 45
+    assert sleeps == []
+    assert diagnostics["calls"] == 1
+    assert diagnostics["successful_calls"] == 1
+    assert diagnostics["queries"] == 2
+    assert diagnostics["settle_wait_requested_ms"] == pytest.approx(50.0)
+    assert diagnostics["latency_ms"] >= 0
+    assert diagnostics["query_latency_ms"] >= 0
+    assert diagnostics["parse_latency_ms"] >= 0
+
+
+def test_state_accepts_exact_conditional_unchanged_sample(monkeypatch):
+    raw = _ready_raw(source_seq=45, turn=12)
+    calls = []
+
+    async def source_state(_ws, _format, **kwargs):
+        calls.append(kwargs)
+        if len(calls) == 1:
+            return raw
+        return {
+            "type": "state_unchanged",
+            "turn": 12,
+            "source_seq": 45,
+        }
+
+    monkeypatch.setattr(engine_live.turncycle, "get_state", source_state)
+    returned, snapshot = asyncio.run(_state(
+        object(), "conditional-stability-test", minimum_turn=12,
         stable_samples=2, timeout=0.5))
 
     assert returned is raw
     assert snapshot.identity.source_seq == 45
-    assert sleeps == [pytest.approx(0.05)]
+    assert calls == [
+        {},
+        {
+            "after_source_seq": 45,
+            "wait_timeout_ms": 50,
+            "accept_unchanged": True,
+        },
+    ]
 
 
 def test_claim_eligible_arms_fail_closed_on_model_fallback():

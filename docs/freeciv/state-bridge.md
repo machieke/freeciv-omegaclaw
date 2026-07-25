@@ -1,8 +1,8 @@
 # Authoritative state bridge
 
-The target agent reads the `pln_authoritative` proxy format and bounded source-wait
-extension described by `contracts/freeciv-proxy/v3/contract.json` (which extends the
-v2 state DTO). Apply the tracked patch to the pinned external
+The target agent reads the `pln_authoritative` proxy format and conditional
+source-stability extension described by `contracts/freeciv-proxy/v4/contract.json`
+(which extends the v3 bounded wait and v2 state DTO). Apply the tracked patch to the pinned external
 checkout before starting its container:
 
 ```bash
@@ -15,7 +15,7 @@ The patch is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. Its SHA-256 is
-`283ff5c5554ac7fc709ec0294e14dab0be47d06f93e8fbdfa74283eb79f24802`.
+`67b13561de3673915ed5341ddff28157b77540a9284efbc47e5dcb090ae0180d`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 The same tracked external patch retains Publite2's five-second restart backoff
@@ -50,6 +50,15 @@ requires its separately timed identical-snapshot stability sample. Consecutive
 samples at initial, inter-turn, and accepted-action boundaries are separated by
 50 ms and must match the complete decision fingerprint; any state,
 visible-enemy, or exact legal-action-digest change restarts the count.
+
+The v4 `accept_unchanged` option is valid only with a bounded authoritative
+source wait. Packet mutation and full projection construction share one
+CivCom lock. If the complete wait expires with the exact turn and source
+sequence unchanged, the proxy returns a compact `state_unchanged` response;
+otherwise it returns ordinary full state. The harness treats that acknowledgment
+as the independent later sample of its retained atomic projection. The 50 ms
+quiet interval is unchanged, and any packet revision still triggers full DTO
+parsing and decision-fingerprint comparison.
 
 The observer-backed `global_state_response` carries its own authoritative
 `turn`. The harness rejects a populated but stale observer response until its

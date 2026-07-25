@@ -293,6 +293,14 @@ within engine variance; the accepted benefit is the deterministic removal of
 unused work, not a latency claim. See
 [the lazy state-construction smoke](evidence/pln-lazy-state-construction-smoke.md).
 
+Phase-level profiling then showed that authoritative state gating consumed
+96.5% of the remaining turn boundary. The v4 conditional stability response
+retains atomic construction, an independent 50 ms sample, and exact
+turn/source matching while avoiding a second full projection transfer when no
+packet changed. Independent exact-behavior cohorts reduced boundary state time
+by 10.40% and 10.07%, and gameplay time by 3.65% and 6.10%. See
+[the conditional stability smoke](evidence/conditional-state-stability-smoke.md).
+
 Exploration destinations also gain conservative cross-source failure evidence.
 One failed move remains retryable because occupancy and tactical obstructions can
 be transient. After the same unit type remains stationary while targeting the

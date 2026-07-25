@@ -38,8 +38,9 @@ export FREECIV_RULESET_ROOT="$FREECIV_LLM_ROOT/freeciv/freeciv/data"
 The patch is tracked at `scripts/freeciv/upstream/0001-pln-authoritative-state.patch`.
 The application script is idempotent, rejects a different upstream commit, and supports
 normal checkouts and Git worktrees. It adds the `pln_authoritative` DTO, monotonic packet
-sequence, bounded source-sequence waiting, exact release-game configuration, canonical
-executable actions, ruleset readiness, and proxy contract tests.
+sequence, bounded and conditional source-stability waiting, atomic packet/projection
+construction, exact release-game configuration, canonical executable actions,
+ruleset readiness, and proxy contract tests.
 
 Verify the patch in the FreeCiv image (the cache secret is test-only and is not persisted):
 

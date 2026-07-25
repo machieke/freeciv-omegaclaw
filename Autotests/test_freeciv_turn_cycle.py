@@ -57,7 +57,7 @@ def test_state_query_carries_bounded_source_wait_hint():
         ws = MockProxyWS(start_turn=1)
         state = await turncycle.get_state(
             ws, "pln_authoritative", after_source_seq=44,
-            wait_timeout_ms=5000)
+            wait_timeout_ms=5000, accept_unchanged=True)
         return state, ws.received[-1]
 
     state, query = _run(go())
@@ -67,6 +67,7 @@ def test_state_query_carries_bounded_source_wait_hint():
         "format": "pln_authoritative",
         "after_source_seq": 44,
         "wait_timeout_ms": 5000,
+        "accept_unchanged": True,
     }
 
 
@@ -80,13 +81,30 @@ def test_state_query_rejects_invalid_source_wait_hint():
             {"after_source_seq": -1},
             {"after_source_seq": 1, "wait_timeout_ms": 0},
             {"after_source_seq": 1, "wait_timeout_ms": 5001},
-            {"wait_timeout_ms": 10}):
+            {"wait_timeout_ms": 10},
+            {"accept_unchanged": True},
+            {"after_source_seq": 1, "wait_timeout_ms": 10,
+             "accept_unchanged": "yes"}):
         try:
             _run(query(**kwargs))
         except ValueError:
             pass
         else:
             raise AssertionError("invalid source wait hint accepted: {!r}".format(kwargs))
+
+
+def test_v4_contract_declares_conditional_stability_response():
+    path = os.path.join(
+        _REPO_ROOT, "contracts", "freeciv-proxy", "v4", "contract.json")
+    contract = json.load(open(path, encoding="utf-8"))
+
+    assert contract["extends"] == "../v3/contract.json"
+    assert contract["websocket_state_query"]["optional_fields"][
+        "accept_unchanged"]["requires"] == [
+            "after_source_seq", "wait_timeout_ms"]
+    assert contract["websocket_state_unchanged"]["type"] == "state_unchanged"
+    assert contract["atomicity"]["packet_mutation"] == (
+        "serialized by the CivCom state-projection lock")
 
 
 # --- advancement (correct envelope) ----------------------------------------
