@@ -279,6 +279,14 @@ Two exact-behavior repeats reduced clean-successor preflight from 311/315 ms to
 191/210 ms, a 35.9% mean reduction; see
 [the single-probe recycle smoke](evidence/single-probe-server-recycle-smoke.md).
 
+PID discovery and listener verification still required separate Docker
+executions. A single container-side snapshot now identifies the exact
+`freeciv-web --port` process and reads both TCP listener tables, while the host
+retains all distinct-PID, listener, timeout, and failed-predecessor gates. Two
+exact-behavior repeats reduced clean-successor preflight by another 35.1% and
+kill/recycle preflight by 12.8%; see
+[the unified recycle inspection smoke](evidence/unified-server-inspection-smoke.md).
+
 Engine JSONL persistence formerly issued an fsync for each of 758--941 records
 per smoke game. The engine writer now retains atomic immediate appends but
 fsyncs at completed-turn checkpoints and `run_completed`; per-event durability

@@ -2544,53 +2544,72 @@ def _terminate_proxy(game_id, token, required=False):
 def _recycle_server(port, previous_clean_pid=None):
     container = os.environ.get("FREECIV_SERVER_CONTAINER", "fciv-net")
 
-    def find_pid():
-        output = subprocess.check_output(
-            ["docker", "exec", container, "ps", "-eo", "pid,args"], text=True)
-        for line in output.splitlines():
-            if "freeciv-web" not in line or "--port {}".format(port) not in line:
-                continue
-            match = re.match(
-                r"\s*(\d+)\s+.*freeciv-web .*--port {}(?:\s|$)".format(port), line)
-            if match is not None:
-                return match.group(1)
-        return None
-
-    def port_is_listening():
-        # Inspect the listener table instead of opening a Freeciv connection,
-        # which could allocate a transient client slot and mutate game state.
+    def inspect_server():
+        # Capture process identity and listener readiness in one container
+        # execution. Opening a Freeciv connection would allocate a transient
+        # client slot and mutate game state.
         probe = (
-            "import sys;"
-            "p='%04X'%int(sys.argv[1]);"
-            "r=open('/proc/net/tcp').read().splitlines()[1:]"
-            "+open('/proc/net/tcp6').read().splitlines()[1:];"
-            "sys.exit(0 if any("
-            "len(x.split())>3 and x.split()[1].rsplit(':',1)[-1]==p "
-            "and x.split()[3]=='0A' for x in r) else 1)"
+            "import json,os,sys\n"
+            "port=str(int(sys.argv[1]))\n"
+            "pid=None\n"
+            "names=sorted((n for n in os.listdir('/proc') if n.isdigit()),key=int)\n"
+            "for name in names:\n"
+            " try:\n"
+            "  raw=open('/proc/'+name+'/cmdline','rb').read().split(b'\\0')\n"
+            "  args=[v.decode('utf-8','replace') for v in raw if v]\n"
+            " except (IOError,OSError):\n"
+            "  continue\n"
+            " if not args or os.path.basename(args[0])!='freeciv-web':\n"
+            "  continue\n"
+            " if any(args[i]=='--port' and args[i+1]==port "
+            "for i in range(len(args)-1)):\n"
+            "  pid=name\n"
+            "  break\n"
+            "p='%04X'%int(port)\n"
+            "rows=open('/proc/net/tcp').read().splitlines()[1:]"
+            "+open('/proc/net/tcp6').read().splitlines()[1:]\n"
+            "listening=any(len(r.split())>3 "
+            "and r.split()[1].rsplit(':',1)[-1]==p "
+            "and r.split()[3]=='0A' for r in rows)\n"
+            "print(json.dumps({'pid':pid,'listening':bool(pid and listening)},"
+            "sort_keys=True))\n"
         )
-        result = subprocess.run(
+        output = subprocess.check_output(
             ["docker", "exec", container, "python3", "-c", probe, str(port)],
-            check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return result.returncode == 0
+            text=True)
+        try:
+            snapshot = json.loads(output)
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError(
+                "invalid civserver inspection response: {}".format(exc))
+        if not isinstance(snapshot, dict):
+            raise RuntimeError("invalid civserver inspection response")
+        pid = snapshot.get("pid")
+        if ((pid is not None
+                and (not isinstance(pid, str) or not pid.isdigit()))
+                or not isinstance(snapshot.get("listening"), bool)):
+            raise RuntimeError("invalid civserver inspection response")
+        return snapshot
 
-    old_pid = find_pid()
+    old_snapshot = inspect_server()
+    old_pid = old_snapshot["pid"]
     deadline = time.monotonic() + 20
     if previous_clean_pid is not None and old_pid != previous_clean_pid:
         # A successfully completed game exits its civserver with status zero.
         # Publite2 then supplies a new process. That successor is already the
         # required clean isolation boundary, so do not kill it and trigger the
         # process manager's failure backoff.
-        current_pid = old_pid
+        current = old_snapshot
         while time.monotonic() < deadline:
-            if (current_pid is not None
-                    and current_pid != previous_clean_pid
-                    and port_is_listening()):
+            if (current["pid"] is not None
+                    and current["pid"] != previous_clean_pid
+                    and current["listening"]):
                 return {
                     "method": "clean-successor-listener",
-                    "pid": current_pid,
+                    "pid": current["pid"],
                 }
             time.sleep(0.1)
-            current_pid = find_pid()
+            current = inspect_server()
         raise RuntimeError(
             "clean civserver successor on port {} did not become ready".format(port))
     if old_pid is not None:
@@ -2598,12 +2617,12 @@ def _recycle_server(port, previous_clean_pid=None):
                        stdout=subprocess.DEVNULL)
     while time.monotonic() < deadline:
         time.sleep(0.1)
-        current_pid = find_pid()
-        if (current_pid is not None and current_pid != old_pid
-                and port_is_listening()):
+        current = inspect_server()
+        if (current["pid"] is not None and current["pid"] != old_pid
+                and current["listening"]):
             return {
                 "method": "kill-then-listener",
-                "pid": current_pid,
+                "pid": current["pid"],
             }
     raise RuntimeError("civserver port {} did not recycle".format(port))
 

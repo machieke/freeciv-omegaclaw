@@ -51,7 +51,8 @@ enclosing measurement.
 
 Server recycle readiness requires both a fresh dedicated-server PID and an
 observed `LISTEN` socket for that port inside the container. The harness polls
-those facts at 100 ms; it does not use a fixed post-spawn sleep or open a
+both facts in one container-side snapshot at 100 ms; it does not use a fixed
+post-spawn sleep or open a
 protocol connection that could allocate a transient player slot. Publite2
 restarts a cleanly exited game after 100 ms, while crashes and launch failures
 retain the five-second backoff. After a successful arm, the next arm may accept

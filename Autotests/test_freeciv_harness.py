@@ -1252,8 +1252,8 @@ def test_engine_live_workers_accept_explicit_noncontiguous_server_ports():
 def test_server_recycle_waits_for_fresh_listening_pid_without_fixed_tail(
         monkeypatch):
     process_rows = iter((
-        " 41 /home/docker/freeciv/bin/freeciv-web --port 6002\n",
-        " 42 /home/docker/freeciv/bin/freeciv-web --port 6002\n",
+        '{"listening":true,"pid":"41"}\n',
+        '{"listening":true,"pid":"42"}\n',
     ))
     commands = []
     sleeps = []
@@ -1275,9 +1275,7 @@ def test_server_recycle_waits_for_fresh_listening_pid_without_fixed_tail(
 
     assert sleeps == [0.1]
     assert commands[0] == ["docker", "exec", "fciv-net", "kill", "41"]
-    assert commands[1][:5] == [
-        "docker", "exec", "fciv-net", "python3", "-c"]
-    assert commands[1][-1] == "6002"
+    assert len(commands) == 1
 
 
 def test_server_recycle_reuses_fresh_successor_of_clean_game(monkeypatch):
@@ -1287,7 +1285,7 @@ def test_server_recycle_reuses_fresh_successor_of_clean_game(monkeypatch):
 
     def check_output(*_args, **_kwargs):
         process_queries.append(True)
-        return " 42 /home/docker/freeciv/bin/freeciv-web --port 6002\n"
+        return '{"listening":true,"pid":"42"}\n'
 
     monkeypatch.setattr(engine_live.subprocess, "check_output", check_output)
 
@@ -1305,9 +1303,38 @@ def test_server_recycle_reuses_fresh_successor_of_clean_game(monkeypatch):
 
     assert sleeps == []
     assert len(process_queries) == 1
-    assert len(commands) == 1
-    assert commands[0][:5] == [
-        "docker", "exec", "fciv-net", "python3", "-c"]
+    assert commands == []
+
+
+def test_server_recycle_rechecks_clean_successor_until_listening(monkeypatch):
+    snapshots = iter((
+        '{"listening":false,"pid":"42"}\n',
+        '{"listening":true,"pid":"42"}\n',
+    ))
+    sleeps = []
+
+    monkeypatch.setattr(
+        engine_live.subprocess, "check_output",
+        lambda *_args, **_kwargs: next(snapshots))
+    monkeypatch.setattr(
+        engine_live.subprocess, "run",
+        lambda *_args, **_kwargs: pytest.fail("successor must not be killed"))
+    monkeypatch.setattr(
+        engine_live.time, "sleep", lambda seconds: sleeps.append(seconds))
+
+    assert engine_live._recycle_server(
+        6002, previous_clean_pid="41") == {
+            "method": "clean-successor-listener", "pid": "42"}
+    assert sleeps == [0.1]
+
+
+def test_server_recycle_rejects_invalid_combined_inspection(monkeypatch):
+    monkeypatch.setattr(
+        engine_live.subprocess, "check_output",
+        lambda *_args, **_kwargs: '{"pid":"42"}\n')
+
+    with pytest.raises(RuntimeError, match="invalid civserver inspection"):
+        engine_live._recycle_server(6002, previous_clean_pid="41")
 
 
 def test_engine_live_clears_stale_proxy_game_before_server_recycle(monkeypatch):

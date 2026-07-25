@@ -85,7 +85,9 @@ interrupted attempt. Retries therefore cannot resume an older session or inherit
 "already configured" marker for a newly recycled server.
 The preflight status separates proxy-clear and server-recycle latency. A clean
 successor reuses its initial distinct-PID result for the listening check; it does
-not repeat the same container process query.
+not repeat the same container process query. Process identity and listener state
+are captured by one container-side inspection, so a successful poll needs one
+Docker execution while preserving both checks.
 
 Before any fresh/retried backend call, `status.json` is atomically replaced with a
 `running` record tied to the new manifest identity. If the controller is killed,
