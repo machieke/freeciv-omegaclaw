@@ -121,9 +121,11 @@ def test_pressure_concentrates_and_bounds_irrelevant_route_expansion():
     assert first.to_dict() == second.to_dict()
     assert first.truth_unchanged
     assert first.relevant_route_selected
+    assert first.equal_decision_quality
     assert len(first.selected_root_routes) == 32
     assert first.pressure_concentration >= 0.90
     assert first.expansion_reduction >= 0.70
+    assert first.instantiation_reduction_factor >= 5.0
     assert first.pressure_expansions < first.exhaustive_expansions
     with open(os.path.join(
             REPO, "docs", "freeciv", "evidence",

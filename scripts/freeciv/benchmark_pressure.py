@@ -23,7 +23,7 @@ from freeciv_agent.events.schema import canonical_json_bytes  # noqa: E402
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--irrelevant-branches", type=int, default=128)
+    parser.add_argument("--irrelevant-branches", type=int, default=256)
     parser.add_argument("--branch-depth", type=int, default=4)
     parser.add_argument("--max-routes", type=int, default=32)
     parser.add_argument("--output")
@@ -36,7 +36,12 @@ def main():
             stream.write(encoded)
     else:
         sys.stdout.buffer.write(encoded)
+    return 0 if (
+        result.instantiation_reduction_factor >= 5.0
+        and result.equal_decision_quality
+        and result.truth_unchanged
+    ) else 1
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

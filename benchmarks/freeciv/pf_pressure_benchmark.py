@@ -21,12 +21,14 @@ class PressureConcentrationResult:
     branch_depth: int
     exhaustive_expansions: int
     pressure_expansions: int
+    instantiation_reduction_factor: float
     expansion_reduction: float
     relevant_pressure_mass: float
     irrelevant_pressure_mass: float
     pressure_concentration: float
     selected_root_routes: tuple
     relevant_route_selected: bool
+    equal_decision_quality: bool
     truth_unchanged: bool
     graph_hash: str
     result_hash: str
@@ -38,7 +40,10 @@ class PressureConcentrationResult:
             "config": dict(self.config),
             "exhaustive_expansions": int(self.exhaustive_expansions),
             "expansion_reduction": float(self.expansion_reduction),
+            "equal_decision_quality": bool(self.equal_decision_quality),
             "graph_hash": self.graph_hash,
+            "instantiation_reduction_factor": float(
+                self.instantiation_reduction_factor),
             "irrelevant_branches": int(self.irrelevant_branches),
             "irrelevant_pressure_mass": float(
                 self.irrelevant_pressure_mass),
@@ -121,7 +126,7 @@ def _exhaustive_expansions(graph, target_atom_id, max_hops):
 
 
 def run_pressure_concentration_benchmark(
-        irrelevant_branches=128, branch_depth=4, max_routes=32):
+        irrelevant_branches=256, branch_depth=4, max_routes=32):
     if int(irrelevant_branches) < int(max_routes):
         raise ValueError(
             "irrelevant branches must be at least the pressure route beam")
@@ -154,9 +159,11 @@ def run_pressure_concentration_benchmark(
     return PressureConcentrationResult(
         int(irrelevant_branches), int(branch_depth), exhaustive,
         pressure_expansions,
+        float(exhaustive) / pressure_expansions,
         1.0 - float(pressure_expansions) / exhaustive,
         relevant_mass, irrelevant_mass, concentration,
         selected_root_routes,
+        "route-relevant-root" in selected_root_routes,
         "route-relevant-root" in selected_root_routes,
         before == after, graph.artifact_hash, result.artifact_hash,
         config.to_dict())
