@@ -1,0 +1,44 @@
+{
+  "acceptance": {
+    "higher_validated_proposals_per_token": true,
+    "no_low_pressure_calls": true,
+    "quarantine_escapes_zero": true,
+    "token_budget_respected": true
+  },
+  "artifact_hash": "d481fcbc4ca2907b471ac5773d9d4b762c949846c37746f284cd903c848ca95b",
+  "benchmark": "pf-pln-phase-7-llm-gateway",
+  "configuration": {
+    "cases": 100,
+    "high_pressure_cases": 40,
+    "model": "qwen3-coder-next:latest",
+    "random_seed": null,
+    "structured_fixture": true
+  },
+  "implementation": {
+    "benchmark_sha256": "03414e09d0ad1968c81f8f0812174156be540b28081f38436b8803a72f934524",
+    "gateway_sha256": "2da20d2b84441c301faea13e312c7a5acc6125c6e766266e03bb126c76077877",
+    "python_version": "3.8.10"
+  },
+  "pressure_gated": {
+    "calls": 40,
+    "high_pressure_calls": 40,
+    "low_pressure_calls": 0,
+    "quarantine_escapes": 0,
+    "quarantined_proposals": 8,
+    "tokens": 25838,
+    "validated_proposal_rate_per_token": 0.0012384859509249942,
+    "validated_proposals": 32
+  },
+  "rate_improvement": {
+    "absolute": 0.0004794271837962339,
+    "relative": 0.6316074651370279
+  },
+  "schema_version": "1.0",
+  "unconditional": {
+    "calls": 100,
+    "quarantined_proposals": 62,
+    "tokens": 50062,
+    "validated_proposal_rate_per_token": 0.0007590587671287603,
+    "validated_proposals": 38
+  }
+}

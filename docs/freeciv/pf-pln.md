@@ -46,8 +46,16 @@ The distinctions are enforced in code:
   observation-selection policy records;
 - `lifecycle.py`: bounded clone posteriors, Bayes updates,
   variance-matched visible truth, pressure projection, and split/merge gates;
+- `induction.py`: scoped pattern mining, contextual generalization,
+  structure-checked analogy, expansion gating, held-out replay, and the
+  quarantined rule lifecycle;
 - `adapters.py`: lossless proof-DAG conversion and opt-in grounded impact
   ranking.
+
+`src/freeciv_agent/llm/gateway.py` retains the existing constrained proposer,
+claim verifier, quarantine, and goal grader while making model invocation a
+typed `expand` operation subject to expected value, validation cost, and hard
+token reservations.
 
 The existing uncertain `BeliefStore` now fuses unique provenance
 contributions in evidence-weight space. Its repeated-path behavior remains
@@ -520,6 +528,21 @@ calibration without raising contradiction rate. `InductionLedger` persists
 that lifecycle atomically and exposes only promoted rules. No mining,
 similarity, or replay API writes to truth or the executable pressure graph.
 
+### LLM gateway
+
+`GatewayRequest` is a typed high-pressure graph-gap document rather than a
+free-form environment prompt. `PressureLLMGateway` applies the canonical
+expansion-pressure, useful-proposal probability, expected-relief, and total
+cost quotient before reserving tokens. `PressureGatedTurnLoop` makes no model
+call when that admission fails.
+
+Admitted output is parsed by the existing strict JSON schema and wrapped as a
+low-confidence `GatewayProposalEnvelope`. The envelope is always
+`quarantined`, records model/prompt/context/token provenance and a
+`ValidationPlan`, and can reach planning only through the existing claim
+router and goal grader. Failed, oversized, or malformed calls consume their
+bounded reservation and cannot escape as proposals.
+
 ## Verification
 
 The PF-specific suite is:
@@ -555,9 +578,9 @@ changing pressure defaults.
 
 The implementation is a production-connected PF-PLN vertical slice, not a
 claim that all research phases are empirically complete. In particular,
-pressure-triggered LLM expansion, differentiable truth execution, and a new
-paired engine-backed impact claim still require dedicated experiments before
-they can be enabled or claimed. Persistent clone
+differentiable truth execution and a new paired engine-backed impact claim
+still require dedicated experiments before they can be enabled or claimed.
+Persistent clone
 split/merge is available behind explicit lifecycle gates but is not enabled by
 default in gameplay profiles. See the [phase map](pf-pln-phase-map.md) for the
 exact implemented, partial, and pending acceptance work.
