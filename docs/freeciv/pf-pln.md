@@ -627,3 +627,6 @@ All canonical PF-PLN phases 0-9 now have checked implementation and acceptance
 evidence. “Complete” here means the declared semantic/operator gates pass; it
 does not turn null engine score evidence into a positive claim or silently
 enable clone splitting and learned differentiable parameters in live profiles.
+The [runtime activation matrix](pf-pln-runtime.md) records the stricter live
+boundary: phases 0, 1, 4, and 9 have engine adapters, while phases 2, 3, and
+5-8 remain component-only until an explicit adapter is implemented and tested.

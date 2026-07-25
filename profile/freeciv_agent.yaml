@@ -6,6 +6,41 @@ defaults:
   ruleset: civ2civ3
   turn_limit: 200
 
+pf_pln_runtime:
+  schema_version: "1.0"
+  adapter: grounded-impact-planner/1.2
+  components:
+    executable_semantics:
+      phase: 0
+      support: engine-live
+    goal_regression_planner:
+      phase: 1
+      support: engine-live
+    provenance_contradiction:
+      phase: 2
+      support: component-only
+    observation_simulation_pressure:
+      phase: 3
+      support: component-only
+    conductance_learning:
+      phase: 4
+      support: engine-live
+    lifecycle_clones:
+      phase: 5
+      support: component-only
+    induction_analogy:
+      phase: 6
+      support: component-only
+    llm_gateway:
+      phase: 7
+      support: component-only
+    differentiable_execution:
+      phase: 8
+      support: component-only
+    multi_goal_field:
+      phase: 9
+      support: engine-live
+
 beliefs:
   schema_version: "1.0"
   actionable_threshold: 0.50

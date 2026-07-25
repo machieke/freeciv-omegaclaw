@@ -8,7 +8,12 @@ from statistics import NormalDist
 
 import yaml
 
-from freeciv_agent.config import CONDITION_ORDER, condition, belief_config
+from freeciv_agent.config import (
+    CONDITION_ORDER,
+    belief_config,
+    condition,
+    pf_pln_runtime_config,
+)
 from freeciv_agent.events.schema import structural_hash
 from freeciv_agent.paths import repo_path
 
@@ -461,6 +466,7 @@ def load(path=None):
     _validate_impact_policy(value.get("impact_policy"))
     _validate_paired_impact(value)
     value["beliefs"] = belief_config()
+    value["pf_pln_runtime"] = pf_pln_runtime_config()
     value["capabilities"] = {
         name: condition(name)["capabilities"] for name in CONDITION_ORDER}
     value["configuration_hash"] = structural_hash(value)

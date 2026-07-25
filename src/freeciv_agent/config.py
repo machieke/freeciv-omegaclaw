@@ -10,6 +10,10 @@ import os
 import yaml
 
 from .paths import repo_path
+from .pf_runtime import (
+    PFRuntimeConfigurationError,
+    validate_declaration as validate_pf_runtime_declaration,
+)
 
 
 DEFAULT_CONFIG_PATH = repo_path("profile", "freeciv_agent.yaml")
@@ -107,6 +111,10 @@ def validate_config(data):
         raise FreecivConfigError("defaults.condition must name a known condition")
     if defaults.get("events_schema_version") != "1.0":
         raise FreecivConfigError("defaults.events_schema_version must be '1.0'")
+    try:
+        validate_pf_runtime_declaration(data.get("pf_pln_runtime"))
+    except PFRuntimeConfigurationError as exc:
+        raise FreecivConfigError(str(exc))
     beliefs = data.get("beliefs")
     if not isinstance(beliefs, dict) or beliefs.get("schema_version") != "1.0":
         raise FreecivConfigError("beliefs.schema_version must be '1.0'")
@@ -166,6 +174,11 @@ def enabled(condition_id, capability, path=None):
 def belief_config(path=None):
     """Return the complete declared confidence configuration."""
     return copy.deepcopy(load_config(path)["beliefs"])
+
+
+def pf_pln_runtime_config(path=None):
+    """Return the checked PF-PLN engine adapter support declaration."""
+    return copy.deepcopy(load_config(path)["pf_pln_runtime"])
 
 
 def _selftest():

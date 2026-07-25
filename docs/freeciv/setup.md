@@ -78,7 +78,7 @@ Configuration ownership is deliberate:
 
 | Setting | Source |
 |---|---|
-| capabilities, belief confidence/decay, sweeps | `profile/freeciv_agent.yaml` |
+| capabilities, belief confidence/decay, sweeps, PF-PLN runtime support | `profile/freeciv_agent.yaml` |
 | ruleset, seeds, opponent, statistics, model budget | `profile/freeciv_harness.yaml` |
 | provider endpoint/model mapping | `profile/llm_providers.yaml` |
 | proxy endpoints, token, container, source discovery | environment variables above |
@@ -287,6 +287,11 @@ the pinned proxy patch, event validity and volume, invalid-plan exclusion, and c
 cognitive action ancestry. It also embeds the PF-PLN audit, so a missing phase,
 drifted benchmark/evidence fingerprint, incomplete phase-map row, or stale
 generated event type fails the complete release.
+
+For each game, inspect `manifest.json` → `pf_pln_runtime` for the activation
+hash and per-phase reasons. The event stream repeats the same boundary as ten
+turn-0 `pf_pln_phase_enabled` metric declarations. See
+`docs/freeciv/pf-pln-runtime.md` for the current engine/component matrix.
 
 Failure recovery and operational checks are in `docs/freeciv/operations.md`. Protocol and
 DTO details are in `docs/freeciv/integration-contract.md` and `docs/freeciv/state-bridge.md`.

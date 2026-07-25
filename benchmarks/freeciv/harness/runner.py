@@ -14,6 +14,7 @@ import threading
 from freeciv_agent.events.schema import structural_hash
 from freeciv_agent.events.validator import validate_file
 from freeciv_agent.paths import REPO_ROOT
+from freeciv_agent.pf_runtime import build_runtime_activation
 
 from .config import CapabilityContext, load
 from .representative import run_game as representative_game
@@ -206,6 +207,12 @@ class HarnessRunner(object):
             "model": self.config["model"]["name"], "model_config": self.config["model"],
             "opponent": (self.config["induction"] if job["track"] == "induction"
                          else self.config["opponent"]),
+            "pf_pln_runtime": build_runtime_activation(
+                self.config["pf_pln_runtime"],
+                self.backend,
+                self.config["capabilities"][job["condition"]],
+                impact_policy,
+            ),
             "rulebase": self.config["rulebase"],
             "ruleset": self.config["ruleset"], "seed": job["seed"],
             "sequence": job["sequence"], "track": job["track"],

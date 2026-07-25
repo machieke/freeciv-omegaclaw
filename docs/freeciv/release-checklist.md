@@ -93,8 +93,9 @@ waived, hidden, or relabeled as an infrastructure pass.
 
 `C-PF-RELEASE` replays the default deterministic benchmark for every canonical
 phase, verifies the checked evidence fingerprint, checks each self-hash where
-present, confirms phases 0-9 are complete in the phase map, and rejects stale
-generated event types. `C-RELEASE` embeds the same audit as the
+present, confirms phases 0-9 are complete in the phase map, rejects stale
+generated event types, and enforces the [runtime activation
+boundary](pf-pln-runtime.md). `C-RELEASE` embeds the same audit as the
 `pf-pln-phase-readiness` invariant.
 
 | Phase | Result | Evidence and recorded result |
@@ -109,6 +110,7 @@ generated event types. `C-RELEASE` embeds the same audit as the
 | PF 7 LLM gateway | PASS | [Phase 7](evidence/pf-llm-gateway-phase-7.md): validated proposals per token improve 63.16%, with zero low-pressure calls and quarantine escapes |
 | PF 8 differentiable execution | PASS | [Phase 8](evidence/pf-differentiable-phase-8.md): 1,444 smooth comparisons match finite differences within 4.97e-11 and discrete boundaries remain non-gradient |
 | PF 9 multi-goal field | PASS | [Phase 9](evidence/pf-multi-goal-phase-9.md): joint scheduling wins 64/64 conflicting scenarios and retains per-goal explanations |
+| PF runtime activation | PASS | [Runtime matrix](pf-pln-runtime.md): engine-live treatment enables exactly phases 0, 1, 4, and 9; pressure-off, representative, and every component-only phase remain disabled |
 
 ## Implementation-plan phase gates
 

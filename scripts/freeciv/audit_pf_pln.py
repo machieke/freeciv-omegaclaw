@@ -17,6 +17,14 @@ if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
 from freeciv_agent.events.schema import structural_hash  # noqa: E402
+from freeciv_agent.config import (  # noqa: E402
+    condition,
+    pf_pln_runtime_config,
+)
+from freeciv_agent.pf_runtime import (  # noqa: E402
+    build_runtime_activation,
+    enabled_phases,
+)
 
 
 PHASES = (
@@ -246,6 +254,44 @@ def run(phase_map, evidence_root, workers=4):
                "stderr": generated.stderr.strip(),
                "stdout": generated.stdout.strip(),
            })
+
+    declaration = pf_pln_runtime_config()
+    capabilities = condition("e_full_loop")["capabilities"]
+    treatment_policy = {
+        "pressure_enabled": True,
+        "pressure_learning_enabled": True,
+    }
+    baseline_policy = {
+        "pressure_enabled": False,
+        "pressure_learning_enabled": False,
+    }
+    live = build_runtime_activation(
+        declaration, "engine-live", capabilities, treatment_policy)
+    baseline = build_runtime_activation(
+        declaration, "engine-live", capabilities, baseline_policy)
+    representative = build_runtime_activation(
+        declaration, "representative", capabilities, treatment_policy)
+    component_only_disabled = all(
+        not row["enabled"]
+        for row in live["components"].values()
+        if row["support"] == "component-only")
+    activation_passed = (
+        enabled_phases(live) == (0, 1, 4, 9)
+        and enabled_phases(baseline) == ()
+        and enabled_phases(representative) == ()
+        and component_only_disabled
+    )
+    record("pf-pln-runtime-activation-boundary", activation_passed, {
+        "component_only_disabled": component_only_disabled,
+        "engine_live_baseline_enabled_phases": list(
+            enabled_phases(baseline)),
+        "engine_live_treatment_activation_hash": live[
+            "activation_hash"],
+        "engine_live_treatment_enabled_phases": list(
+            enabled_phases(live)),
+        "representative_enabled_phases": list(
+            enabled_phases(representative)),
+    })
 
     with concurrent.futures.ThreadPoolExecutor(
             max_workers=max(1, min(int(workers), len(PHASES)))) as executor:

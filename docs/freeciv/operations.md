@@ -17,6 +17,18 @@ The external commit must be `26ba7124249f34fd3050ef29bf191bd4d8808018`; the reve
 patch check proves the tracked contract patch is applied. A release manifest must also record
 its own configuration hash, ruleset hashes, seed, model configuration, and dirty-state flag.
 
+Inspect the effective PF-PLN activation for a completed game with:
+
+```bash
+python3 -c 'import json,sys; value=json.load(open(sys.argv[1])); print(json.dumps(value["pf_pln_runtime"], indent=2, sort_keys=True))' path/to/manifest.json
+```
+
+An engine-live pressure treatment currently enables exactly phases 0, 1, 4,
+and 9. Component-only phases must remain disabled even if their standalone
+acceptance benchmark passes. A mismatch between the manifest report and the
+backend, capability matrix, or effective impact policy fails before the live
+connection is opened.
+
 ## Port isolation
 
 Real-engine workers own one dedicated port each in 6001-6009. Never run a smoke, state

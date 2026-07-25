@@ -11,6 +11,10 @@ import random
 from freeciv_agent.events.model import atom
 from freeciv_agent.events.schema import structural_hash
 from freeciv_agent.events.writer import EventWriter
+from freeciv_agent.pf_runtime import (
+    emit_runtime_activation,
+    validate_runtime_activation,
+)
 
 
 CONDITION_INDEX = {
@@ -41,7 +45,20 @@ def run_game(run_dir, manifest, context):
     writer = EventWriter(events_path, manifest["game_id"], durable=False)
     root = writer.emit("run_started", 0, {
         "condition_id": condition, "manifest_identity": manifest["manifest_identity"]})
-    parent = root["event_id"]
+    pf_runtime = validate_runtime_activation(
+        manifest["pf_pln_runtime"],
+        "representative",
+        context.capabilities,
+        manifest["impact_policy"],
+    )
+    parent, _ = emit_runtime_activation(
+        writer,
+        0,
+        root["event_id"],
+        pf_runtime,
+        condition,
+        track,
+    )
     beliefs = manifest["beliefs"]
     for key, value in sorted(beliefs.items()):
         if key in ("decay", "schema_version", "sweep"):

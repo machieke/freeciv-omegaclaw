@@ -26,6 +26,10 @@ from freeciv_agent.events.writer import EventWriter
 from freeciv_agent.llm import ConstrainedProposer, GoalGrader, SymbolCatalog
 from freeciv_agent.monitoring import AtomRevision, LocalRepairer, PlanMonitor
 from freeciv_agent.oracle import CrispStateView, DependencyOracle, Goal
+from freeciv_agent.pf_runtime import (
+    emit_runtime_activation,
+    validate_runtime_activation,
+)
 from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     PlanStep, PlanningSnapshot, ProofScheduler,
                                     ResourceLedger, GroundedImpactPlanner,
@@ -983,6 +987,12 @@ def _cognitive_turn(manifest, context, store, player_id, raw, snapshot,
 async def _play(run_dir, manifest, context):
     import websockets
 
+    pf_runtime = validate_runtime_activation(
+        manifest["pf_pln_runtime"],
+        "engine-live",
+        context.capabilities,
+        manifest["impact_policy"],
+    )
     if _needs_cognitive_stack(context):
         ir, catalog, oracle, scheduler = _cognitive_stack()
     else:
@@ -994,7 +1004,15 @@ async def _play(run_dir, manifest, context):
     root = writer.emit("run_started", 0, {
         "condition_id": manifest["condition_id"],
         "manifest_identity": manifest["manifest_identity"]})
-    parent = _emit_belief_configuration(writer, root["event_id"], manifest)
+    parent, _ = emit_runtime_activation(
+        writer,
+        0,
+        root["event_id"],
+        pf_runtime,
+        manifest["condition_id"],
+        manifest["track"],
+    )
+    parent = _emit_belief_configuration(writer, parent, manifest)
     api_token = os.environ.get("FREECIV_API_TOKEN", "test-token-fc3d-001")
     ws_url = os.environ.get("FREECIV_PROXY_WS", "ws://127.0.0.1:8002/llmsocket/8002")
     # A behavioral game can be retried after an interrupted/expired proxy

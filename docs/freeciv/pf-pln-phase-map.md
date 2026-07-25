@@ -7,6 +7,11 @@ This map applies the PF-PLN phases to the retained PLN-FreeCiv base. The
 existing M0-M7 implementation remains authoritative for rules, truth, state,
 legal actions, execution, and evaluation.
 
+Implementation acceptance does not imply live activation. The checked
+[runtime activation matrix](pf-pln-runtime.md) currently enables phases 0, 1,
+4, and 9 for a pressure-enabled engine-live scheduler; all other phases are
+component-only.
+
 | PF-PLN phase | Repository realization | Status | Remaining acceptance work |
 |---|---|---|---|
 | 0 — executable semantics | Typed atoms, truth views, goals, pressure vectors, reverse rules, deterministic scheduler, proof adapter, and a standalone capital-defense replay with reproducible pressure and scheduling | Implemented; standalone end-to-end benchmark and truth-firewall acceptance passed | None |
