@@ -987,6 +987,13 @@ def test_engine_live_clears_stale_proxy_game_before_server_recycle(monkeypatch):
     assert result["model_readiness_method"] == "test_readiness"
     assert result["model_readiness_reused"] is True
     assert result["model_readiness_latency_ms"] >= 0
+    assert result["engine_preflight_latency_ms"] >= 0
+    assert result["engine_gameplay_latency_ms"] >= 0
+    assert result["engine_cleanup_latency_ms"] >= 0
+    assert result["engine_backend_latency_ms"] >= (
+        result["engine_preflight_latency_ms"]
+        + result["model_readiness_latency_ms"]
+        + result["engine_gameplay_latency_ms"])
     assert calls == [
         ("terminate", "release-retry", "test-token-fc3d-001", True),
         ("recycle", 6001),

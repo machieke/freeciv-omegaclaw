@@ -2290,6 +2290,7 @@ def _recycle_server(port):
 def run_game(run_dir, manifest, context):
     if not 6001 <= int(manifest["port"]) <= 6009:
         raise ValueError("engine-live requires a dedicated multiplayer port")
+    backend_started = time.perf_counter()
     token = os.environ.get("FREECIV_API_TOKEN", "test-token-fc3d-001")
     # An interrupted attempt can leave proxy-side game/session metadata after its
     # civserver has gone away. Clear that metadata before recycling the dedicated
@@ -2299,21 +2300,33 @@ def run_game(run_dir, manifest, context):
     # Every job starts from a newly spawned process so no autosave/session state can
     # leak across seeds or conditions.
     _recycle_server(int(manifest["port"]))
+    preflight_latency = (time.perf_counter() - backend_started) * 1000.0
+    result = None
+    cleanup_latency = None
     try:
         readiness_started = time.perf_counter()
         readiness = _ollama_readiness(manifest)
         readiness_latency = (time.perf_counter() - readiness_started) * 1000.0
+        gameplay_started = time.perf_counter()
         result = asyncio.run(_play(run_dir, manifest, context))
-        result.update({
-            "model_readiness_latency_ms": readiness_latency,
-            "model_readiness_method": readiness["readiness_method"],
-            "model_readiness_reused": readiness["readiness_reused"],
-        })
-        return result
+        gameplay_latency = (time.perf_counter() - gameplay_started) * 1000.0
     finally:
+        cleanup_started = time.perf_counter()
         _terminate_proxy(manifest["game_id"], token)
+        cleanup_latency = (time.perf_counter() - cleanup_started) * 1000.0
         # The next arm always performs a hard pre-arm recycle before connecting.
         # Recycling here as well duplicated the same isolation boundary and added
         # roughly six seconds to every arm. Proxy termination is sufficient to
         # close the completed session; the following pre-arm reset remains the
         # authoritative clean-process guarantee, including after a failed arm.
+    result.update({
+        "engine_backend_latency_ms": (
+            (time.perf_counter() - backend_started) * 1000.0),
+        "engine_cleanup_latency_ms": cleanup_latency,
+        "engine_gameplay_latency_ms": gameplay_latency,
+        "engine_preflight_latency_ms": preflight_latency,
+        "model_readiness_latency_ms": readiness_latency,
+        "model_readiness_method": readiness["readiness_method"],
+        "model_readiness_reused": readiness["readiness_reused"],
+    })
+    return result

@@ -40,7 +40,10 @@ Each completed engine arm also records `model_readiness_latency_ms`,
 `model_readiness_method`, and `model_readiness_reused` in `status.json`. These
 are operational timings, not gameplay outcomes, and make cold-chat versus
 resident-refresh cost directly measurable without contaminating the event-based
-score analysis.
+score analysis. The same status record splits total backend time into
+`engine_preflight_latency_ms` (proxy clear plus server recycle),
+`engine_gameplay_latency_ms`, and `engine_cleanup_latency_ms`, with
+`engine_backend_latency_ms` as the enclosing measurement.
 
 Accepted impact actions receive a bounded 0.5-second authoritative refresh
 window with two identical samples at 5 Hz. If the packet-backed effect is not
