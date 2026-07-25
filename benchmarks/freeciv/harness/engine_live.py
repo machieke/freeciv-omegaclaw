@@ -46,6 +46,7 @@ _MODEL_CACHE_LOCK = threading.RLock()
 _MODEL_READINESS_LOCK = threading.Lock()
 _MODEL_READINESS_VERIFIED = set()
 _STACK_LOCK = threading.RLock()
+_LAST_CLEAN_SERVER_PIDS = {}
 SELECTION_CALL_POLICY = "canonical-singleton-bypass-v1"
 READINESS_POLICY = "chat-once-resident-refresh-v1"
 
@@ -2314,7 +2315,7 @@ def _terminate_proxy(game_id, token, required=False):
                 "proxy hard termination failed for {}{}".format(game_id, detail))
 
 
-def _recycle_server(port):
+def _recycle_server(port, previous_clean_pid=None):
     container = os.environ.get("FREECIV_SERVER_CONTAINER", "fciv-net")
 
     def find_pid():
@@ -2347,16 +2348,36 @@ def _recycle_server(port):
         return result.returncode == 0
 
     old_pid = find_pid()
+    deadline = time.monotonic() + 20
+    if previous_clean_pid is not None and old_pid != previous_clean_pid:
+        # A successfully completed game exits its civserver with status zero.
+        # Publite2 then supplies a new process. That successor is already the
+        # required clean isolation boundary, so do not kill it and trigger the
+        # process manager's failure backoff.
+        while time.monotonic() < deadline:
+            current_pid = find_pid()
+            if (current_pid is not None
+                    and current_pid != previous_clean_pid
+                    and port_is_listening()):
+                return {
+                    "method": "clean-successor-listener",
+                    "pid": current_pid,
+                }
+            time.sleep(0.1)
+        raise RuntimeError(
+            "clean civserver successor on port {} did not become ready".format(port))
     if old_pid is not None:
         subprocess.run(["docker", "exec", container, "kill", old_pid], check=False,
                        stdout=subprocess.DEVNULL)
-    deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
         time.sleep(0.1)
         current_pid = find_pid()
         if (current_pid is not None and current_pid != old_pid
                 and port_is_listening()):
-            return
+            return {
+                "method": "kill-then-listener",
+                "pid": current_pid,
+            }
     raise RuntimeError("civserver port {} did not recycle".format(port))
 
 
@@ -2372,7 +2393,11 @@ def run_game(run_dir, manifest, context):
     _terminate_proxy(manifest["game_id"], token, required=True)
     # Every job starts from a newly spawned process so no autosave/session state can
     # leak across seeds or conditions.
-    _recycle_server(int(manifest["port"]))
+    port = int(manifest["port"])
+    previous_clean_pid = _LAST_CLEAN_SERVER_PIDS.pop(port, None)
+    server_recycle = _recycle_server(
+        port, previous_clean_pid=previous_clean_pid)
+    active_server_pid = server_recycle["pid"]
     preflight_latency = (time.perf_counter() - backend_started) * 1000.0
     result = None
     cleanup_latency = None
@@ -2398,8 +2423,14 @@ def run_game(run_dir, manifest, context):
         "engine_cleanup_latency_ms": cleanup_latency,
         "engine_gameplay_latency_ms": gameplay_latency,
         "engine_preflight_latency_ms": preflight_latency,
+        "engine_server_pid": active_server_pid,
+        "engine_server_recycle_method": server_recycle["method"],
         "model_readiness_latency_ms": readiness_latency,
         "model_readiness_method": readiness["readiness_method"],
         "model_readiness_reused": readiness["readiness_reused"],
     })
+    # Publish a reusable predecessor only after the game and its cleanup have
+    # both completed successfully. A failed arm leaves no successor shortcut,
+    # so its next attempt retains the unconditional kill/recycle path.
+    _LAST_CLEAN_SERVER_PIDS[port] = active_server_pid
     return result

@@ -262,6 +262,16 @@ mean gameplay time fell another 1.61%; see
 acceptance is stronger score-observation correctness; the latency result
 remains engineering evidence.
 
+Engine preflight was then dominated by Publite2's unconditional five-second
+restart backoff. Clean zero-exit games now restart after 100 ms, while error
+paths retain five seconds, and the harness accepts only the distinct listening
+successor of a recorded successful predecessor. Two independent two-seed
+engine runs preserved exact behavior while mean preflight fell from 5,253.8 ms
+to 423.9 ms and 398.9 ms; see
+[the clean-successor recycle smoke](evidence/clean-successor-recycle-smoke.md).
+This is operational throughput evidence and does not alter the gameplay score
+claim.
+
 Exploration destinations also gain conservative cross-source failure evidence.
 One failed move remains retryable because occupancy and tactical obstructions can
 be transient. After the same unit type remains stationary while targeting the

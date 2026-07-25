@@ -48,7 +48,13 @@ score analysis. The same status record splits total backend time into
 Server recycle readiness requires both a fresh dedicated-server PID and an
 observed `LISTEN` socket for that port inside the container. The harness polls
 those facts at 100 ms; it does not use a fixed post-spawn sleep or open a
-protocol connection that could allocate a transient player slot.
+protocol connection that could allocate a transient player slot. Publite2
+restarts a cleanly exited game after 100 ms, while crashes and launch failures
+retain the five-second backoff. After a successful arm, the next arm may accept
+the already-listening successor of the recorded prior PID. Failed arms never
+publish that shortcut and therefore retain unconditional kill/recycle
+isolation. `status.json` records `engine_server_pid` and
+`engine_server_recycle_method` for direct audit.
 
 Authoritative refreshes use the v3 proxy contract's bounded
 `after_source_seq`/`wait_timeout_ms` hint when a caller requires a newer packet
@@ -95,10 +101,12 @@ ps -eo pid,etimes,args | grep 'run_harness.py'
 docker exec "$FREECIV_SERVER_CONTAINER" ps -eo pid,args | grep 'freeciv-web.*--port 600'
 ```
 
-The harness hard-clears proxy-side game metadata, then recycles its server process before each
-job; it hard-clears and recycles again afterward. A killed server must be observed at a new PID
-before the next connection is allowed. Each retry uses a new operational `attempt_id`, so an
-old suspended authentication session cannot be resumed accidentally.
+The harness hard-clears proxy-side game metadata before every job. It either
+kills the current server and observes a new listening PID, or—only after a
+successfully completed predecessor—observes that predecessor's distinct clean
+successor. It hard-clears proxy metadata afterward but does not duplicate the
+same server boundary. Each retry uses a new operational `attempt_id`, so an old
+suspended authentication session cannot be resumed accidentally.
 
 Paired game IDs use deterministic short cohort/arm tokens and remain within the proxy's
 50-character termination-contract limit. Pre-run hard-termination errors fail the arm as

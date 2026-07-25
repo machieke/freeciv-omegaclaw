@@ -1077,7 +1077,8 @@ def test_server_recycle_waits_for_fresh_listening_pid_without_fixed_tail(
     monkeypatch.setattr(
         engine_live.time, "sleep", lambda seconds: sleeps.append(seconds))
 
-    engine_live._recycle_server(6002)
+    assert engine_live._recycle_server(6002) == {
+        "method": "kill-then-listener", "pid": "42"}
 
     assert sleeps == [0.1]
     assert commands[0] == ["docker", "exec", "fciv-net", "kill", "41"]
@@ -1086,14 +1087,42 @@ def test_server_recycle_waits_for_fresh_listening_pid_without_fixed_tail(
     assert commands[1][-1] == "6002"
 
 
+def test_server_recycle_reuses_fresh_successor_of_clean_game(monkeypatch):
+    commands = []
+    sleeps = []
+
+    monkeypatch.setattr(
+        engine_live.subprocess, "check_output",
+        lambda *_args, **_kwargs: (
+            " 42 /home/docker/freeciv/bin/freeciv-web --port 6002\n"))
+
+    def run(command, **_kwargs):
+        commands.append(command)
+        return type("Completed", (), {"returncode": 0})()
+
+    monkeypatch.setattr(engine_live.subprocess, "run", run)
+    monkeypatch.setattr(
+        engine_live.time, "sleep", lambda seconds: sleeps.append(seconds))
+
+    assert engine_live._recycle_server(
+        6002, previous_clean_pid="41") == {
+            "method": "clean-successor-listener", "pid": "42"}
+
+    assert sleeps == []
+    assert len(commands) == 1
+    assert commands[0][:5] == [
+        "docker", "exec", "fciv-net", "python3", "-c"]
+
+
 def test_engine_live_clears_stale_proxy_game_before_server_recycle(monkeypatch):
     calls = []
 
     def terminate(game_id, token, required=False):
         calls.append(("terminate", game_id, token, required))
 
-    def recycle(port):
-        calls.append(("recycle", port))
+    def recycle(port, previous_clean_pid=None):
+        calls.append(("recycle", port, previous_clean_pid))
+        return {"method": "kill-then-listener", "pid": "42"}
 
     async def play(run_dir, manifest, context):
         calls.append(("play", run_dir, manifest["game_id"], context))
@@ -1101,6 +1130,7 @@ def test_engine_live_clears_stale_proxy_game_before_server_recycle(monkeypatch):
 
     monkeypatch.setattr(engine_live, "_terminate_proxy", terminate)
     monkeypatch.setattr(engine_live, "_recycle_server", recycle)
+    monkeypatch.setattr(engine_live, "_LAST_CLEAN_SERVER_PIDS", {})
     monkeypatch.setattr(engine_live, "_ollama_readiness", lambda _manifest: {
         "readiness_method": "test_readiness",
         "readiness_reused": True,
@@ -1115,6 +1145,8 @@ def test_engine_live_clears_stale_proxy_game_before_server_recycle(monkeypatch):
     assert result["model_readiness_reused"] is True
     assert result["model_readiness_latency_ms"] >= 0
     assert result["engine_preflight_latency_ms"] >= 0
+    assert result["engine_server_pid"] == "42"
+    assert result["engine_server_recycle_method"] == "kill-then-listener"
     assert result["engine_gameplay_latency_ms"] >= 0
     assert result["engine_cleanup_latency_ms"] >= 0
     assert result["engine_backend_latency_ms"] >= (
@@ -1123,10 +1155,11 @@ def test_engine_live_clears_stale_proxy_game_before_server_recycle(monkeypatch):
         + result["engine_gameplay_latency_ms"])
     assert calls == [
         ("terminate", "release-retry", "test-token-fc3d-001", True),
-        ("recycle", 6001),
+        ("recycle", 6001, None),
         ("play", "/tmp/run", "release-retry", context),
         ("terminate", "release-retry", "test-token-fc3d-001", False),
     ]
+    assert engine_live._LAST_CLEAN_SERVER_PIDS == {6001: "42"}
 
 
 def test_accepted_unit_no_update_reaches_no_effect_accounting():

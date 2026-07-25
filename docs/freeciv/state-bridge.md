@@ -15,8 +15,13 @@ The patch is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. Its SHA-256 is
-`bbddbb12b18cb53079f624779cbceff810e94b88a13eac544316c8d453e4118f`.
+`c3c58d71996737a92ce27bd3616dcbfdfb831a6f327331622a4ce2d3e9340437`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
+
+The same tracked external patch retains Publite2's five-second restart backoff
+for nonzero exits and launch errors but reduces clean zero-exit restarts to
+100 ms. The harness never treats this timer as readiness: it still requires a
+distinct process ID and an exact listening socket before connection.
 
 Both state-response cache layers include the game ID, player, format, turn, and
 monotonic packet sequence in their identity. The outer handler cache and the
