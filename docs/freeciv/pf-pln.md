@@ -218,13 +218,16 @@ Run the host-only benchmark with:
 python3 scripts/freeciv/benchmark_pressure.py
 ```
 
-The checked 128-decoy, depth-four fixture compares the pressure beam with
+The checked 256-decoy, depth-four fixture compares the pressure beam with
 exhaustive backward premise expansion. The current deterministic artifact
 selects the relevant route, leaves truth unchanged, concentrates 99.54% of
 transported non-root pressure on the relevant chain, and expands 128 rather
-than 516 premise edges—a 75.19% reduction. These are synthetic control-path
-metrics, not gameplay or score claims. The checked result is stored in
-[`evidence/pf-pressure-concentration.json`](evidence/pf-pressure-concentration.json).
+than 1,028 premise edges—an 8.03x reduction, or 87.55% fewer
+instantiations. These are synthetic control-path metrics, not gameplay or
+score claims. The checked result is stored in
+[`evidence/pf-pressure-concentration.json`](evidence/pf-pressure-concentration.json),
+with the canonical gate record in
+[`evidence/pf-pressure-concentration-phase-1.md`](evidence/pf-pressure-concentration-phase-1.md).
 
 ## Offline pressure replay
 
@@ -569,7 +572,8 @@ The PF-specific suite is:
 python3 -m pytest -q \
   Autotests/test_freeciv_pressure.py \
   Autotests/test_freeciv_pressure_induction.py \
-  Autotests/test_freeciv_pressure_differentiable.py
+  Autotests/test_freeciv_pressure_differentiable.py \
+  Autotests/test_freeciv_pressure_multi_goal.py
 ```
 
 It covers:
@@ -588,6 +592,8 @@ It covers:
   overgeneralization demotion, and persistent quarantine;
 - smooth adjoint/finite-difference equivalence, dead-AND requirement and
   coalitional pressure, threshold exclusion, and bounded parameter learning;
+- independent-versus-multi-goal scheduling on conflicting shared-budget
+  scenarios with a retained explanation row for each goal;
 - existing proof-DAG adaptation;
 - multi-goal impact ranking;
 - schema-valid pressure and operation events.
@@ -603,4 +609,9 @@ requires a dedicated predeclared experiment before an improvement can be
 claimed. Persistent clone
 split/merge is available behind explicit lifecycle gates but is not enabled by
 default in gameplay profiles. See the [phase map](pf-pln-phase-map.md) for the
-exact implemented, partial, and pending acceptance work.
+exact implementation and acceptance evidence.
+
+All canonical PF-PLN phases 0-9 now have checked implementation and acceptance
+evidence. “Complete” here means the declared semantic/operator gates pass; it
+does not turn null engine score evidence into a positive claim or silently
+enable clone splitting and learned differentiable parameters in live profiles.
