@@ -44,9 +44,10 @@ expiry-aware resident reuse, and near-expiry keep-alive refresh without
 contaminating the event-based score analysis. A resident expiry is reusable only
 when the exact configured model row has at least the versioned 300-second safety
 floor remaining. The same status record splits total backend time into
-`engine_preflight_latency_ms` (proxy clear plus server recycle),
-`engine_gameplay_latency_ms`, and `engine_cleanup_latency_ms`, with
-`engine_backend_latency_ms` as the enclosing measurement.
+`engine_preflight_latency_ms`, its `engine_proxy_clear_latency_ms` and
+`engine_server_recycle_latency_ms` components, `engine_gameplay_latency_ms`,
+and `engine_cleanup_latency_ms`, with `engine_backend_latency_ms` as the
+enclosing measurement.
 
 Server recycle readiness requires both a fresh dedicated-server PID and an
 observed `LISTEN` socket for that port inside the container. The harness polls

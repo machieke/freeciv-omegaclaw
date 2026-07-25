@@ -83,6 +83,9 @@ proxy agent identity without including it in behavioral identity. Before the new
 civserver is started, the backend hard-terminates any proxy game metadata left by an
 interrupted attempt. Retries therefore cannot resume an older session or inherit an
 "already configured" marker for a newly recycled server.
+The preflight status separates proxy-clear and server-recycle latency. A clean
+successor reuses its initial distinct-PID result for the listening check; it does
+not repeat the same container process query.
 
 Before any fresh/retried backend call, `status.json` is atomically replaced with a
 `running` record tied to the new manifest identity. If the controller is killed,

@@ -1282,12 +1282,14 @@ def test_server_recycle_waits_for_fresh_listening_pid_without_fixed_tail(
 
 def test_server_recycle_reuses_fresh_successor_of_clean_game(monkeypatch):
     commands = []
+    process_queries = []
     sleeps = []
 
-    monkeypatch.setattr(
-        engine_live.subprocess, "check_output",
-        lambda *_args, **_kwargs: (
-            " 42 /home/docker/freeciv/bin/freeciv-web --port 6002\n"))
+    def check_output(*_args, **_kwargs):
+        process_queries.append(True)
+        return " 42 /home/docker/freeciv/bin/freeciv-web --port 6002\n"
+
+    monkeypatch.setattr(engine_live.subprocess, "check_output", check_output)
 
     def run(command, **_kwargs):
         commands.append(command)
@@ -1302,6 +1304,7 @@ def test_server_recycle_reuses_fresh_successor_of_clean_game(monkeypatch):
             "method": "clean-successor-listener", "pid": "42"}
 
     assert sleeps == []
+    assert len(process_queries) == 1
     assert len(commands) == 1
     assert commands[0][:5] == [
         "docker", "exec", "fciv-net", "python3", "-c"]
@@ -1339,6 +1342,11 @@ def test_engine_live_clears_stale_proxy_game_before_server_recycle(monkeypatch):
     assert result["model_readiness_latency_ms"] >= 0
     assert result["model_readiness_remaining_seconds"] is None
     assert result["engine_preflight_latency_ms"] >= 0
+    assert result["engine_proxy_clear_latency_ms"] >= 0
+    assert result["engine_server_recycle_latency_ms"] >= 0
+    assert result["engine_preflight_latency_ms"] >= (
+        result["engine_proxy_clear_latency_ms"]
+        + result["engine_server_recycle_latency_ms"])
     assert result["engine_server_pid"] == "42"
     assert result["engine_server_recycle_method"] == "kill-then-listener"
     assert result["engine_gameplay_latency_ms"] >= 0

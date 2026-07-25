@@ -2580,8 +2580,8 @@ def _recycle_server(port, previous_clean_pid=None):
         # Publite2 then supplies a new process. That successor is already the
         # required clean isolation boundary, so do not kill it and trigger the
         # process manager's failure backoff.
+        current_pid = old_pid
         while time.monotonic() < deadline:
-            current_pid = find_pid()
             if (current_pid is not None
                     and current_pid != previous_clean_pid
                     and port_is_listening()):
@@ -2590,6 +2590,7 @@ def _recycle_server(port, previous_clean_pid=None):
                     "pid": current_pid,
                 }
             time.sleep(0.1)
+            current_pid = find_pid()
         raise RuntimeError(
             "clean civserver successor on port {} did not become ready".format(port))
     if old_pid is not None:
@@ -2616,13 +2617,19 @@ def run_game(run_dir, manifest, context):
     # civserver has gone away. Clear that metadata before recycling the dedicated
     # server; otherwise the proxy may report the old configuration as already
     # applied and skip configuring the fresh process.
+    proxy_clear_started = time.perf_counter()
     _terminate_proxy(manifest["game_id"], token, required=True)
+    proxy_clear_latency = (
+        time.perf_counter() - proxy_clear_started) * 1000.0
     # Every job starts from a newly spawned process so no autosave/session state can
     # leak across seeds or conditions.
     port = int(manifest["port"])
     previous_clean_pid = _LAST_CLEAN_SERVER_PIDS.pop(port, None)
+    server_recycle_started = time.perf_counter()
     server_recycle = _recycle_server(
         port, previous_clean_pid=previous_clean_pid)
+    server_recycle_latency = (
+        time.perf_counter() - server_recycle_started) * 1000.0
     active_server_pid = server_recycle["pid"]
     preflight_latency = (time.perf_counter() - backend_started) * 1000.0
     result = None
@@ -2649,6 +2656,8 @@ def run_game(run_dir, manifest, context):
         "engine_cleanup_latency_ms": cleanup_latency,
         "engine_gameplay_latency_ms": gameplay_latency,
         "engine_preflight_latency_ms": preflight_latency,
+        "engine_proxy_clear_latency_ms": proxy_clear_latency,
+        "engine_server_recycle_latency_ms": server_recycle_latency,
         "engine_server_pid": active_server_pid,
         "engine_server_recycle_method": server_recycle["method"],
         "model_readiness_latency_ms": readiness_latency,

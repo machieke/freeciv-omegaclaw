@@ -272,6 +272,13 @@ to 423.9 ms and 398.9 ms; see
 This is operational throughput evidence and does not alter the gameplay score
 claim.
 
+The accepted clean-successor path still queried the container process table
+twice before checking its listening socket. Reusing the first distinct PID
+removes one Docker round trip without weakening either acceptance condition.
+Two exact-behavior repeats reduced clean-successor preflight from 311/315 ms to
+191/210 ms, a 35.9% mean reduction; see
+[the single-probe recycle smoke](evidence/single-probe-server-recycle-smoke.md).
+
 Engine JSONL persistence formerly issued an fsync for each of 758--941 records
 per smoke game. The engine writer now retains atomic immediate appends but
 fsyncs at completed-turn checkpoints and `run_completed`; per-event durability
