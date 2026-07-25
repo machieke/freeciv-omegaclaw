@@ -326,6 +326,47 @@ export type ConductanceUpdated = {
   "successes": number;
 };
 
+export type RuleProposed = {
+  "expansion": {
+    "accepted": true;
+    "expand_pressure": number;
+    "expected_value": number;
+    "operation": {
+      [key: string]: unknown;
+    };
+    "reason": null;
+    "validation_cost": number;
+  };
+  "ledger_hash": string;
+  "lifecycle": "quarantined";
+  "proposal": {
+    [key: string]: unknown;
+  };
+  "proposal_id": string;
+};
+
+export type RuleValidated = {
+  "ledger_hash": string;
+  "metrics": {
+    "activations": number;
+    "baseline_brier": number;
+    "baseline_calibration_error": number;
+    "baseline_contradiction_rate": number;
+    "baseline_log_loss": number;
+    "brier_improvement": number;
+    "calibration_improvement": number;
+    "candidate_brier": number;
+    "candidate_calibration_error": number;
+    "candidate_contradiction_rate": number;
+    "candidate_log_loss": number;
+    "samples": number;
+  };
+  "proposal_id": string;
+  "reason": string;
+  "validation_id": string;
+  "verdict": "promoted" | "demoted";
+};
+
 export type PlanCreated = {
   "plan": Plan;
 };
@@ -403,7 +444,7 @@ export type LoggingGap = {
   "missing": string;
 };
 
-export type KnownEventType = "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "observation" | "revision" | "belief_conflict" | "context_quarantine" | "llm_proposal" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
+export type KnownEventType = "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "observation" | "revision" | "belief_conflict" | "context_quarantine" | "llm_proposal" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "rule_proposed" | "rule_validated" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
 
 export interface EventEnvelope<T extends string = string, P extends object = Record<string, unknown>> {
   schema_version: typeof EVENT_SCHEMA_VERSION;
@@ -434,6 +475,8 @@ export interface KnownPayloadMap {
   "pressure_propagated": PressurePropagated;
   "operation_scored": OperationScored;
   "conductance_updated": ConductanceUpdated;
+  "rule_proposed": RuleProposed;
+  "rule_validated": RuleValidated;
   "plan_created": PlanCreated;
   "monitor_trigger": MonitorTrigger;
   "plan_invalidated": PlanInvalidated;

@@ -120,7 +120,7 @@ def generate(envelope, payloads):
         "observation", "revision", "belief_conflict", "context_quarantine",
         "llm_proposal", "verification", "quarantine",
         "pln_query", "pln_result", "pressure_propagated", "operation_scored",
-        "conductance_updated",
+        "conductance_updated", "rule_proposed", "rule_validated",
         "plan_created", "monitor_trigger",
         "plan_invalidated", "plan_step_executed", "action_sent", "action_result",
         "grounded_check", "metric_sample", "logging_gap")]

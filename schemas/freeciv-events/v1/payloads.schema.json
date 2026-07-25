@@ -417,6 +417,75 @@
         "state_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
       }
     },
+    "rule_proposed": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "proposal_id", "proposal", "lifecycle", "expansion", "ledger_hash"
+      ],
+      "properties": {
+        "proposal_id": {"type": "string", "minLength": 1},
+        "proposal": {"type": "object"},
+        "lifecycle": {"const": "quarantined"},
+        "expansion": {
+          "type": "object", "additionalProperties": false,
+          "required": [
+            "accepted", "reason", "expand_pressure", "expected_value",
+            "validation_cost", "operation"
+          ],
+          "properties": {
+            "accepted": {"const": true},
+            "reason": {"type": "null"},
+            "expand_pressure": {"type": "number", "minimum": 0},
+            "expected_value": {"type": "number", "minimum": 0},
+            "validation_cost": {"type": "number", "minimum": 0},
+            "operation": {"type": "object"}
+          }
+        },
+        "ledger_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
+    "rule_validated": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "validation_id", "proposal_id", "verdict", "reason", "metrics",
+        "ledger_hash"
+      ],
+      "properties": {
+        "validation_id": {"type": "string", "minLength": 1},
+        "proposal_id": {"type": "string", "minLength": 1},
+        "verdict": {"enum": ["promoted", "demoted"]},
+        "reason": {"type": "string", "minLength": 1},
+        "metrics": {
+          "type": "object", "additionalProperties": false,
+          "required": [
+            "samples", "activations", "baseline_brier", "candidate_brier",
+            "brier_improvement", "baseline_log_loss", "candidate_log_loss",
+            "baseline_calibration_error", "candidate_calibration_error",
+            "calibration_improvement", "baseline_contradiction_rate",
+            "candidate_contradiction_rate"
+          ],
+          "properties": {
+            "samples": {"type": "integer", "minimum": 0},
+            "activations": {"type": "integer", "minimum": 0},
+            "baseline_brier": {"type": "number", "minimum": 0},
+            "candidate_brier": {"type": "number", "minimum": 0},
+            "brier_improvement": {"type": "number"},
+            "baseline_log_loss": {"type": "number", "minimum": 0},
+            "candidate_log_loss": {"type": "number", "minimum": 0},
+            "baseline_calibration_error": {"type": "number", "minimum": 0},
+            "candidate_calibration_error": {"type": "number", "minimum": 0},
+            "calibration_improvement": {"type": "number"},
+            "baseline_contradiction_rate": {
+              "type": "number", "minimum": 0, "maximum": 1
+            },
+            "candidate_contradiction_rate": {
+              "type": "number", "minimum": 0, "maximum": 1
+            }
+          }
+        },
+        "ledger_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    },
     "plan_created": {
       "type": "object", "additionalProperties": false, "required": ["plan"],
       "properties": {"plan": {"$ref": "#/$defs/plan"}}
