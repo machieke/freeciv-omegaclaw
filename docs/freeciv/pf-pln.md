@@ -49,6 +49,9 @@ The distinctions are enforced in code:
 - `induction.py`: scoped pattern mining, contextual generalization,
   structure-checked analogy, expansion gating, held-out replay, and the
   quarantined rule lifecycle;
+- `differentiable.py`: pressure-free truth tensors, reverse-mode autodiff for
+  the smooth subset, rule-parameter calibration, finite-difference audits,
+  and separately typed requirement/counterfactual characterizations;
 - `adapters.py`: lossless proof-DAG conversion and opt-in grounded impact
   ranking.
 
@@ -543,6 +546,21 @@ low-confidence `GatewayProposalEnvelope`. The envelope is always
 router and goal grader. Failed, oversized, or malformed calls consume their
 bounded reservation and cannot escape as proposals.
 
+### Differentiable execution
+
+The differentiable subset is deliberately small. `TensorTruth` represents
+strength and confidence as reverse-mode scalar tensors, while
+`DifferentiableTruthRule` admits only smooth product-AND and
+probabilistic-OR truth functions. `adjoint_pressure` computes local goal
+leverage and `learn_rule_parameter` computes a separately typed calibration
+gradient with bounded, loss-nonincreasing updates.
+
+Thresholds, multiple missing prerequisites, lifecycle transitions, proof
+choice, and scheduler selection are not smoothed. They continue to use
+`requirement_pressure`, intervention or coalitional `counterfactual_pressure`,
+and the existing discrete scheduler. The Phase 8 benchmark documents the exact
+boundary rather than treating zero gradients as zero dependency.
+
 ## Verification
 
 The PF-specific suite is:
@@ -550,7 +568,8 @@ The PF-specific suite is:
 ```bash
 python3 -m pytest -q \
   Autotests/test_freeciv_pressure.py \
-  Autotests/test_freeciv_pressure_induction.py
+  Autotests/test_freeciv_pressure_induction.py \
+  Autotests/test_freeciv_pressure_differentiable.py
 ```
 
 It covers:
@@ -567,6 +586,8 @@ It covers:
 - confidence loss under maximally disagreeing clones;
 - contextual mining, expansion gating, analogy uncertainty, disjoint replay,
   overgeneralization demotion, and persistent quarantine;
+- smooth adjoint/finite-difference equivalence, dead-AND requirement and
+  coalitional pressure, threshold exclusion, and bounded parameter learning;
 - existing proof-DAG adaptation;
 - multi-goal impact ranking;
 - schema-valid pressure and operation events.
@@ -577,10 +598,9 @@ changing pressure defaults.
 ## Current scope
 
 The implementation is a production-connected PF-PLN vertical slice, not a
-claim that all research phases are empirically complete. In particular,
-differentiable truth execution and a new paired engine-backed impact claim
-still require dedicated experiments before they can be enabled or claimed.
-Persistent clone
+new gameplay score claim. A new paired engine-backed impact mechanism still
+requires a dedicated predeclared experiment before an improvement can be
+claimed. Persistent clone
 split/merge is available behind explicit lifecycle gates but is not enabled by
 default in gameplay profiles. See the [phase map](pf-pln-phase-map.md) for the
 exact implemented, partial, and pending acceptance work.

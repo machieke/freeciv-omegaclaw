@@ -1,0 +1,166 @@
+{
+  "acceptance": {
+    "dead_and_coalition_detected": true,
+    "dead_and_requirement_nonzero": true,
+    "learned_parameter_loss_reduced": true,
+    "smooth_adjoint_matches_finite_difference": true,
+    "threshold_counterfactual_detects_final_unit": true
+  },
+  "artifact_hash": "00e17230c8660f881935114b9d693fb8a3502fbf99557165b3fd539d500dc1f5",
+  "benchmark": "pf-pln-phase-8-differentiable-execution",
+  "characterization": {
+    "dead_product_and": {
+      "adjoint": {
+        "conclusion": 0.0,
+        "incoming": 1.0,
+        "premise_pressure": {
+          "left": 0.0,
+          "right": 0.0
+        },
+        "rule_id": "benchmark:dead-and",
+        "target": 1.0
+      },
+      "conclusion": "pure adjoint is insufficient when all required premises have zero local derivative",
+      "counterfactual": {
+        "baseline": 0.0,
+        "coalition_gain": 1.0,
+        "individual_gain": {
+          "left": 0.0,
+          "right": 0.0
+        }
+      },
+      "requirement_pressure": {
+        "left": 0.5,
+        "right": 0.5
+      }
+    },
+    "smooth_truth_functions": {
+      "comparisons": 1444,
+      "conclusion": "adjoint suffices for local leverage on smooth active truth paths",
+      "maximum_absolute_error": 4.9703241522536246e-11,
+      "rules": {
+        "probabilistic-or": {
+          "comparisons": 722,
+          "maximum_absolute_error": 4.9703241522536246e-11
+        },
+        "product-and": {
+          "comparisons": 722,
+          "maximum_absolute_error": 2.220446049250313e-11
+        }
+      }
+    },
+    "threshold": {
+      "conclusion": "thresholds are outside autodiff; requirement pressure tracks deficits and counterfactual pressure detects decisive boundary crossings",
+      "rows": [
+        {
+          "adjoint_available": false,
+          "baseline": 0.0,
+          "counterfactual_gain": 0.0,
+          "requirement": 5.0,
+          "threshold": 5.0,
+          "value": 0.0
+        },
+        {
+          "adjoint_available": false,
+          "baseline": 0.0,
+          "counterfactual_gain": 0.0,
+          "requirement": 4.0,
+          "threshold": 5.0,
+          "value": 1.0
+        },
+        {
+          "adjoint_available": false,
+          "baseline": 0.0,
+          "counterfactual_gain": 0.0,
+          "requirement": 3.0,
+          "threshold": 5.0,
+          "value": 2.0
+        },
+        {
+          "adjoint_available": false,
+          "baseline": 0.0,
+          "counterfactual_gain": 0.0,
+          "requirement": 2.0,
+          "threshold": 5.0,
+          "value": 3.0
+        },
+        {
+          "adjoint_available": false,
+          "baseline": 0.0,
+          "counterfactual_gain": 1.0,
+          "requirement": 1.0,
+          "threshold": 5.0,
+          "value": 4.0
+        },
+        {
+          "adjoint_available": false,
+          "baseline": 1.0,
+          "counterfactual_gain": 0.0,
+          "requirement": 0.0,
+          "threshold": 5.0,
+          "value": 5.0
+        },
+        {
+          "adjoint_available": false,
+          "baseline": 1.0,
+          "counterfactual_gain": 0.0,
+          "requirement": 0.0,
+          "threshold": 5.0,
+          "value": 6.0
+        },
+        {
+          "adjoint_available": false,
+          "baseline": 1.0,
+          "counterfactual_gain": 0.0,
+          "requirement": 0.0,
+          "threshold": 5.0,
+          "value": 7.0
+        },
+        {
+          "adjoint_available": false,
+          "baseline": 1.0,
+          "counterfactual_gain": 0.0,
+          "requirement": 0.0,
+          "threshold": 5.0,
+          "value": 8.0
+        },
+        {
+          "adjoint_available": false,
+          "baseline": 1.0,
+          "counterfactual_gain": 0.0,
+          "requirement": 0.0,
+          "threshold": 5.0,
+          "value": 9.0
+        },
+        {
+          "adjoint_available": false,
+          "baseline": 1.0,
+          "counterfactual_gain": 0.0,
+          "requirement": 0.0,
+          "threshold": 5.0,
+          "value": 10.0
+        }
+      ]
+    }
+  },
+  "configuration": {
+    "finite_difference_epsilon": 1e-06,
+    "grid_steps": 19,
+    "learning_steps": 20,
+    "random_seed": null
+  },
+  "implementation": {
+    "benchmark_sha256": "8d0de9015e156fa5ce5adb06e0ddae75464e902b2d25401f7007feba23d7fb04",
+    "differentiable_sha256": "53a4c53857ceadc8bc98ad2670e8ea58ddaa8cba65462b1e28d6c326d4d9cf49",
+    "python_version": "3.8.10"
+  },
+  "parameter_learning": {
+    "examples": 4,
+    "final_loss": 3.271456932359861e-05,
+    "final_value": 0.7917657898851977,
+    "initial_loss": 0.17370000000000002,
+    "initial_value": 0.2,
+    "updates": 20
+  },
+  "schema_version": "1.0"
+}
