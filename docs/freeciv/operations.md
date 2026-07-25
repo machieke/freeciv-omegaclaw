@@ -76,6 +76,15 @@ an extra 50 ms at every stable boundary. Do not reduce the interval below the
 proxy contract's 50 ms minimum guard without a new engine-backed acceptance
 cohort.
 
+Observer totals are turn-gated as well as population-gated. Initial and
+inter-turn global state must be at least as new as the corresponding
+authoritative player snapshot. Final scoring normally requires the observer's
+post-horizon turn; terminal player elimination instead accepts the absorbing
+terminal turn because no next begin-turn packet is expected. Inspect
+`final_global_settle_latency_ms` when diagnosing endgame latency. Never restore
+a fixed scoring sleep or accept a populated observer response without checking
+its authoritative `turn`.
+
 ## Port isolation
 
 Real-engine workers own one dedicated port each in 6001-6009. Never run a smoke, state

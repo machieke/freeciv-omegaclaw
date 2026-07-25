@@ -36,7 +36,7 @@ from freeciv.harness.engine_live import (  # noqa: E402
     _claim_eligible_manifest, _ollama_readiness, _plain_prompt_state,
     _plain_state_summary, _refresh_accepted_impact_action,
     _decision_state_fingerprint, _decision_state_ready, _global_state_ready,
-    _player_eliminated, _release_configuration_active, _state,
+    _global_state, _player_eliminated, _release_configuration_active, _state,
     _validate_compact_goal_proposal)
 from freeciv.harness import engine_live  # noqa: E402
 from freeciv_agent.events.schema import canonical_json_bytes, structural_hash  # noqa: E402
@@ -890,15 +890,61 @@ def test_missing_player_status_fails_closed_for_decisions():
 
 def test_global_state_readiness_requires_both_authoritative_scores():
     state = {
-        "units": {"1": {"id": 1}}, "techs": {"player0": []},
+        "turn": 12, "units": {"1": {"id": 1}}, "techs": {"player0": []},
         "players": {
             "0": {"id": 0, "score": 4},
             "1": {"id": 1, "score": 3},
         },
     }
     assert _global_state_ready(state, player_id=0)
+    assert _global_state_ready(state, player_id=0, minimum_turn=12)
+    assert not _global_state_ready(state, player_id=0, minimum_turn=13)
     state["players"]["1"].pop("score")
     assert not _global_state_ready(state, player_id=0)
+
+
+def test_global_state_polls_at_50ms_until_observer_reaches_required_turn(monkeypatch):
+    def response(turn):
+        return {
+            "type": "global_state_response",
+            "data": {
+                "turn": turn,
+                "units": {"1": {"id": 1}},
+                "techs": {"player0": []},
+                "players": {
+                    "0": {"id": 0, "score": 4},
+                    "1": {"id": 1, "score": 3},
+                },
+            },
+        }
+
+    responses = [response(11), response(12)]
+    sleeps = []
+
+    class Socket(object):
+        def __init__(self):
+            self.sent = []
+
+        async def send(self, message):
+            self.sent.append(json.loads(message))
+
+    async def recv_until(_ws, _types, timeout):
+        assert 0.05 <= timeout <= 0.5
+        return responses.pop(0)
+
+    async def record_sleep(seconds):
+        sleeps.append(seconds)
+
+    socket = Socket()
+    monkeypatch.setattr(engine_live.turncycle, "recv_until", recv_until)
+    monkeypatch.setattr(engine_live.asyncio, "sleep", record_sleep)
+
+    state = asyncio.run(_global_state(
+        socket, timeout=0.5, player_id=0, minimum_turn=12))
+
+    assert state["turn"] == 12
+    assert len(socket.sent) == 2
+    assert sleeps == [pytest.approx(0.05)]
 
 
 def test_state_poll_enforces_the_callers_deadline(monkeypatch):

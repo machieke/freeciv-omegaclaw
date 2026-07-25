@@ -38,6 +38,13 @@ samples at initial, inter-turn, and accepted-action boundaries are separated by
 50 ms and must match the complete decision fingerprint; any state,
 visible-enemy, or exact legal-action-digest change restarts the count.
 
+The observer-backed `global_state_response` carries its own authoritative
+`turn`. The harness rejects a populated but stale observer response until its
+turn reaches the associated player snapshot. After the final `end_turn`, score
+collection requires `final_turn + 1`; an exact terminal player-elimination
+packet uses `final_turn` because that state has no next begin-turn. This
+turn-bound gate replaces timing-based endgame settling.
+
 `PACKET_PLAYER_INFO.is_alive` is retained as
 `authoritative.player.is_alive` and typed as `AuthoritativeSnapshot.player_alive`.
 An exact false value suppresses stale cached own cities, units, and legal actions and

@@ -253,6 +253,15 @@ gameplay time fell 5.03%; see
 engineering latency evidence, not a score or population-wide performance
 claim.
 
+Final score collection formerly slept 250 ms and then accepted any populated
+observer response. It now polls at 50 ms and requires the observer's
+authoritative post-horizon turn. In a clean two-seed replay, the gate settled
+in 82.5 ms on average, exact canonical actions and outcomes were preserved, and
+mean gameplay time fell another 1.61%; see
+[the observer-turn smoke](evidence/final-global-turn-smoke.md). The primary
+acceptance is stronger score-observation correctness; the latency result
+remains engineering evidence.
+
 Exploration destinations also gain conservative cross-source failure evidence.
 One failed move remains retryable because occupancy and tactical obstructions can
 be transient. After the same unit type remains stationary while targeting the

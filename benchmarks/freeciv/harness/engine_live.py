@@ -552,9 +552,16 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
     raise TimeoutError("authoritative state did not reach turn {}".format(minimum_turn))
 
 
-def _global_state_ready(state, player_id=None):
+def _global_state_ready(state, player_id=None, minimum_turn=None):
     if not (state.get("units") and state.get("players") and state.get("techs")):
         return False
+    if minimum_turn is not None:
+        turn = state.get("turn")
+        if (isinstance(turn, bool) or not isinstance(turn, (int, float))
+                or not math.isfinite(float(turn))
+                or int(turn) != float(turn)
+                or int(turn) < int(minimum_turn)):
+            return False
     scored = []
     for row in state["players"].values():
         score = row.get("score") if isinstance(row, dict) else None
@@ -572,17 +579,24 @@ def _player_row(state, player_id):
                  if isinstance(row, dict) and row.get("id") == player_id), {})
 
 
-async def _global_state(ws, timeout=15.0, player_id=None):
+async def _global_state(ws, timeout=15.0, player_id=None, minimum_turn=None,
+                        poll_interval=0.05):
+    if not 0.05 <= float(poll_interval) <= 1.0:
+        raise ValueError("poll_interval must be in [0.05,1]")
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         await ws.send(json.dumps({"type": "global_state_query"}))
+        remaining = deadline - time.monotonic()
         response = await turncycle.recv_until(
-            ws, {"global_state_response", "error"}, timeout=10)
+            ws, {"global_state_response", "error"},
+            timeout=min(10.0, max(0.05, remaining)))
         if response and response.get("type") == "global_state_response":
             state = response.get("data", {})
-            if _global_state_ready(state, player_id=player_id):
+            if _global_state_ready(
+                    state, player_id=player_id, minimum_turn=minimum_turn):
                 return state
-        await asyncio.sleep(0.25)
+        await asyncio.sleep(min(float(poll_interval), max(
+            0.0, deadline - time.monotonic())))
     raise TimeoutError("observer global state was not populated")
 
 
@@ -1318,7 +1332,8 @@ async def _play(run_dir, manifest, context):
         state_event = writer.emit("state_snapshot", snapshot.turn, snapshot.event_payload(),
                                   caused_by=[parent])
         parent = state_event["event_id"]
-        global_state = await _global_state(ws, player_id=player_id)
+        global_state = await _global_state(
+            ws, player_id=player_id, minimum_turn=snapshot.turn)
         opponent_rows = sorted(
             (row for row in global_state["players"].values()
              if row.get("id") != player_id and row.get("score", -1) >= 0),
@@ -1475,7 +1490,8 @@ async def _play(run_dir, manifest, context):
                     "state_snapshot", snapshot.turn, snapshot.event_payload(),
                     caused_by=[parent])
                 parent = state_event["event_id"]
-                global_state = await _global_state(ws, player_id=player_id)
+                global_state = await _global_state(
+                    ws, player_id=player_id, minimum_turn=snapshot.turn)
                 if impact_planner is not None:
                     impact_planner.observe(snapshot)
                     capability_pruned_worker_moves.update(
@@ -1834,12 +1850,18 @@ async def _play(run_dir, manifest, context):
                 writer, snapshot.turn, parent, "turn_full_loop_latency_ms",
                 full_loop_latency, manifest, engine_turn=snapshot.turn)
 
-        # Allow endgame packets and observer totals to settle before audit.
-        await asyncio.sleep(0.25)
+        # Bind final scoring to the post-horizon observer revision rather than
+        # assuming a fixed sleep is long enough for endgame packets to settle.
+        final_global_started = time.perf_counter()
         try:
-            final_global = await _global_state(ws, timeout=5, player_id=player_id)
+            final_global = await _global_state(
+                ws, timeout=5, player_id=player_id,
+                minimum_turn=(
+                    final_turn if terminal_player_elimination else final_turn + 1))
         except TimeoutError:
             pass
+        final_global_settle_latency = (
+            time.perf_counter() - final_global_started) * 1000.0
 
     loop_latency = (time.perf_counter() - turn_started) * 1000.0 / max(1, turns_executed)
     model_latency = (sum(model_latencies) / len(model_latencies)
@@ -1901,6 +1923,7 @@ async def _play(run_dir, manifest, context):
         ("calibration_absolute_error", calibration_error),
         ("loop_latency_ms", loop_latency),
         ("model_latency_ms", model_latency),
+        ("final_global_settle_latency_ms", final_global_settle_latency),
         ("full_loop_under_30s_rate", full_loop_under_30),
         ("zombie_action_attempt_blocked", zombie_blocked),
         ("planned_engine_actions", planned_actions),
