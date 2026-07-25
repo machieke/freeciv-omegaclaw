@@ -214,8 +214,14 @@ The seed-104729 engine-backed deferred-confirmation probe recovered 28 of 40
 baseline timeouts and 25 of 34 treatment timeouts. Both arms then learned three
 exact founder-route successes and one settlement completion; the earlier
 timeout-as-failure accounting reported neither. Reducing confirmation polling
-from 10 Hz to 5 Hz also eliminated an observed proxy `E429` without changing
-the two-second confirmation deadline or the two-identical-snapshot stability gate.
+from 10 Hz to 5 Hz also eliminated an observed proxy `E429`. A later two-arm,
+60-turn engine trace observed 54 two-second timeouts, all recovered on the next
+authoritative turn with zero expirations. The current 0.5-second deadline still
+permits the required two identical samples at 5 Hz; effects that outlive it
+remain in the deferred ledger rather than being mislabeled as failures.
+The same-seed development replay preserved both scores and all audited action
+outcomes while reducing mean arm wall time by 45.5%; see
+[the non-claim engineering evidence](evidence/confirmation-timeout-500ms-smoke.md).
 
 Exploration destinations also gain conservative cross-source failure evidence.
 One failed move remains retryable because occupancy and tactical obstructions can

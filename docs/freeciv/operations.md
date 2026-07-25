@@ -42,6 +42,12 @@ are operational timings, not gameplay outcomes, and make cold-chat versus
 resident-refresh cost directly measurable without contaminating the event-based
 score analysis.
 
+Accepted impact actions receive a bounded 0.5-second authoritative refresh
+window with two identical samples at 5 Hz. If the packet-backed effect is not
+visible in that window, the action is deferred and reconciled against the next
+authoritative snapshot. Do not treat `decision_effect_confirmation_timeouts` as
+failures; use the recovered, expired, and pending counters to audit outcomes.
+
 ## Port isolation
 
 Real-engine workers own one dedicated port each in 6001-6009. Never run a smoke, state

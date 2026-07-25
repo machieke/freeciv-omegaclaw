@@ -63,7 +63,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert config["impact_policy"]["horizon_turn"] == 30
     assert config["impact_policy"]["production_minimum_remaining_turns"] == 8
     assert config["impact_policy"]["unit_build_score_divisor"] == 10
-    assert config["impact_policy"]["refresh_timeout_seconds"] == 2.0
+    assert config["impact_policy"]["refresh_timeout_seconds"] == 0.5
     assert config["impact_policy"]["production_strategy"] == "horizon_score"
     assert config["impact_policy"]["pressure_learning_enabled"] is True
     assert config["impact_policy"]["pressure_max_routes_per_conclusion"] == 32

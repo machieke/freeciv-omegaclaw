@@ -42,7 +42,7 @@ impact_policy:
   expansion_minimum_remaining_turns: 12
   foodbox_percent: 100
   unit_build_score_divisor: 10
-  refresh_timeout_seconds: 2.0
+  refresh_timeout_seconds: 0.5
   no_effect_retry_limit: 1
   max_no_effect_failovers_per_scope: 4
   preserve_city_defenders: true
