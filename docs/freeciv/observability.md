@@ -53,6 +53,13 @@ Set `ws://127.0.0.1:8765` and the matching game ID in the Live view. Reconnects
 resume after the last accepted `(game_id, turn, seq)`. Backfilled and new records go
 through the same validator, indexes, and fold as file replay.
 
+Engine traces use turn-level durability without changing live visibility. Every
+event is schema-validated and emitted as one atomic `O_APPEND` JSONL write;
+the completed turn is fsynced before the harness waits for its successor, and
+`run_completed` fsyncs the final metrics and completion record. The writer's
+default remains per-event fsync for callers that do not explicitly select turn
+mode.
+
 Compare live-fold and fresh replay state at every cursor with:
 
 ```bash

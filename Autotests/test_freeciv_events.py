@@ -125,6 +125,47 @@ def test_writer_resume_validates_and_continues_sequence():
         assert validate_file(path).valid
 
 
+def test_turn_sync_mode_fsyncs_boundaries_and_completion(monkeypatch):
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "events.jsonl")
+        syncs = []
+        monkeypatch.setattr(os, "fsync", lambda fd: syncs.append(fd))
+        writer = EventWriter(
+            path, "turn-sync", clock=synthetic.fixed_clock,
+            id_factory=synthetic.DeterministicIds(), durable=True,
+            sync_mode="turn")
+        root = writer.emit("run_started", 0, {
+            "manifest_identity": "x", "condition_id": "a"})
+        writer.emit("metric_sample", 0, {
+            "name": "same-turn", "value": 0, "unit": "ratio", "labels": {},
+        }, caused_by=[root["event_id"]])
+        assert syncs == []
+
+        writer.emit("metric_sample", 1, {
+            "name": "next-turn", "value": 1, "unit": "ratio", "labels": {},
+        })
+        assert len(syncs) == 1
+        writer.emit("metric_sample", 1, {
+            "name": "same-next-turn", "value": 2, "unit": "ratio", "labels": {},
+        })
+        assert len(syncs) == 1
+        writer.emit("run_completed", 1, {
+            "status": "completed", "summary": {}})
+        assert len(syncs) == 2
+        assert validate_file(path).valid
+
+
+def test_writer_rejects_unknown_sync_mode():
+    with tempfile.TemporaryDirectory() as directory:
+        try:
+            EventWriter(
+                os.path.join(directory, "events.jsonl"), "bad-sync",
+                sync_mode="batch")
+            assert False, "expected sync_mode validation"
+        except ValueError as exc:
+            assert "sync_mode" in str(exc)
+
+
 def test_persisted_tail_resumes_after_ui_and_emitter_restart_without_duplicates():
     with tempfile.TemporaryDirectory() as directory:
         path = os.path.join(directory, "events.jsonl")

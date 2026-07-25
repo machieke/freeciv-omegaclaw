@@ -86,6 +86,13 @@ Before any fresh/retried backend call, `status.json` is atomically replaced with
 `running` record tied to the new manifest identity. If the controller is killed,
 operators therefore see an incomplete attempt rather than the prior completion.
 
+Engine event streams use `EventWriter`'s explicit `turn` sync mode. Individual
+records remain validated atomic appends and are immediately available to the
+persisted-first tail. The harness forces a sync after each
+`turn_full_loop_latency_ms` record; transition detection provides a second
+boundary guard, and `run_completed` forces the final sync. Representative and
+other writers retain their existing durability mode.
+
 An infrastructure failure remains in `status.json` and the aggregate. Retry it with
 the same command; never relabel it as a loss or completion. Game losses are completed
 outcomes. The report retains losses, null effects, negative deltas, and exclusions at

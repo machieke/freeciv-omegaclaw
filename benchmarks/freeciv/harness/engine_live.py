@@ -1162,7 +1162,8 @@ async def _play(run_dir, manifest, context):
     events_path = manifest["events_path"]
     if not os.path.isabs(events_path):
         events_path = os.path.join(run_dir, events_path)
-    writer = EventWriter(events_path, manifest["game_id"], durable=True)
+    writer = EventWriter(
+        events_path, manifest["game_id"], durable=True, sync_mode="turn")
     root = writer.emit("run_started", 0, {
         "condition_id": manifest["condition_id"],
         "manifest_identity": manifest["manifest_identity"]})
@@ -1850,6 +1851,7 @@ async def _play(run_dir, manifest, context):
             parent = _metric(
                 writer, snapshot.turn, parent, "turn_full_loop_latency_ms",
                 full_loop_latency, manifest, engine_turn=snapshot.turn)
+            writer.sync()
 
         # Bind final scoring to the post-horizon observer revision rather than
         # assuming a fixed sleep is long enough for endgame packets to settle.

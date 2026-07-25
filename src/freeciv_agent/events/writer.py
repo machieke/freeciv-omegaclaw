@@ -26,17 +26,22 @@ class EventWriter(object):
     """
 
     def __init__(self, path, game_id, schema_version=SCHEMA_VERSION,
-                 clock=None, id_factory=None, resume=False, durable=True):
+                 clock=None, id_factory=None, resume=False, durable=True,
+                 sync_mode="event"):
         self.path = os.path.abspath(path)
         self.game_id = str(game_id)
         self.schema_version = schema_version
         self.clock = clock or utc_now
         self.id_factory = id_factory or (lambda: uuid.uuid4().hex)
         self.durable = bool(durable)
+        if sync_mode not in ("event", "turn"):
+            raise ValueError("sync_mode must be event or turn")
+        self.sync_mode = sync_mode
         self._lock = threading.Lock()
         self._next_seq = {}
         self._emitted_ids = set()
         self._last_turn = None
+        self._dirty = False
         parent = os.path.dirname(self.path)
         if parent:
             os.makedirs(parent, exist_ok=True)
@@ -88,17 +93,45 @@ class EventWriter(object):
             }
             assert_event_schema(event)
             line = canonical_json_bytes(event) + b"\n"
+            # In turn mode, make the completed prior turn durable before any
+            # record from its successor becomes visible. Each individual line
+            # remains one atomic O_APPEND write.
+            if (self.durable and self.sync_mode == "turn"
+                    and self._dirty and self._last_turn is not None
+                    and turn > self._last_turn):
+                self._sync_path()
+                self._dirty = False
             flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND
             fd = os.open(self.path, flags, 0o600)
             try:
                 written = os.write(fd, line)
                 if written != len(line):
                     raise EventWriteError("short event-log write: {} of {}".format(written, len(line)))
-                if self.durable:
+                self._dirty = True
+                if (self.durable and (
+                        self.sync_mode == "event"
+                        or event["type"] == "run_completed")):
                     os.fsync(fd)
+                    self._dirty = False
             finally:
                 os.close(fd)
             self._next_seq[turn] = seq + 1
             self._emitted_ids.add(eid)
             self._last_turn = turn
             return event
+
+    def _sync_path(self):
+        fd = os.open(self.path, os.O_WRONLY | os.O_APPEND)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+
+    def sync(self):
+        """Force all records emitted so far to stable storage."""
+        if not self.durable or not self._dirty or not os.path.exists(self.path):
+            return
+        with self._lock:
+            if self._dirty:
+                self._sync_path()
+                self._dirty = False

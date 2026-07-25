@@ -272,6 +272,13 @@ to 423.9 ms and 398.9 ms; see
 This is operational throughput evidence and does not alter the gameplay score
 claim.
 
+Engine JSONL persistence formerly issued an fsync for each of 758--941 records
+per smoke game. The engine writer now retains atomic immediate appends but
+fsyncs at completed-turn checkpoints and `run_completed`; per-event durability
+remains the default for other callers. Two independent exact-behavior cohorts
+reduced mean gameplay time by 8.42% and 9.25%; see
+[the turn-durability smoke](evidence/turn-durable-event-writer-smoke.md).
+
 Exploration destinations also gain conservative cross-source failure evidence.
 One failed move remains retryable because occupancy and tactical obstructions can
 be transient. After the same unit type remains stationary while targeting the

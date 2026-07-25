@@ -82,6 +82,11 @@ an extra 50 ms at every stable boundary. Do not reduce the interval below the
 proxy contract's 50 ms minimum guard without a new engine-backed acceptance
 cohort.
 
+The separate 500 ms post-`game_ready` quiet period remains intentional. Removing
+it moved the first snapshot earlier but increased complete gameplay time in two
+independent exact-behavior cohorts, so the candidate was rejected; see
+[the adaptive-startup evidence](evidence/adaptive-initial-readiness-rejected.md).
+
 Observer totals are turn-gated as well as population-gated. Initial and
 inter-turn global state must be at least as new as the corresponding
 authoritative player snapshot. Final scoring normally requires the observer's
@@ -152,8 +157,10 @@ be versioned in `profile/freeciv_harness.yaml` and therefore change the manifest
 
 ## Event-tail disconnect or restart
 
-The UI reconnects from the last `(game_id, turn, seq)`. The server reads only persisted JSONL,
-so an acknowledged event remains replayable after restart. On a visible gap, duplicate,
+The UI reconnects from the last `(game_id, turn, seq)`. The server reads only
+complete JSONL records. Engine events are atomically appended immediately,
+completed turns are fsynced before waiting for the next turn, and
+`run_completed` forces final durability. On a visible gap, duplicate,
 out-of-order line, incompatible schema, or truncated JSON:
 
 1. stop applying live events;
