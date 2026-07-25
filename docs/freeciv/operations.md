@@ -82,7 +82,11 @@ Turn-boundary diagnostics are emitted as
 `turn_boundary_state_settled_response_rate`,
 `turn_boundary_state_settled_marker_rate`, and
 `turn_checkpoint_sync_latency_ms`. Action refreshes separately emit
+`action_refresh_state_latency_ms`,
+`action_refresh_state_query_latency_ms`,
 `action_refresh_state_query_count`,
+`action_refresh_state_parse_latency_ms`,
+`action_refresh_state_settle_wait_ms`,
 `action_refresh_state_settled_response_rate`, and
 `action_refresh_state_settled_marker_rate`. Use these components before adjusting
 stability or engine timeouts.

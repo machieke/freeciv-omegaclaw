@@ -2132,6 +2132,11 @@ async def _play(run_dir, manifest, context):
         ("turn_boundary_state_settled_marker_rate",
          transition_state_diagnostics.get("settled_markers", 0.0)
          / transition_calls),
+        ("action_refresh_state_latency_ms",
+         action_state_diagnostics.get("latency_ms", 0.0) / action_state_calls),
+        ("action_refresh_state_query_latency_ms",
+         action_state_diagnostics.get("query_latency_ms", 0.0)
+         / action_state_calls),
         ("action_refresh_state_query_count",
          action_state_diagnostics.get("queries", 0.0) / action_state_calls),
         ("action_refresh_state_settled_response_rate",
@@ -2139,6 +2144,12 @@ async def _play(run_dir, manifest, context):
          / action_state_calls),
         ("action_refresh_state_settled_marker_rate",
          action_state_diagnostics.get("settled_markers", 0.0)
+         / action_state_calls),
+        ("action_refresh_state_parse_latency_ms",
+         action_state_diagnostics.get("parse_latency_ms", 0.0)
+         / action_state_calls),
+        ("action_refresh_state_settle_wait_ms",
+         action_state_diagnostics.get("settle_wait_requested_ms", 0.0)
          / action_state_calls),
         ("turn_boundary_state_parse_latency_ms",
          transition_state_diagnostics.get("parse_latency_ms", 0.0)
