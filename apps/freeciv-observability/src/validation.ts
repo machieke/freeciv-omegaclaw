@@ -8,8 +8,10 @@ import type { TraceEvent } from "./events";
 
 const knownTypes: KnownEventType[] = [
   "run_started", "run_completed", "ruleset_compiled", "state_snapshot",
-  "observation", "revision", "llm_proposal", "verification", "quarantine",
-  "pln_query", "pln_result", "plan_created", "monitor_trigger",
+  "observation", "revision", "belief_conflict", "context_quarantine",
+  "llm_proposal", "verification", "quarantine",
+  "pln_query", "pln_result", "pressure_propagated", "operation_scored",
+  "conductance_updated", "plan_created", "monitor_trigger",
   "plan_invalidated", "plan_step_executed", "action_sent", "action_result",
   "grounded_check", "metric_sample", "logging_gap",
 ];

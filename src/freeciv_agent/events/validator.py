@@ -143,6 +143,8 @@ def validate_stream(lines, require_action_roots=True):
     sent_actions = {}
     result_actions = []
     invalid_plans = set()
+    belief_conflicts = {}
+    quarantine_operations = set()
 
     for line_number, raw in enumerate(lines, 1):
         raw_bytes = raw.encode("utf-8") if isinstance(raw, str) else raw
@@ -208,6 +210,55 @@ def validate_stream(lines, require_action_roots=True):
                 report.errors.append(Diagnostic(
                     "E_DUPLICATE_PROVENANCE", "same provenance applied twice to atom", line_number, eid))
             revisions.add(key)
+        elif event["type"] == "belief_conflict":
+            payload = event["payload"]
+            conflict_id = payload["conflict_id"]
+            left = set(payload["left_provenance_ids"])
+            right = set(payload["right_provenance_ids"])
+            if left & right:
+                report.errors.append(Diagnostic(
+                    "E_CONFLICT_OVERLAP",
+                    "conflict lineages are not provenance-distinct",
+                    line_number, eid))
+            if conflict_id in belief_conflicts:
+                report.errors.append(Diagnostic(
+                    "E_DUPLICATE_CONFLICT_ID",
+                    "duplicate belief conflict ID", line_number, eid))
+            belief_conflicts[conflict_id] = {
+                "event_id": eid,
+                "provenance_ids": left | right,
+                "target_atom_id": payload["target_atom_id"],
+            }
+        elif event["type"] == "context_quarantine":
+            payload = event["payload"]
+            operation_id = payload["operation_id"]
+            conflict = belief_conflicts.get(payload["conflict_id"])
+            if operation_id in quarantine_operations:
+                report.errors.append(Diagnostic(
+                    "E_DUPLICATE_CONTEXT_QUARANTINE",
+                    "duplicate context quarantine operation ID",
+                    line_number, eid))
+            quarantine_operations.add(operation_id)
+            if conflict is None:
+                report.errors.append(Diagnostic(
+                    "E_CONTEXT_QUARANTINE_CONFLICT",
+                    "context quarantine has no preceding belief conflict",
+                    line_number, eid))
+            else:
+                excluded = set(payload["excluded_provenance_ids"])
+                retained = set(payload["retained_provenance_ids"])
+                if (excluded & retained
+                        or excluded | retained != conflict["provenance_ids"]
+                        or payload["target_atom_id"] != conflict["target_atom_id"]):
+                    report.errors.append(Diagnostic(
+                        "E_CONTEXT_QUARANTINE_PARTITION",
+                        "context quarantine does not partition its conflict",
+                        line_number, eid))
+                if conflict["event_id"] not in event["caused_by"]:
+                    report.errors.append(Diagnostic(
+                        "E_CONTEXT_QUARANTINE_CAUSAL",
+                        "context quarantine must directly cite its conflict event",
+                        line_number, eid))
         elif event["type"] == "metric_sample":
             payload = event["payload"]
             if payload["name"] == "confabulation_write_through" and payload["value"] != 0:

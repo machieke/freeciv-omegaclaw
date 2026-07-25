@@ -170,6 +170,31 @@ export type Revision = {
   "target_atom": Atom;
 };
 
+export type BeliefConflict = {
+  "conflict_atom": Atom;
+  "conflict_id": string;
+  "context_ids": Array<string>;
+  "detected_turn": number;
+  "left_provenance_ids": Array<string>;
+  "left_tv": TruthValue;
+  "overlap": number;
+  "right_provenance_ids": Array<string>;
+  "right_tv": TruthValue;
+  "severity": number;
+  "target_atom_id": string;
+};
+
+export type ContextQuarantine = {
+  "conflict_id": string;
+  "context_id": string;
+  "excluded_provenance_ids": Array<string>;
+  "operation_id": string;
+  "reason": string;
+  "retained_provenance_ids": Array<string>;
+  "target_atom_id": string;
+  "turn": number;
+};
+
 export type LlmProposal = {
   "claims": Array<{
     "atom": Atom | null;
@@ -360,7 +385,7 @@ export type LoggingGap = {
   "missing": string;
 };
 
-export type KnownEventType = "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "observation" | "revision" | "llm_proposal" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
+export type KnownEventType = "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "observation" | "revision" | "belief_conflict" | "context_quarantine" | "llm_proposal" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
 
 export interface EventEnvelope<T extends string = string, P extends object = Record<string, unknown>> {
   schema_version: typeof EVENT_SCHEMA_VERSION;
@@ -381,6 +406,8 @@ export interface KnownPayloadMap {
   "state_snapshot": StateSnapshot;
   "observation": Observation;
   "revision": Revision;
+  "belief_conflict": BeliefConflict;
+  "context_quarantine": ContextQuarantine;
   "llm_proposal": LlmProposal;
   "verification": Verification;
   "quarantine": Quarantine;

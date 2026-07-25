@@ -45,6 +45,17 @@ class Evidence:
         if not self.provenance_id or self.turn < 0:
             raise ValueError("evidence requires provenance and nonnegative turn")
 
+    @property
+    def context_id(self):
+        """Stable context identity used to contain mutually incompatible evidence."""
+        return "context-" + structural_hash({
+            "game_id": self.game_id,
+            "location": self.location,
+            "model_version": self.model_version,
+            "opponent_id": self.opponent_id,
+            "ruleset": self.ruleset,
+        })[:20]
+
     def to_dict(self):
         return {
             "confidence": self.confidence, "game_id": self.game_id,
@@ -134,4 +145,106 @@ class UncertainBelief:
             "atom": self.atom(), "history": [row.to_dict() for row in self.history],
             "last_revised_turn": self.last_revised_turn,
             "support_paths": [list(row) for row in self.support_paths],
+        }
+
+
+@dataclass(frozen=True)
+class ConflictAtom:
+    """A materialized disagreement between independent evidence lineages."""
+
+    conflict_id: str
+    key: BeliefKey
+    left_provenance_ids: tuple
+    right_provenance_ids: tuple
+    left_tv: dict
+    right_tv: dict
+    overlap: float
+    severity: float
+    context_ids: tuple
+    detected_turn: int
+
+    def __post_init__(self):
+        left = set(self.left_provenance_ids)
+        right = set(self.right_provenance_ids)
+        if not self.conflict_id or not left or not right:
+            raise ValueError("conflict requires an ID and two nonempty lineages")
+        if left & right:
+            raise ValueError("conflict lineages must be provenance-distinct")
+        _bounded(self.overlap, "overlap")
+        _bounded(self.severity, "severity")
+        if int(self.detected_turn) < 0:
+            raise ValueError("conflict turn must be nonnegative")
+
+    @property
+    def provenance_ids(self):
+        return tuple(sorted(set(self.left_provenance_ids) | set(self.right_provenance_ids)))
+
+    def atom(self):
+        confidence = min(
+            float(self.left_tv["confidence"]), float(self.right_tv["confidence"]))
+        return {
+            "args": [
+                self.key.atom_id,
+                list(self.left_provenance_ids),
+                list(self.right_provenance_ids),
+            ],
+            "atom_id": self.conflict_id,
+            "crisp": False,
+            "predicate": "Conflict",
+            "provenance_ids": list(self.provenance_ids),
+            "tv": {"confidence": confidence, "strength": float(self.severity)},
+        }
+
+    def to_dict(self):
+        return {
+            "conflict_atom": self.atom(),
+            "conflict_id": self.conflict_id,
+            "context_ids": list(self.context_ids),
+            "detected_turn": int(self.detected_turn),
+            "left_provenance_ids": list(self.left_provenance_ids),
+            "left_tv": dict(self.left_tv),
+            "overlap": float(self.overlap),
+            "right_provenance_ids": list(self.right_provenance_ids),
+            "right_tv": dict(self.right_tv),
+            "severity": float(self.severity),
+            "target_atom_id": self.key.atom_id,
+        }
+
+
+@dataclass(frozen=True)
+class ContextQuarantineOperation:
+    """Exclude one conflicting lineage only while reasoning in one context."""
+
+    operation_id: str
+    conflict_id: str
+    target_atom_id: str
+    context_id: str
+    excluded_provenance_ids: tuple
+    retained_provenance_ids: tuple
+    reason: str
+    turn: int
+
+    def __post_init__(self):
+        excluded = set(self.excluded_provenance_ids)
+        retained = set(self.retained_provenance_ids)
+        if not all((
+                self.operation_id, self.conflict_id, self.target_atom_id,
+                self.context_id, self.reason)):
+            raise ValueError("context quarantine fields must be nonempty")
+        if not excluded or not retained or excluded & retained:
+            raise ValueError(
+                "context quarantine requires disjoint excluded and retained lineages")
+        if int(self.turn) < 0:
+            raise ValueError("context quarantine turn must be nonnegative")
+
+    def to_dict(self):
+        return {
+            "conflict_id": self.conflict_id,
+            "context_id": self.context_id,
+            "excluded_provenance_ids": list(self.excluded_provenance_ids),
+            "operation_id": self.operation_id,
+            "reason": self.reason,
+            "retained_provenance_ids": list(self.retained_provenance_ids),
+            "target_atom_id": self.target_atom_id,
+            "turn": int(self.turn),
         }

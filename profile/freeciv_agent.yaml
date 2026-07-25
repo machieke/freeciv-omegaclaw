@@ -18,6 +18,8 @@ beliefs:
   induction_default_probability: 0.50
   induction_decision_threshold: 0.50
   induction_minimum_samples: 1
+  conflict_min_confidence: 0.70
+  conflict_severity_threshold: 0.25
   decay:
     default:
       formula: linear-window

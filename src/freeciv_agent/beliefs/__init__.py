@@ -3,11 +3,25 @@
 
 from .inference import UncertainInference
 from .memory import OpponentMemory, post_game_calibration
-from .model import BeliefKey, Contribution, Evidence, Revision, UncertainBelief
-from .store import BeliefStore, EvidenceConflict
+from .model import (
+    BeliefKey,
+    ConflictAtom,
+    ContextQuarantineOperation,
+    Contribution,
+    Evidence,
+    Revision,
+    UncertainBelief,
+)
+from .store import (
+    BeliefStore,
+    ContextQuarantineConflict,
+    EvidenceConflict,
+    SelfSupportingProof,
+)
 
 __all__ = (
-    "BeliefKey", "BeliefStore", "Contribution", "Evidence", "EvidenceConflict",
-    "OpponentMemory", "Revision", "UncertainBelief", "UncertainInference",
-    "post_game_calibration",
+    "BeliefKey", "BeliefStore", "ConflictAtom", "ContextQuarantineConflict",
+    "ContextQuarantineOperation", "Contribution", "Evidence",
+    "EvidenceConflict", "OpponentMemory", "Revision", "SelfSupportingProof",
+    "UncertainBelief", "UncertainInference", "post_game_calibration",
 )

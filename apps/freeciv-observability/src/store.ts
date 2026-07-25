@@ -50,6 +50,8 @@ export const foldEvents = (allEvents: TraceEvent[], cursor: Cursor): ReplayState
     } else if (event.type === "revision" && isAtom(payload.target_atom)) {
       recordAtom(atoms, payload.target_atom, event, String(payload.operation),
         payload.provenance_id ? String(payload.provenance_id) : undefined);
+    } else if (event.type === "belief_conflict" && isAtom(payload.conflict_atom)) {
+      recordAtom(atoms, payload.conflict_atom, event, "conflict");
     } else if (event.type === "pln_result" && isProofResult(payload)) {
       proofs.push({ event, result: payload });
       for (const node of payload.proof.nodes) recordAtom(atoms, node.atom, event, "proof");

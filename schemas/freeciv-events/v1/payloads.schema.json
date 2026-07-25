@@ -206,6 +206,59 @@
           "properties": {"name": {"type": "string"}, "inputs": {"type": "object"}}}
       }
     },
+    "belief_conflict": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "conflict_id", "target_atom_id", "conflict_atom",
+        "left_provenance_ids", "right_provenance_ids", "left_tv", "right_tv",
+        "overlap", "severity", "context_ids", "detected_turn"
+      ],
+      "properties": {
+        "conflict_id": {"type": "string", "minLength": 1},
+        "target_atom_id": {"type": "string", "minLength": 1},
+        "conflict_atom": {"$ref": "#/$defs/atom"},
+        "left_provenance_ids": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "right_provenance_ids": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "left_tv": {"$ref": "#/$defs/truthValue"},
+        "right_tv": {"$ref": "#/$defs/truthValue"},
+        "overlap": {"type": "number", "minimum": 0, "maximum": 1},
+        "severity": {"type": "number", "minimum": 0, "maximum": 1},
+        "context_ids": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "detected_turn": {"type": "integer", "minimum": 0}
+      }
+    },
+    "context_quarantine": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "operation_id", "conflict_id", "target_atom_id", "context_id",
+        "excluded_provenance_ids", "retained_provenance_ids", "reason", "turn"
+      ],
+      "properties": {
+        "operation_id": {"type": "string", "minLength": 1},
+        "conflict_id": {"type": "string", "minLength": 1},
+        "target_atom_id": {"type": "string", "minLength": 1},
+        "context_id": {"type": "string", "minLength": 1},
+        "excluded_provenance_ids": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "retained_provenance_ids": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "reason": {"type": "string", "minLength": 1},
+        "turn": {"type": "integer", "minimum": 0}
+      }
+    },
     "llm_proposal": {
       "type": "object", "additionalProperties": false,
       "required": ["proposal_id", "model", "prompt_version", "goals", "claims"],

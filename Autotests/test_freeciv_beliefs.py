@@ -3,8 +3,10 @@
 import copy
 import json
 import os
+import random
 import sys
 import tempfile
+from types import SimpleNamespace
 
 import jsonschema
 import pytest
@@ -16,7 +18,8 @@ if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
 from freeciv_agent.beliefs import (BeliefKey, BeliefStore, Evidence,  # noqa: E402
-                                   EvidenceConflict, OpponentMemory,
+                                   ContextQuarantineConflict, EvidenceConflict,
+                                   OpponentMemory, SelfSupportingProof,
                                    UncertainInference, post_game_calibration)
 from freeciv_agent.config import belief_config  # noqa: E402
 from freeciv_agent.events.validator import validate_file  # noqa: E402
@@ -91,6 +94,85 @@ def test_live_belief_revision_uses_weighted_token_union_and_exposes_overlap():
     overlap = store.lineage_overlap(first.key, right, 1)
     assert 0 < overlap < 1
     assert revision.formula["name"] == "provenance-union"
+
+
+def test_independent_disagreement_materializes_conflict_and_context_partitions():
+    store = _store()
+    left = _evidence(
+        "left", predicate="enemy-route", arguments=("enemy", "north"),
+        confidence=0.8, strength=1.0)
+    right = Evidence(
+        "right", "game-2", 1, (8, 9), "diplomatic-report", left.key,
+        0.0, 0.8, "fixed-ai", "civ2civ3", "opponent-model/1.0")
+    store.observe(left)
+    aggregate, _ = store.observe(right)
+
+    conflicts = store.conflicts()
+    assert len(conflicts) == 1
+    conflict = conflicts[0]
+    assert conflict.provenance_ids == ("left", "right")
+    assert conflict.overlap == 0.0
+    assert conflict.severity == 0.64
+    assert conflict.atom()["predicate"] == "Conflict"
+    assert aggregate.strength == 0.5
+
+    operations = store.context_quarantine_operations(conflict.conflict_id, 1)
+    assert len(operations) == 2
+    keep_left = next(
+        operation for operation in operations
+        if operation.context_id == left.context_id)
+    store.apply_context_quarantine(keep_left)
+    # Applying the same immutable operation is idempotent.
+    store.apply_context_quarantine(keep_left)
+    contextual = store.get_in_context(left.key, left.context_id, 1)
+    assert contextual.provenance_ids == ("left",)
+    assert contextual.tv == {"confidence": 0.8, "strength": 1.0}
+    assert len(store.quarantines) == 1
+
+    forged = copy.copy(keep_left)
+    object.__setattr__(forged, "target_atom_id", "belief-forged")
+    with pytest.raises(ContextQuarantineConflict):
+        store.apply_context_quarantine(forged)
+
+
+def test_correlated_duplicate_benchmark_has_zero_overlap_errors():
+    """Many paths rooted in one token remain one contribution in any order."""
+    expected_state = None
+    for seed in range(64):
+        store = _store()
+        store.observe(_evidence())
+        paths = ["duplicate-path-{:03d}".format(index) for index in range(128)]
+        random.Random(seed).shuffle(paths)
+        target = BeliefKey("has-tech", ("enemy", "Construction"))
+        for path in paths:
+            store.derive(
+                target, ("prov-1",), 1, 0.9, 0.8, path,
+                dampening_lambda=0.1)
+        belief = store.get(target)
+        assert belief.provenance_ids == ("prov-1",)
+        assert len(belief.support_paths) == 1
+        assert store.conflicts() == ()
+        state = (belief.tv, belief.provenance_ids, belief.support_paths)
+        expected_state = expected_state or state
+        assert state == expected_state
+
+
+def test_adversarial_deduction_rejects_self_supporting_cycles():
+    store = _store()
+    observed, _ = store.observe(_evidence(
+        predicate="route-seed", arguments=("enemy",)))
+    inference = UncertainInference(SimpleNamespace(rules=()), store)
+    route_a, _ = inference.deduce(
+        "route-a", ("enemy",), (observed,), 1, "seed-to-a")
+    route_b, _ = inference.deduce(
+        "route-b", ("enemy",), (route_a,), 1, "a-to-b")
+    with pytest.raises(SelfSupportingProof):
+        inference.deduce(
+            "route-a", ("enemy",), (route_b,), 1, "b-to-a")
+    with pytest.raises(SelfSupportingProof):
+        store.derive(
+            observed.key, ("prov-1",), 1, 1.0, 0.8, "identity")
+    assert store.get(observed.key) == observed
 
 
 def test_decay_crosses_actionable_threshold_and_never_refreshes_from_derivation():
@@ -221,4 +303,37 @@ def test_observation_and_revision_events_are_schema_valid_and_causal():
             _evidence(), writer, [root["event_id"]])
         report = validate_file(path)
         assert revision["caused_by"] == [observation["event_id"]]
+        assert report.valid, report.to_dict()
+
+
+def test_conflict_and_context_quarantine_events_are_schema_valid_and_causal():
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "events.jsonl")
+        writer = EventWriter(path, "conflict-test", durable=False)
+        root = writer.emit("run_started", 0, {
+            "condition_id": "d_uncertain_monitor", "manifest_identity": "m"})
+        store = _store()
+        left = _evidence(
+            "left", predicate="enemy-route", arguments=("enemy",),
+            confidence=0.8, strength=1.0)
+        right = Evidence(
+            "right", "game-2", 1, (8, 9), "diplomatic-report", left.key,
+            0.0, 0.8, "fixed-ai", "civ2civ3", "opponent-model/1.0")
+        _, left_observation, left_revision = store.emit_observation(
+            left, writer, [root["event_id"]])
+        _, right_observation, right_revision = store.emit_observation(
+            right, writer, [left_revision["event_id"]])
+        conflict = store.conflicts()[0]
+        conflict_event = store.emit_conflict(
+            conflict.conflict_id, writer,
+            [right_observation["event_id"], right_revision["event_id"]])
+        operation = next(
+            row for row in store.context_quarantine_operations(
+                conflict.conflict_id, 1)
+            if row.context_id == left.context_id)
+        quarantine_event = store.emit_context_quarantine(
+            operation, writer, [conflict_event["event_id"]])
+        report = validate_file(path)
+        assert conflict_event["payload"]["conflict_atom"]["predicate"] == "Conflict"
+        assert quarantine_event["caused_by"] == [conflict_event["event_id"]]
         assert report.valid, report.to_dict()

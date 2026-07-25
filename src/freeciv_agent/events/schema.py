@@ -22,6 +22,8 @@ KNOWN_EVENT_TYPES = (
     "state_snapshot",
     "observation",
     "revision",
+    "belief_conflict",
+    "context_quarantine",
     "llm_proposal",
     "verification",
     "quarantine",

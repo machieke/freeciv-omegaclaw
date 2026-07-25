@@ -55,6 +55,12 @@ class UncertainInference(object):
             strength = min(strength, belief.strength)
             confidence = min(confidence, belief.confidence)
             paths.append(belief.atom_id)
+            for support_path in belief.support_paths:
+                # The first item is the immutable evidence token. The remainder
+                # is proof ancestry and must follow deductions so a later edge
+                # cannot close a self-supporting loop.
+                paths.extend(str(value) for value in support_path[1:])
         return self.store.derive(
             BeliefKey(str(predicate), tuple(arguments)), support, turn,
-            strength, confidence, rule_id, tuple(sorted(paths)), dampening_lambda)
+            strength, confidence, rule_id, tuple(sorted(set(paths))),
+            dampening_lambda)
