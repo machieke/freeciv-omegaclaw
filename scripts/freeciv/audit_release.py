@@ -23,7 +23,7 @@ from freeciv_agent.rulesets.compiler import compile_ruleset  # noqa: E402
 
 
 PINNED_FREECIV_COMMIT = "26ba7124249f34fd3050ef29bf191bd4d8808018"
-PINNED_PROXY_PATCH_SHA256 = "67b13561de3673915ed5341ddff28157b77540a9284efbc47e5dcb090ae0180d"
+PINNED_PROXY_PATCH_SHA256 = "476ff35ef4081bd57a326cbe61af28b6d55d1fe21f12ca6a76d30d533b66f643"
 REQUIRED_CONFIDENCE_PARAMETERS = frozenset({
     "actionable_threshold", "minimum_logged_confidence", "dampening_lambda",
     "observation_strength", "observation_confidence", "abduction_strength",

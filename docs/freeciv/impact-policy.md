@@ -301,6 +301,14 @@ packet changed. Independent exact-behavior cohorts reduced boundary state time
 by 10.40% and 10.07%, and gameplay time by 3.65% and 6.10%. See
 [the conditional stability smoke](evidence/conditional-state-stability-smoke.md).
 
+Full-turn profiling then separated cognition, non-terminal actions and
+confirmation, and end-turn submission. It also exposed two failed 4 KiB cache
+compression attempts on every full authoritative response. Bypassing those
+ineligible PLN cache operations, while retaining caches for other formats and
+the v4 exact-revision path, reduced boundary state time by 5.65% and 4.41% and
+gameplay time by 1.60% and 1.74% in independent exact-behavior cohorts. See
+[the cache-bypass smoke](evidence/pln-cache-bypass-smoke.md).
+
 Exploration destinations also gain conservative cross-source failure evidence.
 One failed move remains retryable because occupancy and tactical obstructions can
 be transient. After the same unit type remains stationary while targeting the

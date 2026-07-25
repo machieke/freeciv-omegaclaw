@@ -1340,6 +1340,9 @@ async def _play(run_dir, manifest, context):
     replan_latencies = []
     model_latencies = []
     full_loop_latencies = []
+    turn_cognitive_latencies = []
+    turn_action_phase_latencies = []
+    turn_end_submit_latencies = []
     turn_boundary_latencies = []
     turn_checkpoint_sync_latencies = []
     transition_state_diagnostics = {}
@@ -1616,11 +1619,15 @@ async def _play(run_dir, manifest, context):
                 turn_boundary_latencies.append(
                     (time.perf_counter() - turn_boundary_started) * 1000.0)
             full_turn_started = time.perf_counter()
+            cognitive_started = time.perf_counter()
             (active_plan, plain_selection, parent, turn_model_latency,
              turn_corrections, safe_model_fallback, model_called,
              model_call_avoided) = _cognitive_turn(
                 manifest, context, store, player_id, raw, snapshot,
                 ir, catalog, oracle, scheduler, writer, parent)
+            turn_cognitive_latencies.append(
+                (time.perf_counter() - cognitive_started) * 1000.0)
+            action_phase_started = time.perf_counter()
             model_latencies.append(turn_model_latency)
             corrections += turn_corrections
             decision_stats["safe_model_fallbacks"] += int(safe_model_fallback)
@@ -1922,12 +1929,17 @@ async def _play(run_dir, manifest, context):
                     caused_by=[parent])
                 parent = plan_event["event_id"]
                 execution_monitor.register(control_plan)
+            turn_action_phase_latencies.append(
+                (time.perf_counter() - action_phase_started) * 1000.0)
             end_turn = _first_legal_action(snapshot, "end_turn")
             if end_turn is None:
                 raise RuntimeError("server did not advertise end_turn")
+            end_submit_started = time.perf_counter()
             outcome, parent = await _execute_action(
                 gate, manifest["game_id"], player_id, snapshot, end_turn,
                 parent, attempted_count, control_plan)
+            turn_end_submit_latencies.append(
+                (time.perf_counter() - end_submit_started) * 1000.0)
             attempted_count += 1
             action_count += int(outcome.submitted)
             rejected += int(outcome.submitted and outcome.status != "accepted")
@@ -2020,6 +2032,14 @@ async def _play(run_dir, manifest, context):
         ("calibration_absolute_error", calibration_error),
         ("loop_latency_ms", loop_latency),
         ("model_latency_ms", model_latency),
+        ("turn_cognitive_latency_ms",
+         sum(turn_cognitive_latencies) / max(1, len(turn_cognitive_latencies))),
+        ("turn_action_phase_latency_ms",
+         sum(turn_action_phase_latencies)
+         / max(1, len(turn_action_phase_latencies))),
+        ("turn_end_submit_latency_ms",
+         sum(turn_end_submit_latencies)
+         / max(1, len(turn_end_submit_latencies))),
         ("turn_boundary_latency_ms", mean_boundary_latency),
         ("turn_boundary_state_latency_ms", mean_transition_state_latency),
         ("turn_boundary_nonstate_latency_ms", max(

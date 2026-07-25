@@ -15,7 +15,7 @@ The patch is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. Its SHA-256 is
-`67b13561de3673915ed5341ddff28157b77540a9284efbc47e5dcb090ae0180d`.
+`476ff35ef4081bd57a326cbe61af28b6d55d1fe21f12ca6a76d30d533b66f643`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 The same tracked external patch retains Publite2's five-second restart backoff
@@ -23,14 +23,16 @@ for nonzero exits and launch errors but reduces clean zero-exit restarts to
 100 ms. The harness never treats this timer as readiness: it still requires a
 distinct process ID and an exact listening socket before connection.
 
-Both state-response cache layers include the game ID, player, format, turn, and
-monotonic packet sequence in their identity. The outer handler cache and the
-inner `StateExtractor` formatting cache therefore cannot reuse a pre-action
-payload after a same-turn packet revision. Parallel games cannot reuse one
-another's response even when their player, turn, and packet counters coincide,
-and incoming authoritative packets also invalidate cached city and technology
-actions. Player ID `0` is treated as an ordinary, valid cache owner during
-targeted eviction.
+Cacheable non-PLN state-response formats include the game ID, player, format,
+turn, and monotonic packet sequence in both cache-layer identities. Parallel
+games and same-turn packet revisions therefore cannot collide. PLN
+authoritative projections bypass both 4 KiB caches because their release
+payloads consistently compress to approximately 4.2--4.3 KiB; v4 conditional
+stability is their exact-revision reuse path. This avoids serializing and
+compressing every full projection twice only to reject both inserts. Incoming
+authoritative packets still invalidate cached city and technology actions, and
+player ID `0` remains an ordinary valid cache owner during targeted eviction.
+See [the cache-bypass smoke](evidence/pln-cache-bypass-smoke.md).
 
 The authoritative handler builds only the packet-backed PLN projection on its
 successful path. It does not pre-build the generic full-state representation;

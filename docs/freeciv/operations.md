@@ -75,6 +75,12 @@ Turn-boundary diagnostics are emitted as
 and `turn_checkpoint_sync_latency_ms`. Use these components before adjusting
 stability or engine timeouts.
 
+Full-turn diagnostics are emitted as `turn_cognitive_latency_ms`,
+`turn_action_phase_latency_ms`, and `turn_end_submit_latency_ms`. PLN
+authoritative requests intentionally do not use the generic 4 KiB state
+caches; repeated `State too large for cache` warnings for
+`pln_authoritative` indicate an obsolete patch.
+
 Accepted impact actions receive a bounded 0.3-second authoritative refresh
 window with two identical samples separated by at least 50 ms. A differing
 state, enemy-observation, or exact legal-action digest restarts the stability

@@ -919,7 +919,7 @@ index 045d314..9a9d8fb 100644
              "reset_on_turn_end": true
          }
 diff --git a/freeciv-proxy/llm_handler.py b/freeciv-proxy/llm_handler.py
-index 9be5668..be3f23c 100644
+index 9be5668..2f021e4 100644
 --- a/freeciv-proxy/llm_handler.py
 +++ b/freeciv-proxy/llm_handler.py
 @@ -16,7 +16,7 @@ import socket
@@ -973,7 +973,7 @@ index 9be5668..be3f23c 100644
                  logger.info(f"⏳ Waiting for new turn to begin (current: {self.civcom.game_turn})...")
                  wait_start = time.time()
                  try:
-@@ -1312,10 +1330,46 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1312,13 +1330,54 @@ class LLMWSHandler(websocket.WebSocketHandler):
                      elapsed_ms = (time.time() - wait_start) * 1000
                      logger.warning(f"⚠️ Turn start timeout after {elapsed_ms/1000:.1f}s - returning current state")
  
@@ -1020,10 +1020,29 @@ index 9be5668..be3f23c 100644
 +            cache_key = build_state_cache_key(
 +                self.player_id, query_format, current_turn, source_seq,
 +                game_id=self.game_id)
++
++            # Real authoritative projections exceed the shared cache's 4 KiB
++            # entry limit. v4 conditional stability is the exact-sequence fast
++            # path, so do not recompress a payload that cannot be inserted.
++            cacheable_state = query_format != 'pln_authoritative'
  
              # Try cache first
-             cached_state = state_cache.get(cache_key)
-@@ -1649,6 +1703,15 @@ class LLMWSHandler(websocket.WebSocketHandler):
+-            cached_state = state_cache.get(cache_key)
++            cached_state = state_cache.get(cache_key) if cacheable_state else None
+             if cached_state:
+                 logger.debug(f"✓ Cache hit for agent {self.agent_id}")
+                 response = {
+@@ -1350,7 +1409,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
+             )
+ 
+             # Cache the result
+-            state_cache.set(cache_key, state_data, self.player_id)
++            if cacheable_state:
++                state_cache.set(cache_key, state_data, self.player_id)
+ 
+             # Send response
+             response = {
+@@ -1649,6 +1709,15 @@ class LLMWSHandler(websocket.WebSocketHandler):
              # with a clearer "Missing required field" error instead of cryptic S001 format error
              if production:
                  normalized["production_type"] = str(production).lower()
@@ -1039,7 +1058,7 @@ index 9be5668..be3f23c 100644
  
          elif action_type == "unit_build_city":
              # Extract unit_id
-@@ -1660,6 +1723,17 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1660,6 +1729,17 @@ class LLMWSHandler(websocket.WebSocketHandler):
              if isinstance(target, dict) and "name" in target:
                  normalized["name"] = target["name"]
  
@@ -1057,7 +1076,7 @@ index 9be5668..be3f23c 100644
          elif action_type in ("unit_attack", "unit_suicide_attack", "unit_bombard",
                               "unit_capture", "unit_wipe", "unit_conquer_city",
                               "unit_nuke", "unit_nuke_city", "unit_nuke_units"):
-@@ -2621,6 +2695,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -2621,6 +2701,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
                      formatted['target'] = {'improvement': params['improvement']}
                  elif 'city' in params:
                      formatted['target'] = {'city': params['city']}
@@ -1066,7 +1085,7 @@ index 9be5668..be3f23c 100644
                  elif params:  # Pass through any other params
                      formatted['target'] = params
              
-@@ -2858,39 +2934,51 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -2858,39 +2940,51 @@ class LLMWSHandler(websocket.WebSocketHandler):
          """Build optimized game state for LLM consumption using StateExtractor"""
          logger.debug(f"🏗️ _build_optimized_state called for agent {self.agent_id}, player_id={self.player_id}")
  
@@ -1143,7 +1162,7 @@ index 9be5668..be3f23c 100644
          # Use StateExtractor to format the state - this ensures map validation and proper structure
          try:
              if not self.game_id:
-@@ -2918,6 +3006,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -2918,6 +3012,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
              )
              import traceback
              logger.error(f"StateExtractor traceback: {traceback.format_exc()}")
@@ -1152,7 +1171,7 @@ index 9be5668..be3f23c 100644
              state = self._build_fallback_state_from_full(full_state)
  
          # Add player_id and timestamp which are handler-specific
-@@ -5061,6 +5151,21 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -5061,6 +5157,21 @@ class LLMWSHandler(websocket.WebSocketHandler):
  
          session = session_manager.validate_session(self.session_id)
          if session:
@@ -1574,7 +1593,7 @@ index 778e7d1..cc24a84 100644
  
                  if should_remove:
 diff --git a/freeciv-proxy/state_extractor.py b/freeciv-proxy/state_extractor.py
-index 803966c..67304ca 100644
+index 803966c..f8cce06 100644
 --- a/freeciv-proxy/state_extractor.py
 +++ b/freeciv-proxy/state_extractor.py
 @@ -447,7 +447,7 @@ def validate_request_parameters(game_id: str, player_id: Any, format_str: str =
@@ -1594,7 +1613,7 @@ index 803966c..67304ca 100644
  
  
  class StateExtractor:
-@@ -539,11 +540,16 @@ class StateExtractor:
+@@ -539,17 +540,25 @@ class StateExtractor:
          if not civcom:
              raise CivComNotFoundError(game_id)
  
@@ -1612,9 +1631,23 @@ index 803966c..67304ca 100644
 +            game_id, player_id, format_type.value, since_turn, current_turn,
 +            current_source_seq)
  
-         # Check cache
-         cached_state = self.cache.get(cache_key)
-@@ -561,6 +567,8 @@ class StateExtractor:
+-        # Check cache
+-        cached_state = self.cache.get(cache_key)
+-        if cached_state is not None:
+-            logger.debug(f"Cache hit for {cache_key}")
+-            return cached_state
++        # PLN authoritative revisions use the v4 conditional-response path.
++        # They cannot fit the 4 KiB cache in the release ruleset, so neither
++        # lookup nor insertion is useful.
++        if format_type != StateFormat.PLN_AUTHORITATIVE:
++            cached_state = self.cache.get(cache_key)
++            if cached_state is not None:
++                logger.debug(f"Cache hit for {cache_key}")
++                return cached_state
+ 
+         # Extract fresh state
+         start_time = time.time()
+@@ -561,6 +570,8 @@ class StateExtractor:
                  # Use civcom.build_llm_optimized_state() directly as it already
                  # includes legal_actions from _get_legal_actions_optimized()
                  state = civcom.build_llm_optimized_state(player_id)
@@ -1623,7 +1656,23 @@ index 803966c..67304ca 100644
              else:
                  raw_state = civcom.get_full_state(player_id)
  
-@@ -1075,6 +1083,94 @@ class StateExtractor:
+@@ -580,8 +591,13 @@ class StateExtractor:
+                 else:
+                     raise ValidationError(f"Unsupported format: {format_type}", parameter="format", value=format_type.value)
+ 
+-            # Cache the result
+-            self.cache.set(cache_key, state, player_id)
++            # Authoritative projections in the release ruleset compress to
++            # approximately 4.2-4.3 KiB and cannot enter this 4 KiB cache.
++            # Retrying compression on every revision only burns CPU. The v4
++            # conditional state protocol handles unchanged PLN revisions
++            # without rebuilding; retain this cache for the other formats.
++            if format_type != StateFormat.PLN_AUTHORITATIVE:
++                self.cache.set(cache_key, state, player_id)
+ 
+             extraction_time = (time.time() - start_time) * 1000
+             logger.info(f"State extraction completed in {extraction_time:.2f}ms for {cache_key}")
+@@ -1075,6 +1091,94 @@ class StateExtractor:
                  return civcom.utype_can_do_action(unit_type_id, action_id)
              # Fallback to name-based heuristics if no ruleset data
              return self._fallback_can_do_action(unit_type_name, action_id)
@@ -1718,7 +1767,7 @@ index 803966c..67304ca 100644
          
          # Helper to get target tile info
          def get_target_tile(direction: str) -> tuple:
-@@ -1096,22 +1192,6 @@ class StateExtractor:
+@@ -1096,22 +1200,6 @@ class StateExtractor:
  
          # === MOVEMENT ACTIONS ===
          if moves_left > 0:
@@ -1741,7 +1790,7 @@ index 803966c..67304ca 100644
              for direction in directions:
                  target_x, target_y, target_index = get_target_tile(direction)
  
-@@ -1127,7 +1207,8 @@ class StateExtractor:
+@@ -1127,7 +1215,8 @@ class StateExtractor:
  
                          # Get unit class info for terrain checking
                          unit_type_data = civcom.unit_types.get(unit_type_id, {})
@@ -1751,7 +1800,7 @@ index 803966c..67304ca 100644
  
                          # Check if target tile has a city (cities allow entry for most unit types)
                          tile_has_city = target_index in city_tiles
-@@ -1138,9 +1219,11 @@ class StateExtractor:
+@@ -1138,9 +1227,11 @@ class StateExtractor:
                              if not is_native and not tile_has_city:
                                  # Not native terrain and no city - check if can embark on transport
                                  if terrain_class == TC_OCEAN:
@@ -1765,7 +1814,7 @@ index 803966c..67304ca 100644
                                  else:
                                      is_valid = False
                                      reason = "Cannot enter non-native terrain"
-@@ -1153,15 +1236,30 @@ class StateExtractor:
+@@ -1153,15 +1244,30 @@ class StateExtractor:
                                  # Check if unit class can enter ocean
                                  # Sea, Trireme, Air, Helicopter can enter ocean
                                  if class_name not in ('sea', 'trireme', 'air', 'helicopter', 'missile'):
@@ -1798,7 +1847,7 @@ index 803966c..67304ca 100644
                  # Diplomatic state validation: block movement into foreign territory during peace/alliance
                  # Per FreeCiv rules: "Peace prevents moving military units into other's territory"
                  if is_valid and civcom and target_index is not None:
-@@ -1222,15 +1320,22 @@ class StateExtractor:
+@@ -1222,15 +1328,22 @@ class StateExtractor:
              # Check if unit is in a city
              in_city = False
              city_name = None
@@ -1824,7 +1873,7 @@ index 803966c..67304ca 100644
          
          # === FORTIFY ACTION ===
          if can_do_action(ACTION_FORTIFY):
-@@ -2447,15 +2552,21 @@ class StateExtractor:
+@@ -2447,15 +2560,21 @@ class StateExtractor:
              logger.warning(f"Error analyzing expansion sites: {e}")
              return 2  # Conservative fallback
  
@@ -1850,7 +1899,7 @@ index 803966c..67304ca 100644
          if since_turn is not None:
              key += f"_since_{since_turn}"
          return key
-@@ -2614,9 +2725,9 @@ class StateExtractorHandler(web.RequestHandler):
+@@ -2614,9 +2733,9 @@ class StateExtractorHandler(web.RequestHandler):
              since_turn = self.get_argument('since_turn', None)
  
              # Validate format parameter (must match validate_request_parameters accepted formats)
@@ -1994,10 +2043,10 @@ index dc8c8ab..77ed308 100644
 +        assert result['dest_tile'] == 56
 diff --git a/freeciv-proxy/tests/test_pln_authoritative_state.py b/freeciv-proxy/tests/test_pln_authoritative_state.py
 new file mode 100644
-index 0000000..b651814
+index 0000000..ef855aa
 --- /dev/null
 +++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
-@@ -0,0 +1,537 @@
+@@ -0,0 +1,551 @@
 +"""Contract tests for the packet-backed PLN authoritative state format."""
 +
 +import asyncio
@@ -2228,6 +2277,20 @@ index 0000000..b651814
 +    assert first["authoritative"]["research"]["researching_name"] == "Writing"
 +    assert second["authoritative"]["source_seq"] == 45
 +    assert second["authoritative"]["research"]["researching_name"] == "Industrialization"
++
++
++def test_authoritative_extractor_skips_ineligible_four_kib_cache():
++    civcom = make_civcom()
++    cache = Mock()
++    cache.get.return_value = None
++    extractor = StateExtractor(civcom=civcom, cache=cache)
++
++    state = extractor.extract_state(
++        "contract-game", 0, StateFormat.PLN_AUTHORITATIVE)
++
++    assert state["format"] == "pln_authoritative"
++    cache.get.assert_not_called()
++    cache.set.assert_not_called()
 +
 +
 +def test_source_sequence_wait_wakes_only_after_a_new_revision():
