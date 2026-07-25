@@ -57,7 +57,8 @@ def test_state_query_carries_bounded_source_wait_hint():
         ws = MockProxyWS(start_turn=1)
         state = await turncycle.get_state(
             ws, "pln_authoritative", after_source_seq=44,
-            wait_timeout_ms=5000, accept_unchanged=True)
+            wait_timeout_ms=5000, accept_unchanged=True,
+            settle_quiet_ms=50)
         return state, ws.received[-1]
 
     state, query = _run(go())
@@ -68,6 +69,7 @@ def test_state_query_carries_bounded_source_wait_hint():
         "after_source_seq": 44,
         "wait_timeout_ms": 5000,
         "accept_unchanged": True,
+        "settle_quiet_ms": 50,
     }
 
 
@@ -84,9 +86,19 @@ def test_state_query_rejects_invalid_source_wait_hint():
             {"wait_timeout_ms": 10},
             {"accept_unchanged": True},
             {"after_source_seq": 1, "wait_timeout_ms": 10,
-             "accept_unchanged": "yes"}):
+             "accept_unchanged": "yes"},
+            {"settle_quiet_ms": 50},
+            {"after_source_seq": 1, "wait_timeout_ms": 10,
+             "settle_quiet_ms": 11},
+            {"after_source_seq": 1, "wait_timeout_ms": 10,
+             "settle_quiet_ms": True},
+            {"after_source_seq": 1, "wait_timeout_ms": 10,
+             "settle_quiet_ms": 1001},
+            {"after_source_seq": 1, "wait_timeout_ms": 10,
+             "settle_quiet_ms": 5, "fmt": "full"}):
         try:
-            _run(query(**kwargs))
+            fmt = kwargs.pop("fmt", "pln_authoritative")
+            _run(turncycle.get_state(MockProxyWS(), fmt, **kwargs))
         except ValueError:
             pass
         else:
@@ -105,6 +117,19 @@ def test_v4_contract_declares_conditional_stability_response():
     assert contract["websocket_state_unchanged"]["type"] == "state_unchanged"
     assert contract["atomicity"]["packet_mutation"] == (
         "serialized by the CivCom state-projection lock")
+
+
+def test_v5_contract_declares_settled_full_response():
+    path = os.path.join(
+        _REPO_ROOT, "contracts", "freeciv-proxy", "v5", "contract.json")
+    contract = json.load(open(path, encoding="utf-8"))
+
+    assert contract["extends"] == "../v4/contract.json"
+    assert contract["websocket_state_query"]["optional_fields"][
+        "settle_quiet_ms"]["requires"] == [
+            "after_source_seq", "wait_timeout_ms"]
+    assert contract["websocket_state_response"]["stability"]["policy"] == (
+        "source-seq-quiet-v1")
 
 
 # --- advancement (correct envelope) ----------------------------------------

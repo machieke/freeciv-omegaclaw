@@ -1,7 +1,7 @@
 # Authoritative state bridge
 
 The target agent reads the `pln_authoritative` proxy format and conditional
-source-stability extension described by `contracts/freeciv-proxy/v4/contract.json`
+source-stability extension described by `contracts/freeciv-proxy/v5/contract.json`
 (which extends the v3 bounded wait and v2 state DTO). Apply the tracked patch to the pinned external
 checkout before starting its container:
 
@@ -15,7 +15,7 @@ The patch is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. Its SHA-256 is
-`476ff35ef4081bd57a326cbe61af28b6d55d1fe21f12ca6a76d30d533b66f643`.
+`3722fd29b2bcae1f979426e6ff800fb2e54d01717bd2304b2063f5115234e1b2`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 The same tracked external patch retains Publite2's five-second restart backoff
@@ -27,7 +27,7 @@ Cacheable non-PLN state-response formats include the game ID, player, format,
 turn, and monotonic packet sequence in both cache-layer identities. Parallel
 games and same-turn packet revisions therefore cannot collide. PLN
 authoritative projections bypass both 4 KiB caches because their release
-payloads consistently compress to approximately 4.2--4.3 KiB; v4 conditional
+payloads consistently compress to approximately 4.2--4.3 KiB; v4/v5 conditional
 stability is their exact-revision reuse path. This avoids serializing and
 compressing every full projection twice only to reject both inserts. Incoming
 authoritative packets still invalidate cached city and technology actions, and
@@ -61,6 +61,17 @@ otherwise it returns ordinary full state. The harness treats that acknowledgment
 as the independent later sample of its retained atomic projection. The 50 ms
 quiet interval is unchanged, and any packet revision still triggers full DTO
 parsing and decision-fingerprint comparison.
+
+The v5 `settle_quiet_ms` option extends that proof without weakening it. After
+a newer revision is available, the proxy builds a full projection under the
+packet/projection lock, waits the requested quiet interval on that exact
+revision, and rebuilds if any packet arrives. Only a projection whose source
+sequence is still exact after the wait receives the
+`authoritative.stability` marker. Turn-boundary queries use this marker to
+complete their two-sample proof in one request. Accepted-action refreshes do
+not: delayed effect packets can change same-turn planning after the ordinary
+decision state is quiet, so those refreshes retain the longer v4
+post-projection sample.
 
 The observer-backed `global_state_response` carries its own authoritative
 `turn`. The harness rejects a populated but stale observer response until its

@@ -309,6 +309,15 @@ the v4 exact-revision path, reduced boundary state time by 5.65% and 4.41% and
 gameplay time by 1.60% and 1.74% in independent exact-behavior cohorts. See
 [the cache-bypass smoke](evidence/pln-cache-bypass-smoke.md).
 
+The v5 settled-projection path then combined the turn boundary's full
+projection and exact-revision quiet proof into one request. It retained the
+50 ms wait and left action-effect confirmation on v4 after an action-scoped
+trial changed same-turn action ordering. In two accepted exact-behavior
+cohorts, boundary state queries fell from 2.0 to 1.0 per turn, boundary state
+time fell by 3.44% and 4.93%, gameplay time fell by 3.55% and 2.19%, and every
+boundary returned an accepted exact-revision marker. See
+[the settled turn-boundary smoke](evidence/settled-turn-boundary-smoke.md).
+
 Exploration destinations also gain conservative cross-source failure evidence.
 One failed move remains retryable because occupancy and tactical obstructions can
 be transient. After the same unit type remains stationary while targeting the

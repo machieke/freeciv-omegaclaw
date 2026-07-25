@@ -1,0 +1,49 @@
+{
+  "schema_version": "5.0",
+  "extends": "../v4/contract.json",
+  "upstream_base_commit": "26ba7124249f34fd3050ef29bf191bd4d8808018",
+  "format": "pln_authoritative",
+  "websocket_state_query": {
+    "type": "state_query",
+    "format": "pln_authoritative",
+    "optional_fields": {
+      "settle_quiet_ms": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "requires": [
+          "after_source_seq",
+          "wait_timeout_ms"
+        ],
+        "semantics": "after observing a newer completely stored packet revision, build its full projection and retain it only when the same exact revision remains unchanged for this interval"
+      }
+    }
+  },
+  "websocket_state_response": {
+    "type": "state_response",
+    "stability": {
+      "location": "data.authoritative.stability",
+      "policy": "source-seq-quiet-v1",
+      "required_fields": {
+        "quiet_interval_ms": "integer",
+        "source_seq": "integer"
+      },
+      "semantics": "present only when the returned full projection was built from the exact revision that remained unchanged for the requested quiet interval"
+    }
+  },
+  "atomicity": {
+    "quiet_revision_check": "the projected source sequence is rechecked under the CivCom state-projection lock after the quiet wait",
+    "projection_construction": "each candidate full projection is built while holding the same state-projection lock and rebuilt after any changed packet revision"
+  },
+  "stability": {
+    "decision_sample_policy": "an exact packet revision observed before and after the quiet interval and projected under the packet lock is equivalent to two identical deterministic projections",
+    "fallback_policy": "when the source does not advance, cannot remain quiet, or advances before locked projection construction, return an ordinary unmarked full response and let the client continue v4 stability sampling"
+  },
+  "state_fixture": "../v2/authoritative-state.fixture.json",
+  "invariants": [
+    "settle_quiet_ms is valid only for a sufficient bounded pln_authoritative source wait",
+    "an unmarked state_response never counts as a proxy-settled sample",
+    "the client accepts the marker only when its policy, source sequence, and minimum interval exactly satisfy the current stability request",
+    "legacy and v4 state queries preserve their response semantics"
+  ]
+}

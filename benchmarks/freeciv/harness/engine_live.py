@@ -534,10 +534,21 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
             if wait_after is not None and wait_after >= 0:
                 wait_ms = min(5000, int(max(0.001, remaining - 0.05) * 1000))
                 if wait_ms >= 1:
+                    settle_ms = min(
+                        wait_ms,
+                        int(float(poll_interval) * 1000))
                     query_options = {
                         "after_source_seq": int(wait_after),
                         "wait_timeout_ms": wait_ms,
                     }
+                    # Only a turn boundary may combine projection and quiet
+                    # confirmation. Action-effect refreshes intentionally keep
+                    # the longer v4 post-projection sample: delayed effect
+                    # packets can change same-turn planning even after the
+                    # canonical decision state has been quiet for 50 ms.
+                    if require_decision_ready:
+                        query_options["settle_quiet_ms"] = settle_ms
+                        record("settle_wait_requested_ms", float(settle_ms))
         query_started = time.perf_counter()
         try:
             raw = await asyncio.wait_for(
@@ -580,6 +591,9 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
             minimum_source_seq is None
             or (source_seq is not None and int(source_seq) >= minimum_source_seq))
         if raw and source_ready:
+            stability = raw.get("authoritative", {}).get("stability", {})
+            if isinstance(stability, dict) and stability:
+                record("settled_markers", 1)
             parse_started = time.perf_counter()
             snapshot = ProxyStateDTO.parse(game_id, source_seq, raw).to_snapshot()
             record("parse_latency_ms", (
@@ -601,6 +615,22 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
                 else:
                     stable_fingerprint = fingerprint
                     stable_count = 1
+                if (isinstance(stability, dict)
+                        and stability.get("policy") == "source-seq-quiet-v1"
+                        and stability.get("source_seq") == source_seq
+                        and isinstance(
+                            stability.get("quiet_interval_ms"), int)
+                        and not isinstance(
+                            stability.get("quiet_interval_ms"), bool)
+                        and stability["quiet_interval_ms"]
+                            >= int(float(poll_interval) * 1000)):
+                    # The proxy built this exact packet revision under the
+                    # packet/projection lock and verified it was unchanged
+                    # after the requested quiet interval. It is
+                    # therefore the same two-sample proof as one full response
+                    # followed by an exact state_unchanged acknowledgement.
+                    stable_count = max(stable_count, 2)
+                    record("settled_responses", 1)
                 stable_raw = raw
                 stable_snapshot = snapshot
                 if stable_count >= stable_samples:
@@ -1346,6 +1376,7 @@ async def _play(run_dir, manifest, context):
     turn_boundary_latencies = []
     turn_checkpoint_sync_latencies = []
     transition_state_diagnostics = {}
+    action_state_diagnostics = {}
     effect_confirmation_latencies = []
     production_projection_etas = []
     production_projection_values = []
@@ -1537,7 +1568,8 @@ async def _play(run_dir, manifest, context):
                     stable_samples=2,
                     poll_interval=(
                         impact_planner.refresh_stability_interval_seconds
-                        if impact_planner is not None else 0.2))
+                        if impact_planner is not None else 0.2),
+                    diagnostics=action_state_diagnostics)
                 if predicate is not None and not predicate(next_snapshot):
                     minimum_seq = next_snapshot.identity.source_seq + 1
                     await asyncio.sleep(0.05)
@@ -1570,6 +1602,7 @@ async def _play(run_dir, manifest, context):
             if turn_index > 1:
                 raw, snapshot = await _state(
                     ws, manifest["game_id"], minimum_turn=snapshot.turn + 1,
+                    minimum_source_seq=snapshot.identity.source_seq + 1,
                     require_decision_ready=True, stable_samples=2,
                     diagnostics=transition_state_diagnostics)
                 store.replace(snapshot)
@@ -1973,6 +2006,8 @@ async def _play(run_dir, manifest, context):
     full_loop_under_30 = (sum(value <= 30000 for value in full_loop_latencies)
                           / max(1, len(full_loop_latencies)))
     transition_calls = max(1.0, transition_state_diagnostics.get("calls", 0.0))
+    action_state_calls = max(
+        1.0, action_state_diagnostics.get("calls", 0.0))
     mean_boundary_latency = (
         sum(turn_boundary_latencies) / max(1, len(turn_boundary_latencies)))
     mean_transition_state_latency = (
@@ -2049,6 +2084,20 @@ async def _play(run_dir, manifest, context):
          / transition_calls),
         ("turn_boundary_state_query_count",
          transition_state_diagnostics.get("queries", 0.0) / transition_calls),
+        ("turn_boundary_state_settled_response_rate",
+         transition_state_diagnostics.get("settled_responses", 0.0)
+         / transition_calls),
+        ("turn_boundary_state_settled_marker_rate",
+         transition_state_diagnostics.get("settled_markers", 0.0)
+         / transition_calls),
+        ("action_refresh_state_query_count",
+         action_state_diagnostics.get("queries", 0.0) / action_state_calls),
+        ("action_refresh_state_settled_response_rate",
+         action_state_diagnostics.get("settled_responses", 0.0)
+         / action_state_calls),
+        ("action_refresh_state_settled_marker_rate",
+         action_state_diagnostics.get("settled_markers", 0.0)
+         / action_state_calls),
         ("turn_boundary_state_parse_latency_ms",
          transition_state_diagnostics.get("parse_latency_ms", 0.0)
          / transition_calls),

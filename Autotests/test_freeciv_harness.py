@@ -982,6 +982,7 @@ def test_state_waits_for_new_source_revision_then_rechecks_stability(monkeypatch
     assert snapshot.identity.source_seq == 45
     assert calls[0]["after_source_seq"] == 44
     assert 1 <= calls[0]["wait_timeout_ms"] <= 450
+    assert "settle_quiet_ms" not in calls[0]
     assert calls[1] == {
         "after_source_seq": 45,
         "wait_timeout_ms": 50,
@@ -1048,6 +1049,70 @@ def test_state_accepts_exact_conditional_unchanged_sample(monkeypatch):
             "accept_unchanged": True,
         },
     ]
+
+
+def test_state_accepts_exact_proxy_settled_full_sample(monkeypatch):
+    raw = _ready_raw(source_seq=45, turn=12)
+    raw["authoritative"]["stability"] = {
+        "policy": "source-seq-quiet-v1",
+        "quiet_interval_ms": 50,
+        "source_seq": 45,
+    }
+    calls = []
+    diagnostics = {}
+
+    async def source_state(_ws, _format, **kwargs):
+        calls.append(kwargs)
+        return raw
+
+    monkeypatch.setattr(engine_live.turncycle, "get_state", source_state)
+    returned, snapshot = asyncio.run(_state(
+        object(), "settled-full-state-test", minimum_turn=12,
+        minimum_source_seq=45, stable_samples=2, poll_interval=0.05,
+        timeout=0.5, require_decision_ready=True,
+        diagnostics=diagnostics))
+
+    assert returned is raw
+    assert snapshot.identity.source_seq == 45
+    assert calls == [{
+        "after_source_seq": 44,
+        "wait_timeout_ms": pytest.approx(450, abs=2),
+        "settle_quiet_ms": 50,
+    }]
+    assert diagnostics["settled_responses"] == 1
+
+
+@pytest.mark.parametrize("stability", (
+    {"policy": "unreviewed-policy", "quiet_interval_ms": 50, "source_seq": 45},
+    {"policy": "source-seq-quiet-v1", "quiet_interval_ms": 49, "source_seq": 45},
+    {"policy": "source-seq-quiet-v1", "quiet_interval_ms": 50, "source_seq": 44},
+))
+def test_state_rejects_unmatched_proxy_settled_full_sample(
+        monkeypatch, stability):
+    raw = _ready_raw(source_seq=45, turn=12)
+    raw["authoritative"]["stability"] = stability
+    calls = []
+    diagnostics = {}
+
+    async def source_state(_ws, _format, **kwargs):
+        calls.append(kwargs)
+        if len(calls) == 1:
+            return raw
+        return {"type": "state_unchanged", "turn": 12, "source_seq": 45}
+
+    monkeypatch.setattr(engine_live.turncycle, "get_state", source_state)
+    returned, snapshot = asyncio.run(_state(
+        object(), "unmatched-settled-state-test", minimum_turn=12,
+        minimum_source_seq=45, stable_samples=2, poll_interval=0.05,
+        timeout=0.5, require_decision_ready=True,
+        diagnostics=diagnostics))
+
+    assert returned is raw
+    assert snapshot.identity.source_seq == 45
+    assert len(calls) == 2
+    assert calls[1]["accept_unchanged"] is True
+    assert diagnostics["settled_markers"] == 1
+    assert diagnostics.get("settled_responses", 0) == 0
 
 
 def test_claim_eligible_arms_fail_closed_on_model_fallback():

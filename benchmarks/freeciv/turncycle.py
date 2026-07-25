@@ -47,12 +47,14 @@ def state_body(m):
 
 
 async def get_state(ws, fmt="llm_optimized", after_source_seq=None,
-                    wait_timeout_ms=None, accept_unchanged=False):
+                    wait_timeout_ms=None, accept_unchanged=False,
+                    settle_quiet_ms=None):
     """Query current state, optionally waiting for a newer packet revision.
 
     ``after_source_seq`` and ``wait_timeout_ms`` are a bounded long-poll hint
-    supported by the pinned authoritative-state proxy patch. A timeout still
-    returns the current state, so callers retain the normal query semantics.
+    supported by the pinned authoritative-state proxy patch. ``settle_quiet_ms``
+    additionally requests an exact-revision settled full response. A timeout
+    still returns the current state, so callers retain normal query semantics.
     """
     query = {"type": "state_query", "format": fmt}
     if after_source_seq is not None:
@@ -77,6 +79,18 @@ async def get_state(ws, fmt="llm_optimized", after_source_seq=None,
             raise ValueError(
                 "accept_unchanged requires an authoritative bounded source wait")
         query["accept_unchanged"] = True
+    if settle_quiet_ms is not None:
+        if (isinstance(settle_quiet_ms, bool)
+                or not isinstance(settle_quiet_ms, int)
+                or not 1 <= settle_quiet_ms <= 1000):
+            raise ValueError("settle_quiet_ms must be in 1..1000")
+        if (fmt != "pln_authoritative" or after_source_seq is None
+                or wait_timeout_ms is None
+                or settle_quiet_ms > wait_timeout_ms):
+            raise ValueError(
+                "settle_quiet_ms requires a sufficient authoritative bounded "
+                "source wait")
+        query["settle_quiet_ms"] = settle_quiet_ms
     await ws.send(json.dumps(query))
     return state_body(await recv_until(ws, _STATE_TYPES, timeout=15))
 

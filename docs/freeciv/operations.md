@@ -56,12 +56,14 @@ publish that shortcut and therefore retain unconditional kill/recycle
 isolation. `status.json` records `engine_server_pid` and
 `engine_server_recycle_method` for direct audit.
 
-Authoritative refreshes use the v4 proxy contract's bounded
+Authoritative refreshes use the v5 proxy contract's bounded
 `after_source_seq`/`wait_timeout_ms` hint when a caller requires a newer packet
-revision. The optional `accept_unchanged` flag lets a completed quiet wait
+revision. v5 extends v4: the optional `accept_unchanged` flag lets a completed quiet wait
 return the exact turn/source revision without retransmitting the retained
-atomic projection. The harness deadline, 50 ms interval, and independent
-stability sample remain authoritative. Repeated
+atomic projection, while `settle_quiet_ms` lets a turn-boundary request build,
+wait on, and conditionally retain one exact full projection. The latter is not
+used for accepted-action effect confirmation. The harness deadline, 50 ms
+interval, and independent stability proof remain authoritative. Repeated
 same-sequence queries before the required revision indicate an unpatched or
 stale proxy mount. A response whose source sequence advances while its
 same-turn research, city, unit, or legal-action payload remains unchanged for
@@ -72,7 +74,12 @@ Turn-boundary diagnostics are emitted as
 `turn_boundary_state_latency_ms`, `turn_boundary_state_query_latency_ms`,
 `turn_boundary_state_query_count`, `turn_boundary_state_parse_latency_ms`,
 `turn_boundary_state_settle_wait_ms`, `turn_boundary_nonstate_latency_ms`,
-and `turn_checkpoint_sync_latency_ms`. Use these components before adjusting
+`turn_boundary_state_settled_response_rate`,
+`turn_boundary_state_settled_marker_rate`, and
+`turn_checkpoint_sync_latency_ms`. Action refreshes separately emit
+`action_refresh_state_query_count`,
+`action_refresh_state_settled_response_rate`, and
+`action_refresh_state_settled_marker_rate`. Use these components before adjusting
 stability or engine timeouts.
 
 Full-turn diagnostics are emitted as `turn_cognitive_latency_ms`,
