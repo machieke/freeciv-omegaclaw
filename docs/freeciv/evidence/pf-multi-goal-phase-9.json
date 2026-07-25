@@ -1,0 +1,1941 @@
+{
+  "acceptance": {
+    "explanations_preserved_per_goal": true,
+    "independent_goals_conflict": true,
+    "multi_goal_beats_independent": true,
+    "multi_goal_selects_joint_route": true
+  },
+  "artifact_hash": "c6e4e612a2fb55fc7f222417f3189e0775daf2f02ff9e2f34898e194f1c0b0f7",
+  "benchmark": "pf-pln-phase-9-conflicting-goals",
+  "configuration": {
+    "random_seed": null,
+    "scenarios": 64,
+    "shared_operation_budget": 1
+  },
+  "graph_hash": "5e1a2d6184987b42ad2494187d6de1fed23fc71f18735cbd81bf5119b9e4b5c9",
+  "mean_joint_relief_gain": 0.3400000000000001,
+  "multi_goal_wins": 64,
+  "scenario_rows": [
+    {
+      "balanced_relief": 0.55,
+      "baseline_joint_relief": 0.33999999999999997,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.55,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.23375
+        },
+        {
+          "effect": 0.55,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.23375
+        }
+      ],
+      "harm": 0.2,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.12750000000000006,
+      "multi_goal_joint_relief": 0.4675,
+      "multi_goal_selected": "balanced",
+      "scenario": 0
+    },
+    {
+      "balanced_relief": 0.55,
+      "baseline_joint_relief": 0.2975,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.55,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.23375
+        },
+        {
+          "effect": 0.55,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.23375
+        }
+      ],
+      "harm": 0.3,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.17000000000000004,
+      "multi_goal_joint_relief": 0.4675,
+      "multi_goal_selected": "balanced",
+      "scenario": 1
+    },
+    {
+      "balanced_relief": 0.55,
+      "baseline_joint_relief": 0.255,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.55,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.23375
+        },
+        {
+          "effect": 0.55,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.23375
+        }
+      ],
+      "harm": 0.4,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.21250000000000002,
+      "multi_goal_joint_relief": 0.4675,
+      "multi_goal_selected": "balanced",
+      "scenario": 2
+    },
+    {
+      "balanced_relief": 0.55,
+      "baseline_joint_relief": 0.21250000000000002,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.55,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.23375
+        },
+        {
+          "effect": 0.55,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.23375
+        }
+      ],
+      "harm": 0.49999999999999994,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.255,
+      "multi_goal_joint_relief": 0.4675,
+      "multi_goal_selected": "balanced",
+      "scenario": 3
+    },
+    {
+      "balanced_relief": 0.55,
+      "baseline_joint_relief": 0.16999999999999998,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.55,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.23375
+        },
+        {
+          "effect": 0.55,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.23375
+        }
+      ],
+      "harm": 0.6,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.29750000000000004,
+      "multi_goal_joint_relief": 0.4675,
+      "multi_goal_selected": "balanced",
+      "scenario": 4
+    },
+    {
+      "balanced_relief": 0.55,
+      "baseline_joint_relief": 0.1275,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.55,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.23375
+        },
+        {
+          "effect": 0.55,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.23375
+        }
+      ],
+      "harm": 0.7,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.34,
+      "multi_goal_joint_relief": 0.4675,
+      "multi_goal_selected": "balanced",
+      "scenario": 5
+    },
+    {
+      "balanced_relief": 0.55,
+      "baseline_joint_relief": 0.08500000000000008,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.55,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.23375
+        },
+        {
+          "effect": 0.55,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.23375
+        }
+      ],
+      "harm": 0.7999999999999998,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.38249999999999995,
+      "multi_goal_joint_relief": 0.4675,
+      "multi_goal_selected": "balanced",
+      "scenario": 6
+    },
+    {
+      "balanced_relief": 0.55,
+      "baseline_joint_relief": 0.04250000000000004,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.55,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.23375
+        },
+        {
+          "effect": 0.55,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.23375
+        }
+      ],
+      "harm": 0.8999999999999999,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.425,
+      "multi_goal_joint_relief": 0.4675,
+      "multi_goal_selected": "balanced",
+      "scenario": 7
+    },
+    {
+      "balanced_relief": 0.5714285714285715,
+      "baseline_joint_relief": 0.33999999999999997,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.5714285714285715,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.24285714285714288
+        },
+        {
+          "effect": 0.5714285714285715,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.24285714285714288
+        }
+      ],
+      "harm": 0.2,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.1457142857142858,
+      "multi_goal_joint_relief": 0.48571428571428577,
+      "multi_goal_selected": "balanced",
+      "scenario": 8
+    },
+    {
+      "balanced_relief": 0.5714285714285715,
+      "baseline_joint_relief": 0.2975,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.5714285714285715,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.24285714285714288
+        },
+        {
+          "effect": 0.5714285714285715,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.24285714285714288
+        }
+      ],
+      "harm": 0.3,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.18821428571428578,
+      "multi_goal_joint_relief": 0.48571428571428577,
+      "multi_goal_selected": "balanced",
+      "scenario": 9
+    },
+    {
+      "balanced_relief": 0.5714285714285715,
+      "baseline_joint_relief": 0.255,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.5714285714285715,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.24285714285714288
+        },
+        {
+          "effect": 0.5714285714285715,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.24285714285714288
+        }
+      ],
+      "harm": 0.4,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.23071428571428576,
+      "multi_goal_joint_relief": 0.48571428571428577,
+      "multi_goal_selected": "balanced",
+      "scenario": 10
+    },
+    {
+      "balanced_relief": 0.5714285714285715,
+      "baseline_joint_relief": 0.21250000000000002,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.5714285714285715,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.24285714285714288
+        },
+        {
+          "effect": 0.5714285714285715,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.24285714285714288
+        }
+      ],
+      "harm": 0.49999999999999994,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.27321428571428574,
+      "multi_goal_joint_relief": 0.48571428571428577,
+      "multi_goal_selected": "balanced",
+      "scenario": 11
+    },
+    {
+      "balanced_relief": 0.5714285714285715,
+      "baseline_joint_relief": 0.16999999999999998,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.5714285714285715,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.24285714285714288
+        },
+        {
+          "effect": 0.5714285714285715,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.24285714285714288
+        }
+      ],
+      "harm": 0.6,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.3157142857142858,
+      "multi_goal_joint_relief": 0.48571428571428577,
+      "multi_goal_selected": "balanced",
+      "scenario": 12
+    },
+    {
+      "balanced_relief": 0.5714285714285715,
+      "baseline_joint_relief": 0.1275,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.5714285714285715,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.24285714285714288
+        },
+        {
+          "effect": 0.5714285714285715,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.24285714285714288
+        }
+      ],
+      "harm": 0.7,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.35821428571428576,
+      "multi_goal_joint_relief": 0.48571428571428577,
+      "multi_goal_selected": "balanced",
+      "scenario": 13
+    },
+    {
+      "balanced_relief": 0.5714285714285715,
+      "baseline_joint_relief": 0.08500000000000008,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.5714285714285715,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.24285714285714288
+        },
+        {
+          "effect": 0.5714285714285715,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.24285714285714288
+        }
+      ],
+      "harm": 0.7999999999999998,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.4007142857142857,
+      "multi_goal_joint_relief": 0.48571428571428577,
+      "multi_goal_selected": "balanced",
+      "scenario": 14
+    },
+    {
+      "balanced_relief": 0.5714285714285715,
+      "baseline_joint_relief": 0.04250000000000004,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.5714285714285715,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.24285714285714288
+        },
+        {
+          "effect": 0.5714285714285715,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.24285714285714288
+        }
+      ],
+      "harm": 0.8999999999999999,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.4432142857142857,
+      "multi_goal_joint_relief": 0.48571428571428577,
+      "multi_goal_selected": "balanced",
+      "scenario": 15
+    },
+    {
+      "balanced_relief": 0.5928571428571429,
+      "baseline_joint_relief": 0.33999999999999997,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.5928571428571429,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2519642857142857
+        },
+        {
+          "effect": 0.5928571428571429,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2519642857142857
+        }
+      ],
+      "harm": 0.2,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.16392857142857142,
+      "multi_goal_joint_relief": 0.5039285714285714,
+      "multi_goal_selected": "balanced",
+      "scenario": 16
+    },
+    {
+      "balanced_relief": 0.5928571428571429,
+      "baseline_joint_relief": 0.2975,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.5928571428571429,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2519642857142857
+        },
+        {
+          "effect": 0.5928571428571429,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2519642857142857
+        }
+      ],
+      "harm": 0.3,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.2064285714285714,
+      "multi_goal_joint_relief": 0.5039285714285714,
+      "multi_goal_selected": "balanced",
+      "scenario": 17
+    },
+    {
+      "balanced_relief": 0.5928571428571429,
+      "baseline_joint_relief": 0.255,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.5928571428571429,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2519642857142857
+        },
+        {
+          "effect": 0.5928571428571429,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2519642857142857
+        }
+      ],
+      "harm": 0.4,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.2489285714285714,
+      "multi_goal_joint_relief": 0.5039285714285714,
+      "multi_goal_selected": "balanced",
+      "scenario": 18
+    },
+    {
+      "balanced_relief": 0.5928571428571429,
+      "baseline_joint_relief": 0.21250000000000002,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.5928571428571429,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2519642857142857
+        },
+        {
+          "effect": 0.5928571428571429,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2519642857142857
+        }
+      ],
+      "harm": 0.49999999999999994,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.29142857142857137,
+      "multi_goal_joint_relief": 0.5039285714285714,
+      "multi_goal_selected": "balanced",
+      "scenario": 19
+    },
+    {
+      "balanced_relief": 0.5928571428571429,
+      "baseline_joint_relief": 0.16999999999999998,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.5928571428571429,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2519642857142857
+        },
+        {
+          "effect": 0.5928571428571429,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2519642857142857
+        }
+      ],
+      "harm": 0.6,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.3339285714285714,
+      "multi_goal_joint_relief": 0.5039285714285714,
+      "multi_goal_selected": "balanced",
+      "scenario": 20
+    },
+    {
+      "balanced_relief": 0.5928571428571429,
+      "baseline_joint_relief": 0.1275,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.5928571428571429,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2519642857142857
+        },
+        {
+          "effect": 0.5928571428571429,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2519642857142857
+        }
+      ],
+      "harm": 0.7,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.3764285714285714,
+      "multi_goal_joint_relief": 0.5039285714285714,
+      "multi_goal_selected": "balanced",
+      "scenario": 21
+    },
+    {
+      "balanced_relief": 0.5928571428571429,
+      "baseline_joint_relief": 0.08500000000000008,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.5928571428571429,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2519642857142857
+        },
+        {
+          "effect": 0.5928571428571429,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2519642857142857
+        }
+      ],
+      "harm": 0.7999999999999998,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.4189285714285713,
+      "multi_goal_joint_relief": 0.5039285714285714,
+      "multi_goal_selected": "balanced",
+      "scenario": 22
+    },
+    {
+      "balanced_relief": 0.5928571428571429,
+      "baseline_joint_relief": 0.04250000000000004,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.5928571428571429,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2519642857142857
+        },
+        {
+          "effect": 0.5928571428571429,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2519642857142857
+        }
+      ],
+      "harm": 0.8999999999999999,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.46142857142857135,
+      "multi_goal_joint_relief": 0.5039285714285714,
+      "multi_goal_selected": "balanced",
+      "scenario": 23
+    },
+    {
+      "balanced_relief": 0.6142857142857143,
+      "baseline_joint_relief": 0.33999999999999997,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6142857142857143,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.26107142857142857
+        },
+        {
+          "effect": 0.6142857142857143,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.26107142857142857
+        }
+      ],
+      "harm": 0.2,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.18214285714285716,
+      "multi_goal_joint_relief": 0.5221428571428571,
+      "multi_goal_selected": "balanced",
+      "scenario": 24
+    },
+    {
+      "balanced_relief": 0.6142857142857143,
+      "baseline_joint_relief": 0.2975,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6142857142857143,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.26107142857142857
+        },
+        {
+          "effect": 0.6142857142857143,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.26107142857142857
+        }
+      ],
+      "harm": 0.3,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.22464285714285714,
+      "multi_goal_joint_relief": 0.5221428571428571,
+      "multi_goal_selected": "balanced",
+      "scenario": 25
+    },
+    {
+      "balanced_relief": 0.6142857142857143,
+      "baseline_joint_relief": 0.255,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6142857142857143,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.26107142857142857
+        },
+        {
+          "effect": 0.6142857142857143,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.26107142857142857
+        }
+      ],
+      "harm": 0.4,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.2671428571428571,
+      "multi_goal_joint_relief": 0.5221428571428571,
+      "multi_goal_selected": "balanced",
+      "scenario": 26
+    },
+    {
+      "balanced_relief": 0.6142857142857143,
+      "baseline_joint_relief": 0.21250000000000002,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6142857142857143,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.26107142857142857
+        },
+        {
+          "effect": 0.6142857142857143,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.26107142857142857
+        }
+      ],
+      "harm": 0.49999999999999994,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.3096428571428571,
+      "multi_goal_joint_relief": 0.5221428571428571,
+      "multi_goal_selected": "balanced",
+      "scenario": 27
+    },
+    {
+      "balanced_relief": 0.6142857142857143,
+      "baseline_joint_relief": 0.16999999999999998,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6142857142857143,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.26107142857142857
+        },
+        {
+          "effect": 0.6142857142857143,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.26107142857142857
+        }
+      ],
+      "harm": 0.6,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.35214285714285715,
+      "multi_goal_joint_relief": 0.5221428571428571,
+      "multi_goal_selected": "balanced",
+      "scenario": 28
+    },
+    {
+      "balanced_relief": 0.6142857142857143,
+      "baseline_joint_relief": 0.1275,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6142857142857143,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.26107142857142857
+        },
+        {
+          "effect": 0.6142857142857143,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.26107142857142857
+        }
+      ],
+      "harm": 0.7,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.39464285714285713,
+      "multi_goal_joint_relief": 0.5221428571428571,
+      "multi_goal_selected": "balanced",
+      "scenario": 29
+    },
+    {
+      "balanced_relief": 0.6142857142857143,
+      "baseline_joint_relief": 0.08500000000000008,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6142857142857143,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.26107142857142857
+        },
+        {
+          "effect": 0.6142857142857143,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.26107142857142857
+        }
+      ],
+      "harm": 0.7999999999999998,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.43714285714285706,
+      "multi_goal_joint_relief": 0.5221428571428571,
+      "multi_goal_selected": "balanced",
+      "scenario": 30
+    },
+    {
+      "balanced_relief": 0.6142857142857143,
+      "baseline_joint_relief": 0.04250000000000004,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6142857142857143,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.26107142857142857
+        },
+        {
+          "effect": 0.6142857142857143,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.26107142857142857
+        }
+      ],
+      "harm": 0.8999999999999999,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.4796428571428571,
+      "multi_goal_joint_relief": 0.5221428571428571,
+      "multi_goal_selected": "balanced",
+      "scenario": 31
+    },
+    {
+      "balanced_relief": 0.6357142857142858,
+      "baseline_joint_relief": 0.33999999999999997,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6357142857142858,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.27017857142857143
+        },
+        {
+          "effect": 0.6357142857142858,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.27017857142857143
+        }
+      ],
+      "harm": 0.2,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.2003571428571429,
+      "multi_goal_joint_relief": 0.5403571428571429,
+      "multi_goal_selected": "balanced",
+      "scenario": 32
+    },
+    {
+      "balanced_relief": 0.6357142857142858,
+      "baseline_joint_relief": 0.2975,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6357142857142858,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.27017857142857143
+        },
+        {
+          "effect": 0.6357142857142858,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.27017857142857143
+        }
+      ],
+      "harm": 0.3,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.24285714285714288,
+      "multi_goal_joint_relief": 0.5403571428571429,
+      "multi_goal_selected": "balanced",
+      "scenario": 33
+    },
+    {
+      "balanced_relief": 0.6357142857142858,
+      "baseline_joint_relief": 0.255,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6357142857142858,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.27017857142857143
+        },
+        {
+          "effect": 0.6357142857142858,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.27017857142857143
+        }
+      ],
+      "harm": 0.4,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.28535714285714286,
+      "multi_goal_joint_relief": 0.5403571428571429,
+      "multi_goal_selected": "balanced",
+      "scenario": 34
+    },
+    {
+      "balanced_relief": 0.6357142857142858,
+      "baseline_joint_relief": 0.21250000000000002,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6357142857142858,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.27017857142857143
+        },
+        {
+          "effect": 0.6357142857142858,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.27017857142857143
+        }
+      ],
+      "harm": 0.49999999999999994,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.32785714285714285,
+      "multi_goal_joint_relief": 0.5403571428571429,
+      "multi_goal_selected": "balanced",
+      "scenario": 35
+    },
+    {
+      "balanced_relief": 0.6357142857142858,
+      "baseline_joint_relief": 0.16999999999999998,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6357142857142858,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.27017857142857143
+        },
+        {
+          "effect": 0.6357142857142858,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.27017857142857143
+        }
+      ],
+      "harm": 0.6,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.3703571428571429,
+      "multi_goal_joint_relief": 0.5403571428571429,
+      "multi_goal_selected": "balanced",
+      "scenario": 36
+    },
+    {
+      "balanced_relief": 0.6357142857142858,
+      "baseline_joint_relief": 0.1275,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6357142857142858,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.27017857142857143
+        },
+        {
+          "effect": 0.6357142857142858,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.27017857142857143
+        }
+      ],
+      "harm": 0.7,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.41285714285714287,
+      "multi_goal_joint_relief": 0.5403571428571429,
+      "multi_goal_selected": "balanced",
+      "scenario": 37
+    },
+    {
+      "balanced_relief": 0.6357142857142858,
+      "baseline_joint_relief": 0.08500000000000008,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6357142857142858,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.27017857142857143
+        },
+        {
+          "effect": 0.6357142857142858,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.27017857142857143
+        }
+      ],
+      "harm": 0.7999999999999998,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.4553571428571428,
+      "multi_goal_joint_relief": 0.5403571428571429,
+      "multi_goal_selected": "balanced",
+      "scenario": 38
+    },
+    {
+      "balanced_relief": 0.6357142857142858,
+      "baseline_joint_relief": 0.04250000000000004,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6357142857142858,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.27017857142857143
+        },
+        {
+          "effect": 0.6357142857142858,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.27017857142857143
+        }
+      ],
+      "harm": 0.8999999999999999,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.49785714285714283,
+      "multi_goal_joint_relief": 0.5403571428571429,
+      "multi_goal_selected": "balanced",
+      "scenario": 39
+    },
+    {
+      "balanced_relief": 0.6571428571428571,
+      "baseline_joint_relief": 0.33999999999999997,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6571428571428571,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2792857142857143
+        },
+        {
+          "effect": 0.6571428571428571,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2792857142857143
+        }
+      ],
+      "harm": 0.2,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.21857142857142864,
+      "multi_goal_joint_relief": 0.5585714285714286,
+      "multi_goal_selected": "balanced",
+      "scenario": 40
+    },
+    {
+      "balanced_relief": 0.6571428571428571,
+      "baseline_joint_relief": 0.2975,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6571428571428571,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2792857142857143
+        },
+        {
+          "effect": 0.6571428571428571,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2792857142857143
+        }
+      ],
+      "harm": 0.3,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.2610714285714286,
+      "multi_goal_joint_relief": 0.5585714285714286,
+      "multi_goal_selected": "balanced",
+      "scenario": 41
+    },
+    {
+      "balanced_relief": 0.6571428571428571,
+      "baseline_joint_relief": 0.255,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6571428571428571,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2792857142857143
+        },
+        {
+          "effect": 0.6571428571428571,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2792857142857143
+        }
+      ],
+      "harm": 0.4,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.3035714285714286,
+      "multi_goal_joint_relief": 0.5585714285714286,
+      "multi_goal_selected": "balanced",
+      "scenario": 42
+    },
+    {
+      "balanced_relief": 0.6571428571428571,
+      "baseline_joint_relief": 0.21250000000000002,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6571428571428571,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2792857142857143
+        },
+        {
+          "effect": 0.6571428571428571,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2792857142857143
+        }
+      ],
+      "harm": 0.49999999999999994,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.3460714285714286,
+      "multi_goal_joint_relief": 0.5585714285714286,
+      "multi_goal_selected": "balanced",
+      "scenario": 43
+    },
+    {
+      "balanced_relief": 0.6571428571428571,
+      "baseline_joint_relief": 0.16999999999999998,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6571428571428571,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2792857142857143
+        },
+        {
+          "effect": 0.6571428571428571,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2792857142857143
+        }
+      ],
+      "harm": 0.6,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.3885714285714286,
+      "multi_goal_joint_relief": 0.5585714285714286,
+      "multi_goal_selected": "balanced",
+      "scenario": 44
+    },
+    {
+      "balanced_relief": 0.6571428571428571,
+      "baseline_joint_relief": 0.1275,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6571428571428571,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2792857142857143
+        },
+        {
+          "effect": 0.6571428571428571,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2792857142857143
+        }
+      ],
+      "harm": 0.7,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.4310714285714286,
+      "multi_goal_joint_relief": 0.5585714285714286,
+      "multi_goal_selected": "balanced",
+      "scenario": 45
+    },
+    {
+      "balanced_relief": 0.6571428571428571,
+      "baseline_joint_relief": 0.08500000000000008,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6571428571428571,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2792857142857143
+        },
+        {
+          "effect": 0.6571428571428571,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2792857142857143
+        }
+      ],
+      "harm": 0.7999999999999998,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.47357142857142853,
+      "multi_goal_joint_relief": 0.5585714285714286,
+      "multi_goal_selected": "balanced",
+      "scenario": 46
+    },
+    {
+      "balanced_relief": 0.6571428571428571,
+      "baseline_joint_relief": 0.04250000000000004,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6571428571428571,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2792857142857143
+        },
+        {
+          "effect": 0.6571428571428571,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2792857142857143
+        }
+      ],
+      "harm": 0.8999999999999999,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.5160714285714285,
+      "multi_goal_joint_relief": 0.5585714285714286,
+      "multi_goal_selected": "balanced",
+      "scenario": 47
+    },
+    {
+      "balanced_relief": 0.6785714285714286,
+      "baseline_joint_relief": 0.33999999999999997,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6785714285714286,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2883928571428572
+        },
+        {
+          "effect": 0.6785714285714286,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2883928571428572
+        }
+      ],
+      "harm": 0.2,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.23678571428571438,
+      "multi_goal_joint_relief": 0.5767857142857143,
+      "multi_goal_selected": "balanced",
+      "scenario": 48
+    },
+    {
+      "balanced_relief": 0.6785714285714286,
+      "baseline_joint_relief": 0.2975,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6785714285714286,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2883928571428572
+        },
+        {
+          "effect": 0.6785714285714286,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2883928571428572
+        }
+      ],
+      "harm": 0.3,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.27928571428571436,
+      "multi_goal_joint_relief": 0.5767857142857143,
+      "multi_goal_selected": "balanced",
+      "scenario": 49
+    },
+    {
+      "balanced_relief": 0.6785714285714286,
+      "baseline_joint_relief": 0.255,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6785714285714286,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2883928571428572
+        },
+        {
+          "effect": 0.6785714285714286,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2883928571428572
+        }
+      ],
+      "harm": 0.4,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.32178571428571434,
+      "multi_goal_joint_relief": 0.5767857142857143,
+      "multi_goal_selected": "balanced",
+      "scenario": 50
+    },
+    {
+      "balanced_relief": 0.6785714285714286,
+      "baseline_joint_relief": 0.21250000000000002,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6785714285714286,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2883928571428572
+        },
+        {
+          "effect": 0.6785714285714286,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2883928571428572
+        }
+      ],
+      "harm": 0.49999999999999994,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.3642857142857143,
+      "multi_goal_joint_relief": 0.5767857142857143,
+      "multi_goal_selected": "balanced",
+      "scenario": 51
+    },
+    {
+      "balanced_relief": 0.6785714285714286,
+      "baseline_joint_relief": 0.16999999999999998,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6785714285714286,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2883928571428572
+        },
+        {
+          "effect": 0.6785714285714286,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2883928571428572
+        }
+      ],
+      "harm": 0.6,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.40678571428571436,
+      "multi_goal_joint_relief": 0.5767857142857143,
+      "multi_goal_selected": "balanced",
+      "scenario": 52
+    },
+    {
+      "balanced_relief": 0.6785714285714286,
+      "baseline_joint_relief": 0.1275,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6785714285714286,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2883928571428572
+        },
+        {
+          "effect": 0.6785714285714286,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2883928571428572
+        }
+      ],
+      "harm": 0.7,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.44928571428571434,
+      "multi_goal_joint_relief": 0.5767857142857143,
+      "multi_goal_selected": "balanced",
+      "scenario": 53
+    },
+    {
+      "balanced_relief": 0.6785714285714286,
+      "baseline_joint_relief": 0.08500000000000008,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6785714285714286,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2883928571428572
+        },
+        {
+          "effect": 0.6785714285714286,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2883928571428572
+        }
+      ],
+      "harm": 0.7999999999999998,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.49178571428571427,
+      "multi_goal_joint_relief": 0.5767857142857143,
+      "multi_goal_selected": "balanced",
+      "scenario": 54
+    },
+    {
+      "balanced_relief": 0.6785714285714286,
+      "baseline_joint_relief": 0.04250000000000004,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.6785714285714286,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2883928571428572
+        },
+        {
+          "effect": 0.6785714285714286,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.2883928571428572
+        }
+      ],
+      "harm": 0.8999999999999999,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.5342857142857143,
+      "multi_goal_joint_relief": 0.5767857142857143,
+      "multi_goal_selected": "balanced",
+      "scenario": 55
+    },
+    {
+      "balanced_relief": 0.7000000000000001,
+      "baseline_joint_relief": 0.33999999999999997,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.7000000000000001,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.29750000000000004
+        },
+        {
+          "effect": 0.7000000000000001,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.29750000000000004
+        }
+      ],
+      "harm": 0.2,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.2550000000000001,
+      "multi_goal_joint_relief": 0.5950000000000001,
+      "multi_goal_selected": "balanced",
+      "scenario": 56
+    },
+    {
+      "balanced_relief": 0.7000000000000001,
+      "baseline_joint_relief": 0.2975,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.7000000000000001,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.29750000000000004
+        },
+        {
+          "effect": 0.7000000000000001,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.29750000000000004
+        }
+      ],
+      "harm": 0.3,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.2975000000000001,
+      "multi_goal_joint_relief": 0.5950000000000001,
+      "multi_goal_selected": "balanced",
+      "scenario": 57
+    },
+    {
+      "balanced_relief": 0.7000000000000001,
+      "baseline_joint_relief": 0.255,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.7000000000000001,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.29750000000000004
+        },
+        {
+          "effect": 0.7000000000000001,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.29750000000000004
+        }
+      ],
+      "harm": 0.4,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.3400000000000001,
+      "multi_goal_joint_relief": 0.5950000000000001,
+      "multi_goal_selected": "balanced",
+      "scenario": 58
+    },
+    {
+      "balanced_relief": 0.7000000000000001,
+      "baseline_joint_relief": 0.21250000000000002,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.7000000000000001,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.29750000000000004
+        },
+        {
+          "effect": 0.7000000000000001,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.29750000000000004
+        }
+      ],
+      "harm": 0.49999999999999994,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.38250000000000006,
+      "multi_goal_joint_relief": 0.5950000000000001,
+      "multi_goal_selected": "balanced",
+      "scenario": 59
+    },
+    {
+      "balanced_relief": 0.7000000000000001,
+      "baseline_joint_relief": 0.16999999999999998,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.7000000000000001,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.29750000000000004
+        },
+        {
+          "effect": 0.7000000000000001,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.29750000000000004
+        }
+      ],
+      "harm": 0.6,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.4250000000000001,
+      "multi_goal_joint_relief": 0.5950000000000001,
+      "multi_goal_selected": "balanced",
+      "scenario": 60
+    },
+    {
+      "balanced_relief": 0.7000000000000001,
+      "baseline_joint_relief": 0.1275,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.7000000000000001,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.29750000000000004
+        },
+        {
+          "effect": 0.7000000000000001,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.29750000000000004
+        }
+      ],
+      "harm": 0.7,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.4675000000000001,
+      "multi_goal_joint_relief": 0.5950000000000001,
+      "multi_goal_selected": "balanced",
+      "scenario": 61
+    },
+    {
+      "balanced_relief": 0.7000000000000001,
+      "baseline_joint_relief": 0.08500000000000008,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.7000000000000001,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.29750000000000004
+        },
+        {
+          "effect": 0.7000000000000001,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.29750000000000004
+        }
+      ],
+      "harm": 0.7999999999999998,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.51,
+      "multi_goal_joint_relief": 0.5950000000000001,
+      "multi_goal_selected": "balanced",
+      "scenario": 62
+    },
+    {
+      "balanced_relief": 0.7000000000000001,
+      "baseline_joint_relief": 0.04250000000000004,
+      "baseline_selected": "specialist-left",
+      "goal_explanations": [
+        {
+          "effect": 0.7000000000000001,
+          "goal_id": "left",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.29750000000000004
+        },
+        {
+          "effect": 0.7000000000000001,
+          "goal_id": "right",
+          "normalized_relief": 0.85,
+          "pressure": 0.85,
+          "weighted_effect": 0.29750000000000004
+        }
+      ],
+      "harm": 0.8999999999999999,
+      "independent_recommendations": [
+        "specialist-left",
+        "specialist-right"
+      ],
+      "joint_relief_gain": 0.5525,
+      "multi_goal_joint_relief": 0.5950000000000001,
+      "multi_goal_selected": "balanced",
+      "scenario": 63
+    }
+  ],
+  "schema_version": "1.0"
+}
