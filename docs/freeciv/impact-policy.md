@@ -285,6 +285,14 @@ identity and fail-closed final scoring, reduced mean gameplay by 2.29% and
 3.24% in independent exact-behavior cohorts. See
 [the scheduler observer-boundary smoke](evidence/scheduler-observer-boundary-smoke.md).
 
+Authoritative PLN queries also no longer build and discard the generic full
+state before constructing their packet-backed projection. Generic state is
+loaded lazily only for non-PLN formats or the established extraction-error
+fallback. Two independent exact-behavior cohorts bracketed the prior control
+within engine variance; the accepted benefit is the deterministic removal of
+unused work, not a latency claim. See
+[the lazy state-construction smoke](evidence/pln-lazy-state-construction-smoke.md).
+
 Exploration destinations also gain conservative cross-source failure evidence.
 One failed move remains retryable because occupancy and tactical obstructions can
 be transient. After the same unit type remains stationary while targeting the

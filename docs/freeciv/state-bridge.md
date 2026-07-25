@@ -15,7 +15,7 @@ The patch is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. Its SHA-256 is
-`c3c58d71996737a92ce27bd3616dcbfdfb831a6f327331622a4ce2d3e9340437`.
+`283ff5c5554ac7fc709ec0294e14dab0be47d06f93e8fbdfa74283eb79f24802`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 The same tracked external patch retains Publite2's five-second restart backoff
@@ -31,6 +31,14 @@ another's response even when their player, turn, and packet counters coincide,
 and incoming authoritative packets also invalidate cached city and technology
 actions. Player ID `0` is treated as an ordinary, valid cache owner during
 targeted eviction.
+
+The authoritative handler builds only the packet-backed PLN projection on its
+successful path. It does not pre-build the generic full-state representation;
+that representation remains lazy and is loaded exactly once if authoritative
+extraction fails and the manual fallback is required. A larger cache was
+measured and rejected because authenticated decompression was slower than
+rebuilding these projections; see
+[the construction smoke](evidence/pln-lazy-state-construction-smoke.md).
 
 An authoritative WebSocket state query may supply a non-negative
 `after_source_seq` together with a bounded `wait_timeout_ms` in `1..5000`.

@@ -878,7 +878,7 @@ index 045d314..9a9d8fb 100644
              "reset_on_turn_end": true
          }
 diff --git a/freeciv-proxy/llm_handler.py b/freeciv-proxy/llm_handler.py
-index 9be5668..59ea051 100644
+index 9be5668..afbcd94 100644
 --- a/freeciv-proxy/llm_handler.py
 +++ b/freeciv-proxy/llm_handler.py
 @@ -16,7 +16,7 @@ import socket
@@ -1003,7 +1003,35 @@ index 9be5668..59ea051 100644
                  elif params:  # Pass through any other params
                      formatted['target'] = params
              
-@@ -2886,6 +2940,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -2858,39 +2912,51 @@ class LLMWSHandler(websocket.WebSocketHandler):
+         """Build optimized game state for LLM consumption using StateExtractor"""
+         logger.debug(f"🏗️ _build_optimized_state called for agent {self.agent_id}, player_id={self.player_id}")
+ 
+-        # Get actual game state from civcom if available
+-        if self.civcom and hasattr(self.civcom, 'get_full_state'):
+-            try:
+-                logger.debug(f"📥 Fetching full state from civcom for player {self.player_id}")
+-                full_state = self.civcom.get_full_state(self.player_id)
+-                logger.info(
+-                    f"✓ Received full state from civcom:\n"
+-                    f"   Turn: {full_state.get('turn', 'N/A')}\n"
+-                    f"   Players: {len(full_state.get('players', {}))}\n"
+-                    f"   Units: {len(full_state.get('units', {}))}\n"
+-                    f"   Cities: {len(full_state.get('cities', {}))}\n"
+-                    f"   Map tiles: {len(full_state.get('map', {}).get('tiles', []))}"
+-                )
+-            except Exception as e:
+-                logger.warning(f"⚠️ Failed to get game state from civcom: {e}, using fallback")
+-                full_state = self._get_fallback_state()
+-        else:
+-            logger.warning(
+-                f"⚠️ Civcom not available or missing get_full_state method:\n"
+-                f"   Civcom exists: {self.civcom is not None}\n"
+-                f"   Has get_full_state: {hasattr(self.civcom, 'get_full_state') if self.civcom else False}\n"
+-                f"   Using fallback state"
+-            )
+-            full_state = self._get_fallback_state()
+-
          # Map format_type to StateFormat enum
          format_map = {
              'llm_optimized': StateFormat.LLM_OPTIMIZED,
@@ -1011,7 +1039,57 @@ index 9be5668..59ea051 100644
              'full': StateFormat.FULL,
              'delta': StateFormat.DELTA
          }
-@@ -5061,6 +5116,21 @@ class LLMWSHandler(websocket.WebSocketHandler):
+         state_format = format_map.get(format_type, StateFormat.LLM_OPTIMIZED)
+ 
++        def load_full_state() -> Dict[str, Any]:
++            """Load the generic state only for formats and fallbacks that consume it."""
++            if self.civcom and hasattr(self.civcom, 'get_full_state'):
++                try:
++                    logger.debug(f"📥 Fetching full state from civcom for player {self.player_id}")
++                    result = self.civcom.get_full_state(self.player_id)
++                    logger.info(
++                        f"✓ Received full state from civcom:\n"
++                        f"   Turn: {result.get('turn', 'N/A')}\n"
++                        f"   Players: {len(result.get('players', {}))}\n"
++                        f"   Units: {len(result.get('units', {}))}\n"
++                        f"   Cities: {len(result.get('cities', {}))}\n"
++                        f"   Map tiles: {len(result.get('map', {}).get('tiles', []))}"
++                    )
++                    return result
++                except Exception as e:
++                    logger.warning(f"⚠️ Failed to get game state from civcom: {e}, using fallback")
++                    return self._get_fallback_state()
++
++            logger.warning(
++                f"⚠️ Civcom not available or missing get_full_state method:\n"
++                f"   Civcom exists: {self.civcom is not None}\n"
++                f"   Has get_full_state: {hasattr(self.civcom, 'get_full_state') if self.civcom else False}\n"
++                f"   Using fallback state"
++            )
++            return self._get_fallback_state()
++
++        # PLN extraction reads its authoritative packet projection directly. Building the
++        # generic state first duplicated all unit/city/map work and its result was unused.
++        # Keep it lazy so the established manual fallback remains available on failure.
++        full_state = (
++            None
++            if state_format == StateFormat.PLN_AUTHORITATIVE
++            else load_full_state()
++        )
++
+         # Use StateExtractor to format the state - this ensures map validation and proper structure
+         try:
+             if not self.game_id:
+@@ -2918,6 +2984,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
+             )
+             import traceback
+             logger.error(f"StateExtractor traceback: {traceback.format_exc()}")
++            if full_state is None:
++                full_state = load_full_state()
+             state = self._build_fallback_state_from_full(full_state)
+ 
+         # Add player_id and timestamp which are handler-specific
+@@ -5061,6 +5129,21 @@ class LLMWSHandler(websocket.WebSocketHandler):
  
          session = session_manager.validate_session(self.session_id)
          if session:
@@ -1815,17 +1893,19 @@ index dc8c8ab..77ed308 100644
 +        assert result['dest_tile'] == 56
 diff --git a/freeciv-proxy/tests/test_pln_authoritative_state.py b/freeciv-proxy/tests/test_pln_authoritative_state.py
 new file mode 100644
-index 0000000..b2a879b
+index 0000000..aa2ca05
 --- /dev/null
 +++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
-@@ -0,0 +1,457 @@
+@@ -0,0 +1,504 @@
 +"""Contract tests for the packet-backed PLN authoritative state format."""
 +
 +import asyncio
 +import json
++from unittest.mock import Mock
 +
 +from activity_constants import ACTIVITY_NAMES
 +from civcom import ACTION_TRANSPORT_EMBARK, CivCom, get_activity_name
++from llm_handler import LLMWSHandler
 +from message_validator import MessageValidator, ValidationError
 +from packet_constants import DS_ALLIANCE, DS_WAR, PACKET_UNIT_SHORT_INFO
 +from security import InputSanitizer
@@ -1977,6 +2057,51 @@ index 0000000..b2a879b
 +    state = StateExtractor(civcom=make_civcom()).extract_state(
 +        "contract-game", 0, StateFormat.PLN_AUTHORITATIVE)
 +    assert state["format"] == "pln_authoritative"
++
++
++def make_handler():
++    handler = Mock()
++    handler.agent_id = "contract-agent"
++    handler.player_id = 0
++    handler.game_id = "contract-game"
++    handler.civcom = Mock()
++    handler.state_extractor = Mock()
++    handler._get_fallback_state = Mock(return_value={"turn": 0})
++    handler._build_fallback_state_from_full = Mock(
++        return_value={"format": "fallback"})
++    handler._build_optimized_state = (
++        LLMWSHandler._build_optimized_state.__get__(handler, LLMWSHandler))
++    return handler
++
++
++def test_authoritative_handler_skips_unused_generic_state_build():
++    handler = make_handler()
++    handler.state_extractor.extract_state.return_value = {
++        "format": "pln_authoritative",
++        "authoritative": {"source_seq": 44},
++    }
++
++    state = handler._build_optimized_state("pln_authoritative", False)
++
++    handler.civcom.get_full_state.assert_not_called()
++    handler._get_fallback_state.assert_not_called()
++    assert state["format"] == "pln_authoritative"
++    assert state["player_id"] == 0
++
++
++def test_authoritative_handler_loads_generic_state_for_error_fallback():
++    handler = make_handler()
++    full_state = {"turn": 12, "units": {}, "cities": {}}
++    handler.civcom.get_full_state.return_value = full_state
++    handler.state_extractor.extract_state.side_effect = RuntimeError(
++        "authoritative projection unavailable")
++
++    state = handler._build_optimized_state("pln_authoritative", False)
++
++    handler.civcom.get_full_state.assert_called_once_with(0)
++    handler._build_fallback_state_from_full.assert_called_once_with(full_state)
++    assert state["format"] == "fallback"
++    assert state["player_id"] == 0
 +
 +
 +def test_extractor_cache_does_not_mask_same_turn_packet_revision():
