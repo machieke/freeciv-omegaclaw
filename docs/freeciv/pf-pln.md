@@ -72,6 +72,32 @@ event. Phase 2 implementation and adversarial benchmark evidence are recorded
 in
 [`evidence/pf-provenance-contradiction-phase-2.md`](evidence/pf-provenance-contradiction-phase-2.md).
 
+## Observation value and simulator containment
+
+Phase 3 adds exact, myopic one-step expected information gain over a bounded
+discrete hypothesis set. Each candidate test declares every outcome likelihood
+for every hypothesis. The evaluator enumerates those outcomes, computes
+expected posterior entropy, and passes information value, pressure relief, and
+the existing vector cost to the same scheduler used for actions. Observation
+and action choices therefore compete under one cost-aware decision rule.
+
+Active conflict atoms can inject `observe` pressure into this planner. Candidate
+tests require an immutable simulator ID, version, model hash, exactness flag,
+and confidence cap. Scheduling a test records both that model provenance and
+the goal-conditioned observation policy. Merely simulating an outcome does not
+write truth: a result must enter through the evidence store, and an inexact
+simulator cannot exceed either its own declared confidence cap or the
+configured global cap.
+
+Goal-selected observations are treated as selectively sampled. A recorded
+propensity conservatively scales their evidence confidence; when propensity is
+unknown, the declared `selection_unknown_discount` widens uncertainty instead
+of treating the sample as representative. This is a containment approximation,
+not a claim of unbiased causal identification.
+
+The exhaustive parity and abduction-selection evidence is recorded in
+[`evidence/pf-observation-voi-phase-3.md`](evidence/pf-observation-voi-phase-3.md).
+
 ## Live integration
 
 The experimental harness profiles enable the pressure ranker:

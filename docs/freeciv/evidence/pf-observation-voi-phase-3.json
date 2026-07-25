@@ -1,0 +1,49 @@
+{
+  "artifact": {
+    "path": "artifacts/freeciv/pf-voi-phase-3.json",
+    "sha256": "c38d7f63442252dc7e6a3a9745b0cc97879e155a9be907ee5d780a046ab0b864",
+    "structural_hash": "4c3a36497168c5fb3ec10d121bc1e0bae38b03525233d04cec1e8806098b33f2"
+  },
+  "benchmark": "pf-pln-phase-3-exhaustive-voi",
+  "configuration": {
+    "cases": 256,
+    "hypotheses_per_case": 2,
+    "selection_unknown_discount": 0.5,
+    "simulation_confidence_cap": 0.6,
+    "tests_per_case": 4
+  },
+  "exhaustive_parity": {
+    "cases": 256,
+    "ranking_errors": 0,
+    "tests_evaluated": 1024
+  },
+  "implementation_commit": "d5428ac",
+  "schema_version": "1.0",
+  "selection": {
+    "absolute_information_gain_margin_bits": 0.36492927096779615,
+    "relative_lift_over_uniform_random": 1.8481420957626367,
+    "selected_mean_information_gain_bits": 0.562386637370788,
+    "selected_test_counts": {
+      "destination-scout": 256
+    },
+    "uniform_random_expected_mean_information_gain_bits": 0.19745736640299183
+  },
+  "simulator_provenance": {
+    "confidence_cap": 0.6,
+    "exact": false,
+    "model_hash": "a81ca337b2802ca631f882530db8ccf383462c0c3d651a96e8ca821bf8be09a8",
+    "model_id": "freeciv-abduction-observation-model",
+    "model_version": "1.0",
+    "source_kind": "simulator"
+  },
+  "validation": {
+    "event_types_current": true,
+    "freeciv_python_tests_passed": 292,
+    "observability_boundary_violations": 0,
+    "observability_fixture_events": 140,
+    "observability_fixtures_valid": 11,
+    "observability_unit_tests_passed": 20,
+    "production_build_passed": true,
+    "typescript_typecheck_passed": true
+  }
+}
