@@ -83,7 +83,7 @@ Configuration ownership is deliberate:
 | provider endpoint/model mapping | `profile/llm_providers.yaml` |
 | proxy endpoints, token, container, source discovery | environment variables above |
 
-The impact policy also versions a 0.5-second accepted-action refresh deadline
+The impact policy also versions a 0.3-second accepted-action refresh deadline
 and a 50 ms two-sample stability interval. A changed fingerprint resets the
 sample count; the interval is not a single-sample shortcut.
 

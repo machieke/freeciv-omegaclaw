@@ -216,8 +216,8 @@ exact founder-route successes and one settlement completion; the earlier
 timeout-as-failure accounting reported neither. Reducing confirmation polling
 from 10 Hz to 5 Hz also eliminated an observed proxy `E429`. A later two-arm,
 60-turn engine trace observed 54 two-second timeouts, all recovered on the next
-authoritative turn with zero expirations. The current 0.5-second deadline still
-permits the required two identical samples at 5 Hz; effects that outlive it
+authoritative turn with zero expirations. The historical 0.5-second deadline
+permitted the required two identical samples at 5 Hz; effects that outlive it
 remain in the deferred ledger rather than being mislabeled as failures.
 The same-seed development replay preserved both scores and all audited action
 outcomes while reducing mean arm wall time by 45.5%; see
@@ -231,6 +231,17 @@ comparison, canonical actions and outcomes were identical while mean gameplay
 latency fell 5.29% and mean confirmation latency fell 10.15%. This remains
 engineering evidence rather than a general performance claim; see
 [the source-wait smoke](evidence/source-sequence-wait-50ms-smoke.md).
+
+The accepted two-seed traces then showed a bimodal refresh distribution:
+same-turn confirmations completed within 248 ms, while 55 actions across the
+two seeds produced no same-turn snapshot and consumed the complete 500 ms
+window before later recovery. Categories overlapped both groups, so a
+category-specific bypass was rejected. The release profile instead uses a
+300 ms bound, retaining margin above the observed successful maximum while
+preserving deferred reconciliation. A clean two-seed 500 ms/300 ms comparison
+preserved exact canonical action sequences and outcomes while reducing mean
+gameplay time by 13.39%; see
+[the 300 ms confirmation smoke](evidence/confirmation-timeout-300ms-smoke.md).
 
 Exploration destinations also gain conservative cross-source failure evidence.
 One failed move remains retryable because occupancy and tactical obstructions can

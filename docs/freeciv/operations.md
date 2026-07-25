@@ -52,7 +52,7 @@ and independent identical-state sample remain authoritative. Repeated
 same-sequence queries before the required revision indicate an unpatched or
 stale proxy mount; verify the pinned patch digest before changing timeouts.
 
-Accepted impact actions receive a bounded 0.5-second authoritative refresh
+Accepted impact actions receive a bounded 0.3-second authoritative refresh
 window with two identical samples separated by at least 50 ms. A differing
 state, enemy-observation, or exact legal-action digest restarts the stability
 count, so the shorter interval reduces settled action latency without accepting
