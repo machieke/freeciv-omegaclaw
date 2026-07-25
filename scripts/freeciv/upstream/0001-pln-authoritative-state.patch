@@ -1415,7 +1415,27 @@ index 803966c..5d2f0f5 100644
  
  
  class StateExtractor:
-@@ -561,6 +562,8 @@ class StateExtractor:
+@@ -539,11 +540,16 @@ class StateExtractor:
+         if not civcom:
+             raise CivComNotFoundError(game_id)
+ 
+-        # Get current turn from civcom for turn-aware cache key
++        # A turn is not an authoritative revision: same-turn actions update
++        # research, units, cities, and legal actions. Include the packet
++        # sequence so the extractor's inner cache cannot mask a fresh outer
++        # state-query revision until its TTL expires.
+         current_turn = getattr(civcom, 'game_turn', None)
++        current_source_seq = getattr(civcom, 'source_seq', None)
+ 
+-        # Build cache key with current turn to prevent stale data
+-        cache_key = self._build_cache_key(game_id, player_id, format_type.value, since_turn, current_turn)
++        cache_key = self._build_cache_key(
++            game_id, player_id, format_type.value, since_turn, current_turn,
++            current_source_seq)
+ 
+         # Check cache
+         cached_state = self.cache.get(cache_key)
+@@ -561,6 +567,8 @@ class StateExtractor:
                  # Use civcom.build_llm_optimized_state() directly as it already
                  # includes legal_actions from _get_legal_actions_optimized()
                  state = civcom.build_llm_optimized_state(player_id)
@@ -1625,7 +1645,33 @@ index 803966c..5d2f0f5 100644
          
          # === FORTIFY ACTION ===
          if can_do_action(ACTION_FORTIFY):
-@@ -2614,9 +2714,9 @@ class StateExtractorHandler(web.RequestHandler):
+@@ -2447,15 +2552,21 @@ class StateExtractor:
+             logger.warning(f"Error analyzing expansion sites: {e}")
+             return 2  # Conservative fallback
+ 
+-    def _build_cache_key(self, game_id: str, player_id: int, format_type: str, since_turn: Optional[int] = None, current_turn: Optional[int] = None) -> str:
+-        """Build cache key for state including current turn to prevent stale data.
++    def _build_cache_key(self, game_id: str, player_id: int, format_type: str,
++                         since_turn: Optional[int] = None,
++                         current_turn: Optional[int] = None,
++                         current_source_seq: Optional[int] = None) -> str:
++        """Build a cache key for one packet-backed state revision.
+ 
+-        The current_turn parameter is critical for cache correctness - without it,
+-        state queries return stale data when turns advance faster than cache TTL.
++        ``current_turn`` prevents cross-turn reuse. ``current_source_seq``
++        prevents same-turn reuse after an authoritative packet changes research,
++        units, cities, or legal actions.
+         """
+         key = f"{game_id}_{player_id}_{format_type}"
+         if current_turn is not None:
+             key += f"_turn_{current_turn}"
++        if current_source_seq is not None:
++            key += f"_seq_{current_source_seq}"
+         if since_turn is not None:
+             key += f"_since_{since_turn}"
+         return key
+@@ -2614,9 +2725,9 @@ class StateExtractorHandler(web.RequestHandler):
              since_turn = self.get_argument('since_turn', None)
  
              # Validate format parameter (must match validate_request_parameters accepted formats)
@@ -1772,7 +1818,7 @@ new file mode 100644
 index 0000000..aa8a85e
 --- /dev/null
 +++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
-@@ -0,0 +1,436 @@
+@@ -0,0 +1,457 @@
 +"""Contract tests for the packet-backed PLN authoritative state format."""
 +
 +import asyncio
@@ -1931,6 +1977,27 @@ index 0000000..aa8a85e
 +    state = StateExtractor(civcom=make_civcom()).extract_state(
 +        "contract-game", 0, StateFormat.PLN_AUTHORITATIVE)
 +    assert state["format"] == "pln_authoritative"
++
++
++def test_extractor_cache_does_not_mask_same_turn_packet_revision():
++    civcom = make_civcom()
++    extractor = StateExtractor(civcom=civcom)
++
++    first = extractor.extract_state(
++        "contract-game", 0, StateFormat.PLN_AUTHORITATIVE)
++    civcom.source_seq += 1
++    civcom.techs[3] = {"name": "Industrialization"}
++    civcom.research_info[0].update({
++        "researching": 3,
++        "researching_cost": 80,
++    })
++    second = extractor.extract_state(
++        "contract-game", 0, StateFormat.PLN_AUTHORITATIVE)
++
++    assert first["authoritative"]["source_seq"] == 44
++    assert first["authoritative"]["research"]["researching_name"] == "Writing"
++    assert second["authoritative"]["source_seq"] == 45
++    assert second["authoritative"]["research"]["researching_name"] == "Industrialization"
 +
 +
 +def test_source_sequence_wait_wakes_only_after_a_new_revision():

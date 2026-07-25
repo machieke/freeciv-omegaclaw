@@ -55,7 +55,10 @@ Authoritative refreshes use the v3 proxy contract's bounded
 revision. The proxy timeout returns current state, while the harness deadline
 and independent identical-state sample remain authoritative. Repeated
 same-sequence queries before the required revision indicate an unpatched or
-stale proxy mount; verify the pinned patch digest before changing timeouts.
+stale proxy mount. A response whose source sequence advances while its
+same-turn research, city, unit, or legal-action payload remains unchanged for
+the five-second cache TTL indicates the obsolete turn-only inner extractor
+cache. Verify the pinned patch digest before changing timeouts.
 
 Accepted impact actions receive a bounded 0.3-second authoritative refresh
 window with two identical samples separated by at least 50 ms. A differing
