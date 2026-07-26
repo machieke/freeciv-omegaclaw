@@ -322,6 +322,39 @@ def test_founder_route_learns_exact_traversal_for_another_founder():
     assert not changed_decision.candidate.projection["traversable_edge"]
 
 
+def test_founder_move_candidate_reuses_route_evidence_and_action_catalog():
+    advertised = [
+        {"action_type": "unit_move", "actor_id": 1,
+         "target": {"x": 1, "y": 0}, "is_valid": True},
+        {"action_type": "unit_move", "actor_id": 1,
+         "target": {"x": 0, "y": 1}, "is_valid": True},
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    snapshot = _snapshot([_unit(1, "Settlers")], advertised)
+    planner = GroundedImpactPlanner(
+        ruleset_ir=_ruleset_ir((("Settlers", "unit", 30),)))
+    actions = planner._actions(snapshot)
+    founder_types = planner._founder_types(snapshot, actions)
+    evidence_calls = []
+    evidence = planner._founder_move_evidence
+
+    def recording_evidence(current, action, current_founder_types):
+        evidence_calls.append(action)
+        return evidence(current, action, current_founder_types)
+
+    planner._founder_move_evidence = recording_evidence
+    candidates = [
+        planner._move_candidate(
+            snapshot, action, founder_types, actions=actions)
+        for action in actions if action.get("action_type") == "unit_move"
+    ]
+
+    assert all(candidate is not None for candidate in candidates)
+    assert evidence_calls == [
+        action for action in actions
+        if action.get("action_type") == "unit_move"]
+
+
 def test_founder_route_continues_only_a_pre_spacing_cardinal_corridor():
     ir = _ruleset_ir((("Settlers", "unit", 30),))
     capital = _city()

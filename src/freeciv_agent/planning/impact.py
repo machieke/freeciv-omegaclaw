@@ -1281,12 +1281,14 @@ class GroundedImpactPlanner(object):
         }
 
     def _founder_cycle_has_alternative(
-            self, snapshot, action, founder_types, actions=None):
+            self, snapshot, action, founder_types, actions=None,
+            evidence=None):
         """Suppress a recent revisit only when a fresh grounded move exists."""
         if len(snapshot.cities) >= self.expansion_city_target:
             return False
-        evidence = self._founder_move_evidence(
-            snapshot, action, founder_types)
+        if evidence is None:
+            evidence = self._founder_move_evidence(
+                snapshot, action, founder_types)
         if not evidence.get("recent_revisit"):
             return False
         actor_id = action.get("actor_id")
@@ -2240,7 +2242,8 @@ class GroundedImpactPlanner(object):
         return not (unit_type in EXPLORER_TYPES
                     and (x, y) not in self.visited_positions)
 
-    def _move_candidate(self, snapshot, action, founder_types):
+    def _move_candidate(
+            self, snapshot, action, founder_types, actions=None):
         unit = snapshot.unit(action.get("actor_id"))
         target = action.get("target", {})
         if unit is None or not isinstance(target, dict):
@@ -2290,18 +2293,19 @@ class GroundedImpactPlanner(object):
                      "recovered_population": population,
                      "target_city_distance": target_distance,
                      "target_city_ids": nearest_city_ids})
+            evidence = self._founder_move_evidence(
+                snapshot, action, founder_types)
             if self._founder_cycle_has_alternative(
-                    snapshot, action, founder_types):
+                    snapshot, action, founder_types, actions=actions,
+                    evidence=evidence):
                 return None
             if self._founder_attrition_has_alternative(
-                    snapshot, action, founder_types):
+                    snapshot, action, founder_types, actions=actions):
                 return None
             projection = None
             route_utility = 0.0
             utility = 800.0 + city_distance * 20.0 + novelty * 15.0
             if self.production_strategy == "horizon_score":
-                evidence = self._founder_move_evidence(
-                    snapshot, action, founder_types)
                 # Direct actor-local evidence is strong enough to prune this
                 # unchanged edge. Cross-actor evidence is only a preference:
                 # transient occupancy must not make a legal corridor disappear.
@@ -2504,7 +2508,8 @@ class GroundedImpactPlanner(object):
                     action_key=key, action_keys=available_action_keys,
                     shared_context=production_context)
             elif action_type == "unit_move":
-                candidate = self._move_candidate(snapshot, action, founder_types)
+                candidate = self._move_candidate(
+                    snapshot, action, founder_types, actions=actions)
             elif action_type == "unit_fortify":
                 unit = snapshot.unit(action.get("actor_id"))
                 if (unit is not None and unit.unit_id not in self._fortified_units
