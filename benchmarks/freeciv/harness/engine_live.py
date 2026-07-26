@@ -1917,7 +1917,12 @@ async def _play(run_dir, manifest, context):
                     decision_event_started = time.perf_counter()
                     if decision.pressure_artifact is not None:
                         pressure_value = decision.pressure_artifact["pressure"]
-                        pressure_hash = structural_hash(pressure_value)
+                        schedule_value = decision.pressure_artifact["schedule"]
+                        # Scheduling already binds the exact materialized
+                        # pressure artifact to this decision. Reuse that
+                        # identity instead of serializing and hashing the
+                        # artifact a second time during event emission.
+                        pressure_hash = schedule_value["pressure_hash"]
                         pressure_id = "pressure-" + pressure_hash[:20]
                         pressure_event = writer.emit(
                             "pressure_propagated", snapshot.turn, {
@@ -1932,7 +1937,6 @@ async def _play(run_dir, manifest, context):
                                 "result_hash": pressure_hash,
                                 "traces": pressure_value["traces"],
                             }, caused_by=[parent])
-                        schedule_value = decision.pressure_artifact["schedule"]
                         decision_id = "pressure-decision-" + schedule_value[
                             "structural_hash"][:20]
                         scored_event = writer.emit(

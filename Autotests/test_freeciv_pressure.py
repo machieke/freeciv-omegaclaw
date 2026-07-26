@@ -1075,6 +1075,7 @@ def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
 
     pressure = artifact["pressure"]
     pressure_hash = structural_hash(pressure)
+    assert artifact["schedule"]["pressure_hash"] == pressure_hash
     pressure_id = "pressure-" + pressure_hash[:20]
     schedule = artifact["schedule"]
     with tempfile.TemporaryDirectory() as directory:
