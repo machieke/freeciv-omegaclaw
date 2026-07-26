@@ -167,6 +167,33 @@ def test_policy_produces_founder_then_infrastructure_without_midbuild_switching(
         cities=midbuild_city, source_seq=3)) is None
 
 
+def test_candidate_enumeration_skips_unplanned_production_projection():
+    actions = [
+        _production(10, "Pyramids", 3, 1),
+        _production(10, "Library", 3, 17),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    ir = _ruleset_ir((
+        ("Pyramids", "improvement", 200),
+        ("Library", "improvement", 60),
+    ))
+    planner = GroundedImpactPlanner(
+        {"expansion_city_target": 1}, ruleset_ir=ir)
+    projected = []
+    project = planner._production_projection
+
+    def recording_projection(city, name, remaining_turns, **kwargs):
+        projected.append(name)
+        return project(city, name, remaining_turns, **kwargs)
+
+    planner._production_projection = recording_projection
+    decision = planner.plan(_snapshot(
+        [_unit(1, "Settlers"), _unit(11, "Alpine Troops")], actions))
+
+    assert decision.candidate.action["target"]["production_type"] == "Library"
+    assert "Pyramids" not in projected
+
+
 def test_founder_moves_outward_then_founds_only_at_configured_spacing():
     move_near = {"action_type": "unit_move", "actor_id": 1,
                  "target": {"x": 1, "y": 0}, "is_valid": True}

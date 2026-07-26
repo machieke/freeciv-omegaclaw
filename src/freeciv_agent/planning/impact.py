@@ -182,6 +182,11 @@ def _normalized_type(value):
     return str(value or "").strip().lower().replace("_", " ")
 
 
+PLANNED_PRODUCTION_TYPES = frozenset(
+    _normalized_type(name)
+    for name in IMPROVEMENT_PRIORITY + DEFENDER_PRIORITY)
+
+
 def _distance(x, y, tx, ty, width, height):
     if None in (x, y, tx, ty) or width <= 0 or height <= 0:
         return 0
@@ -1968,6 +1973,14 @@ class GroundedImpactPlanner(object):
             return None
         name = _target_name(action)
         normalized = _normalized_type(name)
+        # The policy can only select a ruleset-backed founder or one of its
+        # declared economy/defense targets. Reject every other legal build
+        # alternative before constructing current and proposed horizon
+        # projections.
+        if (normalized not in founder_types
+                and normalized not in LEGACY_FOUNDER_TYPES
+                and normalized not in PLANNED_PRODUCTION_TYPES):
+            return None
         city_count = len(snapshot.cities)
         current_name = shared(
             ("current_production_name", city.city_id),
