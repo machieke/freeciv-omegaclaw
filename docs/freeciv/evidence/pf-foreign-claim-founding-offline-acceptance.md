@@ -68,3 +68,45 @@ Acceptance requires:
   grounded route or settlement; and
 - score, margin, and lead are reported regardless of direction without
   updating any statistical claim.
+
+## Selected engine result
+
+The frozen replay completed both arms from clean commit `c624a96`, with no
+active infrastructure failure, engine rejection, model fallback, initial-state
+mismatch, source drift, schema failure, or replay-integrity failure. The
+configuration hash is
+`83e676f9aaf9bdd1bdca0a81b832f3a7b487fe8c85594453fd4a646606a067e1`
+and the implementation hash is
+`25eaf1e4a702817f90867ae5b6c96bf868c1bc882c4fae1c63f14d6e0f4175f9`.
+
+The corrected treatment made one founding attempt and completed one
+settlement. Its immutable pre-correction treatment trace made nine attempts,
+completed one settlement, and retained two live founders. The correction
+therefore removed eight accepted-but-ineffective founding requests and,
+together with adapter 1.6 recovery, left no stranded founder. It did not add a
+settlement or city: both current arms gained one city and ended with two.
+Treatment recovered four population points through two verified joins.
+
+The selected pair scored 116 under baseline and 118 under treatment, while the
+opponent score increased enough for margin to change from +4 to +2. The
+historical pre-correction treatment scored 115 with margin -1. These
+single-selected-seed differences diagnose behavior only. They are neither
+randomized evidence for the correction nor a score or win-rate estimate.
+
+All two event streams and 3,344 events validate. Exact replay reproduced all
+135 treatment decisions with zero integrity failure; 22 decisions (16.3%)
+changed under replay instrumentation while the source set remained unchanged.
+The aggregate SHA-256 is
+`8d0c52f8b9ba99f40d2e8ccadfb423b56e54f1ff967c13dc0bf690f2527e2dd1`
+and the replay artifact hash is
+`27228a88c8fa5ca6bc9e87eb105f8eee8fc8fa917229b528c34c9c1ca92fcf2a`.
+
+## Decision
+
+Retain the packet-grounded foreign-owner gate as correctness and
+action-efficiency hardening. Do not promote it as a score improvement and do
+not spend a fresh population cohort on the same retry mechanism. The trace
+shows the next bottleneck is choosing a reachable valid frontier before the
+runway deadline, so the next optimization must use exact packet-known
+settlement eligibility during founder movement rather than another regional
+retry rule.

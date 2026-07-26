@@ -1,0 +1,90 @@
+{
+  "artifacts": {
+    "aggregate": "artifacts/freeciv/pf-foreign-claim-founding-mechanism-v1/impact-aggregate.json",
+    "aggregate_sha256": "8d0c52f8b9ba99f40d2e8ccadfb423b56e54f1ff967c13dc0bf690f2527e2dd1",
+    "event_stream_sha256": "ac3c3bd8cd145b9c21b351685430bb956d069a9bc4cabd4eb54ae12b1b903018",
+    "exact_replay_artifact_hash": "27228a88c8fa5ca6bc9e87eb105f8eee8fc8fa917229b528c34c9c1ca92fcf2a",
+    "exact_replay_sha256": "0275d2847cf0e7c90f124331ddd47d9197f2703c79b154c8a7c6a10f77bce991",
+    "exact_replay_source_set_hash": "cf2fa9bed1393c40c69dc8b32888d0b8f74b6c856621a2cdf30fcc23fa95cd55",
+    "run_summary_sha256": "efdabbf05503f284ccf4e53ff6d7c17717400b84f223003f912b8bc7055e95bd"
+  },
+  "claim": {
+    "claim_eligible": false,
+    "score_improvement_supported": false,
+    "status": "selected_seed_mechanism_only",
+    "win_rate_supported": false
+  },
+  "cohort": {
+    "active_infrastructure_failures": 0,
+    "complete_pairs": 1,
+    "completed_arms": 2,
+    "name": "foreign_claim_founding_mechanism_v1",
+    "planned_pairs": 1,
+    "reused_seed": 3674286,
+    "reused_seeds_from": "expansion_target_confirmatory_v1"
+  },
+  "decision_replay": {
+    "changed_decisions": 22,
+    "decision_change_rate": 0.16296296296296298,
+    "exact_replay_files": 1,
+    "integrity_failures": 0,
+    "sources_unchanged": true,
+    "total_decisions": 135
+  },
+  "historical_treatment": {
+    "cities_gained": 1,
+    "final_city_count": 2,
+    "live_founders": 2,
+    "score_margin_turn_n": -1,
+    "score_turn_n": 115,
+    "settlement_attempts": 9,
+    "settlement_completions": 1
+  },
+  "mechanism": {
+    "baseline": {
+      "cities_gained": 1,
+      "final_city_count": 2,
+      "live_founders": 0,
+      "population_recovered": 2,
+      "score_margin_turn_n": 4,
+      "score_turn_n": 116,
+      "settlement_attempts": 1,
+      "settlement_completions": 1
+    },
+    "treatment": {
+      "cities_gained": 1,
+      "final_city_count": 2,
+      "live_founders": 0,
+      "population_recovered": 4,
+      "score_margin_turn_n": 2,
+      "score_turn_n": 118,
+      "settlement_attempts": 1,
+      "settlement_completions": 1
+    }
+  },
+  "safety": {
+    "engine_rejected_action_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "full_loop_under_30s_rate": {
+      "baseline": 1.0,
+      "treatment": 1.0
+    },
+    "initial_state_fidelity_passed": true,
+    "model_safe_fallback_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "overall_passed": true,
+    "schema_valid_events": 3344,
+    "schema_valid_files": 2
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "c624a967b346d7cf7d833ec66e2cb66d4521d266",
+    "configuration_hash": "83e676f9aaf9bdd1bdca0a81b832f3a7b487fe8c85594453fd4a646606a067e1",
+    "implementation_sha256": "25eaf1e4a702817f90867ae5b6c96bf868c1bc882c4fae1c63f14d6e0f4175f9",
+    "source_freeze_passed": true
+  }
+}

@@ -1285,3 +1285,14 @@ upstream commit, and 101 harness/state-bridge tests pass. Selected-seed cohort
 frozen for mechanism evidence only. It must report all outcomes and cannot
 revise any population claim. See
 [`../docs/freeciv/evidence/pf-foreign-claim-founding-offline-acceptance.md`](../docs/freeciv/evidence/pf-foreign-claim-founding-offline-acceptance.md).
+
+The selected engine replay completed both arms cleanly. The corrected
+treatment reduced founding attempts from nine in the immutable historical
+treatment to one, retained no live founders instead of two, and recovered four
+population points, but still completed only one settlement and ended with two
+cities. Current treatment minus baseline own score was +2 and margin was -2;
+with one outcome-selected reused seed neither is inferential evidence.
+Packet-owner gating is retained for correctness and action efficiency, not as
+a score optimization. The next evidence-backed target is packet-grounded
+frontier selection during founder movement, before the settlement-runway
+deadline.
