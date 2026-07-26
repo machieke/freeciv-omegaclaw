@@ -1197,3 +1197,33 @@ This diagnostic is deliberately claim-ineligible. Its two-pair score delta of `+
 (`+2` to `+14` paired-bootstrap interval; exact paired randomization `p=0.5`) is
 mechanism evidence only and must not update a score or win-rate claim. V4 remains
 retired, and its 897 old-code completions remain unpooled.
+
+## PF-PLN expansion-target confirmation
+
+Subsequent PF-PLN optimization identified fixed expansion capacity as the
+score-bearing bottleneck. Planner `grounded-impact-planner/1.5` added a
+minimum post-settlement runway, with zero as its compatibility default. The
+claim-ineligible `expansion_target_pilot_v1` held a conservative 15-turn
+runway constant and changed only the city target from three to four. Its 40
+fresh pairs estimated +2.025 score points with interval [+0.800, +3.250] and
+exact paired p=0.002818.
+
+The policy then remained unchanged for the separately frozen,
+claim-eligible `expansion_target_confirmatory_v1`: 100 fresh turn-60 pairs,
+score-only, on namespace `pf-pln-expansion-target-confirmatory-v1` in range
+`3600000..3799999`. All 200 current arms completed from clean commit
+`c7747db`; one pregame observer startup failure was replaced under
+source-frozen resume and retained only as historical evidence.
+
+Confirmation increased score from 117.11 to 119.77. The paired effect is
+`+2.66`, 95% interval `[+2.00, +3.32]`, with exact two-sided paired sign-flip
+`p=9.214e-12`. It added 0.82 settlements and 2.74 citizen-score points, while
+technology was unchanged. All safety, source, initial-state, schema, and
+exact-replay gates passed over 200 streams, 276,269 events, and 7,425
+treatment decisions.
+
+This supports the predeclared own-score claim for the frozen
+`civ2civ3`/experimental-AI/turn-60 profile. It does not revise the earlier
+cohorts by pooling, establish a win-rate effect, or support an effect strictly
+greater than two points. Full evidence is
+[`../docs/freeciv/evidence/pf-expansion-target-confirmatory-v1.md`](../docs/freeciv/evidence/pf-expansion-target-confirmatory-v1.md).

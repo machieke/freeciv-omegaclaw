@@ -1,6 +1,6 @@
 # PF-PLN expansion target pilot v1
 
-Status: complete; positive score pilot, unchanged confirmation required
+Status: complete; positive score pilot independently confirmed
 
 The predeclared `expansion_target_pilot_v1` cohort completed all 40 fresh
 paired seeds and 80 engine arms at turn 60 in one pass. The run used clean,
@@ -100,16 +100,16 @@ the replay byte SHA-256 is
 
 ## Confirmation
 
-`expansion_target_confirmatory_v1` freezes the implementation and policies
+`expansion_target_confirmatory_v1` froze the implementation and policies
 unchanged on 100 fresh pairs from namespace
 `pf-pln-expansion-target-confirmatory-v1`, range
 `3600000..3799999`. It is score-only and powered for a 1.5-point paired effect
 with planning SD up to 5.0. It does not pool the pilot, inspect outcomes
 early, exclude negative pairs, or retune the 15-turn runway.
 
-The confirmation must complete all 100 pairs on one clean source identity,
-pass every correctness and safety gate, validate all 200 event streams, and
-replay every treatment decision exactly before its score claim is evaluated.
+The confirmation completed every gate and independently estimated +2.66 score
+points with interval [+2.00, +3.32] and exact paired p=9.214e-12. See
+[`pf-expansion-target-confirmatory-v1.md`](pf-expansion-target-confirmatory-v1.md).
 
 ## Reproduction
 

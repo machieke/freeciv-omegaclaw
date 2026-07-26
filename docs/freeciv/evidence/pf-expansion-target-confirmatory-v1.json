@@ -1,0 +1,138 @@
+{
+  "artifacts": {
+    "aggregate": "artifacts/freeciv/pf-expansion-target-confirmatory-v1/impact-aggregate.json",
+    "aggregate_sha256": "a5c5f22a7a3a872f9d474b07b258c5f0026af39a6f7fc927a508d87b53deba34",
+    "exact_replay_artifact_hash": "cfeccc25f856f2375f64147d27ba19d04799045c9284590bc9d1c4d0815b5696",
+    "exact_replay_sha256": "7ed16a00d241b65168b787bb2d72fc0872d959515f17b2c6484d6283f403fc6e",
+    "exact_replay_source_set_hash": "b2677c245fafcd24b85ea218076c0271de9b1e90ef1c653535fae311437a6917"
+  },
+  "claim": {
+    "claimable": [
+      "score_improvement"
+    ],
+    "greater_than_two_points_supported": false,
+    "score_improvement_supported": true,
+    "status": "claim_supported",
+    "win_rate_supported": false
+  },
+  "cohort": {
+    "active_infrastructure_failures": 0,
+    "complete_pairs": 100,
+    "current_completed_arms": 200,
+    "historical_infrastructure_failures": 1,
+    "name": "expansion_target_confirmatory_v1",
+    "planned_pairs": 100
+  },
+  "decision_replay": {
+    "changed_decisions": 417,
+    "decision_change_rate": 0.05616161616161616,
+    "exact_replay_files": 100,
+    "integrity_failures": 0,
+    "sources_unchanged": true,
+    "total_decisions": 7425
+  },
+  "diagnostics": {
+    "cities_gained_distribution": {
+      "baseline": {
+        "0": 1,
+        "1": 11,
+        "2": 88
+      },
+      "treatment": {
+        "0": 1,
+        "1": 5,
+        "2": 22,
+        "3": 72
+      }
+    },
+    "paired_score_signs": {
+      "negative": 12,
+      "positive": 75,
+      "ties": 13
+    },
+    "paired_score_sum": 266.0
+  },
+  "mechanism": {
+    "citizen_score_delta": {
+      "estimate": 2.74,
+      "lower": 2.25,
+      "upper": 3.2
+    },
+    "cities_gained_delta": {
+      "estimate": 0.78,
+      "lower": 0.68,
+      "upper": 0.88
+    },
+    "founder_production_changes_delta": {
+      "estimate": 0.84,
+      "lower": 0.73,
+      "upper": 0.95
+    },
+    "settlement_completions_delta": {
+      "estimate": 0.82,
+      "lower": 0.72,
+      "upper": 0.92
+    }
+  },
+  "outcomes": {
+    "lead_rate": {
+      "baseline": 0.23,
+      "difference": 0.01,
+      "exact_mcnemar_p": 1.0,
+      "lower": -0.07,
+      "treatment": 0.24,
+      "upper": 0.09
+    },
+    "score": {
+      "baseline_mean": 117.11,
+      "difference": 2.66,
+      "exact_sign_flip_p": 9.214009381170559e-12,
+      "lower": 2.0,
+      "treatment_mean": 119.77,
+      "upper": 3.32
+    },
+    "score_components": {
+      "citizen_delta": 2.74,
+      "residual_delta": -0.08,
+      "technology_delta": 0.0
+    },
+    "score_margin": {
+      "difference": 1.9,
+      "lower": -0.49,
+      "upper": 4.24
+    },
+    "strict_greater_than_two_test": {
+      "interval_gate_passed": false,
+      "margin": 2.0,
+      "one_sided_exact_p": 0.030037905760318645,
+      "randomization_gate_passed": true,
+      "supported": false
+    }
+  },
+  "power": {
+    "achieved_power": 0.992426628741185,
+    "detectable_delta_at_achieved_n": 0.957519864497937,
+    "minimum_detectable_delta": 1.5,
+    "observed_paired_sd": 3.4177788285979136
+  },
+  "safety": {
+    "engine_rejected_action_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "initial_state_fidelity_passed": true,
+    "overall_passed": true,
+    "safety_active_decisions": 473,
+    "safety_selection_violations": 0,
+    "schema_valid_events": 276269,
+    "schema_valid_files": 200,
+    "schema_warnings": 0
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "c7747db25bb990ee723a66d75f95355343cd8fcc",
+    "configuration_hash": "af7f2a30300d8f35fca2600fa919b71939d24fe26a068839a75ab948f285bf1d",
+    "implementation_sha256": "1d6a1340788dcdf74d3cbcd70621ab37f779bc6a4858d159fcd456cc8f0ec666",
+    "source_freeze_passed": true
+  }
+}

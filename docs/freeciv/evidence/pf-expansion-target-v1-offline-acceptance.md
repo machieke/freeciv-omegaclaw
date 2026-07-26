@@ -1,7 +1,7 @@
 # PF-PLN expansion target v1 offline acceptance
 
-Status: implementation, offline opportunity audit, and fresh pilot passed;
-confirmation pending
+Status: implementation, offline opportunity audit, fresh pilot, and
+claim-eligible confirmation passed
 
 ## Score-bearing bottleneck
 
@@ -101,6 +101,15 @@ direction, interval, exact test, and aligned mechanism diagnostics justify the
 separately frozen `expansion_target_confirmatory_v1` cohort: 100 fresh,
 score-only pairs, powered for a 1.5-point effect at paired SD up to 5.0. The
 confirmation retains the implementation and every policy value unchanged.
+
+The confirmation completed 100/100 fresh pairs on clean commit `c7747db`.
+Mean score increased by +2.66 with interval [+2.00, +3.32] and exact paired
+p=9.214e-12. Treatment added 0.82 settlements and 2.74 citizen-score points
+on average. All 200 current event streams, every safety gate, and exact replay
+of all 7,425 treatment decisions passed. This supports the predeclared
+turn-60 own-score claim. It does not support a win-rate claim or an effect
+strictly greater than two points. Full evidence is in
+[`pf-expansion-target-confirmatory-v1.md`](pf-expansion-target-confirmatory-v1.md).
 
 After committing the implementation:
 

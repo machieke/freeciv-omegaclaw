@@ -520,9 +520,18 @@ The fresh expansion pilot then changed score by +2.025 with interval
 2.525 citizen score points; technology was unchanged. All correctness and
 safety gates passed. Lead rate stayed flat because opponent score also
 increased, so the supported pilot mechanism is own fixed-horizon score, not
-win rate or score margin. The claim-ineligible pilot evidence and the frozen,
-unchanged 100-pair score-only confirmation are recorded in
+win rate or score margin. The claim-ineligible pilot evidence is recorded in
 [`evidence/pf-expansion-target-pilot-v1.md`](evidence/pf-expansion-target-pilot-v1.md).
+
+The unchanged, claim-eligible 100-pair confirmation independently increased
+turn-60 score from 117.11 to 119.77: paired +2.66 with interval
+[+2.00, +3.32] and exact p=9.214e-12. It added 0.82 settlements and 2.74
+citizen-score points, while technology stayed flat. All 200 event streams,
+safety gates, and exact replay of 7,425 treatment decisions passed. This
+supports the own-score claim for the frozen engine/ruleset/opponent profile;
+lead rate changed only from 23% to 24%, so no win-rate claim is supported.
+The full claim and its limits are recorded in
+[`evidence/pf-expansion-target-confirmatory-v1.md`](evidence/pf-expansion-target-confirmatory-v1.md).
 
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` and `pressure_score_alignment_enabled` default to `false`
@@ -688,18 +697,20 @@ changing pressure defaults.
 
 ## Current scope
 
-The implementation is a production-connected PF-PLN vertical slice, not a
-new gameplay score claim. A new paired engine-backed impact mechanism still
-requires a dedicated predeclared experiment before an improvement can be
-claimed. Persistent clone
+The implementation is a production-connected PF-PLN vertical slice with one
+supported engine-backed gameplay claim: under the frozen turn-60
+`civ2civ3`/experimental-AI profile, raising the expansion target from three
+to four with a 15-turn settlement runway improves own score by +2.66
+[+2.00, +3.32]. The result does not establish a win-rate improvement, a
+strict effect greater than two points, or transfer to other profiles.
+Persistent clone
 split/merge is available behind explicit lifecycle gates but is not enabled by
 default in gameplay profiles. See the [phase map](pf-pln-phase-map.md) for the
 exact implementation and acceptance evidence.
 
 All canonical PF-PLN phases 0-9 now have checked implementation and acceptance
-evidence. “Complete” here means the declared semantic/operator gates pass; it
-does not turn null engine score evidence into a positive claim or silently
-enable clone splitting and learned differentiable parameters in live profiles.
+evidence. The positive expansion-target result does not silently enable clone
+splitting or learned differentiable parameters in live profiles.
 The [runtime activation matrix](pf-pln-runtime.md) records the stricter live
 boundary: phases 0, 1, 4, and 9 have engine adapters, while phases 2, 3, and
 5-8 remain component-only until an explicit adapter is implemented and tested.

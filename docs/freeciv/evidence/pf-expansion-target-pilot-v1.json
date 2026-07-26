@@ -16,6 +16,7 @@
   },
   "confirmation": {
     "claim_eligible": true,
+    "evidence": "docs/freeciv/evidence/pf-expansion-target-confirmatory-v1.json",
     "endpoints": [
       "score_turn_n"
     ],
@@ -23,6 +24,13 @@
     "minimum_detectable_delta": 1.5,
     "name": "expansion_target_confirmatory_v1",
     "planned_pairs": 100,
+    "result": {
+      "complete_pairs": 100,
+      "score_difference": 2.66,
+      "score_lower": 2.0,
+      "score_upper": 3.32,
+      "status": "claim_supported"
+    },
     "seed_derivation": {
       "algorithm": "sha256-counter-v1",
       "count": 100,
