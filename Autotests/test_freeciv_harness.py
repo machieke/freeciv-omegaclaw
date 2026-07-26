@@ -85,6 +85,9 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "impact_policy"]["expansion_escort_retention_enabled"] is False
     assert config[
         "impact_policy"]["expansion_escort_threat_gating_enabled"] is False
+    assert config[
+        "impact_policy"][
+            "expansion_escort_route_threat_memory_enabled"] is False
     paired = config["paired_impact"]
     assert paired["default_cohort"] == "development"
     assert {name: len(row["seeds"]) for name, row in paired["cohorts"].items()} == {
@@ -118,6 +121,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "settlement_escort_retention_mechanism_v2": 1,
             "settlement_escort_retention_generalization_v1": 10,
             "settlement_escort_threat_gating_mechanism_v1": 1,
+            "settlement_escort_route_threat_memory_mechanism_v1": 1,
         }
     seed_sets = [
         set(row["seeds"]) for row in paired["cohorts"].values()
@@ -419,6 +423,20 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "expansion_escort_threat_gating_enabled"] is False
     assert escort_threat_gating["arms"]["treatment"][
         "expansion_escort_threat_gating_enabled"] is True
+    escort_route_memory = paired["cohorts"][
+        "settlement_escort_route_threat_memory_mechanism_v1"]
+    assert escort_route_memory["seeds"] == [3746776]
+    assert escort_route_memory["claim_eligible"] is False
+    assert escort_route_memory["isolated_policy_keys"] == [
+        "expansion_escort_route_threat_memory_enabled"]
+    assert escort_route_memory["arms"]["baseline"][
+        "expansion_escort_threat_gating_enabled"] is True
+    assert escort_route_memory["arms"]["treatment"][
+        "expansion_escort_threat_gating_enabled"] is True
+    assert escort_route_memory["arms"]["baseline"][
+        "expansion_escort_route_threat_memory_enabled"] is False
+    assert escort_route_memory["arms"]["treatment"][
+        "expansion_escort_route_threat_memory_enabled"] is True
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.2",
         "source_sha256": "3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e",

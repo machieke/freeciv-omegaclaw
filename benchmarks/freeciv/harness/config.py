@@ -68,6 +68,12 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
         raise ValueError(
             "{}.expansion_escort_threat_gating_enabled must be "
             "boolean".format(prefix))
+    if not isinstance(
+            impact.get(
+                "expansion_escort_route_threat_memory_enabled", False), bool):
+        raise ValueError(
+            "{}.expansion_escort_route_threat_memory_enabled must be "
+            "boolean".format(prefix))
     if impact.get("production_strategy") not in ("static_priority", "horizon_score"):
         raise ValueError(
             "{}.production_strategy must be static_priority or horizon_score".format(prefix))

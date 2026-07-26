@@ -489,6 +489,120 @@ def test_founder_escort_threat_gate_bypasses_safe_sites_and_guards_local_threats
     assert escort.candidate.projection["target_founder_ids"] == (1,)
 
 
+def test_founder_route_threat_memory_persists_local_contestation_until_settlement():
+    move = {
+        "action_type": "unit_move", "actor_id": 1,
+        "target": {"x": 3, "y": 0}, "is_valid": True,
+    }
+    build = {
+        "action_type": "unit_build_city", "actor_id": 1, "is_valid": True,
+    }
+    end_turn = {"action_type": "end_turn", "is_valid": True}
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 30),
+        ("Alpine Troops", "unit", 60),
+    ))
+    planner = GroundedImpactPlanner({
+        "expansion_escort_retention_enabled": True,
+        "expansion_escort_threat_gating_enabled": True,
+        "expansion_escort_route_threat_memory_enabled": True,
+        "pressure_survival_threat_radius": 3,
+        "pressure_enabled": True,
+    }, ruleset_ir=ir)
+    contested_route = _snapshot([
+        _unit(1, "Settlers", 2, 0),
+        _unit(11, "Alpine Troops", 0, 0),
+        _enemy(91, "Settlers", 4, 0),
+    ], [move, end_turn], turn=8)
+
+    planner.candidates(contested_route)
+    assert planner.founder_route_threat_observations == 1
+
+    disappeared_before_founding = _snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(11, "Alpine Troops", 0, 0),
+    ], [build, end_turn], source_seq=2, turn=9)
+
+    assert planner.plan(disappeared_before_founding) is None
+    assert planner.founder_escort_threat_deferral_snapshots == 1
+    assert planner.founder_escort_persisted_threat_deferral_snapshots == 1
+
+    escape = {
+        "action_type": "unit_move", "actor_id": 1,
+        "target": {"x": 2, "y": 0}, "is_valid": True,
+    }
+    can_relocate = _snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(11, "Alpine Troops", 0, 0),
+    ], [build, escape, end_turn], source_seq=3, turn=9)
+    avoidance = planner.plan(can_relocate)
+    assert avoidance.candidate.category == "founder_threat_avoidance_move"
+    assert avoidance.candidate.projection[
+        "current_route_threat_distance"] == 1
+    assert avoidance.candidate.projection[
+        "target_route_threat_distance"] == 2
+    relocated = _snapshot([
+        _unit(1, "Settlers", 2, 0),
+        _unit(11, "Alpine Troops", 0, 0),
+    ], [end_turn], source_seq=4, turn=9)
+    planner.record_outcome(
+        avoidance.candidate, can_relocate, True, relocated)
+    assert planner.founder_threat_avoidance_move_attempts == 1
+    assert planner.founder_threat_avoidance_move_successes == 1
+
+    no_memory = GroundedImpactPlanner({
+        "expansion_escort_retention_enabled": True,
+        "expansion_escort_threat_gating_enabled": True,
+        "expansion_escort_route_threat_memory_enabled": False,
+        "pressure_survival_threat_radius": 3,
+    }, ruleset_ir=ir)
+    no_memory.candidates(contested_route)
+    bypass = no_memory.plan(disappeared_before_founding)
+    assert bypass.candidate.category == "city_founding"
+    assert bypass.candidate.projection[
+        "settlement_escort_safe_bypass"] is True
+
+
+def test_contested_founder_can_ground_empty_stock_escort_production():
+    city = _city(
+        size=4, food_stock=20, shield_stock=0,
+        production_kind=3, production_value=14)
+    build = {
+        "action_type": "unit_build_city", "actor_id": 1, "is_valid": True,
+    }
+    actions = [
+        build,
+        _production(10, "Alpine Troops", 6, 11),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 30),
+        ("Alpine Troops", "unit", 40),
+        ("Granary", "improvement", 40),
+    ), pop_costs={"Settlers": 1})
+    planner = GroundedImpactPlanner({
+        "expansion_escort_retention_enabled": True,
+        "expansion_escort_threat_gating_enabled": True,
+        "expansion_escort_route_threat_memory_enabled": True,
+        "horizon_turn": 60,
+    }, ruleset_ir=ir)
+    contested = _snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(11, "Alpine Troops", 0, 0),
+        _enemy(91, "Settlers", 5, 0),
+    ], actions, cities=[city], turn=20)
+
+    decision = planner.plan(contested)
+
+    assert decision.candidate.category == "production_defense"
+    assert decision.candidate.action["target"][
+        "production_type"] == "Alpine Troops"
+    assert decision.candidate.projection[
+        "settlement_escort_defense"] is True
+    assert "repurpose_discarded_shield_stock" not in (
+        decision.candidate.projection)
+
+
 def test_unescorted_legal_site_repurposes_founder_queue_to_defense():
     city = _city(
         size=4, food_stock=20, shield_stock=10,
@@ -1153,6 +1267,7 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
                    {"expansion_packet_site_preference_enabled": 1},
                    {"expansion_escort_retention_enabled": 1},
                    {"expansion_escort_threat_gating_enabled": 1},
+                   {"expansion_escort_route_threat_memory_enabled": 1},
                    {"foodbox_percent": 0},
                    {"unit_build_score_divisor": 0},
                    {"production_minimum_remaining_turns": 9,

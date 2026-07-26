@@ -2694,6 +2694,12 @@ async def _play(run_dir, manifest, context):
         ("planner_founder_escort_threat_deferral_snapshots",
          impact_planner.founder_escort_threat_deferral_snapshots
          if impact_planner is not None else 0),
+        ("planner_founder_escort_persisted_threat_deferral_snapshots",
+         impact_planner.founder_escort_persisted_threat_deferral_snapshots
+         if impact_planner is not None else 0),
+        ("planner_founder_route_threat_observations",
+         impact_planner.founder_route_threat_observations
+         if impact_planner is not None else 0),
         ("planner_founder_escort_defense_production_attempts",
          impact_planner.founder_escort_defense_production_attempts
          if impact_planner is not None else 0),
@@ -2715,6 +2721,17 @@ async def _play(run_dir, manifest, context):
         ("planner_founder_escort_move_success_rate",
          (float(impact_planner.founder_escort_move_successes)
           / max(1, impact_planner.founder_escort_move_attempts))
+         if impact_planner is not None else 0.0),
+        ("planner_founder_threat_avoidance_move_attempts",
+         impact_planner.founder_threat_avoidance_move_attempts
+         if impact_planner is not None else 0),
+        ("planner_founder_threat_avoidance_move_successes",
+         impact_planner.founder_threat_avoidance_move_successes
+         if impact_planner is not None else 0),
+        ("planner_founder_threat_avoidance_move_success_rate",
+         (float(impact_planner.founder_threat_avoidance_move_successes)
+          / max(
+              1, impact_planner.founder_threat_avoidance_move_attempts))
          if impact_planner is not None else 0.0),
         ("planner_founder_escorted_settlement_attempts",
          impact_planner.founder_escorted_settlement_attempts
@@ -2923,6 +2940,13 @@ async def _play(run_dir, manifest, context):
             "planner_founder_escort_threat_deferral_snapshots": (
                 impact_planner.founder_escort_threat_deferral_snapshots
                 if impact_planner is not None else 0),
+            "planner_founder_escort_persisted_threat_deferral_snapshots": (
+                impact_planner
+                .founder_escort_persisted_threat_deferral_snapshots
+                if impact_planner is not None else 0),
+            "planner_founder_route_threat_observations": (
+                impact_planner.founder_route_threat_observations
+                if impact_planner is not None else 0),
             "planner_founder_escort_defense_production_attempts": (
                 impact_planner.founder_escort_defense_production_attempts
                 if impact_planner is not None else 0),
@@ -2934,6 +2958,12 @@ async def _play(run_dir, manifest, context):
                 if impact_planner is not None else 0),
             "planner_founder_escort_move_successes": (
                 impact_planner.founder_escort_move_successes
+                if impact_planner is not None else 0),
+            "planner_founder_threat_avoidance_move_attempts": (
+                impact_planner.founder_threat_avoidance_move_attempts
+                if impact_planner is not None else 0),
+            "planner_founder_threat_avoidance_move_successes": (
+                impact_planner.founder_threat_avoidance_move_successes
                 if impact_planner is not None else 0),
             "planner_founder_escorted_settlement_attempts": (
                 impact_planner.founder_escorted_settlement_attempts
@@ -3051,6 +3081,12 @@ async def _play(run_dir, manifest, context):
         "planner_founder_escort_threat_deferral_snapshots": (
             impact_planner.founder_escort_threat_deferral_snapshots
             if impact_planner is not None else 0),
+        "planner_founder_escort_persisted_threat_deferral_snapshots": (
+            impact_planner.founder_escort_persisted_threat_deferral_snapshots
+            if impact_planner is not None else 0),
+        "planner_founder_route_threat_observations": (
+            impact_planner.founder_route_threat_observations
+            if impact_planner is not None else 0),
         "planner_founder_escort_defense_production_attempts": (
             impact_planner.founder_escort_defense_production_attempts
             if impact_planner is not None else 0),
@@ -3062,6 +3098,12 @@ async def _play(run_dir, manifest, context):
             if impact_planner is not None else 0),
         "planner_founder_escort_move_successes": (
             impact_planner.founder_escort_move_successes
+            if impact_planner is not None else 0),
+        "planner_founder_threat_avoidance_move_attempts": (
+            impact_planner.founder_threat_avoidance_move_attempts
+            if impact_planner is not None else 0),
+        "planner_founder_threat_avoidance_move_successes": (
+            impact_planner.founder_threat_avoidance_move_successes
             if impact_planner is not None else 0),
         "planner_founder_escorted_settlement_attempts": (
             impact_planner.founder_escorted_settlement_attempts

@@ -35,6 +35,7 @@ impact_policy:
   expansion_packet_site_preference_enabled: true
   expansion_escort_retention_enabled: false
   expansion_escort_threat_gating_enabled: false
+  expansion_escort_route_threat_memory_enabled: false
   foodbox_percent: 100
   unit_build_score_divisor: 10
   no_effect_retry_limit: 1
@@ -129,6 +130,23 @@ founder. A safe site founds immediately; a threatened site retains the
 combat-only escort and production-defense path. The existing settlement
 runway remains the hard deadline. Threat-gated deferrals and safe unescorted
 settlements are exported separately.
+
+The adapter-1.10 selected replay showed that same-snapshot visibility is too
+narrow: the rival founder was observed during approach but had disappeared by
+the exact Found City snapshot. Adapter 1.11 therefore adds the independently
+opt-in `expansion_escort_route_threat_memory_enabled` correction. Exact
+founder-local threat observations persist only for that founder's lifetime
+and are cleared on verified settlement, verified population recovery, or
+actor disappearance. They do not become global map danger or transfer to
+another founder. Escort remains required only while the founder is still
+inside the configured radius of exact last-seen opponent geometry. When no
+production or escort action is ready, a legal move that strictly increases
+distance from that geometry can relocate the founder to a safe site. A
+persisted contested route can also ground an empty-stock declared defender
+build when no spare combat unit exists; accumulated non-founder production is
+not discarded. Observation count, persisted-threat deferrals, avoidance
+traversals, and the existing exact production/escort counters expose the full
+chain.
 
 Founder routing is feedback-driven in the horizon-score policy. On the first step from
 a city, aggregate distance from the complete city network breaks minimum-distance ties

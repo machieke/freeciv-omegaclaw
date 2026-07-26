@@ -1409,3 +1409,15 @@ snapshot, and a city-local threat appeared only immediately before capture.
 The next variant must persist exact founder-local contestation for that
 founder's route lifetime. It must not enlarge the global threat radius or
 restore unconditional escorting.
+
+Adapter 1.11 adds the actor-scoped state the trace requires behind
+`expansion_escort_route_threat_memory_enabled`, default false. An exact local
+opponent observation persists only for that founder's route lifetime and is
+cleared on verified settlement, verified population recovery, or actor
+disappearance. It never transfers to another founder or changes the global
+threat radius. Escort remains required only while the founder is inside the
+radius of exact last-seen opponent geometry. An empty-stock city may select a
+declared defender; positive non-founder shield stock remains protected. If no
+escort or production action is ready, a legal move may relocate the founder
+only by strictly increasing distance from that geometry. A new selected-seed
+cohort isolates only route memory against the failed instantaneous gate.

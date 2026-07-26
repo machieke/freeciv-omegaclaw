@@ -592,6 +592,20 @@ production-defense, city-defender preservation, exact traversal, founding
 confirmation, and runway deadline remain in force. Mechanism validation is
 predeclared on the exposed seed before any broader score experiment.
 
+That selected replay showed the instantaneous gate bypassing all three
+settlements: the rival founder was observed during approach but was absent
+from each exact founding snapshot. Adapter `grounded-impact-planner/1.11`
+adds opt-in route-lifetime memory for exact founder-local contestation. The
+evidence is actor-scoped and cleared by verified settlement, verified
+population recovery, or actor disappearance. It never becomes a global danger
+map or transfers to another founder. Escort is required only while the founder
+remains inside the configured radius of exact last-seen opponent geometry. If
+no escort or production action is ready, a legal move that strictly increases
+distance from that geometry can relocate the founder. An empty-stock city may
+also select a declared defender without discarding accumulated non-founder
+production. The exposed seed is replayed again with only this memory switch
+changed.
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` and `pressure_score_alignment_enabled` default to `false`
 unless the runtime profile enables them. This preserves unit-level policy

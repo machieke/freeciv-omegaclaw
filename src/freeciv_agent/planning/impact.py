@@ -205,7 +205,7 @@ def _target_name(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.10"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.11"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -339,6 +339,13 @@ class GroundedImpactPlanner(object):
             raise ValueError(
                 "expansion_escort_threat_gating_enabled must be boolean")
         self.expansion_escort_threat_gating_enabled = escort_threat_gating
+        escort_route_threat_memory = values.get(
+            "expansion_escort_route_threat_memory_enabled", False)
+        if not isinstance(escort_route_threat_memory, bool):
+            raise ValueError(
+                "expansion_escort_route_threat_memory_enabled must be boolean")
+        self.expansion_escort_route_threat_memory_enabled = (
+            escort_route_threat_memory)
         self.foodbox_percent = int(values.get("foodbox_percent", 100))
         self.unit_build_score_divisor = int(values.get(
             "unit_build_score_divisor", 10))
@@ -408,6 +415,9 @@ class GroundedImpactPlanner(object):
         self._failed_settlement_site_prunes = set()
         self._founder_escort_deferral_snapshots = set()
         self._founder_escort_threat_deferral_snapshots = set()
+        self._founder_escort_persisted_threat_deferral_snapshots = set()
+        self._founder_route_threat_observations = set()
+        self._founder_route_threats = {}
         self._failed_exploration_target_sources = {}
         self._failed_exploration_prunes = set()
         self._preexpansion_sequences = {}
@@ -459,6 +469,8 @@ class GroundedImpactPlanner(object):
         self.founder_settlement_site_preference_successes = 0
         self.founder_escort_move_attempts = 0
         self.founder_escort_move_successes = 0
+        self.founder_threat_avoidance_move_attempts = 0
+        self.founder_threat_avoidance_move_successes = 0
         self.founder_escort_defense_production_attempts = 0
         self.founder_escort_defense_production_successes = 0
         self.founder_escorted_settlement_attempts = 0
@@ -1035,7 +1047,9 @@ class GroundedImpactPlanner(object):
         }
         city_layout = (
             sorted((row.city_id, row.x, row.y) for row in snapshot.cities)
-            if candidate.category in ("city_founding", "expansion_move") else [])
+            if candidate.category in (
+                "city_founding", "expansion_move",
+                "founder_threat_avoidance_move") else [])
         return structural_hash({
             "action": action,
             "actor": self._unit_grounding(actor),
@@ -1075,6 +1089,8 @@ class GroundedImpactPlanner(object):
                 self.population_recovery_completions += 1
                 self.population_recovered += int((candidate.projection or {}).get(
                     "recovered_population", 0))
+                self._founder_route_threats.pop(
+                    candidate.action.get("actor_id"), None)
         if (candidate.category == "production_preexpansion_growth"
                 and effect_observed):
             projection = candidate.projection or {}
@@ -1114,6 +1130,16 @@ class GroundedImpactPlanner(object):
                     and (after_unit.x, after_unit.y)
                     == (target.get("x"), target.get("y"))):
                 self.founder_escort_move_successes += 1
+        if candidate.category == "founder_threat_avoidance_move":
+            self.founder_threat_avoidance_move_attempts += 1
+            target = candidate.action.get("target", {})
+            actor_id = candidate.action.get("actor_id")
+            after_unit = (after_snapshot.unit(actor_id)
+                          if after_snapshot is not None else None)
+            if (after_unit is not None and isinstance(target, dict)
+                    and (after_unit.x, after_unit.y)
+                    == (target.get("x"), target.get("y"))):
+                self.founder_threat_avoidance_move_successes += 1
         if (candidate.category == "production_defense"
                 and (candidate.projection or {}).get(
                     "settlement_escort_defense") is True):
@@ -1131,6 +1157,9 @@ class GroundedImpactPlanner(object):
                 self.founder_unescorted_safe_settlement_attempts += 1
                 self.founder_unescorted_safe_settlement_completions += int(
                     bool(effect_observed))
+            if effect_observed:
+                self._founder_route_threats.pop(
+                    candidate.action.get("actor_id"), None)
             # A settlement attempt ends the current movement corridor whether
             # the site succeeds or the unit must search from the same tile.
             self._founder_cardinal_intents.pop(
@@ -1586,12 +1615,96 @@ class GroundedImpactPlanner(object):
              <= self.pressure_survival_threat_radius),
             key=lambda unit: unit.unit_id))
 
+    def _observe_founder_route_threats(self, snapshot, founder_types):
+        """Retain exact local contestation for the observed founder lifetime."""
+        founders = self._founders(snapshot, founder_types)
+        active_ids = {founder.unit_id for founder in founders}
+        for founder_id in tuple(self._founder_route_threats):
+            if founder_id not in active_ids:
+                self._founder_route_threats.pop(founder_id, None)
+        for founder in founders:
+            threats = self._founder_visible_threats(snapshot, founder)
+            if not threats:
+                continue
+            row = self._founder_route_threats.setdefault(
+                founder.unit_id, {
+                    "enemy_positions": {},
+                    "enemy_unit_ids": set(),
+                    "first_observed_turn": int(snapshot.turn),
+                    "last_observed_turn": int(snapshot.turn),
+                })
+            row["enemy_unit_ids"].update(
+                threat.unit_id for threat in threats)
+            row["enemy_positions"].update({
+                threat.unit_id: (int(threat.x), int(threat.y))
+                for threat in threats
+            })
+            row["last_observed_turn"] = int(snapshot.turn)
+            self._founder_route_threat_observations.update(
+                (snapshot.snapshot_id, founder.unit_id, threat.unit_id)
+                for threat in threats)
+
+    def _founder_route_threat(self, snapshot, founder):
+        if (founder is None
+                or founder.x is None or founder.y is None
+                or not self.expansion_escort_route_threat_memory_enabled):
+            return None
+        row = self._founder_route_threats.get(founder.unit_id)
+        if row is None or not any(
+                _distance(
+                    founder.x, founder.y, x, y,
+                    snapshot.map_width, snapshot.map_height)
+                <= self.pressure_survival_threat_radius
+                for x, y in row["enemy_positions"].values()):
+            return None
+        return row
+
+    def _founder_threat_avoidance_candidate(
+            self, snapshot, action, founder):
+        """Move away from exact remembered threat geometry when escort stalls."""
+        route_threat = self._founder_route_threat(snapshot, founder)
+        target = action.get("target", {})
+        if route_threat is None or not isinstance(target, dict):
+            return None
+        x, y = target.get("x"), target.get("y")
+        if x is None or y is None:
+            return None
+        positions = tuple(route_threat["enemy_positions"].values())
+        current_distance = min(
+            _distance(
+                founder.x, founder.y, tx, ty,
+                snapshot.map_width, snapshot.map_height)
+            for tx, ty in positions)
+        target_distance = min(
+            _distance(
+                x, y, tx, ty,
+                snapshot.map_width, snapshot.map_height)
+            for tx, ty in positions)
+        if target_distance <= current_distance:
+            return None
+        return ImpactCandidate(
+            action, "founder_threat_avoidance_move",
+            960.0 + target_distance,
+            "strictly increase a contested founder's distance from exact "
+            "remembered opponent geometry while no escort is available",
+            {
+                "current_route_threat_distance": current_distance,
+                "route_threat_first_turn": route_threat[
+                    "first_observed_turn"],
+                "route_threat_last_turn": route_threat[
+                    "last_observed_turn"],
+                "route_threat_unit_ids": tuple(sorted(
+                    route_threat["enemy_unit_ids"])),
+                "target_route_threat_distance": target_distance,
+            })
+
     def _founder_escort_required(self, snapshot, founder):
         if not self.expansion_escort_retention_enabled:
             return False
         return bool(
             not self.expansion_escort_threat_gating_enabled
-            or self._founder_visible_threats(snapshot, founder))
+            or self._founder_visible_threats(snapshot, founder)
+            or self._founder_route_threat(snapshot, founder))
 
     def _escort_required_founders(
             self, snapshot, actions, founder_types):
@@ -1603,9 +1716,14 @@ class GroundedImpactPlanner(object):
     def _record_founder_escort_deferral(self, snapshot, founder):
         key = (snapshot.snapshot_id, founder.unit_id)
         self._founder_escort_deferral_snapshots.add(key)
+        current_threats = self._founder_visible_threats(snapshot, founder)
+        route_threat = self._founder_route_threat(snapshot, founder)
         if (self.expansion_escort_threat_gating_enabled
-                and self._founder_visible_threats(snapshot, founder)):
+                and (current_threats or route_threat)):
             self._founder_escort_threat_deferral_snapshots.add(key)
+            if not current_threats and route_threat:
+                self._founder_escort_persisted_threat_deferral_snapshots.add(
+                    key)
 
     @property
     def founder_escort_deferral_snapshots(self):
@@ -1614,6 +1732,15 @@ class GroundedImpactPlanner(object):
     @property
     def founder_escort_threat_deferral_snapshots(self):
         return len(self._founder_escort_threat_deferral_snapshots)
+
+    @property
+    def founder_escort_persisted_threat_deferral_snapshots(self):
+        return len(
+            self._founder_escort_persisted_threat_deferral_snapshots)
+
+    @property
+    def founder_route_threat_observations(self):
+        return len(self._founder_route_threat_observations)
 
     def _city_defender_is_required(self, snapshot, unit, founder_types=None):
         if not self.preserve_city_defenders:
@@ -2323,6 +2450,30 @@ class GroundedImpactPlanner(object):
                  "capacity remains at target without its current queue"),
                 projection)
 
+        if escort_defense_needed:
+            target_index = next((
+                index for index, target in enumerate(DEFENDER_PRIORITY)
+                if name.lower() == target.lower()), None)
+            completion_eta = projection.get("completion_eta_turns")
+            if (target_index is not None
+                    and normalized not in founder_types
+                    and int(self._production_specs.get(
+                        normalized, {}).get("pop_cost", 0)) <= 0
+                    and completion_eta is not None
+                    and completion_eta <= remaining_turns):
+                projection.update({
+                    "settlement_escort_defense": True,
+                    "unescorted_founder_ids": tuple(
+                        unit.unit_id for unit in unescorted_founders),
+                })
+                return ImpactCandidate(
+                    action, "production_defense",
+                    980.0 + projection["score_value"] * 10.0
+                    - completion_eta - target_index * 0.01,
+                    "fill a grounded contested-settlement escort deficit "
+                    "from an empty production stock",
+                    projection)
+
         if needs_founder and current_normalized in founder_types:
             return None
         preexpansion_growth = self._preexpansion_growth_candidate(
@@ -2530,9 +2681,12 @@ class GroundedImpactPlanner(object):
                     founder.unit_id == unit.unit_id
                     for founder in self._escort_required_founders(
                         snapshot, actions, founder_types)):
-                # A legal site is preserved while a spare grounded combat unit
-                # approaches. Moving the founder would discard both the exact
-                # Found City opportunity and the escort's current destination.
+                avoidance = self._founder_threat_avoidance_candidate(
+                    snapshot, action, unit)
+                if avoidance is not None:
+                    return avoidance
+                # When no exact remembered-threat escape exists, preserve the
+                # legal site while a spare grounded combat unit approaches.
                 self._record_founder_escort_deferral(snapshot, unit)
                 return None
             if (len(snapshot.cities) >= self.expansion_city_target
@@ -2838,6 +2992,11 @@ class GroundedImpactPlanner(object):
         available_action_keys = frozenset(
             action_key for _, action_key in available_action_rows)
         founder_types = self._founder_types(snapshot, actions)
+        if (self.expansion_escort_retention_enabled
+                and self.expansion_escort_threat_gating_enabled
+                and self.expansion_escort_route_threat_memory_enabled):
+            self._observe_founder_route_threats(
+                snapshot, founder_types)
         production_context = {}
         if diagnostics is not None:
             diagnostics["candidate_setup_latency_ms"] = (
@@ -2872,6 +3031,7 @@ class GroundedImpactPlanner(object):
                     if (self.expansion_escort_retention_enabled
                         and self.expansion_escort_threat_gating_enabled)
                     else ())
+                route_threat = self._founder_route_threat(snapshot, unit)
                 if (unit is not None and len(snapshot.cities) < self.expansion_city_target
                         and self._distance_from_cities(snapshot, unit.x, unit.y)
                         >= self.settle_min_distance
@@ -2907,6 +3067,15 @@ class GroundedImpactPlanner(object):
                                 "settlement_visible_threat_unit_ids": tuple(
                                     threat.unit_id
                                     for threat in visible_threats),
+                                "settlement_route_threat_first_turn": (
+                                    route_threat.get("first_observed_turn")
+                                    if route_threat else None),
+                                "settlement_route_threat_last_turn": (
+                                    route_threat.get("last_observed_turn")
+                                    if route_threat else None),
+                                "settlement_route_threat_unit_ids": tuple(
+                                    sorted(route_threat["enemy_unit_ids"]))
+                                if route_threat else (),
                             })
                         candidate = ImpactCandidate(
                             action, "city_founding", 1000.0,

@@ -197,3 +197,35 @@ exact founding snapshots; the city-local threat appeared only immediately
 before capture. The next bounded correction must carry exact founder-local
 threat evidence across that route, scoped to the founder's lifetime, rather
 than broadening the radius or treating every site as dangerous.
+
+## Adapter 1.11 route-lifetime contestation
+
+`expansion_escort_route_threat_memory_enabled` defaults false and has effect
+only with both escort retention and founder-local threat gating enabled.
+While a founder exists, exact packet-visible opponents inside its configured
+radius are retained as actor-scoped route evidence. Escort is required only
+while the founder remains within that radius of an exact last-seen opponent
+position. The evidence is cleared on verified settlement, verified population
+recovery, or disappearance of that founder. It is not copied to another
+founder and does not change the global survival threat predicate.
+
+When a remembered contested founder reaches a legal site after its opponent
+leaves visibility, it remains escort-required and records a separate
+persisted-threat deferral. If no spare combat unit exists, a declared defender
+may be selected from an empty production stock. A positive non-founder shield
+stock remains protected; the existing population-founder repurpose exception
+remains separately identified. If neither an escort nor production candidate
+is ready, a legal founder move may be selected only when it strictly increases
+distance from the remembered opponent geometry. Attempt and exact traversal
+are reported independently.
+
+The claim-ineligible
+`settlement_escort_route_threat_memory_mechanism_v1` cohort reuses seed
+`3746776`. Both arms enable escort retention and instantaneous threat gating;
+treatment alone enables route memory. Acceptance requires a founder-local
+observation during approach, a later persisted-threat deferral after current
+visibility clears, then combat-only escort, exact threat-avoidance relocation,
+or exact population recovery before the runway expires, and all source,
+safety, schema, and exact-replay gates. Every score, opponent, margin,
+settlement, retention, production, escort, avoidance, and recovery result must
+be reported regardless of direction.
