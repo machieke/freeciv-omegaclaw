@@ -109,6 +109,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "expansion_target_confirmatory_v1": 100,
             "expansion_deadline_recovery_diagnostic_v1": 40,
             "foreign_claim_founding_mechanism_v1": 1,
+            "packet_site_preference_mechanism_v1": 10,
         }
     seed_sets = [
         set(row["seeds"]) for row in paired["cohorts"].values()
@@ -349,6 +350,21 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert foreign_claim["claim_eligible"] is False
     assert foreign_claim["isolated_policy_keys"] == [
         "expansion_city_target"]
+    site_preference = paired["cohorts"][
+        "packet_site_preference_mechanism_v1"]
+    assert site_preference["seeds"] == [
+        3618865, 3658684, 3696266, 3697785, 3745421,
+        3746776, 3756351, 3765204, 3790239, 3796144,
+    ]
+    assert site_preference["reused_seeds_from"] == [
+        "expansion_target_confirmatory_v1"]
+    assert site_preference["claim_eligible"] is False
+    assert site_preference["isolated_policy_keys"] == [
+        "expansion_packet_site_preference_enabled"]
+    assert site_preference["arms"]["baseline"][
+        "expansion_packet_site_preference_enabled"] is False
+    assert site_preference["arms"]["treatment"][
+        "expansion_packet_site_preference_enabled"] is True
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.2",
         "source_sha256": "3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e",

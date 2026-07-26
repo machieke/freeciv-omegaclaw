@@ -32,6 +32,7 @@ impact_policy:
   expansion_minimum_remaining_turns: 12
   expansion_minimum_settlement_runway_turns: 0
   expansion_settlement_deadline_recovery_enabled: true
+  expansion_packet_site_preference_enabled: true
   foodbox_percent: 100
   unit_build_score_divisor: 10
   no_effect_retry_limit: 1
@@ -85,6 +86,18 @@ preserves historical cohort behavior.
 lifecycle switch. The live harness enables it; a false value exists only to
 isolate the rule in a controlled diagnostic and does not disable the
 independent founder-production runway gate.
+
+Adapter 1.7 adds an optional packet-grounded destination preference for
+founders. For a unit with the ruleset's `Cities` capability, the proxy checks
+each adjacent packet-known move target against the same terrain,
+foreign-owner, and visible-city-spacing preconditions used to advertise Found
+City. It attaches `settlement_site_eligible` only when the destination tile
+packet exists; a missing tile remains unknown. When at least one move for the
+same founder is explicitly true,
+`expansion_packet_site_preference_enabled` ranks that move ahead of further
+frontier travel while keeping all alternatives available. This cannot
+preempt an already advertised founding action and does not classify an
+unknown or false destination as impassable.
 
 Founder routing is feedback-driven in the horizon-score policy. On the first step from
 a city, aggregate distance from the complete city network breaks minimum-distance ties

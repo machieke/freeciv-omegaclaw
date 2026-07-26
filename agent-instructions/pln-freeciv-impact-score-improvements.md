@@ -1296,3 +1296,21 @@ Packet-owner gating is retained for correctness and action efficiency, not as
 a score optimization. The next evidence-backed target is packet-grounded
 frontier selection during founder movement, before the settlement-runway
 deadline.
+
+### Packet-grounded adjacent settlement preference
+
+Adapter 1.7 carries a typed `settlement_site_eligible` fact on a founder's
+move only when the adjacent destination tile is packet-known. The proxy uses
+the same terrain, owner, ocean, and visible-city-spacing preconditions as
+Found City; unknown tiles remain unannotated. When one move for the actor is
+explicitly eligible, the planner ranks it above continued frontier travel,
+while current-site founding, route safety, legal membership, and all
+post-action checks remain unchanged. A disabled switch and missing metadata
+preserve adapter-1.6 ordering.
+
+The claim-ineligible `packet_site_preference_mechanism_v1` cohort freezes an
+ablation over ten outcome-selected, previously incomplete confirmation seeds
+that retained a founder, excluding the already replayed seed `3674286`. It
+must establish runtime activation and report all settlement, recovery, route,
+score, margin, and lead outcomes without updating the population claim. See
+[`../docs/freeciv/evidence/pf-packet-site-preference-offline-acceptance.md`](../docs/freeciv/evidence/pf-packet-site-preference-offline-acceptance.md).

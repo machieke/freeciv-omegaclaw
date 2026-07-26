@@ -15,7 +15,7 @@ The patch is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. Its SHA-256 is
-`4b63fa9890e129beeff4ffa7d49bf92fa263ab82499eca66570e3330369112be`.
+`48e416000bf36c3c7ce13c8c59bb51bc682a1f17ee8568e432a82f673a10df55`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 The patch defaults the proxy logger to `INFO` and moves per-action payload,
@@ -56,6 +56,15 @@ normalizes the exact legal action documents. The LLM query-summary boundary
 reads that derived tuple instead of decoding every canonical action document a
 second time. Full action payloads remain opaque to the summary, and the exact
 canonical JSON plus digest remain the execution gate.
+
+For a unit with the exact ruleset Found City capability, a movement action may
+also carry `settlement_site_eligible`. The proxy emits the boolean only when
+the adjacent destination tile packet exists and evaluates it with the same
+packet-known terrain, owner, and visible-city-spacing checks as current-site
+founding. The DTO requires an exact boolean, preserves it in canonical legal
+JSON and its digest, and leaves the field absent when the destination is
+unknown. The action handler strips this planner evidence while normalizing the
+actual move to unit ID and coordinates, so it cannot alter the wire order.
 
 An authoritative WebSocket state query may supply a non-negative
 `after_source_seq` together with a bounded `wait_timeout_ms` in `1..5000`.

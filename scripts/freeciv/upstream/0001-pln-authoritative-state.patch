@@ -250,7 +250,7 @@ index 44cefa7..53f4558 100644
  
  class BitVector:
 diff --git a/freeciv-proxy/civcom.py b/freeciv-proxy/civcom.py
-index 02e3d7d..51068e1 100755
+index 02e3d7d..63e49f1 100755
 --- a/freeciv-proxy/civcom.py
 +++ b/freeciv-proxy/civcom.py
 @@ -15,7 +15,7 @@
@@ -467,7 +467,7 @@ index 02e3d7d..51068e1 100755
                  return (False, "Cannot found city on ocean")
          
          # Check distance to all cities
-@@ -1464,11 +1490,129 @@ class CivCom(Thread):
+@@ -1464,11 +1494,129 @@ class CivCom(Thread):
      def queue_to_civserver(self, message):
          self.civserver_messages.append(message)
  
@@ -597,7 +597,7 @@ index 02e3d7d..51068e1 100755
  
              # Configurable packet logging for debugging (set CIVCOM_PACKET_LOG_LIMIT env var)
              if not hasattr(self, '_packet_type_log_count'):
-@@ -1586,6 +1730,7 @@ class CivCom(Thread):
+@@ -1586,6 +1734,7 @@ class CivCom(Thread):
                  packet_username = packet.get('username', '')
                  logger.debug(f"Received PACKET_PLAYER_INFO: playerno={player_id}, username='{packet_username}' for {self.username}")
                  if player_id is not None:
@@ -605,7 +605,7 @@ index 02e3d7d..51068e1 100755
                      # Check if this player info is for our connection
                      if packet_username == self.username:
                          # This is OUR player! Store the player_id (fallback if CONN_INFO didn't set it)
-@@ -1613,9 +1758,10 @@ class CivCom(Thread):
+@@ -1613,9 +1762,10 @@ class CivCom(Thread):
                          'name': player_name,
                          'nation': nation_name,  # String name (e.g., 'Romans', 'Americans')
                          'score': packet.get('score', 0),
@@ -618,7 +618,7 @@ index 02e3d7d..51068e1 100755
              # NOTE: PACKET_RESEARCH_INFO is handled later in the packet processing chain
              # at line ~1465 where it's stored in self.research_info (the authoritative store)
  
-@@ -1628,7 +1774,7 @@ class CivCom(Thread):
+@@ -1628,7 +1778,7 @@ class CivCom(Thread):
                      unit_type_raw = packet.get('type')
  
                      # Convert integer type ID to human-readable string name
@@ -627,7 +627,7 @@ index 02e3d7d..51068e1 100755
  
                      def get_coords_from_tile_index(tile_idx):
                          # tile['index'] = x + y * map['xsize'];
-@@ -1653,10 +1799,15 @@ class CivCom(Thread):
+@@ -1653,10 +1803,15 @@ class CivCom(Thread):
                          'type_id': unit_type_raw,  # Preserve original integer for debugging/reference
                          'tile': tile_idx,
                          'homecity': packet.get('homecity', 0),
@@ -643,7 +643,7 @@ index 02e3d7d..51068e1 100755
                          'done_moving': packet.get('done_moving', False),
                          'activity': activity_name,  # String name (e.g., 'idle', 'sentry') or None
                          'x': x,
-@@ -1720,6 +1871,9 @@ class CivCom(Thread):
+@@ -1720,6 +1875,9 @@ class CivCom(Thread):
                          # surplus and prod are arrays indexed by O_FOOD, O_SHIELD, O_TRADE, etc.
                          'surplus': packet.get('surplus', []),
                          'prod': packet.get('prod', []),
@@ -653,7 +653,7 @@ index 02e3d7d..51068e1 100755
                      }
  
                      # Convert player_cities to dict if it's still a list
-@@ -1788,6 +1942,12 @@ class CivCom(Thread):
+@@ -1788,6 +1946,12 @@ class CivCom(Thread):
                              })
  
                      city['can_build'] = can_build
@@ -666,7 +666,7 @@ index 02e3d7d..51068e1 100755
  
                      # Also store granary info if present
                      if 'granary_size' in packet:
-@@ -1844,10 +2004,40 @@ class CivCom(Thread):
+@@ -1844,10 +2008,40 @@ class CivCom(Thread):
                  unit_id = packet.get('id')
                  owner = packet.get('owner')
                  if unit_id is not None:
@@ -709,7 +709,7 @@ index 02e3d7d..51068e1 100755
              elif packet_type == PACKET_RULESET_NATION:
                  nation_id = packet.get('id')
                  # Try multiple fields for nation name (different packet versions use different fields)
-@@ -2321,6 +2511,13 @@ class CivCom(Thread):
+@@ -2321,6 +2515,13 @@ class CivCom(Thread):
  
          except (json.JSONDecodeError, KeyError, TypeError) as e:
              logger.debug(f"Could not parse packet for state storage: {e}")
@@ -723,7 +723,7 @@ index 02e3d7d..51068e1 100755
  
      def has_adjacent_foreign_unit(self, tile_index, player_id):
          """Check if a tile has adjacent foreign units.
-@@ -2438,13 +2635,139 @@ class CivCom(Thread):
+@@ -2438,13 +2639,139 @@ class CivCom(Thread):
  
      def handle_state_query(self, player_id, format='full'):
          """Handle LLM state query requests with different formats"""
@@ -864,7 +864,7 @@ index 02e3d7d..51068e1 100755
      def build_llm_optimized_state(self, player_id):
          """Build compressed state for LLMs (target < 4KB)"""
          # Ensure we always have valid game state values (defensive against early queries)
-@@ -2966,6 +3289,12 @@ class CivCom(Thread):
+@@ -2966,6 +3293,12 @@ class CivCom(Thread):
          diplomacy_actions = self._get_diplomacy_actions(player_id)
          all_actions.extend(diplomacy_actions)
  
@@ -877,7 +877,7 @@ index 02e3d7d..51068e1 100755
          return all_actions
  
      def _score_and_filter_actions(self, actions, max_actions):
-@@ -3096,9 +3425,12 @@ class CivCom(Thread):
+@@ -3096,9 +3429,12 @@ class CivCom(Thread):
          for pid, research_packet in research_info.items():
              inventions = research_packet.get('inventions', [])
              known_tech_names = [
@@ -1917,7 +1917,7 @@ index 778e7d1..cc24a84 100644
  
                  if should_remove:
 diff --git a/freeciv-proxy/state_extractor.py b/freeciv-proxy/state_extractor.py
-index 803966c..2494934 100644
+index 803966c..2cdccd6 100644
 --- a/freeciv-proxy/state_extractor.py
 +++ b/freeciv-proxy/state_extractor.py
 @@ -447,7 +447,7 @@ def validate_request_parameters(game_id: str, player_id: Any, format_str: str =
@@ -2002,7 +2002,27 @@ index 803966c..2494934 100644
  
              return state
  
-@@ -1075,6 +1093,94 @@ class StateExtractor:
+@@ -729,7 +747,7 @@ class StateExtractor:
+         # Action type mappings with default priorities
+         if action_type == 'move':
+             target = params.get('target', {})
+-            return {
++            normalized = {
+                 'type': 'unit_move',
+                 'unit_id': unit_id,
+                 'dest_x': int(target.get('x', 0)),
+@@ -737,6 +755,10 @@ class StateExtractor:
+                 'is_valid': True,
+                 'priority': priority if priority is not None else 5
+             }
++            if isinstance(params.get('settlement_site_eligible'), bool):
++                normalized['settlement_site_eligible'] = params[
++                    'settlement_site_eligible']
++            return normalized
+ 
+         if action_type == 'build_city':
+             return {'type': 'unit_build_city', 'unit_id': unit_id, 'is_valid': True, 'priority': priority or 5}
+@@ -1075,6 +1097,94 @@ class StateExtractor:
                  return civcom.utype_can_do_action(unit_type_id, action_id)
              # Fallback to name-based heuristics if no ruleset data
              return self._fallback_can_do_action(unit_type_name, action_id)
@@ -2097,8 +2117,15 @@ index 803966c..2494934 100644
          
          # Helper to get target tile info
          def get_target_tile(direction: str) -> tuple:
-@@ -1096,22 +1202,6 @@ class StateExtractor:
+@@ -1094,24 +1204,13 @@ class StateExtractor:
+                 return (target_x, target_y, target_index)
+             return (target_x, target_y, None)
  
++        # Static unit-type capability is exact ruleset data and can be reused
++        # for every adjacent move. Destination eligibility remains optional:
++        # without a packet for the target tile, no site fact is advertised.
++        founder_capable = can_do_action(ACTION_FOUND_CITY)
++
          # === MOVEMENT ACTIONS ===
          if moves_left > 0:
 -            # Pre-compute city tile indexes for efficient lookup
@@ -2120,7 +2147,7 @@ index 803966c..2494934 100644
              for direction in directions:
                  target_x, target_y, target_index = get_target_tile(direction)
  
-@@ -1127,7 +1217,8 @@ class StateExtractor:
+@@ -1127,7 +1226,8 @@ class StateExtractor:
  
                          # Get unit class info for terrain checking
                          unit_type_data = civcom.unit_types.get(unit_type_id, {})
@@ -2130,7 +2157,7 @@ index 803966c..2494934 100644
  
                          # Check if target tile has a city (cities allow entry for most unit types)
                          tile_has_city = target_index in city_tiles
-@@ -1138,9 +1229,11 @@ class StateExtractor:
+@@ -1138,9 +1238,11 @@ class StateExtractor:
                              if not is_native and not tile_has_city:
                                  # Not native terrain and no city - check if can embark on transport
                                  if terrain_class == TC_OCEAN:
@@ -2144,7 +2171,7 @@ index 803966c..2494934 100644
                                  else:
                                      is_valid = False
                                      reason = "Cannot enter non-native terrain"
-@@ -1153,15 +1246,30 @@ class StateExtractor:
+@@ -1153,15 +1255,30 @@ class StateExtractor:
                                  # Check if unit class can enter ocean
                                  # Sea, Trireme, Air, Helicopter can enter ocean
                                  if class_name not in ('sea', 'trireme', 'air', 'helicopter', 'missile'):
@@ -2177,7 +2204,31 @@ index 803966c..2494934 100644
                  # Diplomatic state validation: block movement into foreign territory during peace/alliance
                  # Per FreeCiv rules: "Peace prevents moving military units into other's territory"
                  if is_valid and civcom and target_index is not None:
-@@ -1193,7 +1301,8 @@ class StateExtractor:
+@@ -1178,11 +1295,20 @@ class StateExtractor:
+                             ds_name = DS_NAMES.get(ds_type, 'unknown')
+                             reason = f"Cannot move into foreign territory - at {ds_name} with player {target_owner}"
+ 
+-                add_action('move', {'direction': direction, 'target': {'x': target_x, 'y': target_y}},
+-                          is_valid, reason)
++                params = {
++                    'direction': direction,
++                    'target': {'x': target_x, 'y': target_y},
++                }
++                if (founder_capable and civcom
++                        and target_index is not None
++                        and civcom.tiles.get(target_index) is not None):
++                    can_found, _ = civcom.can_city_be_founded_at(
++                        target_index, player_id)
++                    params['settlement_site_eligible'] = bool(can_found)
++                add_action('move', params, is_valid, reason)
+         
+         # === CITY FOUNDING ACTIONS ===
+-        if can_do_action(ACTION_FOUND_CITY):
++        if founder_capable:
+             is_valid = True
+             reason = None
+ 
+@@ -1193,7 +1319,8 @@ class StateExtractor:
  
              # Check citymindist constraint
              if is_valid and civcom and tile_index is not None:
@@ -2187,7 +2238,7 @@ index 803966c..2494934 100644
                  if not can_found:
                      is_valid = False
                      reason = found_reason
-@@ -1222,15 +1330,22 @@ class StateExtractor:
+@@ -1222,15 +1349,22 @@ class StateExtractor:
              # Check if unit is in a city
              in_city = False
              city_name = None
@@ -2213,7 +2264,7 @@ index 803966c..2494934 100644
          
          # === FORTIFY ACTION ===
          if can_do_action(ACTION_FORTIFY):
-@@ -2447,15 +2562,21 @@ class StateExtractor:
+@@ -2447,15 +2581,21 @@ class StateExtractor:
              logger.warning(f"Error analyzing expansion sites: {e}")
              return 2  # Conservative fallback
  
@@ -2239,7 +2290,7 @@ index 803966c..2494934 100644
          if since_turn is not None:
              key += f"_since_{since_turn}"
          return key
-@@ -2614,9 +2735,9 @@ class StateExtractorHandler(web.RequestHandler):
+@@ -2614,9 +2754,9 @@ class StateExtractorHandler(web.RequestHandler):
              since_turn = self.get_argument('since_turn', None)
  
              # Validate format parameter (must match validate_request_parameters accepted formats)
@@ -2408,10 +2459,10 @@ index dc8c8ab..77ed308 100644
 +        assert result['dest_tile'] == 56
 diff --git a/freeciv-proxy/tests/test_pln_authoritative_state.py b/freeciv-proxy/tests/test_pln_authoritative_state.py
 new file mode 100644
-index 0000000..9fa81a5
+index 0000000..93d611f
 --- /dev/null
 +++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
-@@ -0,0 +1,625 @@
+@@ -0,0 +1,688 @@
 +"""Contract tests for the packet-backed PLN authoritative state format."""
 +
 +import asyncio
@@ -2551,6 +2602,69 @@ index 0000000..9fa81a5
 +    assert CivCom.can_city_be_founded_at(civcom, 56, 0) == (True, None)
 +    civcom.tiles[56]["owner"] = 255
 +    assert CivCom.can_city_be_founded_at(civcom, 56, 0) == (True, None)
++
++
++def test_founder_moves_carry_only_packet_grounded_site_eligibility():
++    class FakeCivCom:
++        player_id = 0
++        map_info = {
++            "width": 10, "height": 10,
++            "wrap_x": False, "wrap_y": False,
++        }
++        citymindist = 3
++        player_cities = {}
++        other_cities = {}
++        other_units = {}
++        player_units = {}
++        unit_classes = {1: {"name": "Land"}}
++        unit_types = {48: {"name": "Settlers", "unit_class_id": 1}}
++        terrains = {5: {"tclass": 0, "flags": [0]}}
++        # East is unclaimed and eligible; south is foreign-claimed. North has
++        # no packet and must remain unknown rather than guessed false.
++        tiles = {
++            56: {"terrain": 5, "owner": 255},
++            65: {"terrain": 5, "owner": 1},
++        }
++
++        @staticmethod
++        def utype_can_do_action(_unit_type, action_id):
++            from action_constants import ACTION_FOUND_CITY
++            return action_id == ACTION_FOUND_CITY
++
++        @staticmethod
++        def get_terrain_class(_terrain_id):
++            return 0
++
++        @staticmethod
++        def is_unit_class_native_to_terrain(_unit_class, _terrain_id):
++            return True
++
++        @staticmethod
++        def get_diplstate(_player, _owner):
++            return {"type": DS_WAR}
++
++        can_city_be_founded_at = CivCom.can_city_be_founded_at
++
++    unit = {
++        "id": 105, "owner": 0, "type_id": 48, "type": "Settlers",
++        "x": 5, "y": 5, "tile": 55, "moves_left": 12,
++        "activity": "idle", "transported": False,
++    }
++    extractor = StateExtractor(civcom=FakeCivCom())
++    actions = extractor._generate_unit_actions(
++        unit, {"units": {"105": unit}, "cities": {}}, 0)
++
++    def move_to(x, y):
++        return next(
++            row for row in actions
++            if row["action"] == "move"
++            and row["params"]["target"] == {"x": x, "y": y})
++
++    assert move_to(6, 5)["params"]["settlement_site_eligible"] is True
++    assert move_to(5, 6)["params"]["settlement_site_eligible"] is False
++    assert "settlement_site_eligible" not in move_to(5, 4)["params"]
++    normalized = extractor._normalize_action_format(move_to(6, 5))
++    assert normalized["settlement_site_eligible"] is True
 +
 +
 +def test_known_technology_names_use_exact_invention_array_indices():

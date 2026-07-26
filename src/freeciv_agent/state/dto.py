@@ -93,6 +93,12 @@ def _executable_action(row, player_id=None):
         normalized = copy.deepcopy(row)
         normalized.pop("reason", None)
         normalized.pop("is_valid", None)
+        if (normalized.get("action_type") == "unit_move"
+                and "settlement_site_eligible" in normalized):
+            normalized["settlement_site_eligible"] = _boolean(
+                normalized["settlement_site_eligible"],
+                "legal_actions.unit_move.settlement_site_eligible",
+                required=True)
         if normalized.get("action_type") == "unit_join_city":
             target = normalized.get("target")
             if not isinstance(target, dict):
@@ -124,7 +130,7 @@ def _executable_action(row, player_id=None):
             target = {"x": row.get("dest_x"), "y": row.get("dest_y")}
         if not isinstance(target, dict) or target.get("x") is None or target.get("y") is None:
             raise ContractError("unit_move action is missing target coordinates")
-        return {
+        normalized = {
             "action_type": "unit_move",
             "actor_id": _integer(
                 row.get("unit_id", row.get("actor_id")),
@@ -134,6 +140,15 @@ def _executable_action(row, player_id=None):
                 "y": _integer(target.get("y"), "legal_actions.unit_move.target.y", True),
             },
         }
+        site_eligible = row.get("settlement_site_eligible")
+        if site_eligible is None and isinstance(params, dict):
+            site_eligible = params.get("settlement_site_eligible")
+        if site_eligible is not None:
+            normalized["settlement_site_eligible"] = _boolean(
+                site_eligible,
+                "legal_actions.unit_move.settlement_site_eligible",
+                required=True)
+        return normalized
     if kind == "unit_build_city":
         return {
             "action_type": "unit_build_city",

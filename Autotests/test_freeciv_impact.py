@@ -271,6 +271,94 @@ def test_founder_route_uses_city_network_separation_instead_of_action_order():
         "city_separation_tiebreak_active"]
 
 
+def test_founder_prefers_adjacent_packet_confirmed_settlement_site():
+    confirmed = {
+        "action_type": "unit_move", "actor_id": 1,
+        "settlement_site_eligible": True,
+        "target": {"x": 3, "y": 1}, "is_valid": True,
+    }
+    farther = {
+        "action_type": "unit_move", "actor_id": 1,
+        "settlement_site_eligible": False,
+        "target": {"x": 4, "y": 0}, "is_valid": True,
+    }
+    snapshot = _snapshot(
+        [_unit(1, "Settlers", 3, 0)],
+        [farther, confirmed,
+         {"action_type": "end_turn", "is_valid": True}])
+    ir = _ruleset_ir((("Settlers", "unit", 30),))
+
+    preferred = GroundedImpactPlanner(ruleset_ir=ir).plan(snapshot)
+
+    assert preferred.candidate.action["target"] == {"x": 3, "y": 1}
+    assert preferred.candidate.utility == 990.0
+    assert preferred.candidate.projection[
+        "settlement_site_preference_active"] is True
+    assert preferred.candidate.projection[
+        "settlement_site_preference_source"] == (
+            "packet-ruleset-found-city-preconditions")
+
+    disabled = GroundedImpactPlanner({
+        "expansion_packet_site_preference_enabled": False,
+    }, ruleset_ir=ir).plan(snapshot)
+    assert disabled.candidate.action["target"] == {"x": 4, "y": 0}
+    assert disabled.candidate.projection[
+        "settlement_site_preference_active"] is False
+
+    unknown = _snapshot(
+        [_unit(1, "Settlers", 3, 0)],
+        [{key: value for key, value in farther.items()
+          if key != "settlement_site_eligible"},
+         {key: value for key, value in confirmed.items()
+          if key != "settlement_site_eligible"},
+         {"action_type": "end_turn", "is_valid": True}],
+        source_seq=2)
+    assert GroundedImpactPlanner(ruleset_ir=ir).plan(
+        unknown).candidate.action["target"] == {"x": 4, "y": 0}
+
+
+def test_packet_site_preference_never_preempts_founding_current_site():
+    move = {
+        "action_type": "unit_move", "actor_id": 1,
+        "settlement_site_eligible": True,
+        "target": {"x": 4, "y": 0}, "is_valid": True,
+    }
+    found = {
+        "action_type": "unit_build_city", "actor_id": 1, "is_valid": True,
+    }
+    snapshot = _snapshot(
+        [_unit(1, "Settlers", 3, 0)],
+        [move, found, {"action_type": "end_turn", "is_valid": True}])
+
+    decision = GroundedImpactPlanner().plan(snapshot)
+
+    assert decision.candidate.category == "city_founding"
+    assert decision.candidate.action["action_type"] == "unit_build_city"
+
+
+def test_packet_site_preference_records_exact_move_outcome():
+    action = {
+        "action_type": "unit_move", "actor_id": 1,
+        "settlement_site_eligible": True,
+        "target": {"x": 3, "y": 1}, "is_valid": True,
+    }
+    before = _snapshot(
+        [_unit(1, "Settlers", 3, 0)],
+        [action, {"action_type": "end_turn", "is_valid": True}])
+    after = _snapshot(
+        [_unit(1, "Settlers", 3, 1)],
+        [{"action_type": "end_turn", "is_valid": True}], source_seq=2)
+    planner = GroundedImpactPlanner(
+        ruleset_ir=_ruleset_ir((("Settlers", "unit", 30),)))
+    candidate = planner.plan(before).candidate
+
+    planner.record_outcome(
+        candidate, before, effect_observed=True, after_snapshot=after)
+
+    assert planner.founder_settlement_site_preference_attempts == 1
+    assert planner.founder_settlement_site_preference_successes == 1
+
+
 def test_founder_route_learns_exact_traversal_for_another_founder():
     ir = _ruleset_ir((("Settlers", "unit", 30),))
     planner = GroundedImpactPlanner(ruleset_ir=ir)
@@ -859,6 +947,7 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
                    {"expansion_minimum_settlement_runway_turns": 1.5},
                    {"expansion_minimum_settlement_runway_turns": 101},
                    {"expansion_settlement_deadline_recovery_enabled": 1},
+                   {"expansion_packet_site_preference_enabled": 1},
                    {"foodbox_percent": 0},
                    {"unit_build_score_divisor": 0},
                    {"production_minimum_remaining_turns": 9,

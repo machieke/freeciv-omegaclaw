@@ -205,7 +205,7 @@ def _target_name(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.6"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.7"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -214,6 +214,8 @@ class GroundedImpactPlanner(object):
     FOUNDER_CARDINAL_CORRIDOR_BONUS = 18.0
     FOUNDER_TRAVERSABLE_EDGE_BONUS = 36.0
     FOUNDER_FAILED_EDGE_PENALTY = 30.0
+    FOUNDER_SETTLEMENT_SITE_UTILITY = 990.0
+    FOUNDER_SETTLEMENT_ALTERNATIVE_UTILITY_CEILING = 980.0
 
     def __init__(self, config=None, ruleset_ir=None, pressure_state_path=None,
                  pressure_state_identity=None):
@@ -318,6 +320,13 @@ class GroundedImpactPlanner(object):
                 "expansion_settlement_deadline_recovery_enabled must be boolean")
         self.expansion_settlement_deadline_recovery_enabled = (
             settlement_deadline_recovery)
+        settlement_site_preference = values.get(
+            "expansion_packet_site_preference_enabled", True)
+        if not isinstance(settlement_site_preference, bool):
+            raise ValueError(
+                "expansion_packet_site_preference_enabled must be boolean")
+        self.expansion_packet_site_preference_enabled = (
+            settlement_site_preference)
         self.foodbox_percent = int(values.get("foodbox_percent", 100))
         self.unit_build_score_divisor = int(values.get(
             "unit_build_score_divisor", 10))
@@ -432,6 +441,8 @@ class GroundedImpactPlanner(object):
         self.founder_route_failures = 0
         self.founder_cardinal_corridor_attempts = 0
         self.founder_cardinal_corridor_successes = 0
+        self.founder_settlement_site_preference_attempts = 0
+        self.founder_settlement_site_preference_successes = 0
         self.population_recovery_attempts = 0
         self.population_recovery_completions = 0
         self.population_recovered = 0
@@ -1394,7 +1405,12 @@ class GroundedImpactPlanner(object):
             return
         corridor_attempt = bool(
             (candidate.projection or {}).get("cardinal_corridor_match", False))
+        site_preference_attempt = bool(
+            (candidate.projection or {}).get(
+                "settlement_site_preference_active", False))
         self.founder_cardinal_corridor_attempts += int(corridor_attempt)
+        self.founder_settlement_site_preference_attempts += int(
+            site_preference_attempt)
         if after is None:
             return
         founder_types = self._founder_types(before)
@@ -1412,6 +1428,8 @@ class GroundedImpactPlanner(object):
         if traversed:
             self.founder_route_successes += 1
             self.founder_cardinal_corridor_successes += int(corridor_attempt)
+            self.founder_settlement_site_preference_successes += int(
+                site_preference_attempt)
             self._founder_traversable_edges.add(
                 self._founder_traversable_edge(before, edge))
             self._founder_actor_failed_edges.discard(actor_edge)
@@ -2410,6 +2428,38 @@ class GroundedImpactPlanner(object):
                         route_progress and evidence.get("traversable_edge", False)),
                 }
                 utility += route_utility
+                site_eligible = action.get("settlement_site_eligible")
+                confirmed_site_available = bool(
+                    self.expansion_packet_site_preference_enabled
+                    and actions is not None
+                    and any(
+                        alternative.get("action_type") == "unit_move"
+                        and alternative.get("actor_id") == unit.unit_id
+                        and alternative.get("settlement_site_eligible") is True
+                        for alternative in actions))
+                site_preference_active = bool(
+                    confirmed_site_available and site_eligible is True)
+                if confirmed_site_available:
+                    # Preserve city founding itself at utility 1000 while
+                    # deterministically preferring a one-move, packet-confirmed
+                    # site over additional frontier wandering. Alternatives
+                    # remain candidates so a learned failed edge cannot create
+                    # an artificial dead end.
+                    utility = (
+                        self.FOUNDER_SETTLEMENT_SITE_UTILITY
+                        if site_preference_active else
+                        min(
+                            utility,
+                            self.FOUNDER_SETTLEMENT_ALTERNATIVE_UTILITY_CEILING))
+                projection.update({
+                    "settlement_site_eligible": site_eligible,
+                    "settlement_site_preference_active": site_preference_active,
+                    "settlement_site_preference_available": (
+                        confirmed_site_available),
+                    "settlement_site_preference_source": (
+                        "packet-ruleset-found-city-preconditions"
+                        if site_eligible is not None else None),
+                })
             return ImpactCandidate(
                 action, "expansion_move", utility,
                 "move a founder toward settlement using grounded route evidence",

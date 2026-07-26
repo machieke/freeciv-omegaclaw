@@ -313,6 +313,29 @@ def test_proxy_internal_move_found_city_and_attack_actions_are_canonical():
         "target": {"x": 4, "y": 2}}
 
 
+def test_proxy_move_preserves_only_typed_settlement_site_evidence():
+    payload = _payload()
+    payload["legal_actions"] = [{
+        "type": "unit_move", "unit_id": 7,
+        "params": {
+            "target": {"x": 3, "y": 2},
+            "settlement_site_eligible": True,
+        },
+        "is_valid": True,
+    }]
+
+    action = json.loads(_snapshot(payload=payload).legal_action_json[0])
+
+    assert action == {
+        "action_type": "unit_move", "actor_id": 7,
+        "settlement_site_eligible": True,
+        "target": {"x": 3, "y": 2},
+    }
+    payload["legal_actions"][0]["params"]["settlement_site_eligible"] = 1
+    with pytest.raises(ContractError, match="settlement_site_eligible"):
+        _snapshot(payload=payload)
+
+
 def test_proxy_join_city_action_requires_and_preserves_exact_city_id():
     payload = _payload()
     payload["legal_actions"] = [{

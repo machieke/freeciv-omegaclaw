@@ -554,6 +554,15 @@ passed. Adapter 1.6 is therefore retained as lifecycle-correctness hardening,
 not promoted as a score-bearing mechanism. Full evidence is in
 [`evidence/pf-expansion-deadline-recovery-diagnostic-v1.md`](evidence/pf-expansion-deadline-recovery-diagnostic-v1.md).
 
+Adapter `grounded-impact-planner/1.7` then adds packet-grounded adjacent-site
+selection. A founder move is annotated only when its destination tile packet
+exists, using the same terrain, ownership, ocean, and visible-city-spacing
+preconditions as Found City. An explicit eligible destination is preferred
+over further frontier travel without pruning alternatives or preempting
+current-site founding. Its selected-seed engine cohort is mechanism-only and
+cannot update the adapter-1.5 claim. Offline design evidence is in
+[`evidence/pf-packet-site-preference-offline-acceptance.md`](evidence/pf-packet-site-preference-offline-acceptance.md).
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` and `pressure_score_alignment_enabled` default to `false`
 unless the runtime profile enables them. This preserves unit-level policy
