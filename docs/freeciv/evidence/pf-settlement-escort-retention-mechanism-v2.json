@@ -1,0 +1,82 @@
+{
+  "artifacts": {
+    "aggregate": "artifacts/freeciv/pf-settlement-escort-retention-mechanism-v2/impact-aggregate.json",
+    "aggregate_sha256": "0c68680c0cef17617145f6b2f851398cbfff7104386aed399671e9a9340fd099",
+    "baseline_events_sha256": "203411618f51ef79648ed5d8349d1d5685c0bb81a1812caab818c5a2b2e73b6d",
+    "exact_replay_artifact_hash": "829eff4b21aafca5edfc8ceac572fa868b03ea9744b295fd56738ebb578475dd",
+    "exact_replay_sha256": "46f392a164c47d0ab8d394201be1f501574775d88a9269a7f4125c70e6890bc6",
+    "exact_replay_source_set_hash": "1eb4ccaf225a00bca579cb94ba16d54fc9f436a03c6243f48f3c6843d94a0a6d",
+    "run_summary_sha256": "4aea594d40accc4959c41dc32f91a98896f4af5224921c2928834899cd4d2cc8",
+    "treatment_events_sha256": "c7c3d9e47561820b1d87efb87479f85e8a6d732fe684fc92bb7503b9a53c1576"
+  },
+  "claim": {
+    "claim_eligible": false,
+    "score_improvement_supported": false,
+    "status": "selected_seed_mechanism_only",
+    "win_rate_supported": false
+  },
+  "cohort": {
+    "active_infrastructure_failures": 0,
+    "complete_pairs": 1,
+    "completed_arms": 2,
+    "name": "settlement_escort_retention_mechanism_v2",
+    "planned_pairs": 1,
+    "reused_seed": 3746776
+  },
+  "decision_replay": {
+    "changed_decisions": 1,
+    "decision_change_rate": 0.018867924528301886,
+    "exact_replay_files": 1,
+    "integrity_failures": 0,
+    "sources_unchanged": true,
+    "total_decisions": 53
+  },
+  "mechanism": {
+    "baseline": {
+      "cities_founded": 3,
+      "cities_gained": 2,
+      "final_city_sizes": [2, 3, 5],
+      "score": 112,
+      "score_margin": -36
+    },
+    "treatment": {
+      "cities_founded": 2,
+      "cities_gained": 2,
+      "escort_defense_production_attempts": 2,
+      "escort_defense_production_successes": 2,
+      "escort_deferral_snapshots": 41,
+      "escort_move_attempts": 6,
+      "escort_move_successes": 6,
+      "escorted_settlement_attempts": 2,
+      "escorted_settlement_completions": 2,
+      "final_city_sizes": [3, 4, 5],
+      "score": 115,
+      "score_margin": -13
+    }
+  },
+  "outcomes": {
+    "opponent_score_delta": -20,
+    "score_component_citizen_delta": 2,
+    "score_component_residual_delta": 1,
+    "score_component_technology_delta": 0,
+    "score_delta": 3,
+    "score_exact_sign_flip_p": 1.0,
+    "score_margin_delta": 23
+  },
+  "safety": {
+    "engine_rejected_action_rate": {"baseline": 0.0, "treatment": 0.0},
+    "full_loop_under_30s_rate": {"baseline": 1.0, "treatment": 1.0},
+    "initial_state_fidelity_passed": true,
+    "model_safe_fallback_rate": {"baseline": 0.0, "treatment": 0.0},
+    "overall_passed": true,
+    "schema_valid_events": 2478,
+    "schema_valid_files": 2
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "c1a517ef26527e2990b65d85ceef25ab83c90bae",
+    "configuration_hash": "195affd25491fe7b894717e84be45387967407f4576c765b9bdac1ef69c7988b",
+    "implementation_sha256": "1c8ff24eed2330986e9a7100a6871dfa7b6484ba491eb457fbaca2d27bdd3ec2",
+    "source_freeze_passed": true
+  }
+}

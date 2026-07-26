@@ -1,7 +1,7 @@
 # PF-PLN settlement escort retention
 
-Status: adapter 1.8 mechanism rejected; adapter 1.9 correction implemented
-and source-fresh selected engine replay frozen
+Status: adapter 1.8 mechanism rejected; adapter 1.9 selected mechanism passed;
+selected ten-seed generalization replay frozen
 
 ## Goal
 
@@ -89,3 +89,32 @@ selected seed on a fresh adapter-1.9 source. Adapter-1.8 arms cannot be reused
 or pooled. In addition to the original acceptance fields, V2 must report exact
 escort-defense production attempts/completions and verify that no Diplomat,
 Spy, Caravan, or Explorer action is classified as an escort.
+
+## Adapter 1.9 engine result
+
+The source-fresh V2 pair completed from clean commit `c1a517e` with zero
+infrastructure failures. Treatment installed two exact escort-defense
+production switches, made six true combat escort moves with six exact
+traversals, and completed both escorted settlements. The Diplomat continued
+ordinary exploration and accounted for zero escort actions. Both treatment
+settlements survived through turn 60.
+
+Baseline founded three cities but retained two net additions, with final sizes
+`2, 3, 5`. Treatment founded two escorted cities, retained both, and finished
+at sizes `3, 4, 5`. Own score improved from `112` to `115` through two citizen
+points and one residual point; technology was unchanged. Opponent score
+diverged from `148` to `128`, so the `+23` margin change cannot be attributed
+only to own play.
+
+Both event streams and 2,478 events validate. Exact replay covered 53
+treatment decisions with zero integrity failure and unchanged sources. All
+source, initial-state, rejection, fallback, and latency gates pass.
+Machine-readable evidence is
+[`pf-settlement-escort-retention-mechanism-v2.json`](pf-settlement-escort-retention-mechanism-v2.json).
+The one outcome-selected pair proves the corrected mechanism and rejects the
+adapter-1.8 failure mode; it does not support a score or win-rate claim.
+
+`settlement_escort_retention_generalization_v1` therefore freezes the same
+isolated adapter-1.9 switch across all ten previously selected packet-site
+seeds. It remains claim-ineligible and must report every retention, score,
+opponent, margin, and lead outcome without pooling with either one-pair replay.

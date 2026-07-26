@@ -892,6 +892,56 @@ paired_impact:
           pressure_score_alignment_enabled: true
       seeds:
         - 3746776
+    settlement_escort_retention_generalization_v1:
+      claim_eligible: false
+      purpose: diagnostic
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 10
+      controller_workers: 3
+      reused_seeds_from:
+        - settlement_escort_retention_mechanism_v1
+        - settlement_escort_retention_mechanism_v2
+        - packet_site_preference_mechanism_v1
+        - expansion_target_confirmatory_v1
+      reused_seed_reason: >-
+        Generalization diagnostic over all ten outcome-selected packet-site
+        seeds after adapter 1.9 corrected the exposed retention seed. It tests
+        activation, retention, and adverse tradeoffs only and cannot update any
+        score or win-rate claim.
+      isolated_policy_keys:
+        - expansion_escort_retention_enabled
+      arms:
+        baseline:
+          expansion_city_target: 4
+          expansion_minimum_settlement_runway_turns: 15
+          expansion_settlement_deadline_recovery_enabled: true
+          expansion_packet_site_preference_enabled: true
+          expansion_escort_retention_enabled: false
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+        treatment:
+          expansion_city_target: 4
+          expansion_minimum_settlement_runway_turns: 15
+          expansion_settlement_deadline_recovery_enabled: true
+          expansion_packet_site_preference_enabled: true
+          expansion_escort_retention_enabled: true
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+      seeds:
+        - 3618865
+        - 3658684
+        - 3696266
+        - 3697785
+        - 3745421
+        - 3746776
+        - 3756351
+        - 3765204
+        - 3790239
+        - 3796144
   retired_cohorts:
     confirmatory_score_horizon_60_v4:
       retired_reason: terminal_player_elimination_misclassified_as_infrastructure_timeout

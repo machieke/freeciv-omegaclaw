@@ -1356,3 +1356,14 @@ defense deficit. It may repurpose a population-costing founder queue into a
 declared defender and reports that installation separately. Source-fresh
 `settlement_escort_retention_mechanism_v2` repeats the isolated selected-seed
 gate; V1 outcomes remain immutable and unpooled.
+
+The adapter-1.9 V2 replay passed the corrected mechanism. It installed two
+escort-defense production targets, made six exact Alpine Troops escort
+traversals, completed two escorted settlements, and retained both cities.
+Treatment scored `115` versus baseline `112`, with `+2` citizen and `+1`
+residual score; opponent divergence makes the larger margin change
+non-attributable. This is one outcome-selected pair, so the feature remains
+disabled by default. Claim-ineligible
+`settlement_escort_retention_generalization_v1` now freezes the same isolated
+switch across all ten selected packet-site seeds before any broader pilot is
+considered.
