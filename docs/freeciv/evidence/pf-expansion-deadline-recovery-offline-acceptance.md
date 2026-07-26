@@ -91,3 +91,14 @@ validate all 80 event streams, replay every treatment pressure decision, and
 report recovery activation, score, margin, and lead estimates regardless of
 direction. It remains exploratory and cannot revise or be pooled with the
 claim-eligible expansion confirmation.
+
+The diagnostic completed all 40 pairs and every validation gate. Deadline
+recovery activated in 10 treatment games, made 31 route attempts, completed
+14 exact joins, and restored 28 population. It prevented four late
+settlements. Paired score changed by -0.075 with interval [-0.400, +0.250]
+and exact `p=0.765625`; lead rate changed by +2.5 percentage points with one
+discordant pair and exact McNemar `p=1.0`. All 80 streams and 115,810 events
+validated, and exact replay covered 2,985 treatment decisions with zero
+integrity failures. This supports the correctness mechanism, not a score or
+win-rate improvement. Full evidence is in
+[`pf-expansion-deadline-recovery-diagnostic-v1.md`](pf-expansion-deadline-recovery-diagnostic-v1.md).

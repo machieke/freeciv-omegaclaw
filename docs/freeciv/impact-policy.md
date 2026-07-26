@@ -506,6 +506,12 @@ and `AddToCity` flags, a positive population cost, an advertised join action,
 unit consumption, and the exact city-size gain. Offline acceptance is in
 [`evidence/pf-expansion-deadline-recovery-offline-acceptance.md`](evidence/pf-expansion-deadline-recovery-offline-acceptance.md).
 It does not revise the immutable expansion-target score confirmation.
+The fresh 40-pair engine ablation activated the path in 10 treatment games,
+completed 14 joins, restored 28 population, and prevented four late
+settlements. Paired score was -0.075 [-0.400, +0.250], exact `p=0.765625`;
+the mechanism is a correctness regularizer rather than a supported score or
+win-rate improvement. See
+[`evidence/pf-expansion-deadline-recovery-diagnostic-v1.md`](evidence/pf-expansion-deadline-recovery-diagnostic-v1.md).
 
 The development run at
 `artifacts/freeciv/impact-population-recovery-dev-3-20260720` validates an

@@ -545,6 +545,15 @@ snapshot replay. It does not revise the adapter-1.5 score claim. Evidence is
 in
 [`evidence/pf-expansion-deadline-recovery-offline-acceptance.md`](evidence/pf-expansion-deadline-recovery-offline-acceptance.md).
 
+The fresh, claim-ineligible 40-pair engine ablation then activated deadline
+recovery in 10 treatment games, restored 28 population through 14 verified
+joins, and prevented four late settlements. Paired score was -0.075
+[-0.400, +0.250], exact `p=0.765625`; lead changed by one discordant pair,
+exact McNemar `p=1.0`. All 80 streams and 2,985 replayed treatment decisions
+passed. Adapter 1.6 is therefore retained as lifecycle-correctness hardening,
+not promoted as a score-bearing mechanism. Full evidence is in
+[`evidence/pf-expansion-deadline-recovery-diagnostic-v1.md`](evidence/pf-expansion-deadline-recovery-diagnostic-v1.md).
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` and `pressure_score_alignment_enabled` default to `false`
 unless the runtime profile enables them. This preserves unit-level policy

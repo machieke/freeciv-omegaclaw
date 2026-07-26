@@ -1,0 +1,174 @@
+{
+  "artifacts": {
+    "aggregate": "artifacts/freeciv/pf-expansion-deadline-recovery-diagnostic-v1/impact-aggregate.json",
+    "aggregate_sha256": "bee5421b093dd4803a60884180a5b44e461dbe8b474a2bc8896a48cfa47f8b7f",
+    "exact_replay_artifact_hash": "88b6c5392371fbb7471cb822e32dffc67be1786963cac644ca4e1910eab61c56",
+    "exact_replay_sha256": "968b99db26b1a4dd93e61117220ddcb64abea15ef5d48134eae976deb3422d40",
+    "exact_replay_source_set_hash": "13b06c8327eb49e0a58dd6f3cfd9f3f4d7c4205ccbbe0f5c67377e60a820e5ca",
+    "run_summary_sha256": "b6e725a325a843918d14056e65ba819bf0bcf62514573d422c45879ef667dee9"
+  },
+  "claim": {
+    "claim_eligible": false,
+    "score_improvement_supported": false,
+    "status": "ineligible",
+    "win_rate_supported": false
+  },
+  "cohort": {
+    "active_infrastructure_failures": 0,
+    "complete_pairs": 40,
+    "completed_arms": 80,
+    "name": "expansion_deadline_recovery_diagnostic_v1",
+    "planned_pairs": 40
+  },
+  "decision_replay": {
+    "changed_decisions": 185,
+    "decision_change_rate": 0.06197654941373534,
+    "exact_replay_files": 40,
+    "integrity_failures": 0,
+    "sources_unchanged": true,
+    "total_decisions": 2985
+  },
+  "diagnostics": {
+    "activated_treatment_games": 10,
+    "affected_score_signs": {
+      "negative": 4,
+      "positive": 3,
+      "ties": 3
+    },
+    "all_score_signs": {
+      "negative": 4,
+      "positive": 3,
+      "ties": 33
+    },
+    "affected_seeds": [
+      3802703,
+      3816445,
+      3830393,
+      3836113,
+      3852767,
+      3868947,
+      3871109,
+      3873360,
+      3879041,
+      3897978
+    ],
+    "paired_score_sum": -3.0
+  },
+  "mechanism": {
+    "baseline": {
+      "population_recovered": 0,
+      "population_recovery_attempts": 0,
+      "population_recovery_completions": 0,
+      "population_recovery_route_attempts": 0,
+      "population_recovery_route_successes": 0,
+      "settlement_completions": 111
+    },
+    "deltas": {
+      "cities_gained": {
+        "estimate": -0.075,
+        "lower": -0.15,
+        "upper": 0.0
+      },
+      "citizen_score": {
+        "estimate": -0.175,
+        "lower": -0.45,
+        "upper": 0.05
+      },
+      "founder_production_changes": {
+        "estimate": 0.0,
+        "lower": 0.0,
+        "upper": 0.0
+      },
+      "settlement_completions": {
+        "estimate": -0.1,
+        "lower": -0.2,
+        "upper": -0.025
+      }
+    },
+    "treatment": {
+      "population_recovered": 28,
+      "population_recovery_attempts": 14,
+      "population_recovery_completions": 14,
+      "population_recovery_route_attempts": 31,
+      "population_recovery_route_successes": 30,
+      "settlement_completions": 107
+    }
+  },
+  "outcomes": {
+    "lead_rate": {
+      "baseline": 0.4,
+      "baseline_only_leads": 0,
+      "both_lead": 16,
+      "both_trail_or_tie": 23,
+      "difference": 0.025,
+      "exact_mcnemar_p": 1.0,
+      "lower": 0.0,
+      "treatment": 0.425,
+      "treatment_only_leads": 1,
+      "upper": 0.075
+    },
+    "score": {
+      "baseline_mean": 120.3,
+      "difference": -0.075,
+      "exact_sign_flip_p": 0.765625,
+      "lower": -0.4,
+      "treatment_mean": 120.225,
+      "upper": 0.25
+    },
+    "score_components": {
+      "citizen_delta": {
+        "estimate": -0.175,
+        "lower": -0.45,
+        "upper": 0.05
+      },
+      "residual_delta": {
+        "estimate": 0.1,
+        "lower": -0.05,
+        "upper": 0.35
+      },
+      "technology_delta": {
+        "estimate": 0.0,
+        "lower": 0.0,
+        "upper": 0.0
+      }
+    },
+    "score_margin": {
+      "baseline_mean": -5.25,
+      "difference": 0.625,
+      "lower": -0.35,
+      "treatment_mean": -4.625,
+      "upper": 2.275
+    }
+  },
+  "power": {
+    "achieved_power_for_predeclared_two_point_effect": 1.0,
+    "detectable_delta_at_achieved_n": 0.4639130048287279,
+    "observed_paired_sd": 1.0472797485843368
+  },
+  "safety": {
+    "engine_rejected_action_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "full_loop_under_30s_rate": {
+      "baseline": 1.0,
+      "treatment": 1.0
+    },
+    "initial_state_fidelity_passed": true,
+    "model_safe_fallback_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "overall_passed": true,
+    "schema_valid_events": 115810,
+    "schema_valid_files": 80,
+    "schema_warnings": 0
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "7141dcd6a180daf264844ea2d12898e40c6b123e",
+    "configuration_hash": "12fe1a03e475508f9120ea272c347ebd6bcb0c1b97d46957fa07606e9f8eb4a3",
+    "implementation_sha256": "f4bca72be6af44be214abb75c7bc3a72db2adc76bf01081dd6829ae76ccb4b5e",
+    "source_freeze_passed": true
+  }
+}

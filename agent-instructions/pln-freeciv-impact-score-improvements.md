@@ -1255,3 +1255,14 @@ effective difference is
 schema, exact-replay, activation, score, margin, and lead diagnostics are
 required regardless of direction. This cohort may not be pooled with or
 revise the confirmation.
+
+The diagnostic completed all 40 pairs and 80 arms from clean commit
+`7141dcd`. Recovery activated in 10 treatment games, made 31 route attempts,
+completed 14 verified joins, restored 28 population, and prevented four late
+settlements. Paired own score was -0.075 [-0.400, +0.250], exact
+`p=0.765625`; three pairs improved, 33 tied, and four declined. Lead changed
+from 40.0% to 42.5% through one discordant pair, exact McNemar `p=1.0`.
+Every stream and 2,985 exact-replayed treatment decisions passed. Adapter 1.6
+is retained as bounded correctness hardening, not advanced as a score-bearing
+optimization. Full evidence is
+[`../docs/freeciv/evidence/pf-expansion-deadline-recovery-diagnostic-v1.md`](../docs/freeciv/evidence/pf-expansion-deadline-recovery-diagnostic-v1.md).

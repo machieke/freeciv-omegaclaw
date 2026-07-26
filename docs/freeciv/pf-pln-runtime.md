@@ -17,6 +17,10 @@ The live harness explicitly enables
 `expansion_settlement_deadline_recovery_enabled`. Its false setting is a
 diagnostic ablation of existing-founder deadline handling; it does not
 activate or disable any PF-PLN phase.
+The completed 40-pair ablation activated recovery in 10 treatment games and
+restored 28 population, while paired score remained neutral at -0.075
+[-0.400, +0.250], exact `p=0.765625`. It validates the live lifecycle path
+without creating a new score or win-rate claim.
 
 ## Current engine boundary
 
