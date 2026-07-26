@@ -73,6 +73,40 @@ def test_state_query_carries_bounded_source_wait_hint():
     }
 
 
+def test_state_query_collects_server_timing_without_changing_state_body():
+    class TimingWS:
+        async def send(self, _message):
+            return None
+
+        async def recv(self):
+            return json.dumps({
+                "type": "state_response",
+                "data": {"turn": 3, "authoritative": {"source_seq": 9}},
+                "server_timing": {
+                    "schema_version": 1,
+                    "source_wait_ms": 12.5,
+                    "projection_ms": 4,
+                    "quiet_wait_ms": 50.25,
+                    "elapsed_before_serialize_ms": 68.0,
+                    "projection_attempts": 1,
+                    "ignored": 99,
+                },
+            })
+
+    diagnostics = {}
+    state = _run(turncycle.get_state(
+        TimingWS(), "pln_authoritative", diagnostics=diagnostics))
+
+    assert state == {"turn": 3, "authoritative": {"source_seq": 9}}
+    assert diagnostics == {
+        "source_wait_ms": 12.5,
+        "projection_ms": 4.0,
+        "quiet_wait_ms": 50.25,
+        "elapsed_before_serialize_ms": 68.0,
+        "projection_attempts": 1.0,
+    }
+
+
 def test_state_query_rejects_invalid_source_wait_hint():
     async def query(**kwargs):
         return await turncycle.get_state(
@@ -103,6 +137,13 @@ def test_state_query_rejects_invalid_source_wait_hint():
             pass
         else:
             raise AssertionError("invalid source wait hint accepted: {!r}".format(kwargs))
+
+    try:
+        _run(turncycle.get_state(MockProxyWS(), diagnostics=[]))
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("non-dictionary diagnostics accepted")
 
 
 def test_v4_contract_declares_conditional_stability_response():

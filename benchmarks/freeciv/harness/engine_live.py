@@ -592,10 +592,14 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
                         query_options["settle_quiet_ms"] = settle_ms
                         record("settle_wait_requested_ms", float(settle_ms))
         query_started = time.perf_counter()
+        server_query_diagnostics = {}
+        state_query_options = dict(query_options)
+        if diagnostics is not None:
+            state_query_options["diagnostics"] = server_query_diagnostics
         try:
             raw = await asyncio.wait_for(
                 turncycle.get_state(
-                    ws, "pln_authoritative", **query_options),
+                    ws, "pln_authoritative", **state_query_options),
                 timeout=max(0.05, remaining))
         except asyncio.TimeoutError:
             record("queries", 1)
@@ -605,6 +609,8 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
         record("queries", 1)
         record("query_latency_ms", (
             time.perf_counter() - query_started) * 1000.0)
+        for name, value in server_query_diagnostics.items():
+            record("server_" + name, value)
         if raw and raw.get("type") == "state_unchanged":
             unchanged_seq = raw.get("source_seq")
             unchanged_turn = raw.get("turn")
@@ -2054,6 +2060,17 @@ async def _play(run_dir, manifest, context):
         sum(turn_boundary_latencies) / max(1, len(turn_boundary_latencies)))
     mean_transition_state_latency = (
         transition_state_diagnostics.get("latency_ms", 0.0) / transition_calls)
+
+    def mean_state_diagnostic(diagnostics, name, calls):
+        return diagnostics.get(name, 0.0) / calls
+
+    def mean_state_delivery_latency(diagnostics, calls):
+        return max(
+            0.0,
+            mean_state_diagnostic(diagnostics, "query_latency_ms", calls)
+            - mean_state_diagnostic(
+                diagnostics, "server_elapsed_before_serialize_ms", calls))
+
     truth_techs = set((final_global or {}).get("techs", {}).get(
         "player{}".format(opponent.get("id", 1)), []))
     correct = []
@@ -2132,6 +2149,29 @@ async def _play(run_dir, manifest, context):
         ("turn_boundary_state_settled_marker_rate",
          transition_state_diagnostics.get("settled_markers", 0.0)
          / transition_calls),
+        ("turn_boundary_state_server_source_wait_ms",
+         mean_state_diagnostic(
+             transition_state_diagnostics, "server_source_wait_ms",
+             transition_calls)),
+        ("turn_boundary_state_server_projection_ms",
+         mean_state_diagnostic(
+             transition_state_diagnostics, "server_projection_ms",
+             transition_calls)),
+        ("turn_boundary_state_server_quiet_wait_ms",
+         mean_state_diagnostic(
+             transition_state_diagnostics, "server_quiet_wait_ms",
+             transition_calls)),
+        ("turn_boundary_state_server_prepare_ms",
+         mean_state_diagnostic(
+             transition_state_diagnostics,
+             "server_elapsed_before_serialize_ms", transition_calls)),
+        ("turn_boundary_state_delivery_ms",
+         mean_state_delivery_latency(
+             transition_state_diagnostics, transition_calls)),
+        ("turn_boundary_state_projection_count",
+         mean_state_diagnostic(
+             transition_state_diagnostics, "server_projection_attempts",
+             transition_calls)),
         ("action_refresh_state_latency_ms",
          action_state_diagnostics.get("latency_ms", 0.0) / action_state_calls),
         ("action_refresh_state_query_latency_ms",
@@ -2145,6 +2185,29 @@ async def _play(run_dir, manifest, context):
         ("action_refresh_state_settled_marker_rate",
          action_state_diagnostics.get("settled_markers", 0.0)
          / action_state_calls),
+        ("action_refresh_state_server_source_wait_ms",
+         mean_state_diagnostic(
+             action_state_diagnostics, "server_source_wait_ms",
+             action_state_calls)),
+        ("action_refresh_state_server_projection_ms",
+         mean_state_diagnostic(
+             action_state_diagnostics, "server_projection_ms",
+             action_state_calls)),
+        ("action_refresh_state_server_quiet_wait_ms",
+         mean_state_diagnostic(
+             action_state_diagnostics, "server_quiet_wait_ms",
+             action_state_calls)),
+        ("action_refresh_state_server_prepare_ms",
+         mean_state_diagnostic(
+             action_state_diagnostics,
+             "server_elapsed_before_serialize_ms", action_state_calls)),
+        ("action_refresh_state_delivery_ms",
+         mean_state_delivery_latency(
+             action_state_diagnostics, action_state_calls)),
+        ("action_refresh_state_projection_count",
+         mean_state_diagnostic(
+             action_state_diagnostics, "server_projection_attempts",
+             action_state_calls)),
         ("action_refresh_state_parse_latency_ms",
          action_state_diagnostics.get("parse_latency_ms", 0.0)
          / action_state_calls),

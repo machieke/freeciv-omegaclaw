@@ -15,7 +15,7 @@ The patch is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. Its SHA-256 is
-`aec725fae2618872023fc0eb0baea4c23323e5d46e037d470f33ca10e2eb71a5`.
+`72813abbb7c45be3cc357592dd0bba33ca3537178cd7c34482f5c5033c5e5dd5`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 The patch defaults the proxy logger to `INFO` and moves per-action payload,
@@ -81,6 +81,15 @@ complete their two-sample proof in one request. Accepted-action refreshes do
 not: delayed effect packets can change same-turn planning after the ordinary
 decision state is quiet, so those refreshes retain the longer v4
 post-projection sample.
+
+State responses may also include a top-level, non-authoritative
+`server_timing` diagnostic. It attributes time spent waiting for packet
+revisions or turn start, building projections, and proving an exact revision
+quiet. The harness consumes these values only as performance metrics; the
+field remains outside `data`, is not parsed into `AuthoritativeSnapshot`, and
+cannot affect a decision fingerprint. Query latency minus the server's
+pre-serialization elapsed time is reported separately as delivery overhead,
+which includes JSON serialization, WebSocket delivery, and client scheduling.
 
 The observer-backed `global_state_response` carries its own authoritative
 `turn`. The harness rejects a populated but stale observer response until its

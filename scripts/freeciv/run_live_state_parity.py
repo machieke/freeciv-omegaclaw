@@ -330,7 +330,7 @@ def main():
     parser.add_argument("--turns", type=int, default=100)
     parser.add_argument("--seed", type=int, default=4202)
     parser.add_argument("--proxy-commit", default=(
-        "26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:aec725fae2618872023fc0eb0baea4c23323e5d46e037d470f33ca10e2eb71a5"))
+        "26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:72813abbb7c45be3cc357592dd0bba33ca3537178cd7c34482f5c5033c5e5dd5"))
     parser.add_argument("--events", help="archive canonical persisted-first event JSONL")
     args = parser.parse_args()
     try:

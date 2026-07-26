@@ -21,6 +21,18 @@
   },
   "websocket_state_response": {
     "type": "state_response",
+    "optional_server_timing": {
+      "location": "server_timing",
+      "schema_version": 1,
+      "fields": {
+        "source_wait_ms": "non-negative number",
+        "projection_ms": "non-negative number",
+        "quiet_wait_ms": "non-negative number",
+        "projection_attempts": "non-negative integer",
+        "elapsed_before_serialize_ms": "non-negative number"
+      },
+      "semantics": "non-authoritative handler diagnostics outside data; excluded from state snapshots and decision fingerprints"
+    },
     "stability": {
       "location": "data.authoritative.stability",
       "policy": "source-seq-quiet-v1",

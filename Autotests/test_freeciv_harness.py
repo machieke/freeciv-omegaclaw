@@ -1154,6 +1154,7 @@ def test_state_accepts_exact_proxy_settled_full_sample(monkeypatch):
 
     assert returned is raw
     assert snapshot.identity.source_seq == 45
+    assert calls[0].pop("diagnostics") == {}
     assert calls == [{
         "after_source_seq": 44,
         "wait_timeout_ms": pytest.approx(450, abs=2),

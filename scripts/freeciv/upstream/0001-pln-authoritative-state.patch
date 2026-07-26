@@ -250,7 +250,7 @@ index 44cefa7..53f4558 100644
  
  class BitVector:
 diff --git a/freeciv-proxy/civcom.py b/freeciv-proxy/civcom.py
-index 02e3d7d..3ad53ee 100755
+index 02e3d7d..51068e1 100755
 --- a/freeciv-proxy/civcom.py
 +++ b/freeciv-proxy/civcom.py
 @@ -15,7 +15,7 @@
@@ -448,7 +448,7 @@ index 02e3d7d..3ad53ee 100755
                  return (False, "Cannot found city on ocean")
          
          # Check distance to all cities
-@@ -1464,11 +1490,107 @@ class CivCom(Thread):
+@@ -1464,11 +1490,129 @@ class CivCom(Thread):
      def queue_to_civserver(self, message):
          self.civserver_messages.append(message)
  
@@ -490,26 +490,48 @@ index 02e3d7d..3ad53ee 100755
 +        return True
 +
 +    async def build_settled_source_state(
-+            self, after_source_seq, quiet_seconds, timeout_seconds, builder):
++            self, after_source_seq, quiet_seconds, timeout_seconds, builder,
++            diagnostics=None):
 +        """Build and retain a newer projection only after its exact revision is quiet."""
 +        loop = asyncio.get_running_loop()
 +        deadline = loop.time() + timeout_seconds
++
++        def record(name, elapsed_seconds):
++            if diagnostics is not None:
++                diagnostics[name] = (
++                    diagnostics.get(name, 0.0) + elapsed_seconds * 1000.0)
++
 +        if self.source_seq <= after_source_seq:
++            wait_started = loop.time()
 +            advanced = await self.wait_for_source_seq(
 +                after_source_seq, max(0.0, deadline - loop.time()))
++            record('source_wait_ms', loop.time() - wait_started)
 +            if not advanced:
++                projection_started = loop.time()
 +                with self._state_projection_lock():
-+                    return builder(), None
++                    state = builder()
++                record('projection_ms', loop.time() - projection_started)
++                if diagnostics is not None:
++                    diagnostics['projection_attempts'] = (
++                        diagnostics.get('projection_attempts', 0) + 1)
++                return state, None
 +
 +        while True:
++            projection_started = loop.time()
 +            with self._state_projection_lock():
 +                state = builder()
 +                projected_source_seq = self.source_seq
++            record('projection_ms', loop.time() - projection_started)
++            if diagnostics is not None:
++                diagnostics['projection_attempts'] = (
++                    diagnostics.get('projection_attempts', 0) + 1)
 +            remaining = deadline - loop.time()
 +            if remaining < quiet_seconds:
 +                return state, None
++            quiet_started = loop.time()
 +            advanced = await self.wait_for_source_seq(
 +                projected_source_seq, quiet_seconds)
++            record('quiet_wait_ms', loop.time() - quiet_started)
 +            if advanced:
 +                continue
 +            # Close the wait/build race under the same lock used by packet
@@ -556,7 +578,7 @@ index 02e3d7d..3ad53ee 100755
  
              # Configurable packet logging for debugging (set CIVCOM_PACKET_LOG_LIMIT env var)
              if not hasattr(self, '_packet_type_log_count'):
-@@ -1586,6 +1708,7 @@ class CivCom(Thread):
+@@ -1586,6 +1730,7 @@ class CivCom(Thread):
                  packet_username = packet.get('username', '')
                  logger.debug(f"Received PACKET_PLAYER_INFO: playerno={player_id}, username='{packet_username}' for {self.username}")
                  if player_id is not None:
@@ -564,7 +586,7 @@ index 02e3d7d..3ad53ee 100755
                      # Check if this player info is for our connection
                      if packet_username == self.username:
                          # This is OUR player! Store the player_id (fallback if CONN_INFO didn't set it)
-@@ -1613,9 +1736,10 @@ class CivCom(Thread):
+@@ -1613,9 +1758,10 @@ class CivCom(Thread):
                          'name': player_name,
                          'nation': nation_name,  # String name (e.g., 'Romans', 'Americans')
                          'score': packet.get('score', 0),
@@ -577,7 +599,7 @@ index 02e3d7d..3ad53ee 100755
              # NOTE: PACKET_RESEARCH_INFO is handled later in the packet processing chain
              # at line ~1465 where it's stored in self.research_info (the authoritative store)
  
-@@ -1628,7 +1752,7 @@ class CivCom(Thread):
+@@ -1628,7 +1774,7 @@ class CivCom(Thread):
                      unit_type_raw = packet.get('type')
  
                      # Convert integer type ID to human-readable string name
@@ -586,7 +608,7 @@ index 02e3d7d..3ad53ee 100755
  
                      def get_coords_from_tile_index(tile_idx):
                          # tile['index'] = x + y * map['xsize'];
-@@ -1653,10 +1777,15 @@ class CivCom(Thread):
+@@ -1653,10 +1799,15 @@ class CivCom(Thread):
                          'type_id': unit_type_raw,  # Preserve original integer for debugging/reference
                          'tile': tile_idx,
                          'homecity': packet.get('homecity', 0),
@@ -602,7 +624,7 @@ index 02e3d7d..3ad53ee 100755
                          'done_moving': packet.get('done_moving', False),
                          'activity': activity_name,  # String name (e.g., 'idle', 'sentry') or None
                          'x': x,
-@@ -1720,6 +1849,9 @@ class CivCom(Thread):
+@@ -1720,6 +1871,9 @@ class CivCom(Thread):
                          # surplus and prod are arrays indexed by O_FOOD, O_SHIELD, O_TRADE, etc.
                          'surplus': packet.get('surplus', []),
                          'prod': packet.get('prod', []),
@@ -612,7 +634,7 @@ index 02e3d7d..3ad53ee 100755
                      }
  
                      # Convert player_cities to dict if it's still a list
-@@ -1788,6 +1920,12 @@ class CivCom(Thread):
+@@ -1788,6 +1942,12 @@ class CivCom(Thread):
                              })
  
                      city['can_build'] = can_build
@@ -625,7 +647,7 @@ index 02e3d7d..3ad53ee 100755
  
                      # Also store granary info if present
                      if 'granary_size' in packet:
-@@ -1844,10 +1982,40 @@ class CivCom(Thread):
+@@ -1844,10 +2004,40 @@ class CivCom(Thread):
                  unit_id = packet.get('id')
                  owner = packet.get('owner')
                  if unit_id is not None:
@@ -668,7 +690,7 @@ index 02e3d7d..3ad53ee 100755
              elif packet_type == PACKET_RULESET_NATION:
                  nation_id = packet.get('id')
                  # Try multiple fields for nation name (different packet versions use different fields)
-@@ -2321,6 +2489,13 @@ class CivCom(Thread):
+@@ -2321,6 +2511,13 @@ class CivCom(Thread):
  
          except (json.JSONDecodeError, KeyError, TypeError) as e:
              logger.debug(f"Could not parse packet for state storage: {e}")
@@ -682,7 +704,7 @@ index 02e3d7d..3ad53ee 100755
  
      def has_adjacent_foreign_unit(self, tile_index, player_id):
          """Check if a tile has adjacent foreign units.
-@@ -2438,13 +2613,139 @@ class CivCom(Thread):
+@@ -2438,13 +2635,139 @@ class CivCom(Thread):
  
      def handle_state_query(self, player_id, format='full'):
          """Handle LLM state query requests with different formats"""
@@ -823,7 +845,7 @@ index 02e3d7d..3ad53ee 100755
      def build_llm_optimized_state(self, player_id):
          """Build compressed state for LLMs (target < 4KB)"""
          # Ensure we always have valid game state values (defensive against early queries)
-@@ -2966,6 +3267,12 @@ class CivCom(Thread):
+@@ -2966,6 +3289,12 @@ class CivCom(Thread):
          diplomacy_actions = self._get_diplomacy_actions(player_id)
          all_actions.extend(diplomacy_actions)
  
@@ -836,7 +858,7 @@ index 02e3d7d..3ad53ee 100755
          return all_actions
  
      def _score_and_filter_actions(self, actions, max_actions):
-@@ -3096,9 +3403,12 @@ class CivCom(Thread):
+@@ -3096,9 +3425,12 @@ class CivCom(Thread):
          for pid, research_packet in research_info.items():
              inventions = research_packet.get('inventions', [])
              known_tech_names = [
@@ -961,7 +983,7 @@ index 045d314..ec62ad1 100644
      "civserver": {
          "default_port": 6001,
 diff --git a/freeciv-proxy/llm_handler.py b/freeciv-proxy/llm_handler.py
-index 9be5668..7984208 100644
+index 9be5668..5f59f7e 100644
 --- a/freeciv-proxy/llm_handler.py
 +++ b/freeciv-proxy/llm_handler.py
 @@ -16,7 +16,7 @@ import socket
@@ -1013,7 +1035,28 @@ index 9be5668..7984208 100644
                  port_type = (
                      "MULTIPLAYER (6001-6009)" if 6001 <= civserver_port <= 6009
                      else "SINGLEPLAYER (6000)" if civserver_port == 6000
-@@ -1300,7 +1316,11 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1202,6 +1218,20 @@ class LLMWSHandler(websocket.WebSocketHandler):
+ 
+     async def _handle_state_query(self, msg_data: Dict[str, Any]):
+         """Handle optimized state query for LLM (async to support turn advance wait)"""
++        handler_started = time.perf_counter()
++        server_timing = {
++            'schema_version': 1,
++            'source_wait_ms': 0.0,
++            'projection_ms': 0.0,
++            'quiet_wait_ms': 0.0,
++            'projection_attempts': 0,
++        }
++
++        def finish_timing():
++            server_timing['elapsed_before_serialize_ms'] = (
++                time.perf_counter() - handler_started) * 1000.0
++            return server_timing
++
+         # Get resume context for debugging post-recovery issues
+         game_session = game_session_manager.sessions.get(self.game_id) if self.game_id else None
+         resume_context = ""
+@@ -1300,25 +1330,77 @@ class LLMWSHandler(websocket.WebSocketHandler):
              # After end_turn, wait for server's authoritative BEGIN_TURN signal
              # This ensures all players have finished before we return fresh state
              # Uses asyncio.Event for efficient blocking instead of polling
@@ -1024,14 +1067,20 @@ index 9be5668..7984208 100644
 +            )
 +            if self.civcom and not self.civcom.turn_started and not player_eliminated:
                  logger.info(f"⏳ Waiting for new turn to begin (current: {self.civcom.game_turn})...")
-                 wait_start = time.time()
+-                wait_start = time.time()
++                wait_start = time.perf_counter()
                  try:
-@@ -1312,13 +1332,56 @@ class LLMWSHandler(websocket.WebSocketHandler):
-                     elapsed_ms = (time.time() - wait_start) * 1000
+                     # Event-based wait is more efficient than polling - wakes immediately when signaled
+                     await asyncio.wait_for(self.civcom.turn_advance_event.wait(), timeout=10.0)
+-                    elapsed_ms = (time.time() - wait_start) * 1000
++                    elapsed_ms = (time.perf_counter() - wait_start) * 1000
+                     logger.info(f"✓ Turn {self.civcom.game_turn} started in {elapsed_ms:.0f}ms")
+                 except asyncio.TimeoutError:
+-                    elapsed_ms = (time.time() - wait_start) * 1000
++                    elapsed_ms = (time.perf_counter() - wait_start) * 1000
                      logger.warning(f"⚠️ Turn start timeout after {elapsed_ms/1000:.1f}s - returning current state")
- 
--            # Generate cache key with turn number to prevent stale state
--            # Using turn-based key instead of time-based to handle fast turn progression
++                server_timing['source_wait_ms'] += elapsed_ms
++
 +            # A caller that already consumed a packet revision can wait on the
 +            # CivCom packet event instead of issuing repeated state queries.
 +            # The wait is bounded by the validated wire value and a timeout
@@ -1043,8 +1092,11 @@ index 9be5668..7984208 100644
 +            if (after_source_seq is not None and wait_timeout_ms
 +                    and not settle_quiet_ms
 +                    and self.civcom.source_seq <= after_source_seq):
++                source_wait_started = time.perf_counter()
 +                source_advanced = await self.civcom.wait_for_source_seq(
 +                    after_source_seq, wait_timeout_ms / 1000.0)
++                server_timing['source_wait_ms'] += (
++                    time.perf_counter() - source_wait_started) * 1000.0
 +            if (msg_data.get('accept_unchanged')
 +                    and source_advanced is False):
 +                # The request waited for the full stability interval without a
@@ -1061,12 +1113,15 @@ index 9be5668..7984208 100644
 +                        'source_seq': unchanged['source_seq'],
 +                        'session_id': self.session_id,
 +                        'timestamp': time.time(),
++                        'server_timing': finish_timing(),
 +                    }
 +                    if correlation_id:
 +                        response['correlation_id'] = correlation_id
 +                    self.write_message(json.dumps(response))
 +                    return
-+
+ 
+-            # Generate cache key with turn number to prevent stale state
+-            # Using turn-based key instead of time-based to handle fast turn progression
 +            # Cache one immutable packet-backed revision. A turn-only key is
 +            # stale after any successful same-turn action until the TTL expires.
              current_turn = self.civcom.game_turn if self.civcom and hasattr(self.civcom, 'game_turn') else 0
@@ -1087,7 +1142,7 @@ index 9be5668..7984208 100644
              if cached_state:
                  logger.debug(f"✓ Cache hit for agent {self.agent_id}")
                  response = {
-@@ -1336,9 +1399,25 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1336,9 +1418,30 @@ class LLMWSHandler(websocket.WebSocketHandler):
  
              # Generate fresh state
              logger.debug(f"⚙️ Generating fresh state for agent {self.agent_id}")
@@ -1099,7 +1154,8 @@ index 9be5668..7984208 100644
 +                        settle_quiet_ms / 1000.0,
 +                        wait_timeout_ms / 1000.0,
 +                        lambda: self._build_optimized_state(
-+                            query_format, include_actions)))
++                            query_format, include_actions),
++                        diagnostics=server_timing))
 +                if settled_source_seq is not None:
 +                    state_data['authoritative']['stability'] = {
 +                        'policy': 'source-seq-quiet-v1',
@@ -1107,15 +1163,19 @@ index 9be5668..7984208 100644
 +                        'source_seq': settled_source_seq,
 +                    }
 +            else:
++                projection_started = time.perf_counter()
 +                state_data = self._build_optimized_state(
 +                    query_format, include_actions)
++                server_timing['projection_ms'] += (
++                    time.perf_counter() - projection_started) * 1000.0
++                server_timing['projection_attempts'] += 1
  
 -            logger.info(
 +            logger.debug(
                  f"✓ STATE_QUERY SUCCESS for agent {self.agent_id}:\n"
                  f"   Turn: {state_data.get('turn', 'N/A')}\n"
                  f"   Phase: {state_data.get('phase', 'N/A')}\n"
-@@ -1350,7 +1429,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1350,7 +1453,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
              )
  
              # Cache the result
@@ -1125,7 +1185,17 @@ index 9be5668..7984208 100644
  
              # Send response
              response = {
-@@ -1649,6 +1729,15 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1358,7 +1462,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
+                 'format': query_format,
+                 'data': state_data,
+                 'cached': False,
+-                'timestamp': time.time()
++                'timestamp': time.time(),
++                'server_timing': finish_timing(),
+             }
+             if correlation_id:
+                 response['correlation_id'] = correlation_id
+@@ -1649,6 +1754,15 @@ class LLMWSHandler(websocket.WebSocketHandler):
              # with a clearer "Missing required field" error instead of cryptic S001 format error
              if production:
                  normalized["production_type"] = str(production).lower()
@@ -1141,7 +1211,7 @@ index 9be5668..7984208 100644
  
          elif action_type == "unit_build_city":
              # Extract unit_id
-@@ -1660,6 +1749,17 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1660,6 +1774,17 @@ class LLMWSHandler(websocket.WebSocketHandler):
              if isinstance(target, dict) and "name" in target:
                  normalized["name"] = target["name"]
  
@@ -1159,7 +1229,7 @@ index 9be5668..7984208 100644
          elif action_type in ("unit_attack", "unit_suicide_attack", "unit_bombard",
                               "unit_capture", "unit_wipe", "unit_conquer_city",
                               "unit_nuke", "unit_nuke_city", "unit_nuke_units"):
-@@ -1752,7 +1852,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1752,7 +1877,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
          elif action_type == "end_turn":
              # end_turn is simple - just needs player_id (already mapped above)
              # No additional fields required
@@ -1168,7 +1238,7 @@ index 9be5668..7984208 100644
  
          # Copy any parameters field
          if "parameters" in action_data:
-@@ -1906,7 +2006,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1906,7 +2031,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
  
          current_turn = getattr(self.civcom, 'turn', 'unknown') if self.civcom else 'unknown'
          action_type = msg_data.get('action', {}).get('type', msg_data.get('type', 'unknown'))
@@ -1177,7 +1247,7 @@ index 9be5668..7984208 100644
              f"🎯 ACTION_RECEIVED: agent={self.agent_id} | turn={current_turn} | "
              f"action_type={action_type} | game_id={self.game_id}{resume_context}"
          )
-@@ -1934,18 +2034,18 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1934,18 +2059,18 @@ class LLMWSHandler(websocket.WebSocketHandler):
              # Extract action data from either 'data' (agent format) or 'action' (legacy format)
              # Use explicit check to avoid falsy value issues (empty dict, 0, False, etc.)
              action_data = msg_data.get('data') if 'data' in msg_data else msg_data.get('action', {})
@@ -1202,7 +1272,7 @@ index 9be5668..7984208 100644
                  except Exception as e:
                      logger.error(f"❌ Failed to parse canonical action '{action_data}': {e}")
                      error_response = {
-@@ -1965,13 +2065,13 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1965,13 +2090,13 @@ class LLMWSHandler(websocket.WebSocketHandler):
  
              # Handle agent dict format with "action_type" instead of "type"
              if isinstance(action_data, dict) and "action_type" in action_data and "type" not in action_data:
@@ -1221,7 +1291,7 @@ index 9be5668..7984208 100644
                  except Exception as e:
                      logger.error(f"❌ Failed to normalize agent action: {e}")
                      error_response = {
-@@ -1987,9 +2087,9 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -1987,9 +2112,9 @@ class LLMWSHandler(websocket.WebSocketHandler):
  
              # Sanitize action data to prevent injection attacks
              try:
@@ -1233,7 +1303,7 @@ index 9be5668..7984208 100644
              except SecurityError as e:
                  SecurityLogger.log_security_violation(self.agent_id, "INPUT_SANITIZATION", str(e))
                  error_response = {
-@@ -2077,7 +2177,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -2077,7 +2202,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
                                      )
                                      return
  
@@ -1242,7 +1312,7 @@ index 9be5668..7984208 100644
  
              # Validate action (additional checks beyond moves_left)
              validation_result = self.action_validator.validate_action(
-@@ -2154,12 +2254,14 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -2154,12 +2279,14 @@ class LLMWSHandler(websocket.WebSocketHandler):
                  actor_id = sanitized_action.get('unit_id') or sanitized_action.get('actor_id') or 'N/A'
                  game_state = self._get_current_game_state()
                  current_turn = game_state.get('turn', 'unknown') if game_state else 'unknown'
@@ -1261,7 +1331,7 @@ index 9be5668..7984208 100644
  
                  # Handle end_turn: mark turn as ended and reset rate limits
                  if sanitized_action.get('type') == 'end_turn' and self.agent_id:
-@@ -2168,16 +2270,23 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -2168,16 +2295,23 @@ class LLMWSHandler(websocket.WebSocketHandler):
                      if self.civcom:
                          self.civcom.turn_started = False
                          self.civcom.turn_advance_event.clear()  # Clear event to block waiters
@@ -1289,7 +1359,7 @@ index 9be5668..7984208 100644
  
                  response = {
                      'type': 'action_accepted',
-@@ -2621,6 +2730,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -2621,6 +2755,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
                      formatted['target'] = {'improvement': params['improvement']}
                  elif 'city' in params:
                      formatted['target'] = {'city': params['city']}
@@ -1298,7 +1368,7 @@ index 9be5668..7984208 100644
                  elif params:  # Pass through any other params
                      formatted['target'] = params
              
-@@ -2858,39 +2969,51 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -2858,39 +2994,51 @@ class LLMWSHandler(websocket.WebSocketHandler):
          """Build optimized game state for LLM consumption using StateExtractor"""
          logger.debug(f"🏗️ _build_optimized_state called for agent {self.agent_id}, player_id={self.player_id}")
  
@@ -1375,7 +1445,7 @@ index 9be5668..7984208 100644
          # Use StateExtractor to format the state - this ensures map validation and proper structure
          try:
              if not self.game_id:
-@@ -2918,6 +3041,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -2918,6 +3066,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
              )
              import traceback
              logger.error(f"StateExtractor traceback: {traceback.format_exc()}")
@@ -1384,7 +1454,7 @@ index 9be5668..7984208 100644
              state = self._build_fallback_state_from_full(full_state)
  
          # Add player_id and timestamp which are handler-specific
-@@ -5061,6 +5186,21 @@ class LLMWSHandler(websocket.WebSocketHandler):
+@@ -5061,6 +5211,21 @@ class LLMWSHandler(websocket.WebSocketHandler):
  
          session = session_manager.validate_session(self.session_id)
          if session:
@@ -2309,10 +2379,10 @@ index dc8c8ab..77ed308 100644
 +        assert result['dest_tile'] == 56
 diff --git a/freeciv-proxy/tests/test_pln_authoritative_state.py b/freeciv-proxy/tests/test_pln_authoritative_state.py
 new file mode 100644
-index 0000000..3f151d1
+index 0000000..9fa81a5
 --- /dev/null
 +++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
-@@ -0,0 +1,601 @@
+@@ -0,0 +1,609 @@
 +"""Contract tests for the packet-backed PLN authoritative state format."""
 +
 +import asyncio
@@ -2611,15 +2681,23 @@ index 0000000..3f151d1
 +            civcom._signal_source_update()
 +
 +        task = asyncio.create_task(update())
++        diagnostics = {}
 +        state, settled = await civcom.build_settled_source_state(
-+            7, 0.02, 0.2, build)
++            7, 0.02, 0.2, build, diagnostics=diagnostics)
 +        await task
 +        timed_out_state, timed_out = await civcom.build_settled_source_state(
 +            9, 0.02, 0.03, build)
-+        return state, settled, timed_out_state, timed_out, builds
++        return (
++            state, settled, timed_out_state, timed_out, builds, diagnostics)
 +
-+    assert asyncio.run(scenario()) == (
++    state, settled, timed_out_state, timed_out, builds, diagnostics = (
++        asyncio.run(scenario()))
++    assert (state, settled, timed_out_state, timed_out, builds) == (
 +        {"source_seq": 9}, 9, {"source_seq": 9}, None, [8, 9, 9])
++    assert diagnostics["source_wait_ms"] >= 0
++    assert diagnostics["projection_ms"] >= 0
++    assert diagnostics["quiet_wait_ms"] >= 20
++    assert diagnostics["projection_attempts"] == 2
 +
 +
 +def test_conditional_revision_check_is_exact_and_lock_backed():

@@ -14,6 +14,7 @@ second half: it drives the loop by *observed* turns, not by attempts.
 
 import asyncio
 import json
+import math
 
 from . import client
 
@@ -48,7 +49,7 @@ def state_body(m):
 
 async def get_state(ws, fmt="llm_optimized", after_source_seq=None,
                     wait_timeout_ms=None, accept_unchanged=False,
-                    settle_quiet_ms=None):
+                    settle_quiet_ms=None, diagnostics=None):
     """Query current state, optionally waiting for a newer packet revision.
 
     ``after_source_seq`` and ``wait_timeout_ms`` are a bounded long-poll hint
@@ -91,8 +92,21 @@ async def get_state(ws, fmt="llm_optimized", after_source_seq=None,
                 "settle_quiet_ms requires a sufficient authoritative bounded "
                 "source wait")
         query["settle_quiet_ms"] = settle_quiet_ms
+    if diagnostics is not None and not isinstance(diagnostics, dict):
+        raise ValueError("diagnostics must be a dictionary")
     await ws.send(json.dumps(query))
-    return state_body(await recv_until(ws, _STATE_TYPES, timeout=15))
+    message = await recv_until(ws, _STATE_TYPES, timeout=15)
+    timing = message.get("server_timing") if isinstance(message, dict) else None
+    if diagnostics is not None and isinstance(timing, dict):
+        for name in (
+                "source_wait_ms", "projection_ms", "quiet_wait_ms",
+                "elapsed_before_serialize_ms", "projection_attempts"):
+            value = timing.get(name)
+            if (isinstance(value, (int, float))
+                    and not isinstance(value, bool)
+                    and math.isfinite(value) and value >= 0):
+                diagnostics[name] = diagnostics.get(name, 0.0) + float(value)
+    return state_body(message)
 
 
 def turn_of(state):
