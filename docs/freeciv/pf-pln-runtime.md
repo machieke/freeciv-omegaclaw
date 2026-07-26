@@ -37,7 +37,9 @@ technologies cannot produce an engine action on such a turn.
 After the canonical proposal passes the strict parser and symbol catalog, a
 verification event records that the engine is already executing it. Goal
 grading, dependency expansion, and scheduling are deferred until a new
-research action is actually advertised.
+research action is actually advertised. The immutable schema validator and
+symbol-catalog parser are constructed once with the cognitive stack and reused;
+every proposal is still parsed and catalog-checked.
 Two or more candidates still use `llm_proposal`. This necessity optimization
 does not inspect pressure, admit an expansion request, or activate the Phase 7
 gateway, so Phase 7 remains correctly declared `component-only`.

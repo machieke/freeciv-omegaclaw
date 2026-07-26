@@ -548,12 +548,16 @@ def test_canonical_singleton_selection_avoids_model_and_keeps_catalog_gates(
         monkeypatch):
     target = _selection_target(1)
     catalog = _SelectionTestCatalog((target,))
+    parser = engine_live.ProposalParser(catalog)
     monkeypatch.setattr(
         engine_live, "_ollama_json",
         lambda *_args, **_kwargs: pytest.fail("singleton selection called model"))
+    monkeypatch.setattr(
+        engine_live, "ProposalParser",
+        lambda _catalog: pytest.fail("singleton rebuilt the shared parser"))
     proposal = engine_live._canonical_singleton_proposal(
         {"model": "qwen3-coder-next:latest"}, _SelectionTestSummary(),
-        catalog, (target,))
+        catalog, (target,), parser=parser)
     assert proposal.selection == "goal-live-1"
     assert proposal.goals[0].target_id == target.rule_id
     assert proposal.claims == ()

@@ -24,7 +24,7 @@ from freeciv_agent.beliefs import (BeliefKey, BeliefStore, Evidence,
 from freeciv_agent.execution import ExecutionGate, ProposedAction
 from freeciv_agent.events.schema import structural_hash
 from freeciv_agent.events.writer import EventWriter
-from freeciv_agent.llm import ConstrainedProposer, GoalGrader, SymbolCatalog
+from freeciv_agent.llm import GoalGrader, ProposalParser, SymbolCatalog
 from freeciv_agent.monitoring import AtomRevision, LocalRepairer, PlanMonitor
 from freeciv_agent.oracle import CrispStateView, DependencyOracle, Goal
 from freeciv_agent.pf_runtime import (
@@ -84,7 +84,9 @@ def _cognitive_stack():
                 _IR = compile_ruleset(_ruleset_root(), "civ2civ3")
                 catalog = SymbolCatalog(_IR)
                 oracle = DependencyOracle(_IR)
-                _STACK = (_IR, catalog, oracle, ProofScheduler())
+                _STACK = (
+                    _IR, catalog, ProposalParser(catalog), oracle,
+                    ProofScheduler())
     return _STACK
 
 
@@ -421,7 +423,14 @@ def _validate_compact_goal_proposal(value, target_count):
         raise ValueError("live release proposal admits no unverified factual claims")
 
 
-def _constrained_proposal(manifest, summary, catalog, targets):
+def _parse_constrained_proposal(raw, summary, catalog, parser=None):
+    """Parse one proposal through the reusable production schema/catalog gate."""
+    if not hasattr(summary, "to_dict"):
+        raise TypeError("LLM state input must be a query summary DTO")
+    return (parser or ProposalParser(catalog)).parse(raw)
+
+
+def _constrained_proposal(manifest, summary, catalog, targets, parser=None):
     goals = [{
         "goal_id": "goal-live-{}".format(index + 1), "target_id": target.rule_id,
         "predicate": target.target_predicate,
@@ -452,11 +461,13 @@ def _constrained_proposal(manifest, summary, catalog, targets):
     }
     raw = json.dumps(expanded, sort_keys=True, separators=(",", ":"))
     # Exercise the production constrained parser and its catalog gates on model output.
-    proposal = ConstrainedProposer(lambda _request: raw, catalog, manifest["model"]).propose(summary)[0]
+    proposal = _parse_constrained_proposal(
+        raw, summary, catalog, parser=parser)
     return proposal, value, latency, corrections
 
 
-def _canonical_singleton_proposal(manifest, summary, catalog, targets):
+def _canonical_singleton_proposal(
+        manifest, summary, catalog, targets, parser=None):
     """Build the only legal canonical proposal without asking the model to echo it."""
     if len(targets) != 1:
         raise ValueError("canonical singleton selection requires exactly one target")
@@ -476,8 +487,8 @@ def _canonical_singleton_proposal(manifest, summary, catalog, targets):
     }
     raw = json.dumps(expanded, sort_keys=True, separators=(",", ":"))
     # Keep the same production parser and symbol-catalog gates as model output.
-    return ConstrainedProposer(
-        lambda _request: raw, catalog, manifest["model"]).propose(summary)[0]
+    return _parse_constrained_proposal(
+        raw, summary, catalog, parser=parser)
 
 
 def _decision_state_fingerprint(snapshot):
@@ -1168,13 +1179,22 @@ def _adversarial_monitor(snapshot, belief, writer, parent, monitor, beliefs):
 
 
 def _cognitive_turn(manifest, context, store, player_id, raw, snapshot,
-                    ir, catalog, oracle, scheduler, writer, parent):
+                    ir, catalog, proposal_parser, oracle, scheduler, writer,
+                    parent, diagnostics=None):
     """Run proposal, verification/grading, dependency, and planning for one turn."""
+    def record_stage(name, started):
+        if diagnostics is not None:
+            diagnostics[name] = diagnostics.get(name, 0.0) + (
+                time.perf_counter() - started) * 1000.0
+
+    stage_started = time.perf_counter()
     if context.capabilities["authoritative_state"]:
         context.use("authoritative_state")
         summary = StateSummaryService(store).query(manifest["game_id"], player_id)
     else:
         summary = _plain_state_summary(raw)
+    record_stage("summary_ms", stage_started)
+    stage_started = time.perf_counter()
     available_research = _available_research_names(raw)
     targets = ()
     target = None
@@ -1200,7 +1220,9 @@ def _cognitive_turn(manifest, context, store, player_id, raw, snapshot,
         tech_costs=_live_tech_costs(ir, raw),
         legal_actions_digest=snapshot.legal_actions_digest)
                if context.capabilities["scheduler"] else None)
+    record_stage("setup_ms", stage_started)
 
+    stage_started = time.perf_counter()
     proposal = None
     plain_selection = "end_turn"
     model_started = time.perf_counter()
@@ -1213,7 +1235,7 @@ def _cognitive_turn(manifest, context, store, player_id, raw, snapshot,
                 "selection_call_policy") == SELECTION_CALL_POLICY):
         context.use("constrained_llm")
         proposal = _canonical_singleton_proposal(
-            manifest, summary, catalog, targets)
+            manifest, summary, catalog, targets, parser=proposal_parser)
         latency = 0.0
         corrections = 0
         model_called = False
@@ -1233,7 +1255,8 @@ def _cognitive_turn(manifest, context, store, player_id, raw, snapshot,
             if context.capabilities["constrained_llm"]:
                 context.use("constrained_llm")
                 proposal, _, latency, corrections = _constrained_proposal(
-                    manifest, summary, catalog, targets)
+                    manifest, summary, catalog, targets,
+                    parser=proposal_parser)
                 payload = {
                     "claims": [], "goals": [row.to_dict() for row in proposal.goals],
                     "model": manifest["model"],
@@ -1272,6 +1295,8 @@ def _cognitive_turn(manifest, context, store, player_id, raw, snapshot,
     proposal_event = writer.emit(
         event_type, snapshot.turn, payload, caused_by=[parent])
     parent = proposal_event["event_id"]
+    record_stage("proposal_ms", stage_started)
+    stage_started = time.perf_counter()
     if active_research_continuation and model_error is None:
         verification = writer.emit("verification", snapshot.turn, {
             "verification_id": "verify-continuation-" + proposal.proposal_id,
@@ -1281,6 +1306,7 @@ def _cognitive_turn(manifest, context, store, player_id, raw, snapshot,
             "check": "active_research_has_no_new_selection_action",
             "evidence_atom_ids": [],
         }, caused_by=[parent])
+        record_stage("finalization_ms", stage_started)
         return (
             None, "end_turn", verification["event_id"], latency, corrections,
             False, model_called, model_call_avoided)
@@ -1296,6 +1322,7 @@ def _cognitive_turn(manifest, context, store, player_id, raw, snapshot,
             "detail": "{}; bounded safe end-turn fallback".format(
                 type(model_error).__name__),
         }, caused_by=[verification["event_id"]])
+        record_stage("finalization_ms", stage_started)
         if _claim_eligible_manifest(manifest):
             raise RuntimeError(
                 "claim-eligible arm cannot use model fallback: {}".format(
@@ -1354,6 +1381,7 @@ def _cognitive_turn(manifest, context, store, player_id, raw, snapshot,
         active_plan, plan_event = scheduler.emit_plan(
             query_result, numeric, writer, snapshot.turn, [parent])
         parent = plan_event["event_id"]
+    record_stage("finalization_ms", stage_started)
     return (active_plan, plain_selection, parent, latency, corrections, False,
             model_called, model_call_avoided)
 
@@ -1368,9 +1396,9 @@ async def _play(run_dir, manifest, context):
         manifest["impact_policy"],
     )
     if _needs_cognitive_stack(context):
-        ir, catalog, oracle, scheduler = _cognitive_stack()
+        ir, catalog, proposal_parser, oracle, scheduler = _cognitive_stack()
     else:
-        ir = catalog = oracle = scheduler = None
+        ir = catalog = proposal_parser = oracle = scheduler = None
     events_path = manifest["events_path"]
     if not os.path.isabs(events_path):
         events_path = os.path.join(run_dir, events_path)
@@ -1478,6 +1506,7 @@ async def _play(run_dir, manifest, context):
     model_latencies = []
     full_loop_latencies = []
     turn_cognitive_latencies = []
+    cognitive_diagnostics = {}
     turn_action_phase_latencies = []
     turn_end_submit_latencies = []
     turn_boundary_latencies = []
@@ -1768,7 +1797,8 @@ async def _play(run_dir, manifest, context):
              turn_corrections, safe_model_fallback, model_called,
              model_call_avoided) = _cognitive_turn(
                 manifest, context, store, player_id, raw, snapshot,
-                ir, catalog, oracle, scheduler, writer, parent)
+                ir, catalog, proposal_parser, oracle, scheduler, writer, parent,
+                diagnostics=cognitive_diagnostics)
             turn_cognitive_latencies.append(
                 (time.perf_counter() - cognitive_started) * 1000.0)
             action_phase_started = time.perf_counter()
@@ -2198,6 +2228,18 @@ async def _play(run_dir, manifest, context):
         ("model_latency_ms", model_latency),
         ("turn_cognitive_latency_ms",
          sum(turn_cognitive_latencies) / max(1, len(turn_cognitive_latencies))),
+        ("turn_cognitive_summary_latency_ms",
+         cognitive_diagnostics.get("summary_ms", 0.0)
+         / max(1, len(turn_cognitive_latencies))),
+        ("turn_cognitive_setup_latency_ms",
+         cognitive_diagnostics.get("setup_ms", 0.0)
+         / max(1, len(turn_cognitive_latencies))),
+        ("turn_cognitive_proposal_latency_ms",
+         cognitive_diagnostics.get("proposal_ms", 0.0)
+         / max(1, len(turn_cognitive_latencies))),
+        ("turn_cognitive_finalization_latency_ms",
+         cognitive_diagnostics.get("finalization_ms", 0.0)
+         / max(1, len(turn_cognitive_latencies))),
         ("turn_action_phase_latency_ms",
          sum(turn_action_phase_latencies)
          / max(1, len(turn_action_phase_latencies))),

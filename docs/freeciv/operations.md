@@ -96,9 +96,13 @@ Turn-boundary diagnostics are emitted as
 stability or engine timeouts.
 
 Full-turn diagnostics are emitted as `turn_cognitive_latency_ms`,
-`turn_action_phase_latency_ms`, and `turn_end_submit_latency_ms`. PLN
-authoritative requests intentionally do not use the generic 4 KiB state
-caches; repeated `State too large for cache` warnings for
+`turn_action_phase_latency_ms`, and `turn_end_submit_latency_ms`. Cognition is
+split further into `turn_cognitive_summary_latency_ms`,
+`turn_cognitive_setup_latency_ms`, `turn_cognitive_proposal_latency_ms`, and
+`turn_cognitive_finalization_latency_ms`; proposal time includes any model
+generation and can be compared with `model_latency_ms` to isolate host
+proposal work. PLN authoritative requests intentionally do not use the generic
+4 KiB state caches; repeated `State too large for cache` warnings for
 `pln_authoritative` indicate an obsolete patch.
 
 Accepted impact actions receive a bounded 0.3-second authoritative refresh
