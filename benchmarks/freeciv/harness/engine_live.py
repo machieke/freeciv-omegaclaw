@@ -2307,6 +2307,26 @@ async def _play(run_dir, manifest, context):
          impact_planning_diagnostics.get(
              "candidate_finalize_latency_ms", 0.0)
          / max(1, impact_planning_calls)),
+        ("impact_planning_pressure_graph_latency_ms",
+         impact_planning_diagnostics.get(
+             "pressure_graph_latency_ms", 0.0)
+         / max(1, impact_planning_calls)),
+        ("impact_planning_pressure_propagation_latency_ms",
+         impact_planning_diagnostics.get(
+             "pressure_propagation_latency_ms", 0.0)
+         / max(1, impact_planning_calls)),
+        ("impact_planning_pressure_operation_latency_ms",
+         impact_planning_diagnostics.get(
+             "pressure_operation_latency_ms", 0.0)
+         / max(1, impact_planning_calls)),
+        ("impact_planning_pressure_schedule_latency_ms",
+         impact_planning_diagnostics.get(
+             "pressure_schedule_latency_ms", 0.0)
+         / max(1, impact_planning_calls)),
+        ("impact_planning_pressure_artifact_latency_ms",
+         impact_planning_diagnostics.get(
+             "pressure_artifact_latency_ms", 0.0)
+         / max(1, impact_planning_calls)),
         ("turn_end_submit_latency_ms",
          sum(turn_end_submit_latencies)
          / max(1, len(turn_end_submit_latencies))),

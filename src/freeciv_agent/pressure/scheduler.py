@@ -154,31 +154,40 @@ class PressureScheduler(object):
         rows = self.score_all(operations, pressure_result)
         return next((row for row in rows if row.admissible), None)
 
-    def allocate(self, operations, pressure_result, total_budget):
+    def allocate(
+            self, operations, pressure_result, total_budget,
+            scores=None):
         total_budget = float(total_budget)
         if total_budget < 0 or not math.isfinite(total_budget):
             raise ValueError("budget must be finite and nonnegative")
-        scores = [row for row in self.score_all(operations, pressure_result)
-                  if row.admissible]
-        if not scores or total_budget == 0:
+        ranked = (
+            self.score_all(operations, pressure_result)
+            if scores is None else tuple(scores))
+        admissible = [row for row in ranked if row.admissible]
+        if not admissible or total_budget == 0:
             return ()
-        maximum = max(row.priority for row in scores)
+        maximum = max(row.priority for row in admissible)
         masses = [
             math.exp((row.priority - maximum)
                      / self.config.softmax_temperature)
-            for row in scores]
+            for row in admissible]
         denominator = sum(masses)
         return tuple(BudgetAllocation(
             row.operation_id, total_budget * mass / denominator, row.priority)
-            for row, mass in zip(scores, masses))
+            for row, mass in zip(admissible, masses))
 
-    def decision_artifact(self, operations, pressure_result, total_budget=1.0):
-        scores = self.score_all(operations, pressure_result)
+    def decision_artifact(
+            self, operations, pressure_result, total_budget=1.0,
+            scores=None):
+        scores = (
+            self.score_all(operations, pressure_result)
+            if scores is None else tuple(scores))
         selection = next((row for row in scores if row.admissible), None)
         value = {
             "allocations": [
                 row.to_dict() for row in self.allocate(
-                    operations, pressure_result, total_budget)],
+                    operations, pressure_result, total_budget,
+                    scores=scores)],
             "pressure_hash": pressure_result.artifact_hash,
             "scores": [row.to_dict() for row in scores],
             "selected_operation_id": (

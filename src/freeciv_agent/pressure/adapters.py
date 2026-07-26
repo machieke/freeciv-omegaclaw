@@ -1,5 +1,6 @@
 """Adapters from existing FreeCiv proof and impact artifacts into PF-PLN."""
 
+import time
 from dataclasses import dataclass
 
 from ..events.schema import structural_hash
@@ -310,13 +311,15 @@ class ImpactPressureRanker(object):
 
     def rank(
             self, snapshot, candidates, expansion_city_target, horizon_turn,
-            survival_threat_radius=3, _goal_specs_override=None):
+            survival_threat_radius=3, _goal_specs_override=None,
+            diagnostics=None):
         candidates = tuple(candidates)
         if not candidates:
             return (), None
         if (isinstance(survival_threat_radius, bool)
                 or not 1 <= int(survival_threat_radius) <= 12):
             raise ValueError("survival threat radius must be in 1..12")
+        graph_started = time.perf_counter()
         graph = PressureGraph()
         goal_specs = (
             self._grounded_goal_specs(
@@ -479,7 +482,17 @@ class ImpactPressureRanker(object):
                     # divides the category's pressure and can change the
                     # winning goal without changing state or best action.
                     operation_atom_by_candidate[id(candidate)] = category_atom_id
+        if diagnostics is not None:
+            diagnostics["pressure_graph_latency_ms"] = (
+                diagnostics.get("pressure_graph_latency_ms", 0.0)
+                + (time.perf_counter() - graph_started) * 1000.0)
+        propagation_started = time.perf_counter()
         result = self.engine.propagate(graph, tuple(goals))
+        if diagnostics is not None:
+            diagnostics["pressure_propagation_latency_ms"] = (
+                diagnostics.get("pressure_propagation_latency_ms", 0.0)
+                + (time.perf_counter() - propagation_started) * 1000.0)
+        operation_started = time.perf_counter()
         operations = []
         for operation_id, candidate in sorted(candidate_by_operation.items()):
             goal_name = self.goal_for_category(candidate.category)
@@ -499,12 +512,22 @@ class ImpactPressureRanker(object):
                 safety_compatible=(
                     not safety_active or goal_name == "survival"),
                 payload=candidate.to_dict()))
+        if diagnostics is not None:
+            diagnostics["pressure_operation_latency_ms"] = (
+                diagnostics.get("pressure_operation_latency_ms", 0.0)
+                + (time.perf_counter() - operation_started) * 1000.0)
+        schedule_started = time.perf_counter()
         scores = self.scheduler.score_all(operations, result)
         rank = dict((row.operation_id, index) for index, row in enumerate(scores)
                     if row.admissible)
         ordered = tuple(sorted(candidates, key=lambda candidate: (
             rank.get(operation_by_candidate[id(candidate)], len(rank)),
             -candidate.utility, candidate.category, candidate.action_key)))
+        if diagnostics is not None:
+            diagnostics["pressure_schedule_latency_ms"] = (
+                diagnostics.get("pressure_schedule_latency_ms", 0.0)
+                + (time.perf_counter() - schedule_started) * 1000.0)
+        artifact_started = time.perf_counter()
         if conductance_snapshot is not None:
             # The persisted state hash continues to identify only learned
             # feedback. This decision-scoped projection records when a new
@@ -516,8 +539,13 @@ class ImpactPressureRanker(object):
             "conductance_state": (
                 conductance_snapshot),
             "pressure": result.to_dict(),
-            "schedule": self.scheduler.decision_artifact(operations, result),
+            "schedule": self.scheduler.decision_artifact(
+                operations, result, scores=scores),
         }
+        if diagnostics is not None:
+            diagnostics["pressure_artifact_latency_ms"] = (
+                diagnostics.get("pressure_artifact_latency_ms", 0.0)
+                + (time.perf_counter() - artifact_started) * 1000.0)
         return ordered, artifact
 
     def record_category_outcome(

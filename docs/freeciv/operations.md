@@ -116,9 +116,11 @@ Action-phase attribution reports `turn_action_refresh_state_latency_ms`,
 `impact_planning_materialization_latency_ms`, and the mean
 `impact_planning_candidate_count`. Candidate attribution further reports mean
 legal-action count plus catalog, setup, production, movement, other-action, and
-finalization latency. The non-refresh residual includes action acknowledgements,
-event emission, effect bookkeeping, and control-plan construction; it is not a
-planner-only measurement.
+finalization latency. Pressure attribution separates graph construction,
+propagation, operation construction, scheduling, and artifact materialization.
+The non-refresh residual includes action acknowledgements, event emission,
+effect bookkeeping, and control-plan construction; it is not a planner-only
+measurement.
 
 Accepted impact actions receive a bounded 0.3-second authoritative refresh
 window with two identical samples separated by at least 50 ms. A differing

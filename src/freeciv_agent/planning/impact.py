@@ -2434,7 +2434,8 @@ class GroundedImpactPlanner(object):
             pressure_started = time.perf_counter()
             rows, pressure_artifact = self._pressure_ranker.rank(
                 snapshot, rows, self.expansion_city_target, self.horizon_turn,
-                self.pressure_survival_threat_radius)
+                self.pressure_survival_threat_radius,
+                diagnostics=diagnostics)
             if diagnostics is not None:
                 diagnostics["pressure_latency_ms"] = (
                     diagnostics.get("pressure_latency_ms", 0.0)

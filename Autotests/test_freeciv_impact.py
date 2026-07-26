@@ -916,6 +916,11 @@ def test_plan_diagnostics_attribute_candidate_pressure_and_materialization():
     assert diagnostics["candidate_other_latency_ms"] >= 0.0
     assert diagnostics["candidate_finalize_latency_ms"] >= 0.0
     assert diagnostics["pressure_latency_ms"] >= 0.0
+    assert diagnostics["pressure_graph_latency_ms"] >= 0.0
+    assert diagnostics["pressure_propagation_latency_ms"] >= 0.0
+    assert diagnostics["pressure_operation_latency_ms"] >= 0.0
+    assert diagnostics["pressure_schedule_latency_ms"] >= 0.0
+    assert diagnostics["pressure_artifact_latency_ms"] >= 0.0
     assert diagnostics["materialization_latency_ms"] >= 0.0
 
 

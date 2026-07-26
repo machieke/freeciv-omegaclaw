@@ -211,6 +211,35 @@ def test_cost_is_applied_by_scheduler_not_dependency_transport():
     assert result.pressure("g", "goal").act == before
 
 
+def test_schedule_artifact_reuses_identical_precomputed_scores():
+    graph = PressureGraph()
+    atom, resolvability = _atom(
+        "goal", resolvability=Resolvability(act=1.0))
+    graph.add_atom(atom, resolvability)
+    result = PressureEngine().propagate(
+        graph, (GoalState("g", "goal", utility=10.0),))
+    operations = (
+        Operation(
+            "cheap", "goal", "act", CostVector(compute=1),
+            causal_kind="procedural"),
+        Operation(
+            "costly", "goal", "act", CostVector(compute=10),
+            causal_kind="procedural"),
+    )
+    scheduler = PressureScheduler()
+    expected = scheduler.decision_artifact(operations, result)
+    scores = scheduler.score_all(operations, result)
+
+    def unexpected_rescore(*args, **kwargs):
+        raise AssertionError("precomputed scores must not be recomputed")
+
+    scheduler.score_all = unexpected_rescore
+    actual = scheduler.decision_artifact(
+        operations, result, scores=scores)
+
+    assert actual == expected
+
+
 def test_exact_token_union_overlap_conflict_and_observation_policy():
     ledger = EvidenceLedger(
         confidence_k=1.0, decay_rates=(("default", 0.0), ("volatile", 0.1)))
