@@ -90,6 +90,9 @@ field remains outside `data`, is not parsed into `AuthoritativeSnapshot`, and
 cannot affect a decision fingerprint. Query latency minus the server's
 pre-serialization elapsed time is reported separately as delivery overhead,
 which includes JSON serialization, WebSocket delivery, and client scheduling.
+The client also measures received UTF-8 bytes and JSON decode time, allowing
+that residual to be split into decode and serialization/socket scheduling
+without adding a protocol request.
 
 The serial engine-live harness disables WebSocket per-message deflate by
 default. Its proxy and client share a host, and fresh attribution showed that

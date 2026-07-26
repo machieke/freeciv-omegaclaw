@@ -98,6 +98,8 @@ def test_state_query_collects_server_timing_without_changing_state_body():
         TimingWS(), "pln_authoritative", diagnostics=diagnostics))
 
     assert state == {"turn": 3, "authoritative": {"source_seq": 9}}
+    assert diagnostics.pop("json_decode_ms") >= 0
+    assert diagnostics.pop("wire_bytes") > 0
     assert diagnostics == {
         "source_wait_ms": 12.5,
         "projection_ms": 4.0,

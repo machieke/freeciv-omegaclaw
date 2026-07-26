@@ -93,7 +93,11 @@ def _metric(writer, turn, parent, name, value, manifest, **labels):
     values.update({key: str(value) for key, value in labels.items()})
     event = writer.emit("metric_sample", turn, {
         "labels": values, "name": name,
-        "unit": "ms" if name.endswith("_ms") else "turns" if name.endswith("_turns") else "ratio",
+        "unit": (
+            "ms" if name.endswith("_ms")
+            else "turns" if name.endswith("_turns")
+            else "bytes" if name.endswith("_bytes")
+            else "ratio"),
         "value": float(value),
     }, caused_by=[parent])
     return event["event_id"]
@@ -602,10 +606,10 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
                         query_options["settle_quiet_ms"] = settle_ms
                         record("settle_wait_requested_ms", float(settle_ms))
         query_started = time.perf_counter()
-        server_query_diagnostics = {}
+        query_diagnostics = {}
         state_query_options = dict(query_options)
         if diagnostics is not None:
-            state_query_options["diagnostics"] = server_query_diagnostics
+            state_query_options["diagnostics"] = query_diagnostics
         try:
             raw = await asyncio.wait_for(
                 turncycle.get_state(
@@ -619,8 +623,12 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
         record("queries", 1)
         record("query_latency_ms", (
             time.perf_counter() - query_started) * 1000.0)
-        for name, value in server_query_diagnostics.items():
-            record("server_" + name, value)
+        for name, value in query_diagnostics.items():
+            prefix = (
+                "client_"
+                if name in {"json_decode_ms", "wire_bytes"}
+                else "server_")
+            record(prefix + name, value)
         if raw and raw.get("type") == "state_unchanged":
             unchanged_seq = raw.get("source_seq")
             unchanged_turn = raw.get("turn")
@@ -2085,6 +2093,13 @@ async def _play(run_dir, manifest, context):
             - mean_state_diagnostic(
                 diagnostics, "server_elapsed_before_serialize_ms", calls))
 
+    def mean_state_delivery_excluding_decode(diagnostics, calls):
+        return max(
+            0.0,
+            mean_state_delivery_latency(diagnostics, calls)
+            - mean_state_diagnostic(
+                diagnostics, "client_json_decode_ms", calls))
+
     truth_techs = set((final_global or {}).get("techs", {}).get(
         "player{}".format(opponent.get("id", 1)), []))
     correct = []
@@ -2182,6 +2197,17 @@ async def _play(run_dir, manifest, context):
         ("turn_boundary_state_delivery_ms",
          mean_state_delivery_latency(
              transition_state_diagnostics, transition_calls)),
+        ("turn_boundary_state_json_decode_ms",
+         mean_state_diagnostic(
+             transition_state_diagnostics, "client_json_decode_ms",
+             transition_calls)),
+        ("turn_boundary_state_delivery_excluding_decode_ms",
+         mean_state_delivery_excluding_decode(
+             transition_state_diagnostics, transition_calls)),
+        ("turn_boundary_state_wire_bytes",
+         mean_state_diagnostic(
+             transition_state_diagnostics, "client_wire_bytes",
+             transition_calls)),
         ("turn_boundary_state_projection_count",
          mean_state_diagnostic(
              transition_state_diagnostics, "server_projection_attempts",
@@ -2218,6 +2244,17 @@ async def _play(run_dir, manifest, context):
         ("action_refresh_state_delivery_ms",
          mean_state_delivery_latency(
              action_state_diagnostics, action_state_calls)),
+        ("action_refresh_state_json_decode_ms",
+         mean_state_diagnostic(
+             action_state_diagnostics, "client_json_decode_ms",
+             action_state_calls)),
+        ("action_refresh_state_delivery_excluding_decode_ms",
+         mean_state_delivery_excluding_decode(
+             action_state_diagnostics, action_state_calls)),
+        ("action_refresh_state_wire_bytes",
+         mean_state_diagnostic(
+             action_state_diagnostics, "client_wire_bytes",
+             action_state_calls)),
         ("action_refresh_state_projection_count",
          mean_state_diagnostic(
              action_state_diagnostics, "server_projection_attempts",

@@ -15,6 +15,7 @@ second half: it drives the loop by *observed* turns, not by attempts.
 import asyncio
 import json
 import math
+import time
 
 from . import client
 
@@ -27,13 +28,27 @@ _STATE_TYPES = {"state_response", "state_update", "state_unchanged"}
 TURN_PUSH_TYPES = {"begin_turn", "turn_begin", "new_turn", "phase_change"}
 
 
-async def recv_until(ws, types, timeout=20, drain=500):
+async def recv_until(ws, types, timeout=20, drain=500, diagnostics=None):
     """Return the first received message whose ``type`` is in ``types`` (or None on timeout)."""
+    if diagnostics is not None and not isinstance(diagnostics, dict):
+        raise ValueError("diagnostics must be a dictionary")
     for _ in range(drain):
         try:
-            m = json.loads(await asyncio.wait_for(ws.recv(), timeout=timeout))
+            raw_message = await asyncio.wait_for(ws.recv(), timeout=timeout)
         except asyncio.TimeoutError:
             return None
+        decode_started = time.perf_counter()
+        m = json.loads(raw_message)
+        decode_ms = (time.perf_counter() - decode_started) * 1000.0
+        if diagnostics is not None:
+            diagnostics["json_decode_ms"] = (
+                diagnostics.get("json_decode_ms", 0.0) + decode_ms)
+            wire_bytes = (
+                len(raw_message)
+                if isinstance(raw_message, bytes)
+                else len(raw_message.encode("utf-8")))
+            diagnostics["wire_bytes"] = (
+                diagnostics.get("wire_bytes", 0.0) + wire_bytes)
         if isinstance(m, dict) and m.get("type") in types:
             return m
     return None
@@ -95,7 +110,8 @@ async def get_state(ws, fmt="llm_optimized", after_source_seq=None,
     if diagnostics is not None and not isinstance(diagnostics, dict):
         raise ValueError("diagnostics must be a dictionary")
     await ws.send(json.dumps(query))
-    message = await recv_until(ws, _STATE_TYPES, timeout=15)
+    message = await recv_until(
+        ws, _STATE_TYPES, timeout=15, diagnostics=diagnostics)
     timing = message.get("server_timing") if isinstance(message, dict) else None
     if diagnostics is not None and isinstance(timing, dict):
         for name in (
