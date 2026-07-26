@@ -1508,6 +1508,8 @@ async def _play(run_dir, manifest, context):
     turn_cognitive_latencies = []
     cognitive_diagnostics = {}
     turn_action_phase_latencies = []
+    impact_planning_latency_ms = 0.0
+    impact_planning_calls = 0
     turn_end_submit_latencies = []
     turn_boundary_latencies = []
     turn_checkpoint_sync_latencies = []
@@ -1877,9 +1879,13 @@ async def _play(run_dir, manifest, context):
                     if (time.perf_counter() - full_turn_started
                             >= turn_timeout - impact_planner.refresh_timeout_seconds - 0.5):
                         break
+                    impact_planning_started = time.perf_counter()
                     decision = impact_planner.plan(
                         snapshot, excluded=excluded_impact_actions,
                         excluded_scopes=impact_budget.excluded_scopes)
+                    impact_planning_latency_ms += (
+                        time.perf_counter() - impact_planning_started) * 1000.0
+                    impact_planning_calls += 1
                     if decision is None:
                         break
                     impact_action = decision.candidate.action
@@ -2243,6 +2249,24 @@ async def _play(run_dir, manifest, context):
         ("turn_action_phase_latency_ms",
          sum(turn_action_phase_latencies)
          / max(1, len(turn_action_phase_latencies))),
+        ("turn_action_refresh_state_latency_ms",
+         action_state_diagnostics.get("latency_ms", 0.0)
+         / max(1, turns_executed)),
+        ("turn_action_nonrefresh_latency_ms", max(
+            0.0,
+            sum(turn_action_phase_latencies)
+            / max(1, len(turn_action_phase_latencies))
+            - action_state_diagnostics.get("latency_ms", 0.0)
+            / max(1, turns_executed))),
+        ("action_refresh_state_calls_per_turn",
+         action_state_diagnostics.get("calls", 0.0)
+         / max(1, turns_executed)),
+        ("turn_impact_planning_latency_ms",
+         impact_planning_latency_ms / max(1, turns_executed)),
+        ("impact_planning_decision_latency_ms",
+         impact_planning_latency_ms / max(1, impact_planning_calls)),
+        ("impact_planning_decision_calls_per_turn",
+         float(impact_planning_calls) / max(1, turns_executed)),
         ("turn_end_submit_latency_ms",
          sum(turn_end_submit_latencies)
          / max(1, len(turn_end_submit_latencies))),

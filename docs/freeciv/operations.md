@@ -105,6 +105,15 @@ proposal work. PLN authoritative requests intentionally do not use the generic
 4 KiB state caches; repeated `State too large for cache` warnings for
 `pln_authoritative` indicate an obsolete patch.
 
+Action-phase attribution reports `turn_action_refresh_state_latency_ms`,
+`turn_action_nonrefresh_latency_ms`, and
+`action_refresh_state_calls_per_turn`. Impact-planner computation is split into
+`turn_impact_planning_latency_ms`,
+`impact_planning_decision_latency_ms`, and
+`impact_planning_decision_calls_per_turn`. The non-refresh residual includes
+action acknowledgements, event emission, effect bookkeeping, and control-plan
+construction; it is not a planner-only measurement.
+
 Accepted impact actions receive a bounded 0.3-second authoritative refresh
 window with two identical samples separated by at least 50 ms. A differing
 state, enemy-observation, or exact legal-action digest restarts the stability
