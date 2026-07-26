@@ -46,6 +46,8 @@ METRICS = (
     "impact_planning_pressure_operation_latency_ms",
     "impact_planning_pressure_schedule_latency_ms",
     "impact_planning_pressure_artifact_latency_ms",
+    "impact_planning_pressure_score_alignment_guard_rejections_per_decision",
+    "impact_planning_pressure_score_alignment_deadline_rejections_per_decision",
     "turn_impact_decision_event_latency_ms",
     "turn_impact_execution_latency_ms",
     "impact_execution_latency_ms",

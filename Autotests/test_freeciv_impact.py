@@ -869,6 +869,8 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
                    {"pressure_enabled": "yes"},
                    {"pressure_learning_enabled": "yes"},
                    {"pressure_learning_enabled": True},
+                   {"pressure_score_alignment_enabled": "yes"},
+                   {"pressure_exploration_information_enabled": "yes"},
                    {"pressure_damping": 1.0},
                    {"pressure_exploration_floor": 1.1},
                    {"pressure_temperature": 0.0},

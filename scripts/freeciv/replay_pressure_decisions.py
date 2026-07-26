@@ -19,6 +19,7 @@ from freeciv.pf_pressure_replay import (  # noqa: E402
     direct_completion_counterfactual_paths,
     opportunity_counterfactual_paths,
     replay_paths,
+    score_alignment_counterfactual_paths,
 )
 from freeciv_agent.events.schema import canonical_json_bytes  # noqa: E402
 
@@ -32,12 +33,16 @@ def main():
         "--direct-completion-counterfactual", action="store_true")
     mode.add_argument(
         "--opportunity-counterfactual", action="store_true")
+    mode.add_argument(
+        "--score-alignment-counterfactual", action="store_true")
     parser.add_argument("--output")
     parser.add_argument("--relative-to", default=REPO)
     args = parser.parse_args()
     replay = (
         direct_completion_counterfactual_paths
         if args.direct_completion_counterfactual
+        else score_alignment_counterfactual_paths
+        if args.score_alignment_counterfactual
         else opportunity_counterfactual_paths
         if args.opportunity_counterfactual
         else replay_paths)

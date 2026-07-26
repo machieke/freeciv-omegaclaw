@@ -28,6 +28,8 @@ from freeciv.pf_pressure_replay import (  # noqa: E402
     replay_paths,
     replay_snapshot_file,
     replay_snapshot_paths,
+    score_alignment_counterfactual_paths,
+    score_alignment_rescore,
 )
 from freeciv_agent.events.schema import structural_hash  # noqa: E402
 from freeciv_agent.events.validator import validate_file  # noqa: E402
@@ -1078,6 +1080,212 @@ def test_cross_goal_opportunity_cost_preserves_higher_grounded_action_value():
         "schedule"]["selected_operation_id"]
 
 
+def test_score_alignment_suppresses_generic_exploration_without_information():
+    snapshot = SimpleNamespace(
+        cities=(SimpleNamespace(x=0, y=0),), units=(), turn=1,
+        visible_enemy_units=(), map_width=26, map_height=26)
+    defense = _Candidate("city_defense", 680.0, "unit_fortify")
+    exploration = _Candidate("exploration_move", 640.0, "unit_move")
+    diagnostics = {}
+
+    legacy, _ = ImpactPressureRanker().rank(
+        snapshot, (defense, exploration),
+        expansion_city_target=3, horizon_turn=60)
+    aligned, artifact = ImpactPressureRanker(
+        score_alignment=True,
+        exploration_information_enabled=False).rank(
+            snapshot, (defense, exploration),
+            expansion_city_target=3, horizon_turn=60,
+            diagnostics=diagnostics)
+
+    assert legacy[0] is exploration
+    assert aligned[0] is defense
+    goals = dict(
+        (row["goal_id"], row) for row in artifact["pressure"]["goals"])
+    assert goals["pf-impact:exploration"]["context"] == [
+        "authoritative:no-information-gain-and-no-known-hut"]
+    exploration_score = next(
+        row for row in artifact["schedule"]["scores"]
+        if row["operation"]["payload"]["category"] == "exploration_move")
+    assert not exploration_score["admissible"]
+    assert exploration_score["reason"] == "score_alignment_guard"
+    assert diagnostics["pressure_score_alignment_guard_rejections"] == 1
+    assert diagnostics["pressure_score_alignment_deadline_rejections"] == 0
+
+
+def test_score_alignment_binds_safety_move_to_the_activating_threat():
+    city = SimpleNamespace(x=0, y=0)
+    actor = SimpleNamespace(unit_id=7, x=10, y=10)
+    threat = SimpleNamespace(unit_id=99, x=1, y=0)
+    snapshot = SimpleNamespace(
+        cities=(city,), units=(actor,), turn=10,
+        visible_enemy_units=(threat,), map_width=26, map_height=26)
+    economy = _Candidate("production_economy", 1000.0, "city_production")
+    unrelated = _Candidate("tactical_move", 900.0, "unit_move")
+    unrelated.action = {
+        "action_type": "unit_move", "actor_id": 7,
+        "target": {"x": 10, "y": 11},
+    }
+
+    ordered, artifact = ImpactPressureRanker(
+        score_alignment=True,
+        exploration_information_enabled=False).rank(
+            snapshot, (economy, unrelated),
+            expansion_city_target=3, horizon_turn=60)
+
+    assert ordered[0] is economy
+    tactical_score = next(
+        row for row in artifact["schedule"]["scores"]
+        if row["operation"]["payload"]["category"] == "tactical_move")
+    assert tactical_score["reason"] == "score_alignment_guard"
+
+    relevant_actor = SimpleNamespace(unit_id=8, x=3, y=0)
+    relevant_snapshot = SimpleNamespace(
+        cities=(city,), units=(relevant_actor,), turn=10,
+        visible_enemy_units=(threat,), map_width=26, map_height=26)
+    response = _Candidate("tactical_move", 900.0, "relevant-unit-move")
+    response.action = {
+        "action_type": "unit_move", "actor_id": 8,
+        "target": {"x": 2, "y": 0},
+    }
+    relevant_ordered, relevant_artifact = ImpactPressureRanker(
+        score_alignment=True,
+        exploration_information_enabled=False).rank(
+            relevant_snapshot, (economy, response),
+            expansion_city_target=3, horizon_turn=60)
+
+    assert relevant_ordered[0] is response
+    economy_score = next(
+        row for row in relevant_artifact["schedule"]["scores"]
+        if row["operation"]["payload"]["category"] == "production_economy")
+    assert economy_score["reason"] == "safety_firewall"
+
+    # Partial consumers may retain a threat identity without coordinates.
+    # Score alignment must fail closed instead of treating an unverifiable
+    # move as a grounded response to the activating threat.
+    incomplete_threat = SimpleNamespace(unit_id=100, x=None, y=None)
+    incomplete_snapshot = SimpleNamespace(
+        cities=(city,), units=(relevant_actor,), turn=10,
+        visible_enemy_units=(incomplete_threat,),
+        map_width=26, map_height=26)
+    incomplete_ordered, _ = ImpactPressureRanker(
+        score_alignment=True,
+        exploration_information_enabled=False).rank(
+            incomplete_snapshot, (economy, response),
+            expansion_city_target=3, horizon_turn=60)
+    assert incomplete_ordered[0] is economy
+
+    distant_fortify = _Candidate(
+        "city_defense", 900.0, "distant-unit-fortify")
+    distant_fortify.action = {
+        "action_type": "unit_fortify", "actor_id": 7}
+    distant_ordered, _ = ImpactPressureRanker(
+        score_alignment=True,
+        exploration_information_enabled=False).rank(
+            snapshot, (economy, distant_fortify),
+            expansion_city_target=3, horizon_turn=60)
+    assert distant_ordered[0] is economy
+
+    local_defender = SimpleNamespace(unit_id=9, x=0, y=0)
+    local_snapshot = SimpleNamespace(
+        cities=(city,), units=(local_defender,), turn=10,
+        visible_enemy_units=(threat,), map_width=26, map_height=26)
+    local_fortify = _Candidate(
+        "city_defense", 900.0, "local-unit-fortify")
+    local_fortify.action = {
+        "action_type": "unit_fortify", "actor_id": 9}
+    local_ordered, local_artifact = ImpactPressureRanker(
+        score_alignment=True,
+        exploration_information_enabled=False).rank(
+            local_snapshot, (economy, local_fortify),
+            expansion_city_target=3, horizon_turn=60)
+    assert local_ordered[0] is local_fortify
+    local_economy_score = next(
+        row for row in local_artifact["schedule"]["scores"]
+        if row["operation"]["payload"]["category"] == "production_economy")
+    assert local_economy_score["reason"] == "safety_firewall"
+
+
+def test_score_alignment_allows_grounded_score_gain_despite_small_regret():
+    snapshot = SimpleNamespace(
+        cities=(SimpleNamespace(x=0, y=0),), units=(), turn=20,
+        visible_enemy_units=(), map_width=26, map_height=26)
+    move = _Candidate("expansion_move", 1010.0, "unit_move")
+    found = _Candidate("city_founding", 1000.0, "unit_build_city")
+    state = ConductanceState(identity="score-aligned-city-completion")
+    for index in range(20):
+        state.feedback(
+            "expansion_move", False, "failed-move-{}".format(index))
+
+    ordered, artifact = ImpactPressureRanker(
+        conductance_state=state, score_alignment=True,
+        exploration_information_enabled=False).rank(
+            snapshot, (move, found),
+            expansion_city_target=3, horizon_turn=60)
+
+    assert ordered[0] is found
+    founding_score = next(
+        row for row in artifact["schedule"]["scores"]
+        if row["operation"]["payload"]["category"] == "city_founding")
+    assert founding_score["admissible"]
+    assert founding_score["operation"]["future_option_value"] == 1.0
+    assert founding_score["operation"]["cost"]["opportunity"] == 10.0
+
+
+def test_score_alignment_rejects_explicitly_late_score_projection():
+    snapshot = SimpleNamespace(
+        cities=(SimpleNamespace(x=0, y=0),), units=(), turn=55,
+        visible_enemy_units=(), map_width=26, map_height=26)
+    late = _Candidate(
+        "production_repurpose", 1000.0, "late-production", {
+            "completion_eta_turns": 6,
+            "guaranteed_unit_score_points": 1.0,
+            "remaining_turns": 5,
+        })
+    fallback = _Candidate(
+        "production_economy", 900.0, "grounded-fallback")
+
+    ordered, artifact = ImpactPressureRanker(
+        score_alignment=True,
+        exploration_information_enabled=False).rank(
+            snapshot, (late, fallback),
+            expansion_city_target=3, horizon_turn=60)
+
+    assert ordered[0] is fallback
+    late_score = next(
+        row for row in artifact["schedule"]["scores"]
+        if row["operation"]["payload"]["category"] == "production_repurpose")
+    assert not late_score["admissible"]
+    assert late_score["reason"] == "score_alignment_deadline"
+    assert late_score["operation"]["deadline_fit"] == 0.0
+    assert artifact["schedule"]["selected_operation_id"] == next(
+        row["operation"]["operation_id"]
+        for row in artifact["schedule"]["scores"]
+        if row["operation"]["payload"]["category"] == "production_economy")
+
+
+def test_score_alignment_rescore_changes_only_recorded_selection_semantics():
+    snapshot = SimpleNamespace(
+        cities=(SimpleNamespace(x=0, y=0),), units=(), turn=1,
+        visible_enemy_units=(), map_width=26, map_height=26)
+    defense = _Candidate("city_defense", 680.0, "unit_fortify")
+    exploration = _Candidate("exploration_move", 640.0, "unit_move")
+    legacy, artifact = ImpactPressureRanker().rank(
+        snapshot, (defense, exploration),
+        expansion_city_target=3, horizon_turn=60)
+
+    rescored = score_alignment_rescore(
+        artifact["schedule"]["scores"], artifact["pressure"],
+        artifact["conductance_state"], turn=1,
+        exploration_information_enabled=False)
+
+    assert legacy[0] is exploration
+    assert rescored["category"] == "city_defense"
+    assert any(
+        row["reason"] == "score_alignment_guard"
+        for row in rescored["schedule"]["scores"])
+
+
 def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
     snapshot = SimpleNamespace(cities=(), turn=5)
     candidates = (
@@ -1143,6 +1351,8 @@ def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
             (path,), relative_to=directory)
         direct_counterfactual = direct_completion_counterfactual_paths(
             (path,), relative_to=directory)
+        alignment_counterfactual = score_alignment_counterfactual_paths(
+            (path,), relative_to=directory)
     assert report.valid, report.to_dict()
     assert replay["eligibility"] == "exact_candidate_replay"
     assert replay["source_unchanged"]
@@ -1157,6 +1367,16 @@ def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
     assert direct_counterfactual["total_decisions"] == 1
     assert direct_counterfactual["integrity_failures"] == 0
     assert direct_counterfactual["changed_decisions"] == 0
+    assert alignment_counterfactual["files_scanned"] == 1
+    assert alignment_counterfactual["total_decisions"] == 1
+    assert alignment_counterfactual["changed_from_recorded"] == 0
+    assert alignment_counterfactual["aligned_changed_from_baseline"] == 1
+    assert alignment_counterfactual["recorded_utility_regret"] == 400.0
+    assert alignment_counterfactual["aligned_utility_regret"] == 400.0
+    assert alignment_counterfactual["utility_regret_reduction"] == 0.0
+    assert alignment_counterfactual[
+        "aligned_transitions_from_baseline"] == {
+            "production_economy -> production_defense": 1}
     assert aggregate_replay["sources_unchanged"]
     assert counterfactual["total_decisions"] == 1
     assert counterfactual["safety_active_decisions"] == 1

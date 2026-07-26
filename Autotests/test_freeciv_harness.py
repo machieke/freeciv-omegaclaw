@@ -70,6 +70,10 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert config["impact_policy"]["refresh_stability_interval_seconds"] == 0.05
     assert config["impact_policy"]["production_strategy"] == "horizon_score"
     assert config["impact_policy"]["pressure_learning_enabled"] is True
+    assert config[
+        "impact_policy"]["pressure_score_alignment_enabled"] is True
+    assert config[
+        "impact_policy"]["pressure_exploration_information_enabled"] is False
     assert config["impact_policy"]["pressure_max_routes_per_conclusion"] == 32
     assert config["impact_policy"]["pressure_survival_threat_radius"] == 3
     assert config["impact_policy"]["pressure_learning_rate"] == 0.10
@@ -97,6 +101,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "pressure_opportunity_cost_pilot_v1": 40,
         "pressure_direct_completion_pilot_v1": 40,
         "pressure_direct_completion_confirmatory_v1": 100,
+        "pressure_score_alignment_pilot_v1": 40,
     }
     seed_sets = [set(row["seeds"]) for row in paired["cohorts"].values()]
     assert all(not left & right for index, left in enumerate(seed_sets)
@@ -265,6 +270,15 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     }
     assert opportunity_pilot["isolated_policy_keys"] == [
         "pressure_enabled", "pressure_learning_enabled"]
+    score_alignment_pilot = paired["cohorts"][
+        "pressure_score_alignment_pilot_v1"]
+    assert score_alignment_pilot["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": "pf-pln-pressure-score-alignment-pilot-v1",
+        "count": 40, "minimum": 3300000, "maximum": 3399999,
+    }
+    assert score_alignment_pilot["isolated_policy_keys"] == [
+        "pressure_score_alignment_enabled"]
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.2",
         "source_sha256": "3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e",
@@ -1664,6 +1678,28 @@ def test_paired_impact_jobs_alternate_order_and_override_only_declared_policy():
     assert pressure_baseline["turn_limit"] == pressure_treatment[
         "turn_limit"] == 60
 
+    alignment_runner = HarnessRunner(
+        "unused", seed_limit=1, conditions=("e_full_loop",),
+        impact_cohort="pressure_score_alignment_pilot_v1")
+    alignment_jobs = alignment_runner._impact_jobs()
+    alignment_baseline = alignment_runner._manifest(
+        alignment_jobs[0], 0)
+    alignment_treatment = alignment_runner._manifest(
+        alignment_jobs[1], 0)
+    alignment_differing = sorted(
+        key for key in alignment_baseline["impact_policy"]
+        if alignment_baseline["impact_policy"][key]
+        != alignment_treatment["impact_policy"][key])
+    assert alignment_differing == ["pressure_score_alignment_enabled"]
+    assert alignment_baseline[
+        "impact_policy"]["pressure_enabled"] is True
+    assert alignment_treatment[
+        "impact_policy"]["pressure_enabled"] is True
+    assert alignment_baseline[
+        "impact_policy"]["pressure_score_alignment_enabled"] is False
+    assert alignment_treatment[
+        "impact_policy"]["pressure_score_alignment_enabled"] is True
+
 
 def test_parallel_impact_execution_keeps_each_pair_serial_on_one_worker(monkeypatch):
     with tempfile.TemporaryDirectory() as directory:
@@ -1737,10 +1773,12 @@ def test_pressure_ablation_pilot_runs_and_aggregates_as_an_isolated_pair(
         "baseline": {
             "pressure_enabled": False,
             "pressure_learning_enabled": False,
+            "pressure_score_alignment_enabled": False,
         },
         "treatment": {
             "pressure_enabled": True,
             "pressure_learning_enabled": True,
+            "pressure_score_alignment_enabled": False,
         },
     }
     assert aggregate["claim_evaluation"]["status"] == "ineligible"

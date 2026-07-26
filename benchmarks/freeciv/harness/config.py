@@ -52,6 +52,17 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
     if not isinstance(impact.get("pressure_learning_enabled", False), bool):
         raise ValueError(
             "{}.pressure_learning_enabled must be boolean".format(prefix))
+    if not isinstance(
+            impact.get("pressure_score_alignment_enabled", False), bool):
+        raise ValueError(
+            "{}.pressure_score_alignment_enabled must be boolean".format(
+                prefix))
+    if not isinstance(
+            impact.get(
+                "pressure_exploration_information_enabled", True), bool):
+        raise ValueError(
+            "{}.pressure_exploration_information_enabled must be boolean"
+            .format(prefix))
     if (impact.get("pressure_learning_enabled", False)
             and not impact.get("pressure_enabled", False)):
         raise ValueError(

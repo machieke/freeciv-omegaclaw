@@ -145,6 +145,8 @@ impact_policy:
   pressure_max_routes_per_conclusion: 32
   pressure_survival_threat_radius: 3
   pressure_learning_enabled: true
+  pressure_score_alignment_enabled: true
+  pressure_exploration_information_enabled: false
   pressure_learning_rate: 0.10
   pressure_no_progress_rate: 0.10
   pressure_initial_conductance: 1.00
@@ -453,10 +455,31 @@ confirmation are not pooled. Correctness, safety, provenance, artifact
 identity, and secondary diagnostics are recorded in
 [`evidence/pf-pressure-direct-completion-confirmatory-v1.md`](evidence/pf-pressure-direct-completion-confirmatory-v1.md).
 
+The next adapter revision is `grounded-impact-planner/1.3`. Its opt-in
+score-alignment policy addresses the confirmed mechanism mismatch instead of
+retuning pressure weights: generic exploration is inactive when the engine
+has no information gain, score pressure requires a horizon-grounded score
+completion, category opportunity cost no longer borrows utility from another
+category, late work fails closed, safety moves must respond to the threat that
+activated safety, fortification must be local to that threat, and a non-safety
+pressure override must preserve canonical utility or supply a strictly larger
+guaranteed horizon score.
+
+Read-only counterfactual replay over the immutable 100-trace confirmation
+reduces PF departures from grounded utility ordering from 384 to 137 of 6,726
+decisions and reduces summed utility regret by 25.8%. A dirty-source,
+one-pair engine smoke completed both arms with zero failures and passing safety
+gates; both scored 113 at turn 30. Neither result is a score-improvement claim.
+The implementation, replay limits, smoke evidence, and clean 40-pair
+`pressure_score_alignment_pilot_v1` gate are recorded in
+[`evidence/pf-pressure-score-alignment-offline-acceptance.md`](evidence/pf-pressure-score-alignment-offline-acceptance.md).
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
-`pressure_enabled` defaults to `false` unless the runtime profile enables it.
-This preserves unit-level policy isolation and makes an unpressured ablation
-available without a code fork.
+`pressure_enabled` and `pressure_score_alignment_enabled` default to `false`
+unless the runtime profile enables them. This preserves unit-level policy
+isolation, retains exact legacy replay semantics for historical cohorts, and
+makes both unpressured and legacy-pressure ablations available without a code
+fork.
 
 ## Event contract
 

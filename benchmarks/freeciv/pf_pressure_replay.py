@@ -286,6 +286,79 @@ def direct_completion_rescore(scores, pressure, conductance_state, turn):
     return results
 
 
+def score_alignment_rescore(
+        scores, pressure, conductance_state, turn,
+        exploration_information_enabled=False):
+    """Recompute a recorded decision under score-aligned PF semantics."""
+    candidates = []
+    by_action = {}
+    for score in scores:
+        value = _candidate(score)
+        payload = score.get("operation", {}).get("payload", {})
+        if value is None:
+            raise ValueError(
+                "score alignment rescore requires complete candidates")
+        candidate = ImpactCandidate(
+            value["action"], value["category"], value["utility"],
+            payload.get("rationale", "recorded grounded candidate"),
+            payload.get("projection"))
+        candidates.append(candidate)
+        by_action[candidate.action_key] = value["operation_id"]
+    if len(by_action) != len(candidates):
+        raise ValueError(
+            "score alignment rescore requires unique candidate actions")
+
+    goals = pressure.get("goals", ())
+    score_goal = next(
+        goal for goal in goals
+        if goal.get("goal_id") == "pf-impact:score")
+    score_urgency = float(score_goal.get("urgency", 1.0))
+    remaining = (
+        max(1, int(round(1.0 / (score_urgency - 1.0))))
+        if score_urgency > 1.0 else 1)
+    horizon_turn = int(turn) + remaining
+    specs = _recorded_goal_specs(pressure)
+    score_actionable = any(
+        ImpactPressureRanker._guaranteed_horizon_score(candidate) > 0.0
+        for candidate in candidates)
+    specs["score"] = (
+        0.0 if score_actionable else 1.0,
+        specs["score"][1], specs["score"][2],
+        ("authoritative:grounded-guaranteed-horizon-score-action"
+         if score_actionable else
+         "authoritative:no-grounded-score-action"))
+    known_hut_actionable = any(
+        candidate.category == "hut_exploration"
+        for candidate in candidates)
+    exploration_actionable = any(
+        ImpactPressureRanker.goal_for_category(candidate.category)
+        == "exploration" for candidate in candidates)
+    if (exploration_actionable and not exploration_information_enabled
+            and not known_hut_actionable):
+        specs["exploration"] = (
+            1.0, specs["exploration"][1], specs["exploration"][2],
+            "authoritative:no-information-gain-and-no-known-hut")
+
+    snapshot = SimpleNamespace(turn=int(turn))
+    ordered, artifact = ImpactPressureRanker(
+        _pressure_config(pressure.get("config")),
+        _RecordedConductance(
+            conductance_state, direct_completion_floor=True),
+        score_alignment=True,
+        exploration_information_enabled=(
+            exploration_information_enabled)).rank(
+                snapshot, candidates, expansion_city_target=1,
+                horizon_turn=horizon_turn, _goal_specs_override=specs,
+                _conservative_safety_replay=True)
+    selected = ordered[0]
+    return {
+        "category": selected.category,
+        "operation_id": by_action[selected.action_key],
+        "schedule": artifact["schedule"],
+        "utility": float(selected.utility),
+    }
+
+
 def _schedule_hash(operation_payload, pressure_payload):
     value = {
         "allocations": operation_payload["allocations"],
@@ -726,6 +799,141 @@ def direct_completion_counterfactual_paths(
         "utility_delta": sum(
             row["revised_utility"] - row["recorded_utility"]
             for row in changed),
+    }
+    value["artifact_hash"] = structural_hash(value)
+    return value
+
+
+def score_alignment_counterfactual_paths(
+        paths, maximum_files=None, relative_to=None):
+    """Replay score alignment over immutable grounded treatment decisions."""
+    files = discover_event_files(paths, maximum_files)
+    if not files:
+        raise ValueError("no events.jsonl files found")
+    relative_to = (
+        os.path.abspath(relative_to) if relative_to is not None else None)
+    decisions = []
+    source_set = []
+    for path in files:
+        display = (
+            os.path.relpath(path, relative_to)
+            if relative_to is not None else path)
+        source_hash = _file_sha256(path)
+        events = _load_events(path)
+        pressure_by_id = dict(
+            (event.get("payload", {}).get("pressure_id"),
+             event.get("payload", {}))
+            for event in events
+            if event.get("type") == "pressure_propagated")
+        for event in events:
+            if event.get("type") != "operation_scored":
+                continue
+            payload = event.get("payload", {})
+            pressure = pressure_by_id.get(payload.get("pressure_id"))
+            scores = payload.get("scores")
+            if pressure is None or not isinstance(scores, list) or not scores:
+                continue
+            candidates = [_candidate(score) for score in scores]
+            if any(candidate is None for candidate in candidates):
+                continue
+            by_operation = dict(
+                (candidate["operation_id"], candidate)
+                for candidate in candidates)
+            baseline = min(candidates, key=_baseline_key)
+            recorded = by_operation.get(payload.get(
+                "selected_operation_id"))
+            rescored = score_alignment_rescore(
+                scores, pressure, pressure.get("conductance_state"),
+                event.get("turn", 0),
+                exploration_information_enabled=False)
+            aligned = by_operation.get(rescored["operation_id"])
+            if recorded is None or aligned is None:
+                continue
+            reasons = Counter(
+                row.get("reason") for row in rescored["schedule"]["scores"]
+                if row.get("reason") in (
+                    "score_alignment_guard",
+                    "score_alignment_deadline"))
+            decisions.append({
+                "aligned_category": aligned["category"],
+                "aligned_operation_id": aligned["operation_id"],
+                "aligned_utility": aligned["utility"],
+                "baseline_category": baseline["category"],
+                "baseline_operation_id": baseline["operation_id"],
+                "baseline_utility": baseline["utility"],
+                "changed_from_recorded": (
+                    aligned["operation_id"] != recorded["operation_id"]),
+                "decision_event_id": event.get("event_id"),
+                "deadline_rejections": int(
+                    reasons["score_alignment_deadline"]),
+                "guard_rejections": int(
+                    reasons["score_alignment_guard"]),
+                "path": display,
+                "recorded_category": recorded["category"],
+                "recorded_operation_id": recorded["operation_id"],
+                "recorded_utility": recorded["utility"],
+                "turn": int(event.get("turn", 0)),
+            })
+        if _file_sha256(path) != source_hash:
+            raise RuntimeError(
+                "counterfactual source changed while it was read")
+        source_set.append({"path": display, "sha256": source_hash})
+
+    changed = [row for row in decisions if row["changed_from_recorded"]]
+    baseline_aligned = [
+        row for row in decisions
+        if row["baseline_operation_id"] != row["aligned_operation_id"]]
+    transitions = Counter(
+        "{} -> {}".format(
+            row["recorded_category"], row["aligned_category"])
+        for row in changed)
+    baseline_transitions = Counter(
+        "{} -> {}".format(
+            row["baseline_category"], row["aligned_category"])
+        for row in baseline_aligned)
+    recorded_utility_regret = sum(
+        row["baseline_utility"] - row["recorded_utility"]
+        for row in decisions)
+    aligned_utility_regret = sum(
+        row["baseline_utility"] - row["aligned_utility"]
+        for row in decisions)
+    value = {
+        "aligned_changed_from_baseline": len(baseline_aligned),
+        "aligned_decision_change_rate": (
+            float(len(baseline_aligned)) / len(decisions)
+            if decisions else None),
+        "aligned_transitions_from_baseline": dict(sorted(
+            baseline_transitions.items())),
+        "aligned_utility_regret": aligned_utility_regret,
+        "changed_from_recorded": len(changed),
+        "changed_from_recorded_rate": (
+            float(len(changed)) / len(decisions)
+            if decisions else None),
+        "decisions": decisions,
+        "deadline_rejections": sum(
+            row["deadline_rejections"] for row in decisions),
+        "files_scanned": len(files),
+        "guard_rejections": sum(
+            row["guard_rejections"] for row in decisions),
+        "limitations": [
+            "Counterfactual replay holds grounded candidates, utilities, learned conductance, and authoritative survival and expansion state fixed.",
+            "It applies score-aligned goal grounding, category cost, horizon guards, and the no-information exploration setting locally; recorded artifacts do not retain enough actor geometry to replay the new threat-target binding, so existing survival candidates remain conservatively eligible.",
+            "Later engine state may diverge after the first changed action; this is not a gameplay score or win-rate claim.",
+        ],
+        "mode": "score-alignment-counterfactual",
+        "recorded_utility_regret": recorded_utility_regret,
+        "schema_version": REPLAY_SCHEMA_VERSION,
+        "source_set": source_set,
+        "source_set_hash": structural_hash(source_set),
+        "sources_unchanged": True,
+        "total_decisions": len(decisions),
+        "transitions": dict(sorted(transitions.items())),
+        "utility_regret_reduction": (
+            recorded_utility_regret - aligned_utility_regret),
+        "utility_regret_reduction_rate": (
+            (recorded_utility_regret - aligned_utility_regret)
+            / recorded_utility_regret
+            if recorded_utility_regret else None),
     }
     value["artifact_hash"] = structural_hash(value)
     return value

@@ -49,6 +49,11 @@ impact_policy:
   preserve_city_defenders: true
   production_strategy: horizon_score
   pressure_enabled: true
+  pressure_score_alignment_enabled: true
+  # The engine-live harness deliberately disables fog of war. Generic moves
+  # therefore cannot claim information gain; exact known-hut routes remain
+  # separately grounded and pressure-eligible.
+  pressure_exploration_information_enabled: false
   pressure_damping: 0.85
   pressure_exploration_floor: 0.05
   pressure_temperature: 0.15
@@ -358,9 +363,11 @@ paired_impact:
         baseline:
           pressure_enabled: false
           pressure_learning_enabled: false
+          pressure_score_alignment_enabled: false
         treatment:
           pressure_enabled: true
           pressure_learning_enabled: true
+          pressure_score_alignment_enabled: false
       seed_derivation:
         algorithm: sha256-counter-v1
         namespace: pf-pln-pressure-ablation-pilot-v1
@@ -381,9 +388,11 @@ paired_impact:
         baseline:
           pressure_enabled: false
           pressure_learning_enabled: false
+          pressure_score_alignment_enabled: false
         treatment:
           pressure_enabled: true
           pressure_learning_enabled: true
+          pressure_score_alignment_enabled: false
       seed_derivation:
         algorithm: sha256-counter-v1
         namespace: pf-pln-pressure-ablation-pilot-v2
@@ -404,9 +413,11 @@ paired_impact:
         baseline:
           pressure_enabled: false
           pressure_learning_enabled: false
+          pressure_score_alignment_enabled: false
         treatment:
           pressure_enabled: true
           pressure_learning_enabled: true
+          pressure_score_alignment_enabled: false
       seed_derivation:
         algorithm: sha256-counter-v1
         namespace: pf-pln-pressure-goal-relief-pilot-v1
@@ -427,9 +438,11 @@ paired_impact:
         baseline:
           pressure_enabled: false
           pressure_learning_enabled: false
+          pressure_score_alignment_enabled: false
         treatment:
           pressure_enabled: true
           pressure_learning_enabled: true
+          pressure_score_alignment_enabled: false
       seed_derivation:
         algorithm: sha256-counter-v1
         namespace: pf-pln-pressure-threat-relevance-pilot-v1
@@ -450,9 +463,11 @@ paired_impact:
         baseline:
           pressure_enabled: false
           pressure_learning_enabled: false
+          pressure_score_alignment_enabled: false
         treatment:
           pressure_enabled: true
           pressure_learning_enabled: true
+          pressure_score_alignment_enabled: false
       seed_derivation:
         algorithm: sha256-counter-v1
         namespace: pf-pln-pressure-defense-relevance-pilot-v1
@@ -473,9 +488,11 @@ paired_impact:
         baseline:
           pressure_enabled: false
           pressure_learning_enabled: false
+          pressure_score_alignment_enabled: false
         treatment:
           pressure_enabled: true
           pressure_learning_enabled: true
+          pressure_score_alignment_enabled: false
       seed_derivation:
         algorithm: sha256-counter-v1
         namespace: pf-pln-pressure-category-invariance-pilot-v1
@@ -496,9 +513,11 @@ paired_impact:
         baseline:
           pressure_enabled: false
           pressure_learning_enabled: false
+          pressure_score_alignment_enabled: false
         treatment:
           pressure_enabled: true
           pressure_learning_enabled: true
+          pressure_score_alignment_enabled: false
       seed_derivation:
         algorithm: sha256-counter-v1
         namespace: pf-pln-pressure-opportunity-cost-pilot-v1
@@ -520,9 +539,11 @@ paired_impact:
         baseline:
           pressure_enabled: false
           pressure_learning_enabled: false
+          pressure_score_alignment_enabled: false
         treatment:
           pressure_enabled: true
           pressure_learning_enabled: true
+          pressure_score_alignment_enabled: false
       seed_derivation:
         algorithm: sha256-counter-v1
         namespace: pf-pln-pressure-direct-completion-pilot-v1
@@ -547,15 +568,42 @@ paired_impact:
         baseline:
           pressure_enabled: false
           pressure_learning_enabled: false
+          pressure_score_alignment_enabled: false
         treatment:
           pressure_enabled: true
           pressure_learning_enabled: true
+          pressure_score_alignment_enabled: false
       seed_derivation:
         algorithm: sha256-counter-v1
         namespace: pf-pln-pressure-direct-completion-confirmatory-v1
         count: 100
         minimum: 3100000
         maximum: 3299999
+    pressure_score_alignment_pilot_v1:
+      purpose: pilot
+      claim_eligible: false
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 40
+      controller_workers: 3
+      isolated_policy_keys:
+        - pressure_score_alignment_enabled
+      arms:
+        baseline:
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: false
+        treatment:
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-pressure-score-alignment-pilot-v1
+        count: 40
+        minimum: 3300000
+        maximum: 3399999
   retired_cohorts:
     confirmatory_score_horizon_60_v4:
       retired_reason: terminal_player_elimination_misclassified_as_infrastructure_timeout

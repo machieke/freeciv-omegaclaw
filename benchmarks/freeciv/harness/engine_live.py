@@ -2387,6 +2387,14 @@ async def _play(run_dir, manifest, context):
          impact_planning_diagnostics.get(
              "pressure_artifact_latency_ms", 0.0)
          / max(1, impact_planning_calls)),
+        ("impact_planning_pressure_score_alignment_guard_rejections_per_decision",
+         float(impact_planning_diagnostics.get(
+             "pressure_score_alignment_guard_rejections", 0))
+         / max(1, impact_planning_calls)),
+        ("impact_planning_pressure_score_alignment_deadline_rejections_per_decision",
+         float(impact_planning_diagnostics.get(
+             "pressure_score_alignment_deadline_rejections", 0))
+         / max(1, impact_planning_calls)),
         ("turn_impact_decision_event_latency_ms",
          impact_decision_event_latency_ms / max(1, turns_executed)),
         ("turn_impact_execution_latency_ms",

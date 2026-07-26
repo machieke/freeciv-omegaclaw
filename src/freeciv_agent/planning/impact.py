@@ -205,7 +205,7 @@ def _target_name(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.2"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.3"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -229,6 +229,20 @@ class GroundedImpactPlanner(object):
         if pressure_learning_enabled and not pressure_enabled:
             raise ValueError("pressure learning requires pressure_enabled")
         self.pressure_learning_enabled = pressure_learning_enabled
+        pressure_score_alignment_enabled = values.get(
+            "pressure_score_alignment_enabled", False)
+        if not isinstance(pressure_score_alignment_enabled, bool):
+            raise ValueError(
+                "pressure_score_alignment_enabled must be boolean")
+        self.pressure_score_alignment_enabled = (
+            pressure_score_alignment_enabled)
+        pressure_exploration_information_enabled = values.get(
+            "pressure_exploration_information_enabled", True)
+        if not isinstance(pressure_exploration_information_enabled, bool):
+            raise ValueError(
+                "pressure_exploration_information_enabled must be boolean")
+        self.pressure_exploration_information_enabled = (
+            pressure_exploration_information_enabled)
         pressure_max_routes = values.get(
             "pressure_max_routes_per_conclusion", 32)
         if (isinstance(pressure_max_routes, bool)
@@ -377,7 +391,10 @@ class GroundedImpactPlanner(object):
                     "pressure_temperature", 0.15)),
                 max_routes_per_conclusion=int(values.get(
                     "pressure_max_routes_per_conclusion", 32))),
-                conductance_state=conductance_state)
+                conductance_state=conductance_state,
+                score_alignment=self.pressure_score_alignment_enabled,
+                exploration_information_enabled=(
+                    self.pressure_exploration_information_enabled))
         self.founder_route_successes = 0
         self.founder_route_failures = 0
         self.founder_cardinal_corridor_attempts = 0

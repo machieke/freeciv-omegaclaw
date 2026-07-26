@@ -1,7 +1,8 @@
 """Adapters from existing FreeCiv proof and impact artifacts into PF-PLN."""
 
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from types import SimpleNamespace
 
 from ..events.schema import structural_hash
 from .engine import PressureEngine, PressureGraph
@@ -173,11 +174,20 @@ class ImpactPressureRanker(object):
         "tactical_move": "survival",
     }
 
-    def __init__(self, config=None, conductance_state=None):
+    def __init__(
+            self, config=None, conductance_state=None, score_alignment=False,
+            exploration_information_enabled=True):
         self.config = config or PressureConfig()
         self.engine = PressureEngine(self.config)
         self.scheduler = PressureScheduler(self.config)
         self.conductance_state = conductance_state
+        if not isinstance(score_alignment, bool):
+            raise TypeError("score alignment must be boolean")
+        if not isinstance(exploration_information_enabled, bool):
+            raise TypeError("exploration information setting must be boolean")
+        self.score_alignment = score_alignment
+        self.exploration_information_enabled = (
+            exploration_information_enabled)
 
     @classmethod
     def goal_for_category(cls, category):
@@ -253,9 +263,76 @@ class ImpactPressureRanker(object):
         return tuple(relevant)
 
     @classmethod
+    def _safety_candidate_relevant(
+            cls, snapshot, candidate, relevant_threats, defense_deficit,
+            survival_threat_radius):
+        """Bind safety compatibility to the threat that activated safety."""
+        category = str(candidate.category)
+        if category == "production_defense":
+            return bool(defense_deficit)
+        if category not in (
+                "city_defense", "tactical_attack", "tactical_move"):
+            return False
+        if not relevant_threats:
+            return False
+        action = candidate.action
+        target = action.get("target")
+        target = target if isinstance(target, dict) else {}
+        actor_id = action.get("actor_id")
+        actor = (
+            snapshot.unit(actor_id)
+            if actor_id is not None and hasattr(snapshot, "unit")
+            else next((
+                unit for unit in tuple(
+                    getattr(snapshot, "units", ()) or ())
+                if getattr(unit, "unit_id", None) == actor_id), None))
+        if category == "city_defense":
+            if actor is None:
+                return False
+            width = getattr(snapshot, "map_width", 0)
+            height = getattr(snapshot, "map_height", 0)
+            distances = tuple(
+                cls._wrapped_distance(actor, enemy, width, height)
+                for enemy in relevant_threats)
+            return (
+                bool(distances)
+                and not any(value is None for value in distances)
+                and min(distances) <= int(survival_threat_radius))
+        if category == "tactical_attack":
+            target_unit_id = target.get("target_unit_id")
+            if target_unit_id is not None:
+                return any(
+                    getattr(enemy, "unit_id", None) == target_unit_id
+                    for enemy in relevant_threats)
+            target_xy = (target.get("x"), target.get("y"))
+            return target_xy != (None, None) and any(
+                (getattr(enemy, "x", None), getattr(enemy, "y", None))
+                == target_xy for enemy in relevant_threats)
+
+        destination = (target.get("x"), target.get("y"))
+        if (actor is None or destination == (None, None)
+                or getattr(actor, "x", None) is None
+                or getattr(actor, "y", None) is None):
+            return False
+        width = getattr(snapshot, "map_width", 0)
+        height = getattr(snapshot, "map_height", 0)
+        current_distances = tuple(
+            cls._wrapped_distance(actor, enemy, width, height)
+            for enemy in relevant_threats)
+        projected = SimpleNamespace(x=destination[0], y=destination[1])
+        projected_distances = tuple(
+            cls._wrapped_distance(projected, enemy, width, height)
+            for enemy in relevant_threats)
+        if (any(value is None for value in current_distances)
+                or any(value is None for value in projected_distances)):
+            return False
+        return min(projected_distances) < min(current_distances)
+
+    @classmethod
     def _grounded_goal_specs(
             cls, snapshot, candidates, expansion_city_target,
-            survival_threat_radius):
+            survival_threat_radius, score_alignment=False,
+            exploration_information_enabled=True):
         """Derive live goal truth from authoritative state and legal candidates.
 
         Candidate presence is admissible grounding here because candidates are
@@ -279,12 +356,32 @@ class ImpactPressureRanker(object):
         defense_deficit = "production_defense" in categories
         survival_truth = (
             0.0 if relevant_threats or defense_deficit else 1.0)
-        exploration_actionable = any(
-            cls.goal_for_category(category) == "exploration"
-            for category in categories)
+        exploration_categories = tuple(
+            candidate for candidate in candidates
+            if cls.goal_for_category(candidate.category) == "exploration")
+        exploration_actionable = bool(exploration_categories)
+        known_hut_actionable = any(
+            candidate.category == "hut_exploration"
+            for candidate in exploration_categories)
+        if (score_alignment and exploration_actionable
+                and not exploration_information_enabled
+                and not known_hut_actionable):
+            exploration_truth = 1.0
+            exploration_grounding = (
+                "authoritative:no-information-gain-and-no-known-hut")
+        else:
+            exploration_truth = 0.0 if exploration_actionable else 1.0
+            exploration_grounding = (
+                "authoritative:grounded-known-hut-action"
+                if known_hut_actionable else
+                "authoritative:grounded-exploration-action"
+                if exploration_actionable else
+                "authoritative:no-grounded-exploration-action")
         score_actionable = any(
-            cls.goal_for_category(category) == "score"
-            for category in categories)
+            (cls._guaranteed_horizon_score(candidate) > 0.0
+             if score_alignment else
+             cls.goal_for_category(candidate.category) == "score")
+            for candidate in candidates)
         return {
             "survival": (
                 survival_truth, 1.50, True,
@@ -299,20 +396,116 @@ class ImpactPressureRanker(object):
                 "authoritative:city-count-over-target"),
             "score": (
                 0.0 if score_actionable else 1.0, 1.00, False,
-                ("authoritative:grounded-score-action"
+                ("authoritative:grounded-guaranteed-horizon-score-action"
+                 if score_alignment and score_actionable
+                 else "authoritative:grounded-score-action"
                  if score_actionable
                  else "authoritative:no-grounded-score-action")),
             "exploration": (
-                0.0 if exploration_actionable else 1.0, 0.35, False,
-                ("authoritative:grounded-exploration-action"
-                 if exploration_actionable
-                 else "authoritative:no-grounded-exploration-action")),
+                exploration_truth, 0.35, False, exploration_grounding),
         }
+
+    @staticmethod
+    def _guaranteed_horizon_score(candidate):
+        """Return only score progress grounded to complete by the horizon.
+
+        Projected growth, science, or settlement value remains useful to the
+        canonical Impact utility, but it is not strong enough to authorize PF
+        to override that utility.  The pressure guard accepts only an immediate
+        score-bearing completion or a ruleset-grounded guaranteed unit score.
+        """
+        projection = candidate.projection or {}
+        if candidate.category == "city_founding":
+            return 1.0
+        if candidate.category == "population_recovery":
+            return max(
+                0.0, float(projection.get("recovered_population", 0.0)))
+        guaranteed = max(
+            0.0,
+            float(projection.get(
+                "guaranteed_unit_score_points", 0.0)),
+            float(projection.get(
+                "batch_guaranteed_unit_score_points", 0.0)))
+        if not guaranteed:
+            return 0.0
+        remaining = projection.get("remaining_turns")
+        eta = projection.get(
+            "repeat_completion_eta_turns",
+            projection.get("completion_eta_turns"))
+        if (remaining is not None and eta is not None
+                and float(eta) > float(remaining)):
+            return 0.0
+        if projection.get("repurpose_target_completes_by_horizon") is False:
+            return 0.0
+        return guaranteed
+
+    @staticmethod
+    def _deadline_fit(candidate):
+        """Reject only projections explicitly completing after the horizon."""
+        projection = candidate.projection or {}
+        remaining = projection.get("remaining_turns")
+        eta = projection.get(
+            "settlement_eta_turns",
+            projection.get(
+                "preexpansion_sequence_settlement_eta_turns",
+                projection.get(
+                    "repeat_completion_eta_turns",
+                    projection.get("completion_eta_turns"))))
+        if projection.get("repurpose_target_completes_by_horizon") is False:
+            return 0.0
+        if (remaining is not None and eta is not None
+                and float(eta) > float(remaining)):
+            return 0.0
+        return 1.0
+
+    @classmethod
+    def _score_aligned_scores(
+            cls, scores, candidate_by_operation, safety_active):
+        """Fail closed on non-safety utility regret without score evidence."""
+        scores = tuple(scores)
+        if safety_active:
+            return scores
+        deadline_candidates = tuple(
+            row for row in candidate_by_operation.items()
+            if cls._deadline_fit(row[1]) > 0.0)
+        if not deadline_candidates:
+            return scores
+        canonical = min(
+            deadline_candidates,
+            key=lambda row: (
+                -float(row[1].utility), str(row[1].category),
+                row[1].action_key, row[0]))
+        canonical_candidate = canonical[1]
+        canonical_score = cls._guaranteed_horizon_score(
+            canonical_candidate)
+        guarded = []
+        for row in scores:
+            candidate = candidate_by_operation[row.operation_id]
+            score_gain = (
+                cls._guaranteed_horizon_score(candidate)
+                > canonical_score)
+            utility_preserved = (
+                float(candidate.utility)
+                >= float(canonical_candidate.utility))
+            deadline_fit = cls._deadline_fit(candidate) > 0.0
+            if (row.admissible and deadline_fit
+                    and not utility_preserved and not score_gain):
+                guarded.append(replace(
+                    row, admissible=False,
+                    reason="score_alignment_guard", priority=0.0))
+            elif row.admissible and not deadline_fit:
+                guarded.append(replace(
+                    row, admissible=False,
+                    reason="score_alignment_deadline", priority=0.0))
+            else:
+                guarded.append(row)
+        return tuple(sorted(guarded, key=lambda row: (
+            not row.admissible, -row.priority, row.operation_id)))
 
     def rank(
             self, snapshot, candidates, expansion_city_target, horizon_turn,
             survival_threat_radius=3, _goal_specs_override=None,
-            diagnostics=None):
+            diagnostics=None, _conservative_safety_replay=False):
         candidates = tuple(candidates)
         if not candidates:
             return (), None
@@ -324,9 +517,14 @@ class ImpactPressureRanker(object):
         goal_specs = (
             self._grounded_goal_specs(
                 snapshot, candidates, expansion_city_target,
-                survival_threat_radius)
+                survival_threat_radius,
+                score_alignment=self.score_alignment,
+                exploration_information_enabled=(
+                    self.exploration_information_enabled))
             if _goal_specs_override is None
             else dict(_goal_specs_override))
+        relevant_threats = self._relevant_visible_threats(
+            snapshot, survival_threat_radius)
         goals = []
         grouped = dict((key, {}) for key in goal_specs)
         candidate_by_operation = {}
@@ -379,6 +577,18 @@ class ImpactPressureRanker(object):
                 for candidate, _ in rows))
             for categories in grouped.values()
             for category, rows in categories.items())
+        category_guaranteed_score = dict(
+            (category, max(
+                self._guaranteed_horizon_score(candidate)
+                for candidate, _ in rows))
+            for categories in grouped.values()
+            for category, rows in categories.items())
+        category_deadline_fit = dict(
+            (category, max(
+                self._deadline_fit(candidate)
+                for candidate, _ in rows))
+            for categories in grouped.values()
+            for category, rows in categories.items())
         goal_maximum_utility = dict(
             (goal_name, max(
                 (category_maximum_utility[category]
@@ -390,7 +600,19 @@ class ImpactPressureRanker(object):
         # is active and the current legal set contains a grounded survival
         # operation. Otherwise rejecting all non-safety work would leave no
         # actionable route for the cycle.
-        safety_actionable = bool(grouped["survival"])
+        defense_deficit = any(
+            candidate.category == "production_defense"
+            for candidate in candidates)
+        aligned_safety_candidates = tuple(
+            candidate for candidate in candidates
+            if self.goal_for_category(candidate.category) == "survival"
+            and (_conservative_safety_replay
+                 or self._safety_candidate_relevant(
+                     snapshot, candidate, relevant_threats,
+                     defense_deficit, survival_threat_radius)))
+        safety_actionable = bool(
+            aligned_safety_candidates
+            if self.score_alignment else grouped["survival"])
         safety_active = (
             float(goal_specs["survival"][0]) < 1.0 and safety_actionable)
         opportunity_ceiling = (
@@ -499,18 +721,36 @@ class ImpactPressureRanker(object):
             # The Impact planner's utility is a grounded cross-category action
             # value. Its loss relative to the best currently actionable goal
             # is therefore an opportunity cost, not another truth or pressure
-            # input. All operations for one goal share the cost so category
-            # cardinality and within-goal conductance learning remain intact.
+            # input. Legacy semantics share the cost across one goal. The
+            # score-aligned policy uses the best value in each category, which
+            # preserves category cardinality invariance while preventing a
+            # weak same-goal category from borrowing a stronger one's value.
             opportunity_cost = max(
                 0.0,
-                opportunity_ceiling - goal_maximum_utility[goal_name])
+                opportunity_ceiling - (
+                    category_maximum_utility[candidate.category]
+                    if self.score_alignment else
+                    goal_maximum_utility[goal_name]))
             operations.append(Operation(
                 operation_id, operation_atom_by_candidate[id(candidate)],
                 "act", CostVector(
                     compute=1.0, opportunity=opportunity_cost),
                 causal_kind="procedural",
+                deadline_fit=(
+                    category_deadline_fit[candidate.category]
+                    if self.score_alignment else 1.0),
+                future_option_value=(
+                    category_guaranteed_score[candidate.category]
+                    if self.score_alignment else 0.0),
                 safety_compatible=(
-                    not safety_active or goal_name == "survival"),
+                    not safety_active or (
+                        goal_name == "survival"
+                        and (not self.score_alignment
+                             or _conservative_safety_replay
+                             or self._safety_candidate_relevant(
+                                 snapshot, candidate, relevant_threats,
+                                 defense_deficit,
+                                 survival_threat_radius)))),
                 payload=candidate.to_dict()))
         if diagnostics is not None:
             diagnostics["pressure_operation_latency_ms"] = (
@@ -518,6 +758,22 @@ class ImpactPressureRanker(object):
                 + (time.perf_counter() - operation_started) * 1000.0)
         schedule_started = time.perf_counter()
         scores = self.scheduler.score_all(operations, result)
+        if self.score_alignment:
+            scores = self._score_aligned_scores(
+                scores, candidate_by_operation, safety_active)
+            if diagnostics is not None:
+                diagnostics["pressure_score_alignment_guard_rejections"] = (
+                    diagnostics.get(
+                        "pressure_score_alignment_guard_rejections", 0)
+                    + sum(
+                        row.reason == "score_alignment_guard"
+                        for row in scores))
+                diagnostics["pressure_score_alignment_deadline_rejections"] = (
+                    diagnostics.get(
+                        "pressure_score_alignment_deadline_rejections", 0)
+                    + sum(
+                        row.reason == "score_alignment_deadline"
+                        for row in scores))
         rank = dict((row.operation_id, index) for index, row in enumerate(scores)
                     if row.admissible)
         ordered = tuple(sorted(candidates, key=lambda candidate: (
