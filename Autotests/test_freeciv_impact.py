@@ -908,8 +908,13 @@ def test_plan_diagnostics_attribute_candidate_pressure_and_materialization():
     assert decision.candidate.category == "city_defense"
     assert diagnostics["calls"] == 1
     assert diagnostics["candidate_count"] == 1
+    assert diagnostics["legal_action_count"] == 2
     assert diagnostics["pressure_calls"] == 1
     assert diagnostics["candidate_latency_ms"] >= 0.0
+    assert diagnostics["catalog_latency_ms"] >= 0.0
+    assert diagnostics["candidate_setup_latency_ms"] >= 0.0
+    assert diagnostics["candidate_other_latency_ms"] >= 0.0
+    assert diagnostics["candidate_finalize_latency_ms"] >= 0.0
     assert diagnostics["pressure_latency_ms"] >= 0.0
     assert diagnostics["materialization_latency_ms"] >= 0.0
 
@@ -1747,6 +1752,53 @@ def test_unit_score_batch_is_memoized_per_snapshot_and_legal_set():
     assert first == second
     assert first_call_count > 0
     assert len(calls) == first_call_count
+
+
+def test_candidate_enumeration_reuses_snapshot_production_context():
+    city = _city(production_kind=3, production_value=18,
+                 surplus=(1, 5, 2, 1, 0, 3))
+    city["buildability"]["options"].extend([
+        {"type": "improvement", "id": 18, "name": "Marketplace"},
+        {"type": "unit", "id": 9, "name": "Musketeers"},
+        {"type": "unit", "id": 11, "name": "Alpine Troops"},
+    ])
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops")],
+        [_production(10, "Musketeers", 6, 9),
+         _production(10, "Alpine Troops", 6, 11),
+         {"action_type": "end_turn", "is_valid": True}],
+        cities=[city], turn=1)
+    planner = GroundedImpactPlanner(
+        {"expansion_city_target": 1},
+        ruleset_ir=_ruleset_ir((
+            ("Alpine Troops", "unit", 60),
+            ("Musketeers", "unit", 30),
+            ("Marketplace", "improvement", 40),
+        ), founders=(), workers=()))
+    calls = {}
+    for name in (
+            "_current_production_name", "_founders",
+            "_queued_founder_count", "_unit_score_batch_members",
+            "_combat_units"):
+        original = getattr(planner, name)
+
+        def counted(*args, _name=name, _original=original, **kwargs):
+            calls[_name] = calls.get(_name, 0) + 1
+            return _original(*args, **kwargs)
+
+        setattr(planner, name, counted)
+
+    planner.candidates(snapshot)
+
+    assert calls == {
+        "_combat_units": 1,
+        # One direct lookup plus the independent queued-founder and unit-batch
+        # scans; neither lookup repeats per production alternative.
+        "_current_production_name": 3,
+        "_founders": 1,
+        "_queued_founder_count": 1,
+        "_unit_score_batch_members": 1,
+    }
 
 
 def test_horizon_policy_retires_redundant_founder_production():

@@ -1847,7 +1847,14 @@ class GroundedImpactPlanner(object):
 
     def _production_candidate(
             self, snapshot, action, founder_types, actions,
-            action_key=None, action_keys=None):
+            action_key=None, action_keys=None, shared_context=None):
+        def shared(key, factory):
+            if shared_context is None:
+                return factory()
+            if key not in shared_context:
+                shared_context[key] = factory()
+            return shared_context[key]
+
         city = snapshot.city(action.get("city_id"))
         if city is None or not city.buildability_available:
             return None
@@ -1856,7 +1863,9 @@ class GroundedImpactPlanner(object):
         name = _target_name(action)
         normalized = _normalized_type(name)
         city_count = len(snapshot.cities)
-        current_name = self._current_production_name(city)
+        current_name = shared(
+            ("current_production_name", city.city_id),
+            lambda: self._current_production_name(city))
         current_normalized = _normalized_type(current_name)
         remaining_turns = self.horizon_turn - snapshot.turn
         if self.production_strategy == "static_priority":
@@ -1873,16 +1882,22 @@ class GroundedImpactPlanner(object):
                 current_normalized, legacy_founders, city_count,
                 legacy_needs_founder,
                 remaining_turns)
-        founders = self._founders(snapshot, founder_types)
-        queued_founders = self._queued_founder_count(
-            snapshot, founder_types, remaining_turns)
+        founders = shared(
+            "founders",
+            lambda: self._founders(snapshot, founder_types))
+        queued_founders = shared(
+            "queued_founders",
+            lambda: self._queued_founder_count(
+                snapshot, founder_types, remaining_turns))
         expansion_capacity = city_count + len(founders) + queued_founders
         founder_deficit = max(0, self.expansion_city_target - expansion_capacity)
         needs_founder = founder_deficit > 0
-        current_projection = (self._production_projection(
-            city, current_name, remaining_turns, snapshot=snapshot,
-            founder_types=founder_types)
-                              if current_name else None)
+        current_projection = shared(
+            ("current_projection", city.city_id),
+            lambda: (self._production_projection(
+                city, current_name, remaining_turns, snapshot=snapshot,
+                founder_types=founder_types)
+                     if current_name else None))
         current_queue_counted = int(
             current_normalized in founder_types
             and current_projection is not None
@@ -1960,8 +1975,11 @@ class GroundedImpactPlanner(object):
                 "capacity remains at target without its current queue",
                 projection)
 
-        unit_score_batch = self._unit_score_batch_members(
-            snapshot, actions, founder_types, action_keys=action_keys).get(
+        unit_score_batch = shared(
+            "unit_score_batch",
+            lambda: self._unit_score_batch_members(
+                snapshot, actions, founder_types,
+                action_keys=action_keys)).get(
                 action_key if action_key is not None else
                 canonical_json_bytes(action).decode("utf-8"))
         if needs_founder and current_normalized in founder_types:
@@ -2000,7 +2018,9 @@ class GroundedImpactPlanner(object):
         if not self._projection_can_affect_horizon(projection):
             return None
 
-        defenders = self._combat_units(snapshot, founder_types)
+        defenders = shared(
+            "combat_units",
+            lambda: self._combat_units(snapshot, founder_types))
         defense_deficit = len(defenders) < max(1, city_count)
         if defense_deficit and current_name in DEFENDER_PRIORITY:
             return None
@@ -2299,11 +2319,21 @@ class GroundedImpactPlanner(object):
             return False
         return any((row.x, row.y) == (x, y) for row in snapshot.visible_enemy_units)
 
-    def candidates(self, snapshot, excluded=(), excluded_scopes=()):
+    def candidates(
+            self, snapshot, excluded=(), excluded_scopes=(),
+            diagnostics=None):
         excluded = set(excluded)
         excluded_scopes = set(excluded_scopes)
         result = []
+        catalog_started = time.perf_counter()
         actions = self._actions(snapshot)
+        if diagnostics is not None:
+            diagnostics["catalog_latency_ms"] = (
+                diagnostics.get("catalog_latency_ms", 0.0)
+                + (time.perf_counter() - catalog_started) * 1000.0)
+            diagnostics["legal_action_count"] = (
+                diagnostics.get("legal_action_count", 0) + len(actions))
+        setup_started = time.perf_counter()
         action_rows = tuple(zip(actions, snapshot.legal_action_json))
         available_action_rows = tuple(
             (action, action_key) for action, action_key in action_rows
@@ -2313,7 +2343,14 @@ class GroundedImpactPlanner(object):
         available_action_keys = frozenset(
             action_key for _, action_key in available_action_rows)
         founder_types = self._founder_types(snapshot, actions)
+        production_context = {}
+        if diagnostics is not None:
+            diagnostics["candidate_setup_latency_ms"] = (
+                diagnostics.get("candidate_setup_latency_ms", 0.0)
+                + (time.perf_counter() - setup_started) * 1000.0)
         for action, key in action_rows:
+            action_started = (
+                time.perf_counter() if diagnostics is not None else None)
             if key in excluded:
                 continue
             action_type = str(action.get("action_type", ""))
@@ -2341,7 +2378,8 @@ class GroundedImpactPlanner(object):
             elif action_type == "city_production":
                 candidate = self._production_candidate(
                     snapshot, action, founder_types, available_actions,
-                    action_key=key, action_keys=available_action_keys)
+                    action_key=key, action_keys=available_action_keys,
+                    shared_context=production_context)
             elif action_type == "unit_move":
                 candidate = self._move_candidate(snapshot, action, founder_types)
             elif action_type == "unit_fortify":
@@ -2355,14 +2393,31 @@ class GroundedImpactPlanner(object):
             if candidate is not None and candidate.scope not in excluded_scopes:
                 if not self._no_effect_suppressed(snapshot, candidate):
                     result.append(candidate)
-        return tuple(sorted(result, key=lambda row: (
+            if diagnostics is not None:
+                latency_ms = (
+                    time.perf_counter() - action_started) * 1000.0
+                if action_type == "city_production":
+                    name = "candidate_production_latency_ms"
+                elif action_type == "unit_move":
+                    name = "candidate_movement_latency_ms"
+                else:
+                    name = "candidate_other_latency_ms"
+                diagnostics[name] = diagnostics.get(name, 0.0) + latency_ms
+        finalize_started = time.perf_counter()
+        ordered = tuple(sorted(result, key=lambda row: (
             -row.utility, row.category, row.action_key)))
+        if diagnostics is not None:
+            diagnostics["candidate_finalize_latency_ms"] = (
+                diagnostics.get("candidate_finalize_latency_ms", 0.0)
+                + (time.perf_counter() - finalize_started) * 1000.0)
+        return ordered
 
     def plan(self, snapshot, excluded=(), excluded_scopes=(),
              diagnostics=None):
         candidate_started = time.perf_counter()
         rows = self.candidates(
-            snapshot, excluded=excluded, excluded_scopes=excluded_scopes)
+            snapshot, excluded=excluded, excluded_scopes=excluded_scopes,
+            diagnostics=diagnostics)
         candidate_latency_ms = (
             time.perf_counter() - candidate_started) * 1000.0
         if diagnostics is not None:

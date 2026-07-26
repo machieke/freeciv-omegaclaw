@@ -2281,6 +2281,32 @@ async def _play(run_dir, manifest, context):
         ("impact_planning_candidate_count",
          float(impact_planning_diagnostics.get("candidate_count", 0))
          / max(1, impact_planning_calls)),
+        ("impact_planning_legal_action_count",
+         float(impact_planning_diagnostics.get("legal_action_count", 0))
+         / max(1, impact_planning_calls)),
+        ("impact_planning_catalog_latency_ms",
+         impact_planning_diagnostics.get("catalog_latency_ms", 0.0)
+         / max(1, impact_planning_calls)),
+        ("impact_planning_candidate_setup_latency_ms",
+         impact_planning_diagnostics.get(
+             "candidate_setup_latency_ms", 0.0)
+         / max(1, impact_planning_calls)),
+        ("impact_planning_candidate_production_latency_ms",
+         impact_planning_diagnostics.get(
+             "candidate_production_latency_ms", 0.0)
+         / max(1, impact_planning_calls)),
+        ("impact_planning_candidate_movement_latency_ms",
+         impact_planning_diagnostics.get(
+             "candidate_movement_latency_ms", 0.0)
+         / max(1, impact_planning_calls)),
+        ("impact_planning_candidate_other_latency_ms",
+         impact_planning_diagnostics.get(
+             "candidate_other_latency_ms", 0.0)
+         / max(1, impact_planning_calls)),
+        ("impact_planning_candidate_finalize_latency_ms",
+         impact_planning_diagnostics.get(
+             "candidate_finalize_latency_ms", 0.0)
+         / max(1, impact_planning_calls)),
         ("turn_end_submit_latency_ms",
          sum(turn_end_submit_latencies)
          / max(1, len(turn_end_submit_latencies))),
