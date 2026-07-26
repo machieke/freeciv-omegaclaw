@@ -1,6 +1,6 @@
 # PF-PLN score-alignment offline acceptance
 
-Status: implementation and diagnostic acceptance passed; fresh paired pilot pending
+Status: implementation acceptance passed; fresh v1 pilot completed and rejected
 
 ## Goal
 
@@ -146,3 +146,13 @@ PYTHONPATH=src:benchmarks python3 scripts/freeciv/run_impact_evaluation.py \
 Only a separately predeclared, clean-source confirmatory cohort may support a
 score or lead-rate superiority claim after this pilot passes its correctness
 and safety gates.
+
+## Completed pilot result
+
+The 40-pair gate subsequently completed all 80 current arms at commit
+`c2226c8`. Correctness, source-freeze, replay, and safety gates passed, but
+score alignment reduced mean score by 0.70 points with interval
+[-1.45, -0.15] and exact paired sign-flip p=0.02246. The v1 mechanism is
+rejected and must not advance to confirmation. Full outcome and root-cause
+evidence are in
+[`pf-pressure-score-alignment-pilot-v1.md`](pf-pressure-score-alignment-pilot-v1.md).

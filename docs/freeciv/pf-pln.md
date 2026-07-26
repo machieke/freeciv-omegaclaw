@@ -474,6 +474,17 @@ The implementation, replay limits, smoke evidence, and clean 40-pair
 `pressure_score_alignment_pilot_v1` gate are recorded in
 [`evidence/pf-pressure-score-alignment-offline-acceptance.md`](evidence/pf-pressure-score-alignment-offline-acceptance.md).
 
+The fresh 40-pair score-alignment pilot then rejected that mechanism. Mean
+score changed by -0.70 with interval [-1.45, -0.15] and exact paired sign-flip
+p=0.02246. All correctness and safety gates passed, so the failure is
+behavioral: strict ordering by uncalibrated heuristic utility suppressed
+useful pressure-guided movement and concentrated choices into tactical
+movement. The first `exploration_move -> tactical_move` divergence occurred in
+three pairs and all three lost score, totaling -17 points. The mechanism must
+not advance to confirmation. Full evidence and the required replacement
+constraints are in
+[`evidence/pf-pressure-score-alignment-pilot-v1.md`](evidence/pf-pressure-score-alignment-pilot-v1.md).
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` and `pressure_score_alignment_enabled` default to `false`
 unless the runtime profile enables them. This preserves unit-level policy

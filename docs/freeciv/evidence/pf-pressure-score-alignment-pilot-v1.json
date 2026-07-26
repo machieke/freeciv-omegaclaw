@@ -1,0 +1,107 @@
+{
+  "artifacts": {
+    "aggregate": "artifacts/freeciv/pf-pressure-score-alignment-pilot-v1/impact-aggregate.json",
+    "exact_replay_artifact_hash": "ea9ee6a6462ca7cd2f87224cc26f9b5ef3fe8221b024a951581c4a58ba0b228c",
+    "exact_replay_source_set_hash": "7bea34f202a1e2231ada8ad0eb591a9c911fcd8d02f709105035800b5482ae08"
+  },
+  "claim_status": "pilot_ineligible_mechanism_rejected",
+  "cohort": {
+    "active_infrastructure_failures": 0,
+    "complete_pairs": 40,
+    "current_completed_arms": 80,
+    "historical_infrastructure_failures": 1,
+    "name": "pressure_score_alignment_pilot_v1",
+    "planned_pairs": 40
+  },
+  "conductance_feedback": {
+    "credit_kind_counts": {
+      "direct_goal_relief": 381,
+      "downstream_goal_relief": 338,
+      "effect_without_goal_relief": 1892,
+      "no_progress": 62
+    },
+    "total_updates": 2673
+  },
+  "decision_replay": {
+    "changed_decisions": 74,
+    "decision_change_rate": 0.03165098374679213,
+    "exact_replay_files": 40,
+    "integrity_failures": 0,
+    "sources_unchanged": true,
+    "total_decisions": 2338
+  },
+  "diagnostics": {
+    "deadline_rejection_decisions": 7,
+    "deadline_rejection_rows": 31,
+    "first_divergence_exploration_to_tactical_pairs": {
+      "count": 3,
+      "score_deltas": [-12.0, -3.0, -2.0],
+      "total_score_delta": -17.0
+    },
+    "guard_rejection_decisions": 1447,
+    "guard_rejection_rows": 6853,
+    "largest_changed_category_transitions": [
+      ["exploration_move", "tactical_move", 22],
+      ["city_defense", "tactical_move", 14],
+      ["expansion_move", "tactical_move", 8],
+      ["city_founding", "tactical_move", 6],
+      ["hut_exploration", "production_defense", 4]
+    ],
+    "paired_score_signs": {
+      "negative": 9,
+      "positive": 2,
+      "ties": 29
+    },
+    "positions_explored_delta": {
+      "estimate": -1.675,
+      "lower": -3.6,
+      "upper": -0.075
+    }
+  },
+  "outcomes": {
+    "lead_rate": {
+      "baseline": 0.125,
+      "difference": 0.025,
+      "exact_mcnemar_p": 1.0,
+      "lower": 0.0,
+      "treatment": 0.15,
+      "upper": 0.075
+    },
+    "score": {
+      "baseline_mean": 117.35,
+      "difference": -0.7,
+      "exact_sign_flip_p": 0.0224609375,
+      "lower": -1.45,
+      "treatment_mean": 116.65,
+      "upper": -0.15
+    },
+    "score_components": {
+      "citizen_delta": -0.4,
+      "residual_delta": -0.3,
+      "technology_delta": 0.0
+    },
+    "score_margin": {
+      "difference": -2.5,
+      "lower": -5.175,
+      "upper": -0.625
+    }
+  },
+  "safety": {
+    "engine_rejected_action_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "initial_state_fidelity_passed": true,
+    "overall_passed": true,
+    "safety_active_decisions": 146,
+    "safety_selection_violations": 0,
+    "schema_valid_files": 80
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "c2226c866dcd7bb04fb0f20d13df0e5007079b9d",
+    "configuration_hash": "84cf60f6d5b305b6df3ea03fc3067e22829a239bf9e00b8345ae7d3f51490704",
+    "implementation_sha256": "de3666cbb22e0ec6fc3fe98f3ff1130e406ada512472fcb1a4c49a089a577f7e",
+    "source_freeze_passed": true
+  }
+}
