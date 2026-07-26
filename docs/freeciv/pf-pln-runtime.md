@@ -31,6 +31,9 @@ The engine loop does apply the narrower
 generated constrained catalog contains exactly one selectable goal, the host
 constructs that proposal, sends it through the same strict proposal parser and
 symbol-catalog gates, emits `goal_selection`, and does not invoke the model.
+An active research target is that single necessary goal while the exact proxy
+legal set advertises no new research choice; reselecting between unrelated
+technologies cannot produce an engine action on such a turn.
 Two or more candidates still use `llm_proposal`. This necessity optimization
 does not inspect pressure, admit an expansion request, or activate the Phase 7
 gateway, so Phase 7 remains correctly declared `component-only`.

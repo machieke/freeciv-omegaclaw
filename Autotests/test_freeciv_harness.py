@@ -37,7 +37,8 @@ from freeciv.harness.engine_live import (  # noqa: E402
     _plain_state_summary, _refresh_accepted_impact_action,
     _decision_state_fingerprint, _decision_state_ready, _global_state_ready,
     _global_state, _player_eliminated, _release_configuration_active, _state,
-    _validate_compact_goal_proposal, _websocket_compression)
+    _selection_target_rules, _validate_compact_goal_proposal,
+    _websocket_compression)
 from freeciv.harness import engine_live  # noqa: E402
 from freeciv_agent.events.schema import canonical_json_bytes, structural_hash  # noqa: E402
 from freeciv_agent.events.validator import validate_file  # noqa: E402
@@ -559,6 +560,19 @@ def test_canonical_singleton_selection_avoids_model_and_keeps_catalog_gates(
         engine_live._canonical_singleton_proposal(
             {"model": "qwen3-coder-next:latest"}, _SelectionTestSummary(),
             catalog, ())
+
+
+def test_active_research_is_the_only_selection_target_without_new_choices():
+    active = _selection_target(1)
+    other = _selection_target(2)
+    for rule in (active, other):
+        rule.target_kind = "tech"
+        rule.disabled = False
+    ir = SimpleNamespace(rules=(active, other))
+    snapshot = SimpleNamespace(research=SimpleNamespace(
+        target_name="Tech1", known_techs=()))
+
+    assert _selection_target_rules(ir, snapshot, ()) == (active,)
 
 
 def test_multiple_canonical_candidates_still_require_model_selection(monkeypatch):

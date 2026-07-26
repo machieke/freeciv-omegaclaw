@@ -794,6 +794,20 @@ def _target_rules(ir, known, count=2, available_names=()):
     return (candidates[0], candidates[-1])
 
 
+def _selection_target_rules(ir, snapshot, available_names):
+    """Return the only relevant active goal when no new choice is executable."""
+    if not available_names and snapshot.research.target_name:
+        active = next((
+            rule for rule in ir.rules
+            if (rule.target_kind == "tech" and not rule.disabled
+                and rule.rule_name == snapshot.research.target_name)), None)
+        if active is not None:
+            return (active,)
+    return _target_rules(
+        ir, snapshot.research.known_techs,
+        available_names=available_names)
+
+
 def _live_tech_costs(ir, raw):
     costs = {rule.rule_name: _tech_cost(rule) for rule in ir.rules
              if rule.target_kind == "tech" and not rule.disabled}
@@ -1156,8 +1170,8 @@ def _cognitive_turn(manifest, context, store, player_id, raw, snapshot,
     targets = ()
     target = None
     if _needs_cognitive_stack(context):
-        targets = _target_rules(
-            ir, snapshot.research.known_techs, available_names=available_research)
+        targets = _selection_target_rules(
+            ir, snapshot, available_research)
         target = targets[0]
     crisp = (CrispStateView(
         snapshot.snapshot_id, known_techs=snapshot.research.known_techs,

@@ -98,7 +98,9 @@ requires a bounded JSON proposal rather than a reasoning trace; the `think: fals
 setting is versioned in both harness profiles and retained in manifests. The
 `selection_call_policy: canonical-singleton-bypass-v1` setting also fails
 closed: a constrained turn skips model selection only when the canonical
-catalog has exactly one candidate. The
+catalog has exactly one candidate. An active research target is treated as
+that single candidate only while the exact legal-action catalog contains no
+new research selection. The
 `readiness_policy: chat-once-expiry-aware-resident-v2` setting performs one
 complete chat validation per controller/model tuple. A later arm can reuse the
 locked exact-model residency check only when `expires_at` is valid and at least

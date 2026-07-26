@@ -33,8 +33,10 @@ For model-selection efficiency, inspect the final `metric_sample` events named
 `model_selection_call_rate` and `model_selection_call_avoided_rate`, and count
 per-turn `goal_selection` events. A `goal_selection` event is valid only for
 the versioned canonical-singleton policy; multi-candidate decisions retain
-`llm_proposal`. Readiness calls are operational warm-up and are not counted as
-goal-selection calls.
+`llm_proposal`. While research is active and no new research action is
+advertised, the active target is the single canonical continuation and also
+uses `goal_selection`. Readiness calls are operational warm-up and are not
+counted as goal-selection calls.
 
 Each completed engine arm also records `model_readiness_latency_ms`,
 `model_readiness_method`, `model_readiness_reused`, and
