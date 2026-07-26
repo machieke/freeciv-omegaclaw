@@ -1,6 +1,7 @@
 # PF-PLN score-alignment v2 offline acceptance
 
-Status: implementation and retrospective acceptance passed; fresh pilot pending
+Status: implementation, retrospective acceptance, and fresh pilot complete;
+correctness passed, score improvement not supported
 
 ## Mechanism
 
@@ -107,3 +108,19 @@ PYTHONPATH=src:benchmarks python3 scripts/freeciv/run_impact_evaluation.py \
   --workers 3 \
   --server-ports 6001,6002,6003
 ```
+
+## Fresh result
+
+The fresh pilot completed 40/40 pairs and 80/80 current arms on clean commit
+`9cb2115`, with matched initial states, balanced order, all safety gates
+passing, all 117,019 events valid, and exact replay of all 3,143 treatment
+decisions.
+
+Mean score changed from 117.400 to 117.375. The paired delta was -0.025 with
+interval [-0.275, 0.250] and exact sign-flip p=1.0. Lead rate changed by
+-5 percentage points with interval [-12.5, 0.0] and exact McNemar p=0.5.
+The result corrects the v1 score loss but does not support a score or win-rate
+improvement. It must not advance to confirmation under this mechanism.
+
+Full evidence and root-cause diagnostics are in
+[`pf-pressure-score-alignment-pilot-v2.md`](pf-pressure-score-alignment-pilot-v2.md).

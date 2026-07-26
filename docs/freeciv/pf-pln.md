@@ -497,6 +497,15 @@ evidence. The implementation boundary and fresh seed-disjoint
 `pressure_score_alignment_pilot_v2` gate are recorded in
 [`evidence/pf-score-alignment-v2-offline-acceptance.md`](evidence/pf-score-alignment-v2-offline-acceptance.md).
 
+The fresh v2 pilot completed 40/40 seed-disjoint pairs and all correctness and
+safety gates. It removed the v1 harm but did not improve score: the paired
+delta was -0.025 with interval [-0.275, 0.250] and exact p=1.0. Lead rate
+changed by -5 percentage points with interval [-12.5, 0.0]. Exact replay
+covered all 3,143 treatment decisions with zero integrity failures. V2 is a
+safe regularizer, not a supported score-improvement mechanism, and must not
+advance to confirmation unchanged. Full evidence is in
+[`evidence/pf-pressure-score-alignment-pilot-v2.md`](evidence/pf-pressure-score-alignment-pilot-v2.md).
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` and `pressure_score_alignment_enabled` default to `false`
 unless the runtime profile enables them. This preserves unit-level policy
