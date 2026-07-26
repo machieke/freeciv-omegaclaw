@@ -513,6 +513,14 @@ the mechanism is a correctness regularizer rather than a supported score or
 win-rate improvement. See
 [`evidence/pf-expansion-deadline-recovery-diagnostic-v1.md`](evidence/pf-expansion-deadline-recovery-diagnostic-v1.md).
 
+The next packet-boundary correction rejects Found City on a
+`PACKET_TILE_INFO.owner` other than the acting player or unclaimed sentinel
+`255`. The `civ2civ3` action enablers permit unclaimed and domestic-claimed
+sites but not foreign-claimed ones. Omitting that check caused accepted
+requests with no city effect and repeated founder search inside foreign
+borders. Offline acceptance and the selected mechanism gate are in
+[`evidence/pf-foreign-claim-founding-offline-acceptance.md`](evidence/pf-foreign-claim-founding-offline-acceptance.md).
+
 The development run at
 `artifacts/freeciv/impact-population-recovery-dev-3-20260720` validates an
 immediate score-preservation path for repeated Settler output after the three-city

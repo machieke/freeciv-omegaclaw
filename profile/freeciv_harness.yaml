@@ -14,7 +14,7 @@ opponent:
 machine_profile: codex-dev-linux
 engine:
   freeciv_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018
-  proxy_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:72813abbb7c45be3cc357592dd0bba33ca3537178cd7c34482f5c5033c5e5dd5
+  proxy_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:4b63fa9890e129beeff4ffa7d49bf92fa263ab82499eca66570e3330369112be
 rulebase:
   compiler_version: freeciv-ruleset-compiler/1.2
   source_sha256: 3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e
@@ -730,6 +730,39 @@ paired_impact:
         count: 40
         minimum: 3800000
         maximum: 3899999
+    foreign_claim_founding_mechanism_v1:
+      purpose: diagnostic
+      claim_eligible: false
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 1
+      controller_workers: 1
+      reused_seeds_from:
+        - expansion_target_confirmatory_v1
+      reused_seed_reason: >-
+        Selected after confirmation because treatment retained two founders,
+        made nine founding attempts, and completed only one settlement; this
+        replay is mechanism-only and cannot update any statistical estimate.
+      isolated_policy_keys:
+        - expansion_city_target
+      arms:
+        baseline:
+          expansion_city_target: 3
+          expansion_minimum_settlement_runway_turns: 15
+          expansion_settlement_deadline_recovery_enabled: true
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+        treatment:
+          expansion_city_target: 4
+          expansion_minimum_settlement_runway_turns: 15
+          expansion_settlement_deadline_recovery_enabled: true
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+      seeds:
+        - 3674286
   retired_cohorts:
     confirmatory_score_horizon_60_v4:
       retired_reason: terminal_player_elimination_misclassified_as_infrastructure_timeout

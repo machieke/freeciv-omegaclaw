@@ -108,8 +108,11 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "expansion_target_pilot_v1": 40,
             "expansion_target_confirmatory_v1": 100,
             "expansion_deadline_recovery_diagnostic_v1": 40,
+            "foreign_claim_founding_mechanism_v1": 1,
         }
-    seed_sets = [set(row["seeds"]) for row in paired["cohorts"].values()]
+    seed_sets = [
+        set(row["seeds"]) for row in paired["cohorts"].values()
+        if not row.get("reused_seeds_from")]
     assert all(not left & right for index, left in enumerate(seed_sets)
                for right in seed_sets[index + 1:])
     assert paired["outcomes"]["win_metric"] == "score_lead_turn_n"
@@ -338,6 +341,14 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         assert deadline_recovery["arms"][arm]["expansion_city_target"] == 4
         assert deadline_recovery["arms"][arm][
             "expansion_minimum_settlement_runway_turns"] == 15
+    foreign_claim = paired["cohorts"][
+        "foreign_claim_founding_mechanism_v1"]
+    assert foreign_claim["seeds"] == [3674286]
+    assert foreign_claim["reused_seeds_from"] == [
+        "expansion_target_confirmatory_v1"]
+    assert foreign_claim["claim_eligible"] is False
+    assert foreign_claim["isolated_policy_keys"] == [
+        "expansion_city_target"]
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.2",
         "source_sha256": "3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e",

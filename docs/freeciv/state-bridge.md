@@ -15,7 +15,7 @@ The patch is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. Its SHA-256 is
-`72813abbb7c45be3cc357592dd0bba33ca3537178cd7c34482f5c5033c5e5dd5`.
+`4b63fa9890e129beeff4ffa7d49bf92fa263ab82499eca66570e3330369112be`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 The patch defaults the proxy logger to `INFO` and moves per-action payload,
@@ -145,6 +145,10 @@ bitvector for the founder's current `PACKET_TILE_INFO.terrain`; a matching flag 
 `unit_build_city` from the legal set. This covers non-ocean terrain such as Glacier and
 ruleset-specific land that the earlier terrain-class-only check missed. Unknown tile or
 terrain packets remain unavailable rather than being guessed to carry the flag.
+The same gate carries the acting player ID and rejects a packet-known tile owner other than
+the actor or the protocol's unclaimed sentinel (`255`). This mirrors the Found City
+enablers' `CityTile Claimed`/non-`Foreign` requirements and prevents accepted-but-ineffective
+founding orders inside foreign borders.
 
 Production-name sanitization accepts the bounded punctuation present in the compiled runtime
 rulesets, including the comma in `Aqueduct, River` and the apostrophe in

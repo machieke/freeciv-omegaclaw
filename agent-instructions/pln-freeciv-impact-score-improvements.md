@@ -1266,3 +1266,22 @@ Every stream and 2,985 exact-replayed treatment decisions passed. Adapter 1.6
 is retained as bounded correctness hardening, not advanced as a score-bearing
 optimization. Full evidence is
 [`../docs/freeciv/evidence/pf-expansion-deadline-recovery-diagnostic-v1.md`](../docs/freeciv/evidence/pf-expansion-deadline-recovery-diagnostic-v1.md).
+
+### Packet-grounded foreign-claim founding
+
+The immutable expansion confirmation left 15 live founders in 10 of 100
+treatment games. Selected seed `3674286` made nine founding attempts,
+completed one settlement, and ended with two cities plus two founders. Its
+accepted-but-ineffective orders exposed a missing Found City action-enabler
+check: the proxy used exact terrain and city spacing but did not reject
+packet-known foreign ownership.
+
+The pinned proxy patch now carries the acting player into the founding gate
+and rejects a tile owner other than that player or unclaimed sentinel `255`.
+Foreign, own, unclaimed, and `NoCities` contract cases pass; the full focused
+proxy contract reports 69 passed, the patch applies cleanly to its pinned
+upstream commit, and 101 harness/state-bridge tests pass. Selected-seed cohort
+`foreign_claim_founding_mechanism_v1` explicitly declares its reuse and is
+frozen for mechanism evidence only. It must report all outcomes and cannot
+revise any population claim. See
+[`../docs/freeciv/evidence/pf-foreign-claim-founding-offline-acceptance.md`](../docs/freeciv/evidence/pf-foreign-claim-founding-offline-acceptance.md).

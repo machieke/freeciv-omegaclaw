@@ -427,7 +427,23 @@ index 02e3d7d..51068e1 100755
          can_build_bitvector = city.get('can_build_improvement')
          if not can_build_bitvector:
              # No bitvector available - fallback to allowing (server hasn't sent build info yet)
-@@ -1005,11 +1024,18 @@ class CivCom(Thread):
+@@ -987,13 +1006,14 @@ class CivCom(Thread):
+         else:
+             return True  # Unknown format, allow
+     
+-    def can_city_be_founded_at(self, tile_index: int) -> tuple:
++    def can_city_be_founded_at(self, tile_index: int, player_id: int) -> tuple:
+         """Check if a city can be founded at the given tile.
+         
+         Checks the citymindist constraint against all known cities.
+         
+         Args:
+             tile_index: The tile index where the city would be founded
++            player_id: The player attempting to found the city
+             
+         Returns:
+             Tuple of (can_found: bool, reason: str or None)
+@@ -1005,11 +1025,21 @@ class CivCom(Thread):
          tile_x = tile_index % xsize
          tile_y = tile_index // xsize
          
@@ -437,6 +453,9 @@ index 02e3d7d..51068e1 100755
 +        # land terrain may carry the NoCities flag as well.
          tile = self.tiles.get(tile_index)
          if tile:
++            owner = tile.get('owner')
++            if owner not in (None, 255, player_id):
++                return (False, f"Tile is claimed by foreign player {owner}")
              terrain_id = tile.get('terrain')
 -            if terrain_id is not None and self.get_terrain_class(terrain_id) == TC_OCEAN:
 +            terrain = self.terrains.get(terrain_id) if terrain_id is not None else None
@@ -2158,6 +2177,16 @@ index 803966c..2494934 100644
                  # Diplomatic state validation: block movement into foreign territory during peace/alliance
                  # Per FreeCiv rules: "Peace prevents moving military units into other's territory"
                  if is_valid and civcom and target_index is not None:
+@@ -1193,7 +1301,8 @@ class StateExtractor:
+ 
+             # Check citymindist constraint
+             if is_valid and civcom and tile_index is not None:
+-                can_found, found_reason = civcom.can_city_be_founded_at(tile_index)
++                can_found, found_reason = civcom.can_city_be_founded_at(
++                    tile_index, player_id)
+                 if not can_found:
+                     is_valid = False
+                     reason = found_reason
 @@ -1222,15 +1330,22 @@ class StateExtractor:
              # Check if unit is in a city
              in_city = False
@@ -2382,7 +2411,7 @@ new file mode 100644
 index 0000000..9fa81a5
 --- /dev/null
 +++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
-@@ -0,0 +1,609 @@
+@@ -0,0 +1,625 @@
 +"""Contract tests for the packet-backed PLN authoritative state format."""
 +
 +import asyncio
@@ -2496,16 +2525,32 @@ index 0000000..9fa81a5
 +    civcom.map_info = {"width": 10, "height": 10}
 +    civcom.citymindist = 3
 +    civcom.player_cities = {}
-+    civcom.tiles = {56: {"terrain": 4}}
++    civcom.tiles = {56: {"terrain": 4, "owner": 255}}
 +    civcom.terrains = {
 +        4: {"tclass": 0, "flags": [1 << 1]},
 +        5: {"tclass": 0, "flags": [0]},
 +    }
 +
-+    assert CivCom.can_city_be_founded_at(civcom, 56) == (
++    assert CivCom.can_city_be_founded_at(civcom, 56, 0) == (
 +        False, "Terrain has NoCities flag")
 +    civcom.tiles[56]["terrain"] = 5
-+    assert CivCom.can_city_be_founded_at(civcom, 56) == (True, None)
++    assert CivCom.can_city_be_founded_at(civcom, 56, 0) == (True, None)
++
++
++def test_city_founding_rejects_packet_known_foreign_claim():
++    civcom = make_civcom()
++    civcom.map_info = {"width": 10, "height": 10}
++    civcom.citymindist = 3
++    civcom.player_cities = {}
++    civcom.tiles = {56: {"terrain": 5, "owner": 1}}
++    civcom.terrains = {5: {"tclass": 0, "flags": [0]}}
++
++    assert CivCom.can_city_be_founded_at(civcom, 56, 0) == (
++        False, "Tile is claimed by foreign player 1")
++    civcom.tiles[56]["owner"] = 0
++    assert CivCom.can_city_be_founded_at(civcom, 56, 0) == (True, None)
++    civcom.tiles[56]["owner"] = 255
++    assert CivCom.can_city_be_founded_at(civcom, 56, 0) == (True, None)
 +
 +
 +def test_known_technology_names_use_exact_invention_array_indices():

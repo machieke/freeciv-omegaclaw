@@ -346,6 +346,7 @@ def _validate_paired_impact(value):
         raise ValueError("paired_impact default_cohort is unknown")
     allowed_endpoints = {outcomes["score_metric"], outcomes["win_metric"]}
     all_seeds = {}
+    reused_seed_sources = {}
     for name, cohort in sorted(cohorts.items()):
         prefix = "paired_impact.cohorts.{}".format(name)
         if not isinstance(cohort, dict):
@@ -377,6 +378,28 @@ def _validate_paired_impact(value):
             raise ValueError("{}.endpoints are invalid".format(prefix))
         seeds = _cohort_seeds(cohort, prefix)
         cohort["seeds"] = seeds
+        reuse_sources = cohort.get("reused_seeds_from", [])
+        if (not isinstance(reuse_sources, list)
+                or len(reuse_sources) != len(set(reuse_sources))
+                or any(not isinstance(source, str) or not source.strip()
+                       for source in reuse_sources)):
+            raise ValueError(
+                "{}.reused_seeds_from must be unique cohort names".format(
+                    prefix))
+        if reuse_sources:
+            if (purpose != "diagnostic" or cohort["claim_eligible"]
+                    or cohort.get("seed_derivation") is not None):
+                raise ValueError(
+                    "{} reused seeds require a literal claim-ineligible "
+                    "diagnostic".format(prefix))
+            reuse_reason = cohort.get("reused_seed_reason")
+            if not isinstance(reuse_reason, str) or not reuse_reason.strip():
+                raise ValueError(
+                    "{}.reused_seed_reason is required".format(prefix))
+        elif "reused_seed_reason" in cohort:
+            raise ValueError(
+                "{}.reused_seed_reason requires reused_seeds_from".format(
+                    prefix))
         planned_pairs = cohort.get("planned_pairs")
         if planned_pairs != len(seeds):
             raise ValueError("{}.planned_pairs must equal its predeclared seed count".format(prefix))
@@ -438,11 +461,26 @@ def _validate_paired_impact(value):
             if len(seeds) < win_pairs:
                 raise ValueError("{} is underpowered for the declared win design".format(prefix))
         all_seeds[name] = set(seeds)
+        reused_seed_sources[name] = set(reuse_sources)
+    for name, sources in reused_seed_sources.items():
+        for source in sources:
+            if source == name or source not in all_seeds:
+                raise ValueError(
+                    "paired impact reused seed source {} for {} is invalid"
+                    .format(source, name))
+        if sources and not all_seeds[name] <= set().union(
+                *(all_seeds[source] for source in sources)):
+            raise ValueError(
+                "paired impact reused seeds for {} are not contained in their "
+                "declared sources".format(name))
     names = sorted(all_seeds)
     for index, left in enumerate(names):
         for right in names[index + 1:]:
             overlap = sorted(all_seeds[left] & all_seeds[right])
-            if overlap:
+            declared_reuse = (
+                right in reused_seed_sources[left]
+                or left in reused_seed_sources[right])
+            if overlap and not declared_reuse:
                 raise ValueError("paired impact cohorts {} and {} overlap at {}".format(
                     left, right, overlap[:5]))
 
