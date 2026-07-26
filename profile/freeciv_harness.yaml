@@ -43,6 +43,7 @@ impact_policy:
   # Default zero preserves prior cohorts. Fresh expansion-target cohorts
   # declare their conservative score-bearing runway explicitly in both arms.
   expansion_minimum_settlement_runway_turns: 0
+  expansion_settlement_deadline_recovery_enabled: true
   foodbox_percent: 100
   unit_build_score_divisor: 10
   refresh_timeout_seconds: 0.3
@@ -698,6 +699,37 @@ paired_impact:
         count: 100
         minimum: 3600000
         maximum: 3799999
+    expansion_deadline_recovery_diagnostic_v1:
+      purpose: diagnostic
+      claim_eligible: false
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 40
+      controller_workers: 3
+      isolated_policy_keys:
+        - expansion_settlement_deadline_recovery_enabled
+      arms:
+        baseline:
+          expansion_city_target: 4
+          expansion_minimum_settlement_runway_turns: 15
+          expansion_settlement_deadline_recovery_enabled: false
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+        treatment:
+          expansion_city_target: 4
+          expansion_minimum_settlement_runway_turns: 15
+          expansion_settlement_deadline_recovery_enabled: true
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-expansion-deadline-recovery-diagnostic-v1
+        count: 40
+        minimum: 3800000
+        maximum: 3899999
   retired_cohorts:
     confirmatory_score_horizon_60_v4:
       retired_reason: terminal_player_elimination_misclassified_as_infrastructure_timeout

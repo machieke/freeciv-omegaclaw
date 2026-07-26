@@ -858,6 +858,7 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
                    {"expansion_minimum_settlement_runway_turns": -1},
                    {"expansion_minimum_settlement_runway_turns": 1.5},
                    {"expansion_minimum_settlement_runway_turns": 101},
+                   {"expansion_settlement_deadline_recovery_enabled": 1},
                    {"foodbox_percent": 0},
                    {"unit_build_score_divisor": 0},
                    {"production_minimum_remaining_turns": 9,
@@ -1529,6 +1530,19 @@ def test_existing_founder_honors_post_settlement_runway_deadline():
     assert recovered.candidate.category == "population_recovery"
     assert recovered.candidate.projection[
         "population_recovery_reason"] == "settlement_runway_exhausted"
+
+    ablation_values = dict(
+        values, expansion_settlement_deadline_recovery_enabled=False)
+    ablation_build = GroundedImpactPlanner(
+        ablation_values, ruleset_ir=ir).plan(_snapshot(
+            [_unit(1, "Settlers", 3, 0)], [build, end_turn], turn=46))
+    assert ablation_build.candidate.category == "city_founding"
+    ablation_move = GroundedImpactPlanner(
+        ablation_values, ruleset_ir=ir).plan(_snapshot(
+            [_unit(1, "Settlers", 5, 0)], move_actions,
+            cities=cities, turn=45))
+    assert ablation_move.candidate.category == "expansion_move"
+    assert ablation_move.candidate.action["target"] == {"x": 6, "y": 0}
 
     # The default zero runway retains historical expansion behavior.
     compatible = GroundedImpactPlanner(

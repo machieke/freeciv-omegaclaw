@@ -1245,3 +1245,13 @@ Authoritative snapshot replay retained zero changed actions and categories.
 This is post-confirmation correctness and action-efficiency evidence, not a
 revision of the immutable +2.66 adapter-1.5 score claim. See
 [`../docs/freeciv/evidence/pf-expansion-deadline-recovery-offline-acceptance.md`](../docs/freeciv/evidence/pf-expansion-deadline-recovery-offline-acceptance.md).
+
+The fresh claim-ineligible
+`expansion_deadline_recovery_diagnostic_v1` freezes a direct ablation on 40
+disjoint pairs in range `3800000..3899999`. Both arms use target four, a
+15-turn production runway, pressure, learning, and score alignment. The only
+effective difference is
+`expansion_settlement_deadline_recovery_enabled`. Completion, source, safety,
+schema, exact-replay, activation, score, margin, and lead diagnostics are
+required regardless of direction. This cohort may not be pooled with or
+revise the confirmation.

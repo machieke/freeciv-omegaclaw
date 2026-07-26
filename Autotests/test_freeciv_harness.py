@@ -107,6 +107,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "pressure_score_alignment_pilot_v2": 40,
             "expansion_target_pilot_v1": 40,
             "expansion_target_confirmatory_v1": 100,
+            "expansion_deadline_recovery_diagnostic_v1": 40,
         }
     seed_sets = [set(row["seeds"]) for row in paired["cohorts"].values()]
     assert all(not left & right for index, left in enumerate(seed_sets)
@@ -320,6 +321,23 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "minimum_detectable_delta": 1.5,
         "maximum_planning_sd": 5.0,
     }
+    deadline_recovery = paired["cohorts"][
+        "expansion_deadline_recovery_diagnostic_v1"]
+    assert deadline_recovery["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": "pf-pln-expansion-deadline-recovery-diagnostic-v1",
+        "count": 40, "minimum": 3800000, "maximum": 3899999,
+    }
+    assert deadline_recovery["isolated_policy_keys"] == [
+        "expansion_settlement_deadline_recovery_enabled"]
+    assert deadline_recovery["arms"]["baseline"][
+        "expansion_settlement_deadline_recovery_enabled"] is False
+    assert deadline_recovery["arms"]["treatment"][
+        "expansion_settlement_deadline_recovery_enabled"] is True
+    for arm in ("baseline", "treatment"):
+        assert deadline_recovery["arms"][arm]["expansion_city_target"] == 4
+        assert deadline_recovery["arms"][arm][
+            "expansion_minimum_settlement_runway_turns"] == 15
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.2",
         "source_sha256": "3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e",

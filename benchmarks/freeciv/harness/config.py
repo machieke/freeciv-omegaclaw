@@ -45,6 +45,12 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
             raise ValueError("{}.{} must be in {}..{}".format(prefix, key, lower, upper))
     if not isinstance(impact.get("preserve_city_defenders"), bool):
         raise ValueError("{}.preserve_city_defenders must be boolean".format(prefix))
+    if not isinstance(
+            impact.get(
+                "expansion_settlement_deadline_recovery_enabled", True), bool):
+        raise ValueError(
+            "{}.expansion_settlement_deadline_recovery_enabled must be "
+            "boolean".format(prefix))
     if impact.get("production_strategy") not in ("static_priority", "horizon_score"):
         raise ValueError(
             "{}.production_strategy must be static_priority or horizon_score".format(prefix))

@@ -31,6 +31,7 @@ impact_policy:
   production_minimum_remaining_turns: 8
   expansion_minimum_remaining_turns: 12
   expansion_minimum_settlement_runway_turns: 0
+  expansion_settlement_deadline_recovery_enabled: true
   foodbox_percent: 100
   unit_build_score_divisor: 10
   no_effect_retry_limit: 1
@@ -80,6 +81,10 @@ immediate settlement is valid at the exact deadline, but a founder that still
 requires movement at that boundary routes toward exact ruleset population
 recovery instead. Late settlement is rejected. The default runway of zero
 preserves historical cohort behavior.
+`expansion_settlement_deadline_recovery_enabled` is the explicit adapter-1.6
+lifecycle switch. The live harness enables it; a false value exists only to
+isolate the rule in a controlled diagnostic and does not disable the
+independent founder-production runway gate.
 
 Founder routing is feedback-driven in the horizon-score policy. On the first step from
 a city, aggregate distance from the complete city network breaks minimum-distance ties

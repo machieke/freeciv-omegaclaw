@@ -13,6 +13,10 @@ or exact ruleset population recovery for an existing founder. It does not
 activate any component-only phase. The supported +2.66 score claim remains
 tied to the frozen adapter-1.5 confirmation; adapter 1.6 is post-confirmation
 correctness hardening.
+The live harness explicitly enables
+`expansion_settlement_deadline_recovery_enabled`. Its false setting is a
+diagnostic ablation of existing-founder deadline handling; it does not
+activate or disable any PF-PLN phase.
 
 ## Current engine boundary
 

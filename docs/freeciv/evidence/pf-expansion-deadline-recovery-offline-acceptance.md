@@ -39,6 +39,13 @@ Population recovery remains effect-checked: the founder must disappear and
 the exact target city's population must increase by the compiled population
 cost. Target-complete static-policy behavior is unchanged.
 
+The boolean
+`expansion_settlement_deadline_recovery_enabled` makes this lifecycle rule
+explicit and ablatable. It defaults to `true` in adapter 1.6 and in the live
+harness. Setting it to `false` restores the adapter-1.5 existing-founder
+behavior without changing founder-production runway checks; it is intended
+for controlled evaluation, not as an alternative recommended policy.
+
 ## Acceptance
 
 Focused boundary tests cover exact-deadline settlement, late-settlement
@@ -67,3 +74,20 @@ This is correctness and action-efficiency evidence, not a new gameplay score,
 score-margin, or win-rate claim. Any empirical effect of deadline recovery
 requires a fresh, predeclared, seed-disjoint paired cohort. The confirmed
 +2.66 adapter-1.5 expansion-target result remains immutable and unpooled.
+
+## Fresh engine diagnostic
+
+`expansion_deadline_recovery_diagnostic_v1` predeclares 40 fresh, disjoint,
+claim-ineligible turn-60 pairs from namespace
+`pf-pln-expansion-deadline-recovery-diagnostic-v1`, range
+`3800000..3899999`. Both arms target four cities, require a 15-turn
+post-settlement runway, and enable pressure, conductance learning, and score
+alignment. The only effective difference is
+`expansion_settlement_deadline_recovery_enabled`: false under baseline and
+true under treatment.
+
+The diagnostic must complete all 40 pairs on one clean source identity,
+validate all 80 event streams, replay every treatment pressure decision, and
+report recovery activation, score, margin, and lead estimates regardless of
+direction. It remains exploratory and cannot revise or be pooled with the
+claim-eligible expansion confirmation.

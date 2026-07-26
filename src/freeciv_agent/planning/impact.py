@@ -311,6 +311,13 @@ class GroundedImpactPlanner(object):
                 "expansion_minimum_settlement_runway_turns must be an integer")
         self.expansion_minimum_settlement_runway_turns = int(
             settlement_runway)
+        settlement_deadline_recovery = values.get(
+            "expansion_settlement_deadline_recovery_enabled", True)
+        if not isinstance(settlement_deadline_recovery, bool):
+            raise ValueError(
+                "expansion_settlement_deadline_recovery_enabled must be boolean")
+        self.expansion_settlement_deadline_recovery_enabled = (
+            settlement_deadline_recovery)
         self.foodbox_percent = int(values.get("foodbox_percent", 100))
         self.unit_build_score_divisor = int(values.get(
             "unit_build_score_divisor", 10))
@@ -2458,7 +2465,8 @@ class GroundedImpactPlanner(object):
     def _founder_settlement_deadline_exhausted(self, snapshot):
         required = self.expansion_minimum_settlement_runway_turns
         return bool(
-            self.production_strategy == "horizon_score"
+            self.expansion_settlement_deadline_recovery_enabled
+            and self.production_strategy == "horizon_score"
             and len(snapshot.cities) < self.expansion_city_target
             and required > 0
             and self._settlement_runway_remaining(snapshot) <= required)
@@ -2600,27 +2608,31 @@ class GroundedImpactPlanner(object):
                 unit = snapshot.unit(action.get("actor_id"))
                 site_key = self._settlement_site_key(snapshot, action)
                 settlement_runway = self._settlement_runway_remaining(snapshot)
+                settlement_runway_required = (
+                    self.expansion_minimum_settlement_runway_turns
+                    if self.expansion_settlement_deadline_recovery_enabled
+                    else 0)
                 if (unit is not None and len(snapshot.cities) < self.expansion_city_target
                         and self._distance_from_cities(snapshot, unit.x, unit.y)
                         >= self.settle_min_distance
                         and settlement_runway
-                        >= self.expansion_minimum_settlement_runway_turns):
+                        >= settlement_runway_required):
                     if site_key in self._failed_settlement_sites:
                         self._failed_settlement_site_prunes.add(key)
                     else:
                         projection = None
-                        if self.expansion_minimum_settlement_runway_turns > 0:
+                        if settlement_runway_required > 0:
                             projection = {
                                 "settlement_runway_remaining_turns": (
                                     settlement_runway),
                                 "settlement_runway_required_turns": (
-                                    self.expansion_minimum_settlement_runway_turns),
+                                    settlement_runway_required),
                             }
                         candidate = ImpactCandidate(
                             action, "city_founding", 1000.0,
                             ("found a city at or beyond the configured spacing "
                              "with the declared score-bearing runway"
-                             if self.expansion_minimum_settlement_runway_turns > 0
+                             if settlement_runway_required > 0
                              else "found a city at or beyond the configured spacing"),
                             projection)
             elif action_type == "unit_join_city":
