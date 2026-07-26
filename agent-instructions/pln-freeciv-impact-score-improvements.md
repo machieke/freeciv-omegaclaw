@@ -1421,3 +1421,19 @@ declared defender; positive non-founder shield stock remains protected. If no
 escort or production action is ready, a legal move may relocate the founder
 only by strictly increasing distance from that geometry. A new selected-seed
 cohort isolates only route memory against the failed instantaneous gate.
+
+The adapter-1.11 cohort passed all audit gates but did not activate route
+memory. Baseline and treatment each recorded three safe settlement bypasses,
+three founding completions, two retained additions, score `112`, opponent
+score `148`, and margin `-36`. Treatment observed no opponent within the
+three-tile founder radius, so it recorded no route evidence, deferral,
+production, escort, or avoidance action. Both 1,243-event streams validate,
+and exact replay covers all 60 treatment decisions with zero integrity
+failure.
+
+This is an inactive-mechanism result, not evidence against memory once
+grounded. The next bounded experiment separates founder route warning from
+global survival pressure: it may widen only the founder-local observation and
+retention boundary, retains exact packet-visible coordinates and actor
+lifecycle scoping, and must demonstrate activation before score direction is
+interpreted.

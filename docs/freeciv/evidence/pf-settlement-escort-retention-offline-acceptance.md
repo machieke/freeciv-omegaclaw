@@ -229,3 +229,23 @@ or exact population recovery before the runway expires, and all source,
 safety, schema, and exact-replay gates. Every score, opponent, margin,
 settlement, retention, production, escort, avoidance, and recovery result must
 be reported regardless of direction.
+
+The source-fresh cohort passed its source, initial-state, execution-safety,
+schema, and exact-replay gates, but the mechanism did not activate. Both
+1,243-event streams validate, and exact replay covered all 60 treatment
+decisions with zero integrity failure and unchanged sources. Treatment
+recorded zero founder-route threat observations, zero deferrals, zero
+defender-production switches, zero escort moves, and zero avoidance moves. It
+therefore matched the instantaneous-gate baseline exactly: three safe
+bypasses and three founding completions, two net cities gained, score `112`,
+opponent score `148`, and margin `-36`.
+
+Machine-readable evidence is
+[`pf-settlement-escort-route-threat-memory-mechanism-v1.json`](pf-settlement-escort-route-threat-memory-mechanism-v1.json).
+The result rejects the configured three-tile observation boundary as a way to
+activate route memory on this trace; it does not reject actor-scoped memory
+after an observation. The wrapped Chebyshev distance implementation is
+correct, but no packet-visible opponent entered that founder-local radius
+while the founder existed. Any follow-up must use a separate, explicitly
+bounded founder warning radius and must leave the global survival-pressure
+radius unchanged.

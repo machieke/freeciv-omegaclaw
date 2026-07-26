@@ -1,0 +1,95 @@
+{
+  "artifacts": {
+    "aggregate": "artifacts/freeciv/pf-settlement-escort-route-threat-memory-mechanism-v1/impact-aggregate.json",
+    "aggregate_sha256": "d3e7f7380956b41758aa87f715b595f206d9417ff5de7e3cdb5adf9d21492944",
+    "baseline_events_sha256": "fe252205a25f00263ab7c83378f0c73169af44ec5d69d46bb34af51ec49b3033",
+    "exact_replay_artifact_hash": "7eead6c8785aa67db54d2d1831ba9fb129797356e10f13cf641f582968d50433",
+    "exact_replay_sha256": "46d300b10c23e78aad274ab5d03d99b121288aa01ddb367ab78df304ec100212",
+    "exact_replay_source_set_hash": "adf0e58fa1bfed62c65f7ea28e9ed2503e29a9ffddfc39f49fea535a3c352ae1",
+    "run_summary_sha256": "97c4e62868c66c28e928da82540b38aac53d060ec19b12bc140f7981e86045ce",
+    "treatment_events_sha256": "5cb2a104167f0fd8db1c5755506bfa44d727c7ccbe1e14f5e9fc0ce91d5d3a32"
+  },
+  "claim": {
+    "claim_eligible": false,
+    "score_improvement_supported": false,
+    "status": "selected_seed_mechanism_inactive",
+    "win_rate_supported": false
+  },
+  "cohort": {
+    "active_infrastructure_failures": 0,
+    "complete_pairs": 1,
+    "completed_arms": 2,
+    "name": "settlement_escort_route_threat_memory_mechanism_v1",
+    "planned_pairs": 1,
+    "reused_seed": 3746776
+  },
+  "decision_replay": {
+    "changed_decisions": 0,
+    "decision_change_rate": 0.0,
+    "exact_replay_files": 1,
+    "integrity_failures": 0,
+    "sources_unchanged": true,
+    "total_decisions": 60
+  },
+  "mechanism": {
+    "instantaneous_gate_baseline": {
+      "cities_founded": 3,
+      "cities_gained": 2,
+      "route_threat_observations": 0,
+      "safe_bypass_attempts": 3,
+      "safe_bypass_completions": 3,
+      "score": 112,
+      "score_margin": -36
+    },
+    "route_memory_treatment": {
+      "cities_founded": 3,
+      "cities_gained": 2,
+      "escort_defense_production_attempts": 0,
+      "escort_deferral_snapshots": 0,
+      "escort_move_attempts": 0,
+      "escorted_settlement_completions": 0,
+      "persisted_threat_deferral_snapshots": 0,
+      "route_threat_observations": 0,
+      "safe_bypass_attempts": 3,
+      "safe_bypass_completions": 3,
+      "score": 112,
+      "score_margin": -36,
+      "threat_avoidance_move_attempts": 0,
+      "threat_deferral_snapshots": 0
+    }
+  },
+  "outcomes": {
+    "cities_founded_delta": 0,
+    "cities_gained_delta": 0,
+    "opponent_score_delta": 0,
+    "score_component_citizen_delta": 0,
+    "score_component_residual_delta": 0,
+    "score_delta": 0,
+    "score_margin_delta": 0
+  },
+  "safety": {
+    "engine_rejected_action_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "full_loop_under_30s_rate": {
+      "baseline": 1.0,
+      "treatment": 1.0
+    },
+    "initial_state_fidelity_passed": true,
+    "model_safe_fallback_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "overall_passed": true,
+    "schema_valid_events": 2486,
+    "schema_valid_files": 2
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "b6cab3f1ec88044ad257fac9ad48c6bfaa52ccbc",
+    "configuration_hash": "9943265af23e75726106506ad757bc9ba63bdd6671ea30f63c64730ad400a43b",
+    "implementation_sha256": "22adcb0a6928c297fa859eaa834e6171e246a177b9db2a06c961f1ca8574353e",
+    "source_freeze_passed": true
+  }
+}
