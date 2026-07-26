@@ -1459,3 +1459,18 @@ only when the new city completes `expansion_city_target`. The
 claim-ineligible `final_settlement_escort_preparation_mechanism_v1` cohort
 isolates this one switch on seed `3746776` and must report the complete
 production, route, waiting, retention, score, opponent, and margin chain.
+
+The source-fresh V1 run activated preparation and passed every execution
+gate. Treatment retained the 57 unit shields, installed and completed one
+Riflemen target, and made 18 exact combat escort traversals. It scored `120`
+versus baseline `112`; citizen, technology, and residual components changed
+by `+3`, `+2`, and `+3`, respectively. Opponent score changed from `148` to
+`131`, so margin changed from `-36` to `-11`.
+
+The result is not an accepted mechanism or a claim. The assigned final
+founder kept moving at the same one-tile rate as its escort, preventing the
+escort from closing the initial gap. Treatment recorded six deferrals but no
+final escorted settlement attempt and no population recovery, and founded
+one fewer city than baseline. Adapter 1.13 must add a final-founder-only
+rendezvous hold until first combat co-location, export that hold separately,
+and repeat the isolated source-fresh cohort before any generalization.

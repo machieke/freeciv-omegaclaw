@@ -290,3 +290,28 @@ source-freeze, initial-state, rejection, fallback, latency, schema, and
 exact-replay gates. Production stock assumptions, route moves, deferrals,
 settlement retention, score, opponent score, and margin must be reported
 regardless of direction.
+
+The source-fresh V1 run passed every source-freeze, initial-state, safety,
+schema, and exact-replay integrity gate, and activated the intended early
+production path. Treatment retained the 57 same-kind unit shields, installed
+one Riflemen target, completed it, and made 18 exact combat escort moves.
+Own score improved from `112` to `120`, opponent score fell from `148` to
+`131`, and margin improved from `-36` to `-11`. The own-score difference
+comprised `+3` citizen, `+2` technology, and `+3` residual points.
+
+The mechanism nevertheless failed its final-chain acceptance criterion.
+Treatment founded two cities rather than three, recorded six final-slot
+deferrals, and recorded neither a final escorted settlement attempt nor a
+population recovery attempt. Trace inspection showed the reason: the final
+founder and its pursuing escort both moved one tile per turn, so the escort
+followed 18 times without closing the initial separation. The positive
+`+8` result is one outcome-selected, claim-ineligible pair and is not a score
+or win-rate claim.
+
+Machine-readable evidence is
+[`pf-final-settlement-escort-preparation-mechanism-v1.json`](pf-final-settlement-escort-preparation-mechanism-v1.json).
+The next source-fresh correction must hold only the assigned final founder
+until its prepared spare combat unit first co-locates, then permit the pair to
+route together. It must leave earlier founders, threat avoidance, runway
+recovery, and city-garrison preservation unchanged, and separately count
+those rendezvous holds.
