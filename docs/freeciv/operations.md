@@ -122,8 +122,15 @@ Impact-action attribution reports decision-event, execution/acknowledgement,
 pre-confirmation, confirmation-nonstate, and post-confirmation work per turn,
 plus action-refresh observer and state-event subsets. Execution attribution
 separates gate preflight, sent-event emission, proxy transport/acknowledgement,
-and completion-event emission. The non-refresh residual is not a planner-only
-measurement.
+and completion-event emission. Post-confirmation attribution separates effect
+detection, turn-budget accounting, outcome resolution, and deferred
+reconciliation; resolved outcomes further separate planner/conductance learning,
+conductance-event emission, and counter updates. The non-refresh residual is not
+a planner-only measurement. Learning attribution further separates route
+bookkeeping, local grounding, feedback identity, grounded goal relief,
+conductance update/persistence, and downstream route credit. Conductance timing
+then separates its in-memory update, atomic persistence, and returned state
+hash.
 
 Accepted impact actions receive a bounded 0.3-second authoritative refresh
 window with two identical samples separated by at least 50 ms. A differing

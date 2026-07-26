@@ -551,21 +551,23 @@ class ImpactPressureRanker(object):
     def record_category_outcome(
             self, category, effect_observed, feedback_id,
             realized_relief=None, relief_source=None,
-            caused_by_feedback_id=None):
+            caused_by_feedback_id=None, diagnostics=None):
         if self.conductance_state is None:
             return None
         if realized_relief is None:
             return self.conductance_state.feedback(
-                category, effect_observed, feedback_id)
+                category, effect_observed, feedback_id,
+                diagnostics=diagnostics)
         return self.conductance_state.feedback(
             category, effect_observed, feedback_id,
             realized_relief=realized_relief,
             relief_source=relief_source,
-            caused_by_feedback_id=caused_by_feedback_id)
+            caused_by_feedback_id=caused_by_feedback_id,
+            diagnostics=diagnostics)
 
     def record_outcome(
             self, candidate, effect_observed, feedback_id,
-            realized_relief=None, relief_source=None):
+            realized_relief=None, relief_source=None, diagnostics=None):
         return self.record_category_outcome(
             candidate.category, effect_observed, feedback_id,
-            realized_relief, relief_source)
+            realized_relief, relief_source, diagnostics=diagnostics)

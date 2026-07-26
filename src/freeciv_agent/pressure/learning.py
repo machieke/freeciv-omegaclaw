@@ -3,9 +3,10 @@
 import json
 import os
 import threading
+import time
 from dataclasses import dataclass
 
-from ..events.schema import structural_hash
+from ..events.schema import canonical_json_bytes, structural_hash
 from .engine import ConductanceLearner
 from .model import PressureRule
 
@@ -81,6 +82,7 @@ class ConductanceState(object):
         self._lock = threading.RLock()
         self._routes = {}
         self._applied_feedback_ids = set()
+        self._state_hash_cache = None
         if self.path is not None and os.path.isfile(self.path):
             self._load()
 
@@ -124,6 +126,7 @@ class ConductanceState(object):
             raise ValueError("invalid persisted conductance feedback IDs")
         self._routes = checked
         self._applied_feedback_ids = set(str(item) for item in feedback_ids)
+        self._state_hash_cache = None
         if value.get("state_hash") != self.state_hash:
             raise ValueError("conductance state hash mismatch")
 
@@ -148,7 +151,10 @@ class ConductanceState(object):
     @property
     def state_hash(self):
         with self._lock:
-            return structural_hash(self._hash_material())
+            if self._state_hash_cache is None:
+                self._state_hash_cache = structural_hash(
+                    self._hash_material())
+            return self._state_hash_cache
 
     def value(self, category):
         with self._lock:
@@ -158,7 +164,9 @@ class ConductanceState(object):
     def snapshot(self):
         with self._lock:
             value = self._hash_material()
-            value["state_hash"] = structural_hash(value)
+            if self._state_hash_cache is None:
+                self._state_hash_cache = structural_hash(value)
+            value["state_hash"] = self._state_hash_cache
             return value
 
     def decision_snapshot(self):
@@ -176,22 +184,24 @@ class ConductanceState(object):
             }
 
     def save(self):
-        if self.path is None:
-            return
         with self._lock:
+            value = self.snapshot()
+            if self.path is None:
+                return value["state_hash"]
             parent = os.path.dirname(self.path)
             if parent:
                 os.makedirs(parent, exist_ok=True)
             temporary = self.path + ".tmp.{}".format(os.getpid())
-            with open(temporary, "w", encoding="utf-8") as stream:
-                json.dump(self.snapshot(), stream, indent=2, sort_keys=True)
-                stream.write("\n")
+            with open(temporary, "wb") as stream:
+                stream.write(canonical_json_bytes(value))
+                stream.write(b"\n")
             os.replace(temporary, self.path)
+            return value["state_hash"]
 
     def feedback(
             self, category, effect_observed, feedback_id,
             realized_relief=None, relief_source=None,
-            caused_by_feedback_id=None):
+            caused_by_feedback_id=None, diagnostics=None):
         """Apply grounded route feedback without conflating effect and relief.
 
         Calls which omit ``realized_relief`` retain the v1 behavior for
@@ -253,11 +263,16 @@ class ConductanceState(object):
                 else (EFFECT_WITHOUT_RELIEF_AMOUNT if effect_observed else 1.0))
             learning_method = "grounded-goal-relief-ema-v2"
         with self._lock:
+            update_started = time.perf_counter()
+            saved_state_hash = None
+            route_created = category not in self._routes
             row = self._routes.setdefault(category, {
                 "conductance": self.initial_conductance,
                 "no_progress": 0,
                 "successes": 0,
             })
+            if route_created:
+                self._state_hash_cache = None
             previous = float(row["conductance"])
             applied = feedback_id not in self._applied_feedback_ids
             if applied:
@@ -288,12 +303,35 @@ class ConductanceState(object):
                     row["no_progress"] += 1
                 row["conductance"] = float(updated.conductance)
                 self._applied_feedback_ids.add(feedback_id)
-                self.save()
+                self._state_hash_cache = None
+                if diagnostics is not None:
+                    diagnostics["conductance_update_latency_ms"] = (
+                        diagnostics.get(
+                            "conductance_update_latency_ms", 0.0)
+                        + (time.perf_counter() - update_started) * 1000.0)
+                save_started = time.perf_counter()
+                saved_state_hash = self.save()
+                if diagnostics is not None:
+                    diagnostics["conductance_save_latency_ms"] = (
+                        diagnostics.get("conductance_save_latency_ms", 0.0)
+                        + (time.perf_counter() - save_started) * 1000.0)
+            elif diagnostics is not None:
+                diagnostics["conductance_update_latency_ms"] = (
+                    diagnostics.get("conductance_update_latency_ms", 0.0)
+                    + (time.perf_counter() - update_started) * 1000.0)
+            hash_started = time.perf_counter()
+            state_hash = (
+                saved_state_hash
+                if saved_state_hash is not None else self.state_hash)
+            if diagnostics is not None:
+                diagnostics["conductance_hash_latency_ms"] = (
+                    diagnostics.get("conductance_hash_latency_ms", 0.0)
+                    + (time.perf_counter() - hash_started) * 1000.0)
             return ConductanceUpdate(
                 feedback_id, category, self.rule_id(category),
                 bool(effect_observed), applied, previous,
                 float(row["conductance"]), int(row["successes"]),
-                int(row["no_progress"]), self.state_hash,
+                int(row["no_progress"]), state_hash,
                 learning_method, (None if legacy else credit_kind),
                 (None if legacy else relief),
                 (None if legacy else str(relief_source)),

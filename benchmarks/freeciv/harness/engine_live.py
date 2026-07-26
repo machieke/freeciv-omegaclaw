@@ -1533,6 +1533,12 @@ async def _play(run_dir, manifest, context):
     impact_preconfirmation_latency_ms = 0.0
     impact_confirmation_nonstate_latency_ms = 0.0
     impact_postconfirmation_latency_ms = 0.0
+    impact_postconfirmation_effect_latency_ms = 0.0
+    impact_postconfirmation_budget_latency_ms = 0.0
+    impact_postconfirmation_resolution_latency_ms = 0.0
+    impact_postconfirmation_reconcile_latency_ms = 0.0
+    impact_resolution_diagnostics = {}
+    impact_learning_diagnostics = {}
     action_refresh_observer_latency_ms = 0.0
     action_refresh_event_latency_ms = 0.0
     turn_end_submit_latencies = []
@@ -1670,17 +1676,28 @@ async def _play(run_dir, manifest, context):
                                      deferred=False, feedback_id=None):
             """Commit one candidate-specific authoritative outcome exactly once."""
             nonlocal parent
+            learning_started = time.perf_counter()
             conductance_update = impact_planner.record_outcome(
                 candidate, before, effect_observed, after_snapshot=after,
-                feedback_id=feedback_id)
+                feedback_id=feedback_id,
+                diagnostics=impact_learning_diagnostics)
             conductance_updates = (
                 (() if conductance_update is None else (conductance_update,))
                 + impact_planner.drain_conductance_updates())
+            impact_resolution_diagnostics["learning_latency_ms"] = (
+                impact_resolution_diagnostics.get(
+                    "learning_latency_ms", 0.0)
+                + (time.perf_counter() - learning_started) * 1000.0)
+            event_started = time.perf_counter()
             for conductance_update in conductance_updates:
                 event = writer.emit(
                     "conductance_updated", int(after.turn),
                     conductance_update.to_dict(), caused_by=[parent])
                 parent = event["event_id"]
+            impact_resolution_diagnostics["event_latency_ms"] = (
+                impact_resolution_diagnostics.get("event_latency_ms", 0.0)
+                + (time.perf_counter() - event_started) * 1000.0)
+            stats_started = time.perf_counter()
             if effect_observed:
                 decision_stats["effect_observed"] += 1
                 if candidate.action.get("action_type") == "unit_build_city":
@@ -1691,6 +1708,11 @@ async def _play(run_dir, manifest, context):
                 decision_stats["no_effect"] += 1
                 if deferred:
                     decision_stats["effect_confirmation_expired"] += 1
+            impact_resolution_diagnostics["stats_latency_ms"] = (
+                impact_resolution_diagnostics.get("stats_latency_ms", 0.0)
+                + (time.perf_counter() - stats_started) * 1000.0)
+            impact_resolution_diagnostics["calls"] = (
+                impact_resolution_diagnostics.get("calls", 0) + 1)
 
         def reconcile_deferred_impact_outcomes(current):
             if impact_planner is None:
@@ -2057,14 +2079,21 @@ async def _play(run_dir, manifest, context):
                         - (action_state_diagnostics.get("latency_ms", 0.0)
                            - confirmation_state_before))
                     postconfirmation_started = time.perf_counter()
+                    effect_started = time.perf_counter()
                     decision_stats["effect_confirmation_timeouts"] += int(
                         not authoritative_refresh)
                     effect_observed = (authoritative_refresh
                                        and impact_planner.candidate_effect_observed(
                                            decision.candidate, action_snapshot, snapshot))
+                    impact_postconfirmation_effect_latency_ms += (
+                        time.perf_counter() - effect_started) * 1000.0
+                    budget_started = time.perf_counter()
                     impact_budget.record(
                         decision.candidate, effect_observed,
                         authoritative_refresh=authoritative_refresh)
+                    impact_postconfirmation_budget_latency_ms += (
+                        time.perf_counter() - budget_started) * 1000.0
+                    resolution_started = time.perf_counter()
                     if effect_observed:
                         record_impact_resolution(
                             decision.candidate, action_snapshot, snapshot, True,
@@ -2079,10 +2108,15 @@ async def _play(run_dir, manifest, context):
                             decision.candidate, action_snapshot,
                             feedback_id=impact_feedback_id)
                         decision_stats["effect_confirmation_deferred"] += 1
+                    impact_postconfirmation_resolution_latency_ms += (
+                        time.perf_counter() - resolution_started) * 1000.0
+                    reconcile_started = time.perf_counter()
                     if authoritative_refresh:
                         # A fresh packet may also reveal effects from older
                         # accepted actions that exceeded their bounded wait.
                         reconcile_deferred_impact_outcomes(snapshot)
+                    impact_postconfirmation_reconcile_latency_ms += (
+                        time.perf_counter() - reconcile_started) * 1000.0
                     impact_postconfirmation_latency_ms += (
                         time.perf_counter() - postconfirmation_started) * 1000.0
                 decision_stats["failover_attempts"] += impact_budget.failover_attempts
@@ -2374,6 +2408,58 @@ async def _play(run_dir, manifest, context):
          impact_confirmation_nonstate_latency_ms / max(1, turns_executed)),
         ("turn_impact_postconfirmation_latency_ms",
          impact_postconfirmation_latency_ms / max(1, turns_executed)),
+        ("turn_impact_postconfirmation_effect_latency_ms",
+         impact_postconfirmation_effect_latency_ms
+         / max(1, turns_executed)),
+        ("turn_impact_postconfirmation_budget_latency_ms",
+         impact_postconfirmation_budget_latency_ms
+         / max(1, turns_executed)),
+        ("turn_impact_postconfirmation_resolution_latency_ms",
+         impact_postconfirmation_resolution_latency_ms
+         / max(1, turns_executed)),
+        ("turn_impact_postconfirmation_reconcile_latency_ms",
+         impact_postconfirmation_reconcile_latency_ms
+         / max(1, turns_executed)),
+        ("impact_resolution_calls_per_turn",
+         impact_resolution_diagnostics.get("calls", 0)
+         / max(1, turns_executed)),
+        ("turn_impact_resolution_learning_latency_ms",
+         impact_resolution_diagnostics.get("learning_latency_ms", 0.0)
+         / max(1, turns_executed)),
+        ("turn_impact_resolution_event_latency_ms",
+         impact_resolution_diagnostics.get("event_latency_ms", 0.0)
+         / max(1, turns_executed)),
+        ("turn_impact_resolution_stats_latency_ms",
+         impact_resolution_diagnostics.get("stats_latency_ms", 0.0)
+         / max(1, turns_executed)),
+        ("turn_impact_learning_bookkeeping_latency_ms",
+         impact_learning_diagnostics.get("bookkeeping_latency_ms", 0.0)
+         / max(1, turns_executed)),
+        ("turn_impact_learning_grounding_latency_ms",
+         impact_learning_diagnostics.get("grounding_latency_ms", 0.0)
+         / max(1, turns_executed)),
+        ("turn_impact_learning_feedback_latency_ms",
+         impact_learning_diagnostics.get("feedback_latency_ms", 0.0)
+         / max(1, turns_executed)),
+        ("turn_impact_learning_goal_relief_latency_ms",
+         impact_learning_diagnostics.get("goal_relief_latency_ms", 0.0)
+         / max(1, turns_executed)),
+        ("turn_impact_learning_conductance_latency_ms",
+         impact_learning_diagnostics.get("conductance_latency_ms", 0.0)
+         / max(1, turns_executed)),
+        ("turn_impact_learning_conductance_update_latency_ms",
+         impact_learning_diagnostics.get(
+             "conductance_update_latency_ms", 0.0)
+         / max(1, turns_executed)),
+        ("turn_impact_learning_conductance_save_latency_ms",
+         impact_learning_diagnostics.get("conductance_save_latency_ms", 0.0)
+         / max(1, turns_executed)),
+        ("turn_impact_learning_conductance_hash_latency_ms",
+         impact_learning_diagnostics.get("conductance_hash_latency_ms", 0.0)
+         / max(1, turns_executed)),
+        ("turn_impact_learning_downstream_latency_ms",
+         impact_learning_diagnostics.get("downstream_latency_ms", 0.0)
+         / max(1, turns_executed)),
         ("turn_action_refresh_observer_latency_ms",
          action_refresh_observer_latency_ms / max(1, turns_executed)),
         ("turn_action_refresh_event_latency_ms",

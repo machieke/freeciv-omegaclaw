@@ -958,7 +958,7 @@ class GroundedImpactPlanner(object):
 
     def record_outcome(
             self, candidate, snapshot, effect_observed, after_snapshot=None,
-            feedback_id=None):
+            feedback_id=None, diagnostics=None):
         """Learn from an accepted action without treating acceptance as effect.
 
         Exact no-effect actions are suppressed while their local authoritative
@@ -966,6 +966,7 @@ class GroundedImpactPlanner(object):
         cannot make an unreachable order eligible again; actor, city, or visible
         target changes can.
         """
+        bookkeeping_started = time.perf_counter()
         self.commit(candidate)
         if candidate.category == "production_military_score":
             intent = self._unit_score_batch_intent
@@ -1029,13 +1030,23 @@ class GroundedImpactPlanner(object):
             candidate, snapshot, after_snapshot)
         self._record_exploration_destination_outcome(
             candidate, snapshot, after_snapshot)
+        if diagnostics is not None:
+            diagnostics["bookkeeping_latency_ms"] = (
+                diagnostics.get("bookkeeping_latency_ms", 0.0)
+                + (time.perf_counter() - bookkeeping_started) * 1000.0)
+        grounding_started = time.perf_counter()
         key = (candidate.action_key, self._grounding_signature(snapshot, candidate))
         if effect_observed:
             self._no_effect_attempts.pop(key, None)
         else:
             self._no_effect_attempts[key] = self._no_effect_attempts.get(key, 0) + 1
+        if diagnostics is not None:
+            diagnostics["grounding_latency_ms"] = (
+                diagnostics.get("grounding_latency_ms", 0.0)
+                + (time.perf_counter() - grounding_started) * 1000.0)
         if self._pressure_ranker is None:
             return None
+        feedback_started = time.perf_counter()
         feedback_id = feedback_id or "pressure-feedback-" + structural_hash([
             candidate.category, candidate.action,
             getattr(snapshot, "snapshot_id", None),
@@ -1043,11 +1054,27 @@ class GroundedImpactPlanner(object):
             bool(effect_observed),
             self._no_effect_attempts.get(key, 0),
         ])[:24]
+        if diagnostics is not None:
+            diagnostics["feedback_latency_ms"] = (
+                diagnostics.get("feedback_latency_ms", 0.0)
+                + (time.perf_counter() - feedback_started) * 1000.0)
+        relief_started = time.perf_counter()
         relief = self.candidate_goal_relief(
             candidate, snapshot, after_snapshot or snapshot, effect_observed)
+        if diagnostics is not None:
+            diagnostics["goal_relief_latency_ms"] = (
+                diagnostics.get("goal_relief_latency_ms", 0.0)
+                + (time.perf_counter() - relief_started) * 1000.0)
+        conductance_started = time.perf_counter()
         update = self._pressure_ranker.record_outcome(
             candidate, effect_observed, feedback_id,
-            relief.realized_relief, relief.source)
+            relief.realized_relief, relief.source,
+            diagnostics=diagnostics)
+        if diagnostics is not None:
+            diagnostics["conductance_latency_ms"] = (
+                diagnostics.get("conductance_latency_ms", 0.0)
+                + (time.perf_counter() - conductance_started) * 1000.0)
+        downstream_started = time.perf_counter()
         if effect_observed and relief.realized_relief > 0.0:
             self._record_downstream_goal_relief(
                 candidate, feedback_id, relief)
@@ -1058,6 +1085,11 @@ class GroundedImpactPlanner(object):
                     "snapshot_id": getattr(snapshot, "snapshot_id", None),
                     "turn": int(getattr(snapshot, "turn", 0)),
                 }
+        if diagnostics is not None:
+            diagnostics["downstream_latency_ms"] = (
+                diagnostics.get("downstream_latency_ms", 0.0)
+                + (time.perf_counter() - downstream_started) * 1000.0)
+            diagnostics["calls"] = diagnostics.get("calls", 0) + 1
         return update
 
     def _no_effect_suppressed(self, snapshot, candidate):

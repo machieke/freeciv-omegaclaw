@@ -419,6 +419,8 @@ def test_conductance_feedback_is_persisted_idempotent_and_truth_free():
         assert credited.applied
         assert credited.conductance > credited.previous_conductance
         persisted_hash = state.state_hash
+        assert state.state_hash == persisted_hash
+        assert state._state_hash_cache == persisted_hash
 
         replay = ConductanceState(path, "attempt-1")
         duplicate = replay.feedback(
