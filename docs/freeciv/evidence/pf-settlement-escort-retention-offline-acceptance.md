@@ -1,7 +1,7 @@
 # PF-PLN settlement escort retention
 
-Status: adapter 1.8 mechanism rejected; adapter 1.9 selected mechanism passed;
-selected ten-seed generalization replay frozen
+Status: adapter 1.8 mechanism rejected; adapter 1.9 mechanism passed but
+selected ten-seed own-score target rejected
 
 ## Goal
 
@@ -118,3 +118,33 @@ adapter-1.8 failure mode; it does not support a score or win-rate claim.
 isolated adapter-1.9 switch across all ten previously selected packet-site
 seeds. It remains claim-ineligible and must report every retention, score,
 opponent, margin, and lead outcome without pooling with either one-pair replay.
+
+## Adapter 1.9 selected-seed generalization
+
+The generalization cohort completed all 10 pairs and 20 arms from clean commit
+`fd3784f`, with zero infrastructure, source-freeze, initial-state, rejection,
+fallback, or latency-gate failures. All 20 streams and 28,677 events validate.
+Exact replay covered all 10 treatment files and 792 decisions with zero
+integrity failures and unchanged sources.
+
+The corrected mechanism activated consistently: treatment averaged 1.3 exact
+defender-production switches, 6.6 exact combat escort moves, and 1.4 escorted
+settlements. However, it also averaged 46.1 deferral snapshots. Founding fell
+from 2.3 to 1.4 cities and net additions fell from 2.0 to 1.4. Seed `3696266`
+deferred 86 snapshots and completed no settlement.
+
+Own score changed by `-1.0`, interval `[-4.2, +2.1]`, exact paired sign-flip
+`p=0.6171875`. Five pairs declined, four improved, and one tied. The citizen
+component fell by 1.9 points while technology was unchanged. Opponent score
+fell by 12.1 and margin improved by 11.1, but this does not rescue the
+predeclared own-score target and should not be attributed wholly to our policy.
+The five discordant lead pairs split three baseline-only versus two
+treatment-only, exact McNemar `p=1.0`.
+
+Machine-readable evidence is
+[`pf-settlement-escort-retention-generalization-v1.json`](pf-settlement-escort-retention-generalization-v1.json).
+The cohort is outcome-selected and claim-ineligible. It proves that true
+escorts and defender production generalize, but rejects unconditional
+co-location as a score-bearing policy. The feature remains disabled by
+default. The next correction must bound waiting cost and require an escort
+only where grounded threat makes retention risk exceed the expansion delay.

@@ -1367,3 +1367,19 @@ disabled by default. Claim-ineligible
 `settlement_escort_retention_generalization_v1` now freezes the same isolated
 switch across all ten selected packet-site seeds before any broader pilot is
 considered.
+
+The selected-seed generalization completed all 10 pairs and rejected
+unconditional escort co-location as an own-score optimization. Treatment
+activated correctly—1.3 exact defender-production switches, 6.6 exact combat
+escort moves, and 1.4 escorted settlements per game—but founders waited 46.1
+snapshots on average. Founding fell by 0.9 and net cities by 0.6, reducing the
+citizen component by 1.9. Own score changed by `-1.0` with interval
+`[-4.2, +2.1]` and exact `p=0.6171875`; seed `3696266` waited 86 snapshots and
+never settled. Opponent score fell by 12.1 and margin improved by 11.1, but
+five discordant lead pairs split against treatment three to two.
+
+All 20 streams and 28,677 events validated, and exact replay covered all 10
+treatment files and 792 decisions with zero integrity failure. The feature
+remains disabled. The next score-directed variant must use authoritative
+local threat to distinguish the seed-`3746776` retention risk from safe sites
+and cap escort waiting so protection cannot erase the expansion gain.
