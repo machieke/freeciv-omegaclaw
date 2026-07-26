@@ -234,8 +234,10 @@ def test_schedule_artifact_reuses_identical_precomputed_scores():
         raise AssertionError("precomputed scores must not be recomputed")
 
     scheduler.score_all = unexpected_rescore
+    pressure_artifact = result.to_dict()
     actual = scheduler.decision_artifact(
-        operations, result, scores=scores)
+        operations, result, scores=scores,
+        pressure_artifact=pressure_artifact)
 
     assert actual == expected
 

@@ -535,12 +535,14 @@ class ImpactPressureRanker(object):
             conductance_snapshot["decision_routes"] = dict(
                 (category, decision_conductance[category])
                 for category in sorted(decision_conductance))
+        pressure_artifact = result.to_dict()
         artifact = {
             "conductance_state": (
                 conductance_snapshot),
-            "pressure": result.to_dict(),
+            "pressure": pressure_artifact,
             "schedule": self.scheduler.decision_artifact(
-                operations, result, scores=scores),
+                operations, result, scores=scores,
+                pressure_artifact=pressure_artifact),
         }
         if diagnostics is not None:
             diagnostics["pressure_artifact_latency_ms"] = (

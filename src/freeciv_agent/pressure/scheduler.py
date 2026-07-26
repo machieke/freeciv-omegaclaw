@@ -178,7 +178,7 @@ class PressureScheduler(object):
 
     def decision_artifact(
             self, operations, pressure_result, total_budget=1.0,
-            scores=None):
+            scores=None, pressure_artifact=None):
         scores = (
             self.score_all(operations, pressure_result)
             if scores is None else tuple(scores))
@@ -188,7 +188,10 @@ class PressureScheduler(object):
                 row.to_dict() for row in self.allocate(
                     operations, pressure_result, total_budget,
                     scores=scores)],
-            "pressure_hash": pressure_result.artifact_hash,
+            "pressure_hash": (
+                pressure_result.artifact_hash
+                if pressure_artifact is None else
+                structural_hash(pressure_artifact)),
             "scores": [row.to_dict() for row in scores],
             "selected_operation_id": (
                 None if selection is None else selection.operation_id),
