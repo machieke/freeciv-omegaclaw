@@ -666,6 +666,38 @@ paired_impact:
         count: 40
         minimum: 3500000
         maximum: 3599999
+    expansion_target_confirmatory_v1:
+      purpose: confirmatory
+      claim_eligible: true
+      require_clean_source: true
+      endpoints: [score_turn_n]
+      horizon_turn: 60
+      planned_pairs: 100
+      controller_workers: 3
+      score_design:
+        minimum_detectable_delta: 1.5
+        maximum_planning_sd: 5.0
+      isolated_policy_keys:
+        - expansion_city_target
+      arms:
+        baseline:
+          expansion_city_target: 3
+          expansion_minimum_settlement_runway_turns: 15
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+        treatment:
+          expansion_city_target: 4
+          expansion_minimum_settlement_runway_turns: 15
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-expansion-target-confirmatory-v1
+        count: 100
+        minimum: 3600000
+        maximum: 3799999
   retired_cohorts:
     confirmatory_score_horizon_60_v4:
       retired_reason: terminal_player_elimination_misclassified_as_infrastructure_timeout

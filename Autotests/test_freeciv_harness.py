@@ -106,6 +106,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "pressure_score_alignment_pilot_v1": 40,
             "pressure_score_alignment_pilot_v2": 40,
             "expansion_target_pilot_v1": 40,
+            "expansion_target_confirmatory_v1": 100,
         }
     seed_sets = [set(row["seeds"]) for row in paired["cohorts"].values()]
     assert all(not left & right for index, left in enumerate(seed_sets)
@@ -305,6 +306,20 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "expansion_minimum_settlement_runway_turns"] == 15
     assert expansion_target_pilot["arms"]["treatment"][
         "expansion_minimum_settlement_runway_turns"] == 15
+    expansion_target_confirmation = paired["cohorts"][
+        "expansion_target_confirmatory_v1"]
+    assert expansion_target_confirmation["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": "pf-pln-expansion-target-confirmatory-v1",
+        "count": 100, "minimum": 3600000, "maximum": 3799999,
+    }
+    assert expansion_target_confirmation["isolated_policy_keys"] == [
+        "expansion_city_target"]
+    assert expansion_target_confirmation["endpoints"] == ["score_turn_n"]
+    assert expansion_target_confirmation["score_design"] == {
+        "minimum_detectable_delta": 1.5,
+        "maximum_planning_sd": 5.0,
+    }
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.2",
         "source_sha256": "3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e",

@@ -1,7 +1,7 @@
 # PF-PLN expansion target v1 offline acceptance
 
-Status: implementation and offline opportunity audit passed; fresh pilot
-pending
+Status: implementation, offline opportunity audit, and fresh pilot passed;
+confirmation pending
 
 ## Score-bearing bottleneck
 
@@ -89,9 +89,18 @@ Acceptance requires:
   and citizen-component deltas; and
 - paired score, margin, and lead estimates reported regardless of direction.
 
-The pilot is claim-ineligible and cannot be pooled with any prior cohort. A
-confirmation may be designed only if the fresh score result and its mechanism
-diagnostics are directionally compelling.
+The pilot completed all 40 pairs and 80 arms on clean commit `c44b664`, with
+zero failures and every correctness and safety gate passing. Score changed by
++2.025 with interval [+0.800, +3.250] and exact paired p=0.002818. Treatment
+added 0.90 settlements and 2.525 citizen points on average. Technology was
+unchanged. Full evidence is in
+[`pf-expansion-target-pilot-v1.md`](pf-expansion-target-pilot-v1.md).
+
+The pilot is claim-ineligible and is not pooled with any prior cohort. Its
+direction, interval, exact test, and aligned mechanism diagnostics justify the
+separately frozen `expansion_target_confirmatory_v1` cohort: 100 fresh,
+score-only pairs, powered for a 1.5-point effect at paired SD up to 5.0. The
+confirmation retains the implementation and every policy value unchanged.
 
 After committing the implementation:
 

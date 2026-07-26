@@ -1,0 +1,113 @@
+{
+  "artifacts": {
+    "aggregate": "artifacts/freeciv/pf-expansion-target-pilot-v1/impact-aggregate.json",
+    "aggregate_sha256": "3a260690c469594b90e5855fb34acdc742528aab594839b8a6bcd43747d6dbba",
+    "exact_replay_artifact_hash": "98ad92a27dabea3e2109bf4f5982a7cb2cd7ec9faa6afd0f09bc77c6b0c9a676",
+    "exact_replay_sha256": "1184d64dbd6fca5d734068d4273b689606ab5fba96b1540a456befdc9fbb5d97",
+    "exact_replay_source_set_hash": "11f2e20cb2333b7a6e9c05a08eff92671f047dc9c2bacc137ac9bb0cab78047e"
+  },
+  "claim_status": "pilot_ineligible_positive_score_confirmation_required",
+  "cohort": {
+    "complete_pairs": 40,
+    "current_completed_arms": 80,
+    "infrastructure_failures": 0,
+    "name": "expansion_target_pilot_v1",
+    "planned_pairs": 40
+  },
+  "confirmation": {
+    "claim_eligible": true,
+    "endpoints": [
+      "score_turn_n"
+    ],
+    "maximum_planning_sd": 5.0,
+    "minimum_detectable_delta": 1.5,
+    "name": "expansion_target_confirmatory_v1",
+    "planned_pairs": 100,
+    "seed_derivation": {
+      "algorithm": "sha256-counter-v1",
+      "count": 100,
+      "maximum": 3799999,
+      "minimum": 3600000,
+      "namespace": "pf-pln-expansion-target-confirmatory-v1"
+    }
+  },
+  "decision_replay": {
+    "changed_decisions": 140,
+    "decision_change_rate": 0.04794520547945205,
+    "exact_replay_files": 40,
+    "integrity_failures": 0,
+    "sources_unchanged": true,
+    "total_decisions": 2920
+  },
+  "diagnostics": {
+    "first_divergence_preexpansion_growth_to_expansion": {
+      "count": 28,
+      "score_delta_sum": 58.0
+    },
+    "paired_score_signs": {
+      "negative": 10,
+      "positive": 26,
+      "ties": 4
+    },
+    "treatment_final_city_counts": {
+      "1": 2,
+      "2": 1,
+      "3": 6,
+      "4": 31
+    }
+  },
+  "mechanism": {
+    "citizen_score_delta": 2.525,
+    "cities_gained_delta": 0.875,
+    "founder_production_changes_delta": 0.875,
+    "settlement_completions_delta": 0.9
+  },
+  "outcomes": {
+    "lead_rate": {
+      "baseline": 0.225,
+      "difference": 0.0,
+      "exact_mcnemar_p": 1.0,
+      "lower": -0.1,
+      "treatment": 0.225,
+      "upper": 0.1
+    },
+    "score": {
+      "baseline_mean": 116.775,
+      "difference": 2.025,
+      "exact_sign_flip_p": 0.0028180699155200273,
+      "lower": 0.8,
+      "treatment_mean": 118.8,
+      "upper": 3.25
+    },
+    "score_components": {
+      "citizen_delta": 2.525,
+      "residual_delta": -0.5,
+      "technology_delta": 0.0
+    },
+    "score_margin": {
+      "difference": -1.7,
+      "lower": -6.15,
+      "upper": 2.6
+    }
+  },
+  "safety": {
+    "engine_rejected_action_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "initial_state_fidelity_passed": true,
+    "overall_passed": true,
+    "safety_active_decisions": 138,
+    "safety_selection_violations": 0,
+    "schema_valid_events": 114207,
+    "schema_valid_files": 80,
+    "schema_warnings": 0
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "c44b664186a819e8c0b491a90880136180e7d72b",
+    "configuration_hash": "ed6280048af04331cb74686064d0efea5231810c4eacb8367efad34c5433d675",
+    "implementation_sha256": "1d6a1340788dcdf74d3cbcd70621ab37f779bc6a4858d159fcd456cc8f0ec666",
+    "source_freeze_passed": true
+  }
+}

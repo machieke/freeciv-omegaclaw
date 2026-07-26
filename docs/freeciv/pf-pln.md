@@ -515,6 +515,15 @@ Fresh seeds are disjoint from every earlier impact cohort. The implementation
 and offline opportunity audit are recorded in
 [`evidence/pf-expansion-target-v1-offline-acceptance.md`](evidence/pf-expansion-target-v1-offline-acceptance.md).
 
+The fresh expansion pilot then changed score by +2.025 with interval
+[+0.800, +3.250] and exact paired p=0.002818. It added 0.90 settlements and
+2.525 citizen score points; technology was unchanged. All correctness and
+safety gates passed. Lead rate stayed flat because opponent score also
+increased, so the supported pilot mechanism is own fixed-horizon score, not
+win rate or score margin. The claim-ineligible pilot evidence and the frozen,
+unchanged 100-pair score-only confirmation are recorded in
+[`evidence/pf-expansion-target-pilot-v1.md`](evidence/pf-expansion-target-pilot-v1.md).
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` and `pressure_score_alignment_enabled` default to `false`
 unless the runtime profile enables them. This preserves unit-level policy
