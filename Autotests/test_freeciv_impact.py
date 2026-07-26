@@ -1450,6 +1450,96 @@ def test_population_recovery_effect_requires_unit_consumption_and_exact_city_gai
             cities=wrong_gain, source_seq=4))
 
 
+def test_existing_founder_honors_post_settlement_runway_deadline():
+    ir = _ruleset_ir(
+        (("Settlers", "unit", 30),), pop_costs={"Settlers": 2})
+    values = {
+        "horizon_turn": 60,
+        "expansion_city_target": 4,
+        "expansion_minimum_settlement_runway_turns": 15,
+    }
+    build = {
+        "action_type": "unit_build_city", "actor_id": 1,
+        "is_valid": True,
+    }
+    end_turn = {"action_type": "end_turn", "is_valid": True}
+
+    # Immediate settlement is valid at the exact boundary.
+    boundary = GroundedImpactPlanner(values, ruleset_ir=ir).plan(_snapshot(
+        [_unit(1, "Settlers", 3, 0)], [build, end_turn], turn=45))
+    assert boundary.candidate.category == "city_founding"
+    assert boundary.candidate.projection == {
+        "settlement_runway_remaining_turns": 15,
+        "settlement_runway_required_turns": 15,
+    }
+
+    # The same site is no longer score-bearing one turn later.
+    assert GroundedImpactPlanner(values, ruleset_ir=ir).plan(_snapshot(
+        [_unit(1, "Settlers", 3, 0)], [build, end_turn], turn=46)) is None
+
+    cities = [_city()]
+    second = _city()
+    second.update({"id": 12, "name": "Antium", "tile": 3, "x": 3})
+    cities.append(second)
+    toward_city = {
+        "action_type": "unit_move", "actor_id": 1,
+        "target": {"x": 4, "y": 0}, "is_valid": True,
+    }
+    toward_frontier = {
+        "action_type": "unit_move", "actor_id": 1,
+        "target": {"x": 6, "y": 0}, "is_valid": True,
+    }
+    move_actions = [toward_city, toward_frontier, end_turn]
+
+    # One turn before the deadline an outward move can still preserve the
+    # configured runway. At the deadline the same founder must route home.
+    expanding = GroundedImpactPlanner(values, ruleset_ir=ir).plan(_snapshot(
+        [_unit(1, "Settlers", 5, 0)], move_actions,
+        cities=cities, turn=44))
+    assert expanding.candidate.category == "expansion_move"
+    assert expanding.candidate.action["target"] == {"x": 6, "y": 0}
+
+    recovering = GroundedImpactPlanner(values, ruleset_ir=ir).plan(_snapshot(
+        [_unit(1, "Settlers", 5, 0)], move_actions,
+        cities=cities, turn=45))
+    assert recovering.candidate.category == "population_recovery_move"
+    assert recovering.candidate.action["target"] == {"x": 4, "y": 0}
+    assert recovering.candidate.projection[
+        "population_recovery_reason"] == "settlement_runway_exhausted"
+    assert recovering.candidate.projection[
+        "settlement_runway_remaining_turns"] == 15
+    assert recovering.candidate.projection[
+        "settlement_runway_required_turns"] == 15
+
+    no_recovery_ir = _ruleset_ir(
+        (("Settlers", "unit", 30),), add_to_city=(),
+        pop_costs={"Settlers": 2})
+    assert GroundedImpactPlanner(
+        values, ruleset_ir=no_recovery_ir).plan(_snapshot(
+            [_unit(1, "Settlers", 5, 0)], move_actions,
+            cities=cities, turn=45)) is None
+
+    join = {
+        "action_type": "unit_join_city", "actor_id": 1,
+        "target": {"city": "Rome", "city_id": 10}, "is_valid": True,
+    }
+    recovered = GroundedImpactPlanner(values, ruleset_ir=ir).plan(_snapshot(
+        [_unit(1, "Settlers")], [join, end_turn],
+        cities=cities, turn=46))
+    assert recovered.candidate.category == "population_recovery"
+    assert recovered.candidate.projection[
+        "population_recovery_reason"] == "settlement_runway_exhausted"
+
+    # The default zero runway retains historical expansion behavior.
+    compatible = GroundedImpactPlanner(
+        dict(values, expansion_minimum_settlement_runway_turns=0),
+        ruleset_ir=ir).plan(_snapshot(
+            [_unit(1, "Settlers", 5, 0)], move_actions,
+            cities=cities, turn=59))
+    assert compatible.candidate.category == "expansion_move"
+    assert compatible.candidate.action["target"] == {"x": 6, "y": 0}
+
+
 def test_production_candidates_require_fixed_horizon_runway():
     granary = _production(10, "Granary", 3, 14)
     actions = [granary, {"action_type": "end_turn", "is_valid": True}]

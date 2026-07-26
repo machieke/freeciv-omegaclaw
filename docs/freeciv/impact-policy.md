@@ -30,6 +30,7 @@ impact_policy:
   horizon_turn: 30
   production_minimum_remaining_turns: 8
   expansion_minimum_remaining_turns: 12
+  expansion_minimum_settlement_runway_turns: 0
   foodbox_percent: 100
   unit_build_score_divisor: 10
   no_effect_retry_limit: 1
@@ -40,7 +41,8 @@ impact_policy:
 The deterministic priority order is:
 
 1. Attack only a packet-visible unit at the advertised target.
-2. Found a city only below the city target and at the declared minimum spacing.
+2. Found a city only below the city target, at the declared minimum spacing,
+   and while its declared post-settlement runway remains available.
 3. Move only a ruleset-declared founder outward while expansion is incomplete,
    preferring city-network separation and grounded traversability evidence.
 4. Fill a grounded city-defense deficit and preserve the sole garrison.
@@ -69,12 +71,15 @@ Founder completion ETA is the maximum of shield completion and population readin
 Population readiness uses the compiled active-ruleset `granary_food_ini` and
 `granary_food_inc` parameters, the pinned runtime `foodbox_percent`, and authoritative
 city size, food stock, and food surplus. No unobserved food retention is assumed.
-`expansion_minimum_remaining_turns` is a founder-production start cutoff, not a second
-post-settlement runway. A new founder candidate must start while at least that many turns
-remain, have positive projected score value, and complete its minimum-distance route no
-later than the horizon. This rejects late settlers that would consume population and
-movement without reaching a score-bearing settlement while allowing a population-delayed
-build that still settles in time.
+`expansion_minimum_remaining_turns` is the founder-production start cutoff.
+`expansion_minimum_settlement_runway_turns` is the distinct minimum active
+runway that must remain after projected settlement. A new founder candidate
+must satisfy both bounds and retain positive projected score value. Adapter
+1.6 carries the runway invariant through the existing founder's lifecycle:
+immediate settlement is valid at the exact deadline, but a founder that still
+requires movement at that boundary routes toward exact ruleset population
+recovery instead. Late settlement is rejected. The default runway of zero
+preserves historical cohort behavior.
 
 Founder routing is feedback-driven in the horizon-score policy. On the first step from
 a city, aggregate distance from the complete city network breaks minimum-distance ties
@@ -199,7 +204,8 @@ the existing score and latency metrics:
 - `planner_founder_unreachable_moves_pruned`, founder route successes, failures,
   success rate, cardinal-corridor attempts/successes, and observed-evidence route ETA;
 - population-ready, settlement ETA/runway, founder-deficit, and compiler-source
-  production projection metrics, plus pre-expansion growth/founder handoffs,
+  production projection metrics, plus deadline-expired population-recovery
+  reasons and pre-expansion growth/founder handoffs,
   population cost avoided, conservative
   shield stock discarded, and replacement horizon-completion rate when retiring
   a repeated founder queue;
@@ -485,6 +491,16 @@ interval excluding zero and an exact paired sign-flip randomization test at the
 predeclared alpha; the stronger two-point claim repeats both gates at that margin.
 
 ## Surplus-founder population recovery evidence
+
+Adapter 1.6 generalizes the same exact recovery mechanism to a second
+non-score-bearing condition: an existing founder below the city target whose
+configured post-settlement runway is exhausted. City founding remains legal
+at the exact boundary, while any founder that still requires movement routes
+strictly closer to an owned city. The path still requires compiled `Cities`
+and `AddToCity` flags, a positive population cost, an advertised join action,
+unit consumption, and the exact city-size gain. Offline acceptance is in
+[`evidence/pf-expansion-deadline-recovery-offline-acceptance.md`](evidence/pf-expansion-deadline-recovery-offline-acceptance.md).
+It does not revise the immutable expansion-target score confirmation.
 
 The development run at
 `artifacts/freeciv/impact-population-recovery-dev-3-20260720` validates an

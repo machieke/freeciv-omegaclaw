@@ -533,6 +533,18 @@ lead rate changed only from 23% to 24%, so no win-rate claim is supported.
 The full claim and its limits are recorded in
 [`evidence/pf-expansion-target-confirmatory-v1.md`](evidence/pf-expansion-target-confirmatory-v1.md).
 
+Adapter `grounded-impact-planner/1.6` subsequently carries the declared
+post-settlement runway through an existing founder's movement and settlement
+lifecycle. Immediate settlement remains valid at the exact deadline; after
+that boundary a founder with exact `Cities`, `AddToCity`, and positive
+population-cost ruleset evidence routes home for verified population recovery
+instead of pursuing a non-score-bearing late city. Zero-runway and
+target-complete behavior remain compatible. This post-confirmation correctness
+hardening passed 200 planner/pressure/runtime/harness tests and invariant
+snapshot replay. It does not revise the adapter-1.5 score claim. Evidence is
+in
+[`evidence/pf-expansion-deadline-recovery-offline-acceptance.md`](evidence/pf-expansion-deadline-recovery-offline-acceptance.md).
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` and `pressure_score_alignment_enabled` default to `false`
 unless the runtime profile enables them. This preserves unit-level policy

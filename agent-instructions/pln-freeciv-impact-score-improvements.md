@@ -1227,3 +1227,21 @@ This supports the predeclared own-score claim for the frozen
 cohorts by pooling, establish a win-rate effect, or support an effect strictly
 greater than two points. Full evidence is
 [`../docs/freeciv/evidence/pf-expansion-target-confirmatory-v1.md`](../docs/freeciv/evidence/pf-expansion-target-confirmatory-v1.md).
+
+### Post-confirmation settlement-deadline hardening
+
+Adapter 1.5 checked the 15-turn settlement runway only when founder production
+began. Adapter 1.6 carries that invariant through an existing founder's
+movement and settlement: exact-boundary settlement remains valid, late
+settlement is rejected, and a founder that can no longer create a
+runway-compliant city may route home for exact ruleset population recovery.
+The path requires `Cities`, `AddToCity`, positive population cost, strict
+distance progress, an advertised join action, actor consumption, and the exact
+city-size increase. The zero-runway compatibility default and static policy
+remain unchanged.
+
+The change passed 200 combined planner, pressure, runtime, and harness tests.
+Authoritative snapshot replay retained zero changed actions and categories.
+This is post-confirmation correctness and action-efficiency evidence, not a
+revision of the immutable +2.66 adapter-1.5 score claim. See
+[`../docs/freeciv/evidence/pf-expansion-deadline-recovery-offline-acceptance.md`](../docs/freeciv/evidence/pf-expansion-deadline-recovery-offline-acceptance.md).

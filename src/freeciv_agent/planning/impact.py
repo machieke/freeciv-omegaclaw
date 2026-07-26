@@ -205,7 +205,7 @@ def _target_name(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.5"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.6"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -2308,14 +2308,11 @@ class GroundedImpactPlanner(object):
         novelty = 1.0 if (x, y) not in self.visited_positions else 0.0
         city_distance = self._distance_from_cities(snapshot, x, y)
         if unit_type in founder_types:
-            if len(snapshot.cities) >= self.expansion_city_target:
-                if (self.production_strategy != "horizon_score"
-                        or unit_type not in self._ruleset_add_to_city_types):
-                    return None
-                spec = self._production_specs.get(unit_type, {})
-                population = int(spec.get("pop_cost", 0))
-                if population <= 0 or not snapshot.cities:
-                    return None
+            recovery_reason = self._founder_population_recovery_reason(
+                snapshot, unit_type)
+            if recovery_reason is not None:
+                population = int(self._production_specs.get(
+                    unit_type, {}).get("pop_cost", 0))
                 current_distance = min(_distance(
                     unit.x, unit.y, city.x, city.y,
                     snapshot.map_width, snapshot.map_height)
@@ -2331,15 +2328,27 @@ class GroundedImpactPlanner(object):
                     if _distance(x, y, city.x, city.y,
                                  snapshot.map_width, snapshot.map_height)
                     == target_distance)
+                projection = {
+                    "current_city_distance": current_distance,
+                    "recovered_population": population,
+                    "target_city_distance": target_distance,
+                    "target_city_ids": nearest_city_ids,
+                }
+                if recovery_reason != "expansion_target_complete":
+                    projection.update(self._settlement_deadline_projection(
+                        snapshot, recovery_reason))
                 return ImpactCandidate(
                     action, "population_recovery_move",
                     970.0 + population * 5.0 - target_distance,
-                    "strictly reduce a surplus founder's distance to an owned "
-                    "city for exact ruleset population recovery",
-                    {"current_city_distance": current_distance,
-                     "recovered_population": population,
-                     "target_city_distance": target_distance,
-                     "target_city_ids": nearest_city_ids})
+                    ("strictly reduce a non-score-bearing founder's distance "
+                     "to an owned city for exact ruleset population recovery"
+                     if recovery_reason != "expansion_target_complete" else
+                     "strictly reduce a surplus founder's distance to an owned "
+                     "city for exact ruleset population recovery"),
+                    projection)
+            if (len(snapshot.cities) >= self.expansion_city_target
+                    or self._founder_settlement_deadline_exhausted(snapshot)):
+                return None
             evidence = self._founder_move_evidence(
                 snapshot, action, founder_types)
             if self._founder_cycle_has_alternative(
@@ -2443,11 +2452,51 @@ class GroundedImpactPlanner(object):
                 "reveal a new position with an exploration-capable unit")
         return None
 
-    def _population_recovery_candidate(self, snapshot, action, founder_types):
-        """Recover ruleset-declared founder population after expansion is complete."""
+    def _settlement_runway_remaining(self, snapshot):
+        return max(0, int(self.horizon_turn) - int(snapshot.turn))
+
+    def _founder_settlement_deadline_exhausted(self, snapshot):
+        required = self.expansion_minimum_settlement_runway_turns
+        return bool(
+            self.production_strategy == "horizon_score"
+            and len(snapshot.cities) < self.expansion_city_target
+            and required > 0
+            and self._settlement_runway_remaining(snapshot) <= required)
+
+    def _founder_population_recovery_reason(
+            self, snapshot, normalized_founder_type):
+        """Return why an exact founder may be recovered instead of expanded.
+
+        Production already rejects founders that cannot preserve the declared
+        post-settlement runway. Apply the same fixed-horizon contract to
+        existing founders: once even immediate settlement is at its deadline,
+        another movement action cannot create a runway-compliant city.
+        """
         if (self.production_strategy != "horizon_score"
-                or len(snapshot.cities) < self.expansion_city_target):
+                or normalized_founder_type not in self._ruleset_founder_types
+                or normalized_founder_type not in self._ruleset_add_to_city_types
+                or int(self._production_specs.get(
+                    normalized_founder_type, {}).get("pop_cost", 0)) <= 0
+                or not snapshot.cities):
             return None
+        if len(snapshot.cities) >= self.expansion_city_target:
+            return "expansion_target_complete"
+        if self._founder_settlement_deadline_exhausted(snapshot):
+            return "settlement_runway_exhausted"
+        return None
+
+    def _settlement_deadline_projection(self, snapshot, reason):
+        return {
+            "expansion_city_target": self.expansion_city_target,
+            "population_recovery_reason": reason,
+            "settlement_runway_remaining_turns": (
+                self._settlement_runway_remaining(snapshot)),
+            "settlement_runway_required_turns": (
+                self.expansion_minimum_settlement_runway_turns),
+        }
+
+    def _population_recovery_candidate(self, snapshot, action, founder_types):
+        """Recover a ruleset founder after target or settlement deadline."""
         unit = snapshot.unit(action.get("actor_id"))
         target = action.get("target")
         city_id = target.get("city_id") if isinstance(target, dict) else None
@@ -2460,17 +2509,30 @@ class GroundedImpactPlanner(object):
         if (normalized not in self._ruleset_founder_types
                 or normalized not in self._ruleset_add_to_city_types):
             return None
+        recovery_reason = self._founder_population_recovery_reason(
+            snapshot, normalized)
+        if recovery_reason is None:
+            return None
         spec = self._production_specs.get(normalized, {})
         population = int(spec.get("pop_cost", 0))
         if population <= 0 or unit.tile != city.tile:
             return None
+        projection = {
+            "recovered_population": population,
+            "population_value_source": "ruleset_ir",
+            "target_city_id": city.city_id,
+        }
+        if recovery_reason != "expansion_target_complete":
+            projection.update(self._settlement_deadline_projection(
+                snapshot, recovery_reason))
         return ImpactCandidate(
             action, "population_recovery", 990.0 + population,
-            "restore a surplus founder's exact ruleset population cost after "
-            "the expansion target is complete",
-            {"recovered_population": population,
-             "population_value_source": "ruleset_ir",
-             "target_city_id": city.city_id})
+            ("restore a founder's exact ruleset population cost after its "
+             "declared score-bearing settlement runway is exhausted"
+             if recovery_reason != "expansion_target_complete" else
+             "restore a surplus founder's exact ruleset population cost after "
+             "the expansion target is complete"),
+            projection)
 
     @staticmethod
     def _offensive_target_is_visible(snapshot, action):
@@ -2537,15 +2599,30 @@ class GroundedImpactPlanner(object):
             elif action_type == "unit_build_city":
                 unit = snapshot.unit(action.get("actor_id"))
                 site_key = self._settlement_site_key(snapshot, action)
+                settlement_runway = self._settlement_runway_remaining(snapshot)
                 if (unit is not None and len(snapshot.cities) < self.expansion_city_target
                         and self._distance_from_cities(snapshot, unit.x, unit.y)
-                        >= self.settle_min_distance):
+                        >= self.settle_min_distance
+                        and settlement_runway
+                        >= self.expansion_minimum_settlement_runway_turns):
                     if site_key in self._failed_settlement_sites:
                         self._failed_settlement_site_prunes.add(key)
                     else:
+                        projection = None
+                        if self.expansion_minimum_settlement_runway_turns > 0:
+                            projection = {
+                                "settlement_runway_remaining_turns": (
+                                    settlement_runway),
+                                "settlement_runway_required_turns": (
+                                    self.expansion_minimum_settlement_runway_turns),
+                            }
                         candidate = ImpactCandidate(
                             action, "city_founding", 1000.0,
-                            "found a city at or beyond the configured spacing")
+                            ("found a city at or beyond the configured spacing "
+                             "with the declared score-bearing runway"
+                             if self.expansion_minimum_settlement_runway_turns > 0
+                             else "found a city at or beyond the configured spacing"),
+                            projection)
             elif action_type == "unit_join_city":
                 candidate = self._population_recovery_candidate(
                     snapshot, action, founder_types)
