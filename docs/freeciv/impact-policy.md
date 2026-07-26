@@ -36,6 +36,7 @@ impact_policy:
   expansion_escort_retention_enabled: false
   expansion_escort_threat_gating_enabled: false
   expansion_escort_route_threat_memory_enabled: false
+  expansion_final_settlement_escort_enabled: false
   foodbox_percent: 100
   unit_build_score_divisor: 10
   no_effect_retry_limit: 1
@@ -147,6 +148,22 @@ build when no spare combat unit exists; accumulated non-founder production is
 not discarded. Observation count, persisted-threat deferrals, avoidance
 traversals, and the existing exact production/escort counters expose the full
 chain.
+
+The selected adapter-1.11 replay recorded no founder-local observation inside
+the three-tile boundary and therefore made no behavioral change. The trace
+instead exposed a deterministic preparation gap: a completed founder left 57
+shields in unit production, the planner crossed to an improvement and lost 25
+shields, and the eventual final city was captured with its local Riflemen
+queue at 21 of 30 shields. Adapter 1.12 adds the independently opt-in
+`expansion_final_settlement_escort_enabled` rule. Once active and queued
+founders cover every remaining expansion slot, it may retain exact same-kind
+unit shield carry-over for one declared defender. Only the newest active
+founder assigned to the final slot becomes its route target, and only the city
+that completes `expansion_city_target` requires co-location. Earlier safe
+sites continue to found immediately. A defender queue already projected to
+complete inside the observed founder route ETA suppresses duplicate
+preparation. Final preparation production, route traversal, deferral, and
+settlement completion are exported independently.
 
 Founder routing is feedback-driven in the horizon-score policy. On the first step from
 a city, aggregate distance from the complete city network breaks minimum-distance ties

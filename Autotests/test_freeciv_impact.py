@@ -653,6 +653,107 @@ def test_unescorted_legal_site_repurposes_founder_queue_to_defense():
     assert planner.founder_escort_defense_production_successes == 1
 
 
+def test_final_settlement_escort_prepares_early_and_tracks_only_last_founder():
+    second_city = dict(
+        _city(), id=20, name="Antium", tile=30, x=0, y=3,
+        production_kind=3, production_value=14, shield_stock=0)
+    founder_city = _city(
+        size=3, food_stock=20, shield_stock=50,
+        production_kind=6, production_value=0)
+    production_actions = [
+        _production(10, "Alpine Troops", 6, 11),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 30),
+        ("Alpine Troops", "unit", 40),
+        ("Granary", "improvement", 40),
+    ), pop_costs={"Settlers": 1})
+    values = {
+        "expansion_city_target": 4,
+        "expansion_escort_retention_enabled": True,
+        "expansion_escort_threat_gating_enabled": True,
+        "expansion_final_settlement_escort_enabled": True,
+        "horizon_turn": 60,
+    }
+    planner = GroundedImpactPlanner(values, ruleset_ir=ir)
+    before = _snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(2, "Settlers", 5, 3),
+        _unit(11, "Alpine Troops", 0, 0),
+    ], production_actions, cities=[founder_city, second_city], turn=20)
+
+    preparation = planner.plan(before)
+
+    assert preparation.candidate.category == "production_defense"
+    assert preparation.candidate.action["target"][
+        "production_type"] == "Alpine Troops"
+    assert preparation.candidate.projection[
+        "settlement_final_escort_preparation"] is True
+    assert preparation.candidate.projection[
+        "repurpose_same_production_kind"] is True
+    assert preparation.candidate.projection[
+        "repurpose_shield_stock_assumption"] == 50
+    assert preparation.candidate.projection[
+        "repurpose_discarded_shield_stock"] == 0
+    changed_city = dict(
+        founder_city, production_kind=6, production_value=11)
+    changed = _snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(2, "Settlers", 5, 3),
+        _unit(11, "Alpine Troops", 0, 0),
+    ], [{"action_type": "end_turn", "is_valid": True}],
+        cities=[changed_city, second_city], source_seq=2, turn=20)
+    planner.record_outcome(
+        preparation.candidate, before, True, changed)
+    assert planner.founder_final_escort_preparation_production_attempts == 1
+    assert planner.founder_final_escort_preparation_production_successes == 1
+
+    escort_move = {
+        "action_type": "unit_move", "actor_id": 12,
+        "target": {"x": 1, "y": 1}, "is_valid": True,
+    }
+    routing = _snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(2, "Settlers", 5, 3),
+        _unit(11, "Alpine Troops", 0, 0),
+        _unit(12, "Riflemen", 0, 0),
+    ], [escort_move, {"action_type": "end_turn", "is_valid": True}],
+        cities=[founder_city, second_city], source_seq=3, turn=21)
+    escort = planner.plan(routing)
+    assert escort.candidate.category == "founder_escort_move"
+    assert escort.candidate.projection[
+        "settlement_final_escort_preparation"] is True
+    assert escort.candidate.projection["target_founder_ids"] == (2,)
+
+    third_city = dict(
+        _city(), id=30, name="Cumae", tile=60, x=0, y=6,
+        production_kind=3, production_value=14, shield_stock=0)
+    build = {
+        "action_type": "unit_build_city", "actor_id": 2, "is_valid": True,
+    }
+    final_site = _snapshot([
+        _unit(2, "Settlers", 5, 3),
+        _unit(11, "Alpine Troops", 0, 0),
+    ], [build, {"action_type": "end_turn", "is_valid": True}],
+        cities=[founder_city, second_city, third_city],
+        source_seq=4, turn=25)
+    assert planner.plan(final_site) is None
+    assert planner.founder_final_escort_deferral_snapshots == 1
+
+    escorted_site = _snapshot([
+        _unit(2, "Settlers", 5, 3),
+        _unit(11, "Alpine Troops", 0, 0),
+        _unit(12, "Riflemen", 5, 3),
+    ], [build, {"action_type": "end_turn", "is_valid": True}],
+        cities=[founder_city, second_city, third_city],
+        source_seq=5, turn=26)
+    founding = planner.plan(escorted_site)
+    assert founding.candidate.category == "city_founding"
+    assert founding.candidate.projection["settlement_final_escort"] is True
+    assert founding.candidate.projection["settlement_escort_present"] is True
+
+
 def test_packet_site_preference_records_exact_move_outcome():
     action = {
         "action_type": "unit_move", "actor_id": 1,
@@ -1268,6 +1369,7 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
                    {"expansion_escort_retention_enabled": 1},
                    {"expansion_escort_threat_gating_enabled": 1},
                    {"expansion_escort_route_threat_memory_enabled": 1},
+                   {"expansion_final_settlement_escort_enabled": 1},
                    {"foodbox_percent": 0},
                    {"unit_build_score_divisor": 0},
                    {"production_minimum_remaining_turns": 9,

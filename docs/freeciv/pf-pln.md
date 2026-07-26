@@ -138,6 +138,7 @@ The experimental harness profiles enable the pressure ranker:
 
 ```yaml
 impact_policy:
+  expansion_final_settlement_escort_enabled: false
   pressure_enabled: true
   pressure_damping: 0.85
   pressure_exploration_floor: 0.05
@@ -605,6 +606,17 @@ distance from that geometry can relocate the founder. An empty-stock city may
 also select a declared defender without discarding accumulated non-founder
 production. The exposed seed is replayed again with only this memory switch
 changed.
+
+The route-memory replay passed all audit gates but recorded no local threat
+inside the configured radius, so adapter `grounded-impact-planner/1.12`
+targets the separate preparation failure exposed by the same trace. With
+`expansion_final_settlement_escort_enabled`, same-kind shield carry-over from
+a redundant founder queue can prepare one defender before route waiting
+begins. The defender follows only the newest active founder assigned to the
+last remaining expansion slot; earlier safe settlements retain immediate
+founding. Co-location becomes mandatory only when founding the city that
+completes `expansion_city_target`, and an already timely defender queue
+suppresses duplicate preparation.
 
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` and `pressure_score_alignment_enabled` default to `false`

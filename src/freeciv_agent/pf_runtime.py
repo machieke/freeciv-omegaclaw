@@ -11,7 +11,7 @@ from .events.schema import structural_hash
 
 
 SCHEMA_VERSION = "1.0"
-LIVE_ADAPTER = "grounded-impact-planner/1.11"
+LIVE_ADAPTER = "grounded-impact-planner/1.12"
 SUPPORT_ENGINE_LIVE = "engine-live"
 SUPPORT_COMPONENT_ONLY = "component-only"
 

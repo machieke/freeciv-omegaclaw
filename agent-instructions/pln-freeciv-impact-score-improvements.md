@@ -1437,3 +1437,25 @@ global survival pressure: it may widen only the founder-local observation and
 retention boundary, retains exact packet-visible coordinates and actor
 lifecycle scoping, and must demonstrate activation before score direction is
 interpreted.
+
+The deeper state trace rejected widening the warning radius without stronger
+evidence and exposed a more direct preparation defect. On turn 22, Roma had
+57 carried shields after completing a Settler. The planner switched from unit
+production to a Granary, crossing production kinds and reducing the stock to
+32. A same-kind Riflemen switch could instead complete an escort immediately,
+while the founder assigned to the fourth city still had ten route turns
+remaining. The unguarded fourth city was later captured after eight turns
+with its own Riflemen queue at 21 of 30 shields.
+
+Adapter 1.12 implements a final-slot-only correction behind
+`expansion_final_settlement_escort_enabled`, default false. When active and
+queued founders already cover every remaining city slot, a redundant founder
+queue may retain exact same-kind unit shield carry-over to prepare one
+defender. A projected defender queue that completes within the observed route
+ETA prevents duplicate preparation. Once active, the spare defender follows
+only the newest founder assigned to the final expansion slot. Earlier safe
+sites retain instantaneous threat-gated founding; co-location is required
+only when the new city completes `expansion_city_target`. The
+claim-ineligible `final_settlement_escort_preparation_mechanism_v1` cohort
+isolates this one switch on seed `3746776` and must report the complete
+production, route, waiting, retention, score, opponent, and margin chain.

@@ -249,3 +249,44 @@ correct, but no packet-visible opponent entered that founder-local radius
 while the founder existed. Any follow-up must use a separate, explicitly
 bounded founder warning radius and must leave the global survival-pressure
 radius unchanged.
+
+A deeper inspection showed that the recorded observation events omit enemy
+coordinates, so widening the founder boundary cannot be justified from this
+artifact alone. It also exposed a deterministic preparation opportunity:
+after completing a founder on turn 22, Roma retained 57 shields in unit
+production. The planner crossed to Granary production and retained only 32.
+The later fourth city was captured after eight turns with its local Riflemen
+at 21 of 30 shields. The next mechanism therefore targets exact production
+and route timing rather than an ungrounded radius increase.
+
+## Adapter 1.12 final-settlement escort preparation
+
+`expansion_final_settlement_escort_enabled` defaults false and requires escort
+retention to have any effect. When active and the combination of active and
+queued founders covers every remaining city slot, the planner may repurpose a
+redundant population-costing founder queue into a declared defender. Carried
+shield stock is retained in the projection only when the authoritative
+current production kind and advertised target kind are equal; cross-kind
+switches keep the conservative zero-stock assumption. A defender queue
+already projected to finish within the observed founder-route ETA prevents a
+duplicate switch.
+
+Once every remaining slot has an active founder, only the newest founder is
+assigned the final slot. A spare combat unit may follow that actor through
+strictly distance-reducing legal moves before Found City is advertised. Safe
+earlier founders remain governed by instantaneous threat gating. Co-location
+becomes mandatory only when the current city count is exactly one below
+`expansion_city_target`. Existing sole-city-defender preservation, settlement
+runway recovery, exact legal membership, effect confirmation, and failure
+suppression are unchanged.
+
+The claim-ineligible
+`final_settlement_escort_preparation_mechanism_v1` cohort reuses seed
+`3746776`. Both arms enable adapter-1.11 route memory; treatment alone enables
+final-slot preparation. Acceptance requires exact early defender-production
+installation, no duplicate preparation, final-founder-only route targeting,
+an exact escorted final settlement or bounded runway recovery, and all
+source-freeze, initial-state, rejection, fallback, latency, schema, and
+exact-replay gates. Production stock assumptions, route moves, deferrals,
+settlement retention, score, opponent score, and margin must be reported
+regardless of direction.
