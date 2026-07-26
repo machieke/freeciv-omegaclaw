@@ -45,6 +45,7 @@ impact_policy:
   expansion_minimum_settlement_runway_turns: 0
   expansion_settlement_deadline_recovery_enabled: true
   expansion_packet_site_preference_enabled: true
+  expansion_escort_retention_enabled: false
   foodbox_percent: 100
   unit_build_score_divisor: 10
   refresh_timeout_seconds: 0.3
@@ -810,6 +811,45 @@ paired_impact:
         - 3765204
         - 3790239
         - 3796144
+    settlement_escort_retention_mechanism_v1:
+      claim_eligible: false
+      purpose: diagnostic
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 1
+      controller_workers: 1
+      reused_seeds_from:
+        - packet_site_preference_mechanism_v1
+        - expansion_target_confirmatory_v1
+      reused_seed_reason: >-
+        Seed 3746776 was the sole selected-site pair with an own-score change.
+        Treatment founded a fourth city by turn 35, lost it by turn 52, and
+        finished seven points below baseline. This cohort tests only the
+        retention mechanism and cannot update any score or win-rate claim.
+      isolated_policy_keys:
+        - expansion_escort_retention_enabled
+      arms:
+        baseline:
+          expansion_city_target: 4
+          expansion_minimum_settlement_runway_turns: 15
+          expansion_settlement_deadline_recovery_enabled: true
+          expansion_packet_site_preference_enabled: true
+          expansion_escort_retention_enabled: false
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+        treatment:
+          expansion_city_target: 4
+          expansion_minimum_settlement_runway_turns: 15
+          expansion_settlement_deadline_recovery_enabled: true
+          expansion_packet_site_preference_enabled: true
+          expansion_escort_retention_enabled: true
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+      seeds:
+        - 3746776
   retired_cohorts:
     confirmatory_score_horizon_60_v4:
       retired_reason: terminal_player_elimination_misclassified_as_infrastructure_timeout

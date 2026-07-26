@@ -1327,3 +1327,20 @@ grounded reachability evidence but is insufficient as a settlement objective.
 The next bounded target is defense-aware city retention: accelerated
 settlement must not outrun authoritative defender coverage, and its activation
 must be measurable independently of site reachability.
+
+### Settlement escort retention
+
+Adapter 1.8 implements that target behind
+`expansion_escort_retention_enabled`, default false. A founder at a currently
+legal site waits when no grounded combat unit shares its tile. It retains the
+site while a spare combat unit follows only strictly distance-reducing legal
+moves; the existing sole-city-defender safeguard prevents stripping an
+established city. Co-located founding and every escort traversal retain exact
+post-action checks, and runway expiry continues into population recovery.
+
+The frozen, claim-ineligible
+`settlement_escort_retention_mechanism_v1` cohort isolates the switch on seed
+`3746776`, the sole packet-site pair with an own-score change. It must report
+activation, retention, settlement/recovery, score, opponent, margin, and lead
+regardless of direction and cannot revise the frozen score claim. See
+[`../docs/freeciv/evidence/pf-settlement-escort-retention-offline-acceptance.md`](../docs/freeciv/evidence/pf-settlement-escort-retention-offline-acceptance.md).

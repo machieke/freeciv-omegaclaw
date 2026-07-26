@@ -336,6 +336,78 @@ def test_packet_site_preference_never_preempts_founding_current_site():
     assert decision.candidate.action["action_type"] == "unit_build_city"
 
 
+def test_founder_escort_retention_waits_routes_and_confirms_settlement():
+    build = {
+        "action_type": "unit_build_city", "actor_id": 1, "is_valid": True,
+    }
+    end_turn = {"action_type": "end_turn", "is_valid": True}
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 30),
+        ("Alpine Troops", "unit", 60),
+        ("Riflemen", "unit", 40),
+    ))
+    values = {"expansion_escort_retention_enabled": True}
+    unescorted = _snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(11, "Alpine Troops", 0, 0),
+    ], [build, end_turn])
+
+    compatible = GroundedImpactPlanner(ruleset_ir=ir).plan(unescorted)
+    assert compatible.candidate.category == "city_founding"
+
+    planner = GroundedImpactPlanner(values, ruleset_ir=ir)
+    assert planner.plan(unescorted) is None
+    assert planner.founder_escort_deferral_snapshots == 1
+
+    escort_move = {
+        "action_type": "unit_move", "actor_id": 12,
+        "target": {"x": 1, "y": 0}, "is_valid": True,
+    }
+    approaching = _snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(11, "Alpine Troops", 0, 0),
+        _unit(12, "Riflemen", 0, 0),
+    ], [build, escort_move, end_turn], source_seq=2)
+    decision = planner.plan(approaching)
+    assert decision.candidate.category == "founder_escort_move"
+    assert decision.candidate.projection["current_founder_distance"] == 3
+    assert decision.candidate.projection["target_founder_distance"] == 2
+    assert decision.candidate.projection["target_founder_ids"] == (1,)
+
+    moved = _snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(11, "Alpine Troops", 0, 0),
+        _unit(12, "Riflemen", 1, 0),
+    ], [build, end_turn], source_seq=3)
+    planner.record_outcome(decision.candidate, approaching, True, moved)
+    assert planner.founder_escort_move_attempts == 1
+    assert planner.founder_escort_move_successes == 1
+
+    escorted = _snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(11, "Alpine Troops", 0, 0),
+        _unit(12, "Riflemen", 3, 0),
+    ], [build, end_turn], source_seq=4)
+    founding = planner.plan(escorted)
+    assert founding.candidate.category == "city_founding"
+    assert founding.candidate.projection["settlement_escort_present"] is True
+    assert founding.candidate.projection[
+        "settlement_escort_unit_ids"] == (12,)
+
+    second_city = _city()
+    second_city.update({
+        "id": 13, "name": "Antium", "tile": 3, "x": 3, "size": 1,
+    })
+    settled = _snapshot([
+        _unit(11, "Alpine Troops", 0, 0),
+        _unit(12, "Riflemen", 3, 0),
+    ], [end_turn], cities=[_city(), second_city], source_seq=5)
+    planner.record_outcome(
+        founding.candidate, escorted, True, settled)
+    assert planner.founder_escorted_settlement_attempts == 1
+    assert planner.founder_escorted_settlement_completions == 1
+
+
 def test_packet_site_preference_records_exact_move_outcome():
     action = {
         "action_type": "unit_move", "actor_id": 1,
@@ -948,6 +1020,7 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
                    {"expansion_minimum_settlement_runway_turns": 101},
                    {"expansion_settlement_deadline_recovery_enabled": 1},
                    {"expansion_packet_site_preference_enabled": 1},
+                   {"expansion_escort_retention_enabled": 1},
                    {"foodbox_percent": 0},
                    {"unit_build_score_divisor": 0},
                    {"production_minimum_remaining_turns": 9,

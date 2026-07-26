@@ -563,6 +563,16 @@ current-site founding. Its selected-seed engine cohort is mechanism-only and
 cannot update the adapter-1.5 claim. Offline design evidence is in
 [`evidence/pf-packet-site-preference-offline-acceptance.md`](evidence/pf-packet-site-preference-offline-acceptance.md).
 
+Adapter `grounded-impact-planner/1.8` adds an opt-in retention constraint to
+that reachability evidence. A founder at an exact legal site can wait for a
+co-located grounded combat escort. While waiting it does not discard the site;
+a spare combat unit may approach only through legal, strictly
+distance-reducing moves, and a sole existing city defender remains protected.
+The settlement proceeds through the unchanged exact city-count/actor-
+consumption confirmation once the escort is present. Offline design evidence
+is in
+[`evidence/pf-settlement-escort-retention-offline-acceptance.md`](evidence/pf-settlement-escort-retention-offline-acceptance.md).
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` and `pressure_score_alignment_enabled` default to `false`
 unless the runtime profile enables them. This preserves unit-level policy

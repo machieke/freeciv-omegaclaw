@@ -33,6 +33,7 @@ impact_policy:
   expansion_minimum_settlement_runway_turns: 0
   expansion_settlement_deadline_recovery_enabled: true
   expansion_packet_site_preference_enabled: true
+  expansion_escort_retention_enabled: false
   foodbox_percent: 100
   unit_build_score_divisor: 10
   no_effect_retry_limit: 1
@@ -98,6 +99,16 @@ same founder is explicitly true,
 frontier travel while keeping all alternatives available. This cannot
 preempt an already advertised founding action and does not classify an
 unknown or false destination as impassable.
+
+Adapter 1.8 adds the opt-in `expansion_escort_retention_enabled` retention
+guard. A packet-legal Found City action without a co-located grounded combat
+unit is deferred, and the founder holds its exact site while a spare combat
+unit follows only legal moves that strictly reduce distance. A sole defender
+occupying an existing city is never repurposed as an escort. Once an escort is
+co-located, the existing founding, runway, spacing, failure-learning, and exact
+effect checks apply unchanged. If the runway expires first, adapter 1.6
+population recovery still takes precedence. The switch defaults false pending
+engine mechanism evidence.
 
 Founder routing is feedback-driven in the horizon-score policy. On the first step from
 a city, aggregate distance from the complete city network breaks minimum-distance ties
