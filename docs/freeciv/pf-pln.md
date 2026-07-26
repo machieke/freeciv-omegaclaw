@@ -581,6 +581,17 @@ unit a production-defense deficit. A population-costing founder queue may be
 repurposed into a declared defender, with exact installation required before
 the defender can escort.
 
+The selected ten-pair generalization proved this mechanism executes but
+rejected applying it to every site: treatment founded 0.9 fewer cities and
+changed own score by -1.0 while averaging 46.1 deferral snapshots. Adapter
+`grounded-impact-planner/1.10` adds an opt-in founder-local threat gate. With
+escort retention and threat gating enabled, only a founder with an exact
+packet-visible opponent inside `pressure_survival_threat_radius` waits for a
+combat escort. An unthreatened legal site founds immediately. The same
+production-defense, city-defender preservation, exact traversal, founding
+confirmation, and runway deadline remain in force. Mechanism validation is
+predeclared on the exposed seed before any broader score experiment.
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` and `pressure_score_alignment_enabled` default to `false`
 unless the runtime profile enables them. This preserves unit-level policy

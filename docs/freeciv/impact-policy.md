@@ -34,6 +34,7 @@ impact_policy:
   expansion_settlement_deadline_recovery_enabled: true
   expansion_packet_site_preference_enabled: true
   expansion_escort_retention_enabled: false
+  expansion_escort_threat_gating_enabled: false
   foodbox_percent: 100
   unit_build_score_divisor: 10
   no_effect_retry_limit: 1
@@ -117,6 +118,17 @@ unescorted and every combat unit is a required city defender, the condition
 also grounds a `production_defense` candidate. A population-costing founder
 queue may be lossily repurposed into a declared defender, preventing repeated
 founder replacement while exact legal sites wait for real defense capacity.
+
+The selected ten-pair generalization showed that unconditional co-location
+waits too broadly: founders deferred 46.1 snapshots on average, founded 0.9
+fewer cities, and lost 1.9 citizen-score points. Adapter 1.10 therefore adds
+the independently opt-in `expansion_escort_threat_gating_enabled` rule. When
+both switches are true, an unescorted legal site waits only while an exact
+packet-visible opponent is within `pressure_survival_threat_radius` of that
+founder. A safe site founds immediately; a threatened site retains the
+combat-only escort and production-defense path. The existing settlement
+runway remains the hard deadline. Threat-gated deferrals and safe unescorted
+settlements are exported separately.
 
 Founder routing is feedback-driven in the horizon-score policy. On the first step from
 a city, aggregate distance from the complete city network breaks minimum-distance ties

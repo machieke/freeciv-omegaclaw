@@ -148,3 +148,27 @@ escorts and defender production generalize, but rejects unconditional
 co-location as a score-bearing policy. The feature remains disabled by
 default. The next correction must bound waiting cost and require an escort
 only where grounded threat makes retention risk exceed the expansion delay.
+
+## Adapter 1.10 founder-local threat gate
+
+`expansion_escort_threat_gating_enabled` defaults false and has no effect
+unless escort retention is also enabled. When both are true, an unescorted
+legal site is deferred only if an exact packet-visible opponent is within the
+existing `pressure_survival_threat_radius` of that founder. The predicate uses
+authoritative unit and map geometry with wrapped distance. Missing enemy
+coordinates do not invent a threat. An unthreatened site immediately remains
+a normal founding candidate and records a separate safe-bypass
+attempt/completion; threat-caused deferral snapshots are also counted
+separately.
+
+The one-pair, claim-ineligible
+`settlement_escort_threat_gating_mechanism_v1` cohort reuses exposed seed
+`3746776`. Both arms enable corrected combat-only escort retention; treatment
+alone enables founder-local threat gating. This isolates the gating rule
+against unconditional adapter 1.9 behavior. Acceptance requires a safe
+settlement to bypass waiting, the historically contested approach to activate
+the threat predicate, every activated escort to remain combat-grounded, and
+all source, safety, schema, and exact-replay gates to pass. All own-score,
+opponent, margin, settlement, retention, and recovery outcomes must be
+reported regardless of direction. This selected mechanism replay cannot
+update a score or win-rate claim.

@@ -419,6 +419,76 @@ def test_founder_escort_retention_waits_routes_and_confirms_settlement():
     assert planner.founder_escorted_settlement_completions == 1
 
 
+def test_founder_escort_threat_gate_bypasses_safe_sites_and_guards_local_threats():
+    build = {
+        "action_type": "unit_build_city", "actor_id": 1, "is_valid": True,
+    }
+    end_turn = {"action_type": "end_turn", "is_valid": True}
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 30),
+        ("Alpine Troops", "unit", 60),
+        ("Riflemen", "unit", 40),
+    ))
+    values = {
+        "expansion_escort_retention_enabled": True,
+        "expansion_escort_threat_gating_enabled": True,
+        "pressure_survival_threat_radius": 3,
+    }
+    planner = GroundedImpactPlanner(values, ruleset_ir=ir)
+
+    safe = _snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(11, "Alpine Troops", 0, 0),
+        _enemy(90, "Warriors", 7, 0),
+    ], [build, end_turn])
+    founding = planner.plan(safe)
+
+    assert founding.candidate.category == "city_founding"
+    assert founding.candidate.projection[
+        "settlement_escort_required"] is False
+    assert founding.candidate.projection[
+        "settlement_escort_safe_bypass"] is True
+    assert founding.candidate.projection[
+        "settlement_visible_threat_unit_ids"] == ()
+    settled_city = _city()
+    settled_city.update({
+        "id": 13, "name": "Antium", "tile": 3, "x": 3, "size": 1,
+    })
+    settled = _snapshot([
+        _unit(11, "Alpine Troops", 0, 0),
+        _enemy(90, "Warriors", 7, 0),
+    ], [end_turn], cities=[_city(), settled_city], source_seq=2)
+    planner.record_outcome(
+        founding.candidate, safe, True, settled)
+    assert planner.founder_unescorted_safe_settlement_attempts == 1
+    assert planner.founder_unescorted_safe_settlement_completions == 1
+
+    threatened = _snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(11, "Alpine Troops", 0, 0),
+        _enemy(91, "Settlers", 5, 0),
+    ], [build, end_turn], source_seq=3)
+
+    assert planner.plan(threatened) is None
+    assert planner.founder_escort_deferral_snapshots == 1
+    assert planner.founder_escort_threat_deferral_snapshots == 1
+
+    escort_move = {
+        "action_type": "unit_move", "actor_id": 12,
+        "target": {"x": 1, "y": 0}, "is_valid": True,
+    }
+    approaching = _snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(11, "Alpine Troops", 0, 0),
+        _unit(12, "Riflemen", 0, 0),
+        _enemy(91, "Settlers", 5, 0),
+    ], [build, escort_move, end_turn], source_seq=4)
+    escort = planner.plan(approaching)
+
+    assert escort.candidate.category == "founder_escort_move"
+    assert escort.candidate.projection["target_founder_ids"] == (1,)
+
+
 def test_unescorted_legal_site_repurposes_founder_queue_to_defense():
     city = _city(
         size=4, food_stock=20, shield_stock=10,
@@ -1082,6 +1152,7 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
                    {"expansion_settlement_deadline_recovery_enabled": 1},
                    {"expansion_packet_site_preference_enabled": 1},
                    {"expansion_escort_retention_enabled": 1},
+                   {"expansion_escort_threat_gating_enabled": 1},
                    {"foodbox_percent": 0},
                    {"unit_build_score_divisor": 0},
                    {"production_minimum_remaining_turns": 9,

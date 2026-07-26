@@ -205,7 +205,7 @@ def _target_name(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.9"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.10"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -333,6 +333,12 @@ class GroundedImpactPlanner(object):
             raise ValueError(
                 "expansion_escort_retention_enabled must be boolean")
         self.expansion_escort_retention_enabled = escort_retention
+        escort_threat_gating = values.get(
+            "expansion_escort_threat_gating_enabled", False)
+        if not isinstance(escort_threat_gating, bool):
+            raise ValueError(
+                "expansion_escort_threat_gating_enabled must be boolean")
+        self.expansion_escort_threat_gating_enabled = escort_threat_gating
         self.foodbox_percent = int(values.get("foodbox_percent", 100))
         self.unit_build_score_divisor = int(values.get(
             "unit_build_score_divisor", 10))
@@ -401,6 +407,7 @@ class GroundedImpactPlanner(object):
         self._failed_settlement_sites = set()
         self._failed_settlement_site_prunes = set()
         self._founder_escort_deferral_snapshots = set()
+        self._founder_escort_threat_deferral_snapshots = set()
         self._failed_exploration_target_sources = {}
         self._failed_exploration_prunes = set()
         self._preexpansion_sequences = {}
@@ -456,6 +463,8 @@ class GroundedImpactPlanner(object):
         self.founder_escort_defense_production_successes = 0
         self.founder_escorted_settlement_attempts = 0
         self.founder_escorted_settlement_completions = 0
+        self.founder_unescorted_safe_settlement_attempts = 0
+        self.founder_unescorted_safe_settlement_completions = 0
         self.population_recovery_attempts = 0
         self.population_recovery_completions = 0
         self.population_recovered = 0
@@ -1117,6 +1126,11 @@ class GroundedImpactPlanner(object):
                 self.founder_escorted_settlement_attempts += 1
                 self.founder_escorted_settlement_completions += int(
                     bool(effect_observed))
+            if (candidate.projection or {}).get(
+                    "settlement_escort_safe_bypass") is True:
+                self.founder_unescorted_safe_settlement_attempts += 1
+                self.founder_unescorted_safe_settlement_completions += int(
+                    bool(effect_observed))
             # A settlement attempt ends the current movement corridor whether
             # the site succeeds or the unit must search from the same tile.
             self._founder_cardinal_intents.pop(
@@ -1559,13 +1573,47 @@ class GroundedImpactPlanner(object):
             if not self._founder_site_escorts(
                 snapshot, unit, founder_types))
 
+    def _founder_visible_threats(self, snapshot, founder):
+        """Return exact packet-visible opponents proximate to one founder."""
+        if founder is None or founder.x is None or founder.y is None:
+            return ()
+        return tuple(sorted(
+            (unit for unit in snapshot.visible_enemy_units
+             if unit.x is not None and unit.y is not None
+             and _distance(
+                 founder.x, founder.y, unit.x, unit.y,
+                 snapshot.map_width, snapshot.map_height)
+             <= self.pressure_survival_threat_radius),
+            key=lambda unit: unit.unit_id))
+
+    def _founder_escort_required(self, snapshot, founder):
+        if not self.expansion_escort_retention_enabled:
+            return False
+        return bool(
+            not self.expansion_escort_threat_gating_enabled
+            or self._founder_visible_threats(snapshot, founder))
+
+    def _escort_required_founders(
+            self, snapshot, actions, founder_types):
+        return tuple(
+            founder for founder in self._directly_foundable_founders(
+                snapshot, actions, founder_types, unescorted_only=True)
+            if self._founder_escort_required(snapshot, founder))
+
     def _record_founder_escort_deferral(self, snapshot, founder):
-        self._founder_escort_deferral_snapshots.add(
-            (snapshot.snapshot_id, founder.unit_id))
+        key = (snapshot.snapshot_id, founder.unit_id)
+        self._founder_escort_deferral_snapshots.add(key)
+        if (self.expansion_escort_threat_gating_enabled
+                and self._founder_visible_threats(snapshot, founder)):
+            self._founder_escort_threat_deferral_snapshots.add(key)
 
     @property
     def founder_escort_deferral_snapshots(self):
         return len(self._founder_escort_deferral_snapshots)
+
+    @property
+    def founder_escort_threat_deferral_snapshots(self):
+        return len(self._founder_escort_threat_deferral_snapshots)
 
     def _city_defender_is_required(self, snapshot, unit, founder_types=None):
         if not self.preserve_city_defenders:
@@ -2187,10 +2235,9 @@ class GroundedImpactPlanner(object):
             lambda: self._combat_units(snapshot, founder_types))
         if self.expansion_escort_retention_enabled:
             unescorted_founders = shared(
-                "unescorted_foundable_founders",
-                lambda: self._directly_foundable_founders(
-                    snapshot, actions, founder_types,
-                    unescorted_only=True))
+                "escort_required_founders",
+                lambda: self._escort_required_founders(
+                    snapshot, actions, founder_types))
             spare_combat_units = tuple(
                 unit for unit in combat_units
                 if not self._city_defender_is_required(
@@ -2481,9 +2528,8 @@ class GroundedImpactPlanner(object):
                     projection)
             if self.expansion_escort_retention_enabled and any(
                     founder.unit_id == unit.unit_id
-                    for founder in self._directly_foundable_founders(
-                        snapshot, actions, founder_types,
-                        unescorted_only=True)):
+                    for founder in self._escort_required_founders(
+                        snapshot, actions, founder_types)):
                 # A legal site is preserved while a spare grounded combat unit
                 # approaches. Moving the founder would discard both the exact
                 # Found City opportunity and the escort's current destination.
@@ -2597,8 +2643,8 @@ class GroundedImpactPlanner(object):
                     combat.unit_id == unit.unit_id
                     for combat in self._combat_units(
                         snapshot, founder_types))):
-            foundable = self._directly_foundable_founders(
-                snapshot, actions, founder_types, unescorted_only=True)
+            foundable = self._escort_required_founders(
+                snapshot, actions, founder_types)
             if foundable:
                 current_distance = min(
                     _distance(
@@ -2819,13 +2865,20 @@ class GroundedImpactPlanner(object):
                     else 0)
                 escorts = self._founder_site_escorts(
                     snapshot, unit, founder_types)
+                escort_required = self._founder_escort_required(
+                    snapshot, unit)
+                visible_threats = (
+                    self._founder_visible_threats(snapshot, unit)
+                    if (self.expansion_escort_retention_enabled
+                        and self.expansion_escort_threat_gating_enabled)
+                    else ())
                 if (unit is not None and len(snapshot.cities) < self.expansion_city_target
                         and self._distance_from_cities(snapshot, unit.x, unit.y)
                         >= self.settle_min_distance
                         and settlement_runway
                         >= settlement_runway_required):
                     if (self.expansion_escort_retention_enabled
-                            and not escorts):
+                            and escort_required and not escorts):
                         self._record_founder_escort_deferral(snapshot, unit)
                     elif site_key in self._failed_settlement_sites:
                         self._failed_settlement_site_prunes.add(key)
@@ -2841,13 +2894,37 @@ class GroundedImpactPlanner(object):
                         if self.expansion_escort_retention_enabled:
                             projection = dict(projection or {})
                             projection.update({
-                                "settlement_escort_present": True,
+                                "settlement_escort_present": bool(escorts),
+                                "settlement_escort_required": bool(
+                                    escort_required),
+                                "settlement_escort_safe_bypass": bool(
+                                    self.expansion_escort_threat_gating_enabled
+                                    and not escort_required and not escorts),
+                                "settlement_escort_threat_gating_enabled": (
+                                    self.expansion_escort_threat_gating_enabled),
                                 "settlement_escort_unit_ids": tuple(
                                     escort.unit_id for escort in escorts),
+                                "settlement_visible_threat_unit_ids": tuple(
+                                    threat.unit_id
+                                    for threat in visible_threats),
                             })
                         candidate = ImpactCandidate(
                             action, "city_founding", 1000.0,
-                            ("found a city at or beyond the configured spacing "
+                            ("found an unthreatened city immediately because no "
+                             "packet-visible opponent is within the founder "
+                             "threat radius and the declared score-bearing "
+                             "runway remains"
+                             if (self.expansion_escort_retention_enabled
+                                 and self.expansion_escort_threat_gating_enabled
+                                 and not escort_required and not escorts
+                                 and settlement_runway_required > 0)
+                             else "found an unthreatened city immediately "
+                             "because no packet-visible opponent is within the "
+                             "founder threat radius"
+                             if (self.expansion_escort_retention_enabled
+                                 and self.expansion_escort_threat_gating_enabled
+                                 and not escort_required and not escorts)
+                             else "found a city at or beyond the configured spacing "
                              "with a grounded co-located escort and the "
                              "declared score-bearing runway"
                              if (self.expansion_escort_retention_enabled

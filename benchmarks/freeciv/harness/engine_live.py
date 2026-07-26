@@ -2691,6 +2691,9 @@ async def _play(run_dir, manifest, context):
         ("planner_founder_escort_deferral_snapshots",
          impact_planner.founder_escort_deferral_snapshots
          if impact_planner is not None else 0),
+        ("planner_founder_escort_threat_deferral_snapshots",
+         impact_planner.founder_escort_threat_deferral_snapshots
+         if impact_planner is not None else 0),
         ("planner_founder_escort_defense_production_attempts",
          impact_planner.founder_escort_defense_production_attempts
          if impact_planner is not None else 0),
@@ -2722,6 +2725,19 @@ async def _play(run_dir, manifest, context):
         ("planner_founder_escorted_settlement_completion_rate",
          (float(impact_planner.founder_escorted_settlement_completions)
           / max(1, impact_planner.founder_escorted_settlement_attempts))
+         if impact_planner is not None else 0.0),
+        ("planner_founder_unescorted_safe_settlement_attempts",
+         impact_planner.founder_unescorted_safe_settlement_attempts
+         if impact_planner is not None else 0),
+        ("planner_founder_unescorted_safe_settlement_completions",
+         impact_planner.founder_unescorted_safe_settlement_completions
+         if impact_planner is not None else 0),
+        ("planner_founder_unescorted_safe_settlement_completion_rate",
+         (float(
+             impact_planner.founder_unescorted_safe_settlement_completions)
+          / max(
+              1,
+              impact_planner.founder_unescorted_safe_settlement_attempts))
          if impact_planner is not None else 0.0),
         ("planner_founder_capable_unit_types",
          len(impact_planner.founder_capable_types)
@@ -2904,6 +2920,9 @@ async def _play(run_dir, manifest, context):
             "planner_founder_escort_deferral_snapshots": (
                 impact_planner.founder_escort_deferral_snapshots
                 if impact_planner is not None else 0),
+            "planner_founder_escort_threat_deferral_snapshots": (
+                impact_planner.founder_escort_threat_deferral_snapshots
+                if impact_planner is not None else 0),
             "planner_founder_escort_defense_production_attempts": (
                 impact_planner.founder_escort_defense_production_attempts
                 if impact_planner is not None else 0),
@@ -2921,6 +2940,12 @@ async def _play(run_dir, manifest, context):
                 if impact_planner is not None else 0),
             "planner_founder_escorted_settlement_completions": (
                 impact_planner.founder_escorted_settlement_completions
+                if impact_planner is not None else 0),
+            "planner_founder_unescorted_safe_settlement_attempts": (
+                impact_planner.founder_unescorted_safe_settlement_attempts
+                if impact_planner is not None else 0),
+            "planner_founder_unescorted_safe_settlement_completions": (
+                impact_planner.founder_unescorted_safe_settlement_completions
                 if impact_planner is not None else 0),
             "planner_founder_capable_unit_types": (
                 len(impact_planner.founder_capable_types)
@@ -3023,6 +3048,9 @@ async def _play(run_dir, manifest, context):
         "planner_founder_escort_deferral_snapshots": (
             impact_planner.founder_escort_deferral_snapshots
             if impact_planner is not None else 0),
+        "planner_founder_escort_threat_deferral_snapshots": (
+            impact_planner.founder_escort_threat_deferral_snapshots
+            if impact_planner is not None else 0),
         "planner_founder_escort_defense_production_attempts": (
             impact_planner.founder_escort_defense_production_attempts
             if impact_planner is not None else 0),
@@ -3040,6 +3068,12 @@ async def _play(run_dir, manifest, context):
             if impact_planner is not None else 0),
         "planner_founder_escorted_settlement_completions": (
             impact_planner.founder_escorted_settlement_completions
+            if impact_planner is not None else 0),
+        "planner_founder_unescorted_safe_settlement_attempts": (
+            impact_planner.founder_unescorted_safe_settlement_attempts
+            if impact_planner is not None else 0),
+        "planner_founder_unescorted_safe_settlement_completions": (
+            impact_planner.founder_unescorted_safe_settlement_completions
             if impact_planner is not None else 0),
         "planner_founder_capable_unit_types": (
             len(impact_planner.founder_capable_types)

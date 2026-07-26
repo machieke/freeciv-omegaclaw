@@ -1383,3 +1383,14 @@ treatment files and 792 decisions with zero integrity failure. The feature
 remains disabled. The next score-directed variant must use authoritative
 local threat to distinguish the seed-`3746776` retention risk from safe sites
 and cap escort waiting so protection cannot erase the expansion gain.
+
+Adapter 1.10 implements that next bounded variant behind
+`expansion_escort_threat_gating_enabled`, default false. With both escort
+switches enabled, a legal site waits only while an exact packet-visible
+opponent lies within the configured radius of that founder. Safe sites found
+immediately, while threatened sites retain combat-only escort routing,
+defender production, city-garrison preservation, and the existing
+score-bearing runway deadline. Threat deferrals and safe unescorted founding
+are measured independently. The selected-seed mechanism cohort isolates this
+gate against unconditional adapter 1.9 before any generalization or fresh
+pilot is considered.

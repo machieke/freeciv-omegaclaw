@@ -81,6 +81,10 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert config["impact_policy"]["pressure_learning_rate"] == 0.10
     assert config["impact_policy"]["pressure_no_progress_rate"] == 0.10
     assert config["impact_policy"]["pressure_initial_conductance"] == 1.00
+    assert config[
+        "impact_policy"]["expansion_escort_retention_enabled"] is False
+    assert config[
+        "impact_policy"]["expansion_escort_threat_gating_enabled"] is False
     paired = config["paired_impact"]
     assert paired["default_cohort"] == "development"
     assert {name: len(row["seeds"]) for name, row in paired["cohorts"].items()} == {
@@ -113,6 +117,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "settlement_escort_retention_mechanism_v1": 1,
             "settlement_escort_retention_mechanism_v2": 1,
             "settlement_escort_retention_generalization_v1": 10,
+            "settlement_escort_threat_gating_mechanism_v1": 1,
         }
     seed_sets = [
         set(row["seeds"]) for row in paired["cohorts"].values()
@@ -400,6 +405,20 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert escort_generalization["claim_eligible"] is False
     assert escort_generalization["isolated_policy_keys"] == [
         "expansion_escort_retention_enabled"]
+    escort_threat_gating = paired["cohorts"][
+        "settlement_escort_threat_gating_mechanism_v1"]
+    assert escort_threat_gating["seeds"] == [3746776]
+    assert escort_threat_gating["claim_eligible"] is False
+    assert escort_threat_gating["isolated_policy_keys"] == [
+        "expansion_escort_threat_gating_enabled"]
+    assert escort_threat_gating["arms"]["baseline"][
+        "expansion_escort_retention_enabled"] is True
+    assert escort_threat_gating["arms"]["treatment"][
+        "expansion_escort_retention_enabled"] is True
+    assert escort_threat_gating["arms"]["baseline"][
+        "expansion_escort_threat_gating_enabled"] is False
+    assert escort_threat_gating["arms"]["treatment"][
+        "expansion_escort_threat_gating_enabled"] is True
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.2",
         "source_sha256": "3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e",

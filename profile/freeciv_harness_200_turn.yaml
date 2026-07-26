@@ -45,6 +45,7 @@ impact_policy:
   expansion_settlement_deadline_recovery_enabled: true
   expansion_packet_site_preference_enabled: true
   expansion_escort_retention_enabled: false
+  expansion_escort_threat_gating_enabled: false
   foodbox_percent: 100
   unit_build_score_divisor: 10
   refresh_timeout_seconds: 0.3
