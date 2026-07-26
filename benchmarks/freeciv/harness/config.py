@@ -63,6 +63,14 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
         raise ValueError(
             "{}.pressure_exploration_information_enabled must be boolean"
             .format(prefix))
+    tolerance = impact.get(
+        "pressure_score_alignment_utility_tolerance", 0.0)
+    if (isinstance(tolerance, bool)
+            or not isinstance(tolerance, (int, float))
+            or not 0.0 <= float(tolerance) <= 0.25):
+        raise ValueError(
+            "{}.pressure_score_alignment_utility_tolerance must be in "
+            "0..0.25".format(prefix))
     if (impact.get("pressure_learning_enabled", False)
             and not impact.get("pressure_enabled", False)):
         raise ValueError(

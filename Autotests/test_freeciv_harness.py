@@ -73,7 +73,9 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert config[
         "impact_policy"]["pressure_score_alignment_enabled"] is True
     assert config[
-        "impact_policy"]["pressure_exploration_information_enabled"] is False
+        "impact_policy"]["pressure_exploration_information_enabled"] is True
+    assert config[
+        "impact_policy"]["pressure_score_alignment_utility_tolerance"] == 0.05
     assert config["impact_policy"]["pressure_max_routes_per_conclusion"] == 32
     assert config["impact_policy"]["pressure_survival_threat_radius"] == 3
     assert config["impact_policy"]["pressure_learning_rate"] == 0.10
@@ -102,6 +104,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "pressure_direct_completion_pilot_v1": 40,
         "pressure_direct_completion_confirmatory_v1": 100,
         "pressure_score_alignment_pilot_v1": 40,
+        "pressure_score_alignment_pilot_v2": 40,
     }
     seed_sets = [set(row["seeds"]) for row in paired["cohorts"].values()]
     assert all(not left & right for index, left in enumerate(seed_sets)
@@ -278,6 +281,15 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "count": 40, "minimum": 3300000, "maximum": 3399999,
     }
     assert score_alignment_pilot["isolated_policy_keys"] == [
+        "pressure_score_alignment_enabled"]
+    score_alignment_pilot_v2 = paired["cohorts"][
+        "pressure_score_alignment_pilot_v2"]
+    assert score_alignment_pilot_v2["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": "pf-pln-pressure-score-alignment-pilot-v2",
+        "count": 40, "minimum": 3400000, "maximum": 3499999,
+    }
+    assert score_alignment_pilot_v2["isolated_policy_keys"] == [
         "pressure_score_alignment_enabled"]
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.2",
@@ -1699,6 +1711,36 @@ def test_paired_impact_jobs_alternate_order_and_override_only_declared_policy():
         "impact_policy"]["pressure_score_alignment_enabled"] is False
     assert alignment_treatment[
         "impact_policy"]["pressure_score_alignment_enabled"] is True
+    assert alignment_baseline[
+        "impact_policy"]["pressure_exploration_information_enabled"] is False
+    assert alignment_treatment[
+        "impact_policy"]["pressure_exploration_information_enabled"] is False
+    assert alignment_baseline[
+        "impact_policy"]["pressure_score_alignment_utility_tolerance"] == 0.0
+    assert alignment_treatment[
+        "impact_policy"]["pressure_score_alignment_utility_tolerance"] == 0.0
+
+    alignment_v2_runner = HarnessRunner(
+        "unused", seed_limit=1, conditions=("e_full_loop",),
+        impact_cohort="pressure_score_alignment_pilot_v2")
+    alignment_v2_jobs = alignment_v2_runner._impact_jobs()
+    alignment_v2_baseline = alignment_v2_runner._manifest(
+        alignment_v2_jobs[0], 0)
+    alignment_v2_treatment = alignment_v2_runner._manifest(
+        alignment_v2_jobs[1], 0)
+    alignment_v2_differing = sorted(
+        key for key in alignment_v2_baseline["impact_policy"]
+        if alignment_v2_baseline["impact_policy"][key]
+        != alignment_v2_treatment["impact_policy"][key])
+    assert alignment_v2_differing == ["pressure_score_alignment_enabled"]
+    assert alignment_v2_baseline[
+        "impact_policy"]["pressure_exploration_information_enabled"] is True
+    assert alignment_v2_treatment[
+        "impact_policy"]["pressure_exploration_information_enabled"] is True
+    assert alignment_v2_baseline[
+        "impact_policy"]["pressure_score_alignment_utility_tolerance"] == 0.05
+    assert alignment_v2_treatment[
+        "impact_policy"]["pressure_score_alignment_utility_tolerance"] == 0.05
 
 
 def test_parallel_impact_execution_keeps_each_pair_serial_on_one_worker(monkeypatch):

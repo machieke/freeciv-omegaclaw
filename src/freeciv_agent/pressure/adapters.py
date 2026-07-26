@@ -176,7 +176,8 @@ class ImpactPressureRanker(object):
 
     def __init__(
             self, config=None, conductance_state=None, score_alignment=False,
-            exploration_information_enabled=True):
+            exploration_information_enabled=True,
+            score_alignment_utility_tolerance=0.0):
         self.config = config or PressureConfig()
         self.engine = PressureEngine(self.config)
         self.scheduler = PressureScheduler(self.config)
@@ -185,9 +186,18 @@ class ImpactPressureRanker(object):
             raise TypeError("score alignment must be boolean")
         if not isinstance(exploration_information_enabled, bool):
             raise TypeError("exploration information setting must be boolean")
+        if (isinstance(score_alignment_utility_tolerance, bool)
+                or not isinstance(
+                    score_alignment_utility_tolerance, (int, float))
+                or not 0.0 <= float(
+                    score_alignment_utility_tolerance) <= 0.25):
+            raise ValueError(
+                "score alignment utility tolerance must be in 0..0.25")
         self.score_alignment = score_alignment
         self.exploration_information_enabled = (
             exploration_information_enabled)
+        self.score_alignment_utility_tolerance = float(
+            score_alignment_utility_tolerance)
 
     @classmethod
     def goal_for_category(cls, category):
@@ -460,14 +470,18 @@ class ImpactPressureRanker(object):
 
     @classmethod
     def _score_aligned_scores(
-            cls, scores, candidate_by_operation, safety_active):
-        """Fail closed on non-safety utility regret without score evidence."""
+            cls, scores, candidate_by_operation, safety_active,
+            utility_tolerance=0.0):
+        """Bound utility regret while respecting heuristic uncertainty."""
         scores = tuple(scores)
-        if safety_active:
+        eligible_operations = frozenset(
+            row.operation_id for row in scores if row.admissible)
+        if not eligible_operations:
             return scores
         deadline_candidates = tuple(
             row for row in candidate_by_operation.items()
-            if cls._deadline_fit(row[1]) > 0.0)
+            if (row[0] in eligible_operations
+                and cls._deadline_fit(row[1]) > 0.0))
         if not deadline_candidates:
             return scores
         canonical = min(
@@ -478,15 +492,20 @@ class ImpactPressureRanker(object):
         canonical_candidate = canonical[1]
         canonical_score = cls._guaranteed_horizon_score(
             canonical_candidate)
+        utility_floor = (
+            float(canonical_candidate.utility)
+            - abs(float(canonical_candidate.utility))
+            * float(utility_tolerance))
         guarded = []
         for row in scores:
             candidate = candidate_by_operation[row.operation_id]
             score_gain = (
-                cls._guaranteed_horizon_score(candidate)
+                not safety_active
+                and cls._guaranteed_horizon_score(candidate)
                 > canonical_score)
             utility_preserved = (
                 float(candidate.utility)
-                >= float(canonical_candidate.utility))
+                >= utility_floor)
             deadline_fit = cls._deadline_fit(candidate) > 0.0
             if (row.admissible and deadline_fit
                     and not utility_preserved and not score_gain):
@@ -725,12 +744,17 @@ class ImpactPressureRanker(object):
             # score-aligned policy uses the best value in each category, which
             # preserves category cardinality invariance while preventing a
             # weak same-goal category from borrowing a stronger one's value.
+            # No opportunity cost is asserted inside the declared uncertainty
+            # band because those heuristic utilities are operationally tied.
             opportunity_cost = max(
                 0.0,
-                opportunity_ceiling - (
-                    category_maximum_utility[candidate.category]
-                    if self.score_alignment else
-                    goal_maximum_utility[goal_name]))
+                (
+                    opportunity_ceiling
+                    - abs(opportunity_ceiling)
+                    * self.score_alignment_utility_tolerance
+                    - category_maximum_utility[candidate.category])
+                if self.score_alignment else
+                opportunity_ceiling - goal_maximum_utility[goal_name])
             operations.append(Operation(
                 operation_id, operation_atom_by_candidate[id(candidate)],
                 "act", CostVector(
@@ -760,7 +784,8 @@ class ImpactPressureRanker(object):
         scores = self.scheduler.score_all(operations, result)
         if self.score_alignment:
             scores = self._score_aligned_scores(
-                scores, candidate_by_operation, safety_active)
+                scores, candidate_by_operation, safety_active,
+                self.score_alignment_utility_tolerance)
             if diagnostics is not None:
                 diagnostics["pressure_score_alignment_guard_rejections"] = (
                     diagnostics.get(

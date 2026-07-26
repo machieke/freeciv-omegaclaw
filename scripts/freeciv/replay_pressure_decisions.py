@@ -35,18 +35,38 @@ def main():
         "--opportunity-counterfactual", action="store_true")
     mode.add_argument(
         "--score-alignment-counterfactual", action="store_true")
+    parser.add_argument(
+        "--exploration-information-enabled", action="store_true",
+        help=(
+            "retain grounded positional exploration pressure in "
+            "score-alignment replay"))
+    parser.add_argument(
+        "--score-alignment-utility-tolerance", type=float, default=0.0,
+        help="relative utility uncertainty band for score-alignment replay")
     parser.add_argument("--output")
     parser.add_argument("--relative-to", default=REPO)
     args = parser.parse_args()
-    replay = (
-        direct_completion_counterfactual_paths
-        if args.direct_completion_counterfactual
-        else score_alignment_counterfactual_paths
-        if args.score_alignment_counterfactual
-        else opportunity_counterfactual_paths
-        if args.opportunity_counterfactual
-        else replay_paths)
-    result = replay(args.paths, args.maximum_files, args.relative_to)
+    if (not args.score_alignment_counterfactual
+            and (args.exploration_information_enabled
+                 or args.score_alignment_utility_tolerance)):
+        parser.error(
+            "score-alignment replay settings require "
+            "--score-alignment-counterfactual")
+    if args.score_alignment_counterfactual:
+        result = score_alignment_counterfactual_paths(
+            args.paths, args.maximum_files, args.relative_to,
+            exploration_information_enabled=(
+                args.exploration_information_enabled),
+            score_alignment_utility_tolerance=(
+                args.score_alignment_utility_tolerance))
+    else:
+        replay = (
+            direct_completion_counterfactual_paths
+            if args.direct_completion_counterfactual
+            else opportunity_counterfactual_paths
+            if args.opportunity_counterfactual
+            else replay_paths)
+        result = replay(args.paths, args.maximum_files, args.relative_to)
     encoded = canonical_json_bytes(result) + b"\n"
     if args.output:
         with open(args.output, "wb") as stream:

@@ -1113,6 +1113,112 @@ def test_score_alignment_suppresses_generic_exploration_without_information():
     assert diagnostics["pressure_score_alignment_deadline_rejections"] == 0
 
 
+def test_score_alignment_utility_band_preserves_close_pressure_preference():
+    snapshot = SimpleNamespace(
+        cities=(SimpleNamespace(x=0, y=0),), units=(), turn=2,
+        visible_enemy_units=(), map_width=26, map_height=26)
+    tactical = _Candidate("tactical_move", 657.0, "nominal-utility-leader")
+    exploration = _Candidate(
+        "exploration_move", 645.0, "grounded-positional-route")
+
+    ordered, artifact = ImpactPressureRanker(
+        score_alignment=True,
+        exploration_information_enabled=True,
+        score_alignment_utility_tolerance=0.05).rank(
+            snapshot, (tactical, exploration),
+            expansion_city_target=3, horizon_turn=60)
+
+    assert ordered[0] is exploration
+    exploration_score = next(
+        row for row in artifact["schedule"]["scores"]
+        if row["operation"]["payload"]["category"] == "exploration_move")
+    assert exploration_score["admissible"]
+    assert exploration_score["reason"] is None
+    assert exploration_score["operation"]["cost"]["opportunity"] == 0.0
+
+    strict_ordered, strict_artifact = ImpactPressureRanker(
+        score_alignment=True,
+        exploration_information_enabled=False).rank(
+            snapshot, (tactical, exploration),
+            expansion_city_target=3, horizon_turn=60)
+    rescored = score_alignment_rescore(
+        strict_artifact["schedule"]["scores"],
+        strict_artifact["pressure"],
+        strict_artifact["conductance_state"], turn=2,
+        exploration_information_enabled=True,
+        score_alignment_utility_tolerance=0.05)
+    assert strict_ordered[0] is tactical
+    assert rescored["category"] == "exploration_move"
+
+
+def test_score_alignment_utility_band_preserves_close_expansion_pressure():
+    snapshot = SimpleNamespace(
+        cities=(SimpleNamespace(x=0, y=0),), units=(), turn=4,
+        visible_enemy_units=(), map_width=26, map_height=26)
+    growth = _Candidate(
+        "production_preexpansion_growth", 960.0, "nominal-growth")
+    founder = _Candidate(
+        "production_expansion", 939.5, "grounded-expansion")
+    state = ConductanceState(identity="expansion-utility-band")
+    for index in range(10):
+        state.feedback(
+            "production_preexpansion_growth", False,
+            "failed-growth-{}".format(index))
+
+    ordered, artifact = ImpactPressureRanker(
+        conductance_state=state,
+        score_alignment=True,
+        exploration_information_enabled=True,
+        score_alignment_utility_tolerance=0.05).rank(
+            snapshot, (growth, founder),
+            expansion_city_target=3, horizon_turn=60)
+
+    assert ordered[0] is founder
+    founder_score = next(
+        row for row in artifact["schedule"]["scores"]
+        if row["operation"]["payload"]["category"]
+        == "production_expansion")
+    assert founder_score["admissible"]
+    assert founder_score["operation"]["cost"]["opportunity"] == 0.0
+
+
+def test_score_alignment_utility_band_applies_inside_safety_tier():
+    city = SimpleNamespace(x=0, y=0)
+    defender = SimpleNamespace(unit_id=7, x=0, y=0)
+    mover = SimpleNamespace(unit_id=8, x=3, y=0)
+    threat = SimpleNamespace(unit_id=99, x=1, y=0)
+    snapshot = SimpleNamespace(
+        cities=(city,), units=(defender, mover), turn=10,
+        visible_enemy_units=(threat,), map_width=26, map_height=26)
+    fortify = _Candidate("city_defense", 680.0, "local-fortify")
+    fortify.action = {
+        "action_type": "unit_fortify", "actor_id": 7}
+    tactical = _Candidate("tactical_move", 590.0, "lower-value-response")
+    tactical.action = {
+        "action_type": "unit_move", "actor_id": 8,
+        "target": {"x": 2, "y": 0},
+    }
+    state = ConductanceState(identity="safety-utility-band")
+    for index in range(20):
+        state.feedback(
+            "city_defense", False, "failed-fortify-{}".format(index))
+
+    ordered, artifact = ImpactPressureRanker(
+        conductance_state=state,
+        score_alignment=True,
+        exploration_information_enabled=True,
+        score_alignment_utility_tolerance=0.05).rank(
+            snapshot, (fortify, tactical),
+            expansion_city_target=3, horizon_turn=60)
+
+    assert ordered[0] is fortify
+    tactical_score = next(
+        row for row in artifact["schedule"]["scores"]
+        if row["operation"]["payload"]["category"] == "tactical_move")
+    assert not tactical_score["admissible"]
+    assert tactical_score["reason"] == "score_alignment_guard"
+
+
 def test_score_alignment_binds_safety_move_to_the_activating_threat():
     city = SimpleNamespace(x=0, y=0)
     actor = SimpleNamespace(unit_id=7, x=10, y=10)

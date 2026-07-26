@@ -205,7 +205,7 @@ def _target_name(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.3"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.4"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -243,6 +243,18 @@ class GroundedImpactPlanner(object):
                 "pressure_exploration_information_enabled must be boolean")
         self.pressure_exploration_information_enabled = (
             pressure_exploration_information_enabled)
+        pressure_score_alignment_utility_tolerance = values.get(
+            "pressure_score_alignment_utility_tolerance", 0.0)
+        if (isinstance(pressure_score_alignment_utility_tolerance, bool)
+                or not isinstance(
+                    pressure_score_alignment_utility_tolerance, (int, float))
+                or not 0.0 <= float(
+                    pressure_score_alignment_utility_tolerance) <= 0.25):
+            raise ValueError(
+                "pressure_score_alignment_utility_tolerance must be in "
+                "0..0.25")
+        self.pressure_score_alignment_utility_tolerance = float(
+            pressure_score_alignment_utility_tolerance)
         pressure_max_routes = values.get(
             "pressure_max_routes_per_conclusion", 32)
         if (isinstance(pressure_max_routes, bool)
@@ -394,7 +406,9 @@ class GroundedImpactPlanner(object):
                 conductance_state=conductance_state,
                 score_alignment=self.pressure_score_alignment_enabled,
                 exploration_information_enabled=(
-                    self.pressure_exploration_information_enabled))
+                    self.pressure_exploration_information_enabled),
+                score_alignment_utility_tolerance=(
+                    self.pressure_score_alignment_utility_tolerance))
         self.founder_route_successes = 0
         self.founder_route_failures = 0
         self.founder_cardinal_corridor_attempts = 0

@@ -288,7 +288,8 @@ def direct_completion_rescore(scores, pressure, conductance_state, turn):
 
 def score_alignment_rescore(
         scores, pressure, conductance_state, turn,
-        exploration_information_enabled=False):
+        exploration_information_enabled=False,
+        score_alignment_utility_tolerance=0.0):
     """Recompute a recorded decision under score-aligned PF semantics."""
     candidates = []
     by_action = {}
@@ -333,11 +334,18 @@ def score_alignment_rescore(
     exploration_actionable = any(
         ImpactPressureRanker.goal_for_category(candidate.category)
         == "exploration" for candidate in candidates)
-    if (exploration_actionable and not exploration_information_enabled
-            and not known_hut_actionable):
-        specs["exploration"] = (
-            1.0, specs["exploration"][1], specs["exploration"][2],
+    if exploration_actionable:
+        exploration_grounding = (
+            "authoritative:grounded-known-hut-action"
+            if known_hut_actionable else
+            "authoritative:grounded-exploration-action"
+            if exploration_information_enabled else
             "authoritative:no-information-gain-and-no-known-hut")
+        specs["exploration"] = (
+            (0.0 if known_hut_actionable
+             or exploration_information_enabled else 1.0),
+            specs["exploration"][1], specs["exploration"][2],
+            exploration_grounding)
 
     snapshot = SimpleNamespace(turn=int(turn))
     ordered, artifact = ImpactPressureRanker(
@@ -346,7 +354,9 @@ def score_alignment_rescore(
             conductance_state, direct_completion_floor=True),
         score_alignment=True,
         exploration_information_enabled=(
-            exploration_information_enabled)).rank(
+            exploration_information_enabled),
+        score_alignment_utility_tolerance=(
+            score_alignment_utility_tolerance)).rank(
                 snapshot, candidates, expansion_city_target=1,
                 horizon_turn=horizon_turn, _goal_specs_override=specs,
                 _conservative_safety_replay=True)
@@ -805,7 +815,9 @@ def direct_completion_counterfactual_paths(
 
 
 def score_alignment_counterfactual_paths(
-        paths, maximum_files=None, relative_to=None):
+        paths, maximum_files=None, relative_to=None,
+        exploration_information_enabled=False,
+        score_alignment_utility_tolerance=0.0):
     """Replay score alignment over immutable grounded treatment decisions."""
     files = discover_event_files(paths, maximum_files)
     if not files:
@@ -845,7 +857,10 @@ def score_alignment_counterfactual_paths(
             rescored = score_alignment_rescore(
                 scores, pressure, pressure.get("conductance_state"),
                 event.get("turn", 0),
-                exploration_information_enabled=False)
+                exploration_information_enabled=(
+                    exploration_information_enabled),
+                score_alignment_utility_tolerance=(
+                    score_alignment_utility_tolerance))
             aligned = by_operation.get(rescored["operation_id"])
             if recorded is None or aligned is None:
                 continue
@@ -917,10 +932,16 @@ def score_alignment_counterfactual_paths(
             row["guard_rejections"] for row in decisions),
         "limitations": [
             "Counterfactual replay holds grounded candidates, utilities, learned conductance, and authoritative survival and expansion state fixed.",
-            "It applies score-aligned goal grounding, category cost, horizon guards, and the no-information exploration setting locally; recorded artifacts do not retain enough actor geometry to replay the new threat-target binding, so existing survival candidates remain conservatively eligible.",
+            "It applies score-aligned goal grounding, category cost, horizon guards, the declared exploration setting, and utility tolerance locally; recorded artifacts do not retain enough actor geometry to replay the new threat-target binding, so existing survival candidates remain conservatively eligible.",
             "Later engine state may diverge after the first changed action; this is not a gameplay score or win-rate claim.",
         ],
         "mode": "score-alignment-counterfactual",
+        "policy": {
+            "exploration_information_enabled": bool(
+                exploration_information_enabled),
+            "score_alignment_utility_tolerance": float(
+                score_alignment_utility_tolerance),
+        },
         "recorded_utility_regret": recorded_utility_regret,
         "schema_version": REPLAY_SCHEMA_VERSION,
         "source_set": source_set,

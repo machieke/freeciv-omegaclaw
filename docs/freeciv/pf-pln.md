@@ -146,7 +146,8 @@ impact_policy:
   pressure_survival_threat_radius: 3
   pressure_learning_enabled: true
   pressure_score_alignment_enabled: true
-  pressure_exploration_information_enabled: false
+  pressure_exploration_information_enabled: true
+  pressure_score_alignment_utility_tolerance: 0.05
   pressure_learning_rate: 0.10
   pressure_no_progress_rate: 0.10
   pressure_initial_conductance: 1.00
@@ -455,7 +456,7 @@ confirmation are not pooled. Correctness, safety, provenance, artifact
 identity, and secondary diagnostics are recorded in
 [`evidence/pf-pressure-direct-completion-confirmatory-v1.md`](evidence/pf-pressure-direct-completion-confirmatory-v1.md).
 
-The next adapter revision is `grounded-impact-planner/1.3`. Its opt-in
+The v1 adapter revision was `grounded-impact-planner/1.3`. Its opt-in
 score-alignment policy addresses the confirmed mechanism mismatch instead of
 retuning pressure weights: generic exploration is inactive when the engine
 has no information gain, score pressure requires a horizon-grounded score
@@ -484,6 +485,17 @@ three pairs and all three lost score, totaling -17 points. The mechanism must
 not advance to confirmation. Full evidence and the required replacement
 constraints are in
 [`evidence/pf-pressure-score-alignment-pilot-v1.md`](evidence/pf-pressure-score-alignment-pilot-v1.md).
+
+Adapter `grounded-impact-planner/1.4` replaces strict ordering with a declared
+5% utility-uncertainty band, applies opportunity cost only beyond that band,
+restores positional exploration pressure, and guards materially worse choices
+inside the safety tier. Retrospective replay over all 2,338 v1 treatment
+decisions restores 25 tactical-to-exploration choices, 16
+tactical-to-fortification choices, and four growth-to-expansion choices,
+including each identified harmful first divergence. The replay is not score
+evidence. The implementation boundary and fresh seed-disjoint
+`pressure_score_alignment_pilot_v2` gate are recorded in
+[`evidence/pf-score-alignment-v2-offline-acceptance.md`](evidence/pf-score-alignment-v2-offline-acceptance.md).
 
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` and `pressure_score_alignment_enabled` default to `false`
