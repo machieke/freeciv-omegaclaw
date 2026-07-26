@@ -2023,12 +2023,14 @@ def test_batched_pruning_observations_match_individual_helpers():
     planner = GroundedImpactPlanner(ruleset_ir=ir)
     snapshot = _snapshot(
         [_unit(1, "Settlers"), _unit(3, "Engineers"),
-         _unit(11, "Alpine Troops")],
+         _unit(11, "Alpine Troops", 5, 5)],
         [
             {"action_type": "unit_move", "actor_id": 1,
              "target": {"x": 2, "y": 0}, "is_valid": True},
             {"action_type": "unit_move", "actor_id": 3,
              "target": {"x": 2, "y": 0}, "is_valid": True},
+            {"action_type": "unit_move", "actor_id": 11,
+             "target": {"x": 6, "y": 5}, "is_valid": True},
             {"action_type": "end_turn", "is_valid": True},
         ])
     planner.observe(snapshot)
