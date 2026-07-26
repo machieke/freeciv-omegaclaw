@@ -1,6 +1,7 @@
 """Fail-closed local action gate preventing stale or unverified submissions."""
 
 import json
+import time
 import uuid
 from dataclasses import dataclass
 
@@ -136,13 +137,37 @@ class ExecutionGate(object):
         response = self.transport(dict(proposed.action))
         return self._complete(current, proposed, response, sent_event)
 
-    async def execute_async(self, game_id, player_id, proposed, caused_by=None):
+    async def execute_async(
+            self, game_id, player_id, proposed, caused_by=None,
+            diagnostics=None):
         """Async transport variant with exactly the same fail-closed preflight."""
+        preflight_started = time.perf_counter()
         current, reason = self._preflight(game_id, player_id, proposed)
+        if diagnostics is not None:
+            diagnostics["preflight_latency_ms"] = (
+                diagnostics.get("preflight_latency_ms", 0.0)
+                + (time.perf_counter() - preflight_started) * 1000.0)
         if current is None:
             return ActionOutcome(proposed.action_id, "rejected", "missing_snapshot", False)
         if reason is not None:
             return self._reject(proposed, current, reason, caused_by)
+        sent_started = time.perf_counter()
         sent_event = self._emit_sent(current, proposed, caused_by)
+        if diagnostics is not None:
+            diagnostics["sent_event_latency_ms"] = (
+                diagnostics.get("sent_event_latency_ms", 0.0)
+                + (time.perf_counter() - sent_started) * 1000.0)
+        transport_started = time.perf_counter()
         response = await self.transport(dict(proposed.action))
-        return self._complete(current, proposed, response, sent_event)
+        if diagnostics is not None:
+            diagnostics["transport_latency_ms"] = (
+                diagnostics.get("transport_latency_ms", 0.0)
+                + (time.perf_counter() - transport_started) * 1000.0)
+        complete_started = time.perf_counter()
+        outcome = self._complete(current, proposed, response, sent_event)
+        if diagnostics is not None:
+            diagnostics["completion_event_latency_ms"] = (
+                diagnostics.get("completion_event_latency_ms", 0.0)
+                + (time.perf_counter() - complete_started) * 1000.0)
+            diagnostics["calls"] = diagnostics.get("calls", 0) + 1
+        return outcome

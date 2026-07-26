@@ -252,10 +252,17 @@ async def test_async_execution_gate_uses_identical_preflight_and_event_path():
 
     action = {"action_type": "unit_move", "actor_id": 7,
               "target": {"direction": "e", "x": 3, "y": 2}}
+    diagnostics = {}
     outcome = await ExecutionGate(store, transport).execute_async(
-        "state-test", 0, ProposedAction.create(action, snapshot))
+        "state-test", 0, ProposedAction.create(action, snapshot),
+        diagnostics=diagnostics)
     assert outcome.status == "accepted" and outcome.submitted
     assert submissions == [action]
+    assert diagnostics["calls"] == 1
+    assert diagnostics["preflight_latency_ms"] >= 0.0
+    assert diagnostics["sent_event_latency_ms"] >= 0.0
+    assert diagnostics["transport_latency_ms"] >= 0.0
+    assert diagnostics["completion_event_latency_ms"] >= 0.0
 
 
 def test_proxy_research_action_is_canonical_and_executable():

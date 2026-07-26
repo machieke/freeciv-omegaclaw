@@ -118,8 +118,11 @@ Action-phase attribution reports `turn_action_refresh_state_latency_ms`,
 legal-action count plus catalog, setup, production, movement, other-action, and
 finalization latency. Pressure attribution separates graph construction,
 propagation, operation construction, scheduling, and artifact materialization.
-The non-refresh residual includes action acknowledgements, event emission,
-effect bookkeeping, and control-plan construction; it is not a planner-only
+Impact-action attribution reports decision-event, execution/acknowledgement,
+pre-confirmation, confirmation-nonstate, and post-confirmation work per turn,
+plus action-refresh observer and state-event subsets. Execution attribution
+separates gate preflight, sent-event emission, proxy transport/acknowledgement,
+and completion-event emission. The non-refresh residual is not a planner-only
 measurement.
 
 Accepted impact actions receive a bounded 0.3-second authoritative refresh

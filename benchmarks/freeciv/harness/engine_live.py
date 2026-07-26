@@ -995,7 +995,7 @@ async def _refresh_state(ws, store, writer, manifest, snapshot, parent, timeout=
 
 
 async def _execute_action(gate, game_id, player_id, snapshot, action, parent,
-                          ordinal, plan=None):
+                          ordinal, plan=None, diagnostics=None):
     action_id = "engine-action-" + structural_hash([
         snapshot.snapshot_id, action, ordinal])[:20]
     proposed = ProposedAction(
@@ -1003,7 +1003,8 @@ async def _execute_action(gate, game_id, player_id, snapshot, action, parent,
         None if plan is None else plan.plan_id,
         None if plan is None or not plan.steps else plan.steps[0].step_id)
     outcome = await gate.execute_async(
-        game_id, player_id, proposed, caused_by=[parent])
+        game_id, player_id, proposed, caused_by=[parent],
+        diagnostics=diagnostics)
     return outcome, outcome.result_event_id or parent
 
 
@@ -1511,6 +1512,15 @@ async def _play(run_dir, manifest, context):
     impact_planning_latency_ms = 0.0
     impact_planning_calls = 0
     impact_planning_diagnostics = {}
+    impact_decision_event_latency_ms = 0.0
+    impact_execution_latency_ms = 0.0
+    impact_execution_calls = 0
+    impact_execution_diagnostics = {}
+    impact_preconfirmation_latency_ms = 0.0
+    impact_confirmation_nonstate_latency_ms = 0.0
+    impact_postconfirmation_latency_ms = 0.0
+    action_refresh_observer_latency_ms = 0.0
+    action_refresh_event_latency_ms = 0.0
     turn_end_submit_latencies = []
     turn_boundary_latencies = []
     turn_checkpoint_sync_latencies = []
@@ -1699,6 +1709,8 @@ async def _play(run_dir, manifest, context):
                 raw, snapshot, manifest, belief_store, writer, parent, player_id)
 
         async def refresh_after_action(current, cause, predicate=None, timeout=15.0):
+            nonlocal action_refresh_event_latency_ms
+            nonlocal action_refresh_observer_latency_ms
             minimum_seq = current.identity.source_seq + 1
             deadline = time.monotonic() + float(timeout)
             while True:
@@ -1718,6 +1730,7 @@ async def _play(run_dir, manifest, context):
                     await asyncio.sleep(0.05)
                     continue
                 store.replace(next_snapshot)
+                observer_started = time.perf_counter()
                 if impact_planner is not None:
                     impact_planner.observe(next_snapshot)
                     capability_pruned_worker_moves.update(
@@ -1730,9 +1743,14 @@ async def _play(run_dir, manifest, context):
                         impact_planner.founder_cycle_move_keys(next_snapshot))
                     founder_attrition_moves.update(
                         impact_planner.founder_attrition_move_keys(next_snapshot))
+                action_refresh_observer_latency_ms += (
+                    time.perf_counter() - observer_started) * 1000.0
+                event_started = time.perf_counter()
                 event = writer.emit(
                     "state_snapshot", next_snapshot.turn, next_snapshot.event_payload(),
                     caused_by=[cause])
+                action_refresh_event_latency_ms += (
+                    time.perf_counter() - event_started) * 1000.0
                 return next_raw, next_snapshot, event["event_id"]
 
         turn_started = time.perf_counter()
@@ -1892,6 +1910,7 @@ async def _play(run_dir, manifest, context):
                         break
                     impact_action = decision.candidate.action
                     action_snapshot = snapshot
+                    decision_event_started = time.perf_counter()
                     if decision.pressure_artifact is not None:
                         pressure_value = decision.pressure_artifact["pressure"]
                         pressure_hash = structural_hash(pressure_value)
@@ -1931,9 +1950,17 @@ async def _play(run_dir, manifest, context):
                         {"plan": decision.plan.to_dict()}, caused_by=[parent])
                     parent = plan_event["event_id"]
                     execution_monitor.register(decision.plan)
+                    impact_decision_event_latency_ms += (
+                        time.perf_counter() - decision_event_started) * 1000.0
+                    execution_started = time.perf_counter()
                     outcome, parent = await _execute_action(
                         gate, manifest["game_id"], player_id, snapshot,
-                        impact_action, parent, attempted_count, decision.plan)
+                        impact_action, parent, attempted_count, decision.plan,
+                        diagnostics=impact_execution_diagnostics)
+                    impact_execution_latency_ms += (
+                        time.perf_counter() - execution_started) * 1000.0
+                    impact_execution_calls += 1
+                    preconfirmation_started = time.perf_counter()
                     impact_feedback_id = outcome.result_event_id or parent
                     attempted_count += 1
                     action_count += int(outcome.submitted)
@@ -2022,7 +2049,11 @@ async def _play(run_dir, manifest, context):
                                 projection[
                                     "preexpansion_sequence_settlement_runway_turns"]))
                     excluded_impact_actions.add(decision.candidate.action_key)
+                    impact_preconfirmation_latency_ms += (
+                        time.perf_counter() - preconfirmation_started) * 1000.0
                     confirmation_started = time.perf_counter()
+                    confirmation_state_before = action_state_diagnostics.get(
+                        "latency_ms", 0.0)
                     raw, snapshot, parent, authoritative_refresh = (
                         await _refresh_accepted_impact_action(
                             refresh_after_action, raw, snapshot, parent,
@@ -2035,8 +2066,15 @@ async def _play(run_dir, manifest, context):
                                     "city_production", "unit_build_city",
                                     "unit_join_city")
                                 else None)))
-                    effect_confirmation_latencies.append(
-                        (time.perf_counter() - confirmation_started) * 1000.0)
+                    confirmation_latency_ms = (
+                        time.perf_counter() - confirmation_started) * 1000.0
+                    effect_confirmation_latencies.append(confirmation_latency_ms)
+                    impact_confirmation_nonstate_latency_ms += max(
+                        0.0,
+                        confirmation_latency_ms
+                        - (action_state_diagnostics.get("latency_ms", 0.0)
+                           - confirmation_state_before))
+                    postconfirmation_started = time.perf_counter()
                     decision_stats["effect_confirmation_timeouts"] += int(
                         not authoritative_refresh)
                     effect_observed = (authoritative_refresh
@@ -2063,6 +2101,8 @@ async def _play(run_dir, manifest, context):
                         # A fresh packet may also reveal effects from older
                         # accepted actions that exceeded their bounded wait.
                         reconcile_deferred_impact_outcomes(snapshot)
+                    impact_postconfirmation_latency_ms += (
+                        time.perf_counter() - postconfirmation_started) * 1000.0
                 decision_stats["failover_attempts"] += impact_budget.failover_attempts
                 decision_stats["failover_recoveries"] += impact_budget.recoveries
 
@@ -2327,6 +2367,35 @@ async def _play(run_dir, manifest, context):
          impact_planning_diagnostics.get(
              "pressure_artifact_latency_ms", 0.0)
          / max(1, impact_planning_calls)),
+        ("turn_impact_decision_event_latency_ms",
+         impact_decision_event_latency_ms / max(1, turns_executed)),
+        ("turn_impact_execution_latency_ms",
+         impact_execution_latency_ms / max(1, turns_executed)),
+        ("impact_execution_latency_ms",
+         impact_execution_latency_ms / max(1, impact_execution_calls)),
+        ("impact_execution_preflight_latency_ms",
+         impact_execution_diagnostics.get("preflight_latency_ms", 0.0)
+         / max(1, impact_execution_calls)),
+        ("impact_execution_sent_event_latency_ms",
+         impact_execution_diagnostics.get("sent_event_latency_ms", 0.0)
+         / max(1, impact_execution_calls)),
+        ("impact_execution_transport_latency_ms",
+         impact_execution_diagnostics.get("transport_latency_ms", 0.0)
+         / max(1, impact_execution_calls)),
+        ("impact_execution_completion_event_latency_ms",
+         impact_execution_diagnostics.get(
+             "completion_event_latency_ms", 0.0)
+         / max(1, impact_execution_calls)),
+        ("turn_impact_preconfirmation_latency_ms",
+         impact_preconfirmation_latency_ms / max(1, turns_executed)),
+        ("turn_impact_confirmation_nonstate_latency_ms",
+         impact_confirmation_nonstate_latency_ms / max(1, turns_executed)),
+        ("turn_impact_postconfirmation_latency_ms",
+         impact_postconfirmation_latency_ms / max(1, turns_executed)),
+        ("turn_action_refresh_observer_latency_ms",
+         action_refresh_observer_latency_ms / max(1, turns_executed)),
+        ("turn_action_refresh_event_latency_ms",
+         action_refresh_event_latency_ms / max(1, turns_executed)),
         ("turn_end_submit_latency_ms",
          sum(turn_end_submit_latencies)
          / max(1, len(turn_end_submit_latencies))),
