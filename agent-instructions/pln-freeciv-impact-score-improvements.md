@@ -1394,3 +1394,18 @@ score-bearing runway deadline. Threat deferrals and safe unescorted founding
 are measured independently. The selected-seed mechanism cohort isolates this
 gate against unconditional adapter 1.9 before any generalization or fresh
 pilot is considered.
+
+The source-fresh adapter-1.10 mechanism replay rejected instantaneous gating.
+Treatment classified all three settlements as safe, recorded zero threat
+deferrals, built no escort defense, and reproduced the unguarded loss: three
+founding completions, only two net additions, final city sizes `2, 3, 5`, and
+score `112`. Unconditional escort retained both additions at sizes `3, 4, 5`
+and scored `115`. All source, safety, schema, and exact-replay gates passed
+over 2,487 events and 60 treatment decisions.
+
+The trace localizes the missing state: a rival founder was observed while the
+own founder approached the site, disappeared before the exact Found City
+snapshot, and a city-local threat appeared only immediately before capture.
+The next variant must persist exact founder-local contestation for that
+founder's route lifetime. It must not enlarge the global threat radius or
+restore unconditional escorting.

@@ -172,3 +172,28 @@ all source, safety, schema, and exact-replay gates to pass. All own-score,
 opponent, margin, settlement, retention, and recovery outcomes must be
 reported regardless of direction. This selected mechanism replay cannot
 update a score or win-rate claim.
+
+## Adapter 1.10 engine result
+
+The source-fresh selected pair completed from clean commit `3cd384d` with
+zero infrastructure, source-freeze, initial-state, rejection, fallback, or
+latency-gate failures. Both streams and 2,487 events validate. Exact replay
+covered all 60 treatment decisions with zero integrity failure and unchanged
+sources.
+
+Instantaneous threat gating did not recognize the exposed retention risk.
+Treatment bypassed all three settlements as safe, recorded zero threat
+deferrals, produced no escort defense, and made no escort move. It reproduced
+the unguarded trajectory: three founding completions but only two retained
+additions, final sizes `2, 3, 5`, and score `112`. Unconditional escort
+retention completed two guarded settlements, retained both at final sizes
+`3, 4, 5`, and scored `115`.
+
+Machine-readable evidence is
+[`pf-settlement-escort-threat-gating-mechanism-v1.json`](pf-settlement-escort-threat-gating-mechanism-v1.json).
+The negative result rejects a same-snapshot threat predicate. The rival
+founder was observed during site approach but was no longer visible on the
+exact founding snapshots; the city-local threat appeared only immediately
+before capture. The next bounded correction must carry exact founder-local
+threat evidence across that route, scoped to the founder's lifetime, rather
+than broadening the radius or treating every site as dangerous.
