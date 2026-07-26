@@ -2016,6 +2016,35 @@ def test_ruleset_and_server_capabilities_exclude_nonfounder_workers():
     assert planner.visited_positions == set()
 
 
+def test_batched_pruning_observations_match_individual_helpers():
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 30), ("Engineers", "unit", 30),
+        ("Alpine Troops", "unit", 60)))
+    planner = GroundedImpactPlanner(ruleset_ir=ir)
+    snapshot = _snapshot(
+        [_unit(1, "Settlers"), _unit(3, "Engineers"),
+         _unit(11, "Alpine Troops")],
+        [
+            {"action_type": "unit_move", "actor_id": 1,
+             "target": {"x": 2, "y": 0}, "is_valid": True},
+            {"action_type": "unit_move", "actor_id": 3,
+             "target": {"x": 2, "y": 0}, "is_valid": True},
+            {"action_type": "end_turn", "is_valid": True},
+        ])
+    planner.observe(snapshot)
+
+    assert planner.pruning_move_keys(snapshot) == {
+        "capability_pruned_worker_moves": (
+            planner.capability_pruned_worker_move_keys(snapshot)),
+        "nonprogress_moves": planner.nonprogress_move_keys(snapshot),
+        "unreachable_founder_moves": (
+            planner.founder_unreachable_move_keys(snapshot)),
+        "founder_cycle_moves": planner.founder_cycle_move_keys(snapshot),
+        "founder_attrition_moves": (
+            planner.founder_attrition_move_keys(snapshot)),
+    }
+
+
 def test_observed_server_city_action_caches_founder_type_without_ruleset_traits():
     demonstrated = _snapshot(
         [_unit(7, "Colony Pod", 3, 0), _unit(11, "Alpine Troops")],

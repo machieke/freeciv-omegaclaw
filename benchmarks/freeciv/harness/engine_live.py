@@ -1503,6 +1503,20 @@ async def _play(run_dir, manifest, context):
     unreachable_founder_moves = set()
     founder_cycle_moves = set()
     founder_attrition_moves = set()
+
+    def observe_impact_snapshot(current):
+        if impact_planner is None:
+            return
+        impact_planner.observe(current)
+        pruning = impact_planner.pruning_move_keys(current)
+        capability_pruned_worker_moves.update(
+            pruning["capability_pruned_worker_moves"])
+        nonprogress_moves.update(pruning["nonprogress_moves"])
+        unreachable_founder_moves.update(
+            pruning["unreachable_founder_moves"])
+        founder_cycle_moves.update(pruning["founder_cycle_moves"])
+        founder_attrition_moves.update(pruning["founder_attrition_moves"])
+
     replan_latencies = []
     model_latencies = []
     full_loop_latencies = []
@@ -1608,17 +1622,7 @@ async def _play(run_dir, manifest, context):
              if row.get("id") != player_id and row.get("score", -1) >= 0),
             key=lambda row: (row.get("id", 2147483647), row.get("name", "")))
         opponent = opponent_rows[0] if opponent_rows else {"id": 1, "name": "builtin-ai"}
-        if impact_planner is not None:
-            impact_planner.observe(snapshot)
-            capability_pruned_worker_moves.update(
-                impact_planner.capability_pruned_worker_move_keys(snapshot))
-            nonprogress_moves.update(impact_planner.nonprogress_move_keys(snapshot))
-            unreachable_founder_moves.update(
-                impact_planner.founder_unreachable_move_keys(snapshot))
-            founder_cycle_moves.update(
-                impact_planner.founder_cycle_move_keys(snapshot))
-            founder_attrition_moves.update(
-                impact_planner.founder_attrition_move_keys(snapshot))
+        observe_impact_snapshot(snapshot)
         initial_city_count = len(snapshot.cities)
         initial_citizens = sum(max(0, int(city.size or 0)) for city in snapshot.cities)
         initial_tech_count = len(snapshot.research.known_techs)
@@ -1731,18 +1735,7 @@ async def _play(run_dir, manifest, context):
                     continue
                 store.replace(next_snapshot)
                 observer_started = time.perf_counter()
-                if impact_planner is not None:
-                    impact_planner.observe(next_snapshot)
-                    capability_pruned_worker_moves.update(
-                        impact_planner.capability_pruned_worker_move_keys(next_snapshot))
-                    nonprogress_moves.update(
-                        impact_planner.nonprogress_move_keys(next_snapshot))
-                    unreachable_founder_moves.update(
-                        impact_planner.founder_unreachable_move_keys(next_snapshot))
-                    founder_cycle_moves.update(
-                        impact_planner.founder_cycle_move_keys(next_snapshot))
-                    founder_attrition_moves.update(
-                        impact_planner.founder_attrition_move_keys(next_snapshot))
+                observe_impact_snapshot(next_snapshot)
                 action_refresh_observer_latency_ms += (
                     time.perf_counter() - observer_started) * 1000.0
                 event_started = time.perf_counter()
@@ -1775,18 +1768,7 @@ async def _play(run_dir, manifest, context):
                     global_state = await _global_state(
                         ws, player_id=player_id, minimum_turn=snapshot.turn)
                     observer_global_state_queries += 1
-                if impact_planner is not None:
-                    impact_planner.observe(snapshot)
-                    capability_pruned_worker_moves.update(
-                        impact_planner.capability_pruned_worker_move_keys(snapshot))
-                    nonprogress_moves.update(
-                        impact_planner.nonprogress_move_keys(snapshot))
-                    unreachable_founder_moves.update(
-                        impact_planner.founder_unreachable_move_keys(snapshot))
-                    founder_cycle_moves.update(
-                        impact_planner.founder_cycle_move_keys(snapshot))
-                    founder_attrition_moves.update(
-                        impact_planner.founder_attrition_move_keys(snapshot))
+                observe_impact_snapshot(snapshot)
                 if prior_scout is not None:
                     actor_id, source_x, source_y, target_x, target_y = prior_scout
                     row = next((unit for unit in raw.get("units", {}).values()

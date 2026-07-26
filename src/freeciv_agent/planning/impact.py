@@ -598,6 +598,49 @@ class GroundedImpactPlanner(object):
             and self._founder_attrition_has_alternative(
                 snapshot, action, founder_types, actions)))
 
+    def pruning_move_keys(self, snapshot):
+        """Return all read-only move-pruning observations in one catalog pass.
+
+        The individual helpers remain the public behavioral oracle.  The live
+        harness uses this equivalent batch form so it decodes founder capability
+        once, traverses the legal-action catalog once, and reuses the canonical
+        action key already carried by the authoritative snapshot.
+        """
+        actions = self._actions(snapshot)
+        founder_types = self._founder_types(snapshot, actions)
+        result = {
+            "capability_pruned_worker_moves": [],
+            "nonprogress_moves": [],
+            "unreachable_founder_moves": [],
+            "founder_cycle_moves": [],
+            "founder_attrition_moves": [],
+        }
+        nonfounder_worker_types = self._ruleset_worker_types - founder_types
+        for action, action_key in zip(actions, snapshot.legal_action_json):
+            if action.get("action_type") != "unit_move":
+                continue
+            unit = snapshot.unit(action.get("actor_id"))
+            normalized = _normalized_type(unit.unit_type) if unit is not None else ""
+            if normalized in nonfounder_worker_types:
+                result["capability_pruned_worker_moves"].append(action_key)
+            if (self._move_candidate(snapshot, action, founder_types) is None
+                    and self._move_is_nonprogress(
+                        snapshot, action, founder_types)):
+                result["nonprogress_moves"].append(action_key)
+            if self._founder_move_evidence(
+                    snapshot, action, founder_types).get("actor_failed"):
+                result["unreachable_founder_moves"].append(action_key)
+            if self._founder_cycle_has_alternative(
+                    snapshot, action, founder_types, actions):
+                result["founder_cycle_moves"].append(action_key)
+            if self._founder_attrition_has_alternative(
+                    snapshot, action, founder_types, actions):
+                result["founder_attrition_moves"].append(action_key)
+        return {
+            name: tuple(sorted(action_keys))
+            for name, action_keys in result.items()
+        }
+
     def failed_settlement_site_action_keys(self, snapshot):
         """Return advertised founding actions suppressed by exact site evidence."""
         return tuple(sorted(
