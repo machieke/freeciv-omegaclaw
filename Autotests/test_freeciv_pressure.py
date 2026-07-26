@@ -115,6 +115,28 @@ def test_capital_pressure_is_reproducible_and_truth_is_firewalled():
     assert [atom.to_dict() for atom in graph.atoms] == before
 
 
+def test_pressure_result_reuses_immutable_row_indices():
+    graph = _capital_graph()
+    goal = GoalState(
+        "defend-capital", "survives", 0.90, utility=100.0)
+    result = PressureEngine().propagate(graph, (goal,))
+
+    assert result.dependency(
+        "defend-capital", "survives") == result._dependency_index[
+            "defend-capital"]["survives"]
+    assert result.action_dependency(
+        "defend-capital", "buy-archer") == result._action_index[
+            "defend-capital"]["buy-archer"]
+    assert result.pressure(
+        "defend-capital", "buy-archer") is result._pressure_index[
+            "defend-capital"]["buy-archer"]
+    missing = result.pressure("defend-capital", "not-materialized")
+    assert missing == PressureVector()
+    assert missing is result.pressure("unknown-goal", "unknown-atom")
+    assert result.to_dict() == PressureEngine().propagate(
+        graph, (goal,)).to_dict()
+
+
 def test_pressure_concentrates_and_bounds_irrelevant_route_expansion():
     first = run_pressure_concentration_benchmark()
     second = run_pressure_concentration_benchmark()

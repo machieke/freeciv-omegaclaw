@@ -2,7 +2,7 @@
 
 import math
 from collections import defaultdict
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 
 from ..events.schema import structural_hash
 from .model import (
@@ -14,6 +14,9 @@ from .model import (
     PressureVector,
     Resolvability,
 )
+
+
+_ZERO_PRESSURE = PressureVector()
 
 
 def _softmax(values, temperature):
@@ -149,21 +152,36 @@ class PressureResult:
     traces: tuple
     graph_hash: str
     config: PressureConfig
+    _dependency_index: dict = field(
+        init=False, repr=False, compare=False)
+    _action_index: dict = field(
+        init=False, repr=False, compare=False)
+    _pressure_index: dict = field(
+        init=False, repr=False, compare=False)
 
-    def _nested(self, rows):
+    @staticmethod
+    def _index(rows):
         return dict((goal_id, dict(values)) for goal_id, values in rows)
 
+    def __post_init__(self):
+        object.__setattr__(
+            self, "_dependency_index", self._index(self.dependency_rows))
+        object.__setattr__(
+            self, "_action_index", self._index(self.action_rows))
+        object.__setattr__(
+            self, "_pressure_index", self._index(self.pressure_rows))
+
     def dependency(self, goal_id, atom_id):
-        return float(self._nested(self.dependency_rows).get(
+        return float(self._dependency_index.get(
             str(goal_id), {}).get(str(atom_id), 0.0))
 
     def action_dependency(self, goal_id, atom_id):
-        return float(self._nested(self.action_rows).get(
+        return float(self._action_index.get(
             str(goal_id), {}).get(str(atom_id), 0.0))
 
     def pressure(self, goal_id, atom_id):
-        return self._nested(self.pressure_rows).get(
-            str(goal_id), {}).get(str(atom_id), PressureVector())
+        return self._pressure_index.get(
+            str(goal_id), {}).get(str(atom_id), _ZERO_PRESSURE)
 
     @property
     def artifact_hash(self):
