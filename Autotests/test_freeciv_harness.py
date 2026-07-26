@@ -32,7 +32,8 @@ from freeciv.harness.aggregate import _calibration_report  # noqa: E402
 from freeciv.harness.impact_evaluation import _claim_evaluation  # noqa: E402
 from freeciv.harness.runner import _impact_cohort_token  # noqa: E402
 from freeciv.harness.engine_live import (  # noqa: E402
-    _available_research_names, _needs_cognitive_stack, _opponent_memory_path,
+    _active_research_continuation, _available_research_names,
+    _needs_cognitive_stack, _opponent_memory_path,
     _claim_eligible_manifest, _ollama_readiness, _plain_prompt_state,
     _plain_state_summary, _refresh_accepted_impact_action,
     _decision_state_fingerprint, _decision_state_ready, _global_state_ready,
@@ -573,6 +574,9 @@ def test_active_research_is_the_only_selection_target_without_new_choices():
         target_name="Tech1", known_techs=()))
 
     assert _selection_target_rules(ir, snapshot, ()) == (active,)
+    assert _active_research_continuation(snapshot, (), (active,))
+    assert not _active_research_continuation(
+        snapshot, ("Tech2",), (active, other))
 
 
 def test_multiple_canonical_candidates_still_require_model_selection(monkeypatch):

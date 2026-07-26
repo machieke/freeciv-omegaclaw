@@ -34,6 +34,10 @@ symbol-catalog gates, emits `goal_selection`, and does not invoke the model.
 An active research target is that single necessary goal while the exact proxy
 legal set advertises no new research choice; reselecting between unrelated
 technologies cannot produce an engine action on such a turn.
+After the canonical proposal passes the strict parser and symbol catalog, a
+verification event records that the engine is already executing it. Goal
+grading, dependency expansion, and scheduling are deferred until a new
+research action is actually advertised.
 Two or more candidates still use `llm_proposal`. This necessity optimization
 does not inspect pressure, admit an expansion request, or activate the Phase 7
 gateway, so Phase 7 remains correctly declared `component-only`.

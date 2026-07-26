@@ -35,8 +35,10 @@ per-turn `goal_selection` events. A `goal_selection` event is valid only for
 the versioned canonical-singleton policy; multi-candidate decisions retain
 `llm_proposal`. While research is active and no new research action is
 advertised, the active target is the single canonical continuation and also
-uses `goal_selection`. Readiness calls are operational warm-up and are not
-counted as goal-selection calls.
+uses `goal_selection`; its child verification has check
+`active_research_has_no_new_selection_action`, and no research plan is emitted
+for that turn. Readiness calls are operational warm-up and are not counted as
+goal-selection calls.
 
 Each completed engine arm also records `model_readiness_latency_ms`,
 `model_readiness_method`, `model_readiness_reused`, and

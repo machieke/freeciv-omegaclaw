@@ -808,6 +808,15 @@ def _selection_target_rules(ir, snapshot, available_names):
         available_names=available_names)
 
 
+def _active_research_continuation(snapshot, available_names, targets):
+    """Whether the exact catalog proves research is already in progress."""
+    return bool(
+        not available_names
+        and snapshot.research.target_name
+        and len(targets) == 1
+        and targets[0].rule_name == snapshot.research.target_name)
+
+
 def _live_tech_costs(ir, raw):
     costs = {rule.rule_name: _tech_cost(rule) for rule in ir.rules
              if rule.target_kind == "tech" and not rule.disabled}
@@ -1173,6 +1182,12 @@ def _cognitive_turn(manifest, context, store, player_id, raw, snapshot,
         targets = _selection_target_rules(
             ir, snapshot, available_research)
         target = targets[0]
+    active_research_continuation = bool(
+        context.capabilities["constrained_llm"]
+        and manifest.get("model_config", {}).get(
+            "selection_call_policy") == SELECTION_CALL_POLICY
+        and _active_research_continuation(
+            snapshot, available_research, targets))
     crisp = (CrispStateView(
         snapshot.snapshot_id, known_techs=snapshot.research.known_techs,
         player="player") if context.capabilities["dependency_oracle"] else None)
@@ -1257,6 +1272,18 @@ def _cognitive_turn(manifest, context, store, player_id, raw, snapshot,
     proposal_event = writer.emit(
         event_type, snapshot.turn, payload, caused_by=[parent])
     parent = proposal_event["event_id"]
+    if active_research_continuation and model_error is None:
+        verification = writer.emit("verification", snapshot.turn, {
+            "verification_id": "verify-continuation-" + proposal.proposal_id,
+            "proposal_id": proposal.proposal_id,
+            "claim_id": proposal.selection,
+            "verdict": "believe",
+            "check": "active_research_has_no_new_selection_action",
+            "evidence_atom_ids": [],
+        }, caused_by=[parent])
+        return (
+            None, "end_turn", verification["event_id"], latency, corrections,
+            False, model_called, model_call_avoided)
     if model_error is not None:
         verification = writer.emit("verification", snapshot.turn, {
             "verification_id": "verify-fallback-" + payload["proposal_id"],
