@@ -46,14 +46,6 @@ class StateSummaryService(object):
             snapshot.economy.diagnostic) if value]
         diagnostics.extend(city.buildability_diagnostic for city in snapshot.cities
                            if city.buildability_diagnostic)
-        action_kinds = set()
-        # Legal action documents remain opaque here; only their declared kinds are exposed.
-        import json
-        for raw in snapshot.legal_action_json:
-            row = json.loads(raw)
-            kind = row.get("action_type", row.get("type", row.get("action")))
-            if kind is not None:
-                action_kinds.add(str(kind))
         return QueryStateSummary(
             snapshot_id=snapshot.snapshot_id, turn=snapshot.turn, phase=snapshot.phase,
             player_id=snapshot.player_id, known_techs=snapshot.research.known_techs,
@@ -77,5 +69,7 @@ class StateSummaryService(object):
             map_summary={"width": snapshot.map_width, "height": snapshot.map_height,
                          "known_huts": len(snapshot.known_hut_tile_ids),
                          "visible_tiles": len(snapshot.visible_tile_ids)},
-            legal_action_kinds=tuple(sorted(action_kinds)),
+            # Legal action documents remain opaque here; only the kinds derived
+            # while the DTO normalizes those documents cross this boundary.
+            legal_action_kinds=snapshot.legal_action_kinds,
             diagnostics=tuple(sorted(set(diagnostics))))

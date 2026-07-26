@@ -68,6 +68,7 @@ def test_authoritative_contract_fixture_schema_and_stable_identity():
     assert first.city(3).buildability_available
     assert first.visible_tile_ids == (82,)
     assert first.known_hut_tile_ids == ()
+    assert first.legal_action_kinds == ("city_production", "unit_move")
 
 
 def test_packet_known_hut_tiles_are_typed_and_part_of_snapshot_identity():
@@ -327,6 +328,8 @@ def test_summary_is_query_only_and_does_not_expose_raw_snapshot_or_legal_payload
     value = summary.to_dict()
     assert value["snapshot_id"]
     assert value["research"]["beakers_per_turn"] == 9
+    assert value["legal_action_kinds"] == list(
+        store.current("state-test", 0).legal_action_kinds)
     assert "legal_actions" not in value and "authoritative" not in value
     assert "visible_enemy_units" in value
     llm_init = open(os.path.join(SRC, "freeciv_agent", "llm", "__init__.py"),

@@ -148,6 +148,7 @@ class AuthoritativeSnapshot:
     map_tiles: Tuple[object, ...]
     legal_action_json: Tuple[str, ...]
     legal_actions_digest: str
+    legal_action_kinds: Tuple[str, ...]
 
     @property
     def snapshot_id(self):

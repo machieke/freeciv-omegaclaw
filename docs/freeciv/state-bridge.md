@@ -51,6 +51,12 @@ measured and rejected because authenticated decompression was slower than
 rebuilding these projections; see
 [the construction smoke](evidence/pln-lazy-state-construction-smoke.md).
 
+The typed snapshot also retains the sorted action-kind set while its DTO
+normalizes the exact legal action documents. The LLM query-summary boundary
+reads that derived tuple instead of decoding every canonical action document a
+second time. Full action payloads remain opaque to the summary, and the exact
+canonical JSON plus digest remain the execution gate.
+
 An authoritative WebSocket state query may supply a non-negative
 `after_source_seq` together with a bounded `wait_timeout_ms` in `1..5000`.
 When the current sequence has not advanced, the proxy waits on a packet-update

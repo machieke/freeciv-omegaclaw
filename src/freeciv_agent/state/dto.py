@@ -55,7 +55,7 @@ def _numbers(value, field):
     return tuple(_integer(item, field + "[]", required=True) for item in value)
 
 
-def _canonical_action_json(actions, player_id=None):
+def _canonical_actions(actions, player_id=None):
     if actions is None:
         raise ContractError("legal_actions is required for an executable snapshot")
     if isinstance(actions, list):
@@ -73,14 +73,18 @@ def _canonical_action_json(actions, player_id=None):
     else:
         raise ContractError("legal_actions must be an object or array")
     valid = []
+    kinds = set()
     for row in rows:
         if not isinstance(row, dict):
             raise ContractError("legal action entries must be objects")
         if row.get("is_valid") is False:
             continue
         normalized = _executable_action(row, player_id=player_id)
+        kind = normalized.get("action_type")
+        if kind is not None:
+            kinds.add(str(kind))
         valid.append(canonical_json_bytes(normalized).decode("utf-8"))
-    return tuple(sorted(set(valid)))
+    return tuple(sorted(set(valid))), tuple(sorted(kinds))
 
 
 def _executable_action(row, player_id=None):
@@ -337,7 +341,7 @@ class ProxyStateDTO:
         if any(tile < 0 or tile >= tile_count for tile in known_hut_tiles):
             raise ContractError(
                 "authoritative.known_hut_tiles entries must be within the map")
-        legal_json = _canonical_action_json(
+        legal_json, legal_action_kinds = _canonical_actions(
             payload.get("legal_actions") if legal_actions is None else legal_actions,
             player_id=player_id)
         legal_digest = hashlib.sha256("\n".join(legal_json).encode("utf-8")).hexdigest()
@@ -384,7 +388,8 @@ class ProxyStateDTO:
             visible_tile_ids=visible, known_hut_tile_ids=known_hut_tiles,
             map_width=width, map_height=height,
             map_tiles=tuple(copy.deepcopy(tiles)), legal_action_json=legal_json,
-            legal_actions_digest=legal_digest))
+            legal_actions_digest=legal_digest,
+            legal_action_kinds=legal_action_kinds))
 
     def to_snapshot(self):
         return self.snapshot
