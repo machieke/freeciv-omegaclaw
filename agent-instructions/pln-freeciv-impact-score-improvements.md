@@ -1314,3 +1314,16 @@ that retained a founder, excluding the already replayed seed `3674286`. It
 must establish runtime activation and report all settlement, recovery, route,
 score, margin, and lead outcomes without updating the population claim. See
 [`../docs/freeciv/evidence/pf-packet-site-preference-offline-acceptance.md`](../docs/freeciv/evidence/pf-packet-site-preference-offline-acceptance.md).
+
+The selected engine cohort completed all 10 pairs and 20 arms. Treatment made
+23 preferred moves with 23 exact traversals, completed two additional
+settlements, retained one additional net city across the cohort, and recorded
+four fewer route failures. It did not improve score: nine pairs tied and seed
+`3746776` declined by seven, for a paired mean of `-0.7` with interval
+`[-2.1, 0.0]`. That treatment founded a fourth city by turn 35 but lost it by
+turn 52; it finished with three fewer citizen points, two fewer technology
+points, and two fewer residual points. Eligibility is therefore retained as
+grounded reachability evidence but is insufficient as a settlement objective.
+The next bounded target is defense-aware city retention: accelerated
+settlement must not outrun authoritative defender coverage, and its activation
+must be measurable independently of site reachability.

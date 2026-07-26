@@ -1,7 +1,7 @@
 # PF-PLN packet-grounded settlement-site preference
 
-Status: implementation and offline contracts passed; selected engine
-mechanism cohort frozen
+Status: implementation, offline contracts, and selected engine mechanism
+cohort complete
 
 ## Goal
 
@@ -77,3 +77,58 @@ This is a claim-ineligible mechanism cohort. Acceptance requires:
   direction;
 - exact replay reproduces treatment decisions without integrity failure; and
 - no result is pooled with or used to revise the frozen +2.66 score claim.
+
+## Selected engine result
+
+The cohort completed all 10 pairs and 20 arms from clean commit
+`d169dc20f19ded6139f3f0cab5ec4965cc9d1ba0`. Eight listener-recycle failures
+immediately after the cold proxy restart are retained as historical pregame
+attempts. A source-identical resume reused 12 completed arms and finished the
+cohort with zero active infrastructure failures.
+
+The mechanism activated decisively. Baseline emitted no preference attempts.
+Treatment selected 23 packet-eligible moves and all 23 produced the exact
+advertised traversal. Compared with baseline, treatment:
+
+- completed two additional settlements (`+0.2` per pair, interval
+  `[0.0, +0.5]`);
+- retained one additional net city across the cohort (`+0.1` per pair,
+  `[0.0, +0.3]`);
+- ended with two rather than three live founders;
+- recorded four fewer founder-route failures (`-0.4` per pair,
+  `[-1.1, 0.0]`); and
+- recovered four fewer population points because founders reached a site
+  before deadline recovery.
+
+Those action-efficiency gains did not improve the selected-seed score. Mean own
+score changed from `115.9` to `115.2`, a paired delta of `-0.7`
+(`[-2.1, 0.0]`, exact two-sided sign-flip `p=1.0`). Nine pairs had identical
+own score; seed `3746776` was the sole change, from `119` to `112`. Treatment
+founded four cities but retained only three, while baseline founded and
+retained three. The treatment's fourth city was present at turn 35 and absent
+by turn 52. It finished three citizen points, two technology points, and two
+residual points below baseline. The preference therefore proved reachability,
+but not site quality or city retention.
+
+Opponent score also diverged in three treatment traces, producing a margin
+delta of `-7.3` (`[-15.4, 0.0]`). Lead status was unchanged in every pair:
+both arms led in three and neither led in seven. This selected, previously
+incomplete seed set is neither randomized nor claim-eligible, so these
+outcomes cannot revise the frozen `+2.66` own-score claim.
+
+All 20 streams and 28,334 events passed schema validation. Exact replay covered
+731 treatment decisions in 10 files with zero integrity failure and unchanged
+sources. Source freeze, paired initial-state fidelity, engine rejection,
+fallback, and latency gates all passed. Aggregate SHA-256 is
+`de07e9c7e4aac705fd3e03c6bf7483fe221cfc48534b18e1479f91e30300d113`;
+the complete machine-readable record is
+[`pf-packet-site-preference-mechanism-v1.json`](pf-packet-site-preference-mechanism-v1.json).
+
+## Decision
+
+Retain packet eligibility as authoritative movement evidence, but do not treat
+eligibility alone as sufficient settlement utility. The next correction must
+bind accelerated expansion to grounded defense/retention capacity. It must
+preserve direct founding at an already valid site, avoid inventing threat
+knowledge for unseen tiles, and expose activation separately from the existing
+site-reachability counters.

@@ -1,0 +1,194 @@
+{
+  "artifacts": {
+    "aggregate": "artifacts/freeciv/pf-packet-site-preference-mechanism-v1/impact-aggregate.json",
+    "aggregate_events_sha256": "cab75086bd7eb4ca6633fa35acba59f6bb779948792d870ff69da8e48e24c521",
+    "aggregate_sha256": "de07e9c7e4aac705fd3e03c6bf7483fe221cfc48534b18e1479f91e30300d113",
+    "exact_replay_artifact_hash": "4b99207a161a19f4f50b2f0da82df37b9a5fde45a438e2abacccb9cce90a8ad2",
+    "exact_replay_sha256": "440fba001fdba929b3480d24722d52d3f96f8a11dfe67b85f8920daf259c1086",
+    "exact_replay_source_set_hash": "3556fb888f18ffddecbd190d5455db8a368c6c7ff137682f06cab7277eb18e02",
+    "report_sha256": "2bfb8bc21516793773e2d5c1c023b25162396507e06bbe0574f59be71e84eb35",
+    "run_summary_sha256": "6a9f6211f9a4dbc59b27857fefb6917c72d986845b1c77d0864cf277ccb17d79"
+  },
+  "claim": {
+    "claim_eligible": false,
+    "score_improvement_supported": false,
+    "status": "selected_seed_mechanism_only",
+    "win_rate_supported": false
+  },
+  "cohort": {
+    "active_infrastructure_failures": 0,
+    "complete_pairs": 10,
+    "completed_arms": 20,
+    "historical_pregame_failures": 8,
+    "name": "packet_site_preference_mechanism_v1",
+    "planned_pairs": 10,
+    "resumed_arms": 12,
+    "reused_seeds_from": "expansion_target_confirmatory_v1"
+  },
+  "decision_replay": {
+    "changed_decisions": 46,
+    "decision_change_rate": 0.06292749658002736,
+    "exact_replay_files": 10,
+    "integrity_failures": 0,
+    "sources_unchanged": true,
+    "total_decisions": 731
+  },
+  "diagnostics": {
+    "own_score_signs": {
+      "negative": 1,
+      "positive": 0,
+      "ties": 9
+    },
+    "sole_own_score_change": {
+      "baseline": {
+        "cities_founded": 3,
+        "cities_gained": 2,
+        "citizen_score": 13,
+        "residual_score": 2,
+        "score": 119,
+        "technology_score": 104
+      },
+      "seed": 3746776,
+      "treatment": {
+        "cities_founded": 4,
+        "cities_gained": 2,
+        "citizen_score": 10,
+        "residual_score": 0,
+        "score": 112,
+        "technology_score": 102
+      },
+      "trace": {
+        "baseline_final_city_sizes": [
+          3,
+          5,
+          5
+        ],
+        "treatment_city_count_turn_35": 4,
+        "treatment_final_city_sizes": [
+          2,
+          3,
+          5
+        ],
+        "treatment_fourth_city_absent_by_turn": 52
+      }
+    }
+  },
+  "mechanism": {
+    "baseline": {
+      "cities_gained": 19,
+      "live_founders": 3,
+      "population_recovered": 22,
+      "route_failures": 24,
+      "settlement_completions": 21,
+      "settlement_site_preference_attempts": 0,
+      "settlement_site_preference_successes": 0
+    },
+    "deltas": {
+      "cities_founded": {
+        "estimate": 0.2,
+        "lower": 0.0,
+        "upper": 0.5
+      },
+      "cities_gained": {
+        "estimate": 0.1,
+        "lower": 0.0,
+        "upper": 0.3
+      },
+      "population_recovered": {
+        "estimate": -0.4,
+        "lower": -1.0,
+        "upper": 0.0
+      },
+      "route_failures": {
+        "estimate": -0.4,
+        "lower": -1.1,
+        "upper": 0.0
+      },
+      "settlement_completions": {
+        "estimate": 0.2,
+        "lower": 0.0,
+        "upper": 0.5
+      },
+      "settlement_site_preference_attempts": {
+        "estimate": 2.3,
+        "lower": 1.9,
+        "upper": 2.7
+      },
+      "settlement_site_preference_successes": {
+        "estimate": 2.3,
+        "lower": 1.9,
+        "upper": 2.7
+      }
+    },
+    "treatment": {
+      "cities_gained": 20,
+      "live_founders": 2,
+      "population_recovered": 18,
+      "route_failures": 20,
+      "settlement_completions": 23,
+      "settlement_site_preference_attempts": 23,
+      "settlement_site_preference_successes": 23
+    }
+  },
+  "outcomes": {
+    "lead_rate": {
+      "baseline": 0.3,
+      "baseline_only_leads": 0,
+      "both_lead": 3,
+      "both_trail_or_tie": 7,
+      "difference": 0.0,
+      "exact_mcnemar_p": 1.0,
+      "treatment": 0.3,
+      "treatment_only_leads": 0
+    },
+    "opponent_score": {
+      "baseline_mean": 124.1,
+      "difference": 6.6,
+      "lower": 0.0,
+      "treatment_mean": 130.7,
+      "upper": 13.4
+    },
+    "score": {
+      "baseline_mean": 115.9,
+      "difference": -0.7,
+      "exact_sign_flip_p": 1.0,
+      "lower": -2.1,
+      "nonzero_pairs": 1,
+      "treatment_mean": 115.2,
+      "upper": 0.0
+    },
+    "score_margin": {
+      "baseline_mean": -8.2,
+      "difference": -7.3,
+      "lower": -15.4,
+      "treatment_mean": -15.5,
+      "upper": 0.0
+    }
+  },
+  "safety": {
+    "engine_rejected_action_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "full_loop_under_30s_rate": {
+      "baseline": 1.0,
+      "treatment": 1.0
+    },
+    "initial_state_fidelity_passed": true,
+    "model_safe_fallback_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "overall_passed": true,
+    "schema_valid_events": 28334,
+    "schema_valid_files": 20,
+    "schema_warnings": 0
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "d169dc20f19ded6139f3f0cab5ec4965cc9d1ba0",
+    "configuration_hash": "f2fc851c72d878617f96e6c29be77aa91f2260c5da376f6a7bc7ea82b57d3934",
+    "implementation_sha256": "282b108d855b067b9d1d49cdd7d4357b49ce13886e99d754d4785b275dbad9b4",
+    "source_freeze_passed": true
+  }
+}
