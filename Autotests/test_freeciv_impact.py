@@ -1806,6 +1806,32 @@ def test_candidate_enumeration_reuses_snapshot_production_context():
     }
 
 
+def test_candidate_enumeration_skips_unit_batch_when_expansion_is_required():
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops")],
+        [_production(10, "Settlers", 6, 0),
+         _production(10, "Granary", 3, 14),
+         {"action_type": "end_turn", "is_valid": True}],
+        turn=1)
+    planner = GroundedImpactPlanner(ruleset_ir=_ruleset_ir((
+        ("Settlers", "unit", 30),
+        ("Alpine Troops", "unit", 60),
+        ("Granary", "improvement", 60),
+    )))
+    original = planner._unit_score_batch_members
+    calls = []
+
+    def counted(*args, **kwargs):
+        calls.append(1)
+        return original(*args, **kwargs)
+
+    planner._unit_score_batch_members = counted
+    candidates = planner.candidates(snapshot)
+
+    assert any(row.category == "production_expansion" for row in candidates)
+    assert calls == []
+
+
 def test_horizon_policy_retires_redundant_founder_production():
     defender = [_production(10, "Alpine Troops", 6, 11),
                 {"action_type": "end_turn", "is_valid": True}]

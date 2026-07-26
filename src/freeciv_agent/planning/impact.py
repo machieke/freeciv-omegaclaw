@@ -2081,13 +2081,6 @@ class GroundedImpactPlanner(object):
                 "capacity remains at target without its current queue",
                 projection)
 
-        unit_score_batch = shared(
-            "unit_score_batch",
-            lambda: self._unit_score_batch_members(
-                snapshot, actions, founder_types,
-                action_keys=action_keys)).get(
-                action_key if action_key is not None else
-                canonical_json_bytes(action).decode("utf-8"))
         if needs_founder and current_normalized in founder_types:
             return None
         preexpansion_growth = self._preexpansion_growth_candidate(
@@ -2162,6 +2155,17 @@ class GroundedImpactPlanner(object):
         for index, target in enumerate(DEFENDER_PRIORITY):
             if name.lower() != target.lower():
                 continue
+            # Batch projection is relevant only to a score-bearing military
+            # target. Deferring it until this branch avoids scanning every
+            # city/action trajectory when expansion, timing, or target kind
+            # has already made the current alternative ineligible.
+            unit_score_batch = shared(
+                "unit_score_batch",
+                lambda: self._unit_score_batch_members(
+                    snapshot, actions, founder_types,
+                    action_keys=action_keys)).get(
+                    action_key if action_key is not None else
+                    canonical_json_bytes(action).decode("utf-8"))
             if not current_is_redundant_founder and unit_score_batch is None:
                 continue
             if (not current_is_redundant_founder
