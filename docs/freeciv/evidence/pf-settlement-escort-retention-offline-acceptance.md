@@ -1,7 +1,7 @@
 # PF-PLN settlement escort retention
 
-Status: implementation and offline contracts complete; selected engine
-mechanism cohort frozen
+Status: adapter 1.8 mechanism rejected; adapter 1.9 correction implemented
+and source-fresh selected engine replay frozen
 
 ## Goal
 
@@ -55,3 +55,37 @@ and initial-state gates to pass, all event streams to validate, and exact
 decision replay to report zero integrity failures. Deferral, escort movement,
 escorted settlement, city retention, recovery, own score, opponent score,
 margin, and lead must be reported regardless of direction.
+
+## Adapter 1.8 engine result
+
+The first selected replay completed both arms from clean commit `99c48d1`
+with every source, initial-state, safety, schema, and exact-replay gate
+passing. The treatment activated 53 deferral snapshots and recorded eight
+nominal escort moves, but completed no escorted settlement. It founded zero
+cities and recovered 16 population, compared with three founding completions
+and no recovery in baseline. Own score declined from `112` to `107`; margin
+improved from `-36` to `-19` only because opponent score diverged downward.
+
+Trace inspection rejected the mechanism. All eight nominal escort moves were
+made by the Diplomat: escort routing ran before the explorer exclusion. The
+sole real Alpine Troops defender correctly stayed in the capital, so no
+genuine escort became available. Meanwhile, the unescorted legal site did not
+interrupt founder production. Recovered founders were repeatedly replaced,
+and every settlement was deferred. Machine-readable evidence is
+[`pf-settlement-escort-retention-mechanism-v1.json`](pf-settlement-escort-retention-mechanism-v1.json).
+
+## Adapter 1.9 correction
+
+Adapter 1.9 admits an escort move only when the actor is in the grounded combat
+set. An unescorted, directly foundable founder with no spare combat unit now
+creates a production-defense deficit. If a population-costing founder is
+already queued, the planner may discard its accumulated shields and switch to
+a horizon-completing declared defender; this is the same bounded population
+preservation exception used for redundant founder production. Exact
+production installation is counted separately before that defender can move.
+
+`settlement_escort_retention_mechanism_v2` freezes the same isolated switch and
+selected seed on a fresh adapter-1.9 source. Adapter-1.8 arms cannot be reused
+or pooled. In addition to the original acceptance fields, V2 must report exact
+escort-defense production attempts/completions and verify that no Diplomat,
+Spy, Caravan, or Explorer action is classified as an escort.

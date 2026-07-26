@@ -205,7 +205,7 @@ def _target_name(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.8"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.9"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -452,6 +452,8 @@ class GroundedImpactPlanner(object):
         self.founder_settlement_site_preference_successes = 0
         self.founder_escort_move_attempts = 0
         self.founder_escort_move_successes = 0
+        self.founder_escort_defense_production_attempts = 0
+        self.founder_escort_defense_production_successes = 0
         self.founder_escorted_settlement_attempts = 0
         self.founder_escorted_settlement_completions = 0
         self.population_recovery_attempts = 0
@@ -1103,6 +1105,12 @@ class GroundedImpactPlanner(object):
                     and (after_unit.x, after_unit.y)
                     == (target.get("x"), target.get("y"))):
                 self.founder_escort_move_successes += 1
+        if (candidate.category == "production_defense"
+                and (candidate.projection or {}).get(
+                    "settlement_escort_defense") is True):
+            self.founder_escort_defense_production_attempts += 1
+            self.founder_escort_defense_production_successes += int(
+                bool(effect_observed))
         if candidate.category == "city_founding":
             if (candidate.projection or {}).get(
                     "settlement_escort_present") is True:
@@ -2174,21 +2182,46 @@ class GroundedImpactPlanner(object):
             needs_founder, remaining_turns)
         if preexpansion_followup is not None:
             return preexpansion_followup
+        combat_units = shared(
+            "combat_units",
+            lambda: self._combat_units(snapshot, founder_types))
+        if self.expansion_escort_retention_enabled:
+            unescorted_founders = shared(
+                "unescorted_foundable_founders",
+                lambda: self._directly_foundable_founders(
+                    snapshot, actions, founder_types,
+                    unescorted_only=True))
+            spare_combat_units = tuple(
+                unit for unit in combat_units
+                if not self._city_defender_is_required(
+                    snapshot, unit, founder_types))
+            escort_defense_needed = bool(
+                unescorted_founders and not spare_combat_units)
+        else:
+            unescorted_founders = ()
+            escort_defense_needed = False
         urgent_founder_repurpose = bool(
             current_is_redundant_founder and current_pop_cost > 0
             and current_completes_by_horizon)
+        urgent_escort_repurpose = bool(
+            escort_defense_needed
+            and current_normalized in founder_types
+            and current_pop_cost > 0
+            and current_completes_by_horizon)
+        urgent_repurpose = bool(
+            urgent_founder_repurpose or urgent_escort_repurpose)
 
         # Normal changes remain lossless at an empty stock boundary. A redundant
         # positive-population founder is the sole exception: completing it and
         # automatically repeating it costs citizens. Project the replacement as
         # if every accumulated shield were discarded, so the exception cannot
         # invent carry-over value.
-        if city.shield_stock not in (None, 0) and not urgent_founder_repurpose:
+        if city.shield_stock not in (None, 0) and not urgent_repurpose:
             return None
         projection = self._production_projection(
             city, name, remaining_turns, snapshot=snapshot,
             founder_types=founder_types,
-            shield_stock_override=(0 if urgent_founder_repurpose else None))
+            shield_stock_override=(0 if urgent_repurpose else None))
         if normalized in founder_types:
             projection.update({
                 "existing_founders": len(founders),
@@ -2197,10 +2230,12 @@ class GroundedImpactPlanner(object):
                 "queued_founders": queued_founders,
             })
 
-        if urgent_founder_repurpose:
+        if urgent_repurpose:
             target_pop_cost = int(self._production_specs.get(
                 normalized, {}).get("pop_cost", 0))
-            priorities = IMPROVEMENT_PRIORITY + DEFENDER_PRIORITY
+            priorities = (
+                DEFENDER_PRIORITY if urgent_escort_repurpose
+                else IMPROVEMENT_PRIORITY + DEFENDER_PRIORITY)
             target_index = next((
                 index for index, target in enumerate(priorities)
                 if name.lower() == target.lower()), None)
@@ -2219,15 +2254,26 @@ class GroundedImpactPlanner(object):
                     completion_eta is not None
                     and completion_eta <= remaining_turns),
             })
+            if urgent_escort_repurpose:
+                projection.update({
+                    "settlement_escort_defense": True,
+                    "unescorted_founder_ids": tuple(
+                        unit.unit_id for unit in unescorted_founders),
+                })
             eta_penalty = (remaining_turns + 1 if completion_eta is None
                            else completion_eta)
             return ImpactCandidate(
-                action, "production_repurpose",
-                900.0 + current_pop_cost * 20.0
+                action, ("production_defense" if urgent_escort_repurpose
+                         else "production_repurpose"),
+                (980.0 if urgent_escort_repurpose else 900.0)
+                + current_pop_cost * 20.0
                 + projection["score_value"] * 10.0
                 - eta_penalty - target_index * 0.01,
-                "retire population-costing founder production while expansion "
-                "capacity remains at target without its current queue",
+                ("retire population-costing founder production into a grounded "
+                 "escort while a packet-legal settlement is unguarded"
+                 if urgent_escort_repurpose else
+                 "retire population-costing founder production while expansion "
+                 "capacity remains at target without its current queue"),
                 projection)
 
         if needs_founder and current_normalized in founder_types:
@@ -2268,9 +2314,7 @@ class GroundedImpactPlanner(object):
         if not self._projection_can_affect_horizon(projection):
             return None
 
-        defenders = shared(
-            "combat_units",
-            lambda: self._combat_units(snapshot, founder_types))
+        defenders = combat_units
         defense_deficit = len(defenders) < max(1, city_count)
         if defense_deficit and current_name in DEFENDER_PRIORITY:
             return None
@@ -2548,7 +2592,11 @@ class GroundedImpactPlanner(object):
         if self._city_defender_is_required(snapshot, unit, founder_types):
             return None
         if (self.expansion_escort_retention_enabled
-                and unit.x is not None and unit.y is not None):
+                and unit.x is not None and unit.y is not None
+                and any(
+                    combat.unit_id == unit.unit_id
+                    for combat in self._combat_units(
+                        snapshot, founder_types))):
             foundable = self._directly_foundable_founders(
                 snapshot, actions, founder_types, unescorted_only=True)
             if foundable:

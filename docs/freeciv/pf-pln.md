@@ -573,6 +573,14 @@ consumption confirmation once the escort is present. Offline design evidence
 is in
 [`evidence/pf-settlement-escort-retention-offline-acceptance.md`](evidence/pf-settlement-escort-retention-offline-acceptance.md).
 
+The first engine replay rejected adapter 1.8 because its escort branch ran
+before explorer exclusion and classified Diplomat movement as escort
+progress. Adapter `grounded-impact-planner/1.9` restricts the branch to the
+grounded combat set and makes an unescorted legal site with no spare combat
+unit a production-defense deficit. A population-costing founder queue may be
+repurposed into a declared defender, with exact installation required before
+the defender can escort.
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` and `pressure_score_alignment_enabled` default to `false`
 unless the runtime profile enables them. This preserves unit-level policy

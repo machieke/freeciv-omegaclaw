@@ -1,0 +1,87 @@
+{
+  "artifacts": {
+    "aggregate": "artifacts/freeciv/pf-settlement-escort-retention-mechanism-v1/impact-aggregate.json",
+    "aggregate_sha256": "b7536f9a24c0a33c5732e66b5b4396b280e813b06819ba3219c06142ffd5d662",
+    "baseline_events_sha256": "1ec3209dbec2b4f6d953e483a7d334db362ec4f69c285c05184ad191ca72e612",
+    "exact_replay_artifact_hash": "c700855ad4885d4ae73c52536ec983bb5be1f3389c0703a7cd7cc7335a862348",
+    "exact_replay_sha256": "ded20d47c450bf18716398e7ab46dcc933e42b94d1ac95b08378549040890f76",
+    "exact_replay_source_set_hash": "9c2c4ac0d860399969c6f27db71bc5346500b04bdeb239e0c1289822ea3aba9d",
+    "run_summary_sha256": "97dc48682a0de3354b4d5e63689e737fc820c46bc79d2b51b3536113eb252b78",
+    "treatment_events_sha256": "78a6ceff2c18ab04df45fd5cd1848a355c8203dae7a8e7afd928122f3e1fbaa2"
+  },
+  "claim": {
+    "claim_eligible": false,
+    "score_improvement_supported": false,
+    "status": "selected_seed_mechanism_rejected",
+    "win_rate_supported": false
+  },
+  "cohort": {
+    "active_infrastructure_failures": 0,
+    "complete_pairs": 1,
+    "completed_arms": 2,
+    "name": "settlement_escort_retention_mechanism_v1",
+    "planned_pairs": 1,
+    "reused_seed": 3746776
+  },
+  "decision_replay": {
+    "changed_decisions": 1,
+    "decision_change_rate": 0.02127659574468085,
+    "exact_replay_files": 1,
+    "integrity_failures": 0,
+    "sources_unchanged": true,
+    "total_decisions": 47
+  },
+  "mechanism": {
+    "baseline": {
+      "cities_founded": 3,
+      "cities_gained": 2,
+      "population_recovered": 0,
+      "score": 112,
+      "score_margin": -36
+    },
+    "treatment": {
+      "cities_founded": 0,
+      "cities_gained": 0,
+      "escort_deferral_snapshots": 53,
+      "escort_move_attempts": 8,
+      "escort_move_successes": 8,
+      "escorted_settlement_completions": 0,
+      "population_recovered": 16,
+      "score": 107,
+      "score_margin": -19
+    }
+  },
+  "rejection": {
+    "causes": [
+      "Escort routing ran before the explorer exclusion, so eight Diplomat moves were misclassified as combat escort progress.",
+      "The sole Alpine Troops unit correctly remained in the capital, leaving no genuine spare escort.",
+      "An unescorted legal settlement did not create a defense-production deficit, so deadline recovery was followed by repeated founder replacement."
+    ],
+    "decision": "Do not enable adapter 1.8. Require combat-only escorts and prioritize a horizon-completing defender over another population-costing founder while a legal site is unescorted."
+  },
+  "safety": {
+    "engine_rejected_action_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "full_loop_under_30s_rate": {
+      "baseline": 1.0,
+      "treatment": 1.0
+    },
+    "initial_state_fidelity_passed": true,
+    "model_safe_fallback_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "overall_passed": true,
+    "schema_valid_events": 2378,
+    "schema_valid_files": 2
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "99c48d1fde33aa4726009d0fb8e330f6d2e16a69",
+    "configuration_hash": "09b7a54428fcebbbc57ce33c294da8ba99d3724aaec19f909b8bc61b1bb115e3",
+    "implementation_sha256": "655f1fbc5203ff5188a191909ce1fd37ca54cde514119a5492203c7cd62343a8",
+    "source_freeze_passed": true
+  }
+}

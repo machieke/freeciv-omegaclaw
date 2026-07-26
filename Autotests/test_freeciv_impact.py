@@ -359,6 +359,17 @@ def test_founder_escort_retention_waits_routes_and_confirms_settlement():
     assert planner.plan(unescorted) is None
     assert planner.founder_escort_deferral_snapshots == 1
 
+    diplomat_move = {
+        "action_type": "unit_move", "actor_id": 7,
+        "target": {"x": 1, "y": 1}, "is_valid": True,
+    }
+    noncombat = _snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(7, "Diplomat", 0, 1),
+        _unit(11, "Alpine Troops", 0, 0),
+    ], [build, diplomat_move, end_turn], source_seq=2)
+    assert planner.plan(noncombat).candidate.category == "exploration_move"
+
     escort_move = {
         "action_type": "unit_move", "actor_id": 12,
         "target": {"x": 1, "y": 0}, "is_valid": True,
@@ -406,6 +417,56 @@ def test_founder_escort_retention_waits_routes_and_confirms_settlement():
         founding.candidate, escorted, True, settled)
     assert planner.founder_escorted_settlement_attempts == 1
     assert planner.founder_escorted_settlement_completions == 1
+
+
+def test_unescorted_legal_site_repurposes_founder_queue_to_defense():
+    city = _city(
+        size=4, food_stock=20, shield_stock=10,
+        production_kind=6, production_value=0)
+    actions = [
+        {
+            "action_type": "unit_build_city", "actor_id": 1,
+            "is_valid": True,
+        },
+        _production(10, "Alpine Troops", 6, 11),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 30),
+        ("Alpine Troops", "unit", 40),
+    ), pop_costs={"Settlers": 1})
+    planner = GroundedImpactPlanner({
+        "expansion_escort_retention_enabled": True,
+        "horizon_turn": 60,
+    }, ruleset_ir=ir)
+
+    decision = planner.plan(_snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(11, "Alpine Troops", 0, 0),
+    ], actions, cities=[city], turn=6))
+
+    assert decision.candidate.category == "production_defense"
+    assert decision.candidate.action["target"][
+        "production_type"] == "Alpine Troops"
+    assert decision.candidate.projection[
+        "settlement_escort_defense"] is True
+    assert decision.candidate.projection[
+        "unescorted_founder_ids"] == (1,)
+    assert decision.candidate.projection[
+        "repurpose_discarded_shield_stock"] == 10
+    changed_city = dict(city, production_kind=6, production_value=11)
+    changed = _snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(11, "Alpine Troops", 0, 0),
+    ], [{"action_type": "end_turn", "is_valid": True}],
+        cities=[changed_city], source_seq=2, turn=6)
+    planner.record_outcome(
+        decision.candidate, _snapshot([
+            _unit(1, "Settlers", 3, 0),
+            _unit(11, "Alpine Troops", 0, 0),
+        ], actions, cities=[city], turn=6), True, changed)
+    assert planner.founder_escort_defense_production_attempts == 1
+    assert planner.founder_escort_defense_production_successes == 1
 
 
 def test_packet_site_preference_records_exact_move_outcome():

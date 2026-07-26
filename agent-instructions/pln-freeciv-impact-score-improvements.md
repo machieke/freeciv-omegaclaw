@@ -1344,3 +1344,15 @@ The frozen, claim-ineligible
 activation, retention, settlement/recovery, score, opponent, margin, and lead
 regardless of direction and cannot revise the frozen score claim. See
 [`../docs/freeciv/evidence/pf-settlement-escort-retention-offline-acceptance.md`](../docs/freeciv/evidence/pf-settlement-escort-retention-offline-acceptance.md).
+
+The adapter-1.8 replay rejected the initial rule despite passing all execution
+gates. Treatment deferred 53 snapshots and reported eight apparent escort
+moves, but those moves belonged to the Diplomat because escort routing
+preceded explorer exclusion. The sole real defender remained protected,
+treatment founded no cities, recovered 16 population, and scored five points
+below baseline. Adapter 1.9 restricts escort actors to the grounded combat set
+and treats an unescorted legal site with no spare combat unit as a production-
+defense deficit. It may repurpose a population-costing founder queue into a
+declared defender and reports that installation separately. Source-fresh
+`settlement_escort_retention_mechanism_v2` repeats the isolated selected-seed
+gate; V1 outcomes remain immutable and unpooled.

@@ -100,7 +100,7 @@ frontier travel while keeping all alternatives available. This cannot
 preempt an already advertised founding action and does not classify an
 unknown or false destination as impassable.
 
-Adapter 1.8 adds the opt-in `expansion_escort_retention_enabled` retention
+Adapter 1.8 introduced the opt-in `expansion_escort_retention_enabled` retention
 guard. A packet-legal Found City action without a co-located grounded combat
 unit is deferred, and the founder holds its exact site while a spare combat
 unit follows only legal moves that strictly reduce distance. A sole defender
@@ -109,6 +109,14 @@ co-located, the existing founding, runway, spacing, failure-learning, and exact
 effect checks apply unchanged. If the runway expires first, adapter 1.6
 population recovery still takes precedence. The switch defaults false pending
 engine mechanism evidence.
+
+The selected adapter-1.8 replay rejected the initial escort classifier because
+it ran before explorer exclusion. Adapter 1.9 requires the escort actor to
+belong to the grounded combat set. When a directly foundable founder is
+unescorted and every combat unit is a required city defender, the condition
+also grounds a `production_defense` candidate. A population-costing founder
+queue may be lossily repurposed into a declared defender, preventing repeated
+founder replacement while exact legal sites wait for real defense capacity.
 
 Founder routing is feedback-driven in the horizon-score policy. On the first step from
 a city, aggregate distance from the complete city network breaks minimum-distance ties

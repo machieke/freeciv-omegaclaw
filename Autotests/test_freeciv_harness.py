@@ -111,6 +111,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "foreign_claim_founding_mechanism_v1": 1,
             "packet_site_preference_mechanism_v1": 10,
             "settlement_escort_retention_mechanism_v1": 1,
+            "settlement_escort_retention_mechanism_v2": 1,
         }
     seed_sets = [
         set(row["seeds"]) for row in paired["cohorts"].values()
@@ -379,6 +380,16 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "expansion_escort_retention_enabled"] is False
     assert escort_retention["arms"]["treatment"][
         "expansion_escort_retention_enabled"] is True
+    escort_retention_v2 = paired["cohorts"][
+        "settlement_escort_retention_mechanism_v2"]
+    assert escort_retention_v2["seeds"] == [3746776]
+    assert escort_retention_v2["reused_seeds_from"] == [
+        "settlement_escort_retention_mechanism_v1",
+        "packet_site_preference_mechanism_v1",
+        "expansion_target_confirmatory_v1"]
+    assert escort_retention_v2["claim_eligible"] is False
+    assert escort_retention_v2["isolated_policy_keys"] == [
+        "expansion_escort_retention_enabled"]
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.2",
         "source_sha256": "3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e",
