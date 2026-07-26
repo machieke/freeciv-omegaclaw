@@ -1208,18 +1208,6 @@ def _cognitive_turn(manifest, context, store, player_id, raw, snapshot,
             "selection_call_policy") == SELECTION_CALL_POLICY
         and _active_research_continuation(
             snapshot, available_research, targets))
-    crisp = (CrispStateView(
-        snapshot.snapshot_id, known_techs=snapshot.research.known_techs,
-        player="player") if context.capabilities["dependency_oracle"] else None)
-    numeric = (PlanningSnapshot(
-        snapshot.snapshot_id, snapshot.turn,
-        int(snapshot.research.beakers_per_turn or 0),
-        int(snapshot.economy.gold or 0),
-        current_research=snapshot.research.target_name,
-        current_progress=int(snapshot.research.progress or 0),
-        tech_costs=_live_tech_costs(ir, raw),
-        legal_actions_digest=snapshot.legal_actions_digest)
-               if context.capabilities["scheduler"] else None)
     record_stage("setup_ms", stage_started)
 
     stage_started = time.perf_counter()
@@ -1330,6 +1318,18 @@ def _cognitive_turn(manifest, context, store, player_id, raw, snapshot,
         return (None, "end_turn", gap["event_id"], latency, corrections, True,
                 model_called, model_call_avoided)
 
+    crisp = (CrispStateView(
+        snapshot.snapshot_id, known_techs=snapshot.research.known_techs,
+        player="player") if context.capabilities["dependency_oracle"] else None)
+    numeric = (PlanningSnapshot(
+        snapshot.snapshot_id, snapshot.turn,
+        int(snapshot.research.beakers_per_turn or 0),
+        int(snapshot.economy.gold or 0),
+        current_research=snapshot.research.target_name,
+        current_progress=int(snapshot.research.progress or 0),
+        tech_costs=_live_tech_costs(ir, raw),
+        legal_actions_digest=snapshot.legal_actions_digest)
+               if context.capabilities["scheduler"] else None)
     if proposal is not None:
         grades = GoalGrader(oracle, scheduler).grade_all(proposal, crisp, numeric)
         if manifest["track"] == "grading_ungraded":

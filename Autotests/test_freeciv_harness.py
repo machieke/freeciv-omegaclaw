@@ -583,6 +583,58 @@ def test_active_research_is_the_only_selection_target_without_new_choices():
         snapshot, ("Tech2",), (active, other))
 
 
+def test_active_research_continuation_defers_planning_views(monkeypatch):
+    target = _selection_target(1)
+    target.target_kind = "tech"
+    target.disabled = False
+    catalog = _SelectionTestCatalog((target,))
+    parser = engine_live.ProposalParser(catalog)
+    summary = _SelectionTestSummary()
+    monkeypatch.setattr(
+        engine_live, "StateSummaryService",
+        lambda _store: SimpleNamespace(query=lambda *_args: summary))
+    monkeypatch.setattr(
+        engine_live, "_live_tech_costs",
+        lambda *_args: pytest.fail("continuation constructed planning views"))
+    context = SimpleNamespace(
+        capabilities={
+            "authoritative_state": True,
+            "constrained_llm": True,
+            "dependency_oracle": True,
+            "scheduler": True,
+        },
+        use=lambda _capability: None)
+    snapshot = SimpleNamespace(
+        turn=2, snapshot_id="snapshot-2",
+        research=SimpleNamespace(
+            target_name="Tech1", known_techs=(), beakers_per_turn=1,
+            progress=0),
+        economy=SimpleNamespace(gold=0))
+
+    class Writer:
+        def __init__(self):
+            self.types = []
+
+        def emit(self, event_type, _turn, _payload, caused_by=None):
+            self.types.append(event_type)
+            return {"event_id": "event-{}".format(len(self.types))}
+
+    writer = Writer()
+    result = engine_live._cognitive_turn(
+        {
+            "game_id": "game",
+            "model": "qwen3-coder-next:latest",
+            "model_config": {
+                "selection_call_policy": engine_live.SELECTION_CALL_POLICY},
+        },
+        context, object(), 0, {"legal_actions": []}, snapshot,
+        SimpleNamespace(rules=(target,)), catalog, parser,
+        object(), object(), writer, "parent")
+
+    assert result[0:2] == (None, "end_turn")
+    assert writer.types == ["goal_selection", "verification"]
+
+
 def test_multiple_canonical_candidates_still_require_model_selection(monkeypatch):
     targets = (_selection_target(1), _selection_target(2))
     calls = []

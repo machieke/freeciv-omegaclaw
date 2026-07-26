@@ -40,6 +40,9 @@ grading, dependency expansion, and scheduling are deferred until a new
 research action is actually advertised. The immutable schema validator and
 symbol-catalog parser are constructed once with the cognitive stack and reused;
 every proposal is still parsed and catalog-checked.
+The crisp and numeric planning views are constructed only after this
+continuation gate, so an unexecutable research plan cannot allocate scheduler
+inputs that the turn will not consume.
 Two or more candidates still use `llm_proposal`. This necessity optimization
 does not inspect pressure, admit an expansion request, or activate the Phase 7
 gateway, so Phase 7 remains correctly declared `component-only`.
