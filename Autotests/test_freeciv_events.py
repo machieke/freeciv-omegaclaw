@@ -31,6 +31,35 @@ def test_every_known_event_type_has_published_payload_definition():
     assert set(schema.KNOWN_EVENT_TYPES).issubset(payloads["$defs"])
 
 
+def test_compiled_payload_validators_inline_refs_and_keep_nested_checks():
+    def references(value):
+        if isinstance(value, dict):
+            return (
+                (["$ref"] if "$ref" in value else [])
+                + [reference for item in value.values()
+                   for reference in references(item)])
+        if isinstance(value, list):
+            return [reference for item in value
+                    for reference in references(item)]
+        return []
+
+    for event_type in schema.KNOWN_EVENT_TYPES:
+        assert references(schema._payload_validator(event_type).schema) == []
+
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "normal.jsonl")
+        synthetic.generate("normal-crisp", path)
+        event = next(
+            json.loads(line) for line in open(path, encoding="utf-8")
+            if json.loads(line)["type"] == "plan_created")
+        event["payload"]["plan"]["steps"][0]["predicted_turn"] = "soon"
+        assert schema.validate_event_schema(event) == [{
+            "path": "event.payload.plan.steps.0.predicted_turn",
+            "message": "'soon' is not of type 'integer'",
+            "validator": "type",
+        }]
+
+
 def test_generated_types_are_current():
     script = os.path.join(_REPO, "scripts", "freeciv", "generate_event_types.py")
     proc = subprocess.run([sys.executable, script, "--check"], cwd=_REPO,

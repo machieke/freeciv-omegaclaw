@@ -73,17 +73,45 @@ _ENVELOPE_VALIDATOR = jsonschema.Draft202012Validator(
 _PAYLOAD_VALIDATORS = {}
 
 
+def _inline_payload_schema(value, trail=()):
+    """Resolve the published payload schema's acyclic local references once."""
+    if isinstance(value, dict):
+        if "$ref" in value:
+            if set(value) != {"$ref"}:
+                raise ValueError("payload schema reference siblings are unsupported")
+            prefix = "#/$defs/"
+            reference = value["$ref"]
+            if not reference.startswith(prefix):
+                raise ValueError(
+                    "payload schema reference must be local: {}".format(reference))
+            name = reference[len(prefix):]
+            if name in trail:
+                raise ValueError(
+                    "cyclic payload schema reference: {}".format(
+                        " -> ".join(trail + (name,))))
+            try:
+                target = _PAYLOADS_SCHEMA["$defs"][name]
+            except KeyError:
+                raise ValueError(
+                    "unknown payload schema reference: {}".format(reference))
+            return _inline_payload_schema(target, trail + (name,))
+        return dict(
+            (key, _inline_payload_schema(item, trail))
+            for key, item in value.items())
+    if isinstance(value, list):
+        return [_inline_payload_schema(item, trail) for item in value]
+    return value
+
+
 def _payload_validator(event_type):
     if event_type not in KNOWN_EVENT_TYPES:
         return None
     if event_type not in _PAYLOAD_VALIDATORS:
-        schema = {
-            "$schema": _PAYLOADS_SCHEMA["$schema"],
-            "$ref": "#/$defs/{}".format(event_type),
-            "$defs": copy.deepcopy(_PAYLOADS_SCHEMA["$defs"]),
-        }
+        payload_schema = _inline_payload_schema(
+            _PAYLOADS_SCHEMA["$defs"][event_type], (event_type,))
+        payload_schema["$schema"] = _PAYLOADS_SCHEMA["$schema"]
         _PAYLOAD_VALIDATORS[event_type] = jsonschema.Draft202012Validator(
-            schema, format_checker=_FORMAT_CHECKER)
+            payload_schema, format_checker=_FORMAT_CHECKER)
     return _PAYLOAD_VALIDATORS[event_type]
 
 
