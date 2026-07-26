@@ -5,9 +5,11 @@ All phases 0-9 have deterministic acceptance evidence, but only phases with an
 engine adapter may affect a live harness game. The versioned support declaration
 is `pf_pln_runtime` in `profile/freeciv_agent.yaml`.
 
-The current engine adapter is `grounded-impact-planner/1.4`. Its score-alignment
+The current engine adapter is `grounded-impact-planner/1.5`. Its score-alignment
 guard changes how the already-live phases 0, 1, 4, and 9 rank grounded
-operations; it does not activate any component-only phase.
+operations. It also exposes a bounded post-settlement-runway gate for
+score-bearing founder production; it does not activate any component-only
+phase.
 
 ## Current engine boundary
 

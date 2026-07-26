@@ -205,7 +205,7 @@ def _target_name(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.4"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.5"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -302,6 +302,15 @@ class GroundedImpactPlanner(object):
             values.get("production_minimum_remaining_turns", 8))
         self.expansion_minimum_remaining_turns = int(
             values.get("expansion_minimum_remaining_turns", 12))
+        settlement_runway = values.get(
+            "expansion_minimum_settlement_runway_turns", 0)
+        if (isinstance(settlement_runway, bool)
+                or not isinstance(settlement_runway, (int, float))
+                or int(settlement_runway) != settlement_runway):
+            raise ValueError(
+                "expansion_minimum_settlement_runway_turns must be an integer")
+        self.expansion_minimum_settlement_runway_turns = int(
+            settlement_runway)
         self.foodbox_percent = int(values.get("foodbox_percent", 100))
         self.unit_build_score_divisor = int(values.get(
             "unit_build_score_divisor", 10))
@@ -327,6 +336,9 @@ class GroundedImpactPlanner(object):
             raise ValueError("production_minimum_remaining_turns must be in 1..100")
         if not 1 <= self.expansion_minimum_remaining_turns <= 100:
             raise ValueError("expansion_minimum_remaining_turns must be in 1..100")
+        if not 0 <= self.expansion_minimum_settlement_runway_turns <= 100:
+            raise ValueError(
+                "expansion_minimum_settlement_runway_turns must be in 0..100")
         if self.expansion_minimum_remaining_turns < self.production_minimum_remaining_turns:
             raise ValueError(
                 "expansion_minimum_remaining_turns cannot be shorter than production")
@@ -1904,7 +1916,9 @@ class GroundedImpactPlanner(object):
             combined_eta = granary_eta + int(settlement_eta)
             settlement_runway = int(remaining_turns) - combined_eta
             if (combined_eta > remaining_turns
-                    or settlement_runway < self.production_minimum_remaining_turns
+                    or settlement_runway < max(
+                        self.production_minimum_remaining_turns,
+                        self.expansion_minimum_settlement_runway_turns)
                     or founder_projection.get("score_value", 0.0) <= 0):
                 continue
             action_key = canonical_json_bytes(founder_action).decode("utf-8")
@@ -2138,6 +2152,8 @@ class GroundedImpactPlanner(object):
                 and remaining_turns >= self.expansion_minimum_remaining_turns
                 and projection.get("settlement_eta_turns") is not None
                 and projection["settlement_eta_turns"] <= remaining_turns
+                and projection.get("settlement_runway_turns", -1)
+                >= self.expansion_minimum_settlement_runway_turns
                 and projection["score_value"] > 0):
             return ImpactCandidate(
                 action, "production_expansion",

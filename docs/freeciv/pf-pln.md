@@ -506,6 +506,15 @@ safe regularizer, not a supported score-improvement mechanism, and must not
 advance to confirmation unchanged. Full evidence is in
 [`evidence/pf-pressure-score-alignment-pilot-v2.md`](evidence/pf-pressure-score-alignment-pilot-v2.md).
 
+Adapter `grounded-impact-planner/1.5` adds an explicit minimum
+post-settlement runway to horizon-score founder production. The default is
+zero for historical replay compatibility. The predeclared
+`expansion_target_pilot_v1` gives both arms the same conservative 15-turn
+runway and isolates only the expansion target: three cities versus four.
+Fresh seeds are disjoint from every earlier impact cohort. The implementation
+and offline opportunity audit are recorded in
+[`evidence/pf-expansion-target-v1-offline-acceptance.md`](evidence/pf-expansion-target-v1-offline-acceptance.md).
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` and `pressure_score_alignment_enabled` default to `false`
 unless the runtime profile enables them. This preserves unit-level policy

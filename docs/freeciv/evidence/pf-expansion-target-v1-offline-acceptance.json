@@ -1,0 +1,51 @@
+{
+  "acceptance": {
+    "focused_tests_passed": 222,
+    "pressure_snapshot_replay_artifact_hash": "63d0db5ec8e19cce911c69d56b3e1a3a98bcc49828460eeb00c840b5701cf8a3",
+    "status": "passed_fresh_pilot_pending"
+  },
+  "fresh_cohort": {
+    "baseline_city_target": 3,
+    "claim_eligible": false,
+    "isolated_policy_keys": [
+      "expansion_city_target"
+    ],
+    "name": "expansion_target_pilot_v1",
+    "planned_pairs": 40,
+    "seed_derivation": {
+      "algorithm": "sha256-counter-v1",
+      "count": 40,
+      "maximum": 3599999,
+      "minimum": 3500000,
+      "namespace": "pf-pln-expansion-target-pilot-v1"
+    },
+    "settlement_runway_turns": 15,
+    "treatment_city_target": 4
+  },
+  "implementation": {
+    "adapter": "grounded-impact-planner/1.5",
+    "historical_default_settlement_runway_turns": 0,
+    "setting": "expansion_minimum_settlement_runway_turns"
+  },
+  "opportunity_audit": {
+    "authoritative_baseline_files": 40,
+    "first_opportunity_at_least_15_runway_seeds": 18,
+    "positive_projected_founder_opportunity_seeds": 30,
+    "positive_projected_founder_opportunity_snapshots": 187,
+    "source_cohort": "pressure_score_alignment_pilot_v2",
+    "three_city_new_city_boundary_observations": {
+      "final_sizes": [
+        2,
+        2,
+        4,
+        5
+      ],
+      "founder_population_cost": 2,
+      "post_settlement_runway_range": [
+        15,
+        19
+      ]
+    }
+  },
+  "schema_version": "1.0"
+}

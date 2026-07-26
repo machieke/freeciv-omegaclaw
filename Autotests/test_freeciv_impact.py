@@ -854,6 +854,10 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
                    {"settle_min_distance": 0}, {"expansion_city_target": 21},
                    {"horizon_turn": 0},
                    {"production_minimum_remaining_turns": 0},
+                   {"expansion_minimum_settlement_runway_turns": True},
+                   {"expansion_minimum_settlement_runway_turns": -1},
+                   {"expansion_minimum_settlement_runway_turns": 1.5},
+                   {"expansion_minimum_settlement_runway_turns": 101},
                    {"foodbox_percent": 0},
                    {"unit_build_score_divisor": 0},
                    {"production_minimum_remaining_turns": 9,
@@ -1495,6 +1499,60 @@ def test_population_delayed_founder_uses_start_runway_and_settles_by_horizon():
     mature = dict(city, size=2, food_stock=20)
     assert GroundedImpactPlanner(values, ruleset_ir=ir).plan(_snapshot(
         [_unit(11, "Alpine Troops")], actions, cities=[mature], turn=19)) is None
+
+
+def test_founder_production_requires_declared_post_settlement_runway():
+    founder = _production(10, "Settlers", 6, 0)
+    actions = [founder, {"action_type": "end_turn", "is_valid": True}]
+    city = _city(
+        size=3, food_stock=0, shield_stock=0,
+        surplus=(3, 5, 4, 3, 0, 2),
+        production_kind=6, production_value=11)
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 30),
+        ("Alpine Troops", "unit", 60),
+    ), pop_costs={"Settlers": 2})
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops")], actions, cities=[city], turn=36)
+    values = {
+        "horizon_turn": 60,
+        "expansion_city_target": 2,
+        "expansion_minimum_remaining_turns": 12,
+        "expansion_minimum_settlement_runway_turns": 15,
+    }
+
+    decision = GroundedImpactPlanner(values, ruleset_ir=ir).plan(snapshot)
+    assert decision.candidate.category == "production_expansion"
+    assert decision.candidate.projection["settlement_runway_turns"] == 15
+
+    too_short = _snapshot(
+        [_unit(11, "Alpine Troops")], actions, cities=[city], turn=37)
+    assert GroundedImpactPlanner(values, ruleset_ir=ir).plan(too_short) is None
+
+
+def test_preexpansion_sequence_requires_declared_post_settlement_runway():
+    actions = [
+        _production(10, "Settlers", 6, 0),
+        _production(10, "Granary", 3, 14),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 30), ("Granary", "improvement", 40),
+    ), pop_costs={"Settlers": 2})
+    city = _city(
+        size=1, food_stock=0, shield_stock=0,
+        surplus=(2, 3, 4, 3, 0, 2))
+    snapshot = _snapshot(
+        [_unit(1, "Settlers")], actions, cities=[city], turn=1)
+
+    decision = GroundedImpactPlanner({
+        "horizon_turn": 60,
+        "expansion_city_target": 3,
+        "expansion_minimum_settlement_runway_turns": 18,
+    }, ruleset_ir=ir).plan(snapshot)
+
+    assert decision.candidate.category == "production_expansion"
+    assert decision.candidate.action["target"]["production_type"] == "Settlers"
 
 
 def test_horizon_policy_sequences_granary_before_last_slow_growth_founder():

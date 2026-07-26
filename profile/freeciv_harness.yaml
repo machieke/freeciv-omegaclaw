@@ -40,6 +40,9 @@ impact_policy:
   horizon_turn: 30
   production_minimum_remaining_turns: 8
   expansion_minimum_remaining_turns: 12
+  # Default zero preserves prior cohorts. Fresh expansion-target cohorts
+  # declare their conservative score-bearing runway explicitly in both arms.
+  expansion_minimum_settlement_runway_turns: 0
   foodbox_percent: 100
   unit_build_score_divisor: 10
   refresh_timeout_seconds: 0.3
@@ -634,6 +637,35 @@ paired_impact:
         count: 40
         minimum: 3400000
         maximum: 3499999
+    expansion_target_pilot_v1:
+      purpose: pilot
+      claim_eligible: false
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 40
+      controller_workers: 3
+      isolated_policy_keys:
+        - expansion_city_target
+      arms:
+        baseline:
+          expansion_city_target: 3
+          expansion_minimum_settlement_runway_turns: 15
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+        treatment:
+          expansion_city_target: 4
+          expansion_minimum_settlement_runway_turns: 15
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-expansion-target-pilot-v1
+        count: 40
+        minimum: 3500000
+        maximum: 3599999
   retired_cohorts:
     confirmatory_score_horizon_60_v4:
       retired_reason: terminal_player_elimination_misclassified_as_infrastructure_timeout

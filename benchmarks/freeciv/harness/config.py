@@ -33,6 +33,7 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
             ("horizon_turn", 1, 500),
             ("production_minimum_remaining_turns", 1, 100),
             ("expansion_minimum_remaining_turns", 1, 100),
+            ("expansion_minimum_settlement_runway_turns", 0, 100),
             ("foodbox_percent", 1, 1000),
             ("unit_build_score_divisor", 1, 100),
             ("no_effect_retry_limit", 1, 8),
