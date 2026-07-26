@@ -110,8 +110,12 @@ Action-phase attribution reports `turn_action_refresh_state_latency_ms`,
 `action_refresh_state_calls_per_turn`. Impact-planner computation is split into
 `turn_impact_planning_latency_ms`,
 `impact_planning_decision_latency_ms`, and
-`impact_planning_decision_calls_per_turn`. The non-refresh residual includes
-action acknowledgements, event emission, effect bookkeeping, and control-plan
+`impact_planning_decision_calls_per_turn`. Per-call planner attribution exposes
+`impact_planning_candidate_latency_ms`,
+`impact_planning_pressure_latency_ms`,
+`impact_planning_materialization_latency_ms`, and the mean
+`impact_planning_candidate_count`. The non-refresh residual includes action
+acknowledgements, event emission, effect bookkeeping, and control-plan
 construction; it is not a planner-only measurement.
 
 Accepted impact actions receive a bounded 0.3-second authoritative refresh

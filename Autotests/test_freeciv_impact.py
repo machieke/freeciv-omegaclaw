@@ -895,6 +895,45 @@ def test_pressure_feedback_replays_idempotently_through_impact_planner():
         assert duplicate.conductance == update.conductance
 
 
+def test_plan_diagnostics_attribute_candidate_pressure_and_materialization():
+    fortify = {"action_type": "unit_fortify", "actor_id": 11, "is_valid": True}
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops")],
+        [fortify, {"action_type": "end_turn", "is_valid": True}])
+    planner = GroundedImpactPlanner({"pressure_enabled": True})
+    diagnostics = {}
+
+    decision = planner.plan(snapshot, diagnostics=diagnostics)
+
+    assert decision.candidate.category == "city_defense"
+    assert diagnostics["calls"] == 1
+    assert diagnostics["candidate_count"] == 1
+    assert diagnostics["pressure_calls"] == 1
+    assert diagnostics["candidate_latency_ms"] >= 0.0
+    assert diagnostics["pressure_latency_ms"] >= 0.0
+    assert diagnostics["materialization_latency_ms"] >= 0.0
+
+
+def test_legal_actions_are_decoded_once_per_immutable_snapshot():
+    move = {"action_type": "unit_move", "actor_id": 20,
+            "target": {"x": 0, "y": 2}, "is_valid": True}
+    snapshot = _snapshot(
+        [_unit(20, "Explorer")],
+        [move, {"action_type": "end_turn", "is_valid": True}])
+    planner = GroundedImpactPlanner()
+
+    first = planner._actions(snapshot)
+    second = planner._actions(snapshot)
+    refreshed = _snapshot(
+        [_unit(20, "Explorer")],
+        [move, {"action_type": "end_turn", "is_valid": True}], source_seq=2)
+    third = planner._actions(refreshed)
+
+    assert second is first
+    assert third is not first
+    assert third == first
+
+
 def test_downstream_city_progress_credits_one_pending_expansion_route():
     move_action = {
         "action_type": "unit_move", "actor_id": 1,

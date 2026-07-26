@@ -1510,6 +1510,7 @@ async def _play(run_dir, manifest, context):
     turn_action_phase_latencies = []
     impact_planning_latency_ms = 0.0
     impact_planning_calls = 0
+    impact_planning_diagnostics = {}
     turn_end_submit_latencies = []
     turn_boundary_latencies = []
     turn_checkpoint_sync_latencies = []
@@ -1882,7 +1883,8 @@ async def _play(run_dir, manifest, context):
                     impact_planning_started = time.perf_counter()
                     decision = impact_planner.plan(
                         snapshot, excluded=excluded_impact_actions,
-                        excluded_scopes=impact_budget.excluded_scopes)
+                        excluded_scopes=impact_budget.excluded_scopes,
+                        diagnostics=impact_planning_diagnostics)
                     impact_planning_latency_ms += (
                         time.perf_counter() - impact_planning_started) * 1000.0
                     impact_planning_calls += 1
@@ -2267,6 +2269,18 @@ async def _play(run_dir, manifest, context):
          impact_planning_latency_ms / max(1, impact_planning_calls)),
         ("impact_planning_decision_calls_per_turn",
          float(impact_planning_calls) / max(1, turns_executed)),
+        ("impact_planning_candidate_latency_ms",
+         impact_planning_diagnostics.get("candidate_latency_ms", 0.0)
+         / max(1, impact_planning_calls)),
+        ("impact_planning_pressure_latency_ms",
+         impact_planning_diagnostics.get("pressure_latency_ms", 0.0)
+         / max(1, impact_planning_calls)),
+        ("impact_planning_materialization_latency_ms",
+         impact_planning_diagnostics.get("materialization_latency_ms", 0.0)
+         / max(1, impact_planning_calls)),
+        ("impact_planning_candidate_count",
+         float(impact_planning_diagnostics.get("candidate_count", 0))
+         / max(1, impact_planning_calls)),
         ("turn_end_submit_latency_ms",
          sum(turn_end_submit_latencies)
          / max(1, len(turn_end_submit_latencies))),

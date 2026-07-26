@@ -7,6 +7,7 @@ through :class:`ExecutionGate` immediately before transport.
 
 import json
 import math
+import time
 from dataclasses import dataclass
 
 from ..events.schema import canonical_json_bytes, structural_hash
@@ -340,6 +341,8 @@ class GroundedImpactPlanner(object):
         self._unit_score_batch_intent = None
         self._unit_score_batch_cache_key = None
         self._unit_score_batch_cache = {}
+        self._action_cache_snapshot = None
+        self._action_cache = ()
         # At most one successful-but-not-yet-relieving route is retained per
         # category and goal. A later authoritative goal change may credit that
         # bounded procedural trace once; repeated moves cannot multiply credit.
@@ -434,9 +437,19 @@ class GroundedImpactPlanner(object):
         values = trait.get("values", ()) if isinstance(trait, dict) else ()
         return frozenset(_normalized_type(value) for value in values)
 
-    @staticmethod
-    def _actions(snapshot):
-        return tuple(json.loads(value) for value in snapshot.legal_action_json)
+    def _actions(self, snapshot):
+        """Decode one immutable snapshot's canonical actions at most once.
+
+        Observation, pruning telemetry, and planning inspect the same snapshot
+        consecutively. The parsed dictionaries remain planner-private and no
+        policy path mutates them, so retaining the one-snapshot decode preserves
+        the exact canonical strings while avoiding repeated JSON work.
+        """
+        if self._action_cache_snapshot is not snapshot:
+            self._action_cache_snapshot = snapshot
+            self._action_cache = tuple(
+                json.loads(value) for value in snapshot.legal_action_json)
+        return self._action_cache
 
     def _legal_unit_types(self, snapshot, action_type, actions=None):
         result = set()
@@ -1589,7 +1602,8 @@ class GroundedImpactPlanner(object):
                 count += 1
         return count
 
-    def _unit_score_batch_members(self, snapshot, actions, founder_types):
+    def _unit_score_batch_members(
+            self, snapshot, actions, founder_types, action_keys=None):
         """Select a lossless city batch that guarantees incremental unit score.
 
         Freeciv's units-built counter is civilization-wide. A city-local threshold
@@ -1598,8 +1612,11 @@ class GroundedImpactPlanner(object):
         trajectory and commits its members one confirmed production change at a time.
         """
         intent = self._unit_score_batch_intent
-        legal_keys = frozenset(
-            canonical_json_bytes(action).decode("utf-8") for action in actions)
+        legal_keys = (
+            frozenset(action_keys) if action_keys is not None else
+            frozenset(
+                canonical_json_bytes(action).decode("utf-8")
+                for action in actions))
         if isinstance(intent, dict):
             if int(intent.get("turn", -1)) != int(snapshot.turn):
                 self._unit_score_batch_intent = None
@@ -1615,7 +1632,7 @@ class GroundedImpactPlanner(object):
                         for key in intent["remaining"]}
 
         cache_key = (
-            snapshot.snapshot_id, tuple(sorted(legal_keys)),
+            snapshot.snapshot_id, legal_keys,
             tuple(sorted(founder_types)))
         if cache_key == self._unit_score_batch_cache_key:
             return {key: dict(value)
@@ -1828,7 +1845,9 @@ class GroundedImpactPlanner(object):
             "automatic-production boundary",
             projection)
 
-    def _production_candidate(self, snapshot, action, founder_types, actions):
+    def _production_candidate(
+            self, snapshot, action, founder_types, actions,
+            action_key=None, action_keys=None):
         city = snapshot.city(action.get("city_id"))
         if city is None or not city.buildability_available:
             return None
@@ -1942,7 +1961,8 @@ class GroundedImpactPlanner(object):
                 projection)
 
         unit_score_batch = self._unit_score_batch_members(
-            snapshot, actions, founder_types).get(
+            snapshot, actions, founder_types, action_keys=action_keys).get(
+                action_key if action_key is not None else
                 canonical_json_bytes(action).decode("utf-8"))
         if needs_founder and current_normalized in founder_types:
             return None
@@ -2284,12 +2304,16 @@ class GroundedImpactPlanner(object):
         excluded_scopes = set(excluded_scopes)
         result = []
         actions = self._actions(snapshot)
+        action_rows = tuple(zip(actions, snapshot.legal_action_json))
+        available_action_rows = tuple(
+            (action, action_key) for action, action_key in action_rows
+            if action_key not in excluded)
         available_actions = tuple(
-            action for action in actions
-            if canonical_json_bytes(action).decode("utf-8") not in excluded)
+            action for action, _ in available_action_rows)
+        available_action_keys = frozenset(
+            action_key for _, action_key in available_action_rows)
         founder_types = self._founder_types(snapshot, actions)
-        for action in actions:
-            key = canonical_json_bytes(action).decode("utf-8")
+        for action, key in action_rows:
             if key in excluded:
                 continue
             action_type = str(action.get("action_type", ""))
@@ -2316,7 +2340,8 @@ class GroundedImpactPlanner(object):
                     snapshot, action, founder_types)
             elif action_type == "city_production":
                 candidate = self._production_candidate(
-                    snapshot, action, founder_types, available_actions)
+                    snapshot, action, founder_types, available_actions,
+                    action_key=key, action_keys=available_action_keys)
             elif action_type == "unit_move":
                 candidate = self._move_candidate(snapshot, action, founder_types)
             elif action_type == "unit_fortify":
@@ -2333,16 +2358,35 @@ class GroundedImpactPlanner(object):
         return tuple(sorted(result, key=lambda row: (
             -row.utility, row.category, row.action_key)))
 
-    def plan(self, snapshot, excluded=(), excluded_scopes=()):
+    def plan(self, snapshot, excluded=(), excluded_scopes=(),
+             diagnostics=None):
+        candidate_started = time.perf_counter()
         rows = self.candidates(
             snapshot, excluded=excluded, excluded_scopes=excluded_scopes)
+        candidate_latency_ms = (
+            time.perf_counter() - candidate_started) * 1000.0
+        if diagnostics is not None:
+            diagnostics["calls"] = diagnostics.get("calls", 0) + 1
+            diagnostics["candidate_count"] = (
+                diagnostics.get("candidate_count", 0) + len(rows))
+            diagnostics["candidate_latency_ms"] = (
+                diagnostics.get("candidate_latency_ms", 0.0)
+                + candidate_latency_ms)
         if not rows:
             return None
         pressure_artifact = None
         if self._pressure_ranker is not None:
+            pressure_started = time.perf_counter()
             rows, pressure_artifact = self._pressure_ranker.rank(
                 snapshot, rows, self.expansion_city_target, self.horizon_turn,
                 self.pressure_survival_threat_radius)
+            if diagnostics is not None:
+                diagnostics["pressure_latency_ms"] = (
+                    diagnostics.get("pressure_latency_ms", 0.0)
+                    + (time.perf_counter() - pressure_started) * 1000.0)
+                diagnostics["pressure_calls"] = (
+                    diagnostics.get("pressure_calls", 0) + 1)
+        materialization_started = time.perf_counter()
         candidate = rows[0]
         if (candidate.category == "production_military_score"
                 and self._unit_score_batch_intent is None):
@@ -2380,4 +2424,8 @@ class GroundedImpactPlanner(object):
             snapshot.snapshot_id, (step,), ResourceLedger(), (branch,),
             branch.branch_id, "grounded-impact-utility", scheduler_cost, 1.0, 0,
             self.SOLVER_IDENTITY)
+        if diagnostics is not None:
+            diagnostics["materialization_latency_ms"] = (
+                diagnostics.get("materialization_latency_ms", 0.0)
+                + (time.perf_counter() - materialization_started) * 1000.0)
         return ImpactDecision(candidate, plan, pressure_artifact)
