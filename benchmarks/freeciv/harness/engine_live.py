@@ -52,6 +52,16 @@ SELECTION_CALL_POLICY = "canonical-singleton-bypass-v1"
 READINESS_POLICY = "chat-once-expiry-aware-resident-v2"
 
 
+def _websocket_compression():
+    """Disable costly loopback deflate unless a remote harness opts in."""
+    return (
+        "deflate"
+        if os.environ.get(
+            "FREECIV_PROXY_WEBSOCKET_COMPRESSION", "").lower()
+        in {"1", "true", "yes", "on"}
+        else None)
+
+
 def _opponent_memory_path(run_dir, condition_id):
     """Keep sequential induction populations isolated between M7 conditions."""
     return os.path.abspath(os.path.join(
@@ -1452,8 +1462,12 @@ async def _play(run_dir, manifest, context):
     corrections = 0
     final_global = None
     observer_global_state_queries = 0
+    # Engine-live runs the proxy on the same host. The proxy's level-9
+    # per-message deflate costs more CPU/scheduling than loopback bytes save;
+    # remote harnesses can explicitly restore compression.
     async with websockets.connect(
-            ws_url, open_timeout=30, max_size=None, ping_interval=None) as ws:
+            ws_url, open_timeout=30, max_size=None, ping_interval=None,
+            compression=_websocket_compression()) as ws:
         await ws.send(json.dumps({
             "type": "llm_connect", "agent_id": agent_id, "api_token": api_token,
             "game_id": manifest["game_id"], "port": manifest["port"],

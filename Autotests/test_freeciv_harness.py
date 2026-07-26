@@ -37,7 +37,7 @@ from freeciv.harness.engine_live import (  # noqa: E402
     _plain_state_summary, _refresh_accepted_impact_action,
     _decision_state_fingerprint, _decision_state_ready, _global_state_ready,
     _global_state, _player_eliminated, _release_configuration_active, _state,
-    _validate_compact_goal_proposal)
+    _validate_compact_goal_proposal, _websocket_compression)
 from freeciv.harness import engine_live  # noqa: E402
 from freeciv_agent.events.schema import canonical_json_bytes, structural_hash  # noqa: E402
 from freeciv_agent.events.validator import validate_file  # noqa: E402
@@ -269,6 +269,16 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "ir_sha256": "be57b9141bc0c9a439abcc6ab4052601c2cec82c6c6e148f5ebd587fde120687",
         "atomese_sha256": "cecd6aa53684e276c6d2426f93151d19998635d60bbcf02383a4387557f19edb",
     }
+
+
+def test_engine_websocket_compression_is_remote_opt_in(monkeypatch):
+    monkeypatch.delenv("FREECIV_PROXY_WEBSOCKET_COMPRESSION", raising=False)
+    assert _websocket_compression() is None
+    for value in ("1", "true", "YES", "on"):
+        monkeypatch.setenv("FREECIV_PROXY_WEBSOCKET_COMPRESSION", value)
+        assert _websocket_compression() == "deflate"
+    monkeypatch.setenv("FREECIV_PROXY_WEBSOCKET_COMPRESSION", "false")
+    assert _websocket_compression() is None
 
 
 def test_config_rejects_an_underpowered_predeclared_win_design():

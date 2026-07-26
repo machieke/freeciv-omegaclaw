@@ -91,6 +91,12 @@ cannot affect a decision fingerprint. Query latency minus the server's
 pre-serialization elapsed time is reported separately as delivery overhead,
 which includes JSON serialization, WebSocket delivery, and client scheduling.
 
+The serial engine-live harness disables WebSocket per-message deflate by
+default. Its proxy and client share a host, and fresh attribution showed that
+the proxy's level-9 compression cost exceeded the loopback bandwidth saving.
+Set `FREECIV_PROXY_WEBSOCKET_COMPRESSION=true` to restore `deflate` for a
+remote proxy where bandwidth is the dominant constraint.
+
 The observer-backed `global_state_response` carries its own authoritative
 `turn`. The harness rejects a populated but stale observer response until its
 turn reaches the associated player snapshot. After the final `end_turn`, score
