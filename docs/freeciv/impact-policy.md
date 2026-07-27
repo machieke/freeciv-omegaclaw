@@ -193,6 +193,18 @@ longer divert an unprepared final founder, and
 `planner_founder_final_escort_unprepared_route_bypass_snapshots` counts that
 bounded bypass.
 
+The fresh adapter-1.15 pilot showed that an installed production target can
+still be delayed or deliver a city's only garrison rather than a spare escort.
+Adapter 1.16 therefore accepts final preparation only for an immediate
+same-kind redundant-founder conversion in a city that already contains a
+grounded defender. Exact shield carry-over is retained only across that
+boundary, and one confirmed preparation suppresses duplicates. Prepared
+final-route pursuit, rendezvous holds, and mandatory final co-location require
+visible or actor-scoped remembered founder-threat evidence. Otherwise normal
+founder routing remains eligible and
+`planner_founder_final_escort_unthreatened_route_bypass_snapshots` records the
+bypass.
+
 Founder routing is feedback-driven in the horizon-score policy. On the first step from
 a city, aggregate distance from the complete city network breaks minimum-distance ties
 in favor of open expansion space. A move target becomes a proven traversable edge only

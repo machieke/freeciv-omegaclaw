@@ -1625,3 +1625,22 @@ difference, McNemar `p=0.25`, but the secondary endpoint cannot override the
 adverse primary score gate. The frozen adapter-1.15 confirmatory cohort must
 not run. Any next implementation is a new adapter-development cycle and
 requires new disjoint pilot and confirmation cohorts.
+
+Adapter 1.16 begins that new development cycle. Pair-level localization of the
+failed fresh pilot assigns all `-18` aggregate score points to
+preparation-active games; inactive games are exact parity. Prepared games
+without a completed final escorted settlement average `-1.3846`, while
+completed chains average exactly zero score. Event traces show that target
+installation did not guarantee spare capacity: delayed builds and builds in
+undefended cities delivered required garrisons and could trigger duplicate
+preparations. Final coordination also ran without exact threat evidence.
+
+The correction requires immediate same-kind shield-preserving conversion of a
+redundant founder in an already defended city, so the delivered unit is spare.
+One confirmed preparation suppresses duplicates. Final pursuit, rendezvous,
+and co-location require visible or actor-scoped remembered threat evidence;
+safe founders retain ordinary expansion behavior. The claim-ineligible
+`final_settlement_escort_threat_delivery_mechanism_v1` cohort is predeclared on
+reused positive control `3746776`, worst loss `4010436`, and unthreatened
+completed-chain loss `4013688`. No adapter-1.15 confirmatory execution is
+authorized.

@@ -643,6 +643,17 @@ before enabling final-route escort candidates, rendezvous holds, or mandatory
 final co-location. Incidental spare combat capacity cannot activate that
 chain. Unprepared route bypass snapshots expose the boundary.
 
+The fresh adapter-1.15 pilot showed that installation alone is not a valid
+spare-escort guarantee. Adapter `grounded-impact-planner/1.16` narrows
+preparation to an immediate same-kind completion from a redundant founder
+queue in a city that already has a grounded defender. The completion is
+therefore spare at delivery, retains exact unit-kind shield carry-over, and
+does not seed one new garrison in each undefended city. A confirmed
+preparation suppresses further final preparations. Prepared final-route
+movement, rendezvous waiting, and mandatory final co-location also require a
+visible or actor-scoped remembered threat. Unthreatened founders retain normal
+route and founding candidates, with bypass snapshots recorded independently.
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` and `pressure_score_alignment_enabled` default to `false`
 unless the runtime profile enables them. This preserves unit-level policy

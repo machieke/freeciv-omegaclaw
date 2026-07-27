@@ -207,7 +207,7 @@ def _target_name(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.15"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.16"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -429,6 +429,7 @@ class GroundedImpactPlanner(object):
         self._founder_final_escort_rendezvous_hold_snapshots = set()
         self._founder_final_escort_rendezvous_no_progress_snapshots = set()
         self._founder_final_escort_unprepared_route_bypass_snapshots = set()
+        self._founder_final_escort_unthreatened_route_bypass_snapshots = set()
         self._founder_route_threat_observations = set()
         self._founder_route_threats = {}
         self._failed_exploration_target_sources = {}
@@ -1733,24 +1734,32 @@ class GroundedImpactPlanner(object):
                 "target_route_threat_distance": target_distance,
             })
 
+    def _final_escort_threat_active(self, snapshot, founder):
+        """Require exact threat evidence before final-route coordination."""
+        return bool(
+            not self.expansion_escort_threat_gating_enabled
+            or self._founder_visible_threats(snapshot, founder)
+            or self._founder_route_threat(snapshot, founder))
+
     def _founder_escort_required(self, snapshot, founder):
         if not self.expansion_escort_retention_enabled:
             return False
         return bool(
-            self._final_settlement_escort_active(snapshot)
+            self._final_settlement_escort_active(snapshot, founder)
             or
             not self.expansion_escort_threat_gating_enabled
             or self._founder_visible_threats(snapshot, founder)
             or self._founder_route_threat(snapshot, founder))
 
-    def _final_settlement_escort_active(self, snapshot):
+    def _final_settlement_escort_active(self, snapshot, founder):
         """Require co-location only for the city that completes the target."""
         return bool(
             self.expansion_final_settlement_escort_enabled
             and self.expansion_escort_retention_enabled
             and self.founder_final_escort_preparation_production_successes > 0
             and self.expansion_city_target > 0
-            and len(snapshot.cities) == self.expansion_city_target - 1)
+            and len(snapshot.cities) == self.expansion_city_target - 1
+            and self._final_escort_threat_active(snapshot, founder))
 
     def _final_escort_preparation_founders(
             self, snapshot, founder_types):
@@ -1774,16 +1783,26 @@ class GroundedImpactPlanner(object):
 
     def _prepared_final_escort_route_founders(
             self, snapshot, founder_types):
-        """Return final founders only after exact preparation installation."""
+        """Return prepared final founders only with exact threat evidence."""
         founders = self._final_escort_preparation_founders(
             snapshot, founder_types)
-        if (not founders
-                or self
-                .founder_final_escort_preparation_production_successes > 0):
-            return founders
-        self._founder_final_escort_unprepared_route_bypass_snapshots.update(
-            (snapshot.snapshot_id, founder.unit_id) for founder in founders)
-        return ()
+        if not founders:
+            return ()
+        if (self
+                .founder_final_escort_preparation_production_successes <= 0):
+            self._founder_final_escort_unprepared_route_bypass_snapshots.update(
+                (snapshot.snapshot_id, founder.unit_id)
+                for founder in founders)
+            return ()
+        threatened = tuple(
+            founder for founder in founders
+            if self._final_escort_threat_active(snapshot, founder))
+        threatened_ids = {founder.unit_id for founder in threatened}
+        self._founder_final_escort_unthreatened_route_bypass_snapshots.update(
+            (snapshot.snapshot_id, founder.unit_id)
+            for founder in founders
+            if founder.unit_id not in threatened_ids)
+        return threatened
 
     def _escort_required_founders(
             self, snapshot, actions, founder_types):
@@ -1809,7 +1828,7 @@ class GroundedImpactPlanner(object):
     def _record_founder_escort_deferral(self, snapshot, founder):
         key = (snapshot.snapshot_id, founder.unit_id)
         self._founder_escort_deferral_snapshots.add(key)
-        if self._final_settlement_escort_active(snapshot):
+        if self._final_settlement_escort_active(snapshot, founder):
             self._founder_final_escort_deferral_snapshots.add(key)
         current_threats = self._founder_visible_threats(snapshot, founder)
         route_threat = self._founder_route_threat(snapshot, founder)
@@ -1854,6 +1873,11 @@ class GroundedImpactPlanner(object):
     def founder_final_escort_unprepared_route_bypass_snapshots(self):
         return len(
             self._founder_final_escort_unprepared_route_bypass_snapshots)
+
+    @property
+    def founder_final_escort_unthreatened_route_bypass_snapshots(self):
+        return len(
+            self._founder_final_escort_unthreatened_route_bypass_snapshots)
 
     def _final_founder_waits_for_rendezvous(
             self, snapshot, founder, founder_types, actions=None):
@@ -2572,6 +2596,7 @@ class GroundedImpactPlanner(object):
         final_escort_preparation_needed = bool(
             self.expansion_final_settlement_escort_enabled
             and self.expansion_escort_retention_enabled
+            and self.founder_final_escort_preparation_production_successes == 0
             and remaining_city_slots > 0
             and len(founders) + queued_founders >= remaining_city_slots
             and not spare_combat_units
@@ -2581,15 +2606,13 @@ class GroundedImpactPlanner(object):
         urgent_founder_repurpose = bool(
             current_is_redundant_founder and current_pop_cost > 0
             and current_completes_by_horizon)
-        urgent_escort_repurpose = bool(
-            (site_escort_defense_needed
-             or (final_escort_preparation_needed
-                 and current_is_redundant_founder))
+        urgent_site_escort_repurpose = bool(
+            site_escort_defense_needed
             and current_normalized in founder_types
             and current_pop_cost > 0
             and current_completes_by_horizon)
         urgent_repurpose = bool(
-            urgent_founder_repurpose or urgent_escort_repurpose)
+            urgent_founder_repurpose or urgent_site_escort_repurpose)
 
         # Normal changes remain lossless at an empty stock boundary. A redundant
         # positive-population founder is the sole general exception: completing
@@ -2600,9 +2623,13 @@ class GroundedImpactPlanner(object):
         # the conservative zero-stock projection.
         if city.shield_stock not in (None, 0) and not urgent_repurpose:
             return None
+        city_has_grounded_defender = any(
+            (unit.x, unit.y) == (city.x, city.y)
+            for unit in combat_units)
         final_escort_same_kind_switch = bool(
-            urgent_escort_repurpose
-            and final_escort_preparation_needed
+            final_escort_preparation_needed
+            and current_is_redundant_founder
+            and city_has_grounded_defender
             and action.get("production_kind") is not None
             and city.production_kind is not None
             and int(action["production_kind"]) == int(city.production_kind))
@@ -2615,6 +2642,15 @@ class GroundedImpactPlanner(object):
             shield_stock_override=(
                 repurpose_shield_stock_assumption
                 if urgent_repurpose else None))
+        if (final_escort_same_kind_switch
+                and projection.get("completion_eta_turns") != 0):
+            final_escort_same_kind_switch = False
+            repurpose_shield_stock_assumption = 0
+            projection = self._production_projection(
+                city, name, remaining_turns, snapshot=snapshot,
+                founder_types=founder_types, shield_stock_override=0)
+        urgent_escort_repurpose = bool(
+            urgent_site_escort_repurpose or final_escort_same_kind_switch)
         if normalized in founder_types:
             projection.update({
                 "existing_founders": len(founders),
@@ -2681,9 +2717,7 @@ class GroundedImpactPlanner(object):
 
         if escort_defense_needed:
             if (final_escort_preparation_needed
-                    and not site_escort_defense_needed
-                    and current_normalized in founder_types
-                    and not current_is_redundant_founder):
+                    and not site_escort_defense_needed):
                 return None
             target_index = next((
                 index for index, target in enumerate(DEFENDER_PRIORITY)
@@ -3313,7 +3347,7 @@ class GroundedImpactPlanner(object):
                                     escort_required),
                                 "settlement_final_escort": (
                                     self._final_settlement_escort_active(
-                                        snapshot)),
+                                        snapshot, unit)),
                                 "settlement_escort_safe_bypass": bool(
                                     self.expansion_escort_threat_gating_enabled
                                     and not escort_required and not escorts),

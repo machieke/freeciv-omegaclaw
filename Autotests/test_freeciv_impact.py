@@ -722,6 +722,7 @@ def test_final_settlement_escort_prepares_early_and_tracks_only_last_founder():
         _unit(2, "Settlers", 5, 3),
         _unit(11, "Alpine Troops", 0, 0),
         _unit(12, "Riflemen", 0, 0),
+        _enemy(91, "Settlers", 7, 3),
     ], [premature_founder_move, escort_move,
         {"action_type": "end_turn", "is_valid": True}],
         cities=[founder_city, second_city], source_seq=3, turn=21)
@@ -737,6 +738,7 @@ def test_final_settlement_escort_prepares_early_and_tracks_only_last_founder():
         _unit(2, "Settlers", 5, 3),
         _unit(11, "Alpine Troops", 0, 0),
         _unit(12, "Riflemen", 5, 3),
+        _enemy(91, "Settlers", 7, 3),
     ], [premature_founder_move,
         {"action_type": "end_turn", "is_valid": True}],
         cities=[founder_city, second_city], source_seq=4, turn=22)
@@ -754,6 +756,7 @@ def test_final_settlement_escort_prepares_early_and_tracks_only_last_founder():
     final_site = _snapshot([
         _unit(2, "Settlers", 5, 3),
         _unit(11, "Alpine Troops", 0, 0),
+        _enemy(91, "Settlers", 7, 3),
     ], [build, {"action_type": "end_turn", "is_valid": True}],
         cities=[founder_city, second_city, third_city],
         source_seq=5, turn=25)
@@ -764,6 +767,7 @@ def test_final_settlement_escort_prepares_early_and_tracks_only_last_founder():
         _unit(2, "Settlers", 5, 3),
         _unit(11, "Alpine Troops", 0, 0),
         _unit(12, "Riflemen", 5, 3),
+        _enemy(91, "Settlers", 7, 3),
     ], [build, {"action_type": "end_turn", "is_valid": True}],
         cities=[founder_city, second_city, third_city],
         source_seq=6, turn=26)
@@ -821,7 +825,71 @@ def test_final_founder_does_not_wait_without_a_legal_escort_progress_step():
     assert decision.candidate.action["actor_id"] == 2
     assert planner.founder_final_escort_rendezvous_hold_snapshots == 0
     assert (
+        planner.founder_final_escort_unthreatened_route_bypass_snapshots == 1)
+    assert (
+        planner.founder_final_escort_rendezvous_no_progress_snapshots == 0)
+
+    threatened_snapshot = _snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(2, "Settlers", 5, 3),
+        _unit(12, "Riflemen", 1, 1),
+        _enemy(91, "Settlers", 7, 3),
+    ], [founder_move, {"action_type": "end_turn", "is_valid": True}],
+        cities=[_city(), second_city], source_seq=5, turn=21)
+    threatened = planner.plan(threatened_snapshot)
+
+    assert threatened.candidate.category == "expansion_move"
+    assert threatened.candidate.action["actor_id"] == 2
+    assert (
         planner.founder_final_escort_rendezvous_no_progress_snapshots == 1)
+
+
+def test_final_escort_preparation_requires_immediate_spare_delivery():
+    second_city = dict(
+        _city(), id=20, name="Antium", tile=30, x=0, y=3,
+        production_kind=3, production_value=14, shield_stock=0)
+    actions = [
+        _production(10, "Alpine Troops", 6, 11),
+        _production(10, "Granary", 3, 14),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 30),
+        ("Alpine Troops", "unit", 40),
+        ("Granary", "improvement", 40),
+    ), pop_costs={"Settlers": 1})
+    values = {
+        "expansion_city_target": 4,
+        "expansion_escort_retention_enabled": True,
+        "expansion_escort_threat_gating_enabled": True,
+        "expansion_final_settlement_escort_enabled": True,
+        "horizon_turn": 60,
+    }
+
+    undefended = GroundedImpactPlanner(values, ruleset_ir=ir).plan(_snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(2, "Settlers", 5, 3),
+    ], actions, cities=[
+        _city(size=3, food_stock=20, shield_stock=50,
+              production_kind=6, production_value=0),
+        second_city,
+    ], turn=20))
+    assert undefended.candidate.category == "production_repurpose"
+    assert not (undefended.candidate.projection or {}).get(
+        "settlement_final_escort_preparation", False)
+
+    delayed = GroundedImpactPlanner(values, ruleset_ir=ir).plan(_snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(2, "Settlers", 5, 3),
+        _unit(11, "Alpine Troops", 0, 0),
+    ], actions, cities=[
+        _city(size=3, food_stock=20, shield_stock=10,
+              production_kind=6, production_value=0),
+        second_city,
+    ], turn=20))
+    assert delayed.candidate.category == "production_repurpose"
+    assert not (delayed.candidate.projection or {}).get(
+        "settlement_final_escort_preparation", False)
 
 
 def test_packet_site_preference_records_exact_move_outcome():

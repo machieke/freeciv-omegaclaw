@@ -542,3 +542,36 @@ Machine-readable evidence is
 [`pf-final-settlement-escort-preparation-pilot-v1.json`](pf-final-settlement-escort-preparation-pilot-v1.json).
 Any further change is a new adapter-development cycle requiring a new,
 disjoint pilot and confirmatory design.
+
+## Adapter 1.16 immediate threatened spare delivery
+
+The failed fresh pilot localizes all 18 aggregate score points of harm to the
+28 preparation-active pairs; the 12 pairs without preparation are exact
+baseline parity. The 13 prepared pairs without a completed final escorted
+settlement average `-1.3846` score, `-0.3846` founding completions, and
+`-0.3077` retained additions. The 15 completed chains average exactly zero
+score, despite modest positive founding and retention.
+
+Trace inspection identifies two correctness failures. A production-target
+installation was treated as preparation even when completion was delayed or
+the city had no defender, so the delivered unit became a required garrison.
+The rule could then install additional defenders in other cities. Prepared
+founders were also routed and held for co-location without exact threat
+evidence.
+
+Adapter 1.16 admits preparation only when a redundant founder converts to a
+same-kind defender with exact shield retention, projected immediate
+completion, and an already grounded defender in that city. The delivered unit
+is therefore spare, and one confirmed preparation suppresses duplicates.
+Final-route pursuit, rendezvous holds, and mandatory final co-location now
+require visible or actor-scoped remembered founder-threat evidence.
+`planner_founder_final_escort_unthreatened_route_bypass_snapshots` exposes
+safe bypasses.
+
+The predeclared, claim-ineligible
+`final_settlement_escort_threat_delivery_mechanism_v1` cohort reuses threatened
+positive control `3746776`, worst pilot loss `4010436`, and unthreatened
+completed-chain loss `4013688`. It must preserve the threatened retention
+chain while removing the two exposed harmful paths before a broader reused
+development cohort or any new fresh pilot is considered. The frozen
+adapter-1.15 confirmatory cohort remains prohibited.

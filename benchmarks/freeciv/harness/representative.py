@@ -229,6 +229,8 @@ def run_game(run_dir, manifest, context):
          1 if treatment else 0),
         ("planner_founder_final_escort_unprepared_route_bypass_snapshots",
          1 if treatment else 0),
+        ("planner_founder_final_escort_unthreatened_route_bypass_snapshots",
+         1 if treatment else 0),
         ("planner_founder_escort_defense_production_attempts",
          1 if treatment else 0),
         ("planner_founder_escort_defense_production_successes",
