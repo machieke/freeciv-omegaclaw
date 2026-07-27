@@ -315,3 +315,21 @@ until its prepared spare combat unit first co-locates, then permit the pair to
 route together. It must leave earlier founders, threat avoidance, runway
 recovery, and city-garrison preservation unchanged, and separately count
 those rendezvous holds.
+
+## Adapter 1.13 final-founder rendezvous
+
+Adapter 1.13 retains the adapter-1.12 switch and preparation logic but
+corrects same-speed pursuit. If the assigned final founder is unescorted and
+a non-required grounded combat unit is available, ordinary expansion moves
+for only that founder are suppressed until co-location. Exact population
+recovery and remembered-threat avoidance are evaluated first. Earlier
+founders remain unaffected. After rendezvous, the founder can advance and
+the escort can use the next refreshed legal-action set to rejoin it.
+
+`planner_founder_final_escort_rendezvous_hold_snapshots` counts unique
+snapshot/founder holds independently from legal-site deferrals. The
+claim-ineligible `final_settlement_escort_preparation_mechanism_v2` cohort
+reuses seed `3746776` and isolates the same public switch on source-fresh
+adapter-1.13. Acceptance requires at least one rendezvous hold followed by
+exact co-location and either a confirmed final escorted settlement or bounded
+population recovery. All V1 outcomes remain immutable and unpooled.

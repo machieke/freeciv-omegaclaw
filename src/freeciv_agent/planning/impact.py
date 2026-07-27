@@ -207,7 +207,7 @@ def _target_name(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.12"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.13"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -426,6 +426,7 @@ class GroundedImpactPlanner(object):
         self._founder_escort_threat_deferral_snapshots = set()
         self._founder_escort_persisted_threat_deferral_snapshots = set()
         self._founder_final_escort_deferral_snapshots = set()
+        self._founder_final_escort_rendezvous_hold_snapshots = set()
         self._founder_route_threat_observations = set()
         self._founder_route_threats = {}
         self._failed_exploration_target_sources = {}
@@ -1824,6 +1825,38 @@ class GroundedImpactPlanner(object):
     def founder_final_escort_deferral_snapshots(self):
         return len(self._founder_final_escort_deferral_snapshots)
 
+    @property
+    def founder_final_escort_rendezvous_hold_snapshots(self):
+        return len(self._founder_final_escort_rendezvous_hold_snapshots)
+
+    def _final_founder_waits_for_rendezvous(
+            self, snapshot, founder, founder_types):
+        """Hold the assigned final founder while a spare combat unit closes.
+
+        Founder and escort usually have the same movement rate. Allowing both
+        to move independently preserves their separation forever, so the
+        assigned founder yields one action until first co-location. Recovery
+        and remembered-threat avoidance are evaluated before this hold.
+        """
+        if not any(
+                candidate.unit_id == founder.unit_id
+                for candidate in self._final_escort_preparation_founders(
+                    snapshot, founder_types)):
+            return False
+        if self._founder_site_escorts(snapshot, founder, founder_types):
+            return False
+        spare_combat = tuple(
+            unit for unit in self._combat_units(snapshot, founder_types)
+            if unit.x is not None
+            and unit.y is not None
+            and not self._city_defender_is_required(
+                snapshot, unit, founder_types))
+        if not spare_combat:
+            return False
+        self._founder_final_escort_rendezvous_hold_snapshots.add(
+            (snapshot.snapshot_id, founder.unit_id))
+        return True
+
     def _city_defender_is_required(self, snapshot, unit, founder_types=None):
         if not self.preserve_city_defenders:
             return False
@@ -2837,6 +2870,9 @@ class GroundedImpactPlanner(object):
                 # When no exact remembered-threat escape exists, preserve the
                 # legal site while a spare grounded combat unit approaches.
                 self._record_founder_escort_deferral(snapshot, unit)
+                return None
+            if self._final_founder_waits_for_rendezvous(
+                    snapshot, unit, founder_types):
                 return None
             if (len(snapshot.cities) >= self.expansion_city_target
                     or self._founder_settlement_deadline_exhausted(snapshot)):

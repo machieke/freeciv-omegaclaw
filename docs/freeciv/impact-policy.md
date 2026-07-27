@@ -165,6 +165,17 @@ complete inside the observed founder route ETA suppresses duplicate
 preparation. Final preparation production, route traversal, deferral, and
 settlement completion are exported independently.
 
+The adapter-1.12 selected replay installed the defender and improved own score
+by eight, but did not complete the mechanism: the one-tile-per-turn defender
+followed the one-tile-per-turn final founder 18 times without closing their
+initial separation. Adapter 1.13 corrects that coordination defect. When an
+assigned final founder has an available spare combat escort, it suppresses
+only that founder's ordinary expansion moves until first co-location.
+Population recovery and exact remembered-threat avoidance retain priority.
+After co-location, founder and escort alternate legal route moves so the
+escort can rejoin after every founder step. Dedicated rendezvous-hold
+snapshots expose the correction independently.
+
 Founder routing is feedback-driven in the horizon-score policy. On the first step from
 a city, aggregate distance from the complete city network breaks minimum-distance ties
 in favor of open expansion space. A move target becomes a proven traversable edge only

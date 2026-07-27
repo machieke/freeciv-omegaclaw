@@ -2703,6 +2703,9 @@ async def _play(run_dir, manifest, context):
         ("planner_founder_final_escort_deferral_snapshots",
          impact_planner.founder_final_escort_deferral_snapshots
          if impact_planner is not None else 0),
+        ("planner_founder_final_escort_rendezvous_hold_snapshots",
+         impact_planner.founder_final_escort_rendezvous_hold_snapshots
+         if impact_planner is not None else 0),
         ("planner_founder_escort_defense_production_attempts",
          impact_planner.founder_escort_defense_production_attempts
          if impact_planner is not None else 0),
@@ -2991,6 +2994,10 @@ async def _play(run_dir, manifest, context):
             "planner_founder_final_escort_deferral_snapshots": (
                 impact_planner.founder_final_escort_deferral_snapshots
                 if impact_planner is not None else 0),
+            "planner_founder_final_escort_rendezvous_hold_snapshots": (
+                impact_planner
+                .founder_final_escort_rendezvous_hold_snapshots
+                if impact_planner is not None else 0),
             "planner_founder_escort_defense_production_attempts": (
                 impact_planner.founder_escort_defense_production_attempts
                 if impact_planner is not None else 0),
@@ -3153,6 +3160,9 @@ async def _play(run_dir, manifest, context):
             if impact_planner is not None else 0),
         "planner_founder_final_escort_deferral_snapshots": (
             impact_planner.founder_final_escort_deferral_snapshots
+            if impact_planner is not None else 0),
+        "planner_founder_final_escort_rendezvous_hold_snapshots": (
+            impact_planner.founder_final_escort_rendezvous_hold_snapshots
             if impact_planner is not None else 0),
         "planner_founder_escort_defense_production_attempts": (
             impact_planner.founder_escort_defense_production_attempts

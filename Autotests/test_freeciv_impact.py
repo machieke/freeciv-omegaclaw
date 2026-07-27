@@ -713,18 +713,37 @@ def test_final_settlement_escort_prepares_early_and_tracks_only_last_founder():
         "action_type": "unit_move", "actor_id": 12,
         "target": {"x": 1, "y": 1}, "is_valid": True,
     }
+    premature_founder_move = {
+        "action_type": "unit_move", "actor_id": 2,
+        "target": {"x": 6, "y": 3}, "is_valid": True,
+    }
     routing = _snapshot([
         _unit(1, "Settlers", 3, 0),
         _unit(2, "Settlers", 5, 3),
         _unit(11, "Alpine Troops", 0, 0),
         _unit(12, "Riflemen", 0, 0),
-    ], [escort_move, {"action_type": "end_turn", "is_valid": True}],
+    ], [premature_founder_move, escort_move,
+        {"action_type": "end_turn", "is_valid": True}],
         cities=[founder_city, second_city], source_seq=3, turn=21)
     escort = planner.plan(routing)
     assert escort.candidate.category == "founder_escort_move"
     assert escort.candidate.projection[
         "settlement_final_escort_preparation"] is True
     assert escort.candidate.projection["target_founder_ids"] == (2,)
+    assert planner.founder_final_escort_rendezvous_hold_snapshots == 1
+
+    coordinated_route = _snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(2, "Settlers", 5, 3),
+        _unit(11, "Alpine Troops", 0, 0),
+        _unit(12, "Riflemen", 5, 3),
+    ], [premature_founder_move,
+        {"action_type": "end_turn", "is_valid": True}],
+        cities=[founder_city, second_city], source_seq=4, turn=22)
+    founder_route = planner.plan(coordinated_route)
+    assert founder_route.candidate.category == "expansion_move"
+    assert founder_route.candidate.action["actor_id"] == 2
+    assert planner.founder_final_escort_rendezvous_hold_snapshots == 1
 
     third_city = dict(
         _city(), id=30, name="Cumae", tile=60, x=0, y=6,
@@ -737,7 +756,7 @@ def test_final_settlement_escort_prepares_early_and_tracks_only_last_founder():
         _unit(11, "Alpine Troops", 0, 0),
     ], [build, {"action_type": "end_turn", "is_valid": True}],
         cities=[founder_city, second_city, third_city],
-        source_seq=4, turn=25)
+        source_seq=5, turn=25)
     assert planner.plan(final_site) is None
     assert planner.founder_final_escort_deferral_snapshots == 1
 
@@ -747,7 +766,7 @@ def test_final_settlement_escort_prepares_early_and_tracks_only_last_founder():
         _unit(12, "Riflemen", 5, 3),
     ], [build, {"action_type": "end_turn", "is_valid": True}],
         cities=[founder_city, second_city, third_city],
-        source_seq=5, turn=26)
+        source_seq=6, turn=26)
     founding = planner.plan(escorted_site)
     assert founding.candidate.category == "city_founding"
     assert founding.candidate.projection["settlement_final_escort"] is True

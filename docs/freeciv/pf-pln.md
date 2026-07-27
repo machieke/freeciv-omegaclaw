@@ -618,6 +618,15 @@ founding. Co-location becomes mandatory only when founding the city that
 completes `expansion_city_target`, and an already timely defender queue
 suppresses duplicate preparation.
 
+That selected replay installed the defender but exposed a same-speed pursuit
+failure: 18 escort moves did not reduce the initial founder separation.
+Adapter `grounded-impact-planner/1.13` suppresses ordinary expansion moves for
+only the assigned final founder while a spare combat escort is available but
+not co-located. Exact population recovery and remembered-threat avoidance are
+evaluated first. Once co-located, the founder may route normally and the
+escort can rejoin after each founder step. Rendezvous-hold snapshots are
+exported as a separate mechanism metric.
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` and `pressure_score_alignment_enabled` default to `false`
 unless the runtime profile enables them. This preserves unit-level policy

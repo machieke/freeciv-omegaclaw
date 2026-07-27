@@ -126,6 +126,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "settlement_escort_threat_gating_mechanism_v1": 1,
             "settlement_escort_route_threat_memory_mechanism_v1": 1,
             "final_settlement_escort_preparation_mechanism_v1": 1,
+            "final_settlement_escort_preparation_mechanism_v2": 1,
         }
     seed_sets = [
         set(row["seeds"]) for row in paired["cohorts"].values()
@@ -450,6 +451,18 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert final_escort["arms"]["baseline"][
         "expansion_final_settlement_escort_enabled"] is False
     assert final_escort["arms"]["treatment"][
+        "expansion_final_settlement_escort_enabled"] is True
+    final_escort_v2 = paired["cohorts"][
+        "final_settlement_escort_preparation_mechanism_v2"]
+    assert final_escort_v2["seeds"] == [3746776]
+    assert final_escort_v2["claim_eligible"] is False
+    assert final_escort_v2["isolated_policy_keys"] == [
+        "expansion_final_settlement_escort_enabled"]
+    assert "final_settlement_escort_preparation_mechanism_v1" in (
+        final_escort_v2["reused_seeds_from"])
+    assert final_escort_v2["arms"]["baseline"][
+        "expansion_final_settlement_escort_enabled"] is False
+    assert final_escort_v2["arms"]["treatment"][
         "expansion_final_settlement_escort_enabled"] is True
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.2",

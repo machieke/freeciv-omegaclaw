@@ -223,6 +223,8 @@ def run_game(run_dir, manifest, context):
          2 if treatment else 0),
         ("planner_founder_final_escort_deferral_snapshots",
          1 if treatment else 0),
+        ("planner_founder_final_escort_rendezvous_hold_snapshots",
+         1 if treatment else 0),
         ("planner_founder_escort_defense_production_attempts",
          1 if treatment else 0),
         ("planner_founder_escort_defense_production_successes",

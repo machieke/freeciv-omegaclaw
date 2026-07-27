@@ -1474,3 +1474,13 @@ final escorted settlement attempt and no population recovery, and founded
 one fewer city than baseline. Adapter 1.13 must add a final-founder-only
 rendezvous hold until first combat co-location, export that hold separately,
 and repeat the isolated source-fresh cohort before any generalization.
+
+Adapter 1.13 implements that correction without adding another public policy
+switch. When a non-required grounded combat unit is available, it suppresses
+ordinary moves for only the assigned final founder until first co-location.
+Population recovery and exact remembered-threat avoidance retain priority.
+The founder resumes normal routing once escorted, allowing the combat unit to
+rejoin after each refreshed founder step. Unique rendezvous-hold snapshots
+are exported independently. The source-fresh, claim-ineligible
+`final_settlement_escort_preparation_mechanism_v2` cohort repeats the isolated
+selected pair; V1 evidence remains immutable and is not pooled.
