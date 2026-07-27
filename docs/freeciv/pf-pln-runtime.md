@@ -5,7 +5,7 @@ All phases 0-9 have deterministic acceptance evidence, but only phases with an
 engine adapter may affect a live harness game. The versioned support declaration
 is `pf_pln_runtime` in `profile/freeciv_agent.yaml`.
 
-The current engine adapter is `grounded-impact-planner/1.18`. Its score-alignment
+The current engine adapter is `grounded-impact-planner/1.19`. Its score-alignment
 guard changes how the already-live phases 0, 1, 4, and 9 rank grounded
 operations. It also exposes a bounded post-settlement-runway gate for
 score-bearing founder production and carries that deadline through settlement
@@ -111,6 +111,15 @@ and ends same-turn impact planning rather than selecting another action from
 the unchanged pre-action snapshot. The general 300 ms refresh remains
 unchanged for non-terminal actions. This is correctness hardening and creates
 no score or win-rate claim.
+Adapter 1.19 adds three factual safety dimensions to the live multi-goal field:
+city food reserve, net treasury plus turn-start upkeep reserve, and city-local
+garrison coverage. Grounded operations include queue interruption, bounded
+tax/science shifts and restoration, exact support rehoming or disbanding, and
+replacement-garrison movement. A required city defender is excluded from every
+offensive action. These are correctness and survival hardening changes; they do
+not revise any frozen score or win-rate claim until a new paired engine cohort
+is completed.
+
 The live harness explicitly enables
 `expansion_settlement_deadline_recovery_enabled`. Its false setting is a
 diagnostic ablation of existing-founder deadline handling; it does not

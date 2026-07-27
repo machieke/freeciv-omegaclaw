@@ -1,0 +1,620 @@
+diff --git a/freeciv-proxy/action_validator.py b/freeciv-proxy/action_validator.py
+index 432cd9c..a2980e8 100644
+--- a/freeciv-proxy/action_validator.py
++++ b/freeciv-proxy/action_validator.py
+@@ -157,6 +157,7 @@ class ActionType(Enum):
+     # === Research & Game Control ===
+     TECH_RESEARCH = "tech_research"
+     GOVERNMENT_CHANGE = "government_change"
++    PLAYER_RATES = "player_rates"
+     END_TURN = "end_turn"
+ 
+ 
+@@ -263,6 +264,7 @@ ACTION_CATEGORIES = {
+     # Research
+     ActionType.TECH_RESEARCH: ActionCategory.RESEARCH,
+     ActionType.GOVERNMENT_CHANGE: ActionCategory.RESEARCH,
++    ActionType.PLAYER_RATES: ActionCategory.RESEARCH,
+     ActionType.END_TURN: ActionCategory.RESEARCH,
+ }
+ 
+@@ -329,12 +331,16 @@ class LLMActionValidator:
+             result = self._validate_unit_build_city(action, player_id, game_state)
+         elif action_type == ActionType.UNIT_JOIN_CITY:
+             result = self._validate_unit_join_city(action, player_id, game_state)
++        elif action_type == ActionType.UNIT_HOME_CITY:
++            result = self._validate_unit_home_city(action, player_id, game_state)
+         elif action_type in (ActionType.CITY_PRODUCTION, ActionType.CITY_CHANGE_PRODUCTION):
+             result = self._validate_city_production(action, player_id, game_state)
+         elif action_type == ActionType.TECH_RESEARCH:
+             result = self._validate_tech_research(action, player_id, game_state)
+         elif action_type == ActionType.GOVERNMENT_CHANGE:
+             result = self._validate_government_change(action, player_id, game_state)
++        elif action_type == ActionType.PLAYER_RATES:
++            result = self._validate_player_rates(action, player_id, game_state)
+         elif action_type == ActionType.END_TURN:
+             result = self._validate_end_turn(action, player_id, game_state)
+         # New unit action validators
+@@ -472,6 +478,42 @@ class LLMActionValidator:
+ 
+         return ValidationResult(True)
+ 
++    def _validate_unit_home_city(self, action: Dict[str, Any], player_id: int,
++                                 game_state: Optional[Dict[str, Any]]) -> ValidationResult:
++        """Validate an exact, owned, co-located home-city target."""
++        if 'city_id' not in action:
++            return self._validation_error('E029', 'Home city requires city_id')
++
++        unit_result = self._validate_unit_can_act(
++            action, player_id, game_state, 'Home city')
++        if not unit_result.is_valid:
++            return unit_result
++        city_result = self._validate_city_ownership(
++            action, player_id, game_state, 'E029', 'E026', 'E027',
++            'Home city')
++        if not city_result.is_valid:
++            return city_result
++
++        if game_state and 'units' in game_state and 'cities' in game_state:
++            units = (game_state['units'].values()
++                     if isinstance(game_state['units'], dict)
++                     else game_state['units'])
++            cities = (game_state['cities'].values()
++                      if isinstance(game_state['cities'], dict)
++                      else game_state['cities'])
++            unit = next((row for row in units if isinstance(row, dict)
++                         and row.get('id') == action.get('unit_id')), None)
++            city = next((row for row in cities if isinstance(row, dict)
++                         and row.get('id') == action.get('city_id')), None)
++            if (unit is not None and city is not None
++                    and unit.get('tile') is not None
++                    and city.get('tile') is not None
++                    and unit.get('tile') != city.get('tile')):
++                return self._validation_error(
++                    'E028', 'Unit must be on the target city tile')
++
++        return ValidationResult(True)
++
+     def _validate_city_production(self, action: Dict[str, Any], player_id: int, game_state: Optional[Dict[str, Any]]) -> ValidationResult:
+         """Validate city production change"""
+         required_fields = ['city_id', 'production_type']
+@@ -557,6 +599,31 @@ class LLMActionValidator:
+ 
+         return ValidationResult(True)
+ 
++    def _validate_player_rates(
++        self,
++        action: Dict[str, Any],
++        player_id: int,
++        game_state: Optional[Dict[str, Any]],
++    ) -> ValidationResult:
++        """Validate the exact bounded tax/luxury/science packet fields."""
++        rates = []
++        for field in ('tax', 'luxury', 'science'):
++            value = action.get(field)
++            if (isinstance(value, bool) or not isinstance(value, int)
++                    or value < 0 or value > 100 or value % 10):
++                return self._validation_error(
++                    'E044',
++                    '{} must be an integer 0..100 in increments of 10'.format(
++                        field))
++            rates.append(value)
++        if sum(rates) != 100:
++            return self._validation_error(
++                'E045', 'Tax, luxury, and science rates must sum to 100')
++        if max(rates) > 60:
++            return self._validation_error(
++                'E046', 'Bounded rate changes cannot exceed 60 percent')
++        return ValidationResult(True)
++
+     def _validate_end_turn(self, action: Dict[str, Any], player_id: int, game_state: Optional[Dict[str, Any]]) -> ValidationResult:
+         """Validate end turn action
+ 
+diff --git a/freeciv-proxy/civcom.py b/freeciv-proxy/civcom.py
+index 4428a0b..f7c7173 100755
+--- a/freeciv-proxy/civcom.py
++++ b/freeciv-proxy/civcom.py
+@@ -407,6 +407,7 @@ class CivCom(Thread):
+ 
+         # Game settings from PACKET_GAME_INFO
+         self.citymindist = DEFAULT_CITYMINDIST  # Minimum distance between cities
++        self.gold_upkeep_style = None  # City, Mixed, or Nation
+         self.game_timeout = None  # Turn timeout for pause/resume functionality
+         self._dead_since = None  # Timestamp when marked dead (for TTL-based cleanup)
+ 
+@@ -765,6 +766,58 @@ class CivCom(Thread):
+                 'is_valid': True,
+             })
+         return actions
++
++    def _get_player_rate_actions(self, player_id):
++        """Advertise bounded, packet-exact treasury/science rate controls.
++
++        Every stock government permits rates up to 60 percent. Keeping this
++        recovery surface within that shared bound avoids guessing government
++        effects while still allowing the agent to trade one ten-point science
++        increment for tax and restore the configured 40/60 split later.
++        """
++        player = getattr(self, 'player_packets', {}).get(player_id, {})
++        government_state = self._government_state(player_id)
++        if (
++            not isinstance(player, dict)
++            or government_state.get('selection_required')
++            or str(government_state.get('current_name', '')).casefold()
++                == 'anarchy'
++        ):
++            return []
++        tax = player.get('tax')
++        luxury = player.get('luxury')
++        science = player.get('science')
++        if (
++            any(isinstance(value, bool) or not isinstance(value, int)
++                for value in (tax, luxury, science))
++            or tax + luxury + science != 100
++        ):
++            return []
++
++        actions = []
++
++        def add(target_tax, target_science, reason):
++            target = {
++                'tax_rate': target_tax,
++                'luxury_rate': luxury,
++                'science_rate': target_science,
++            }
++            actions.append({
++                'type': 'player_rates',
++                'player_id': player_id,
++                'target': target,
++                'reason': reason,
++                'is_valid': True,
++            })
++
++        if tax < 60 and science >= 10:
++            add(tax + 10, science - 10, 'bounded_treasury_recovery')
++        if tax > 40 and science < 60:
++            increment = min(10, tax - 40, 60 - science)
++            if increment > 0:
++                add(tax - increment, science + increment,
++                    'bounded_science_restoration')
++        return actions
+     
+     def can_research_tech(self, tech_id: int, player_id: int) -> bool:
+         """Check if a tech can be researched (prerequisites are met).
+@@ -2001,6 +2054,14 @@ class CivCom(Thread):
+                 if citymindist is not None:
+                     self.citymindist = citymindist
+                     logger.debug(f"Updated citymindist: {self.citymindist}")
++                gold_upkeep_style = packet.get('gold_upkeep_style')
++                if gold_upkeep_style in (0, 1, 2):
++                    self.gold_upkeep_style = {
++                        0: 'City', 1: 'Mixed', 2: 'Nation',
++                    }[gold_upkeep_style]
++                    logger.debug(
++                        "Updated gold upkeep style: %s",
++                        self.gold_upkeep_style)
+                 # Capture timeout for pause/resume functionality
+                 # Only store positive timeouts - zero means game is paused (no turn timer)
+                 # We preserve the original positive timeout so we can restore it on resume
+@@ -3071,7 +3132,33 @@ class CivCom(Thread):
+         beakers_per_turn = None
+         if gross_beakers is not None and tech_upkeep is not None:
+             beakers_per_turn = gross_beakers - tech_upkeep
+-        gold_per_turn = output_total(3, 'surplus')
++        city_gold_surplus_per_turn = output_total(3, 'surplus')
++        own_units = [
++            unit for unit in self._normalize_to_dict(
++                getattr(self, 'player_units', {})).values()
++            if unit.get('owner') == player_id and player_alive is not False
++        ]
++        unit_gold_upkeep = 0
++        for unit in own_units:
++            upkeep = unit.get('upkeep')
++            if not isinstance(upkeep, list) or len(upkeep) <= 3:
++                unit_gold_upkeep = None
++                break
++            unit_gold_upkeep += upkeep[3]
++        gold_upkeep_style = getattr(self, 'gold_upkeep_style', None)
++        if gold_upkeep_style == 'City':
++            # City surplus already includes both building and unit upkeep.
++            gold_per_turn = city_gold_surplus_per_turn
++        elif gold_upkeep_style == 'Mixed':
++            # City surplus includes building upkeep; units are paid nationally.
++            gold_per_turn = (
++                city_gold_surplus_per_turn - unit_gold_upkeep
++                if city_gold_surplus_per_turn is not None
++                and unit_gold_upkeep is not None else None)
++        else:
++            # Nation-style building upkeep is not yet projected exactly. An
++            # absent game-info style is equally unavailable, not permission.
++            gold_per_turn = None
+         researching = research.get('researching')
+         researching_def = self.techs.get(researching, {})
+ 
+@@ -3082,6 +3169,10 @@ class CivCom(Thread):
+                 'is_alive': player_alive,
+                 'gold': player.get('gold'),
+                 'gold_per_turn': gold_per_turn,
++                'city_gold_surplus_per_turn': city_gold_surplus_per_turn,
++                'unit_gold_upkeep': unit_gold_upkeep,
++                'gold_upkeep_reserve': unit_gold_upkeep,
++                'gold_upkeep_style': gold_upkeep_style,
+                 'tax': player.get('tax'),
+                 'science': player.get('science'),
+                 'luxury': player.get('luxury'),
+@@ -3695,7 +3786,14 @@ class CivCom(Thread):
+         # Once a revolution has finished, Freeciv waits indefinitely for this
+         # player-level selection and Anarchy suppresses science meanwhile.
+         government_actions = self._get_government_change_actions(player_id)
+-        all_actions.extend(government_actions)
++        if isinstance(government_actions, (list, tuple)):
++            all_actions.extend(government_actions)
++
++        # Expose one bounded step in each useful direction. The planner applies
++        # the treasury-reserve premise and chooses at most one exact legal row.
++        rate_actions = self._get_player_rate_actions(player_id)
++        if isinstance(rate_actions, (list, tuple)):
++            all_actions.extend(rate_actions)
+ 
+         # Get diplomacy actions (NOT CACHED - depends on meeting state)
+         diplomacy_actions = self._get_diplomacy_actions(player_id)
+diff --git a/freeciv-proxy/llm_handler.py b/freeciv-proxy/llm_handler.py
+index 9e2e133..96b07ce 100644
+--- a/freeciv-proxy/llm_handler.py
++++ b/freeciv-proxy/llm_handler.py
+@@ -1688,7 +1688,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
+                     normalized["unit_id"] = action_data["actor_id"]
+                 elif action_type.startswith("city_"):
+                     normalized["city_id"] = action_data["actor_id"]
+-                elif action_type in ("tech_research", "government_change", "end_turn") or action_type.startswith("diplomacy_"):
++                elif action_type in ("tech_research", "government_change",
++                                     "player_rates", "end_turn") or action_type.startswith("diplomacy_"):
+                     normalized["player_id"] = action_data["actor_id"]
+                 else:
+                     # Fallback: if unknown action type, leave as player_id to be conservative
+@@ -1729,6 +1730,21 @@ class LLMWSHandler(websocket.WebSocketHandler):
+             normalized["government_id"] = government_id
+             normalized["government_name"] = str(government_name)
+ 
++        elif action_type == "player_rates":
++            target = action_data.get("target", {})
++            for target_field, packet_field in (
++                    ("tax_rate", "tax"),
++                    ("luxury_rate", "luxury"),
++                    ("science_rate", "science")):
++                value = action_data.get(packet_field)
++                if value is None and isinstance(target, dict):
++                    value = target.get(target_field, target.get(packet_field))
++                if value is None:
++                    raise ValueError(
++                        "player_rates requires target.{}".format(
++                            target_field))
++                normalized[packet_field] = value
++
+         elif action_type == "unit_move":
+             # Extract unit_id and destination
+             if "unit_id" in action_data:
+@@ -1800,6 +1816,16 @@ class LLMWSHandler(websocket.WebSocketHandler):
+             if city_id is not None:
+                 normalized["city_id"] = city_id
+ 
++        elif action_type == "unit_home_city":
++            target = action_data.get("target", {})
++            city_id = action_data.get("city_id")
++            if city_id is None and isinstance(target, dict):
++                city_id = target.get("city_id")
++            if city_id is None:
++                raise ValueError(
++                    "unit_home_city requires target.city_id")
++            normalized["city_id"] = city_id
++
+         elif action_type in ("unit_attack", "unit_suicide_attack", "unit_bombard",
+                              "unit_capture", "unit_wipe", "unit_conquer_city",
+                              "unit_nuke", "unit_nuke_city", "unit_nuke_units"):
+@@ -3525,6 +3551,15 @@ class LLMWSHandler(websocket.WebSocketHandler):
+                         'target': government['target'],
+                         'is_valid': True,
+                     })
++                for rates in self.civcom._get_player_rate_actions(
++                    self.player_id
++                ):
++                    actions.append({
++                        'action_type': 'player_rates',
++                        'actor_id': self.player_id or 0,
++                        'target': rates['target'],
++                        'is_valid': True,
++                    })
+ 
+             # City production actions
+             cities = game_state.get('cities', {})
+diff --git a/freeciv-proxy/packet_converter.py b/freeciv-proxy/packet_converter.py
+index 390917c..b0aaa34 100644
+--- a/freeciv-proxy/packet_converter.py
++++ b/freeciv-proxy/packet_converter.py
+@@ -13,6 +13,7 @@ from packet_constants import (
+     PACKET_CITY_CHANGE,
+     PACKET_PLAYER_RESEARCH,
+     PACKET_PLAYER_CHANGE_GOVERNMENT,
++    PACKET_PLAYER_RATES,
+     PACKET_PLAYER_PHASE_DONE,
+     PACKET_UNIT_DO_ACTION,
+     PACKET_UNIT_SERVER_SIDE_AGENT_SET,
+@@ -461,6 +462,23 @@ def _convert_action_to_packet_impl(
+             }
+         )
+ 
++    elif action_type == "player_rates":
++        rates = {}
++        for field in ("tax", "luxury", "science"):
++            value = action.get(field)
++            if isinstance(value, bool) or not isinstance(value, int):
++                raise ValueError(
++                    "player_rates requires integer {}".format(field))
++            rates[field] = value
++        if (sum(rates.values()) != 100
++                or any(value < 0 or value > 60 or value % 10
++                       for value in rates.values())):
++            raise ValueError(
++                "player_rates must sum to 100 and stay within bounded "
++                "ten-point rates no greater than 60")
++        rates["pid"] = PACKET_PLAYER_RATES
++        return _sanitize_packet(rates)
++
+     elif action_type == "end_turn":
+         turn = 1
+         if civcom and hasattr(civcom, "game_turn"):
+diff --git a/freeciv-proxy/security.py b/freeciv-proxy/security.py
+index 97d3e61..fe18d72 100644
+--- a/freeciv-proxy/security.py
++++ b/freeciv-proxy/security.py
+@@ -232,6 +232,18 @@ class InputSanitizer:
+             if 'player_id' in action:
+                 sanitized['player_id'] = cls.sanitize_player_id(action['player_id'])
+ 
++        elif action_type == 'player_rates':
++            for field in ('tax', 'luxury', 'science'):
++                value = action.get(field)
++                if (isinstance(value, bool) or not isinstance(value, int)
++                        or value < 0 or value > 100):
++                    raise SecurityError(
++                        f"Invalid player rate {field}: {value!r}")
++                sanitized[field] = value
++            if 'player_id' in action:
++                sanitized['player_id'] = cls.sanitize_player_id(
++                    action['player_id'])
++
+         elif action_type == 'unit_build_city':
+             if 'unit_id' in action:
+                 sanitized['unit_id'] = cls.sanitize_unit_id(action['unit_id'])
+@@ -241,7 +253,7 @@ class InputSanitizer:
+             if 'name' in action:
+                 sanitized['name'] = cls.sanitize_string_field(action['name'], 'city_name')
+ 
+-        elif action_type == 'unit_join_city':
++        elif action_type in ('unit_join_city', 'unit_home_city'):
+             if 'unit_id' in action:
+                 sanitized['unit_id'] = cls.sanitize_unit_id(action['unit_id'])
+             if 'city_id' in action:
+diff --git a/freeciv-proxy/state_extractor.py b/freeciv-proxy/state_extractor.py
+index 2cdccd6..611af74 100644
+--- a/freeciv-proxy/state_extractor.py
++++ b/freeciv-proxy/state_extractor.py
+@@ -1772,14 +1772,21 @@ class StateExtractor:
+             # Must be in a friendly city
+             in_city = False
+             city_name = None
++            target_city_id = None
+             if civcom:
+                 for city_id, city in civcom.player_cities.items():
+                     if city.get('tile') == tile_index:
+                         in_city = True
+                         city_name = city.get('name')
++                        target_city_id = int(city.get('id', city_id))
+                         break
+-            
+-            add_action('home_city', {'city': city_name} if city_name else {}, 
++
++            target = {}
++            if city_name:
++                target['city'] = city_name
++            if target_city_id is not None:
++                target['city_id'] = target_city_id
++            add_action('home_city', target,
+                       in_city, None if in_city else "Must be in a friendly city", 
+                       ACTION_HOME_CITY)
+         
+diff --git a/freeciv-proxy/tests/test_packet_converters.py b/freeciv-proxy/tests/test_packet_converters.py
+index 725e773..bd0bb42 100644
+--- a/freeciv-proxy/tests/test_packet_converters.py
++++ b/freeciv-proxy/tests/test_packet_converters.py
+@@ -20,6 +20,7 @@ from packet_constants import (
+     PACKET_CITY_CHANGE,
+     PACKET_PLAYER_RESEARCH,
+     PACKET_PLAYER_CHANGE_GOVERNMENT,
++    PACKET_PLAYER_RATES,
+     PACKET_PLAYER_PHASE_DONE,
+     PACKET_CITY_BUY,
+     PACKET_CITY_SELL,
+@@ -66,6 +67,26 @@ class TestGovernmentActionConverters:
+             }, CivCom())
+ 
+ 
++class TestPlayerRateConverters:
++    def test_player_rates_use_exact_bounded_packet_fields(self):
++        result = _convert_action_to_packet({
++            "type": "player_rates",
++            "tax": 50, "luxury": 0, "science": 50,
++        })
++
++        assert result == {
++            "pid": PACKET_PLAYER_RATES,
++            "tax": 50, "luxury": 0, "science": 50,
++        }
++
++    def test_player_rates_reject_unbounded_or_non_total_fields(self):
++        with pytest.raises(ValueError, match="sum to 100"):
++            _convert_action_to_packet({
++                "type": "player_rates",
++                "tax": 70, "luxury": 0, "science": 30,
++            })
++
++
+ class TestCombatActionConverters:
+     """Test combat action packet conversion."""
+     
+diff --git a/freeciv-proxy/tests/test_pln_authoritative_state.py b/freeciv-proxy/tests/test_pln_authoritative_state.py
+index a7f5ae3..1e82306 100644
+--- a/freeciv-proxy/tests/test_pln_authoritative_state.py
++++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
+@@ -50,17 +50,24 @@ def make_civcom():
+         5: {"id": 5, "owner": 1, "prod": [5, 4, 3, 99, 0, 99],
+             "surplus": [2, 3, 3, 99, 0, 99]},
+     }
++    civcom.player_units = {
++        7: {
++            "id": 7, "owner": 0, "type": "Warriors",
++            "upkeep": [0, 1, 0, 2, 0, 0],
++        },
++    }
+     civcom._normalize_to_dict = CivCom._normalize_to_dict.__get__(civcom)
+     civcom.build_llm_optimized_state = lambda player_id: {
+         "format": "llm_optimized", "player_id": player_id,
+         "cities": civcom.player_cities,
+-        "units": {7: {"id": 7, "owner": player_id}},
++        "units": civcom.player_units,
+         "legal_actions": [{"type": "end_turn", "is_valid": True}],
+     }
+     civcom.get_full_state = lambda player_id: civcom.build_llm_optimized_state(player_id)
+     civcom.map_info = {"width": 10, "height": 10, "tiles": [], "visibility": {}}
+     civcom.tiles = {}
+     civcom.game_turn = 12
++    civcom.gold_upkeep_style = "Mixed"
+     return civcom
+ 
+ 
+@@ -70,7 +77,11 @@ def test_authoritative_state_uses_player_packet_and_owned_city_outputs():
+     assert state["authoritative"]["source_seq"] == 44
+     assert state["authoritative"]["player"]["is_alive"] is True
+     assert state["authoritative"]["player"]["gold"] == 31
+-    assert state["authoritative"]["player"]["gold_per_turn"] == 4
++    assert state["authoritative"]["player"]["city_gold_surplus_per_turn"] == 4
++    assert state["authoritative"]["player"]["unit_gold_upkeep"] == 2
++    assert state["authoritative"]["player"]["gold_upkeep_reserve"] == 2
++    assert state["authoritative"]["player"]["gold_upkeep_style"] == "Mixed"
++    assert state["authoritative"]["player"]["gold_per_turn"] == 2
+     assert state["authoritative"]["research"]["beakers_per_turn"] == 9
+     assert state["authoritative"]["research"]["researching_name"] == "Writing"
+     assert state["authoritative"]["government"]["current_name"] == "Despotism"
+@@ -145,6 +156,56 @@ def test_finished_revolution_advertises_only_known_legal_governments():
+     ]
+ 
+ 
++def test_player_rate_actions_are_bounded_and_restore_science():
++    civcom = make_civcom()
++    assert CivCom._get_player_rate_actions(civcom, 0) == [{
++        "type": "player_rates", "player_id": 0,
++        "target": {
++            "tax_rate": 40, "luxury_rate": 10, "science_rate": 50,
++        },
++        "reason": "bounded_treasury_recovery", "is_valid": True,
++    }]
++
++    civcom.player_packets[0].update({
++        "tax": 50, "luxury": 0, "science": 50,
++    })
++    actions = CivCom._get_player_rate_actions(civcom, 0)
++    assert [row["target"] for row in actions] == [
++        {"tax_rate": 60, "luxury_rate": 0, "science_rate": 40},
++        {"tax_rate": 40, "luxury_rate": 0, "science_rate": 60},
++    ]
++
++    civcom.player_packets[0]["government"] = 0
++    civcom.player_packets[0]["target_government"] = 0
++    assert CivCom._get_player_rate_actions(civcom, 0) == []
++
++
++def test_missing_unit_upkeep_makes_net_gold_explicitly_unavailable():
++    civcom = make_civcom()
++    civcom.player_units[7].pop("upkeep")
++
++    state = CivCom.build_pln_authoritative_state(civcom, 0)
++
++    assert state["authoritative"]["player"]["city_gold_surplus_per_turn"] == 4
++    assert state["authoritative"]["player"]["unit_gold_upkeep"] is None
++    assert state["authoritative"]["player"]["gold_per_turn"] is None
++
++
++def test_net_gold_respects_packet_gold_upkeep_style_without_double_counting():
++    civcom = make_civcom()
++    civcom.gold_upkeep_style = "City"
++    city_style = CivCom.build_pln_authoritative_state(civcom, 0)
++    assert city_style["authoritative"]["player"]["gold_per_turn"] == 4
++
++    civcom.gold_upkeep_style = "Nation"
++    nation_style = CivCom.build_pln_authoritative_state(civcom, 0)
++    assert nation_style["authoritative"]["player"]["gold_per_turn"] is None
++
++    civcom.gold_upkeep_style = None
++    missing_style = CivCom.build_pln_authoritative_state(civcom, 0)
++    assert missing_style["authoritative"]["player"]["gold_per_turn"] is None
++
++
+ def test_removal_notification_attributes_gold_and_food_losses_exactly():
+     civcom = make_civcom()
+     civcom.player_units = {
+diff --git a/freeciv-proxy/tests/test_release_game_configuration.py b/freeciv-proxy/tests/test_release_game_configuration.py
+index d360696..f50c732 100644
+--- a/freeciv-proxy/tests/test_release_game_configuration.py
++++ b/freeciv-proxy/tests/test_release_game_configuration.py
+@@ -188,6 +188,51 @@ def test_city_production_numeric_ids_are_cross_checked_before_transport(monkeypa
+         })
+ 
+ 
++def test_player_rates_preserve_exact_fields_through_security_and_validation():
++    handler = object.__new__(llm_handler.LLMWSHandler)
++    normalized = handler._normalize_agent_action({
++        "action_type": "player_rates", "actor_id": 0,
++        "target": {
++            "tax_rate": 50, "luxury_rate": 0, "science_rate": 50,
++        },
++    })
++    assert normalized == {
++        "type": "player_rates", "player_id": 0,
++        "tax": 50, "luxury": 0, "science": 50,
++    }
++    sanitized = InputSanitizer.sanitize_action_data(normalized)
++    assert sanitized == normalized
++    assert LLMActionValidator().validate_action(
++        sanitized, 0, {}).is_valid
++    invalid = LLMActionValidator().validate_action(
++        dict(sanitized, tax=60), 0, {})
++    assert not invalid.is_valid and invalid.error_code == "E045"
++
++
++def test_home_city_preserves_and_requires_exact_owned_colocated_target():
++    handler = object.__new__(llm_handler.LLMWSHandler)
++    normalized = handler._normalize_agent_action({
++        "action_type": "unit_home_city", "actor_id": 7,
++        "target": {"city": "Rome", "city_id": 10},
++    })
++    assert normalized == {
++        "type": "unit_home_city", "unit_id": 7, "city_id": 10}
++    assert InputSanitizer.sanitize_action_data(normalized) == normalized
++
++    game_state = {
++        "units": {"7": {"id": 7, "owner": 0, "tile": 55,
++                         "moves_left": 3}},
++        "cities": {"10": {"id": 10, "owner": 0, "tile": 55}},
++    }
++    validator = LLMActionValidator()
++    assert validator.validate_action(
++        dict(normalized, player_id=0), 0, game_state).is_valid
++    missing = validator.validate_action(
++        {"type": "unit_home_city", "unit_id": 7, "player_id": 0},
++        0, game_state)
++    assert not missing.is_valid and missing.error_code == "E029"
++
++
+ def test_join_city_preserves_and_requires_exact_owned_colocated_target():
+     handler = object.__new__(llm_handler.LLMWSHandler)
+     normalized = handler._normalize_agent_action({

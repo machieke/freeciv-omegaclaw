@@ -1858,6 +1858,13 @@ export function EconomyProductionDashboard({ state, onSelect }: {
   const actionEvents = state.events.filter((row) =>
     row.type === "action_sent"
     && (row.payload.action as Record<string, unknown> | undefined)?.action_type === "city_production");
+  const sustainabilityActionTypes = new Set([
+    "city_production", "player_rates", "unit_disband", "unit_home_city",
+  ]);
+  const sustainabilityActions = state.events.filter((row) =>
+    row.type === "action_sent"
+    && sustainabilityActionTypes.has(String(
+      (row.payload.action as Record<string, unknown> | undefined)?.action_type ?? "")));
   const completions = state.unitLifecycles.filter((row) =>
     (row.payload as unknown as UnitLifecycle).cause === "production_completed");
   const buildableProofs = state.proofs.filter(({ result }) =>
@@ -1876,7 +1883,12 @@ export function EconomyProductionDashboard({ state, onSelect }: {
         if (Number(action.city_id) === cityId
             && (!targetName || String(target.production_type) === targetName)) {
           const projection = recordOf(payload.projection);
-          if (Object.keys(projection).length) return { projection, event: scored };
+          if (Object.keys(projection).length) {
+            return {
+              projection, event: scored,
+              category: String(payload.category ?? "uncategorized"),
+            };
+          }
         }
       }
     }
@@ -1893,6 +1905,39 @@ export function EconomyProductionDashboard({ state, onSelect }: {
     shield: totals.shield + (city.support?.shield ?? 0),
     gold: totals.gold + (city.support?.gold ?? 0),
   }), { count: 0, food: 0, shield: 0, gold: 0 });
+  const cityGoldSurplus = production.economy.city_gold_surplus_per_turn;
+  const unitGoldUpkeep = production.economy.unit_gold_upkeep;
+  const netGold = production.economy.gold_per_turn
+    ?? (cityGoldSurplus !== null && cityGoldSurplus !== undefined
+      && unitGoldUpkeep !== null && unitGoldUpkeep !== undefined
+      ? cityGoldSurplus - unitGoldUpkeep : null);
+  const goldReserve = production.economy.gold_upkeep_reserve
+    ?? unitGoldUpkeep ?? null;
+  const pressureEvent = state.pressurePropagations.at(-1);
+  const pressureGoals = rowsOf(pressureEvent?.payload.goals);
+  const pressureGoal = (suffix: string) => pressureGoals.find((goal) =>
+    String(goal.goal_id ?? "").endsWith(`:${suffix}`));
+  const goalContext = (suffix: string) => {
+    const context = pressureGoal(suffix)?.context;
+    return Array.isArray(context) ? context.map(String).join(" · ") : "PF goal not logged";
+  };
+  const foodContext = goalContext("food_sustainability");
+  const treasuryContext = goalContext("treasury_sustainability");
+  const defenseContext = goalContext("survival");
+  const foodGoalAtRisk =
+    foodContext.includes("authoritative:city-food-reserve-deficit");
+  const treasuryGoalAtRisk =
+    treasuryContext.includes("authoritative:net-gold-or-turn-start-upkeep-reserve-deficit");
+  const treasuryAtRisk = treasuryGoalAtRisk
+    || (netGold !== null && netGold < 0)
+    || (production.economy.gold !== null && goldReserve !== null
+      && production.economy.gold < goldReserve);
+  const foodDeficits = production.cities.filter((city) =>
+    city.surplus.food !== null && Number(city.surplus.food) < 1);
+  const foodAtRisk = foodGoalAtRisk || foodDeficits.length > 0;
+  const defenseAtRisk =
+    defenseContext.includes("authoritative:grounded-production-defense-deficit")
+    || defenseContext.includes("authoritative:visible-enemy");
   return <div className="view-content economy-view">
     <div className="view-heading">
       <div><span className="eyebrow">authoritative stocks, rates, queues, projections</span>
@@ -1902,10 +1947,33 @@ export function EconomyProductionDashboard({ state, onSelect }: {
     </div>
     <section className="economy-strip">
       <div><span>treasury</span><strong>{production.economy.gold ?? "—"}</strong><small>gold</small></div>
-      <div><span>cash flow</span><strong>{production.economy.gold_per_turn ?? "—"}</strong><small>per turn</small></div>
-      <div><span>science</span><strong>{production.economy.science_rate ?? "—"}%</strong><small>tax rate</small></div>
+      <div className={treasuryAtRisk ? "at-risk" : ""}><span>net cash flow</span>
+        <strong>{netGold ?? "—"}</strong><small>after unit upkeep</small></div>
+      <div><span>city gold surplus</span><strong>{cityGoldSurplus ?? "—"}</strong>
+        <small>{production.economy.gold_upkeep_style ?? "unknown"} upkeep style</small></div>
+      <div><span>unit upkeep</span><strong>{unitGoldUpkeep ?? "—"}</strong><small>gold / turn</small></div>
+      <div><span>upkeep reserve</span><strong>{goldReserve ?? "—"}</strong><small>turn-start exposure</small></div>
+      <div><span>science</span><strong>{production.economy.science_rate ?? "—"}%</strong><small>allocation</small></div>
       <div><span>tax</span><strong>{production.economy.tax_rate ?? "—"}%</strong><small>allocation</small></div>
       <div><span>luxury</span><strong>{production.economy.luxury_rate ?? "—"}%</strong><small>allocation</small></div>
+    </section>
+    <section className="sustainability-overview">
+      <article className={foodAtRisk ? "at-risk" : "safe"}>
+        <header><span>food reserve</span><strong>{foodAtRisk ? "at risk" : "safe"}</strong></header>
+        <b>{foodDeficits.length} / {production.cities.length} cities below +1</b>
+        <small>{foodContext}</small>
+      </article>
+      <article className={treasuryAtRisk ? "at-risk" : "safe"}>
+        <header><span>treasury reserve</span><strong>{treasuryAtRisk ? "at risk" : "safe"}</strong></header>
+        <b>{netGold ?? "—"} net · {production.economy.gold ?? "—"} stock</b>
+        <small>{treasuryContext}</small>
+      </article>
+      <article className={defenseAtRisk ? "at-risk" : "safe"}>
+        <header><span>local defense</span><strong>{defenseAtRisk ? "pressure active" : "covered"}</strong></header>
+        <b>garrisons + visible threats</b><small>{defenseContext}</small>
+      </article>
+      {pressureEvent && <button onClick={() =>
+        onSelect({ kind: "event", value: pressureEvent })}>inspect PF goal field →</button>}
     </section>
     {production.government && <section className={`economy-government ${
       production.government.in_revolution ? "revolution" : ""}`}>
@@ -1937,6 +2005,8 @@ export function EconomyProductionDashboard({ state, onSelect }: {
           <strong>{production.cities.length} active cities</strong></header>
         {production.cities.map((city) => {
           const projected = latestProjection(city.city_id, city.target.name);
+          const cityFoodAtRisk = city.surplus.food !== null
+            && Number(city.surplus.food) < 1;
           return <article key={city.city_id}>
             <header><div><span>#{city.city_id}</span><h3>{city.name}</h3></div>
               <strong>{city.target.name ?? `kind ${city.target.kind} / ${city.target.value}`}</strong></header>
@@ -1947,7 +2017,11 @@ export function EconomyProductionDashboard({ state, onSelect }: {
               <div><span>buildable</span><b>{city.buildable_count}</b></div>
             </div>
             {(city.mood || city.support) && <div className={`city-sustainability ${
-              city.mood?.disorder ? "at-risk" : ""}`}>
+              city.mood?.disorder || cityFoodAtRisk || city.had_famine ? "at-risk" : ""}`}>
+              <div className={cityFoodAtRisk ? "food-risk" : ""}><span>food reserve</span>
+                <b>{city.surplus.food === null ? "—"
+                  : `${Number(city.surplus.food) >= 0 ? "+" : ""}${city.surplus.food}`}</b>
+                <small>{cityFoodAtRisk ? "below planner reserve +1" : "planner reserve satisfied"}</small></div>
               <div><span>citizen mood</span>
                 <b>{city.mood?.disorder ? "disorder" : city.mood ? "order" : "—"}</b>
                 <small>{city.mood?.final.happy ?? "—"} happy ·
@@ -1971,13 +2045,19 @@ export function EconomyProductionDashboard({ state, onSelect }: {
             </div>
             {projected ? <button className="production-projection"
               onClick={() => onSelect({ kind: "event", value: projected.event })}>
-              <span><b>PF-PLN projection</b><small>ruleset-grounded candidate</small></span>
+              <span><b>PF-PLN projection</b><small>{humanize(projected.category)}</small></span>
               <span><b>{numeric(projected.projection.completion_eta_turns)}</b><small>turn ETA</small></span>
               <span><b>{numeric(projected.projection.build_cost)}</b><small>shield cost</small></span>
               <span><b>{numeric(projected.projection.shield_surplus)}</b><small>shield / turn</small></span>
               <span><b>{numeric(projected.projection.projected_unit_completions)}</b><small>horizon units</small></span>
             </button> : <div className="production-projection gap">
               No PF-PLN projection logged for the current queue.</div>}
+            {projected?.projection.sustainability_override === true
+              && <div className="sustainability-route"><strong>Safety override</strong>
+                <span>Queue interruption prevents the next upkeep breach.</span>
+                <small>{numeric(projected.projection.avoided_next_completion_upkeep)}
+                  {" "}upkeep avoided · {numeric(projected.projection.discarded_shield_stock)}
+                  {" "}shields discarded</small></div>}
           </article>;
         })}
       </section>
@@ -1996,21 +2076,27 @@ export function EconomyProductionDashboard({ state, onSelect }: {
             : "No buildable PLN query was logged. Production still affected PF-PLN candidate scoring, but it was not represented as a PLN proof in this run."}</p>
         </section>
         <section><span className="eyebrow">queue decisions</span><h3>Recent changes</h3>
-          {actionEvents.slice(-10).reverse().map((row) => {
+          {sustainabilityActions.slice(-10).reverse().map((row) => {
             const action = row.payload.action as Record<string, unknown>;
             const target = recordOf(action.target);
             return <button key={row.event_id}
               onClick={() => onSelect({ kind: "event", value: row })}>
-              <span>T{row.turn} · city {String(action.city_id)}</span>
-              <strong>{String(target.production_type ?? "unnamed target")}</strong>
+              <span>T{row.turn} · {humanize(action.action_type)}</span>
+              <strong>{String(target.production_type
+                ?? (target.tax_rate !== undefined
+                  ? `${target.tax_rate}% tax / ${target.science_rate}% science`
+                  : action.actor_id !== undefined ? `unit ${action.actor_id}` : "player control"))}</strong>
             </button>;
           })}
+          {!sustainabilityActions.length && <p>No sustainability control action at this cursor.</p>}
         </section>
       </aside>
     </div>
-    <footer className="display-boundary">City outputs and stocks are exact emitted values.
-      Totals and sparklines are display aggregations. PF-PLN projections are shown verbatim
-      from <code>operation_scored</code>; inferred completions are never relabeled as exact.</footer>
+    <footer className="display-boundary">City outputs, stocks, support, and cash-flow
+      components are exact emitted values. A food reserve below +1 and the upkeep-reserve
+      warning are configured planner thresholds. Totals and sparklines are display aggregations.
+      PF-PLN goals and projections are shown verbatim from <code>pressure_propagated</code> and
+      {" "}<code>operation_scored</code>; inferred completions are never relabeled as exact.</footer>
   </div>;
 }
 

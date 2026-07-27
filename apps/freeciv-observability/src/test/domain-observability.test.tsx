@@ -46,6 +46,8 @@ const production = event(3, "production_state", {
   snapshot_id: "snapshot-20", government,
   economy: {
     available: true, gold: 50, gold_per_turn: 1,
+    city_gold_surplus_per_turn: 4, unit_gold_upkeep: 3,
+    gold_upkeep_reserve: 3, gold_upkeep_style: "Mixed",
     tax_rate: 40, science_rate: 60, luxury_rate: 0,
   },
   cities: [{
@@ -105,6 +107,12 @@ describe("typed domain observability", () => {
     expect(screen.getByText("disorder")).toBeInTheDocument();
     expect(screen.getByText(/1 food · 2 shields · 0 gold/i)).toBeInTheDocument();
     expect(screen.getByText(/server reported famine this turn/i)).toBeInTheDocument();
+    expect(screen.getByText("net cash flow")).toBeInTheDocument();
+    expect(screen.getByText("city gold surplus")).toBeInTheDocument();
+    expect(screen.getByText(/Mixed upkeep style/i)).toBeInTheDocument();
+    expect(screen.getByText("unit upkeep")).toBeInTheDocument();
+    expect(screen.getByText(/planner reserve satisfied/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/PF goal not logged/i)).toHaveLength(3);
     expect(screen.getByText(/No buildable PLN query was logged/i)).toBeInTheDocument();
   });
 

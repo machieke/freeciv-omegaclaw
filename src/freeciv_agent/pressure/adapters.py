@@ -165,13 +165,21 @@ class ImpactPressureRanker(object):
     CATEGORY_GOALS = {
         "city_defense": "survival",
         "city_founding": "expansion",
+        "city_garrison_move": "survival",
         "expansion_move": "expansion",
+        "food_support_disband": "food_sustainability",
+        "food_support_rehome": "food_sustainability",
         "hut_exploration": "exploration",
         "population_recovery": "score",
         "population_recovery_move": "score",
         "production_defense": "survival",
+        "production_food_stabilization": "food_sustainability",
+        "production_treasury_stabilization": "treasury_sustainability",
         "tactical_attack": "survival",
         "tactical_move": "survival",
+        "treasury_support_disband": "treasury_sustainability",
+        "treasury_tax_restore": "score",
+        "treasury_tax_shift": "treasury_sustainability",
     }
 
     def __init__(
@@ -278,8 +286,10 @@ class ImpactPressureRanker(object):
             survival_threat_radius):
         """Bind safety compatibility to the threat that activated safety."""
         category = str(candidate.category)
-        if category == "production_defense":
+        if category in ("production_defense", "city_garrison_move"):
             return bool(defense_deficit)
+        if category == "city_defense" and defense_deficit:
+            return True
         if category not in (
                 "city_defense", "tactical_attack", "tactical_move"):
             return False
@@ -342,7 +352,7 @@ class ImpactPressureRanker(object):
     def _grounded_goal_specs(
             cls, snapshot, candidates, expansion_city_target,
             survival_threat_radius, score_alignment=False,
-            exploration_information_enabled=True):
+            exploration_information_enabled=True, goal_facts=None):
         """Derive live goal truth from authoritative state and legal candidates.
 
         Candidate presence is admissible grounding here because candidates are
@@ -363,9 +373,20 @@ class ImpactPressureRanker(object):
         # for a combat unit already occupying its city.  Treating that
         # opportunity as a deficit manufactures survival pressure and lets
         # routine fortification preempt score-bearing work in a safe state.
-        defense_deficit = "production_defense" in categories
+        goal_facts = dict(goal_facts or {})
+        defense_city_ids = tuple(
+            goal_facts.get("defense_deficit_city_ids", ()))
+        defense_deficit = bool(
+            defense_city_ids
+            if "defense_deficit_city_ids" in goal_facts
+            else "production_defense" in categories)
         survival_truth = (
             0.0 if relevant_threats or defense_deficit else 1.0)
+        food_city_ids = tuple(goal_facts.get("food_deficit_city_ids", ()))
+        food_truth = float(goal_facts.get(
+            "food_safe_fraction", 1.0 if not food_city_ids else 0.0))
+        food_truth = min(1.0, max(0.0, food_truth))
+        treasury_deficit = bool(goal_facts.get("treasury_deficit", False))
         exploration_categories = tuple(
             candidate for candidate in candidates
             if cls.goal_for_category(candidate.category) == "exploration")
@@ -401,6 +422,17 @@ class ImpactPressureRanker(object):
                      int(survival_threat_radius))
                  if relevant_threats else
                  "authoritative:no-proximate-visible-threat-or-defense-deficit")),
+            "food_sustainability": (
+                food_truth, 1.75, True,
+                ("authoritative:city-food-surplus-reserve-deficit:{}".format(
+                    ",".join(str(value) for value in food_city_ids))
+                 if food_city_ids else
+                 "authoritative:all-city-food-reserves-safe")),
+            "treasury_sustainability": (
+                0.0 if treasury_deficit else 1.0, 1.65, True,
+                ("authoritative:net-gold-or-turn-start-upkeep-reserve-deficit"
+                 if treasury_deficit else
+                 "authoritative:net-gold-and-turn-start-upkeep-reserve-safe")),
             "expansion": (
                 expansion_truth, 1.25, False,
                 "authoritative:city-count-over-target"),
@@ -524,7 +556,8 @@ class ImpactPressureRanker(object):
     def rank(
             self, snapshot, candidates, expansion_city_target, horizon_turn,
             survival_threat_radius=3, _goal_specs_override=None,
-            diagnostics=None, _conservative_safety_replay=False):
+            diagnostics=None, _conservative_safety_replay=False,
+            _goal_facts=None):
         candidates = tuple(candidates)
         if not candidates:
             return (), None
@@ -539,7 +572,8 @@ class ImpactPressureRanker(object):
                 survival_threat_radius,
                 score_alignment=self.score_alignment,
                 exploration_information_enabled=(
-                    self.exploration_information_enabled))
+                    self.exploration_information_enabled),
+                goal_facts=_goal_facts)
             if _goal_specs_override is None
             else dict(_goal_specs_override))
         relevant_threats = self._relevant_visible_threats(
@@ -619,23 +653,43 @@ class ImpactPressureRanker(object):
         # is active and the current legal set contains a grounded survival
         # operation. Otherwise rejecting all non-safety work would leave no
         # actionable route for the cycle.
-        defense_deficit = any(
-            candidate.category == "production_defense"
-            for candidate in candidates)
+        defense_deficit = bool(
+            tuple((_goal_facts or {}).get(
+                "defense_deficit_city_ids", ()))
+            if _goal_facts is not None else any(
+                candidate.category == "production_defense"
+                for candidate in candidates))
+        active_safety_goals = frozenset(
+            name for name, (strength, _, safety, _) in goal_specs.items()
+            if safety and float(strength) < 1.0)
+
+        def safety_candidate_relevant(candidate):
+            goal_name = self.goal_for_category(candidate.category)
+            if goal_name not in active_safety_goals:
+                return False
+            if goal_name != "survival":
+                return True
+            return bool(
+                _conservative_safety_replay
+                or self._safety_candidate_relevant(
+                    snapshot, candidate, relevant_threats,
+                    defense_deficit, survival_threat_radius))
+
         aligned_safety_candidates = tuple(
             candidate for candidate in candidates
-            if self.goal_for_category(candidate.category) == "survival"
-            and (_conservative_safety_replay
-                 or self._safety_candidate_relevant(
-                     snapshot, candidate, relevant_threats,
-                     defense_deficit, survival_threat_radius)))
+            if safety_candidate_relevant(candidate))
         safety_actionable = bool(
             aligned_safety_candidates
-            if self.score_alignment else grouped["survival"])
-        safety_active = (
-            float(goal_specs["survival"][0]) < 1.0 and safety_actionable)
+            if self.score_alignment else tuple(
+                candidate for candidate in candidates
+                if self.goal_for_category(candidate.category)
+                in active_safety_goals))
+        safety_active = bool(active_safety_goals and safety_actionable)
         opportunity_ceiling = (
-            goal_maximum_utility["survival"] if safety_active else
+            max((
+                goal_maximum_utility[name]
+                for name in active_safety_goals), default=0.0)
+            if safety_active else
             max(goal_maximum_utility.values(), default=0.0))
         for goal_name in sorted(grouped):
             goal_utility_ceiling = max(
@@ -768,13 +822,9 @@ class ImpactPressureRanker(object):
                     if self.score_alignment else 0.0),
                 safety_compatible=(
                     not safety_active or (
-                        goal_name == "survival"
+                        goal_name in active_safety_goals
                         and (not self.score_alignment
-                             or _conservative_safety_replay
-                             or self._safety_candidate_relevant(
-                                 snapshot, candidate, relevant_threats,
-                                 defense_deficit,
-                                 survival_threat_radius)))),
+                             or safety_candidate_relevant(candidate)))),
                 payload=candidate.to_dict()))
         if diagnostics is not None:
             diagnostics["pressure_operation_latency_ms"] = (

@@ -151,6 +151,38 @@ def _executable_action(row, player_id=None):
                 actor_id,
                 "legal_actions.government_change.actor_id", required=True)
         return normalized
+    if kind == "player_rates":
+        target = row.get("target")
+        if not isinstance(target, dict):
+            target = {
+                "tax_rate": row.get("tax_rate"),
+                "science_rate": row.get("science_rate"),
+                "luxury_rate": row.get("luxury_rate"),
+            }
+        normalized = {
+            "action_type": "player_rates",
+            "target": {
+                name: _integer(
+                    target.get(name), "legal_actions.player_rates.target.{}".format(
+                        name), required=True)
+                for name in ("tax_rate", "science_rate", "luxury_rate")
+            },
+        }
+        if sum(normalized["target"].values()) != 100:
+            raise ContractError(
+                "legal_actions.player_rates target rates must sum to 100")
+        if any(
+                value < 0 or value > 100 or value % 10
+                for value in normalized["target"].values()):
+            raise ContractError(
+                "legal_actions.player_rates target rates must be 0..100 "
+                "in increments of 10")
+        actor_id = row.get("actor_id", row.get("player_id", player_id))
+        if actor_id is not None:
+            normalized["actor_id"] = _integer(
+                actor_id, "legal_actions.player_rates.actor_id",
+                required=True)
+        return normalized
     if kind == "unit_move":
         target = row.get("target")
         params = row.get("params")
@@ -357,6 +389,22 @@ class ProxyStateDTO:
         gold = _integer(player.get("gold", economic.get("gold")), "economy.gold")
         gold_per_turn = _integer(player.get("gold_per_turn", economic.get("gold_per_turn")),
                                  "economy.gold_per_turn")
+        city_gold_surplus_per_turn = _integer(
+            player.get(
+                "city_gold_surplus_per_turn",
+                player.get("gross_gold_per_turn", player.get("gold_income_per_turn"))),
+            "economy.city_gold_surplus_per_turn")
+        unit_gold_upkeep = _integer(
+            player.get("unit_gold_upkeep"), "economy.unit_gold_upkeep")
+        gold_upkeep_reserve = _integer(
+            player.get("gold_upkeep_reserve", unit_gold_upkeep),
+            "economy.gold_upkeep_reserve")
+        gold_upkeep_style = player.get("gold_upkeep_style")
+        if gold_upkeep_style is not None:
+            gold_upkeep_style = str(gold_upkeep_style)
+            if gold_upkeep_style not in ("City", "Mixed", "Nation"):
+                raise ContractError(
+                    "economy.gold_upkeep_style must be City, Mixed, or Nation")
         tax = _integer(player.get("tax"), "economy.tax")
         science = _integer(player.get("science"), "economy.science")
         luxury = _integer(player.get("luxury"), "economy.luxury")
@@ -499,8 +547,13 @@ class ProxyStateDTO:
 
         body = {
             "cities": [city.to_dict() for city in sorted(cities, key=lambda item: item.city_id)],
-            "economy": EconomicState(gold, gold_per_turn, tax, science, luxury,
-                                      economy_available, economy_diagnostic).to_dict(),
+            "economy": EconomicState(
+                gold, gold_per_turn, tax, science, luxury,
+                economy_available, economy_diagnostic,
+                city_gold_surplus_per_turn=city_gold_surplus_per_turn,
+                unit_gold_upkeep=unit_gold_upkeep,
+                gold_upkeep_reserve=gold_upkeep_reserve,
+                gold_upkeep_style=gold_upkeep_style).to_dict(),
             "government": government.to_dict(),
             "game_id": str(game_id), "legal_action_json": list(legal_json),
             "map": {"height": height,
@@ -524,8 +577,13 @@ class ProxyStateDTO:
             research=ResearchState(tuple(sorted(set(known))), target_id, target_name,
                                    progress, research_cost, beakers,
                                    research_available, research_diagnostic),
-            economy=EconomicState(gold, gold_per_turn, tax, science, luxury,
-                                  economy_available, economy_diagnostic),
+            economy=EconomicState(
+                gold, gold_per_turn, tax, science, luxury,
+                economy_available, economy_diagnostic,
+                city_gold_surplus_per_turn=city_gold_surplus_per_turn,
+                unit_gold_upkeep=unit_gold_upkeep,
+                gold_upkeep_reserve=gold_upkeep_reserve,
+                gold_upkeep_style=gold_upkeep_style),
             cities=tuple(sorted(cities, key=lambda item: item.city_id)),
             units=tuple(sorted(units, key=lambda item: item.unit_id)),
             visible_enemy_units=tuple(sorted(

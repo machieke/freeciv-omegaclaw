@@ -15,7 +15,7 @@ def _rows(value):
     return list(value.values()) if isinstance(value, dict) else list(value)
 
 
-def _legal_json(value):
+def _legal_json(value, player_id=None):
     rows = []
     if isinstance(value, list):
         rows = value
@@ -31,14 +31,92 @@ def _legal_json(value):
             normalized = copy.deepcopy(row)
             normalized.pop("is_valid", None)
             normalized.pop("reason", None)
+        elif row.get("type") == "player_rates":
+            target = row.get("target")
+            if not isinstance(target, dict):
+                target = {
+                    "tax_rate": row.get("tax_rate"),
+                    "science_rate": row.get("science_rate"),
+                    "luxury_rate": row.get("luxury_rate"),
+                }
+            normalized = {
+                "action_type": "player_rates",
+                "actor_id": int(row.get(
+                    "actor_id", row.get("player_id", player_id))),
+                "target": {
+                    name: int(target[name])
+                    for name in ("tax_rate", "science_rate", "luxury_rate")
+                },
+            }
+        elif row.get("type") == "tech_research":
+            normalized = {
+                "action_type": "tech_research",
+                "actor_id": int(row.get(
+                    "actor_id", row.get("player_id", player_id))),
+                "target": {"tech_name": str(row["tech_name"])},
+            }
+        elif row.get("type") == "government_change":
+            target = row.get("target")
+            if not isinstance(target, dict):
+                target = {
+                    "government_id": row.get("government_id"),
+                    "government_name": row.get("government_name"),
+                }
+            normalized = {
+                "action_type": "government_change",
+                "actor_id": int(row.get(
+                    "actor_id", row.get("player_id", player_id))),
+                "target": {
+                    "government_id": int(target["government_id"]),
+                    "government_name": str(target["government_name"]),
+                },
+            }
+        elif row.get("type") == "unit_move":
+            params = row.get("params")
+            target = row.get("target")
+            if not isinstance(target, dict) and isinstance(params, dict):
+                target = params.get("target")
+            if not isinstance(target, dict):
+                target = {"x": row.get("dest_x"), "y": row.get("dest_y")}
+            normalized = {
+                "action_type": "unit_move",
+                "actor_id": int(row.get("unit_id", row.get("actor_id"))),
+                "target": {"x": int(target["x"]), "y": int(target["y"])},
+            }
+            settlement_site_eligible = row.get("settlement_site_eligible")
+            if settlement_site_eligible is None and isinstance(params, dict):
+                settlement_site_eligible = params.get("settlement_site_eligible")
+            if settlement_site_eligible is not None:
+                normalized["settlement_site_eligible"] = bool(
+                    settlement_site_eligible)
         elif row.get("type") == "unit_action":
             action = str(row.get("action", ""))
+            action_type = action if action.startswith("unit_") else "unit_" + action
             normalized = {
-                "action_type": action if action.startswith("unit_") else "unit_" + action,
-                "actor_id": row.get("unit_id", row.get("actor_id")),
+                "action_type": action_type,
+                "actor_id": int(row.get("unit_id", row.get("actor_id"))),
             }
             if isinstance(row.get("params"), dict) and row["params"]:
-                normalized["target"] = copy.deepcopy(row["params"])
+                params = row["params"]
+                positional = params.get("target")
+                if action_type == "unit_join_city":
+                    normalized["target"] = {
+                        "city_id": int(params["city_id"]),
+                    }
+                    if params.get("city") is not None:
+                        normalized["target"]["city"] = str(params["city"])
+                elif (action_type in (
+                        "unit_attack", "unit_suicide_attack", "unit_bombard",
+                        "unit_capture", "unit_wipe", "unit_conquer_city",
+                        "unit_nuke", "unit_nuke_city", "unit_nuke_units")
+                        and isinstance(positional, dict)):
+                    normalized["target"] = copy.deepcopy(positional)
+                    for field in ("target_unit_id", "target_city_id"):
+                        if field in params:
+                            normalized["target"][field] = copy.deepcopy(
+                                params[field])
+                else:
+                    normalized["target"] = copy.deepcopy(params)
         else:
             normalized = {"action_type": row.get("type")}
             if row.get("unit_id") is not None:
@@ -66,7 +144,7 @@ def packet_reference(payload):
     if visible is None:
         visible = [int(key) for key, value in payload["map"].get("visibility", {}).items()
                    if value]
-    legal = _legal_json(payload["legal_actions"])
+    legal = _legal_json(payload["legal_actions"], player_id=player_id)
     own_atoms = set()
     for tech in payload["techs"].get("player{}".format(player_id), []):
         own_atoms.add(("has-tech", (str(player_id), tech)))

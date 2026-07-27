@@ -160,7 +160,8 @@ async def run(args):
             "condition_id": "live-authoritative-soak",
             "manifest_identity": structural_hash({
                 "game_id": args.game_id, "proxy_commit": args.proxy_commit,
-                "seed": args.seed, "turns": args.turns,
+                "nation": args.nation, "seed": args.seed,
+                "turns": args.turns,
             }),
         })
     report = {
@@ -176,7 +177,7 @@ async def run(args):
         connect = {
             "type": "llm_connect", "agent_id": args.agent_id,
             "api_token": args.api_token, "game_id": args.game_id,
-            "nation": "Romans", "leader_name": "PLN State Comparator",
+            "nation": args.nation, "leader_name": args.leader_name,
         }
         if args.port:
             connect["port"] = args.port
@@ -326,11 +327,13 @@ def main():
         "FREECIV_API_TOKEN", "test-token-fc3d-001"))
     parser.add_argument("--game-id", default="pln-state-parity")
     parser.add_argument("--agent-id", default="pln-state-parity")
+    parser.add_argument("--nation", default="Romans")
+    parser.add_argument("--leader-name", default="PLN State Comparator")
     parser.add_argument("--port", type=int)
     parser.add_argument("--turns", type=int, default=100)
     parser.add_argument("--seed", type=int, default=4202)
     parser.add_argument("--proxy-commit", default=(
-        "26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:2ac25711830d9f27824200ddfa07ff52ea6d12c592dfee814fec30183ae5f6b5"))
+        "26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:03a8cb9a385defe5f811165dd69136ac9e5dab5acee2c7967c432a998ad34e6b"))
     parser.add_argument("--events", help="archive canonical persisted-first event JSONL")
     args = parser.parse_args()
     try:

@@ -14,7 +14,7 @@ opponent:
 machine_profile: codex-dev-linux
 engine:
   freeciv_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018
-  proxy_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:2ac25711830d9f27824200ddfa07ff52ea6d12c592dfee814fec30183ae5f6b5
+  proxy_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:03a8cb9a385defe5f811165dd69136ac9e5dab5acee2c7967c432a998ad34e6b
 rulebase:
   compiler_version: freeciv-ruleset-compiler/1.2
   source_sha256: 3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e
@@ -51,6 +51,11 @@ impact_policy:
   expansion_final_settlement_escort_enabled: false
   foodbox_percent: 100
   unit_build_score_divisor: 10
+  food_surplus_reserve: 1
+  treasury_reserve_turns: 2
+  treasury_minimum_gold: 5
+  normal_tax_rate: 40
+  normal_science_rate: 60
   refresh_timeout_seconds: 0.3
   terminal_refresh_timeout_seconds: 1.0
   refresh_stability_interval_seconds: 0.05

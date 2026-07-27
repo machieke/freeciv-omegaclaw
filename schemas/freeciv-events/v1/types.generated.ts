@@ -279,12 +279,16 @@ export type CitySupport = {
 
 export type ProductionEconomy = {
   "available": boolean;
+  "city_gold_surplus_per_turn"?: number | null;
   "diagnostic"?: string | null;
   "gold": number | null;
   "gold_per_turn": number | null;
+  "gold_upkeep_reserve"?: number | null;
+  "gold_upkeep_style"?: "City" | "Mixed" | "Nation" | null;
   "luxury_rate": number | null;
   "science_rate": number | null;
   "tax_rate": number | null;
+  "unit_gold_upkeep"?: number | null;
 };
 
 export type ProductionState = {

@@ -421,9 +421,15 @@
         "diagnostic": {"type": ["string", "null"]},
         "gold": {"type": ["integer", "null"]},
         "gold_per_turn": {"type": ["integer", "null"]},
+        "gold_upkeep_reserve": {"type": ["integer", "null"], "minimum": 0},
+        "city_gold_surplus_per_turn": {"type": ["integer", "null"]},
+        "gold_upkeep_style": {
+          "type": ["string", "null"], "enum": ["City", "Mixed", "Nation", null]
+        },
         "tax_rate": {"type": ["integer", "null"]},
         "science_rate": {"type": ["integer", "null"]},
-        "luxury_rate": {"type": ["integer", "null"]}
+        "luxury_rate": {"type": ["integer", "null"]},
+        "unit_gold_upkeep": {"type": ["integer", "null"], "minimum": 0}
       }
     },
     "production_state": {

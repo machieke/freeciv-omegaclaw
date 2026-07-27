@@ -247,6 +247,26 @@ class DomainObservabilityEmitter(object):
             row["food"] += int(upkeep[0]) if len(upkeep) > 0 else 0
             row["shield"] += int(upkeep[1]) if len(upkeep) > 1 else 0
             row["gold"] += int(upkeep[3]) if len(upkeep) > 3 else 0
+        observed_unit_gold_upkeep = sum(
+            row["gold"] for row in support.values())
+        city_gold_surplus_per_turn = economy.city_gold_surplus_per_turn
+        if city_gold_surplus_per_turn is None:
+            city_gold = [
+                int(city.surplus[3]) for city in snapshot.cities
+                if len(city.surplus) > 3]
+            city_gold_surplus_per_turn = (
+                sum(city_gold)
+                if len(city_gold) == len(snapshot.cities) else None)
+        unit_gold_upkeep = (
+            economy.unit_gold_upkeep
+            if economy.unit_gold_upkeep is not None
+            else observed_unit_gold_upkeep)
+        net_gold_per_turn = (
+            economy.gold_per_turn
+            if economy.city_gold_surplus_per_turn is not None
+            else (
+                city_gold_surplus_per_turn - unit_gold_upkeep
+                if city_gold_surplus_per_turn is not None else None))
         return {
             "snapshot_id": snapshot.snapshot_id,
             "government": snapshot.government.to_dict(),
@@ -254,10 +274,17 @@ class DomainObservabilityEmitter(object):
                 "available": economy.available,
                 "diagnostic": economy.diagnostic,
                 "gold": economy.gold,
-                "gold_per_turn": economy.gold_per_turn,
+                "gold_per_turn": net_gold_per_turn,
+                "gold_upkeep_reserve": (
+                    economy.gold_upkeep_reserve
+                    if economy.gold_upkeep_reserve is not None
+                    else unit_gold_upkeep),
+                "city_gold_surplus_per_turn": city_gold_surplus_per_turn,
+                "gold_upkeep_style": economy.gold_upkeep_style,
                 "tax_rate": economy.tax_rate,
                 "science_rate": economy.science_rate,
                 "luxury_rate": economy.luxury_rate,
+                "unit_gold_upkeep": unit_gold_upkeep,
             },
             "cities": [{
                 "city_id": city.city_id,

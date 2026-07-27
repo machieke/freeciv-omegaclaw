@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure",
+  "commitSha": "57033be40f6b498b6bd2f8a0c7d1c39a6da311fb",
+  "startedAt": "2026-07-27T15:56:15.040Z",
+  "description": "Verify ruleset-aware economy telemetry and PF-PLN food treasury defense controls using the fresh 30-turn engine trace"
+}

@@ -1392,6 +1392,31 @@ def test_score_alignment_rescore_changes_only_recorded_selection_semantics():
         for row in rescored["schedule"]["scores"])
 
 
+def test_sustainability_goals_are_factual_and_lexicographically_safe():
+    snapshot = SimpleNamespace(cities=(object(), object()), turn=5)
+    food = _Candidate(
+        "production_food_stabilization", 700.0, "protect-food")
+    score = _Candidate("production_economy", 2000.0, "score")
+
+    ordered, artifact = ImpactPressureRanker().rank(
+        snapshot, (score, food), expansion_city_target=2, horizon_turn=30,
+        _goal_facts={
+            "defense_deficit_city_ids": (),
+            "food_deficit_city_ids": (10,),
+            "food_safe_fraction": 0.5,
+            "treasury_deficit": False,
+        })
+
+    assert ordered[0] is food
+    goals = dict(
+        (row["goal_id"], row) for row in artifact["pressure"]["goals"])
+    assert goals["pf-impact:food_sustainability"]["target_strength"] == 1.0
+    assert goals["pf-impact:food_sustainability"]["context"] == [
+        "authoritative:city-food-surplus-reserve-deficit:10"]
+    assert goals["pf-impact:treasury_sustainability"]["context"] == [
+        "authoritative:net-gold-and-turn-start-upkeep-reserve-safe"]
+
+
 def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
     snapshot = SimpleNamespace(cities=(), turn=5)
     candidates = (
@@ -1403,7 +1428,9 @@ def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
     assert ordered[0].category == "production_defense"
     assert {goal["goal_id"] for goal in artifact["pressure"]["goals"]} == {
         "pf-impact:survival", "pf-impact:expansion",
-        "pf-impact:score", "pf-impact:exploration"}
+        "pf-impact:score", "pf-impact:exploration",
+        "pf-impact:food_sustainability",
+        "pf-impact:treasury_sustainability"}
     goals = dict(
         (row["goal_id"], row) for row in artifact["pressure"]["goals"])
     assert goals["pf-impact:survival"]["context"] == [

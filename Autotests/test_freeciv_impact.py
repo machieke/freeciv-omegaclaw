@@ -19,7 +19,8 @@ from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 
 
 def _snapshot(units, actions, cities=None, source_seq=1, turn=4,
-              city_surplus=None, known_hut_tiles=None, government=None):
+              city_surplus=None, known_hut_tiles=None, government=None,
+              player=None):
     cities = cities if cities is not None else [_city()]
     if city_surplus is not None:
         cities[0]["surplus"] = list(city_surplus)
@@ -28,8 +29,10 @@ def _snapshot(units, actions, cities=None, source_seq=1, turn=4,
         "player_id": 0,
         "authoritative": {
             "source_seq": source_seq,
-            "player": {"gold": 30, "gold_per_turn": 3, "tax": 40,
-                       "science": 60, "luxury": 0},
+            "player": dict(
+                {"gold": 30, "gold_per_turn": 3, "tax": 40,
+                 "science": 60, "luxury": 0},
+                **dict(player or {})),
             "research": {"researching": 5, "researching_name": "Writing",
                          "researching_cost": 40, "bulbs_researched": 10,
                          "beakers_per_turn": 5},
@@ -47,10 +50,14 @@ def _snapshot(units, actions, cities=None, source_seq=1, turn=4,
     return ProxyStateDTO.parse("impact-test", source_seq, payload).to_snapshot()
 
 
-def _unit(unit_id, unit_type, x=0, y=0):
-    return {"id": unit_id, "owner": 0, "type": unit_type, "type_id": unit_id,
-            "tile": y * 10 + x, "x": x, "y": y, "moves_left": 3,
-            "hp": 20, "activity": "idle", "upkeep": [0, 0, 0, 0, 0, 0]}
+def _unit(unit_id, unit_type, x=0, y=0, homecity=None, upkeep=None):
+    row = {"id": unit_id, "owner": 0, "type": unit_type, "type_id": unit_id,
+           "tile": y * 10 + x, "x": x, "y": y, "moves_left": 3,
+           "hp": 20, "activity": "idle",
+           "upkeep": list(upkeep or (0, 0, 0, 0, 0, 0))}
+    if homecity is not None:
+        row["homecity"] = homecity
+    return row
 
 
 def _enemy(unit_id, unit_type, x, y):
@@ -1484,7 +1491,8 @@ def test_offensive_action_wins_ranking_and_exclusions_bound_retries():
     move = {"action_type": "unit_move", "actor_id": 20,
             "target": {"x": 1, "y": 0}, "is_valid": True}
     snapshot = _snapshot(
-        [_unit(11, "Alpine Troops"), _unit(20, "Explorer"),
+        [_unit(10, "Alpine Troops"), _unit(11, "Alpine Troops"),
+         _unit(20, "Explorer"),
          _enemy(99, "Warriors", 2, 0)],
         [attack, move, {"action_type": "end_turn", "is_valid": True}])
     planner = GroundedImpactPlanner(
@@ -3256,3 +3264,200 @@ def test_accepted_unit_order_closes_scope_when_proxy_snapshot_stays_stale():
     budget.record(decision.candidate, effect_observed=False)
     assert decision.candidate.scope in budget.excluded_scopes
     assert budget.failover_attempts == 0
+
+
+def test_repeating_support_unit_is_interrupted_before_food_reserve_breach():
+    city = _city(
+        surplus=(1, 5, 2, 1, 0, 3), shield_stock=12,
+        production_kind=6, production_value=11)
+    granary = _production(10, "Granary", 3, 14)
+    ruleset = _ruleset_ir((
+        ("Alpine Troops", "unit", 20),
+        ("Granary", "improvement", 40),
+    ), founders=(), workers=(), upkeeps={
+        "Alpine Troops": {"uk_food": 1},
+    })
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops")],
+        [granary, {"action_type": "end_turn", "is_valid": True}],
+        cities=[city])
+
+    decision = GroundedImpactPlanner(
+        {"expansion_city_target": 1}, ruleset_ir=ruleset).plan(snapshot)
+
+    assert decision.candidate.category == "production_food_stabilization"
+    assert decision.candidate.projection["sustainability_override"] is True
+    assert decision.candidate.projection["discarded_shield_stock"] == 12
+
+
+def test_treasury_deficit_redirects_repeating_unit_queue_to_coinage():
+    city = _city(
+        surplus=(3, 5, 2, 0, 0, 3), shield_stock=7,
+        production_kind=6, production_value=11)
+    coinage = _production(10, "Coinage", 3, 99)
+    ruleset = _ruleset_ir((
+        ("Alpine Troops", "unit", 20),
+        ("Coinage", "improvement", 10),
+    ), founders=(), workers=(), upkeeps={
+        "Alpine Troops": {"uk_gold": 1},
+    })
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops")],
+        [coinage, {"action_type": "end_turn", "is_valid": True}],
+        cities=[city],
+        player={
+            "gold": 0, "city_gold_surplus_per_turn": 0,
+            "gold_per_turn": 0, "unit_gold_upkeep": 0,
+            "gold_upkeep_reserve": 0,
+        })
+
+    decision = GroundedImpactPlanner(
+        {"expansion_city_target": 1}, ruleset_ir=ruleset).plan(snapshot)
+
+    assert decision.candidate.category == "production_treasury_stabilization"
+    assert decision.candidate.action["target"]["production_type"] == "Coinage"
+
+
+def test_net_gold_does_not_double_subtract_city_style_unit_upkeep():
+    snapshot = _snapshot(
+        [_unit(
+            20, "Explorer", homecity=10,
+            upkeep=(0, 0, 0, 3, 0, 0))],
+        [{"action_type": "end_turn", "is_valid": True}],
+        city_surplus=(2, 5, 2, -2, 0, 3),
+        player={
+            "gold": 20, "city_gold_surplus_per_turn": -2,
+            "gold_per_turn": -2, "unit_gold_upkeep": 3,
+            "gold_upkeep_reserve": 3, "gold_upkeep_style": "City",
+        })
+
+    assert GroundedImpactPlanner()._net_gold_per_turn(snapshot) == -2
+
+
+def test_food_support_can_be_rehomed_to_a_city_with_exact_reserve():
+    home = _city(surplus=(0, 5, 2, 1, 0, 3))
+    target = dict(
+        _city(surplus=(3, 5, 2, 1, 0, 3)),
+        id=20, name="Antium", x=2, y=0, tile=2)
+    rehome = {
+        "action_type": "unit_home_city", "actor_id": 20,
+        "target": {"city_id": 20}, "is_valid": True,
+    }
+    snapshot = _snapshot(
+        [_unit(
+            20, "Explorer", x=2, y=0, homecity=10,
+            upkeep=(1, 0, 0, 0, 0, 0))],
+        [rehome, {"action_type": "end_turn", "is_valid": True}],
+        cities=[home, target])
+
+    decision = GroundedImpactPlanner(
+        {"expansion_city_target": 2}).plan(snapshot)
+
+    assert decision.candidate.category == "food_support_rehome"
+    assert decision.candidate.projection["from_city_id"] == 10
+    assert decision.candidate.projection["target_food_surplus_after"] == 2
+
+
+def test_non_required_support_unit_can_be_disbanded_for_food_or_treasury():
+    disband = {
+        "action_type": "unit_disband", "actor_id": 20, "is_valid": True,
+    }
+    food_snapshot = _snapshot(
+        [_unit(
+            20, "Explorer", homecity=10,
+            upkeep=(1, 0, 0, 0, 0, 0))],
+        [disband, {"action_type": "end_turn", "is_valid": True}],
+        city_surplus=(0, 5, 2, 1, 0, 3))
+    food = GroundedImpactPlanner(
+        {"expansion_city_target": 1}).plan(food_snapshot)
+    assert food.candidate.category == "food_support_disband"
+    assert food.candidate.terminal_on_accept
+
+    treasury_snapshot = _snapshot(
+        [_unit(
+            20, "Explorer", homecity=10,
+            upkeep=(0, 0, 0, 2, 0, 0))],
+        [disband, {"action_type": "end_turn", "is_valid": True}],
+        city_surplus=(2, 5, 2, 0, 0, 3),
+        player={
+            "gold": 0, "city_gold_surplus_per_turn": 0,
+            "gold_per_turn": -2, "unit_gold_upkeep": 2,
+            "gold_upkeep_reserve": 2,
+        })
+    treasury = GroundedImpactPlanner(
+        {"expansion_city_target": 1}).plan(treasury_snapshot)
+    assert treasury.candidate.category == "treasury_support_disband"
+    assert treasury.candidate.projection["net_gold_per_turn_after"] == 0
+
+
+def test_packet_legal_tax_shift_recovers_and_then_restores_science_rate():
+    increase_tax = {
+        "action_type": "player_rates", "actor_id": 0,
+        "target": {
+            "tax_rate": 50, "science_rate": 50, "luxury_rate": 0,
+        }, "is_valid": True,
+    }
+    unsafe = _snapshot(
+        [], [increase_tax, {"action_type": "end_turn", "is_valid": True}],
+        player={
+            "gold": 0, "city_gold_surplus_per_turn": 1,
+            "gold_per_turn": 1, "unit_gold_upkeep": 0,
+            "gold_upkeep_reserve": 0,
+        })
+    recovery = GroundedImpactPlanner().plan(unsafe)
+    assert recovery.candidate.category == "treasury_tax_shift"
+    assert recovery.candidate.action["target"]["tax_rate"] == 50
+
+    restore_science = {
+        "action_type": "player_rates", "actor_id": 0,
+        "target": {
+            "tax_rate": 40, "science_rate": 60, "luxury_rate": 0,
+        }, "is_valid": True,
+    }
+    safe = _snapshot(
+        [], [restore_science, {"action_type": "end_turn", "is_valid": True}],
+        player={
+            "gold": 20, "city_gold_surplus_per_turn": 1,
+            "gold_per_turn": 1, "unit_gold_upkeep": 0,
+            "gold_upkeep_reserve": 0,
+            "tax": 50, "science": 50,
+        })
+    restored = GroundedImpactPlanner().plan(safe)
+    assert restored.candidate.category == "treasury_tax_restore"
+    assert restored.candidate.action["target"]["science_rate"] == 60
+
+
+def test_sole_city_garrison_cannot_attack_but_a_spare_can():
+    attack = {
+        "action_type": "unit_attack", "actor_id": 11,
+        "target": {"x": 1, "y": 0}, "is_valid": True,
+    }
+    enemy = _enemy(99, "Warriors", 1, 0)
+    sole = _snapshot(
+        [_unit(11, "Alpine Troops"), enemy],
+        [attack, {"action_type": "end_turn", "is_valid": True}])
+    assert GroundedImpactPlanner().plan(sole) is None
+
+    spare = _snapshot(
+        [_unit(10, "Alpine Troops"), _unit(11, "Alpine Troops"), enemy],
+        [attack, {"action_type": "end_turn", "is_valid": True}])
+    assert GroundedImpactPlanner().plan(
+        spare).candidate.category == "tactical_attack"
+
+
+def test_spare_combat_unit_routes_toward_exact_uncovered_city():
+    second = dict(_city(), id=20, name="Antium", tile=30, x=0, y=3)
+    move = {
+        "action_type": "unit_move", "actor_id": 12,
+        "target": {"x": 0, "y": 1}, "is_valid": True,
+    }
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops"), _unit(12, "Alpine Troops")],
+        [move, {"action_type": "end_turn", "is_valid": True}],
+        cities=[_city(), second])
+
+    decision = GroundedImpactPlanner(
+        {"expansion_city_target": 2}).plan(snapshot)
+
+    assert decision.candidate.category == "city_garrison_move"
+    assert decision.candidate.projection["target_city_ids"] == (20,)

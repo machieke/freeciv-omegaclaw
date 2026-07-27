@@ -1,0 +1,57 @@
+[
+  {
+    "action": "open http://127.0.0.1:4178",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-27T15:56:40.188Z"
+  },
+  {
+    "action": "wait 800",
+    "relativeTimeSec": 5.7,
+    "timestamp": "2026-07-27T15:56:40.881Z"
+  },
+  {
+    "action": "upload input[type=file] /home/purplezky/work/takopi/freeciv-omegaclaw/artifacts/freeciv/pf-pln-30-turn-sustainability-control-v4-20260727/games/main/e_full_loop/104729-00/events.jsonl",
+    "relativeTimeSec": 6.9,
+    "timestamp": "2026-07-27T15:56:42.075Z"
+  },
+  {
+    "action": "wait 1800",
+    "relativeTimeSec": 7.3,
+    "timestamp": "2026-07-27T15:56:42.421Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll('button')).find(b => b.textContent.includes('Economy & production')).click()",
+    "relativeTimeSec": 9.4,
+    "timestamp": "2026-07-27T15:56:44.576Z"
+  },
+  {
+    "action": "wait 800",
+    "relativeTimeSec": 9.8,
+    "timestamp": "2026-07-27T15:56:44.959Z"
+  },
+  {
+    "action": "screenshot sustainability-ruleset-aware-economy.png",
+    "relativeTimeSec": 10.9,
+    "timestamp": "2026-07-27T15:56:46.073Z"
+  },
+  {
+    "action": "eval JSON.stringify({heading:document.querySelector('.view-heading h2')?.textContent,economy:Array.from(document.querySelectorAll('.economy-strip > div')).map(card=>card.textContent),safety:Array.from(document.querySelectorAll('.sustainability-overview article')).map(card=>card.textContent),projections:Array.from(document.querySelectorAll('.production-projection')).map(card=>card.textContent).slice(0,4)})",
+    "relativeTimeSec": 32.5,
+    "timestamp": "2026-07-27T15:57:07.637Z"
+  },
+  {
+    "action": "eval document.querySelector('main').scrollTop = document.querySelector('main').scrollHeight",
+    "relativeTimeSec": 32.8,
+    "timestamp": "2026-07-27T15:57:07.979Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 33.2,
+    "timestamp": "2026-07-27T15:57:08.330Z"
+  },
+  {
+    "action": "screenshot sustainability-production-actions.png",
+    "relativeTimeSec": 34,
+    "timestamp": "2026-07-27T15:57:09.188Z"
+  }
+]

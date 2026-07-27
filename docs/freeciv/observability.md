@@ -59,6 +59,13 @@ The UI exposes one global `(turn, seq)` cursor across:
 - grouped harness-emitted calibration, latency, error, depth, and ablation metric
   series.
 
+The **Economy & production** view separates city gold surplus, the packet
+upkeep style, unit gold upkeep, net cash flow, and the immediate upkeep reserve.
+It marks food-reserve, treasury-reserve, and local-defense status alongside the exact PF goal context,
+adds a per-city `+1` food-reserve check, identifies sustainability queue
+overrides and their discarded shields, and indexes rate, rehome, disband, and
+production interventions without reconstructing unlogged planner state.
+
 The header can collapse the inspector or enable focus mode. View, cursor, selected
 entity, atom filters, PF decision, focus mode, and inspector state are deep-linked
 in the URL.

@@ -25,7 +25,15 @@ DEFENDER_PRIORITY = (
 )
 IMPROVEMENT_PRIORITY = (
     "Granary", "Library", "Marketplace", "City Walls", "Barracks II",
-    "Barracks I", "Temple", "Courthouse", "Aqueduct, River",
+    "Barracks I", "Temple", "Courthouse", "Aqueduct, River", "Coinage",
+)
+FOOD_STABILIZATION_PRIORITY = (
+    "Granary", "Aqueduct, River", "Marketplace", "Library", "City Walls",
+    "Barracks II", "Barracks I", "Temple", "Courthouse", "Coinage",
+)
+TREASURY_STABILIZATION_PRIORITY = (
+    "Coinage", "Marketplace", "Courthouse", "Library", "Granary",
+    "City Walls", "Barracks II", "Barracks I", "Temple", "Aqueduct, River",
 )
 OFFENSIVE_ACTIONS = frozenset((
     "unit_attack", "unit_suicide_attack", "unit_bombard", "unit_capture",
@@ -58,7 +66,8 @@ class ImpactCandidate:
     def terminal_on_accept(self):
         """Whether transport acceptance can consume the actor before state catches up."""
         return self.action.get("action_type") in (
-            "unit_build_city", "unit_join_city", "unit_suicide_attack")
+            "unit_build_city", "unit_disband", "unit_join_city",
+            "unit_suicide_attack")
 
     @property
     def unit_scope_consumed_on_accept(self):
@@ -220,7 +229,7 @@ def _spatial_target(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.18"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.19"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -373,6 +382,15 @@ class GroundedImpactPlanner(object):
             "unit_build_score_divisor", 10))
         self.military_units_per_city_limit = int(values.get(
             "military_units_per_city_limit", 3))
+        self.food_surplus_reserve = int(values.get(
+            "food_surplus_reserve", 1))
+        self.treasury_reserve_turns = int(values.get(
+            "treasury_reserve_turns", 2))
+        self.treasury_minimum_gold = int(values.get(
+            "treasury_minimum_gold", 5))
+        self.normal_tax_rate = int(values.get("normal_tax_rate", 40))
+        self.normal_science_rate = int(values.get(
+            "normal_science_rate", 60))
         self.refresh_timeout_seconds = float(
             values.get("refresh_timeout_seconds", 2.0))
         self.terminal_refresh_timeout_seconds = float(
@@ -412,6 +430,17 @@ class GroundedImpactPlanner(object):
         if not 1 <= self.military_units_per_city_limit <= 12:
             raise ValueError(
                 "military_units_per_city_limit must be in 1..12")
+        if not 0 <= self.food_surplus_reserve <= 10:
+            raise ValueError("food_surplus_reserve must be in 0..10")
+        if not 1 <= self.treasury_reserve_turns <= 20:
+            raise ValueError("treasury_reserve_turns must be in 1..20")
+        if not 0 <= self.treasury_minimum_gold <= 1000:
+            raise ValueError("treasury_minimum_gold must be in 0..1000")
+        if (not 0 <= self.normal_tax_rate <= 100
+                or not 0 <= self.normal_science_rate <= 100
+                or self.normal_tax_rate + self.normal_science_rate > 100):
+            raise ValueError(
+                "normal tax/science rates must be in 0..100 and sum to <=100")
         if not 0.25 <= self.refresh_timeout_seconds <= 10.0:
             raise ValueError("refresh_timeout_seconds must be in [0.25,10]")
         if not 0.25 <= self.terminal_refresh_timeout_seconds <= 10.0:
@@ -857,7 +886,8 @@ class GroundedImpactPlanner(object):
         # A retry becomes eligible only when the actor's material local state
         # changes, rather than merely because another turn started.
         return {
-            "activity": unit.activity, "hp": unit.hp, "type": unit.unit_type,
+            "activity": unit.activity, "homecity": unit.homecity,
+            "hp": unit.hp, "type": unit.unit_type,
             "unit_id": unit.unit_id, "x": unit.x, "y": unit.y,
         }
 
@@ -867,7 +897,7 @@ class GroundedImpactPlanner(object):
         if unit is None:
             return None
         return {
-            "activity": unit.activity, "hp": unit.hp,
+            "activity": unit.activity, "homecity": unit.homecity, "hp": unit.hp,
             "moves_left": unit.moves_left, "type": unit.unit_type,
             "unit_id": unit.unit_id, "x": unit.x, "y": unit.y,
         }
@@ -1013,6 +1043,41 @@ class GroundedImpactPlanner(object):
                     goal, min(1.0, float(recovered) / expected),
                     "authoritative:owned-city-population-recovery")
 
+        if goal == "food_sustainability":
+            before_gap = sum(max(
+                0, self.food_surplus_reserve
+                - self._raw_city_surplus(city, 0))
+                for city in before.cities)
+            after_gap = sum(max(
+                0, self.food_surplus_reserve
+                - self._raw_city_surplus(city, 0))
+                for city in after.cities)
+            if after_gap < before_gap:
+                return GroundedGoalRelief(
+                    goal, min(
+                        1.0, float(before_gap - after_gap)
+                        / max(1, before_gap)),
+                    "authoritative:city-food-reserve-gap-reduction")
+
+        if goal == "treasury_sustainability":
+            before_net = self._net_gold_per_turn(before)
+            after_net = self._net_gold_per_turn(after)
+            before_reserve_gap = max(
+                0, self._treasury_reserve_required(before)
+                - int(before.economy.gold or 0))
+            after_reserve_gap = max(
+                0, self._treasury_reserve_required(after)
+                - int(after.economy.gold or 0))
+            net_gain = max(0, after_net - before_net)
+            reserve_gain = max(0, before_reserve_gap - after_reserve_gap)
+            if net_gain or reserve_gain:
+                return GroundedGoalRelief(
+                    goal, min(
+                        1.0,
+                        float(net_gain + reserve_gain)
+                        / max(1, abs(before_net) + before_reserve_gap)),
+                    "authoritative:net-gold-or-upkeep-reserve-gap-reduction")
+
         if goal == "survival":
             if candidate.category == "tactical_attack":
                 before_targets = self._combat_target_grounding(
@@ -1042,6 +1107,16 @@ class GroundedImpactPlanner(object):
                     return GroundedGoalRelief(
                         goal, 1.0,
                         "authoritative:city-defender-fortified")
+            if candidate.category == "city_garrison_move":
+                before_deficits = len(self._local_garrison_deficits(before))
+                after_deficits = len(self._local_garrison_deficits(after))
+                if after_deficits < before_deficits:
+                    return GroundedGoalRelief(
+                        goal, min(
+                            1.0,
+                            float(before_deficits - after_deficits)
+                            / max(1, before_deficits)),
+                        "authoritative:city-local-garrison-deficit-reduction")
 
         if goal == "exploration":
             before_visible = set(before.visible_tile_ids)
@@ -2034,18 +2109,122 @@ class GroundedImpactPlanner(object):
         return max(
             1, len(snapshot.cities) * self.military_units_per_city_limit)
 
+    @staticmethod
+    def _unit_upkeep(unit, index):
+        upkeep = tuple(getattr(unit, "upkeep", ()) or ())
+        return int(upkeep[index]) if len(upkeep) > index else 0
+
+    @staticmethod
+    def _raw_city_surplus(city, index):
+        surplus = tuple(getattr(city, "surplus", ()) or ())
+        return int(surplus[index]) if len(surplus) > index else 0
+
+    def _unit_gold_upkeep(self, snapshot):
+        observed = sum(
+            self._unit_upkeep(unit, 3) for unit in snapshot.units)
+        declared = getattr(snapshot.economy, "unit_gold_upkeep", None)
+        return observed if declared is None else max(observed, int(declared))
+
+    def _city_gold_surplus_per_turn(self, snapshot):
+        declared = getattr(
+            snapshot.economy, "city_gold_surplus_per_turn", None)
+        if declared is not None:
+            return int(declared)
+        return sum(
+            self._raw_city_surplus(city, 3) for city in snapshot.cities)
+
+    def _net_gold_per_turn(self, snapshot):
+        """Return ruleset-aware income after packet-observed upkeep.
+
+        V7 projections carry the exact engine-style result. Older captures in
+        this repository are civ2civ3/Mixed, where city surplus already includes
+        building upkeep but nation-paid unit upkeep must still be subtracted.
+        """
+        economy = snapshot.economy
+        if (economy.gold_per_turn is not None
+                and economy.gold_upkeep_style is not None):
+            return int(economy.gold_per_turn)
+        if economy.gold_upkeep_style == "City":
+            return self._city_gold_surplus_per_turn(snapshot)
+        return (
+            self._city_gold_surplus_per_turn(snapshot)
+            - self._unit_gold_upkeep(snapshot))
+
+    def _treasury_reserve_required(self, snapshot, additional_upkeep=0):
+        upkeep = self._unit_gold_upkeep(snapshot) + max(
+            0, int(additional_upkeep))
+        declared = getattr(snapshot.economy, "gold_upkeep_reserve", None)
+        immediate = max(upkeep, int(declared or 0))
+        return max(
+            self.treasury_minimum_gold,
+            immediate * self.treasury_reserve_turns)
+
+    def _treasury_deficit(self, snapshot, additional_upkeep=0):
+        economy = snapshot.economy
+        if not economy.available or economy.gold is None:
+            return False
+        additional = max(0, int(additional_upkeep))
+        return bool(
+            self._net_gold_per_turn(snapshot) - additional < 0
+            or int(economy.gold)
+            < self._treasury_reserve_required(snapshot, additional))
+
+    def _food_deficit_city_ids(self, snapshot):
+        return tuple(sorted(
+            city.city_id for city in snapshot.cities
+            if self._raw_city_surplus(city, 0) < self.food_surplus_reserve))
+
+    def _local_garrison_deficits(self, snapshot, founder_types=None):
+        founder_types = (self._founder_types(snapshot)
+                         if founder_types is None else founder_types)
+        combat_units = self._combat_units(snapshot, founder_types)
+        deficits = []
+        for city in snapshot.cities:
+            current = sum(
+                (unit.x, unit.y) == (city.x, city.y)
+                for unit in combat_units)
+            required = self._required_garrison_count(city)
+            if current < required:
+                deficits.append({
+                    "city_id": city.city_id,
+                    "current": current,
+                    "required": required,
+                    "x": city.x,
+                    "y": city.y,
+                })
+        return tuple(deficits)
+
+    def _sustainability_facts(self, snapshot, founder_types=None):
+        food_deficits = self._food_deficit_city_ids(snapshot)
+        defense_deficits = self._local_garrison_deficits(
+            snapshot, founder_types)
+        return {
+            "defense_deficit_city_ids": tuple(
+                row["city_id"] for row in defense_deficits),
+            "food_deficit_city_ids": food_deficits,
+            "food_safe_fraction": (
+                1.0 if not snapshot.cities else
+                float(len(snapshot.cities) - len(food_deficits))
+                / len(snapshot.cities)),
+            "treasury_deficit": self._treasury_deficit(snapshot),
+            "treasury_net_gold_per_turn": self._net_gold_per_turn(snapshot),
+            "treasury_reserve_required": (
+                self._treasury_reserve_required(snapshot)),
+        }
+
     def _production_upkeep_safe(self, snapshot, city, normalized):
         spec = self._production_specs.get(normalized, {})
         if spec.get("target_kind") != "unit":
             return True
-        if (int(spec.get("uk_food", 0)) > 0
-                and self._city_output(city, 0) <= 0):
+        food_upkeep = int(spec.get("uk_food", 0))
+        if (food_upkeep > 0
+                and self._raw_city_surplus(city, 0) - food_upkeep
+                < self.food_surplus_reserve):
             return False
-        economy = snapshot.economy
-        if (int(spec.get("uk_gold", 0)) > 0
-                and economy.gold_per_turn is not None
-                and economy.gold_per_turn < 0
-                and (economy.gold is None or economy.gold <= 0)):
+        gold_upkeep = int(spec.get("uk_gold", 0))
+        if (gold_upkeep > 0
+                and (not snapshot.economy.available
+                     or self._treasury_deficit(snapshot, gold_upkeep))):
             return False
         return True
 
@@ -2615,6 +2794,44 @@ class GroundedImpactPlanner(object):
             "automatic-production boundary",
             projection)
 
+    def _production_sustainability_route(
+            self, snapshot, city, current_normalized, proposed_normalized):
+        """Return an emergency queue route before another upkeep unit completes."""
+        current_spec = self._production_specs.get(current_normalized, {})
+        current_is_unit = current_spec.get("target_kind") == "unit"
+        current_food_upkeep = int(current_spec.get("uk_food", 0))
+        current_gold_upkeep = int(current_spec.get("uk_gold", 0))
+        food_risk = bool(
+            current_is_unit and current_food_upkeep > 0
+            and self._raw_city_surplus(city, 0) - current_food_upkeep
+            < self.food_surplus_reserve)
+        treasury_risk = bool(
+            self._treasury_deficit(snapshot)
+            or (current_is_unit and current_gold_upkeep > 0
+                and self._treasury_deficit(
+                    snapshot, current_gold_upkeep)))
+        proposed_name = next((
+            name for name in set(
+                FOOD_STABILIZATION_PRIORITY + TREASURY_STABILIZATION_PRIORITY)
+            if _normalized_type(name) == proposed_normalized), None)
+        if proposed_name is None:
+            return None
+        if food_risk and proposed_name in FOOD_STABILIZATION_PRIORITY:
+            return (
+                "production_food_stabilization",
+                FOOD_STABILIZATION_PRIORITY.index(proposed_name),
+                current_food_upkeep,
+                "interrupt an automatic support-unit repeat before its next "
+                "completion breaches the city food-surplus reserve")
+        if treasury_risk and proposed_name in TREASURY_STABILIZATION_PRIORITY:
+            return (
+                "production_treasury_stabilization",
+                TREASURY_STABILIZATION_PRIORITY.index(proposed_name),
+                current_gold_upkeep,
+                "redirect production toward treasury recovery before another "
+                "turn-start gold-upkeep shortfall")
+        return None
+
     def _production_candidate(
             self, snapshot, action, founder_types, actions,
             action_key=None, action_keys=None, shared_context=None):
@@ -2761,6 +2978,8 @@ class GroundedImpactPlanner(object):
             and current_completes_by_horizon)
         urgent_repurpose = bool(
             urgent_founder_repurpose or urgent_site_escort_repurpose)
+        sustainability_route = self._production_sustainability_route(
+            snapshot, city, current_normalized, normalized)
 
         # Normal changes remain lossless at an empty stock boundary. A redundant
         # positive-population founder is the sole general exception: completing
@@ -2769,7 +2988,9 @@ class GroundedImpactPlanner(object):
         # advertises another unit target with the same production kind. That
         # exact kind boundary retains carried shields; a cross-kind switch keeps
         # the conservative zero-stock projection.
-        if city.shield_stock not in (None, 0) and not urgent_repurpose:
+        if (city.shield_stock not in (None, 0)
+                and not urgent_repurpose
+                and sustainability_route is None):
             return None
         city_has_grounded_defender = any(
             (unit.x, unit.y) == (city.x, city.y)
@@ -2790,6 +3011,24 @@ class GroundedImpactPlanner(object):
             shield_stock_override=(
                 repurpose_shield_stock_assumption
                 if urgent_repurpose else None))
+        if sustainability_route is not None:
+            category, target_index, avoided_upkeep, rationale = (
+                sustainability_route)
+            projection.update({
+                "avoided_next_completion_upkeep": avoided_upkeep,
+                "food_surplus_reserve": self.food_surplus_reserve,
+                "net_gold_per_turn": self._net_gold_per_turn(snapshot),
+                "sustainability_override": True,
+                "treasury_reserve_required": (
+                    self._treasury_reserve_required(snapshot)),
+                "discarded_shield_stock": max(
+                    0, int(city.shield_stock or 0)),
+            })
+            return ImpactCandidate(
+                action, category,
+                1900.0 - target_index * 10.0
+                - min(100.0, float(city.shield_stock or 0)),
+                rationale, projection)
         if (normalized in NORMALIZED_DEFENDER_TYPES
                 and not self._production_upkeep_safe(
                     snapshot, city, normalized)):
@@ -3080,6 +3319,9 @@ class GroundedImpactPlanner(object):
             return False
         if self._city_defender_is_required(snapshot, unit, founder_types):
             return False
+        if self._garrison_move_candidate(
+                snapshot, action, unit, founder_types) is not None:
+            return False
         if unit_type in EXPLORER_TYPES:
             hut_distances = self._hut_route_distances(snapshot, unit, x, y)
             if hut_distances is not None and hut_distances[1] < hut_distances[0]:
@@ -3324,6 +3566,10 @@ class GroundedImpactPlanner(object):
                             "target_founder_distance": target_distance,
                             "target_founder_ids": target_founder_ids,
                         })
+        garrison_move = self._garrison_move_candidate(
+            snapshot, action, unit, founder_types)
+        if garrison_move is not None:
+            return garrison_move
         if unit_type in EXPLORER_TYPES:
             hut_distances = self._hut_route_distances(snapshot, unit, x, y)
             if hut_distances is not None and hut_distances[1] < hut_distances[0]:
@@ -3464,6 +3710,174 @@ class GroundedImpactPlanner(object):
             return False
         return any((row.x, row.y) == (x, y) for row in snapshot.visible_enemy_units)
 
+    def _support_recovery_candidate(
+            self, snapshot, action, founder_types):
+        action_type = action.get("action_type")
+        unit = snapshot.unit(action.get("actor_id"))
+        if unit is None:
+            return None
+        food_upkeep = self._unit_upkeep(unit, 0)
+        gold_upkeep = self._unit_upkeep(unit, 3)
+        home = (
+            snapshot.city(unit.homecity)
+            if unit.homecity is not None and unit.homecity > 0 else None)
+        if action_type == "unit_home_city":
+            target = action.get("target")
+            target_city_id = (
+                target.get("city_id")
+                if isinstance(target, dict) else None)
+            target_city = (
+                snapshot.city(target_city_id)
+                if target_city_id is not None else next((
+                    city for city in snapshot.cities
+                    if (city.x, city.y) == (unit.x, unit.y)), None))
+            if (food_upkeep <= 0 or home is None or target_city is None
+                    or target_city.city_id == home.city_id
+                    or self._raw_city_surplus(home, 0)
+                    >= self.food_surplus_reserve
+                    or self._raw_city_surplus(target_city, 0) - food_upkeep
+                    < self.food_surplus_reserve):
+                return None
+            return ImpactCandidate(
+                action, "food_support_rehome", 1980.0 + food_upkeep * 10.0,
+                "move exact food support from a deficit home city to the "
+                "packet-legal city currently hosting the unit",
+                {
+                    "food_surplus_reserve": self.food_surplus_reserve,
+                    "from_city_id": home.city_id,
+                    "from_food_surplus": self._raw_city_surplus(home, 0),
+                    "target_city_id": target_city.city_id,
+                    "target_food_surplus_after": (
+                        self._raw_city_surplus(target_city, 0) - food_upkeep),
+                    "transferred_food_upkeep": food_upkeep,
+                })
+        if action_type != "unit_disband":
+            return None
+        if self._city_defender_is_required(snapshot, unit, founder_types):
+            return None
+        if (food_upkeep > 0 and home is not None
+                and self._raw_city_surplus(home, 0)
+                < self.food_surplus_reserve):
+            return ImpactCandidate(
+                action, "food_support_disband", 1960.0 + food_upkeep * 10.0,
+                "retire a non-required support unit before an exact food "
+                "upkeep loss is forced by the server",
+                {
+                    "city_id": home.city_id,
+                    "food_surplus_before": self._raw_city_surplus(home, 0),
+                    "food_surplus_after": (
+                        self._raw_city_surplus(home, 0) + food_upkeep),
+                    "food_surplus_reserve": self.food_surplus_reserve,
+                    "removed_food_upkeep": food_upkeep,
+                })
+        if gold_upkeep > 0 and self._treasury_deficit(snapshot):
+            return ImpactCandidate(
+                action, "treasury_support_disband",
+                1760.0 + gold_upkeep * 10.0,
+                "retire a non-required gold-supported unit before the "
+                "turn-start treasury reserve is exhausted",
+                {
+                    "gold_before": snapshot.economy.gold,
+                    "net_gold_per_turn_before": (
+                        self._net_gold_per_turn(snapshot)),
+                    "net_gold_per_turn_after": (
+                        self._net_gold_per_turn(snapshot) + gold_upkeep),
+                    "removed_gold_upkeep": gold_upkeep,
+                    "treasury_reserve_required": (
+                        self._treasury_reserve_required(snapshot)),
+                })
+        return None
+
+    def _rate_recovery_candidate(self, snapshot, action):
+        if action.get("action_type") != "player_rates":
+            return None
+        target = action.get("target")
+        if not isinstance(target, dict):
+            return None
+        economy = snapshot.economy
+        target_tax = target.get("tax_rate")
+        target_science = target.get("science_rate")
+        target_luxury = target.get("luxury_rate")
+        if any(value is None for value in (
+                economy.tax_rate, economy.science_rate, economy.luxury_rate,
+                target_tax, target_science, target_luxury)):
+            return None
+        if sum(int(target[key]) for key in (
+                "tax_rate", "science_rate", "luxury_rate")) != 100:
+            return None
+        if (self._treasury_deficit(snapshot)
+                and int(target_tax) > int(economy.tax_rate)):
+            return ImpactCandidate(
+                action, "treasury_tax_shift",
+                2050.0 + int(target_tax) - int(economy.tax_rate),
+                "shift one packet-valid rate increment from science to tax "
+                "while the exact treasury reserve is unsafe",
+                {
+                    "gold": economy.gold,
+                    "net_gold_per_turn": self._net_gold_per_turn(snapshot),
+                    "tax_rate_before": economy.tax_rate,
+                    "tax_rate_after": int(target_tax),
+                    "treasury_reserve_required": (
+                        self._treasury_reserve_required(snapshot)),
+                })
+        reserve = self._treasury_reserve_required(snapshot)
+        if (not self._treasury_deficit(snapshot)
+                and int(economy.gold or 0) >= reserve * 2
+                and int(economy.tax_rate) > self.normal_tax_rate
+                and int(target_tax) < int(economy.tax_rate)
+                and int(target_science) > int(economy.science_rate)
+                and int(target_tax) >= self.normal_tax_rate
+                and int(target_science) <= self.normal_science_rate):
+            return ImpactCandidate(
+                action, "treasury_tax_restore", 760.0,
+                "restore the configured science allocation after the treasury "
+                "has retained twice its exact upkeep reserve",
+                {
+                    "gold": economy.gold,
+                    "science_rate_before": economy.science_rate,
+                    "science_rate_after": int(target_science),
+                    "treasury_reserve_required": reserve,
+                })
+        return None
+
+    def _garrison_move_candidate(
+            self, snapshot, action, unit, founder_types):
+        combat_units = self._combat_units(snapshot, founder_types)
+        if not any(row.unit_id == unit.unit_id for row in combat_units):
+            return None
+        deficits = self._local_garrison_deficits(snapshot, founder_types)
+        if not deficits:
+            return None
+        target = action.get("target")
+        if not isinstance(target, dict):
+            return None
+        x, y = target.get("x"), target.get("y")
+        if x is None or y is None:
+            return None
+        current_distance = min(_distance(
+            unit.x, unit.y, row["x"], row["y"],
+            snapshot.map_width, snapshot.map_height) for row in deficits)
+        target_distance = min(_distance(
+            x, y, row["x"], row["y"],
+            snapshot.map_width, snapshot.map_height) for row in deficits)
+        if target_distance >= current_distance:
+            return None
+        target_city_ids = tuple(sorted(
+            row["city_id"] for row in deficits
+            if _distance(
+                x, y, row["x"], row["y"],
+                snapshot.map_width, snapshot.map_height) == target_distance))
+        return ImpactCandidate(
+            action, "city_garrison_move",
+            965.0 - target_distance,
+            "strictly reduce a spare combat unit's distance to an exact "
+            "city-local garrison deficit",
+            {
+                "current_garrison_distance": current_distance,
+                "target_city_ids": target_city_ids,
+                "target_garrison_distance": target_distance,
+            })
+
     def candidates(
             self, snapshot, excluded=(), excluded_scopes=(),
             diagnostics=None):
@@ -3505,7 +3919,12 @@ class GroundedImpactPlanner(object):
                 continue
             action_type = str(action.get("action_type", ""))
             candidate = None
-            if (action_type == "government_change"
+            if action_type == "player_rates":
+                candidate = self._rate_recovery_candidate(snapshot, action)
+            elif action_type in ("unit_disband", "unit_home_city"):
+                candidate = self._support_recovery_candidate(
+                    snapshot, action, founder_types)
+            elif (action_type == "government_change"
                     and snapshot.government.selection_required):
                 target = action.get("target")
                 name = (
@@ -3529,9 +3948,14 @@ class GroundedImpactPlanner(object):
                     })
             elif (action_type in OFFENSIVE_ACTIONS
                     and self._offensive_target_is_visible(snapshot, action)):
-                candidate = ImpactCandidate(
-                    action, "tactical_attack", 980.0,
-                    "execute an exact server-advertised offensive action")
+                unit = snapshot.unit(action.get("actor_id"))
+                if (unit is not None
+                        and not self._city_defender_is_required(
+                            snapshot, unit, founder_types)):
+                    candidate = ImpactCandidate(
+                        action, "tactical_attack", 900.0,
+                        "execute an exact server-advertised offensive action "
+                        "with a non-required combat unit")
             elif action_type == "unit_build_city":
                 unit = snapshot.unit(action.get("actor_id"))
                 site_key = self._settlement_site_key(snapshot, action)
@@ -3691,7 +4115,8 @@ class GroundedImpactPlanner(object):
             rows, pressure_artifact = self._pressure_ranker.rank(
                 snapshot, rows, self.expansion_city_target, self.horizon_turn,
                 self.pressure_survival_threat_radius,
-                diagnostics=diagnostics)
+                diagnostics=diagnostics,
+                _goal_facts=self._sustainability_facts(snapshot))
             if diagnostics is not None:
                 diagnostics["pressure_latency_ms"] = (
                     diagnostics.get("pressure_latency_ms", 0.0)

@@ -23,7 +23,7 @@ from freeciv_agent.state import (ContractError, GroundedRegistry, ProxyStateDTO,
                                  SnapshotConflict, SnapshotStore,
                                  StateSummaryService)
 from freeciv_agent.state.atoms import QUANTITATIVE_PREDICATES  # noqa: E402
-from freeciv_agent.state.parity import run_state_action_parity  # noqa: E402
+from freeciv_agent.state.parity import packet_reference, run_state_action_parity  # noqa: E402
 
 
 FIXTURE_PATH = os.path.join(
@@ -119,6 +119,66 @@ def test_government_mood_support_and_recovery_action_are_typed():
         if json.loads(row)["action_type"] == "government_change")
     assert government_action["target"] == {
         "government_id": 1, "government_name": "Despotism"}
+
+
+def test_player_rates_action_and_net_gold_components_are_typed():
+    payload = _payload()
+    payload["authoritative"]["player"].update({
+        "gold_per_turn": -2,
+        "city_gold_surplus_per_turn": 3,
+        "unit_gold_upkeep": 5,
+        "gold_upkeep_reserve": 5,
+        "gold_upkeep_style": "Mixed",
+    })
+    payload["legal_actions"].append({
+        "type": "player_rates", "player_id": 0,
+        "target": {
+            "tax_rate": 50, "science_rate": 50, "luxury_rate": 0,
+        },
+        "is_valid": True,
+    })
+
+    snapshot = _snapshot(payload=payload)
+
+    assert snapshot.economy.gold_per_turn == -2
+    assert snapshot.economy.city_gold_surplus_per_turn == 3
+    assert snapshot.economy.unit_gold_upkeep == 5
+    assert snapshot.economy.gold_upkeep_reserve == 5
+    assert snapshot.economy.gold_upkeep_style == "Mixed"
+    assert "player_rates" in snapshot.legal_action_kinds
+    rate_action = next(
+        json.loads(row) for row in snapshot.legal_action_json
+        if json.loads(row)["action_type"] == "player_rates")
+    assert rate_action == {
+        "action_type": "player_rates", "actor_id": 0,
+        "target": {
+            "luxury_rate": 0, "science_rate": 50, "tax_rate": 50,
+        },
+    }
+
+
+def test_packet_parity_normalizes_sustainability_control_actions_independently():
+    payload = _payload()
+    payload["legal_actions"] = [
+        {
+            "type": "player_rates", "player_id": 0,
+            "target": {
+                "tax_rate": 50, "science_rate": 50, "luxury_rate": 0,
+            },
+            "is_valid": True,
+        },
+        {
+            "type": "unit_action", "action": "home_city", "unit_id": 7,
+            "params": {"city": "Roma", "city_id": 3},
+            "is_valid": True,
+        },
+    ]
+
+    snapshot = _snapshot(payload=payload)
+    reference = packet_reference(payload)
+
+    assert snapshot.legal_action_json == reference["legal"]
+    assert snapshot.legal_actions_digest == reference["legal_digest"]
 
 
 def test_packet_known_hut_tiles_are_typed_and_part_of_snapshot_identity():

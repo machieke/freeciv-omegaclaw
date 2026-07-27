@@ -218,9 +218,9 @@ def _recorded_goal_specs(pressure):
             strength, utility, bool(goal.get("safety")),
             context[0] if context else "recorded:no-context")
     required = {"survival", "expansion", "score", "exploration"}
-    if set(specs) != required:
+    if not required.issubset(set(specs)):
         raise ValueError(
-            "direct completion replay requires all grounded goals")
+            "direct completion replay requires the core grounded goals")
     return specs
 
 

@@ -53,15 +53,28 @@ class StateSummaryService(object):
                       "progress": snapshot.research.progress,
                       "cost": snapshot.research.cost,
                       "beakers_per_turn": snapshot.research.beakers_per_turn},
-            economy={"gold": snapshot.economy.gold,
-                     "gold_per_turn": snapshot.economy.gold_per_turn},
+            economy={
+                "gold": snapshot.economy.gold,
+                "gold_per_turn": snapshot.economy.gold_per_turn,
+                "city_gold_surplus_per_turn": (
+                    snapshot.economy.city_gold_surplus_per_turn),
+                "gold_upkeep_reserve": (
+                    snapshot.economy.gold_upkeep_reserve),
+                "gold_upkeep_style": snapshot.economy.gold_upkeep_style,
+                "unit_gold_upkeep": snapshot.economy.unit_gold_upkeep,
+            },
             cities=tuple({"id": city.city_id, "name": city.name, "size": city.size,
+                          "food_surplus": (
+                              city.surplus[0] if city.surplus else None),
                           "production_kind": city.production_kind,
                           "production_value": city.production_value}
                          for city in snapshot.cities),
             units=tuple({"id": unit.unit_id, "type": unit.unit_type,
                          "x": unit.x, "y": unit.y, "moves_left": unit.moves_left,
-                         "activity": unit.activity} for unit in snapshot.units),
+                         "activity": unit.activity,
+                         "homecity": unit.homecity,
+                         "upkeep": list(unit.upkeep)}
+                        for unit in snapshot.units),
             visible_enemy_units=tuple({
                 "id": unit.unit_id, "owner": unit.owner, "type": unit.unit_type,
                 "x": unit.x, "y": unit.y,

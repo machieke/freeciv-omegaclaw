@@ -39,26 +39,36 @@ impact_policy:
   expansion_final_settlement_escort_enabled: false
   foodbox_percent: 100
   unit_build_score_divisor: 10
+  food_surplus_reserve: 1
+  treasury_reserve_turns: 2
+  treasury_minimum_gold: 5
+  normal_tax_rate: 40
+  normal_science_rate: 60
   no_effect_retry_limit: 1
   max_no_effect_failovers_per_scope: 4
   preserve_city_defenders: true
 ```
 
+Safety deficits are lexicographic when an exact legal recovery operation exists.
 The deterministic priority order is:
 
-1. Attack only a packet-visible unit at the advertised target.
-2. Found a city only below the city target, at the declared minimum spacing,
+1. End a required government selection; protect food, turn-start treasury, and
+   city-local garrison reserves with exact legal controls.
+2. Attack only a packet-visible unit at the advertised target, and never spend a
+   city’s required garrison.
+3. Found a city only below the city target, at the declared minimum spacing,
    and while its declared post-settlement runway remains available.
-3. Move only a ruleset-declared founder outward while expansion is incomplete,
+4. Move only a ruleset-declared founder outward while expansion is incomplete,
    preferring city-network separation and grounded traversability evidence.
-4. Fill a grounded city-defense deficit and preserve the sole garrison.
-5. Select one founder, defender, or growth/economy production per city without
+5. Fill a grounded city-defense deficit and route a spare combat unit toward an
+   uncovered owned city.
+6. Select one founder, defender, or growth/economy production per city without
    switching away from accumulated shields or a useful current production.
-6. Route diplomats, spies, caravans, and explorers toward the nearest exact
+7. Route diplomats, spies, caravans, and explorers toward the nearest exact
    packet-known hut whenever an advertised move strictly reduces that distance.
-7. Otherwise explore with those units only when the advertised destination has not
+8. Otherwise explore with those units only when the advertised destination has not
    already been observed.
-8. Move a non-garrison unit tactically only when the advertised destination strictly
+9. Move a non-garrison unit tactically only when the advertised destination strictly
    reduces distance to a packet-visible opponent. Targetless frontier movement is
    not an impact candidate.
 
@@ -227,6 +237,36 @@ corridor bends. An exact successful horizontal or vertical step may bias one mat
 step while the founder remains inside minimum settlement spacing. A failed matching move,
 a settlement attempt, changed city layout, or reaching minimum spacing clears that bias.
 Static-priority paired baselines keep their frozen movement ranking.
+
+Adapter 1.19 adds explicit sustainability premises and recovery operations. A
+city is food-safe only when its exact `surplus[O_FOOD]` is at least
+`food_surplus_reserve`. A new support-bearing unit is rejected if its projected
+upkeep would cross that reserve. If an automatically repeating support unit is
+already queued, a legal Granary/economy target may interrupt it even with
+accumulated shields; the projection records the discarded stock and avoided
+next-completion upkeep. A packet-legal home-city change moves exact food support
+from a deficit city only when the receiving city remains above the same reserve.
+If no safer transfer exists, a non-required unit may be disbanded.
+
+Treasury safety uses ruleset-aware net gold and separately records exact
+immediate unit-upkeep exposure. It requires the stockpile to cover the larger of
+`treasury_minimum_gold` and
+`treasury_reserve_turns` times immediate gold upkeep. Unsafe unit production is
+rejected or redirected toward Coinage/economy production. A bounded rate action
+may move ten percentage points from science to tax while unsafe; after the
+stockpile reaches twice its reserve it may restore the declared
+`normal_tax_rate`/`normal_science_rate`. This deliberately avoids permanent
+science starvation. A non-required gold-supported unit is a final exact recovery
+route.
+
+PF-PLN now carries separate safety goals for `food_sustainability`,
+`treasury_sustainability`, and factual local defense. Their contexts name exact
+deficit city IDs or the net-gold/reserve state. Safety remains actionable rather
+than absolute: if the current legal set contains no operation serving an active
+safety goal, ordinary candidates are not globally deadlocked. Accepted actions
+still require the unchanged execution gate and authoritative effect verification.
+The fresh engine-backed correctness evidence is recorded in
+`docs/freeciv/evidence/sustainability-control-engine-smoke-v1.md`.
 
 The pinned server scores cumulative unit production in groups of
 `unit_build_score_divisor` (10 for this engine). Horizon-score projections therefore

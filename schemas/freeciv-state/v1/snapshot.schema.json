@@ -25,7 +25,14 @@
           "required": ["is_alive", "gold", "gold_per_turn", "tax", "science", "luxury"],
           "properties": {
             "is_alive": {"type": "boolean"},
-            "gold": {"type": "integer"}, "gold_per_turn": {"type": "integer"},
+            "gold": {"type": "integer"},
+            "gold_per_turn": {"type": ["integer", "null"]},
+            "city_gold_surplus_per_turn": {"type": ["integer", "null"]},
+            "gold_upkeep_style": {
+              "type": ["string", "null"], "enum": ["City", "Mixed", "Nation", null]
+            },
+            "unit_gold_upkeep": {"type": ["integer", "null"], "minimum": 0},
+            "gold_upkeep_reserve": {"type": ["integer", "null"], "minimum": 0},
             "tax": {"type": "integer", "minimum": 0, "maximum": 100},
             "science": {"type": "integer", "minimum": 0, "maximum": 100},
             "luxury": {"type": "integer", "minimum": 0, "maximum": 100}

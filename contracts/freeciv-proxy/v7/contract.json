@@ -1,0 +1,51 @@
+{
+  "schema_version": "7.0",
+  "extends": "../v6/contract.json",
+  "upstream_base_commit": "26ba7124249f34fd3050ef29bf191bd4d8808018",
+  "format": "pln_authoritative",
+  "sustainability_projection": {
+    "player": {
+      "gold_per_turn": "ruleset-aware expected income: city surplus for City, city surplus minus unit upkeep for Mixed, unavailable for Nation until exact building upkeep is projected",
+      "city_gold_surplus_per_turn": "sum of owned-city surplus[O_GOLD], which already reflects the ruleset's city-paid upkeep",
+      "unit_gold_upkeep": "sum of exact own-unit upkeep[O_GOLD], or null when any vector is unavailable",
+      "gold_upkeep_reserve": "immediate exact unit-gold exposure at the next turn boundary",
+      "gold_upkeep_style": "City, Mixed, or Nation from PACKET_GAME_INFO"
+    },
+    "city": {
+      "food_surplus": "city surplus[O_FOOD]",
+      "unit_support": "home-city grouped exact unit upkeep vectors"
+    }
+  },
+  "legal_controls": {
+    "player_rates": {
+      "packet": "PACKET_PLAYER_RATES",
+      "targets": [
+        "tax_rate",
+        "luxury_rate",
+        "science_rate"
+      ],
+      "bounds": "rates are integer ten-point increments, sum to 100, and never exceed the common stock-government 60-percent bound"
+    },
+    "unit_home_city": {
+      "packet": "PACKET_UNIT_DO_ACTION/ACTION_HOME_CITY",
+      "target": "exact owned co-located city_id"
+    },
+    "unit_disband": {
+      "packet": "PACKET_UNIT_DO_ACTION/ACTION_DISBAND_UNIT",
+      "target": "exact owned unit actor"
+    }
+  },
+  "fail_closed": [
+    "net gold is unavailable when city gold surplus, upkeep style, or required upkeep components are unavailable",
+    "Nation-style net gold remains unavailable until exact building upkeep is projected",
+    "rate actions are not advertised during Anarchy or a required government selection",
+    "rate actions outside the bounded common-government envelope are rejected before transport",
+    "home-city actions without an exact owned co-located city identifier are rejected"
+  ],
+  "state_fixture": "../v2/authoritative-state.fixture.json",
+  "invariants": [
+    "a city food deficit and a treasury deficit are grounded from the same immutable snapshot as their legal recovery action",
+    "the proxy advertises controls but does not decide whether a sustainability goal is active",
+    "the execution gate still requires exact canonical membership immediately before transport"
+  ]
+}

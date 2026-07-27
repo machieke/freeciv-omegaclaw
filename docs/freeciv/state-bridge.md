@@ -2,7 +2,9 @@
 
 The target agent reads the `pln_authoritative` proxy format, the conditional
 source-stability extension described by `contracts/freeciv-proxy/v5/contract.json`,
-and the spatial projection described by `contracts/freeciv-proxy/v6/contract.json`.
+the spatial projection described by `contracts/freeciv-proxy/v6/contract.json`,
+and the sustainability controls described by
+`contracts/freeciv-proxy/v7/contract.json`.
 Apply the tracked patch series to the pinned external checkout before starting
 its container:
 
@@ -19,7 +21,24 @@ sequence. The authoritative-state and spatial-projection patch SHA-256 values ar
 respectively,
 `48e416000bf36c3c7ce13c8c59bb51bc682a1f17ee8568e432a82f673a10df55` and
 `a4eb88c827c7a2ea68db602aa2463c2aa53bb0c6156a71e1a5a5e7fc09908856`.
+The sustainability-control patch is pinned at
+`412f4b462afab900233793f192732317b7e00b42b165dee1c09056ca9d5a1827`;
+the ordered five-patch series identity is
+`03a8cb9a385defe5f811165dd69136ac9e5dab5acee2c7967c432a998ad34e6b`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
+
+The v7 player projection separates owned-city gold surplus, the packet-declared
+gold-upkeep style, exact own-unit gold upkeep, and ruleset-aware net cash flow.
+City surplus already contains costs paid by the city, so City-style upkeep is
+not subtracted twice. Mixed-style upkeep subtracts nation-paid unit upkeep once.
+Nation-style net flow fails closed until exact building upkeep is projected.
+Missing required upkeep makes the net rate unavailable
+instead of optimistic. The legal set exposes at most one ten-point tax increase
+and one return toward the configured 40/60 tax/science split, always inside the
+60-percent bound shared by stock governments. `unit_home_city` retains the exact
+owned co-located city ID; `unit_disband` remains actor exact. Normalization,
+sanitization, validation, packet conversion, and canonical legal-action membership
+all preserve those identifiers.
 
 The v6 projection emits only player-known `PACKET_TILE_INFO` records. Every
 record has a bounded tile index and coordinates derived from the authoritative

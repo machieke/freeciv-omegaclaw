@@ -59,6 +59,10 @@ class EconomicState:
     luxury_rate: Optional[int]
     available: bool
     diagnostic: Optional[str] = None
+    city_gold_surplus_per_turn: Optional[int] = None
+    unit_gold_upkeep: Optional[int] = None
+    gold_upkeep_reserve: Optional[int] = None
+    gold_upkeep_style: Optional[str] = None
 
     def to_dict(self):
         return {
@@ -66,9 +70,13 @@ class EconomicState:
             "diagnostic": self.diagnostic,
             "gold": self.gold,
             "gold_per_turn": self.gold_per_turn,
+            "gold_upkeep_reserve": self.gold_upkeep_reserve,
+            "gold_upkeep_style": self.gold_upkeep_style,
+            "city_gold_surplus_per_turn": self.city_gold_surplus_per_turn,
             "luxury_rate": self.luxury_rate,
             "science_rate": self.science_rate,
             "tax_rate": self.tax_rate,
+            "unit_gold_upkeep": self.unit_gold_upkeep,
         }
 
 

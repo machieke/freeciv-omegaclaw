@@ -585,12 +585,30 @@ button.atom-row { cursor: pointer; }.atom-row:hover { background: #0e2027; }.ato
 .tech-table > button .known { color: var(--green); }.tech-table > button .current { color: var(--cyan); }
 .tech-table > button .researchable { color: var(--amber); }.tech-table > button .blocked { color: #667a82; }
 
-.economy-strip { display: grid; grid-template-columns: repeat(5,1fr); gap: 1px; border: 1px solid var(--line);
+.economy-strip { display: grid; grid-template-columns: repeat(8,1fr); gap: 1px; border: 1px solid var(--line);
   background: var(--line); }
 .economy-strip > div { display: grid; gap: 2px; padding: 14px; background: #0b191f; }
 .economy-strip span { color: var(--muted); text-transform: uppercase; font: 500 7px "JetBrains Mono"; }
 .economy-strip strong { color: var(--cyan); font: 600 20px "JetBrains Mono"; }
 .economy-strip small { color: #55717a; font: 500 7px "JetBrains Mono"; }
+.economy-strip .at-risk strong { color: var(--red); }
+.sustainability-overview { display: grid; grid-template-columns: repeat(3,minmax(190px,1fr)) auto;
+  gap: 8px; align-items: stretch; margin: 11px 0; }
+.sustainability-overview article { display: grid; gap: 6px; min-width: 0; padding: 10px 12px;
+  border: 1px solid #29434b; border-left: 3px solid #536c73; background: #081419; }
+.sustainability-overview article.safe { border-left-color: var(--green); }
+.sustainability-overview article.at-risk { border-left-color: var(--red);
+  background: linear-gradient(90deg,rgba(239,106,103,.07),#081419); }
+.sustainability-overview header { display: flex; justify-content: space-between; gap: 10px;
+  color: var(--muted); text-transform: uppercase; font: 500 7px "JetBrains Mono"; }
+.sustainability-overview header strong { color: #bed2d6; }
+.sustainability-overview .at-risk header strong { color: var(--red); }
+.sustainability-overview b { color: #d8e7e9; font: 600 10px "JetBrains Mono"; }
+.sustainability-overview small { overflow: hidden; color: #668088; font: 500 6px "JetBrains Mono";
+  line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
+.sustainability-overview > button { padding: 10px; border: 1px solid #28515a;
+  background: rgba(93,216,208,.06); color: var(--cyan); font: 600 7px "JetBrains Mono";
+  cursor: pointer; }
 .yield-series { display: grid; grid-template-columns: repeat(6,1fr); gap: 8px; margin: 11px 0; }
 .yield-series > div { min-width: 0; padding: 9px 10px; border: 1px solid var(--line); background: #081419; }
 .yield-series header { display: flex; justify-content: space-between; color: var(--muted);
@@ -616,7 +634,7 @@ button.atom-row { cursor: pointer; }.atom-row:hover { background: #0e2027; }.ato
   border: 1px solid #203740; background: #09161b; }
 .city-stocks span { color: var(--muted); text-transform: uppercase; font: 500 6px "JetBrains Mono"; }
 .city-stocks b { color: #d4e3e6; font: 600 8px "JetBrains Mono"; }
-.city-sustainability { display: grid; grid-template-columns: repeat(4,1fr); gap: 5px;
+.city-sustainability { display: grid; grid-template-columns: repeat(5,1fr); gap: 5px;
   margin-bottom: 7px; padding: 7px; border: 1px solid #203740; background: #071217; }
 .city-sustainability > div { display: grid; gap: 3px; padding: 6px 7px;
   border-left: 2px solid #2d515b; background: #09171c; }
@@ -628,6 +646,8 @@ button.atom-row { cursor: pointer; }.atom-row:hover { background: #0e2027; }.ato
 .city-sustainability.at-risk { border-color: rgba(239,106,103,.5); }
 .city-sustainability.at-risk > div:first-child { border-left-color: var(--red); }
 .city-sustainability.at-risk > div:first-child b { color: var(--red); }
+.city-sustainability .food-risk { border-left-color: var(--red); }
+.city-sustainability .food-risk b { color: var(--red); }
 .yield-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 5px; }
 .yield-grid > div { display: grid; gap: 2px; padding: 6px; border: 1px solid #1b3038; background: #081318; }
 .yield-grid span { color: var(--muted); text-transform: uppercase; font: 500 6px "JetBrains Mono"; }
@@ -643,6 +663,11 @@ button.atom-row { cursor: pointer; }.atom-row:hover { background: #0e2027; }.ato
 .production-projection small { color: var(--muted); font: 500 6px "JetBrains Mono"; }
 .production-projection.gap { display: block; color: var(--muted); font: 500 7px "JetBrains Mono";
   cursor: default; }
+.sustainability-route { display: grid; grid-template-columns: auto 1fr auto; gap: 12px;
+  margin-top: 5px; padding: 7px 9px; border: 1px solid rgba(232,174,87,.42);
+  background: rgba(232,174,87,.06); color: #9db1b7; font: 500 7px "JetBrains Mono"; }
+.sustainability-route strong { color: var(--amber); text-transform: uppercase; }
+.sustainability-route small { color: #718890; }
 .production-evidence { display: grid; gap: 12px; }
 .production-evidence > section { padding: 12px; }
 .production-evidence h3 { margin: 4px 0 10px; font-size: 13px; }
@@ -703,6 +728,9 @@ button.atom-row { cursor: pointer; }.atom-row:hover { background: #0e2027; }.ato
   .research-hero { grid-template-columns: minmax(200px,.8fr) minmax(260px,1.2fr); }
   .research-hero dl { grid-column: 1 / -1; grid-template-columns: repeat(4,1fr); }
   .yield-series { grid-template-columns: repeat(3,1fr); }
+  .economy-strip { grid-template-columns: repeat(4,1fr); }
+  .sustainability-overview { grid-template-columns: repeat(3,1fr); }
+  .sustainability-overview > button { grid-column: 1/-1; }
   .production-layout { grid-template-columns: 1fr; }
   .government-status, .economy-government { grid-template-columns: repeat(3,1fr); }
   .government-status p, .economy-government p { grid-column: 1/-1; }
