@@ -892,6 +892,51 @@ def test_final_escort_preparation_requires_immediate_spare_delivery():
         "settlement_final_escort_preparation", False)
 
 
+def test_ineligible_final_preparation_does_not_suppress_ordinary_defense():
+    second_city = dict(
+        _city(), id=20, name="Antium", tile=30, x=0, y=3,
+        production_kind=3, production_value=14, shield_stock=0)
+    cities = [
+        _city(
+            production_kind=3, production_value=14, shield_stock=0),
+        second_city,
+    ]
+    actions = [
+        _production(10, "Alpine Troops", 6, 11),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    units = [
+        _unit(1, "Settlers", 3, 0),
+        _unit(11, "Alpine Troops", 0, 0),
+    ]
+    ir = _ruleset_ir((
+        ("Settlers", "unit", 30),
+        ("Alpine Troops", "unit", 40),
+        ("Granary", "improvement", 40),
+    ), pop_costs={"Settlers": 1})
+    common = {
+        "expansion_city_target": 3,
+        "expansion_escort_retention_enabled": True,
+        "expansion_escort_threat_gating_enabled": True,
+        "horizon_turn": 60,
+    }
+
+    baseline = GroundedImpactPlanner(
+        dict(common, expansion_final_settlement_escort_enabled=False),
+        ruleset_ir=ir).plan(
+            _snapshot(units, actions, cities=cities, turn=20))
+    treatment = GroundedImpactPlanner(
+        dict(common, expansion_final_settlement_escort_enabled=True),
+        ruleset_ir=ir).plan(
+            _snapshot(units, actions, cities=cities, turn=20))
+
+    assert baseline.candidate.category == "production_defense"
+    assert treatment.candidate.action == baseline.candidate.action
+    assert treatment.candidate.category == baseline.candidate.category
+    assert not (treatment.candidate.projection or {}).get(
+        "settlement_final_escort_preparation", False)
+
+
 def test_packet_site_preference_records_exact_move_outcome():
     action = {
         "action_type": "unit_move", "actor_id": 1,
@@ -1514,6 +1559,10 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
                     "expansion_minimum_remaining_turns": 8},
                    {"refresh_timeout_seconds": 0.1},
                    {"refresh_timeout_seconds": 11},
+                   {"terminal_refresh_timeout_seconds": 0.1},
+                   {"terminal_refresh_timeout_seconds": 11},
+                   {"refresh_timeout_seconds": 2.0,
+                    "terminal_refresh_timeout_seconds": 1.0},
                    {"refresh_stability_interval_seconds": 0.01},
                    {"refresh_stability_interval_seconds": 0.51},
                    {"no_effect_retry_limit": 0}, {"no_effect_retry_limit": 9},

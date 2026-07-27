@@ -50,6 +50,7 @@ impact_policy:
   foodbox_percent: 100
   unit_build_score_divisor: 10
   refresh_timeout_seconds: 0.3
+  terminal_refresh_timeout_seconds: 1.0
   refresh_stability_interval_seconds: 0.05
   no_effect_retry_limit: 1
   max_no_effect_failovers_per_scope: 4

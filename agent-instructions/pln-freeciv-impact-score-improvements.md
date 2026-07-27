@@ -1690,3 +1690,11 @@ ineligible preparation behaviorally inert and prevent any further planned
 action from an unchanged snapshot after an accepted terminal action. A
 source-fresh replay of these exposed pairs plus the two accepted V2 mechanism
 pairs is required before another unselected development cohort.
+
+Adapter 1.17 implements both corrections and predeclares
+`final_settlement_escort_control_path_hardening_mechanism_v1` on exposed seeds
+`4072532` and `4090389` plus accepted threat-route controls `4034664` and
+`4047597`. The terminal refresh barrier is separately configured at one
+second; ordinary actions retain the measured 300 ms bound. A terminal timeout
+defers outcome reconciliation and closes the same-turn impact loop. This
+selected four-pair cohort is claim-ineligible.

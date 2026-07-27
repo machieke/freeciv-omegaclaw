@@ -170,6 +170,7 @@ def run_game(run_dir, manifest, context):
         ("decision_effect_confirmation_expired",
          3 if treatment else 6),
         ("decision_effect_confirmation_pending", 0),
+        ("decision_stale_terminal_followups_blocked", 0),
         ("decision_no_effect_actions", impact_values["no_effect"]),
         ("decision_no_effect_retries_blocked", impact_values["retries_blocked"]),
         ("decision_no_effect_failover_attempts", impact_values["failover_attempts"]),

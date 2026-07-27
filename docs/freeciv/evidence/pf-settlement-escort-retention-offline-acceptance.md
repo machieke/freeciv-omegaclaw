@@ -638,3 +638,11 @@ settlement action. These paths require correction before another score pilot.
 
 Machine-readable evidence is
 [`pf-final-settlement-escort-threat-delivery-generalization-v1.json`](pf-final-settlement-escort-threat-delivery-generalization-v1.json).
+
+Adapter 1.17 makes locally ineligible preparation behaviorally inert and adds
+a separately configured one-second authoritative barrier for terminal
+actions. If that barrier expires, the accepted outcome remains deferred and
+same-turn impact planning stops on the unchanged snapshot. The predeclared
+`final_settlement_escort_control_path_hardening_mechanism_v1` cohort repeats
+exposed seeds `4072532` and `4090389` together with accepted threat-route
+controls `4034664` and `4047597`. It is selected and claim-ineligible.

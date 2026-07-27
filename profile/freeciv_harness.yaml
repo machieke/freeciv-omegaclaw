@@ -52,6 +52,7 @@ impact_policy:
   foodbox_percent: 100
   unit_build_score_divisor: 10
   refresh_timeout_seconds: 0.3
+  terminal_refresh_timeout_seconds: 1.0
   refresh_stability_interval_seconds: 0.05
   no_effect_retry_limit: 1
   max_no_effect_failovers_per_scope: 4
@@ -1586,6 +1587,60 @@ paired_impact:
         - 4087243
         - 4090389
         - 4097824
+    final_settlement_escort_control_path_hardening_mechanism_v1:
+      claim_eligible: false
+      purpose: diagnostic
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 4
+      controller_workers: 2
+      reused_seeds_from:
+        - final_settlement_escort_preparation_pilot_v1
+        - final_settlement_escort_threat_delivery_mechanism_v2
+        - final_settlement_escort_threat_delivery_generalization_v1
+      reused_seed_reason: >-
+        Adapter 1.17 corrects two control-path defects localized only after the
+        complete adapter-1.16 development replay: locally ineligible final
+        preparation suppressed ordinary production on 4072532, and a timed-out
+        terminal settlement confirmation permitted another action from the
+        unchanged snapshot on 4090389. Seeds 4034664 and 4047597 preserve both
+        previously accepted threat-route mechanism traces as controls. This
+        source-fresh replay must remove both exposed paths without disabling
+        immediate preparation or threat-gated final routing. It is reused,
+        selected, claim-ineligible, and cannot update score or win-rate claims.
+      isolated_policy_keys:
+        - expansion_final_settlement_escort_enabled
+      arms:
+        baseline:
+          expansion_city_target: 4
+          expansion_minimum_settlement_runway_turns: 15
+          expansion_settlement_deadline_recovery_enabled: true
+          expansion_packet_site_preference_enabled: true
+          expansion_escort_retention_enabled: true
+          expansion_escort_threat_gating_enabled: true
+          expansion_escort_route_threat_memory_enabled: true
+          expansion_final_settlement_escort_enabled: false
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+        treatment:
+          expansion_city_target: 4
+          expansion_minimum_settlement_runway_turns: 15
+          expansion_settlement_deadline_recovery_enabled: true
+          expansion_packet_site_preference_enabled: true
+          expansion_escort_retention_enabled: true
+          expansion_escort_threat_gating_enabled: true
+          expansion_escort_route_threat_memory_enabled: true
+          expansion_final_settlement_escort_enabled: true
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+      seeds:
+        - 4034664
+        - 4047597
+        - 4072532
+        - 4090389
     final_settlement_escort_preparation_pilot_v1:
       claim_eligible: false
       purpose: pilot

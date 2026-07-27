@@ -36,6 +36,7 @@ from freeciv.harness.engine_live import (  # noqa: E402
     _needs_cognitive_stack, _opponent_memory_path,
     _claim_eligible_manifest, _ollama_readiness, _plain_prompt_state,
     _plain_state_summary, _refresh_accepted_impact_action,
+    _impact_refresh_timeout,
     _decision_state_fingerprint, _decision_state_ready, _global_state_ready,
     _global_state, _player_eliminated, _release_configuration_active, _state,
     _selection_target_rules, _validate_compact_goal_proposal,
@@ -67,6 +68,8 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert config["impact_policy"]["production_minimum_remaining_turns"] == 8
     assert config["impact_policy"]["unit_build_score_divisor"] == 10
     assert config["impact_policy"]["refresh_timeout_seconds"] == 0.3
+    assert config[
+        "impact_policy"]["terminal_refresh_timeout_seconds"] == 1.0
     assert config["impact_policy"]["refresh_stability_interval_seconds"] == 0.05
     assert config["impact_policy"]["production_strategy"] == "horizon_score"
     assert config["impact_policy"]["pressure_learning_enabled"] is True
@@ -134,6 +137,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "final_settlement_escort_threat_delivery_mechanism_v1": 3,
             "final_settlement_escort_threat_delivery_mechanism_v2": 2,
             "final_settlement_escort_threat_delivery_generalization_v1": 40,
+            "final_settlement_escort_control_path_hardening_mechanism_v1": 4,
             "final_settlement_escort_preparation_pilot_v1": 40,
             "final_settlement_escort_preparation_confirmatory_v1": 100,
         }
@@ -528,6 +532,14 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert final_escort_threat_delivery_generalization["planned_pairs"] == 40
     assert final_escort_threat_delivery_generalization[
         "claim_eligible"] is False
+    final_escort_control_path = paired["cohorts"][
+        "final_settlement_escort_control_path_hardening_mechanism_v1"]
+    assert final_escort_control_path["seeds"] == [
+        4034664, 4047597, 4072532, 4090389]
+    assert final_escort_control_path["planned_pairs"] == 4
+    assert final_escort_control_path["claim_eligible"] is False
+    assert final_escort_control_path["isolated_policy_keys"] == [
+        "expansion_final_settlement_escort_enabled"]
     assert final_escort_pilot["planned_pairs"] == 40
     assert final_escort_pilot["claim_eligible"] is False
     assert final_escort_pilot["seed_derivation"] == {
@@ -1810,6 +1822,17 @@ def test_accepted_impact_refresh_waits_for_candidate_specific_effect():
         refresh_timeout=2.0, effect_predicate=lambda value: value is applied))
     assert seen == [True]
     assert result == ({"turn": 1}, applied, "effect-state", True)
+
+
+def test_terminal_impact_action_uses_stronger_authoritative_refresh_barrier():
+    planner = SimpleNamespace(
+        refresh_timeout_seconds=0.3,
+        terminal_refresh_timeout_seconds=1.0)
+
+    assert _impact_refresh_timeout(
+        planner, SimpleNamespace(terminal_on_accept=False)) == 0.3
+    assert _impact_refresh_timeout(
+        planner, SimpleNamespace(terminal_on_accept=True)) == 1.0
 
 
 def test_state_poll_interval_is_bounded_before_transport():

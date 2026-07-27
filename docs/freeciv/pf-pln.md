@@ -654,6 +654,13 @@ movement, rendezvous waiting, and mandatory final co-location also require a
 visible or actor-scoped remembered threat. Unthreatened founders retain normal
 route and founding candidates, with bypass snapshots recorded independently.
 
+Adapter `grounded-impact-planner/1.17` closes two control-path leaks found by
+the complete adapter-1.16 development replay. A preparation that fails the
+immediate local delivery preconditions no longer suppresses ordinary
+production. An accepted terminal action receives a longer authoritative
+refresh barrier and, if that barrier expires, closes same-turn impact planning
+instead of allowing another action from the unchanged snapshot.
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` and `pressure_score_alignment_enabled` default to `false`
 unless the runtime profile enables them. This preserves unit-level policy

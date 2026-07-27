@@ -205,6 +205,12 @@ founder routing remains eligible and
 `planner_founder_final_escort_unthreatened_route_bypass_snapshots` records the
 bypass.
 
+Adapter 1.17 makes the preparation gate locally inert. A global final-escort
+need affects production only when the exact city/action also qualifies for the
+immediate same-kind conversion above. Otherwise ordinary defense, economy, and
+repurpose candidates are ranked exactly as with the final-escort switch
+disabled.
+
 Founder routing is feedback-driven in the horizon-score policy. On the first step from
 a city, aggregate distance from the complete city network breaks minimum-distance ties
 in favor of open expansion space. A move target becomes a proven traversable edge only
@@ -462,6 +468,14 @@ cohorts, boundary state queries fell from 2.0 to 1.0 per turn, boundary state
 time fell by 3.44% and 4.93%, gameplay time fell by 3.55% and 2.19%, and every
 boundary returned an accepted exact-revision marker. See
 [the settled turn-boundary smoke](evidence/settled-turn-boundary-smoke.md).
+
+Accepted terminal actions have a stronger synchronization contract.
+`terminal_refresh_timeout_seconds` is 1.0 seconds in the live profiles, while
+ordinary action effect confirmation retains the measured 0.3-second
+`refresh_timeout_seconds`. If a terminal build-city, join-city, or suicide
+action still has no authoritative revision at that boundary, its outcome is
+deferred and `decision_stale_terminal_followups_blocked` increments. No
+additional impact action may be planned from that unchanged snapshot.
 
 Exploration destinations also gain conservative cross-source failure evidence.
 One failed move remains retryable because occupancy and tactical obstructions can

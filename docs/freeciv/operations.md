@@ -79,6 +79,15 @@ same-turn research, city, unit, or legal-action payload remains unchanged for
 the five-second cache TTL indicates the obsolete turn-only inner extractor
 cache. Verify the pinned patch digest before changing timeouts.
 
+The live policy keeps ordinary accepted-action confirmation at
+`refresh_timeout_seconds: 0.3` and configures
+`terminal_refresh_timeout_seconds: 1.0` for actor-consuming build-city,
+join-city, and suicide actions. If the stronger terminal barrier expires, the
+accepted outcome remains deferred for later reconciliation and the harness
+does not plan another impact action from that unchanged snapshot.
+`decision_stale_terminal_followups_blocked` exposes each such fail-closed
+turn.
+
 Turn-boundary diagnostics are emitted as
 `turn_boundary_state_latency_ms`, `turn_boundary_state_query_latency_ms`,
 `turn_boundary_state_query_count`, `turn_boundary_state_parse_latency_ms`,

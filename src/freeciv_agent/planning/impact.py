@@ -207,7 +207,7 @@ def _target_name(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.16"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.17"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -360,6 +360,10 @@ class GroundedImpactPlanner(object):
             "unit_build_score_divisor", 10))
         self.refresh_timeout_seconds = float(
             values.get("refresh_timeout_seconds", 2.0))
+        self.terminal_refresh_timeout_seconds = float(
+            values.get(
+                "terminal_refresh_timeout_seconds",
+                max(1.0, self.refresh_timeout_seconds)))
         self.refresh_stability_interval_seconds = float(
             values.get("refresh_stability_interval_seconds", 0.2))
         self.no_effect_retry_limit = int(values.get("no_effect_retry_limit", 1))
@@ -392,6 +396,13 @@ class GroundedImpactPlanner(object):
             raise ValueError("unit_build_score_divisor must be in 1..100")
         if not 0.25 <= self.refresh_timeout_seconds <= 10.0:
             raise ValueError("refresh_timeout_seconds must be in [0.25,10]")
+        if not 0.25 <= self.terminal_refresh_timeout_seconds <= 10.0:
+            raise ValueError(
+                "terminal_refresh_timeout_seconds must be in [0.25,10]")
+        if self.terminal_refresh_timeout_seconds < self.refresh_timeout_seconds:
+            raise ValueError(
+                "terminal_refresh_timeout_seconds cannot be shorter than "
+                "refresh_timeout_seconds")
         if not 0.05 <= self.refresh_stability_interval_seconds <= 0.5:
             raise ValueError(
                 "refresh_stability_interval_seconds must be in [0.05,0.5]")
@@ -2601,8 +2612,12 @@ class GroundedImpactPlanner(object):
             and len(founders) + queued_founders >= remaining_city_slots
             and not spare_combat_units
             and not final_escort_queue_ready)
-        escort_defense_needed = bool(
-            site_escort_defense_needed or final_escort_preparation_needed)
+        # A desired final escort is not itself a production-defense deficit.
+        # Only the narrow immediate, same-kind conversion below may materialize
+        # that preparation. If the current city/action cannot satisfy it, keep
+        # ordinary production ranking behaviorally identical to the disabled
+        # policy instead of suppressing otherwise valid defense/economy work.
+        escort_defense_needed = bool(site_escort_defense_needed)
         urgent_founder_repurpose = bool(
             current_is_redundant_founder and current_pop_cost > 0
             and current_completes_by_horizon)

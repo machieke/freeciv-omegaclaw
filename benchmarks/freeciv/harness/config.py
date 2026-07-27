@@ -142,6 +142,17 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
             or not 0.25 <= refresh_timeout <= 10.0):
         raise ValueError(
             "{}.refresh_timeout_seconds must be in [0.25,10]".format(prefix))
+    terminal_refresh_timeout = impact.get("terminal_refresh_timeout_seconds")
+    if (isinstance(terminal_refresh_timeout, bool)
+            or not isinstance(terminal_refresh_timeout, (int, float))
+            or not 0.25 <= terminal_refresh_timeout <= 10.0):
+        raise ValueError(
+            "{}.terminal_refresh_timeout_seconds must be in [0.25,10]"
+            .format(prefix))
+    if terminal_refresh_timeout < refresh_timeout:
+        raise ValueError(
+            "{}.terminal_refresh_timeout_seconds cannot be shorter than "
+            "refresh_timeout_seconds".format(prefix))
     if (impact["expansion_minimum_remaining_turns"]
             < impact["production_minimum_remaining_turns"]):
         raise ValueError(

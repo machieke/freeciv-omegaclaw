@@ -1040,6 +1040,13 @@ async def _refresh_accepted_impact_action(
     return next_raw, next_snapshot, next_parent, True
 
 
+def _impact_refresh_timeout(planner, candidate):
+    """Use a stronger barrier for accepted actions that can consume an actor."""
+    if candidate.terminal_on_accept:
+        return planner.terminal_refresh_timeout_seconds
+    return planner.refresh_timeout_seconds
+
+
 def _control_plan(snapshot, assumption=None):
     action = {"action_type": "end_turn"}
     suffix = structural_hash([snapshot.snapshot_id, "control", assumption.atom_id if assumption else None])
@@ -1494,6 +1501,7 @@ async def _play(run_dir, manifest, context):
         "effect_confirmation_deferred": 0,
         "effect_confirmation_recovered": 0,
         "effect_confirmation_expired": 0,
+        "stale_terminal_followups_blocked": 0,
     }
     pending_impact_outcomes = DeferredImpactOutcomeLedger()
     action_type_counts = {}
@@ -2066,7 +2074,8 @@ async def _play(run_dir, manifest, context):
                         await _refresh_accepted_impact_action(
                             refresh_after_action, raw, snapshot, parent,
                             decision.candidate,
-                            refresh_timeout=impact_planner.refresh_timeout_seconds,
+                            refresh_timeout=_impact_refresh_timeout(
+                                impact_planner, decision.candidate),
                             effect_predicate=(
                                 (lambda value: impact_planner.candidate_effect_observed(
                                     decision.candidate, action_snapshot, value))
@@ -2123,6 +2132,14 @@ async def _play(run_dir, manifest, context):
                         time.perf_counter() - reconcile_started) * 1000.0
                     impact_postconfirmation_latency_ms += (
                         time.perf_counter() - postconfirmation_started) * 1000.0
+                    if (not authoritative_refresh
+                            and decision.candidate.terminal_on_accept):
+                        # The actor may already be gone even though the proxy
+                        # has not projected the effect. Never plan a follow-up
+                        # from the unchanged pre-action snapshot.
+                        decision_stats[
+                            "stale_terminal_followups_blocked"] += 1
+                        break
                 decision_stats["failover_attempts"] += impact_budget.failover_attempts
                 decision_stats["failover_recoveries"] += impact_budget.recoveries
 
@@ -2610,6 +2627,8 @@ async def _play(run_dir, manifest, context):
         ("decision_effect_confirmation_expired",
          decision_stats["effect_confirmation_expired"]),
         ("decision_effect_confirmation_pending", len(pending_impact_outcomes)),
+        ("decision_stale_terminal_followups_blocked",
+         decision_stats["stale_terminal_followups_blocked"]),
         ("decision_no_effect_actions", decision_stats["no_effect"]),
         ("decision_no_effect_retries_blocked",
          impact_planner.no_effect_retries_blocked if impact_planner is not None else 0),
@@ -2943,6 +2962,8 @@ async def _play(run_dir, manifest, context):
             "decision_effect_confirmation_expired": (
                 decision_stats["effect_confirmation_expired"]),
             "decision_effect_confirmation_pending": len(pending_impact_outcomes),
+            "decision_stale_terminal_followups_blocked": (
+                decision_stats["stale_terminal_followups_blocked"]),
             "meaningful_actions": decision_stats["meaningful_actions"],
             "founder_production_changes": (
                 decision_stats["founder_production_changes"]),
@@ -3125,6 +3146,8 @@ async def _play(run_dir, manifest, context):
         "decision_effect_confirmation_expired": (
             decision_stats["effect_confirmation_expired"]),
         "decision_effect_confirmation_pending": len(pending_impact_outcomes),
+        "decision_stale_terminal_followups_blocked": (
+            decision_stats["stale_terminal_followups_blocked"]),
         "initial_legal_action_families": initial_legal_action_families,
         "initial_state_fingerprint": initial_state_fingerprint,
         "meaningful_actions": decision_stats["meaningful_actions"],
