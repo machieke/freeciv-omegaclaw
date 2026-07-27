@@ -121,6 +121,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "expansion_target_pilot_v1": 40,
             "expansion_target_confirmatory_v1": 100,
             "expansion_fifth_city_diagnostic_v1": 10,
+            "expansion_fifth_city_pilot_v1": 40,
             "expansion_deadline_recovery_diagnostic_v1": 40,
             "foreign_claim_founding_mechanism_v1": 1,
             "packet_site_preference_mechanism_v1": 10,
@@ -371,6 +372,17 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "algorithm": "sha256-counter-v1",
         "namespace": "pf-pln-expansion-fifth-city-diagnostic-v1",
         "count": 10, "minimum": 4300000, "maximum": 4399999,
+    }
+    fifth_city_pilot = paired["cohorts"]["expansion_fifth_city_pilot_v1"]
+    assert fifth_city_pilot["planned_pairs"] == 40
+    assert fifth_city_pilot["claim_eligible"] is False
+    assert fifth_city_pilot["isolated_policy_keys"] == [
+        "expansion_city_target"]
+    assert fifth_city_pilot["arms"] == fifth_city_diagnostic["arms"]
+    assert fifth_city_pilot["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": "pf-pln-expansion-fifth-city-pilot-v1",
+        "count": 40, "minimum": 4400000, "maximum": 4499999,
     }
     deadline_recovery = paired["cohorts"][
         "expansion_deadline_recovery_diagnostic_v1"]

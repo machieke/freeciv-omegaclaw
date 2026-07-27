@@ -1767,3 +1767,24 @@ pairs, and mean score direction is positive without a correctness regression.
 Failure to meet those gates retires an unconditional fifth-city target. Any
 subsequent planner tuning must use this cohort only for development and must
 be evaluated on separately predeclared disjoint pilot seeds.
+
+The diagnostic completed all ten pairs and 20 arms from clean commit
+`8076650` without infrastructure failure. Mean score improved `+1.1`, interval
+`[+0.1, +2.1]`; exact paired `p=0.109375` is appropriately inconclusive for
+ten pairs. Five pairs improved, two tied, and three declined. Score-lead rate
+was unchanged.
+
+The predeclared mechanism gate passed: treatment added five retained cities
+across the ten pairs, versus the required two, increased settlement
+completions `+0.5`, and increased citizen score `+1.7`. Technology was
+unchanged and residual score changed `-0.6`. Every source, initial-state,
+safety, schema, and exact-replay gate passed over 28,556 events and 711
+treatment decisions.
+
+The separately predeclared, claim-ineligible
+`expansion_fifth_city_pilot_v1` now freezes the same isolated target-four
+versus target-five policy on 40 disjoint pairs from namespace
+`pf-pln-expansion-fifth-city-pilot-v1`, range `4400000..4499999`. It may
+advance to confirmation only if founding and citizen mechanisms remain
+positive, the score interval is above zero, exact paired `p <= 0.05`, and all
+integrity gates pass. The ten-pair diagnostic will not be pooled.
