@@ -131,6 +131,8 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "final_settlement_escort_legal_progress_mechanism_v1": 2,
             "final_settlement_escort_prepared_route_mechanism_v1": 2,
             "final_settlement_escort_preparation_generalization_v2": 10,
+            "final_settlement_escort_preparation_pilot_v1": 40,
+            "final_settlement_escort_preparation_confirmatory_v1": 100,
         }
     seed_sets = [
         set(row["seeds"]) for row in paired["cohorts"].values()
@@ -501,6 +503,30 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert final_escort_generalization_v2["claim_eligible"] is False
     assert final_escort_generalization_v2["isolated_policy_keys"] == [
         "expansion_final_settlement_escort_enabled"]
+    final_escort_pilot = paired["cohorts"][
+        "final_settlement_escort_preparation_pilot_v1"]
+    assert final_escort_pilot["planned_pairs"] == 40
+    assert final_escort_pilot["claim_eligible"] is False
+    assert final_escort_pilot["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": "pf-pln-final-settlement-escort-preparation-pilot-v1",
+        "count": 40, "minimum": 4000000, "maximum": 4099999,
+    }
+    final_escort_confirmation = paired["cohorts"][
+        "final_settlement_escort_preparation_confirmatory_v1"]
+    assert final_escort_confirmation["planned_pairs"] == 100
+    assert final_escort_confirmation["claim_eligible"] is True
+    assert final_escort_confirmation["endpoints"] == ["score_turn_n"]
+    assert final_escort_confirmation["score_design"] == {
+        "minimum_detectable_delta": 1.5,
+        "maximum_planning_sd": 5.0,
+    }
+    assert final_escort_confirmation["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": (
+            "pf-pln-final-settlement-escort-preparation-confirmatory-v1"),
+        "count": 100, "minimum": 4100000, "maximum": 4299999,
+    }
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.2",
         "source_sha256": "3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e",

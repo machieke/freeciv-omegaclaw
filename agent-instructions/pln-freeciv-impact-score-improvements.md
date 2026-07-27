@@ -1596,3 +1596,19 @@ positive interval. No more rule tuning may use these ten outcomes before a
 fresh evaluation. The next valid step is a predeclared fresh-seed pilot of
 unchanged adapter 1.15, followed by a separately source-frozen confirmatory
 cohort only if the pilot direction and safety gates hold.
+
+The fresh evaluation is now predeclared before inspecting any fresh outcome.
+`final_settlement_escort_preparation_pilot_v1` uses 40 disjoint deterministic
+pairs from namespace
+`pf-pln-final-settlement-escort-preparation-pilot-v1`, range
+`4000000..4099999`; it is claim-ineligible and reports score, lead,
+activation, and safety.
+
+`final_settlement_escort_preparation_confirmatory_v1` is independently
+predeclared with 100 disjoint pairs from namespace
+`pf-pln-final-settlement-escort-preparation-confirmatory-v1`, range
+`4100000..4299999`. It is claim-eligible for the fixed turn-60 own-score
+endpoint, uses the two-sided exact paired sign-flip test, and is powered for a
+1.5-point delta with paired SD no greater than 5.0. It may run only if the
+unchanged adapter-1.15 pilot is safe, source-stable, mechanism-active, and not
+adverse. Pilot evidence cannot change the confirmatory design.

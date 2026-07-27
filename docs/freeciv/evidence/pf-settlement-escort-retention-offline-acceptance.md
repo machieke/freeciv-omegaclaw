@@ -500,3 +500,24 @@ win-rate claim. Machine-readable evidence is
 [`pf-final-settlement-escort-preparation-generalization-v2.json`](pf-final-settlement-escort-preparation-generalization-v2.json).
 The next valid gate is a predeclared fresh-seed pilot of unchanged adapter
 1.15; further tuning on these ten traces would invalidate that purpose.
+
+## Fresh adapter-1.15 score evaluation
+
+Before inspecting any new outcome, the
+`final_settlement_escort_preparation_pilot_v1` cohort freezes 40 fresh pairs
+derived by `sha256-counter-v1` in namespace
+`pf-pln-final-settlement-escort-preparation-pilot-v1`, range
+`4000000..4099999`. It is claim-ineligible, isolates only
+`expansion_final_settlement_escort_enabled`, and reports both score and lead
+direction plus the full activation and safety chain.
+
+A separately disjoint, claim-eligible
+`final_settlement_escort_preparation_confirmatory_v1` cohort is also
+predeclared before pilot execution. It contains 100 fresh pairs in namespace
+`pf-pln-final-settlement-escort-preparation-confirmatory-v1`, range
+`4100000..4299999`, and tests the fixed turn-60 own-score endpoint with the
+repository's two-sided exact paired sign-flip procedure. Its design targets a
+1.5-point minimum detectable delta under paired-score SD at most 5.0. It may
+run only if the pilot is source-stable, safe, mechanism-active, and does not
+show an adverse own-score direction. Pilot outcomes cannot alter the adapter,
+confirmatory seeds, endpoint, arms, or test.
