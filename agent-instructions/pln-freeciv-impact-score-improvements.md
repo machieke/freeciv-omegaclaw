@@ -1809,3 +1809,27 @@ new pairs from namespace `pf-pln-expansion-fifth-city-confirmatory-v1`, range
 with planning deviation up to 3.5, and holds the implementation and all
 non-target policies unchanged. Neither development cohort may be pooled with
 confirmation.
+
+The claim-eligible confirmation completed all 100 pairs and 200 current arms.
+One treatment attempt failed before gameplay because observer global state was
+not populated; same-source resume reused the other 199 arms and replaced only
+that attempt. The final aggregate has zero active infrastructure failures and
+retains the first attempt as historical provenance.
+
+Turn-60 score increased from 119.38 to 120.94. The paired effect is `+1.56`,
+95% interval `[+0.88, +2.23]`, exact paired `p=1.998e-5`. Both predeclared
+score-superiority gates pass, so the incremental own-score claim is supported.
+The stronger greater-than-two-point claim does not pass.
+
+Treatment adds `+0.55` settlements, `+0.53` retained cities, and `+1.60`
+citizen-score points. It creates 53 incremental retained cities across 51
+pairs and reaches five total cities in 42 games; no baseline reaches five.
+Technology and residual-score intervals include zero. Lead-rate difference is
+`+0.01` `[-0.07, +0.08]`, exact McNemar `p=1`, so no win-rate claim is
+supported.
+
+All 200 current logs and 290,741 events validate, and exact replay reproduces
+all 7,878 decisions in the 100 treatment traces with zero integrity failure.
+This result remains separate from the earlier target-three-to-four `+2.66`
+confirmation; the two estimates are not pooled or added into a direct
+three-to-five-city claim.

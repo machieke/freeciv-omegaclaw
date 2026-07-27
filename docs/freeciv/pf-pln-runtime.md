@@ -10,9 +10,13 @@ guard changes how the already-live phases 0, 1, 4, and 9 rank grounded
 operations. It also exposes a bounded post-settlement-runway gate for
 score-bearing founder production and carries that deadline through settlement
 or exact ruleset population recovery for an existing founder. It does not
-activate any component-only phase. The supported +2.66 score claim remains
-tied to the frozen adapter-1.5 confirmation; adapter 1.6 is post-confirmation
-correctness hardening.
+activate any component-only phase. Two separate turn-60 expansion claims are
+supported: adapter 1.5's frozen three-to-four-city confirmation improved score
+by `+2.66`, and adapter 1.17's frozen four-to-five-city confirmation improved
+score by `+1.56`. They are not pooled or added into a direct
+three-to-five-city claim. Adapter 1.6 and the later route/escort changes remain
+post-confirmation correctness hardening except where the adapter-1.17
+fifth-city cohort explicitly holds them constant.
 Adapter 1.7 additionally consumes an optional, packet-grounded
 `settlement_site_eligible` fact on founder moves and prefers a directly
 reachable valid site over continued frontier wandering. Unknown destinations

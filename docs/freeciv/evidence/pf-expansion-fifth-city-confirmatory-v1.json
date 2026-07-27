@@ -1,0 +1,152 @@
+{
+  "artifacts": {
+    "aggregate": "artifacts/freeciv/pf-expansion-fifth-city-confirmatory-v1/impact-aggregate.json",
+    "aggregate_sha256": "f7510f6cc632371229f6ab0a983e18b2144131d9abfd8bba7e74416e89e64d11",
+    "exact_replay_artifact_hash": "3e1f72b5cfbecf30c0c5eb017b97e62bf8c36e2a5a2be501157cf00a1d0ec314",
+    "exact_replay_sha256": "1408a3e08c9aa68933908e337188f00f500b0fb279d1073ce3f049a80d9794ca",
+    "exact_replay_source_set_hash": "49b3fb4c185bcb9635900b0260f5fabe2250c0657b0265f619f380d103323b34",
+    "run_summary_sha256": "2707617d90c9c8f36cfc11dd874ef359bfe7423723c5b7e45761533f260cd216"
+  },
+  "claim": {
+    "claim_eligible": true,
+    "claimable": [
+      "score_improvement"
+    ],
+    "score_improvement_supported": true,
+    "status": "claim_supported",
+    "strictly_greater_than_two_points_supported": false,
+    "win_rate_supported": false
+  },
+  "cohort": {
+    "active_infrastructure_failures": 0,
+    "complete_pairs": 100,
+    "completed_arms": 200,
+    "historical_infrastructure_failures": 1,
+    "name": "expansion_fifth_city_confirmatory_v1",
+    "planned_pairs": 100
+  },
+  "decision_replay": {
+    "changed_decisions": 526,
+    "decision_change_rate": 0.06676821528306677,
+    "exact_replay_files": 100,
+    "integrity_failures": 0,
+    "sources_unchanged": true,
+    "total_decisions": 7878
+  },
+  "design": {
+    "baseline_city_target": 4,
+    "horizon_turn": 60,
+    "isolated_policy_keys": [
+      "expansion_city_target"
+    ],
+    "minimum_settlement_runway_turns": 15,
+    "score_design": {
+      "maximum_planning_sd": 3.5,
+      "minimum_detectable_delta": 1.0
+    },
+    "treatment_city_target": 5
+  },
+  "mechanism_delivery": {
+    "baseline_games_reaching_five_cities": 0,
+    "incremental_retained_cities": 53,
+    "pairs_with_incremental_retained_city": 51,
+    "treatment_games_reaching_five_cities": 42
+  },
+  "outcomes": {
+    "cities_founded_delta": {
+      "estimate": 0.55,
+      "lower": 0.43,
+      "upper": 0.67
+    },
+    "cities_gained_delta": {
+      "estimate": 0.53,
+      "lower": 0.42,
+      "upper": 0.66
+    },
+    "opponent_score_delta": {
+      "estimate": 0.51,
+      "lower": -1.07,
+      "upper": 2.11
+    },
+    "score_component_citizen_delta": {
+      "estimate": 1.6,
+      "lower": 1.09,
+      "upper": 2.11
+    },
+    "score_component_residual_delta": {
+      "estimate": -0.04,
+      "lower": -0.32,
+      "upper": 0.25
+    },
+    "score_component_technology_delta": {
+      "estimate": 0.0,
+      "lower": -0.12,
+      "upper": 0.1
+    },
+    "score_delta": {
+      "estimate": 1.56,
+      "exact_p": 0.00001997927951192855,
+      "lower": 0.88,
+      "upper": 2.23
+    },
+    "score_lead_rate_delta": {
+      "baseline_only_win": 7,
+      "both_lose": 66,
+      "both_win": 19,
+      "estimate": 0.01,
+      "lower": -0.07,
+      "mcnemar_exact_p": 1.0,
+      "treatment_only_win": 8,
+      "upper": 0.08
+    },
+    "score_margin_delta": {
+      "estimate": 1.05,
+      "lower": -0.91,
+      "upper": 3.1
+    },
+    "settlement_completions_delta": {
+      "estimate": 0.55,
+      "lower": 0.43,
+      "upper": 0.67
+    }
+  },
+  "paired_score_direction": {
+    "negative_pairs": 26,
+    "positive_pairs": 56,
+    "ties": 18,
+    "total_score_delta": 156
+  },
+  "power": {
+    "achieved_pairs": 100,
+    "achieved_power": 0.8221494755653023,
+    "detectable_score_delta": 0.9715753201464707,
+    "observed_paired_sd": 3.4679484809706547,
+    "required_pairs": 95,
+    "target_power": 0.8
+  },
+  "safety": {
+    "engine_rejected_action_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "full_loop_under_30s_rate": {
+      "baseline": 1.0,
+      "treatment": 1.0
+    },
+    "initial_state_fidelity_passed": true,
+    "model_safe_fallback_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "overall_passed": true,
+    "schema_valid_events": 290741,
+    "schema_valid_files": 200
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "f6b4c23c358f327159927462cf2053223de274bd",
+    "configuration_hash": "5d0ae4e489bfef04b1765985d48ded615637df1fa3ad88e32cc9c946243596cc",
+    "implementation_sha256": "fea8d9a0e2f65aa0e0f9f71fb103207e6ba81b5aed19c4883ccdd93c213b9134",
+    "source_freeze_passed": true
+  }
+}

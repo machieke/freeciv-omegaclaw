@@ -534,6 +534,22 @@ lead rate changed only from 23% to 24%, so no win-rate claim is supported.
 The full claim and its limits are recorded in
 [`evidence/pf-expansion-target-confirmatory-v1.md`](evidence/pf-expansion-target-confirmatory-v1.md).
 
+Adapter 1.17 then tested incremental expansion headroom without pooling or
+retuning the earlier result. A ten-pair diagnostic and a separate 40-pair
+pilot both activated the fourth-to-fifth-city mechanism and advanced under
+predeclared gates. The unchanged, claim-eligible 100-pair confirmation
+increased turn-60 score from 119.38 to 120.94: paired `+1.56`, interval
+`[+0.88, +2.23]`, exact paired `p=1.998e-5`. It added 0.53 retained cities
+and 1.60 citizen-score points; technology remained flat.
+
+All 200 current event streams and exact replay of 7,878 treatment decisions
+passed. Lead-rate difference was only `+0.01` `[-0.07, +0.08]`, so the
+result supports an incremental own-score claim, not a win-rate claim. It is
+also not a direct three-to-five-city claim: the earlier `+2.66`
+three-to-four and new `+1.56` four-to-five estimates remain separate. Full
+evidence is in
+[`evidence/pf-expansion-fifth-city-confirmatory-v1.md`](evidence/pf-expansion-fifth-city-confirmatory-v1.md).
+
 Adapter `grounded-impact-planner/1.6` subsequently carries the declared
 post-settlement runway through an existing founder's movement and settlement
 lifecycle. Immediate settlement remains valid at the exact deadline; after
