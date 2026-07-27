@@ -19,6 +19,9 @@ import {
   parseJsonl, parseJsonlStream, type ParseResult, type QuarantinedLine,
 } from "./validation";
 import { decodeUrlState, encodeUrlState, type ViewName } from "./url-state";
+import {
+  CHART_COLORS, Sparkline, TurnHeatmap, ValueBar, humanize,
+} from "./visuals";
 
 type Selection =
   | { kind: "event"; value: TraceEvent }
@@ -55,9 +58,12 @@ const STAGES: Array<{ name: string; types: Set<string> }> = [
 const seqAtTurn = (events: TraceEvent[], turn: number): number =>
   Math.max(0, ...events.filter((event) => event.turn === turn).map((event) => event.seq));
 
-function Header({ events, state, mode, status, gameId }: {
+function Header({ events, state, mode, status, gameId, focus, inspectorOpen,
+  onFocus, onInspector }: {
   events: TraceEvent[]; state: ReplayState; mode: "replay" | "live";
   status: LiveStatus; gameId: string;
+  focus: boolean; inspectorOpen: boolean;
+  onFocus: () => void; onInspector: () => void;
 }) {
   const shownGameId = state.events[0]?.game_id ?? (gameId || "no trace");
   return <header className="topbar">
@@ -69,6 +75,12 @@ function Header({ events, state, mode, status, gameId }: {
     <div className="run-identity">
       <span className={`live-dot ${mode === "live" ? "streaming" : ""}`} /> {mode} · {status}
       <strong>{shownGameId}</strong>
+    </div>
+    <div className="layout-controls" aria-label="Workspace layout">
+      <button className={focus ? "active" : ""} onClick={onFocus}
+        aria-pressed={focus}>focus</button>
+      <button className={inspectorOpen ? "active" : ""} onClick={onInspector}
+        aria-pressed={inspectorOpen}>inspector</button>
     </div>
     <div className="top-stat"><span>events</span><strong>{events.length.toLocaleString()}</strong></div>
     <div className="top-stat"><span>as of</span><strong>T{state.cursor.turn}.{state.cursor.seq}</strong></div>
@@ -83,10 +95,20 @@ function Scrubber({ events, cursor, onChange }: {
   const maximum = Math.max(...turns, 0);
   const density = densityByTurn(events);
   const maxDensity = Math.max(1, ...density.values());
-  const markers = new Map<number, string>();
+  const markers = new Map<number, Set<string>>();
+  const mark = (turn: number, value: string): void => {
+    const values = markers.get(turn) ?? new Set<string>();
+    values.add(value);
+    markers.set(turn, values);
+  };
   for (const event of events) {
-    if (event.type === "plan_invalidated") markers.set(event.turn, "invalidated");
-    if (event.type === "quarantine") markers.set(event.turn, "quarantine");
+    if (event.type === "plan_invalidated") mark(event.turn, "invalidated");
+    if (event.type === "quarantine") mark(event.turn, "quarantine");
+    if (event.type === "pressure_propagated") mark(event.turn, "pressure");
+    if (event.type === "conductance_updated") mark(event.turn, "learning");
+    if (event.type === "metric_sample" && [
+      "cities_founded", "settlement_completions", "score_gain", "game_win",
+    ].includes(String(event.payload.name))) mark(event.turn, "outcome");
   }
   return <section className="scrubber" aria-label="Global replay cursor">
     <div className="scrubber-label"><span>global cursor</span><strong>Turn {cursor.turn}</strong></div>
@@ -94,7 +116,8 @@ function Scrubber({ events, cursor, onChange }: {
       <div className="density-strip" aria-label="Event density by turn">
         {Array.from({ length: maximum - minimum + 1 }, (_, offset) => minimum + offset).map((turn) =>
           <button key={turn} aria-label={`Turn ${turn}, ${density.get(turn) ?? 0} events`}
-            className={`density-tick ${markers.get(turn) ?? ""} ${turn === cursor.turn ? "active" : ""}`}
+            className={`density-tick ${[...markers.get(turn) ?? []].join(" ")} ${turn === cursor.turn ? "active" : ""}`}
+            title={[...markers.get(turn) ?? []].join(" · ") || "event activity"}
             style={{ opacity: 0.2 + 0.8 * ((density.get(turn) ?? 0) / maxDensity) }}
             onClick={() => onChange({ turn, seq: seqAtTurn(events, turn) })} />)}
       </div>
@@ -108,17 +131,47 @@ function Scrubber({ events, cursor, onChange }: {
   </section>;
 }
 
-function Timeline({ state, selection, onSelect }: {
+function Timeline({ state, selection, onSelect, onCursor }: {
   state: ReplayState; selection?: Selection; onSelect: (selection: Selection) => void;
+  onCursor?: (cursor: Cursor) => void;
 }) {
+  const [turnWindow, setTurnWindow] = useState<20 | 60 | 0>(60);
   const selectedEvent = selection?.kind === "event" ? selection.value : undefined;
   const highlighted = selectedEvent?.type === "action_sent"
     ? ancestry(state, selectedEvent.event_id) : new Set<string>();
+  const allTurns = [...new Set(state.events.map((event) => event.turn))].sort((a, b) => a - b);
+  const turns = turnWindow ? allTurns.slice(-turnWindow) : allTurns;
+  const heatmapRows = STAGES.map((stage, index) => {
+    const counts = new Map<number, number>();
+    for (const event of state.events) {
+      if (stage.types.has(event.type)) {
+        counts.set(event.turn, (counts.get(event.turn) ?? 0) + 1);
+      }
+    }
+    return { label: stage.name, counts, color: CHART_COLORS[index % CHART_COLORS.length] };
+  });
   return <div className="view-content timeline-view">
     <div className="view-heading">
       <div><span className="eyebrow">causal replay</span><h2>Decision timeline</h2></div>
       <p>Select an action to illuminate its complete ancestry. Every edge is read from <code>caused_by</code>.</p>
     </div>
+    <section className="timeline-overview">
+      <header><div><span className="eyebrow">turn × control-stage density</span>
+        <h3>Decision activity matrix</h3></div>
+        <div className="segmented-control" aria-label="Timeline turn window">
+          {([20, 60, 0] as const).map((window) => <button key={window}
+            className={turnWindow === window ? "active" : ""}
+            onClick={() => setTurnWindow(window)}>{window || "all"}</button>)}
+        </div>
+      </header>
+      <TurnHeatmap rows={heatmapRows} turns={turns}
+        label="Decision activity by turn and control stage"
+        onTurn={(turn) => onCursor?.({ turn, seq: seqAtTurn(state.events, turn) })} />
+      <div className="cursor-marker-legend">
+        <span className="pressure">pressure</span><span className="learning">learning</span>
+        <span className="outcome">outcome</span><span className="invalidated">invalidation</span>
+      </div>
+    </section>
     <div className="swimlanes">
       {STAGES.map((stage) => {
         const events = state.events.filter((event) => stage.types.has(event.type));
@@ -164,6 +217,76 @@ const proofRows = (proof: PlnResult["proof"], expandedNodes: Set<string>): Proof
   return rows;
 };
 
+function ProofGraph({ result, onSelect }: {
+  result: PlnResult; onSelect: (selection: Selection) => void;
+}) {
+  const nodesById = new Map(result.proof.nodes.map((node) => [node.node_id, node]));
+  const depthById = new Map<string, number>([[result.proof.root_node_id, 0]]);
+  const queue = [result.proof.root_node_id];
+  while (queue.length) {
+    const id = queue.shift();
+    if (!id) continue;
+    const depth = depthById.get(id) ?? 0;
+    for (const premise of nodesById.get(id)?.premise_node_refs ?? []) {
+      if (!depthById.has(premise)) {
+        depthById.set(premise, depth + 1);
+        queue.push(premise);
+      }
+    }
+  }
+  const visible = result.proof.nodes.filter((node) => depthById.has(node.node_id)).slice(0, 120);
+  const visibleIds = new Set(visible.map((node) => node.node_id));
+  const levels = new Map<number, ProofNode[]>();
+  for (const node of visible) {
+    const depth = depthById.get(node.node_id) ?? 0;
+    levels.set(depth, [...levels.get(depth) ?? [], node]);
+  }
+  const maximumDepth = Math.max(0, ...levels.keys());
+  const height = Math.max(230, ...[...levels.values()].map((level) => level.length * 55 + 40));
+  const position = new Map<string, { x: number; y: number }>();
+  for (const [depth, level] of levels) {
+    level.forEach((node, index) => position.set(node.node_id, {
+      x: 60 + depth * (800 / Math.max(1, maximumDepth)),
+      y: 28 + (index + 0.5) * ((height - 50) / level.length),
+    }));
+  }
+  return <div className="proof-graph-wrap">
+    <svg className="proof-graph" viewBox={`0 0 920 ${height}`} role="img"
+      aria-label="Proof dependency graph">
+      <defs><marker id="proof-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4"
+        orient="auto"><path d="M0,0 L8,4 L0,8 z" /></marker></defs>
+      {visible.flatMap((node) => node.premise_node_refs.filter((id) => visibleIds.has(id))
+        .map((premise) => {
+          const from = position.get(node.node_id);
+          const to = position.get(premise);
+          if (!from || !to) return null;
+          return <line key={`${node.node_id}-${premise}`}
+            x1={from.x + 11} y1={from.y} x2={to.x - 11} y2={to.y}
+            className="proof-edge" markerEnd="url(#proof-arrow)" />;
+        }))}
+      {visible.map((node) => {
+        const point = position.get(node.node_id);
+        if (!point) return null;
+        return <g key={node.node_id} transform={`translate(${point.x} ${point.y})`}
+          className={`proof-graph-node ${node.satisfied ? "satisfied" : "blocked"} ${node.crisp ? "crisp" : "uncertain"}`}
+          role="button" tabIndex={0} aria-label={`${node.kind} ${formatAtom(node.atom)}`}
+          onClick={() => onSelect({ kind: "node", value: node })}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") onSelect({ kind: "node", value: node });
+          }}>
+          <circle r={node.kind === "goal" ? 12 : 9} />
+          <text x="16" y="-2">{humanize(node.kind)}</text>
+          <text x="16" y="10" className="proof-graph-label">{node.atom.predicate}</text>
+          <title>{formatAtom(node.atom)} · confidence {node.tv.confidence}</title>
+        </g>;
+      })}
+    </svg>
+    {result.proof.nodes.length > visible.length && <span className="graph-limit">
+      Showing the first {visible.length} logged nodes of {result.proof.nodes.length}
+    </span>}
+  </div>;
+}
+
 export function ProofExplorer({ state, selection, onSelect }: {
   state: ReplayState; selection?: Selection; onSelect: (selection: Selection) => void;
 }) {
@@ -171,6 +294,7 @@ export function ProofExplorer({ state, selection, onSelect }: {
   const [comparison, setComparison] = useState(-1);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => new Set());
   const [proofWindow, setProofWindow] = useState(0);
+  const [displayMode, setDisplayMode] = useState<"split" | "graph" | "list">("split");
   const proofRecord = state.proofs[Math.min(selectedProof, Math.max(0, state.proofs.length - 1))];
   if (!proofRecord) return <LoggingGap title="No proof trace at this cursor"
     detail="The view will not reconstruct a proof from atoms. Emit pln_result with a lossless proof tree." />;
@@ -197,6 +321,11 @@ export function ProofExplorer({ state, selection, onSelect }: {
     <div className="view-heading">
       <div><span className="eyebrow">PLN boundary / {result.status}</span><h2>Proof explorer</h2></div>
       <div className="proof-controls">
+        <div className="segmented-control" aria-label="Proof display">
+          {(["split", "graph", "list"] as const).map((mode) => <button key={mode}
+            className={displayMode === mode ? "active" : ""}
+            onClick={() => setDisplayMode(mode)}>{mode}</button>)}
+        </div>
         <label>proof <select aria-label="Proof" value={selectedProof}
           onChange={(event) => {
             setSelectedProof(Number(event.target.value));
@@ -230,7 +359,9 @@ export function ProofExplorer({ state, selection, onSelect }: {
       <button disabled={safeProofWindow + 1 >= proofWindowCount}
         onClick={() => setProofWindow(safeProofWindow + 1)}>next 500</button>
     </div>}
-    <div className="proof-grid" role="tree" aria-label="AND OR proof tree">
+    <div className={`proof-workbench mode-${displayMode}`}>
+    {displayMode !== "list" && <ProofGraph result={result} onSelect={onSelect} />}
+    {displayMode !== "graph" && <div className="proof-grid" role="tree" aria-label="AND OR proof tree">
       {displayedRows.map(({ node, depth, expandable, expanded, atomText, className }) => <div role="treeitem" key={node.node_id}
         tabIndex={0}
         aria-level={depth + 1} aria-label={`${node.kind} ${atomText}`}
@@ -269,6 +400,7 @@ export function ProofExplorer({ state, selection, onSelect }: {
             setProofWindow(0);
           }}>{expanded ? "−" : `+${node.premise_node_refs.length}`}</button>}
       </div>)}
+    </div>}
     </div>
     {sourcePlan?.branch_scores && sourcePlan.branch_scores.length > 0 && <section className="branch-strip">
       <h3>OR branch comparison</h3>
@@ -311,6 +443,14 @@ function Atomspace({ state, onSelect, search, channel, onSearch, onChannel }: {
   const atomWindowCount = Math.max(1, Math.ceil(rows.length / 500));
   const safeAtomWindow = Math.min(atomWindow, atomWindowCount - 1);
   const firstAtomRow = safeAtomWindow * 500;
+  const predicateGroups = new Map<string, AtomView[]>();
+  for (const row of rows) {
+    predicateGroups.set(row.atom.predicate, [...predicateGroups.get(row.atom.predicate) ?? [], row]);
+  }
+  const groupedPredicates = [...predicateGroups.entries()]
+    .sort((left, right) => right[1].length - left[1].length || left[0].localeCompare(right[0]))
+    .slice(0, 12);
+  const largestPredicate = Math.max(1, ...groupedPredicates.map(([, values]) => values.length));
   return <div className="view-content atom-view">
     <div className="view-heading">
       <div><span className="eyebrow">strict as-of projection</span><h2>Atomspace inspector</h2></div>
@@ -335,9 +475,26 @@ function Atomspace({ state, onSelect, search, channel, onSearch, onChannel }: {
           onClick={() => setAtomWindow(safeAtomWindow + 1)}>›</button>
       </div>
     </div>
+    <section className="atom-overview">
+      <header><div><span className="eyebrow">predicate grouping</span><h3>Atom distribution</h3></div>
+        <small>confidence is a display aggregation of logged values</small></header>
+      <div className="atom-group-chart">
+        {groupedPredicates.map(([predicate, values]) => {
+          const uncertain = values.filter((row) => !row.atom.crisp).length;
+          const confidence = values.reduce((sum, row) => sum + row.atom.tv.confidence, 0) / values.length;
+          return <button key={predicate} onClick={() => onSearch(predicate)}>
+            <span><strong>{humanize(predicate)}</strong><small>{predicate}</small></span>
+            <ValueBar value={values.length} maximum={largestPredicate}
+              label={`${predicate} atom count`} />
+            <span><strong>{values.length}</strong><small>{uncertain} uncertain · μc {confidence.toFixed(2)}</small></span>
+          </button>;
+        })}
+      </div>
+    </section>
     <div className="atom-table" role="table">
       <div className="atom-row atom-head" role="row">
-        <span>predicate</span><span>arguments</span><span>truth value</span><span>provenance</span><span>revised</span>
+        <span>predicate</span><span>arguments</span><span>truth value</span>
+        <span>confidence history</span><span>provenance</span><span>revised</span>
       </div>
       {rows.slice(firstAtomRow, firstAtomRow + 500).map((row) => <button className={`atom-row ${row.duplicateProvenance ? "duplicate" : ""}`}
         role="row" key={row.atom.atom_id} onClick={() => onSelect({ kind: "atom", value: row })}>
@@ -346,6 +503,8 @@ function Atomspace({ state, onSelect, search, channel, onSearch, onChannel }: {
         <span className={row.atom.crisp ? "tv-crisp" : "tv-uncertain"}>
           {row.atom.tv.strength.toFixed(2)} / {row.atom.tv.confidence.toFixed(2)}
         </span>
+        <Sparkline values={row.history.map((entry) => entry.tv.confidence)}
+          minimum={0} maximum={1} label={`${row.atom.predicate} confidence revisions`} />
         <span>{row.atom.provenance_ids.length}</span><span>T{row.lastTurn}</span>
       </button>)}
     </div>
@@ -353,12 +512,61 @@ function Atomspace({ state, onSelect, search, channel, onSearch, onChannel }: {
 }
 
 function PlanBoard({ state, onSelect }: { state: ReplayState; onSelect: (selection: Selection) => void }) {
+  const [ganttWindow, setGanttWindow] = useState<20 | 60 | 0>(20);
   const plans = [...state.plans.values()];
   if (!plans.length) return <LoggingGap title="No plan events at this cursor"
     detail="Plan timing and resource values are rendered only from plan_created events." />;
+  const ganttPlans = ganttWindow ? plans.slice(-ganttWindow) : plans;
+  const turns = ganttPlans.flatMap((plan) => plan.steps.flatMap((step) =>
+    [step.predicted_turn, step.actual_turn].filter((value): value is number => typeof value === "number")));
+  const minimumTurn = Math.min(...turns);
+  const maximumTurn = Math.max(minimumTurn + 1, ...turns);
+  const position = (turn: number): number =>
+    (turn - minimumTurn) / Math.max(1, maximumTurn - minimumTurn) * 100;
   return <div className="view-content"><div className="view-heading">
     <div><span className="eyebrow">scheduled intent</span><h2>Plan board</h2></div>
-  </div><div className="plan-grid">{plans.map((plan) => {
+    <p>{plans.length} logged plans · predicted and actual turns remain visually distinct</p>
+  </div>
+  <section className="plan-gantt" aria-label="Plan dependency and timing chart">
+    <header><div><span className="eyebrow">dependency schedule</span><h3>Plan timing</h3></div>
+      <div className="gantt-controls"><span>T{minimumTurn}—T{maximumTurn}</span>
+        <div className="segmented-control" role="group" aria-label="Plan timing window">
+          {([20, 60, 0] as const).map((window) => <button key={window}
+            className={ganttWindow === window ? "active" : ""}
+            onClick={() => setGanttWindow(window)}>{window || "all"}</button>)}
+        </div>
+      </div></header>
+    <div className="gantt-axis">
+      {Array.from({ length: Math.min(12, maximumTurn - minimumTurn + 1) }, (_, index) => {
+        const turn = minimumTurn + Math.round(index * (maximumTurn - minimumTurn)
+          / Math.max(1, Math.min(11, maximumTurn - minimumTurn)));
+        return <span key={`${turn}-${index}`} style={{ left: `${position(turn)}%` }}>T{turn}</span>;
+      })}
+    </div>
+    {ganttPlans.map((plan) => <div className={`gantt-lane status-${plan.status.toLowerCase()}`} key={plan.plan_id}>
+      <button className="gantt-plan-label" onClick={() => onSelect({ kind: "plan", value: plan })}>
+        <strong>{humanize(plan.goal_atom_id)}</strong><small>{plan.plan_id}</small>
+      </button>
+      <div className="gantt-track">
+        {plan.steps.length > 1 && <span className="gantt-dependency"
+          style={{ left: `${position(plan.steps[0].predicted_turn)}%`,
+            width: `${position(plan.steps.at(-1)!.predicted_turn) - position(plan.steps[0].predicted_turn)}%` }} />}
+        {plan.steps.map((step, index) => <button key={step.step_id}
+          className={`gantt-step status-${step.status.toLowerCase()}`}
+          style={{ left: `${position(step.predicted_turn)}%` }}
+          title={`${step.kind}: predicted T${step.predicted_turn}, actual ${step.actual_turn ?? "not logged"}`}
+          onClick={() => onSelect({ kind: "step", value: step, plan })}>
+          <span>{index + 1}</span>
+          {step.actual_turn !== null && <i style={{
+            "--actual-offset": `${position(step.actual_turn) - position(step.predicted_turn)}%`,
+          } as React.CSSProperties} />}
+        </button>)}
+      </div>
+    </div>)}
+    <footer><span className="predicted">● predicted</span><span className="actual">◆ actual</span>
+      <span className="invalid">red lane = invalidated</span></footer>
+  </section>
+  <div className="plan-grid">{plans.map((plan) => {
     const invalidation = state.invalidations.get(plan.plan_id);
     const invalidPayload = invalidation?.payload;
     return <article key={plan.plan_id}
@@ -402,6 +610,12 @@ const coordinate = (atom: Atom): [number, number] | undefined => {
 function MapOverlay({ state, selection, onSelect }: {
   state: ReplayState; selection?: Selection; onSelect: (selection: Selection) => void;
 }) {
+  const spatialPlans = [...state.plans.values()].filter((plan) =>
+    plan.steps.some((step) => {
+      const spatial = step.spatial as { x?: number; y?: number } | null;
+      return spatial && Number.isInteger(spatial.x) && Number.isInteger(spatial.y);
+    }));
+  const [planId, setPlanId] = useState<string>();
   const snapshot = state.snapshots.at(-1);
   if (!snapshot) return <LoggingGap title="No map snapshot at this cursor"
     detail="The map never infers tiles or paths without a state_snapshot map payload." />;
@@ -413,7 +627,8 @@ function MapOverlay({ state, selection, onSelect }: {
   const visible = new Set((Array.isArray(map?.visible) ? map.visible : []).map((row) => JSON.stringify(row)));
   const positioned = [...state.atoms.values()].filter((row) => coordinate(row.atom));
   const selectedPlan = selection?.kind === "plan" ? selection.value
-    : selection?.kind === "step" ? selection.plan : undefined;
+    : selection?.kind === "step" ? selection.plan
+      : spatialPlans.find((plan) => plan.plan_id === planId) ?? spatialPlans.at(-1);
   const planned = new Map<string, PlanStep>();
   for (const step of selectedPlan?.steps ?? []) {
     const spatial = step.spatial as { x?: number; y?: number } | null;
@@ -422,10 +637,26 @@ function MapOverlay({ state, selection, onSelect }: {
     }
   }
   const invalid = selectedPlan ? state.invalidations.get(selectedPlan.plan_id) : undefined;
+  const path = (selectedPlan?.steps ?? []).flatMap((step) => {
+    const spatial = step.spatial as { x?: number; y?: number } | null;
+    return spatial && typeof spatial.x === "number" && typeof spatial.y === "number"
+      ? [{ x: spatial.x, y: spatial.y, step }] : [];
+  });
+  const viewHeight = 1000 * height / width;
   return <div className="view-content map-view"><div className="view-heading">
     <div><span className="eyebrow">event-provided spatial state</span><h2>Map overlay</h2></div>
-    <p>{width}×{height} logged tiles · {positioned.length} markers</p>
-  </div><div className="tile-map" style={{ "--map-width": width } as React.CSSProperties}>
+    <div className="map-controls"><p>{width}×{height} logged tiles · {positioned.length} markers</p>
+      {spatialPlans.length > 0 && <label>plan <select aria-label="Map plan overlay"
+        value={selectedPlan?.plan_id ?? ""}
+        onChange={(event) => setPlanId(event.target.value)}>
+        {spatialPlans.map((plan) => <option key={plan.plan_id} value={plan.plan_id}>
+          {humanize(plan.goal_atom_id)} · {plan.status}
+        </option>)}
+      </select></label>}</div>
+  </div><div className="map-canvas" style={{
+    "--map-aspect": `${width} / ${height}`,
+  } as React.CSSProperties}>
+  <div className="tile-map" style={{ "--map-width": width } as React.CSSProperties}>
     {Array.from({ length: width * height }, (_, index) => {
       const x = index % width; const y = Math.floor(index / width);
       const marker = positioned.find((row) => {
@@ -437,11 +668,22 @@ function MapOverlay({ state, selection, onSelect }: {
       return <button key={`${x}-${y}`} aria-label={`Tile ${x},${y}`}
         className={`map-tile ${visible.has(JSON.stringify([x, y])) ? "visible" : "fog"} ${marker ? "has-marker" : ""} ${step ? "planned" : ""} ${broken ? "broken" : ""}`}
         onClick={() => marker && onSelect({ kind: "atom", value: marker })}>
-        {marker && <span className="uncertain-marker" style={{ opacity: marker.atom.tv.confidence }}
+        {marker && <span className={`uncertain-marker marker-${marker.atom.predicate}`}
+          style={{ opacity: marker.atom.tv.confidence }}
           title={`${formatAtom(marker.atom)} confidence ${marker.atom.tv.confidence.toFixed(2)}`} />}
         {step && <em>T{step.predicted_turn}</em>}
       </button>;
     })}
+  </div>
+  {path.length > 0 && <svg className="map-path-overlay" viewBox={`0 0 1000 ${viewHeight}`}
+    role="img" aria-label={`Logged path for ${selectedPlan?.goal_atom_id ?? "selected plan"}`}>
+    <polyline points={path.map(({ x, y }) =>
+      `${(x + 0.5) / width * 1000},${(y + 0.5) / height * viewHeight}`).join(" ")} />
+    {path.map(({ x, y, step }, index) => <g key={step.step_id}
+      transform={`translate(${(x + 0.5) / width * 1000} ${(y + 0.5) / height * viewHeight})`}>
+      <circle r="15" /><text y="5" textAnchor="middle">{index + 1}</text>
+    </g>)}
+  </svg>}
   </div><div className="map-legend"><span>● uncertain marker opacity = logged confidence</span>
     <span>□ fog as logged</span><span>◈ selected plan ETA</span></div></div>;
 }
@@ -455,9 +697,33 @@ function EpistemicAudit({ state, onSelect }: {
   const writeThrough = [...state.metrics].reverse().find(
     (event) => event.payload.name === "confabulation_write_through");
   const writeValue = writeThrough ? Number(writeThrough.payload.value) : undefined;
+  const auditTurns = [...new Set([
+    ...proposals.map((event) => event.turn),
+    ...state.verifications.map((event) => event.turn),
+    ...state.quarantines.map((event) => event.turn),
+  ])].sort((left, right) => left - right);
+  const countsByTurn = (events: TraceEvent[], count: (event: TraceEvent) => number = () => 1):
+  Map<number, number> => {
+    const values = new Map<number, number>();
+    for (const event of events) values.set(event.turn, (values.get(event.turn) ?? 0) + count(event));
+    return values;
+  };
   return <div className="view-content audit-view"><div className="view-heading">
     <div><span className="eyebrow">three-sink verification</span><h2>Epistemic audit</h2></div>
-  </div><div className={`write-through ${writeValue === undefined ? "unknown" : writeValue ? "alarm" : "clear"}`} role="status">
+  </div>
+  {auditTurns.length > 0 && <section className="audit-heatmap">
+    <header><div><span className="eyebrow">verification chronology</span>
+      <h3>Claim handling by turn</h3></div></header>
+    <TurnHeatmap turns={auditTurns} label="Claims, verification, and quarantine by turn"
+      onTurn={() => undefined}
+      rows={[
+        { label: "Claims", counts: countsByTurn(proposals,
+          (event) => Array.isArray(event.payload.claims) ? event.payload.claims.length : 0), color: CHART_COLORS[0] },
+        { label: "Verified", counts: countsByTurn(state.verifications), color: CHART_COLORS[2] },
+        { label: "Quarantined", counts: countsByTurn(state.quarantines), color: CHART_COLORS[3] },
+      ]} />
+  </section>}
+  <div className={`write-through ${writeValue === undefined ? "unknown" : writeValue ? "alarm" : "clear"}`} role="status">
     <span>confabulation write-through</span><strong>{writeValue ?? "—"}</strong>
     <small>{writeThrough ? "event-provided metric" : "no metric logged · unknown"}</small>
   </div><div className="funnel" aria-label="Verification funnel">
@@ -491,13 +757,199 @@ const numeric = (value: unknown): string =>
 
 const compactPfId = (value: unknown): string => {
   const text = String(value ?? "—");
-  return text.startsWith("pf-impact:") ? text.slice("pf-impact:".length) : text;
+  const withoutNamespace = text.replace(
+    /^pf-impact(?::|-goal:|-category:|-candidate:|-premise:)/, "");
+  return withoutNamespace.length > 28
+    ? `${withoutNamespace.slice(0, 17)}…${withoutNamespace.slice(-8)}`
+    : withoutNamespace;
 };
 
-function PfPlnDashboard({ state, onSelect }: {
-  state: ReplayState; onSelect: (selection: Selection) => void;
+function PressureFlowGraph({ traces, goals, onInspect }: {
+  traces: Array<Record<string, unknown>>;
+  goals: Array<Record<string, unknown>>;
+  onInspect: () => void;
 }) {
-  const [decisionId, setDecisionId] = useState<string>();
+  const visible = traces.slice(0, 80);
+  const goalIds = [...new Set([
+    ...goals.map((goal) => String(goal.goal_id ?? "unknown goal")),
+    ...visible.map((trace) => String(trace.goal_id ?? "unknown goal")),
+  ])];
+  const conclusions = [...new Set(visible.map((trace) => String(trace.conclusion_id ?? "unknown conclusion")))];
+  const premises = [...new Set(visible.map((trace) => String(trace.premise_id ?? "unknown premise")))];
+  const height = Math.max(250, Math.max(goalIds.length, conclusions.length, premises.length) * 46 + 42);
+  const position = (items: string[], id: string, x: number): { x: number; y: number } => ({
+    x,
+    y: 34 + (Math.max(0, items.indexOf(id)) + 0.5) * ((height - 58) / Math.max(1, items.length)),
+  });
+  const maximum = Math.max(1, ...visible.map((trace) =>
+    Math.abs(Number(trace.transported_pressure ?? 0))));
+  return <div className="pf-flow-graph-wrap">
+    <div className="pf-flow-columns" aria-hidden="true">
+      <span>goal field</span><span>rule conclusion</span><span>candidate premise</span>
+    </div>
+    <svg className="pf-flow-graph" viewBox={`0 0 960 ${height}`} role="img"
+      aria-label="PF-PLN pressure flow graph" onClick={onInspect}>
+      {visible.flatMap((trace, index) => {
+        const goal = String(trace.goal_id ?? "unknown goal");
+        const conclusion = String(trace.conclusion_id ?? "unknown conclusion");
+        const premise = String(trace.premise_id ?? "unknown premise");
+        const from = position(goalIds, goal, 92);
+        const middle = position(conclusions, conclusion, 480);
+        const to = position(premises, premise, 868);
+        const pressure = Math.abs(Number(trace.transported_pressure ?? 0));
+        const width = 0.8 + pressure / maximum * 5;
+        const color = CHART_COLORS[Math.max(0, goalIds.indexOf(goal)) % CHART_COLORS.length];
+        return [
+          <path key={`goal-${index}`} d={`M${from.x},${from.y} C270,${from.y} 300,${middle.y} ${middle.x},${middle.y}`}
+            stroke={color} strokeWidth={width} className="pf-flow-edge" />,
+          <path key={`premise-${index}`} d={`M${middle.x},${middle.y} C650,${middle.y} 680,${to.y} ${to.x},${to.y}`}
+            stroke={color} strokeWidth={width} className="pf-flow-edge" />,
+        ];
+      })}
+      {[{ values: goalIds, x: 92, kind: "goal" }, { values: conclusions, x: 480, kind: "rule" },
+        { values: premises, x: 868, kind: "premise" }].flatMap(({ values, x, kind }) =>
+        values.map((id) => {
+          const point = position(values, id, x);
+          return <g key={`${kind}-${id}`} transform={`translate(${point.x} ${point.y})`}
+            className={`pf-flow-node ${kind}`}>
+            <circle r={kind === "goal" ? 9 : 6} />
+            <text x={x > 700 ? -12 : 12} y="-2" textAnchor={x > 700 ? "end" : "start"}>
+              {compactPfId(id)}
+            </text>
+            <title>{id}</title>
+          </g>;
+        }))}
+    </svg>
+    {traces.length > visible.length && <span className="graph-limit">
+      Showing 80 of {traces.length} logged routes
+    </span>}
+  </div>;
+}
+
+const operationParts = (score: Record<string, unknown>, index = 0): {
+  operation: Record<string, unknown>; payload: Record<string, unknown>;
+  action: Record<string, unknown>; id: string;
+} => {
+  const operation = recordOf(score.operation);
+  const payload = recordOf(operation.payload);
+  return {
+    operation, payload, action: recordOf(payload.action),
+    id: String(operation.operation_id ?? index),
+  };
+};
+
+function CandidateRanking({ scores, selectedOperationId, onInspect }: {
+  scores: Array<Record<string, unknown>>;
+  selectedOperationId: string;
+  onInspect: () => void;
+}) {
+  const maximum = Math.max(1e-9, ...scores.flatMap((score) =>
+    [Math.abs(Number(score.priority ?? 0)), Math.abs(Number(score.value ?? 0))]));
+  return <div className="pf-ranking" aria-label="PF-PLN candidate ranking chart">
+    {scores.slice(0, 100).map((score, index) => {
+      const parts = operationParts(score, index);
+      const selected = parts.id === selectedOperationId;
+      const admissible = score.admissible === true;
+      const priority = Number(score.priority ?? 0);
+      const value = Number(score.value ?? 0);
+      return <button key={parts.id}
+        className={`${selected ? "selected" : ""} ${admissible ? "" : "rejected"}`}
+        onClick={onInspect}>
+        <span className="pf-rank-number">{selected ? "◆" : index + 1}</span>
+        <span className="pf-rank-label"><strong>{humanize(parts.payload.category)}</strong>
+          <small>{String(parts.payload.category ?? "uncategorized")} · {
+            humanize(parts.action.action_type ?? parts.operation.mode)}</small></span>
+        <span className="pf-rank-bars">
+          <ValueBar value={priority} maximum={maximum} color="var(--cyan)"
+            label={`${parts.id} priority`} muted={!admissible} />
+          <ValueBar value={value} maximum={maximum} color="var(--amber)"
+            label={`${parts.id} value`} muted={!admissible} />
+        </span>
+        <span className="pf-rank-values"><strong>{numeric(priority)}</strong>
+          <small>{numeric(value)}</small></span>
+        <span className="pf-rank-status">{selected ? "selected" : admissible ? "eligible" : "rejected"}</span>
+      </button>;
+    })}
+  </div>;
+}
+
+function PairedTraceComparison({ state, comparisonState, comparisonSource, decision }: {
+  state: ReplayState;
+  comparisonState?: ReplayState;
+  comparisonSource?: string;
+  decision?: TraceEvent;
+}) {
+  if (!comparisonState || !comparisonSource) return <section className="pf-panel pf-comparison empty">
+    <header><div><span className="eyebrow">paired-seed evaluation</span>
+      <h3>Trace comparison</h3></div></header>
+    <div className="pf-panel-gap">Choose “compare” in Experiment traces to align a second arm by turn.</div>
+  </section>;
+  const comparisonDecision = [...comparisonState.operationScores].reverse().find(
+    (event) => !decision || event.turn <= decision.turn) ?? comparisonState.operationScores.at(-1);
+  const selected = (event?: TraceEvent): { category: string; action: string } => {
+    const scores = rowsOf(event?.payload.scores);
+    const id = String(event?.payload.selected_operation_id ?? "");
+    const row = scores.find((score, index) => operationParts(score, index).id === id);
+    const parts = operationParts(row ?? {});
+    return {
+      category: String(parts.payload.category ?? "no selection"),
+      action: String(parts.action.action_type ?? parts.operation.mode ?? "—"),
+    };
+  };
+  const primary = selected(decision);
+  const comparison = selected(comparisonDecision);
+  const outcomeNames = new Set([
+    "score_gain", "cities_founded", "settlement_completions", "game_win",
+  ]);
+  const isOutcome = (name: string): boolean => outcomeNames.has(name) || /^score_turn_\d+$/.test(name);
+  const latestMetrics = (source: ReplayState): Map<string, TraceEvent> => {
+    const rows = new Map<string, TraceEvent>();
+    for (const event of source.metrics) {
+      const name = String(event.payload.name);
+      if (isOutcome(name)) rows.set(name, event);
+    }
+    return rows;
+  };
+  const leftMetrics = latestMetrics(state);
+  const rightMetrics = latestMetrics(comparisonState);
+  const metricNames = [...new Set([...leftMetrics.keys(), ...rightMetrics.keys()])].sort();
+  const diverged = primary.category !== comparison.category || primary.action !== comparison.action;
+  return <section className="pf-panel pf-comparison">
+    <header><div><span className="eyebrow">turn-aligned descriptive comparison</span>
+      <h3>Paired trace comparison</h3></div>
+      <span className={diverged ? "pf-divergence divergent" : "pf-divergence"}>
+        {diverged ? "decision diverged" : "same decision"}
+      </span></header>
+    <div className="pf-arm-comparison">
+      <article><span>active trace · T{decision?.turn ?? "—"}</span>
+        <strong>{humanize(primary.category)}</strong><small>{humanize(primary.action)}</small></article>
+      <div className="pf-vs">vs</div>
+      <article><span>comparison · T{comparisonDecision?.turn ?? "—"}</span>
+        <strong>{humanize(comparison.category)}</strong><small>{humanize(comparison.action)}</small></article>
+    </div>
+    {metricNames.length > 0 && <div className="pf-outcome-deltas">
+      <div className="head"><span>logged outcome</span><span>active</span>
+        <span>comparison</span><span>display difference</span></div>
+      {metricNames.map((name) => {
+        const left = Number(leftMetrics.get(name)?.payload.value ?? 0);
+        const right = Number(rightMetrics.get(name)?.payload.value ?? 0);
+        return <div key={name}><strong>{humanize(name)}</strong><span>{numeric(left)}</span>
+          <span>{numeric(right)}</span>
+          <span className={left - right > 0 ? "positive" : left - right < 0 ? "negative" : ""}>
+            {left - right > 0 ? "+" : ""}{numeric(left - right)}
+          </span></div>;
+      })}
+    </div>}
+    <footer>Values are logged outcomes at the replay cursor. This display does not estimate causality or uncertainty.</footer>
+  </section>;
+}
+
+function PfPlnDashboard({ state, onSelect, decisionId, onDecision, comparisonState,
+  comparisonSource }: {
+  state: ReplayState; onSelect: (selection: Selection) => void;
+  decisionId?: string; onDecision: (decision?: string) => void;
+  comparisonState?: ReplayState; comparisonSource?: string;
+}) {
   const decisions = state.operationScores;
   const selectedDecision = decisions.find(
     (event) => event.payload.decision_id === decisionId) ?? decisions.at(-1);
@@ -520,32 +972,24 @@ function PfPlnDashboard({ state, onSelect }: {
     return name.startsWith("impact_planning_pressure_")
       || name.startsWith("turn_impact_learning_");
   });
+  const updatesByCategory = new Map<string, TraceEvent[]>();
+  for (const event of state.conductanceUpdates) {
+    const category = String(event.payload.category ?? "uncategorized");
+    updatesByCategory.set(category, [...updatesByCategory.get(category) ?? [], event]);
+  }
 
   if (!state.pfPlnEvents.length && !phaseMetrics.length) {
     return <LoggingGap title="No PF-PLN control events at this cursor"
       detail="Load a pressure-enabled treatment trace or emit pressure_propagated, operation_scored, and conductance_updated. The browser will not reconstruct pressure or scheduler output." />;
   }
 
-  const summary: Array<{
-    label: string; value: number; event?: TraceEvent; detail: string;
-  }> = [
-    {
-      label: "propagations", value: state.pressurePropagations.length,
-      event: state.pressurePropagations.at(-1), detail: "pressure fields",
-    },
-    {
-      label: "decisions", value: decisions.length,
-      event: decisions.at(-1), detail: "scored schedules",
-    },
-    {
-      label: "selections", value: decisions.filter(
-        (event) => event.payload.selected_operation_id !== null).length,
-      event: decisions.at(-1), detail: "selected operations",
-    },
-    {
-      label: "learning", value: state.conductanceUpdates.length,
-      event: state.conductanceUpdates.at(-1), detail: "conductance feedback",
-    },
+  const summary = [
+    { label: "active goals", value: goals.length, event: pressureEvent, detail: "current pressure field" },
+    { label: "candidates", value: scores.length, event: selectedDecision, detail: "logged scheduler order" },
+    { label: "rejected", value: scores.filter((score) => score.admissible !== true).length,
+      event: selectedDecision, detail: "inadmissible candidates" },
+    { label: "learned routes", value: updatesByCategory.size,
+      event: state.conductanceUpdates.at(-1), detail: "conductance categories" },
   ];
 
   return <div className="view-content pf-view">
@@ -569,7 +1013,12 @@ function PfPlnDashboard({ state, onSelect }: {
         <div><span className="eyebrow">scheduler replay</span><h3>Decision focus</h3></div>
         {decisions.length > 0 && <label>decision
           <select aria-label="PF-PLN decision" value={selectedDecisionId}
-            onChange={(event) => setDecisionId(event.target.value)}>
+            onChange={(event) => {
+              onDecision(event.target.value);
+              const selected = decisions.find((row) =>
+                String(row.payload.decision_id) === event.target.value);
+              if (selected) onSelect({ kind: "event", value: selected });
+            }}>
             {decisions.slice(-500).reverse().map((event) =>
               <option key={event.event_id} value={String(event.payload.decision_id)}>
                 T{event.turn}.{event.seq} · {String(event.payload.decision_id)}
@@ -590,6 +1039,9 @@ function PfPlnDashboard({ state, onSelect }: {
         </button>
       </div> : <div className="pf-panel-gap">No operation_scored event was logged.</div>}
     </section>
+
+    <PairedTraceComparison state={state} comparisonState={comparisonState}
+      comparisonSource={comparisonSource} decision={selectedDecision} />
 
     <div className="pf-two-column">
       <section className="pf-panel">
@@ -631,10 +1083,15 @@ function PfPlnDashboard({ state, onSelect }: {
 
     <section className="pf-panel pf-schedule">
       <header><div><span className="eyebrow">event-provided order / {scores.length} candidates</span>
-        <h3>Operation schedule</h3></div>
+        <h3>Candidate ranking</h3></div>
         <span className="pf-solver">{String(selectedDecision?.payload.solver_identity ?? "no solver identity")}</span>
       </header>
-      {scores.length ? <div className="pf-table" role="table" aria-label="PF-PLN operation schedule">
+      {scores.length ? <>
+        <CandidateRanking scores={scores} selectedOperationId={selectedOperationId}
+          onInspect={() => selectedDecision
+            && onSelect({ kind: "event", value: selectedDecision })} />
+        <details className="pf-exact-table"><summary>Exact scheduler table</summary>
+        <div className="pf-table" role="table" aria-label="PF-PLN operation schedule">
         <div className="pf-score-row head" role="row">
           <span>selection</span><span>category / action</span><span>admissible</span>
           <span>priority</span><span>value</span><span>reason</span>
@@ -659,83 +1116,134 @@ function PfPlnDashboard({ state, onSelect }: {
             <span>{String(score.reason ?? "—")}</span>
           </button>;
         })}
-      </div> : <div className="pf-panel-gap">No scheduler scores were logged.</div>}
+        </div></details>
+      </> : <div className="pf-panel-gap">No scheduler scores were logged.</div>}
     </section>
 
-    <div className="pf-two-column">
-      <section className="pf-panel">
+    <section className="pf-panel pf-pressure-panel">
         <header><div><span className="eyebrow">transport lineage / {traces.length} routes</span>
-          <h3>Pressure flow</h3></div></header>
-        {traces.length ? <div className="pf-flow-list">
-          {traces.slice(0, 100).map((trace, index) =>
-            <div key={`${String(trace.rule_id)}-${index}`}>
-              <span>T{String(trace.hop ?? "—")}</span>
-              <strong>{compactPfId(trace.goal_id)}</strong>
-              <p>{compactPfId(trace.conclusion_id)} → {compactPfId(trace.premise_id)}</p>
-              <em>{numeric(trace.transported_pressure)}</em>
-            </div>)}
-        </div> : <div className="pf-panel-gap">No pressure transport traces were logged.</div>}
-      </section>
+          <h3>Pressure topology</h3></div>
+          <span className="pf-count">edge width = transported pressure</span></header>
+        {traces.length && pressureEvent
+          ? <PressureFlowGraph traces={traces} goals={goals}
+            onInspect={() => onSelect({ kind: "event", value: pressureEvent })} />
+          : <div className="pf-panel-gap">No pressure transport traces were logged.</div>}
+    </section>
 
+    <div className="pf-two-column pf-learning-runtime">
       <section className="pf-panel">
-        <header><div><span className="eyebrow">grounded feedback / latest first</span>
-          <h3>Conductance learning</h3></div>
+        <header><div><span className="eyebrow">grounded feedback / chronological history</span>
+          <h3>Conductance trends</h3></div>
           <span className="pf-count">{state.conductanceUpdates.length}</span></header>
-        {state.conductanceUpdates.length ? <div className="pf-learning-list">
-          {[...state.conductanceUpdates].reverse().slice(0, 100).map((event) =>
-            <button key={event.event_id}
-              onClick={() => onSelect({ kind: "event", value: event })}>
-              <span>T{event.turn}</span><strong>{String(event.payload.category)}</strong>
-              <span>{numeric(event.payload.previous_conductance)}
-                <b>→</b>{numeric(event.payload.conductance)}</span>
-              <small>{String(event.payload.credit_kind ?? "legacy feedback")}</small>
-            </button>)}
+        {updatesByCategory.size ? <div className="pf-conductance-chart">
+          {[...updatesByCategory.entries()].slice(0, 16).map(([category, updates], index) => {
+            const latest = updates.at(-1)!;
+            return <button key={category} onClick={() => onSelect({ kind: "event", value: latest })}>
+              <span><strong>{humanize(category)}</strong><small>{category}</small></span>
+              <Sparkline values={updates.map((event) => Number(event.payload.conductance))}
+                minimum={0} maximum={1} color={CHART_COLORS[index % CHART_COLORS.length]}
+                label={`${category} conductance history`} />
+              <span className="pf-conductance-value">{numeric(latest.payload.conductance)}
+                <small>{String(latest.payload.credit_kind ?? "legacy feedback")}</small></span>
+            </button>;
+          })}
         </div> : <div className="pf-panel-gap">No conductance_updated feedback was logged.</div>}
       </section>
-    </div>
 
-    <section className="pf-panel pf-runtime">
-      <header><div><span className="eyebrow">harness-emitted / no browser recomputation</span>
-        <h3>Pressure runtime</h3></div><span className="pf-count">{runtimeMetrics.length}</span></header>
-      {runtimeMetrics.length ? <div className="pf-runtime-grid">
-        {runtimeMetrics.map((event) => <button key={event.event_id}
-          onClick={() => onSelect({ kind: "event", value: event })}>
-          <strong>{numeric(event.payload.value)}</strong><span>{String(event.payload.unit)}</span>
-          <small>{String(event.payload.name)}</small>
-        </button>)}
-      </div> : <div className="pf-panel-gap">No pressure latency or learning metrics were logged.</div>}
-    </section>
+      <section className="pf-panel pf-runtime">
+        <header><div><span className="eyebrow">harness-emitted / no browser recomputation</span>
+          <h3>Runtime composition</h3></div><span className="pf-count">{runtimeMetrics.length}</span></header>
+        {runtimeMetrics.length ? <div className="pf-runtime-chart">
+          {runtimeMetrics.map((event, index) => {
+            const value = Number(event.payload.value);
+            const unit = String(event.payload.unit);
+            const sameUnitMaximum = Math.max(1, ...runtimeMetrics
+              .filter((row) => row.payload.unit === event.payload.unit)
+              .map((row) => Math.abs(Number(row.payload.value))));
+            return <button key={event.event_id}
+              onClick={() => onSelect({ kind: "event", value: event })}>
+              <span><strong>{humanize(event.payload.name)}</strong>
+                <small>{String(event.payload.name)}</small></span>
+              <ValueBar value={value} maximum={sameUnitMaximum}
+                color={CHART_COLORS[index % CHART_COLORS.length]}
+                label={String(event.payload.name)} />
+              <span className="pf-runtime-value">{numeric(value)} <small>{unit}</small></span>
+            </button>;
+          })}
+        </div> : <div className="pf-panel-gap">No pressure latency or learning metrics were logged.</div>}
+      </section>
+    </div>
   </div>;
 }
 
 function MetricsDashboard({ state, onSelect }: {
   state: ReplayState; onSelect: (selection: Selection) => void;
 }) {
+  const [unitFilter, setUnitFilter] = useState("all");
   if (!state.metrics.length) return <LoggingGap title="No metric samples at this cursor"
     detail="Calibration, intervals, and ablations are rendered only from metric_sample events." />;
   const conditions = [...new Set(state.metrics.map((event) =>
     String((event.payload.labels as Record<string, string> | undefined)?.condition ?? "run")))];
+  const units = [...new Set(state.metrics.map((event) => String(event.payload.unit)))].sort();
+  const grouped = new Map<string, TraceEvent[]>();
+  for (const event of state.metrics) {
+    if (unitFilter !== "all" && event.payload.unit !== unitFilter) continue;
+    const key = `${String(event.payload.name)}\u0000${String(event.payload.unit)}`;
+    grouped.set(key, [...grouped.get(key) ?? [], event]);
+  }
+  const metricSeries = [...grouped.values()].sort((left, right) =>
+    String(left[0].payload.name).localeCompare(String(right[0].payload.name)));
+  const maximumByUnit = new Map<string, number>();
+  for (const series of metricSeries) {
+    const unit = String(series[0].payload.unit);
+    const latest = Math.abs(Number(series.at(-1)?.payload.value ?? 0));
+    maximumByUnit.set(unit, Math.max(latest, maximumByUnit.get(unit) ?? 0));
+  }
   return <div className="view-content metrics-view"><div className="view-heading">
     <div><span className="eyebrow">harness-emitted values</span><h2>Metrics dashboard</h2></div>
     <p>{state.metrics.length} samples · UI calculations disabled</p>
-  </div><div className="condition-strip">{conditions.map((condition) => <span key={condition}>{condition}</span>)}</div>
-  <div className="metric-grid">{state.metrics.slice(-500).map((event) => {
-    const labels = event.payload.labels as Record<string, string> | undefined;
-    return <button className="metric-card" key={event.event_id}
-      onClick={() => onSelect({ kind: "event", value: event })}>
-      <span>{String(labels?.condition ?? "run")} · {String(labels?.statistic ?? "sample")}</span>
-      <strong>{Number(event.payload.value).toLocaleString()}</strong>
-      <h3>{String(event.payload.name)}</h3><small>{String(event.payload.unit)}</small>
-    </button>;
-  })}</div></div>;
+  </div><div className="metric-tools">
+    <div className="condition-strip">{conditions.map((condition) => <span key={condition}>{condition}</span>)}</div>
+    <label>unit <select aria-label="Metric unit" value={unitFilter}
+      onChange={(event) => setUnitFilter(event.target.value)}>
+      <option value="all">all units</option>
+      {units.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
+    </select></label>
+  </div>
+  <section className="metric-series-chart" aria-label="Metric time series and latest values">
+    <header><span>metric</span><span>logged series</span><span>latest / relative within unit</span></header>
+    {metricSeries.map((series, index) => {
+      const latest = series.at(-1)!;
+      const name = String(latest.payload.name);
+      const unit = String(latest.payload.unit);
+      const value = Number(latest.payload.value);
+      const labels = latest.payload.labels as Record<string, string> | undefined;
+      return <button key={`${name}-${unit}`} onClick={() => onSelect({ kind: "event", value: latest })}>
+        <span><strong>{humanize(name)}</strong><small>{name}</small>
+          <em>{String(labels?.condition ?? "run")} · {String(labels?.statistic ?? "sample")}</em></span>
+        <Sparkline values={series.map((event) => Number(event.payload.value))}
+          color={CHART_COLORS[index % CHART_COLORS.length]} label={`${name} logged values`} />
+        <span className="metric-latest"><strong>{value.toLocaleString()}</strong><small>{unit}</small>
+          <ValueBar value={value} maximum={maximumByUnit.get(unit) ?? 1}
+            color={CHART_COLORS[index % CHART_COLORS.length]}
+            label={`${name} relative magnitude within ${unit}`} />
+        </span>
+      </button>;
+    })}
+  </section>
+  <footer className="display-boundary">Sparklines connect logged samples. Bar lengths are display scaling within a unit;
+    the UI does not recompute experimental statistics.</footer>
+  </div>;
 }
 
 function LoggingGap({ title, detail }: { title: string; detail: string }) {
   return <div className="logging-gap"><span>logging gap</span><h2>{title}</h2><p>{detail}</p></div>;
 }
 
-function Inspector({ selection }: { selection?: Selection }) {
-  if (!selection) return <aside className="inspector empty"><span className="eyebrow">inspector</span>
+function Inspector({ selection, onClose }: { selection?: Selection; onClose: () => void }) {
+  if (!selection) return <aside className="inspector empty">
+    <button className="inspector-close" aria-label="Close inspector" onClick={onClose}>×</button>
+    <span className="eyebrow">inspector</span>
     <h2>Nothing selected</h2><p>Select an event, proof node, atom, or plan. Its exact trace payload will appear here.</p></aside>;
   let title = "";
   let subtitle = "";
@@ -760,7 +1268,9 @@ function Inspector({ selection }: { selection?: Selection }) {
         <small>{entry.tv.strength.toFixed(2)} / {entry.tv.confidence.toFixed(2)}</small>
       </div>)}</div>;
   }
-  return <aside className="inspector"><span className="eyebrow">inspector / {selection.kind}</span>
+  return <aside className="inspector">
+    <button className="inspector-close" aria-label="Close inspector" onClick={onClose}>×</button>
+    <span className="eyebrow">inspector / {selection.kind}</span>
     <h2>{title}</h2><p className="mono-id">{subtitle}</p>{history}
     <pre>{JSON.stringify(value, null, 2)}</pre></aside>;
 }
@@ -771,15 +1281,17 @@ const formatBytes = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-function ArtifactBrowser({ open, onClose, onLoad }: {
+function ArtifactBrowser({ open, onClose, onLoad, onCompare }: {
   open: boolean;
   onClose: () => void;
   onLoad: (entry: ArtifactCatalogEntry) => Promise<void>;
+  onCompare: (entry: ArtifactCatalogEntry) => Promise<void>;
 }) {
   const [entries, setEntries] = useState<ArtifactCatalogEntry[]>([]);
   const [query, setQuery] = useState("");
   const [catalogStatus, setCatalogStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [loadingPath, setLoadingPath] = useState<string>();
+  const [comparingPath, setComparingPath] = useState<string>();
   const [error, setError] = useState<string>();
 
   useEffect(() => {
@@ -801,11 +1313,11 @@ function ArtifactBrowser({ open, onClose, onLoad }: {
   useEffect(() => {
     if (!open) return;
     const closeOnEscape = (event: KeyboardEvent): void => {
-      if (event.key === "Escape" && !loadingPath) onClose();
+      if (event.key === "Escape" && !loadingPath && !comparingPath) onClose();
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [loadingPath, onClose, open]);
+  }, [comparingPath, loadingPath, onClose, open]);
 
   if (!open) return null;
   const normalizedQuery = query.trim().toLowerCase();
@@ -829,8 +1341,21 @@ function ArtifactBrowser({ open, onClose, onLoad }: {
     }
   };
 
+  const compare = async (entry: ArtifactCatalogEntry): Promise<void> => {
+    setComparingPath(entry.path);
+    setError(undefined);
+    try {
+      await onCompare(entry);
+      onClose();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Comparison trace could not be loaded");
+    } finally {
+      setComparingPath(undefined);
+    }
+  };
+
   return <div className="artifact-backdrop" onMouseDown={(event) => {
-    if (event.target === event.currentTarget && !loadingPath) onClose();
+    if (event.target === event.currentTarget && !loadingPath && !comparingPath) onClose();
   }}>
     <section className="artifact-dialog" role="dialog" aria-modal="true"
       aria-labelledby="artifact-dialog-title">
@@ -841,7 +1366,7 @@ function ArtifactBrowser({ open, onClose, onLoad }: {
           <p>Select an active game stream. Archived failed attempts stay excluded.</p>
         </div>
         <button aria-label="Close experiment traces" onClick={onClose}
-          disabled={Boolean(loadingPath)}>×</button>
+          disabled={Boolean(loadingPath || comparingPath)}>×</button>
       </header>
       <div className="artifact-tools">
         <label>
@@ -860,24 +1385,31 @@ function ArtifactBrowser({ open, onClose, onLoad }: {
       {catalogStatus === "ready" && visible.length === 0 &&
         <div className="artifact-state">No generated traces match this filter.</div>}
       {visible.length > 0 && <div className="artifact-list" aria-label="Generated experiment traces">
-        {visible.map((entry) => <button key={entry.path}
-          aria-label={`Load ${entry.label}`}
-          disabled={Boolean(loadingPath)}
-          className={loadingPath === entry.path ? "loading" : ""}
-          onClick={() => void select(entry)}>
-          <span className="artifact-kind">{entry.arm ?? "trace"}</span>
-          <span className="artifact-name">
-            <strong>{entry.experiment}</strong>
-            <small>{[entry.cohort, entry.run].filter(Boolean).join(" / ")}</small>
-          </span>
-          <span className="artifact-meta">
-            <strong>{formatBytes(entry.sizeBytes)}</strong>
-            <small>{new Date(entry.modifiedAt).toLocaleString()}</small>
-          </span>
-          <span className="artifact-action">
-            {loadingPath === entry.path ? "loading…" : "open →"}
-          </span>
-        </button>)}
+        {visible.map((entry) => <div className="artifact-entry" key={entry.path}>
+          <button aria-label={`Load ${entry.label}`}
+            disabled={Boolean(loadingPath || comparingPath)}
+            className={loadingPath === entry.path ? "loading" : ""}
+            onClick={() => void select(entry)}>
+            <span className="artifact-kind">{entry.arm ?? "trace"}</span>
+            <span className="artifact-name">
+              <strong>{entry.experiment}</strong>
+              <small>{[entry.cohort, entry.run].filter(Boolean).join(" / ")}</small>
+            </span>
+            <span className="artifact-meta">
+              <strong>{formatBytes(entry.sizeBytes)}</strong>
+              <small>{new Date(entry.modifiedAt).toLocaleString()}</small>
+            </span>
+            <span className="artifact-action">
+              {loadingPath === entry.path ? "loading…" : "open →"}
+            </span>
+          </button>
+          <button className={comparingPath === entry.path ? "artifact-compare loading" : "artifact-compare"}
+            aria-label={`Compare ${entry.label}`}
+            disabled={Boolean(loadingPath || comparingPath)}
+            onClick={() => void compare(entry)}>
+            {comparingPath === entry.path ? "loading…" : "compare"}
+          </button>
+        </div>)}
       </div>}
       {matches.length > visible.length && <footer>
         Showing the newest {visible.length} matches. Refine the filter to find an older trace.
@@ -899,15 +1431,23 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
   const [selection, setSelection] = useState<Selection>();
   const [search, setSearch] = useState(decoded.search ?? "");
   const [channel, setChannel] = useState<"all" | "crisp" | "uncertain">(decoded.channel ?? "all");
+  const [pfDecision, setPfDecision] = useState(decoded.decision);
+  const [focusMode, setFocusMode] = useState(decoded.focus ?? false);
+  const [inspectorOpen, setInspectorOpen] = useState(decoded.inspector ?? true);
   const [mode, setMode] = useState<"replay" | "live">("replay");
   const [artifactBrowserOpen, setArtifactBrowserOpen] = useState(false);
   const [traceSource, setTraceSource] = useState("bundled demonstration");
+  const [comparisonEvents, setComparisonEvents] = useState<TraceEvent[]>([]);
+  const [comparisonSource, setComparisonSource] = useState<string>();
   const [liveStatus, setLiveStatus] = useState<LiveStatus>("idle");
   const [liveUrl, setLiveUrl] = useState(
     String(import.meta.env.VITE_FREECIV_LIVE_URL ?? "ws://127.0.0.1:8765"));
   const [liveGameId, setLiveGameId] = useState(initial.events[0]?.game_id ?? "freeciv-live");
   const liveClient = useRef<LiveEventClient | undefined>(undefined);
   const state = useMemo(() => foldEvents(events, cursor), [events, cursor]);
+  const comparisonState = useMemo(() => comparisonEvents.length
+    ? foldEvents(comparisonEvents, { turn: cursor.turn, seq: Number.MAX_SAFE_INTEGER })
+    : undefined, [comparisonEvents, cursor.turn]);
 
   useEffect(() => {
     if (!decoded.selected || selection) return;
@@ -937,8 +1477,11 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
       : selection?.kind === "node" ? selection.value.node_id
           : selection?.kind === "plan" ? selection.value.plan_id
             : selection?.kind === "step" ? selection.value.step_id : undefined;
-    window.history.replaceState(null, "", encodeUrlState({ view, cursor, selected, search, channel }));
-  }, [view, cursor, selection, search, channel]);
+    window.history.replaceState(null, "", encodeUrlState({
+      view, cursor, selected, decision: pfDecision, search, channel,
+      focus: focusMode, inspector: inspectorOpen,
+    }));
+  }, [view, cursor, selection, pfDecision, search, channel, focusMode, inspectorOpen]);
   useEffect(() => () => liveClient.current?.stop(), []);
 
   const applyReplay = (parsed: ParseResult, source: string): void => {
@@ -954,6 +1497,7 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
     setEvents(sorted); setInvalidLines(parsed.quarantined); setCursor(maxCursor(sorted));
     setLiveGameId(sorted[0]?.game_id ?? "freeciv-live");
     setTraceSource(source);
+    setPfDecision(undefined);
     setSelection(undefined);
   };
 
@@ -970,6 +1514,15 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
       throw new Error("The selected artifact contains no valid trace events");
     }
     applyReplay(parsed, entry.label);
+  };
+
+  const loadComparisonArtifact = async (entry: ArtifactCatalogEntry): Promise<void> => {
+    const parsed = await parseJsonlStream(await fetchArtifactEventStream(entry));
+    if (parsed.events.length === 0) {
+      throw new Error("The selected comparison artifact contains no valid trace events");
+    }
+    setComparisonEvents(parsed.events.sort(eventOrder));
+    setComparisonSource(entry.label);
   };
 
   const stopLive = (): void => {
@@ -1004,7 +1557,8 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
     client.start();
   };
 
-  const main = view === "timeline" ? <Timeline state={state} selection={selection} onSelect={setSelection} />
+  const main = view === "timeline" ? <Timeline state={state} selection={selection}
+    onSelect={setSelection} onCursor={setCursor} />
     : view === "proofs" ? <ProofExplorer state={state} selection={selection} onSelect={setSelection} />
       : view === "atoms" ? <Atomspace state={state} onSelect={setSelection} search={search}
         channel={channel} onSearch={setSearch} onChannel={setChannel} />
@@ -1012,18 +1566,30 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
           : view === "map" ? <MapOverlay state={state} selection={selection} onSelect={setSelection} />
             : view === "audit" ? <EpistemicAudit state={state} onSelect={setSelection} />
               : view === "metrics" ? <MetricsDashboard state={state} onSelect={setSelection} />
-                : view === "pfpln" ? <PfPlnDashboard state={state} onSelect={setSelection} />
+                : view === "pfpln" ? <PfPlnDashboard state={state} onSelect={setSelection}
+                  decisionId={pfDecision} onDecision={setPfDecision}
+                  comparisonState={comparisonState} comparisonSource={comparisonSource} />
                   : <LoggingGap title={`${NAV.find((item) => item.view === view)?.label} awaits its event milestone`}
                     detail="This surface never derives missing data from another event type." />;
 
   return <div className="app-shell">
-    <Header events={events} state={state} mode={mode} status={liveStatus} gameId={liveGameId} />
+    <Header events={events} state={state} mode={mode} status={liveStatus} gameId={liveGameId}
+      focus={focusMode} inspectorOpen={inspectorOpen}
+      onFocus={() => setFocusMode((value) => !value)}
+      onInspector={() => setInspectorOpen((value) => !value)} />
     <Scrubber events={events} cursor={cursor} onChange={setCursor} />
     {(invalidLines.length > 0 || state.unknown.length > 0 || state.loggingGaps.length > 0) &&
       <div className="anomaly-bar" role="alert"><strong>Trace anomalies visible</strong>
         <span>{invalidLines.length} invalid lines</span><span>{state.unknown.length} unknown events</span>
         <span>{state.loggingGaps.length} logging gaps</span></div>}
-    <div className="workspace">
+    {comparisonSource && <div className="comparison-banner" role="status">
+      <span>paired comparison</span><strong>{comparisonSource}</strong>
+      <small>Aligned by replay turn. Differences are descriptive, not causal estimates.</small>
+      <button onClick={() => {
+        setComparisonEvents([]); setComparisonSource(undefined);
+      }}>clear</button>
+    </div>}
+    <div className={`workspace ${focusMode ? "focus-mode" : ""} ${!inspectorOpen ? "inspector-closed" : ""}`}>
       <nav className="side-nav" aria-label="Observability views">
         <div className="mode-switch">
           <button className={mode === "replay" ? "active" : ""} onClick={stopLive}>Replay</button>
@@ -1049,9 +1615,9 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
         <div className="schema-lock"><span>schema lock</span><strong>v1.0</strong><small>strict / lossless</small></div>
       </nav>
       <main>{main}</main>
-      <Inspector selection={selection} />
+      {inspectorOpen && <Inspector selection={selection} onClose={() => setInspectorOpen(false)} />}
     </div>
     <ArtifactBrowser open={artifactBrowserOpen} onClose={() => setArtifactBrowserOpen(false)}
-      onLoad={loadArtifact} />
+      onLoad={loadArtifact} onCompare={loadComparisonArtifact} />
   </div>;
 }

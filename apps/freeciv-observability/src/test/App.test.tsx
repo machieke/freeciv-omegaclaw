@@ -99,8 +99,24 @@ describe("Decision Observatory", () => {
     expect(screen.getByRole("button", { name: /1\.1 llm proposal/ })).toHaveClass("ancestry");
     await user.click(screen.getByRole("button", { name: /Proof explorer/ }));
     expect(screen.getByRole("tree", { name: /AND OR proof tree/ })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Proof dependency graph" })).toBeInTheDocument();
     await user.click(screen.getByRole("treeitem", { name: /^goal researchable/i }));
     expect(screen.getByText("node-goal")).toBeInTheDocument();
+  });
+
+  it("provides a turn activity matrix, focus mode, and collapsible inspector", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App initialText={demoTrace} />);
+    expect(screen.getByRole("grid", {
+      name: "Decision activity by turn and control stage",
+    })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "focus" }));
+    expect(container.querySelector(".workspace")).toHaveClass("focus-mode");
+    await user.click(screen.getByRole("button", { name: "Close inspector" }));
+    expect(container.querySelector(".workspace")).toHaveClass("inspector-closed");
+    expect(screen.queryByRole("button", { name: "Close inspector" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "inspector" }));
+    expect(screen.getByRole("button", { name: "Close inspector" })).toBeInTheDocument();
   });
 
   it("restores deep-linked cursor, view, filters, and selection", () => {
@@ -138,6 +154,12 @@ describe("Decision Observatory", () => {
     expect(screen.getByText(/reused 1 · re-derived 1/)).toBeInTheDocument();
     expect(screen.getByText("pred T3")).toBeInTheDocument();
     expect(screen.getAllByText("actual —")).toHaveLength(2);
+    expect(screen.getByRole("region", {
+      name: "Plan dependency and timing chart",
+    })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Plan timing window" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Map overlay/ }));
+    expect(screen.getByRole("img", { name: /Logged path for goal-expand/ })).toBeInTheDocument();
   });
 
   it("fades an uncertain map marker using its logged as-of confidence", async () => {
@@ -176,6 +198,10 @@ describe("Decision Observatory", () => {
     await user.click(screen.getByRole("button", { name: /^08 PF-PLN/ }));
     expect(screen.getByRole("heading", { name: "PF-PLN control path" })).toBeInTheDocument();
     expect(screen.getByRole("table", { name: "PF-PLN operation schedule" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "PF-PLN pressure flow graph" })).toBeInTheDocument();
+    expect(screen.getByLabelText("PF-PLN candidate ranking chart")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Conductance trends" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Runtime composition" })).toBeInTheDocument();
     expect(screen.getAllByText("expansion").length).toBeGreaterThan(0);
     expect(screen.getByText("◆ selected")).toBeInTheDocument();
     expect(screen.getAllByText("production_expansion").length).toBeGreaterThan(0);
@@ -184,6 +210,50 @@ describe("Decision Observatory", () => {
     expect(screen.getByText("impact_planning_pressure_graph_latency_ms")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "inspect event →" }));
     expect(screen.getByRole("heading", { name: "operation_scored" })).toBeInTheDocument();
+  });
+
+  it("loads a second artifact as a turn-aligned PF-PLN comparison", async () => {
+    const user = userEvent.setup();
+    const comparisonText = pfTrace.replaceAll("production_expansion", "defense")
+      .replaceAll("city_change_production", "unit_move");
+    const comparisonEntry = {
+      arm: "baseline",
+      cohort: "confirmatory",
+      condition: "e_full_loop",
+      experiment: "pf-paired-test",
+      label: "pf-paired-test / baseline / seed-01",
+      modifiedAt: "2026-07-27T06:00:00.000Z",
+      path: "artifacts/freeciv/pf-paired-test/baseline/seed-01/events.jsonl",
+      run: "seed-01",
+      sizeBytes: comparisonText.length,
+    };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/freeciv-artifacts") {
+        return new Response(JSON.stringify({ entries: [comparisonEntry] }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response(comparisonText, {
+        headers: { "Content-Type": "application/x-ndjson" },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      render(<App initialText={pfTrace} />);
+      await user.click(screen.getByRole("button", { name: /Experiment traces/ }));
+      const dialog = await screen.findByRole("dialog", { name: "Experiment traces" });
+      await user.click(within(dialog).getByRole("button", { name: /Compare pf-paired-test/ }));
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      expect(screen.getByText("paired comparison")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: /^08 PF-PLN/ }));
+      expect(screen.getByText("decision diverged")).toBeInTheDocument();
+      expect(screen.getByText(/turn-aligned descriptive comparison/i, {
+        selector: ".eyebrow",
+      })).toBeInTheDocument();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("filters and loads a generated experiment trace from the repository catalog", async () => {

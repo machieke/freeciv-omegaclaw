@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure",
+  "commitSha": "a2bf315b7b7620406275c560629902f02541d0b4",
+  "startedAt": "2026-07-27T06:43:12.262Z",
+  "description": "Verify all FreeCiv observability visualization upgrades with engine-backed PF-PLN traces, paired comparison, focus layout, and every upgraded view"
+}

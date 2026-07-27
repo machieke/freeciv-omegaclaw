@@ -1,0 +1,13 @@
+1785134592492	
+1785134592493	> @omegaclaw/freeciv-observability@0.1.0 dev
+1785134592493	> vite --host 127.0.0.1 --port 4178
+1785134592493	
+1785134592817	
+1785134592817	  VITE v7.3.6  ready in 196 ms
+1785134592817	
+1785134592818	  ➜  Local:   http://127.0.0.1:4178/
+1785134941928	6:49:01 AM [vite] (client) hmr update /src/App.tsx
+1785134941930	6:49:01 AM [vite] (client) hmr update /src/styles.css
+1785134964209	6:49:24 AM [vite] (client) hmr update /src/App.tsx
+1785135035651	6:50:35 AM [vite] (client) hmr update /src/App.tsx
+1785135107348	6:51:47 AM [vite] (client) page reload proofshot-artifacts/2026-07-27_06-43-12_verify-all-freeciv-observability-visuali/viewer.html

@@ -1,0 +1,402 @@
+[
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-27T06:43:52.070Z"
+  },
+  {
+    "action": "screenshot 01-timeline-matrix.png",
+    "relativeTimeSec": 10.9,
+    "timestamp": "2026-07-27T06:43:57.937Z"
+  },
+  {
+    "action": "click @e8",
+    "relativeTimeSec": 12.3,
+    "timestamp": "2026-07-27T06:43:59.295Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 12.7,
+    "timestamp": "2026-07-27T06:43:59.687Z"
+  },
+  {
+    "action": "click @e62",
+    "relativeTimeSec": 22.2,
+    "timestamp": "2026-07-27T06:44:09.181Z"
+  },
+  {
+    "action": "click @e8",
+    "relativeTimeSec": 23.6,
+    "timestamp": "2026-07-27T06:44:10.581Z"
+  },
+  {
+    "action": "fill @e61 4644101",
+    "relativeTimeSec": 25.2,
+    "timestamp": "2026-07-27T06:44:12.242Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 25.6,
+    "timestamp": "2026-07-27T06:44:12.647Z"
+  },
+  {
+    "action": "click @e1261",
+    "relativeTimeSec": 32.6,
+    "timestamp": "2026-07-27T06:44:19.605Z"
+  },
+  {
+    "action": "click @e16",
+    "relativeTimeSec": 33.9,
+    "timestamp": "2026-07-27T06:44:20.926Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 34.3,
+    "timestamp": "2026-07-27T06:44:21.303Z"
+  },
+  {
+    "action": "click @e17",
+    "relativeTimeSec": 44.1,
+    "timestamp": "2026-07-27T06:44:31.135Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 44.5,
+    "timestamp": "2026-07-27T06:44:31.489Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('.side-nav button')].find((button) => button.textContent?.includes('PF-PLN'))?.click()",
+    "relativeTimeSec": 70.9,
+    "timestamp": "2026-07-27T06:44:57.926Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 71.4,
+    "timestamp": "2026-07-27T06:44:58.403Z"
+  },
+  {
+    "action": "get url",
+    "relativeTimeSec": 72.2,
+    "timestamp": "2026-07-27T06:44:59.233Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 72.6,
+    "timestamp": "2026-07-27T06:44:59.590Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 79.5,
+    "timestamp": "2026-07-27T06:45:06.487Z"
+  },
+  {
+    "action": "screenshot 02-pf-pln-paired-overview.png",
+    "relativeTimeSec": 79.9,
+    "timestamp": "2026-07-27T06:45:06.932Z"
+  },
+  {
+    "action": "eval document.querySelector('main')?.scrollTo(0, 650)",
+    "relativeTimeSec": 97.8,
+    "timestamp": "2026-07-27T06:45:24.793Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 98.1,
+    "timestamp": "2026-07-27T06:45:25.138Z"
+  },
+  {
+    "action": "screenshot 03-pf-ranking-pressure.png",
+    "relativeTimeSec": 98.8,
+    "timestamp": "2026-07-27T06:45:25.786Z"
+  },
+  {
+    "action": "eval document.querySelector('main')?.scrollTo(0, 1500)",
+    "relativeTimeSec": 99.2,
+    "timestamp": "2026-07-27T06:45:26.222Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 99.5,
+    "timestamp": "2026-07-27T06:45:26.558Z"
+  },
+  {
+    "action": "screenshot 04-pf-pressure-learning-runtime.png",
+    "relativeTimeSec": 100.2,
+    "timestamp": "2026-07-27T06:45:27.205Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('.layout-controls button')].find((button) => button.textContent?.toLowerCase().includes('focus'))?.click()",
+    "relativeTimeSec": 126.1,
+    "timestamp": "2026-07-27T06:45:53.078Z"
+  },
+  {
+    "action": "eval document.querySelector('main')?.scrollTo(0, 1120)",
+    "relativeTimeSec": 126.5,
+    "timestamp": "2026-07-27T06:45:53.509Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 126.9,
+    "timestamp": "2026-07-27T06:45:53.874Z"
+  },
+  {
+    "action": "screenshot 05-pf-focus-ranking.png",
+    "relativeTimeSec": 127.5,
+    "timestamp": "2026-07-27T06:45:54.550Z"
+  },
+  {
+    "action": "eval document.querySelector('main')?.scrollTo(0, 1900)",
+    "relativeTimeSec": 140.4,
+    "timestamp": "2026-07-27T06:46:07.458Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 140.8,
+    "timestamp": "2026-07-27T06:46:07.800Z"
+  },
+  {
+    "action": "screenshot 06-pf-learning-runtime.png",
+    "relativeTimeSec": 141.4,
+    "timestamp": "2026-07-27T06:46:08.439Z"
+  },
+  {
+    "action": "eval document.querySelector('main')?.scrollTo(0, 2450)",
+    "relativeTimeSec": 160.2,
+    "timestamp": "2026-07-27T06:46:27.260Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 160.6,
+    "timestamp": "2026-07-27T06:46:27.598Z"
+  },
+  {
+    "action": "screenshot 07-pf-runtime.png",
+    "relativeTimeSec": 161.2,
+    "timestamp": "2026-07-27T06:46:28.244Z"
+  },
+  {
+    "action": "eval ({scrollTop:document.querySelector('main')?.scrollTop, scrollHeight:document.querySelector('main')?.scrollHeight, clientHeight:document.querySelector('main')?.clientHeight})",
+    "relativeTimeSec": 161.6,
+    "timestamp": "2026-07-27T06:46:28.665Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('.side-nav button')].find((button) => button.textContent?.includes('Proof explorer'))?.click()",
+    "relativeTimeSec": 182.7,
+    "timestamp": "2026-07-27T06:46:49.740Z"
+  },
+  {
+    "action": "eval document.querySelector('main')?.scrollTo(0, 0)",
+    "relativeTimeSec": 183.1,
+    "timestamp": "2026-07-27T06:46:50.127Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 183.4,
+    "timestamp": "2026-07-27T06:46:50.470Z"
+  },
+  {
+    "action": "screenshot 08-proof-dag.png",
+    "relativeTimeSec": 184.1,
+    "timestamp": "2026-07-27T06:46:51.114Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 184.5,
+    "timestamp": "2026-07-27T06:46:51.548Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('.side-nav button')].find((button) => button.textContent?.includes('Atomspace'))?.click()",
+    "relativeTimeSec": 209,
+    "timestamp": "2026-07-27T06:47:16.051Z"
+  },
+  {
+    "action": "eval document.querySelector('main')?.scrollTo(0, 0)",
+    "relativeTimeSec": 209.5,
+    "timestamp": "2026-07-27T06:47:16.487Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 209.9,
+    "timestamp": "2026-07-27T06:47:16.881Z"
+  },
+  {
+    "action": "screenshot 09-atom-groups.png",
+    "relativeTimeSec": 210.5,
+    "timestamp": "2026-07-27T06:47:17.524Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('.side-nav button')].find((button) => button.textContent?.includes('Plan board'))?.click()",
+    "relativeTimeSec": 210.9,
+    "timestamp": "2026-07-27T06:47:17.919Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 211.5,
+    "timestamp": "2026-07-27T06:47:18.480Z"
+  },
+  {
+    "action": "screenshot 10-plan-gantt.png",
+    "relativeTimeSec": 212.1,
+    "timestamp": "2026-07-27T06:47:19.153Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('.side-nav button')].find((button) => button.textContent?.includes('Map overlay'))?.click()",
+    "relativeTimeSec": 243.3,
+    "timestamp": "2026-07-27T06:47:50.292Z"
+  },
+  {
+    "action": "eval document.querySelector('main')?.scrollTo(0, 0)",
+    "relativeTimeSec": 243.7,
+    "timestamp": "2026-07-27T06:47:50.726Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 244,
+    "timestamp": "2026-07-27T06:47:51.071Z"
+  },
+  {
+    "action": "screenshot 11-map-path.png",
+    "relativeTimeSec": 244.7,
+    "timestamp": "2026-07-27T06:47:51.746Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('.side-nav button')].find((button) => button.textContent?.includes('Epistemic audit'))?.click()",
+    "relativeTimeSec": 245.2,
+    "timestamp": "2026-07-27T06:47:52.181Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 245.6,
+    "timestamp": "2026-07-27T06:47:52.599Z"
+  },
+  {
+    "action": "screenshot 12-audit-heatmap.png",
+    "relativeTimeSec": 246.2,
+    "timestamp": "2026-07-27T06:47:53.262Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('.side-nav button')].find((button) => button.textContent?.includes('Metrics'))?.click()",
+    "relativeTimeSec": 246.7,
+    "timestamp": "2026-07-27T06:47:53.706Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 247.4,
+    "timestamp": "2026-07-27T06:47:54.385Z"
+  },
+  {
+    "action": "screenshot 13-metrics-series.png",
+    "relativeTimeSec": 248,
+    "timestamp": "2026-07-27T06:47:55.038Z"
+  },
+  {
+    "action": "get url",
+    "relativeTimeSec": 292.6,
+    "timestamp": "2026-07-27T06:48:39.621Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 293,
+    "timestamp": "2026-07-27T06:48:39.973Z"
+  },
+  {
+    "action": "console",
+    "relativeTimeSec": 293.3,
+    "timestamp": "2026-07-27T06:48:40.312Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('.side-nav button')].find((button) => button.textContent?.includes('Plan board'))?.click()",
+    "relativeTimeSec": 349.8,
+    "timestamp": "2026-07-27T06:49:36.835Z"
+  },
+  {
+    "action": "eval document.querySelector('main')?.scrollTo(0, 0)",
+    "relativeTimeSec": 350.3,
+    "timestamp": "2026-07-27T06:49:37.330Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 350.7,
+    "timestamp": "2026-07-27T06:49:37.697Z"
+  },
+  {
+    "action": "screenshot 14-plan-gantt-windowed.png",
+    "relativeTimeSec": 351.5,
+    "timestamp": "2026-07-27T06:49:38.533Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 351.9,
+    "timestamp": "2026-07-27T06:49:38.927Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('.side-nav button')].find((button) => button.textContent?.includes('Proof explorer'))?.click()",
+    "relativeTimeSec": 366.5,
+    "timestamp": "2026-07-27T06:49:53.526Z"
+  },
+  {
+    "action": "eval document.querySelector('main')?.scrollTo(0, 0)",
+    "relativeTimeSec": 366.9,
+    "timestamp": "2026-07-27T06:49:53.938Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 367.3,
+    "timestamp": "2026-07-27T06:49:54.292Z"
+  },
+  {
+    "action": "screenshot 15-proof-dag-legible.png",
+    "relativeTimeSec": 367.9,
+    "timestamp": "2026-07-27T06:49:54.931Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 368.3,
+    "timestamp": "2026-07-27T06:49:55.362Z"
+  },
+  {
+    "action": "console",
+    "relativeTimeSec": 368.7,
+    "timestamp": "2026-07-27T06:49:55.734Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('.side-nav button')].find((button) => button.textContent?.includes('PF-PLN'))?.click()",
+    "relativeTimeSec": 384.5,
+    "timestamp": "2026-07-27T06:50:11.491Z"
+  },
+  {
+    "action": "eval document.querySelector('main')?.scrollTo(0, 1500)",
+    "relativeTimeSec": 384.9,
+    "timestamp": "2026-07-27T06:50:11.935Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 385.3,
+    "timestamp": "2026-07-27T06:50:12.283Z"
+  },
+  {
+    "action": "screenshot 16-pf-pressure-legible.png",
+    "relativeTimeSec": 385.9,
+    "timestamp": "2026-07-27T06:50:12.925Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 386.4,
+    "timestamp": "2026-07-27T06:50:13.386Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 417.6,
+    "timestamp": "2026-07-27T06:50:44.653Z"
+  },
+  {
+    "action": "screenshot 17-pf-pressure-final.png",
+    "relativeTimeSec": 418.5,
+    "timestamp": "2026-07-27T06:50:45.508Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 419,
+    "timestamp": "2026-07-27T06:50:45.988Z"
+  }
+]

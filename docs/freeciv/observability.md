@@ -23,19 +23,30 @@ When the application is served by its Vite development or preview server, choose
 streams, rejects traversal and out-of-root symlinks, and streams the selected JSONL
 through the same strict parser and event limit as a manual file upload. At most 200
 matching rows are rendered; refine the experiment, cohort, arm, or seed filter to
-find older traces. Manual **Load JSONL** remains available.
+find older traces. **Open** replaces the active replay. **Compare** loads a second
+stream into a turn-aligned comparison slot without changing the active replay.
+Manual **Load JSONL** remains available.
 
 The UI exposes one global `(turn, seq)` cursor across:
 
-- the decision timeline and complete causal ancestry;
-- AND/OR proof trees, formulas, frontiers, and proof diffs;
-- current/as-of atom truth values, provenance, and revisions;
-- plans, ledger, assumptions, invalidations, repairs, and map overlays;
-- quarantined LLM claims and the write-through alarm; and
+- the decision timeline, turn-by-stage activity matrix, milestone overlays, and
+  complete causal ancestry;
+- selectable AND/OR proof topology, lossless tree, formulas, frontiers, and proof
+  diffs;
+- current/as-of atom truth values, predicate distribution, provenance, and
+  revision sparklines;
+- plan dependency timing, ledger, assumptions, invalidations, repairs, and
+  numbered spatial path overlays;
+- quarantined LLM claims, claim-handling chronology, and the write-through alarm;
 - the PF-PLN goal field, pressure transport lineage, emitted operation schedule,
-  selected operation, conductance feedback, activation phases, and runtime
-  counters; and
-- harness-emitted calibration, latency, error, depth, and ablation metrics.
+  candidate rank, selected operation, conductance trends, activation phases,
+  runtime composition, and paired trace outcomes; and
+- grouped harness-emitted calibration, latency, error, depth, and ablation metric
+  series.
+
+The header can collapse the inspector or enable focus mode. View, cursor, selected
+entity, atom filters, PF decision, focus mode, and inspector state are deep-linked
+in the URL.
 
 Unknown future event types are preserved as raw JSON. Missing source data is shown as
 a logging gap. Duplicate, gap, out-of-order, incompatible-schema, causal-orphan,
@@ -51,11 +62,22 @@ each `operation_scored` decision to its `pressure_propagated` input by the logge
 - goal utility, urgency, safety, target strength, and grounded context;
 - the scheduler's emitted candidate order, admissibility, priority, value,
   rejection reason, selected operation, and solver identity;
-- pressure transport traces and their logged transported values;
+- a goal → rule-conclusion → candidate-premise pressure graph, with edge width
+  scaled from the logged transported value;
 - grounded `conductance_updated` feedback, including prior/posterior
-  conductance and credit kind;
+  conductance, credit kind, and per-category chronological sparklines;
 - `pf_pln_phase_enabled` activation records; and
-- emitted pressure-planning and conductance-learning latency metrics.
+- emitted pressure-planning and conductance-learning latency metrics, grouped by
+  their logged units.
+
+To compare paired arms, open the intended primary arm, choose **Experiment
+traces**, and press **Compare** on its matching seed/arm. The PF-PLN view aligns
+the comparison to the selected decision turn, reports whether the emitted
+category/action diverged, and displays the difference between the latest logged
+`score_turn_*`, `score_gain`, `cities_founded`, `settlement_completions`, and
+`game_win` values. This is a descriptive replay aid. It is not a paired estimator,
+confidence interval, or causal claim; statistical claims remain the responsibility
+of the experiment harness.
 
 All values remain subject to the global `(turn, seq)` cursor and open their exact
 source event in the inspector. The cards count indexed event families, but the
@@ -63,6 +85,24 @@ application does not recalculate pressure, rescore operations, infer missing
 goals, or estimate unlogged latency. A missing family is displayed as a logging
 gap. Baseline traces without PF-PLN events therefore remain explicitly empty
 rather than being presented as zero-pressure runs.
+
+## Visualization and calculation boundary
+
+Every chart remains a projection over accepted trace events at the global cursor:
+
+- sparklines connect logged samples in event order;
+- heatmap opacity is a count of displayed events within a turn and track;
+- ranking bars scale logged scheduler values against the largest visible value;
+- runtime bars scale only against metrics with the same logged unit;
+- atom predicate counts and mean confidence are labeled display aggregations; and
+- graph layout, path geometry, color, opacity, and edge thickness are presentation
+  transforms, not agent outputs.
+
+Large proof and pressure graphs state their visible node/route limit. Exact payloads
+remain available through selection and the inspector, and the PF candidate chart
+retains a collapsible exact scheduler table. The UI never fills missing series,
+infers unlogged map paths, recomputes pressure, or turns a visual difference into a
+performance claim.
 
 ## Live mode
 
