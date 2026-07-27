@@ -1263,6 +1263,63 @@ paired_impact:
       seeds:
         - 3746776
         - 3790239
+    final_settlement_escort_prepared_route_mechanism_v1:
+      claim_eligible: false
+      purpose: diagnostic
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 2
+      controller_workers: 2
+      reused_seeds_from:
+        - final_settlement_escort_legal_progress_mechanism_v1
+        - final_settlement_escort_preparation_mechanism_v1
+        - final_settlement_escort_preparation_mechanism_v2
+        - final_settlement_escort_preparation_generalization_v1
+        - settlement_escort_retention_mechanism_v1
+        - settlement_escort_retention_mechanism_v2
+        - settlement_escort_retention_generalization_v1
+        - settlement_escort_threat_gating_mechanism_v1
+        - settlement_escort_route_threat_memory_mechanism_v1
+        - packet_site_preference_mechanism_v1
+        - expansion_target_confirmatory_v1
+      reused_seed_reason: >-
+        Adapter 1.14 removed explicit holds on seed 3790239 but seven
+        unprepared escort moves still displaced founder routing and preserved
+        the four-point harm. Adapter 1.15 grounds final-route escorting and
+        mandatory co-location in a successful preparation installation. Seed
+        3746776 remains the accepted positive control. This is mechanism
+        evidence only and cannot update a score or win-rate claim.
+      isolated_policy_keys:
+        - expansion_final_settlement_escort_enabled
+      arms:
+        baseline:
+          expansion_city_target: 4
+          expansion_minimum_settlement_runway_turns: 15
+          expansion_settlement_deadline_recovery_enabled: true
+          expansion_packet_site_preference_enabled: true
+          expansion_escort_retention_enabled: true
+          expansion_escort_threat_gating_enabled: true
+          expansion_escort_route_threat_memory_enabled: true
+          expansion_final_settlement_escort_enabled: false
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+        treatment:
+          expansion_city_target: 4
+          expansion_minimum_settlement_runway_turns: 15
+          expansion_settlement_deadline_recovery_enabled: true
+          expansion_packet_site_preference_enabled: true
+          expansion_escort_retention_enabled: true
+          expansion_escort_threat_gating_enabled: true
+          expansion_escort_route_threat_memory_enabled: true
+          expansion_final_settlement_escort_enabled: true
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+      seeds:
+        - 3746776
+        - 3790239
     final_settlement_escort_preparation_generalization_v2:
       claim_eligible: false
       purpose: diagnostic
@@ -1273,6 +1330,7 @@ paired_impact:
       controller_workers: 3
       reused_seeds_from:
         - final_settlement_escort_legal_progress_mechanism_v1
+        - final_settlement_escort_prepared_route_mechanism_v1
         - final_settlement_escort_preparation_mechanism_v1
         - final_settlement_escort_preparation_generalization_v1
         - final_settlement_escort_preparation_mechanism_v2
@@ -1285,10 +1343,11 @@ paired_impact:
         - expansion_target_confirmatory_v1
       reused_seed_reason: >-
         Source-fresh repeat of the ten selected packet-site seeds after
-        adapter 1.14 requires an exact legal escort progress step before
-        holding the final founder. It tests whether the correction removes
-        futile waits without erasing accepted rendezvous and retention gains.
-        It cannot update a score or win-rate claim.
+        adapter 1.15 requires both successful preparation evidence and an
+        exact legal escort progress step before final-route coordination. It
+        tests whether the corrections remove unprepared routing and futile
+        waits without erasing accepted rendezvous and retention gains. It
+        cannot update a score or win-rate claim.
       isolated_policy_keys:
         - expansion_final_settlement_escort_enabled
       arms:

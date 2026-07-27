@@ -798,7 +798,24 @@ def test_final_founder_does_not_wait_without_a_legal_escort_progress_step():
     ], [founder_move, {"action_type": "end_turn", "is_valid": True}],
         cities=[_city(), second_city], source_seq=3, turn=21)
 
-    decision = planner.plan(snapshot)
+    unprepared = planner.plan(snapshot)
+
+    assert unprepared.candidate.category == "expansion_move"
+    assert unprepared.candidate.action["actor_id"] == 2
+    assert (
+        planner.founder_final_escort_unprepared_route_bypass_snapshots == 1)
+    assert planner.founder_final_escort_rendezvous_hold_snapshots == 0
+    assert (
+        planner.founder_final_escort_rendezvous_no_progress_snapshots == 0)
+
+    planner.founder_final_escort_preparation_production_successes = 1
+    prepared_snapshot = _snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(2, "Settlers", 5, 3),
+        _unit(12, "Riflemen", 1, 1),
+    ], [founder_move, {"action_type": "end_turn", "is_valid": True}],
+        cities=[_city(), second_city], source_seq=4, turn=21)
+    decision = planner.plan(prepared_snapshot)
 
     assert decision.candidate.category == "expansion_move"
     assert decision.candidate.action["actor_id"] == 2

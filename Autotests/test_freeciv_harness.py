@@ -129,6 +129,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "final_settlement_escort_preparation_mechanism_v2": 1,
             "final_settlement_escort_preparation_generalization_v1": 10,
             "final_settlement_escort_legal_progress_mechanism_v1": 2,
+            "final_settlement_escort_prepared_route_mechanism_v1": 2,
             "final_settlement_escort_preparation_generalization_v2": 10,
         }
     seed_sets = [
@@ -485,6 +486,12 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert final_escort_progress["seeds"] == [3746776, 3790239]
     assert final_escort_progress["claim_eligible"] is False
     assert final_escort_progress["isolated_policy_keys"] == [
+        "expansion_final_settlement_escort_enabled"]
+    final_escort_prepared_route = paired["cohorts"][
+        "final_settlement_escort_prepared_route_mechanism_v1"]
+    assert final_escort_prepared_route["seeds"] == [3746776, 3790239]
+    assert final_escort_prepared_route["claim_eligible"] is False
+    assert final_escort_prepared_route["isolated_policy_keys"] == [
         "expansion_final_settlement_escort_enabled"]
     final_escort_generalization_v2 = paired["cohorts"][
         "final_settlement_escort_preparation_generalization_v2"]

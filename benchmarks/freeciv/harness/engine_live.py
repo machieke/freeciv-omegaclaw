@@ -2709,6 +2709,10 @@ async def _play(run_dir, manifest, context):
         ("planner_founder_final_escort_rendezvous_no_progress_snapshots",
          impact_planner.founder_final_escort_rendezvous_no_progress_snapshots
          if impact_planner is not None else 0),
+        ("planner_founder_final_escort_unprepared_route_bypass_snapshots",
+         impact_planner
+         .founder_final_escort_unprepared_route_bypass_snapshots
+         if impact_planner is not None else 0),
         ("planner_founder_escort_defense_production_attempts",
          impact_planner.founder_escort_defense_production_attempts
          if impact_planner is not None else 0),
@@ -3005,6 +3009,10 @@ async def _play(run_dir, manifest, context):
                 impact_planner
                 .founder_final_escort_rendezvous_no_progress_snapshots
                 if impact_planner is not None else 0),
+            "planner_founder_final_escort_unprepared_route_bypass_snapshots": (
+                impact_planner
+                .founder_final_escort_unprepared_route_bypass_snapshots
+                if impact_planner is not None else 0),
             "planner_founder_escort_defense_production_attempts": (
                 impact_planner.founder_escort_defense_production_attempts
                 if impact_planner is not None else 0),
@@ -3174,6 +3182,10 @@ async def _play(run_dir, manifest, context):
         "planner_founder_final_escort_rendezvous_no_progress_snapshots": (
             impact_planner
             .founder_final_escort_rendezvous_no_progress_snapshots
+            if impact_planner is not None else 0),
+        "planner_founder_final_escort_unprepared_route_bypass_snapshots": (
+            impact_planner
+            .founder_final_escort_unprepared_route_bypass_snapshots
             if impact_planner is not None else 0),
         "planner_founder_escort_defense_production_attempts": (
             impact_planner.founder_escort_defense_production_attempts

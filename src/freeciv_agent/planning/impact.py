@@ -207,7 +207,7 @@ def _target_name(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.14"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.15"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -428,6 +428,7 @@ class GroundedImpactPlanner(object):
         self._founder_final_escort_deferral_snapshots = set()
         self._founder_final_escort_rendezvous_hold_snapshots = set()
         self._founder_final_escort_rendezvous_no_progress_snapshots = set()
+        self._founder_final_escort_unprepared_route_bypass_snapshots = set()
         self._founder_route_threat_observations = set()
         self._founder_route_threats = {}
         self._failed_exploration_target_sources = {}
@@ -1747,6 +1748,7 @@ class GroundedImpactPlanner(object):
         return bool(
             self.expansion_final_settlement_escort_enabled
             and self.expansion_escort_retention_enabled
+            and self.founder_final_escort_preparation_production_successes > 0
             and self.expansion_city_target > 0
             and len(snapshot.cities) == self.expansion_city_target - 1)
 
@@ -1770,6 +1772,19 @@ class GroundedImpactPlanner(object):
             return ()
         return founders[-1:]
 
+    def _prepared_final_escort_route_founders(
+            self, snapshot, founder_types):
+        """Return final founders only after exact preparation installation."""
+        founders = self._final_escort_preparation_founders(
+            snapshot, founder_types)
+        if (not founders
+                or self
+                .founder_final_escort_preparation_production_successes > 0):
+            return founders
+        self._founder_final_escort_unprepared_route_bypass_snapshots.update(
+            (snapshot.snapshot_id, founder.unit_id) for founder in founders)
+        return ()
+
     def _escort_required_founders(
             self, snapshot, actions, founder_types):
         return tuple(
@@ -1784,7 +1799,7 @@ class GroundedImpactPlanner(object):
             founder.unit_id: founder
             for founder in self._escort_required_founders(
                 snapshot, actions, founder_types)}
-        for founder in self._final_escort_preparation_founders(
+        for founder in self._prepared_final_escort_route_founders(
                 snapshot, founder_types):
             if not self._founder_site_escorts(
                     snapshot, founder, founder_types):
@@ -1835,6 +1850,11 @@ class GroundedImpactPlanner(object):
         return len(
             self._founder_final_escort_rendezvous_no_progress_snapshots)
 
+    @property
+    def founder_final_escort_unprepared_route_bypass_snapshots(self):
+        return len(
+            self._founder_final_escort_unprepared_route_bypass_snapshots)
+
     def _final_founder_waits_for_rendezvous(
             self, snapshot, founder, founder_types, actions=None):
         """Hold the assigned final founder while a spare combat unit closes.
@@ -1846,7 +1866,7 @@ class GroundedImpactPlanner(object):
         """
         if not any(
                 candidate.unit_id == founder.unit_id
-                for candidate in self._final_escort_preparation_founders(
+                for candidate in self._prepared_final_escort_route_founders(
                     snapshot, founder_types)):
             return False
         if self._founder_site_escorts(snapshot, founder, founder_types):
@@ -3046,7 +3066,7 @@ class GroundedImpactPlanner(object):
                          "founder assigned to the final expansion slot"
                          if any(
                              founder.unit_id in target_founder_ids
-                             for founder in self._final_escort_preparation_founders(
+                             for founder in self._prepared_final_escort_route_founders(
                                  snapshot, founder_types))
                          else
                          "strictly reduce a spare combat unit's distance to an "
@@ -3057,7 +3077,7 @@ class GroundedImpactPlanner(object):
                             "settlement_final_escort_preparation": any(
                                 founder.unit_id in target_founder_ids
                                 for founder in (
-                                    self._final_escort_preparation_founders(
+                                    self._prepared_final_escort_route_founders(
                                         snapshot, founder_types))),
                             "target_founder_distance": target_distance,
                             "target_founder_ids": target_founder_ids,

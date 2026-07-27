@@ -635,6 +635,14 @@ unit without that exact progress leaves the founder's normal expansion
 candidate intact. No-progress rendezvous snapshots are exported separately
 from actual holds.
 
+The adapter-1.14 exposed replay showed that suppressing holds alone was
+insufficient: unprepared escort moves could still outrank the founder route.
+Adapter `grounded-impact-planner/1.15` leaves the early production projection
+unchanged but requires an authoritatively confirmed preparation installation
+before enabling final-route escort candidates, rendezvous holds, or mandatory
+final co-location. Incidental spare combat capacity cannot activate that
+chain. Unprepared route bypass snapshots expose the boundary.
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` and `pressure_score_alignment_enabled` default to `false`
 unless the runtime profile enables them. This preserves unit-level policy

@@ -5,7 +5,7 @@ All phases 0-9 have deterministic acceptance evidence, but only phases with an
 engine adapter may affect a live harness game. The versioned support declaration
 is `pf_pln_runtime` in `profile/freeciv_agent.yaml`.
 
-The current engine adapter is `grounded-impact-planner/1.14`. Its score-alignment
+The current engine adapter is `grounded-impact-planner/1.15`. Its score-alignment
 guard changes how the already-live phases 0, 1, 4, and 9 rank grounded
 operations. It also exposes a bounded post-settlement-runway gate for
 score-bearing founder production and carries that deadline through settlement
@@ -79,6 +79,13 @@ the founder route. Otherwise the founder remains movable and a separate
 no-progress snapshot counter records the bypass. The correction remains
 opt-in through the parent final-settlement switch and is pending source-fresh
 mechanism and generalization replays.
+The adapter-1.14 exposed replay removed explicit holds but did not remove the
+score harm: seven unprepared escort candidates still outranked founder
+routing. Adapter 1.15 requires at least one authoritatively successful early
+preparation installation before enabling final-route escort candidates,
+rendezvous holds, or mandatory final co-location. The preparation projection
+itself remains available so the mechanism can activate. Unprepared route
+bypasses are exported separately.
 The live harness explicitly enables
 `expansion_settlement_deadline_recovery_enabled`. Its false setting is a
 diagnostic ablation of existing-founder deadline handling; it does not

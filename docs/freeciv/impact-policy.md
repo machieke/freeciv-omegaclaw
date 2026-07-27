@@ -185,6 +185,14 @@ remains eligible and
 `planner_founder_final_escort_rendezvous_no_progress_snapshots` records the
 bypass.
 
+Adapter 1.15 adds the missing activation evidence. Final-route escort moves,
+rendezvous holds, and final-slot mandatory co-location require at least one
+confirmed early preparation installation. The production projection remains
+eligible before that confirmation. Incidental spare combat units can no
+longer divert an unprepared final founder, and
+`planner_founder_final_escort_unprepared_route_bypass_snapshots` counts that
+bounded bypass.
+
 Founder routing is feedback-driven in the horizon-score policy. On the first step from
 a city, aggregate distance from the complete city network breaks minimum-distance ties
 in favor of open expansion space. A move target becomes a proven traversable edge only

@@ -1557,3 +1557,18 @@ least one successful early preparation installation. The harmful trace had
 zero preparations; the positive control had two. A source-fresh two-pair
 replay must preserve the positive chain and make the unprepared trace match
 its no-feature baseline before the ten-seed V2 cohort proceeds.
+
+Adapter 1.15 implements preparation-grounded route activation. Early
+preparation projection remains unchanged, but final-route escort candidates,
+rendezvous holds, and mandatory final co-location require at least one
+authoritatively successful preparation installation. Incidental spare combat
+cannot activate the chain. Unique unprepared-route bypass snapshots expose
+the boundary.
+
+The source-fresh, claim-ineligible
+`final_settlement_escort_prepared_route_mechanism_v1` cohort repeats
+`3790239` and positive-control `3746776`. The unprepared trace must match its
+baseline with zero final escort moves; the prepared trace must preserve its
+confirmed final escorted settlement and positive score direction. The
+ten-seed V2 generalization declaration now targets adapter 1.15 and may run
+only after this gate.

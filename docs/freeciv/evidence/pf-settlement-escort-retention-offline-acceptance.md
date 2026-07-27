@@ -443,3 +443,22 @@ unprepared exposed trace behaviorally identical to its no-feature baseline.
 
 Machine-readable evidence is
 [`pf-final-settlement-escort-legal-progress-mechanism-v1.json`](pf-final-settlement-escort-legal-progress-mechanism-v1.json).
+
+## Adapter 1.15 preparation-grounded route activation
+
+Adapter 1.15 separates preparation eligibility from route activation. The
+projected final founder can still trigger early defender production. Final
+escort routing, rendezvous holds, and mandatory co-location for the target-
+completing city activate only after the planner observes a successful
+preparation target installation. Incidental spare combat cannot activate the
+chain. `planner_founder_final_escort_unprepared_route_bypass_snapshots`
+records unique assigned-founder snapshots before that evidence exists.
+
+The claim-ineligible
+`final_settlement_escort_prepared_route_mechanism_v1` cohort repeats exposed
+seed `3790239` and positive-control seed `3746776`. Acceptance requires the
+unprepared treatment to match its no-feature baseline on founding, retention,
+and score with zero final escort moves, while the prepared positive control
+must retain its one confirmed final escorted settlement and positive own-score
+direction. Only after that gate may the predeclared adapter-1.15 ten-seed V2
+generalization run.
