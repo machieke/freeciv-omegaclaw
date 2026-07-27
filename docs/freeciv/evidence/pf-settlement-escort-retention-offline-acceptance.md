@@ -360,3 +360,15 @@ The next gate is a frozen selected-seed generalization of the unchanged
 adapter-1.13 switch. It must report activation and non-activation separately
 and retain all safety and replay gates; V1 and V2 selected-pair outcomes
 remain unpooled.
+
+The predeclared, claim-ineligible
+`final_settlement_escort_preparation_generalization_v1` cohort freezes the
+unchanged adapter-1.13 switch across all ten outcome-selected packet-site
+seeds. It isolates only
+`expansion_final_settlement_escort_enabled`; both arms retain route memory,
+threat gating, packet-site preference, settlement-runway recovery, pressure,
+learning, and score alignment. It must report activation and non-activation
+separately, including production installations, rendezvous holds, exact
+escort moves, final settlement or recovery, founded and retained cities,
+score components, opponent score, margin, and lead. As reused-seed diagnostic
+evidence, it cannot revise a score or win-rate claim regardless of direction.

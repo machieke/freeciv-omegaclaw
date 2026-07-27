@@ -1500,3 +1500,12 @@ schema, and exact-replay integrity gates passed. This is one outcome-selected,
 claim-ineligible pair: it accepts the mechanism but does not establish score
 or win-rate improvement. The unchanged switch must next run across the frozen
 ten selected packet-site seeds before any fresh pilot is considered.
+
+The predeclared
+`final_settlement_escort_preparation_generalization_v1` cohort freezes that
+unchanged switch across all ten outcome-selected packet-site seeds. It is
+claim-ineligible and isolates only final-settlement preparation; all other
+adapter-1.13 expansion and pressure settings match. Activation and
+non-activation must be reported separately, along with complete production,
+rendezvous, escort, settlement/recovery, retention, score-component,
+opponent, margin, safety, schema, and replay evidence.
