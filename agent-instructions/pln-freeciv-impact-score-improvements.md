@@ -1484,3 +1484,19 @@ rejoin after each refreshed founder step. Unique rendezvous-hold snapshots
 are exported independently. The source-fresh, claim-ineligible
 `final_settlement_escort_preparation_mechanism_v2` cohort repeats the isolated
 selected pair; V1 evidence remains immutable and is not pooled.
+
+The V2 replay accepted the corrected mechanism. Treatment recorded 12
+rendezvous holds, eight of eight exact escort approaches, and one of one
+confirmed final escorted settlements. It retained all three founded cities;
+baseline retained two. Own score was `118` versus `112`, entirely from six
+additional citizen points, while opponent score was `147` versus `148` and
+margin was `-29` versus `-36`. Neither arm led.
+
+Two successful preparation installations occurred in distinct cities and
+states rather than repeating one unchanged target. The first approaching
+combat unit became a sole city garrison; a second automatically completed
+capital Riflemen supplied the eventual spare escort. All source, safety,
+schema, and exact-replay integrity gates passed. This is one outcome-selected,
+claim-ineligible pair: it accepts the mechanism but does not establish score
+or win-rate improvement. The unchanged switch must next run across the frozen
+ten selected packet-site seeds before any fresh pilot is considered.

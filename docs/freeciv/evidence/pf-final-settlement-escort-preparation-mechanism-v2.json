@@ -1,0 +1,113 @@
+{
+  "artifacts": {
+    "aggregate": "artifacts/freeciv/pf-final-settlement-escort-preparation-mechanism-v2/impact-aggregate.json",
+    "aggregate_sha256": "45259ec82baf40f29ff03f8c79dc82d3572cda5cd27763afbe3b56477083742d",
+    "baseline_events_sha256": "7b0b4dcec6dcc9313f39601c59954462c3a892304eccb1cccbf627167edad429",
+    "exact_replay_artifact_hash": "cee8af77c9e9f05f3335d07b8539d03c26b0a61450bf5cb620616a04b1183c9d",
+    "exact_replay_sha256": "f99fbd3d52ef0dbcb9beb7b4c2df67a17394ebf528441c40cb64834fd18cb587",
+    "exact_replay_source_set_hash": "9c6e472cd18fb8c8f269ba962a7f21960afe5f4b538cb0fa95096796500c7068",
+    "run_summary_sha256": "395d67f5fa8a5f0522236a4b2c9bb5c161a6f1f919508f2eb4249e71c6c479bc",
+    "treatment_events_sha256": "2385298b912fb2aa666108c5c3eea838d918631ed82dfa654f4ec4989c598d4c"
+  },
+  "claim": {
+    "claim_eligible": false,
+    "score_improvement_supported": false,
+    "status": "selected_seed_mechanism_accepted_positive_direction",
+    "win_rate_supported": false
+  },
+  "cohort": {
+    "active_infrastructure_failures": 0,
+    "complete_pairs": 1,
+    "completed_arms": 2,
+    "name": "final_settlement_escort_preparation_mechanism_v2",
+    "planned_pairs": 1,
+    "reused_seed": 3746776
+  },
+  "decision_replay": {
+    "changed_decisions": 3,
+    "decision_change_rate": 0.03296703296703297,
+    "exact_replay_files": 1,
+    "integrity_failures": 0,
+    "sources_unchanged": true,
+    "total_decisions": 91
+  },
+  "mechanism": {
+    "baseline": {
+      "cities_founded": 3,
+      "cities_gained": 2,
+      "final_escort_deferral_snapshots": 0,
+      "final_escort_move_attempts": 0,
+      "final_escort_preparation_production_attempts": 0,
+      "final_escort_rendezvous_hold_snapshots": 0,
+      "final_escorted_settlement_attempts": 0,
+      "final_escorted_settlement_completions": 0,
+      "final_owned_city_sizes": [
+        2,
+        3,
+        5
+      ],
+      "opponent_score": 148,
+      "score": 112,
+      "score_margin": -36
+    },
+    "treatment": {
+      "cities_founded": 3,
+      "cities_gained": 3,
+      "final_escort_deferral_snapshots": 13,
+      "final_escort_move_attempts": 8,
+      "final_escort_move_successes": 8,
+      "final_escort_preparation_production_attempts": 2,
+      "final_escort_preparation_production_successes": 2,
+      "final_escort_rendezvous_hold_snapshots": 12,
+      "final_escorted_settlement_attempts": 1,
+      "final_escorted_settlement_completions": 1,
+      "final_owned_city_sizes": [
+        3,
+        3,
+        5,
+        5
+      ],
+      "opponent_score": 147,
+      "population_recovery_attempts": 0,
+      "population_recovery_completions": 0,
+      "score": 118,
+      "score_margin": -29
+    }
+  },
+  "outcomes": {
+    "cities_founded_delta": 0,
+    "cities_gained_delta": 1,
+    "opponent_score_delta": -1,
+    "score_component_citizen_delta": 6,
+    "score_component_residual_delta": 0,
+    "score_component_technology_delta": 0,
+    "score_delta": 6,
+    "score_margin_delta": 7,
+    "score_lead_delta": 0
+  },
+  "safety": {
+    "engine_rejected_action_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "full_loop_under_30s_rate": {
+      "baseline": 1.0,
+      "treatment": 1.0
+    },
+    "initial_state_fidelity_passed": true,
+    "model_safe_fallback_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "overall_passed": true,
+    "schema_valid_events": 2935,
+    "schema_valid_files": 2
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "bcdc3d242cfb7ab1613d2466e1b34afb3f544b03",
+    "configuration_hash": "e1f8440d44caba582c9d7878e61e1143b89ab9b7da898decc2ff569823d61ca0",
+    "implementation_sha256": "86d52e1f61e68c5deae2d100241057a105750138d9b27b56d75df12cf0539a6b",
+    "source_freeze_passed": true
+  }
+}

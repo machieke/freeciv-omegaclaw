@@ -333,3 +333,30 @@ reuses seed `3746776` and isolates the same public switch on source-fresh
 adapter-1.13. Acceptance requires at least one rendezvous hold followed by
 exact co-location and either a confirmed final escorted settlement or bounded
 population recovery. All V1 outcomes remain immutable and unpooled.
+
+The source-fresh V2 run met that acceptance criterion and passed every
+source, initial-state, safety, schema, and exact-replay integrity gate.
+Treatment recorded 12 rendezvous holds, eight of eight exact combat approach
+moves, and one of one confirmed final escorted settlements. All three founded
+cities remained owned at turn 60, compared with two of three in baseline.
+The final owned city sizes were `3, 3, 5, 5` in treatment and `2, 3, 5` in
+baseline.
+
+Two distinct production installations succeeded: the turn-22 capital
+Riflemen preparation and a turn-27 defender target in the newly founded third
+city after the first approaching combat unit became that city's sole
+garrison. These were not repeated attempts against one unchanged queue. A
+second automatically completed capital Riflemen then became the spare unit
+that closed the final rendezvous.
+
+Treatment scored `118` versus `112`, entirely through `+6` citizen score.
+Opponent score was `147` versus `148`, so margin improved from `-36` to
+`-29`. Neither arm led at the horizon. This one outcome-selected pair accepts
+the mechanism but cannot support a score or win-rate claim.
+
+Machine-readable evidence is
+[`pf-final-settlement-escort-preparation-mechanism-v2.json`](pf-final-settlement-escort-preparation-mechanism-v2.json).
+The next gate is a frozen selected-seed generalization of the unchanged
+adapter-1.13 switch. It must report activation and non-activation separately
+and retain all safety and replay gates; V1 and V2 selected-pair outcomes
+remain unpooled.
