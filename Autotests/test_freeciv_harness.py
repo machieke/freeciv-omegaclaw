@@ -122,6 +122,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "expansion_target_confirmatory_v1": 100,
             "expansion_fifth_city_diagnostic_v1": 10,
             "expansion_fifth_city_pilot_v1": 40,
+            "expansion_fifth_city_confirmatory_v1": 100,
             "expansion_deadline_recovery_diagnostic_v1": 40,
             "foreign_claim_founding_mechanism_v1": 1,
             "packet_site_preference_mechanism_v1": 10,
@@ -383,6 +384,23 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "algorithm": "sha256-counter-v1",
         "namespace": "pf-pln-expansion-fifth-city-pilot-v1",
         "count": 40, "minimum": 4400000, "maximum": 4499999,
+    }
+    fifth_city_confirmation = paired["cohorts"][
+        "expansion_fifth_city_confirmatory_v1"]
+    assert fifth_city_confirmation["planned_pairs"] == 100
+    assert fifth_city_confirmation["claim_eligible"] is True
+    assert fifth_city_confirmation["endpoints"] == ["score_turn_n"]
+    assert fifth_city_confirmation["isolated_policy_keys"] == [
+        "expansion_city_target"]
+    assert fifth_city_confirmation["arms"] == fifth_city_pilot["arms"]
+    assert fifth_city_confirmation["score_design"] == {
+        "minimum_detectable_delta": 1.0,
+        "maximum_planning_sd": 3.5,
+    }
+    assert fifth_city_confirmation["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": "pf-pln-expansion-fifth-city-confirmatory-v1",
+        "count": 100, "minimum": 4500000, "maximum": 4699999,
     }
     deadline_recovery = paired["cohorts"][
         "expansion_deadline_recovery_diagnostic_v1"]

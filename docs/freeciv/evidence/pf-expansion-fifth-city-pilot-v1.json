@@ -1,0 +1,150 @@
+{
+  "artifacts": {
+    "aggregate": "artifacts/freeciv/pf-expansion-fifth-city-pilot-v1/impact-aggregate.json",
+    "aggregate_sha256": "164129b81c145ebe17a99aea51448eb9c56c1b9bd48cc0adfc79d7f9b349b7ea",
+    "exact_replay_artifact_hash": "f342d9688c031780002dd9395f1b42f11e2c5a25c8deb522fd96a5053598d751",
+    "exact_replay_sha256": "1332e86e68adfc583aca455019735f78b88d43b484e81984d5dfe1e5f66cdf18",
+    "exact_replay_source_set_hash": "7867fae4ecc9c026b0b195a4011c9145764dd616229844d51b57e3bb920467e7",
+    "run_summary_sha256": "777543f574c0c2c3b97c7410366f8b32e5965eb30a14e0f2adeb9c38c27724fb"
+  },
+  "claim": {
+    "claim_eligible": false,
+    "score_improvement_supported": false,
+    "status": "pilot_advancement_gate_passed",
+    "win_rate_supported": false
+  },
+  "cohort": {
+    "active_infrastructure_failures": 0,
+    "complete_pairs": 40,
+    "completed_arms": 80,
+    "name": "expansion_fifth_city_pilot_v1",
+    "planned_pairs": 40
+  },
+  "decision_replay": {
+    "changed_decisions": 193,
+    "decision_change_rate": 0.06354955548238393,
+    "exact_replay_files": 40,
+    "integrity_failures": 0,
+    "sources_unchanged": true,
+    "total_decisions": 3037
+  },
+  "design": {
+    "baseline_city_target": 4,
+    "horizon_turn": 60,
+    "isolated_policy_keys": [
+      "expansion_city_target"
+    ],
+    "minimum_settlement_runway_turns": 15,
+    "treatment_city_target": 5
+  },
+  "mechanism_delivery": {
+    "baseline_games_reaching_five_cities": 0,
+    "incremental_retained_cities": 21,
+    "pairs_with_incremental_retained_city": 21,
+    "treatment_games_reaching_five_cities": 17
+  },
+  "outcomes": {
+    "cities_founded_delta": {
+      "estimate": 0.575,
+      "lower": 0.425,
+      "upper": 0.725
+    },
+    "cities_gained_delta": {
+      "estimate": 0.525,
+      "lower": 0.375,
+      "upper": 0.675
+    },
+    "opponent_score_delta": {
+      "estimate": -0.175,
+      "lower": -3.375,
+      "upper": 2.975
+    },
+    "score_component_citizen_delta": {
+      "estimate": 1.85,
+      "lower": 1.175,
+      "upper": 2.55
+    },
+    "score_component_residual_delta": {
+      "estimate": -0.175,
+      "lower": -0.675,
+      "upper": 0.325
+    },
+    "score_component_technology_delta": {
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.0
+    },
+    "score_delta": {
+      "estimate": 1.675,
+      "exact_p": 0.0015815114602446556,
+      "lower": 0.725,
+      "upper": 2.575
+    },
+    "score_lead_rate_delta": {
+      "baseline_only_win": 1,
+      "both_lose": 27,
+      "both_win": 8,
+      "estimate": 0.075,
+      "lower": -0.025,
+      "mcnemar_exact_p": 0.375,
+      "treatment_only_win": 4,
+      "upper": 0.175
+    },
+    "score_margin_delta": {
+      "estimate": 1.85,
+      "lower": -1.9,
+      "upper": 5.625
+    },
+    "settlement_completions_delta": {
+      "estimate": 0.575,
+      "lower": 0.425,
+      "upper": 0.725
+    }
+  },
+  "paired_score_direction": {
+    "negative_pairs": 7,
+    "positive_pairs": 24,
+    "ties": 9,
+    "total_score_delta": 67
+  },
+  "power": {
+    "achieved_pairs": 40,
+    "achieved_power_for_two_points": 0.9864637060580383,
+    "detectable_score_delta": 1.3435462610461961,
+    "observed_paired_sd": 3.0330445058322133,
+    "recommended_confirmatory_pairs": 30,
+    "target_power": 0.8
+  },
+  "predeclared_advancement": {
+    "all_integrity_and_safety_gates_passed": true,
+    "cities_and_citizen_mechanisms_positive": true,
+    "score_interval_above_zero": true,
+    "score_randomization_p_at_most_0_05": true,
+    "status": "passed"
+  },
+  "safety": {
+    "engine_rejected_action_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "full_loop_under_30s_rate": {
+      "baseline": 1.0,
+      "treatment": 1.0
+    },
+    "initial_state_fidelity_passed": true,
+    "model_safe_fallback_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "overall_passed": true,
+    "schema_valid_events": 116819,
+    "schema_valid_files": 80
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "8e207188fdea3c3b43193ecd10a638ffb68bea7c",
+    "configuration_hash": "ff3b7211e7bb32d40fc022b7b44caa7fb4dc2d958bc573c594f738f1808cf041",
+    "implementation_sha256": "fea8d9a0e2f65aa0e0f9f71fb103207e6ba81b5aed19c4883ccdd93c213b9134",
+    "source_freeze_passed": true
+  }
+}

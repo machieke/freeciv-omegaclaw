@@ -1788,3 +1788,24 @@ versus target-five policy on 40 disjoint pairs from namespace
 advance to confirmation only if founding and citizen mechanisms remain
 positive, the score interval is above zero, exact paired `p <= 0.05`, and all
 integrity gates pass. The ten-pair diagnostic will not be pooled.
+
+The fresh 40-pair pilot completed every arm without infrastructure failure.
+It independently estimates `+1.675` score, interval
+`[+0.725, +2.575]`, exact paired `p=0.0015815`. Twenty-four pairs improved,
+nine tied, and seven declined. Retained cities increased `+0.525`, citizen
+score increased `+1.85`, technology was unchanged, and residual score was
+compatible with zero.
+
+Treatment created 21 incremental retained cities and reached five total
+cities in 17 games; no baseline reached five. Lead-rate direction was
+`+0.075`, but its interval `[-0.025, +0.175]` and exact McNemar `p=0.375`
+do not support a win-rate result. All 116,819 events and 3,037 exact-replayed
+treatment decisions passed.
+
+Every predeclared pilot advancement gate therefore passes. The separately
+frozen, claim-eligible `expansion_fifth_city_confirmatory_v1` cohort uses 100
+new pairs from namespace `pf-pln-expansion-fifth-city-confirmatory-v1`, range
+`4500000..4699999`. It is score-only, powered for a one-point paired effect
+with planning deviation up to 3.5, and holds the implementation and all
+non-target policies unchanged. Neither development cohort may be pooled with
+confirmation.
