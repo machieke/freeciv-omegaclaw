@@ -1289,7 +1289,9 @@ def _ready_raw(source_seq=1, moves_left=3, buildability=True,
                include_units=True, include_cities=True, turn=1, player_alive=True):
     raw = {
         "format": "pln_authoritative", "turn": turn, "phase": "movement",
-        "player_id": 0,
+        "player_id": 0, "game": {
+            "turn": turn, "phase": "movement", "is_over": False,
+        },
         "authoritative": {
             "source_seq": source_seq,
             "player": {"is_alive": player_alive,
@@ -1391,6 +1393,27 @@ def test_packet_backed_elimination_overrides_stale_city_and_current_turn(monkeyp
     assert not _decision_state_ready(snapshot)
 
 
+def test_packet_backed_game_over_overrides_source_and_next_turn_wait(monkeypatch):
+    raw = _ready_raw(source_seq=54, turn=54)
+    raw["game"]["is_over"] = True
+    raw["legal_actions"] = []
+
+    async def terminal_state(_ws, _format, **_options):
+        return raw
+
+    monkeypatch.setattr(engine_live.turncycle, "get_state", terminal_state)
+    returned, snapshot = asyncio.run(_state(
+        object(), "terminal-game", minimum_turn=55,
+        minimum_source_seq=55, require_decision_ready=True,
+        stable_samples=2, timeout=0.2))
+
+    assert returned is raw
+    assert snapshot.turn == 54
+    assert snapshot.game_over is True
+    assert snapshot.player_alive is True
+    assert engine_live._game_terminal(snapshot)
+
+
 def test_missing_player_status_fails_closed_for_decisions():
     raw = _ready_raw()
     raw["authoritative"]["player"].pop("is_alive")
@@ -1476,6 +1499,68 @@ def test_state_poll_enforces_the_callers_deadline(monkeypatch):
     with pytest.raises(TimeoutError, match="did not reach turn"):
         asyncio.run(_state(object(), "deadline-test", timeout=0.05))
     assert engine_live.time.monotonic() - started < 0.5
+
+
+def test_next_turn_state_uses_one_bounded_force_end_turn_recovery(monkeypatch):
+    calls = []
+    recovered = ({"turn": 13}, object())
+
+    async def state(_ws, game_id, **options):
+        calls.append(("state", game_id, options))
+        if len([row for row in calls if row[0] == "state"]) == 1:
+            raise TimeoutError("authoritative state did not reach turn 13")
+        return recovered
+
+    def force(game_id, token, agent_id):
+        calls.append(("force", game_id, token, agent_id))
+
+    monkeypatch.setattr(engine_live, "_state", state)
+    monkeypatch.setattr(engine_live, "_force_end_turn_proxy", force)
+    diagnostics = {}
+
+    result = asyncio.run(engine_live._next_turn_state(
+        object(), "turn-recovery", "secret", "agent_7",
+        minimum_turn=13, minimum_source_seq=46,
+        diagnostics=diagnostics, timeout=0.25))
+
+    assert result is recovered
+    state_calls = [row for row in calls if row[0] == "state"]
+    assert len(state_calls) == 2
+    assert state_calls[0][2] == state_calls[1][2] == {
+        "minimum_turn": 13,
+        "minimum_source_seq": 46,
+        "require_decision_ready": True,
+        "stable_samples": 2,
+        "diagnostics": diagnostics,
+        "timeout": 0.25,
+    }
+    assert calls[1] == ("force", "turn-recovery", "secret", "agent_7")
+    assert diagnostics["force_end_turn_recovery_attempts"] == 1
+    assert diagnostics["force_end_turn_recovery_successes"] == 1
+    assert diagnostics.get("force_end_turn_recovery_failures", 0) == 0
+
+
+def test_next_turn_state_fails_closed_after_single_recovery(monkeypatch):
+    async def state(_ws, _game_id, **_options):
+        raise TimeoutError("authoritative state did not reach turn 13")
+
+    forced = []
+    monkeypatch.setattr(engine_live, "_state", state)
+    monkeypatch.setattr(
+        engine_live, "_force_end_turn_proxy",
+        lambda *args: forced.append(args))
+    diagnostics = {}
+
+    with pytest.raises(TimeoutError, match="did not reach turn 13"):
+        asyncio.run(engine_live._next_turn_state(
+            object(), "turn-recovery", "secret", "agent_7",
+            minimum_turn=13, minimum_source_seq=46,
+            diagnostics=diagnostics, timeout=0.25))
+
+    assert forced == [("turn-recovery", "secret", "agent_7")]
+    assert diagnostics["force_end_turn_recovery_attempts"] == 1
+    assert diagnostics["force_end_turn_recovery_failures"] == 1
+    assert diagnostics.get("force_end_turn_recovery_successes", 0) == 0
 
 
 def test_state_waits_for_new_source_revision_then_rechecks_stability(monkeypatch):

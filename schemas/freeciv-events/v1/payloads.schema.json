@@ -367,7 +367,33 @@
         "buildable_count": {"type": "integer", "minimum": 0},
         "mood": {"$ref": "#/$defs/cityMood"},
         "support": {"$ref": "#/$defs/citySupport"},
-        "had_famine": {"type": ["boolean", "null"]}
+        "had_famine": {"type": ["boolean", "null"]},
+        "governor": {"$ref": "#/$defs/cityGovernor"}
+      }
+    },
+    "cityGovernor": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "available", "enabled", "minimal_surplus", "factor",
+        "require_happy", "allow_disorder", "max_growth",
+        "allow_specialists", "happy_factor"
+      ],
+      "properties": {
+        "available": {"type": "boolean"},
+        "enabled": {"type": ["boolean", "null"]},
+        "minimal_surplus": {
+          "type": "array", "minItems": 0, "maxItems": 6,
+          "items": {"type": "integer"}
+        },
+        "factor": {
+          "type": "array", "minItems": 0, "maxItems": 6,
+          "items": {"type": "integer"}
+        },
+        "require_happy": {"type": ["boolean", "null"]},
+        "allow_disorder": {"type": ["boolean", "null"]},
+        "max_growth": {"type": ["boolean", "null"]},
+        "allow_specialists": {"type": ["boolean", "null"]},
+        "happy_factor": {"type": ["integer", "null"]}
       }
     },
     "citizenFeeling": {

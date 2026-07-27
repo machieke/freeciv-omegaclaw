@@ -546,6 +546,11 @@ def _player_eliminated(snapshot):
     return snapshot.player_alive is False
 
 
+def _game_terminal(snapshot):
+    """Return packet/session-backed terminal state without inferring from assets."""
+    return snapshot.game_over or _player_eliminated(snapshot)
+
+
 async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=20.0,
                  require_decision_ready=False, require_own_units=False,
                  stable_samples=1, poll_interval=0.05, diagnostics=None):
@@ -665,7 +670,13 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
                 observed_source_seq = int(source_seq)
             except (TypeError, ValueError):
                 observed_source_seq = None
+        raw_game = (
+            raw.get("game")
+            if raw and isinstance(raw.get("game"), dict) else {})
+        raw_game_over = raw_game.get("is_over") is True
         source_ready = (
+            raw_game_over
+            or
             minimum_source_seq is None
             or (source_seq is not None and int(source_seq) >= minimum_source_seq))
         if raw and source_ready:
@@ -679,7 +690,7 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
             # A dead player receives no next begin-turn packet. Accept the exact
             # terminal player packet at its current turn even when the caller is
             # waiting for ``minimum_turn = current + 1``.
-            if _player_eliminated(snapshot):
+            if _game_terminal(snapshot):
                 finish(True)
                 return raw, snapshot
             turn_ready = int(raw.get("turn", 0)) >= minimum_turn
@@ -726,6 +737,47 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
         await asyncio.sleep(settle_wait)
     finish(False)
     raise TimeoutError("authoritative state did not reach turn {}".format(minimum_turn))
+
+
+async def _next_turn_state(ws, game_id, api_token, agent_id, minimum_turn,
+                           minimum_source_seq, diagnostics=None,
+                           timeout=20.0):
+    """Wait for one turn boundary, recovering one lost phase-done signal.
+
+    A submitted ``end_turn`` can be acknowledged before the civserver consumes
+    its phase-done packet.  If no authoritative next-turn revision arrives
+    within the normal bounded wait, use the proxy's authenticated REST fallback
+    once and prove recovery by waiting for the same minimum turn and source
+    revision.  A second timeout still fails the run, so recovery cannot turn a
+    persistently wedged engine into claim-eligible evidence.
+    """
+
+    def record(name):
+        if diagnostics is not None:
+            diagnostics[name] = diagnostics.get(name, 0.0) + 1.0
+
+    state_options = {
+        "minimum_turn": minimum_turn,
+        "minimum_source_seq": minimum_source_seq,
+        "require_decision_ready": True,
+        "stable_samples": 2,
+        "diagnostics": diagnostics,
+        "timeout": timeout,
+    }
+    try:
+        return await _state(ws, game_id, **state_options)
+    except TimeoutError:
+        record("force_end_turn_recovery_attempts")
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(
+            None, _force_end_turn_proxy, game_id, api_token, agent_id)
+        try:
+            result = await _state(ws, game_id, **state_options)
+        except TimeoutError:
+            record("force_end_turn_recovery_failures")
+            raise
+        record("force_end_turn_recovery_successes")
+        return result
 
 
 def _global_state_ready(state, player_id=None, minimum_turn=None):
@@ -1447,6 +1499,10 @@ async def _play(run_dir, manifest, context):
         # diplomat drives the real scouting path.
         "startunits": "csd", "startcity": True,
         "startpos": "all", "dispersion": 0, "fogofwar": False,
+        # Preserve spaceship construction/arrival dynamics while preventing
+        # optional victory conditions from truncating a fixed-horizon cohort.
+        # Conquest remains a genuine absorbing terminal state.
+        "victories": "SPACERACE", "endspaceship": False,
         "max_turns": manifest.get("engine_max_turns", manifest["turn_limit"]),
         "ai_skill_level": manifest["opponent"].get("difficulty", "experimental"),
     }
@@ -1789,13 +1845,14 @@ async def _play(run_dir, manifest, context):
         turns_executed = 0
         planned_actions = 0
         terminal_player_elimination = False
+        terminal_game_over = False
         turn_boundary_started = None
         for turn_index in range(1, manifest["turn_limit"] + 1):
             if turn_index > 1:
-                raw, snapshot = await _state(
-                    ws, manifest["game_id"], minimum_turn=snapshot.turn + 1,
+                raw, snapshot = await _next_turn_state(
+                    ws, manifest["game_id"], api_token, agent_id,
+                    minimum_turn=snapshot.turn + 1,
                     minimum_source_seq=snapshot.identity.source_seq + 1,
-                    require_decision_ready=True, stable_samples=2,
                     diagnostics=transition_state_diagnostics)
                 store.replace(snapshot)
                 state_event = writer.emit(
@@ -1827,8 +1884,9 @@ async def _play(run_dir, manifest, context):
                 rows, parent = _emit_observations(
                     snapshot, manifest, belief_store, inference, writer, parent, seen)
                 predictions.extend(rows)
-            if _player_eliminated(snapshot):
-                terminal_player_elimination = True
+            if _game_terminal(snapshot):
+                terminal_game_over = snapshot.game_over
+                terminal_player_elimination = _player_eliminated(snapshot)
                 break
 
             if turn_boundary_started is not None:
@@ -2232,7 +2290,9 @@ async def _play(run_dir, manifest, context):
         final_global = await _global_state(
             ws, timeout=5, player_id=player_id,
             minimum_turn=(
-                final_turn if terminal_player_elimination else final_turn + 1))
+                final_turn
+                if terminal_game_over or terminal_player_elimination
+                else final_turn + 1))
         final_global_settle_latency = (
             time.perf_counter() - final_global_started) * 1000.0
 
@@ -2292,7 +2352,8 @@ async def _play(run_dir, manifest, context):
     horizon_reached = final_turn >= manifest["turn_limit"]
     score_observation_semantics = (
         "terminal_absorbing_score_carried_to_horizon"
-        if terminal_player_elimination else "observed_at_fixed_horizon")
+        if terminal_game_over or terminal_player_elimination
+        else "observed_at_fixed_horizon")
     # ``game_win`` is retained for the original M7 aggregate contract. Paired
     # impact claims use the explicitly named fixed-horizon score-lead endpoint.
     won = score_lead
@@ -2555,6 +2616,15 @@ async def _play(run_dir, manifest, context):
          mean_state_diagnostic(
              transition_state_diagnostics, "server_projection_attempts",
              transition_calls)),
+        ("turn_boundary_force_end_turn_recovery_attempts",
+         transition_state_diagnostics.get(
+             "force_end_turn_recovery_attempts", 0.0)),
+        ("turn_boundary_force_end_turn_recovery_successes",
+         transition_state_diagnostics.get(
+             "force_end_turn_recovery_successes", 0.0)),
+        ("turn_boundary_force_end_turn_recovery_failures",
+         transition_state_diagnostics.get(
+             "force_end_turn_recovery_failures", 0.0)),
         ("action_refresh_state_latency_ms",
          action_state_diagnostics.get("latency_ms", 0.0) / action_state_calls),
         ("action_refresh_state_query_latency_ms",
@@ -3121,6 +3191,15 @@ async def _play(run_dir, manifest, context):
                 impact_planner.population_recovered
                 if impact_planner is not None else 0),
             "planned_engine_actions": planned_actions,
+            "turn_boundary_force_end_turn_recovery_attempts": (
+                transition_state_diagnostics.get(
+                    "force_end_turn_recovery_attempts", 0.0)),
+            "turn_boundary_force_end_turn_recovery_successes": (
+                transition_state_diagnostics.get(
+                    "force_end_turn_recovery_successes", 0.0)),
+            "turn_boundary_force_end_turn_recovery_failures": (
+                transition_state_diagnostics.get(
+                    "force_end_turn_recovery_failures", 0.0)),
             "opponent_score": opponent_score,
             "outcome_definition": "fixed_horizon_score_lead",
             "horizon_reached": horizon_reached,
@@ -3128,6 +3207,7 @@ async def _play(run_dir, manifest, context):
             "score_observation_turn": final_turn,
             "score": player_score, "score_lead": score_lead,
             "score_margin": score_margin, "won": won,
+            "terminal_game_over": terminal_game_over,
             "terminal_player_elimination": terminal_player_elimination,
             "zombie_attempts_blocked": zombie_blocked,
         }}, caused_by=[parent])
@@ -3138,6 +3218,7 @@ async def _play(run_dir, manifest, context):
         "horizon_reached": horizon_reached,
         "score_observation_semantics": score_observation_semantics,
         "score_observation_turn": final_turn,
+        "terminal_game_over": terminal_game_over,
         "terminal_player_elimination": terminal_player_elimination,
         "model_latency_ms": model_latency, "rejected_actions": rejected,
         "model_selection_calls": decision_stats["model_selection_calls"],
@@ -3161,6 +3242,15 @@ async def _play(run_dir, manifest, context):
         "initial_legal_action_families": initial_legal_action_families,
         "initial_state_fingerprint": initial_state_fingerprint,
         "meaningful_actions": decision_stats["meaningful_actions"],
+        "turn_boundary_force_end_turn_recovery_attempts": (
+            transition_state_diagnostics.get(
+                "force_end_turn_recovery_attempts", 0.0)),
+        "turn_boundary_force_end_turn_recovery_successes": (
+            transition_state_diagnostics.get(
+                "force_end_turn_recovery_successes", 0.0)),
+        "turn_boundary_force_end_turn_recovery_failures": (
+            transition_state_diagnostics.get(
+                "force_end_turn_recovery_failures", 0.0)),
         "founder_production_changes": decision_stats["founder_production_changes"],
         "production_repurpose_changes": decision_stats["production_repurpose_changes"],
         "production_preexpansion_growth_changes": (
@@ -3303,6 +3393,36 @@ async def _play(run_dir, manifest, context):
         "planned_engine_actions": planned_actions,
         "zombie_attempts_blocked": zombie_blocked,
     }
+
+
+def _force_end_turn_proxy(game_id, token, agent_id):
+    request = urllib.request.Request(
+        "http://127.0.0.1:8002/api/game/{}/force_end_turn".format(game_id),
+        data=json.dumps({"agent_id": agent_id}).encode("utf-8"), method="POST",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token,
+        })
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            body = json.load(response)
+    except Exception as error:
+        detail = ""
+        if isinstance(error, urllib.error.HTTPError):
+            try:
+                detail = ": " + error.read().decode("utf-8", "replace")
+            except Exception:
+                detail = ""
+        raise RuntimeError(
+            "proxy force-end-turn failed for {}{}".format(game_id, detail))
+    result = (
+        body.get("results", {}).get(agent_id)
+        if isinstance(body, dict) else None)
+    if not isinstance(result, dict) or result.get("success") is not True:
+        raise RuntimeError(
+            "proxy force-end-turn did not confirm agent {} for {}: {}".format(
+                agent_id, game_id, body))
+    return result
 
 
 def _terminate_proxy(game_id, token, required=False):

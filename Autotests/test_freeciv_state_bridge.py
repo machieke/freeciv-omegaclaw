@@ -232,6 +232,22 @@ def test_player_alive_is_part_of_snapshot_identity():
     assert alive.identity.state_hash != eliminated.identity.state_hash
 
 
+def test_game_over_is_exact_and_part_of_snapshot_identity():
+    active = _snapshot()
+    payload = _payload()
+    payload.setdefault("game", {})["is_over"] = True
+    terminal = _snapshot(payload=payload)
+
+    assert active.game_over is False
+    assert terminal.game_over is True
+    assert terminal.own_state_dict()["game_over"] is True
+    assert active.identity.state_hash != terminal.identity.state_hash
+
+    payload["game"]["is_over"] = 1
+    with pytest.raises(ContractError, match="game.is_over must be a boolean"):
+        _snapshot(payload=payload)
+
+
 def test_visible_foreign_units_are_observations_not_authoritative_own_state():
     payload = _payload()
     foreign = copy.deepcopy(payload["units"]["7"])

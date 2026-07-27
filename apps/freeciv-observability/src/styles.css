@@ -634,7 +634,7 @@ button.atom-row { cursor: pointer; }.atom-row:hover { background: #0e2027; }.ato
   border: 1px solid #203740; background: #09161b; }
 .city-stocks span { color: var(--muted); text-transform: uppercase; font: 500 6px "JetBrains Mono"; }
 .city-stocks b { color: #d4e3e6; font: 600 8px "JetBrains Mono"; }
-.city-sustainability { display: grid; grid-template-columns: repeat(5,1fr); gap: 5px;
+.city-sustainability { display: grid; grid-template-columns: repeat(auto-fit,minmax(100px,1fr)); gap: 5px;
   margin-bottom: 7px; padding: 7px; border: 1px solid #203740; background: #071217; }
 .city-sustainability > div { display: grid; gap: 3px; padding: 6px 7px;
   border-left: 2px solid #2d515b; background: #09171c; }
@@ -648,6 +648,8 @@ button.atom-row { cursor: pointer; }.atom-row:hover { background: #0e2027; }.ato
 .city-sustainability.at-risk > div:first-child b { color: var(--red); }
 .city-sustainability .food-risk { border-left-color: var(--red); }
 .city-sustainability .food-risk b { color: var(--red); }
+.city-sustainability .governor-active { border-left-color: var(--green); }
+.city-sustainability .governor-active b { color: var(--green); }
 .yield-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 5px; }
 .yield-grid > div { display: grid; gap: 2px; padding: 6px; border: 1px solid #1b3038; background: #081318; }
 .yield-grid span { color: var(--muted); text-transform: uppercase; font: 500 6px "JetBrains Mono"; }

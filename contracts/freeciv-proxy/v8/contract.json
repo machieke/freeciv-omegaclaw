@@ -1,0 +1,70 @@
+{
+  "schema_version": "8.0",
+  "extends": "../v7/contract.json",
+  "upstream_base_commit": "26ba7124249f34fd3050ef29bf191bd4d8808018",
+  "format": "pln_authoritative",
+  "city_governor_projection": {
+    "source_packet": "PACKET_WEB_CITY_INFO_ADDITION",
+    "available": "true only when the complete six-output cm_parameter is packet-observed",
+    "enabled": "exact packet cma_enabled value",
+    "fields": [
+      "minimal_surplus",
+      "require_happy",
+      "allow_disorder",
+      "max_growth",
+      "allow_specialists",
+      "factor",
+      "happy_factor"
+    ]
+  },
+  "legal_controls": {
+    "city_governor": {
+      "packet": "PACKET_WEB_CMA_SET",
+      "target": "exact owned city_id and food_surplus_reserve integer in 0..10",
+      "template": {
+        "minimal_surplus": [
+          "food_surplus_reserve",
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "require_happy": false,
+        "allow_disorder": false,
+        "max_growth": false,
+        "allow_specialists": true,
+        "factor": [
+          6,
+          2,
+          2,
+          1,
+          1,
+          2
+        ],
+        "happy_factor": 0
+      }
+    }
+  },
+  "game_lifecycle": {
+    "terminal_source": "cross-connection GameSession.game_is_over set by PACKET_ENDGAME_REPORT",
+    "projection": "exact boolean game.is_over",
+    "terminal_legal_actions": [],
+    "fixed_horizon_configuration": {
+      "victories": "strict non-empty subset of SPACERACE|ALLIED|CULTURE",
+      "endspaceship": "exact boolean",
+      "release_value": {
+        "victories": "SPACERACE",
+        "endspaceship": false
+      }
+    }
+  },
+  "fail_closed": [
+    "city_governor actions are absent until a complete PACKET_WEB_CITY_INFO_ADDITION cm_parameter is observed",
+    "normalization, sanitization, validation, exact legal membership, and packet conversion preserve city_id and the bounded reserve",
+    "clients cannot submit arbitrary CMA weights or disorder settings through this control",
+    "an already active exact template is not advertised again",
+    "a cross-connection terminal report removes all legal actions",
+    "invalid victory names and non-boolean endspaceship values are not sent to civserver"
+  ]
+}

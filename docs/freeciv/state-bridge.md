@@ -4,7 +4,8 @@ The target agent reads the `pln_authoritative` proxy format, the conditional
 source-stability extension described by `contracts/freeciv-proxy/v5/contract.json`,
 the spatial projection described by `contracts/freeciv-proxy/v6/contract.json`,
 and the sustainability controls described by
-`contracts/freeciv-proxy/v7/contract.json`.
+`contracts/freeciv-proxy/v7/contract.json`. The grounded server-side city
+governor is described by `contracts/freeciv-proxy/v8/contract.json`.
 Apply the tracked patch series to the pinned external checkout before starting
 its container:
 
@@ -23,9 +24,29 @@ respectively,
 `a4eb88c827c7a2ea68db602aa2463c2aa53bb0c6156a71e1a5a5e7fc09908856`.
 The sustainability-control patch is pinned at
 `412f4b462afab900233793f192732317b7e00b42b165dee1c09056ca9d5a1827`;
-the ordered five-patch series identity is
-`03a8cb9a385defe5f811165dd69136ac9e5dab5acee2c7967c432a998ad34e6b`.
+the city-food-governor patch is pinned at
+`33a10ec287297629d2383d494f4ac01ad60ad1d25167dec39753e9d8a131113f`.
+The ordered six-patch series identity is
+`90cf26d4da2c4452f5e1e22a23a24fcaf24517cfe33c80ec78aa680ccf3aa2f3`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
+
+The v8 transport also projects `GameSession.game_is_over` into every player's
+authoritative `game.is_over` value. This closes the observer-first endgame-report
+race: legal actions become empty, the current terminal revision is consumable
+without a nonexistent next-turn packet, and the harness records an absorbing
+terminal outcome. Release configuration now validates bounded `victories` and
+exact-boolean `endspaceship` settings; fixed-horizon runs keep `SPACERACE`
+enabled but disable arrival termination.
+
+The v8 projection preserves the complete packet-observed Freeciv citizen
+manager state for each owned city. The legal set exposes only a bounded
+`city_governor` food-reserve intent; packet conversion expands it to the
+audited `PACKET_WEB_CMA_SET` template. That template forbids disorder,
+keeps specialists available, prioritizes food while retaining shield, trade,
+and science value, and sets the exact configured food-surplus floor. Arbitrary
+CMA weights are not accepted, capability is absent until the server publishes
+the complete parameter block, and an already active exact template is not
+advertised again.
 
 The v7 player projection separates owned-city gold surplus, the packet-declared
 gold-upkeep style, exact own-unit gold upkeep, and ruleset-aware net cash flow.

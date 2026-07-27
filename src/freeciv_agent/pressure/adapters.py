@@ -164,6 +164,7 @@ class ImpactPressureRanker(object):
 
     CATEGORY_GOALS = {
         "city_defense": "survival",
+        "city_food_governor": "food_sustainability",
         "city_founding": "expansion",
         "city_garrison_move": "survival",
         "expansion_move": "expansion",

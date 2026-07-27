@@ -93,6 +93,12 @@ class ExecutionGate(object):
             city = current.city(city_id) if city_id is not None else None
             if city is None or not city.buildability_available:
                 return current, "buildability_unavailable"
+        if proposed.action.get("action_type") == "city_governor":
+            city_id = proposed.action.get(
+                "city_id", proposed.action.get("actor_id"))
+            city = current.city(city_id) if city_id is not None else None
+            if city is None or not city.governor_available:
+                return current, "city_governor_unavailable"
         for check in proposed.grounded_preconditions:
             if check.snapshot_id != current.snapshot_id or not check.executable:
                 return current, "grounded_precondition_failed"

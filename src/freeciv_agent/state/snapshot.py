@@ -158,6 +158,15 @@ class CityState:
     had_famine: Optional[bool] = None
     unhappy_penalty: Tuple[int, ...] = field(default_factory=tuple)
     usage: Tuple[int, ...] = field(default_factory=tuple)
+    governor_available: bool = False
+    governor_enabled: Optional[bool] = None
+    governor_minimal_surplus: Tuple[int, ...] = field(default_factory=tuple)
+    governor_factor: Tuple[int, ...] = field(default_factory=tuple)
+    governor_require_happy: Optional[bool] = None
+    governor_allow_disorder: Optional[bool] = None
+    governor_max_growth: Optional[bool] = None
+    governor_allow_specialists: Optional[bool] = None
+    governor_happy_factor: Optional[int] = None
 
     def to_dict(self):
         return {
@@ -176,6 +185,17 @@ class CityState:
                 "unhappy": list(self.feeling_unhappy),
             },
             "disorder": self.disorder, "had_famine": self.had_famine,
+            "governor": {
+                "allow_disorder": self.governor_allow_disorder,
+                "allow_specialists": self.governor_allow_specialists,
+                "available": self.governor_available,
+                "enabled": self.governor_enabled,
+                "factor": list(self.governor_factor),
+                "happy_factor": self.governor_happy_factor,
+                "max_growth": self.governor_max_growth,
+                "minimal_surplus": list(self.governor_minimal_surplus),
+                "require_happy": self.governor_require_happy,
+            },
             "unhappy_penalty": list(self.unhappy_penalty),
             "usage": list(self.usage), "was_happy": self.was_happy,
             "x": self.x, "y": self.y,
@@ -204,6 +224,7 @@ class AuthoritativeSnapshot:
     legal_actions_digest: str
     legal_action_kinds: Tuple[str, ...]
     government: GovernmentState = field(default_factory=GovernmentState)
+    game_over: bool = False
 
     @property
     def snapshot_id(self):
@@ -230,6 +251,7 @@ class AuthoritativeSnapshot:
         return {
             "cities": [city.to_dict() for city in self.cities],
             "economy": self.economy.to_dict(),
+            "game_over": self.game_over,
             "government": self.government.to_dict(),
             "legal_actions_digest": self.legal_actions_digest,
             "player_alive": self.player_alive,

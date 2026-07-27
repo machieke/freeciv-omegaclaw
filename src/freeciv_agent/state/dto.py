@@ -88,6 +88,25 @@ def _canonical_actions(actions, player_id=None):
     return tuple(sorted(set(valid))), tuple(sorted(kinds))
 
 
+def _city_governor_action(city_id, target):
+    if not isinstance(target, dict):
+        raise ContractError(
+            "city_governor action is missing its bounded target")
+    reserve = _integer(
+        target.get("food_surplus_reserve"),
+        "legal_actions.city_governor.target.food_surplus_reserve",
+        required=True)
+    if reserve < 0 or reserve > 10:
+        raise ContractError(
+            "city_governor food_surplus_reserve must be in 0..10")
+    return {
+        "action_type": "city_governor",
+        "city_id": _integer(
+            city_id, "legal_actions.city_governor.city_id", required=True),
+        "target": {"food_surplus_reserve": reserve},
+    }
+
+
 def _executable_action(row, player_id=None):
     """Translate proxy validator actions to its public action-message dialect."""
     if row.get("action_type"):
@@ -107,8 +126,15 @@ def _executable_action(row, player_id=None):
             target["city_id"] = _integer(
                 target.get("city_id"),
                 "legal_actions.unit_join_city.target.city_id", required=True)
+        if normalized.get("action_type") == "city_governor":
+            return _city_governor_action(
+                normalized.get("city_id", normalized.get("actor_id")),
+                normalized.get("target"))
         return normalized
     kind = row.get("type")
+    if kind == "city_governor":
+        return _city_governor_action(
+            row.get("city_id", row.get("actor_id")), row.get("target"))
     if kind == "tech_research":
         tech_name = row.get("tech_name")
         if not tech_name:
@@ -353,6 +379,10 @@ class ProxyStateDTO:
         turn = _integer(payload.get("turn", payload.get("game", {}).get("turn")),
                         "turn", required=True)
         phase = str(payload.get("phase", payload.get("game", {}).get("phase", "unknown")))
+        game_packet = payload.get("game")
+        game_packet = game_packet if isinstance(game_packet, dict) else {}
+        game_over = _boolean(game_packet.get("is_over"), "game.is_over")
+        game_over = game_over is True
         source_seq = _integer(source_seq, "source_seq", required=True)
 
         authoritative = payload.get("authoritative")
@@ -492,6 +522,49 @@ class ProxyStateDTO:
                 kind = str(option.get("type", option.get("kind", "unknown")))
                 item_id = _integer(option.get("id"), "city.buildable.id", required=True)
                 buildable.append((kind, item_id, str(option.get("name", item_id))))
+            governor = row.get("governor")
+            governor_available = False
+            governor_enabled = None
+            governor_minimal_surplus = ()
+            governor_factor = ()
+            governor_require_happy = None
+            governor_allow_disorder = None
+            governor_max_growth = None
+            governor_allow_specialists = None
+            governor_happy_factor = None
+            if governor is not None:
+                if not isinstance(governor, dict):
+                    raise ContractError("city.governor must be an object")
+                governor_available = _boolean(
+                    governor.get("available"),
+                    "city.governor.available", required=True)
+                governor_enabled = _boolean(
+                    governor.get("enabled"), "city.governor.enabled")
+                governor_minimal_surplus = _numbers(
+                    governor.get("minimal_surplus"),
+                    "city.governor.minimal_surplus")
+                governor_factor = _numbers(
+                    governor.get("factor"), "city.governor.factor")
+                if governor_available and (
+                        len(governor_minimal_surplus) != 6
+                        or len(governor_factor) != 6):
+                    raise ContractError(
+                        "available city governor requires six-output arrays")
+                governor_require_happy = _boolean(
+                    governor.get("require_happy"),
+                    "city.governor.require_happy")
+                governor_allow_disorder = _boolean(
+                    governor.get("allow_disorder"),
+                    "city.governor.allow_disorder")
+                governor_max_growth = _boolean(
+                    governor.get("max_growth"),
+                    "city.governor.max_growth")
+                governor_allow_specialists = _boolean(
+                    governor.get("allow_specialists"),
+                    "city.governor.allow_specialists")
+                governor_happy_factor = _integer(
+                    governor.get("happy_factor"),
+                    "city.governor.happy_factor")
             cities.append(CityState(
                 city_id=_integer(row.get("id"), "city.id", required=True), owner=owner,
                 name=str(row.get("name", "City")), tile=_integer(row.get("tile"), "city.tile"),
@@ -514,7 +587,16 @@ class ProxyStateDTO:
                 had_famine=_boolean(row.get("had_famine"), "city.had_famine"),
                 unhappy_penalty=_numbers(
                     row.get("unhappy_penalty"), "city.unhappy_penalty"),
-                usage=_numbers(row.get("usage"), "city.usage")))
+                usage=_numbers(row.get("usage"), "city.usage"),
+                governor_available=governor_available,
+                governor_enabled=governor_enabled,
+                governor_minimal_surplus=governor_minimal_surplus,
+                governor_factor=governor_factor,
+                governor_require_happy=governor_require_happy,
+                governor_allow_disorder=governor_allow_disorder,
+                governor_max_growth=governor_max_growth,
+                governor_allow_specialists=governor_allow_specialists,
+                governor_happy_factor=governor_happy_factor))
 
         map_data = payload.get("map") if isinstance(payload.get("map"), dict) else {}
         width = _integer(map_data.get("width", 0), "map.width", required=True)
@@ -560,7 +642,8 @@ class ProxyStateDTO:
                     "known_hut_tile_ids": list(known_hut_tiles),
                     "tiles": list(tiles), "visible_tile_ids": list(visible),
                     "width": width},
-            "phase": phase, "player_alive": player_alive, "player_id": player_id,
+            "game_over": game_over, "phase": phase,
+            "player_alive": player_alive, "player_id": player_id,
             "research": ResearchState(tuple(sorted(set(known))), target_id, target_name,
                                       progress, research_cost, beakers,
                                       research_available, research_diagnostic).to_dict(),
@@ -589,7 +672,7 @@ class ProxyStateDTO:
             visible_enemy_units=tuple(sorted(
                 visible_enemy_units, key=lambda item: item.unit_id)),
             visible_tile_ids=visible, known_hut_tile_ids=known_hut_tiles,
-            map_width=width, map_height=height,
+            map_width=width, map_height=height, game_over=game_over,
             map_tiles=tuple(copy.deepcopy(tiles)), legal_action_json=legal_json,
             legal_actions_digest=legal_digest,
             legal_action_kinds=legal_action_kinds,

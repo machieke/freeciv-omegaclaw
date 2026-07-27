@@ -1,0 +1,162 @@
+[
+  {
+    "action": "open http://127.0.0.1:4178",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-27T18:36:03.513Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 5.8,
+    "timestamp": "2026-07-27T18:36:04.284Z"
+  },
+  {
+    "action": "click @e8",
+    "relativeTimeSec": 14.8,
+    "timestamp": "2026-07-27T18:36:13.337Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 15.2,
+    "timestamp": "2026-07-27T18:36:13.684Z"
+  },
+  {
+    "action": "click @e66",
+    "relativeTimeSec": 22.6,
+    "timestamp": "2026-07-27T18:36:21.137Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 23.2,
+    "timestamp": "2026-07-27T18:36:21.735Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 98,
+    "timestamp": "2026-07-27T18:37:36.566Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 108.2,
+    "timestamp": "2026-07-27T18:37:46.757Z"
+  },
+  {
+    "action": "click @e507",
+    "relativeTimeSec": 117,
+    "timestamp": "2026-07-27T18:37:55.503Z"
+  },
+  {
+    "action": "click @e18",
+    "relativeTimeSec": 123.8,
+    "timestamp": "2026-07-27T18:38:02.295Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 134.2,
+    "timestamp": "2026-07-27T18:38:12.752Z"
+  },
+  {
+    "action": "screenshot --path economy-production-turn-480.png --full-page",
+    "relativeTimeSec": 140.8,
+    "timestamp": "2026-07-27T18:38:19.305Z"
+  },
+  {
+    "action": "screenshot economy-production-turn-480.png",
+    "relativeTimeSec": 155,
+    "timestamp": "2026-07-27T18:38:33.509Z"
+  },
+  {
+    "action": "click button:has-text(\"10 Economy & production\")",
+    "relativeTimeSec": 181.4,
+    "timestamp": "2026-07-27T18:38:59.910Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll(\"button\")).find((el) => el.textContent.includes(\"Economy & production\"))?.click(); true",
+    "relativeTimeSec": 196.4,
+    "timestamp": "2026-07-27T18:39:14.933Z"
+  },
+  {
+    "action": "screenshot economy-production-turn-480.png",
+    "relativeTimeSec": 199.8,
+    "timestamp": "2026-07-27T18:39:18.349Z"
+  },
+  {
+    "action": "snapshot -c -d 6",
+    "relativeTimeSec": 210.4,
+    "timestamp": "2026-07-27T18:39:28.905Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll(\"button\")).find((el) => el.textContent.includes(\"09 Technology\"))?.click(); true",
+    "relativeTimeSec": 216.4,
+    "timestamp": "2026-07-27T18:39:34.914Z"
+  },
+  {
+    "action": "snapshot -c -d 7",
+    "relativeTimeSec": 223.1,
+    "timestamp": "2026-07-27T18:39:41.604Z"
+  },
+  {
+    "action": "screenshot technology-turn-480.png",
+    "relativeTimeSec": 227.3,
+    "timestamp": "2026-07-27T18:39:45.843Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll(\"button\")).filter((el) => el.textContent.includes(\"Technology\")).map((el) => el.textContent)",
+    "relativeTimeSec": 242,
+    "timestamp": "2026-07-27T18:40:00.530Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll(\"button\")).find((el) => el.textContent.includes(\"Technology\"))?.click(); true",
+    "relativeTimeSec": 248.7,
+    "timestamp": "2026-07-27T18:40:07.214Z"
+  },
+  {
+    "action": "snapshot -c -d 7",
+    "relativeTimeSec": 254.1,
+    "timestamp": "2026-07-27T18:40:12.636Z"
+  },
+  {
+    "action": "screenshot technology-turn-480.png",
+    "relativeTimeSec": 258.3,
+    "timestamp": "2026-07-27T18:40:16.860Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll(\"button\")).find((el) => el.textContent.includes(\"Unit lifecycle\"))?.click(); true",
+    "relativeTimeSec": 268,
+    "timestamp": "2026-07-27T18:40:26.489Z"
+  },
+  {
+    "action": "snapshot -c -d 7",
+    "relativeTimeSec": 272.9,
+    "timestamp": "2026-07-27T18:40:31.396Z"
+  },
+  {
+    "action": "screenshot unit-lifecycle-turn-480.png",
+    "relativeTimeSec": 276.7,
+    "timestamp": "2026-07-27T18:40:35.264Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll(\"button\")).find((el) => el.textContent.includes(\"PF-PLN\"))?.click(); true",
+    "relativeTimeSec": 287.3,
+    "timestamp": "2026-07-27T18:40:45.849Z"
+  },
+  {
+    "action": "snapshot -c -d 7",
+    "relativeTimeSec": 293,
+    "timestamp": "2026-07-27T18:40:51.554Z"
+  },
+  {
+    "action": "screenshot pf-pln-turn-480.png",
+    "relativeTimeSec": 297.1,
+    "timestamp": "2026-07-27T18:40:55.584Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 310.9,
+    "timestamp": "2026-07-27T18:41:09.457Z"
+  },
+  {
+    "action": "console",
+    "relativeTimeSec": 315.4,
+    "timestamp": "2026-07-27T18:41:13.952Z"
+  }
+]

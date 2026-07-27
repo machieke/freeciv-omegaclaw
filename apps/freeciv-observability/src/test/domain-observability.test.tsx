@@ -56,6 +56,13 @@ const production = event(3, "production_state", {
     surplus: { food: 3, shield: 4, trade: 2, gold: 1, luxury: 0, science: 1 },
     target: { kind: 6, value: 10, name: "Riflemen" },
     buildable_count: 32, had_famine: true,
+    governor: {
+      available: true, enabled: true,
+      minimal_surplus: [1, 0, 0, 0, 0, 0],
+      factor: [6, 2, 2, 1, 1, 2],
+      require_happy: false, allow_disorder: false, max_growth: false,
+      allow_specialists: true, happy_factor: 0,
+    },
     mood: {
       final: { happy: 0, content: 1, unhappy: 2, angry: 0 },
       stages: { happy: [0], content: [1], unhappy: [2], angry: [0] },
@@ -112,6 +119,8 @@ describe("typed domain observability", () => {
     expect(screen.getByText(/Mixed upkeep style/i)).toBeInTheDocument();
     expect(screen.getByText("unit upkeep")).toBeInTheDocument();
     expect(screen.getByText(/planner reserve satisfied/i)).toBeInTheDocument();
+    expect(screen.getByText("food governor")).toBeInTheDocument();
+    expect(screen.getByText(/packet floor 1 · food weight 6/i)).toBeInTheDocument();
     expect(screen.getAllByText(/PF goal not logged/i)).toHaveLength(3);
     expect(screen.getByText(/No buildable PLN query was logged/i)).toBeInTheDocument();
   });

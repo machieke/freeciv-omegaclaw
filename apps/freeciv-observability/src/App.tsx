@@ -1859,7 +1859,8 @@ export function EconomyProductionDashboard({ state, onSelect }: {
     row.type === "action_sent"
     && (row.payload.action as Record<string, unknown> | undefined)?.action_type === "city_production");
   const sustainabilityActionTypes = new Set([
-    "city_production", "player_rates", "unit_disband", "unit_home_city",
+    "city_governor", "city_production", "player_rates", "unit_disband",
+    "unit_home_city",
   ]);
   const sustainabilityActions = state.events.filter((row) =>
     row.type === "action_sent"
@@ -1913,6 +1914,7 @@ export function EconomyProductionDashboard({ state, onSelect }: {
       ? cityGoldSurplus - unitGoldUpkeep : null);
   const goldReserve = production.economy.gold_upkeep_reserve
     ?? unitGoldUpkeep ?? null;
+  const plannerGoldReserve = goldReserve === null ? null : Math.max(5, goldReserve * 2);
   const pressureEvent = state.pressurePropagations.at(-1);
   const pressureGoals = rowsOf(pressureEvent?.payload.goals);
   const pressureGoal = (suffix: string) => pressureGoals.find((goal) =>
@@ -1925,13 +1927,16 @@ export function EconomyProductionDashboard({ state, onSelect }: {
   const treasuryContext = goalContext("treasury_sustainability");
   const defenseContext = goalContext("survival");
   const foodGoalAtRisk =
-    foodContext.includes("authoritative:city-food-reserve-deficit");
+    foodContext.includes("authoritative:city-food-surplus-reserve-deficit");
   const treasuryGoalAtRisk =
     treasuryContext.includes("authoritative:net-gold-or-turn-start-upkeep-reserve-deficit");
+  const treasuryCrossesRunway = netGold !== null && netGold < 0
+    && production.economy.gold !== null && plannerGoldReserve !== null
+    && production.economy.gold + netGold * 2 < plannerGoldReserve;
   const treasuryAtRisk = treasuryGoalAtRisk
-    || (netGold !== null && netGold < 0)
-    || (production.economy.gold !== null && goldReserve !== null
-      && production.economy.gold < goldReserve);
+    || treasuryCrossesRunway
+    || (production.economy.gold !== null && plannerGoldReserve !== null
+      && production.economy.gold < plannerGoldReserve);
   const foodDeficits = production.cities.filter((city) =>
     city.surplus.food !== null && Number(city.surplus.food) < 1);
   const foodAtRisk = foodGoalAtRisk || foodDeficits.length > 0;
@@ -1952,7 +1957,7 @@ export function EconomyProductionDashboard({ state, onSelect }: {
       <div><span>city gold surplus</span><strong>{cityGoldSurplus ?? "—"}</strong>
         <small>{production.economy.gold_upkeep_style ?? "unknown"} upkeep style</small></div>
       <div><span>unit upkeep</span><strong>{unitGoldUpkeep ?? "—"}</strong><small>gold / turn</small></div>
-      <div><span>upkeep reserve</span><strong>{goldReserve ?? "—"}</strong><small>turn-start exposure</small></div>
+      <div><span>planner reserve</span><strong>{plannerGoldReserve ?? "—"}</strong><small>two-turn runway</small></div>
       <div><span>science</span><strong>{production.economy.science_rate ?? "—"}%</strong><small>allocation</small></div>
       <div><span>tax</span><strong>{production.economy.tax_rate ?? "—"}%</strong><small>allocation</small></div>
       <div><span>luxury</span><strong>{production.economy.luxury_rate ?? "—"}%</strong><small>allocation</small></div>
@@ -2035,6 +2040,16 @@ export function EconomyProductionDashboard({ state, onSelect }: {
               <div><span>famine flag</span><b>{city.had_famine ? "yes" : "no"}</b>
                 <small>{city.had_famine
                   ? "server reported famine this turn" : "no famine reported"}</small></div>
+              <div className={city.governor?.available
+                  && city.governor.enabled ? "governor-active" : ""}>
+                <span>food governor</span>
+                <b>{!city.governor?.available ? "unavailable"
+                  : city.governor.enabled ? "active" : "available"}</b>
+                <small>{city.governor?.available
+                  ? `packet floor ${city.governor.minimal_surplus[0] ?? "—"} · food weight ${
+                    city.governor.factor[0] ?? "—"}`
+                  : "server CMA capability not observed"}</small>
+              </div>
             </div>}
             <div className="yield-grid">
               {yieldKeys.map((key) => <div key={key}><span>{key}</span>
@@ -2085,6 +2100,8 @@ export function EconomyProductionDashboard({ state, onSelect }: {
               <strong>{String(target.production_type
                 ?? (target.tax_rate !== undefined
                   ? `${target.tax_rate}% tax / ${target.science_rate}% science`
+                  : target.food_surplus_reserve !== undefined
+                    ? `city ${action.city_id} · +${target.food_surplus_reserve} food floor`
                   : action.actor_id !== undefined ? `unit ${action.actor_id}` : "player control"))}</strong>
             </button>;
           })}

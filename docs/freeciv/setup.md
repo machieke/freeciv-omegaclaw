@@ -40,7 +40,8 @@ The patch series is tracked at
 `scripts/freeciv/upstream/0002-pln-spatial-projection.patch`,
 `scripts/freeciv/upstream/0003-pln-unit-lifecycle.patch`,
 `scripts/freeciv/upstream/0004-pln-government-and-sustainability.patch`, and
-`scripts/freeciv/upstream/0005-pln-sustainability-control.patch`. The
+`scripts/freeciv/upstream/0005-pln-sustainability-control.patch`, and
+`scripts/freeciv/upstream/0006-pln-city-food-governor.patch`. The
 application script verifies every digest, is idempotent, rejects a different upstream
 commit, and supports normal checkouts and Git worktrees. It adds the
 `pln_authoritative` DTO, monotonic packet sequence, bounded and conditional
@@ -49,7 +50,15 @@ packet/projection construction, exact packet-known tiles and visibility,
 release-game configuration, canonical executable actions, ruleset readiness,
 government selection after revolutions, city sustainability and unit support
 state, ruleset-aware net gold, city-surplus and upkeep telemetry, bounded tax/science controls,
-exact unit rehoming, causal unit-removal attribution, and proxy contract tests.
+exact unit rehoming, causal unit-removal attribution, bounded server-side
+food-surplus governance, and proxy contract tests.
+
+Engine-live fixed-horizon games configure `victories=SPACERACE` with
+`endspaceship=false`. This retains spaceship construction and arrival behavior
+but prevents it from truncating the declared turn horizon; allied and culture
+victories are excluded. Conquest remains a genuine terminal outcome. The proxy
+projects the cross-connection game-over flag into `pln_authoritative` state so a
+real terminal report is scored rather than retried as a missing turn.
 
 Verify the patch in the FreeCiv image (the cache secret is test-only and is not persisted):
 

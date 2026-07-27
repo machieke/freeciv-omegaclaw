@@ -259,6 +259,32 @@ stockpile reaches twice its reserve it may restore the declared
 science starvation. A non-required gold-supported unit is a final exact recovery
 route.
 
+Adapter 1.20 hardens those controls against three failures found by the fresh
+480-turn semantic audit. A negative gold rate is now an emergency only when the
+observed stockpile is already below reserve or the configured runway would
+cross it; a funded `-1` tick no longer diverts every city forever. Once a city
+is producing a food or treasury stabilizer, equivalent alternatives are not
+offered as repeated emergency switches. A missing mandatory local defender may
+use the `+1` food buffer down to zero, but any defender that would make food
+negative is still rejected. Its complete production ETA must also remain funded
+by the observed treasury runway, so a safety response cannot create a known
+pre-completion cash failure. Active food-output or treasury recovery remains
+sticky while the corresponding reserve is unsafe.
+
+Food recovery is no longer inferred from a building name. When
+`PACKET_WEB_CITY_INFO_ADDITION` proves the city-manager capability, a deficit
+city may select the exact packet-legal `city_governor` action for its configured
+reserve. The proxy expands this bounded intent into one audited
+`PACKET_WEB_CMA_SET` template: food is weighted highest, shield/trade/science
+remain valued, disorder is forbidden, and the food minimum is exact. The
+complete returned CMA parameters prove the effect. The same template is then
+removed from the legal set, preventing repeated write-throughs even when local
+terrain cannot satisfy the requested floor. When assignment alone cannot
+restore the reserve, exact packet-legal Harbor and Supermarket targets are
+preferred as direct food-output recovery. A confirmed no-effect governor
+request is scoped to the unchanged city state, so accumulating shields do not
+reopen the same infeasible request every turn.
+
 PF-PLN now carries separate safety goals for `food_sustainability`,
 `treasury_sustainability`, and factual local defense. Their contexts name exact
 deficit city IDs or the net-gold/reserve state. Safety remains actionable rather
@@ -266,7 +292,9 @@ than absolute: if the current legal set contains no operation serving an active
 safety goal, ordinary candidates are not globally deadlocked. Accepted actions
 still require the unchanged execution gate and authoritative effect verification.
 The fresh engine-backed correctness evidence is recorded in
-`docs/freeciv/evidence/sustainability-control-engine-smoke-v1.md`.
+`docs/freeciv/evidence/sustainability-control-engine-smoke-v1.md`; the complete
+480-turn confirmation and its fixed-horizon correction are recorded in
+`docs/freeciv/evidence/sustainability-control-engine-validation-v2.md`.
 
 The pinned server scores cumulative unit production in groups of
 `unit_build_score_divisor` (10 for this engine). Horizon-score projections therefore

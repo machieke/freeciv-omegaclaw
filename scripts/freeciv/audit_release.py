@@ -29,9 +29,10 @@ PINNED_PROXY_PATCH_SHA256S = (
     "1df99426c617e72beb0ca2bcbc879793cffce03e79a28a91e6e1955346228c31",
     "d7fa7b77ff7040af0da25ea8ed86156d754b5b6007eee5d98a95b87fe9b3cafa",
     "412f4b462afab900233793f192732317b7e00b42b165dee1c09056ca9d5a1827",
+    "33a10ec287297629d2383d494f4ac01ad60ad1d25167dec39753e9d8a131113f",
 )
 PINNED_PROXY_PATCH_SERIES_SHA256 = (
-    "03a8cb9a385defe5f811165dd69136ac9e5dab5acee2c7967c432a998ad34e6b")
+    "90cf26d4da2c4452f5e1e22a23a24fcaf24517cfe33c80ec78aa680ccf3aa2f3")
 REQUIRED_CONFIDENCE_PARAMETERS = frozenset({
     "actionable_threshold", "minimum_logged_confidence", "dampening_lambda",
     "observation_strength", "observation_confidence", "abduction_strength",
@@ -242,6 +243,7 @@ def run(args):
             "0003-pln-unit-lifecycle.patch",
             "0004-pln-government-and-sustainability.patch",
             "0005-pln-sustainability-control.patch",
+            "0006-pln-city-food-governor.patch",
         )
     ]
     series_digest = hashlib.sha256()

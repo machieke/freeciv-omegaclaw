@@ -1,0 +1,590 @@
+diff --git a/freeciv-proxy/action_validator.py b/freeciv-proxy/action_validator.py
+index a2980e8..5bb1891 100644
+--- a/freeciv-proxy/action_validator.py
++++ b/freeciv-proxy/action_validator.py
+@@ -151,6 +151,7 @@ class ActionType(Enum):
+     # === City Management ===
+     CITY_PRODUCTION = "city_production"
+     CITY_CHANGE_PRODUCTION = "city_change_production"  # Alias for city_production
++    CITY_GOVERNOR = "city_governor"
+     CITY_BUY = "city_buy"
+     CITY_SELL_IMPROVEMENT = "city_sell_improvement"
+ 
+@@ -259,6 +260,7 @@ ACTION_CATEGORIES = {
+     # City Management
+     ActionType.CITY_PRODUCTION: ActionCategory.CITY_MANAGEMENT,
+     ActionType.CITY_CHANGE_PRODUCTION: ActionCategory.CITY_MANAGEMENT,
++    ActionType.CITY_GOVERNOR: ActionCategory.CITY_MANAGEMENT,
+     ActionType.CITY_BUY: ActionCategory.CITY_MANAGEMENT,
+     ActionType.CITY_SELL_IMPROVEMENT: ActionCategory.CITY_MANAGEMENT,
+     # Research
+@@ -335,6 +337,9 @@ class LLMActionValidator:
+             result = self._validate_unit_home_city(action, player_id, game_state)
+         elif action_type in (ActionType.CITY_PRODUCTION, ActionType.CITY_CHANGE_PRODUCTION):
+             result = self._validate_city_production(action, player_id, game_state)
++        elif action_type == ActionType.CITY_GOVERNOR:
++            result = self._validate_city_governor(
++                action, player_id, game_state)
+         elif action_type == ActionType.TECH_RESEARCH:
+             result = self._validate_tech_research(action, player_id, game_state)
+         elif action_type == ActionType.GOVERNMENT_CHANGE:
+@@ -553,6 +558,48 @@ class LLMActionValidator:
+ 
+         return ValidationResult(True)
+ 
++    def _validate_city_governor(
++        self,
++        action: Dict[str, Any],
++        player_id: int,
++        game_state: Optional[Dict[str, Any]],
++    ) -> ValidationResult:
++        """Validate the bounded server-side food-floor governor template."""
++        for field in ('city_id', 'food_surplus_reserve'):
++            if field not in action:
++                return self._validation_error(
++                    'E034', f'City governor requires {field}')
++        city_id = action['city_id']
++        reserve = action['food_surplus_reserve']
++        if (isinstance(city_id, bool) or not isinstance(city_id, int)
++                or city_id < 0):
++            return self._validation_error(
++                'E035', 'city_id must be a non-negative integer')
++        if (isinstance(reserve, bool) or not isinstance(reserve, int)
++                or reserve < 0 or reserve > 10):
++            return self._validation_error(
++                'E036', 'food_surplus_reserve must be in 0..10')
++
++        if game_state and 'cities' in game_state:
++            cities = (
++                game_state['cities'].values()
++                if isinstance(game_state['cities'], dict)
++                else game_state['cities'])
++            city = next((
++                row for row in cities
++                if isinstance(row, dict) and row.get('id') == city_id), None)
++            if city is None:
++                return self._validation_error('E033', 'City not found')
++            if city.get('owner') != player_id:
++                return self._validation_error(
++                    'E032', 'Player does not own this city')
++            governor = city.get('governor')
++            if (not isinstance(governor, dict)
++                    or governor.get('available') is not True):
++                return self._validation_error(
++                    'E037', 'City governor capability is unavailable')
++        return ValidationResult(True)
++
+     def _validate_tech_research(self, action: Dict[str, Any], player_id: int, game_state: Optional[Dict[str, Any]]) -> ValidationResult:
+         """Validate technology research action"""
+         if 'tech_name' not in action:
+diff --git a/freeciv-proxy/civcom.py b/freeciv-proxy/civcom.py
+index f7c7173..4a9386c 100755
+--- a/freeciv-proxy/civcom.py
++++ b/freeciv-proxy/civcom.py
+@@ -2344,6 +2344,37 @@ class CivCom(Thread):
+                         'improvement_ids': can_build_impr_bv.to_list(),
+                         'options': can_build,
+                     }
++                    cm_parameter = packet.get('cm_parameter')
++                    governor = {
++                        'available': isinstance(cm_parameter, dict),
++                        'enabled': packet.get('cma_enabled')
++                        if isinstance(packet.get('cma_enabled'), bool) else None,
++                    }
++                    if isinstance(cm_parameter, dict):
++                        for field in ('minimal_surplus', 'factor'):
++                            values = cm_parameter.get(field)
++                            if (isinstance(values, list) and len(values) == 6
++                                    and all(
++                                        isinstance(value, int)
++                                        and not isinstance(value, bool)
++                                        for value in values)):
++                                governor[field] = list(values)
++                        for field in (
++                                'require_happy', 'allow_disorder',
++                                'max_growth', 'allow_specialists'):
++                            if isinstance(cm_parameter.get(field), bool):
++                                governor[field] = cm_parameter[field]
++                        happy_factor = cm_parameter.get('happy_factor')
++                        if (isinstance(happy_factor, int)
++                                and not isinstance(happy_factor, bool)):
++                            governor['happy_factor'] = happy_factor
++                        governor['available'] = all(
++                            field in governor for field in (
++                                'minimal_surplus', 'require_happy',
++                                'allow_disorder', 'max_growth',
++                                'allow_specialists', 'factor',
++                                'happy_factor'))
++                    city['governor'] = governor
+ 
+                     # Also store granary info if present
+                     if 'granary_size' in packet:
+@@ -3532,6 +3563,51 @@ class CivCom(Thread):
+             'reason': reason
+         }
+ 
++    @staticmethod
++    def _food_governor_parameters(food_surplus_reserve):
++        """Return the one audited CMA template exposed to PLN clients."""
++        return {
++            'minimal_surplus': [int(food_surplus_reserve), 0, 0, 0, 0, 0],
++            'require_happy': False,
++            'allow_disorder': False,
++            'max_growth': False,
++            'allow_specialists': True,
++            'factor': [6, 2, 2, 1, 1, 2],
++            'happy_factor': 0,
++        }
++
++    def _get_city_governor_actions(self, player_id):
++        """Expose exact food-floor CMA controls only after server capability."""
++        actions = []
++        for raw_city_id, city in self._normalize_to_dict(
++                self.player_cities).items():
++            if city.get('owner') != player_id:
++                continue
++            governor = city.get('governor')
++            if not isinstance(governor, dict) or not governor.get('available'):
++                continue
++            try:
++                city_id = int(raw_city_id)
++            except (TypeError, ValueError):
++                continue
++            current = {
++                field: governor.get(field)
++                for field in (
++                    'minimal_surplus', 'require_happy', 'allow_disorder',
++                    'max_growth', 'allow_specialists', 'factor', 'happy_factor')
++            }
++            for reserve in range(11):
++                desired = self._food_governor_parameters(reserve)
++                if governor.get('enabled') is True and current == desired:
++                    continue
++                actions.append({
++                    'type': 'city_governor',
++                    'city_id': city_id,
++                    'target': {'food_surplus_reserve': reserve},
++                    'is_valid': True,
++                })
++        return actions
++
+     def _get_tech_research_actions(self, player_id):
+         """Get tech research selection actions (CACHED per turn).
+         
+@@ -3779,6 +3855,12 @@ class CivCom(Thread):
+         city_actions = self._get_city_production_actions(player_id)  # No limit
+         all_actions.extend(city_actions)
+ 
++        # The web protocol exposes the server-side citizen manager. It is the
++        # only packet-grounded control here that can rearrange worked tiles to
++        # enforce a city food-surplus floor.
++        governor_actions = self._get_city_governor_actions(player_id)
++        all_actions.extend(governor_actions)
++
+         # Get tech research actions (CACHED per turn, only when needed)
+         tech_actions = self._get_tech_research_actions(player_id)
+         all_actions.extend(tech_actions)
+diff --git a/freeciv-proxy/game_session_manager.py b/freeciv-proxy/game_session_manager.py
+index 378e8a6..e213994 100644
+--- a/freeciv-proxy/game_session_manager.py
++++ b/freeciv-proxy/game_session_manager.py
+@@ -491,6 +491,30 @@ class GameSession:
+         if 'turn_timeout' in config:
+             commands.append(f"/set timeout {config['turn_timeout']}")
+ 
++        # Optional victories are a bitwise setting. Fixed-horizon evaluation
++        # keeps SPACERACE mechanics active while disabling its terminal effect,
++        # and excludes allied/culture endings that would truncate the horizon.
++        if 'victories' in config:
++            value = config['victories']
++            allowed_victories = {'SPACERACE', 'ALLIED', 'CULTURE'}
++            parts = value.split('|') if isinstance(value, str) and value else []
++            if (isinstance(value, str) and parts
++                    and all(part in allowed_victories for part in parts)
++                    and len(parts) == len(set(parts))):
++                commands.append(f'/set victories {value}')
++            else:
++                logger.warning(
++                    f"Game {self.game_id}: Invalid victories value {value!r}, ignoring")
++
++        if 'endspaceship' in config:
++            value = config['endspaceship']
++            if isinstance(value, bool):
++                commands.append(
++                    f"/set endspaceship {'enabled' if value else 'disabled'}")
++            else:
++                logger.warning(
++                    f"Game {self.game_id}: Invalid endspaceship value {value!r}, ignoring")
++
+         # Max turns (game ends after this many turns)
+         # Maps to FreeCiv's 'endturn' setting - when this turn is reached, game ends
+         # Valid range: 1-32767 (FreeCiv default is 5000)
+diff --git a/freeciv-proxy/llm_handler.py b/freeciv-proxy/llm_handler.py
+index 96b07ce..6840a14 100644
+--- a/freeciv-proxy/llm_handler.py
++++ b/freeciv-proxy/llm_handler.py
+@@ -1795,6 +1795,18 @@ class LLMWSHandler(websocket.WebSocketHandler):
+                 if value is not None:
+                     normalized[field] = value
+ 
++        elif action_type == "city_governor":
++            if "city_id" in action_data:
++                normalized["city_id"] = action_data["city_id"]
++            target = action_data.get("target", {})
++            reserve = action_data.get("food_surplus_reserve")
++            if reserve is None and isinstance(target, dict):
++                reserve = target.get("food_surplus_reserve")
++            if reserve is None:
++                raise ValueError(
++                    "city_governor requires target.food_surplus_reserve")
++            normalized["food_surplus_reserve"] = reserve
++
+         elif action_type == "unit_build_city":
+             # Extract unit_id
+             if "unit_id" in action_data:
+diff --git a/freeciv-proxy/packet_converter.py b/freeciv-proxy/packet_converter.py
+index b0aaa34..0c9c25c 100644
+--- a/freeciv-proxy/packet_converter.py
++++ b/freeciv-proxy/packet_converter.py
+@@ -11,6 +11,7 @@ from ruleset_mapper import RulesetMapper
+ from packet_constants import (
+     PACKET_UNIT_ORDERS,
+     PACKET_CITY_CHANGE,
++    PACKET_WEB_CMA_SET,
+     PACKET_PLAYER_RESEARCH,
+     PACKET_PLAYER_CHANGE_GOVERNMENT,
+     PACKET_PLAYER_RATES,
+@@ -407,6 +408,26 @@ def _convert_action_to_packet_impl(
+             }
+         )
+ 
++    elif action_type == "city_governor":
++        reserve = action.get("food_surplus_reserve")
++        if (isinstance(reserve, bool) or not isinstance(reserve, int)
++                or reserve < 0 or reserve > 10):
++            raise ValueError(
++                "city_governor requires food_surplus_reserve in 0..10")
++        return _sanitize_packet({
++            "pid": PACKET_WEB_CMA_SET,
++            "id": action["city_id"],
++            "cm_parameter": {
++                "minimal_surplus": [reserve, 0, 0, 0, 0, 0],
++                "require_happy": False,
++                "allow_disorder": False,
++                "max_growth": False,
++                "allow_specialists": True,
++                "factor": [6, 2, 2, 1, 1, 2],
++                "happy_factor": 0,
++            },
++        })
++
+     elif action_type == "tech_research":
+         # Accept both canonical format (target: {"tech": "name"}) and
+         # normalized format (tech_name: "name") from llm_handler normalization
+diff --git a/freeciv-proxy/security.py b/freeciv-proxy/security.py
+index fe18d72..87eb21a 100644
+--- a/freeciv-proxy/security.py
++++ b/freeciv-proxy/security.py
+@@ -224,6 +224,19 @@ class InputSanitizer:
+             if 'player_id' in action:
+                 sanitized['player_id'] = cls.sanitize_player_id(action['player_id'])
+ 
++        elif action_type == 'city_governor':
++            if 'city_id' in action:
++                sanitized['city_id'] = cls.sanitize_city_id(action['city_id'])
++            reserve = action.get('food_surplus_reserve')
++            if (isinstance(reserve, bool) or not isinstance(reserve, int)
++                    or reserve < 0 or reserve > 10):
++                raise SecurityError(
++                    f"Invalid food_surplus_reserve: {reserve!r}")
++            sanitized['food_surplus_reserve'] = reserve
++            if 'player_id' in action:
++                sanitized['player_id'] = cls.sanitize_player_id(
++                    action['player_id'])
++
+         elif action_type == 'tech_research':
+             if 'tech_name' in action:
+                 sanitized['tech_name'] = cls.sanitize_string_field(
+diff --git a/freeciv-proxy/state_extractor.py b/freeciv-proxy/state_extractor.py
+index 611af74..8be38e7 100644
+--- a/freeciv-proxy/state_extractor.py
++++ b/freeciv-proxy/state_extractor.py
+@@ -572,6 +572,17 @@ class StateExtractor:
+                 state = civcom.build_llm_optimized_state(player_id)
+             elif format_type == StateFormat.PLN_AUTHORITATIVE:
+                 state = civcom.build_pln_authoritative_state(player_id)
++                # PACKET_ENDGAME_REPORT may arrive first on the observer CivCom.
++                # GameSession is the authoritative cross-connection lifecycle
++                # owner, so project its terminal flag into every player's next
++                # state response and remove actions that civserver can no longer
++                # execute. The deferred import avoids the module cycle described
++                # at the top of this file.
++                from game_session_manager import game_session_manager
++                game_session = game_session_manager.sessions.get(game_id)
++                if game_session and game_session.game_is_over:
++                    state.setdefault('game', {})['is_over'] = True
++                    state['legal_actions'] = []
+             else:
+                 raw_state = civcom.get_full_state(player_id)
+ 
+diff --git a/freeciv-proxy/tests/test_packet_converters.py b/freeciv-proxy/tests/test_packet_converters.py
+index bd0bb42..2195307 100644
+--- a/freeciv-proxy/tests/test_packet_converters.py
++++ b/freeciv-proxy/tests/test_packet_converters.py
+@@ -18,6 +18,7 @@ from packet_constants import (
+     PACKET_UNIT_SERVER_SIDE_AGENT_SET,
+     PACKET_UNIT_CHANGE_ACTIVITY,
+     PACKET_CITY_CHANGE,
++    PACKET_WEB_CMA_SET,
+     PACKET_PLAYER_RESEARCH,
+     PACKET_PLAYER_CHANGE_GOVERNMENT,
+     PACKET_PLAYER_RATES,
+@@ -35,6 +36,38 @@ from packet_constants import (
+ from packet_converter import convert_action_to_packet as _convert_action_to_packet
+ 
+ 
++class TestCityGovernorConverters:
++    def test_city_governor_expands_bounded_food_floor_to_audited_cma_packet(self):
++        result = _convert_action_to_packet({
++            "type": "city_governor",
++            "city_id": 101,
++            "food_surplus_reserve": 1,
++        })
++
++        assert result == {
++            "pid": PACKET_WEB_CMA_SET,
++            "id": 101,
++            "cm_parameter": {
++                "minimal_surplus": [1, 0, 0, 0, 0, 0],
++                "require_happy": False,
++                "allow_disorder": False,
++                "max_growth": False,
++                "allow_specialists": True,
++                "factor": [6, 2, 2, 1, 1, 2],
++                "happy_factor": 0,
++            },
++        }
++
++    @pytest.mark.parametrize("reserve", [-1, 11, True, "1"])
++    def test_city_governor_rejects_unbounded_food_floor(self, reserve):
++        with pytest.raises(ValueError, match="0..10"):
++            _convert_action_to_packet({
++                "type": "city_governor",
++                "city_id": 101,
++                "food_surplus_reserve": reserve,
++            })
++
++
+ class TestGovernmentActionConverters:
+     def test_government_change_uses_exact_ruleset_id_and_name(self):
+         class CivCom:
+diff --git a/freeciv-proxy/tests/test_pln_authoritative_state.py b/freeciv-proxy/tests/test_pln_authoritative_state.py
+index 1e82306..478519f 100644
+--- a/freeciv-proxy/tests/test_pln_authoritative_state.py
++++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
+@@ -3,6 +3,7 @@
+ import asyncio
+ import json
+ import logging
++from types import SimpleNamespace
+ from unittest.mock import Mock
+ 
+ from activity_constants import ACTIVITY_NAMES
+@@ -11,7 +12,7 @@ from llm_handler import LLMWSHandler, logger as proxy_logger
+ from message_validator import MessageValidator, ValidationError
+ from packet_constants import (
+     DS_ALLIANCE, DS_WAR, PACKET_UNIT_COMBAT_INFO, PACKET_UNIT_REMOVE,
+-    PACKET_UNIT_SHORT_INFO,
++    PACKET_UNIT_SHORT_INFO, PACKET_WEB_CITY_INFO_ADDITION,
+ )
+ from security import InputSanitizer
+ from state_extractor import StateExtractor, StateFormat
+@@ -46,7 +47,14 @@ def make_civcom():
+     civcom.improvements = {1: {"name": "Barracks"}}
+     civcom.player_cities = {
+         4: {"id": 4, "owner": 0, "prod": [5, 4, 3, 2, 0, 10],
+-            "surplus": [2, 3, 3, 4, 0, 10]},
++            "surplus": [2, 3, 3, 4, 0, 10],
++            "governor": {
++                "available": True, "enabled": True,
++                "minimal_surplus": [1, 0, 0, 0, 0, 0],
++                "require_happy": False, "allow_disorder": False,
++                "max_growth": False, "allow_specialists": True,
++                "factor": [6, 2, 2, 1, 1, 2], "happy_factor": 0,
++            }},
+         5: {"id": 5, "owner": 1, "prod": [5, 4, 3, 99, 0, 99],
+             "surplus": [2, 3, 3, 99, 0, 99]},
+     }
+@@ -554,6 +562,23 @@ def test_authoritative_extractor_skips_ineligible_four_kib_cache():
+     cache.set.assert_not_called()
+ 
+ 
++def test_authoritative_extractor_projects_cross_connection_terminal_state(
++        monkeypatch):
++    from game_session_manager import game_session_manager
++
++    civcom = make_civcom()
++    civcom.game_is_over = False
++    terminal_session = SimpleNamespace(game_is_over=True)
++    monkeypatch.setitem(
++        game_session_manager.sessions, "terminal-contract", terminal_session)
++
++    state = StateExtractor(civcom=civcom).extract_state(
++        "terminal-contract", 0, StateFormat.PLN_AUTHORITATIVE)
++
++    assert state["game"]["is_over"] is True
++    assert state["legal_actions"] == []
++
++
+ def test_source_sequence_wait_wakes_only_after_a_new_revision():
+     async def scenario():
+         civcom = object.__new__(CivCom)
+@@ -693,6 +718,45 @@ def test_packet_visible_foreign_short_unit_is_preserved_as_observation_input():
+     assert civcom._action_cache == {}
+ 
+ 
++def test_web_city_packet_preserves_authoritative_governor_state():
++    civcom = object.__new__(CivCom)
++    civcom.source_seq = 0
++    civcom.source_update_event = asyncio.Event()
++    civcom.source_update_loop = None
++    civcom._action_cache = {"stale": True}
++    civcom.username = "packet-observer"
++    civcom.player_cities = {
++        4: {"id": 4, "owner": 0, "name": "Rome"},
++    }
++    civcom.unit_types = {}
++    civcom.improvements = {}
++    CivCom.parse_and_store_packet(civcom, json.dumps({
++        "pid": PACKET_WEB_CITY_INFO_ADDITION,
++        "id": 4,
++        "cma_enabled": True,
++        "cm_parameter": {
++            "minimal_surplus": [1, 0, 0, 0, 0, 0],
++            "require_happy": False,
++            "allow_disorder": False,
++            "max_growth": False,
++            "allow_specialists": True,
++            "factor": [6, 2, 2, 1, 1, 2],
++            "happy_factor": 0,
++        },
++        "can_build_unit": [],
++        "can_build_improvement": [],
++    }))
++
++    assert civcom.player_cities[4]["governor"] == {
++        "available": True, "enabled": True,
++        "minimal_surplus": [1, 0, 0, 0, 0, 0],
++        "require_happy": False, "allow_disorder": False,
++        "max_growth": False, "allow_specialists": True,
++        "factor": [6, 2, 2, 1, 1, 2], "happy_factor": 0,
++    }
++    assert civcom._action_cache == {}
++
++
+ def test_active_ruleset_unit_name_precedes_legacy_static_table():
+     civcom = object.__new__(CivCom)
+     civcom.unit_types = {49: {"name": "Spy"}}
+@@ -703,12 +767,30 @@ def test_optimized_legal_actions_always_advertise_turn_completion():
+     civcom = object.__new__(CivCom)
+     civcom._get_unit_actions = lambda _player: []
+     civcom._get_city_production_actions = lambda _player: []
++    civcom._get_city_governor_actions = lambda _player: []
+     civcom._get_tech_research_actions = lambda _player: []
++    civcom._get_government_change_actions = lambda _player: []
++    civcom._get_player_rate_actions = lambda _player: []
+     civcom._get_diplomacy_actions = lambda _player: []
+     assert CivCom._get_legal_actions_optimized(civcom, 0) == [
+         {"type": "end_turn", "is_valid": True}]
+ 
+ 
++def test_city_governor_actions_are_capability_gated_and_skip_active_template():
++    civcom = make_civcom()
++
++    actions = CivCom._get_city_governor_actions(civcom, 0)
++
++    assert len(actions) == 10
++    assert {
++        row["target"]["food_surplus_reserve"] for row in actions
++    } == set(range(11)) - {1}
++    assert all(row["city_id"] == 4 and row["is_valid"] for row in actions)
++
++    civcom.player_cities[4]["governor"] = {"available": False}
++    assert CivCom._get_city_governor_actions(civcom, 0) == []
++
++
+ def test_current_server_buildability_precedes_missing_legacy_bitvectors():
+     city = {
+         "buildability": {
+diff --git a/freeciv-proxy/tests/test_release_game_configuration.py b/freeciv-proxy/tests/test_release_game_configuration.py
+index f50c732..0adcf3a 100644
+--- a/freeciv-proxy/tests/test_release_game_configuration.py
++++ b/freeciv-proxy/tests/test_release_game_configuration.py
+@@ -51,7 +51,8 @@ async def test_release_settings_are_safe_complete_and_ruleset_first():
+         "ruleset": "civ2civ3", "minplayers": 1, "aifill": 2,
+         "mapseed": 104729, "gameseed": 104729, "sciencebox": 1,
+         "techlevel": 100, "startpos": "all", "startcity": True,
+-        "fogofwar": False, "max_turns": 20,
++        "fogofwar": False, "victories": "SPACERACE",
++        "endspaceship": False, "max_turns": 20,
+         "ai_skill_level": "experimental",
+     }
+     assert await session.configure_game_settings(config, civcom)
+@@ -62,6 +63,7 @@ async def test_release_settings_are_safe_complete_and_ruleset_first():
+         "/set mapseed 104729", "/set gameseed 104729", "/set sciencebox 1",
+         "/set techlevel 100", "/set fogofwar disabled", "/set startcity enabled",
+         "/set startpos all",
++        "/set victories SPACERACE", "/set endspaceship disabled",
+         "/set endturn 20", "/experimental",
+     ]
+     civcom.send_packets_to_civserver.assert_called_once_with()
+@@ -77,6 +79,7 @@ async def test_release_settings_reject_command_injection_and_bad_ranges():
+         "ruleset": "classic\n/quit", "minplayers": 0, "aifill": 31,
+         "mapseed": -1, "gameseed": True, "sciencebox": 0,
+         "techlevel": 101, "startpos": "all\n/quit", "fogofwar": "FALSE",
++        "victories": "SPACERACE|/quit", "endspaceship": "false",
+         "ai_skill_level": "hard\n/quit",
+     }, civcom)
+     civcom.queue_to_civserver.assert_not_called()
+@@ -188,6 +191,41 @@ def test_city_production_numeric_ids_are_cross_checked_before_transport(monkeypa
+         })
+ 
+ 
++def test_city_governor_preserves_bounded_food_floor_through_execution_chain():
++    handler = object.__new__(llm_handler.LLMWSHandler)
++    normalized = handler._normalize_agent_action({
++        "action_type": "city_governor", "city_id": 10,
++        "target": {"food_surplus_reserve": 1},
++    })
++    assert normalized == {
++        "type": "city_governor", "city_id": 10,
++        "food_surplus_reserve": 1,
++    }
++    sanitized = InputSanitizer.sanitize_action_data(normalized)
++    assert sanitized == normalized
++    game_state = {
++        "cities": {"10": {
++            "id": 10, "owner": 0,
++            "governor": {"available": True},
++        }},
++    }
++    assert LLMActionValidator().validate_action(
++        dict(sanitized, player_id=0), 0, game_state).is_valid
++
++    unavailable = {
++        "cities": {"10": {
++            "id": 10, "owner": 0,
++            "governor": {"available": False},
++        }},
++    }
++    result = LLMActionValidator().validate_action(
++        dict(sanitized, player_id=0), 0, unavailable)
++    assert not result.is_valid and result.error_code == "E037"
++    with pytest.raises(SecurityError):
++        InputSanitizer.sanitize_action_data(
++            dict(normalized, food_surplus_reserve=11))
++
++
+ def test_player_rates_preserve_exact_fields_through_security_and_validation():
+     handler = object.__new__(llm_handler.LLMWSHandler)
+     normalized = handler._normalize_agent_action({

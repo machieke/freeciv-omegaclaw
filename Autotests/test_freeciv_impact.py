@@ -889,7 +889,8 @@ def test_final_escort_preparation_requires_immediate_spare_delivery():
               production_kind=6, production_value=0),
         second_city,
     ], turn=20))
-    assert undefended.candidate.category == "production_repurpose"
+    assert undefended.candidate.category == "production_defense"
+    assert undefended.candidate.projection["mandatory_local_garrison"] is True
     assert not (undefended.candidate.projection or {}).get(
         "settlement_final_escort_preparation", False)
 
@@ -2703,8 +2704,9 @@ def test_horizon_policy_commits_civilization_wide_unit_score_batch():
         ("Marketplace", "improvement", 40),
     ), founders=(), workers=())
     snapshot = _snapshot(
-        [_unit(11, "Alpine Troops"), _unit(12, "Alpine Troops"),
-         _unit(13, "Alpine Troops")],
+        [_unit(11, "Alpine Troops", 0, 0),
+         _unit(12, "Alpine Troops", 3, 0),
+         _unit(13, "Alpine Troops", 6, 0)],
         actions, cities=cities, turn=1)
     planner = GroundedImpactPlanner(
         {"expansion_city_target": 3}, ruleset_ir=ir)
@@ -2730,8 +2732,9 @@ def test_horizon_policy_commits_civilization_wide_unit_score_batch():
             city["production_kind"] = 6
             city["production_value"] = 9
     after = _snapshot(
-        [_unit(11, "Alpine Troops"), _unit(12, "Alpine Troops"),
-         _unit(13, "Alpine Troops")], actions, cities=changed,
+        [_unit(11, "Alpine Troops", 0, 0),
+         _unit(12, "Alpine Troops", 3, 0),
+         _unit(13, "Alpine Troops", 6, 0)], actions, cities=changed,
         turn=1, source_seq=2)
     planner.record_outcome(first.candidate, snapshot, True, after)
     second = planner.plan(after, excluded=(first.candidate.action_key,))
@@ -2757,8 +2760,10 @@ def test_failed_unit_score_batch_member_cancels_remaining_switches():
         ("Alpine Troops", "unit", 60), ("Musketeers", "unit", 30),
         ("Marketplace", "improvement", 40)), founders=(), workers=())
     snapshot = _snapshot(
-        [_unit(11, "Alpine Troops"), _unit(12, "Alpine Troops"),
-         _unit(13, "Alpine Troops")], actions, cities=cities, turn=1)
+        [_unit(11, "Alpine Troops", 0, 0),
+         _unit(12, "Alpine Troops", 3, 0),
+         _unit(13, "Alpine Troops", 6, 0)],
+        actions, cities=cities, turn=1)
     planner = GroundedImpactPlanner(
         {"expansion_city_target": 3}, ruleset_ir=ir)
     first = planner.plan(snapshot)
@@ -3316,6 +3321,316 @@ def test_treasury_deficit_redirects_repeating_unit_queue_to_coinage():
 
     assert decision.candidate.category == "production_treasury_stabilization"
     assert decision.candidate.action["target"]["production_type"] == "Coinage"
+
+
+def test_negative_gold_flow_is_safe_when_treasury_funds_configured_runway():
+    snapshot = _snapshot(
+        [], [{"action_type": "end_turn", "is_valid": True}],
+        player={
+            "gold": 50, "city_gold_surplus_per_turn": -1,
+            "gold_per_turn": -1, "unit_gold_upkeep": 0,
+            "gold_upkeep_reserve": 0,
+        })
+    planner = GroundedImpactPlanner({
+        "treasury_minimum_gold": 5, "treasury_reserve_turns": 2,
+    })
+
+    assert planner._treasury_deficit(snapshot) is False
+
+    near_reserve = _snapshot(
+        [], [{"action_type": "end_turn", "is_valid": True}],
+        player={
+            "gold": 6, "city_gold_surplus_per_turn": -1,
+            "gold_per_turn": -1, "unit_gold_upkeep": 0,
+            "gold_upkeep_reserve": 0,
+        })
+    assert planner._treasury_deficit(near_reserve) is True
+
+
+def test_existing_treasury_stabilizer_is_not_replaced_by_another_one():
+    city = _city(
+        surplus=(3, 5, 2, 0, 0, 3), shield_stock=7,
+        production_kind=3, production_value=99)
+    ruleset = _ruleset_ir((
+        ("Coinage", "improvement", 10),
+        ("Marketplace", "improvement", 60),
+    ), founders=(), workers=())
+    snapshot = _snapshot(
+        [], [_production(10, "Marketplace", 3, 98),
+             {"action_type": "end_turn", "is_valid": True}],
+        cities=[city],
+        player={
+            "gold": 0, "city_gold_surplus_per_turn": -1,
+            "gold_per_turn": -1, "unit_gold_upkeep": 0,
+            "gold_upkeep_reserve": 0,
+        })
+    planner = GroundedImpactPlanner(
+        {"expansion_city_target": 1}, ruleset_ir=ruleset)
+
+    assert planner._production_sustainability_route(
+        snapshot, city, "coinage", "marketplace", frozenset()) is None
+
+
+def test_required_city_defender_reaches_first_completion_before_food_recovery():
+    city = _city(surplus=(1, 5, 2, 1, 0, 3))
+    ruleset = _ruleset_ir((
+        ("Alpine Troops", "unit", 20),
+        ("Granary", "improvement", 40),
+    ), founders=(), workers=(), upkeeps={
+        "Alpine Troops": {"uk_food": 1},
+    })
+    snapshot = _snapshot(
+        [], [_production(10, "Granary", 3, 14),
+             {"action_type": "end_turn", "is_valid": True}],
+        cities=[city])
+    city_state = snapshot.cities[0]
+    planner = GroundedImpactPlanner(
+        {"expansion_city_target": 1}, ruleset_ir=ruleset)
+
+    assert planner._production_upkeep_safe(
+        snapshot, city_state, "alpine troops", food_surplus_floor=0) is True
+    assert planner._production_upkeep_safe(
+        snapshot, city_state, "alpine troops") is False
+    assert planner._production_sustainability_route(
+        snapshot, city_state, "alpine troops", "granary", frozenset()) is None
+
+    starving_city = _city(surplus=(0, 5, 2, 1, 0, 3))
+    starving = _snapshot(
+        [], [_production(10, "Granary", 3, 14),
+             {"action_type": "end_turn", "is_valid": True}],
+        cities=[starving_city])
+    assert planner._production_sustainability_route(
+        starving, starving.cities[0], "alpine troops", "granary",
+        frozenset()) is None
+
+    repeated = _snapshot(
+        [_unit(11, "Alpine Troops")],
+        [_production(10, "Granary", 3, 14),
+         {"action_type": "end_turn", "is_valid": True}],
+        cities=[starving_city])
+    assert planner._production_sustainability_route(
+        repeated, repeated.cities[0], "alpine troops", "granary",
+        frozenset())[0] == "production_food_stabilization"
+
+
+def test_required_founder_reaches_first_completion_before_food_recovery():
+    city = _city(
+        size=3, food_stock=20, shield_stock=12,
+        surplus=(0, 6, 3, 2, 0, 3),
+        production_kind=6, production_value=0)
+    coinage = _production(10, "Coinage", 3, 99)
+    founder = _production(10, "Settlers", 6, 0)
+    ruleset = _ruleset_ir((
+        ("Settlers", "unit", 30),
+        ("Coinage", "improvement", 999),
+    ), founders=("Settlers",), workers=("Settlers",), upkeeps={
+        "Settlers": {"uk_food": 1},
+    }, pop_costs={"Settlers": 1})
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops")],
+        [founder, coinage, {"action_type": "end_turn", "is_valid": True}],
+        cities=[city], turn=100)
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 2, "horizon_turn": 480,
+    }, ruleset_ir=ruleset)
+
+    assert planner._production_sustainability_route(
+        snapshot, snapshot.cities[0], "settlers", "coinage",
+        frozenset(("settlers",)),
+        current_is_required_founder=True) is None
+    assert planner.plan(snapshot) is None
+
+
+def test_food_recovery_prefers_output_building_and_finishes_before_garrison():
+    city = _city(
+        size=5, food_stock=8, shield_stock=12,
+        surplus=(-1, 7, 5, 2, 0, 3),
+        production_kind=6, production_value=10)
+    city["buildability"]["options"].extend([
+        {"type": "unit", "id": 10, "name": "Riflemen"},
+        {"type": "improvement", "id": 39, "name": "Supermarket"},
+        {"type": "improvement", "id": 72, "name": "Coinage"},
+    ])
+    supermarket = _production(10, "Supermarket", 3, 39)
+    coinage = _production(10, "Coinage", 3, 72)
+    defender = _production(10, "Riflemen", 6, 10)
+    ruleset = _ruleset_ir((
+        ("Riflemen", "unit", 30),
+        ("Supermarket", "improvement", 80),
+        ("Coinage", "improvement", 999),
+    ), founders=(), workers=(), upkeeps={
+        "Riflemen": {"uk_food": 1},
+    })
+    guarded = _snapshot(
+        [],
+        [supermarket, coinage, defender,
+         {"action_type": "end_turn", "is_valid": True}],
+        cities=[city], turn=100)
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 1, "horizon_turn": 480,
+    }, ruleset_ir=ruleset)
+
+    recovery = planner.plan(guarded)
+    assert recovery.candidate.category == "production_food_stabilization"
+    assert recovery.candidate.action["target"]["production_type"] == (
+        "Supermarket")
+
+    recovering_city = dict(
+        city, production_kind=3, production_value=39, shield_stock=20)
+    undefended = _snapshot(
+        [], [supermarket, coinage, defender,
+             {"action_type": "end_turn", "is_valid": True}],
+        cities=[recovering_city], source_seq=2, turn=101)
+    assert planner.plan(undefended) is None
+
+
+def test_missing_garrison_waits_for_full_build_treasury_runway():
+    city = _city(
+        size=4, shield_stock=12, surplus=(1, 4, 3, 1, 0, 2),
+        production_kind=3, production_value=72)
+    city["buildability"]["options"].extend([
+        {"type": "unit", "id": 10, "name": "Riflemen"},
+        {"type": "improvement", "id": 72, "name": "Coinage"},
+    ])
+    defender = _production(10, "Riflemen", 6, 10)
+    ruleset = _ruleset_ir((
+        ("Riflemen", "unit", 30),
+        ("Coinage", "improvement", 999),
+    ), founders=(), workers=())
+    snapshot = _snapshot(
+        [], [defender, {"action_type": "end_turn", "is_valid": True}],
+        cities=[city],
+        player={
+            "gold": 10, "city_gold_surplus_per_turn": -1,
+            "gold_per_turn": -1, "unit_gold_upkeep": 0,
+            "gold_upkeep_reserve": 0,
+        })
+
+    assert GroundedImpactPlanner(
+        {"expansion_city_target": 1}, ruleset_ir=ruleset).plan(
+            snapshot) is None
+
+
+def test_missing_local_garrison_interrupts_midbuild_even_at_zero_food_surplus():
+    city = _city(
+        size=4, shield_stock=80, surplus=(0, 7, 5, 2, 0, 3),
+        production_kind=3, production_value=99)
+    defender = _production(10, "Alpine Troops", 6, 11)
+    ruleset = _ruleset_ir((
+        ("Alpine Troops", "unit", 20),
+        ("Coinage", "improvement", 999),
+    ), founders=(), workers=(), upkeeps={
+        "Alpine Troops": {"uk_food": 1, "uk_gold": 1},
+    })
+    snapshot = _snapshot(
+        [], [defender, {"action_type": "end_turn", "is_valid": True}],
+        cities=[city],
+        player={
+            "gold": 50, "city_gold_surplus_per_turn": 2,
+            "gold_per_turn": 2, "unit_gold_upkeep": 0,
+            "gold_upkeep_reserve": 0,
+        })
+
+    decision = GroundedImpactPlanner(
+        {"expansion_city_target": 1}, ruleset_ir=ruleset).plan(snapshot)
+
+    assert decision.candidate.category == "production_defense"
+    assert decision.candidate.projection["mandatory_local_garrison"] is True
+    assert decision.candidate.projection["discarded_shield_stock"] == 80
+    assert decision.candidate.projection["completion_eta_turns"] == 3
+    assert decision.candidate.projection["current_garrison"] == 0
+    assert decision.candidate.projection["required_garrison"] == 1
+
+
+def test_food_deficit_activates_exact_server_city_governor_once():
+    city = _city(surplus=(-1, 5, 2, 1, 0, 3))
+    city["governor"] = {
+        "available": True, "enabled": False,
+        "minimal_surplus": [0, 0, 0, 0, 0, 0],
+        "require_happy": False, "allow_disorder": False,
+        "max_growth": False, "allow_specialists": True,
+        "factor": [0, 0, 0, 0, 0, 0], "happy_factor": 0,
+    }
+    action = {
+        "type": "city_governor", "city_id": 10,
+        "target": {"food_surplus_reserve": 1}, "is_valid": True,
+    }
+    before = _snapshot(
+        [], [action, {"action_type": "end_turn", "is_valid": True}],
+        cities=[city])
+    planner = GroundedImpactPlanner({"expansion_city_target": 1})
+
+    decision = planner.plan(before)
+
+    assert decision.candidate.category == "city_food_governor"
+    assert decision.candidate.scope == ("governor", 10)
+    assert decision.candidate.action == {
+        "action_type": "city_governor", "city_id": 10,
+        "target": {"food_surplus_reserve": 1},
+    }
+    assert decision.candidate.projection["server_capability"] == (
+        "PACKET_WEB_CMA_SET")
+
+    recovered_city = dict(city, surplus=[1, 5, 2, 1, 0, 3])
+    recovered_city["governor"] = {
+        "available": True, "enabled": True,
+        "minimal_surplus": [1, 0, 0, 0, 0, 0],
+        "require_happy": False, "allow_disorder": False,
+        "max_growth": False, "allow_specialists": True,
+        "factor": [6, 2, 2, 1, 1, 2], "happy_factor": 0,
+    }
+    after = _snapshot(
+        [], [action, {"action_type": "end_turn", "is_valid": True}],
+        cities=[recovered_city], source_seq=2)
+    assert planner.candidate_effect_observed(
+        decision.candidate, before, after) is True
+    assert planner._city_food_governor_candidate(
+        after, decision.candidate.action) is None
+
+
+def test_infeasible_city_governor_is_not_retried_for_shield_accumulation():
+    city = _city(
+        size=4, shield_stock=10, surplus=(0, 7, 5, 2, 0, 3),
+        production_kind=3, production_value=14)
+    city["governor"] = {
+        "available": True, "enabled": False,
+        "minimal_surplus": [0, 0, 0, 0, 0, 0],
+        "require_happy": False, "allow_disorder": False,
+        "max_growth": False, "allow_specialists": False,
+        "factor": [0, 0, 0, 0, 0, 0], "happy_factor": 0,
+    }
+    action = {
+        "action_type": "city_governor", "city_id": 10,
+        "target": {"food_surplus_reserve": 1}, "is_valid": True,
+    }
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 1, "no_effect_retry_limit": 1,
+    })
+    before = _snapshot(
+        [], [action, {"action_type": "end_turn", "is_valid": True}],
+        cities=[city])
+    attempted = planner.plan(before)
+    assert attempted.candidate.category == "city_food_governor"
+    planner.record_outcome(
+        attempted.candidate, before, effect_observed=False,
+        after_snapshot=before)
+
+    accumulating = dict(city, shield_stock=17)
+    unchanged_feasibility = _snapshot(
+        [], [action, {"action_type": "end_turn", "is_valid": True}],
+        cities=[accumulating], source_seq=2, turn=5)
+    assert not any(
+        candidate.category == "city_food_governor"
+        for candidate in planner.candidates(unchanged_feasibility))
+    assert planner.no_effect_retries_blocked == 1
+
+    changed_output = dict(accumulating, surplus=[-1, 7, 5, 2, 0, 3])
+    materially_changed = _snapshot(
+        [], [action, {"action_type": "end_turn", "is_valid": True}],
+        cities=[changed_output], source_seq=3, turn=6)
+    assert any(
+        candidate.category == "city_food_governor"
+        for candidate in planner.candidates(materially_changed))
 
 
 def test_net_gold_does_not_double_subtract_city_style_unit_upkeep():

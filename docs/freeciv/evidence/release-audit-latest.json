@@ -1,0 +1,829 @@
+{
+  "checks": [
+    {
+      "details": {
+        "handwritten_game_rule_files": [],
+        "legacy_rules_absent": true,
+        "metta_sources_in_freeciv_domains": [
+          "benchmarks/freeciv/freeciv.metta"
+        ]
+      },
+      "id": "no-handwritten-game-rules",
+      "passed": true
+    },
+    {
+      "details": {
+        "stderr": "",
+        "stdout": "{\"files\":11,\"violations\":0}"
+      },
+      "id": "ui-event-only-boundary",
+      "passed": true
+    },
+    {
+      "details": {
+        "forbidden_imports": []
+      },
+      "id": "llm-query-summary-only",
+      "passed": true
+    },
+    {
+      "details": {
+        "configuration_hash": "336b486ec3031985e59906726467e7e68ab5f89f04f01227313922e805e83380",
+        "declared": [
+          "abduction_confidence",
+          "abduction_strength",
+          "actionable_threshold",
+          "conflict_min_confidence",
+          "conflict_severity_threshold",
+          "dampening_lambda",
+          "decay",
+          "induction_decision_threshold",
+          "induction_default_probability",
+          "induction_minimum_samples",
+          "minimum_logged_confidence",
+          "observation_confidence",
+          "observation_strength",
+          "schema_version",
+          "selection_unknown_discount",
+          "simulation_confidence_cap",
+          "sweep"
+        ],
+        "missing": []
+      },
+      "id": "confidence-parameters-declared",
+      "passed": true
+    },
+    {
+      "details": {
+        "civ2civ3": {
+          "audit_passed": true,
+          "counts": {
+            "building_rules": 73,
+            "prerequisite_edges": 317,
+            "target_rules": 216,
+            "tech_rules": 87,
+            "unit_rules": 56
+          },
+          "grounded_signatures": [
+            "beakers-per-turn",
+            "build-cost",
+            "city-size",
+            "city-size-at-least",
+            "gold-at-least",
+            "gold-stockpile",
+            "research-cost",
+            "shield-stockpile",
+            "shields-per-turn"
+          ],
+          "rules": 216,
+          "source_hashes": {
+            "civ2civ3/buildings.ruleset": "10743c3cb9e82960c8d84aa98b662b0a09482f7ce92cc769545050e45bd8d75b",
+            "civ2civ3/game.ruleset": "10c752b34a09bf551b19204cb96b168d9041bcedbc4cd835d0a5fd92742ac1d5",
+            "civ2civ3/techs.ruleset": "99c2ea53346c909bf8ebb7a83651a55c4961f48fa7b92951be19d9c9679e30d9",
+            "civ2civ3/units.ruleset": "b514356f2946d5125af27a560f6bc6c537af22eb060d2eda3f5b37ad21ac11a9"
+          }
+        },
+        "classic": {
+          "audit_passed": true,
+          "counts": {
+            "building_rules": 69,
+            "prerequisite_edges": 292,
+            "target_rules": 209,
+            "tech_rules": 87,
+            "unit_rules": 53
+          },
+          "grounded_signatures": [
+            "beakers-per-turn",
+            "build-cost",
+            "city-size",
+            "city-size-at-least",
+            "gold-at-least",
+            "gold-stockpile",
+            "research-cost",
+            "shield-stockpile",
+            "shields-per-turn"
+          ],
+          "rules": 209,
+          "source_hashes": {
+            "classic/buildings.ruleset": "7d158c50123aefa5df7329b8bda120273c6bc074fe47eb902a796bd430dd44f0",
+            "classic/game.ruleset": "e93c9c868ceda09ec9419f73ab69f9bec463e6e93ba83484739c590c83a65256",
+            "classic/techs.ruleset": "d80ecb4ff8035429a2a61f5281a614c196af0179151c3593c32ce88b9f08128b",
+            "classic/units.ruleset": "f4ef1f7cfe45a6a3d076af0d315f69f2c35a5f6019d6afb6ed7abdf4289c7bc5"
+          }
+        }
+      },
+      "id": "compiled-ruleset-independent-audit",
+      "passed": true
+    },
+    {
+      "details": {
+        "compiled": {
+          "civ2civ3": {
+            "audit_passed": true,
+            "counts": {
+              "building_rules": 73,
+              "prerequisite_edges": 317,
+              "target_rules": 216,
+              "tech_rules": 87,
+              "unit_rules": 56
+            },
+            "grounded_signatures": [
+              "beakers-per-turn",
+              "build-cost",
+              "city-size",
+              "city-size-at-least",
+              "gold-at-least",
+              "gold-stockpile",
+              "research-cost",
+              "shield-stockpile",
+              "shields-per-turn"
+            ],
+            "rules": 216,
+            "source_hashes": {
+              "civ2civ3/buildings.ruleset": "10743c3cb9e82960c8d84aa98b662b0a09482f7ce92cc769545050e45bd8d75b",
+              "civ2civ3/game.ruleset": "10c752b34a09bf551b19204cb96b168d9041bcedbc4cd835d0a5fd92742ac1d5",
+              "civ2civ3/techs.ruleset": "99c2ea53346c909bf8ebb7a83651a55c4961f48fa7b92951be19d9c9679e30d9",
+              "civ2civ3/units.ruleset": "b514356f2946d5125af27a560f6bc6c537af22eb060d2eda3f5b37ad21ac11a9"
+            }
+          },
+          "classic": {
+            "audit_passed": true,
+            "counts": {
+              "building_rules": 69,
+              "prerequisite_edges": 292,
+              "target_rules": 209,
+              "tech_rules": 87,
+              "unit_rules": 53
+            },
+            "grounded_signatures": [
+              "beakers-per-turn",
+              "build-cost",
+              "city-size",
+              "city-size-at-least",
+              "gold-at-least",
+              "gold-stockpile",
+              "research-cost",
+              "shield-stockpile",
+              "shields-per-turn"
+            ],
+            "rules": 209,
+            "source_hashes": {
+              "classic/buildings.ruleset": "7d158c50123aefa5df7329b8bda120273c6bc074fe47eb902a796bd430dd44f0",
+              "classic/game.ruleset": "e93c9c868ceda09ec9419f73ab69f9bec463e6e93ba83484739c590c83a65256",
+              "classic/techs.ruleset": "d80ecb4ff8035429a2a61f5281a614c196af0179151c3593c32ce88b9f08128b",
+              "classic/units.ruleset": "f4ef1f7cfe45a6a3d076af0d315f69f2c35a5f6019d6afb6ed7abdf4289c7bc5"
+            }
+          }
+        },
+        "numeric_conclusions": []
+      },
+      "id": "no-numeric-accumulation-in-inference",
+      "passed": true
+    },
+    {
+      "details": {
+        "absolute_path_locations": []
+      },
+      "id": "no-workstation-paths",
+      "passed": true
+    },
+    {
+      "details": {
+        "checkout_commit": "26ba7124249f34fd3050ef29bf191bd4d8808018",
+        "patch_series_applied": true,
+        "patch_series_sha256": "90cf26d4da2c4452f5e1e22a23a24fcaf24517cfe33c80ec78aa680ccf3aa2f3",
+        "patches": [
+          {
+            "path": "scripts/freeciv/upstream/0001-pln-authoritative-state.patch",
+            "sha256": "48e416000bf36c3c7ce13c8c59bb51bc682a1f17ee8568e432a82f673a10df55"
+          },
+          {
+            "path": "scripts/freeciv/upstream/0002-pln-spatial-projection.patch",
+            "sha256": "a4eb88c827c7a2ea68db602aa2463c2aa53bb0c6156a71e1a5a5e7fc09908856"
+          },
+          {
+            "path": "scripts/freeciv/upstream/0003-pln-unit-lifecycle.patch",
+            "sha256": "1df99426c617e72beb0ca2bcbc879793cffce03e79a28a91e6e1955346228c31"
+          },
+          {
+            "path": "scripts/freeciv/upstream/0004-pln-government-and-sustainability.patch",
+            "sha256": "d7fa7b77ff7040af0da25ea8ed86156d754b5b6007eee5d98a95b87fe9b3cafa"
+          },
+          {
+            "path": "scripts/freeciv/upstream/0005-pln-sustainability-control.patch",
+            "sha256": "412f4b462afab900233793f192732317b7e00b42b165dee1c09056ca9d5a1827"
+          },
+          {
+            "path": "scripts/freeciv/upstream/0006-pln-city-food-governor.patch",
+            "sha256": "33a10ec287297629d2383d494f4ac01ad60ad1d25167dec39753e9d8a131113f"
+          }
+        ],
+        "pinned_commit": "26ba7124249f34fd3050ef29bf191bd4d8808018"
+      },
+      "id": "pinned-external-contract",
+      "passed": true
+    },
+    {
+      "details": {
+        "report": {
+          "checks": [
+            {
+              "details": {
+                "extra_phases": [],
+                "incomplete_phases": [],
+                "missing_phases": [],
+                "path": "docs/freeciv/pf-pln-phase-map.md",
+                "phase_rows": {
+                  "0": {
+                    "label": "0 \u2014 executable semantics",
+                    "remaining": "None",
+                    "status": "Implemented; standalone end-to-end benchmark and truth-firewall acceptance passed"
+                  },
+                  "1": {
+                    "label": "1 \u2014 goal regression planner",
+                    "remaining": "None",
+                    "status": "Implemented; canonical >=5x focus gate, captured-snapshot parity, and exact engine replay acceptance passed"
+                  },
+                  "2": {
+                    "label": "2 \u2014 provenance and contradiction",
+                    "remaining": "None",
+                    "status": "Implemented; adversarial Phase 2 acceptance passed with 8,192 duplicate paths, zero overlap errors or false conflicts, and 256/256 cycles rejected"
+                  },
+                  "3": {
+                    "label": "3 \u2014 observation and simulation pressure",
+                    "remaining": "None",
+                    "status": "Implemented; 256/256 exhaustive rankings matched across 1,024 tests and selected tests beat uniform random by 0.365 bits (184.8% lift)"
+                  },
+                  "4": {
+                    "label": "4 \u2014 conductance learning",
+                    "remaining": "None",
+                    "status": "Implemented; a standalone fixed-prior ablation abandons the infeasible branch after five grounded no-progress attempts versus no abandonment in 12 fixed-prior attempts; direct-completion confirmation remained score-null, while separate expansion confirmations support +2.66 for target three-to-four and +1.56 for target four-to-five through additional settlements and citizen score"
+                  },
+                  "5": {
+                    "label": "5 \u2014 lifecycle clones",
+                    "remaining": "None",
+                    "status": "Implemented; exact hidden-context ablation improves expected planning success from 50% to 82% and mean log likelihood by 0.368 nats"
+                  },
+                  "6": {
+                    "label": "6 \u2014 induction and analogy",
+                    "remaining": "None",
+                    "status": "Implemented; deterministic held-out replay improves Brier by 0.137 and activated-rule calibration error by 0.687 without increasing contradictions, while the overgeneralized rule is demoted"
+                  },
+                  "7": {
+                    "label": "7 \u2014 LLM gateway",
+                    "remaining": "None",
+                    "status": "Implemented; fixed 100-case ablation raises validated proposals per token by 63.16%, schedules zero low-pressure calls, and has zero quarantine escapes"
+                  },
+                  "8": {
+                    "label": "8 \u2014 differentiable execution",
+                    "remaining": "None",
+                    "status": "Implemented; 1,444 active smooth comparisons match finite differences within 4.97e-11, while dead-AND and threshold cases demonstrate the required non-gradient operators"
+                  },
+                  "9": {
+                    "label": "9 \u2014 full multi-goal field",
+                    "remaining": "None",
+                    "status": "Implemented; multi-goal scheduling beats isolated per-goal recommendations in 64/64 conflicting scenarios with both goal explanations preserved; all expansion-target confirmation safety and exact-replay gates pass, with zero safety-selection violations across 473 active decisions"
+                  }
+                },
+                "sha256": "ad8c1bf2ef3701d96a1a2bc64124f52affcb19dac615a567dc76ceba1faf8b8b"
+              },
+              "id": "pf-pln-phase-map-complete",
+              "passed": true
+            },
+            {
+              "details": {
+                "stderr": "",
+                "stdout": "generated event types are current"
+              },
+              "id": "pf-pln-generated-event-types-current",
+              "passed": true
+            },
+            {
+              "details": {
+                "component_only_disabled": true,
+                "engine_live_baseline_enabled_phases": [],
+                "engine_live_treatment_activation_hash": "c685c0b2fc1391d547d73f47b29aa8f5a9210672e5157bfe895416203c8ed438",
+                "engine_live_treatment_enabled_phases": [
+                  0,
+                  1,
+                  4,
+                  9
+                ],
+                "representative_enabled_phases": []
+              },
+              "id": "pf-pln-runtime-activation-boundary",
+              "passed": true
+            },
+            {
+              "details": {
+                "acceptance": {
+                  "capital_defense_executes_end_to_end": true,
+                  "pressure_reproducible": true,
+                  "schedule_reproducible": true,
+                  "truth_firewall_preserved": true,
+                  "typed_pressure_reaches_action_and_observation": true
+                },
+                "acceptance_passed": true,
+                "benchmark": "pf-pln-phase-0-executable-semantics",
+                "benchmark_matches": true,
+                "evidence": "docs/freeciv/evidence/pf-executable-semantics-phase-0.json",
+                "evidence_fingerprint": "d1b6bb9c91626be48dff329ce387d89e3c71968d04e9b5ff1c6317e187c4da05",
+                "evidence_sha256": "4ca99235512d4aab6e0109ded501a9ba991a9140a7654f87526ec56cf07c104d",
+                "fingerprint_matches": true,
+                "phase": 0,
+                "replay_fingerprint": "d1b6bb9c91626be48dff329ce387d89e3c71968d04e9b5ff1c6317e187c4da05",
+                "returncode": 0,
+                "script": "scripts/freeciv/run_pf_semantics_benchmark.py",
+                "self_hash_valid": true,
+                "stderr": ""
+              },
+              "id": "pf-pln-phase-0-replay",
+              "passed": true
+            },
+            {
+              "details": {
+                "acceptance": null,
+                "acceptance_passed": true,
+                "benchmark": null,
+                "benchmark_matches": true,
+                "evidence": "docs/freeciv/evidence/pf-pressure-concentration.json",
+                "evidence_fingerprint": "5f16234a31263be5db70368d9fed2b865cb070022248fc45854208e022999728",
+                "evidence_sha256": "77104d3dc010f88e1f80f52ef46326cf0dbc25dbd34885f120d48105315f1efa",
+                "fingerprint_matches": true,
+                "phase": 1,
+                "replay_fingerprint": "5f16234a31263be5db70368d9fed2b865cb070022248fc45854208e022999728",
+                "returncode": 0,
+                "script": "scripts/freeciv/benchmark_pressure.py",
+                "self_hash_valid": true,
+                "stderr": ""
+              },
+              "id": "pf-pln-phase-1-replay",
+              "passed": true
+            },
+            {
+              "details": {
+                "acceptance": null,
+                "acceptance_passed": true,
+                "benchmark": "pf-pln-phase-2-provenance-contradiction",
+                "benchmark_matches": true,
+                "evidence": "docs/freeciv/evidence/pf-provenance-contradiction-phase-2.json",
+                "evidence_fingerprint": "a91a200541260453ee21dd7d61a538a457c0f0938a5b0a530c9792c9ed0f4ea6",
+                "evidence_sha256": "83079fd3e6d03d23f647364d6183d46c079f4aae33ed165b77cb5830df5bda82",
+                "fingerprint_matches": true,
+                "phase": 2,
+                "replay_fingerprint": "a91a200541260453ee21dd7d61a538a457c0f0938a5b0a530c9792c9ed0f4ea6",
+                "returncode": 0,
+                "script": "scripts/freeciv/run_pf_provenance_benchmark.py",
+                "self_hash_valid": true,
+                "stderr": ""
+              },
+              "id": "pf-pln-phase-2-replay",
+              "passed": true
+            },
+            {
+              "details": {
+                "acceptance": null,
+                "acceptance_passed": true,
+                "benchmark": "pf-pln-phase-3-exhaustive-voi",
+                "benchmark_matches": true,
+                "evidence": "docs/freeciv/evidence/pf-observation-voi-phase-3.json",
+                "evidence_fingerprint": "4c3a36497168c5fb3ec10d121bc1e0bae38b03525233d04cec1e8806098b33f2",
+                "evidence_sha256": "12cfbb8b54661cd61c83c5d52a1c0cceb0da5c7a1f9927489494b139b486dabd",
+                "fingerprint_matches": true,
+                "phase": 3,
+                "replay_fingerprint": "4c3a36497168c5fb3ec10d121bc1e0bae38b03525233d04cec1e8806098b33f2",
+                "returncode": 0,
+                "script": "scripts/freeciv/run_pf_voi_benchmark.py",
+                "self_hash_valid": true,
+                "stderr": ""
+              },
+              "id": "pf-pln-phase-3-replay",
+              "passed": true
+            },
+            {
+              "details": {
+                "acceptance": {
+                  "branch_abandoned_within_bound": true,
+                  "fixed_phase_1_route_does_not_abandon": true,
+                  "learned_abandonment_is_faster": true,
+                  "pressure_state_is_truth_free": true
+                },
+                "acceptance_passed": true,
+                "benchmark": "pf-pln-phase-4-conductance-learning",
+                "benchmark_matches": true,
+                "evidence": "docs/freeciv/evidence/pf-conductance-learning-phase-4.json",
+                "evidence_fingerprint": "51d1d193c7b9ca84dab03a2373bb0eda7250d600e1dca289f96e6b2364ee4cd7",
+                "evidence_sha256": "b76d1826eb986c654e7b65ad9eefbb847f511e3d316e9958db492332719b09b6",
+                "fingerprint_matches": true,
+                "phase": 4,
+                "replay_fingerprint": "51d1d193c7b9ca84dab03a2373bb0eda7250d600e1dca289f96e6b2364ee4cd7",
+                "returncode": 0,
+                "script": "scripts/freeciv/run_pf_conductance_benchmark.py",
+                "self_hash_valid": true,
+                "stderr": ""
+              },
+              "id": "pf-pln-phase-4-replay",
+              "passed": true
+            },
+            {
+              "details": {
+                "acceptance": null,
+                "acceptance_passed": true,
+                "benchmark": "pf-pln-phase-5-hidden-context",
+                "benchmark_matches": true,
+                "evidence": "docs/freeciv/evidence/pf-clone-lifecycle-phase-5.json",
+                "evidence_fingerprint": "4727d34d54c625e0f42dfdd47e5d752510bb388304c4916165559d94a5f63a61",
+                "evidence_sha256": "921dee9817a61f081a3057cad4a3ef8c51618d9eca5f26857c7120574056d9a3",
+                "fingerprint_matches": true,
+                "phase": 5,
+                "replay_fingerprint": "4727d34d54c625e0f42dfdd47e5d752510bb388304c4916165559d94a5f63a61",
+                "returncode": 0,
+                "script": "scripts/freeciv/run_pf_clone_benchmark.py",
+                "self_hash_valid": true,
+                "stderr": ""
+              },
+              "id": "pf-pln-phase-5-replay",
+              "passed": true
+            },
+            {
+              "details": {
+                "acceptance": {
+                  "contextual_calibration_improved": true,
+                  "contextual_contradiction_not_increased": true,
+                  "contextual_rule_promoted": true,
+                  "expansion_pressure_required": true,
+                  "overgeneralized_rule_demoted": true,
+                  "replay_order_invariant": true
+                },
+                "acceptance_passed": true,
+                "benchmark": "pf-pln-phase-6-contextual-induction",
+                "benchmark_matches": true,
+                "evidence": "docs/freeciv/evidence/pf-induction-analogy-phase-6.json",
+                "evidence_fingerprint": "a15472781c85c6d917eb35f53827bfd5d93128db9d66e5e593dee0731b5e629e",
+                "evidence_sha256": "513d4bd5df5fdd6017850aebc3cd76e2dc5368261cb343e67cbbdda05f7ab2d9",
+                "fingerprint_matches": true,
+                "phase": 6,
+                "replay_fingerprint": "a15472781c85c6d917eb35f53827bfd5d93128db9d66e5e593dee0731b5e629e",
+                "returncode": 0,
+                "script": "scripts/freeciv/run_pf_induction_benchmark.py",
+                "self_hash_valid": true,
+                "stderr": ""
+              },
+              "id": "pf-pln-phase-6-replay",
+              "passed": true
+            },
+            {
+              "details": {
+                "acceptance": {
+                  "higher_validated_proposals_per_token": true,
+                  "no_low_pressure_calls": true,
+                  "quarantine_escapes_zero": true,
+                  "token_budget_respected": true
+                },
+                "acceptance_passed": true,
+                "benchmark": "pf-pln-phase-7-llm-gateway",
+                "benchmark_matches": true,
+                "evidence": "docs/freeciv/evidence/pf-llm-gateway-phase-7.json",
+                "evidence_fingerprint": "d481fcbc4ca2907b471ac5773d9d4b762c949846c37746f284cd903c848ca95b",
+                "evidence_sha256": "61012d8cd751e9dabf25b2ec6b7af51abc32946b939f8d94945a1f76fceb7fb7",
+                "fingerprint_matches": true,
+                "phase": 7,
+                "replay_fingerprint": "d481fcbc4ca2907b471ac5773d9d4b762c949846c37746f284cd903c848ca95b",
+                "returncode": 0,
+                "script": "scripts/freeciv/run_pf_llm_gateway_benchmark.py",
+                "self_hash_valid": true,
+                "stderr": ""
+              },
+              "id": "pf-pln-phase-7-replay",
+              "passed": true
+            },
+            {
+              "details": {
+                "acceptance": {
+                  "dead_and_coalition_detected": true,
+                  "dead_and_requirement_nonzero": true,
+                  "learned_parameter_loss_reduced": true,
+                  "smooth_adjoint_matches_finite_difference": true,
+                  "threshold_counterfactual_detects_final_unit": true
+                },
+                "acceptance_passed": true,
+                "benchmark": "pf-pln-phase-8-differentiable-execution",
+                "benchmark_matches": true,
+                "evidence": "docs/freeciv/evidence/pf-differentiable-phase-8.json",
+                "evidence_fingerprint": "00e17230c8660f881935114b9d693fb8a3502fbf99557165b3fd539d500dc1f5",
+                "evidence_sha256": "66d4615118cc90593a2ed625c5509f6c263a3c491187bda77be27a7919523a4c",
+                "fingerprint_matches": true,
+                "phase": 8,
+                "replay_fingerprint": "00e17230c8660f881935114b9d693fb8a3502fbf99557165b3fd539d500dc1f5",
+                "returncode": 0,
+                "script": "scripts/freeciv/run_pf_differentiable_benchmark.py",
+                "self_hash_valid": true,
+                "stderr": ""
+              },
+              "id": "pf-pln-phase-8-replay",
+              "passed": true
+            },
+            {
+              "details": {
+                "acceptance": {
+                  "explanations_preserved_per_goal": true,
+                  "independent_goals_conflict": true,
+                  "multi_goal_beats_independent": true,
+                  "multi_goal_selects_joint_route": true
+                },
+                "acceptance_passed": true,
+                "benchmark": "pf-pln-phase-9-conflicting-goals",
+                "benchmark_matches": true,
+                "evidence": "docs/freeciv/evidence/pf-multi-goal-phase-9.json",
+                "evidence_fingerprint": "c6e4e612a2fb55fc7f222417f3189e0775daf2f02ff9e2f34898e194f1c0b0f7",
+                "evidence_sha256": "5cbf4b7556d8dc2f2989ab9ee3486de4651833a805c2d0af5beb98a76ec79919",
+                "fingerprint_matches": true,
+                "phase": 9,
+                "replay_fingerprint": "c6e4e612a2fb55fc7f222417f3189e0775daf2f02ff9e2f34898e194f1c0b0f7",
+                "returncode": 0,
+                "script": "scripts/freeciv/run_pf_multi_goal_benchmark.py",
+                "self_hash_valid": true,
+                "stderr": ""
+              },
+              "id": "pf-pln-phase-9-replay",
+              "passed": true
+            }
+          ],
+          "passed": true,
+          "schema_version": "1.0"
+        },
+        "stderr": ""
+      },
+      "id": "pf-pln-phase-readiness",
+      "passed": true
+    },
+    {
+      "details": {
+        "confidence_declarations": 18,
+        "events": 8890,
+        "game_id": "m7-main-e_full_loop-4543804-00",
+        "incomplete_planned_actions": [],
+        "max_bytes_per_turn": 546548,
+        "missing_confidence_declarations": [],
+        "path": "artifacts/freeciv/pf-pln-480-turn-sustainability-confirmation-v12-20260727/games/main/e_full_loop/4543804-00/events.jsonl",
+        "planned_cognitive_actions": [
+          "engine-action-01dfc6c8b3e3bbc80f5d",
+          "engine-action-bb82cd181eae76cf4b14",
+          "engine-action-b1b26b645686e357a2fa",
+          "engine-action-73c60ccf7f0e62a5f015",
+          "engine-action-5fc040ffd92f3538b7ad",
+          "engine-action-065461d51825b3b23bae",
+          "engine-action-67b52ea1562a6925090d",
+          "engine-action-5d47b6a4ad330933507d",
+          "engine-action-e2cf5b1c1636e40a4016",
+          "engine-action-a077cd1eeaddf8a8410a",
+          "engine-action-e9d664542f9653a44ee3",
+          "engine-action-e4b19542ccc633b02cc1",
+          "engine-action-4bcb8aca88f8e9df96fa",
+          "engine-action-7cd8df65ebc10f9e8cfe",
+          "engine-action-3333110ed2e6da148a82",
+          "engine-action-5dae12000acc4a81258c",
+          "engine-action-6f79b0b9e07bb80036fd",
+          "engine-action-4872b775d3c6c3febd51",
+          "engine-action-bb38aefc6fa6131d7a67",
+          "engine-action-572cb0468d4f0e17f6c2",
+          "engine-action-1e2097ca7ca8bcbbbc5f",
+          "engine-action-acaa56bc8759a3ac63d0",
+          "engine-action-a76c663410c99efc86d2",
+          "engine-action-c8244df43d36199d2c6e",
+          "engine-action-2221b2ef7c93a1116c31",
+          "engine-action-7dabd9733fe165567c3d",
+          "engine-action-f5bee3b73486b32e2af6",
+          "engine-action-fdb95328cf56ff6534b0",
+          "engine-action-6138c2fa3deb81ab691f",
+          "engine-action-4706f16eb271a4b38987",
+          "engine-action-1c5b57aed2fac8cbfeed",
+          "engine-action-912ac86e5795a550699b",
+          "engine-action-9c14b7ec7cd9772dd9b9",
+          "engine-action-c0e58bacc70af0f3e56f",
+          "engine-action-cd9305999bf7afc7081b",
+          "engine-action-27c01d00b839d4f5c715",
+          "engine-action-636a0b6b5d7264b672cc",
+          "engine-action-5e38e754445726dfbf46",
+          "engine-action-2e0cc0a3d1ddd1b1b97b",
+          "engine-action-029eb5fcf9398be22e61",
+          "engine-action-7aecfc227d5f8f8cab26",
+          "engine-action-8ea3f72805e698f8df41",
+          "engine-action-c55a588deda6e2f5a632",
+          "engine-action-489901e168294c3ad92c",
+          "engine-action-beef592e95aaf63fab93",
+          "engine-action-e6eff8e4baf896fea7cd",
+          "engine-action-bfa33040029229cbde6c",
+          "engine-action-0a51e3b877a0f10364df",
+          "engine-action-a1f1d63d01555abe81ed",
+          "engine-action-05230a0a29063860e83d",
+          "engine-action-0a5e96b7915ac7152be0",
+          "engine-action-1c97fb579ebeb2d17840",
+          "engine-action-a1bc99117ab5db58851b",
+          "engine-action-5a3dd9230538230fbbf2",
+          "engine-action-62b0ef69d87a9a62a541",
+          "engine-action-04fe69ab6510c7ea0262",
+          "engine-action-b72789595e7afd9495be",
+          "engine-action-688eec30277747bdfcf9",
+          "engine-action-fe1fb4cbcb4fa2bb4b41",
+          "engine-action-a28629bd24d00534212e",
+          "engine-action-ef722a6d228733faf786",
+          "engine-action-c53132be8d12cc001d5e",
+          "engine-action-88aaee398cfc15f45820",
+          "engine-action-ffc25f79b7b7b8ce34f6",
+          "engine-action-82079ee970d2810ad1b0",
+          "engine-action-7f7afef9bf1d2f1ed84a",
+          "engine-action-336292a95bfd154126a7",
+          "engine-action-04eb75c8352e18e21dca",
+          "engine-action-102140cc163def65e389",
+          "engine-action-66f740b9cc260be8c416",
+          "engine-action-cde9b03fe2bb5270e1ff",
+          "engine-action-82a8ee1f8f8980e9240b",
+          "engine-action-82852ac7fc5a9843b3f3",
+          "engine-action-5870f458cf7a1cd0cc9c",
+          "engine-action-9b37593dbbbc48c61851",
+          "engine-action-f076ed5b7c92d7214151",
+          "engine-action-4364898783c9b6040b05",
+          "engine-action-827a3ebee203cca9555e",
+          "engine-action-64365449914352abc8b6",
+          "engine-action-19e80d19a59770747ab8",
+          "engine-action-b1649ad9fad7010d8e33",
+          "engine-action-c2189b4952dff1223036",
+          "engine-action-49843c8bee6390d7b7ce",
+          "engine-action-1ffac6f0e45df677bc5d",
+          "engine-action-c6f492a251c8ddcc9d11",
+          "engine-action-57c84ee52a9635f8909b",
+          "engine-action-628b8804bfe126c6363d",
+          "engine-action-9510286e92a28dfbb164",
+          "engine-action-861c2d02d97e31601dbb",
+          "engine-action-e74ca3c97120d9478cd6",
+          "engine-action-2cf97ba6acbca5786623",
+          "engine-action-608baba5ebd3dfa881d0",
+          "engine-action-cf1c3ed60b6cd9d69d81",
+          "engine-action-38fb48af17a5d3fdad40",
+          "engine-action-c5785130337042a485de",
+          "engine-action-cc65c7c51ee92ce80a20",
+          "engine-action-38e1df263f7980140e68",
+          "engine-action-71111b5398daf1b8e6e4",
+          "engine-action-890bdc4d442726d4fd20",
+          "engine-action-83e116742aa7e87c99d5",
+          "engine-action-8e43cef5d5683052819f",
+          "engine-action-00aec3195f4b1d9aa5fe",
+          "engine-action-dfa6761e80d99f5df10f",
+          "engine-action-2a874819b1f0e35da466",
+          "engine-action-c14524028cdb14c0f2b4",
+          "engine-action-b5ab88437e0e287055b3",
+          "engine-action-6a5e41fa2be6b1ba3ba7",
+          "engine-action-6537ad306afe61aca24e",
+          "engine-action-59f98f7ae1c4b7eb026f",
+          "engine-action-72f6f26ed6c641363257",
+          "engine-action-94d8fad1d5cea1bf4787",
+          "engine-action-33359ea6b84fce8873a2",
+          "engine-action-b84cf5b5381802818560",
+          "engine-action-c23ede2f34f6e7fa02bc",
+          "engine-action-388b1c1be8639d009c80",
+          "engine-action-196e5e129c441c4a496c",
+          "engine-action-5ccafacc7cef6e4c6808",
+          "engine-action-1f3cf557e1411b81b80e",
+          "engine-action-1f88067b2c409bd67843",
+          "engine-action-a76d9c8b36d8caf7880d",
+          "engine-action-474fa04536b5bae3a41c",
+          "engine-action-e74ad979650bfab5d0da",
+          "engine-action-3dbc8e55986bea2346a5",
+          "engine-action-c001f795d8dd6edf24b6",
+          "engine-action-1202ee6990a4a6023bff",
+          "engine-action-75a342edbdbcc815bc3a",
+          "engine-action-da627cc1d9184ec0c232",
+          "engine-action-3ccab3f57d4b81f31b26",
+          "engine-action-b7275557bd2fdbfcaa97",
+          "engine-action-e483020b78ba5f12ee3d",
+          "engine-action-82a80a9b30eb9157547c",
+          "engine-action-4dcd4a8ceeb1eeeac1f9",
+          "engine-action-c695813a5ce0174aa802",
+          "engine-action-32d2f3173e0b7039e036",
+          "engine-action-fdd7cd58b6848a59ad7e",
+          "engine-action-161b2f884ad91257912d",
+          "engine-action-4bcaa1ad0e990e9d8fff",
+          "engine-action-40ab29e7003fba0ff9a0",
+          "engine-action-c95a192090fcc5513531",
+          "engine-action-3d9318e48584e22b199b",
+          "engine-action-74ac69fc8eb8a78481d4",
+          "engine-action-5c7ed841df60cfd109ec",
+          "engine-action-6a33cca633828131e1c9",
+          "engine-action-0262361e5e68452b3e40",
+          "engine-action-ee1f05de686d6f25adc0",
+          "engine-action-b95f3ed958bfe2ebde43",
+          "engine-action-e14189d2e580f9c0880f",
+          "engine-action-a0f278a9107b438f6b32",
+          "engine-action-eb1a2d7fa4c79807dc09",
+          "engine-action-15027795d533f891307d",
+          "engine-action-17bc2536fc51e8eee04b",
+          "engine-action-1c3063ae234e93a7c1e1",
+          "engine-action-cc50fca3ccb1bd98f8ce",
+          "engine-action-f06dc1a28a6ec1189a09",
+          "engine-action-cb9d14e5c9bcd1067613",
+          "engine-action-9bda61cbc338bf266f22",
+          "engine-action-69091097771cb8885f1c",
+          "engine-action-22c47d65d7aada916006",
+          "engine-action-63401072ae899011eb18",
+          "engine-action-877258ae144b946613c7",
+          "engine-action-11f148c0df287448056f",
+          "engine-action-2c7fe168ae70df0cf3cb",
+          "engine-action-fcf9b088d94a5a2e9919",
+          "engine-action-59765633288506b5eb90",
+          "engine-action-3a7340e1c9f311ddec9d",
+          "engine-action-d85f386fa5f4303f10ae",
+          "engine-action-f5edb9ec1aebb26b0be5",
+          "engine-action-77e8e65d44b9df57748e",
+          "engine-action-6b6e920adcae7a16ed9d",
+          "engine-action-3467bdcbba29ce0d1713",
+          "engine-action-0a1db4666217bb72b9dc",
+          "engine-action-0f79077324558aed8139",
+          "engine-action-605a54481aaec117d655",
+          "engine-action-cfffe428e0dc7a6c1050",
+          "engine-action-f7c2b91f726c28543e31",
+          "engine-action-8a47780fca59dc1d4a81",
+          "engine-action-b126cc7916801e6c0e89",
+          "engine-action-c7cfd435129f97c16ffd",
+          "engine-action-6e3adb7e3c14424d4282",
+          "engine-action-11febbfa438dc5d352b7",
+          "engine-action-6857a50d203067787a7c",
+          "engine-action-0592fd8f4ec204682e97",
+          "engine-action-50eb307a0f9bb8fd3ea2",
+          "engine-action-b96fbadd6c67365820c5",
+          "engine-action-3e9e5b0adbf1e38163b9",
+          "engine-action-da264a50c3092a8419f6",
+          "engine-action-81369ed11812ca246cc7",
+          "engine-action-e3b1b02e8e467e37f318",
+          "engine-action-4d20e937d4cadab14407",
+          "engine-action-c44e5ca299db60373734",
+          "engine-action-5acee7aed9b1f45a793a",
+          "engine-action-aba5da81bf4f263739ef",
+          "engine-action-b1cbf518ec54fa146e98",
+          "engine-action-e8540b6fa9a2cf07e40c",
+          "engine-action-57ef4e8dc71129f12be8",
+          "engine-action-22b00571eef003ee8d74",
+          "engine-action-0ea1bcb65ed094d55044",
+          "engine-action-ce4420b1a9b8adc896e0",
+          "engine-action-34ff7f1b2b96d1d559fa",
+          "engine-action-b97e37495fc586a5d9b1",
+          "engine-action-a092eb2f4803d7848af7",
+          "engine-action-2da53edd10b255a9454e",
+          "engine-action-f8b7075aa28d32111896",
+          "engine-action-027b3180bdc175d61ac1",
+          "engine-action-613438a83cfe25d11506",
+          "engine-action-870dc4b05c32f0c21869",
+          "engine-action-36c7e17e52bf2401d76a",
+          "engine-action-188ccf51f3ed72a6e66d",
+          "engine-action-d5c3aa85379b44519d53",
+          "engine-action-7d773d35205afb67219a",
+          "engine-action-2496fd3516d0467ba84b",
+          "engine-action-147f85ce52a06c0a7f15",
+          "engine-action-f0111fa51d61aba5ef17",
+          "engine-action-da605be0d30e37a95db8",
+          "engine-action-bd74abee7dcebf317aea",
+          "engine-action-c251dd97be93adb10cdd",
+          "engine-action-5ef055c915879129b30e",
+          "engine-action-538ad1b84e9b23136b7b",
+          "engine-action-5a3662d220833b5b35bb",
+          "engine-action-325655149eb7df6fef48",
+          "engine-action-e2d05abf1df023f175f7",
+          "engine-action-7d10a36b8fa16ceeb21e",
+          "engine-action-a5a049a01f5ad9d469df",
+          "engine-action-0bc7766218ebbf79d041",
+          "engine-action-1c8299cccf21531d3637",
+          "engine-action-65cef8809a5f53c14014",
+          "engine-action-a036604f4167d05776ca",
+          "engine-action-15dc965dc3da077dbfc3",
+          "engine-action-d1182fbb585aaede6ccc",
+          "engine-action-579a6d598a36c23ea7a8",
+          "engine-action-0d582bc9404ecb0cb954",
+          "engine-action-821544fab5bf14c9e3c9",
+          "engine-action-d3d67164be7a4ca942a1",
+          "engine-action-2073aec87059169df9d6",
+          "engine-action-dcb855691116a2221f0b",
+          "engine-action-60e1af8550d9c0f2f48d",
+          "engine-action-3338b4c64c98b723ff77",
+          "engine-action-f04ff27c30ed38b8f86e",
+          "engine-action-66892927659f3ba730fa",
+          "engine-action-fa2e939fbb6b1eaf2936",
+          "engine-action-df061b429f5646931dc7",
+          "engine-action-445c0f380fa886fac3f3",
+          "engine-action-74336d40496f42125fb5",
+          "engine-action-f39c214992d1cc472f16",
+          "engine-action-5b0cffbeba4303fc51f4",
+          "engine-action-6230c847262af9cc5746",
+          "engine-action-8868dd6e38db3904079a",
+          "engine-action-1f5a3fe621ac746842bf"
+        ],
+        "sha256": "52dddf5e708d19b1fea5c5c6a487cedac33c1fe6dc898c3fa4be33a5545fab68",
+        "validation_errors": [],
+        "volume_budget_bytes_per_turn": 5242880
+      },
+      "id": "validated-trace:artifacts/freeciv/pf-pln-480-turn-sustainability-confirmation-v12-20260727/games/main/e_full_loop/4543804-00/events.jsonl",
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "schema_version": "1.0"
+}

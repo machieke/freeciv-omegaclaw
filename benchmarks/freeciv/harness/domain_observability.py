@@ -301,6 +301,19 @@ class DomainObservabilityEmitter(object):
                     city.city_id,
                     {"count": 0, "food": 0, "shield": 0, "gold": 0})),
                 "had_famine": city.had_famine,
+                "governor": {
+                    "available": city.governor_available,
+                    "enabled": city.governor_enabled,
+                    "minimal_surplus": list(
+                        city.governor_minimal_surplus),
+                    "factor": list(city.governor_factor),
+                    "require_happy": city.governor_require_happy,
+                    "allow_disorder": city.governor_allow_disorder,
+                    "max_growth": city.governor_max_growth,
+                    "allow_specialists": (
+                        city.governor_allow_specialists),
+                    "happy_factor": city.governor_happy_factor,
+                },
             } for city in snapshot.cities],
         }
 

@@ -239,6 +239,7 @@ export type CityProductionState = {
   "buildable_count": number;
   "city_id": number;
   "food_stock": number | null;
+  "governor"?: CityGovernor;
   "had_famine"?: boolean | null;
   "mood"?: CityMood;
   "name": string;
@@ -248,6 +249,18 @@ export type CityProductionState = {
   "support"?: CitySupport;
   "surplus": YieldVector;
   "target": ProductionTarget;
+};
+
+export type CityGovernor = {
+  "allow_disorder": boolean | null;
+  "allow_specialists": boolean | null;
+  "available": boolean;
+  "enabled": boolean | null;
+  "factor": Array<number>;
+  "happy_factor": number | null;
+  "max_growth": boolean | null;
+  "minimal_surplus": Array<number>;
+  "require_happy": boolean | null;
 };
 
 export type CitizenFeeling = {
