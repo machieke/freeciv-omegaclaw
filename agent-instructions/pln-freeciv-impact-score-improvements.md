@@ -1718,3 +1718,24 @@ That complete replay is predeclared as
 all 40 adapter-1.15 pilot seeds under unchanged adapter 1.17, with the same
 isolated final-settlement switch and fixed turn-60 endpoints. The cohort is
 reused, post-diagnostic, and claim-ineligible.
+
+The adapter-1.17 generalization completed all 40 pairs after one observer-start
+infrastructure retry. The resumed aggregate has zero active failures, retains
+the first failure as historical provenance, and passes source freeze, initial
+state, execution safety, schema validation, and exact decision replay.
+
+Mean own-score delta is `+0.1`, interval `[-0.075, +0.325]`, exact paired
+`p=0.515625`. Lead-rate delta is `+0.025`; the only discordant pair favors
+treatment, but exact McNemar `p=1`. Score margin improves `+0.725`,
+`[+0.125, +1.475]`, primarily because opponent score falls `-0.625`.
+Founding and retained additions each improve `+0.025`.
+
+The hardening achieved its correctness objective. The two exposed `-8` losses
+are gone, the development estimate moved from adapter 1.16's `-0.25` to
+`+0.1`, and paired score deviation fell from approximately `1.944` to
+`0.672`. It did not achieve a material score objective: only one of 40
+treatments completed a final escorted settlement. This selected, reused
+cohort cannot revise the score claim, and its mechanism ceiling is too low to
+justify more rule tuning against these outcomes. Keep adapter 1.17's
+correctness changes and move score development to a broader policy on disjoint
+seeds.

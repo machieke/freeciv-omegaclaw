@@ -666,3 +666,25 @@ The next gate is the predeclared
 the complete 40-seed adapter-1.15 pilot set. It may measure whether the
 adapter-1.17 correction changes the development direction without selecting
 additional traces, but remains reused and claim-ineligible.
+
+That replay completed all 40 pairs. One treatment initially failed while
+waiting for the observer's global state; same-source resume recovered it, and
+the aggregate retains that failed attempt as historical provenance while
+reporting zero active infrastructure failures. All 80 active event logs
+(119,941 events) validate, and exact replay covers all 3,267 decisions in the
+40 treatment logs with zero integrity failures.
+
+Mean score delta is `+0.1`, bootstrap interval `[-0.075, +0.325]`, exact
+paired `p=0.515625`. Lead-rate delta is `+0.025` with one treatment-only win
+and exact McNemar `p=1`. Score margin improves `+0.725`,
+`[+0.125, +1.475]`; opponent score changes `-0.625`,
+`[-1.2, -0.15]`. Founding and retained-city deltas are both `+0.025`.
+
+Adapter 1.17 therefore corrects the prior negative development direction and
+reduces paired score deviation from approximately `1.944` to `0.672`.
+However, only one treatment in 40 completed a final escorted settlement, so
+the mechanism is too rare to create a material aggregate score effect. The
+cohort is reused, post-diagnostic, and claim-ineligible; it supports retaining
+the correctness hardening but does not update the score or win-rate claim.
+Machine-readable evidence is
+[`pf-final-settlement-escort-control-path-hardening-generalization-v1.json`](pf-final-settlement-escort-control-path-hardening-generalization-v1.json).

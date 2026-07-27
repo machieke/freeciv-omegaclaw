@@ -1,0 +1,145 @@
+{
+  "artifacts": {
+    "aggregate": "artifacts/freeciv/pf-final-settlement-escort-control-path-hardening-generalization-v1/impact-aggregate.json",
+    "aggregate_sha256": "fb03fe396976ec4983e0d60d51d09638a1cff1e34a18751042f53fde742950f4",
+    "exact_replay_artifact_hash": "e22f548b823b10a5c938c0ccc4d8bf4c577a2d593aa18ec9e10f2418375b2876",
+    "exact_replay_sha256": "721c65ab76d49b4f54af520a5bb24d4d2802f65c502492f856fe3672a2c6c1bc",
+    "exact_replay_source_set_hash": "2ac79ccc5696f6c50ac98d3e15443b01453f3a3ed9f16ce9978ce1af5a649a48",
+    "run_summary_sha256": "cadefff7bb9f74b50da4e7081142b07152e0bd537f3f6a6821c1218aab6e2b10"
+  },
+  "claim": {
+    "claim_eligible": false,
+    "score_improvement_supported": false,
+    "status": "development_direction_corrected_without_material_score_effect",
+    "win_rate_supported": false
+  },
+  "cohort": {
+    "active_infrastructure_failures": 0,
+    "complete_pairs": 40,
+    "completed_arms": 80,
+    "historical_infrastructure_failures": 1,
+    "name": "final_settlement_escort_control_path_hardening_generalization_v1",
+    "planned_pairs": 40,
+    "reused_post_diagnostic_seeds": true
+  },
+  "decision_replay": {
+    "changed_decisions": 251,
+    "decision_change_rate": 0.07682889501071319,
+    "exact_replay_files": 40,
+    "integrity_failures": 0,
+    "sources_unchanged": true,
+    "total_decisions": 3267
+  },
+  "interpretation": {
+    "adapter_1_16_score_delta": -0.25,
+    "adapter_1_16_score_interval": [
+      -0.925,
+      0.275
+    ],
+    "adapter_1_16_score_paired_sd": 1.944,
+    "adapter_1_17_score_delta": 0.1,
+    "adapter_1_17_score_paired_sd": 0.6717752982077058,
+    "conclusion": "The control-path hardening removed the two exposed eight-point losses and corrected the development direction, but the admitted final-escort mechanism completed only once in 40 treatment games. Its observed delivery rate is too low to support a material score claim.",
+    "next_action": "Retain the correctness hardening, stop tuning this selected escort cohort, and develop the next broader score-bearing policy on disjoint seeds."
+  },
+  "mechanism": {
+    "treatment_mean": {
+      "final_escort_move_successes": 0.475,
+      "final_escort_preparation_production_successes": 0.225,
+      "final_escort_rendezvous_hold_snapshots": 0.45,
+      "final_escort_unprepared_route_bypass_snapshots": 10.625,
+      "final_escort_unthreatened_route_bypass_snapshots": 2.25,
+      "final_escorted_settlement_completions": 0.025,
+      "route_threat_observations": 11.575,
+      "stale_terminal_followups_blocked": 0.0
+    }
+  },
+  "outcomes": {
+    "cities_founded_delta": {
+      "estimate": 0.025,
+      "lower": 0.0,
+      "upper": 0.075
+    },
+    "cities_gained_delta": {
+      "estimate": 0.025,
+      "lower": 0.0,
+      "upper": 0.075
+    },
+    "opponent_score_delta": {
+      "estimate": -0.625,
+      "lower": -1.2,
+      "upper": -0.15
+    },
+    "score_component_citizen_delta": {
+      "estimate": -0.025,
+      "lower": -0.2,
+      "upper": 0.15
+    },
+    "score_component_residual_delta": {
+      "estimate": 0.175,
+      "lower": 0.05,
+      "upper": 0.35
+    },
+    "score_component_technology_delta": {
+      "estimate": -0.05,
+      "lower": -0.15,
+      "upper": 0.0
+    },
+    "score_delta": {
+      "estimate": 0.1,
+      "exact_p": 0.515625,
+      "lower": -0.075,
+      "upper": 0.325
+    },
+    "score_lead_rate_delta": {
+      "baseline_only_win": 0,
+      "both_lose": 34,
+      "both_win": 5,
+      "estimate": 0.025,
+      "lower": 0.0,
+      "mcnemar_exact_p": 1.0,
+      "treatment_only_win": 1,
+      "upper": 0.075
+    },
+    "score_margin_delta": {
+      "estimate": 0.725,
+      "lower": 0.125,
+      "upper": 1.475
+    }
+  },
+  "power": {
+    "achieved_pairs": 40,
+    "detectable_score_delta": 0.29757597965827076,
+    "minimum_meaningful_score_delta": 2.0,
+    "observed_paired_sd": 0.6717752982077058,
+    "ready": true,
+    "target_power": 0.8
+  },
+  "safety": {
+    "engine_rejected_action_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "full_loop_under_30s_rate": {
+      "baseline": 1.0,
+      "treatment": 1.0
+    },
+    "initial_state_fidelity_passed": true,
+    "model_safe_fallback_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "overall_passed": true,
+    "schema_valid_active_events": 119941,
+    "schema_valid_active_files": 80,
+    "schema_valid_historical_events": 819,
+    "schema_valid_historical_files": 1
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "2ce7bdf28d62745a4b88a5123b781acb21b35a49",
+    "configuration_hash": "12dc7b5fb0c747d031614ec1545831b23042ffbf80f17ddc33cc2d911ea7eafe",
+    "implementation_sha256": "fea8d9a0e2f65aa0e0f9f71fb103207e6ba81b5aed19c4883ccdd93c213b9134",
+    "source_freeze_passed": true
+  }
+}
