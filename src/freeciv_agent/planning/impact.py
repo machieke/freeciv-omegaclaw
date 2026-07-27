@@ -220,7 +220,7 @@ def _spatial_target(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.17"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.18"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -371,6 +371,8 @@ class GroundedImpactPlanner(object):
         self.foodbox_percent = int(values.get("foodbox_percent", 100))
         self.unit_build_score_divisor = int(values.get(
             "unit_build_score_divisor", 10))
+        self.military_units_per_city_limit = int(values.get(
+            "military_units_per_city_limit", 3))
         self.refresh_timeout_seconds = float(
             values.get("refresh_timeout_seconds", 2.0))
         self.terminal_refresh_timeout_seconds = float(
@@ -407,6 +409,9 @@ class GroundedImpactPlanner(object):
             raise ValueError("foodbox_percent must be in 1..1000")
         if not 1 <= self.unit_build_score_divisor <= 100:
             raise ValueError("unit_build_score_divisor must be in 1..100")
+        if not 1 <= self.military_units_per_city_limit <= 12:
+            raise ValueError(
+                "military_units_per_city_limit must be in 1..12")
         if not 0.25 <= self.refresh_timeout_seconds <= 10.0:
             raise ValueError("refresh_timeout_seconds must be in [0.25,10]")
         if not 0.25 <= self.terminal_refresh_timeout_seconds <= 10.0:
@@ -550,6 +555,15 @@ class GroundedImpactPlanner(object):
             pop_cost = quantitative.get("pop_cost", 0)
             if isinstance(pop_cost, dict):
                 pop_cost = pop_cost.get("value", 0)
+            upkeep = {}
+            for field_name in ("uk_food", "uk_shield", "uk_gold", "happy_cost"):
+                value = quantitative.get(field_name, 0)
+                if isinstance(value, dict):
+                    value = value.get("value", 0)
+                upkeep[field_name] = (
+                    0 if isinstance(value, bool)
+                    or not isinstance(value, (int, float))
+                    else max(0, int(value)))
             if (getattr(rule, "target_kind", None) not in (
                     "unit", "building", "improvement")
                     or isinstance(cost, bool) or not isinstance(cost, (int, float))
@@ -566,6 +580,7 @@ class GroundedImpactPlanner(object):
                                      or not isinstance(pop_cost, (int, float))
                                      else max(0, int(pop_cost))),
                         "target_kind": getattr(rule, "target_kind", None),
+                        **upkeep,
                     }
                     flags = self._trait_values(rule, "flags")
                     if RULESET_FOUNDER_FLAG in flags:
@@ -928,6 +943,23 @@ class GroundedImpactPlanner(object):
                         and after.unit(actor_id) is None
                         and before_city is not None and after_city is not None
                         and after_city.size == before_city.size + recovered)
+        if action.get("action_type") == "government_change":
+            target = action.get("target")
+            government_id = (
+                target.get("government_id")
+                if isinstance(target, dict) else None)
+            return bool(
+                government_id is not None
+                and (
+                    after.government.current_id == int(government_id)
+                    or after.government.target_id == int(government_id))
+                and (
+                    before.government.selection_required
+                    != after.government.selection_required
+                    or before.government.target_id
+                    != after.government.target_id
+                    or before.government.current_id
+                    != after.government.current_id))
         if action.get("action_type") in OFFENSIVE_ACTIONS:
             return (self.local_actor_effect_observed(candidate, before, after)
                     or self._combat_target_grounding(before, action)
@@ -1976,7 +2008,83 @@ class GroundedImpactPlanner(object):
             return False
         defenders = [row for row in self._combat_units(snapshot, founder_types)
                      if (row.x, row.y) == (city.x, city.y)]
-        return len(defenders) <= 1
+        return len(defenders) <= self._required_garrison_count(city)
+
+    @staticmethod
+    def _city_mood_margin(city):
+        values = (
+            city.feeling_happy, city.feeling_unhappy, city.feeling_angry)
+        if not all(row for row in values):
+            return None
+        return (
+            int(city.feeling_happy[-1])
+            - int(city.feeling_unhappy[-1])
+            - 2 * int(city.feeling_angry[-1]))
+
+    def _required_garrison_count(self, city):
+        """Keep packet-observed martial-law coverage near disorder."""
+        margin = self._city_mood_margin(city)
+        if city.disorder is True or (margin is not None and margin <= 1):
+            return min(
+                self.military_units_per_city_limit,
+                max(1, int(city.size or 1)))
+        return 1
+
+    def _military_capacity(self, snapshot):
+        return max(
+            1, len(snapshot.cities) * self.military_units_per_city_limit)
+
+    def _production_upkeep_safe(self, snapshot, city, normalized):
+        spec = self._production_specs.get(normalized, {})
+        if spec.get("target_kind") != "unit":
+            return True
+        if (int(spec.get("uk_food", 0)) > 0
+                and self._city_output(city, 0) <= 0):
+            return False
+        economy = snapshot.economy
+        if (int(spec.get("uk_gold", 0)) > 0
+                and economy.gold_per_turn is not None
+                and economy.gold_per_turn < 0
+                and (economy.gold is None or economy.gold <= 0)):
+            return False
+        return True
+
+    def _production_requires_support(self, normalized):
+        spec = self._production_specs.get(normalized, {})
+        return any(
+            int(spec.get(field_name, 0)) > 0
+            for field_name in ("uk_food", "uk_shield", "uk_gold"))
+
+    def _move_creates_vulnerable_stack(
+            self, snapshot, unit, x, y, founder_types):
+        """Avoid non-city stacks which the killstack rule can erase at once."""
+        if any((city.x, city.y) == (x, y) for city in snapshot.cities):
+            return False
+        occupants = [
+            row for row in snapshot.units
+            if row.unit_id != unit.unit_id and (row.x, row.y) == (x, y)]
+        if not occupants:
+            return False
+        unit_type = _normalized_type(unit.unit_type)
+        # Settlement routing is already governed by exact foundability,
+        # attrition, threat, and escort checks.  Applying this generic combat
+        # killstack heuristic to founders changed packet-confirmed routes and
+        # could move the final city into a materially less defensible site.
+        if unit_type in founder_types:
+            return False
+        # Preserve the explicitly configured one-founder/one-escort rendezvous;
+        # no other non-city concentration is required by this planner.
+        occupant_types = {
+            _normalized_type(row.unit_type) for row in occupants}
+        founder_escort = bool(
+            self.expansion_escort_retention_enabled
+            and len(occupants) == 1
+            and (
+                unit_type in founder_types
+                and not occupant_types.intersection(founder_types)
+                or unit_type not in founder_types
+                and occupant_types.intersection(founder_types)))
+        return not founder_escort
 
     @staticmethod
     def _known_hut_positions(snapshot):
@@ -2251,7 +2359,8 @@ class GroundedImpactPlanner(object):
         return count
 
     def _unit_score_batch_members(
-            self, snapshot, actions, founder_types, action_keys=None):
+            self, snapshot, actions, founder_types, action_keys=None,
+            combat_unit_count=None):
         """Select a lossless city batch that guarantees incremental unit score.
 
         Freeciv's units-built counter is civilization-wide. A city-local threshold
@@ -2291,6 +2400,7 @@ class GroundedImpactPlanner(object):
         current_score_bearing_nonunit = set()
         best_by_city = {}
         best_action_by_city = {}
+        best_requires_support_by_city = {}
         for city in snapshot.cities:
             current_name = self._current_production_name(city)
             current_projection = self._production_projection(
@@ -2331,10 +2441,20 @@ class GroundedImpactPlanner(object):
                         and (previous is None or action_key < previous[0]))):
                 best_by_city[city.city_id] = completions
                 best_action_by_city[city.city_id] = (action_key, projection)
+                best_requires_support_by_city[city.city_id] = (
+                    self._production_requires_support(
+                        _normalized_type(name)))
 
         current_total = sum(current_by_city.values())
         optimized_total = sum(best_by_city.values())
         incremental = optimized_total - current_total
+        if any(best_requires_support_by_city.values()):
+            if combat_unit_count is None:
+                combat_unit_count = len(
+                    self._combat_units(snapshot, founder_types))
+            safe_capacity = max(
+                0, self._military_capacity(snapshot) - combat_unit_count)
+            incremental = min(incremental, safe_capacity)
         guaranteed = incremental // self.unit_build_score_divisor
         if guaranteed <= 0:
             self._unit_score_batch_cache_key = cache_key
@@ -2670,6 +2790,10 @@ class GroundedImpactPlanner(object):
             shield_stock_override=(
                 repurpose_shield_stock_assumption
                 if urgent_repurpose else None))
+        if (normalized in NORMALIZED_DEFENDER_TYPES
+                and not self._production_upkeep_safe(
+                    snapshot, city, normalized)):
+            return None
         if (final_escort_same_kind_switch
                 and projection.get("completion_eta_turns") != 0):
             final_escort_same_kind_switch = False
@@ -2772,8 +2896,41 @@ class GroundedImpactPlanner(object):
                      "settlement reaches its legal site"
                      if final_escort_preparation_needed else
                      "fill a grounded contested-settlement escort deficit "
-                     "from an empty production stock"),
+                    "from an empty production stock"),
                     projection)
+
+        local_defenders = tuple(
+            unit for unit in combat_units
+            if (unit.x, unit.y) == (city.x, city.y))
+        required_garrison = self._required_garrison_count(city)
+        target_index = next((
+            index for index, target in enumerate(DEFENDER_PRIORITY)
+            if name.lower() == target.lower()), None)
+        completion_eta = projection.get("completion_eta_turns")
+        mood_margin = self._city_mood_margin(city)
+        city_at_disorder_risk = bool(
+            city.disorder is True
+            or (mood_margin is not None and mood_margin <= 1))
+        if (city_at_disorder_risk
+                and len(local_defenders) < required_garrison
+                and target_index is not None
+                and completion_eta is not None
+                and completion_eta <= remaining_turns):
+            return ImpactCandidate(
+                action, "production_defense",
+                (995.0 if city.disorder is True else 850.0)
+                + projection["score_value"] * 10.0
+                - completion_eta - target_index * 0.01,
+                ("restore an at-risk martial-law garrison before further "
+                 "expansion"
+                 if city_at_disorder_risk
+                 else
+                 "cover the city-local defense deficit before further "
+                 "expansion"),
+                dict(
+                    projection,
+                    required_garrison=required_garrison,
+                    current_garrison=len(local_defenders)))
 
         if needs_founder and current_normalized in founder_types:
             return None
@@ -2814,7 +2971,13 @@ class GroundedImpactPlanner(object):
             return None
 
         defenders = combat_units
-        defense_deficit = len(defenders) < max(1, city_count)
+        local_defenders = tuple(
+            unit for unit in defenders
+            if (unit.x, unit.y) == (city.x, city.y))
+        required_garrison = self._required_garrison_count(city)
+        total_required_garrisons = sum(
+            self._required_garrison_count(row) for row in snapshot.cities)
+        defense_deficit = len(defenders) < total_required_garrisons
         if defense_deficit and current_name in DEFENDER_PRIORITY:
             return None
         if defense_deficit:
@@ -2822,10 +2985,20 @@ class GroundedImpactPlanner(object):
                 if name.lower() == target.lower():
                     return ImpactCandidate(
                         action, "production_defense",
-                        850.0 + projection["score_value"] * 10.0
+                        (995.0 if city.disorder is True else 850.0)
+                        + projection["score_value"] * 10.0
                         - projection["completion_eta_turns"] - index * 0.01,
-                        "cover the city-defense deficit with a horizon-completing unit",
-                        projection)
+                        ("restore an at-risk martial-law garrison with a "
+                         "horizon-completing defender"
+                         if city.disorder is True
+                         or self._city_mood_margin(city) in (0, 1)
+                         else
+                         "cover the city-defense deficit with a "
+                         "horizon-completing unit"),
+                        dict(projection, required_garrison=required_garrison,
+                             current_garrison=len(local_defenders),
+                             total_required_garrisons=(
+                                 total_required_garrisons)))
 
         for index, target in enumerate(IMPROVEMENT_PRIORITY):
             if name.lower() == target.lower():
@@ -2849,6 +3022,9 @@ class GroundedImpactPlanner(object):
         for index, target in enumerate(DEFENDER_PRIORITY):
             if name.lower() != target.lower():
                 continue
+            if (self._production_requires_support(normalized)
+                    and len(defenders) >= self._military_capacity(snapshot)):
+                continue
             # Batch projection is relevant only to a score-bearing military
             # target. Deferring it until this branch avoids scanning every
             # city/action trajectory when expansion, timing, or target kind
@@ -2857,7 +3033,8 @@ class GroundedImpactPlanner(object):
                 "unit_score_batch",
                 lambda: self._unit_score_batch_members(
                     snapshot, actions, founder_types,
-                    action_keys=action_keys)).get(
+                    action_keys=action_keys,
+                    combat_unit_count=len(defenders))).get(
                     action_key if action_key is not None else
                     canonical_json_bytes(action).decode("utf-8"))
             if not current_is_redundant_founder and unit_score_batch is None:
@@ -2937,6 +3114,9 @@ class GroundedImpactPlanner(object):
                for row in snapshot.visible_enemy_units):
             return None
         unit_type = _normalized_type(unit.unit_type)
+        if self._move_creates_vulnerable_stack(
+                snapshot, unit, x, y, founder_types):
+            return None
         novelty = 1.0 if (x, y) not in self.visited_positions else 0.0
         city_distance = self._distance_from_cities(snapshot, x, y)
         if unit_type in founder_types:
@@ -3325,7 +3505,29 @@ class GroundedImpactPlanner(object):
                 continue
             action_type = str(action.get("action_type", ""))
             candidate = None
-            if (action_type in OFFENSIVE_ACTIONS
+            if (action_type == "government_change"
+                    and snapshot.government.selection_required):
+                target = action.get("target")
+                name = (
+                    str(target.get("government_name", ""))
+                    if isinstance(target, dict) else "")
+                priority = {
+                    "despotism": 50.0, "monarchy": 40.0,
+                    "communism": 30.0, "republic": 20.0,
+                    "democracy": 10.0,
+                }.get(name.strip().lower(), 0.0)
+                candidate = ImpactCandidate(
+                    action, "government_recovery", 2000.0 + priority,
+                    "select a packet-legal stable government to end "
+                    "research-blocking Anarchy",
+                    {
+                        "current_government": (
+                            snapshot.government.current_name),
+                        "revolution_finishes": (
+                            snapshot.government.revolution_finishes),
+                        "target_government": name,
+                    })
+            elif (action_type in OFFENSIVE_ACTIONS
                     and self._offensive_target_is_visible(snapshot, action)):
                 candidate = ImpactCandidate(
                     action, "tactical_attack", 980.0,

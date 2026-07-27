@@ -154,7 +154,9 @@ def _target_source(section, ruleset, filename):
 
 def _quantitative(section, ruleset, filename):
     result = {}
-    for field_name in ("build_cost", "pop_cost", "upkeep", "cost"):
+    for field_name in (
+            "build_cost", "pop_cost", "upkeep", "cost",
+            "uk_food", "uk_shield", "uk_gold", "happy_cost"):
         field = section.fields.get(field_name)
         if field is not None:
             if not isinstance(field.value, (int, float)):

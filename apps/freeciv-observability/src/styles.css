@@ -508,6 +508,23 @@ button.atom-row { cursor: pointer; }.atom-row:hover { background: #0e2027; }.ato
   font-size: 9px; line-height: 1.5; }
 .research-alert strong { color: var(--red); text-transform: uppercase; font: 600 8px "JetBrains Mono"; }
 .research-alert span { color: #b9a5a4; }
+.government-status, .economy-government { display: grid;
+  grid-template-columns: repeat(3,minmax(120px,.55fr)) minmax(280px,1.35fr);
+  gap: 1px; margin-top: 10px; border: 1px solid #29464f; background: #29464f; }
+.government-status > div, .economy-government > div {
+  display: grid; gap: 3px; padding: 10px 12px; background: #0a181e; }
+.government-status span, .economy-government span { color: var(--muted);
+  text-transform: uppercase; font: 500 7px "JetBrains Mono"; }
+.government-status strong, .economy-government strong { color: var(--cyan);
+  font: 600 13px "JetBrains Mono"; }
+.government-status small, .economy-government small { color: #617b83;
+  font: 500 7px "JetBrains Mono"; }
+.government-status p, .economy-government p { margin: 0; padding: 10px 13px;
+  background: #09161b; color: #91a8af; font-size: 8px; line-height: 1.55; }
+.government-status.action-required, .economy-government.revolution {
+  border-color: rgba(232,174,87,.6); background: rgba(232,174,87,.6); }
+.government-status.action-required strong, .economy-government.revolution strong {
+  color: var(--amber); }
 .tech-series { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin: 12px 0; }
 .tech-series > section { min-width: 0; padding: 11px 13px; border: 1px solid var(--line); background: #081419; }
 .tech-series header { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 4px;
@@ -599,6 +616,18 @@ button.atom-row { cursor: pointer; }.atom-row:hover { background: #0e2027; }.ato
   border: 1px solid #203740; background: #09161b; }
 .city-stocks span { color: var(--muted); text-transform: uppercase; font: 500 6px "JetBrains Mono"; }
 .city-stocks b { color: #d4e3e6; font: 600 8px "JetBrains Mono"; }
+.city-sustainability { display: grid; grid-template-columns: repeat(4,1fr); gap: 5px;
+  margin-bottom: 7px; padding: 7px; border: 1px solid #203740; background: #071217; }
+.city-sustainability > div { display: grid; gap: 3px; padding: 6px 7px;
+  border-left: 2px solid #2d515b; background: #09171c; }
+.city-sustainability span { color: var(--muted); text-transform: uppercase;
+  font: 500 6px "JetBrains Mono"; }
+.city-sustainability b { color: #d6e5e8; font: 600 9px "JetBrains Mono"; }
+.city-sustainability small { color: #6d858d; font: 500 6px "JetBrains Mono";
+  line-height: 1.4; }
+.city-sustainability.at-risk { border-color: rgba(239,106,103,.5); }
+.city-sustainability.at-risk > div:first-child { border-left-color: var(--red); }
+.city-sustainability.at-risk > div:first-child b { color: var(--red); }
 .yield-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 5px; }
 .yield-grid > div { display: grid; gap: 2px; padding: 6px; border: 1px solid #1b3038; background: #081318; }
 .yield-grid span { color: var(--muted); text-transform: uppercase; font: 500 6px "JetBrains Mono"; }
@@ -675,6 +704,8 @@ button.atom-row { cursor: pointer; }.atom-row:hover { background: #0e2027; }.ato
   .research-hero dl { grid-column: 1 / -1; grid-template-columns: repeat(4,1fr); }
   .yield-series { grid-template-columns: repeat(3,1fr); }
   .production-layout { grid-template-columns: 1fr; }
+  .government-status, .economy-government { grid-template-columns: repeat(3,1fr); }
+  .government-status p, .economy-government p { grid-column: 1/-1; }
 }
 
 .write-through { display: grid; grid-template-columns: 1fr auto; gap: 4px 20px; padding: 20px; border: 1px solid var(--line-strong); }.write-through > span { text-transform: uppercase; font: 600 9px "JetBrains Mono"; }.write-through strong { grid-row: span 2; font-size: 38px; }.write-through small { color: var(--muted); }.write-through.clear strong { color: var(--green); }.write-through.alarm { border-color: var(--red); background: rgba(239,106,103,.12); }.write-through.alarm strong { color: var(--red); }

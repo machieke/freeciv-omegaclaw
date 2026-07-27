@@ -37,14 +37,17 @@ export FREECIV_RULESET_ROOT="$FREECIV_LLM_ROOT/freeciv/freeciv/data"
 
 The patch series is tracked at
 `scripts/freeciv/upstream/0001-pln-authoritative-state.patch` and
-`scripts/freeciv/upstream/0002-pln-spatial-projection.patch`. The application
-script verifies both digests, is idempotent, rejects a different upstream
+`scripts/freeciv/upstream/0002-pln-spatial-projection.patch`,
+`scripts/freeciv/upstream/0003-pln-unit-lifecycle.patch`, and
+`scripts/freeciv/upstream/0004-pln-government-and-sustainability.patch`. The
+application script verifies every digest, is idempotent, rejects a different upstream
 commit, and supports normal checkouts and Git worktrees. It adds the
 `pln_authoritative` DTO, monotonic packet sequence, bounded and conditional
 source-stability waiting, settled turn-boundary projections, atomic
 packet/projection construction, exact packet-known tiles and visibility,
 release-game configuration, canonical executable actions, ruleset readiness,
-and proxy contract tests.
+government selection after revolutions, city sustainability and unit support
+state, causal unit-removal attribution, and proxy contract tests.
 
 Verify the patch in the FreeCiv image (the cache secret is test-only and is not persisted):
 

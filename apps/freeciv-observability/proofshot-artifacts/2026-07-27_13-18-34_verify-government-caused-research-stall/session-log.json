@@ -1,0 +1,162 @@
+[
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-27T13:19:18.185Z"
+  },
+  {
+    "action": "upload input[type=file] /tmp/pytest-of-purplezky/pytest-354/test_government_city_support_a0/events.jsonl",
+    "relativeTimeSec": 19.3,
+    "timestamp": "2026-07-27T13:19:32.529Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 19.7,
+    "timestamp": "2026-07-27T13:19:32.877Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 20.5,
+    "timestamp": "2026-07-27T13:19:33.744Z"
+  },
+  {
+    "action": "click @e17",
+    "relativeTimeSec": 27.4,
+    "timestamp": "2026-07-27T13:19:40.643Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 27.8,
+    "timestamp": "2026-07-27T13:19:40.989Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 28.4,
+    "timestamp": "2026-07-27T13:19:41.610Z"
+  },
+  {
+    "action": "screenshot technology-government-stall.png",
+    "relativeTimeSec": 28.8,
+    "timestamp": "2026-07-27T13:19:42.021Z"
+  },
+  {
+    "action": "find text 09 Technology click",
+    "relativeTimeSec": 34.7,
+    "timestamp": "2026-07-27T13:19:47.915Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('nav button')].map((el,i)=>[i,el.textContent])",
+    "relativeTimeSec": 40.7,
+    "timestamp": "2026-07-27T13:19:53.929Z"
+  },
+  {
+    "action": "eval document.querySelectorAll('nav button')[11].click(); 'clicked'",
+    "relativeTimeSec": 49.7,
+    "timestamp": "2026-07-27T13:20:02.895Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 50.1,
+    "timestamp": "2026-07-27T13:20:03.311Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 50.8,
+    "timestamp": "2026-07-27T13:20:03.981Z"
+  },
+  {
+    "action": "screenshot technology-government-stall.png",
+    "relativeTimeSec": 51.2,
+    "timestamp": "2026-07-27T13:20:04.360Z"
+  },
+  {
+    "action": "eval document.querySelectorAll('nav button')[12].click(); 'clicked'",
+    "relativeTimeSec": 62.8,
+    "timestamp": "2026-07-27T13:20:16.021Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 63.2,
+    "timestamp": "2026-07-27T13:20:16.419Z"
+  },
+  {
+    "action": "screenshot economy-sustainability.png",
+    "relativeTimeSec": 63.9,
+    "timestamp": "2026-07-27T13:20:17.084Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 64.3,
+    "timestamp": "2026-07-27T13:20:17.476Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('*')].filter(e=>e.scrollHeight>e.clientHeight+20).map(e=>[e.className,e.clientHeight,e.scrollHeight]).slice(0,10)",
+    "relativeTimeSec": 75.4,
+    "timestamp": "2026-07-27T13:20:28.595Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('*')].filter(e=>e.scrollHeight>e.clientHeight+20).map(e=>[e.tagName,e.id,e.className,e.clientHeight,e.scrollHeight])",
+    "relativeTimeSec": 81.9,
+    "timestamp": "2026-07-27T13:20:35.124Z"
+  },
+  {
+    "action": "eval document.querySelector('main').scrollTop=560; document.querySelector('main').scrollTop",
+    "relativeTimeSec": 87.5,
+    "timestamp": "2026-07-27T13:20:40.734Z"
+  },
+  {
+    "action": "wait 200",
+    "relativeTimeSec": 88,
+    "timestamp": "2026-07-27T13:20:41.166Z"
+  },
+  {
+    "action": "screenshot economy-city-sustainability.png",
+    "relativeTimeSec": 88.5,
+    "timestamp": "2026-07-27T13:20:41.738Z"
+  },
+  {
+    "action": "eval document.querySelector('main').scrollTop=390; document.querySelector('main').scrollTop",
+    "relativeTimeSec": 100.9,
+    "timestamp": "2026-07-27T13:20:54.156Z"
+  },
+  {
+    "action": "wait 150",
+    "relativeTimeSec": 101.3,
+    "timestamp": "2026-07-27T13:20:54.496Z"
+  },
+  {
+    "action": "screenshot economy-city-sustainability.png",
+    "relativeTimeSec": 101.8,
+    "timestamp": "2026-07-27T13:20:54.972Z"
+  },
+  {
+    "action": "eval document.querySelectorAll('nav button')[13].click(); document.querySelector('main').scrollTop=0; 'clicked'",
+    "relativeTimeSec": 116,
+    "timestamp": "2026-07-27T13:21:09.244Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 116.4,
+    "timestamp": "2026-07-27T13:21:09.644Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 117.1,
+    "timestamp": "2026-07-27T13:21:10.286Z"
+  },
+  {
+    "action": "screenshot lifecycle-removal-attribution.png",
+    "relativeTimeSec": 117.5,
+    "timestamp": "2026-07-27T13:21:10.681Z"
+  },
+  {
+    "action": "console",
+    "relativeTimeSec": 117.9,
+    "timestamp": "2026-07-27T13:21:11.078Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 118.2,
+    "timestamp": "2026-07-27T13:21:11.409Z"
+  }
+]

@@ -6,10 +6,12 @@ upstream_root="${1:-${FREECIV_LLM_ROOT:-}}"
 authoritative_patch="$repo_root/scripts/freeciv/upstream/0001-pln-authoritative-state.patch"
 spatial_patch="$repo_root/scripts/freeciv/upstream/0002-pln-spatial-projection.patch"
 lifecycle_patch="$repo_root/scripts/freeciv/upstream/0003-pln-unit-lifecycle.patch"
+sustainability_patch="$repo_root/scripts/freeciv/upstream/0004-pln-government-and-sustainability.patch"
 pinned_commit="26ba7124249f34fd3050ef29bf191bd4d8808018"
 pinned_authoritative_sha256="48e416000bf36c3c7ce13c8c59bb51bc682a1f17ee8568e432a82f673a10df55"
 pinned_spatial_sha256="a4eb88c827c7a2ea68db602aa2463c2aa53bb0c6156a71e1a5a5e7fc09908856"
 pinned_lifecycle_sha256="1df99426c617e72beb0ca2bcbc879793cffce03e79a28a91e6e1955346228c31"
+pinned_sustainability_sha256="d7fa7b77ff7040af0da25ea8ed86156d754b5b6007eee5d98a95b87fe9b3cafa"
 
 if [[ -z "$upstream_root" ]]; then
   echo "usage: $0 /path/to/freeciv-llm (or set FREECIV_LLM_ROOT)" >&2
@@ -22,7 +24,8 @@ fi
 for patch_spec in \
   "$authoritative_patch:$pinned_authoritative_sha256" \
   "$spatial_patch:$pinned_spatial_sha256" \
-  "$lifecycle_patch:$pinned_lifecycle_sha256"; do
+  "$lifecycle_patch:$pinned_lifecycle_sha256" \
+  "$sustainability_patch:$pinned_sustainability_sha256"; do
   patch_file="${patch_spec%:*}"
   pinned_patch_sha256="${patch_spec##*:}"
   actual_patch_sha256="$(sha256sum "$patch_file" | cut -d' ' -f1)"
@@ -34,8 +37,8 @@ done
 
 # Each later patch depends on its predecessors. If the final reverse check
 # succeeds, the complete patch series is already present.
-if git -C "$upstream_root" apply --reverse --check "$lifecycle_patch" >/dev/null 2>&1; then
-  echo "PLN authoritative-state, spatial-projection, and unit-lifecycle patches are already applied"
+if git -C "$upstream_root" apply --reverse --check "$sustainability_patch" >/dev/null 2>&1; then
+  echo "PLN authoritative-state, spatial, lifecycle, and sustainability patches are already applied"
   exit 0
 fi
 actual_commit="$(git -C "$upstream_root" rev-parse HEAD)"
@@ -43,7 +46,11 @@ if [[ "$actual_commit" != "$pinned_commit" ]]; then
   echo "freeciv-llm commit mismatch: expected $pinned_commit, got $actual_commit" >&2
   exit 1
 fi
-for patch_file in "$authoritative_patch" "$spatial_patch" "$lifecycle_patch"; do
+for patch_file in \
+  "$authoritative_patch" \
+  "$spatial_patch" \
+  "$lifecycle_patch" \
+  "$sustainability_patch"; do
   if git -C "$upstream_root" apply --reverse --check "$patch_file" >/dev/null 2>&1; then
     echo "$(basename "$patch_file") is already applied"
     continue

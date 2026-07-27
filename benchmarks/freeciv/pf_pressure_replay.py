@@ -966,8 +966,21 @@ def replay_snapshot_file(path, display_path=None, policy=None):
     source_hash = _file_sha256(path)
     with open(path, encoding="utf-8") as stream:
         raw = json.load(stream)
+    # Captures made before the game starts can predate authoritative map
+    # projection entirely.  They are useful as explicit no-decision controls,
+    # but must not weaken the live ProxyStateDTO contract for playable turns.
+    # Normalize only the byte-real, empty turn-zero shape in the replay copy.
+    replay_raw = raw
+    if (
+            raw.get("turn") == 0
+            and raw.get("map") == {}
+            and not raw.get("cities")
+            and not raw.get("units")):
+        replay_raw = dict(raw)
+        replay_raw["map"] = {
+            "height": 1, "tiles": [], "visibility": [], "width": 1}
     snapshot = ProxyStateDTO.parse(
-        "pf-snapshot-replay", 1, raw).to_snapshot()
+        "pf-snapshot-replay", 1, replay_raw).to_snapshot()
     snapshot_before = snapshot.event_payload()
     policy = dict(policy or {})
     forbidden = set(policy) & {

@@ -11,6 +11,11 @@ import { foldEvents } from "../store";
 import { event } from "./helpers";
 
 const hash = "a".repeat(64);
+const government = {
+  available: true, current_id: 0, current_name: "Anarchy",
+  target_id: 0, target_name: "Anarchy", revolution_finishes: 20,
+  in_revolution: true, selection_required: true, diagnostic: null,
+};
 const catalog = event(1, "technology_catalog", {
   catalog_id: "civ2civ3:test", ruleset: "civ2civ3", ir_hash: hash,
   technologies: [
@@ -31,13 +36,14 @@ const progress = event(2, "technology_progress", {
     name: "The Corporation", missing_prerequisites: ["Industrialization"],
   }],
   acquired_techs: [], status: "stalled", stalled_turns: 6,
+  stall_reason: "government_anarchy", government,
   target: {
     id: 36, name: "Industrialization", progress: 1115, cost: 1140,
     remaining: 25, beakers_per_turn: 0, eta_turns: null,
   },
 }, 20, 1);
 const production = event(3, "production_state", {
-  snapshot_id: "snapshot-20",
+  snapshot_id: "snapshot-20", government,
   economy: {
     available: true, gold: 50, gold_per_turn: 1,
     tax_rate: 40, science_rate: 60, luxury_rate: 0,
@@ -47,7 +53,13 @@ const production = event(3, "production_state", {
     outputs: { food: 5, shield: 4, trade: 2, gold: 1, luxury: 0, science: 1 },
     surplus: { food: 3, shield: 4, trade: 2, gold: 1, luxury: 0, science: 1 },
     target: { kind: 6, value: 10, name: "Riflemen" },
-    buildable_count: 32,
+    buildable_count: 32, had_famine: true,
+    mood: {
+      final: { happy: 0, content: 1, unhappy: 2, angry: 0 },
+      stages: { happy: [0], content: [1], unhappy: [2], angry: [0] },
+      disorder: true, margin: -2, was_happy: false,
+    },
+    support: { count: 3, food: 1, shield: 2, gold: 0 },
   }],
 }, 20, 2);
 const lifecycle = event(4, "unit_lifecycle", {
@@ -57,9 +69,16 @@ const lifecycle = event(4, "unit_lifecycle", {
   to_snapshot_id: "snapshot-20", evidence_event_ids: ["state-19", "state-20"],
   detail: "The unit vanished between snapshots; this trace contains no causal removal packet.",
 }, 20, 3);
+const upkeepLoss = event(5, "unit_lifecycle", {
+  lifecycle_id: "life-8", transition: "disappeared", unit_id: 8,
+  unit_type: "Settlers", cause: "upkeep_food",
+  evidence_quality: "exact", from_snapshot_id: "snapshot-19",
+  to_snapshot_id: "snapshot-20", evidence_event_ids: ["state-20"],
+  detail: "Freeciv server notification: Famine feared in Roma, Settlers lost!",
+}, 20, 4);
 const state = foldEvents(
-  [catalog, progress, production, lifecycle],
-  { turn: 20, seq: 3 },
+  [catalog, progress, production, lifecycle, upkeepLoss],
+  { turn: 20, seq: 4 },
 );
 
 describe("typed domain observability", () => {
@@ -69,6 +88,9 @@ describe("typed domain observability", () => {
       .toBeInTheDocument();
     expect(screen.getByText("6 turns")).toBeInTheDocument();
     expect(screen.getByText(/latest emitted rate is 0 per turn/i)).toBeInTheDocument();
+    expect(screen.getByText(/Freeciv is waiting for a government selection/i))
+      .toBeInTheDocument();
+    expect(screen.getByText(/PF-PLN now prioritizes/i)).toBeInTheDocument();
     expect(screen.getByText(/A technology with unmet prerequisites appears as/i))
       .toBeInTheDocument();
     expect(screen.getByRole("img", { name: /Prerequisite graph for Industrialization/i }))
@@ -80,6 +102,9 @@ describe("typed domain observability", () => {
     expect(screen.getByText("Riflemen")).toBeInTheDocument();
     expect(screen.getByText("shield stock")).toBeInTheDocument();
     expect(screen.getByText("19")).toBeInTheDocument();
+    expect(screen.getByText("disorder")).toBeInTheDocument();
+    expect(screen.getByText(/1 food · 2 shields · 0 gold/i)).toBeInTheDocument();
+    expect(screen.getByText(/server reported famine this turn/i)).toBeInTheDocument();
     expect(screen.getByText(/No buildable PLN query was logged/i)).toBeInTheDocument();
   });
 
@@ -87,12 +112,14 @@ describe("typed domain observability", () => {
     render(<UnitLifecycleDashboard state={state} onSelect={() => undefined} />);
     expect(screen.getAllByText("unattributed").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Unknown Turn Boundary").length).toBeGreaterThan(0);
-    expect(screen.getByText(/Opponent combat, disbanding, transfer/i)).toBeInTheDocument();
+    expect(screen.getAllByText("exact").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Upkeep Food").length).toBeGreaterThan(0);
+    expect(screen.getByText(/insufficient-gold disbands/i)).toBeInTheDocument();
   });
 
   it("keeps future domain events out of an earlier cursor", () => {
     const earlier = foldEvents(
-      [catalog, progress, production, lifecycle],
+      [catalog, progress, production, lifecycle, upkeepLoss],
       { turn: 1, seq: 1 },
     );
     expect(earlier.technologyCatalogs).toHaveLength(1);

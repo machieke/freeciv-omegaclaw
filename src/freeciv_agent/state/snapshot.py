@@ -73,6 +73,32 @@ class EconomicState:
 
 
 @dataclass(frozen=True)
+class GovernmentState:
+    current_id: Optional[int] = None
+    current_name: Optional[str] = None
+    target_id: Optional[int] = None
+    target_name: Optional[str] = None
+    revolution_finishes: Optional[int] = None
+    in_revolution: bool = False
+    selection_required: bool = False
+    available: bool = False
+    diagnostic: Optional[str] = None
+
+    def to_dict(self):
+        return {
+            "available": self.available,
+            "current_id": self.current_id,
+            "current_name": self.current_name,
+            "diagnostic": self.diagnostic,
+            "in_revolution": self.in_revolution,
+            "revolution_finishes": self.revolution_finishes,
+            "selection_required": self.selection_required,
+            "target_id": self.target_id,
+            "target_name": self.target_name,
+        }
+
+
+@dataclass(frozen=True)
 class UnitState:
     unit_id: int
     owner: int
@@ -85,10 +111,12 @@ class UnitState:
     hp: Optional[int]
     activity: Optional[str]
     upkeep: Tuple[int, ...] = field(default_factory=tuple)
+    homecity: Optional[int] = None
 
     def to_dict(self):
         return {
             "activity": self.activity, "hp": self.hp, "moves_left": self.moves_left,
+            "homecity": self.homecity,
             "owner": self.owner, "tile": self.tile, "type": self.unit_type,
             "type_id": self.type_id, "unit_id": self.unit_id,
             "upkeep": list(self.upkeep), "x": self.x, "y": self.y,
@@ -113,6 +141,15 @@ class CityState:
     buildability_available: bool
     buildable: Tuple[Tuple[str, int, str], ...]
     buildability_diagnostic: Optional[str] = None
+    feeling_happy: Tuple[int, ...] = field(default_factory=tuple)
+    feeling_content: Tuple[int, ...] = field(default_factory=tuple)
+    feeling_unhappy: Tuple[int, ...] = field(default_factory=tuple)
+    feeling_angry: Tuple[int, ...] = field(default_factory=tuple)
+    disorder: Optional[bool] = None
+    was_happy: Optional[bool] = None
+    had_famine: Optional[bool] = None
+    unhappy_penalty: Tuple[int, ...] = field(default_factory=tuple)
+    usage: Tuple[int, ...] = field(default_factory=tuple)
 
     def to_dict(self):
         return {
@@ -124,6 +161,15 @@ class CityState:
             "production_kind": self.production_kind,
             "production_value": self.production_value, "shield_stock": self.shield_stock,
             "size": self.size, "surplus": list(self.surplus), "tile": self.tile,
+            "citizen_mood": {
+                "angry": list(self.feeling_angry),
+                "content": list(self.feeling_content),
+                "happy": list(self.feeling_happy),
+                "unhappy": list(self.feeling_unhappy),
+            },
+            "disorder": self.disorder, "had_famine": self.had_famine,
+            "unhappy_penalty": list(self.unhappy_penalty),
+            "usage": list(self.usage), "was_happy": self.was_happy,
             "x": self.x, "y": self.y,
         }
 
@@ -149,6 +195,7 @@ class AuthoritativeSnapshot:
     legal_action_json: Tuple[str, ...]
     legal_actions_digest: str
     legal_action_kinds: Tuple[str, ...]
+    government: GovernmentState = field(default_factory=GovernmentState)
 
     @property
     def snapshot_id(self):
@@ -175,6 +222,7 @@ class AuthoritativeSnapshot:
         return {
             "cities": [city.to_dict() for city in self.cities],
             "economy": self.economy.to_dict(),
+            "government": self.government.to_dict(),
             "legal_actions_digest": self.legal_actions_digest,
             "player_alive": self.player_alive,
             "research": self.research.to_dict(),

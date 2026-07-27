@@ -87,6 +87,36 @@ def _raw_lifecycle(raw):
     return tuple(row for row in rows if isinstance(row, dict))
 
 
+def _final_feeling(values):
+    values = tuple(values or ())
+    return int(values[-1]) if values else None
+
+
+def _city_mood(city):
+    final = {
+        "happy": _final_feeling(city.feeling_happy),
+        "content": _final_feeling(city.feeling_content),
+        "unhappy": _final_feeling(city.feeling_unhappy),
+        "angry": _final_feeling(city.feeling_angry),
+    }
+    margin = None
+    if all(value is not None for value in final.values()):
+        margin = (
+            final["happy"] - final["unhappy"] - 2 * final["angry"])
+    return {
+        "final": final,
+        "stages": {
+            "happy": list(city.feeling_happy),
+            "content": list(city.feeling_content),
+            "unhappy": list(city.feeling_unhappy),
+            "angry": list(city.feeling_angry),
+        },
+        "disorder": city.disorder,
+        "margin": margin,
+        "was_happy": city.was_happy,
+    }
+
+
 class DomainObservabilityEmitter(object):
     """Emit replayable domain events without changing agent decisions."""
 
@@ -192,13 +222,34 @@ class DomainObservabilityEmitter(object):
             "target": target,
             "status": status,
             "stalled_turns": self._stalled_turns,
+            "stall_reason": (
+                "government_anarchy"
+                if status == "stalled" and snapshot.government.in_revolution
+                else "city_disorder"
+                if status == "stalled"
+                and any(city.disorder is True for city in snapshot.cities)
+                else "zero_science_output"
+                if status == "stalled" else None),
+            "government": snapshot.government.to_dict(),
         }
 
     @staticmethod
     def _production_payload(snapshot):
         economy = snapshot.economy
+        support = {}
+        for unit in snapshot.units:
+            if unit.homecity is None or unit.homecity <= 0:
+                continue
+            row = support.setdefault(
+                unit.homecity, {"count": 0, "food": 0, "shield": 0, "gold": 0})
+            row["count"] += 1
+            upkeep = tuple(unit.upkeep or ())
+            row["food"] += int(upkeep[0]) if len(upkeep) > 0 else 0
+            row["shield"] += int(upkeep[1]) if len(upkeep) > 1 else 0
+            row["gold"] += int(upkeep[3]) if len(upkeep) > 3 else 0
         return {
             "snapshot_id": snapshot.snapshot_id,
+            "government": snapshot.government.to_dict(),
             "economy": {
                 "available": economy.available,
                 "diagnostic": economy.diagnostic,
@@ -218,6 +269,11 @@ class DomainObservabilityEmitter(object):
                 "surplus": _yield_vector(city.surplus),
                 "target": _target(city),
                 "buildable_count": len(city.buildable),
+                "mood": _city_mood(city),
+                "support": dict(support.get(
+                    city.city_id,
+                    {"count": 0, "food": 0, "shield": 0, "gold": 0})),
+                "had_famine": city.had_famine,
             } for city in snapshot.cities],
         }
 
@@ -234,12 +290,19 @@ class DomainObservabilityEmitter(object):
         cause = str(row.get("cause", "engine_removed"))
         allowed = {
             "combat_attacker_lost", "combat_defender_lost", "engine_removed",
-            "city_founded",
+            "city_founded", "upkeep_gold", "upkeep_food",
+            "combat_stack_collateral", "transport_lost",
         }
         if cause not in allowed:
             cause = "engine_removed"
         default_quality = (
-            "exact" if cause in {"combat_attacker_lost", "combat_defender_lost", "city_founded"}
+            "exact" if cause in {
+                "combat_attacker_lost", "combat_defender_lost",
+                "city_founded", "upkeep_gold", "upkeep_food",
+            }
+            else "inferred" if cause in {
+                "combat_stack_collateral", "transport_lost",
+            }
             else "unattributed")
         quality = str(row.get("evidence_quality", default_quality))
         if quality not in {"exact", "inferred", "unattributed"}:

@@ -198,12 +198,26 @@ export type TechnologyProgress = {
   "available": boolean;
   "blocked_technologies": Array<TechnologyBlocker>;
   "diagnostic"?: string | null;
+  "government"?: GovernmentState;
   "known_techs": Array<string>;
   "researchable_techs": Array<string>;
   "snapshot_id": string;
+  "stall_reason"?: "government_anarchy" | "city_disorder" | "zero_science_output" | null;
   "stalled_turns": number;
   "status": "unavailable" | "idle" | "researching" | "stalled" | "complete";
   "target": ResearchTarget | null;
+};
+
+export type GovernmentState = {
+  "available": boolean;
+  "current_id": number | null;
+  "current_name": string | null;
+  "diagnostic": string | null;
+  "in_revolution": boolean;
+  "revolution_finishes": number | null;
+  "selection_required": boolean;
+  "target_id": number | null;
+  "target_name": string | null;
 };
 
 export type YieldVector = {
@@ -225,12 +239,42 @@ export type CityProductionState = {
   "buildable_count": number;
   "city_id": number;
   "food_stock": number | null;
+  "had_famine"?: boolean | null;
+  "mood"?: CityMood;
   "name": string;
   "outputs": YieldVector;
   "shield_stock": number | null;
   "size": number;
+  "support"?: CitySupport;
   "surplus": YieldVector;
   "target": ProductionTarget;
+};
+
+export type CitizenFeeling = {
+  "angry": number | null;
+  "content": number | null;
+  "happy": number | null;
+  "unhappy": number | null;
+};
+
+export type CityMood = {
+  "disorder": boolean | null;
+  "final": CitizenFeeling;
+  "margin": number | null;
+  "stages": {
+    "angry": Array<number>;
+    "content": Array<number>;
+    "happy": Array<number>;
+    "unhappy": Array<number>;
+  };
+  "was_happy": boolean | null;
+};
+
+export type CitySupport = {
+  "count": number;
+  "food": number;
+  "gold": number;
+  "shield": number;
 };
 
 export type ProductionEconomy = {
@@ -246,11 +290,12 @@ export type ProductionEconomy = {
 export type ProductionState = {
   "cities": Array<CityProductionState>;
   "economy": ProductionEconomy;
+  "government"?: GovernmentState;
   "snapshot_id": string;
 };
 
 export type UnitLifecycle = {
-  "cause": "initial_state" | "observed_appearance" | "production_completed" | "city_founded" | "combat_attacker_lost" | "combat_defender_lost" | "engine_removed" | "unknown_turn_boundary";
+  "cause": "initial_state" | "observed_appearance" | "production_completed" | "city_founded" | "combat_attacker_lost" | "combat_defender_lost" | "combat_stack_collateral" | "transport_lost" | "upkeep_gold" | "upkeep_food" | "engine_removed" | "unknown_turn_boundary";
   "detail"?: string | null;
   "evidence_event_ids": Array<string>;
   "evidence_quality": "exact" | "inferred" | "unattributed";

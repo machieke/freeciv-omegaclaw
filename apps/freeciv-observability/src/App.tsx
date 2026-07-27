@@ -1734,6 +1734,17 @@ export function TechnologyDashboard({ state, onSelect }: {
     result.proof.nodes.some((node) =>
       node.atom.predicate === "researchable"
       && node.atom.args.some((argument) => String(argument) === selectedTech)));
+  const government = progress.government;
+  const stallExplanation = progress.stall_reason === "government_anarchy"
+    ? `${government?.current_name ?? "Anarchy"} is suppressing science output. ${
+      government?.selection_required
+        ? "The revolution has finished and Freeciv is waiting for a government selection."
+        : "The revolution is still in progress."}`
+    : progress.stall_reason === "city_disorder"
+      ? "At least one city is in disorder, so its productive output is disrupted."
+      : progress.stall_reason === "zero_science_output"
+        ? "The emitted city economy currently produces zero net science."
+        : null;
   return <div className="view-content technology-view">
     <div className="view-heading">
       <div><span className="eyebrow">ruleset-pinned research telemetry</span>
@@ -1762,7 +1773,22 @@ export function TechnologyDashboard({ state, onSelect }: {
       <strong>Research is stalled.</strong>
       <span>{target?.name} still needs {target?.remaining ?? "unknown"} beakers, but the
         latest emitted rate is {target?.beakers_per_turn ?? "unknown"} per turn. Running longer
-        under the same economy will not finish it.</span>
+        under the same economy will not finish it.{stallExplanation && ` ${stallExplanation}`}</span>
+    </section>}
+    {government && <section className={`government-status ${
+      government.selection_required ? "action-required" : ""}`}>
+      <div><span className="eyebrow">government</span>
+        <strong>{government.current_name ?? "unknown"}</strong>
+        <small>{government.in_revolution ? "revolution state" : "stable government"}</small></div>
+      <div><span>target</span><strong>{government.target_name ?? "none selected"}</strong>
+        <small>{government.selection_required
+          ? "selection required now" : "no intervention required"}</small></div>
+      <div><span>revolution finishes</span>
+        <strong>{government.revolution_finishes ?? "—"}</strong>
+        <small>authoritative turn marker</small></div>
+      <p>{government.selection_required
+        ? "PF-PLN now prioritizes a packet-legal government_change action above ordinary planning so research can resume."
+        : "Research state and government state are shown together because revolution policy can set effective science output to zero."}</p>
     </section>}
     <div className="tech-series">
       <section><header><span>target progress</span><strong>{progressSeries.at(-1) ?? "—"}</strong></header>
@@ -1861,6 +1887,12 @@ export function EconomyProductionDashboard({ state, onSelect }: {
     counts.set(payload.unit_type, (counts.get(payload.unit_type) ?? 0) + 1);
     return counts;
   }, new Map<string, number>());
+  const totalSupport = production.cities.reduce((totals, city) => ({
+    count: totals.count + (city.support?.count ?? 0),
+    food: totals.food + (city.support?.food ?? 0),
+    shield: totals.shield + (city.support?.shield ?? 0),
+    gold: totals.gold + (city.support?.gold ?? 0),
+  }), { count: 0, food: 0, shield: 0, gold: 0 });
   return <div className="view-content economy-view">
     <div className="view-heading">
       <div><span className="eyebrow">authoritative stocks, rates, queues, projections</span>
@@ -1875,6 +1907,20 @@ export function EconomyProductionDashboard({ state, onSelect }: {
       <div><span>tax</span><strong>{production.economy.tax_rate ?? "—"}%</strong><small>allocation</small></div>
       <div><span>luxury</span><strong>{production.economy.luxury_rate ?? "—"}%</strong><small>allocation</small></div>
     </section>
+    {production.government && <section className={`economy-government ${
+      production.government.in_revolution ? "revolution" : ""}`}>
+      <div><span>government</span><strong>{production.government.current_name ?? "unknown"}</strong>
+        <small>{production.government.selection_required
+          ? "government selection required" : "authoritative player state"}</small></div>
+      <div><span>supported units</span><strong>{totalSupport.count}</strong>
+        <small>home-city ownership tracked</small></div>
+      <div><span>support burden</span>
+        <strong>{totalSupport.food}F · {totalSupport.shield}S · {totalSupport.gold}G</strong>
+        <small>packet upkeep vectors</small></div>
+      <p>{production.government.in_revolution
+        ? "Revolution is active. Compare effective yields here with the configured tax rates; the planner will exit completed Anarchy before ordinary production."
+        : "Production, resource output, citizen mood, and unit support are emitted from the same authoritative snapshot."}</p>
+    </section>}
     <section className="yield-series">
       {yieldKeys.map((key, index) => {
         const values = totalSeries(key);
@@ -1900,6 +1946,22 @@ export function EconomyProductionDashboard({ state, onSelect }: {
               <div><span>shield stock</span><b>{city.shield_stock ?? "—"}</b></div>
               <div><span>buildable</span><b>{city.buildable_count}</b></div>
             </div>
+            {(city.mood || city.support) && <div className={`city-sustainability ${
+              city.mood?.disorder ? "at-risk" : ""}`}>
+              <div><span>citizen mood</span>
+                <b>{city.mood?.disorder ? "disorder" : city.mood ? "order" : "—"}</b>
+                <small>{city.mood?.final.happy ?? "—"} happy ·
+                  {" "}{city.mood?.final.unhappy ?? "—"} unhappy ·
+                  {" "}{city.mood?.final.angry ?? "—"} angry</small></div>
+              <div><span>mood margin</span><b>{city.mood?.margin ?? "—"}</b>
+                <small>happy − unhappy − 2×angry</small></div>
+              <div><span>unit support</span><b>{city.support?.count ?? 0}</b>
+                <small>{city.support?.food ?? 0} food · {city.support?.shield ?? 0} shields ·
+                  {" "}{city.support?.gold ?? 0} gold</small></div>
+              <div><span>famine flag</span><b>{city.had_famine ? "yes" : "no"}</b>
+                <small>{city.had_famine
+                  ? "server reported famine this turn" : "no famine reported"}</small></div>
+            </div>}
             <div className="yield-grid">
               {yieldKeys.map((key) => <div key={key}><span>{key}</span>
                 <strong>{city.outputs[key] ?? "—"}</strong>
@@ -2011,12 +2073,12 @@ export function UnitLifecycleDashboard({ state, onSelect }: {
       </section>
     </div>
     <section className="lifecycle-method">
-      <article><strong>Exact</strong><p>Initial presence or a future proxy journal tied the
-        removal to a concrete FreeCiv combat/city event.</p></article>
-      <article><strong>Inferred</strong><p>A snapshot transition matched a production queue,
-        city-founding action, or attack action, but no historical cause packet survived.</p></article>
+      <article><strong>Exact</strong><p>A combat packet or Freeciv notification identified
+        the cause, including insufficient-gold disbands, food-support losses, and transport loss.</p></article>
+      <article><strong>Inferred</strong><p>A bounded packet correlation supports the cause:
+        for example, another unit disappeared on the same tile and turn as kill-stack combat.</p></article>
       <article><strong>Unattributed</strong><p>The unit existed in one snapshot and not the next.
-        Opponent combat, disbanding, transfer, or another engine cause cannot be distinguished.</p></article>
+        No combat packet or matching server notification identified why it vanished.</p></article>
     </section>
     <section className="lifecycle-table">
       <header><div>
@@ -2042,9 +2104,9 @@ export function UnitLifecycleDashboard({ state, onSelect }: {
         <span title={payload.detail ?? ""}>{payload.detail ?? "No detail logged"}</span>
       </button>)}
     </section>
-    <footer className="display-boundary">For historical runs, disappearance counts are reliable
-      but most root causes are not recoverable. New runs include the proxy lifecycle journal,
-      allowing combat losses to become exact instead of turn-boundary unknowns.</footer>
+    <footer className="display-boundary">Historical traces keep their original uncertainty.
+      New runs correlate <code>PACKET_UNIT_REMOVE</code> with combat, tile/turn context, and
+      Freeciv notifications; every row retains its exact, inferred, or unattributed label.</footer>
   </div>;
 }
 

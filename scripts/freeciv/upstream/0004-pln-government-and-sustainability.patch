@@ -1,0 +1,783 @@
+diff --git a/freeciv-proxy/action_validator.py b/freeciv-proxy/action_validator.py
+index 057b810..432cd9c 100644
+--- a/freeciv-proxy/action_validator.py
++++ b/freeciv-proxy/action_validator.py
+@@ -156,6 +156,7 @@ class ActionType(Enum):
+ 
+     # === Research & Game Control ===
+     TECH_RESEARCH = "tech_research"
++    GOVERNMENT_CHANGE = "government_change"
+     END_TURN = "end_turn"
+ 
+ 
+@@ -261,6 +262,7 @@ ACTION_CATEGORIES = {
+     ActionType.CITY_SELL_IMPROVEMENT: ActionCategory.CITY_MANAGEMENT,
+     # Research
+     ActionType.TECH_RESEARCH: ActionCategory.RESEARCH,
++    ActionType.GOVERNMENT_CHANGE: ActionCategory.RESEARCH,
+     ActionType.END_TURN: ActionCategory.RESEARCH,
+ }
+ 
+@@ -331,6 +333,8 @@ class LLMActionValidator:
+             result = self._validate_city_production(action, player_id, game_state)
+         elif action_type == ActionType.TECH_RESEARCH:
+             result = self._validate_tech_research(action, player_id, game_state)
++        elif action_type == ActionType.GOVERNMENT_CHANGE:
++            result = self._validate_government_change(action, player_id, game_state)
+         elif action_type == ActionType.END_TURN:
+             result = self._validate_end_turn(action, player_id, game_state)
+         # New unit action validators
+@@ -526,6 +530,33 @@ class LLMActionValidator:
+ 
+         return ValidationResult(True)
+ 
++    def _validate_government_change(
++        self,
++        action: Dict[str, Any],
++        player_id: int,
++        game_state: Optional[Dict[str, Any]],
++    ) -> ValidationResult:
++        """Validate a ruleset-grounded government selection."""
++        government_id = action.get('government_id')
++        if isinstance(government_id, bool) or not isinstance(government_id, int):
++            return self._validation_error(
++                'E042', 'Government change requires integer government_id field')
++        if government_id < 0:
++            return self._validation_error('E042', 'government_id cannot be negative')
++
++        government_name = str(action.get('government_name', '')).strip()
++        if not government_name:
++            return self._validation_error(
++                'E043', 'Government change requires government_name field')
++        if len(government_name) > MAX_NAME_LENGTH:
++            return self._validation_error('E043', 'government_name is too long')
++        import re
++        if not re.match(r"^[\w\s\.\-']+$", government_name, flags=re.UNICODE):
++            return self._validation_error(
++                'E043', 'government_name contains invalid characters')
++
++        return ValidationResult(True)
++
+     def _validate_end_turn(self, action: Dict[str, Any], player_id: int, game_state: Optional[Dict[str, Any]]) -> ValidationResult:
+         """Validate end turn action
+ 
+diff --git a/freeciv-proxy/civcom.py b/freeciv-proxy/civcom.py
+index abcf13c..4428a0b 100755
+--- a/freeciv-proxy/civcom.py
++++ b/freeciv-proxy/civcom.py
+@@ -42,6 +42,7 @@ from packet_constants import (
+     PACKET_RULESET_UNIT,
+     PACKET_RULESET_BUILDING,
+     PACKET_RULESET_TECH,
++    PACKET_RULESET_GOVERNMENT,
+     PACKET_RULESET_TERRAIN,
+     PACKET_RULESET_EXTRA,
+     PACKET_RULESET_UNIT_CLASS,
+@@ -361,6 +362,8 @@ class CivCom(Thread):
+         # and removal packets can identify combat attrition without guessing.
+         self.unit_lifecycle = []
+         self._recent_unit_combat = {}
++        self._recent_combat_events = []
++        self._pending_unit_notifications = []
+         # Packet dispatch runs on the CivCom thread while state queries run on
+         # Tornado's IOLoop. Serialize packet mutations with authoritative
+         # projection construction so one response cannot mix two revisions.
+@@ -387,6 +390,7 @@ class CivCom(Thread):
+         self.unit_types = {}      # {unit_type_id: PACKET_RULESET_UNIT data}
+         self.improvements = {}    # {building_id: PACKET_RULESET_BUILDING data}
+         self.techs = {}           # {tech_id: PACKET_RULESET_TECH data}
++        self.governments = {}     # {government_id: PACKET_RULESET_GOVERNMENT data}
+         self.terrains = {}        # {terrain_id: PACKET_RULESET_TERRAIN data}
+         self.extras = {}          # {extra_id: PACKET_RULESET_EXTRA data}
+         self.unit_classes = {}    # {unit_class_id: PACKET_RULESET_UNIT_CLASS data}
+@@ -644,11 +648,123 @@ class CivCom(Thread):
+         if tech_id < len(inventions):
+             state = inventions[tech_id]
+             # States: 0=UNKNOWN, 1=PREREQS_KNOWN, 2=KNOWN
+-            if state == '2':
++            if state in ('2', 2):
+                 return 'KNOWN'
+-            elif state == '1':
++            elif state in ('1', 1):
+                 return 'PREREQS_KNOWN'
+         return 'UNKNOWN'
++
++    @staticmethod
++    def _ruleset_name(packet):
++        """Return a clean translated/rule name from a ruleset packet."""
++        if not isinstance(packet, dict):
++            return None
++        name = packet.get('name') or packet.get('rule_name')
++        if not name:
++            return None
++        return str(name).replace('?government:', '').strip()
++
++    def _government_state(self, player_id):
++        """Project the exact revolution/government state advertised by Freeciv."""
++        player = getattr(self, 'player_packets', {}).get(player_id, {})
++        governments = getattr(self, 'governments', {})
++        current_id = player.get('government')
++        target_id = player.get('target_government')
++        current_name = self._ruleset_name(governments.get(current_id))
++        target_name = self._ruleset_name(governments.get(target_id))
++        revolution_finishes = player.get('revolution_finishes')
++        in_revolution = bool(
++            (current_name and current_name.casefold() == 'anarchy')
++            or (
++                isinstance(revolution_finishes, int)
++                and revolution_finishes >= 0
++            )
++        )
++        selection_required = bool(
++            current_name
++            and current_name.casefold() == 'anarchy'
++            and isinstance(revolution_finishes, int)
++            and revolution_finishes <= getattr(self, 'game_turn', 0)
++        )
++        available = bool(getattr(self, 'rulesets_ready', False) and governments)
++        diagnostic = None
++        if not available:
++            diagnostic = 'Government ruleset packets are not complete'
++        elif current_name is None:
++            diagnostic = 'Current government ID has no ruleset definition'
++        return {
++            'current_id': current_id,
++            'current_name': current_name,
++            'target_id': target_id,
++            'target_name': target_name,
++            'revolution_finishes': revolution_finishes,
++            'in_revolution': in_revolution,
++            'selection_required': selection_required,
++            'available': available,
++            'diagnostic': diagnostic,
++        }
++
++    def _government_requirements_met(self, government, player_id):
++        """Evaluate the packet requirement subset needed by stock governments.
++
++        Government requirements in the supported rulesets are player
++        technology requirements. Unknown requirement kinds fail closed so the
++        proxy never advertises a government that the server may reject.
++        """
++        requirements = government.get('reqs', []) if isinstance(government, dict) else []
++        if not isinstance(requirements, list):
++            return False
++        for requirement in requirements:
++            if not isinstance(requirement, dict):
++                return False
++            kind = requirement.get('kind')
++            value = requirement.get('value')
++            present = requirement.get('present', True)
++            if kind not in (1, '1') or isinstance(value, bool):
++                return False
++            try:
++                tech_id = int(value)
++            except (TypeError, ValueError):
++                return False
++            is_known = self.get_tech_state(tech_id, player_id) == 'KNOWN'
++            if is_known != bool(present):
++                return False
++        return True
++
++    def _get_government_change_actions(self, player_id):
++        """Advertise legal post-revolution government selections."""
++        government_state = self._government_state(player_id)
++        if not (
++            government_state.get('available')
++            and government_state.get('selection_required')
++        ):
++            return []
++        actions = []
++        current_id = government_state.get('current_id')
++        for government_id, government in sorted(
++            getattr(self, 'governments', {}).items()
++        ):
++            name = self._ruleset_name(government)
++            if (
++                government_id == current_id
++                or not name
++                or name.casefold() == 'anarchy'
++                or not self._government_requirements_met(government, player_id)
++            ):
++                continue
++            actions.append({
++                'type': 'government_change',
++                'player_id': player_id,
++                'government_id': government_id,
++                'government_name': name,
++                'target': {
++                    'government_id': government_id,
++                    'government_name': name,
++                },
++                'reason': 'government_selection_required',
++                'is_valid': True,
++            })
++        return actions
+     
+     def can_research_tech(self, tech_id: int, player_id: int) -> bool:
+         """Check if a tech can be researched (prerequisites are met).
+@@ -1613,6 +1729,13 @@ class CivCom(Thread):
+         if not isinstance(recent, dict):
+             recent = {}
+             self._recent_unit_combat = recent
++        known_units = {}
++        known_units.update(
++            self.player_units if isinstance(self.player_units, dict) else {})
++        other_units = getattr(self, 'other_units', {})
++        known_units.update(other_units if isinstance(other_units, dict) else {})
++        defender = known_units.get(packet.get('defender_unit_id'), {})
++        attacker = known_units.get(packet.get('attacker_unit_id'), {})
+         combat = {
+             'source_seq': self.source_seq,
+             'turn': self.game_turn,
+@@ -1620,7 +1743,16 @@ class CivCom(Thread):
+             'defender_unit_id': packet.get('defender_unit_id'),
+             'attacker_hp': packet.get('attacker_hp'),
+             'defender_hp': packet.get('defender_hp'),
++            'tile': defender.get('tile', attacker.get('tile')),
+         }
++        events = getattr(self, '_recent_combat_events', [])
++        if not isinstance(events, list):
++            events = []
++        events.append(dict(combat))
++        self._recent_combat_events = [
++            row for row in events
++            if row.get('source_seq', -1) >= self.source_seq - 256
++        ][-64:]
+         for role in ('attacker', 'defender'):
+             unit_id = combat.get(role + '_unit_id')
+             hp = combat.get(role + '_hp')
+@@ -1633,6 +1765,78 @@ class CivCom(Thread):
+             if row.get('source_seq', -1) >= minimum_seq
+         }
+ 
++    @staticmethod
++    def _notification_cause(message):
++        """Map exact server notification text to a removal cause."""
++        text = str(message or '').casefold()
++        if 'not enough gold.' in text and 'disbanded' in text:
++            return 'upkeep_gold'
++        if 'famine feared in' in text and 'lost' in text:
++            return 'upkeep_food'
++        if 'lost when' in text and 'was lost' in text:
++            return 'transport_lost'
++        return None
++
++    def _notification_matches_lifecycle(self, notification, row):
++        if row.get('transition') != 'disappeared':
++            return False
++        if row.get('turn') != notification.get('turn'):
++            return False
++        source_seq = row.get('source_seq')
++        notification_seq = notification.get('source_seq')
++        if (
++            not isinstance(source_seq, int)
++            or not isinstance(notification_seq, int)
++            or abs(notification_seq - source_seq) > 128
++        ):
++            return False
++        tile = notification.get('tile')
++        if tile is not None and row.get('tile') == tile:
++            return True
++        unit_type = str(row.get('unit_type') or '').casefold()
++        return bool(unit_type and unit_type in notification.get('message', '').casefold())
++
++    def _attribute_lifecycle_notification(self, notification):
++        """Apply a nearby exact server notification to its unit removal."""
++        for row in reversed(getattr(self, 'unit_lifecycle', [])):
++            if (
++                row.get('cause') in (
++                    'engine_removed', 'combat_stack_collateral', 'transport_lost')
++                and self._notification_matches_lifecycle(notification, row)
++            ):
++                row['cause'] = notification['cause']
++                row['detail'] = (
++                    'Freeciv server notification: '
++                    + notification.get('message', ''))
++                row['evidence_quality'] = 'exact'
++                row['notification'] = dict(notification)
++                return True
++        return False
++
++    def _record_engine_notification(self, packet):
++        """Correlate removal notifications emitted before or after UNIT_REMOVE."""
++        cause = self._notification_cause(packet.get('message'))
++        if not cause:
++            return
++        notification = {
++            'cause': cause,
++            'message': str(packet.get('message') or ''),
++            'tile': packet.get('tile'),
++            'event': packet.get('event'),
++            'turn': packet.get('turn', self.game_turn),
++            'source_seq': self.source_seq,
++        }
++        if self._attribute_lifecycle_notification(notification):
++            return
++        pending = getattr(self, '_pending_unit_notifications', [])
++        if not isinstance(pending, list):
++            pending = []
++        pending.append(notification)
++        self._pending_unit_notifications = [
++            row for row in pending
++            if row.get('source_seq', -1) >= self.source_seq - 256
++        ][-64:]
++
+     def _record_unit_removal(self, packet):
+         """Remove a tracked own unit and preserve its best packet-exact cause."""
+         unit_id = packet.get('unit_id')
+@@ -1647,25 +1851,55 @@ class CivCom(Thread):
+         recent = getattr(self, '_recent_unit_combat', {})
+         combat = recent.pop(unit_id, None) if isinstance(recent, dict) else None
+         cause = combat.get('cause') if combat else 'engine_removed'
+-        detail = (
+-            "PACKET_UNIT_COMBAT_INFO reported {} HP 0 before "
+-            "PACKET_UNIT_REMOVE.".format(
+-                'attacker' if cause == 'combat_attacker_lost' else 'defender')
+-            if combat else
+-            "PACKET_UNIT_REMOVE did not include a root cause.")
++        evidence_quality = 'exact' if combat else 'unattributed'
++        if not combat:
++            tile = removed_unit.get('tile')
++            for combat_event in reversed(
++                getattr(self, '_recent_combat_events', [])
++            ):
++                if (
++                    combat_event.get('turn') == self.game_turn
++                    and combat_event.get('tile') == tile
++                    and self.source_seq - combat_event.get('source_seq', -1000) <= 128
++                ):
++                    combat = combat_event
++                    cause = 'combat_stack_collateral'
++                    evidence_quality = 'inferred'
++                    break
++        if cause in ('combat_attacker_lost', 'combat_defender_lost'):
++            detail = (
++                "PACKET_UNIT_COMBAT_INFO reported {} HP 0 before "
++                "PACKET_UNIT_REMOVE.".format(
++                    'attacker' if cause == 'combat_attacker_lost' else 'defender'))
++        elif cause == 'combat_stack_collateral':
++            detail = (
++                "Unit vanished on the same tile and turn as a packet-backed "
++                "combat loss; Freeciv kill-stack collateral is inferred.")
++        else:
++            detail = "PACKET_UNIT_REMOVE did not include a root cause."
+         unit_type = removed_unit.get(
+             'type', self._authoritative_unit_type_name(removed_unit.get('utype')))
+-        self._append_unit_lifecycle({
++        row = {
+             'transition': 'disappeared',
+             'unit_id': unit_id,
+             'unit_type': unit_type or 'unknown',
+             'owner': removed_unit.get('owner'),
++            'tile': removed_unit.get('tile'),
++            'homecity': removed_unit.get('homecity'),
+             'source_seq': self.source_seq,
+             'turn': self.game_turn,
+             'cause': cause,
++            'evidence_quality': evidence_quality,
+             'detail': detail,
+             'combat': combat,
+-        })
++        }
++        self._append_unit_lifecycle(row)
++        pending = getattr(self, '_pending_unit_notifications', [])
++        for notification in reversed(pending if isinstance(pending, list) else []):
++            if self._notification_matches_lifecycle(notification, row):
++                self._attribute_lifecycle_notification(notification)
++                pending.remove(notification)
++                break
+         logger.info(
+             f"✓ Removed unit {unit_id} (type={unit_type}, cause={cause})")
+ 
+@@ -1776,6 +2010,11 @@ class CivCom(Thread):
+                     logger.debug(f"Stored game timeout: {self.game_timeout}s")
+                 logger.debug(f"Updated game turn: {self.game_turn}")
+ 
++            # Exact server notifications explain removals whose UNIT_REMOVE
++            # packet intentionally carries no reason.
++            elif packet_type == PACKET_CHAT_MSG:
++                self._record_engine_notification(packet)
++
+             # Begin turn packet - authoritative server signal that new turn has started
+             # This is sent when ALL players have finished their turn
+             elif packet_type == PACKET_BEGIN_TURN:
+@@ -1956,7 +2195,21 @@ class CivCom(Thread):
+                         'usage': packet.get('usage', []),
+                         'waste': packet.get('waste', []),
+                         'improvements': packet.get('improvements', []),
++                        # Final citizen-feeling arrays and the server's
++                        # explicit turn outcome explain disorder/famine.
++                        'ppl_happy': packet.get('ppl_happy', []),
++                        'ppl_content': packet.get('ppl_content', []),
++                        'ppl_unhappy': packet.get('ppl_unhappy', []),
++                        'ppl_angry': packet.get('ppl_angry', []),
++                        'unhappy_penalty': packet.get('unhappy_penalty', 0),
++                        'was_happy': packet.get('was_happy', False),
++                        'had_famine': packet.get('had_famine', False),
+                     }
++                    final_happy = city_data['ppl_happy'][-1] if city_data['ppl_happy'] else 0
++                    final_unhappy = city_data['ppl_unhappy'][-1] if city_data['ppl_unhappy'] else 0
++                    final_angry = city_data['ppl_angry'][-1] if city_data['ppl_angry'] else 0
++                    city_data['disorder'] = (
++                        final_happy < final_unhappy + (2 * final_angry))
+ 
+                     # Convert player_cities to dict if it's still a list
+                     if not isinstance(self.player_cities, dict):
+@@ -2125,6 +2378,15 @@ class CivCom(Thread):
+                     self.nations[nation_name] = nation_id
+                     logger.debug(f"Registered nation: {nation_name} -> ID {nation_id}")
+ 
++            elif packet_type == PACKET_RULESET_GOVERNMENT:
++                government_id = packet.get('id')
++                government_name = self._ruleset_name(packet)
++                if government_id is not None and government_name:
++                    self.governments[government_id] = packet
++                    logger.debug(
++                        f"Registered government: {government_name} "
++                        f"(id={government_id})")
++
+             # RULESET unit packet - defines unit types (Warriors, Settlers, etc.)
+             # Mirrors FreeCiv web client's unit_types[] storage pattern
+             # Used by RulesetMapper for production name→ID mapping
+@@ -2834,11 +3096,13 @@ class CivCom(Thread):
+                 'total_bulbs_prod': research.get('total_bulbs_prod'),
+                 'inventions': research.get('inventions'),
+             },
++            'government': self._government_state(player_id),
+             'ruleset': {
+                 'ready': self.rulesets_ready,
+                 'unit_types': len(self.unit_types),
+                 'improvements': len(self.improvements),
+                 'techs': len(self.techs),
++                'governments': len(getattr(self, 'governments', {})),
+                 'diagnostic': None if self.rulesets_ready else 'PACKET_RULESETS_READY not received',
+             },
+             # Packet-known map facts only. A remembered hut may be stale under
+@@ -3428,6 +3692,11 @@ class CivCom(Thread):
+         tech_actions = self._get_tech_research_actions(player_id)
+         all_actions.extend(tech_actions)
+ 
++        # Once a revolution has finished, Freeciv waits indefinitely for this
++        # player-level selection and Anarchy suppresses science meanwhile.
++        government_actions = self._get_government_change_actions(player_id)
++        all_actions.extend(government_actions)
++
+         # Get diplomacy actions (NOT CACHED - depends on meeting state)
+         diplomacy_actions = self._get_diplomacy_actions(player_id)
+         all_actions.extend(diplomacy_actions)
+@@ -3573,7 +3842,7 @@ class CivCom(Thread):
+                 # shifts every authoritative name by one technology.
+                 tech_defs.get(idx, {}).get('name')
+                 for idx, state in enumerate(inventions)
+-                if state == '2' and tech_defs.get(idx, {}).get('name')
++                if state in ('2', 2) and tech_defs.get(idx, {}).get('name')
+             ]
+             techs_dict[f'player{pid}'] = known_tech_names
+ 
+diff --git a/freeciv-proxy/llm_handler.py b/freeciv-proxy/llm_handler.py
+index 5f59f7e..9e2e133 100644
+--- a/freeciv-proxy/llm_handler.py
++++ b/freeciv-proxy/llm_handler.py
+@@ -1688,7 +1688,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
+                     normalized["unit_id"] = action_data["actor_id"]
+                 elif action_type.startswith("city_"):
+                     normalized["city_id"] = action_data["actor_id"]
+-                elif action_type in ("tech_research", "end_turn") or action_type.startswith("diplomacy_"):
++                elif action_type in ("tech_research", "government_change", "end_turn") or action_type.startswith("diplomacy_"):
+                     normalized["player_id"] = action_data["actor_id"]
+                 else:
+                     # Fallback: if unknown action type, leave as player_id to be conservative
+@@ -1714,6 +1714,21 @@ class LLMWSHandler(websocket.WebSocketHandler):
+             normalized["tech_name"] = str(tech_name).lower()
+             logger.info(f"Normalized tech_research: target={target} → tech_name={normalized['tech_name']}")
+ 
++        elif action_type == "government_change":
++            target = action_data.get("target", {})
++            government_id = action_data.get("government_id")
++            government_name = action_data.get("government_name")
++            if isinstance(target, dict):
++                if government_id is None:
++                    government_id = target.get("government_id", target.get("id"))
++                if not government_name:
++                    government_name = target.get("government_name", target.get("name"))
++            if government_id is None or not government_name:
++                raise ValueError(
++                    "government_change requires target government_id and government_name")
++            normalized["government_id"] = government_id
++            normalized["government_name"] = str(government_name)
++
+         elif action_type == "unit_move":
+             # Extract unit_id and destination
+             if "unit_id" in action_data:
+@@ -1945,6 +1960,15 @@ class LLMWSHandler(websocket.WebSocketHandler):
+                 result["player_id"] = params["player"]
+             logger.info(f"Parsed tech_research: {result}")
+ 
++        elif action_type == "government_change":
++            if "government_id" in params:
++                result["government_id"] = params["government_id"]
++            if "government_name" in params:
++                result["government_name"] = str(params["government_name"])
++            if "player" in params:
++                result["player_id"] = params["player"]
++            logger.info(f"Parsed government_change: {result}")
++
+         elif action_type == "unit_move":
+             # Map unit movement fields
+             if "actor_id" in params:
+@@ -3460,7 +3484,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
+             logger.warning("StateExtractor unavailable, using fallback action generation")
+             actions_by_actor = self._get_fallback_unit_actions(game_state)
+ 
+-        # Add player-level actions (tech_research, end_turn, city production)
++        # Add player-level actions (research, government, turn, production)
+         actions_by_actor['player'] = self._get_player_level_actions(game_state)
+ 
+         # Log action counts for debugging
+@@ -3471,7 +3495,7 @@ class LLMWSHandler(websocket.WebSocketHandler):
+         return actions_by_actor
+ 
+     def _get_player_level_actions(self, game_state: Dict[str, Any]) -> List[Dict[str, Any]]:
+-        """Get player-level actions (tech_research, end_turn, city production)."""
++        """Get player-level research, government, turn, and production actions."""
+         actions = []
+ 
+         if game_state:
+@@ -3489,6 +3513,19 @@ class LLMWSHandler(websocket.WebSocketHandler):
+                     'is_valid': True
+                 })
+ 
++            if self.civcom:
++                for government in self.civcom._get_government_change_actions(
++                    self.player_id
++                ):
++                    actions.append({
++                        'action_type': 'government_change',
++                        'actor_id': self.player_id or 0,
++                        'government_id': government['government_id'],
++                        'government_name': government['government_name'],
++                        'target': government['target'],
++                        'is_valid': True,
++                    })
++
+             # City production actions
+             cities = game_state.get('cities', {})
+             for city_id_str, city in cities.items():
+diff --git a/freeciv-proxy/packet_converter.py b/freeciv-proxy/packet_converter.py
+index 8ad4e05..390917c 100644
+--- a/freeciv-proxy/packet_converter.py
++++ b/freeciv-proxy/packet_converter.py
+@@ -12,6 +12,7 @@ from packet_constants import (
+     PACKET_UNIT_ORDERS,
+     PACKET_CITY_CHANGE,
+     PACKET_PLAYER_RESEARCH,
++    PACKET_PLAYER_CHANGE_GOVERNMENT,
+     PACKET_PLAYER_PHASE_DONE,
+     PACKET_UNIT_DO_ACTION,
+     PACKET_UNIT_SERVER_SIDE_AGENT_SET,
+@@ -429,6 +430,37 @@ def _convert_action_to_packet_impl(
+             raise ValueError(f"Unknown technology '{tech_name}'")
+         return _sanitize_packet({"pid": PACKET_PLAYER_RESEARCH, "tech": tech_id})
+ 
++    elif action_type == "government_change":
++        if not civcom:
++            raise ValueError(
++                "government_change requires a civcom with ruleset government data"
++            )
++        government_id = action.get("government_id")
++        if isinstance(government_id, bool) or not isinstance(government_id, int):
++            raise ValueError("government_change requires integer government_id")
++        government_name = str(action.get("government_name", "")).strip()
++        if not government_name:
++            raise ValueError("government_change requires government_name")
++        governments = getattr(civcom, "governments", {})
++        government = governments.get(government_id) if isinstance(governments, dict) else None
++        if not isinstance(government, dict):
++            raise ValueError(f"Unknown government ID {government_id}")
++        advertised_names = {
++            str(government.get(field, "")).replace("?government:", "").strip().casefold()
++            for field in ("name", "rule_name")
++            if government.get(field)
++        }
++        if government_name.casefold() not in advertised_names:
++            raise ValueError(
++                f"Government ID {government_id} does not match '{government_name}'"
++            )
++        return _sanitize_packet(
++            {
++                "pid": PACKET_PLAYER_CHANGE_GOVERNMENT,
++                "government": government_id,
++            }
++        )
++
+     elif action_type == "end_turn":
+         turn = 1
+         if civcom and hasattr(civcom, "game_turn"):
+diff --git a/freeciv-proxy/tests/test_packet_converters.py b/freeciv-proxy/tests/test_packet_converters.py
+index 77ed308..725e773 100644
+--- a/freeciv-proxy/tests/test_packet_converters.py
++++ b/freeciv-proxy/tests/test_packet_converters.py
+@@ -19,6 +19,7 @@ from packet_constants import (
+     PACKET_UNIT_CHANGE_ACTIVITY,
+     PACKET_CITY_CHANGE,
+     PACKET_PLAYER_RESEARCH,
++    PACKET_PLAYER_CHANGE_GOVERNMENT,
+     PACKET_PLAYER_PHASE_DONE,
+     PACKET_CITY_BUY,
+     PACKET_CITY_SELL,
+@@ -33,6 +34,38 @@ from packet_constants import (
+ from packet_converter import convert_action_to_packet as _convert_action_to_packet
+ 
+ 
++class TestGovernmentActionConverters:
++    def test_government_change_uses_exact_ruleset_id_and_name(self):
++        class CivCom:
++            governments = {
++                1: {"id": 1, "name": "Despotism", "rule_name": "Despotism"},
++            }
++
++        result = _convert_action_to_packet({
++            "type": "government_change",
++            "government_id": 1,
++            "government_name": "Despotism",
++        }, CivCom())
++
++        assert result == {
++            "pid": PACKET_PLAYER_CHANGE_GOVERNMENT,
++            "government": 1,
++        }
++
++    def test_government_change_rejects_mismatched_name(self):
++        class CivCom:
++            governments = {
++                1: {"id": 1, "name": "Despotism", "rule_name": "Despotism"},
++            }
++
++        with pytest.raises(ValueError, match="does not match"):
++            _convert_action_to_packet({
++                "type": "government_change",
++                "government_id": 1,
++                "government_name": "Monarchy",
++            }, CivCom())
++
++
+ class TestCombatActionConverters:
+     """Test combat action packet conversion."""
+     
+diff --git a/freeciv-proxy/tests/test_pln_authoritative_state.py b/freeciv-proxy/tests/test_pln_authoritative_state.py
+index e5b9564..a7f5ae3 100644
+--- a/freeciv-proxy/tests/test_pln_authoritative_state.py
++++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
+@@ -27,7 +27,8 @@ def make_civcom():
+     civcom.rulesets_ready = True
+     civcom.player_packets = {
+         0: {"is_alive": True, "gold": 31, "tax": 30, "science": 60, "luxury": 10,
+-            "tech_upkeep": 1}
++            "tech_upkeep": 1, "government": 1, "target_government": 1,
++            "revolution_finishes": -1}
+     }
+     civcom.research_info = {
+         0: {"researching": 2, "researching_cost": 50,
+@@ -35,6 +36,12 @@ def make_civcom():
+             "inventions": ["2", "1"]}
+     }
+     civcom.techs = {2: {"name": "Writing"}}
++    civcom.governments = {
++        0: {"id": 0, "name": "Anarchy", "reqs": []},
++        1: {"id": 1, "name": "Despotism", "reqs": []},
++        2: {"id": 2, "name": "Monarchy",
++            "reqs": [{"kind": 1, "value": 1, "present": True}]},
++    }
+     civcom.unit_types = {1: {"name": "Warriors"}}
+     civcom.improvements = {1: {"name": "Barracks"}}
+     civcom.player_cities = {
+@@ -66,6 +73,8 @@ def test_authoritative_state_uses_player_packet_and_owned_city_outputs():
+     assert state["authoritative"]["player"]["gold_per_turn"] == 4
+     assert state["authoritative"]["research"]["beakers_per_turn"] == 9
+     assert state["authoritative"]["research"]["researching_name"] == "Writing"
++    assert state["authoritative"]["government"]["current_name"] == "Despotism"
++    assert state["authoritative"]["government"]["selection_required"] is False
+     assert state["authoritative"]["ruleset"]["ready"] is True
+     assert state["authoritative"]["known_hut_tiles"] == []
+     assert state["authoritative"]["unit_lifecycle"] == []
+@@ -117,6 +126,79 @@ def test_unit_remove_without_combat_stays_explicitly_unattributed_and_bounded():
+     assert "root cause" in civcom.unit_lifecycle[-1]["detail"]
+ 
+ 
++def test_finished_revolution_advertises_only_known_legal_governments():
++    civcom = make_civcom()
++    civcom.player_packets[0].update({
++        "government": 0,
++        "target_government": 0,
++        "revolution_finishes": 12,
++    })
++    civcom.research_info[0]["inventions"] = [2, 1]
++
++    state = CivCom._government_state(civcom, 0)
++    actions = CivCom._get_government_change_actions(civcom, 0)
++
++    assert state["current_name"] == "Anarchy"
++    assert state["selection_required"] is True
++    assert [(row["government_id"], row["government_name"]) for row in actions] == [
++        (1, "Despotism"),
++    ]
++
++
++def test_removal_notification_attributes_gold_and_food_losses_exactly():
++    civcom = make_civcom()
++    civcom.player_units = {
++        9: {
++            "id": 9, "owner": 0, "type": "Settlers", "utype": 1,
++            "tile": 44, "homecity": 4,
++        },
++    }
++    civcom.unit_lifecycle = []
++    civcom._recent_unit_combat = {}
++    civcom.source_seq = 50
++    CivCom._record_unit_removal(
++        civcom, {"pid": PACKET_UNIT_REMOVE, "unit_id": 9})
++    civcom.source_seq = 51
++    CivCom._record_engine_notification(civcom, {
++        "message": "Not enough gold. Settlers disbanded.",
++        "tile": 44,
++        "turn": 12,
++        "event": 9,
++    })
++
++    row = civcom.unit_lifecycle[-1]
++    assert row["cause"] == "upkeep_gold"
++    assert row["evidence_quality"] == "exact"
++    assert "Not enough gold" in row["detail"]
++
++
++def test_same_tile_combat_removal_is_marked_as_inferred_collateral():
++    civcom = make_civcom()
++    civcom.player_units = {
++        7: {"id": 7, "owner": 0, "type": "Warriors", "tile": 44},
++        9: {"id": 9, "owner": 0, "type": "Settlers", "tile": 44},
++    }
++    civcom.other_units = {
++        8: {"id": 8, "owner": 1, "type": "Legion", "tile": 44},
++    }
++    civcom.unit_lifecycle = []
++    civcom._recent_unit_combat = {}
++    civcom.source_seq = 50
++    CivCom._record_unit_combat(civcom, {
++        "attacker_unit_id": 8,
++        "defender_unit_id": 7,
++        "attacker_hp": 5,
++        "defender_hp": 0,
++    })
++    civcom.source_seq = 51
++    CivCom._record_unit_removal(civcom, {"unit_id": 7})
++    civcom.source_seq = 52
++    CivCom._record_unit_removal(civcom, {"unit_id": 9})
++
++    assert civcom.unit_lifecycle[-1]["cause"] == "combat_stack_collateral"
++    assert civcom.unit_lifecycle[-1]["evidence_quality"] == "inferred"
++
++
+ def test_authoritative_state_projects_only_packet_known_spatial_evidence():
+     civcom = make_civcom()
+     civcom.map_info["wrap_x"] = True

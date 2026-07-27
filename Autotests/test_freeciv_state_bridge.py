@@ -77,6 +77,50 @@ def test_authoritative_contract_fixture_schema_and_stable_identity():
         "status": "partial", "tile_records": 1, "visible_tiles": 1}
 
 
+def test_government_mood_support_and_recovery_action_are_typed():
+    payload = _payload()
+    payload["authoritative"]["government"] = {
+        "available": True, "current_id": 0, "current_name": "Anarchy",
+        "target_id": 0, "target_name": "Anarchy",
+        "revolution_finishes": payload["turn"],
+        "in_revolution": True, "selection_required": True,
+        "diagnostic": None,
+    }
+    unit = next(iter(payload["units"].values()))
+    unit["homecity"] = 3
+    unit["upkeep"] = [1, 1, 0, 2, 0, 0]
+    city = payload["cities"]["3"]
+    city.update({
+        "ppl_happy": [0], "ppl_content": [1],
+        "ppl_unhappy": [2], "ppl_angry": [0],
+        "disorder": True, "was_happy": False, "had_famine": True,
+        "unhappy_penalty": [0, 0, 0, 0, 0, 0],
+        "usage": [1, 1, 0, 2, 0, 0],
+    })
+    payload["legal_actions"].append({
+        "type": "government_change", "player_id": 0,
+        "government_id": 1, "government_name": "Despotism",
+        "target": {
+            "government_id": 1, "government_name": "Despotism",
+        },
+        "is_valid": True,
+    })
+
+    snapshot = _snapshot(payload=payload)
+
+    assert snapshot.government.current_name == "Anarchy"
+    assert snapshot.government.selection_required
+    assert snapshot.unit(unit["id"]).homecity == 3
+    assert snapshot.city(3).disorder is True
+    assert snapshot.city(3).had_famine is True
+    assert "government_change" in snapshot.legal_action_kinds
+    government_action = next(
+        json.loads(row) for row in snapshot.legal_action_json
+        if json.loads(row)["action_type"] == "government_change")
+    assert government_action["target"] == {
+        "government_id": 1, "government_name": "Despotism"}
+
+
 def test_packet_known_hut_tiles_are_typed_and_part_of_snapshot_identity():
     payload = _payload()
     payload["authoritative"]["known_hut_tiles"] = [82, 41, 82]

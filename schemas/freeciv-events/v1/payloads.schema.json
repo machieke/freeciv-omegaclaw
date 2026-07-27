@@ -299,7 +299,33 @@
           "oneOf": [{"$ref": "#/$defs/researchTarget"}, {"type": "null"}]
         },
         "status": {"enum": ["unavailable", "idle", "researching", "stalled", "complete"]},
-        "stalled_turns": {"type": "integer", "minimum": 0}
+        "stalled_turns": {"type": "integer", "minimum": 0},
+        "stall_reason": {
+          "type": ["string", "null"],
+          "enum": [
+            "government_anarchy", "city_disorder", "zero_science_output", null
+          ]
+        },
+        "government": {"$ref": "#/$defs/governmentState"}
+      }
+    },
+    "governmentState": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "available", "current_id", "current_name", "target_id", "target_name",
+        "revolution_finishes", "in_revolution", "selection_required",
+        "diagnostic"
+      ],
+      "properties": {
+        "available": {"type": "boolean"},
+        "current_id": {"type": ["integer", "null"]},
+        "current_name": {"type": ["string", "null"]},
+        "target_id": {"type": ["integer", "null"]},
+        "target_name": {"type": ["string", "null"]},
+        "revolution_finishes": {"type": ["integer", "null"]},
+        "in_revolution": {"type": "boolean"},
+        "selection_required": {"type": "boolean"},
+        "diagnostic": {"type": ["string", "null"]}
       }
     },
     "yieldVector": {
@@ -338,7 +364,50 @@
         "outputs": {"$ref": "#/$defs/yieldVector"},
         "surplus": {"$ref": "#/$defs/yieldVector"},
         "target": {"$ref": "#/$defs/productionTarget"},
-        "buildable_count": {"type": "integer", "minimum": 0}
+        "buildable_count": {"type": "integer", "minimum": 0},
+        "mood": {"$ref": "#/$defs/cityMood"},
+        "support": {"$ref": "#/$defs/citySupport"},
+        "had_famine": {"type": ["boolean", "null"]}
+      }
+    },
+    "citizenFeeling": {
+      "type": "object", "additionalProperties": false,
+      "required": ["happy", "content", "unhappy", "angry"],
+      "properties": {
+        "happy": {"type": ["integer", "null"]},
+        "content": {"type": ["integer", "null"]},
+        "unhappy": {"type": ["integer", "null"]},
+        "angry": {"type": ["integer", "null"]}
+      }
+    },
+    "cityMood": {
+      "type": "object", "additionalProperties": false,
+      "required": ["final", "stages", "disorder", "margin", "was_happy"],
+      "properties": {
+        "final": {"$ref": "#/$defs/citizenFeeling"},
+        "stages": {
+          "type": "object", "additionalProperties": false,
+          "required": ["happy", "content", "unhappy", "angry"],
+          "properties": {
+            "happy": {"type": "array", "items": {"type": "integer"}},
+            "content": {"type": "array", "items": {"type": "integer"}},
+            "unhappy": {"type": "array", "items": {"type": "integer"}},
+            "angry": {"type": "array", "items": {"type": "integer"}}
+          }
+        },
+        "disorder": {"type": ["boolean", "null"]},
+        "margin": {"type": ["integer", "null"]},
+        "was_happy": {"type": ["boolean", "null"]}
+      }
+    },
+    "citySupport": {
+      "type": "object", "additionalProperties": false,
+      "required": ["count", "food", "shield", "gold"],
+      "properties": {
+        "count": {"type": "integer", "minimum": 0},
+        "food": {"type": "integer", "minimum": 0},
+        "shield": {"type": "integer", "minimum": 0},
+        "gold": {"type": "integer", "minimum": 0}
       }
     },
     "productionEconomy": {
@@ -362,6 +431,7 @@
       "required": ["snapshot_id", "economy", "cities"],
       "properties": {
         "snapshot_id": {"type": "string", "minLength": 1},
+        "government": {"$ref": "#/$defs/governmentState"},
         "economy": {"$ref": "#/$defs/productionEconomy"},
         "cities": {
           "type": "array", "items": {"$ref": "#/$defs/cityProductionState"}
@@ -384,7 +454,8 @@
           "enum": [
             "initial_state", "observed_appearance", "production_completed",
             "city_founded", "combat_attacker_lost", "combat_defender_lost",
-            "engine_removed", "unknown_turn_boundary"
+            "combat_stack_collateral", "transport_lost", "upkeep_gold",
+            "upkeep_food", "engine_removed", "unknown_turn_boundary"
           ]
         },
         "evidence_quality": {"enum": ["exact", "inferred", "unattributed"]},

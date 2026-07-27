@@ -19,7 +19,7 @@ from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 
 
 def _snapshot(units, actions, cities=None, source_seq=1, turn=4,
-              city_surplus=None, known_hut_tiles=None):
+              city_surplus=None, known_hut_tiles=None, government=None):
     cities = cities if cities is not None else [_city()]
     if city_surplus is not None:
         cities[0]["surplus"] = list(city_surplus)
@@ -42,6 +42,8 @@ def _snapshot(units, actions, cities=None, source_seq=1, turn=4,
         "map": {"width": 10, "height": 10, "tiles": []},
         "visible_tiles": [], "legal_actions": actions,
     }
+    if government is not None:
+        payload["authoritative"]["government"] = dict(government)
     return ProxyStateDTO.parse("impact-test", source_seq, payload).to_snapshot()
 
 
@@ -83,8 +85,9 @@ def _city(size=2, food_stock=4, shield_stock=0,
 def _ruleset_ir(costs, founders=("Settlers",),
                 workers=("Settlers", "Migrants", "Workers", "Engineers"),
                 add_to_city=None, pop_costs=None,
-                growth_food=(20,), growth_increment=10):
+                growth_food=(20,), growth_increment=10, upkeeps=None):
     pop_costs = dict(pop_costs or {})
+    upkeeps = dict(upkeeps or {})
     add_to_city = set(founders if add_to_city is None else add_to_city)
     rules = []
     for name, kind, cost in costs:
@@ -100,6 +103,10 @@ def _ruleset_ir(costs, founders=("Settlers",),
             quantitative={
                 "build_cost": {"value": cost, "source": {}},
                 "pop_cost": {"value": pop_costs.get(name, 0), "source": {}},
+                **{
+                    key: {"value": value, "source": {}}
+                    for key, value in upkeeps.get(name, {}).items()
+                },
             },
             traits={"flags": {"values": flags, "source": {}}}))
     return SimpleNamespace(rules=tuple(rules), parameters={
@@ -1857,6 +1864,108 @@ def test_plain_move_into_packet_visible_foreign_stack_is_not_a_candidate():
         [move, {"action_type": "end_turn", "is_valid": True}])
 
     assert GroundedImpactPlanner().plan(snapshot) is None
+
+
+def test_finished_revolution_is_recovered_before_ordinary_planning():
+    actions = [
+        {
+            "action_type": "government_change", "actor_id": 0,
+            "target": {"government_id": 2, "government_name": "Monarchy"},
+            "is_valid": True,
+        },
+        {
+            "action_type": "government_change", "actor_id": 0,
+            "target": {"government_id": 1, "government_name": "Despotism"},
+            "is_valid": True,
+        },
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    government = {
+        "available": True, "current_id": 0, "current_name": "Anarchy",
+        "target_id": 0, "target_name": "Anarchy",
+        "revolution_finishes": 4, "in_revolution": True,
+        "selection_required": True, "diagnostic": None,
+    }
+    snapshot = _snapshot([], actions, government=government)
+
+    decision = GroundedImpactPlanner().plan(snapshot)
+
+    assert decision.candidate.category == "government_recovery"
+    assert decision.candidate.action["target"] == {
+        "government_id": 1, "government_name": "Despotism"}
+    assert decision.candidate.utility > 2000
+
+
+def test_disorder_risk_prioritizes_city_local_martial_law_garrison():
+    city = _city(production_kind=3, production_value=14)
+    city.update({
+        "ppl_happy": [0], "ppl_content": [0],
+        "ppl_unhappy": [2], "ppl_angry": [0],
+        "disorder": True,
+    })
+    action = _production(10, "Alpine Troops", 6, 11)
+    ruleset = _ruleset_ir((
+        ("Settlers", "unit", 30),
+        ("Alpine Troops", "unit", 20),
+    ))
+    snapshot = _snapshot(
+        [], [action, {"action_type": "end_turn", "is_valid": True}],
+        cities=[city])
+
+    decision = GroundedImpactPlanner(ruleset_ir=ruleset).plan(snapshot)
+
+    assert decision.candidate.category == "production_defense"
+    assert decision.candidate.projection["required_garrison"] == 2
+    assert "martial-law" in decision.candidate.rationale
+
+
+def test_food_support_unit_is_not_queued_by_a_zero_food_surplus_city():
+    city = _city(surplus=(0, 5, 2, 1, 0, 3))
+    action = _production(10, "Alpine Troops", 6, 11)
+    ruleset = _ruleset_ir((
+        ("Alpine Troops", "unit", 20),
+    ), founders=(), workers=(), upkeeps={
+        "Alpine Troops": {"uk_food": 1},
+    })
+    snapshot = _snapshot(
+        [], [action, {"action_type": "end_turn", "is_valid": True}],
+        cities=[city])
+
+    assert GroundedImpactPlanner(
+        {"expansion_city_target": 1}, ruleset_ir=ruleset
+    ).plan(snapshot) is None
+
+
+def test_non_city_unit_concentration_is_not_created_by_plain_movement():
+    move = {
+        "action_type": "unit_move", "actor_id": 20,
+        "target": {"x": 1, "y": 0}, "is_valid": True,
+    }
+    snapshot = _snapshot(
+        [_unit(20, "Diplomat"), _unit(21, "Warriors", 1, 0)],
+        [move, {"action_type": "end_turn", "is_valid": True}])
+
+    assert GroundedImpactPlanner().plan(snapshot) is None
+
+
+def test_killstack_heuristic_does_not_change_packet_grounded_founder_route():
+    move = {
+        "action_type": "unit_move", "actor_id": 20,
+        "target": {"x": 1, "y": 0}, "is_valid": True,
+    }
+    ruleset = _ruleset_ir((("Settlers", "unit", 30),))
+    snapshot = _snapshot(
+        [_unit(20, "Settlers"), _unit(21, "Warriors", 1, 0)],
+        [move, {"action_type": "end_turn", "is_valid": True}])
+
+    decision = GroundedImpactPlanner(
+        {"expansion_city_target": 2}, ruleset_ir=ruleset).plan(snapshot)
+
+    assert decision.candidate.category == "expansion_move"
+    assert decision.candidate.action == {
+        "action_type": "unit_move", "actor_id": 20,
+        "target": {"x": 1, "y": 0},
+    }
 
 
 def test_explorer_routes_toward_exact_packet_known_hut():

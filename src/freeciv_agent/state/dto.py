@@ -6,7 +6,8 @@ from dataclasses import dataclass
 
 from ..events.schema import canonical_json_bytes
 from .snapshot import (AuthoritativeSnapshot, CityState, EconomicState,
-                       ResearchState, SnapshotIdentity, UnitState)
+                       GovernmentState, ResearchState, SnapshotIdentity,
+                       UnitState)
 
 
 class ContractError(ValueError):
@@ -120,6 +121,35 @@ def _executable_action(row, player_id=None):
         if actor_id is not None:
             normalized["actor_id"] = _integer(
                 actor_id, "legal_actions.tech_research.actor_id", required=True)
+        return normalized
+    if kind == "government_change":
+        target = row.get("target")
+        if not isinstance(target, dict):
+            target = {
+                "government_id": row.get("government_id"),
+                "government_name": row.get("government_name"),
+            }
+        government_id = _integer(
+            target.get("government_id", row.get("government_id")),
+            "legal_actions.government_change.target.government_id",
+            required=True)
+        government_name = target.get(
+            "government_name", row.get("government_name"))
+        if not government_name:
+            raise ContractError(
+                "government_change action is missing government_name")
+        normalized = {
+            "action_type": "government_change",
+            "target": {
+                "government_id": government_id,
+                "government_name": str(government_name),
+            },
+        }
+        actor_id = row.get("actor_id", row.get("player_id", player_id))
+        if actor_id is not None:
+            normalized["actor_id"] = _integer(
+                actor_id,
+                "legal_actions.government_change.actor_id", required=True)
         return normalized
     if kind == "unit_move":
         target = row.get("target")
@@ -300,6 +330,9 @@ class ProxyStateDTO:
         research_packet = (authoritative.get("research")
                            if isinstance(authoritative.get("research"), dict) else {})
         ruleset = authoritative.get("ruleset") if isinstance(authoritative.get("ruleset"), dict) else {}
+        government_packet = (
+            authoritative.get("government")
+            if isinstance(authoritative.get("government"), dict) else {})
         economic = payload.get("economic") if isinstance(payload.get("economic"), dict) else {}
 
         techs = payload.get("techs", {})
@@ -333,6 +366,36 @@ class ProxyStateDTO:
         economy_diagnostic = None if economy_available else (
             "proxy omitted authoritative gold stockpile or per-turn income")
 
+        government_available = government_packet.get("available") is True
+        government = GovernmentState(
+            current_id=_integer(
+                government_packet.get("current_id"),
+                "government.current_id"),
+            current_name=(
+                str(government_packet["current_name"])
+                if government_packet.get("current_name") else None),
+            target_id=_integer(
+                government_packet.get("target_id"),
+                "government.target_id"),
+            target_name=(
+                str(government_packet["target_name"])
+                if government_packet.get("target_name") else None),
+            revolution_finishes=_integer(
+                government_packet.get("revolution_finishes"),
+                "government.revolution_finishes"),
+            in_revolution=bool(_boolean(
+                government_packet.get("in_revolution", False),
+                "government.in_revolution", required=True)),
+            selection_required=bool(_boolean(
+                government_packet.get("selection_required", False),
+                "government.selection_required", required=True)),
+            available=government_available,
+            diagnostic=(
+                None if government_available else str(
+                    government_packet.get("diagnostic")
+                    or "proxy omitted authoritative government state")),
+        )
+
         unit_rows = _collection(payload.get("units"), "units")
         units = []
         visible_enemy_units = []
@@ -347,7 +410,8 @@ class ProxyStateDTO:
                 moves_left=_integer(row.get("moves_left", row.get("movesleft")), "unit.moves_left"),
                 hp=_integer(row.get("hp"), "unit.hp"),
                 activity=None if row.get("activity") is None else str(row.get("activity")),
-                upkeep=_numbers(row.get("upkeep"), "unit.upkeep"))
+                upkeep=_numbers(row.get("upkeep"), "unit.upkeep"),
+                homecity=_integer(row.get("homecity"), "unit.homecity"))
             if owner == player_id:
                 units.append(parsed)
             else:
@@ -392,7 +456,17 @@ class ProxyStateDTO:
                 surplus=_numbers(row.get("surplus"), "city.surplus"),
                 production=_numbers(row.get("prod", row.get("production")), "city.prod"),
                 buildability_available=build_available,
-                buildable=tuple(sorted(buildable)), buildability_diagnostic=build_diag))
+                buildable=tuple(sorted(buildable)), buildability_diagnostic=build_diag,
+                feeling_happy=_numbers(row.get("ppl_happy"), "city.ppl_happy"),
+                feeling_content=_numbers(row.get("ppl_content"), "city.ppl_content"),
+                feeling_unhappy=_numbers(row.get("ppl_unhappy"), "city.ppl_unhappy"),
+                feeling_angry=_numbers(row.get("ppl_angry"), "city.ppl_angry"),
+                disorder=_boolean(row.get("disorder"), "city.disorder"),
+                was_happy=_boolean(row.get("was_happy"), "city.was_happy"),
+                had_famine=_boolean(row.get("had_famine"), "city.had_famine"),
+                unhappy_penalty=_numbers(
+                    row.get("unhappy_penalty"), "city.unhappy_penalty"),
+                usage=_numbers(row.get("usage"), "city.usage")))
 
         map_data = payload.get("map") if isinstance(payload.get("map"), dict) else {}
         width = _integer(map_data.get("width", 0), "map.width", required=True)
@@ -427,6 +501,7 @@ class ProxyStateDTO:
             "cities": [city.to_dict() for city in sorted(cities, key=lambda item: item.city_id)],
             "economy": EconomicState(gold, gold_per_turn, tax, science, luxury,
                                       economy_available, economy_diagnostic).to_dict(),
+            "government": government.to_dict(),
             "game_id": str(game_id), "legal_action_json": list(legal_json),
             "map": {"height": height,
                     "known_hut_tile_ids": list(known_hut_tiles),
@@ -459,7 +534,8 @@ class ProxyStateDTO:
             map_width=width, map_height=height,
             map_tiles=tuple(copy.deepcopy(tiles)), legal_action_json=legal_json,
             legal_actions_digest=legal_digest,
-            legal_action_kinds=legal_action_kinds))
+            legal_action_kinds=legal_action_kinds,
+            government=government))
 
     def to_snapshot(self):
         return self.snapshot

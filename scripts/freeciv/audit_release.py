@@ -27,9 +27,10 @@ PINNED_PROXY_PATCH_SHA256S = (
     "48e416000bf36c3c7ce13c8c59bb51bc682a1f17ee8568e432a82f673a10df55",
     "a4eb88c827c7a2ea68db602aa2463c2aa53bb0c6156a71e1a5a5e7fc09908856",
     "1df99426c617e72beb0ca2bcbc879793cffce03e79a28a91e6e1955346228c31",
+    "d7fa7b77ff7040af0da25ea8ed86156d754b5b6007eee5d98a95b87fe9b3cafa",
 )
 PINNED_PROXY_PATCH_SERIES_SHA256 = (
-    "64ba1a846822f35fe952a8061cdbcad85c78e82a4745105baae2caddd69a60d4")
+    "2ac25711830d9f27824200ddfa07ff52ea6d12c592dfee814fec30183ae5f6b5")
 REQUIRED_CONFIDENCE_PARAMETERS = frozenset({
     "actionable_threshold", "minimum_logged_confidence", "dampening_lambda",
     "observation_strength", "observation_confidence", "abduction_strength",
@@ -238,6 +239,7 @@ def run(args):
             "0001-pln-authoritative-state.patch",
             "0002-pln-spatial-projection.patch",
             "0003-pln-unit-lifecycle.patch",
+            "0004-pln-government-and-sustainability.patch",
         )
     ]
     series_digest = hashlib.sha256()
