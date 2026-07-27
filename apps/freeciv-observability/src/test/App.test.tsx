@@ -250,12 +250,29 @@ describe("Decision Observatory", () => {
     expect(screen.getByText(/26×26 map · 1 cities · 1 units · 1 selected targets/))
       .toBeInTheDocument();
     expect(container.querySelectorAll(".map-tile")).toHaveLength(26 * 26);
+    expect(screen.getByRole("region", {
+      name: "Map entity and target navigator",
+    })).toBeInTheDocument();
+    expect(screen.getByRole("button", {
+      name: "Focus City Roma at 16,17",
+    })).toBeInTheDocument();
+    expect(screen.getByRole("button", {
+      name: "Focus Unit Settlers at 16,17",
+    })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", {
+      name: "Set map zoom to 2×",
+    }));
+    expect(container.querySelector(".map-canvas")).toHaveStyle({ width: "200%" });
     expect(screen.getByTitle("City Roma")).toBeInTheDocument();
     expect(screen.getByTitle("Unit Settlers")).toBeInTheDocument();
     expect(screen.getByRole("img", {
       name: "Logged path for grounded-impact:expansion_move",
     })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Tile 15,16/ })).toHaveClass("planned");
+    await user.click(screen.getByRole("button", {
+      name: "Focus action target 1 at 15,16",
+    }));
+    expect(screen.getByRole("heading", { name: "engine-action" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", {
       name: /Tile 16,17, City Roma, Unit Settlers/,
     }));

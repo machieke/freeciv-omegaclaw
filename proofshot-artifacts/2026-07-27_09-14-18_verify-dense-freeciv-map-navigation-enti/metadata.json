@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure",
+  "commitSha": "111b02731e954b3ff3a92183c4778709d64b28a8",
+  "startedAt": "2026-07-27T09:14:19.037Z",
+  "description": "Verify dense FreeCiv map navigation: entity and action-target focus, fit-to-3x zoom, scrolling, and inspector linkage on real trace 4644101-00"
+}
