@@ -1671,3 +1671,22 @@ predeclared as the source-fresh, claim-ineligible
 `final_settlement_escort_threat_delivery_generalization_v1` cohort. It
 estimates whether adapter 1.16 removes the aggregate adverse direction without
 additional trace selection. It cannot revise the score or win-rate claim.
+
+The adapter-1.16 generalization completed all 40 pairs and passed source,
+initial-state, safety, schema, and exact-replay gates. It reduced activation
+from the adapter-1.15 pilot's 1.275 preparations and 4.725 escort moves per
+game to 0.25 and 0.475. Founding and retained additions each changed by
+`+0.025`, but own score remained adverse at `-0.25`, interval
+`[-0.925, +0.275]`, exact `p=0.4765625`. Lead-rate difference was zero.
+
+Eight pairs had nonzero score deltas. Two zero-preparation `-8` pairs account
+for `-16` of the aggregate `-10` points and expose correctness paths outside
+the admitted mechanism. On `4072532`, a globally desired but locally
+ineligible final preparation suppressed ordinary Riflemen production. On
+`4090389`, baseline settlement confirmation expired after 0.3 seconds and the
+loop selected another move from the unchanged pre-settlement snapshot, while
+treatment observed the authoritative update first. Adapter 1.17 must make
+ineligible preparation behaviorally inert and prevent any further planned
+action from an unchanged snapshot after an accepted terminal action. A
+source-fresh replay of these exposed pairs plus the two accepted V2 mechanism
+pairs is required before another unselected development cohort.

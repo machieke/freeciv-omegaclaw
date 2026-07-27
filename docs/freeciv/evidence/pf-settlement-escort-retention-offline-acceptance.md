@@ -618,3 +618,23 @@ adapter-1.15 pilot seeds. It may estimate whether adapter 1.16 removed the
 prior aggregate adverse direction, but cannot update any score or win-rate
 claim. No additional rule tuning may inspect a subset of those outcomes before
 the complete development replay.
+
+That replay completed all 40 pairs with zero infrastructure failure. Source
+freeze, paired initial state, execution safety, all 118,677 events, and exact
+replay of 3,100 treatment decisions passed. Mean score delta was `-0.25`,
+bootstrap interval `[-0.925, +0.275]`, exact paired `p=0.4765625`. Founding
+and retained additions each improved `+0.025`; lead-rate difference was zero.
+This reused diagnostic cohort is claim-ineligible and does not support a score
+or win-rate improvement.
+
+Adapter 1.16 sharply reduced mechanism load relative to adapter 1.15:
+successful preparations fell from 1.275 to 0.25 per treatment, holds from
+3.85 to 0.45, and escort moves from 4.725 to 0.475. Its remaining aggregate
+loss is dominated by two `-8` zero-preparation traces. Exact action/snapshot
+localization finds two correctness defects: a locally ineligible preparation
+can suppress ordinary production, and the bounded effect-confirmation path can
+continue planning on the unchanged snapshot after an accepted terminal
+settlement action. These paths require correction before another score pilot.
+
+Machine-readable evidence is
+[`pf-final-settlement-escort-threat-delivery-generalization-v1.json`](pf-final-settlement-escort-threat-delivery-generalization-v1.json).

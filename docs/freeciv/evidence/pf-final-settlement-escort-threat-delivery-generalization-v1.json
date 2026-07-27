@@ -1,0 +1,130 @@
+{
+  "artifacts": {
+    "aggregate": "artifacts/freeciv/pf-final-settlement-escort-threat-delivery-generalization-v1/impact-aggregate.json",
+    "aggregate_sha256": "39e9d8e32933dab18623c263887724898cb0dc90f11359ab4c85741edd70e1ef",
+    "exact_replay_artifact_hash": "ce4f2fe5d44535aa48843d8fb68a42bf122b31c4eead96312fbc1ba51193b097",
+    "exact_replay_sha256": "ccfdea899a31bba88720997c2c3391022c1e752c078ff31509ef03c9e783828d",
+    "exact_replay_source_set_hash": "68e258e048b1d77e43f8958f891043ce164a59f19eaf8b32eea1bc353a364afa",
+    "run_summary_sha256": "5f3c5aea8aa9f1ce2dae30ab0673ba56a4cfaa4759a4feaba89c04360db0a785"
+  },
+  "claim": {
+    "claim_eligible": false,
+    "score_improvement_supported": false,
+    "status": "development_generalization_primary_direction_adverse",
+    "win_rate_supported": false
+  },
+  "cohort": {
+    "active_infrastructure_failures": 0,
+    "complete_pairs": 40,
+    "completed_arms": 80,
+    "name": "final_settlement_escort_threat_delivery_generalization_v1",
+    "planned_pairs": 40,
+    "reused_seed_set": "final_settlement_escort_preparation_pilot_v1"
+  },
+  "decision_replay": {
+    "changed_decisions": 241,
+    "decision_change_rate": 0.07774193548387097,
+    "exact_replay_files": 40,
+    "integrity_failures": 0,
+    "sources_unchanged": true,
+    "total_decisions": 3100
+  },
+  "diagnosis": {
+    "nonzero_score_pairs": 8,
+    "score_delta_sum": -10,
+    "dominant_outlier_score_delta_sum": -16,
+    "dominant_outliers": [
+      {
+        "first_behavioral_divergence": "baseline selected ordinary Riflemen production while treatment's ineligible final-preparation state suppressed that ordinary candidate",
+        "preparations": 0,
+        "score_delta": -8,
+        "seed": 4072532
+      },
+      {
+        "first_behavioral_divergence": "baseline timed out settlement effect confirmation and planned another move from the stale pre-settlement snapshot while treatment observed the authoritative settlement update",
+        "preparations": 0,
+        "score_delta": -8,
+        "seed": 4090389
+      }
+    ],
+    "required_corrections": [
+      "An ineligible final-escort preparation must not suppress ordinary production candidates.",
+      "An accepted terminal action must not permit another planned action from the unchanged snapshot after bounded effect confirmation expires."
+    ]
+  },
+  "mechanism": {
+    "treatment_mean": {
+      "final_escort_move_successes": 0.475,
+      "final_escort_preparation_production_successes": 0.25,
+      "final_escort_rendezvous_hold_snapshots": 0.45,
+      "final_escort_unprepared_route_bypass_snapshots": 10.55,
+      "final_escort_unthreatened_route_bypass_snapshots": 2.25,
+      "final_escorted_settlement_completions": 0.025,
+      "route_threat_observations": 11.625
+    }
+  },
+  "outcomes": {
+    "cities_founded_delta": {
+      "estimate": 0.025,
+      "lower": 0.0,
+      "upper": 0.075
+    },
+    "cities_gained_delta": {
+      "estimate": 0.025,
+      "lower": 0.0,
+      "upper": 0.075
+    },
+    "score_component_citizen_delta": {
+      "estimate": -0.025,
+      "lower": -0.25,
+      "upper": 0.225
+    },
+    "score_component_residual_delta": {
+      "estimate": -0.225,
+      "lower": -0.75,
+      "upper": 0.15
+    },
+    "score_delta": {
+      "estimate": -0.25,
+      "exact_p": 0.4765625,
+      "lower": -0.925,
+      "upper": 0.275
+    },
+    "score_lead_rate_delta": {
+      "estimate": 0.0,
+      "lower": -0.075,
+      "mcnemar_exact_p": 1.0,
+      "upper": 0.075
+    }
+  },
+  "power": {
+    "detectable_delta_at_achieved_n": 0.8614648231640292,
+    "nonzero_pairs": 8,
+    "observed_paired_sd": 1.9447496707934628
+  },
+  "safety": {
+    "engine_rejected_action_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "full_loop_under_30s_rate": {
+      "baseline": 1.0,
+      "treatment": 1.0
+    },
+    "initial_state_fidelity_passed": true,
+    "model_safe_fallback_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "overall_passed": true,
+    "schema_valid_events": 118677,
+    "schema_valid_files": 80
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "ba924aec103f2422181a0ab133392a42b9d65094",
+    "configuration_hash": "b01118d083a838739d9ef380c3b40a97680eb76b2ddab45a0c2446b97b5aba7e",
+    "implementation_sha256": "430aea2753c0fdca318e32e03cc3a672ad9ea67e6ca9b242fb4346065efa2296",
+    "source_freeze_passed": true
+  }
+}
