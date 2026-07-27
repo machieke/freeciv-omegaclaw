@@ -479,3 +479,24 @@ claim-ineligible.
 Machine-readable evidence is
 [`pf-final-settlement-escort-prepared-route-mechanism-v1.json`](pf-final-settlement-escort-prepared-route-mechanism-v1.json).
 The predeclared adapter-1.15 ten-seed V2 generalization may now run unchanged.
+
+The V2 generalization completed all ten pairs without infrastructure failure
+and passed every source, initial-state, safety, schema, and exact-replay
+integrity gate. Mean own-score delta improved to `+2.4`, with bootstrap
+interval `[+0.5, +4.4]`. The exact two-sided paired sign-flip result is
+`p=0.078125`: directionally strong but not below the predeclared 0.05 claim
+threshold. Retained additions improved by 0.3, citizen score by 1.3, and
+residual score by 1.1.
+
+Seven pairs improved, two declined, and one was unchanged. The prior
+`3790239` four-point loss became exact parity, while all three positive final
+escorted settlements were preserved. Mean explicit holds fell from 11.5 to
+6.8. One baseline-only lead remained and no treatment-only lead occurred, so
+there is no win-rate improvement evidence.
+
+This remains a reused, outcome-selected, claim-ineligible cohort even though
+its bootstrap interval excludes zero. It cannot revise the frozen score or
+win-rate claim. Machine-readable evidence is
+[`pf-final-settlement-escort-preparation-generalization-v2.json`](pf-final-settlement-escort-preparation-generalization-v2.json).
+The next valid gate is a predeclared fresh-seed pilot of unchanged adapter
+1.15; further tuning on these ten traces would invalidate that purpose.

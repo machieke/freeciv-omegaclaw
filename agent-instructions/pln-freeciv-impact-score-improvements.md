@@ -1581,3 +1581,18 @@ eight escort moves, one confirmed final escorted settlement, three retained
 additions, and score `118` versus `112`. The two selected pairs average `+3`
 but remain claim-ineligible. The predeclared ten-seed V2 generalization is now
 authorized to run without changing adapter 1.15.
+
+The ten-pair adapter-1.15 V2 generalization passed every audit gate and
+improved mean own score by `+2.4`, bootstrap interval `[+0.5, +4.4]`. The
+exact two-sided paired test remained above the claim threshold at
+`p=0.078125`. Retained additions improved by 0.3, citizen score by 1.3, and
+residual score by 1.1. Seven pairs improved, two declined, and one was
+unchanged. The prior `3790239` loss became exact parity, all three successful
+final escorted settlements remained, and mean holds fell from 11.5 to 6.8.
+
+Lead evidence did not improve: one baseline-only lead and no treatment-only
+lead. The cohort is reused, selected, and claim-ineligible regardless of its
+positive interval. No more rule tuning may use these ten outcomes before a
+fresh evaluation. The next valid step is a predeclared fresh-seed pilot of
+unchanged adapter 1.15, followed by a separately source-frozen confirmatory
+cohort only if the pilot direction and safety gates hold.
