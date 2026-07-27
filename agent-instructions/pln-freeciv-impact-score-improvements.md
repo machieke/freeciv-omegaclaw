@@ -1572,3 +1572,12 @@ baseline with zero final escort moves; the prepared trace must preserve its
 confirmed final escorted settlement and positive score direction. The
 ten-seed V2 generalization declaration now targets adapter 1.15 and may run
 only after this gate.
+
+The adapter-1.15 gate passed all audit requirements. On `3790239`, treatment
+recorded ten unprepared-route bypasses, zero preparation, escort, hold, or
+recovery actions, and matched baseline exactly: three retained additions and
+score `120`. On `3746776`, treatment preserved two preparations, 12 holds,
+eight escort moves, one confirmed final escorted settlement, three retained
+additions, and score `118` versus `112`. The two selected pairs average `+3`
+but remain claim-ineligible. The predeclared ten-seed V2 generalization is now
+authorized to run without changing adapter 1.15.

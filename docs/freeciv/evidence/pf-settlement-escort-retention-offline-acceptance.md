@@ -462,3 +462,20 @@ and score with zero final escort moves, while the prepared positive control
 must retain its one confirmed final escorted settlement and positive own-score
 direction. Only after that gate may the predeclared adapter-1.15 ten-seed V2
 generalization run.
+
+The adapter-1.15 mechanism replay met that strict acceptance criterion and
+passed all source, initial-state, safety, schema, and exact-replay integrity
+gates. On unprepared seed `3790239`, treatment recorded ten unprepared-route
+bypasses and zero final escort moves, holds, preparations, or recoveries. It
+matched baseline exactly: three founding completions, three retained
+additions, score `120`, opponent score `111`, and margin `+9`.
+
+Positive-control seed `3746776` remained exact: two successful preparations,
+12 holds, eight successful escort moves, one confirmed final escorted
+settlement, three retained additions, and score `118` versus `112`. The
+two-pair mean score delta is `+3`, but these reused selected seeds are
+claim-ineligible.
+
+Machine-readable evidence is
+[`pf-final-settlement-escort-prepared-route-mechanism-v1.json`](pf-final-settlement-escort-prepared-route-mechanism-v1.json).
+The predeclared adapter-1.15 ten-seed V2 generalization may now run unchanged.
