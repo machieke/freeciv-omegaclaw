@@ -1,0 +1,112 @@
+[
+  {
+    "action": "open http://127.0.0.1:4178/?view=map",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-27T09:38:27.733Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 5.7,
+    "timestamp": "2026-07-27T09:38:28.466Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Experiment traces'))?.click(); 'catalog-opened'",
+    "relativeTimeSec": 6.6,
+    "timestamp": "2026-07-27T09:38:29.312Z"
+  },
+  {
+    "action": "wait 400",
+    "relativeTimeSec": 7,
+    "timestamp": "2026-07-27T09:38:29.709Z"
+  },
+  {
+    "action": "eval document.querySelector('button[aria-label=\"Load pf-expansion-fifth-city-confirmatory-v1 / treatment / 4644101-00\"]')?.click(); 'trace-loading'",
+    "relativeTimeSec": 7.7,
+    "timestamp": "2026-07-27T09:38:30.455Z"
+  },
+  {
+    "action": "wait 2500",
+    "relativeTimeSec": 8.2,
+    "timestamp": "2026-07-27T09:38:30.944Z"
+  },
+  {
+    "action": "eval (() => { const overview=document.querySelector('.map-overview'); return {tiles:document.querySelectorAll('.map-tile').length, overview:Boolean(overview), markers:overview?.querySelectorAll('.map-overview-marker').length, targets:overview?.querySelectorAll('.map-overview-target').length, window:{x:overview?.querySelector('.map-overview-window')?.getAttribute('x'),y:overview?.querySelector('.map-overview-window')?.getAttribute('y'),width:overview?.querySelector('.map-overview-window')?.getAttribute('width'),height:overview?.querySelector('.map-overview-window')?.getAttribute('height')}}; })()",
+    "relativeTimeSec": 11.1,
+    "timestamp": "2026-07-27T09:38:33.803Z"
+  },
+  {
+    "action": "screenshot map-overview-fit.png",
+    "relativeTimeSec": 11.4,
+    "timestamp": "2026-07-27T09:38:34.132Z"
+  },
+  {
+    "action": "eval document.querySelector('button[aria-label=\"Set map zoom to 3×\"]')?.click(); document.querySelector('button[aria-label=\"Focus action target 1 at 14,10\"]')?.click(); 'zoomed-target'",
+    "relativeTimeSec": 32.2,
+    "timestamp": "2026-07-27T09:38:54.947Z"
+  },
+  {
+    "action": "wait 900",
+    "relativeTimeSec": 32.7,
+    "timestamp": "2026-07-27T09:38:55.467Z"
+  },
+  {
+    "action": "eval (() => { const viewport=document.querySelector('.map-viewport'); const windowRect=document.querySelector('.map-overview-window'); const selection=document.querySelector('.map-overview-selection'); return {scroll:{left:viewport.scrollLeft,top:viewport.scrollTop,width:viewport.scrollWidth,height:viewport.scrollHeight,clientWidth:viewport.clientWidth,clientHeight:viewport.clientHeight},window:{x:windowRect.getAttribute('x'),y:windowRect.getAttribute('y'),width:windowRect.getAttribute('width'),height:windowRect.getAttribute('height')},selection:{cx:selection.getAttribute('cx'),cy:selection.getAttribute('cy')}}; })()",
+    "relativeTimeSec": 34,
+    "timestamp": "2026-07-27T09:38:56.716Z"
+  },
+  {
+    "action": "screenshot map-overview-3x-target.png",
+    "relativeTimeSec": 34.3,
+    "timestamp": "2026-07-27T09:38:57.073Z"
+  },
+  {
+    "action": "eval (() => { const overview=document.querySelector('.map-overview'); const r=overview.getBoundingClientRect(); overview.dispatchEvent(new MouseEvent('click',{bubbles:true,detail:1,clientX:r.left+r.width*.18,clientY:r.top+r.height*.82})); return {clickedAt:[Math.round(r.left+r.width*.18),Math.round(r.top+r.height*.82)]}; })()",
+    "relativeTimeSec": 34.8,
+    "timestamp": "2026-07-27T09:38:57.526Z"
+  },
+  {
+    "action": "wait 1000",
+    "relativeTimeSec": 35.1,
+    "timestamp": "2026-07-27T09:38:57.892Z"
+  },
+  {
+    "action": "eval (() => { const viewport=document.querySelector('.map-viewport'); const windowRect=document.querySelector('.map-overview-window'); return {scroll:{left:viewport.scrollLeft,top:viewport.scrollTop},window:{x:windowRect.getAttribute('x'),y:windowRect.getAttribute('y'),width:windowRect.getAttribute('width'),height:windowRect.getAttribute('height')}}; })()",
+    "relativeTimeSec": 36.5,
+    "timestamp": "2026-07-27T09:38:59.266Z"
+  },
+  {
+    "action": "screenshot map-overview-click-pan.png",
+    "relativeTimeSec": 36.9,
+    "timestamp": "2026-07-27T09:38:59.615Z"
+  },
+  {
+    "action": "eval document.querySelector('.map-overview')?.click(); 'keyboard-style-overview-activation'",
+    "relativeTimeSec": 58.3,
+    "timestamp": "2026-07-27T09:39:21.073Z"
+  },
+  {
+    "action": "wait 1000",
+    "relativeTimeSec": 58.7,
+    "timestamp": "2026-07-27T09:39:21.412Z"
+  },
+  {
+    "action": "eval (() => { const viewport=document.querySelector('.map-viewport'); const windowRect=document.querySelector('.map-overview-window'); return {scroll:{left:viewport.scrollLeft,top:viewport.scrollTop},window:{x:windowRect.getAttribute('x'),y:windowRect.getAttribute('y')},active:{x:document.querySelector('.map-overview-selection')?.getAttribute('cx'),y:document.querySelector('.map-overview-selection')?.getAttribute('cy')}}; })()",
+    "relativeTimeSec": 60,
+    "timestamp": "2026-07-27T09:39:22.783Z"
+  },
+  {
+    "action": "screenshot map-overview-active-center.png",
+    "relativeTimeSec": 60.4,
+    "timestamp": "2026-07-27T09:39:23.127Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 60.8,
+    "timestamp": "2026-07-27T09:39:23.519Z"
+  },
+  {
+    "action": "console",
+    "relativeTimeSec": 61.1,
+    "timestamp": "2026-07-27T09:39:23.889Z"
+  }
+]

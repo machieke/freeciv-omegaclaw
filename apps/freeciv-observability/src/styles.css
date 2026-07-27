@@ -398,6 +398,23 @@ button.atom-row { cursor: pointer; }.atom-row:hover { background: #0e2027; }.ato
 .map-cursor-readout dd { max-width: 130px; margin: 0; overflow: hidden; text-overflow: ellipsis;
   white-space: nowrap; color: #b7cbd1; font: 500 7px "JetBrains Mono"; }
 .map-cursor-readout small { grid-column: 2; color: #526c75; font: 500 6px "JetBrains Mono"; }
+.map-overview { position: absolute; z-index: 9; top: 10px; right: 10px; width: 138px;
+  aspect-ratio: var(--map-overview-aspect); min-height: 92px; padding: 16px 4px 4px;
+  border: 1px solid rgba(93,216,208,.45); background: rgba(6,16,20,.92);
+  box-shadow: 0 8px 24px rgba(0,0,0,.4); cursor: crosshair; }
+.map-overview > span { position: absolute; top: 4px; left: 6px; color: #6b8992;
+  text-transform: uppercase; font: 600 6px "JetBrains Mono"; letter-spacing: .12em; }
+.map-overview svg { display: block; width: 100%; height: 100%; overflow: hidden; }
+.map-overview-background { fill: #0a1a20; stroke: #28464f; stroke-width: .2; }
+.map-overview-target { fill: rgba(93,216,208,.28); stroke: var(--cyan); stroke-width: .16; }
+.map-overview-marker { fill: #b79cff; stroke: #071015; stroke-width: .14; }
+.map-overview-marker.city { fill: var(--cyan); }.map-overview-marker.unit { fill: var(--amber); }
+.map-overview-marker.enemy { fill: var(--red); }
+.map-overview-selection { fill: none; stroke: #fff; stroke-width: .24; }
+.map-overview-window { fill: rgba(93,216,208,.07); stroke: #d9ffff; stroke-width: .22;
+  vector-effect: non-scaling-stroke; }
+.map-overview:hover, .map-overview:focus-visible { border-color: var(--cyan);
+  box-shadow: 0 0 0 1px rgba(93,216,208,.25), 0 8px 24px rgba(0,0,0,.5); }
 .map-canvas { position: relative; min-width: 520px; max-width: none; aspect-ratio: var(--map-aspect); }
 .tile-map { --map-width: 10; display: grid; grid-template-columns: repeat(var(--map-width), minmax(0, 1fr));
   position: absolute; inset: 0; background: #061014; }
@@ -446,6 +463,7 @@ button.atom-row { cursor: pointer; }.atom-row:hover { background: #0e2027; }.ato
   .map-cursor-readout { grid-template-columns: 1fr; }
   .map-cursor-readout > div { border-right: 0; }
   .map-cursor-readout small { grid-column: 1; }
+  .map-overview { width: 112px; min-height: 78px; }
 }
 @keyframes broken-tile { 50% { background: rgba(239,106,103,.35); } }
 

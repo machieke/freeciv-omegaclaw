@@ -259,6 +259,12 @@ describe("Decision Observatory", () => {
     expect(screen.getByRole("button", {
       name: "Focus Unit Settlers at 16,17",
     })).toBeInTheDocument();
+    const overview = screen.getByRole("button", {
+      name: "Map viewport overview. Click to pan",
+    });
+    expect(overview).toBeInTheDocument();
+    expect(overview.querySelectorAll(".map-overview-marker")).toHaveLength(2);
+    expect(overview.querySelectorAll(".map-overview-target")).toHaveLength(1);
     await user.click(screen.getByRole("button", {
       name: "Set map zoom to 2×",
     }));
@@ -276,6 +282,8 @@ describe("Decision Observatory", () => {
     const targetTile = screen.getByRole("button", { name: /Tile 15,16/ });
     expect(targetTile).toHaveClass("selected");
     expect(targetTile).toHaveAttribute("aria-pressed", "true");
+    expect(overview.querySelector(".map-overview-selection")).toHaveAttribute("cx", "15.5");
+    expect(overview.querySelector(".map-overview-selection")).toHaveAttribute("cy", "16.5");
     expect(screen.getByLabelText("Selected map coordinate")).toHaveTextContent(
       "15,16terrainnot loggedevidenceposition onlyentitiesnonetargetEngine Action");
     fireEvent.keyDown(targetTile, { key: "ArrowRight" });

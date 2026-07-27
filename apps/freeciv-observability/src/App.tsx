@@ -681,6 +681,27 @@ function MapOverlay({ state, selection, onSelect }: {
   const [planId, setPlanId] = useState<string>();
   const [mapZoom, setMapZoom] = useState(1);
   const [focusedPoint, setFocusedPoint] = useState<{ x: number; y: number }>();
+  const mapViewportRef = useRef<HTMLDivElement>(null);
+  const [viewportFrame, setViewportFrame] = useState({
+    x: 0, y: 0, width: 1, height: 1,
+  });
+  const syncViewportFrame = () => {
+    const viewport = mapViewportRef.current;
+    if (!viewport || viewport.scrollWidth <= 0 || viewport.scrollHeight <= 0) return;
+    const next = {
+      x: viewport.scrollLeft / viewport.scrollWidth,
+      y: viewport.scrollTop / viewport.scrollHeight,
+      width: Math.min(1, viewport.clientWidth / viewport.scrollWidth),
+      height: Math.min(1, viewport.clientHeight / viewport.scrollHeight),
+    };
+    setViewportFrame((current) => Object.keys(next).every((key) =>
+      Math.abs(current[key as keyof typeof current] - next[key as keyof typeof next]) < 0.001)
+      ? current : next);
+  };
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(syncViewportFrame);
+    return () => window.cancelAnimationFrame(frame);
+  }, [mapZoom, state.events.length]);
   const snapshot = state.snapshots.at(-1);
   if (!snapshot) return <LoggingGap title="No map snapshot at this cursor"
     detail="The map never infers tiles or paths without a state_snapshot map payload." />;
@@ -803,6 +824,23 @@ function MapOverlay({ state, selection, onSelect }: {
       Math.max(0, Math.min(height - 1, y + offset[1])),
     );
   };
+  const panFromOverview = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const viewport = mapViewportRef.current;
+    if (!viewport) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const keyboardPoint = activePoint
+      ? { x: (activePoint.x + 0.5) / width, y: (activePoint.y + 0.5) / height }
+      : { x: 0.5, y: 0.5 };
+    const x = event.detail === 0 || bounds.width <= 0
+      ? keyboardPoint.x : (event.clientX - bounds.left) / bounds.width;
+    const y = event.detail === 0 || bounds.height <= 0
+      ? keyboardPoint.y : (event.clientY - bounds.top) / bounds.height;
+    viewport.scrollTo({
+      left: Math.max(0, Math.min(1, x)) * viewport.scrollWidth - viewport.clientWidth / 2,
+      top: Math.max(0, Math.min(1, y)) * viewport.scrollHeight - viewport.clientHeight / 2,
+      behavior: "smooth",
+    });
+  };
   return <div className="view-content map-view"><div className="view-heading">
     <div><span className="eyebrow">event-provided spatial state</span><h2>Map overlay</h2></div>
     <div className="map-controls"><p>{sourceWidth}×{sourceHeight} map · {cities.length} cities ·
@@ -882,7 +920,26 @@ function MapOverlay({ state, selection, onSelect }: {
     </dl>
     <small>arrow keys move · enter opens evidence · esc clears</small>
   </aside>}
-  <div className="map-viewport">
+  <button className="map-overview" type="button" onClick={panFromOverview}
+    aria-label="Map viewport overview. Click to pan"
+    title="Logged positions and current viewport · click to pan"
+    style={{ "--map-overview-aspect": `${width} / ${height}` } as React.CSSProperties}>
+    <span>overview</span>
+    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true">
+      <rect className="map-overview-background" width={width} height={height} />
+      {path.map(({ x, y, step }) => <rect key={`overview-target-${step.step_id}`}
+        className="map-overview-target" x={x} y={y} width="1" height="1" />)}
+      {markers.map((marker) => <circle key={`overview-${marker.key}`}
+        className={`map-overview-marker ${marker.kind}`}
+        cx={marker.x + 0.5} cy={marker.y + 0.5} r=".38" />)}
+      {activePoint && <circle className="map-overview-selection"
+        cx={activePoint.x + 0.5} cy={activePoint.y + 0.5} r=".72" />}
+      <rect className="map-overview-window"
+        x={viewportFrame.x * width} y={viewportFrame.y * height}
+        width={viewportFrame.width * width} height={viewportFrame.height * height} />
+    </svg>
+  </button>
+  <div className="map-viewport" ref={mapViewportRef} onScroll={syncViewportFrame}>
   <div className="map-canvas" style={{
     "--map-aspect": `${width} / ${height}`, width: `${mapZoom * 100}%`,
   } as React.CSSProperties}>

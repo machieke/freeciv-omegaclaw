@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure",
+  "commitSha": "7afbf32694a61c956e63603aff8a7fb5dcac6fa6",
+  "startedAt": "2026-07-27T09:38:06.123Z",
+  "description": "Verify synchronized FreeCiv map overview, viewport window, logged markers and targets, active coordinate, and click-to-pan at 3x zoom on real trace 4644101-00"
+}
