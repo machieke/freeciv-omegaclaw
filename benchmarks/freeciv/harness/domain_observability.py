@@ -304,12 +304,20 @@ class DomainObservabilityEmitter(object):
             unit = previous[unit_id]
             proxy_evidence = self._removal_evidence(
                 unit, raw, self._previous.identity.source_seq)
-            if proxy_evidence is not None:
+            city_founded = (
+                unit.unit_type in _FOUNDER_TYPES
+                and (unit.x, unit.y) in new_cities)
+            # A generic PACKET_UNIT_REMOVE proves disappearance, not its cause.
+            # Prefer simultaneous authoritative city evidence for founders,
+            # while retaining exact combat correlation from the proxy journal.
+            if proxy_evidence is not None and proxy_evidence[1] == "exact":
                 cause, quality, detail, extra_evidence = proxy_evidence
-            elif unit.unit_type in _FOUNDER_TYPES and (unit.x, unit.y) in new_cities:
+            elif city_founded:
                 cause, quality = "city_founded", "inferred"
                 detail = "A new city appeared at the founder's last observed position."
                 extra_evidence = []
+            elif proxy_evidence is not None:
+                cause, quality, detail, extra_evidence = proxy_evidence
             else:
                 cause, quality = "unknown_turn_boundary", "unattributed"
                 detail = (

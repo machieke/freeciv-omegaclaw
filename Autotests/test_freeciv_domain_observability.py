@@ -98,7 +98,12 @@ def test_domain_events_make_stalls_yields_and_lifecycle_explicit(tmp_path):
     second_event = writer.emit(
         "state_snapshot", 3, second.event_payload(),
         caused_by=[first_event["event_id"]])
-    emitter.emit_snapshot(second, second_event["event_id"])
+    emitter.emit_snapshot(second, second_event["event_id"], raw={
+        "authoritative": {"unit_lifecycle": [{
+            "transition": "disappeared", "unit_id": 7, "source_seq": 3,
+            "cause": "engine_removed",
+            "detail": "PACKET_UNIT_REMOVE did not include a root cause.",
+        }]}})
 
     rows = _read(path)
     assert sum(row["type"] == "technology_catalog" for row in rows) == 1
@@ -132,12 +137,12 @@ def test_proxy_combat_journal_upgrades_disappearance_to_exact(tmp_path):
         "run_started", 0,
         {"manifest_identity": "manifest", "condition_id": "condition"})
     emitter = DomainObservabilityEmitter(writer, _ir())
-    first = _snapshot(1, (_unit(9, "Riflemen"),))
+    first = _snapshot(1, (_unit(9, "Settlers"),))
     state = writer.emit(
         "state_snapshot", 1, first.event_payload(),
         caused_by=[root["event_id"]])
     emitter.emit_snapshot(first, state["event_id"])
-    second = _snapshot(2, ())
+    second = _snapshot(2, (), cities=(_city(), _city(2, "Neapolis")))
     state = writer.emit(
         "state_snapshot", 2, second.event_payload(),
         caused_by=[state["event_id"]])
