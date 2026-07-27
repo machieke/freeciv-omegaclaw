@@ -273,10 +273,23 @@ describe("Decision Observatory", () => {
       name: "Focus action target 1 at 15,16",
     }));
     expect(screen.getByRole("heading", { name: "engine-action" })).toBeInTheDocument();
+    const targetTile = screen.getByRole("button", { name: /Tile 15,16/ });
+    expect(targetTile).toHaveClass("selected");
+    expect(targetTile).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByLabelText("Selected map coordinate")).toHaveTextContent(
+      "15,16terrainnot loggedevidenceposition onlyentitiesnonetargetEngine Action");
+    fireEvent.keyDown(targetTile, { key: "ArrowRight" });
+    const adjacentTile = screen.getByRole("button", { name: /^Tile 16,16/ });
+    expect(adjacentTile).toHaveFocus();
+    expect(adjacentTile).toHaveClass("selected");
+    expect(screen.getByLabelText("Selected map coordinate")).toHaveTextContent(
+      "16,16terrainnot loggedevidenceposition onlyentitiesnonetargetnone");
     await user.click(screen.getByRole("button", {
       name: /Tile 16,17, City Roma, Unit Settlers/,
     }));
     expect(screen.getByRole("heading", { name: "state_snapshot" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Selected map coordinate")).toHaveTextContent(
+      "16,17terrainnot loggedevidenceposition onlyentities2targetnone");
   });
 
   it("renders all 40 quarantines and makes nonzero write-through loud", async () => {

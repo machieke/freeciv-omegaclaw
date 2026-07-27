@@ -680,6 +680,7 @@ function MapOverlay({ state, selection, onSelect }: {
     plan.steps.some((step) => stepPoint(step)));
   const [planId, setPlanId] = useState<string>();
   const [mapZoom, setMapZoom] = useState(1);
+  const [focusedPoint, setFocusedPoint] = useState<{ x: number; y: number }>();
   const snapshot = state.snapshots.at(-1);
   if (!snapshot) return <LoggingGap title="No map snapshot at this cursor"
     detail="The map never infers tiles or paths without a state_snapshot map payload." />;
@@ -767,12 +768,40 @@ function MapOverlay({ state, selection, onSelect }: {
   const terrainAvailable = tileByCoordinate.size > 0;
   const visibilityAvailable = visible.size > 0;
   const viewHeight = 1000 * height / width;
+  const activePoint = focusedPoint && focusedPoint.x >= 0 && focusedPoint.y >= 0
+    && focusedPoint.x < width && focusedPoint.y < height ? focusedPoint : undefined;
+  const activeKey = activePoint ? `${activePoint.x},${activePoint.y}` : undefined;
+  const activeTile = activeKey ? tileByCoordinate.get(activeKey) : undefined;
+  const activeMarkers = activeKey ? markersByCoordinate.get(activeKey) ?? [] : [];
+  const activeStep = activeKey ? planned.get(activeKey) : undefined;
+  const activeVisible = activeKey ? visible.has(activeKey) : false;
+  const activeHut = activePoint
+    ? knownHuts.has(activePoint.y * sourceWidth + activePoint.x) : false;
   const focusMapPoint = (x: number, y: number) => {
+    setFocusedPoint({ x, y });
     const tile = document.getElementById(`map-tile-${x}-${y}`);
     tile?.focus({ preventScroll: true });
     if (typeof tile?.scrollIntoView === "function") {
       tile.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
     }
+  };
+  const handleMapKey = (event: React.KeyboardEvent<HTMLButtonElement>, x: number, y: number) => {
+    const offsets: Record<string, [number, number]> = {
+      ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1],
+    };
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setFocusedPoint(undefined);
+      event.currentTarget.blur();
+      return;
+    }
+    const offset = offsets[event.key];
+    if (!offset) return;
+    event.preventDefault();
+    focusMapPoint(
+      Math.max(0, Math.min(width - 1, x + offset[0])),
+      Math.max(0, Math.min(height - 1, y + offset[1])),
+    );
   };
   return <div className="view-content map-view"><div className="view-heading">
     <div><span className="eyebrow">event-provided spatial state</span><h2>Map overlay</h2></div>
@@ -803,8 +832,9 @@ function MapOverlay({ state, selection, onSelect }: {
       <span className="eyebrow">focus logged position</span>
       <div>
         {path.map(({ x, y, step }, index) => <button key={`target-${step.step_id}`}
-          className="target"
+          className={`target ${activeKey === `${x},${y}` ? "active" : ""}`}
           aria-label={`Focus action target ${index + 1} at ${x},${y}`}
+          aria-pressed={activeKey === `${x},${y}`}
           onClick={() => {
             focusMapPoint(x, y);
             if (selectedPlan) onSelect({ kind: "step", value: step, plan: selectedPlan });
@@ -812,8 +842,9 @@ function MapOverlay({ state, selection, onSelect }: {
           <b>◈</b> target {index + 1} <small>{x},{y}</small>
         </button>)}
         {markers.map((marker) => <button key={marker.key}
-          className={marker.kind}
+          className={`${marker.kind} ${activeKey === `${marker.x},${marker.y}` ? "active" : ""}`}
           aria-label={`Focus ${marker.label} at ${marker.x},${marker.y}`}
+          aria-pressed={activeKey === `${marker.x},${marker.y}`}
           onClick={() => {
             focusMapPoint(marker.x, marker.y);
             onSelect(marker.atom
@@ -834,6 +865,23 @@ function MapOverlay({ state, selection, onSelect }: {
         onClick={() => setMapZoom(zoom)}>{zoom}×</button>)}</div>
     </div>
   </section>
+  <div className="map-viewport-shell">
+  {activePoint && <aside className="map-cursor-readout" aria-label="Selected map coordinate"
+    aria-live="polite">
+    <div><span className="eyebrow">map cursor</span>
+      <strong>{activePoint.x},{activePoint.y}</strong></div>
+    <dl>
+      <div><dt>terrain</dt><dd>{activeTile?.terrain === undefined
+        ? "not logged" : String(activeTile.terrain)}</dd></div>
+      <div><dt>evidence</dt><dd>{!terrainAvailable ? "position only"
+        : activeVisible ? "visible" : visibilityAvailable ? "not visible" : "visibility not logged"}</dd></div>
+      <div><dt>entities</dt><dd title={activeMarkers.map((marker) => marker.label).join(", ")}>
+        {activeMarkers.length || "none"}</dd></div>
+      <div><dt>target</dt><dd>{activeStep ? humanize(activeStep.kind) : "none"}</dd></div>
+      {activeHut && <div><dt>feature</dt><dd>known hut</dd></div>}
+    </dl>
+    <small>arrow keys move · enter opens evidence · esc clears</small>
+  </aside>}
   <div className="map-viewport">
   <div className="map-canvas" style={{
     "--map-aspect": `${width} / ${height}`, width: `${mapZoom * 100}%`,
@@ -851,14 +899,18 @@ function MapOverlay({ state, selection, onSelect }: {
       const tileIndex = y * sourceWidth + x;
       const hut = knownHuts.has(tileIndex);
       const markerLabels = tileMarkers.map((marker) => marker.label).join(", ");
+      const selected = activeKey === `${x},${y}`;
       return <button key={`${x}-${y}`}
         id={`map-tile-${x}-${y}`}
         aria-label={`Tile ${x},${y}${terrain === undefined ? "" : `, terrain ${String(terrain)}`}${markerLabels ? `, ${markerLabels}` : ""}`}
+        aria-pressed={selected}
         title={terrain === undefined ? `Tile ${x},${y}` : `Tile ${x},${y} · terrain ${String(terrain)}`}
-        className={`map-tile ${isVisible ? "visible" : terrainAvailable ? "fog" : "unavailable"} ${tile ? "has-terrain" : ""} ${tileMarkers.length ? "has-marker" : ""} ${step ? "planned" : ""} ${broken ? "broken" : ""} ${hut ? "hut" : ""}`}
+        className={`map-tile ${isVisible ? "visible" : terrainAvailable ? "fog" : "unavailable"} ${tile ? "has-terrain" : ""} ${tileMarkers.length ? "has-marker" : ""} ${step ? "planned" : ""} ${broken ? "broken" : ""} ${hut ? "hut" : ""} ${selected ? "selected" : ""}`}
         style={tile && terrain !== undefined
           ? { "--terrain-hue": terrainHue(terrain) } as React.CSSProperties : undefined}
+        onKeyDown={(event) => handleMapKey(event, x, y)}
         onClick={() => {
+          setFocusedPoint({ x, y });
           const atomMarker = tileMarkers.find((marker) => marker.atom);
           onSelect(atomMarker?.atom
             ? { kind: "atom", value: atomMarker.atom }
@@ -889,7 +941,7 @@ function MapOverlay({ state, selection, onSelect }: {
       <circle r="15" /><text y="5" textAnchor="middle">{index + 1}</text>
     </g>)}
   </svg>}
-  </div></div><div className="map-legend">
+  </div></div></div><div className="map-legend">
     <span className="city">◆ city</span><span className="unit">● own unit</span>
     {enemies.length > 0 && <span className="enemy">× visible opponent</span>}
     {atomMarkers.length > 0 && <span>○ uncertain observation opacity = logged confidence</span>}

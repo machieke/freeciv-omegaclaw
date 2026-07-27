@@ -1,0 +1,122 @@
+[
+  {
+    "action": "open http://127.0.0.1:4178/?view=map",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-27T09:27:06.209Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 5.7,
+    "timestamp": "2026-07-27T09:27:06.894Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Experiment traces'))?.click(); 'catalog-opened'",
+    "relativeTimeSec": 6.5,
+    "timestamp": "2026-07-27T09:27:07.735Z"
+  },
+  {
+    "action": "wait 400",
+    "relativeTimeSec": 6.9,
+    "timestamp": "2026-07-27T09:27:08.112Z"
+  },
+  {
+    "action": "eval document.querySelector('button[aria-label=\"Load pf-expansion-fifth-city-confirmatory-v1 / treatment / 4644101-00\"]')?.click(); 'trace-loading'",
+    "relativeTimeSec": 7.6,
+    "timestamp": "2026-07-27T09:27:08.870Z"
+  },
+  {
+    "action": "wait 2500",
+    "relativeTimeSec": 8.1,
+    "timestamp": "2026-07-27T09:27:09.344Z"
+  },
+  {
+    "action": "eval (() => ({url:location.href, tiles:document.querySelectorAll('.map-tile').length, targets:[...document.querySelectorAll('.map-focus-list button')].slice(0,3).map(b=>b.getAttribute('aria-label')), cursor:Boolean(document.querySelector('.map-cursor-readout'))}))()",
+    "relativeTimeSec": 11,
+    "timestamp": "2026-07-27T09:27:12.186Z"
+  },
+  {
+    "action": "screenshot map-cursor-before-selection.png",
+    "relativeTimeSec": 11.3,
+    "timestamp": "2026-07-27T09:27:12.544Z"
+  },
+  {
+    "action": "eval document.querySelector('button[aria-label=\"Set map zoom to 2×\"]')?.click(); document.querySelector('button[aria-label=\"Focus action target 1 at 14,10\"]')?.click(); 'target-focused'",
+    "relativeTimeSec": 20.1,
+    "timestamp": "2026-07-27T09:27:21.340Z"
+  },
+  {
+    "action": "wait 400",
+    "relativeTimeSec": 20.6,
+    "timestamp": "2026-07-27T09:27:21.814Z"
+  },
+  {
+    "action": "eval (() => { const tile=document.querySelector('#map-tile-14-10'); const cursor=document.querySelector('.map-cursor-readout'); const canvas=document.querySelector('.map-canvas'); const inspector=document.querySelector('.inspector h2'); return {activeId:document.activeElement?.id, selected:tile?.classList.contains('selected'), pressed:tile?.getAttribute('aria-pressed'), cursor:cursor?.textContent?.replace(/\\s+/g,' ').trim(), canvasWidth:canvas?.style.width, inspector:inspector?.textContent}; })()",
+    "relativeTimeSec": 21.4,
+    "timestamp": "2026-07-27T09:27:22.582Z"
+  },
+  {
+    "action": "screenshot map-cursor-target-selected.png",
+    "relativeTimeSec": 21.7,
+    "timestamp": "2026-07-27T09:27:22.939Z"
+  },
+  {
+    "action": "press ArrowRight",
+    "relativeTimeSec": 30.7,
+    "timestamp": "2026-07-27T09:27:31.975Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 31.2,
+    "timestamp": "2026-07-27T09:27:32.402Z"
+  },
+  {
+    "action": "eval (() => { const tile=document.querySelector('#map-tile-15-10'); const cursor=document.querySelector('.map-cursor-readout'); return {activeId:document.activeElement?.id, selected:tile?.classList.contains('selected'), cursor:cursor?.textContent?.replace(/\\s+/g,' ').trim(), inspector:document.querySelector('.inspector h2')?.textContent}; })()",
+    "relativeTimeSec": 31.8,
+    "timestamp": "2026-07-27T09:27:33.047Z"
+  },
+  {
+    "action": "screenshot map-cursor-keyboard-moved.png",
+    "relativeTimeSec": 32.2,
+    "timestamp": "2026-07-27T09:27:33.466Z"
+  },
+  {
+    "action": "press Escape",
+    "relativeTimeSec": 32.7,
+    "timestamp": "2026-07-27T09:27:33.912Z"
+  },
+  {
+    "action": "wait 200",
+    "relativeTimeSec": 33.1,
+    "timestamp": "2026-07-27T09:27:34.339Z"
+  },
+  {
+    "action": "eval ({activeTag:document.activeElement?.tagName, cursor:Boolean(document.querySelector('.map-cursor-readout')), selectedTiles:document.querySelectorAll('.map-tile.selected').length})",
+    "relativeTimeSec": 33.7,
+    "timestamp": "2026-07-27T09:27:34.896Z"
+  },
+  {
+    "action": "eval document.querySelector('button[aria-label=\"Focus action target 1 at 14,10\"]')?.click(); 'target-refocused'",
+    "relativeTimeSec": 58.1,
+    "timestamp": "2026-07-27T09:27:59.317Z"
+  },
+  {
+    "action": "wait 900",
+    "relativeTimeSec": 58.5,
+    "timestamp": "2026-07-27T09:27:59.734Z"
+  },
+  {
+    "action": "screenshot map-cursor-target-final.png",
+    "relativeTimeSec": 59.8,
+    "timestamp": "2026-07-27T09:28:00.984Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 60.2,
+    "timestamp": "2026-07-27T09:28:01.424Z"
+  },
+  {
+    "action": "console",
+    "relativeTimeSec": 60.5,
+    "timestamp": "2026-07-27T09:28:01.755Z"
+  }
+]

@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure",
+  "commitSha": "4dbebb7d2235c2dff837936003536b2426dde557",
+  "startedAt": "2026-07-27T09:26:39.433Z",
+  "description": "Verify persistent FreeCiv map cursor, exact logged tile evidence, keyboard navigation, zoom retention, and inspector linkage on real trace 4644101-00"
+}

@@ -368,6 +368,8 @@ button.atom-row { cursor: pointer; }.atom-row:hover { background: #0e2027; }.ato
   max-width: 210px; padding: 5px 7px; border-color: #2a424a; background: #09161b; color: #a8bac0;
   text-transform: none; font: 500 8px "JetBrains Mono"; }
 .map-focus-list button:hover, .map-focus-list button:focus-visible { border-color: var(--cyan); color: #e0eef1; }
+.map-focus-list button.active { border-color: var(--cyan); background: rgba(93,216,208,.1); color: #e0eef1;
+  box-shadow: inset 0 -2px 0 var(--cyan); }
 .map-focus-list button b { color: #b79cff; }.map-focus-list button.city b { color: var(--cyan); }
 .map-focus-list button.unit b { color: var(--amber); }.map-focus-list button.enemy b { color: var(--red); }
 .map-focus-list button.target b { color: var(--cyan); }
@@ -379,9 +381,23 @@ button.atom-row { cursor: pointer; }.atom-row:hover { background: #0e2027; }.ato
 .map-zoom button:last-child { border-right: 1px solid var(--line-strong); }
 .map-zoom button[aria-pressed="true"] { border-color: var(--cyan); background: rgba(93,216,208,.12);
   color: var(--cyan); box-shadow: inset 0 -2px 0 var(--cyan); }
-.map-viewport { width: 100%; max-width: 980px; max-height: min(72vh, 980px); overflow: auto;
+.map-viewport-shell { position: relative; width: 100%; max-width: 980px; }
+.map-viewport { width: 100%; max-height: min(72vh, 980px); overflow: auto;
   border: 1px solid var(--line-strong); background: #061014; scrollbar-color: #35505a #071217; }
 .map-viewport::-webkit-scrollbar { width: 8px; height: 8px; }
+.map-cursor-readout { position: absolute; z-index: 10; top: 10px; left: 10px; display: grid;
+  grid-template-columns: auto minmax(260px,1fr); gap: 6px 15px; max-width: calc(100% - 36px);
+  padding: 9px 11px; border: 1px solid rgba(93,216,208,.55); background: rgba(6,16,20,.94);
+  box-shadow: 0 8px 24px rgba(0,0,0,.45); pointer-events: none; }
+.map-cursor-readout > div { display: grid; align-content: center; gap: 2px; padding-right: 12px;
+  border-right: 1px solid var(--line-strong); }
+.map-cursor-readout > div strong { color: var(--cyan); font: 600 15px "JetBrains Mono"; }
+.map-cursor-readout dl { display: flex; flex-wrap: wrap; gap: 5px 12px; margin: 0; }
+.map-cursor-readout dl div { display: grid; grid-template-columns: auto auto; gap: 4px; align-items: baseline; }
+.map-cursor-readout dt { color: #59747d; text-transform: uppercase; font: 500 6px "JetBrains Mono"; }
+.map-cursor-readout dd { max-width: 130px; margin: 0; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; color: #b7cbd1; font: 500 7px "JetBrains Mono"; }
+.map-cursor-readout small { grid-column: 2; color: #526c75; font: 500 6px "JetBrains Mono"; }
 .map-canvas { position: relative; min-width: 520px; max-width: none; aspect-ratio: var(--map-aspect); }
 .tile-map { --map-width: 10; display: grid; grid-template-columns: repeat(var(--map-width), minmax(0, 1fr));
   position: absolute; inset: 0; background: #061014; }
@@ -394,7 +410,11 @@ button.atom-row { cursor: pointer; }.atom-row:hover { background: #0e2027; }.ato
 .map-tile.has-terrain.fog { background: hsl(var(--terrain-hue) 12% 9%); }
 .map-tile:not(.has-terrain).fog { background: #060d10; }
 .map-tile.has-marker { cursor: pointer; }
+.map-tile.selected { z-index: 6; outline: 3px solid #e5ffff; outline-offset: -3px;
+  box-shadow: inset 0 0 0 5px rgba(93,216,208,.24), 0 0 14px rgba(93,216,208,.75); }
 .map-tile.planned { box-shadow: inset 0 0 0 2px var(--cyan); z-index: 2; }
+.map-tile.planned.selected { box-shadow: inset 0 0 0 5px rgba(93,216,208,.24),
+  0 0 14px rgba(93,216,208,.75); }
 .map-tile.hut { box-shadow: inset 0 0 0 1px var(--amber); }
 .map-tile.broken { animation: broken-tile 1s steps(2,end) infinite; }
 .map-tile em { position: absolute; z-index: 4; right: 2px; bottom: 1px; color: var(--cyan);
@@ -423,6 +443,9 @@ button.atom-row { cursor: pointer; }.atom-row:hover { background: #0e2027; }.ato
   .map-data-status { grid-template-columns: 1fr; gap: 8px; }
   .map-spatial-tools { grid-template-columns: 1fr; }
   .map-zoom { grid-template-columns: auto 1fr; align-items: center; }
+  .map-cursor-readout { grid-template-columns: 1fr; }
+  .map-cursor-readout > div { border-right: 0; }
+  .map-cursor-readout small { grid-column: 1; }
 }
 @keyframes broken-tile { 50% { background: rgba(239,106,103,.35); } }
 
