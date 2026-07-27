@@ -137,6 +137,44 @@ const productionMapTrace = [
   }, 1, 1),
 ].map((row) => JSON.stringify(row)).join("\n");
 
+const decisionOnlyAuditTrace = [
+  event(0, "llm_proposal", {
+    claims: [],
+    goals: [
+      {
+        arguments: ["player", "Advanced Flight"], goal_id: "goal-live-1",
+        predicate: "researchable", target_id: "tech-advanced-flight",
+      },
+      {
+        arguments: ["player", "The Corporation"], goal_id: "goal-live-2",
+        predicate: "researchable", target_id: "tech-corporation",
+      },
+    ],
+    model: "qwen3-coder-next:latest",
+    prompt_version: "engine-live-constrained/1.0",
+    proposal_id: "proposal-model",
+  }, 1, 1),
+  event(1, "verification", {
+    check: "graded_candidate_feasible", claim_id: "goal-live-2",
+    evidence_atom_ids: ["evidence-goal"], proposal_id: "proposal-model",
+    verdict: "believe", verification_id: "verify-goal",
+  }, 1, 2),
+  event(2, "verification", {
+    check: "active_research_has_no_new_selection_action", claim_id: "goal-live-1",
+    evidence_atom_ids: [], proposal_id: "proposal-canonical",
+    verdict: "believe", verification_id: "verify-continuation",
+  }, 2, 1),
+  event(3, "verification", {
+    check: "plan_invalid", claim_id: "step-invalid",
+    evidence_atom_ids: [], proposal_id: "plan-invalid",
+    verdict: "disbelieve", verification_id: "verify-plan",
+  }, 2, 2),
+  event(4, "metric_sample", {
+    name: "confabulation_write_through", unit: "ratio", value: 0,
+    labels: { condition: "e_full_loop" },
+  }, 2, 3),
+].map((row) => JSON.stringify(row)).join("\n");
+
 describe("Decision Observatory", () => {
   it("opens an action ancestry and reaches the supporting proof in five interactions", async () => {
     const user = userEvent.setup();
@@ -310,6 +348,29 @@ describe("Decision Observatory", () => {
     render(<App initialText={writeThroughTrace} />);
     await user.click(screen.getByRole("button", { name: /Epistemic audit/ }));
     expect(document.querySelector(".write-through.alarm strong")).toHaveTextContent("1");
+  });
+
+  it("separates zero-claim proposals from non-claim decision checks", async () => {
+    const user = userEvent.setup();
+    render(<App initialText={decisionOnlyAuditTrace} />);
+    await user.click(screen.getByRole("button", { name: /Epistemic audit/ }));
+    expect(screen.getByRole("region", { name: "Claim audit scope" })).toHaveTextContent(
+      "No claims emitted1 model proposal · 2 goals");
+    const funnel = screen.getByLabelText("Claim verification funnel");
+    expect(within(funnel).getByLabelText("Proposed claims")).toHaveTextContent("0");
+    expect(within(funnel).getByLabelText("Claim checks")).toHaveTextContent("0");
+    expect(within(funnel).getByLabelText("Quarantined claims")).toHaveTextContent("0");
+    expect(within(funnel).getByLabelText("write-through ratio")).toHaveTextContent("0%");
+    const decisionChecks = screen.getByRole("region", {
+      name: "Non-claim decision checks",
+    });
+    expect(decisionChecks).toHaveTextContent("3 checks");
+    expect(decisionChecks).toHaveTextContent("2 believe");
+    expect(decisionChecks).toHaveTextContent("1 disbelieve");
+    expect(within(decisionChecks).getByRole("button", {
+      name: "Inspect latest active_research_has_no_new_selection_action decision check",
+    })).toBeInTheDocument();
+    expect(screen.queryByText(/^verified$/i)).not.toBeInTheDocument();
   });
 
   it("renders metric values directly from events", async () => {

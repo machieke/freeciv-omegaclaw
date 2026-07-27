@@ -1,0 +1,92 @@
+[
+  {
+    "action": "open http://127.0.0.1:4178/?view=audit",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-27T09:59:39.621Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 5.7,
+    "timestamp": "2026-07-27T09:59:40.310Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('button')].find(b=>b.textContent.includes('Experiment traces'))?.click(); 'catalog-opened'",
+    "relativeTimeSec": 6.5,
+    "timestamp": "2026-07-27T09:59:41.167Z"
+  },
+  {
+    "action": "wait 400",
+    "relativeTimeSec": 6.9,
+    "timestamp": "2026-07-27T09:59:41.568Z"
+  },
+  {
+    "action": "eval (() => { const buttons=[...document.querySelectorAll('button')].filter(b=>b.getAttribute('aria-label')?.includes('4543804-00')); return buttons.map(b=>b.getAttribute('aria-label')); })()",
+    "relativeTimeSec": 7.6,
+    "timestamp": "2026-07-27T09:59:42.297Z"
+  },
+  {
+    "action": "eval document.querySelector('button[aria-label=\"Load pf-expansion-fifth-city-confirmatory-v1 / baseline / 4543804-00\"]')?.click(); 'trace-loading'",
+    "relativeTimeSec": 16.9,
+    "timestamp": "2026-07-27T09:59:51.524Z"
+  },
+  {
+    "action": "wait 3000",
+    "relativeTimeSec": 17.4,
+    "timestamp": "2026-07-27T09:59:52.015Z"
+  },
+  {
+    "action": "eval (() => { const scope=document.querySelector('[aria-label=\"Claim audit scope\"]'); const funnel=document.querySelector('[aria-label=\"Claim verification funnel\"]'); const checks=document.querySelector('[aria-label=\"Non-claim decision checks\"]'); const quarantine=document.querySelector('[aria-label=\"Quarantined claim details\"]'); return {url:location.href,events:document.querySelector('.top-stat strong')?.textContent,scope:scope?.textContent?.replace(/\\s+/g,' ').trim(),funnel:funnel?.textContent?.replace(/\\s+/g,' ').trim(),checks:checks?.textContent?.replace(/\\s+/g,' ').trim(),quarantine:quarantine?.textContent?.replace(/\\s+/g,' ').trim()}; })()",
+    "relativeTimeSec": 20.7,
+    "timestamp": "2026-07-27T09:59:55.369Z"
+  },
+  {
+    "action": "screenshot epistemic-audit-corrected-top.png",
+    "relativeTimeSec": 21.1,
+    "timestamp": "2026-07-27T09:59:55.728Z"
+  },
+  {
+    "action": "eval const main=document.querySelector('main'); main.scrollTop=420; main.scrollTop",
+    "relativeTimeSec": 39.8,
+    "timestamp": "2026-07-27T10:00:14.489Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 40.2,
+    "timestamp": "2026-07-27T10:00:14.820Z"
+  },
+  {
+    "action": "screenshot epistemic-audit-decision-breakdown.png",
+    "relativeTimeSec": 40.9,
+    "timestamp": "2026-07-27T10:00:15.502Z"
+  },
+  {
+    "action": "eval document.querySelector('button[aria-label=\"Inspect latest plan_invalid decision check\"]')?.click(); 'plan-check-opened'",
+    "relativeTimeSec": 41.3,
+    "timestamp": "2026-07-27T10:00:15.956Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 41.7,
+    "timestamp": "2026-07-27T10:00:16.325Z"
+  },
+  {
+    "action": "eval ({inspector:document.querySelector('.inspector h2')?.textContent,subtitle:document.querySelector('.inspector p')?.textContent,selectedCheck:document.querySelector('.inspector pre')?.textContent?.includes('plan_invalid')})",
+    "relativeTimeSec": 42.3,
+    "timestamp": "2026-07-27T10:00:16.983Z"
+  },
+  {
+    "action": "screenshot epistemic-audit-check-inspector.png",
+    "relativeTimeSec": 42.7,
+    "timestamp": "2026-07-27T10:00:17.331Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 43.1,
+    "timestamp": "2026-07-27T10:00:17.758Z"
+  },
+  {
+    "action": "console",
+    "relativeTimeSec": 43.4,
+    "timestamp": "2026-07-27T10:00:18.085Z"
+  }
+]

@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure",
+  "commitSha": "0840227def90749bf351a122e14611c51814800b",
+  "startedAt": "2026-07-27T09:59:11.866Z",
+  "description": "Verify corrected epistemic audit semantics on baseline game 4543804-00: zero emitted claims, 61 separate goal/plan checks, zero quarantines, and explicit 0 percent write-through ratio"
+}

@@ -469,7 +469,39 @@ button.atom-row { cursor: pointer; }.atom-row:hover { background: #0e2027; }.ato
 
 .write-through { display: grid; grid-template-columns: 1fr auto; gap: 4px 20px; padding: 20px; border: 1px solid var(--line-strong); }.write-through > span { text-transform: uppercase; font: 600 9px "JetBrains Mono"; }.write-through strong { grid-row: span 2; font-size: 38px; }.write-through small { color: var(--muted); }.write-through.clear strong { color: var(--green); }.write-through.alarm { border-color: var(--red); background: rgba(239,106,103,.12); }.write-through.alarm strong { color: var(--red); }
 .audit-heatmap { margin-bottom: 12px; border: 1px solid var(--line); background: #081419; overflow-x: auto; }
+.audit-scope-note { display: grid; grid-template-columns: minmax(175px,.6fr) minmax(320px,1.4fr);
+  gap: 20px; align-items: center; margin-bottom: 12px; padding: 12px 14px; border: 1px solid #284957;
+  background: linear-gradient(90deg, rgba(93,216,208,.08), rgba(93,216,208,.015)); }
+.audit-scope-note.empty { border-color: rgba(232,174,87,.42);
+  background: linear-gradient(90deg, rgba(232,174,87,.09), rgba(232,174,87,.015)); }
+.audit-scope-note > div { display: grid; gap: 4px; }
+.audit-scope-note strong { color: var(--cyan); font-size: 13px; }
+.audit-scope-note.empty strong { color: var(--amber); }
+.audit-scope-note p { margin: 0; color: #91a7af; font-size: 9px; line-height: 1.55; }
 .funnel { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin: 12px 0; background: var(--line); }.funnel div { display: grid; padding: 14px; background: #0b191f; }.funnel strong { font-size: 20px; }.funnel span { color: var(--muted); text-transform: uppercase; font: 500 8px "JetBrains Mono"; }.funnel .alarm { background: rgba(239,106,103,.14); }
+.decision-checks, .claim-quarantines { margin-top: 12px; border: 1px solid var(--line);
+  background: #081419; }
+.decision-checks > header, .claim-quarantines > header { display: flex; justify-content: space-between;
+  gap: 18px; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.decision-checks h3 { margin: 4px 0 0; font-size: 13px; }
+.decision-checks > header > strong, .claim-quarantines > header > strong { color: #8eb8ff;
+  font: 600 11px "JetBrains Mono"; }
+.decision-verdicts { display: flex; gap: 7px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.decision-verdicts span { padding: 5px 8px; border: 1px solid #29414a; color: var(--muted);
+  text-transform: uppercase; font: 500 7px "JetBrains Mono"; }
+.decision-verdicts b { color: #c8d9de; font-size: 9px; }
+.decision-check-table > div, .decision-check-table > button { width: 100%; display: grid;
+  grid-template-columns: minmax(220px,1fr) repeat(4,70px); gap: 8px; align-items: center;
+  padding: 9px 13px; }
+.decision-check-table .head { color: var(--muted); text-transform: uppercase;
+  font: 500 7px "JetBrains Mono"; background: #0c1b21; }
+.decision-check-table .head span:not(:first-child) { text-align: right; }
+.decision-check-table > button { border: 0; border-top: 1px solid #142830; background: transparent;
+  color: #8fa6ae; text-align: right; cursor: pointer; font: 500 8px "JetBrains Mono"; }
+.decision-check-table > button:hover, .decision-check-table > button:focus-visible { background: #0d2027; }
+.decision-check-table > button strong { color: #c5d7dc; text-align: left; font-weight: 500; }
+.audit-empty-copy { margin: 0; padding: 14px; color: var(--muted); font-size: 9px; }
+.claim-quarantines > header { border-bottom: 0; }
 .quarantine-table { border: 1px solid var(--line); }.quarantine-row { width: 100%; display: grid; grid-template-columns: 60px 1.5fr 1fr 70px; gap: 10px; padding: 10px; border: 0; border-bottom: 1px solid var(--line); background: #09151a; color: inherit; text-align: left; font-size: 9px; }.quarantine-row:not(.head) { cursor: pointer; }.quarantine-row:not(.head):hover { background: #10232a; }.quarantine-row.head { color: var(--muted); text-transform: uppercase; font: 600 8px "JetBrains Mono"; }
 
 .metric-tools { display: flex; align-items: start; justify-content: space-between; gap: 14px; margin-bottom: 12px; }

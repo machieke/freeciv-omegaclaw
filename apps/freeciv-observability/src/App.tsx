@@ -1010,16 +1010,60 @@ function EpistemicAudit({ state, onSelect }: {
   state: ReplayState; onSelect: (selection: Selection) => void;
 }) {
   const proposals = state.events.filter((event) => event.type === "llm_proposal");
-  const claimCount = proposals.reduce((count, event) => count
-    + (Array.isArray(event.payload.claims) ? event.payload.claims.length : 0), 0);
+  const claimsByProposal = proposals.flatMap((event) => {
+    const proposalId = String(event.payload.proposal_id ?? "");
+    return (Array.isArray(event.payload.claims) ? event.payload.claims : [])
+      .flatMap((claim) => claim && typeof claim === "object"
+        ? [{ proposalId, claim: claim as Record<string, unknown> }] : []);
+  });
+  const claimKeys = new Set(claimsByProposal.map(({ proposalId, claim }) =>
+    `${proposalId}\u0000${String(claim.claim_id ?? "")}`));
+  const isClaimLinked = (event: TraceEvent): boolean => claimKeys.has(
+    `${String(event.payload.proposal_id ?? "")}\u0000${String(event.payload.claim_id ?? "")}`,
+  );
+  const claimVerifications = state.verifications.filter(isClaimLinked);
+  const decisionVerifications = state.verifications.filter((event) => !isClaimLinked(event));
+  const claimQuarantines = state.quarantines.filter(isClaimLinked);
+  const claimCount = claimsByProposal.length;
+  const goalCount = proposals.reduce((count, event) => count
+    + (Array.isArray(event.payload.goals) ? event.payload.goals.length : 0), 0);
   const writeThrough = [...state.metrics].reverse().find(
     (event) => event.payload.name === "confabulation_write_through");
-  const writeValue = writeThrough ? Number(writeThrough.payload.value) : undefined;
+  const rawWriteValue = writeThrough ? Number(writeThrough.payload.value) : Number.NaN;
+  const writeValue = Number.isFinite(rawWriteValue) ? rawWriteValue : undefined;
+  const writeUnit = String(writeThrough?.payload.unit ?? "");
+  const writeLabel = writeUnit === "ratio" ? "write-through ratio" : "write-through claims";
+  const writeDisplay = writeValue === undefined ? "—" : writeUnit === "ratio"
+    ? `${(writeValue * 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}%`
+    : writeValue.toLocaleString();
+  const claimProposalEvents = proposals.filter((event) =>
+    Array.isArray(event.payload.claims) && event.payload.claims.length > 0);
   const auditTurns = [...new Set([
-    ...proposals.map((event) => event.turn),
-    ...state.verifications.map((event) => event.turn),
-    ...state.quarantines.map((event) => event.turn),
+    ...claimProposalEvents.map((event) => event.turn),
+    ...claimVerifications.map((event) => event.turn),
+    ...claimQuarantines.map((event) => event.turn),
   ])].sort((left, right) => left - right);
+  const decisionChecks = [...decisionVerifications.reduce((checks, event) => {
+    const check = String(event.payload.check ?? "unclassified_check");
+    const row = checks.get(check) ?? {
+      events: [] as TraceEvent[], believe: 0, disbelieve: 0, quarantine: 0,
+    };
+    row.events.push(event);
+    const verdict = String(event.payload.verdict ?? "");
+    if (verdict === "believe") row.believe += 1;
+    else if (verdict === "disbelieve") row.disbelieve += 1;
+    else if (verdict === "quarantine") row.quarantine += 1;
+    checks.set(check, row);
+    return checks;
+  }, new Map<string, {
+    events: TraceEvent[]; believe: number; disbelieve: number; quarantine: number;
+  }>())].sort((left, right) => right[1].events.length - left[1].events.length);
+  const decisionBelieved = decisionVerifications.filter(
+    (event) => event.payload.verdict === "believe").length;
+  const decisionDisbelieved = decisionVerifications.filter(
+    (event) => event.payload.verdict === "disbelieve").length;
+  const decisionQuarantined = decisionVerifications.filter(
+    (event) => event.payload.verdict === "quarantine").length;
   const countsByTurn = (events: TraceEvent[], count: (event: TraceEvent) => number = () => 1):
   Map<number, number> => {
     const values = new Map<number, number>();
@@ -1032,32 +1076,66 @@ function EpistemicAudit({ state, onSelect }: {
   {auditTurns.length > 0 && <section className="audit-heatmap">
     <header><div><span className="eyebrow">verification chronology</span>
       <h3>Claim handling by turn</h3></div></header>
-    <TurnHeatmap turns={auditTurns} label="Claims, verification, and quarantine by turn"
+    <TurnHeatmap turns={auditTurns} label="Claims, claim checks, and quarantine by turn"
       onTurn={() => undefined}
       rows={[
-        { label: "Claims", counts: countsByTurn(proposals,
+        { label: "Claims", counts: countsByTurn(claimProposalEvents,
           (event) => Array.isArray(event.payload.claims) ? event.payload.claims.length : 0), color: CHART_COLORS[0] },
-        { label: "Verified", counts: countsByTurn(state.verifications), color: CHART_COLORS[2] },
-        { label: "Quarantined", counts: countsByTurn(state.quarantines), color: CHART_COLORS[3] },
+        { label: "Claim checks", counts: countsByTurn(claimVerifications), color: CHART_COLORS[2] },
+        { label: "Quarantined", counts: countsByTurn(claimQuarantines), color: CHART_COLORS[3] },
       ]} />
   </section>}
+  <section className={`audit-scope-note ${claimCount === 0 ? "empty" : ""}`}
+    aria-label="Claim audit scope">
+    <div><span className="eyebrow">claim-bearing proposals</span>
+      <strong>{claimCount === 0 ? "No claims emitted" : `${claimCount} claims emitted`}</strong></div>
+    <p>{proposals.length.toLocaleString()} model proposal{proposals.length === 1 ? "" : "s"} ·
+      {" "}{goalCount.toLocaleString()} goal{goalCount === 1 ? "" : "s"} ·
+      {" "}only checks matching both proposal and claim IDs enter this funnel.</p>
+  </section>
   <div className={`write-through ${writeValue === undefined ? "unknown" : writeValue ? "alarm" : "clear"}`} role="status">
-    <span>confabulation write-through</span><strong>{writeValue ?? "—"}</strong>
-    <small>{writeThrough ? "event-provided metric" : "no metric logged · unknown"}</small>
-  </div><div className="funnel" aria-label="Verification funnel">
-    <div><strong>{claimCount}</strong><span>claims made</span></div>
-    <div><strong>{state.verifications.length}</strong><span>verified</span></div>
-    <div><strong>{state.quarantines.length}</strong><span>quarantined</span></div>
-    <div className={writeValue ? "alarm" : ""}><strong>{writeValue ?? "—"}</strong><span>write-throughs</span></div>
-  </div><div className="quarantine-table"><div className="quarantine-row head">
-    <span>turn</span><span>claim verbatim</span><span>failed check</span><span>evidence</span></div>
-    {state.quarantines.map((event) => <button className="quarantine-row" key={event.event_id}
+    <span>confabulation {writeLabel}</span><strong>{writeDisplay}</strong>
+    <small>{writeThrough ? `event-provided ${writeUnit || "value"}` : "no metric logged · unknown"}</small>
+  </div><div className="funnel" aria-label="Claim verification funnel">
+    <div aria-label="Proposed claims"><strong>{claimCount}</strong><span>proposed claims</span></div>
+    <div aria-label="Claim checks"><strong>{claimVerifications.length}</strong><span>claim checks</span></div>
+    <div aria-label="Quarantined claims"><strong>{claimQuarantines.length}</strong><span>quarantined claims</span></div>
+    <div className={writeValue ? "alarm" : ""} aria-label={writeLabel}>
+      <strong>{writeDisplay}</strong><span>{writeLabel}</span></div>
+  </div>
+  <section className="decision-checks" aria-label="Non-claim decision checks">
+    <header><div><span className="eyebrow">separate verification domain</span>
+      <h3>Goal, continuation, and plan checks</h3></div>
+      <strong>{decisionVerifications.length.toLocaleString()} checks</strong></header>
+    <div className="decision-verdicts">
+      <span><b>{decisionBelieved}</b> believe</span>
+      <span><b>{decisionDisbelieved}</b> disbelieve</span>
+      <span><b>{decisionQuarantined}</b> quarantine</span>
+    </div>
+    {decisionChecks.length > 0 ? <div className="decision-check-table">
+      <div className="head"><span>check</span><span>total</span><span>believe</span>
+        <span>disbelieve</span><span>quarantine</span></div>
+      {decisionChecks.map(([check, row]) => <button key={check}
+        aria-label={`Inspect latest ${check} decision check`}
+        onClick={() => onSelect({ kind: "event", value: row.events.at(-1)! })}>
+        <strong>{humanize(check)}</strong><span>{row.events.length}</span>
+        <span>{row.believe}</span><span>{row.disbelieve}</span><span>{row.quarantine}</span>
+      </button>)}
+    </div> : <p className="audit-empty-copy">All verification events at this cursor are linked to emitted claims.</p>}
+  </section>
+  <section className="claim-quarantines" aria-label="Quarantined claim details">
+    <header><span className="eyebrow">quarantine sink</span>
+      <strong>{claimQuarantines.length.toLocaleString()} claims</strong></header>
+    {claimQuarantines.length > 0 ? <div className="quarantine-table"><div className="quarantine-row head">
+      <span>turn</span><span>claim verbatim</span><span>failed check</span><span>evidence</span></div>
+    {claimQuarantines.map((event) => <button className="quarantine-row" key={event.event_id}
       onClick={() => onSelect({ kind: "event", value: event })}>
       <span>T{event.turn}</span><strong>{String(event.payload.claim)}</strong>
       <span>{String(event.payload.failed_check)}</span>
       <span>{Array.isArray(event.payload.evidence_atoms) ? event.payload.evidence_atoms.length : 0}</span>
     </button>)}
-  </div></div>;
+    </div> : <p className="audit-empty-copy">No emitted claims entered quarantine at this cursor.</p>}
+  </section></div>;
 }
 
 const rowsOf = (value: unknown): Array<Record<string, unknown>> =>
