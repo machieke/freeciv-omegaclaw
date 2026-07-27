@@ -1,0 +1,210 @@
+diff --git a/freeciv-proxy/civcom.py b/freeciv-proxy/civcom.py
+--- a/freeciv-proxy/civcom.py
++++ b/freeciv-proxy/civcom.py
+@@ -32,6 +32,7 @@
+     PACKET_GAME_INFO,
+     PACKET_UNIT_INFO,
+     PACKET_UNIT_REMOVE,
++    PACKET_UNIT_COMBAT_INFO,
+     PACKET_UNIT_SHORT_INFO,
+     PACKET_CITY_INFO,
+     PACKET_CITY_REMOVE,
+@@ -355,6 +356,11 @@
+         self.research_info = {}  # {player_id: PACKET_RESEARCH_INFO} - tracks tech progress
+         self.player_packets = {}  # {player_id: complete PACKET_PLAYER_INFO}
+         self.source_seq = 0  # Monotonic packet sequence for snapshot identity
++        # Bounded packet-exact removal evidence for downstream observability.
++        # Snapshot differences can prove that a unit vanished, but only combat
++        # and removal packets can identify combat attrition without guessing.
++        self.unit_lifecycle = []
++        self._recent_unit_combat = {}
+         # Packet dispatch runs on the CivCom thread while state queries run on
+         # Tornado's IOLoop. Serialize packet mutations with authoritative
+         # projection construction so one response cannot mix two revisions.
+@@ -1591,6 +1597,78 @@
+             self.state_projection_lock = lock
+         return lock
+ 
++    def _append_unit_lifecycle(self, row):
++        """Append one bounded packet-backed unit transition."""
++        journal = getattr(self, 'unit_lifecycle', None)
++        if not isinstance(journal, list):
++            journal = []
++            self.unit_lifecycle = journal
++        journal.append(dict(row))
++        if len(journal) > 512:
++            del journal[:-512]
++
++    def _record_unit_combat(self, packet):
++        """Remember exact zero-HP combat outcomes until UNIT_REMOVE arrives."""
++        recent = getattr(self, '_recent_unit_combat', None)
++        if not isinstance(recent, dict):
++            recent = {}
++            self._recent_unit_combat = recent
++        combat = {
++            'source_seq': self.source_seq,
++            'turn': self.game_turn,
++            'attacker_unit_id': packet.get('attacker_unit_id'),
++            'defender_unit_id': packet.get('defender_unit_id'),
++            'attacker_hp': packet.get('attacker_hp'),
++            'defender_hp': packet.get('defender_hp'),
++        }
++        for role in ('attacker', 'defender'):
++            unit_id = combat.get(role + '_unit_id')
++            hp = combat.get(role + '_hp')
++            if unit_id is not None and hp is not None and hp <= 0:
++                recent[unit_id] = dict(
++                    combat, cause='combat_{}_lost'.format(role))
++        minimum_seq = self.source_seq - 256
++        self._recent_unit_combat = {
++            unit_id: row for unit_id, row in recent.items()
++            if row.get('source_seq', -1) >= minimum_seq
++        }
++
++    def _record_unit_removal(self, packet):
++        """Remove a tracked own unit and preserve its best packet-exact cause."""
++        unit_id = packet.get('unit_id')
++        if unit_id is None or not isinstance(self.player_units, dict):
++            return
++        removed_unit = self.player_units.pop(unit_id, None)
++        if removed_unit is None:
++            logger.debug(
++                f"Received PACKET_UNIT_REMOVE for unit {unit_id} "
++                "(not in our tracked units)")
++            return
++        recent = getattr(self, '_recent_unit_combat', {})
++        combat = recent.pop(unit_id, None) if isinstance(recent, dict) else None
++        cause = combat.get('cause') if combat else 'engine_removed'
++        detail = (
++            "PACKET_UNIT_COMBAT_INFO reported {} HP 0 before "
++            "PACKET_UNIT_REMOVE.".format(
++                'attacker' if cause == 'combat_attacker_lost' else 'defender')
++            if combat else
++            "PACKET_UNIT_REMOVE did not include a root cause.")
++        unit_type = removed_unit.get(
++            'type', self._authoritative_unit_type_name(removed_unit.get('utype')))
++        self._append_unit_lifecycle({
++            'transition': 'disappeared',
++            'unit_id': unit_id,
++            'unit_type': unit_type or 'unknown',
++            'owner': removed_unit.get('owner'),
++            'source_seq': self.source_seq,
++            'turn': self.game_turn,
++            'cause': cause,
++            'detail': detail,
++            'combat': combat,
++        })
++        logger.info(
++            f"✓ Removed unit {unit_id} (type={unit_type}, cause={cause})")
++
+     def parse_and_store_packet(self, packet_json):
+         """Store one packet atomically relative to authoritative projections."""
+         with self._state_projection_lock():
+@@ -1961,20 +2039,17 @@
+ 
+                     logger.debug(f"Updated city {city_id} with {len(can_build)} buildable options")
+ 
++            # Combat packet - preserve exact zero-HP role before UNIT_REMOVE.
++            elif packet_type == PACKET_UNIT_COMBAT_INFO:
++                self._record_unit_combat(packet)
++
+             # Unit removal packet - remove unit when consumed or destroyed
+             # This is sent when:
+             # - Settlers build a city (unit is consumed)
+             # - Unit is destroyed in combat
+             # - Unit is disbanded by player
+             elif packet_type == PACKET_UNIT_REMOVE:
+-                unit_id = packet.get('unit_id')
+-                if unit_id is not None and isinstance(self.player_units, dict):
+-                    if unit_id in self.player_units:
+-                        removed_unit = self.player_units.pop(unit_id)
+-                        unit_type = removed_unit.get('utype', 'unknown')
+-                        logger.info(f"✓ Removed unit {unit_id} (type={unit_type}) - consumed/destroyed")
+-                    else:
+-                        logger.debug(f"Received PACKET_UNIT_REMOVE for unit {unit_id} (not in our tracked units)")
++                self._record_unit_removal(packet)
+ 
+             # Tile info packet - visibility/fog-of-war updates after movement
+             # Sent by server when units move and reveal new tiles
+@@ -2770,6 +2845,12 @@
+             # fog of war, so execution independently rechecks the same exact
+             # tile/extra cause before selecting its action packet.
+             'known_hut_tiles': self.known_tiles_with_extra_cause(EXTRA_CAUSE_HUT),
++            # Packet-backed removal evidence. Consumers must still treat
++            # engine_removed as unattributed because UNIT_REMOVE has no cause.
++            'unit_lifecycle': [
++                dict(row)
++                for row in getattr(self, 'unit_lifecycle', [])[-512:]
++            ],
+         }
+         if player_alive is False:
+             # An eliminated player's connection may stop receiving city-owner or
+diff --git a/freeciv-proxy/tests/test_pln_authoritative_state.py b/freeciv-proxy/tests/test_pln_authoritative_state.py
+--- a/freeciv-proxy/tests/test_pln_authoritative_state.py
++++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
+@@ -9,7 +9,10 @@
+ from civcom import ACTION_TRANSPORT_EMBARK, CivCom, get_activity_name
+ from llm_handler import LLMWSHandler, logger as proxy_logger
+ from message_validator import MessageValidator, ValidationError
+-from packet_constants import DS_ALLIANCE, DS_WAR, PACKET_UNIT_SHORT_INFO
++from packet_constants import (
++    DS_ALLIANCE, DS_WAR, PACKET_UNIT_COMBAT_INFO, PACKET_UNIT_REMOVE,
++    PACKET_UNIT_SHORT_INFO,
++)
+ from security import InputSanitizer
+ from state_extractor import StateExtractor, StateFormat
+ 
+@@ -65,6 +68,53 @@
+     assert state["authoritative"]["research"]["researching_name"] == "Writing"
+     assert state["authoritative"]["ruleset"]["ready"] is True
+     assert state["authoritative"]["known_hut_tiles"] == []
++    assert state["authoritative"]["unit_lifecycle"] == []
++
++
++def test_combat_and_remove_packets_preserve_exact_unit_loss_cause():
++    civcom = make_civcom()
++    civcom.player_units = {
++        7: {"id": 7, "owner": 0, "type": "Riflemen", "utype": 1},
++    }
++    civcom.unit_lifecycle = []
++    civcom._recent_unit_combat = {}
++    civcom.source_seq = 45
++    CivCom._record_unit_combat(civcom, {
++        "pid": PACKET_UNIT_COMBAT_INFO,
++        "attacker_unit_id": 7, "defender_unit_id": 8,
++        "attacker_hp": 0, "defender_hp": 3,
++    })
++    civcom.source_seq = 46
++    CivCom._record_unit_removal(civcom, {
++        "pid": PACKET_UNIT_REMOVE, "unit_id": 7,
++    })
++
++    assert 7 not in civcom.player_units
++    assert civcom.unit_lifecycle[-1]["cause"] == "combat_attacker_lost"
++    assert civcom.unit_lifecycle[-1]["source_seq"] == 46
++    assert civcom.unit_lifecycle[-1]["combat"]["attacker_hp"] == 0
++    state = CivCom.build_pln_authoritative_state(civcom, 0)
++    assert state["authoritative"]["unit_lifecycle"][-1]["unit_id"] == 7
++
++
++def test_unit_remove_without_combat_stays_explicitly_unattributed_and_bounded():
++    civcom = make_civcom()
++    civcom.player_units = {
++        9: {"id": 9, "owner": 0, "type": "Settlers", "utype": 1},
++    }
++    civcom.unit_lifecycle = [
++        {"unit_id": unit_id, "source_seq": unit_id}
++        for unit_id in range(512)
++    ]
++    civcom._recent_unit_combat = {}
++    civcom.source_seq = 600
++    CivCom._record_unit_removal(civcom, {
++        "pid": PACKET_UNIT_REMOVE, "unit_id": 9,
++    })
++
++    assert len(civcom.unit_lifecycle) == 512
++    assert civcom.unit_lifecycle[-1]["cause"] == "engine_removed"
++    assert "root cause" in civcom.unit_lifecycle[-1]["detail"]
+ 
+ 
+ def test_authoritative_state_projects_only_packet_known_spatial_evidence():

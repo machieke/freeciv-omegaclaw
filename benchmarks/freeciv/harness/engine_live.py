@@ -38,6 +38,7 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     ImpactTurnBudget)
 from freeciv_agent.rulesets.compiler import compile_ruleset
 from freeciv_agent.state import ProxyStateDTO, SnapshotStore, StateSummaryService
+from .domain_observability import DomainObservabilityEmitter
 
 
 _IR = None
@@ -1407,11 +1408,14 @@ async def _play(run_dir, manifest, context):
         ir, catalog, proposal_parser, oracle, scheduler = _cognitive_stack()
     else:
         ir = catalog = proposal_parser = oracle = scheduler = None
+    observability_ir = ir or compile_ruleset(_ruleset_root(), "civ2civ3")
     events_path = manifest["events_path"]
     if not os.path.isabs(events_path):
         events_path = os.path.join(run_dir, events_path)
     writer = EventWriter(
         events_path, manifest["game_id"], durable=True, sync_mode="turn")
+    domain_observability = DomainObservabilityEmitter(
+        writer, observability_ir)
     root = writer.emit("run_started", 0, {
         "condition_id": manifest["condition_id"],
         "manifest_identity": manifest["manifest_identity"]})
@@ -1627,6 +1631,8 @@ async def _play(run_dir, manifest, context):
         store.replace(snapshot)
         state_event = writer.emit("state_snapshot", snapshot.turn, snapshot.event_payload(),
                                   caused_by=[parent])
+        domain_observability.emit_snapshot(
+            snapshot, state_event["event_id"], raw=raw)
         parent = state_event["event_id"]
         global_state = await _global_state(
             ws, player_id=player_id, minimum_turn=snapshot.turn)
@@ -1772,6 +1778,8 @@ async def _play(run_dir, manifest, context):
                 event = writer.emit(
                     "state_snapshot", next_snapshot.turn, next_snapshot.event_payload(),
                     caused_by=[cause])
+                domain_observability.emit_snapshot(
+                    next_snapshot, event["event_id"], raw=next_raw)
                 action_refresh_event_latency_ms += (
                     time.perf_counter() - event_started) * 1000.0
                 return next_raw, next_snapshot, event["event_id"]
@@ -1793,6 +1801,8 @@ async def _play(run_dir, manifest, context):
                 state_event = writer.emit(
                     "state_snapshot", snapshot.turn, snapshot.event_payload(),
                     caused_by=[parent])
+                domain_observability.emit_snapshot(
+                    snapshot, state_event["event_id"], raw=raw)
                 parent = state_event["event_id"]
                 if _needs_turn_global_state(impact_planner):
                     global_state = await _global_state(

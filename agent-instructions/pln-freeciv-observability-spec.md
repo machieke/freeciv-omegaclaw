@@ -35,7 +35,8 @@ The agent emits a **turn-scoped JSONL event stream**. This schema is the interfa
   "type": "pln_query | pln_result | observation | revision | llm_proposal |
            verification | quarantine | plan_created | plan_invalidated |
            plan_step_executed | action_sent | action_result | state_snapshot |
-           metric_sample",
+           technology_catalog | technology_progress | production_state |
+           unit_lifecycle | metric_sample",
   "payload": { }
 }
 ```
@@ -49,6 +50,11 @@ The agent emits a **turn-scoped JSONL event stream**. This schema is the interfa
 - **R1.5** `quarantine` events carry the verbatim LLM claim, the failed check, and the atomspace evidence that contradicted it.
 - **R1.6** `state_snapshot` (per turn): own-state summary + all uncertain atoms above a floor confidence, with map coordinates where applicable.
 - **R1.7** Log volume budget: ≤ 5 MB/turn typical; proof trees deduplicated by structural hash (repeated identical subtrees stored once per turn, referenced).
+- **R1.8** Domain observability events are explicit rather than reconstructed in the browser:
+  - `technology_catalog`: hash-pinned compiled technology dependencies.
+  - `technology_progress`: target, progress, cost, rate, ETA, stall duration, acquisitions, and exact known/researchable/blocked sets.
+  - `production_state`: named six-yield vectors, city stocks and queues, and player economy.
+  - `unit_lifecycle`: appearances/removals with cause and `exact | inferred | unattributed` evidence quality.
 
 ### Acceptance
 
@@ -94,6 +100,7 @@ Renders a `pln_result` proof tree. This is the centerpiece.
 - **R3.2.3** Confidence flow: hovering an uncertain root shows per-step derivation — premise TVs → formula → dampened result, with λ shown. Makes chained-inference inflation visually detectable.
 - **R3.2.4** Diff mode: two proof trees for the same goal at different turns, structural diff (nodes appeared/vanished/TV-changed). Primary tool for understanding replans.
 - **R3.2.5** OR-branch comparison strip: feasibility grade and scheduler cost side by side per branch, visually distinct (grade is not cost — two columns, never merged).
+- **R3.2.6** The default selection is the newest proof at the global cursor. Manually selected older proofs carry a visible historical-proof label with emitted and cursor turns. `missing-tech` is defined in-view as an absent, currently researchable prerequisite rather than an unmet prerequisite of its own.
 - **A3.2.1** Trees to 200 nodes render < 300 ms; larger trees virtualize (collapsed beyond depth 4 by default).
 - **A3.2.2** Seeded log with a known confidence-inflation bug: reviewer locates the offending inference step via R3.2.3 in under 2 minutes (usability gate).
 
@@ -133,6 +140,27 @@ Renders a `pln_result` proof tree. This is the centerpiece.
 - **R3.7.3** Ablation comparison: side-by-side metric panels across harness conditions (a)–(e), reading condition ID from `game_id` metadata.
 - **A3.7.1** Calibration plot from harness output matches the harness's own computed calibration numbers exactly (UI recomputes nothing — reads `metric_sample` events; cross-check in CI).
 
+### 3.8 Technology Progress
+
+- **R3.8.1** Current target card: accumulated/cost/remaining beakers, beakers per turn, ETA, status, and consecutive stalled turns.
+- **R3.8.2** Hash-pinned prerequisite graph and searchable catalog show emitted known/current/researchable/blocked status and named missing prerequisites.
+- **R3.8.3** Post-initial acquisitions and target progress/rate series link back to their source events and relevant PLN proof.
+- **A3.8.1** A trace with 0 beakers/turn clearly reports that running longer under the unchanged economy will not converge; a later proof at the cursor replaces an earlier blocked proof by default.
+
+### 3.9 Economy & Production
+
+- **R3.9.1** Named food/shield/trade/gold/luxury/science output and surplus, stocks, economy allocation, current queues, and explicit queue changes.
+- **R3.9.2** PF-PLN production projections render verbatim from `operation_scored`; the view separately reports whether buildable PLN proofs were actually invoked.
+- **R3.9.3** Observed unit completions retain their lifecycle evidence quality.
+- **A3.9.1** No city yield array index or PF projection is decoded/recomputed in the browser.
+
+### 3.10 Unit Lifecycle
+
+- **R3.10.1** Appearance/disappearance ledger with unit identity, cause, detail, source snapshots, and evidence quality.
+- **R3.10.2** Cause and evidence-quality summaries never merge inferred or unattributed removals into exact combat claims.
+- **R3.10.3** Future engine runs correlate `PACKET_UNIT_COMBAT_INFO` zero-HP outcomes with `PACKET_UNIT_REMOVE`; historical traces are enriched only by a non-destructive offline copy.
+- **A3.10.1** Unknown historical boundary removals remain visibly unattributed; a packet-backed combat fixture renders attacker/defender loss as exact.
+
 ---
 
 ## 4. Technical Requirements
@@ -156,6 +184,7 @@ Renders a `pln_result` proof tree. This is the centerpiece.
 | V2 | Proof Tree Explorer + Atomspace Inspector | A3.2.*, A3.3.* |
 | V3 | Plan Board + Map Overlay | A3.4.1, A3.5.1 |
 | V4 | Quarantine/Audit + Metrics Dashboard | A3.6.1, A3.7.1 |
+| V4.1 | Technology + Economy/Production + Unit Lifecycle | A3.8.1, A3.9.1, A3.10.1 |
 | V5 | Live mode | R4.4 soak: 200-turn live game, zero divergence from post-hoc replay of the same log |
 
 V0's synthetic generator is deliberately first: the UI is built and accepted against *scripted* logs with known-correct renderings (including deliberately broken ones), so UI acceptance never depends on agent correctness — and vice versa.

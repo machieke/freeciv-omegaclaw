@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure",
+  "commitSha": "6c6e399871ecf0db78b41ba1bc228a48515a68c4",
+  "startedAt": "2026-07-27T11:44:41.802Z",
+  "description": "Verify proof recency, technology progress, production telemetry, and unit lifecycle evidence against enriched 240-turn trace"
+}

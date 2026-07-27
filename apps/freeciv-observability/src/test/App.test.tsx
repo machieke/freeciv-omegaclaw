@@ -208,7 +208,7 @@ describe("Decision Observatory", () => {
   it("explains the evidence pipeline, trust boundary, and routes users to an answer", async () => {
     const user = userEvent.setup();
     render(<App initialText={demoTrace} />);
-    await user.click(screen.getByRole("button", { name: /^09 How it works/ }));
+    await user.click(screen.getByRole("button", { name: /^12 How it works/ }));
     expect(screen.getByRole("heading", {
       name: "See the decision, not just the outcome.",
     })).toBeInTheDocument();
@@ -378,7 +378,7 @@ describe("Decision Observatory", () => {
     render(<App initialText={demoTrace} />);
     await user.click(screen.getByRole("button", { name: /^07 Metrics/ }));
     expect(screen.getByText("loop_latency_ms")).toBeInTheDocument();
-    expect(screen.getByText("10")).toBeInTheDocument();
+    expect(screen.getAllByText("10").length).toBeGreaterThan(0);
     expect(screen.getByText(/UI calculations disabled/)).toBeInTheDocument();
   });
 

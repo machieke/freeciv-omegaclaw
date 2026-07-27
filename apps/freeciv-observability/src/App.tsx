@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, ReactNode } from "react";
 import type {
-  Atom, Plan, PlanStep, PlnResult, ProofNode,
+  Atom, Plan, PlanStep, PlnResult, ProofNode, ProductionState,
+  TechnologyCatalog, TechnologyProgress, UnitLifecycle,
 } from "../../../schemas/freeciv-events/v1/types.generated";
 import demoTrace from "../../../Autotests/fixtures/freeciv-events/v1/normal-crisp.jsonl?raw";
 import {
@@ -41,11 +42,17 @@ const NAV: Array<{ view: ViewName; label: string; key: string }> = [
   { view: "audit", label: "Epistemic audit", key: "06" },
   { view: "metrics", label: "Metrics", key: "07" },
   { view: "pfpln", label: "PF-PLN", key: "08" },
-  { view: "about", label: "How it works", key: "09" },
+  { view: "technology", label: "Technology", key: "09" },
+  { view: "economy", label: "Economy & production", key: "10" },
+  { view: "forces", label: "Unit lifecycle", key: "11" },
+  { view: "about", label: "How it works", key: "12" },
 ];
 
 const STAGES: Array<{ name: string; types: Set<string> }> = [
-  { name: "State ingest", types: new Set(["state_snapshot", "observation", "revision"]) },
+  { name: "State ingest", types: new Set([
+    "state_snapshot", "technology_progress", "production_state", "unit_lifecycle",
+    "observation", "revision",
+  ]) },
   { name: "Proposal", types: new Set(["llm_proposal", "quarantine"]) },
   { name: "Verification", types: new Set(["verification", "grounded_check"]) },
   { name: "PLN", types: new Set(["pln_query", "pln_result"]) },
@@ -293,15 +300,20 @@ function ProofGraph({ result, onSelect }: {
 export function ProofExplorer({ state, selection, onSelect }: {
   state: ReplayState; selection?: Selection; onSelect: (selection: Selection) => void;
 }) {
-  const [selectedProof, setSelectedProof] = useState(0);
+  const [selectedProofId, setSelectedProofId] = useState("latest");
   const [comparison, setComparison] = useState(-1);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => new Set());
   const [proofWindow, setProofWindow] = useState(0);
   const [displayMode, setDisplayMode] = useState<"split" | "graph" | "list">("split");
-  const proofRecord = state.proofs[Math.min(selectedProof, Math.max(0, state.proofs.length - 1))];
+  const explicitProof = state.proofs.find(
+    (record) => record.event.event_id === selectedProofId);
+  const proofRecord = selectedProofId === "latest" || !explicitProof
+    ? state.proofs.at(-1) : explicitProof;
   if (!proofRecord) return <LoggingGap title="No proof trace at this cursor"
     detail="The view will not reconstruct a proof from atoms. Emit pln_result with a lossless proof tree." />;
   const result = proofRecord.result;
+  const latestProof = state.proofs.at(-1);
+  const isLatestProof = proofRecord.event.event_id === latestProof?.event.event_id;
   const frontier = new Set(result.unsatisfied_frontier.map((item) => item.node_id));
   const rows = proofRows(result.proof, expandedNodes);
   const comparisonProof = comparison >= 0 ? state.proofs[comparison]?.result.proof : undefined;
@@ -329,13 +341,16 @@ export function ProofExplorer({ state, selection, onSelect }: {
             className={displayMode === mode ? "active" : ""}
             onClick={() => setDisplayMode(mode)}>{mode}</button>)}
         </div>
-        <label>proof <select aria-label="Proof" value={selectedProof}
+        <label>proof <select aria-label="Proof"
+          value={selectedProofId === "latest" || !explicitProof ? "latest" : selectedProofId}
           onChange={(event) => {
-            setSelectedProof(Number(event.target.value));
+            setSelectedProofId(event.target.value);
             setExpandedNodes(new Set());
             setProofWindow(0);
           }}>
-          {state.proofs.map((record, index) => <option key={record.event.event_id} value={index}>
+          <option value="latest">latest at cursor · T{latestProof?.event.turn}</option>
+          {state.proofs.map((record) => <option key={record.event.event_id}
+            value={record.event.event_id}>
             {record.result.query_id} · T{record.event.turn}
           </option>)}
         </select></label>
@@ -355,6 +370,15 @@ export function ProofExplorer({ state, selection, onSelect }: {
       <div><span>frontier</span><strong>{result.unsatisfied_frontier.length}</strong></div>
       {crispViolation && <div className="violation">crisp drift violation</div>}
     </div>
+    <section className={`proof-recency ${isLatestProof ? "current" : "historical"}`}
+      aria-label="Proof recency">
+      <strong>{isLatestProof ? "Current proof at cursor" : "Historical proof selected"}</strong>
+      <span>emitted T{proofRecord.event.turn}.{proofRecord.event.seq} ·
+        {" "}cursor T{state.cursor.turn}.{state.cursor.seq}</span>
+      {!isLatestProof && <button onClick={() => setSelectedProofId("latest")}>
+        return to latest
+      </button>}
+    </section>
     {rows.length > 500 && <div className="virtual-controls" aria-label="Proof node windows">
       <button disabled={safeProofWindow === 0}
         onClick={() => setProofWindow(Math.max(0, safeProofWindow - 1))}>previous 500</button>
@@ -426,6 +450,10 @@ export function ProofExplorer({ state, selection, onSelect }: {
       {result.unsatisfied_frontier.map((item) => <div key={item.node_id}>
         <strong>{item.blocker_type}</strong><span>{item.detail}</span>
       </div>)}
+      {result.unsatisfied_frontier.some((item) => item.blocker_type === "missing-tech") &&
+        <p className="frontier-definition"><b>missing-tech</b> means the named technology
+          is not known while its direct prerequisites are satisfied. It is a currently
+          researchable frontier—not evidence that its own prerequisites are missing.</p>}
     </section>}
   </div>;
 }
@@ -1581,6 +1609,445 @@ function PfPlnDashboard({ state, onSelect, decisionId, onDecision, comparisonSta
   </div>;
 }
 
+type TechnologyStatus = "known" | "current" | "researchable" | "blocked";
+
+function TechnologyGraph({ catalog, progress, focus, onFocus }: {
+  catalog: TechnologyCatalog; progress: TechnologyProgress; focus: string;
+  onFocus: (name: string) => void;
+}) {
+  const byName = new Map(catalog.technologies.map((tech) => [tech.name, tech]));
+  const known = new Set(progress.known_techs);
+  const researchable = new Set(progress.researchable_techs);
+  const blocked = new Set(progress.blocked_technologies.map((tech) => tech.name));
+  const status = (name: string): TechnologyStatus =>
+    name === progress.target?.name ? "current"
+      : known.has(name) ? "known"
+        : researchable.has(name) ? "researchable"
+          : blocked.has(name) ? "blocked" : "blocked";
+  const depthByName = new Map<string, number>([[focus, 0]]);
+  const queue = [focus];
+  while (queue.length) {
+    const name = queue.shift();
+    if (!name) continue;
+    const depth = depthByName.get(name) ?? 0;
+    for (const prerequisite of byName.get(name)?.prerequisites ?? []) {
+      const prior = depthByName.get(prerequisite);
+      if (prior === undefined || depth + 1 < prior) {
+        depthByName.set(prerequisite, depth + 1);
+        queue.push(prerequisite);
+      }
+    }
+  }
+  const levels = new Map<number, string[]>();
+  for (const [name, depth] of depthByName) {
+    levels.set(depth, [...levels.get(depth) ?? [], name].sort());
+  }
+  const maximumDepth = Math.max(0, ...levels.keys());
+  const height = Math.max(220, ...[...levels.values()].map((items) => items.length * 62 + 50));
+  const position = new Map<string, { x: number; y: number }>();
+  for (const [depth, names] of levels) {
+    names.forEach((name, index) => position.set(name, {
+      x: 90 + depth * (760 / Math.max(1, maximumDepth)),
+      y: 34 + (index + 0.5) * ((height - 64) / names.length),
+    }));
+  }
+  return <div className="tech-graph-wrap">
+    <svg className="tech-graph" viewBox={`0 0 940 ${height}`} role="img"
+      aria-label={`Prerequisite graph for ${focus}`}>
+      <defs><marker id="tech-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4"
+        orient="auto"><path d="M0,0 L8,4 L0,8 z" /></marker></defs>
+      {[...depthByName].flatMap(([name]) =>
+        (byName.get(name)?.prerequisites ?? []).filter((item) => depthByName.has(item))
+          .map((prerequisite) => {
+            const from = position.get(name);
+            const to = position.get(prerequisite);
+            return from && to ? <line key={`${name}-${prerequisite}`}
+              x1={from.x - 10} y1={from.y} x2={to.x + 10} y2={to.y}
+              markerEnd="url(#tech-arrow)" /> : null;
+          }))}
+      {[...depthByName].map(([name]) => {
+        const point = position.get(name);
+        if (!point) return null;
+        const techStatus = status(name);
+        return <g key={name} transform={`translate(${point.x} ${point.y})`}
+          className={`tech-node ${techStatus}`} role="button" tabIndex={0}
+          aria-label={`${name}, ${techStatus}`}
+          onClick={() => onFocus(name)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") onFocus(name);
+          }}>
+          <circle r={name === focus ? 12 : 9} />
+          <text x={depthByName.get(name) === 0 ? -16 : 16}
+            textAnchor={depthByName.get(name) === 0 ? "end" : "start"}>{name}</text>
+          <title>{name} · {techStatus}</title>
+        </g>;
+      })}
+    </svg>
+    <footer><span className="known">known</span><span className="current">current research</span>
+      <span className="researchable">researchable now</span><span className="blocked">blocked</span></footer>
+  </div>;
+}
+
+export function TechnologyDashboard({ state, onSelect }: {
+  state: ReplayState; onSelect: (selection: Selection) => void;
+}) {
+  const catalogEvent = state.technologyCatalogs.at(-1);
+  const progressEvent = state.technologyProgress.at(-1);
+  const [statusFilter, setStatusFilter] = useState<"all" | TechnologyStatus>("all");
+  const [search, setSearch] = useState("");
+  const [focusTech, setFocusTech] = useState("");
+  if (!catalogEvent || !progressEvent) return <LoggingGap title="No technology trace at this cursor"
+    detail="Load an observability-v2 trace or run the hardened harness. The browser will not infer a tech tree from Atomspace snapshots." />;
+  const catalog = catalogEvent.payload as unknown as TechnologyCatalog;
+  const progress = progressEvent.payload as unknown as TechnologyProgress;
+  const byName = new Map(catalog.technologies.map((tech) => [tech.name, tech]));
+  const known = new Set(progress.known_techs);
+  const researchable = new Set(progress.researchable_techs);
+  const blockerByName = new Map(progress.blocked_technologies.map((tech) => [tech.name, tech]));
+  const selectedTech = byName.has(focusTech)
+    ? focusTech : progress.target?.name ?? catalog.technologies[0]?.name ?? "";
+  const techStatus = (name: string): TechnologyStatus =>
+    name === progress.target?.name ? "current"
+      : known.has(name) ? "known"
+        : researchable.has(name) ? "researchable" : "blocked";
+  const target = progress.target;
+  const progressSeries = state.technologyProgress
+    .map((event) => (event.payload as unknown as TechnologyProgress).target)
+    .flatMap((item) => {
+      if (!item || item.name !== target?.name || typeof item.progress !== "number") return [];
+      return [item.progress];
+    });
+  const rateSeries = state.technologyProgress
+    .map((event) => (event.payload as unknown as TechnologyProgress).target)
+    .flatMap((item) => {
+      if (!item || item.name !== target?.name
+          || typeof item.beakers_per_turn !== "number") return [];
+      return [item.beakers_per_turn];
+    });
+  const acquisitions = state.technologyProgress.flatMap((event) =>
+    (event.payload as unknown as TechnologyProgress).acquired_techs.map((name) => ({ name, event })));
+  const rows = catalog.technologies.filter((tech) =>
+    tech.name.toLowerCase().includes(search.toLowerCase())
+    && (statusFilter === "all" || techStatus(tech.name) === statusFilter));
+  const selectedBlocker = blockerByName.get(selectedTech);
+  const relatedProof = [...state.proofs].reverse().find(({ result }) =>
+    result.proof.nodes.some((node) =>
+      node.atom.predicate === "researchable"
+      && node.atom.args.some((argument) => String(argument) === selectedTech)));
+  return <div className="view-content technology-view">
+    <div className="view-heading">
+      <div><span className="eyebrow">ruleset-pinned research telemetry</span>
+        <h2>Technology progress</h2></div>
+      <p>{catalog.technologies.length} technologies · IR {catalog.ir_hash.slice(0, 12)} ·
+        {" "}strictly as emitted at T{progressEvent.turn}.{progressEvent.seq}</p>
+    </div>
+    <section className={`research-hero ${progress.status}`}>
+      <div><span className="eyebrow">current target</span>
+        <h3>{target?.name ?? "No research target logged"}</h3>
+        <strong>{progress.status}</strong></div>
+      <div className="research-progress">
+        <div><span>{target?.progress ?? "—"} / {target?.cost ?? "—"} beakers</span>
+          <span>{target?.remaining ?? "—"} remaining</span></div>
+        <progress max={Math.max(1, target?.cost ?? 1)} value={target?.progress ?? 0} />
+      </div>
+      <dl>
+        <div><dt>rate</dt><dd>{target?.beakers_per_turn ?? "—"} / turn</dd></div>
+        <div><dt>ETA</dt><dd>{target?.eta_turns === null || target?.eta_turns === undefined
+          ? "not converging" : `${target.eta_turns} turns`}</dd></div>
+        <div><dt>stalled</dt><dd>{progress.stalled_turns} turns</dd></div>
+        <div><dt>known</dt><dd>{progress.known_techs.length}</dd></div>
+      </dl>
+    </section>
+    {progress.status === "stalled" && <section className="research-alert" role="status">
+      <strong>Research is stalled.</strong>
+      <span>{target?.name} still needs {target?.remaining ?? "unknown"} beakers, but the
+        latest emitted rate is {target?.beakers_per_turn ?? "unknown"} per turn. Running longer
+        under the same economy will not finish it.</span>
+    </section>}
+    <div className="tech-series">
+      <section><header><span>target progress</span><strong>{progressSeries.at(-1) ?? "—"}</strong></header>
+        <Sparkline values={progressSeries} minimum={0} maximum={target?.cost ?? undefined}
+          label={`${target?.name ?? "Research"} accumulated beakers`} /></section>
+      <section><header><span>science throughput</span><strong>{rateSeries.at(-1) ?? "—"}</strong></header>
+        <Sparkline values={rateSeries} minimum={0}
+          label={`${target?.name ?? "Research"} beakers per turn`} /></section>
+      <section><header><span>acquisitions this run</span><strong>{acquisitions.length}</strong></header>
+        <div className="tech-acquisitions">{acquisitions.length
+          ? acquisitions.slice(-6).map(({ name, event }) => <button key={`${name}-${event.event_id}`}
+            onClick={() => onSelect({ kind: "event", value: event })}>{name}<small>T{event.turn}</small></button>)
+          : <span>No post-initial technology acquisition logged.</span>}</div></section>
+    </div>
+    <section className="technology-dependencies">
+      <header><div><span className="eyebrow">compiled dependency lineage</span>
+        <h3>{selectedTech}</h3></div>
+        <div className={`tech-status ${techStatus(selectedTech)}`}>{techStatus(selectedTech)}</div></header>
+      <TechnologyGraph catalog={catalog} progress={progress} focus={selectedTech}
+        onFocus={setFocusTech} />
+      <div className="tech-evidence">
+        <span>direct prerequisites</span>
+        <strong>{byName.get(selectedTech)?.prerequisites.join(" · ") || "root technology"}</strong>
+        <span>missing prerequisites</span>
+        <strong>{selectedBlocker?.missing_prerequisites.join(" · ") || "none"}</strong>
+        {relatedProof && <button onClick={() => {
+          onSelect({ kind: "event", value: relatedProof.event });
+          window.dispatchEvent(new CustomEvent("observatory:view", { detail: "proofs" }));
+        }}>open logged PLN proof at T{relatedProof.event.turn} →</button>}
+      </div>
+    </section>
+    <section className="technology-catalog">
+      <header><input aria-label="Search technologies" placeholder="technology…"
+        value={search} onChange={(event) => setSearch(event.target.value)} />
+        <select aria-label="Technology status" value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}>
+          <option value="all">all statuses</option><option value="current">current</option>
+          <option value="researchable">researchable</option><option value="blocked">blocked</option>
+          <option value="known">known</option>
+        </select><span>{rows.length} shown</span></header>
+      <div className="tech-table">
+        <div className="head"><span>technology</span><span>status</span>
+          <span>direct prerequisites</span><span>missing now</span></div>
+        {rows.map((tech) => <button key={tech.name} onClick={() => setFocusTech(tech.name)}>
+          <strong>{tech.name}</strong><span className={techStatus(tech.name)}>
+            {techStatus(tech.name)}</span>
+          <span>{tech.prerequisites.join(", ") || "—"}</span>
+          <span>{blockerByName.get(tech.name)?.missing_prerequisites.join(", ") || "—"}</span>
+        </button>)}
+      </div>
+    </section>
+    <footer className="display-boundary"><b>Proof vocabulary:</b> <code>missing-tech</code> means
+      a required technology is not known and is itself currently researchable. A technology
+      with unmet prerequisites appears as <em>blocked</em> here with those prerequisites named.</footer>
+  </div>;
+}
+
+const yieldKeys = ["food", "shield", "trade", "gold", "luxury", "science"] as const;
+
+export function EconomyProductionDashboard({ state, onSelect }: {
+  state: ReplayState; onSelect: (selection: Selection) => void;
+}) {
+  const event = state.productionStates.at(-1);
+  if (!event) return <LoggingGap title="No economy or production trace at this cursor"
+    detail="Load an observability-v2 trace or run the hardened harness. Generic snapshots remain inspectable, but this view requires production_state events." />;
+  const production = event.payload as unknown as ProductionState;
+  const actionEvents = state.events.filter((row) =>
+    row.type === "action_sent"
+    && (row.payload.action as Record<string, unknown> | undefined)?.action_type === "city_production");
+  const completions = state.unitLifecycles.filter((row) =>
+    (row.payload as unknown as UnitLifecycle).cause === "production_completed");
+  const buildableProofs = state.proofs.filter(({ result }) =>
+    result.proof.nodes.some((node) => node.atom.predicate === "buildable"));
+  const totalSeries = (key: typeof yieldKeys[number]) => state.productionStates.map((row) => {
+    const payload = row.payload as unknown as ProductionState;
+    return payload.cities.reduce((sum, city) => sum + Number(city.outputs[key] ?? 0), 0);
+  });
+  const latestProjection = (cityId: number, targetName: string | null) => {
+    for (const scored of [...state.operationScores].reverse()) {
+      for (const score of rowsOf(scored.payload.scores)) {
+        const operation = recordOf(score.operation);
+        const payload = recordOf(operation.payload);
+        const action = recordOf(payload.action);
+        const target = recordOf(action.target);
+        if (Number(action.city_id) === cityId
+            && (!targetName || String(target.production_type) === targetName)) {
+          const projection = recordOf(payload.projection);
+          if (Object.keys(projection).length) return { projection, event: scored };
+        }
+      }
+    }
+    return undefined;
+  };
+  const completionsByType = completions.reduce((counts, row) => {
+    const payload = row.payload as unknown as UnitLifecycle;
+    counts.set(payload.unit_type, (counts.get(payload.unit_type) ?? 0) + 1);
+    return counts;
+  }, new Map<string, number>());
+  return <div className="view-content economy-view">
+    <div className="view-heading">
+      <div><span className="eyebrow">authoritative stocks, rates, queues, projections</span>
+        <h2>Economy &amp; production</h2></div>
+      <p>{production.cities.length} cities · {actionEvents.length} explicit queue changes ·
+        {" "}{completions.length} inferred completions as of cursor</p>
+    </div>
+    <section className="economy-strip">
+      <div><span>treasury</span><strong>{production.economy.gold ?? "—"}</strong><small>gold</small></div>
+      <div><span>cash flow</span><strong>{production.economy.gold_per_turn ?? "—"}</strong><small>per turn</small></div>
+      <div><span>science</span><strong>{production.economy.science_rate ?? "—"}%</strong><small>tax rate</small></div>
+      <div><span>tax</span><strong>{production.economy.tax_rate ?? "—"}%</strong><small>allocation</small></div>
+      <div><span>luxury</span><strong>{production.economy.luxury_rate ?? "—"}%</strong><small>allocation</small></div>
+    </section>
+    <section className="yield-series">
+      {yieldKeys.map((key, index) => {
+        const values = totalSeries(key);
+        return <div key={key}><header><strong>{humanize(key)}</strong>
+          <span>{values.at(-1) ?? 0}</span></header>
+          <Sparkline values={values} minimum={0}
+            color={CHART_COLORS[index % CHART_COLORS.length]}
+            label={`Emitted city ${key} output display sum`} /></div>;
+      })}
+    </section>
+    <div className="production-layout">
+      <section className="city-production-list">
+        <header><span className="eyebrow">current city queues</span>
+          <strong>{production.cities.length} active cities</strong></header>
+        {production.cities.map((city) => {
+          const projected = latestProjection(city.city_id, city.target.name);
+          return <article key={city.city_id}>
+            <header><div><span>#{city.city_id}</span><h3>{city.name}</h3></div>
+              <strong>{city.target.name ?? `kind ${city.target.kind} / ${city.target.value}`}</strong></header>
+            <div className="city-stocks">
+              <div><span>population</span><b>{city.size}</b></div>
+              <div><span>food stock</span><b>{city.food_stock ?? "—"}</b></div>
+              <div><span>shield stock</span><b>{city.shield_stock ?? "—"}</b></div>
+              <div><span>buildable</span><b>{city.buildable_count}</b></div>
+            </div>
+            <div className="yield-grid">
+              {yieldKeys.map((key) => <div key={key}><span>{key}</span>
+                <strong>{city.outputs[key] ?? "—"}</strong>
+                <small>{city.surplus[key] === null ? "—" :
+                  `${Number(city.surplus[key]) >= 0 ? "+" : ""}${city.surplus[key]} surplus`}</small>
+              </div>)}
+            </div>
+            {projected ? <button className="production-projection"
+              onClick={() => onSelect({ kind: "event", value: projected.event })}>
+              <span><b>PF-PLN projection</b><small>ruleset-grounded candidate</small></span>
+              <span><b>{numeric(projected.projection.completion_eta_turns)}</b><small>turn ETA</small></span>
+              <span><b>{numeric(projected.projection.build_cost)}</b><small>shield cost</small></span>
+              <span><b>{numeric(projected.projection.shield_surplus)}</b><small>shield / turn</small></span>
+              <span><b>{numeric(projected.projection.projected_unit_completions)}</b><small>horizon units</small></span>
+            </button> : <div className="production-projection gap">
+              No PF-PLN projection logged for the current queue.</div>}
+          </article>;
+        })}
+      </section>
+      <aside className="production-evidence">
+        <section><span className="eyebrow">observed production</span><h3>Unit completions</h3>
+          {[...completionsByType].sort((a, b) => b[1] - a[1]).map(([name, count]) =>
+            <div key={name}><span>{name}</span><strong>{count}</strong></div>)}
+          {!completionsByType.size && <p>No completion lifecycle events at this cursor.</p>}
+          <small>Historical completions are snapshot-matched and labeled inferred.</small>
+        </section>
+        <section><span className="eyebrow">model coverage</span><h3>PLN versus PF-PLN</h3>
+          <div><span>buildable PLN proofs</span><strong>{buildableProofs.length}</strong></div>
+          <div><span>PF operation score events</span><strong>{state.operationScores.length}</strong></div>
+          <p>{buildableProofs.length
+            ? "Production dependency proofs and PF candidate projections are both present."
+            : "No buildable PLN query was logged. Production still affected PF-PLN candidate scoring, but it was not represented as a PLN proof in this run."}</p>
+        </section>
+        <section><span className="eyebrow">queue decisions</span><h3>Recent changes</h3>
+          {actionEvents.slice(-10).reverse().map((row) => {
+            const action = row.payload.action as Record<string, unknown>;
+            const target = recordOf(action.target);
+            return <button key={row.event_id}
+              onClick={() => onSelect({ kind: "event", value: row })}>
+              <span>T{row.turn} · city {String(action.city_id)}</span>
+              <strong>{String(target.production_type ?? "unnamed target")}</strong>
+            </button>;
+          })}
+        </section>
+      </aside>
+    </div>
+    <footer className="display-boundary">City outputs and stocks are exact emitted values.
+      Totals and sparklines are display aggregations. PF-PLN projections are shown verbatim
+      from <code>operation_scored</code>; inferred completions are never relabeled as exact.</footer>
+  </div>;
+}
+
+export function UnitLifecycleDashboard({ state, onSelect }: {
+  state: ReplayState; onSelect: (selection: Selection) => void;
+}) {
+  const [quality, setQuality] = useState<"all" | UnitLifecycle["evidence_quality"]>("all");
+  const [transition, setTransition] = useState<"all" | UnitLifecycle["transition"]>("all");
+  if (!state.unitLifecycles.length) return <LoggingGap title="No unit lifecycle trace at this cursor"
+    detail="Load an observability-v2 trace or run the hardened proxy. Exact disappearance causes cannot be reconstructed from generic snapshots." />;
+  const rows = state.unitLifecycles.map((event) => ({
+    event, payload: event.payload as unknown as UnitLifecycle,
+  }));
+  const visible = rows.filter(({ payload }) =>
+    (quality === "all" || payload.evidence_quality === quality)
+    && (transition === "all" || payload.transition === transition));
+  const appearances = rows.filter(({ payload }) => payload.transition === "appeared");
+  const disappearances = rows.filter(({ payload }) => payload.transition === "disappeared");
+  const qualityCounts = rows.reduce((counts, { payload }) => {
+    counts.set(payload.evidence_quality, (counts.get(payload.evidence_quality) ?? 0) + 1);
+    return counts;
+  }, new Map<string, number>());
+  const causeCounts = disappearances.reduce((counts, { payload }) => {
+    counts.set(payload.cause, (counts.get(payload.cause) ?? 0) + 1);
+    return counts;
+  }, new Map<string, number>());
+  const unitCounts = new Map<number, number>();
+  let current = 0;
+  for (const { event, payload } of rows) {
+    current += payload.transition === "appeared" ? 1 : -1;
+    unitCounts.set(event.turn, current);
+  }
+  const populationSeries = [...unitCounts].sort((a, b) => a[0] - b[0]).map(([, count]) => count);
+  return <div className="view-content forces-view">
+    <div className="view-heading">
+      <div><span className="eyebrow">asset provenance and attrition</span><h2>Unit lifecycle</h2></div>
+      <p>Every row states how strongly its cause is supported. Unknown boundary removals stay unknown.</p>
+    </div>
+    <section className="lifecycle-summary">
+      <div><span>appeared</span><strong>{appearances.length}</strong><small>including initial state</small></div>
+      <div><span>disappeared</span><strong>{disappearances.length}</strong><small>all causes</small></div>
+      <div className="exact"><span>exact</span><strong>{qualityCounts.get("exact") ?? 0}</strong><small>packet/state evidence</small></div>
+      <div className="inferred"><span>inferred</span><strong>{qualityCounts.get("inferred") ?? 0}</strong><small>explicit correlation</small></div>
+      <div className="unattributed"><span>unattributed</span><strong>{qualityCounts.get("unattributed") ?? 0}</strong><small>cause not logged</small></div>
+    </section>
+    <div className="lifecycle-overview">
+      <section><header><span className="eyebrow">observed force size</span>
+        <strong>{populationSeries.at(-1) ?? 0} units</strong></header>
+        <Sparkline values={populationSeries} minimum={0} label="Observed own unit count" /></section>
+      <section><header><span className="eyebrow">disappearance causes</span>
+        <strong>{causeCounts.size} categories</strong></header>
+        <div className="cause-bars">{[...causeCounts].sort((a, b) => b[1] - a[1])
+          .map(([cause, count]) => <button key={cause}
+            onClick={() => {
+              const match = [...rows].reverse().find(({ payload }) => payload.cause === cause);
+              if (match) onSelect({ kind: "event", value: match.event });
+            }}><span>{humanize(cause)}</span><ValueBar value={count}
+              maximum={Math.max(1, ...causeCounts.values())} label={`${cause} count`} />
+            <strong>{count}</strong></button>)}</div>
+      </section>
+    </div>
+    <section className="lifecycle-method">
+      <article><strong>Exact</strong><p>Initial presence or a future proxy journal tied the
+        removal to a concrete FreeCiv combat/city event.</p></article>
+      <article><strong>Inferred</strong><p>A snapshot transition matched a production queue,
+        city-founding action, or attack action, but no historical cause packet survived.</p></article>
+      <article><strong>Unattributed</strong><p>The unit existed in one snapshot and not the next.
+        Opponent combat, disbanding, transfer, or another engine cause cannot be distinguished.</p></article>
+    </section>
+    <section className="lifecycle-table">
+      <header><div>
+        <label>transition <select aria-label="Lifecycle transition" value={transition}
+          onChange={(event) => setTransition(event.target.value as typeof transition)}>
+          <option value="all">all</option><option value="appeared">appeared</option>
+          <option value="disappeared">disappeared</option>
+        </select></label>
+        <label>evidence <select aria-label="Lifecycle evidence quality" value={quality}
+          onChange={(event) => setQuality(event.target.value as typeof quality)}>
+          <option value="all">all</option><option value="exact">exact</option>
+          <option value="inferred">inferred</option><option value="unattributed">unattributed</option>
+        </select></label>
+      </div><span>{visible.length} transitions</span></header>
+      <div className="head"><span>turn</span><span>transition</span><span>unit</span>
+        <span>cause</span><span>evidence</span><span>detail</span></div>
+      {visible.slice(-500).reverse().map(({ event, payload }) => <button key={event.event_id}
+        onClick={() => onSelect({ kind: "event", value: event })}>
+        <span>T{event.turn}</span><strong>{payload.transition}</strong>
+        <span>#{payload.unit_id} · {payload.unit_type}</span>
+        <span>{humanize(payload.cause)}</span>
+        <span className={payload.evidence_quality}>{payload.evidence_quality}</span>
+        <span title={payload.detail ?? ""}>{payload.detail ?? "No detail logged"}</span>
+      </button>)}
+    </section>
+    <footer className="display-boundary">For historical runs, disappearance counts are reliable
+      but most root causes are not recoverable. New runs include the proxy lifecycle journal,
+      allowing combat losses to become exact instead of turn-boundary unknowns.</footer>
+  </div>;
+}
+
 function MetricsDashboard({ state, onSelect }: {
   state: ReplayState; onSelect: (selection: Selection) => void;
 }) {
@@ -1676,6 +2143,24 @@ function HowItWorks({ onNavigate }: { onNavigate: (view: ViewName) => void }) {
       label: "PF-PLN",
     },
     {
+      question: "Why is research stuck?",
+      answer: "Track the current target, accumulated beakers, science rate, stall duration, acquisitions, and the ruleset-pinned prerequisite graph.",
+      view: "technology",
+      label: "Technology",
+    },
+    {
+      question: "What is each city producing?",
+      answer: "Inspect named yields, stocks, queues, explicit queue changes, observed completions, and PF-PLN production projections.",
+      view: "economy",
+      label: "Economy & production",
+    },
+    {
+      question: "Why did a unit disappear?",
+      answer: "Review every lifecycle transition, cause category, supporting evidence, and whether the cause is exact, inferred, or unavailable.",
+      view: "forces",
+      label: "Unit lifecycle",
+    },
+    {
       question: "Can I trust the trace?",
       answer: "Surface quarantines, causal gaps, schema issues, and prohibited write-throughs.",
       view: "audit",
@@ -1714,7 +2199,8 @@ function HowItWorks({ onNavigate }: { onNavigate: (view: ViewName) => void }) {
       <ol className="about-pipeline" aria-label="Evidence pipeline">
         <li>
           <span>01</span><strong>Emit</strong>
-          <p>The agent and harness append typed decisions, proofs, state, actions, and metrics.</p>
+          <p>The agent and harness append typed decisions, proofs, technology, production,
+            lifecycle, state, actions, and metrics.</p>
           <code>events.jsonl</code>
         </li>
         <li>
@@ -2309,9 +2795,15 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
                   decisionId={pfDecision} onDecision={setPfDecision}
                   comparisonState={comparisonState} comparisonSource={comparisonSource}
                   pairQuality={pairQuality} />
-                  : view === "about" ? <HowItWorks onNavigate={setView} />
-                  : <LoggingGap title={`${NAV.find((item) => item.view === view)?.label} awaits its event milestone`}
-                    detail="This surface never derives missing data from another event type." />;
+                  : view === "technology" ? <TechnologyDashboard state={state}
+                    onSelect={setSelection} />
+                    : view === "economy" ? <EconomyProductionDashboard state={state}
+                      onSelect={setSelection} />
+                      : view === "forces" ? <UnitLifecycleDashboard state={state}
+                        onSelect={setSelection} />
+                        : view === "about" ? <HowItWorks onNavigate={setView} />
+                          : <LoggingGap title={`${NAV.find((item) => item.view === view)?.label} awaits its event milestone`}
+                            detail="This surface never derives missing data from another event type." />;
 
   return <div className="app-shell">
     <Header events={events} state={state} mode={mode} status={liveStatus} gameId={liveGameId}

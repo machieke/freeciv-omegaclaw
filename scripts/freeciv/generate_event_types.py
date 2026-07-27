@@ -117,6 +117,8 @@ def generate(envelope, payloads):
     defs = payloads["$defs"]
     known = [name for name in defs if name in (
         "run_started", "run_completed", "ruleset_compiled", "state_snapshot",
+        "technology_catalog", "technology_progress", "production_state",
+        "unit_lifecycle",
         "observation", "revision", "belief_conflict", "context_quarantine",
         "llm_proposal", "goal_selection", "verification", "quarantine",
         "pln_query", "pln_result", "pressure_propagated", "operation_scored",

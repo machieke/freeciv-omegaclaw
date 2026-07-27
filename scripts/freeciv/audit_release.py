@@ -26,9 +26,10 @@ PINNED_FREECIV_COMMIT = "26ba7124249f34fd3050ef29bf191bd4d8808018"
 PINNED_PROXY_PATCH_SHA256S = (
     "48e416000bf36c3c7ce13c8c59bb51bc682a1f17ee8568e432a82f673a10df55",
     "a4eb88c827c7a2ea68db602aa2463c2aa53bb0c6156a71e1a5a5e7fc09908856",
+    "1df99426c617e72beb0ca2bcbc879793cffce03e79a28a91e6e1955346228c31",
 )
 PINNED_PROXY_PATCH_SERIES_SHA256 = (
-    "ebe7872988a8a5b378fb427e52cdc7ac868122895b23cde2406ce0f64b61744d")
+    "64ba1a846822f35fe952a8061cdbcad85c78e82a4745105baae2caddd69a60d4")
 REQUIRED_CONFIDENCE_PARAMETERS = frozenset({
     "actionable_threshold", "minimum_logged_confidence", "dampening_lambda",
     "observation_strength", "observation_confidence", "abduction_strength",
@@ -236,6 +237,7 @@ def run(args):
         for name in (
             "0001-pln-authoritative-state.patch",
             "0002-pln-spatial-projection.patch",
+            "0003-pln-unit-lifecycle.patch",
         )
     ]
     series_digest = hashlib.sha256()

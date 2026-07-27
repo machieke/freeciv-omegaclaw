@@ -49,6 +49,10 @@ export interface ReplayState {
   invalidations: Map<string, TraceEvent>;
   verifications: TraceEvent[];
   actionResults: TraceEvent[];
+  technologyCatalogs: TraceEvent[];
+  technologyProgress: TraceEvent[];
+  productionStates: TraceEvent[];
+  unitLifecycles: TraceEvent[];
 }
 
 export const compareCursor = (left: Cursor, right: Cursor): number =>

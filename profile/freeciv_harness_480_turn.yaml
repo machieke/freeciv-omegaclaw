@@ -1,7 +1,7 @@
 schema_version: "1.0"
 ruleset: civ2civ3
-turn_limit: 200
-engine_max_turns: 200
+turn_limit: 480
+engine_max_turns: 480
 live:
   civserver_port: 6001
   topology: dedicated-serial-process-recycle
@@ -10,8 +10,8 @@ live:
   ruleset_root_env: FREECIV_RULESET_ROOT
   server_container_env: FREECIV_SERVER_CONTAINER
 opponent:
-  id: builtin-ai-away-latency
-  difficulty: away
+  id: builtin-ai-experimental
+  difficulty: experimental
 machine_profile: codex-dev-linux
 engine:
   freeciv_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018
@@ -36,17 +36,18 @@ model:
   selection_call_policy: canonical-singleton-bypass-v1
 impact_policy:
   max_actions_per_turn: 8
-  expansion_city_target: 3
+  expansion_city_target: 5
   settle_min_distance: 3
-  horizon_turn: 200
+  horizon_turn: 480
   production_minimum_remaining_turns: 8
   expansion_minimum_remaining_turns: 12
-  expansion_minimum_settlement_runway_turns: 0
+  expansion_minimum_settlement_runway_turns: 15
   expansion_settlement_deadline_recovery_enabled: true
   expansion_packet_site_preference_enabled: true
   expansion_escort_retention_enabled: false
   expansion_escort_threat_gating_enabled: false
   expansion_escort_route_threat_memory_enabled: false
+  expansion_final_settlement_escort_enabled: false
   foodbox_percent: 100
   unit_build_score_divisor: 10
   refresh_timeout_seconds: 0.3
@@ -57,6 +58,9 @@ impact_policy:
   preserve_city_defenders: true
   production_strategy: horizon_score
   pressure_enabled: true
+  pressure_score_alignment_enabled: true
+  pressure_exploration_information_enabled: true
+  pressure_score_alignment_utility_tolerance: 0.05
   pressure_damping: 0.85
   pressure_exploration_floor: 0.05
   pressure_temperature: 0.15
@@ -65,9 +69,11 @@ impact_policy:
   pressure_learning_enabled: true
   pressure_learning_rate: 0.10
   pressure_no_progress_rate: 0.10
-  pressure_initial_conductance: 0.50
+  pressure_initial_conductance: 1.00
 seeds:
-  - 104729
+  # First seed is the requested exploratory horizon extension. The remaining
+  # pinned seeds preserve the harness schema's minimum deterministic catalog.
+  - 4543804
   - 104743
   - 104759
   - 104761

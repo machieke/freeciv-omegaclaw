@@ -214,6 +214,198 @@
         "map": {"type": "object"}
       }
     },
+    "technologyCatalogEntry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "rule_id", "prerequisites"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "rule_id": {"type": "string", "minLength": 1},
+        "prerequisites": {
+          "type": "array", "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": {"$ref": "#/$defs/jsonValue"}
+        }
+      }
+    },
+    "technologyBlocker": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "missing_prerequisites"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "missing_prerequisites": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "researchTarget": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "id", "name", "progress", "cost", "remaining", "beakers_per_turn",
+        "eta_turns"
+      ],
+      "properties": {
+        "id": {"type": ["integer", "null"]},
+        "name": {"type": "string", "minLength": 1},
+        "progress": {"type": ["integer", "null"], "minimum": 0},
+        "cost": {"type": ["integer", "null"], "minimum": 0},
+        "remaining": {"type": ["integer", "null"], "minimum": 0},
+        "beakers_per_turn": {"type": ["integer", "null"]},
+        "eta_turns": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "technology_catalog": {
+      "type": "object", "additionalProperties": false,
+      "required": ["catalog_id", "ruleset", "ir_hash", "technologies"],
+      "properties": {
+        "catalog_id": {"type": "string", "minLength": 1},
+        "ruleset": {"type": "string", "minLength": 1},
+        "ir_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "technologies": {
+          "type": "array", "items": {"$ref": "#/$defs/technologyCatalogEntry"}
+        }
+      }
+    },
+    "technology_progress": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "snapshot_id", "available", "known_techs", "researchable_techs",
+        "blocked_technologies", "acquired_techs", "target", "status",
+        "stalled_turns"
+      ],
+      "properties": {
+        "snapshot_id": {"type": "string", "minLength": 1},
+        "available": {"type": "boolean"},
+        "diagnostic": {"type": ["string", "null"]},
+        "known_techs": {
+          "type": "array", "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "researchable_techs": {
+          "type": "array", "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "blocked_technologies": {
+          "type": "array", "items": {"$ref": "#/$defs/technologyBlocker"}
+        },
+        "acquired_techs": {
+          "type": "array", "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "target": {
+          "oneOf": [{"$ref": "#/$defs/researchTarget"}, {"type": "null"}]
+        },
+        "status": {"enum": ["unavailable", "idle", "researching", "stalled", "complete"]},
+        "stalled_turns": {"type": "integer", "minimum": 0}
+      }
+    },
+    "yieldVector": {
+      "type": "object", "additionalProperties": false,
+      "required": ["food", "shield", "trade", "gold", "luxury", "science"],
+      "properties": {
+        "food": {"type": ["integer", "null"]},
+        "shield": {"type": ["integer", "null"]},
+        "trade": {"type": ["integer", "null"]},
+        "gold": {"type": ["integer", "null"]},
+        "luxury": {"type": ["integer", "null"]},
+        "science": {"type": ["integer", "null"]}
+      }
+    },
+    "productionTarget": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "value", "name"],
+      "properties": {
+        "kind": {"type": ["integer", "null"]},
+        "value": {"type": ["integer", "null"]},
+        "name": {"type": ["string", "null"]}
+      }
+    },
+    "cityProductionState": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "city_id", "name", "size", "food_stock", "shield_stock", "outputs",
+        "surplus", "target", "buildable_count"
+      ],
+      "properties": {
+        "city_id": {"type": "integer"},
+        "name": {"type": "string"},
+        "size": {"type": "integer", "minimum": 0},
+        "food_stock": {"type": ["integer", "null"]},
+        "shield_stock": {"type": ["integer", "null"]},
+        "outputs": {"$ref": "#/$defs/yieldVector"},
+        "surplus": {"$ref": "#/$defs/yieldVector"},
+        "target": {"$ref": "#/$defs/productionTarget"},
+        "buildable_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "productionEconomy": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "available", "gold", "gold_per_turn", "tax_rate", "science_rate",
+        "luxury_rate"
+      ],
+      "properties": {
+        "available": {"type": "boolean"},
+        "diagnostic": {"type": ["string", "null"]},
+        "gold": {"type": ["integer", "null"]},
+        "gold_per_turn": {"type": ["integer", "null"]},
+        "tax_rate": {"type": ["integer", "null"]},
+        "science_rate": {"type": ["integer", "null"]},
+        "luxury_rate": {"type": ["integer", "null"]}
+      }
+    },
+    "production_state": {
+      "type": "object", "additionalProperties": false,
+      "required": ["snapshot_id", "economy", "cities"],
+      "properties": {
+        "snapshot_id": {"type": "string", "minLength": 1},
+        "economy": {"$ref": "#/$defs/productionEconomy"},
+        "cities": {
+          "type": "array", "items": {"$ref": "#/$defs/cityProductionState"}
+        }
+      }
+    },
+    "unit_lifecycle": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "lifecycle_id", "transition", "unit_id", "unit_type", "cause",
+        "evidence_quality", "from_snapshot_id", "to_snapshot_id",
+        "evidence_event_ids"
+      ],
+      "properties": {
+        "lifecycle_id": {"type": "string", "minLength": 1},
+        "transition": {"enum": ["appeared", "disappeared"]},
+        "unit_id": {"type": "integer"},
+        "unit_type": {"type": "string", "minLength": 1},
+        "cause": {
+          "enum": [
+            "initial_state", "observed_appearance", "production_completed",
+            "city_founded", "combat_attacker_lost", "combat_defender_lost",
+            "engine_removed", "unknown_turn_boundary"
+          ]
+        },
+        "evidence_quality": {"enum": ["exact", "inferred", "unattributed"]},
+        "from_snapshot_id": {"type": ["string", "null"]},
+        "to_snapshot_id": {"type": ["string", "null"]},
+        "evidence_event_ids": {
+          "type": "array", "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "last_position": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "required": ["x", "y"],
+          "properties": {
+            "x": {"type": ["integer", "null"]},
+            "y": {"type": ["integer", "null"]}
+          }
+        },
+        "detail": {"type": ["string", "null"]}
+      }
+    },
     "observation": {
       "type": "object", "additionalProperties": false,
       "required": ["observation_id", "provenance_id", "atom", "source", "age_turns"],

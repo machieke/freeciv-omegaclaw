@@ -162,6 +162,107 @@ export type StateSnapshot = {
   "uncertain_atoms": Array<Atom>;
 };
 
+export type TechnologyCatalogEntry = {
+  "name": string;
+  "prerequisites": Array<string>;
+  "rule_id": string;
+  "source"?: {
+    [key: string]: JsonValue;
+  };
+};
+
+export type TechnologyBlocker = {
+  "missing_prerequisites": Array<string>;
+  "name": string;
+};
+
+export type ResearchTarget = {
+  "beakers_per_turn": number | null;
+  "cost": number | null;
+  "eta_turns": number | null;
+  "id": number | null;
+  "name": string;
+  "progress": number | null;
+  "remaining": number | null;
+};
+
+export type TechnologyCatalog = {
+  "catalog_id": string;
+  "ir_hash": string;
+  "ruleset": string;
+  "technologies": Array<TechnologyCatalogEntry>;
+};
+
+export type TechnologyProgress = {
+  "acquired_techs": Array<string>;
+  "available": boolean;
+  "blocked_technologies": Array<TechnologyBlocker>;
+  "diagnostic"?: string | null;
+  "known_techs": Array<string>;
+  "researchable_techs": Array<string>;
+  "snapshot_id": string;
+  "stalled_turns": number;
+  "status": "unavailable" | "idle" | "researching" | "stalled" | "complete";
+  "target": ResearchTarget | null;
+};
+
+export type YieldVector = {
+  "food": number | null;
+  "gold": number | null;
+  "luxury": number | null;
+  "science": number | null;
+  "shield": number | null;
+  "trade": number | null;
+};
+
+export type ProductionTarget = {
+  "kind": number | null;
+  "name": string | null;
+  "value": number | null;
+};
+
+export type CityProductionState = {
+  "buildable_count": number;
+  "city_id": number;
+  "food_stock": number | null;
+  "name": string;
+  "outputs": YieldVector;
+  "shield_stock": number | null;
+  "size": number;
+  "surplus": YieldVector;
+  "target": ProductionTarget;
+};
+
+export type ProductionEconomy = {
+  "available": boolean;
+  "diagnostic"?: string | null;
+  "gold": number | null;
+  "gold_per_turn": number | null;
+  "luxury_rate": number | null;
+  "science_rate": number | null;
+  "tax_rate": number | null;
+};
+
+export type ProductionState = {
+  "cities": Array<CityProductionState>;
+  "economy": ProductionEconomy;
+  "snapshot_id": string;
+};
+
+export type UnitLifecycle = {
+  "cause": "initial_state" | "observed_appearance" | "production_completed" | "city_founded" | "combat_attacker_lost" | "combat_defender_lost" | "engine_removed" | "unknown_turn_boundary";
+  "detail"?: string | null;
+  "evidence_event_ids": Array<string>;
+  "evidence_quality": "exact" | "inferred" | "unattributed";
+  "from_snapshot_id": string | null;
+  "last_position"?: Record<string, unknown> | null;
+  "lifecycle_id": string;
+  "to_snapshot_id": string | null;
+  "transition": "appeared" | "disappeared";
+  "unit_id": number;
+  "unit_type": string;
+};
+
 export type Observation = {
   "age_turns": number;
   "atom": Atom;
@@ -497,7 +598,7 @@ export type LoggingGap = {
   "missing": string;
 };
 
-export type KnownEventType = "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "observation" | "revision" | "belief_conflict" | "context_quarantine" | "llm_proposal" | "goal_selection" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "rule_proposed" | "rule_validated" | "llm_call_scheduled" | "llm_gateway_result" | "rule_parameter_updated" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
+export type KnownEventType = "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "technology_catalog" | "technology_progress" | "production_state" | "unit_lifecycle" | "observation" | "revision" | "belief_conflict" | "context_quarantine" | "llm_proposal" | "goal_selection" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "rule_proposed" | "rule_validated" | "llm_call_scheduled" | "llm_gateway_result" | "rule_parameter_updated" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
 
 export interface EventEnvelope<T extends string = string, P extends object = Record<string, unknown>> {
   schema_version: typeof EVENT_SCHEMA_VERSION;
@@ -516,6 +617,10 @@ export interface KnownPayloadMap {
   "run_completed": RunCompleted;
   "ruleset_compiled": RulesetCompiled;
   "state_snapshot": StateSnapshot;
+  "technology_catalog": TechnologyCatalog;
+  "technology_progress": TechnologyProgress;
+  "production_state": ProductionState;
+  "unit_lifecycle": UnitLifecycle;
   "observation": Observation;
   "revision": Revision;
   "belief_conflict": BeliefConflict;

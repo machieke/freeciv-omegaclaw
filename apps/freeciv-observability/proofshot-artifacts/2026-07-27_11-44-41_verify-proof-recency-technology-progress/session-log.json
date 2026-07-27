@@ -1,0 +1,202 @@
+[
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-27T11:45:19.669Z"
+  },
+  {
+    "action": "click @e8",
+    "relativeTimeSec": 12.9,
+    "timestamp": "2026-07-27T11:45:27.612Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 13.3,
+    "timestamp": "2026-07-27T11:45:28.039Z"
+  },
+  {
+    "action": "click @e68",
+    "relativeTimeSec": 96.6,
+    "timestamp": "2026-07-27T11:46:51.334Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 101.7,
+    "timestamp": "2026-07-27T11:46:56.361Z"
+  },
+  {
+    "action": "click @e17",
+    "relativeTimeSec": 111,
+    "timestamp": "2026-07-27T11:47:05.735Z"
+  },
+  {
+    "action": "screenshot 01-technology-240.png",
+    "relativeTimeSec": 111.4,
+    "timestamp": "2026-07-27T11:47:06.123Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 111.9,
+    "timestamp": "2026-07-27T11:47:06.545Z"
+  },
+  {
+    "action": "click text=09 Technology",
+    "relativeTimeSec": 134.8,
+    "timestamp": "2026-07-27T11:47:29.479Z"
+  },
+  {
+    "action": "scroll down 640",
+    "relativeTimeSec": 148.9,
+    "timestamp": "2026-07-27T11:47:43.626Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 149.3,
+    "timestamp": "2026-07-27T11:47:43.954Z"
+  },
+  {
+    "action": "get url",
+    "relativeTimeSec": 164.2,
+    "timestamp": "2026-07-27T11:47:58.937Z"
+  },
+  {
+    "action": "open http://localhost:4178/?view=technology&turn=240&seq=2219",
+    "relativeTimeSec": 173.3,
+    "timestamp": "2026-07-27T11:48:08.026Z"
+  },
+  {
+    "action": "screenshot 01-technology-240.png",
+    "relativeTimeSec": 174,
+    "timestamp": "2026-07-27T11:48:08.656Z"
+  },
+  {
+    "action": "get text body",
+    "relativeTimeSec": 174.4,
+    "timestamp": "2026-07-27T11:48:09.053Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll('button')).find((b) => b.textContent?.includes('Experiment traces'))?.click()",
+    "relativeTimeSec": 181.7,
+    "timestamp": "2026-07-27T11:48:16.435Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll('button')).map((b) => b.textContent || '').filter((t) => t.includes('observability-v2')).slice(0,6)",
+    "relativeTimeSec": 187.3,
+    "timestamp": "2026-07-27T11:48:21.986Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll('button')).find((b) => (b.textContent || '').includes('pf-pln-240-turn-4543804-20260727-observability-v2'))?.click()",
+    "relativeTimeSec": 194.6,
+    "timestamp": "2026-07-27T11:48:29.307Z"
+  },
+  {
+    "action": "wait 1500",
+    "relativeTimeSec": 195.2,
+    "timestamp": "2026-07-27T11:48:29.892Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll('button')).find((b) => (b.textContent || '').includes('09Technology'))?.click()",
+    "relativeTimeSec": 197,
+    "timestamp": "2026-07-27T11:48:31.730Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 197.4,
+    "timestamp": "2026-07-27T11:48:32.109Z"
+  },
+  {
+    "action": "screenshot 01-technology-240.png",
+    "relativeTimeSec": 198.3,
+    "timestamp": "2026-07-27T11:48:32.950Z"
+  },
+  {
+    "action": "get text body",
+    "relativeTimeSec": 198.7,
+    "timestamp": "2026-07-27T11:48:33.366Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll('button')).find((b) => (b.textContent || '').includes('10Economy & production'))?.click()",
+    "relativeTimeSec": 206.8,
+    "timestamp": "2026-07-27T11:48:41.513Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 207.2,
+    "timestamp": "2026-07-27T11:48:41.917Z"
+  },
+  {
+    "action": "screenshot 02-economy-production-240.png",
+    "relativeTimeSec": 207.9,
+    "timestamp": "2026-07-27T11:48:42.558Z"
+  },
+  {
+    "action": "get text body",
+    "relativeTimeSec": 208.3,
+    "timestamp": "2026-07-27T11:48:42.993Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll('button')).find((b) => (b.textContent || '').includes('11Unit lifecycle'))?.click()",
+    "relativeTimeSec": 218.2,
+    "timestamp": "2026-07-27T11:48:52.877Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 218.7,
+    "timestamp": "2026-07-27T11:48:53.358Z"
+  },
+  {
+    "action": "screenshot 03-unit-lifecycle-240.png",
+    "relativeTimeSec": 219.3,
+    "timestamp": "2026-07-27T11:48:54.010Z"
+  },
+  {
+    "action": "get text body",
+    "relativeTimeSec": 219.8,
+    "timestamp": "2026-07-27T11:48:54.464Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll('button')).find((b) => (b.textContent || '').includes('Experiment traces'))?.click()",
+    "relativeTimeSec": 227.4,
+    "timestamp": "2026-07-27T11:49:02.073Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 228,
+    "timestamp": "2026-07-27T11:49:02.721Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll('button')).find((b) => (b.textContent || '').includes('pf-pln-480-turn-4543804-20260727-observability-v2'))?.click()",
+    "relativeTimeSec": 228.7,
+    "timestamp": "2026-07-27T11:49:03.353Z"
+  },
+  {
+    "action": "wait 1700",
+    "relativeTimeSec": 229.2,
+    "timestamp": "2026-07-27T11:49:03.878Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll('button')).find((b) => (b.textContent || '').includes('02Proof explorer'))?.click()",
+    "relativeTimeSec": 231.2,
+    "timestamp": "2026-07-27T11:49:05.933Z"
+  },
+  {
+    "action": "wait 400",
+    "relativeTimeSec": 231.7,
+    "timestamp": "2026-07-27T11:49:06.382Z"
+  },
+  {
+    "action": "screenshot 04-latest-proof-480.png",
+    "relativeTimeSec": 232.5,
+    "timestamp": "2026-07-27T11:49:07.150Z"
+  },
+  {
+    "action": "get text body",
+    "relativeTimeSec": 232.9,
+    "timestamp": "2026-07-27T11:49:07.592Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 259.8,
+    "timestamp": "2026-07-27T11:49:34.533Z"
+  }
+]

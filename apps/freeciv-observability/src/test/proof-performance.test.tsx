@@ -29,6 +29,7 @@ it("renders a 200-node DOM-selectable proof in under 300 ms", () => {
     proofs: [{ event: proofEvent, result }], pfPlnEvents: [], pressurePropagations: [],
     operationScores: [], conductanceUpdates: [], quarantines: [], metrics: [], unknown: [],
     loggingGaps: [], snapshots: [], invalidations: new Map(), verifications: [], actionResults: [],
+    technologyCatalogs: [], technologyProgress: [], productionStates: [], unitLifecycles: [],
   };
   const started = performance.now();
   render(<ProofExplorer state={state} onSelect={() => undefined} />);
@@ -59,6 +60,7 @@ it("keeps proof nodes beyond the default depth-four collapse inspectable", async
     proofs: [{ event: proofEvent, result }], pfPlnEvents: [], pressurePropagations: [],
     operationScores: [], conductanceUpdates: [], quarantines: [], metrics: [], unknown: [],
     loggingGaps: [], snapshots: [], invalidations: new Map(), verifications: [], actionResults: [],
+    technologyCatalogs: [], technologyProgress: [], productionStates: [], unitLifecycles: [],
   };
   render(<ProofExplorer state={state} onSelect={() => undefined} />);
   expect(screen.getAllByRole("treeitem")).toHaveLength(5);

@@ -49,6 +49,10 @@ export const foldEvents = (allEvents: TraceEvent[], cursor: Cursor): ReplayState
   const invalidations = new Map<string, TraceEvent>();
   const verifications: TraceEvent[] = [];
   const actionResults: TraceEvent[] = [];
+  const technologyCatalogs: TraceEvent[] = [];
+  const technologyProgress: TraceEvent[] = [];
+  const productionStates: TraceEvent[] = [];
+  const unitLifecycles: TraceEvent[] = [];
 
   for (const event of events) {
     eventsById.set(event.event_id, event);
@@ -98,11 +102,16 @@ export const foldEvents = (allEvents: TraceEvent[], cursor: Cursor): ReplayState
     if (event.type === "logging_gap") loggingGaps.push(event);
     if (event.type === "verification") verifications.push(event);
     if (event.type === "action_result") actionResults.push(event);
+    if (event.type === "technology_catalog") technologyCatalogs.push(event);
+    if (event.type === "technology_progress") technologyProgress.push(event);
+    if (event.type === "production_state") productionStates.push(event);
+    if (event.type === "unit_lifecycle") unitLifecycles.push(event);
   }
   return {
     cursor, events, eventsById, atoms, plans, proofs, pfPlnEvents,
     pressurePropagations, operationScores, conductanceUpdates, quarantines, metrics,
     unknown, loggingGaps, snapshots, invalidations, verifications, actionResults,
+    technologyCatalogs, technologyProgress, productionStates, unitLifecycles,
   };
 };
 
