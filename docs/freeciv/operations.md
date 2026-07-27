@@ -8,13 +8,13 @@ Before a live run, verify the service and immutable inputs:
 export OMEGACLAW_ROOT="$(git rev-parse --show-toplevel)"
 curl --fail http://127.0.0.1:8002/health
 git -C "$FREECIV_LLM_ROOT" rev-parse HEAD
-git -C "$FREECIV_LLM_ROOT" apply --reverse --check \
-  "$OMEGACLAW_ROOT/scripts/freeciv/upstream/0001-pln-authoritative-state.patch"
+"$OMEGACLAW_ROOT/scripts/freeciv/apply_proxy_patch.sh" "$FREECIV_LLM_ROOT"
 ollama list | grep 'qwen3-coder-next'
 ```
 
-The external commit must be `26ba7124249f34fd3050ef29bf191bd4d8808018`; the reverse
-patch check proves the tracked contract patch is applied. A release manifest must also record
+The external commit must be `26ba7124249f34fd3050ef29bf191bd4d8808018`; the
+idempotent patch-series check proves the tracked authoritative and spatial
+contract patches are applied. A release manifest must also record
 its own configuration hash, ruleset hashes, seed, model configuration, and dirty-state flag.
 
 Inspect the effective PF-PLN activation for a completed game with:

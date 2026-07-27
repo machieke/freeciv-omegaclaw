@@ -23,7 +23,12 @@ from freeciv_agent.rulesets.compiler import compile_ruleset  # noqa: E402
 
 
 PINNED_FREECIV_COMMIT = "26ba7124249f34fd3050ef29bf191bd4d8808018"
-PINNED_PROXY_PATCH_SHA256 = "48e416000bf36c3c7ce13c8c59bb51bc682a1f17ee8568e432a82f673a10df55"
+PINNED_PROXY_PATCH_SHA256S = (
+    "48e416000bf36c3c7ce13c8c59bb51bc682a1f17ee8568e432a82f673a10df55",
+    "a4eb88c827c7a2ea68db602aa2463c2aa53bb0c6156a71e1a5a5e7fc09908856",
+)
+PINNED_PROXY_PATCH_SERIES_SHA256 = (
+    "ebe7872988a8a5b378fb427e52cdc7ac868122895b23cde2406ce0f64b61744d")
 REQUIRED_CONFIDENCE_PARAMETERS = frozenset({
     "actionable_threshold", "minimum_logged_confidence", "dampening_lambda",
     "observation_strength", "observation_confidence", "abduction_strength",
@@ -226,25 +231,48 @@ def run(args):
     record("no-workstation-paths", not absolute_paths,
            {"absolute_path_locations": absolute_paths})
 
-    patch_path = os.path.join(
-        REPO, "scripts", "freeciv", "upstream", "0001-pln-authoritative-state.patch")
+    patch_paths = [
+        os.path.join(REPO, "scripts", "freeciv", "upstream", name)
+        for name in (
+            "0001-pln-authoritative-state.patch",
+            "0002-pln-spatial-projection.patch",
+        )
+    ]
+    series_digest = hashlib.sha256()
+    for patch_path in patch_paths:
+        with open(patch_path, "rb") as stream:
+            for block in iter(lambda: stream.read(1024 * 1024), b""):
+                series_digest.update(block)
     external = {
-        "pinned_commit": PINNED_FREECIV_COMMIT, "patch": _logical_path(patch_path),
-        "patch_sha256": _hash_file(patch_path),
+        "pinned_commit": PINNED_FREECIV_COMMIT,
+        "patches": [{
+            "path": _logical_path(path),
+            "sha256": _hash_file(path),
+        } for path in patch_paths],
+        "patch_series_sha256": series_digest.hexdigest(),
     }
-    external_passed = external["patch_sha256"] == PINNED_PROXY_PATCH_SHA256
+    external_passed = (
+        tuple(row["sha256"] for row in external["patches"])
+        == PINNED_PROXY_PATCH_SHA256S
+        and external["patch_series_sha256"]
+        == PINNED_PROXY_PATCH_SERIES_SHA256)
     if args.freeciv_llm_root:
         commit = subprocess.run(
             ["git", "-C", args.freeciv_llm_root, "rev-parse", "HEAD"],
             text=True, capture_output=True)
+        # The final patch can reverse only when its prerequisite patch is
+        # present, so this non-mutating check proves the complete ordered
+        # series without trying to reverse both dependent diffs at once.
         reverse = subprocess.run(
-            ["git", "-C", args.freeciv_llm_root, "apply", "--reverse", "--check", patch_path],
+            ["git", "-C", args.freeciv_llm_root, "apply", "--reverse", "--check",
+             patch_paths[-1]],
             text=True, capture_output=True)
         external.update({"checkout_commit": commit.stdout.strip(),
-                         "patch_applied": reverse.returncode == 0})
+                         "patch_series_applied": reverse.returncode == 0})
         external_passed = (commit.returncode == 0
                            and commit.stdout.strip() == PINNED_FREECIV_COMMIT
-                           and reverse.returncode == 0)
+                           and reverse.returncode == 0
+                           and external_passed)
     record("pinned-external-contract", external_passed, external)
 
     pf_audit = subprocess.run(

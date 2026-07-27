@@ -1,0 +1,66 @@
+{
+  "schema_version": "6.0",
+  "extends": "../v5/contract.json",
+  "upstream_base_commit": "26ba7124249f34fd3050ef29bf191bd4d8808018",
+  "format": "pln_authoritative",
+  "spatial_projection": {
+    "map": {
+      "source": "PACKET_MAP_INFO plus player-perspective PACKET_TILE_INFO",
+      "required_fields": {
+        "width": "positive integer",
+        "height": "positive integer",
+        "tiles": "array"
+      },
+      "tile_record": {
+        "required_fields": {
+          "index": "integer within width * height"
+        },
+        "optional_fields": {
+          "x": "integer consistent with index modulo width",
+          "y": "integer consistent with index divided by width",
+          "terrain": "packet-derived terrain identifier or name",
+          "known": "packet-derived player knowledge state",
+          "owner": "packet-derived tile owner"
+        }
+      },
+      "visibility": {
+        "preferred_field": "visible_tiles",
+        "fallback_field": "map.visibility",
+        "semantics": "exact packet-known tile indexes visible to the requested player"
+      }
+    },
+    "entities": {
+      "sources": [
+        "PACKET_CITY_INFO",
+        "PACKET_UNIT_INFO"
+      ],
+      "required_fields": [
+        "tile",
+        "x",
+        "y"
+      ],
+      "semantics": "own cities and units retain exact packet coordinates; visible foreign units remain observational and are never promoted into own_state"
+    }
+  },
+  "event_projection": {
+    "tile_normalization": "state_snapshot.map.tiles retains every supplied field and adds index/x/y consistency",
+    "visibility_normalization": "state_snapshot.map exposes both visible_tile_ids and derived coordinate pairs",
+    "coverage": "state_snapshot.map.coverage explicitly distinguishes complete, partial, and dimensions_only streams",
+    "visible_foreign_units": "state_snapshot.map.visible_enemy_units remains separate from authoritative own_state",
+    "spatial_plan_targets": "grounded impact plan steps copy exact action target x/y into step.spatial"
+  },
+  "fail_closed": [
+    "tile indexes outside the map are rejected",
+    "tile coordinates inconsistent with their index are rejected",
+    "duplicate tile indexes are rejected",
+    "visibility indexes outside the map are rejected",
+    "missing terrain or visibility is emitted as an explicit coverage gap and is never reconstructed from entity positions"
+  ],
+  "state_fixture": "../v2/authoritative-state.fixture.json",
+  "invariants": [
+    "pressure, planning, and visualization consume the same immutable snapshot identity",
+    "rendering coordinates never creates truth, legality, or map knowledge",
+    "legacy empty tile arrays remain readable as dimensions_only evidence",
+    "future tile fields are retained losslessly in state_snapshot events"
+  ]
+}

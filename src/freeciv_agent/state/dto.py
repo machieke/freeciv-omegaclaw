@@ -213,15 +213,67 @@ def _visibility(payload, map_data):
         for item in explicit:
             if isinstance(item, dict):
                 item = item.get("index", item.get("tile"))
-            if item is not None:
-                result.append(_integer(item, "visible_tiles[]", required=True))
+            if item is None:
+                raise ContractError(
+                    "visible_tiles[] requires an exact tile index")
+            result.append(_integer(item, "visible_tiles[]", required=True))
         return tuple(sorted(set(result)))
+    if explicit is not None:
+        raise ContractError("visible_tiles must be an array")
     visibility = map_data.get("visibility", {})
     if isinstance(visibility, dict):
-        return tuple(sorted(int(key) for key, value in visibility.items() if value))
+        result = []
+        for key, value in visibility.items():
+            if not isinstance(value, bool):
+                raise ContractError("map.visibility values must be booleans")
+            if value:
+                result.append(_integer(
+                    key, "map.visibility tile index", required=True))
+        return tuple(sorted(set(result)))
     if isinstance(visibility, list):
+        if not all(isinstance(value, bool) for value in visibility):
+            raise ContractError("map.visibility values must be booleans")
         return tuple(index for index, value in enumerate(visibility) if value)
+    if visibility is not None:
+        raise ContractError("map.visibility must be an object or array")
     return ()
+
+
+def _map_tiles(value, width, height):
+    if not isinstance(value, list):
+        raise ContractError("map.tiles must be an array")
+    tile_count = width * height
+    normalized = []
+    seen = set()
+    for position, item in enumerate(value):
+        if isinstance(item, bool) or not isinstance(item, (dict, int, float)):
+            raise ContractError("map.tiles[] must be an object or tile index")
+        row = {"index": item} if not isinstance(item, dict) else copy.deepcopy(item)
+        index = _integer(
+            row.get("index", row.get("tile")),
+            "map.tiles[{}].index".format(position))
+        x = _integer(row.get("x"), "map.tiles[{}].x".format(position))
+        y = _integer(row.get("y"), "map.tiles[{}].y".format(position))
+        if index is None:
+            if x is None or y is None:
+                raise ContractError(
+                    "map.tiles[] requires index or exact x/y coordinates")
+            index = y * width + x
+        if index < 0 or index >= tile_count:
+            raise ContractError("map.tiles[] index must be within the map")
+        expected_x = index % width
+        expected_y = index // width
+        if ((x is not None and x != expected_x)
+                or (y is not None and y != expected_y)):
+            raise ContractError("map.tiles[] coordinates must match its index")
+        if index in seen:
+            raise ContractError("map.tiles[] contains a duplicate index")
+        seen.add(index)
+        row["index"] = index
+        row["x"] = expected_x
+        row["y"] = expected_y
+        normalized.append(row)
+    return tuple(sorted(normalized, key=lambda row: row["index"]))
 
 
 @dataclass(frozen=True)
@@ -345,14 +397,17 @@ class ProxyStateDTO:
         map_data = payload.get("map") if isinstance(payload.get("map"), dict) else {}
         width = _integer(map_data.get("width", 0), "map.width", required=True)
         height = _integer(map_data.get("height", 0), "map.height", required=True)
-        tiles = map_data.get("tiles", [])
-        if not isinstance(tiles, list):
-            raise ContractError("map.tiles must be an array")
+        if width <= 0 or height <= 0:
+            raise ContractError("map dimensions must be positive")
+        tiles = _map_tiles(map_data.get("tiles", []), width, height)
         visible = _visibility(payload, map_data)
         known_hut_tiles = tuple(sorted(set(_numbers(
             authoritative.get("known_hut_tiles"),
             "authoritative.known_hut_tiles"))))
         tile_count = width * height
+        if any(tile < 0 or tile >= tile_count for tile in visible):
+            raise ContractError(
+                "visible_tiles entries must be within the map")
         if any(tile < 0 or tile >= tile_count for tile in known_hut_tiles):
             raise ContractError(
                 "authoritative.known_hut_tiles entries must be within the map")
@@ -375,7 +430,7 @@ class ProxyStateDTO:
             "game_id": str(game_id), "legal_action_json": list(legal_json),
             "map": {"height": height,
                     "known_hut_tile_ids": list(known_hut_tiles),
-                    "tiles": tiles, "visible_tile_ids": list(visible),
+                    "tiles": list(tiles), "visible_tile_ids": list(visible),
                     "width": width},
             "phase": phase, "player_alive": player_alive, "player_id": player_id,
             "research": ResearchState(tuple(sorted(set(known))), target_id, target_name,

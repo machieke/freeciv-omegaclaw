@@ -89,6 +89,54 @@ const pfTrace = [
   }, 1, 5),
 ].map((row) => JSON.stringify(row)).join("\n");
 
+const productionMapTrace = [
+  event(0, "state_snapshot", {
+    snapshot_id: "production-map-snapshot",
+    player_id: 0,
+    state_hash: "9".repeat(64),
+    own_state: {
+      cities: [{
+        city_id: 103, name: "Roma", owner: 0, tile: 458, x: 16, y: 17, size: 1,
+      }],
+      units: [{
+        unit_id: 104, type: "Settlers", owner: 0, tile: 458, x: 16, y: 17,
+        hp: 20, moves_left: 6,
+      }],
+    },
+    uncertain_atoms: [],
+    map: {
+      width: 26, height: 26, tiles: [], visible_tile_ids: [],
+      known_hut_tile_ids: [],
+    },
+  }, 1, 0),
+  event(1, "plan_created", {
+    plan: {
+      plan_id: "impact-plan-map",
+      status: "ACTIVE",
+      goal_atom_id: "grounded-impact:expansion_move",
+      source_proof_hash: pfHash,
+      snapshot_id: "production-map-snapshot",
+      feasibility_grade: 1,
+      scheduler_cost: 141,
+      cost_profile: "grounded-impact-utility",
+      ledger: [],
+      assumptions: [],
+      steps: [{
+        step_id: "impact-step-map",
+        kind: "engine-action",
+        target: {
+          action_type: "unit_move", actor_id: 104, target: { x: 15, y: 16 },
+        },
+        predicted_turn: 1,
+        actual_turn: null,
+        status: "ACTIVE",
+        cost: 0,
+        spatial: null,
+      }],
+    },
+  }, 1, 1),
+].map((row) => JSON.stringify(row)).join("\n");
+
 describe("Decision Observatory", () => {
   it("opens an action ancestry and reaches the supporting proof in five interactions", async () => {
     const user = userEvent.setup();
@@ -191,6 +239,27 @@ describe("Decision Observatory", () => {
     const marker = screen.getByTitle(/confidence 0\.30/);
     expect(marker).toHaveStyle({ opacity: "0.3" });
     expect(screen.getByText(/opacity = logged confidence/)).toBeInTheDocument();
+  });
+
+  it("salvages production map traces with entity positions and nested action targets", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App initialText={productionMapTrace} />);
+    await user.click(screen.getByRole("button", { name: /Map overlay/ }));
+    expect(screen.getByRole("status", { name: "Map data coverage" })).toHaveTextContent(
+      "Terrain was not emitted in this trace");
+    expect(screen.getByText(/26×26 map · 1 cities · 1 units · 1 selected targets/))
+      .toBeInTheDocument();
+    expect(container.querySelectorAll(".map-tile")).toHaveLength(26 * 26);
+    expect(screen.getByTitle("City Roma")).toBeInTheDocument();
+    expect(screen.getByTitle("Unit Settlers")).toBeInTheDocument();
+    expect(screen.getByRole("img", {
+      name: "Logged path for grounded-impact:expansion_move",
+    })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Tile 15,16/ })).toHaveClass("planned");
+    await user.click(screen.getByRole("button", {
+      name: /Tile 16,17, City Roma, Unit Settlers/,
+    }));
+    expect(screen.getByRole("heading", { name: "state_snapshot" })).toBeInTheDocument();
   });
 
   it("renders all 40 quarantines and makes nonzero write-through loud", async () => {

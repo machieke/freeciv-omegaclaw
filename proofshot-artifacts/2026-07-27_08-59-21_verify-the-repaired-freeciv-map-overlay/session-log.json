@@ -1,0 +1,132 @@
+[
+  {
+    "action": "click @e8",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-27T08:59:33.837Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 5.4,
+    "timestamp": "2026-07-27T08:59:34.243Z"
+  },
+  {
+    "action": "click @e63",
+    "relativeTimeSec": 18,
+    "timestamp": "2026-07-27T08:59:46.793Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 18.5,
+    "timestamp": "2026-07-27T08:59:47.322Z"
+  },
+  {
+    "action": "click @e13",
+    "relativeTimeSec": 28.1,
+    "timestamp": "2026-07-27T08:59:56.871Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 28.4,
+    "timestamp": "2026-07-27T08:59:57.207Z"
+  },
+  {
+    "action": "get url",
+    "relativeTimeSec": 54.4,
+    "timestamp": "2026-07-27T09:00:23.214Z"
+  },
+  {
+    "action": "eval document.querySelectorAll('nav button')[6]?.click(); ({url: location.href, heading: document.querySelector('main h2')?.textContent, buttons: [...document.querySelectorAll('nav button')].map(x => x.textContent)})",
+    "relativeTimeSec": 54.8,
+    "timestamp": "2026-07-27T09:00:23.562Z"
+  },
+  {
+    "action": "eval document.querySelectorAll('nav button')[7]?.click(); 'clicked-map'",
+    "relativeTimeSec": 66.7,
+    "timestamp": "2026-07-27T09:00:35.476Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 67.1,
+    "timestamp": "2026-07-27T09:00:35.947Z"
+  },
+  {
+    "action": "get url",
+    "relativeTimeSec": 68,
+    "timestamp": "2026-07-27T09:00:36.806Z"
+  },
+  {
+    "action": "snapshot -i -s .map-view",
+    "relativeTimeSec": 68.4,
+    "timestamp": "2026-07-27T09:00:37.153Z"
+  },
+  {
+    "action": "eval (() => { const v=document.querySelector('.map-view'); return {heading:v?.querySelector('.view-heading')?.textContent, status:v?.querySelector('.map-data-status')?.textContent, tileCount:v?.querySelectorAll('.map-tile').length, markerTitles:[...v?.querySelectorAll('.map-entity-marker') ?? []].map(x=>x.getAttribute('title')), plannedTiles:[...v?.querySelectorAll('.map-tile.planned') ?? []].map(x=>x.getAttribute('aria-label')), pathLabel:v?.querySelector('.map-path-overlay')?.getAttribute('aria-label'), size:getComputedStyle(v?.querySelector('.tile-map')).getPropertyValue('--map-width')}; })()",
+    "relativeTimeSec": 77.5,
+    "timestamp": "2026-07-27T09:00:46.313Z"
+  },
+  {
+    "action": "screenshot map-overlay-real-trace.png",
+    "relativeTimeSec": 77.9,
+    "timestamp": "2026-07-27T09:00:46.694Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 78.3,
+    "timestamp": "2026-07-27T09:00:47.106Z"
+  },
+  {
+    "action": "console",
+    "relativeTimeSec": 78.7,
+    "timestamp": "2026-07-27T09:00:47.452Z"
+  },
+  {
+    "action": "screenshot map-overlay-real-trace-full.png --full",
+    "relativeTimeSec": 95.3,
+    "timestamp": "2026-07-27T09:01:04.064Z"
+  },
+  {
+    "action": "eval document.querySelector('.map-tile.has-marker')?.scrollIntoView({block:'center'}); ({count:document.querySelectorAll('.map-tile.has-marker').length, scroll:document.querySelector('.view-content')?.scrollTop})",
+    "relativeTimeSec": 103.1,
+    "timestamp": "2026-07-27T09:01:11.898Z"
+  },
+  {
+    "action": "screenshot map-overlay-real-trace-markers.png",
+    "relativeTimeSec": 103.4,
+    "timestamp": "2026-07-27T09:01:12.239Z"
+  },
+  {
+    "action": "eval document.querySelector('.map-tile.has-marker')?.click(); ({inspector:document.querySelector('.inspector h2')?.textContent, selected:document.querySelector('.map-tile.has-marker')?.getAttribute('aria-label')})",
+    "relativeTimeSec": 122,
+    "timestamp": "2026-07-27T09:01:30.761Z"
+  },
+  {
+    "action": "screenshot map-overlay-marker-inspector.png",
+    "relativeTimeSec": 122.4,
+    "timestamp": "2026-07-27T09:01:31.221Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 122.8,
+    "timestamp": "2026-07-27T09:01:31.618Z"
+  },
+  {
+    "action": "console",
+    "relativeTimeSec": 123.2,
+    "timestamp": "2026-07-27T09:01:31.973Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 130.9,
+    "timestamp": "2026-07-27T09:01:39.669Z"
+  },
+  {
+    "action": "eval ({inspector:document.querySelector('.inspector h2')?.textContent, subtitle:document.querySelector('.inspector .mono-id')?.textContent})",
+    "relativeTimeSec": 131.5,
+    "timestamp": "2026-07-27T09:01:40.317Z"
+  },
+  {
+    "action": "screenshot map-overlay-marker-inspector-open.png",
+    "relativeTimeSec": 131.9,
+    "timestamp": "2026-07-27T09:01:40.684Z"
+  }
+]

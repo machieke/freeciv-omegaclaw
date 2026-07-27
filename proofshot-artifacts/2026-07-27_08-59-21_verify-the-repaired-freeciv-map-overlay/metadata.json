@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure",
+  "commitSha": "4bb579d0d702090f582bad5f0fbd3cd52bc56344",
+  "startedAt": "2026-07-27T08:59:21.417Z",
+  "description": "Verify the repaired FreeCiv map overlay on a real dimensions-only experiment trace: full extent, city/unit markers, explicit partial coverage, and logged action targets"
+}

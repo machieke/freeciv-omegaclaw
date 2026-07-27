@@ -47,8 +47,11 @@ The UI exposes one global `(turn, seq)` cursor across:
   diffs;
 - current/as-of atom truth values, predicate distribution, provenance, and
   revision sparklines;
-- plan dependency timing, ledger, assumptions, invalidations, repairs, and
-  numbered spatial path overlays;
+- plan dependency timing, ledger, assumptions, invalidations, repairs, and a
+  full-extent map overlay. It renders packet tiles/visibility when logged and
+  also uses exact own-city, own-unit, visible-opponent, atom, and nested action
+  target coordinates, so older dimensions-only engine traces retain a useful
+  positional view with an explicit coverage warning;
 - quarantined LLM claims, claim-handling chronology, and the write-through alarm;
 - the PF-PLN goal field, pressure transport lineage, emitted operation schedule,
   candidate rank, selected operation, conductance trends, activation phases,
@@ -118,8 +121,11 @@ Every chart remains a projection over accepted trace events at the global cursor
 Large proof and pressure graphs state their visible node/route limit. Exact payloads
 remain available through selection and the inspector, and the PF candidate chart
 retains a collapsible exact scheduler table. The UI never fills missing series,
-infers unlogged map paths, recomputes pressure, or turns a visual difference into a
-performance claim.
+infers unlogged map paths, terrain, or fog, recomputes pressure, or turns a visual
+difference into a performance claim. A map with dimensions but no tile packets is
+shown as a neutral grid carrying only logged entities and targets. Tile-rich v6
+traces distinguish exact visible indexes from remembered terrain and report their
+record, visibility, and marker counts.
 
 ## Live mode
 

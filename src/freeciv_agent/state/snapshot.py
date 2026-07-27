@@ -184,11 +184,29 @@ class AuthoritativeSnapshot:
         }
 
     def map_dict(self):
+        tile_count = self.map_width * self.map_height
+        coverage = (
+            "complete" if tile_count and len(self.map_tiles) == tile_count
+            else "partial" if self.map_tiles or self.visible_tile_ids
+            else "dimensions_only")
         return {
+            "coverage": {
+                "status": coverage,
+                "tile_records": len(self.map_tiles),
+                "visible_tiles": len(self.visible_tile_ids),
+            },
             "height": self.map_height,
             "known_hut_tile_ids": list(self.known_hut_tile_ids),
             "tiles": list(self.map_tiles),
-            "visible_tile_ids": list(self.visible_tile_ids), "width": self.map_width,
+            "visible": [
+                [tile_id % self.map_width, tile_id // self.map_width]
+                for tile_id in self.visible_tile_ids
+            ],
+            "visible_enemy_units": [
+                unit.to_dict() for unit in self.visible_enemy_units
+            ],
+            "visible_tile_ids": list(self.visible_tile_ids),
+            "width": self.map_width,
         }
 
     def event_payload(self):

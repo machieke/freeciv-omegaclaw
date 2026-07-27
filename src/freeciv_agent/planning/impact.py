@@ -204,6 +204,19 @@ def _target_name(action):
     return str(target or "")
 
 
+def _spatial_target(action):
+    target = action.get("target")
+    candidates = [target] if isinstance(target, dict) else []
+    candidates.append(action)
+    for candidate in candidates:
+        x = candidate.get("x", candidate.get("dest_x"))
+        y = candidate.get("y", candidate.get("dest_y"))
+        if (isinstance(x, int) and not isinstance(x, bool)
+                and isinstance(y, int) and not isinstance(y, bool)):
+            return {"x": x, "y": y}
+    return None
+
+
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
@@ -3510,7 +3523,8 @@ class GroundedImpactPlanner(object):
         step = PlanStep(
             step_id, "engine-action", candidate.action, snapshot.turn, 0, 0.0,
             status="ACTIVE", snapshot_id=snapshot.snapshot_id,
-            legal_actions_digest=snapshot.legal_actions_digest)
+            legal_actions_digest=snapshot.legal_actions_digest,
+            spatial=_spatial_target(candidate.action))
         scheduler_cost = max(0.0, 1000.0 - candidate.utility)
         branch = BranchScore(
             "impact-" + candidate.category, 1.0, scheduler_cost, 0, True)

@@ -51,7 +51,59 @@
     "techs": {"type": "object"},
     "units": {"oneOf": [{"type": "object"}, {"type": "array"}]},
     "cities": {"oneOf": [{"type": "object"}, {"type": "array"}]},
-    "map": {"type": "object", "required": ["width", "height", "tiles"]},
+    "map": {
+      "type": "object",
+      "required": ["width", "height", "tiles"],
+      "properties": {
+        "width": {"type": "integer", "minimum": 1},
+        "height": {"type": "integer", "minimum": 1},
+        "tiles": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {"type": "integer", "minimum": 0},
+              {
+                "type": "object",
+                "required": ["index"],
+                "properties": {
+                  "index": {"type": "integer", "minimum": 0},
+                  "x": {"type": "integer", "minimum": 0},
+                  "y": {"type": "integer", "minimum": 0},
+                  "terrain": {},
+                  "known": {},
+                  "owner": {}
+                }
+              }
+            ]
+          }
+        },
+        "visibility": {
+          "oneOf": [
+            {"type": "object", "additionalProperties": {"type": "boolean"}},
+            {"type": "array", "items": {"type": "boolean"}}
+          ]
+        }
+      }
+    },
+    "visible_tiles": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {"type": "integer", "minimum": 0},
+          {
+            "type": "object",
+            "anyOf": [
+              {"required": ["index"]},
+              {"required": ["tile"]}
+            ],
+            "properties": {
+              "index": {"type": "integer", "minimum": 0},
+              "tile": {"type": "integer", "minimum": 0}
+            }
+          }
+        ]
+      }
+    },
     "legal_actions": {"oneOf": [{"type": "object"}, {"type": "array"}]}
   }
 }

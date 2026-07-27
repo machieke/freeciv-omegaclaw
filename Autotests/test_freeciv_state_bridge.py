@@ -69,6 +69,12 @@ def test_authoritative_contract_fixture_schema_and_stable_identity():
     assert first.visible_tile_ids == (82,)
     assert first.known_hut_tile_ids == ()
     assert first.legal_action_kinds == ("city_production", "unit_move")
+    map_payload = first.map_dict()
+    assert map_payload["tiles"] == [
+        {"index": 82, "terrain": 1, "known": 2, "x": 2, "y": 2}]
+    assert map_payload["visible"] == [[2, 2]]
+    assert map_payload["coverage"] == {
+        "status": "partial", "tile_records": 1, "visible_tiles": 1}
 
 
 def test_packet_known_hut_tiles_are_typed_and_part_of_snapshot_identity():
@@ -132,10 +138,45 @@ def test_visible_foreign_units_are_observations_not_authoritative_own_state():
     assert snapshot.unit(700) is None
     assert snapshot.visible_enemy_unit(700).owner == 1
     assert all(row["unit_id"] != 700 for row in snapshot.own_state_dict()["units"])
+    assert snapshot.map_dict()["visible_enemy_units"][0]["unit_id"] == 700
     store = SnapshotStore()
     store.replace(snapshot)
     atoms = store.current_atomspaces("state-test", 0).authoritative
     assert not any(atom.predicate == "owns-unit" and 700 in atom.args for atom in atoms)
+
+
+def test_map_tiles_are_normalized_and_invalid_spatial_evidence_fails_closed():
+    payload = _payload()
+    payload["map"]["tiles"] = [{"index": 82, "terrain": "grassland"}]
+    tile = _snapshot(payload=payload).map_dict()["tiles"][0]
+    assert tile == {
+        "index": 82, "terrain": "grassland", "x": 2, "y": 2}
+
+    wrong_coordinate = _payload()
+    wrong_coordinate["map"]["tiles"] = [{"index": 82, "x": 3, "y": 2}]
+    with pytest.raises(ContractError, match="coordinates must match"):
+        _snapshot(payload=wrong_coordinate)
+
+    duplicate = _payload()
+    duplicate["map"]["tiles"] = [{"index": 82}, {"index": 82}]
+    with pytest.raises(ContractError, match="duplicate index"):
+        _snapshot(payload=duplicate)
+
+    invalid_visibility = _payload()
+    invalid_visibility["visible_tiles"] = [1000]
+    with pytest.raises(ContractError, match="visible_tiles entries must be within"):
+        _snapshot(payload=invalid_visibility)
+
+    missing_visibility_index = _payload()
+    missing_visibility_index["visible_tiles"] = [{}]
+    with pytest.raises(ContractError, match="requires an exact tile index"):
+        _snapshot(payload=missing_visibility_index)
+
+    invalid_visibility_type = _payload()
+    invalid_visibility_type.pop("visible_tiles")
+    invalid_visibility_type["map"]["visibility"] = {"82": 1}
+    with pytest.raises(ContractError, match="values must be booleans"):
+        _snapshot(payload=invalid_visibility_type)
 
 
 def test_transactional_replace_removes_disappearing_entities_and_quantities_are_not_atoms():

@@ -610,45 +610,166 @@ const coordinate = (atom: Atom): [number, number] | undefined => {
   return values.length >= 2 ? [values.at(-2)!, values.at(-1)!] : undefined;
 };
 
+const spatialRows = (value: unknown): Array<Record<string, unknown>> => {
+  if (Array.isArray(value)) {
+    return value.filter((row): row is Record<string, unknown> =>
+      Boolean(row) && typeof row === "object" && !Array.isArray(row));
+  }
+  if (value && typeof value === "object") {
+    return Object.values(value).filter((row): row is Record<string, unknown> =>
+      Boolean(row) && typeof row === "object" && !Array.isArray(row));
+  }
+  return [];
+};
+
+const exactPoint = (value: unknown): { x: number; y: number } | undefined => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const row = value as Record<string, unknown>;
+  const x = row.x ?? row.dest_x;
+  const y = row.y ?? row.dest_y;
+  return Number.isInteger(x) && Number.isInteger(y)
+    ? { x: Number(x), y: Number(y) } : undefined;
+};
+
+const stepPoint = (step: PlanStep): { x: number; y: number } | undefined => {
+  const target = step.target as Record<string, unknown> | undefined;
+  return exactPoint(step.spatial) ?? exactPoint(target?.target) ?? exactPoint(target);
+};
+
+type MapMarker = {
+  key: string;
+  kind: "city" | "unit" | "enemy" | "atom";
+  label: string;
+  x: number;
+  y: number;
+  confidence: number;
+  atom?: AtomView;
+};
+
+const entityMarker = (
+  row: Record<string, unknown>,
+  kind: "city" | "unit" | "enemy",
+): MapMarker | undefined => {
+  const point = exactPoint(row);
+  if (!point) return undefined;
+  const id = row.city_id ?? row.unit_id ?? row.id ?? `${point.x}-${point.y}`;
+  const name = kind === "city"
+    ? String(row.name ?? `city ${id}`)
+    : String(row.type ?? row.unit_type ?? `${kind} ${id}`);
+  return {
+    key: `${kind}-${String(id)}`,
+    kind,
+    label: `${kind === "city" ? "City" : kind === "enemy" ? "Visible opponent" : "Unit"} ${name}`,
+    ...point,
+    confidence: 1,
+  };
+};
+
+const terrainHue = (terrain: unknown): number => {
+  if (typeof terrain === "number" && Number.isFinite(terrain)) {
+    return (175 + Math.abs(Math.trunc(terrain)) * 37) % 360;
+  }
+  return [...String(terrain ?? "")].reduce((sum, character) =>
+    (sum + character.charCodeAt(0) * 17) % 360, 175);
+};
+
 function MapOverlay({ state, selection, onSelect }: {
   state: ReplayState; selection?: Selection; onSelect: (selection: Selection) => void;
 }) {
   const spatialPlans = [...state.plans.values()].filter((plan) =>
-    plan.steps.some((step) => {
-      const spatial = step.spatial as { x?: number; y?: number } | null;
-      return spatial && Number.isInteger(spatial.x) && Number.isInteger(spatial.y);
-    }));
+    plan.steps.some((step) => stepPoint(step)));
   const [planId, setPlanId] = useState<string>();
   const snapshot = state.snapshots.at(-1);
   if (!snapshot) return <LoggingGap title="No map snapshot at this cursor"
     detail="The map never infers tiles or paths without a state_snapshot map payload." />;
   const map = snapshot.payload.map as Record<string, unknown> | undefined;
-  const width = Math.min(30, Number(map?.width ?? 0));
-  const height = Math.min(20, Number(map?.height ?? 0));
-  if (!width || !height) return <LoggingGap title="Map dimensions were not logged"
+  const sourceWidth = Number(map?.width ?? 0);
+  const sourceHeight = Number(map?.height ?? 0);
+  if (!Number.isInteger(sourceWidth) || !Number.isInteger(sourceHeight)
+      || sourceWidth <= 0 || sourceHeight <= 0) {
+    return <LoggingGap title="Map dimensions were not logged"
     detail="Emit width and height in state_snapshot.map; the view will not guess them." />;
-  const visible = new Set((Array.isArray(map?.visible) ? map.visible : []).map((row) => JSON.stringify(row)));
-  const positioned = [...state.atoms.values()].filter((row) => coordinate(row.atom));
-  const selectedPlan = selection?.kind === "plan" ? selection.value
-    : selection?.kind === "step" ? selection.plan
-      : spatialPlans.find((plan) => plan.plan_id === planId) ?? spatialPlans.at(-1);
+  }
+  const width = Math.min(100, sourceWidth);
+  const height = Math.min(100, sourceHeight);
+  const cropped = width !== sourceWidth || height !== sourceHeight;
+  const tileRows = spatialRows(map?.tiles);
+  const tileByCoordinate = new Map<string, Record<string, unknown>>();
+  for (const tile of tileRows) {
+    const index = Number(tile.index ?? tile.tile);
+    const x = Number.isInteger(tile.x) ? Number(tile.x)
+      : Number.isInteger(index) ? index % sourceWidth : Number.NaN;
+    const y = Number.isInteger(tile.y) ? Number(tile.y)
+      : Number.isInteger(index) ? Math.floor(index / sourceWidth) : Number.NaN;
+    if (Number.isInteger(x) && Number.isInteger(y) && x >= 0 && y >= 0
+        && x < width && y < height) {
+      tileByCoordinate.set(`${x},${y}`, tile);
+    }
+  }
+  const visible = new Set<string>();
+  for (const row of Array.isArray(map?.visible) ? map.visible : []) {
+    if (Array.isArray(row) && Number.isInteger(row[0]) && Number.isInteger(row[1])) {
+      visible.add(`${Number(row[0])},${Number(row[1])}`);
+    }
+  }
+  for (const value of Array.isArray(map?.visible_tile_ids) ? map.visible_tile_ids : []) {
+    if (Number.isInteger(value) && Number(value) >= 0 && Number(value) < sourceWidth * sourceHeight) {
+      visible.add(`${Number(value) % sourceWidth},${Math.floor(Number(value) / sourceWidth)}`);
+    }
+  }
+  for (const [key, tile] of tileByCoordinate) {
+    if (tile.visible === true) visible.add(key);
+  }
+  const ownState = snapshot.payload.own_state as Record<string, unknown> | undefined;
+  const cities = spatialRows(ownState?.cities)
+    .map((row) => entityMarker(row, "city")).filter((row): row is MapMarker => Boolean(row));
+  const units = spatialRows(ownState?.units)
+    .map((row) => entityMarker(row, "unit")).filter((row): row is MapMarker => Boolean(row));
+  const enemies = spatialRows(map?.visible_enemy_units)
+    .map((row) => entityMarker(row, "enemy")).filter((row): row is MapMarker => Boolean(row));
+  const atomMarkers = [...state.atoms.values()].flatMap((row): MapMarker[] => {
+    const point = coordinate(row.atom);
+    return point ? [{
+      key: `atom-${row.atom.atom_id}`,
+      kind: "atom",
+      label: formatAtom(row.atom),
+      x: point[0],
+      y: point[1],
+      confidence: row.atom.tv.confidence,
+      atom: row,
+    }] : [];
+  });
+  const markers = [...cities, ...units, ...enemies, ...atomMarkers]
+    .filter((marker) => marker.x >= 0 && marker.y >= 0
+      && marker.x < width && marker.y < height);
+  const markersByCoordinate = new Map<string, MapMarker[]>();
+  for (const marker of markers) {
+    const key = `${marker.x},${marker.y}`;
+    markersByCoordinate.set(key, [...markersByCoordinate.get(key) ?? [], marker]);
+  }
+  const selectedFromInspector = selection?.kind === "plan" ? selection.value
+    : selection?.kind === "step" ? selection.plan : undefined;
+  const selectedPlan = spatialPlans.find((plan) => plan.plan_id === selectedFromInspector?.plan_id)
+    ?? spatialPlans.find((plan) => plan.plan_id === planId) ?? spatialPlans.at(-1);
   const planned = new Map<string, PlanStep>();
   for (const step of selectedPlan?.steps ?? []) {
-    const spatial = step.spatial as { x?: number; y?: number } | null;
-    if (spatial && Number.isInteger(spatial.x) && Number.isInteger(spatial.y)) {
-      planned.set(`${spatial.x},${spatial.y}`, step);
-    }
+    const point = stepPoint(step);
+    if (point) planned.set(`${point.x},${point.y}`, step);
   }
   const invalid = selectedPlan ? state.invalidations.get(selectedPlan.plan_id) : undefined;
   const path = (selectedPlan?.steps ?? []).flatMap((step) => {
-    const spatial = step.spatial as { x?: number; y?: number } | null;
-    return spatial && typeof spatial.x === "number" && typeof spatial.y === "number"
-      ? [{ x: spatial.x, y: spatial.y, step }] : [];
+    const point = stepPoint(step);
+    return point ? [{ ...point, step }] : [];
   });
+  const knownHuts = new Set((Array.isArray(map?.known_hut_tile_ids)
+    ? map.known_hut_tile_ids : []).filter(Number.isInteger).map(Number));
+  const terrainAvailable = tileByCoordinate.size > 0;
+  const visibilityAvailable = visible.size > 0;
   const viewHeight = 1000 * height / width;
   return <div className="view-content map-view"><div className="view-heading">
     <div><span className="eyebrow">event-provided spatial state</span><h2>Map overlay</h2></div>
-    <div className="map-controls"><p>{width}×{height} logged tiles · {positioned.length} markers</p>
+    <div className="map-controls"><p>{sourceWidth}×{sourceHeight} map · {cities.length} cities ·
+      {" "}{units.length} units · {path.length} selected targets</p>
       {spatialPlans.length > 0 && <label>plan <select aria-label="Map plan overlay"
         value={selectedPlan?.plan_id ?? ""}
         onChange={(event) => setPlanId(event.target.value)}>
@@ -656,24 +777,59 @@ function MapOverlay({ state, selection, onSelect }: {
           {humanize(plan.goal_atom_id)} · {plan.status}
         </option>)}
       </select></label>}</div>
-  </div><div className="map-canvas" style={{
+  </div>
+  {(!terrainAvailable || !visibilityAvailable || cropped) && <section className="map-data-status"
+    role="status" aria-label="Map data coverage">
+    <div><span className="eyebrow">partial spatial evidence</span>
+      <strong>{terrainAvailable ? "Packet map available" : "Positional overlay"}</strong></div>
+    <p>{!terrainAvailable
+      ? "Terrain was not emitted in this trace. Logged cities, units, observations, and action targets remain exact."
+      : !visibilityAvailable
+        ? "Terrain was emitted without visible-tile evidence; the UI does not infer fog of war."
+        : "The source map exceeds the 100×100 display safety window."}</p>
+    <div><span>tiles <b>{tileByCoordinate.size}</b></span>
+      <span>visible <b>{visible.size}</b></span><span>markers <b>{markers.length}</b></span></div>
+  </section>}
+  <div className="map-canvas" style={{
     "--map-aspect": `${width} / ${height}`,
   } as React.CSSProperties}>
   <div className="tile-map" style={{ "--map-width": width } as React.CSSProperties}>
     {Array.from({ length: width * height }, (_, index) => {
       const x = index % width; const y = Math.floor(index / width);
-      const marker = positioned.find((row) => {
-        const point = coordinate(row.atom); return point?.[0] === x && point[1] === y;
-      });
+      const tile = tileByCoordinate.get(`${x},${y}`);
+      const tileMarkers = markersByCoordinate.get(`${x},${y}`) ?? [];
       const step = planned.get(`${x},${y}`);
-      const broken = invalid && marker?.atom.atom_id ===
-        (invalid.payload.broken_assumption as { atom_id?: string } | undefined)?.atom_id;
-      return <button key={`${x}-${y}`} aria-label={`Tile ${x},${y}`}
-        className={`map-tile ${visible.has(JSON.stringify([x, y])) ? "visible" : "fog"} ${marker ? "has-marker" : ""} ${step ? "planned" : ""} ${broken ? "broken" : ""}`}
-        onClick={() => marker && onSelect({ kind: "atom", value: marker })}>
-        {marker && <span className={`uncertain-marker marker-${marker.atom.predicate}`}
-          style={{ opacity: marker.atom.tv.confidence }}
-          title={`${formatAtom(marker.atom)} confidence ${marker.atom.tv.confidence.toFixed(2)}`} />}
+      const broken = invalid && tileMarkers.some((marker) => marker.atom?.atom.atom_id ===
+        (invalid.payload.broken_assumption as { atom_id?: string } | undefined)?.atom_id);
+      const isVisible = visible.has(`${x},${y}`);
+      const terrain = tile?.terrain;
+      const tileIndex = y * sourceWidth + x;
+      const hut = knownHuts.has(tileIndex);
+      const markerLabels = tileMarkers.map((marker) => marker.label).join(", ");
+      return <button key={`${x}-${y}`}
+        aria-label={`Tile ${x},${y}${terrain === undefined ? "" : `, terrain ${String(terrain)}`}${markerLabels ? `, ${markerLabels}` : ""}`}
+        title={terrain === undefined ? `Tile ${x},${y}` : `Tile ${x},${y} · terrain ${String(terrain)}`}
+        className={`map-tile ${isVisible ? "visible" : terrainAvailable ? "fog" : "unavailable"} ${tile ? "has-terrain" : ""} ${tileMarkers.length ? "has-marker" : ""} ${step ? "planned" : ""} ${broken ? "broken" : ""} ${hut ? "hut" : ""}`}
+        style={tile && terrain !== undefined
+          ? { "--terrain-hue": terrainHue(terrain) } as React.CSSProperties : undefined}
+        onClick={() => {
+          const atomMarker = tileMarkers.find((marker) => marker.atom);
+          onSelect(atomMarker?.atom
+            ? { kind: "atom", value: atomMarker.atom }
+            : { kind: "event", value: snapshot });
+        }}>
+        {tileMarkers.length > 0 && <span className="map-marker-stack">
+          {tileMarkers.slice(0, 4).map((marker) => <span key={marker.key}
+            className={`map-entity-marker ${marker.kind}`}
+            style={{ opacity: marker.confidence }}
+            title={`${marker.label}${marker.kind === "atom"
+              ? ` confidence ${marker.confidence.toFixed(2)}` : ""}`}>
+            {marker.kind === "city" ? "◆" : marker.kind === "enemy" ? "×"
+              : marker.kind === "unit" ? "●" : "○"}
+          </span>)}
+          {tileMarkers.length > 4 && <b>+{tileMarkers.length - 4}</b>}
+        </span>}
+        {hut && <span className="map-hut" title="Packet-known hut">⌂</span>}
         {step && <em>T{step.predicted_turn}</em>}
       </button>;
     })}
@@ -687,8 +843,12 @@ function MapOverlay({ state, selection, onSelect }: {
       <circle r="15" /><text y="5" textAnchor="middle">{index + 1}</text>
     </g>)}
   </svg>}
-  </div><div className="map-legend"><span>● uncertain marker opacity = logged confidence</span>
-    <span>□ fog as logged</span><span>◈ selected plan ETA</span></div></div>;
+  </div><div className="map-legend">
+    <span className="city">◆ city</span><span className="unit">● own unit</span>
+    {enemies.length > 0 && <span className="enemy">× visible opponent</span>}
+    {atomMarkers.length > 0 && <span>○ uncertain observation opacity = logged confidence</span>}
+    <span>□ {visibilityAvailable ? "fog as logged" : "terrain unavailable"}</span>
+    <span>◈ selected action target</span></div></div>;
 }
 
 function EpistemicAudit({ state, onSelect }: {

@@ -1,9 +1,10 @@
 # Authoritative state bridge
 
-The target agent reads the `pln_authoritative` proxy format and conditional
-source-stability extension described by `contracts/freeciv-proxy/v5/contract.json`
-(which extends the v3 bounded wait and v2 state DTO). Apply the tracked patch to the pinned external
-checkout before starting its container:
+The target agent reads the `pln_authoritative` proxy format, the conditional
+source-stability extension described by `contracts/freeciv-proxy/v5/contract.json`,
+and the spatial projection described by `contracts/freeciv-proxy/v6/contract.json`.
+Apply the tracked patch series to the pinned external checkout before starting
+its container:
 
 ```bash
 export FREECIV_LLM_ROOT=/path/to/freeciv-llm
@@ -11,12 +12,32 @@ scripts/freeciv/apply_proxy_patch.sh "$FREECIV_LLM_ROOT"
 docker restart fciv-net
 ```
 
-The patch is pinned to upstream commit
+The patch series is pinned to upstream commit
 `26ba7124249f34fd3050ef29bf191bd4d8808018`. It retains complete player, research, city
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
-sequence. Its SHA-256 is
-`48e416000bf36c3c7ce13c8c59bb51bc682a1f17ee8568e432a82f673a10df55`.
+sequence. The authoritative-state and spatial-projection patch SHA-256 values are,
+respectively,
+`48e416000bf36c3c7ce13c8c59bb51bc682a1f17ee8568e432a82f673a10df55` and
+`a4eb88c827c7a2ea68db602aa2463c2aa53bb0c6156a71e1a5a5e7fc09908856`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
+
+The v6 projection emits only player-known `PACKET_TILE_INFO` records. Every
+record has a bounded tile index and coordinates derived from the authoritative
+map width; terrain, knowledge state, owner, resource, worked-tile, and extras
+fields are copied only when present. `TILE_KNOWN_SEEN` records also populate the
+exact `visible_tiles` index list. `TILE_UNKNOWN`, malformed indexes, and
+out-of-map records are omitted rather than turned into evidence. Own
+city/unit coordinates and packet-visible foreign units remain in their
+existing entity projection.
+
+`ProxyStateDTO` independently validates positive dimensions, tile bounds,
+coordinate/index agreement, duplicate indexes, and visibility bounds. The
+immutable event projection labels map coverage as `complete`, `partial`, or
+`dimensions_only`, emits both visible indexes and derived coordinate pairs,
+and keeps packet-visible foreign units under `map.visible_enemy_units` rather
+than authoritative `own_state`. Grounded plan steps copy exact action target
+coordinates into `step.spatial`. Existing dimensions-only traces remain
+readable and never acquire reconstructed terrain or fog.
 
 The patch defaults the proxy logger to `INFO` and moves per-action payload,
 normalization, sanitization, validation, and full state-summary diagnostics to

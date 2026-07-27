@@ -1,0 +1,118 @@
+diff --git a/freeciv-proxy/civcom.py b/freeciv-proxy/civcom.py
+--- a/freeciv-proxy/civcom.py
++++ b/freeciv-proxy/civcom.py
+@@ -2653,9 +2653,67 @@ class CivCom(Thread):
+         with self._state_projection_lock():
+             return self._build_pln_authoritative_state(player_id)
+ 
++    def _build_pln_spatial_projection(self):
++        """Project only player-known packet tiles and exact current visibility."""
++        map_info = getattr(self, 'map_info', {})
++        width = map_info.get('width', 0) if isinstance(map_info, dict) else 0
++        height = map_info.get('height', 0) if isinstance(map_info, dict) else 0
++        tile_count = (
++            width * height
++            if (isinstance(width, int) and not isinstance(width, bool)
++                and isinstance(height, int) and not isinstance(height, bool)
++                and width > 0 and height > 0)
++            else 0
++        )
++        projected_tiles = []
++        visible_tiles = []
++        source_tiles = getattr(self, 'tiles', {})
++        if isinstance(source_tiles, dict) and tile_count:
++            for raw_index, source in source_tiles.items():
++                if not isinstance(source, dict):
++                    continue
++                try:
++                    tile_index = int(raw_index)
++                except (TypeError, ValueError):
++                    continue
++                known = source.get('known')
++                # TILE_UNKNOWN carries no player map knowledge. Do not turn its
++                # protocol placeholder fields into observability evidence.
++                if tile_index < 0 or tile_index >= tile_count or known not in (1, 2):
++                    continue
++                tile = {
++                    'index': tile_index,
++                    'x': tile_index % width,
++                    'y': tile_index // width,
++                }
++                for field in (
++                        'terrain', 'known', 'owner', 'resource', 'worked', 'extras'):
++                    if field in source:
++                        tile[field] = source[field]
++                projected_tiles.append(tile)
++                if known == 2:  # TILE_KNOWN_SEEN
++                    visible_tiles.append(tile_index)
++
++        projected_tiles.sort(key=lambda tile: tile['index'])
++        visible_tiles.sort()
++        projected_map = {
++            key: value for key, value in map_info.items()
++            if key not in ('tiles', 'visibility')
++        } if isinstance(map_info, dict) else {}
++        projected_map.update({
++            'width': width,
++            'height': height,
++            'tiles': projected_tiles,
++            'visibility': {
++                str(tile_index): True for tile_index in visible_tiles
++            },
++        })
++        return projected_map, visible_tiles
++
+     def _build_pln_authoritative_state(self, player_id):
+         """Return packet-backed state without replacing missing values with permission."""
+         state = self.build_llm_optimized_state(player_id)
++        state['map'], state['visible_tiles'] = self._build_pln_spatial_projection()
+         player = self.player_packets.get(player_id, {})
+         player_alive = player.get('is_alive')
+         research = self.research_info.get(player_id, {})
+diff --git a/freeciv-proxy/tests/test_pln_authoritative_state.py b/freeciv-proxy/tests/test_pln_authoritative_state.py
+--- a/freeciv-proxy/tests/test_pln_authoritative_state.py
++++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
+@@ -48,6 +48,8 @@ def make_civcom():
+         "legal_actions": [{"type": "end_turn", "is_valid": True}],
+     }
+     civcom.get_full_state = lambda player_id: civcom.build_llm_optimized_state(player_id)
++    civcom.map_info = {"width": 10, "height": 10, "tiles": [], "visibility": {}}
++    civcom.tiles = {}
+     civcom.game_turn = 12
+     return civcom
+ 
+@@ -65,6 +67,34 @@ def test_authoritative_state_uses_player_packet_and_owned_city_outputs():
+     assert state["authoritative"]["known_hut_tiles"] == []
+ 
+ 
++def test_authoritative_state_projects_only_packet_known_spatial_evidence():
++    civcom = make_civcom()
++    civcom.map_info["wrap_x"] = True
++    civcom.tiles = {
++        12: {"terrain": 4, "known": 2, "owner": 0, "extras": [3]},
++        "13": {"terrain": 5, "known": 1, "resource": 7},
++        14: {"terrain": 6, "known": 0},
++        100: {"terrain": 7, "known": 2},
++        "bad": {"terrain": 8, "known": 2},
++    }
++
++    state = CivCom.build_pln_authoritative_state(civcom, 0)
++
++    assert state["map"] == {
++        "width": 10,
++        "height": 10,
++        "wrap_x": True,
++        "tiles": [
++            {"index": 12, "x": 2, "y": 1, "terrain": 4, "known": 2,
++             "owner": 0, "extras": [3]},
++            {"index": 13, "x": 3, "y": 1, "terrain": 5, "known": 1,
++             "resource": 7},
++        ],
++        "visibility": {"12": True},
++    }
++    assert state["visible_tiles"] == [12]
++
++
+ def test_eliminated_player_status_suppresses_stale_assets_and_actions():
+     civcom = make_civcom()
+     civcom.player_packets[0]["is_alive"] = False

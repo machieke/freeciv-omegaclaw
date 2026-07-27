@@ -207,6 +207,7 @@ def test_founder_moves_outward_then_founds_only_at_configured_spacing():
     decision = GroundedImpactPlanner().plan(snapshot)
     assert decision.candidate.category == "expansion_move"
     assert decision.candidate.action["target"] == {"x": 2, "y": 0}
+    assert decision.plan.steps[0].spatial == {"x": 2, "y": 0}
 
     build = {"action_type": "unit_build_city", "actor_id": 1, "is_valid": True}
     spaced = _snapshot(
