@@ -575,3 +575,25 @@ completed-chain loss `4013688`. It must preserve the threatened retention
 chain while removing the two exposed harmful paths before a broader reused
 development cohort or any new fresh pilot is considered. The frozen
 adapter-1.15 confirmatory cohort remains prohibited.
+
+The adapter-1.16 V1 engine gate completed all three pairs with zero active
+infrastructure failure and passed source, initial-state, safety, schema, and
+exact-replay integrity gates. The largest fresh-pilot loss, `4010436`, changed
+from `-8` to exact score and retention parity with six unprepared-route
+bypasses. Unthreatened completed-chain seed `4013688` changed from `-2` to
+exact parity with 14 unthreatened-route bypasses. Positive control `3746776`
+retained one additional city and improved score from `112` to `119`, one point
+better than adapter 1.15.
+
+The selected three-pair mean is `+2.333`, with zero founding loss and `+0.333`
+retained additions, but it is reused, selected, and claim-ineligible. No
+treatment trace observed a route threat or executed a final escort move, so
+the threat-gated route mechanism is not yet engine-proven. Machine-readable
+evidence is
+[`pf-final-settlement-escort-threat-delivery-mechanism-v1.json`](pf-final-settlement-escort-threat-delivery-mechanism-v1.json).
+
+The predeclared V2 mechanism replay reuses `4034664` and `4047597`, whose
+adapter-1.15 pilot traces both observed route threats and completed final
+escorted settlements. It must activate exact threat-gated movement without
+restoring delayed, undefended, or duplicate preparation before any broader
+development evaluation.

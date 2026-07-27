@@ -1449,6 +1449,55 @@ paired_impact:
         - 3746776
         - 4010436
         - 4013688
+    final_settlement_escort_threat_delivery_mechanism_v2:
+      claim_eligible: false
+      purpose: diagnostic
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 2
+      controller_workers: 2
+      reused_seeds_from:
+        - final_settlement_escort_preparation_pilot_v1
+      reused_seed_reason: >-
+        The adapter-1.16 V1 correction gate removed both exposed fresh-pilot
+        losses and preserved the retained-city positive direction, but none of
+        its treatment traces observed a founder-route threat or executed a
+        final escort move. Seeds 4034664 and 4047597 are reused fresh-pilot
+        traces that previously combined successful final escorted settlement
+        with exact route-threat observations. This source-fresh replay must
+        exercise the threat-gated route boundary before broader development.
+        It is claim-ineligible and cannot update score or win-rate claims.
+      isolated_policy_keys:
+        - expansion_final_settlement_escort_enabled
+      arms:
+        baseline:
+          expansion_city_target: 4
+          expansion_minimum_settlement_runway_turns: 15
+          expansion_settlement_deadline_recovery_enabled: true
+          expansion_packet_site_preference_enabled: true
+          expansion_escort_retention_enabled: true
+          expansion_escort_threat_gating_enabled: true
+          expansion_escort_route_threat_memory_enabled: true
+          expansion_final_settlement_escort_enabled: false
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+        treatment:
+          expansion_city_target: 4
+          expansion_minimum_settlement_runway_turns: 15
+          expansion_settlement_deadline_recovery_enabled: true
+          expansion_packet_site_preference_enabled: true
+          expansion_escort_retention_enabled: true
+          expansion_escort_threat_gating_enabled: true
+          expansion_escort_route_threat_memory_enabled: true
+          expansion_final_settlement_escort_enabled: true
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+      seeds:
+        - 4034664
+        - 4047597
     final_settlement_escort_preparation_pilot_v1:
       claim_eligible: false
       purpose: pilot

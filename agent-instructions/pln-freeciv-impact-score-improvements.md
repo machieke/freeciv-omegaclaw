@@ -1644,3 +1644,16 @@ safe founders retain ordinary expansion behavior. The claim-ineligible
 reused positive control `3746776`, worst loss `4010436`, and unthreatened
 completed-chain loss `4013688`. No adapter-1.15 confirmatory execution is
 authorized.
+
+The adapter-1.16 V1 engine gate removed both exposed losses. Seed `4010436`
+changed from `-8` to exact parity, seed `4013688` changed from `-2` to parity,
+and positive control `3746776` retained one additional city at `+7` score.
+All source, initial-state, safety, schema, and exact-replay gates pass. The
+selected three-pair mean is `+2.333`, but remains claim-ineligible.
+
+No V1 treatment trace observed a founder-route threat or executed a final
+escort move. A second claim-ineligible mechanism cohort is therefore
+predeclared on reused pilot seeds `4034664` and `4047597`, which previously
+combined route-threat observations with final escorted settlement. It must
+exercise the threat-gated route under unchanged adapter 1.16 before broader
+development or a new fresh pilot.
