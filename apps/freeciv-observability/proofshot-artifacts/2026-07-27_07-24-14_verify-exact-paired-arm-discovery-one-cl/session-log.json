@@ -1,0 +1,132 @@
+[
+  {
+    "action": "eval [...document.querySelectorAll('button')].find((button) => button.textContent?.includes('Experiment traces'))?.click()",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-27T07:24:52.995Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 5.4,
+    "timestamp": "2026-07-27T07:24:53.396Z"
+  },
+  {
+    "action": "fill input[aria-label='Filter experiment traces'] 4644101",
+    "relativeTimeSec": 6.2,
+    "timestamp": "2026-07-27T07:24:54.269Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 6.6,
+    "timestamp": "2026-07-27T07:24:54.661Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 7.3,
+    "timestamp": "2026-07-27T07:24:55.313Z"
+  },
+  {
+    "action": "screenshot 01-exact-pair-action.png",
+    "relativeTimeSec": 7.7,
+    "timestamp": "2026-07-27T07:24:55.702Z"
+  },
+  {
+    "action": "click @e63",
+    "relativeTimeSec": 19.2,
+    "timestamp": "2026-07-27T07:25:07.178Z"
+  },
+  {
+    "action": "wait 1500",
+    "relativeTimeSec": 19.5,
+    "timestamp": "2026-07-27T07:25:07.537Z"
+  },
+  {
+    "action": "get url",
+    "relativeTimeSec": 21.4,
+    "timestamp": "2026-07-27T07:25:09.377Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 21.7,
+    "timestamp": "2026-07-27T07:25:09.712Z"
+  },
+  {
+    "action": "screenshot 02-exact-pair-loaded.png",
+    "relativeTimeSec": 22.4,
+    "timestamp": "2026-07-27T07:25:10.442Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('.side-nav button')].find((button) => button.textContent?.includes('PF-PLN'))?.click()",
+    "relativeTimeSec": 37.7,
+    "timestamp": "2026-07-27T07:25:25.715Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 38.2,
+    "timestamp": "2026-07-27T07:25:26.196Z"
+  },
+  {
+    "action": "screenshot 03-pf-exact-pair-badge.png",
+    "relativeTimeSec": 39,
+    "timestamp": "2026-07-27T07:25:27.040Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 39.5,
+    "timestamp": "2026-07-27T07:25:27.482Z"
+  },
+  {
+    "action": "console",
+    "relativeTimeSec": 39.8,
+    "timestamp": "2026-07-27T07:25:27.829Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('button')].find((button) => button.textContent?.includes('Experiment traces'))?.click()",
+    "relativeTimeSec": 64.2,
+    "timestamp": "2026-07-27T07:25:52.177Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 64.6,
+    "timestamp": "2026-07-27T07:25:52.602Z"
+  },
+  {
+    "action": "fill input[aria-label='Filter experiment traces'] 4644101",
+    "relativeTimeSec": 65.4,
+    "timestamp": "2026-07-27T07:25:53.460Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 65.8,
+    "timestamp": "2026-07-27T07:25:53.840Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 66.5,
+    "timestamp": "2026-07-27T07:25:54.503Z"
+  },
+  {
+    "action": "click @e142",
+    "relativeTimeSec": 75.7,
+    "timestamp": "2026-07-27T07:26:03.673Z"
+  },
+  {
+    "action": "wait 1200",
+    "relativeTimeSec": 76,
+    "timestamp": "2026-07-27T07:26:04.053Z"
+  },
+  {
+    "action": "eval document.querySelector('.comparison-banner') === null",
+    "relativeTimeSec": 77.6,
+    "timestamp": "2026-07-27T07:26:05.599Z"
+  },
+  {
+    "action": "screenshot 04-new-primary-clears-pair.png",
+    "relativeTimeSec": 77.9,
+    "timestamp": "2026-07-27T07:26:05.942Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 78.4,
+    "timestamp": "2026-07-27T07:26:06.434Z"
+  }
+]

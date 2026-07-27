@@ -9,9 +9,11 @@ import {
   cursorOf, eventOrder, formatAtom, maxCursor,
 } from "./events";
 import {
-  type ArtifactCatalogEntry,
+  type ArtifactCatalogEntry, type ArtifactPairQuality,
+  artifactPairQuality,
   fetchArtifactCatalog,
   fetchArtifactEventStream,
+  findPairedArtifact,
 } from "./artifacts";
 import { LiveEventClient, type LiveStatus } from "./live";
 import { ancestry, densityByTurn, foldEvents } from "./store";
@@ -873,11 +875,12 @@ function CandidateRanking({ scores, selectedOperationId, onInspect }: {
   </div>;
 }
 
-function PairedTraceComparison({ state, comparisonState, comparisonSource, decision }: {
+function PairedTraceComparison({ state, comparisonState, comparisonSource, decision, pairQuality }: {
   state: ReplayState;
   comparisonState?: ReplayState;
   comparisonSource?: string;
   decision?: TraceEvent;
+  pairQuality: ArtifactPairQuality;
 }) {
   if (!comparisonState || !comparisonSource) return <section className="pf-panel pf-comparison empty">
     <header><div><span className="eyebrow">paired-seed evaluation</span>
@@ -917,9 +920,15 @@ function PairedTraceComparison({ state, comparisonState, comparisonSource, decis
   return <section className="pf-panel pf-comparison">
     <header><div><span className="eyebrow">turn-aligned descriptive comparison</span>
       <h3>Paired trace comparison</h3></div>
-      <span className={diverged ? "pf-divergence divergent" : "pf-divergence"}>
-        {diverged ? "decision diverged" : "same decision"}
-      </span></header>
+      <div className="pf-comparison-status">
+        <span className={`pair-quality ${pairQuality.exact ? "exact" : "warning"}`}
+          title={pairQuality.mismatches.join(", ") || "experiment, cohort, condition, seed, and opposing arm match"}>
+          {pairQuality.label}
+        </span>
+        <span className={diverged ? "pf-divergence divergent" : "pf-divergence"}>
+          {diverged ? "decision diverged" : "same decision"}
+        </span>
+      </div></header>
     <div className="pf-arm-comparison">
       <article><span>active trace · T{decision?.turn ?? "—"}</span>
         <strong>{humanize(primary.category)}</strong><small>{humanize(primary.action)}</small></article>
@@ -945,10 +954,11 @@ function PairedTraceComparison({ state, comparisonState, comparisonSource, decis
 }
 
 function PfPlnDashboard({ state, onSelect, decisionId, onDecision, comparisonState,
-  comparisonSource }: {
+  comparisonSource, pairQuality }: {
   state: ReplayState; onSelect: (selection: Selection) => void;
   decisionId?: string; onDecision: (decision?: string) => void;
   comparisonState?: ReplayState; comparisonSource?: string;
+  pairQuality: ArtifactPairQuality;
 }) {
   const decisions = state.operationScores;
   const selectedDecision = decisions.find(
@@ -1041,7 +1051,8 @@ function PfPlnDashboard({ state, onSelect, decisionId, onDecision, comparisonSta
     </section>
 
     <PairedTraceComparison state={state} comparisonState={comparisonState}
-      comparisonSource={comparisonSource} decision={selectedDecision} />
+      comparisonSource={comparisonSource} decision={selectedDecision}
+      pairQuality={pairQuality} />
 
     <div className="pf-two-column">
       <section className="pf-panel">
@@ -1281,11 +1292,12 @@ const formatBytes = (bytes: number): string => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-function ArtifactBrowser({ open, onClose, onLoad, onCompare }: {
+function ArtifactBrowser({ open, onClose, onLoad, onCompare, onLoadPair }: {
   open: boolean;
   onClose: () => void;
   onLoad: (entry: ArtifactCatalogEntry) => Promise<void>;
   onCompare: (entry: ArtifactCatalogEntry) => Promise<void>;
+  onLoadPair: (primary: ArtifactCatalogEntry, comparison: ArtifactCatalogEntry) => Promise<void>;
 }) {
   const [entries, setEntries] = useState<ArtifactCatalogEntry[]>([]);
   const [query, setQuery] = useState("");
@@ -1354,6 +1366,26 @@ function ArtifactBrowser({ open, onClose, onLoad, onCompare }: {
     }
   };
 
+  const selectPair = async (
+    entry: ArtifactCatalogEntry,
+    pair: ArtifactCatalogEntry,
+  ): Promise<void> => {
+    setLoadingPath(entry.path);
+    setComparingPath(pair.path);
+    setError(undefined);
+    try {
+      const [primary, comparison] = pair.arm === "treatment" && entry.arm !== "treatment"
+        ? [pair, entry] : [entry, pair];
+      await onLoadPair(primary, comparison);
+      onClose();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Paired traces could not be loaded");
+    } finally {
+      setLoadingPath(undefined);
+      setComparingPath(undefined);
+    }
+  };
+
   return <div className="artifact-backdrop" onMouseDown={(event) => {
     if (event.target === event.currentTarget && !loadingPath && !comparingPath) onClose();
   }}>
@@ -1385,7 +1417,9 @@ function ArtifactBrowser({ open, onClose, onLoad, onCompare }: {
       {catalogStatus === "ready" && visible.length === 0 &&
         <div className="artifact-state">No generated traces match this filter.</div>}
       {visible.length > 0 && <div className="artifact-list" aria-label="Generated experiment traces">
-        {visible.map((entry) => <div className="artifact-entry" key={entry.path}>
+        {visible.map((entry) => {
+          const pair = findPairedArtifact(entry, entries);
+          return <div className="artifact-entry" key={entry.path}>
           <button aria-label={`Load ${entry.label}`}
             disabled={Boolean(loadingPath || comparingPath)}
             className={loadingPath === entry.path ? "loading" : ""}
@@ -1403,13 +1437,23 @@ function ArtifactBrowser({ open, onClose, onLoad, onCompare }: {
               {loadingPath === entry.path ? "loading…" : "open →"}
             </span>
           </button>
-          <button className={comparingPath === entry.path ? "artifact-compare loading" : "artifact-compare"}
-            aria-label={`Compare ${entry.label}`}
-            disabled={Boolean(loadingPath || comparingPath)}
-            onClick={() => void compare(entry)}>
-            {comparingPath === entry.path ? "loading…" : "compare"}
-          </button>
-        </div>)}
+          <div className="artifact-entry-actions">
+            {pair && <button className="artifact-pair"
+              aria-label={`Open exact pair for ${entry.label}`}
+              title={`Open with ${pair.arm ?? "opposite arm"} / ${pair.run}`}
+              disabled={Boolean(loadingPath || comparingPath)}
+              onClick={() => void selectPair(entry, pair)}>
+              {loadingPath === entry.path && comparingPath === pair.path ? "loading…" : "open pair"}
+            </button>}
+            <button className={comparingPath === entry.path ? "artifact-compare loading" : "artifact-compare"}
+              aria-label={`Compare ${entry.label}`}
+              disabled={Boolean(loadingPath || comparingPath)}
+              onClick={() => void compare(entry)}>
+              {comparingPath === entry.path ? "loading…" : "compare"}
+            </button>
+          </div>
+        </div>;
+        })}
       </div>}
       {matches.length > visible.length && <footer>
         Showing the newest {visible.length} matches. Refine the filter to find an older trace.
@@ -1437,8 +1481,10 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
   const [mode, setMode] = useState<"replay" | "live">("replay");
   const [artifactBrowserOpen, setArtifactBrowserOpen] = useState(false);
   const [traceSource, setTraceSource] = useState("bundled demonstration");
+  const [activeArtifact, setActiveArtifact] = useState<ArtifactCatalogEntry>();
   const [comparisonEvents, setComparisonEvents] = useState<TraceEvent[]>([]);
   const [comparisonSource, setComparisonSource] = useState<string>();
+  const [comparisonArtifact, setComparisonArtifact] = useState<ArtifactCatalogEntry>();
   const [liveStatus, setLiveStatus] = useState<LiveStatus>("idle");
   const [liveUrl, setLiveUrl] = useState(
     String(import.meta.env.VITE_FREECIV_LIVE_URL ?? "ws://127.0.0.1:8765"));
@@ -1448,6 +1494,9 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
   const comparisonState = useMemo(() => comparisonEvents.length
     ? foldEvents(comparisonEvents, { turn: cursor.turn, seq: Number.MAX_SAFE_INTEGER })
     : undefined, [comparisonEvents, cursor.turn]);
+  const pairQuality = useMemo(() =>
+    artifactPairQuality(activeArtifact, comparisonArtifact),
+  [activeArtifact, comparisonArtifact]);
 
   useEffect(() => {
     if (!decoded.selected || selection) return;
@@ -1484,7 +1533,11 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
   }, [view, cursor, selection, pfDecision, search, channel, focusMode, inspectorOpen]);
   useEffect(() => () => liveClient.current?.stop(), []);
 
-  const applyReplay = (parsed: ParseResult, source: string): void => {
+  const applyReplay = (
+    parsed: ParseResult,
+    source: string,
+    artifact?: ArtifactCatalogEntry,
+  ): void => {
     const sorted = parsed.events.sort(eventOrder);
     if (sorted.length > eventLimit) {
       parsed.quarantined.push({
@@ -1497,6 +1550,10 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
     setEvents(sorted); setInvalidLines(parsed.quarantined); setCursor(maxCursor(sorted));
     setLiveGameId(sorted[0]?.game_id ?? "freeciv-live");
     setTraceSource(source);
+    setActiveArtifact(artifact);
+    setComparisonEvents([]);
+    setComparisonSource(undefined);
+    setComparisonArtifact(undefined);
     setPfDecision(undefined);
     setSelection(undefined);
   };
@@ -1513,7 +1570,7 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
     if (parsed.events.length === 0) {
       throw new Error("The selected artifact contains no valid trace events");
     }
-    applyReplay(parsed, entry.label);
+    applyReplay(parsed, entry.label, entry);
   };
 
   const loadComparisonArtifact = async (entry: ArtifactCatalogEntry): Promise<void> => {
@@ -1521,8 +1578,36 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
     if (parsed.events.length === 0) {
       throw new Error("The selected comparison artifact contains no valid trace events");
     }
+    if (parsed.events.length > eventLimit) {
+      throw new Error(`The comparison artifact exceeds the ${eventLimit.toLocaleString()} event limit`);
+    }
     setComparisonEvents(parsed.events.sort(eventOrder));
     setComparisonSource(entry.label);
+    setComparisonArtifact(entry);
+  };
+
+  const loadArtifactPair = async (
+    primary: ArtifactCatalogEntry,
+    comparison: ArtifactCatalogEntry,
+  ): Promise<void> => {
+    const [primaryStream, comparisonStream] = await Promise.all([
+      fetchArtifactEventStream(primary),
+      fetchArtifactEventStream(comparison),
+    ]);
+    const [primaryParsed, comparisonParsed] = await Promise.all([
+      parseJsonlStream(primaryStream),
+      parseJsonlStream(comparisonStream),
+    ]);
+    if (!primaryParsed.events.length || !comparisonParsed.events.length) {
+      throw new Error("One or both paired artifacts contain no valid trace events");
+    }
+    if (comparisonParsed.events.length > eventLimit) {
+      throw new Error(`The comparison artifact exceeds the ${eventLimit.toLocaleString()} event limit`);
+    }
+    applyReplay(primaryParsed, primary.label, primary);
+    setComparisonEvents(comparisonParsed.events.sort(eventOrder));
+    setComparisonSource(comparison.label);
+    setComparisonArtifact(comparison);
   };
 
   const stopLive = (): void => {
@@ -1534,6 +1619,8 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
   const startLive = (): void => {
     liveClient.current?.stop();
     setEvents([]); setInvalidLines([]); setCursor({ turn: 0, seq: 0 });
+    setActiveArtifact(undefined); setComparisonEvents([]);
+    setComparisonSource(undefined); setComparisonArtifact(undefined);
     setSelection(undefined); setMode("live");
     const client = new LiveEventClient({
       url: liveUrl, gameId: liveGameId, after: { turn: -1, seq: -1 },
@@ -1568,7 +1655,8 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
               : view === "metrics" ? <MetricsDashboard state={state} onSelect={setSelection} />
                 : view === "pfpln" ? <PfPlnDashboard state={state} onSelect={setSelection}
                   decisionId={pfDecision} onDecision={setPfDecision}
-                  comparisonState={comparisonState} comparisonSource={comparisonSource} />
+                  comparisonState={comparisonState} comparisonSource={comparisonSource}
+                  pairQuality={pairQuality} />
                   : <LoggingGap title={`${NAV.find((item) => item.view === view)?.label} awaits its event milestone`}
                     detail="This surface never derives missing data from another event type." />;
 
@@ -1584,9 +1672,13 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
         <span>{state.loggingGaps.length} logging gaps</span></div>}
     {comparisonSource && <div className="comparison-banner" role="status">
       <span>paired comparison</span><strong>{comparisonSource}</strong>
-      <small>Aligned by replay turn. Differences are descriptive, not causal estimates.</small>
+      <span className={`pair-quality ${pairQuality.exact ? "exact" : "warning"}`}
+        title={pairQuality.mismatches.join(", ") || "all pair keys match"}>{pairQuality.label}</span>
+      <small>{pairQuality.exact
+        ? "Same experiment, cohort, condition, and seed; opposing arms."
+        : `Check ${pairQuality.mismatches.join(", ")}. Differences remain descriptive.`}</small>
       <button onClick={() => {
-        setComparisonEvents([]); setComparisonSource(undefined);
+        setComparisonEvents([]); setComparisonSource(undefined); setComparisonArtifact(undefined);
       }}>clear</button>
     </div>}
     <div className={`workspace ${focusMode ? "focus-mode" : ""} ${!inspectorOpen ? "inspector-closed" : ""}`}>
@@ -1618,6 +1710,6 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
       {inspectorOpen && <Inspector selection={selection} onClose={() => setInspectorOpen(false)} />}
     </div>
     <ArtifactBrowser open={artifactBrowserOpen} onClose={() => setArtifactBrowserOpen(false)}
-      onLoad={loadArtifact} onCompare={loadComparisonArtifact} />
+      onLoad={loadArtifact} onCompare={loadComparisonArtifact} onLoadPair={loadArtifactPair} />
   </div>;
 }

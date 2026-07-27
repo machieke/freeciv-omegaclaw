@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure",
+  "commitSha": "36e434872ded19c0cc862139a8cc93c7397183b9",
+  "startedAt": "2026-07-27T07:24:14.478Z",
+  "description": "Verify exact paired-arm discovery, one-click pair loading, stale-comparison clearing, and PF-PLN match-quality badges"
+}

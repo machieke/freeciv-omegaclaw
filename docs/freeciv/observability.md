@@ -25,6 +25,12 @@ through the same strict parser and event limit as a manual file upload. At most 
 matching rows are rendered; refine the experiment, cohort, arm, or seed filter to
 find older traces. **Open** replaces the active replay. **Compare** loads a second
 stream into a turn-aligned comparison slot without changing the active replay.
+When the catalog contains an opposing arm with the same experiment, cohort,
+condition, and run/seed, **Open pair** loads both streams together and labels the
+comparison an **exact pair**. When one arm is named `treatment`, it becomes the
+active replay so PF-PLN controls remain available even if the action was initiated
+from the baseline row. Loading a new primary trace clears any older
+comparison so stale pairings cannot carry across replays.
 Manual **Load JSONL** remains available.
 
 The UI exposes one global `(turn, seq)` cursor across:
@@ -78,6 +84,11 @@ category/action diverged, and displays the difference between the latest logged
 `game_win` values. This is a descriptive replay aid. It is not a paired estimator,
 confidence interval, or causal claim; statistical claims remain the responsibility
 of the experiment harness.
+
+Prefer **Open pair** when it is available. Manually selected comparisons receive
+an explicit match-quality badge: exact only when experiment, cohort, condition,
+run/seed, and opposing arm all agree; otherwise the UI names the mismatched keys.
+This prevents visual alignment from being mistaken for valid paired-seed evidence.
 
 All values remain subject to the global `(turn, seq)` cursor and open their exact
 source event in the inspector. The cards count indexed event families, but the

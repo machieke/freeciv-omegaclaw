@@ -16,6 +16,40 @@ export interface ArtifactCatalogResponse {
   root: string;
 }
 
+export interface ArtifactPairQuality {
+  exact: boolean;
+  label: "exact pair" | "pair mismatch" | "unverified pair";
+  mismatches: string[];
+}
+
+const pairFields = ["experiment", "cohort", "condition", "run"] as const;
+
+export const findPairedArtifact = (
+  entry: ArtifactCatalogEntry,
+  entries: ArtifactCatalogEntry[],
+): ArtifactCatalogEntry | undefined => {
+  if (!entry.arm) return undefined;
+  return entries.find((candidate) => candidate.path !== entry.path
+    && Boolean(candidate.arm)
+    && candidate.arm !== entry.arm
+    && pairFields.every((field) => candidate[field] === entry[field]));
+};
+
+export const artifactPairQuality = (
+  primary?: ArtifactCatalogEntry,
+  comparison?: ArtifactCatalogEntry,
+): ArtifactPairQuality => {
+  if (!primary || !comparison) {
+    return { exact: false, label: "unverified pair", mismatches: ["catalog metadata unavailable"] };
+  }
+  const mismatches: string[] = pairFields.filter(
+    (field) => primary[field] !== comparison[field]);
+  if (!primary.arm || !comparison.arm || primary.arm === comparison.arm) mismatches.push("opposite arm");
+  return mismatches.length
+    ? { exact: false, label: "pair mismatch", mismatches }
+    : { exact: true, label: "exact pair", mismatches: [] };
+};
+
 const catalogEndpoint = "/api/freeciv-artifacts";
 const eventsEndpoint = "/api/freeciv-artifacts/events";
 

@@ -72,7 +72,7 @@ input[type="range"] { width: 100%; height: 2px; accent-color: var(--cyan); curso
 .workspace.focus-mode { grid-template-columns: minmax(620px, 1fr) 330px; }
 .workspace.focus-mode.inspector-closed { grid-template-columns: minmax(620px, 1fr); }
 .workspace.focus-mode .side-nav { display: none; }
-.comparison-banner { min-height: 38px; display: grid; grid-template-columns: auto minmax(200px,1fr) auto auto;
+.comparison-banner { min-height: 38px; display: grid; grid-template-columns: auto minmax(200px,1fr) auto auto auto;
   gap: 12px; align-items: center; padding: 7px 24px; border-bottom: 1px solid #284a55;
   background: linear-gradient(90deg, rgba(142,184,255,.12), rgba(93,216,208,.04)); }
 .comparison-banner > span { color: #8eb8ff; text-transform: uppercase; font: 600 8px "JetBrains Mono"; }
@@ -134,17 +134,22 @@ input[type="range"] { width: 100%; height: 2px; accent-color: var(--cyan); curso
 .artifact-tools > div { display: grid; text-align: right; gap: 3px; }
 .artifact-tools > div strong { color: var(--cyan); font: 600 15px "JetBrains Mono"; }
 .artifact-list { min-height: 0; overflow: auto; }
-.artifact-entry { display: grid; grid-template-columns: minmax(0,1fr) 84px; border-bottom: 1px solid #14272e; }
+.artifact-entry { display: grid; grid-template-columns: minmax(0,1fr) auto; border-bottom: 1px solid #14272e; }
 .artifact-entry > button:first-child { width: 100%; display: grid; grid-template-columns: 78px minmax(320px,1fr) 170px 72px;
   gap: 14px; align-items: center; padding: 11px 22px; border: 0; border-bottom: 1px solid #14272e;
   background: transparent; text-align: left; cursor: pointer; }
 .artifact-entry > button:first-child:hover { background: #0d2026; box-shadow: inset 3px 0 var(--cyan); }
 .artifact-entry > button:first-child.loading { background: rgba(93,216,208,.08); box-shadow: inset 3px 0 var(--cyan); }
 .artifact-entry > button:disabled:not(.loading) { opacity: .45; cursor: wait; }
-.artifact-compare { border: 0; border-left: 1px solid var(--line); background: #0a171c; color: #8eb8ff;
+.artifact-entry-actions { display: grid; grid-template-columns: repeat(2, minmax(78px,auto)); }
+.artifact-entry-actions button { padding: 0 10px; }
+.artifact-compare, .artifact-pair { border: 0; border-left: 1px solid var(--line); background: #0a171c; color: #8eb8ff;
   text-transform: uppercase; font: 600 8px "JetBrains Mono"; cursor: pointer; }
 .artifact-compare:hover { color: #d5e3ff; background: rgba(142,184,255,.1); }
 .artifact-compare.loading { color: var(--cyan); }
+.artifact-pair { color: var(--green); background: rgba(128,212,154,.035); }
+.artifact-pair:hover { color: #c7f0d3; background: rgba(128,212,154,.1); }
+.artifact-entry-actions button:disabled { opacity: .45; cursor: wait; }
 .artifact-kind { justify-self: start; max-width: 78px; padding: 4px 6px; border: 1px solid #2d4b54; color: var(--cyan);
   text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; font: 600 7px "JetBrains Mono"; }
 .artifact-name, .artifact-meta { min-width: 0; display: grid; gap: 3px; }
@@ -485,6 +490,11 @@ button.pf-score-row:hover { background: #0d2026; }
 .pf-divergence { padding: 5px 7px; border: 1px solid rgba(128,212,154,.35); color: var(--green);
   text-transform: uppercase; font: 600 7px "JetBrains Mono"; }
 .pf-divergence.divergent { border-color: rgba(232,174,87,.45); color: var(--amber); background: rgba(232,174,87,.06); }
+.pf-comparison-status { display: flex; align-items: center; gap: 6px; }
+.pair-quality { padding: 4px 6px; border: 1px solid var(--line-strong); color: var(--muted);
+  text-transform: uppercase; white-space: nowrap; font: 600 7px "JetBrains Mono"; }
+.pair-quality.exact { border-color: rgba(128,212,154,.4); color: var(--green); background: rgba(128,212,154,.06); }
+.pair-quality.warning { border-color: rgba(239,106,103,.4); color: var(--red); background: rgba(239,106,103,.06); }
 .pf-arm-comparison { display: grid; grid-template-columns: 1fr 36px 1fr; align-items: stretch; padding: 12px; }
 .pf-arm-comparison article { display: grid; gap: 4px; padding: 11px; border: 1px solid var(--line);
   background: #0a181e; }

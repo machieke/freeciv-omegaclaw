@@ -1,0 +1,87 @@
+[
+  {
+    "action": "eval [...document.querySelectorAll('button')].find((button) => button.textContent?.includes('Experiment traces'))?.click()",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-27T07:28:53.763Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 5.3,
+    "timestamp": "2026-07-27T07:28:54.129Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 6.2,
+    "timestamp": "2026-07-27T07:28:54.960Z"
+  },
+  {
+    "action": "click @e84",
+    "relativeTimeSec": 15.3,
+    "timestamp": "2026-07-27T07:29:04.033Z"
+  },
+  {
+    "action": "wait 1500",
+    "relativeTimeSec": 15.6,
+    "timestamp": "2026-07-27T07:29:04.413Z"
+  },
+  {
+    "action": "eval JSON.stringify({active: document.querySelector('.trace-source strong')?.textContent, quality: document.querySelector('.comparison-banner .pair-quality')?.textContent})",
+    "relativeTimeSec": 17.5,
+    "timestamp": "2026-07-27T07:29:06.258Z"
+  },
+  {
+    "action": "fill @e61 4644101",
+    "relativeTimeSec": 24.3,
+    "timestamp": "2026-07-27T07:29:13.078Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 24.7,
+    "timestamp": "2026-07-27T07:29:13.494Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 25.4,
+    "timestamp": "2026-07-27T07:29:14.140Z"
+  },
+  {
+    "action": "click @e66",
+    "relativeTimeSec": 32.2,
+    "timestamp": "2026-07-27T07:29:20.950Z"
+  },
+  {
+    "action": "wait 2000",
+    "relativeTimeSec": 32.6,
+    "timestamp": "2026-07-27T07:29:21.359Z"
+  },
+  {
+    "action": "eval JSON.stringify({active: document.querySelector('.trace-source strong')?.textContent, quality: document.querySelector('.comparison-banner .pair-quality')?.textContent, banner: document.querySelector('.comparison-banner')?.textContent})",
+    "relativeTimeSec": 35,
+    "timestamp": "2026-07-27T07:29:23.739Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('button')].find((button) => button.textContent?.includes('PF-PLN'))?.click()",
+    "relativeTimeSec": 40,
+    "timestamp": "2026-07-27T07:29:28.827Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 40.5,
+    "timestamp": "2026-07-27T07:29:29.285Z"
+  },
+  {
+    "action": "screenshot 01-baseline-row-promotes-treatment.png",
+    "relativeTimeSec": 41.3,
+    "timestamp": "2026-07-27T07:29:30.124Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 41.8,
+    "timestamp": "2026-07-27T07:29:30.563Z"
+  },
+  {
+    "action": "console",
+    "relativeTimeSec": 42.1,
+    "timestamp": "2026-07-27T07:29:30.929Z"
+  }
+]

@@ -1,0 +1,11 @@
+1785137054713	
+1785137054714	> @omegaclaw/freeciv-observability@0.1.0 dev
+1785137054714	> vite --host 127.0.0.1 --port 4178
+1785137054714	
+1785137055032	
+1785137055032	  VITE v7.3.6  ready in 188 ms
+1785137055032	
+1785137055033	  ➜  Local:   http://127.0.0.1:4178/
+1785137176132	7:26:16 AM [vite] (client) page reload proofshot-artifacts/2026-07-27_07-24-14_verify-exact-paired-arm-discovery-one-cl/viewer.html
+1785137227772	7:27:07 AM [vite] (client) hmr update /src/App.tsx
+1785137284296	Killed

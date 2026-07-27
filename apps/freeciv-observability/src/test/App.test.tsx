@@ -256,6 +256,55 @@ describe("Decision Observatory", () => {
     }
   });
 
+  it("opens an exact seed/condition counterpart pair in one action", async () => {
+    const user = userEvent.setup();
+    const primary = {
+      arm: "treatment",
+      cohort: "confirmatory",
+      condition: "e_full_loop",
+      experiment: "pf-paired-test",
+      label: "pf-paired-test / treatment / seed-01",
+      modifiedAt: "2026-07-27T06:00:00.000Z",
+      path: "artifacts/freeciv/pf-paired-test/treatment/seed-01/events.jsonl",
+      run: "seed-01",
+      sizeBytes: pfTrace.length,
+    };
+    const counterpart = {
+      ...primary,
+      arm: "baseline",
+      label: "pf-paired-test / baseline / seed-01",
+      path: "artifacts/freeciv/pf-paired-test/baseline/seed-01/events.jsonl",
+    };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/freeciv-artifacts") {
+        return new Response(JSON.stringify({ entries: [primary, counterpart] }), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response(url.includes("baseline")
+        ? pfTrace.replaceAll("production_expansion", "defense")
+        : pfTrace, { headers: { "Content-Type": "application/x-ndjson" } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      render(<App initialText={demoTrace} />);
+      await user.click(screen.getByRole("button", { name: /Experiment traces/ }));
+      const dialog = await screen.findByRole("dialog", { name: "Experiment traces" });
+      await user.click(within(dialog).getByRole("button", {
+        name: `Open exact pair for ${counterpart.label}`,
+      }));
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      expect(screen.getByText("exact pair")).toBeInTheDocument();
+      expect(screen.getByTitle(primary.label)).toBeInTheDocument();
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      await user.click(screen.getByRole("button", { name: /^08 PF-PLN/ }));
+      expect(screen.getAllByText("exact pair")).toHaveLength(2);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("filters and loads a generated experiment trace from the repository catalog", async () => {
     const user = userEvent.setup();
     const artifactText = demoTrace.split("\n").filter(Boolean).map((line) => {

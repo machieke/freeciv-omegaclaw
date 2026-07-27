@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure",
+  "commitSha": "36e434872ded19c0cc862139a8cc93c7397183b9",
+  "startedAt": "2026-07-27T07:28:04.037Z",
+  "description": "Verify opening an exact pair from a baseline catalog row promotes treatment to the active PF-PLN replay"
+}
