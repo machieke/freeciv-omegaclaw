@@ -1657,3 +1657,17 @@ predeclared on reused pilot seeds `4034664` and `4047597`, which previously
 combined route-threat observations with final escorted settlement. It must
 exercise the threat-gated route under unchanged adapter 1.16 before broader
 development or a new fresh pilot.
+
+The V2 engine gate activates that route. Both treatments install one immediate
+preparation, observe seven route threats, and execute three successful final
+escort moves. Seed `4047597` completes the final escorted settlement, gains
+one retained city, and scores `+3`; seed `4034664` records 11 hold snapshots,
+retains baseline city count, and scores `-1` after the threat clears before
+founding. The selected mean is `+1`, with `+0.5` founding and retention, but
+remains claim-ineligible.
+
+Before any further rule tuning, the complete 40-seed adapter-1.15 pilot set is
+predeclared as the source-fresh, claim-ineligible
+`final_settlement_escort_threat_delivery_generalization_v1` cohort. It
+estimates whether adapter 1.16 removes the aggregate adverse direction without
+additional trace selection. It cannot revise the score or win-rate claim.

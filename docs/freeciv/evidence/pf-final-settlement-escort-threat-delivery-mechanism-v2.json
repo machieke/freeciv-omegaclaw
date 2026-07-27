@@ -1,0 +1,123 @@
+{
+  "artifacts": {
+    "aggregate": "artifacts/freeciv/pf-final-settlement-escort-threat-delivery-mechanism-v2/impact-aggregate.json",
+    "aggregate_sha256": "b818e8f993b9405c1adc043e53525039869d4e2098ac035a8e9146a4abd8016d",
+    "exact_replay_artifact_hash": "d9213dfcd87cae1999ef18c9e4f173b04e363ebae4171b774da7a082443372dc",
+    "exact_replay_sha256": "43018975b75706c61ee14f158a7ebe0a86da8d7069967757245d0757d1255794",
+    "exact_replay_source_set_hash": "7d7fd1678737c5f08a3be6177ea68a951bf454ff72a169b67ce5537e888e3b5f",
+    "run_summary_sha256": "cc985820ddc883f4e99cb4ea1e6018e6086c76a4b3a53648d839f952ace11971"
+  },
+  "claim": {
+    "claim_eligible": false,
+    "score_improvement_supported": false,
+    "status": "development_threat_route_active_mixed_selected_scores",
+    "win_rate_supported": false
+  },
+  "cohort": {
+    "active_infrastructure_failures": 0,
+    "complete_pairs": 2,
+    "completed_arms": 4,
+    "name": "final_settlement_escort_threat_delivery_mechanism_v2",
+    "planned_pairs": 2,
+    "reused_seeds": [
+      4034664,
+      4047597
+    ]
+  },
+  "decision_replay": {
+    "changed_decisions": 20,
+    "decision_change_rate": 0.10416666666666667,
+    "exact_replay_files": 2,
+    "integrity_failures": 0,
+    "sources_unchanged": true,
+    "total_decisions": 192
+  },
+  "mechanism": {
+    "treatment_mean": {
+      "final_escort_move_successes": 3.0,
+      "final_escort_preparation_production_successes": 1.0,
+      "final_escort_rendezvous_hold_snapshots": 5.5,
+      "final_escort_unprepared_route_bypass_snapshots": 0.5,
+      "final_escort_unthreatened_route_bypass_snapshots": 6.5,
+      "final_escorted_settlement_completions": 0.5,
+      "route_threat_observations": 7.0
+    }
+  },
+  "outcomes": {
+    "cities_founded_delta": {
+      "estimate": 0.5,
+      "lower": 0.0,
+      "upper": 1.0
+    },
+    "cities_gained_delta": {
+      "estimate": 0.5,
+      "lower": 0.0,
+      "upper": 1.0
+    },
+    "score_component_citizen_delta": {
+      "estimate": 0.0,
+      "lower": -2.0,
+      "upper": 2.0
+    },
+    "score_delta": {
+      "estimate": 1.0,
+      "lower": -1.0,
+      "upper": 3.0
+    }
+  },
+  "pair_results": [
+    {
+      "baseline_cities_gained": 3,
+      "baseline_score": 124,
+      "final_escort_moves": 3,
+      "final_escorted_settlements": 0,
+      "preparations": 1,
+      "rendezvous_holds": 11,
+      "route_threat_observations": 7,
+      "score_delta": -1,
+      "seed": 4034664,
+      "treatment_cities_gained": 3,
+      "treatment_score": 123,
+      "unthreatened_route_bypasses": 9
+    },
+    {
+      "baseline_cities_gained": 2,
+      "baseline_score": 121,
+      "final_escort_moves": 3,
+      "final_escorted_settlements": 1,
+      "preparations": 1,
+      "rendezvous_holds": 0,
+      "route_threat_observations": 7,
+      "score_delta": 3,
+      "seed": 4047597,
+      "treatment_cities_gained": 3,
+      "treatment_score": 124,
+      "unthreatened_route_bypasses": 4
+    }
+  ],
+  "safety": {
+    "engine_rejected_action_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "full_loop_under_30s_rate": {
+      "baseline": 1.0,
+      "treatment": 1.0
+    },
+    "initial_state_fidelity_passed": true,
+    "model_safe_fallback_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "overall_passed": true,
+    "schema_valid_events": 6403,
+    "schema_valid_files": 4
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "3f3d72555ef9adf08eca3bc9f9f77982fbd2061e",
+    "configuration_hash": "7d098c58572d5d9d644ad32c86ba0bbdbc4e80ced5f1270946c52e90ecd2834e",
+    "implementation_sha256": "430aea2753c0fdca318e32e03cc3a672ad9ea67e6ca9b242fb4346065efa2296",
+    "source_freeze_passed": true
+  }
+}

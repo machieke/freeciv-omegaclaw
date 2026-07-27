@@ -597,3 +597,24 @@ adapter-1.15 pilot traces both observed route threats and completed final
 escorted settlements. It must activate exact threat-gated movement without
 restoring delayed, undefended, or duplicate preparation before any broader
 development evaluation.
+
+The V2 engine gate completed both pairs without infrastructure failure and
+passed all source, initial-state, safety, schema, and exact-replay gates. Each
+treatment installed exactly one immediate preparation, observed seven route
+threats, and completed three successful final escort moves. Seed `4047597`
+completed the final escorted settlement, gained and retained one additional
+city, and improved score by three. Seed `4034664` made three escort moves and
+recorded 11 rendezvous-hold snapshots, but the threat cleared before founding;
+it retained baseline city count and scored one point lower.
+
+The selected two-pair score delta is `+1`, with `+0.5` founding and retained
+additions. This proves the threat-gated route can execute but remains selected,
+mixed, and claim-ineligible. Machine-readable evidence is
+[`pf-final-settlement-escort-threat-delivery-mechanism-v2.json`](pf-final-settlement-escort-threat-delivery-mechanism-v2.json).
+
+The next gate is the predeclared, source-fresh, claim-ineligible
+`final_settlement_escort_threat_delivery_generalization_v1` replay over all 40
+adapter-1.15 pilot seeds. It may estimate whether adapter 1.16 removed the
+prior aggregate adverse direction, but cannot update any score or win-rate
+claim. No additional rule tuning may inspect a subset of those outcomes before
+the complete development replay.
