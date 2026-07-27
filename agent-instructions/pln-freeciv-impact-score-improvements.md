@@ -1739,3 +1739,31 @@ cohort cannot revise the score claim, and its mechanism ceiling is too low to
 justify more rule tuning against these outcomes. Keep adapter 1.17's
 correctness changes and move score development to a broader policy on disjoint
 seeds.
+
+## Incremental fifth-city diagnostic
+
+The complete engine-backed cohort inventory identifies expansion capacity as
+the only replicated material score mechanism. Raising the target from three
+to four improved score by `+2.66` on 100 fresh confirmatory pairs. In
+contrast, every completed pressure-ranking pilot, direct-completion
+confirmation, and final-escort generalization is materially smaller or
+adverse. The final-escort hardening is retained for correctness, but its one
+completed chain in 40 treatments cannot carry the next score improvement.
+
+Before changing planner rules, the source-fresh, claim-ineligible
+`expansion_fifth_city_diagnostic_v1` cohort tests whether the same grounded
+mechanism has incremental headroom. Ten disjoint pairs are derived from
+namespace `pf-pln-expansion-fifth-city-diagnostic-v1` in range
+`4300000..4399999`. Both arms use adapter 1.17, a 15-turn settlement runway,
+deadline recovery, packet-grounded site preference, pressure, learning, and
+score alignment; all optional escort policies are disabled. The only arm
+difference is `expansion_city_target`, four under baseline and five under
+treatment.
+
+This diagnostic is a mechanism screen, not a score claim. It may advance only
+if every source, initial-state, safety, schema, and replay gate passes, the
+treatment creates at least two incremental retained cities across the ten
+pairs, and mean score direction is positive without a correctness regression.
+Failure to meet those gates retires an unconditional fifth-city target. Any
+subsequent planner tuning must use this cohort only for development and must
+be evaluated on separately predeclared disjoint pilot seeds.
