@@ -1698,3 +1698,23 @@ Adapter 1.17 implements both corrections and predeclares
 second; ordinary actions retain the measured 300 ms bound. A terminal timeout
 defers outcome reconciliation and closes the same-turn impact loop. This
 selected four-pair cohort is claim-ineligible.
+
+The adapter-1.17 gate passed. Exposed seeds `4072532` and `4090389` now
+produce exact baseline/treatment parity: scores `126/126` and `127/127`,
+identical opponent scores and city retention, and identical per-turn action
+multisets with 114 and 180 actions. The longer terminal barrier prevented the
+prior confirmation race without needing a fail-closed terminal block.
+
+Both accepted controls reproduce adapter 1.16 exactly. Seed `4034664` retains
+one immediate preparation, 11 holds, three threat-gated escort moves, and
+score `-1`; seed `4047597` retains one preparation, three escort moves, one
+final escorted settlement, one additional retained city, and score `+3`.
+The selected mean is `+0.5`, but the gate is reused and claim-ineligible.
+Adapter 1.17 may proceed to a complete source-fresh development
+generalization; no score or win-rate claim changes.
+
+That complete replay is predeclared as
+`final_settlement_escort_control_path_hardening_generalization_v1`. It repeats
+all 40 adapter-1.15 pilot seeds under unchanged adapter 1.17, with the same
+isolated final-settlement switch and fixed turn-60 endpoints. The cohort is
+reused, post-diagnostic, and claim-ineligible.

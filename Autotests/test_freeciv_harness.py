@@ -138,6 +138,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "final_settlement_escort_threat_delivery_mechanism_v2": 2,
             "final_settlement_escort_threat_delivery_generalization_v1": 40,
             "final_settlement_escort_control_path_hardening_mechanism_v1": 4,
+            "final_settlement_escort_control_path_hardening_generalization_v1": 40,
             "final_settlement_escort_preparation_pilot_v1": 40,
             "final_settlement_escort_preparation_confirmatory_v1": 100,
         }
@@ -540,6 +541,12 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert final_escort_control_path["claim_eligible"] is False
     assert final_escort_control_path["isolated_policy_keys"] == [
         "expansion_final_settlement_escort_enabled"]
+    final_escort_control_path_generalization = paired["cohorts"][
+        "final_settlement_escort_control_path_hardening_generalization_v1"]
+    assert set(final_escort_control_path_generalization["seeds"]) == set(
+        final_escort_pilot["seeds"])
+    assert final_escort_control_path_generalization["planned_pairs"] == 40
+    assert final_escort_control_path_generalization["claim_eligible"] is False
     assert final_escort_pilot["planned_pairs"] == 40
     assert final_escort_pilot["claim_eligible"] is False
     assert final_escort_pilot["seed_derivation"] == {

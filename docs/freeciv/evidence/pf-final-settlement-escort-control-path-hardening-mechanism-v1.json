@@ -1,0 +1,147 @@
+{
+  "artifacts": {
+    "aggregate": "artifacts/freeciv/pf-final-settlement-escort-control-path-hardening-mechanism-v1/impact-aggregate.json",
+    "aggregate_sha256": "0f0c04ef10e3f552c2bf17126df400f89a1e7f6f300558455306ccce76c734f9",
+    "exact_replay_artifact_hash": "600d15c5eeb005f8681ddd41138ece959b0af0090d89029f3e7892825b8f46e3",
+    "exact_replay_sha256": "8b8a1e7c6e52a7137403110f05a7e4af6cff5f9789c3bf6c0e1f2fca463cc534",
+    "exact_replay_source_set_hash": "e6902187e4170dd24e5bf5d6f9e824db56e70e556ef7902d5335f68b341ea750",
+    "run_summary_sha256": "1017d16fce98f7db1dbe40dbc65f0749ee738b915367e547ef5d888cd039416c"
+  },
+  "claim": {
+    "claim_eligible": false,
+    "score_improvement_supported": false,
+    "status": "development_control_path_gate_passed",
+    "win_rate_supported": false
+  },
+  "cohort": {
+    "active_infrastructure_failures": 0,
+    "complete_pairs": 4,
+    "completed_arms": 8,
+    "name": "final_settlement_escort_control_path_hardening_mechanism_v1",
+    "planned_pairs": 4,
+    "reused_seeds": [
+      4034664,
+      4047597,
+      4072532,
+      4090389
+    ]
+  },
+  "decision_replay": {
+    "changed_decisions": 21,
+    "decision_change_rate": 0.05785123966942149,
+    "exact_replay_files": 4,
+    "integrity_failures": 0,
+    "sources_unchanged": true,
+    "total_decisions": 363
+  },
+  "mechanism": {
+    "treatment_mean": {
+      "final_escort_move_successes": 1.5,
+      "final_escort_preparation_production_successes": 0.5,
+      "final_escort_rendezvous_hold_snapshots": 2.75,
+      "final_escort_unprepared_route_bypass_snapshots": 3.5,
+      "final_escort_unthreatened_route_bypass_snapshots": 3.25,
+      "final_escorted_settlement_completions": 0.25,
+      "route_threat_observations": 4.75,
+      "stale_terminal_followups_blocked": 0.0
+    }
+  },
+  "outcomes": {
+    "cities_founded_delta": {
+      "estimate": 0.25,
+      "lower": 0.0,
+      "upper": 0.75
+    },
+    "cities_gained_delta": {
+      "estimate": 0.25,
+      "lower": 0.0,
+      "upper": 0.75
+    },
+    "score_component_citizen_delta": {
+      "estimate": 0.0,
+      "lower": -1.5,
+      "upper": 1.5
+    },
+    "score_delta": {
+      "estimate": 0.5,
+      "exact_p": 1.0,
+      "lower": -0.75,
+      "upper": 2.25
+    },
+    "score_lead_rate_delta": {
+      "estimate": 0.25,
+      "lower": 0.0,
+      "mcnemar_exact_p": 1.0,
+      "upper": 0.75
+    }
+  },
+  "pair_results": [
+    {
+      "baseline_actions": 114,
+      "baseline_score": 126,
+      "exact_per_turn_action_multisets": true,
+      "preparations": 0,
+      "score_delta": 0,
+      "seed": 4072532,
+      "treatment_actions": 114,
+      "treatment_score": 126
+    },
+    {
+      "baseline_actions": 180,
+      "baseline_score": 127,
+      "exact_per_turn_action_multisets": true,
+      "preparations": 0,
+      "score_delta": 0,
+      "seed": 4090389,
+      "treatment_actions": 180,
+      "treatment_score": 127
+    },
+    {
+      "baseline_cities_gained": 3,
+      "baseline_score": 124,
+      "final_escort_moves": 3,
+      "preparations": 1,
+      "rendezvous_holds": 11,
+      "score_delta": -1,
+      "seed": 4034664,
+      "treatment_cities_gained": 3,
+      "treatment_score": 123
+    },
+    {
+      "baseline_cities_gained": 2,
+      "baseline_score": 121,
+      "final_escort_moves": 3,
+      "final_escorted_settlements": 1,
+      "preparations": 1,
+      "score_delta": 3,
+      "seed": 4047597,
+      "treatment_cities_gained": 3,
+      "treatment_score": 124
+    }
+  ],
+  "safety": {
+    "engine_rejected_action_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "full_loop_under_30s_rate": {
+      "baseline": 1.0,
+      "treatment": 1.0
+    },
+    "initial_state_fidelity_passed": true,
+    "model_safe_fallback_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "overall_passed": true,
+    "schema_valid_events": 12462,
+    "schema_valid_files": 8
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "092f74d3815f0faf12e10dda5c498ff9b01eb7c8",
+    "configuration_hash": "6ed3f7ec05e8ac18b8b445947d4a83c04958b58a1611d8c487018a194e9e4f72",
+    "implementation_sha256": "fea8d9a0e2f65aa0e0f9f71fb103207e6ba81b5aed19c4883ccdd93c213b9134",
+    "source_freeze_passed": true
+  }
+}

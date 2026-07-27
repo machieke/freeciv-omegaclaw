@@ -1641,6 +1641,95 @@ paired_impact:
         - 4047597
         - 4072532
         - 4090389
+    final_settlement_escort_control_path_hardening_generalization_v1:
+      claim_eligible: false
+      purpose: diagnostic
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 40
+      controller_workers: 3
+      reused_seeds_from:
+        - final_settlement_escort_preparation_pilot_v1
+        - final_settlement_escort_threat_delivery_mechanism_v1
+        - final_settlement_escort_threat_delivery_mechanism_v2
+        - final_settlement_escort_threat_delivery_generalization_v1
+        - final_settlement_escort_control_path_hardening_mechanism_v1
+      reused_seed_reason: >-
+        The selected adapter-1.17 mechanism gate made both exposed control-path
+        failures exactly action- and outcome-equivalent while preserving both
+        accepted threat-route traces. This complete source-fresh replay over
+        the unchanged 40-seed adapter-1.15 pilot set measures the correction
+        without further trace selection. It is reused, post-diagnostic,
+        claim-ineligible, and cannot update score or win-rate claims.
+      isolated_policy_keys:
+        - expansion_final_settlement_escort_enabled
+      arms:
+        baseline:
+          expansion_city_target: 4
+          expansion_minimum_settlement_runway_turns: 15
+          expansion_settlement_deadline_recovery_enabled: true
+          expansion_packet_site_preference_enabled: true
+          expansion_escort_retention_enabled: true
+          expansion_escort_threat_gating_enabled: true
+          expansion_escort_route_threat_memory_enabled: true
+          expansion_final_settlement_escort_enabled: false
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+        treatment:
+          expansion_city_target: 4
+          expansion_minimum_settlement_runway_turns: 15
+          expansion_settlement_deadline_recovery_enabled: true
+          expansion_packet_site_preference_enabled: true
+          expansion_escort_retention_enabled: true
+          expansion_escort_threat_gating_enabled: true
+          expansion_escort_route_threat_memory_enabled: true
+          expansion_final_settlement_escort_enabled: true
+          pressure_enabled: true
+          pressure_learning_enabled: true
+          pressure_score_alignment_enabled: true
+      seeds:
+        - 4002793
+        - 4010436
+        - 4013688
+        - 4019966
+        - 4023325
+        - 4027704
+        - 4032170
+        - 4032661
+        - 4034664
+        - 4035670
+        - 4038031
+        - 4039916
+        - 4046237
+        - 4046429
+        - 4047597
+        - 4048843
+        - 4049018
+        - 4051656
+        - 4057944
+        - 4059095
+        - 4059607
+        - 4061486
+        - 4063653
+        - 4065622
+        - 4066495
+        - 4066907
+        - 4070540
+        - 4071576
+        - 4072532
+        - 4074814
+        - 4078183
+        - 4081410
+        - 4084545
+        - 4084946
+        - 4085179
+        - 4086090
+        - 4086783
+        - 4087243
+        - 4090389
+        - 4097824
     final_settlement_escort_preparation_pilot_v1:
       claim_eligible: false
       purpose: pilot

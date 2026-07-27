@@ -646,3 +646,23 @@ same-turn impact planning stops on the unchanged snapshot. The predeclared
 `final_settlement_escort_control_path_hardening_mechanism_v1` cohort repeats
 exposed seeds `4072532` and `4090389` together with accepted threat-route
 controls `4034664` and `4047597`. It is selected and claim-ineligible.
+
+The adapter-1.17 engine gate passed every source, initial-state, safety,
+schema, and exact-replay gate. Both exposed pairs are now exact parity.
+`4072532` scores `126/126` with 114 actions in each arm; `4090389` scores
+`127/127` with 180 actions in each arm. Their complete per-turn action
+multisets are identical, proving that locally ineligible preparation and
+terminal confirmation timing are behaviorally inert on the exposed paths.
+
+The two accepted threat-route controls reproduce their prior behavior:
+`4034664` remains `-1`, while `4047597` remains `+3` with one additional
+retained city and one final escorted settlement. The selected four-pair mean
+is `+0.5`; it cannot revise a score or win-rate claim. Machine-readable
+evidence is
+[`pf-final-settlement-escort-control-path-hardening-mechanism-v1.json`](pf-final-settlement-escort-control-path-hardening-mechanism-v1.json).
+
+The next gate is the predeclared
+`final_settlement_escort_control_path_hardening_generalization_v1` replay over
+the complete 40-seed adapter-1.15 pilot set. It may measure whether the
+adapter-1.17 correction changes the development direction without selecting
+additional traces, but remains reused and claim-ineligible.
