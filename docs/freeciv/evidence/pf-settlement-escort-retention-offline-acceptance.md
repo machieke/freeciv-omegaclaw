@@ -521,3 +521,24 @@ repository's two-sided exact paired sign-flip procedure. Its design targets a
 run only if the pilot is source-stable, safe, mechanism-active, and does not
 show an adverse own-score direction. Pilot outcomes cannot alter the adapter,
 confirmatory seeds, endpoint, arms, or test.
+
+The fresh pilot completed all 40 pairs with zero infrastructure failure and
+passed every source, initial-state, safety, schema, and exact-replay integrity
+gate. Treatment averaged 1.275 successful preparations, 3.85 rendezvous
+holds, 4.725 escort moves, and 0.375 confirmed final escorted settlements.
+
+Activity did not improve the primary outcome. Own-score delta was `-0.45`,
+bootstrap interval `[-1.125, +0.175]`, exact two-sided `p=0.2226834297`.
+Founding changed by `-0.075`, retained additions by `-0.05`, and citizen score
+by `-0.45`. The paired SD was 2.136, making the pilot sensitive to about a
+0.946-point effect at its achieved sample size.
+
+Three treatment-only leads produced a `+0.075` lead-rate difference with
+McNemar `p=0.25`, but lead was secondary and cannot override the adverse
+primary score direction. The predeclared adapter-1.15 confirmatory gate fails;
+`final_settlement_escort_preparation_confirmatory_v1` must not run.
+
+Machine-readable evidence is
+[`pf-final-settlement-escort-preparation-pilot-v1.json`](pf-final-settlement-escort-preparation-pilot-v1.json).
+Any further change is a new adapter-development cycle requiring a new,
+disjoint pilot and confirmatory design.

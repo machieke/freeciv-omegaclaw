@@ -1612,3 +1612,16 @@ endpoint, uses the two-sided exact paired sign-flip test, and is powered for a
 1.5-point delta with paired SD no greater than 5.0. It may run only if the
 unchanged adapter-1.15 pilot is safe, source-stable, mechanism-active, and not
 adverse. Pilot evidence cannot change the confirmatory design.
+
+The 40-pair fresh pilot completed without infrastructure failure and passed
+all audit gates. Treatment activated strongly—1.275 successful preparations,
+3.85 holds, 4.725 escort moves, and 0.375 confirmed final escorted settlements
+per game—but own-score delta was adverse at `-0.45`, interval
+`[-1.125, +0.175]`, exact `p=0.2226834297`. Founding changed by `-0.075`,
+retained additions by `-0.05`, and citizen score by `-0.45`.
+
+Treatment produced three treatment-only leads and a `+0.075` lead-rate
+difference, McNemar `p=0.25`, but the secondary endpoint cannot override the
+adverse primary score gate. The frozen adapter-1.15 confirmatory cohort must
+not run. Any next implementation is a new adapter-development cycle and
+requires new disjoint pilot and confirmation cohorts.
