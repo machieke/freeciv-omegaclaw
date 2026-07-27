@@ -1509,3 +1509,22 @@ adapter-1.13 expansion and pressure settings match. Activation and
 non-activation must be reported separately, along with complete production,
 rendezvous, escort, settlement/recovery, retention, score-component,
 opponent, margin, safety, schema, and replay evidence.
+
+The ten-pair generalization passed all audit gates and remained directionally
+positive but inconclusive. Treatment averaged 1.6 successful preparations,
+11.5 rendezvous holds, 9.6 exact escort moves, and 0.3 final escorted
+settlements. Founding stayed at 2.2 while retained additions improved from
+2.0 to 2.2. Own score changed by `+1.9`, interval `[-0.4, +4.2]`, exact
+`p=0.19140625`; citizen and residual components supplied `+1.0` and `+0.9`.
+Opponent score changed by `-3.7`, margin by `+5.6`, and lead rate was
+unchanged.
+
+The next defect is exact and bounded: seeds `3696266` and `3790239` recorded
+10 and 17 rendezvous holds with zero escort moves. Seed `3790239` consequently
+lost one retained city and four score. Adapter 1.14 must require a currently
+legal distance-reducing escort step before suppressing the founder's ordinary
+route move. A nominal spare unit without authoritative progress must not
+create a hold. The correction must retain recovery and threat-avoidance
+priority, preserve the accepted `3746776` chain, expose blocked no-progress
+holds separately, and receive source-fresh selected and generalization
+replays before a fresh pilot.

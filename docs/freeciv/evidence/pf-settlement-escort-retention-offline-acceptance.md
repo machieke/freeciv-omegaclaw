@@ -372,3 +372,30 @@ separately, including production installations, rendezvous holds, exact
 escort moves, final settlement or recovery, founded and retained cities,
 score components, opponent score, margin, and lead. As reused-seed diagnostic
 evidence, it cannot revise a score or win-rate claim regardless of direction.
+
+The generalization completed all ten pairs without infrastructure failure and
+passed every source, initial-state, safety, schema, and exact-replay integrity
+gate. Treatment activated in all ten seeds through preparation, rendezvous,
+or escort behavior. It averaged 1.6 successful production installations,
+11.5 rendezvous holds, 9.6 successful escort moves, and 0.3 final escorted
+settlements. Founding was unchanged at 2.2 per game; retained additions
+improved from 2.0 to 2.2.
+
+Own score changed by `+1.9`, with bootstrap interval `[-0.4, +4.2]` and exact
+paired `p=0.19140625`. Citizen and residual components changed by `+1.0` and
+`+0.9`; technology was unchanged. Opponent score changed by `-3.7`, margin by
+`+5.6`, and lead rate was unchanged: one discordant pair favored each arm.
+This is positive but inconclusive selected-seed evidence, not a new claim.
+
+Two traces localize avoidable waiting. Seeds `3696266` and `3790239` recorded
+10 and 17 rendezvous holds but zero escort moves. The latter lost one retained
+city and four score relative to baseline. Adapter 1.13 currently holds when a
+nominal non-garrison combat unit exists, even when the authoritative
+legal-action set contains no distance-reducing escort traversal. The next
+source-fresh correction must require an exact currently legal progress step
+before creating a rendezvous hold; otherwise the founder must retain its
+ordinary route candidate. It must preserve the accepted seed-`3746776`
+rendezvous and separately count blocked no-progress holds.
+
+Machine-readable evidence is
+[`pf-final-settlement-escort-preparation-generalization-v1.json`](pf-final-settlement-escort-preparation-generalization-v1.json).

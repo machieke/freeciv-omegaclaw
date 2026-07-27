@@ -1,0 +1,146 @@
+{
+  "artifacts": {
+    "aggregate": "artifacts/freeciv/pf-final-settlement-escort-preparation-generalization-v1/impact-aggregate.json",
+    "aggregate_sha256": "e3263d324738f6d0a4651d2548744222f27f960c1897a0e8490a6e66c10f3604",
+    "exact_replay_artifact_hash": "cb80b691b013cb36105f275fa26b7518dec8289c55183ae1a40c6175a21c12b0",
+    "exact_replay_sha256": "f7f25193200ff01ef095eb0b694b572ecee55cf02bc67195413c85e94990dd0c",
+    "exact_replay_source_set_hash": "9eb59a34f28d4f20f984885f46b7f018619b59ac540a24f5a8e40eee9b499cd7",
+    "run_summary_sha256": "a33dfcd40c17537194666a5c9ea90f7540b2d9c6ec803cd6e431988b201f0258"
+  },
+  "claim": {
+    "claim_eligible": false,
+    "score_improvement_supported": false,
+    "status": "selected_seed_generalization_positive_inconclusive",
+    "win_rate_supported": false
+  },
+  "cohort": {
+    "active_infrastructure_failures": 0,
+    "complete_pairs": 10,
+    "completed_arms": 20,
+    "name": "final_settlement_escort_preparation_generalization_v1",
+    "planned_pairs": 10,
+    "reused_seeds": [
+      3618865,
+      3658684,
+      3696266,
+      3697785,
+      3745421,
+      3746776,
+      3756351,
+      3765204,
+      3790239,
+      3796144
+    ]
+  },
+  "decision_replay": {
+    "changed_decisions": 55,
+    "decision_change_rate": 0.06485849056603774,
+    "exact_replay_files": 10,
+    "integrity_failures": 0,
+    "sources_unchanged": true,
+    "total_decisions": 848
+  },
+  "mechanism": {
+    "baseline_mean": {
+      "cities_founded": 2.2,
+      "cities_gained": 2.0,
+      "opponent_score": 125.3,
+      "population_recovery_completions": 0.6,
+      "score": 115.4,
+      "score_margin": -9.9
+    },
+    "treatment_mean": {
+      "cities_founded": 2.2,
+      "cities_gained": 2.2,
+      "final_escort_deferral_snapshots": 4.7,
+      "final_escort_move_attempts": 9.6,
+      "final_escort_move_successes": 9.6,
+      "final_escort_preparation_production_attempts": 1.6,
+      "final_escort_preparation_production_successes": 1.6,
+      "final_escort_rendezvous_hold_snapshots": 11.5,
+      "final_escorted_settlement_completions": 0.3,
+      "opponent_score": 121.6,
+      "population_recovery_completions": 0.8,
+      "score": 117.3,
+      "score_margin": -4.3
+    }
+  },
+  "outcomes": {
+    "cities_founded_delta": {
+      "estimate": 0.0,
+      "lower": -0.3,
+      "upper": 0.3
+    },
+    "cities_gained_delta": {
+      "estimate": 0.2,
+      "lower": -0.2,
+      "upper": 0.6
+    },
+    "opponent_score_delta": {
+      "estimate": -3.7,
+      "lower": -9.4,
+      "upper": 0.9
+    },
+    "score_component_citizen_delta": {
+      "estimate": 1.0,
+      "lower": -0.4,
+      "upper": 2.5
+    },
+    "score_component_residual_delta": {
+      "estimate": 0.9,
+      "lower": -0.3,
+      "upper": 2.4
+    },
+    "score_component_technology_delta": {
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.0
+    },
+    "score_delta": {
+      "estimate": 1.9,
+      "exact_sign_flip_p": 0.19140625,
+      "lower": -0.4,
+      "upper": 4.2
+    },
+    "score_margin_delta": {
+      "estimate": 5.6,
+      "lower": -0.4,
+      "upper": 13.0
+    },
+    "win_discordance": {
+      "baseline_only_win": 1,
+      "both_lose": 5,
+      "both_win": 3,
+      "exact_mcnemar_p": 1.0,
+      "treatment_only_win": 1
+    }
+  },
+  "pair_results": [
+    {"seed": 3618865, "baseline_score": 115, "treatment_score": 120, "score_delta": 5, "baseline_margin": -9, "treatment_margin": -5, "baseline_cities_gained": 2, "treatment_cities_gained": 3, "preparations": 3, "rendezvous_holds": 7, "escort_moves": 7, "final_escorted_settlements": 1, "population_recoveries": 0},
+    {"seed": 3658684, "baseline_score": 121, "treatment_score": 123, "score_delta": 2, "baseline_margin": 9, "treatment_margin": 11, "baseline_cities_gained": 2, "treatment_cities_gained": 2, "preparations": 1, "rendezvous_holds": 17, "escort_moves": 9, "final_escorted_settlements": 0, "population_recoveries": 1},
+    {"seed": 3696266, "baseline_score": 115, "treatment_score": 115, "score_delta": 0, "baseline_margin": 3, "treatment_margin": 3, "baseline_cities_gained": 1, "treatment_cities_gained": 1, "preparations": 1, "rendezvous_holds": 10, "escort_moves": 0, "final_escorted_settlements": 0, "population_recoveries": 2},
+    {"seed": 3697785, "baseline_score": 109, "treatment_score": 117, "score_delta": 8, "baseline_margin": -27, "treatment_margin": 5, "baseline_cities_gained": 2, "treatment_cities_gained": 2, "preparations": 1, "rendezvous_holds": 32, "escort_moves": 28, "final_escorted_settlements": 0, "population_recoveries": 1},
+    {"seed": 3745421, "baseline_score": 116, "treatment_score": 115, "score_delta": -1, "baseline_margin": -4, "treatment_margin": -5, "baseline_cities_gained": 2, "treatment_cities_gained": 2, "preparations": 1, "rendezvous_holds": 0, "escort_moves": 0, "final_escorted_settlements": 0, "population_recoveries": 1},
+    {"seed": 3746776, "baseline_score": 112, "treatment_score": 118, "score_delta": 6, "baseline_margin": -36, "treatment_margin": -29, "baseline_cities_gained": 2, "treatment_cities_gained": 3, "preparations": 2, "rendezvous_holds": 12, "escort_moves": 8, "final_escorted_settlements": 1, "population_recoveries": 0},
+    {"seed": 3756351, "baseline_score": 108, "treatment_score": 113, "score_delta": 5, "baseline_margin": -39, "treatment_margin": -16, "baseline_cities_gained": 2, "treatment_cities_gained": 3, "preparations": 3, "rendezvous_holds": 0, "escort_moves": 7, "final_escorted_settlements": 1, "population_recoveries": 0},
+    {"seed": 3765204, "baseline_score": 126, "treatment_score": 123, "score_delta": -3, "baseline_margin": 3, "treatment_margin": -4, "baseline_cities_gained": 2, "treatment_cities_gained": 2, "preparations": 2, "rendezvous_holds": 14, "escort_moves": 24, "final_escorted_settlements": 0, "population_recoveries": 1},
+    {"seed": 3790239, "baseline_score": 120, "treatment_score": 116, "score_delta": -4, "baseline_margin": 9, "treatment_margin": 5, "baseline_cities_gained": 3, "treatment_cities_gained": 2, "preparations": 0, "rendezvous_holds": 17, "escort_moves": 0, "final_escorted_settlements": 0, "population_recoveries": 1},
+    {"seed": 3796144, "baseline_score": 112, "treatment_score": 113, "score_delta": 1, "baseline_margin": -8, "treatment_margin": -8, "baseline_cities_gained": 2, "treatment_cities_gained": 2, "preparations": 2, "rendezvous_holds": 6, "escort_moves": 13, "final_escorted_settlements": 0, "population_recoveries": 1}
+  ],
+  "safety": {
+    "engine_rejected_action_rate": {"baseline": 0.0, "treatment": 0.0},
+    "full_loop_under_30s_rate": {"baseline": 1.0, "treatment": 1.0},
+    "initial_state_fidelity_passed": true,
+    "model_safe_fallback_rate": {"baseline": 0.0, "treatment": 0.0},
+    "overall_passed": true,
+    "schema_valid_events": 29269,
+    "schema_valid_files": 20
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "574c3ab496e3856407d52fb8dd0187eb0d8d6f73",
+    "configuration_hash": "17bb79f311a3c73976d290d086c968ae035801a9e66f83308bc8ed2e4e58cec9",
+    "implementation_sha256": "86d52e1f61e68c5deae2d100241057a105750138d9b27b56d75df12cf0539a6b",
+    "source_freeze_passed": true
+  }
+}
