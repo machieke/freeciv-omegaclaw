@@ -1,0 +1,87 @@
+{
+  "artifacts": {
+    "aggregate": "artifacts/freeciv/pf-final-settlement-escort-legal-progress-mechanism-v1/impact-aggregate.json",
+    "aggregate_sha256": "c414bffa87603c11e998498bfabb451aa15033a60f6caed48ea30ce14d9b7852",
+    "exact_replay_artifact_hash": "0f606e8e506918dca24e50c24efca741beb70668f2daa5b002c08e5c57a03e6e",
+    "exact_replay_sha256": "aad741ccd2c42eb083c77c1256df641a24a4f35933187ea5214d462b595a19c5",
+    "exact_replay_source_set_hash": "4cd983d1ab10bba62373c404861bf8b491b57e7c87becbdb595df4e86e5358b8",
+    "run_summary_sha256": "f7ed9c9a669d3576067344178f06240ab80804d1c2eecae06f7077377ed2af62"
+  },
+  "claim": {
+    "claim_eligible": false,
+    "score_improvement_supported": false,
+    "status": "mechanism_partial_exposed_harm_unchanged",
+    "win_rate_supported": false
+  },
+  "cohort": {
+    "active_infrastructure_failures": 0,
+    "complete_pairs": 2,
+    "completed_arms": 4,
+    "name": "final_settlement_escort_legal_progress_mechanism_v1",
+    "planned_pairs": 2,
+    "reused_seeds": [
+      3746776,
+      3790239
+    ]
+  },
+  "decision_replay": {
+    "changed_decisions": 9,
+    "decision_change_rate": 0.055900621118012424,
+    "exact_replay_files": 2,
+    "integrity_failures": 0,
+    "sources_unchanged": true,
+    "total_decisions": 161
+  },
+  "pair_results": [
+    {
+      "baseline_cities_gained": 2,
+      "baseline_score": 112,
+      "final_escorted_settlements": 1,
+      "no_progress_snapshots": 0,
+      "preparations": 2,
+      "rendezvous_holds": 12,
+      "score_delta": 6,
+      "seed": 3746776,
+      "treatment_cities_gained": 3,
+      "treatment_score": 118
+    },
+    {
+      "baseline_cities_gained": 3,
+      "baseline_score": 120,
+      "escort_moves": 7,
+      "final_escorted_settlements": 0,
+      "no_progress_snapshots": 6,
+      "preparations": 0,
+      "rendezvous_holds": 0,
+      "score_delta": -4,
+      "seed": 3790239,
+      "treatment_cities_gained": 2,
+      "treatment_score": 116
+    }
+  ],
+  "safety": {
+    "engine_rejected_action_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "full_loop_under_30s_rate": {
+      "baseline": 1.0,
+      "treatment": 1.0
+    },
+    "initial_state_fidelity_passed": true,
+    "model_safe_fallback_rate": {
+      "baseline": 0.0,
+      "treatment": 0.0
+    },
+    "overall_passed": true,
+    "schema_valid_events": 5791,
+    "schema_valid_files": 4
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "caad5f3fdbdb34a32fa94e78ed526e4f51ccccc6",
+    "configuration_hash": "7ac7c44aac5e2935525dae9b5d68ba0c543e879477eb9f9183e7d891067dd53d",
+    "implementation_sha256": "729ea14d52e65162d6628cbb5168f9e8f95d4bea51273c799660b114ead60353",
+    "source_freeze_passed": true
+  }
+}

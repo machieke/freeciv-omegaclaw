@@ -1543,3 +1543,17 @@ positive control. A predeclared ten-seed
 `final_settlement_escort_preparation_generalization_v2` may run only after
 that gate passes. Both isolate the parent final-settlement switch and cannot
 update score or win-rate claims.
+
+The adapter-1.14 two-pair replay passed all audit gates and preserved the
+`3746776` positive control exactly: one final escorted settlement, three
+retained additions, and score `118` versus `112`. It failed the exposed-case
+gate. Seed `3790239` reduced holds from 17 to zero and recorded six
+no-progress bypasses, but seven escort moves still outranked the founder
+route. It again retained one fewer city and scored `116` versus `120`.
+
+The predeclared adapter-1.14 generalization must not run. Adapter 1.15 must
+ground final-route escort candidates and mandatory final co-location in at
+least one successful early preparation installation. The harmful trace had
+zero preparations; the positive control had two. A source-fresh two-pair
+replay must preserve the positive chain and make the unprepared trace match
+its no-feature baseline before the ten-seed V2 cohort proceeds.

@@ -421,3 +421,25 @@ If that two-pair gate passes,
 correction across the ten selected packet-site seeds. Both cohorts isolate
 only `expansion_final_settlement_escort_enabled`, reuse historical seeds, and
 cannot revise the score or win-rate claim.
+
+The V1 legal-progress replay passed all source, initial-state, safety, schema,
+and exact-replay integrity gates and preserved the positive control exactly:
+seed `3746776` retained all three additions, completed one final escorted
+settlement, and scored `118` versus `112`.
+
+The exposed trace only partially changed. On `3790239`, rendezvous holds fell
+from 17 to zero and six no-progress bypasses activated, but seven exact escort
+moves still outranked ordinary founder moves. Treatment again retained two
+rather than three additions and scored `116` versus `120`. The correction
+therefore did not pass the exposed-case acceptance gate, and the predeclared
+adapter-1.14 ten-seed generalization is not run.
+
+The trace now localizes the true boundary: `3790239` had zero successful early
+preparation installations, while `3746776` had two. Final-route escort
+candidates and mandatory final co-location must be grounded in successful
+preparation evidence, rather than incidental spare combat capacity. A new
+source-fresh mechanism replay must preserve the positive control and make the
+unprepared exposed trace behaviorally identical to its no-feature baseline.
+
+Machine-readable evidence is
+[`pf-final-settlement-escort-legal-progress-mechanism-v1.json`](pf-final-settlement-escort-legal-progress-mechanism-v1.json).
