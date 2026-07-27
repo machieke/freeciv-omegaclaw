@@ -41,7 +41,9 @@ The patch series is tracked at
 `scripts/freeciv/upstream/0003-pln-unit-lifecycle.patch`,
 `scripts/freeciv/upstream/0004-pln-government-and-sustainability.patch`, and
 `scripts/freeciv/upstream/0005-pln-sustainability-control.patch`, and
-`scripts/freeciv/upstream/0006-pln-city-food-governor.patch`. The
+`scripts/freeciv/upstream/0006-pln-city-food-governor.patch`, and
+`scripts/freeciv/upstream/0007-pln-government-transition.patch`, and
+`scripts/freeciv/upstream/0008-pln-disorder-luxury-recovery.patch`. The
 application script verifies every digest, is idempotent, rejects a different upstream
 commit, and supports normal checkouts and Git worktrees. It adds the
 `pln_authoritative` DTO, monotonic packet sequence, bounded and conditional
@@ -51,7 +53,9 @@ release-game configuration, canonical executable actions, ruleset readiness,
 government selection after revolutions, city sustainability and unit support
 state, ruleset-aware net gold, city-surplus and upkeep telemetry, bounded tax/science controls,
 exact unit rehoming, causal unit-removal attribution, bounded server-side
-food-surplus governance, and proxy contract tests.
+food-surplus governance, stable-government revolution initiation, exact
+post-revolution recovery, bounded packet-exact tax/luxury/science transitions,
+optional city-local `require_happy` governance, and proxy contract tests.
 
 Engine-live fixed-horizon games configure `victories=SPACERACE` with
 `endspaceship=false`. This retains spaceship construction and arrival behavior
@@ -81,6 +85,16 @@ curl --fail http://127.0.0.1:8002/health
 
 Engine harness process isolation waits for a fresh dedicated-server PID and
 its exact listening socket; it does not rely on a fixed post-spawn delay.
+
+The live harnesses configure `preferred_government: ""`, which disables
+transition initiation after two 480-turn Monarchy cohorts regressed materially.
+The proxy still advertises every exact legal alternative. Once a revolution has
+already started, recovery remains mandatory and uses the packet-declared
+intended target whenever it remains legal, regardless of remaining horizon.
+`disorder_luxury_recovery_enabled` and
+`city_happiness_governor_enabled` are also false in live profiles. Their exact
+actions remain available for explicit diagnostic ablations but cannot alter a
+release game by default.
 
 ## 3. Runtime environment
 

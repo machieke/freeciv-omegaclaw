@@ -121,6 +121,35 @@ def test_government_mood_support_and_recovery_action_are_typed():
         "government_id": 1, "government_name": "Despotism"}
 
 
+def test_city_governor_action_preserves_typed_happiness_requirement():
+    payload = _payload()
+    payload["legal_actions"].append({
+        "type": "city_governor", "city_id": 3,
+        "target": {
+            "food_surplus_reserve": 0,
+            "require_happy": True,
+        },
+        "is_valid": True,
+    })
+
+    snapshot = _snapshot(payload=payload)
+
+    governor_action = next(
+        json.loads(row) for row in snapshot.legal_action_json
+        if json.loads(row)["action_type"] == "city_governor")
+    assert governor_action == {
+        "action_type": "city_governor",
+        "city_id": 3,
+        "target": {
+            "food_surplus_reserve": 0,
+            "require_happy": True,
+        },
+    }
+    payload["legal_actions"][-1]["target"]["require_happy"] = 1
+    with pytest.raises(ContractError, match="require_happy"):
+        _snapshot(payload=payload)
+
+
 def test_player_rates_action_and_net_gold_components_are_typed():
     payload = _payload()
     payload["authoritative"]["player"].update({

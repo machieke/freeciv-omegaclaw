@@ -5,7 +5,7 @@ All phases 0-9 have deterministic acceptance evidence, but only phases with an
 engine adapter may affect a live harness game. The versioned support declaration
 is `pf_pln_runtime` in `profile/freeciv_agent.yaml`.
 
-The current engine adapter is `grounded-impact-planner/1.20`. Its score-alignment
+The current engine adapter is `grounded-impact-planner/1.24`. Its score-alignment
 guard changes how the already-live phases 0, 1, 4, and 9 rank grounded
 operations. It also exposes a bounded post-settlement-runway gate for
 score-bearing founder production and carries that deadline through settlement
@@ -119,6 +119,28 @@ replacement-garrison movement. A required city defender is excluded from every
 offensive action. These are correctness and survival hardening changes; they do
 not revise any frozen score or win-rate claim until a new paired engine cohort
 is completed.
+
+Adapter 1.21 added the missing stable-government initiation path. The proxy
+projects every exact requirements-satisfied target, while the planner admits
+only the configured preferred target and only when the declared horizon has at
+least `government_minimum_remaining_turns` left. Its `governance` pressure goal
+is ordinary during initiation, but becomes a safety goal after revolution so
+food, treasury, and production work cannot strand the player in Anarchy. Exact
+post-revolution intent outranks the configured preference, preserving the
+destination already sent to the server. The live policy leaves
+`preferred_government` empty: same-seed 480-turn Monarchy cohorts scored 205
+and 187 versus the established 319 Despotism cohort, so transition initiation
+is disabled while mandatory recovery from an already-started revolution
+remains enabled.
+
+Adapters 1.22-1.24 add founder-attrition bounds, treasury-release hysteresis,
+restored packet-mood martial-law requirements, exact player-rate normalization,
+and optional city-local happiness control. Both disorder recovery experiments
+are disabled in live profiles. Global luxury reached 50-60%, drove science to
+zero, and scored 205/214. `require_happy` CMA requests were packet-valid but
+server-infeasible in the examined game: they were accepted without enabling the
+governor or changing city state. Keeping both surfaces opt-in prevents an
+unverified recovery mechanism from changing the established live policy.
 
 The live harness explicitly enables
 `expansion_settlement_deadline_recovery_enabled`. Its false setting is a

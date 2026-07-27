@@ -1,0 +1,341 @@
+diff --git a/freeciv-proxy/civcom.py b/freeciv-proxy/civcom.py
+index 584c664..e9ba302 100755
+--- a/freeciv-proxy/civcom.py
++++ b/freeciv-proxy/civcom.py
+@@ -784,12 +784,13 @@ class CivCom(Thread):
+         return actions
+ 
+     def _get_player_rate_actions(self, player_id):
+-        """Advertise bounded, packet-exact treasury/science rate controls.
++        """Advertise bounded, packet-exact tax/science/luxury controls.
+ 
+         Every stock government permits rates up to 60 percent. Keeping this
+         recovery surface within that shared bound avoids guessing government
+-        effects while still allowing the agent to trade one ten-point science
+-        increment for tax and restore the configured 40/60 split later.
++        effects. The agent can trade one ten-point increment among tax, science,
++        and luxury, then decide from authoritative treasury and city-disorder
++        state which exact transition is useful.
+         """
+         player = getattr(self, 'player_packets', {}).get(player_id, {})
+         government_state = self._government_state(player_id)
+@@ -812,12 +813,22 @@ class CivCom(Thread):
+ 
+         actions = []
+ 
+-        def add(target_tax, target_science, reason):
++        seen = set()
++
++        def add(target_tax, target_luxury, target_science, reason):
+             target = {
+                 'tax_rate': target_tax,
+-                'luxury_rate': luxury,
++                'luxury_rate': target_luxury,
+                 'science_rate': target_science,
+             }
++            key = (target_tax, target_luxury, target_science)
++            if (
++                key in seen
++                or any(value < 0 or value > 60 for value in key)
++                or sum(key) != 100
++            ):
++                return
++            seen.add(key)
+             actions.append({
+                 'type': 'player_rates',
+                 'player_id': player_id,
+@@ -827,12 +838,29 @@ class CivCom(Thread):
+             })
+ 
+         if tax < 60 and science >= 10:
+-            add(tax + 10, science - 10, 'bounded_treasury_recovery')
++            add(tax + 10, luxury, science - 10,
++                'bounded_treasury_recovery')
+         if tax > 40 and science < 60:
+             increment = min(10, tax - 40, 60 - science)
+             if increment > 0:
+-                add(tax - increment, science + increment,
++                add(tax - increment, luxury, science + increment,
+                     'bounded_science_restoration')
++        if luxury < 60:
++            if tax >= 10:
++                add(tax - 10, luxury + 10, science,
++                    'bounded_luxury_recovery_from_tax')
++            if science >= 10:
++                add(tax, luxury + 10, science - 10,
++                    'bounded_luxury_recovery_from_science')
++        if luxury >= 10:
++            if science < 60:
++                increment = min(10, luxury, 60 - science)
++                add(tax, luxury - increment, science + increment,
++                    'bounded_luxury_restoration_to_science')
++            if tax < 60:
++                increment = min(10, luxury, 60 - tax)
++                add(tax + increment, luxury - increment, science,
++                    'bounded_luxury_restoration_to_tax')
+         return actions
+     
+     def can_research_tech(self, tech_id: int, player_id: int) -> bool:
+@@ -3580,11 +3608,12 @@ class CivCom(Thread):
+         }
+ 
+     @staticmethod
+-    def _food_governor_parameters(food_surplus_reserve):
+-        """Return the one audited CMA template exposed to PLN clients."""
++    def _food_governor_parameters(
++            food_surplus_reserve, require_happy=False):
++        """Return one audited CMA template exposed to PLN clients."""
+         return {
+             'minimal_surplus': [int(food_surplus_reserve), 0, 0, 0, 0, 0],
+-            'require_happy': False,
++            'require_happy': bool(require_happy),
+             'allow_disorder': False,
+             'max_growth': False,
+             'allow_specialists': True,
+@@ -3622,6 +3651,23 @@ class CivCom(Thread):
+                     'target': {'food_surplus_reserve': reserve},
+                     'is_valid': True,
+                 })
++            if city.get('disorder') is True:
++                desired = self._food_governor_parameters(
++                    0, require_happy=True)
++                if not (
++                    governor.get('enabled') is True
++                    and current == desired
++                ):
++                    actions.append({
++                        'type': 'city_governor',
++                        'city_id': city_id,
++                        'target': {
++                            'food_surplus_reserve': 0,
++                            'require_happy': True,
++                        },
++                        'reason': 'bounded_disorder_recovery',
++                        'is_valid': True,
++                    })
+         return actions
+ 
+     def _get_tech_research_actions(self, player_id):
+diff --git a/freeciv-proxy/tests/test_pln_authoritative_state.py b/freeciv-proxy/tests/test_pln_authoritative_state.py
+index 7774236..65dcb8d 100644
+--- a/freeciv-proxy/tests/test_pln_authoritative_state.py
++++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
+@@ -224,15 +224,21 @@ def test_active_revolution_suppresses_government_changes_until_selection():
+     assert actions == []
+ 
+ 
+-def test_player_rate_actions_are_bounded_and_restore_science():
++def test_player_rate_actions_are_bounded_and_cover_luxury_recovery():
+     civcom = make_civcom()
+-    assert CivCom._get_player_rate_actions(civcom, 0) == [{
+-        "type": "player_rates", "player_id": 0,
+-        "target": {
+-            "tax_rate": 40, "luxury_rate": 10, "science_rate": 50,
+-        },
+-        "reason": "bounded_treasury_recovery", "is_valid": True,
+-    }]
++    actions = CivCom._get_player_rate_actions(civcom, 0)
++    assert [row["target"] for row in actions] == [
++        {"tax_rate": 40, "luxury_rate": 10, "science_rate": 50},
++        {"tax_rate": 20, "luxury_rate": 20, "science_rate": 60},
++        {"tax_rate": 30, "luxury_rate": 20, "science_rate": 50},
++        {"tax_rate": 40, "luxury_rate": 0, "science_rate": 60},
++    ]
++    assert [row["reason"] for row in actions] == [
++        "bounded_treasury_recovery",
++        "bounded_luxury_recovery_from_tax",
++        "bounded_luxury_recovery_from_science",
++        "bounded_luxury_restoration_to_tax",
++    ]
+ 
+     civcom.player_packets[0].update({
+         "tax": 50, "luxury": 0, "science": 50,
+@@ -241,6 +247,8 @@ def test_player_rate_actions_are_bounded_and_restore_science():
+     assert [row["target"] for row in actions] == [
+         {"tax_rate": 60, "luxury_rate": 0, "science_rate": 40},
+         {"tax_rate": 40, "luxury_rate": 0, "science_rate": 60},
++        {"tax_rate": 40, "luxury_rate": 10, "science_rate": 50},
++        {"tax_rate": 50, "luxury_rate": 10, "science_rate": 40},
+     ]
+ 
+     civcom.player_packets[0]["government"] = 0
+@@ -847,6 +855,23 @@ def test_city_governor_actions_are_capability_gated_and_skip_active_template():
+     } == set(range(11)) - {1}
+     assert all(row["city_id"] == 4 and row["is_valid"] for row in actions)
+ 
++    civcom.player_cities[4]["disorder"] = True
++    actions = CivCom._get_city_governor_actions(civcom, 0)
++    happiness = [
++        row for row in actions
++        if row["target"].get("require_happy") is True
++    ]
++    assert happiness == [{
++        "type": "city_governor",
++        "city_id": 4,
++        "target": {
++            "food_surplus_reserve": 0,
++            "require_happy": True,
++        },
++        "reason": "bounded_disorder_recovery",
++        "is_valid": True,
++    }]
++
+     civcom.player_cities[4]["governor"] = {"available": False}
+     assert CivCom._get_city_governor_actions(civcom, 0) == []
+ 
+diff --git a/freeciv-proxy/action_validator.py b/freeciv-proxy/action_validator.py
+index 5bb1891..826be61 100644
+--- a/freeciv-proxy/action_validator.py
++++ b/freeciv-proxy/action_validator.py
+@@ -564,7 +564,7 @@ class LLMActionValidator:
+         player_id: int,
+         game_state: Optional[Dict[str, Any]],
+     ) -> ValidationResult:
+-        """Validate the bounded server-side food-floor governor template."""
++        """Validate a bounded server-side food/happiness governor template."""
+         for field in ('city_id', 'food_surplus_reserve'):
+             if field not in action:
+                 return self._validation_error(
+@@ -579,6 +579,10 @@ class LLMActionValidator:
+                 or reserve < 0 or reserve > 10):
+             return self._validation_error(
+                 'E036', 'food_surplus_reserve must be in 0..10')
++        require_happy = action.get('require_happy', False)
++        if not isinstance(require_happy, bool):
++            return self._validation_error(
++                'E038', 'require_happy must be boolean')
+ 
+         if game_state and 'cities' in game_state:
+             cities = (
+diff --git a/freeciv-proxy/llm_handler.py b/freeciv-proxy/llm_handler.py
+index 6840a14..51d76be 100644
+--- a/freeciv-proxy/llm_handler.py
++++ b/freeciv-proxy/llm_handler.py
+@@ -1806,6 +1806,11 @@ class LLMWSHandler(websocket.WebSocketHandler):
+                 raise ValueError(
+                     "city_governor requires target.food_surplus_reserve")
+             normalized["food_surplus_reserve"] = reserve
++            require_happy = action_data.get("require_happy")
++            if require_happy is None and isinstance(target, dict):
++                require_happy = target.get("require_happy")
++            if require_happy is not None:
++                normalized["require_happy"] = require_happy
+ 
+         elif action_type == "unit_build_city":
+             # Extract unit_id
+diff --git a/freeciv-proxy/packet_converter.py b/freeciv-proxy/packet_converter.py
+index 0c9c25c..796c576 100644
+--- a/freeciv-proxy/packet_converter.py
++++ b/freeciv-proxy/packet_converter.py
+@@ -410,16 +410,20 @@ def _convert_action_to_packet_impl(
+ 
+     elif action_type == "city_governor":
+         reserve = action.get("food_surplus_reserve")
++        require_happy = action.get("require_happy", False)
+         if (isinstance(reserve, bool) or not isinstance(reserve, int)
+                 or reserve < 0 or reserve > 10):
+             raise ValueError(
+                 "city_governor requires food_surplus_reserve in 0..10")
++        if not isinstance(require_happy, bool):
++            raise ValueError(
++                "city_governor require_happy must be boolean")
+         return _sanitize_packet({
+             "pid": PACKET_WEB_CMA_SET,
+             "id": action["city_id"],
+             "cm_parameter": {
+                 "minimal_surplus": [reserve, 0, 0, 0, 0, 0],
+-                "require_happy": False,
++                "require_happy": require_happy,
+                 "allow_disorder": False,
+                 "max_growth": False,
+                 "allow_specialists": True,
+diff --git a/freeciv-proxy/security.py b/freeciv-proxy/security.py
+index 88c71fc..a82b067 100644
+--- a/freeciv-proxy/security.py
++++ b/freeciv-proxy/security.py
+@@ -233,6 +233,12 @@ class InputSanitizer:
+                 raise SecurityError(
+                     f"Invalid food_surplus_reserve: {reserve!r}")
+             sanitized['food_surplus_reserve'] = reserve
++            if 'require_happy' in action:
++                require_happy = action['require_happy']
++                if not isinstance(require_happy, bool):
++                    raise SecurityError(
++                        f"Invalid require_happy: {require_happy!r}")
++                sanitized['require_happy'] = require_happy
+             if 'player_id' in action:
+                 sanitized['player_id'] = cls.sanitize_player_id(
+                     action['player_id'])
+diff --git a/freeciv-proxy/tests/test_packet_converters.py b/freeciv-proxy/tests/test_packet_converters.py
+index 2195307..d8f14e7 100644
+--- a/freeciv-proxy/tests/test_packet_converters.py
++++ b/freeciv-proxy/tests/test_packet_converters.py
+@@ -58,6 +58,21 @@ class TestCityGovernorConverters:
+             },
+         }
+ 
++    def test_city_governor_can_require_happiness_without_global_luxury(self):
++        result = _convert_action_to_packet({
++            "type": "city_governor",
++            "city_id": 101,
++            "food_surplus_reserve": 0,
++            "require_happy": True,
++        })
++
++        assert result["pid"] == PACKET_WEB_CMA_SET
++        assert result["id"] == 101
++        assert result["cm_parameter"]["minimal_surplus"] == [
++            0, 0, 0, 0, 0, 0]
++        assert result["cm_parameter"]["require_happy"] is True
++        assert result["cm_parameter"]["allow_disorder"] is False
++
+     @pytest.mark.parametrize("reserve", [-1, 11, True, "1"])
+     def test_city_governor_rejects_unbounded_food_floor(self, reserve):
+         with pytest.raises(ValueError, match="0..10"):
+@@ -67,6 +82,16 @@ class TestCityGovernorConverters:
+                 "food_surplus_reserve": reserve,
+             })
+ 
++    @pytest.mark.parametrize("require_happy", [1, "true", None])
++    def test_city_governor_rejects_non_boolean_happiness(self, require_happy):
++        with pytest.raises(ValueError, match="must be boolean"):
++            _convert_action_to_packet({
++                "type": "city_governor",
++                "city_id": 101,
++                "food_surplus_reserve": 0,
++                "require_happy": require_happy,
++            })
++
+ 
+ class TestGovernmentActionConverters:
+     def test_government_change_uses_exact_ruleset_id_and_name(self):
+diff --git a/freeciv-proxy/tests/test_release_game_configuration.py b/freeciv-proxy/tests/test_release_game_configuration.py
+index 0adcf3a..2e0da54 100644
+--- a/freeciv-proxy/tests/test_release_game_configuration.py
++++ b/freeciv-proxy/tests/test_release_game_configuration.py
+@@ -225,6 +225,25 @@ def test_city_governor_preserves_bounded_food_floor_through_execution_chain():
+         InputSanitizer.sanitize_action_data(
+             dict(normalized, food_surplus_reserve=11))
+ 
++    happy = handler._normalize_agent_action({
++        "action_type": "city_governor", "city_id": 10,
++        "target": {
++            "food_surplus_reserve": 0,
++            "require_happy": True,
++        },
++    })
++    assert happy == {
++        "type": "city_governor", "city_id": 10,
++        "food_surplus_reserve": 0,
++        "require_happy": True,
++    }
++    assert InputSanitizer.sanitize_action_data(happy) == happy
++    assert LLMActionValidator().validate_action(
++        dict(happy, player_id=0), 0, game_state).is_valid
++    with pytest.raises(SecurityError, match="Invalid require_happy"):
++        InputSanitizer.sanitize_action_data(
++            dict(happy, require_happy="true"))
++
+ 
+ def test_player_rates_preserve_exact_fields_through_security_and_validation():
+     handler = object.__new__(llm_handler.LLMWSHandler)

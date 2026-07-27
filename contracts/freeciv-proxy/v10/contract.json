@@ -1,0 +1,36 @@
+{
+  "schema_version": "10.0",
+  "extends": "../v9/contract.json",
+  "upstream_base_commit": "26ba7124249f34fd3050ef29bf191bd4d8808018",
+  "legal_controls": {
+    "city_governor": {
+      "packet": "PACKET_WEB_CMA_SET",
+      "food_surplus_reserve": "integer in 0..10",
+      "require_happy": "optional strict boolean; true is advertised only for an authoritatively disordered city",
+      "template": "allow_disorder=false, allow_specialists=true, max_growth=false, factor=[6,2,2,1,1,2]"
+    },
+    "player_rates": {
+      "packet": "PACKET_PLAYER_RATES",
+      "step": 10,
+      "bounds": "tax, science, and luxury each remain in 0..60 and sum to 100",
+      "treasury": "advertise one exact science-to-tax recovery step and a bounded return toward 40/60",
+      "disorder": "advertise exact one-step transfers into luxury from tax or science and exact one-step restoration targets"
+    }
+  },
+  "policy_boundary": {
+    "proxy": "projects bounded exact city-governor and rate transitions without inferring whether food, happiness, treasury, research, or disorder should dominate",
+    "planner": "keeps both global luxury recovery and city-local require_happy selection disabled in live profiles; each remains an explicit diagnostic ablation after 480-turn evidence showed research starvation or accepted-without-effect server infeasibility"
+  },
+  "fail_closed": [
+    "malformed governor booleans, out-of-bound food floors, and malformed or non-total rate targets are rejected",
+    "rate controls are absent in Anarchy or while stable-government selection is required",
+    "normalization, sanitization, validation, exact legal membership, and packet conversion preserve all three rates"
+  ],
+  "invariants": [
+    "city disorder can advertise an exact city-local happiness action without asserting that the server can satisfy it",
+    "no disorder recovery action is selected by the default live policy",
+    "treasury recovery never sacrifices tax to luxury while the exact reserve is unsafe",
+    "luxury restoration cannot oscillate below the last authoritatively insufficient rate for an unchanged city, population, and garrison signature",
+    "all rate effects remain subject to authoritative post-action verification"
+  ]
+}

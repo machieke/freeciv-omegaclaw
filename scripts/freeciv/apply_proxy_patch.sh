@@ -9,6 +9,8 @@ lifecycle_patch="$repo_root/scripts/freeciv/upstream/0003-pln-unit-lifecycle.pat
 sustainability_patch="$repo_root/scripts/freeciv/upstream/0004-pln-government-and-sustainability.patch"
 sustainability_control_patch="$repo_root/scripts/freeciv/upstream/0005-pln-sustainability-control.patch"
 city_food_governor_patch="$repo_root/scripts/freeciv/upstream/0006-pln-city-food-governor.patch"
+government_transition_patch="$repo_root/scripts/freeciv/upstream/0007-pln-government-transition.patch"
+disorder_luxury_recovery_patch="$repo_root/scripts/freeciv/upstream/0008-pln-disorder-luxury-recovery.patch"
 pinned_commit="26ba7124249f34fd3050ef29bf191bd4d8808018"
 pinned_authoritative_sha256="48e416000bf36c3c7ce13c8c59bb51bc682a1f17ee8568e432a82f673a10df55"
 pinned_spatial_sha256="a4eb88c827c7a2ea68db602aa2463c2aa53bb0c6156a71e1a5a5e7fc09908856"
@@ -16,6 +18,8 @@ pinned_lifecycle_sha256="1df99426c617e72beb0ca2bcbc879793cffce03e79a28a91e6e1955
 pinned_sustainability_sha256="d7fa7b77ff7040af0da25ea8ed86156d754b5b6007eee5d98a95b87fe9b3cafa"
 pinned_sustainability_control_sha256="412f4b462afab900233793f192732317b7e00b42b165dee1c09056ca9d5a1827"
 pinned_city_food_governor_sha256="33a10ec287297629d2383d494f4ac01ad60ad1d25167dec39753e9d8a131113f"
+pinned_government_transition_sha256="1b3ecb9458559b0552f232e41804e545a94ccd4d2d774a0f0e6c90dac8dd013c"
+pinned_disorder_luxury_recovery_sha256="e800adbe5a4f3a8e68e30a4e21019ef92dabbb272b28ecd50d90c64e7dcb417b"
 
 if [[ -z "$upstream_root" ]]; then
   echo "usage: $0 /path/to/freeciv-llm (or set FREECIV_LLM_ROOT)" >&2
@@ -31,7 +35,9 @@ for patch_spec in \
   "$lifecycle_patch:$pinned_lifecycle_sha256" \
   "$sustainability_patch:$pinned_sustainability_sha256" \
   "$sustainability_control_patch:$pinned_sustainability_control_sha256" \
-  "$city_food_governor_patch:$pinned_city_food_governor_sha256"; do
+  "$city_food_governor_patch:$pinned_city_food_governor_sha256" \
+  "$government_transition_patch:$pinned_government_transition_sha256" \
+  "$disorder_luxury_recovery_patch:$pinned_disorder_luxury_recovery_sha256"; do
   patch_file="${patch_spec%:*}"
   pinned_patch_sha256="${patch_spec##*:}"
   actual_patch_sha256="$(sha256sum "$patch_file" | cut -d' ' -f1)"
@@ -43,8 +49,8 @@ done
 
 # Each later patch depends on its predecessors. If the final reverse check
 # succeeds, the complete patch series is already present.
-if git -C "$upstream_root" apply --reverse --check "$city_food_governor_patch" >/dev/null 2>&1; then
-  echo "PLN authoritative-state through city-food-governor patches are already applied"
+if git -C "$upstream_root" apply --reverse --check "$disorder_luxury_recovery_patch" >/dev/null 2>&1; then
+  echo "PLN authoritative-state through disorder-luxury-recovery patches are already applied"
   exit 0
 fi
 actual_commit="$(git -C "$upstream_root" rev-parse HEAD)"
@@ -58,7 +64,9 @@ for patch_file in \
   "$lifecycle_patch" \
   "$sustainability_patch" \
   "$sustainability_control_patch" \
-  "$city_food_governor_patch"; do
+  "$city_food_governor_patch" \
+  "$government_transition_patch" \
+  "$disorder_luxury_recovery_patch"; do
   if git -C "$upstream_root" apply --reverse --check "$patch_file" >/dev/null 2>&1; then
     echo "$(basename "$patch_file") is already applied"
     continue

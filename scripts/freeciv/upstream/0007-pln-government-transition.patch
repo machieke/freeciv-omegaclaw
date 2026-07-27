@@ -1,0 +1,166 @@
+diff --git a/freeciv-proxy/civcom.py b/freeciv-proxy/civcom.py
+index 4a9386c..584c664 100755
+--- a/freeciv-proxy/civcom.py
++++ b/freeciv-proxy/civcom.py
+@@ -733,15 +733,31 @@ class CivCom(Thread):
+         return True
+ 
+     def _get_government_change_actions(self, player_id):
+-        """Advertise legal post-revolution government selections."""
++        """Advertise exact legal government transitions and selections.
++
++        PACKET_PLAYER_CHANGE_GOVERNMENT starts a revolution when sent from a
++        stable government and selects its destination after Anarchy.  Suppress
++        the action surface only while a revolution is actively counting down;
++        every advertised target is still requirements-checked against the
++        packet-backed ruleset catalogue.
++        """
+         government_state = self._government_state(player_id)
+-        if not (
+-            government_state.get('available')
+-            and government_state.get('selection_required')
++        if not government_state.get('available'):
++            return []
++        selection_required = bool(
++            government_state.get('selection_required'))
++        if (
++            government_state.get('in_revolution')
++            and not selection_required
+         ):
+             return []
+         actions = []
+         current_id = government_state.get('current_id')
++        reason = (
++            'government_selection_required'
++            if selection_required else
++            'government_transition_available'
++        )
+         for government_id, government in sorted(
+             getattr(self, 'governments', {}).items()
+         ):
+@@ -762,7 +778,7 @@ class CivCom(Thread):
+                     'government_id': government_id,
+                     'government_name': name,
+                 },
+-                'reason': 'government_selection_required',
++                'reason': reason,
+                 'is_valid': True,
+             })
+         return actions
+diff --git a/freeciv-proxy/security.py b/freeciv-proxy/security.py
+index 87eb21a..88c71fc 100644
+--- a/freeciv-proxy/security.py
++++ b/freeciv-proxy/security.py
+@@ -245,6 +245,25 @@ class InputSanitizer:
+             if 'player_id' in action:
+                 sanitized['player_id'] = cls.sanitize_player_id(action['player_id'])
+ 
++        elif action_type == 'government_change':
++            government_id = action.get('government_id')
++            if (isinstance(government_id, bool)
++                    or not isinstance(government_id, int)
++                    or government_id < 0
++                    or government_id > 65535):
++                raise SecurityError(
++                    f"Invalid government_id: {government_id!r}")
++            sanitized['government_id'] = government_id
++            government_name = action.get('government_name')
++            if not isinstance(government_name, str) or not government_name.strip():
++                raise SecurityError(
++                    f"Invalid government_name: {government_name!r}")
++            sanitized['government_name'] = cls.sanitize_string_field(
++                government_name, 'government_name')
++            if 'player_id' in action:
++                sanitized['player_id'] = cls.sanitize_player_id(
++                    action['player_id'])
++
+         elif action_type == 'player_rates':
+             for field in ('tax', 'luxury', 'science'):
+                 value = action.get(field)
+diff --git a/freeciv-proxy/tests/test_pln_authoritative_state.py b/freeciv-proxy/tests/test_pln_authoritative_state.py
+index 478519f..7774236 100644
+--- a/freeciv-proxy/tests/test_pln_authoritative_state.py
++++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
+@@ -6,6 +6,8 @@ import logging
+ from types import SimpleNamespace
+ from unittest.mock import Mock
+ 
++import pytest
++
+ from activity_constants import ACTIVITY_NAMES
+ from civcom import ACTION_TRANSPORT_EMBARK, CivCom, get_activity_name
+ from llm_handler import LLMWSHandler, logger as proxy_logger
+@@ -14,7 +16,7 @@ from packet_constants import (
+     DS_ALLIANCE, DS_WAR, PACKET_UNIT_COMBAT_INFO, PACKET_UNIT_REMOVE,
+     PACKET_UNIT_SHORT_INFO, PACKET_WEB_CITY_INFO_ADDITION,
+ )
+-from security import InputSanitizer
++from security import InputSanitizer, SecurityError
+ from state_extractor import StateExtractor, StateFormat
+ 
+ 
+@@ -162,6 +164,64 @@ def test_finished_revolution_advertises_only_known_legal_governments():
+     assert [(row["government_id"], row["government_name"]) for row in actions] == [
+         (1, "Despotism"),
+     ]
++    assert actions[0]["reason"] == "government_selection_required"
++
++
++def test_stable_government_advertises_known_transition_targets():
++    civcom = make_civcom()
++    civcom.research_info[0]["inventions"] = [2, 2]
++
++    actions = CivCom._get_government_change_actions(civcom, 0)
++
++    assert [(row["government_id"], row["government_name"]) for row in actions] == [
++        (2, "Monarchy"),
++    ]
++    assert actions[0]["reason"] == "government_transition_available"
++
++
++def test_government_transition_survives_normalization_and_sanitization():
++    handler = object.__new__(LLMWSHandler)
++
++    normalized = handler._normalize_agent_action({
++        "action_type": "government_change",
++        "actor_id": 0,
++        "target": {
++            "government_id": 2,
++            "government_name": "Monarchy",
++        },
++    })
++    sanitized = InputSanitizer.sanitize_action_data(normalized)
++
++    assert sanitized == {
++        "type": "government_change",
++        "government_id": 2,
++        "government_name": "Monarchy",
++        "player_id": 0,
++    }
++    for invalid in (
++        dict(normalized, government_id=True),
++        dict(normalized, government_id=-1),
++        dict(normalized, government_name=""),
++    ):
++        with pytest.raises(SecurityError):
++            InputSanitizer.sanitize_action_data(invalid)
++
++
++def test_active_revolution_suppresses_government_changes_until_selection():
++    civcom = make_civcom()
++    civcom.player_packets[0].update({
++        "government": 0,
++        "target_government": 2,
++        "revolution_finishes": 14,
++    })
++    civcom.research_info[0]["inventions"] = [2, 2]
++
++    state = CivCom._government_state(civcom, 0)
++    actions = CivCom._get_government_change_actions(civcom, 0)
++
++    assert state["in_revolution"] is True
++    assert state["selection_required"] is False
++    assert actions == []
+ 
+ 
+ def test_player_rate_actions_are_bounded_and_restore_science():

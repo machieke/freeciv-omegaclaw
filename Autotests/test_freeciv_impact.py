@@ -1559,6 +1559,22 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
     for config in ({"max_actions_per_turn": 0}, {"max_actions_per_turn": 33},
                    {"settle_min_distance": 0}, {"expansion_city_target": 21},
                    {"horizon_turn": 0},
+                   {"preferred_government": 3},
+                   {"preferred_government": "x" * 65},
+                   {"government_minimum_remaining_turns": True},
+                   {"government_minimum_remaining_turns": -1},
+                   {"government_minimum_remaining_turns": 1.5},
+                   {"government_minimum_remaining_turns": 101},
+                   {"government_minimum_city_count": True},
+                   {"government_minimum_city_count": -1},
+                   {"government_minimum_city_count": 1.5},
+                   {"government_minimum_city_count": 21},
+                   {"founder_attrition_rebuild_limit": True},
+                   {"founder_attrition_rebuild_limit": -1},
+                   {"founder_attrition_rebuild_limit": 1.5},
+                   {"founder_attrition_rebuild_limit": 21},
+                   {"disorder_luxury_recovery_enabled": 1},
+                   {"city_happiness_governor_enabled": 1},
                    {"production_minimum_remaining_turns": 0},
                    {"expansion_minimum_settlement_runway_turns": True},
                    {"expansion_minimum_settlement_runway_turns": -1},
@@ -1903,6 +1919,138 @@ def test_finished_revolution_is_recovered_before_ordinary_planning():
     assert decision.candidate.action["target"] == {
         "government_id": 1, "government_name": "Despotism"}
     assert decision.candidate.utility > 2000
+
+
+def test_finished_revolution_selects_intended_preferred_government():
+    actions = [
+        {
+            "action_type": "government_change", "actor_id": 0,
+            "target": {"government_id": 2, "government_name": "Monarchy"},
+            "is_valid": True,
+        },
+        {
+            "action_type": "government_change", "actor_id": 0,
+            "target": {"government_id": 1, "government_name": "Despotism"},
+            "is_valid": True,
+        },
+        _production(10, "Alpine Troops", 6, 11),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    government = {
+        "available": True, "current_id": 0, "current_name": "Anarchy",
+        "target_id": 2, "target_name": "Monarchy",
+        "revolution_finishes": 4, "in_revolution": True,
+        "selection_required": True, "diagnostic": None,
+    }
+    snapshot = _snapshot([], actions, government=government)
+    planner = GroundedImpactPlanner(
+        {"preferred_government": "Monarchy", "pressure_enabled": True},
+        ruleset_ir=_ruleset_ir((("Alpine Troops", "unit", 20),)))
+
+    decision = planner.plan(snapshot)
+
+    assert decision.candidate.category == "government_recovery"
+    assert decision.candidate.action["target"] == {
+        "government_id": 2, "government_name": "Monarchy"}
+    governance = next(
+        row for row in decision.pressure_artifact["pressure"]["goals"]
+        if row["goal_id"] == "pf-impact:governance")
+    assert governance["safety"] is True
+
+
+def test_stable_government_transitions_to_configured_legal_target():
+    actions = [
+        {
+            "action_type": "government_change", "actor_id": 0,
+            "target": {"government_id": 2, "government_name": "Monarchy"},
+            "is_valid": True,
+        },
+        {
+            "action_type": "government_change", "actor_id": 0,
+            "target": {"government_id": 3, "government_name": "Republic"},
+            "is_valid": True,
+        },
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    government = {
+        "available": True, "current_id": 1, "current_name": "Despotism",
+        "target_id": 1, "target_name": "Despotism",
+        "revolution_finishes": -1, "in_revolution": False,
+        "selection_required": False, "diagnostic": None,
+    }
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops")], actions, government=government)
+    planner = GroundedImpactPlanner({
+        "preferred_government": "Monarchy",
+        "government_minimum_remaining_turns": 12,
+        "horizon_turn": 30,
+        "pressure_enabled": True,
+    })
+
+    decision = planner.plan(snapshot)
+
+    assert decision.candidate.category == "government_transition"
+    assert decision.candidate.action["target"] == {
+        "government_id": 2, "government_name": "Monarchy"}
+    assert decision.candidate.projection["remaining_turns"] == 26
+
+
+def test_stable_government_waits_for_configured_city_base():
+    action = {
+        "action_type": "government_change", "actor_id": 0,
+        "target": {"government_id": 2, "government_name": "Monarchy"},
+        "is_valid": True,
+    }
+    government = {
+        "available": True, "current_id": 1, "current_name": "Despotism",
+        "target_id": 1, "target_name": "Despotism",
+        "revolution_finishes": -1, "in_revolution": False,
+        "selection_required": False, "diagnostic": None,
+    }
+    actions = [action, {"action_type": "end_turn", "is_valid": True}]
+    planner = GroundedImpactPlanner({
+        "preferred_government": "Monarchy",
+        "government_minimum_city_count": 2,
+    })
+    one_city = _snapshot(
+        [_unit(11, "Alpine Troops")], actions, government=government)
+    second = dict(_city(), id=20, name="Antium", tile=2, x=2, y=0)
+    two_cities = _snapshot(
+        [_unit(11, "Alpine Troops")], actions,
+        cities=[_city(), second], government=government, source_seq=2)
+
+    assert planner.plan(one_city) is None
+    decision = planner.plan(two_cities)
+    assert decision.candidate.category == "government_transition"
+    assert decision.candidate.projection["observed_city_count"] == 2
+    assert decision.candidate.projection["government_minimum_city_count"] == 2
+
+
+def test_government_transition_is_disabled_without_policy_or_runway():
+    action = {
+        "action_type": "government_change", "actor_id": 0,
+        "target": {"government_id": 2, "government_name": "Monarchy"},
+        "is_valid": True,
+    }
+    government = {
+        "available": True, "current_id": 1, "current_name": "Despotism",
+        "target_id": 1, "target_name": "Despotism",
+        "revolution_finishes": -1, "in_revolution": False,
+        "selection_required": False, "diagnostic": None,
+    }
+    actions = [action, {"action_type": "end_turn", "is_valid": True}]
+    no_policy = _snapshot(
+        [_unit(11, "Alpine Troops")], actions, government=government)
+    no_runway = _snapshot(
+        [_unit(11, "Alpine Troops")], actions, government=government,
+        turn=25, source_seq=2)
+
+    assert GroundedImpactPlanner().plan(no_policy) is None
+    assert GroundedImpactPlanner({
+        "preferred_government": "Monarchy",
+        "government_minimum_remaining_turns": 6,
+        "horizon_turn": 30,
+    }).plan(no_runway) is None
 
 
 def test_disorder_risk_prioritizes_city_local_martial_law_garrison():
@@ -3371,6 +3519,70 @@ def test_existing_treasury_stabilizer_is_not_replaced_by_another_one():
         snapshot, city, "coinage", "marketplace", frozenset()) is None
 
 
+def test_treasury_stabilizer_requires_extra_runway_before_expansion_release():
+    city = _city(
+        surplus=(3, 5, 2, -9, 0, 3), production_kind=3,
+        production_value=72)
+    city["buildability"]["options"].append(
+        {"type": "improvement", "id": 72, "name": "Coinage"})
+    settler = _production(10, "Settlers", 6, 0)
+    ruleset = _ruleset_ir((
+        ("Settlers", "unit", 20),
+        ("Coinage", "improvement", 10),
+    ))
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 2,
+        "treasury_minimum_gold": 5,
+        "treasury_reserve_turns": 2,
+    }, ruleset_ir=ruleset)
+    actions = [settler, {"action_type": "end_turn", "is_valid": True}]
+    boundary = _snapshot(
+        [_unit(11, "Alpine Troops")], actions, cities=[city],
+        player={
+            "gold": 29, "city_gold_surplus_per_turn": -9,
+            "gold_per_turn": -9, "unit_gold_upkeep": 0,
+            "gold_upkeep_reserve": 0,
+        })
+    durable = _snapshot(
+        [_unit(11, "Alpine Troops")], actions, cities=[city],
+        player={
+            "gold": 38, "city_gold_surplus_per_turn": -9,
+            "gold_per_turn": -9, "unit_gold_upkeep": 0,
+            "gold_upkeep_reserve": 0,
+        }, source_seq=2)
+
+    assert planner._treasury_deficit(boundary) is False
+    assert planner._treasury_recovery_can_release(boundary) is False
+    assert planner.plan(boundary) is None
+    assert planner._treasury_recovery_can_release(durable) is True
+    assert planner.plan(durable).candidate.category == "production_expansion"
+
+
+def test_visible_pressure_blocks_rebuild_after_observed_founder_attrition():
+    settler = _production(10, "Settlers", 6, 0)
+    actions = [settler, {"action_type": "end_turn", "is_valid": True}]
+    ruleset = _ruleset_ir((("Settlers", "unit", 20),))
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 2,
+        "founder_attrition_rebuild_limit": 1,
+    }, ruleset_ir=ruleset)
+    founder_present = _snapshot(
+        [_unit(1, "Settlers", x=1), _enemy(99, "Riflemen", 3, 0)],
+        actions)
+    under_pressure = _snapshot(
+        [_enemy(99, "Riflemen", 3, 0)], actions, source_seq=2, turn=2)
+    pressure_gone = _snapshot([], actions, source_seq=3, turn=3)
+
+    planner.observe(founder_present)
+    planner.observe(under_pressure)
+
+    assert planner._founder_attrition_total(
+        under_pressure, frozenset({"settlers"})) == 1
+    assert planner.plan(under_pressure) is None
+    assert planner.plan(
+        pressure_gone).candidate.category == "production_expansion"
+
+
 def test_required_city_defender_reaches_first_completion_before_food_recovery():
     city = _city(surplus=(1, 5, 2, 1, 0, 3))
     ruleset = _ruleset_ir((
@@ -3723,6 +3935,23 @@ def test_packet_legal_tax_shift_recovers_and_then_restores_science_rate():
     assert recovery.candidate.category == "treasury_tax_shift"
     assert recovery.candidate.action["target"]["tax_rate"] == 50
 
+    unsafe_luxury_sacrifice = {
+        "action_type": "player_rates", "actor_id": 0,
+        "target": {
+            "tax_rate": 50, "science_rate": 30, "luxury_rate": 20,
+        }, "is_valid": True,
+    }
+    protected_luxury = _snapshot(
+        [], [unsafe_luxury_sacrifice,
+             {"action_type": "end_turn", "is_valid": True}],
+        player={
+            "gold": 0, "city_gold_surplus_per_turn": 1,
+            "gold_per_turn": 1, "unit_gold_upkeep": 0,
+            "gold_upkeep_reserve": 0,
+            "tax": 40, "science": 30, "luxury": 30,
+        })
+    assert GroundedImpactPlanner().plan(protected_luxury) is None
+
     restore_science = {
         "action_type": "player_rates", "actor_id": 0,
         "target": {
@@ -3740,6 +3969,159 @@ def test_packet_legal_tax_shift_recovers_and_then_restores_science_rate():
     restored = GroundedImpactPlanner().plan(safe)
     assert restored.candidate.category == "treasury_tax_restore"
     assert restored.candidate.action["target"]["science_rate"] == 60
+
+
+def test_packet_legal_luxury_shift_breaks_disorder_without_rate_oscillation():
+    city = _city()
+    city.update({
+        "ppl_happy": [0], "ppl_content": [0],
+        "ppl_unhappy": [2], "ppl_angry": [0],
+        "disorder": True,
+    })
+    recover_from_tax = {
+        "action_type": "player_rates", "actor_id": 0,
+        "target": {
+            "tax_rate": 50, "science_rate": 40, "luxury_rate": 10,
+        }, "is_valid": True,
+    }
+    recover_from_science = {
+        "action_type": "player_rates", "actor_id": 0,
+        "target": {
+            "tax_rate": 60, "science_rate": 30, "luxury_rate": 10,
+        }, "is_valid": True,
+    }
+    units = [
+        _unit(11, "Alpine Troops"),
+        _unit(12, "Alpine Troops"),
+        _unit(13, "Alpine Troops"),
+    ]
+    disorder = _snapshot(
+        units,
+        [recover_from_tax, recover_from_science,
+         {"action_type": "end_turn", "is_valid": True}],
+        cities=[city],
+        player={
+            "gold": 100, "gold_per_turn": 1,
+            "city_gold_surplus_per_turn": 1,
+            "tax": 60, "science": 40, "luxury": 0,
+        })
+    planner = GroundedImpactPlanner({
+        "disorder_luxury_recovery_enabled": True,
+    })
+    planner.observe(disorder)
+
+    recovery = planner.plan(disorder)
+
+    assert recovery.candidate.category == "disorder_luxury_shift"
+    assert recovery.candidate.action["target"] == recover_from_tax["target"]
+    assert recovery.candidate.projection["disorder_city_ids"] == (10,)
+
+    clear_city = dict(city, disorder=False)
+    restore_science = {
+        "action_type": "player_rates", "actor_id": 0,
+        "target": {
+            "tax_rate": 50, "science_rate": 50, "luxury_rate": 0,
+        }, "is_valid": True,
+    }
+    same_grounding = _snapshot(
+        units,
+        [restore_science, {"action_type": "end_turn", "is_valid": True}],
+        cities=[clear_city], source_seq=2,
+        player={
+            "gold": 100, "gold_per_turn": 1,
+            "city_gold_surplus_per_turn": 1,
+            "tax": 50, "science": 40, "luxury": 10,
+        })
+    planner.observe(same_grounding)
+    assert planner.plan(same_grounding) is None
+
+    grounded_garrison_change = _snapshot(
+        units + [_unit(14, "Alpine Troops")],
+        [restore_science, {"action_type": "end_turn", "is_valid": True}],
+        cities=[clear_city], source_seq=3,
+        player={
+            "gold": 100, "gold_per_turn": 1,
+            "city_gold_surplus_per_turn": 1,
+            "tax": 50, "science": 40, "luxury": 10,
+        })
+    planner.observe(grounded_garrison_change)
+    restored = planner.plan(grounded_garrison_change)
+    assert restored.candidate.category == "disorder_luxury_restore"
+    assert restored.candidate.action["target"] == restore_science["target"]
+
+
+def test_disordered_city_uses_local_happiness_governor_before_global_rates():
+    city = _city(surplus=(0, 0, 0, 1, 0, 3))
+    city.update({
+        "ppl_happy": [0], "ppl_content": [0],
+        "ppl_unhappy": [2], "ppl_angry": [0],
+        "disorder": True,
+        "governor": {
+            "available": True, "enabled": False,
+            "minimal_surplus": [0, 0, 0, 0, 0, 0],
+            "require_happy": False, "allow_disorder": False,
+            "max_growth": False, "allow_specialists": True,
+            "factor": [0, 0, 0, 0, 0, 0], "happy_factor": 0,
+        },
+    })
+    local = {
+        "type": "city_governor", "city_id": 10,
+        "target": {
+            "food_surplus_reserve": 0,
+            "require_happy": True,
+        },
+        "is_valid": True,
+    }
+    global_luxury = {
+        "action_type": "player_rates", "actor_id": 0,
+        "target": {
+            "tax_rate": 30, "science_rate": 60, "luxury_rate": 10,
+        },
+        "is_valid": True,
+    }
+    before = _snapshot(
+        [], [local, global_luxury,
+             {"action_type": "end_turn", "is_valid": True}],
+        cities=[city])
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 1,
+        "pressure_enabled": True,
+        "city_happiness_governor_enabled": True,
+    })
+
+    decision = planner.plan(before)
+
+    assert decision.candidate.category == "city_happiness_governor"
+    assert decision.candidate.action == {
+        "action_type": "city_governor", "city_id": 10,
+        "target": {
+            "food_surplus_reserve": 0,
+            "require_happy": True,
+        },
+    }
+    rate_action = next(
+        json.loads(row) for row in before.legal_action_json
+        if json.loads(row)["action_type"] == "player_rates")
+    assert planner._rate_recovery_candidate(before, rate_action) is None
+
+    recovered_city = dict(city, disorder=False)
+    recovered_city["governor"] = {
+        "available": True, "enabled": True,
+        "minimal_surplus": [0, 0, 0, 0, 0, 0],
+        "require_happy": True, "allow_disorder": False,
+        "max_growth": False, "allow_specialists": True,
+        "factor": [6, 2, 2, 1, 1, 2], "happy_factor": 0,
+    }
+    after = _snapshot(
+        [], [local, {"action_type": "end_turn", "is_valid": True}],
+        cities=[recovered_city], source_seq=2)
+    assert planner.candidate_effect_observed(
+        decision.candidate, before, after) is True
+    assert planner.candidate_goal_relief(
+        decision.candidate, before, after, effect_observed=True
+    ).goal == "survival"
+    assert planner._city_food_governor_candidate(
+        after, decision.candidate.action) is None
 
 
 def test_sole_city_garrison_cannot_attack_but_a_spare_can():

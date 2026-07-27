@@ -1,0 +1,42 @@
+{
+  "schema_version": "9.0",
+  "extends": "../v8/contract.json",
+  "upstream_base_commit": "26ba7124249f34fd3050ef29bf191bd4d8808018",
+  "format": "pln_authoritative",
+  "government_projection": {
+    "source": "PACKET_PLAYER_INFO plus packet-backed ruleset governments and requirements",
+    "fields": {
+      "current_id": "exact packet government identifier",
+      "current_name": "ruleset name for the exact current identifier",
+      "target_id": "exact packet target-government identifier",
+      "target_name": "ruleset name for the exact target identifier",
+      "in_revolution": "true while the packet reports an active revolution countdown",
+      "selection_required": "true only after revolution when a stable government must be selected"
+    }
+  },
+  "legal_controls": {
+    "government_change": {
+      "packet": "PACKET_PLAYER_CHANGE_GOVERNMENT",
+      "stable_state": "advertise exact known, requirements-satisfied alternative governments as revolution destinations",
+      "active_revolution": "advertise no government action while the countdown is in progress",
+      "selection_state": "advertise exact known, requirements-satisfied stable governments after revolution"
+    }
+  },
+  "policy_boundary": {
+    "proxy": "projects every exact legal target without strategic preference",
+    "planner": "may initiate only its configured preferred government while sufficient declared-horizon runway remains; must prioritize exact post-revolution recovery"
+  },
+  "fail_closed": [
+    "unknown government identifiers or identifier/name mismatches are rejected",
+    "unknown requirement kinds do not create a legal transition",
+    "the current stable government is never advertised as a transition target",
+    "no target is advertised during an active revolution countdown",
+    "normalization, sanitization, validation, exact legal membership, and packet conversion preserve government_id and government_name"
+  ],
+  "invariants": [
+    "a preferred-government policy cannot manufacture a target absent from the canonical legal action set",
+    "an accepted stable-state action starts only the exact packet-grounded revolution destination",
+    "post-revolution recovery prefers the exact intended target and cannot leave the player indefinitely in Anarchy",
+    "government changes remain subject to authoritative effect verification"
+  ]
+}

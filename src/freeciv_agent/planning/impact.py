@@ -239,7 +239,7 @@ def _spatial_target(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.20"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.24"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -334,6 +334,42 @@ class GroundedImpactPlanner(object):
         self.expansion_city_target = int(values.get("expansion_city_target", 3))
         self.settle_min_distance = int(values.get("settle_min_distance", 3))
         self.horizon_turn = int(values.get("horizon_turn", 30))
+        preferred_government = values.get("preferred_government", "")
+        if not isinstance(preferred_government, str):
+            raise ValueError("preferred_government must be a string")
+        self.preferred_government = preferred_government.strip()
+        if len(self.preferred_government) > 64:
+            raise ValueError(
+                "preferred_government must be at most 64 characters")
+        government_runway = values.get(
+            "government_minimum_remaining_turns", 12)
+        if (isinstance(government_runway, bool)
+                or not isinstance(government_runway, (int, float))
+                or int(government_runway) != government_runway):
+            raise ValueError(
+                "government_minimum_remaining_turns must be an integer")
+        self.government_minimum_remaining_turns = int(government_runway)
+        government_minimum_city_count = values.get(
+            "government_minimum_city_count", 0)
+        if (isinstance(government_minimum_city_count, bool)
+                or not isinstance(government_minimum_city_count, (int, float))
+                or int(government_minimum_city_count)
+                != government_minimum_city_count):
+            raise ValueError(
+                "government_minimum_city_count must be an integer")
+        self.government_minimum_city_count = int(
+            government_minimum_city_count)
+        founder_attrition_rebuild_limit = values.get(
+            "founder_attrition_rebuild_limit", 0)
+        if (isinstance(founder_attrition_rebuild_limit, bool)
+                or not isinstance(
+                    founder_attrition_rebuild_limit, (int, float))
+                or int(founder_attrition_rebuild_limit)
+                != founder_attrition_rebuild_limit):
+            raise ValueError(
+                "founder_attrition_rebuild_limit must be an integer")
+        self.founder_attrition_rebuild_limit = int(
+            founder_attrition_rebuild_limit)
         self.production_minimum_remaining_turns = int(
             values.get("production_minimum_remaining_turns", 8))
         self.expansion_minimum_remaining_turns = int(
@@ -394,6 +430,20 @@ class GroundedImpactPlanner(object):
             "military_units_per_city_limit", 3))
         self.food_surplus_reserve = int(values.get(
             "food_surplus_reserve", 1))
+        disorder_luxury_recovery_enabled = values.get(
+            "disorder_luxury_recovery_enabled", False)
+        if not isinstance(disorder_luxury_recovery_enabled, bool):
+            raise ValueError(
+                "disorder_luxury_recovery_enabled must be boolean")
+        self.disorder_luxury_recovery_enabled = (
+            disorder_luxury_recovery_enabled)
+        city_happiness_governor_enabled = values.get(
+            "city_happiness_governor_enabled", False)
+        if not isinstance(city_happiness_governor_enabled, bool):
+            raise ValueError(
+                "city_happiness_governor_enabled must be boolean")
+        self.city_happiness_governor_enabled = (
+            city_happiness_governor_enabled)
         self.treasury_reserve_turns = int(values.get(
             "treasury_reserve_turns", 2))
         self.treasury_minimum_gold = int(values.get(
@@ -423,6 +473,15 @@ class GroundedImpactPlanner(object):
             raise ValueError("settle_min_distance must be in 1..12")
         if not 1 <= self.horizon_turn <= 500:
             raise ValueError("horizon_turn must be in 1..500")
+        if not 0 <= self.government_minimum_remaining_turns <= 100:
+            raise ValueError(
+                "government_minimum_remaining_turns must be in 0..100")
+        if not 0 <= self.government_minimum_city_count <= 20:
+            raise ValueError(
+                "government_minimum_city_count must be in 0..20")
+        if not 0 <= self.founder_attrition_rebuild_limit <= 20:
+            raise ValueError(
+                "founder_attrition_rebuild_limit must be in 0..20")
         if not 1 <= self.production_minimum_remaining_turns <= 100:
             raise ValueError("production_minimum_remaining_turns must be in 1..100")
         if not 1 <= self.expansion_minimum_remaining_turns <= 100:
@@ -488,6 +547,9 @@ class GroundedImpactPlanner(object):
         self._founder_actor_failed_edges = set()
         self._observed_founders = {}
         self._founder_attrition_positions = {}
+        self._luxury_safety_signature = None
+        self._minimum_safe_luxury_rate = max(
+            0, 100 - self.normal_tax_rate - self.normal_science_rate)
         self._failed_settlement_sites = set()
         self._failed_settlement_site_prunes = set()
         self._founder_escort_deferral_snapshots = set()
@@ -681,6 +743,29 @@ class GroundedImpactPlanner(object):
         self._server_founder_types.update(self._legal_unit_types(
             snapshot, "unit_build_city", actions))
         founder_types = self._founder_types(snapshot, actions)
+        combat_units = self._combat_units(snapshot, founder_types)
+        luxury_signature = tuple(
+            (int(city.city_id), int(city.size or 0), sum(
+                (unit.x, unit.y) == (city.x, city.y)
+                for unit in combat_units))
+            for city in sorted(snapshot.cities, key=lambda row: row.city_id))
+        normal_luxury = max(
+            0, 100 - self.normal_tax_rate - self.normal_science_rate)
+        if luxury_signature != self._luxury_safety_signature:
+            # A city, population, or grounded-garrison change can alter the
+            # luxury threshold. Permit a new bounded downward probe.
+            self._luxury_safety_signature = luxury_signature
+            self._minimum_safe_luxury_rate = normal_luxury
+        luxury_rate = snapshot.economy.luxury_rate
+        if (self.disorder_luxury_recovery_enabled
+                and luxury_rate is not None
+                and any(city.disorder is True for city in snapshot.cities)):
+            # The current rate is authoritatively insufficient for this exact
+            # city/garrison signature. Remember the next ten-point boundary so
+            # restoration cannot oscillate below it after disorder clears.
+            self._minimum_safe_luxury_rate = max(
+                self._minimum_safe_luxury_rate,
+                min(60, int(luxury_rate) + 10))
         current_founders = {
             int(unit.unit_id): {
                 "city_layout": self._city_layout(snapshot),
@@ -971,9 +1056,13 @@ class GroundedImpactPlanner(object):
             reserve = (
                 target.get("food_surplus_reserve")
                 if isinstance(target, dict) else None)
+            require_happy = (
+                target.get("require_happy", False)
+                if isinstance(target, dict) else False)
             return bool(
                 city is not None and reserve is not None
-                and self._city_food_governor_matches(city, int(reserve)))
+                and self._city_food_governor_matches(
+                    city, int(reserve), require_happy=require_happy))
         if action.get("action_type") == "unit_build_city":
             actor_id = action.get("actor_id")
             return bool(actor_id is not None and before.unit(actor_id) is not None
@@ -1098,6 +1187,19 @@ class GroundedImpactPlanner(object):
                     "authoritative:net-gold-or-upkeep-reserve-gap-reduction")
 
         if goal == "survival":
+            if candidate.category in (
+                    "city_happiness_governor", "disorder_luxury_shift"):
+                before_disorder = sum(
+                    city.disorder is True for city in before.cities)
+                after_disorder = sum(
+                    city.disorder is True for city in after.cities)
+                if after_disorder < before_disorder:
+                    return GroundedGoalRelief(
+                        goal, min(
+                            1.0,
+                            float(before_disorder - after_disorder)
+                            / max(1, before_disorder)),
+                        "authoritative:city-disorder-count-reduction")
             if candidate.category == "tactical_attack":
                 before_targets = self._combat_target_grounding(
                     before, candidate.action)
@@ -1217,14 +1319,17 @@ class GroundedImpactPlanner(object):
             # floor feasible. Excluding that counter prevents one rejected CMA
             # request per turn while still retrying after a target completion,
             # population/output change, or authoritative governor transition.
-            **({} if candidate.category == "city_food_governor" else {
+            **({} if candidate.category in (
+                "city_food_governor", "city_happiness_governor") else {
                 "shield_stock": city.shield_stock,
             }),
             "size": city.size, "surplus": city.surplus,
+            "disorder": city.disorder,
             "had_famine": city.had_famine,
             "governor_available": city.governor_available,
             "governor_enabled": city.governor_enabled,
             "governor_minimal_surplus": city.governor_minimal_surplus,
+            "governor_require_happy": city.governor_require_happy,
             "governor_factor": city.governor_factor,
             "x": city.x, "y": city.y,
         }
@@ -1650,6 +1755,15 @@ class GroundedImpactPlanner(object):
         key = (edge[0], int(snapshot.map_width), int(snapshot.map_height),
                edge[3], edge[4])
         return int(self._founder_attrition_positions.get(key, 0))
+
+    def _founder_attrition_total(self, snapshot, founder_types):
+        """Count observed founder disappearances on this exact map."""
+        return sum(
+            int(count)
+            for key, count in self._founder_attrition_positions.items()
+            if (key[0] in founder_types
+                and key[1] == int(snapshot.map_width)
+                and key[2] == int(snapshot.map_height)))
 
     def _founder_attrition_has_alternative(
             self, snapshot, action, founder_types, actions=None):
@@ -2208,6 +2322,28 @@ class GroundedImpactPlanner(object):
             or (net < 0
                 and gold + net * self.treasury_reserve_turns < reserve))
 
+    def _treasury_recovery_can_release(self, snapshot):
+        """Require one extra funded turn before leaving a cash stabilizer.
+
+        The ordinary deficit threshold answers whether the current snapshot can
+        fund the configured runway.  Releasing Coinage exactly at that boundary
+        can consume the margin on the next turn and produce an endless
+        Coinage/unit oscillation.  One additional observed turn of runway is a
+        bounded hysteresis band; it neither changes the emergency threshold nor
+        assumes future income.
+        """
+        economy = snapshot.economy
+        if not economy.available or economy.gold is None:
+            return False
+        reserve = self._treasury_reserve_required(snapshot)
+        net = self._net_gold_per_turn(snapshot)
+        if net is None:
+            return False
+        return (
+            int(economy.gold)
+            + min(0, int(net)) * (self.treasury_reserve_turns + 1)
+            >= reserve)
+
     def _food_deficit_city_ids(self, snapshot):
         return tuple(sorted(
             city.city_id for city in snapshot.cities
@@ -2215,13 +2351,14 @@ class GroundedImpactPlanner(object):
                 or city.had_famine is True)))
 
     @staticmethod
-    def _city_food_governor_matches(city, reserve):
+    def _city_food_governor_matches(
+            city, reserve, require_happy=False):
         return bool(
             city.governor_available
             and city.governor_enabled is True
             and tuple(city.governor_minimal_surplus)
             == (int(reserve), 0, 0, 0, 0, 0)
-            and city.governor_require_happy is False
+            and city.governor_require_happy is bool(require_happy)
             and city.governor_allow_disorder is False
             and city.governor_max_growth is False
             and city.governor_allow_specialists is True
@@ -2234,6 +2371,30 @@ class GroundedImpactPlanner(object):
         reserve = (
             target.get("food_surplus_reserve")
             if isinstance(target, dict) else None)
+        require_happy = (
+            target.get("require_happy", False)
+            if isinstance(target, dict) else False)
+        if not isinstance(require_happy, bool):
+            return None
+        if require_happy:
+            if not self.city_happiness_governor_enabled:
+                return None
+            if (city is None or not city.governor_available
+                    or reserve != 0 or city.disorder is not True
+                    or self._city_food_governor_matches(
+                        city, reserve, require_happy=True)):
+                return None
+            return ImpactCandidate(
+                action, "city_happiness_governor", 2400.0,
+                "activate the server-side citizen manager for this disordered "
+                "city without suppressing national science or tax rates",
+                {
+                    "city_id": city.city_id,
+                    "disorder_before": True,
+                    "governor_enabled_before": city.governor_enabled,
+                    "require_happy": True,
+                    "server_capability": "PACKET_WEB_CMA_SET",
+                })
         if (city is None or not city.governor_available
                 or reserve != self.food_surplus_reserve
                 or self._city_food_governor_matches(city, reserve)):
@@ -2279,9 +2440,13 @@ class GroundedImpactPlanner(object):
         food_deficits = self._food_deficit_city_ids(snapshot)
         defense_deficits = self._local_garrison_deficits(
             snapshot, founder_types)
+        disorder_city_ids = tuple(sorted(
+            city.city_id for city in snapshot.cities
+            if city.disorder is True))
         return {
             "defense_deficit_city_ids": tuple(
                 row["city_id"] for row in defense_deficits),
+            "disorder_city_ids": disorder_city_ids,
             "food_deficit_city_ids": food_deficits,
             "food_safe_fraction": (
                 1.0 if not snapshot.cities else
@@ -3049,6 +3214,14 @@ class GroundedImpactPlanner(object):
             self._raw_city_surplus(city, 0) < self.food_surplus_reserve
             and normalized in NORMALIZED_FOOD_OUTPUT_TYPES
             and current_normalized not in NORMALIZED_FOOD_OUTPUT_TYPES)
+        treasury_recovery_hold = bool(
+            current_normalized in NORMALIZED_TREASURY_STABILIZATION_TYPES
+            and normalized not in NORMALIZED_TREASURY_STABILIZATION_TYPES
+            and not self._treasury_recovery_can_release(snapshot))
+        if (treasury_recovery_hold
+                and not mandatory_local_defense
+                and not direct_food_output_recovery):
+            return None
         if self.expansion_escort_retention_enabled:
             unescorted_founders = shared(
                 "escort_required_founders",
@@ -3395,6 +3568,12 @@ class GroundedImpactPlanner(object):
         if preexpansion_growth is not None:
             return preexpansion_growth
         if (needs_founder and normalized in founder_types
+                and not (
+                    self.founder_attrition_rebuild_limit > 0
+                    and self._founder_attrition_total(
+                        snapshot, founder_types)
+                    >= self.founder_attrition_rebuild_limit
+                    and snapshot.visible_enemy_units)
                 and remaining_turns >= self.expansion_minimum_remaining_turns
                 and projection.get("settlement_eta_turns") is not None
                 and projection["settlement_eta_turns"] <= remaining_turns
@@ -4021,8 +4200,39 @@ class GroundedImpactPlanner(object):
         if sum(int(target[key]) for key in (
                 "tax_rate", "science_rate", "luxury_rate")) != 100:
             return None
+        disorder_city_ids = tuple(sorted(
+            city.city_id for city in snapshot.cities
+            if city.disorder is True))
+        if (self.disorder_luxury_recovery_enabled
+                and disorder_city_ids
+                and int(target_luxury) == int(economy.luxury_rate) + 10
+                and int(target_luxury) <= 60
+                and int(target_tax) <= int(economy.tax_rate)
+                and int(target_science) <= int(economy.science_rate)
+                and not (
+                    self._treasury_deficit(snapshot)
+                    and int(target_tax) < int(economy.tax_rate))):
+            return ImpactCandidate(
+                action, "disorder_luxury_shift",
+                2300.0 + len(disorder_city_ids) * 25.0
+                + int(target_science) * 0.01,
+                "shift one packet-valid rate increment to luxury until "
+                "authoritative city disorder clears and shield production "
+                "can resume",
+                {
+                    "disorder_city_ids": disorder_city_ids,
+                    "luxury_rate_before": int(economy.luxury_rate),
+                    "luxury_rate_after": int(target_luxury),
+                    "minimum_safe_luxury_rate": (
+                        self._minimum_safe_luxury_rate),
+                    "science_rate_before": int(economy.science_rate),
+                    "science_rate_after": int(target_science),
+                    "tax_rate_before": int(economy.tax_rate),
+                    "tax_rate_after": int(target_tax),
+                })
         if (self._treasury_deficit(snapshot)
-                and int(target_tax) > int(economy.tax_rate)):
+                and int(target_tax) > int(economy.tax_rate)
+                and int(target_luxury) == int(economy.luxury_rate)):
             return ImpactCandidate(
                 action, "treasury_tax_shift",
                 2050.0 + int(target_tax) - int(economy.tax_rate),
@@ -4054,7 +4264,104 @@ class GroundedImpactPlanner(object):
                     "science_rate_after": int(target_science),
                     "treasury_reserve_required": reserve,
                 })
+        normal_luxury = max(
+            0, 100 - self.normal_tax_rate - self.normal_science_rate)
+        if (self.disorder_luxury_recovery_enabled
+                and not disorder_city_ids
+                and not self._local_garrison_deficits(snapshot)
+                and int(economy.luxury_rate) > normal_luxury
+                and int(target_luxury) == int(economy.luxury_rate) - 10
+                and int(target_luxury) >= max(
+                    normal_luxury, self._minimum_safe_luxury_rate)
+                and int(target_tax) >= int(economy.tax_rate)
+                and int(target_science) >= int(economy.science_rate)):
+            return ImpactCandidate(
+                action, "disorder_luxury_restore",
+                755.0
+                + max(
+                    0, int(target_science) - int(economy.science_rate))
+                + (5.0 if self._treasury_deficit(snapshot)
+                   and int(target_tax) > int(economy.tax_rate) else 0.0),
+                "restore one packet-valid luxury increment only after all "
+                "cities are orderly and have a grounded local garrison",
+                {
+                    "luxury_rate_before": int(economy.luxury_rate),
+                    "luxury_rate_after": int(target_luxury),
+                    "minimum_safe_luxury_rate": (
+                        self._minimum_safe_luxury_rate),
+                    "science_rate_before": int(economy.science_rate),
+                    "science_rate_after": int(target_science),
+                    "tax_rate_before": int(economy.tax_rate),
+                    "tax_rate_after": int(target_tax),
+                })
         return None
+
+    def _government_candidate(self, snapshot, action):
+        """Select an exact transition target or finish an active revolution."""
+        if action.get("action_type") != "government_change":
+            return None
+        target = action.get("target")
+        if not isinstance(target, dict):
+            return None
+        government_id = target.get("government_id")
+        name = str(target.get("government_name", "")).strip()
+        if government_id is None or not name:
+            return None
+        government = snapshot.government
+        normalized_name = name.casefold()
+        preferred = self.preferred_government.casefold()
+
+        if government.selection_required:
+            intended = str(government.target_name or "").strip().casefold()
+            priority = {
+                "despotism": 50.0, "monarchy": 40.0,
+                "communism": 30.0, "republic": 20.0,
+                "democracy": 10.0,
+            }.get(normalized_name, 0.0)
+            if preferred and normalized_name == preferred:
+                priority += 75.0
+            if intended and intended != "anarchy" and normalized_name == intended:
+                priority += 150.0
+            return ImpactCandidate(
+                action, "government_recovery", 2000.0 + priority,
+                "select the packet-legal intended government to end "
+                "research-blocking Anarchy",
+                {
+                    "current_government": government.current_name,
+                    "intended_government": government.target_name,
+                    "revolution_finishes": government.revolution_finishes,
+                    "target_government": name,
+                    "target_government_id": int(government_id),
+                })
+
+        if (
+            not self.preferred_government
+            or not government.available
+            or government.in_revolution
+            or len(snapshot.cities) < self.government_minimum_city_count
+            or str(government.current_name or "").strip().casefold()
+                == preferred
+            or normalized_name != preferred
+        ):
+            return None
+        remaining_turns = self._settlement_runway_remaining(snapshot)
+        if remaining_turns < self.government_minimum_remaining_turns:
+            return None
+        return ImpactCandidate(
+            action, "government_transition", 1500.0,
+            "start an exact packet-legal transition to the configured "
+            "government while the declared horizon retains recovery runway",
+            {
+                "current_government": government.current_name,
+                "government_minimum_remaining_turns": (
+                    self.government_minimum_remaining_turns),
+                "government_minimum_city_count": (
+                    self.government_minimum_city_count),
+                "observed_city_count": len(snapshot.cities),
+                "remaining_turns": remaining_turns,
+                "target_government": name,
+                "target_government_id": int(government_id),
+            })
 
     def _garrison_move_candidate(
             self, snapshot, action, unit, founder_types):
@@ -4143,28 +4450,8 @@ class GroundedImpactPlanner(object):
             elif action_type in ("unit_disband", "unit_home_city"):
                 candidate = self._support_recovery_candidate(
                     snapshot, action, founder_types)
-            elif (action_type == "government_change"
-                    and snapshot.government.selection_required):
-                target = action.get("target")
-                name = (
-                    str(target.get("government_name", ""))
-                    if isinstance(target, dict) else "")
-                priority = {
-                    "despotism": 50.0, "monarchy": 40.0,
-                    "communism": 30.0, "republic": 20.0,
-                    "democracy": 10.0,
-                }.get(name.strip().lower(), 0.0)
-                candidate = ImpactCandidate(
-                    action, "government_recovery", 2000.0 + priority,
-                    "select a packet-legal stable government to end "
-                    "research-blocking Anarchy",
-                    {
-                        "current_government": (
-                            snapshot.government.current_name),
-                        "revolution_finishes": (
-                            snapshot.government.revolution_finishes),
-                        "target_government": name,
-                    })
+            elif action_type == "government_change":
+                candidate = self._government_candidate(snapshot, action)
             elif (action_type in OFFENSIVE_ACTIONS
                     and self._offensive_target_is_visible(snapshot, action)):
                 unit = snapshot.unit(action.get("actor_id"))

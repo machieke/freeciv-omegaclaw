@@ -285,6 +285,41 @@ preferred as direct food-output recovery. A confirmed no-effect governor
 request is scoped to the unchanged city state, so accumulating shields do not
 reopen the same infeasible request every turn.
 
+Adapter 1.21 makes government transition a grounded two-stage operation. In a
+stable government, `preferred_government` must exactly match a canonical
+packet-legal target and the declared horizon must retain
+`government_minimum_remaining_turns`; otherwise no transition candidate is
+created. After the server starts revolution, active countdown snapshots expose
+no control. When selection becomes required, the exact packet-declared intended
+target receives first priority, followed by the configured preference and then
+a deterministic legal fallback. Recovery is treated as a governance safety
+goal so the planner cannot remain in research-blocking Anarchy. The proxy
+decides neither the preferred government nor its utility; it only checks
+ruleset requirements and transports the exact government ID/name pair.
+
+The transition mechanism is retained but initiation is disabled in the live
+profiles. Two same-seed 480-turn Monarchy evaluations scored 205 and 187,
+materially below the established 319 Despotism cohort. This is a policy result,
+not a transport defect: exact selection and mandatory recovery still operate
+if another actor has already started a revolution.
+
+Adapter 1.22 restored the packet-mood garrison requirement, bounded founder
+replacement after observed attrition, and added treasury-release hysteresis.
+Adapter 1.23 exposed one-step tax/luxury/science transitions and a city-local
+`require_happy` CMA candidate. The 480-turn evidence rejected both selectors:
+global luxury remained at 50-60%, reduced science to zero, and scored 205/214;
+local CMA requests were accepted by the proxy but never installed an enabled
+governor in the examined server states. Adapter 1.24 therefore keeps both
+features explicitly disabled in live profiles. The proxy and DTO still
+preserve their exact typed actions so future ablations can be run without
+weakening validation or inventing capability.
+
+A post-expansion replacement-reserve experiment was also rejected. It doubled
+defender completions from 17 to 32, but the opponent destroyed 25 instead of
+10; final garrison coverage remained 2/5, research fell from 59 to 54 known
+technologies, and score fell from 319 to 274. The production and retention
+rules therefore remain at the proven three-unit martial-law quota.
+
 PF-PLN now carries separate safety goals for `food_sustainability`,
 `treasury_sustainability`, and factual local defense. Their contexts name exact
 deficit city IDs or the net-gold/reserve state. Safety remains actionable rather

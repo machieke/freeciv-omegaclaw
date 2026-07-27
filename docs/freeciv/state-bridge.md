@@ -5,7 +5,11 @@ source-stability extension described by `contracts/freeciv-proxy/v5/contract.jso
 the spatial projection described by `contracts/freeciv-proxy/v6/contract.json`,
 and the sustainability controls described by
 `contracts/freeciv-proxy/v7/contract.json`. The grounded server-side city
-governor is described by `contracts/freeciv-proxy/v8/contract.json`.
+governor is described by `contracts/freeciv-proxy/v8/contract.json`. Exact
+stable-government transitions and post-revolution selection are described by
+`contracts/freeciv-proxy/v9/contract.json`. Bounded rate transitions and the
+optional city-local happiness template are described by
+`contracts/freeciv-proxy/v10/contract.json`.
 Apply the tracked patch series to the pinned external checkout before starting
 its container:
 
@@ -25,10 +29,35 @@ respectively,
 The sustainability-control patch is pinned at
 `412f4b462afab900233793f192732317b7e00b42b165dee1c09056ca9d5a1827`;
 the city-food-governor patch is pinned at
-`33a10ec287297629d2383d494f4ac01ad60ad1d25167dec39753e9d8a131113f`.
-The ordered six-patch series identity is
-`90cf26d4da2c4452f5e1e22a23a24fcaf24517cfe33c80ec78aa680ccf3aa2f3`.
+`33a10ec287297629d2383d494f4ac01ad60ad1d25167dec39753e9d8a131113f`;
+the government-transition patch is pinned at
+`1b3ecb9458559b0552f232e41804e545a94ccd4d2d774a0f0e6c90dac8dd013c`;
+the disorder-recovery patch is pinned at
+`e800adbe5a4f3a8e68e30a4e21019ef92dabbb272b28ecd50d90c64e7dcb417b`.
+The ordered eight-patch series identity is
+`99a5f09f6a8904c8843787eff6964711d6928a15ff3b08da86030d67038b8b90`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
+
+The v9 projection closes the stable-government initiation gap. The proxy now
+advertises every exact packet-known, ruleset-requirements-satisfied alternative
+government while the player is stable. It advertises none while a revolution
+countdown is active, then exposes the exact legal selection set when the
+revolution finishes. The canonical action preserves government ID and name
+through validation and conversion to `PACKET_PLAYER_CHANGE_GOVERNMENT`.
+Strategic preference remains outside the proxy: the planner chooses only its
+configured preferred target, only while the horizon retains recovery runway,
+and prioritizes the packet-declared intended target after revolution. Unknown
+requirements, unknown identifiers, and ID/name mismatches fail closed.
+
+The v10 projection preserves strict booleans and integer bounds from legal
+action generation through normalization, sanitization, validation, exact legal
+membership, and packet conversion. Rate actions move one ten-point increment,
+keep tax/luxury/science in `0..60`, and always total 100. A disordered city can
+advertise the audited `PACKET_WEB_CMA_SET` template with
+`require_happy=true`. These are transport capabilities, not proxy policy.
+Engine evidence showed that global luxury starved research and that the local
+happiness template was infeasible in the examined city states, so both planner
+selectors are disabled by default.
 
 The v8 transport also projects `GameSession.game_is_over` into every player's
 authoritative `game.is_over` value. This closes the observer-first endgame-report

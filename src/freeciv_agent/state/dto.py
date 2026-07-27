@@ -99,11 +99,17 @@ def _city_governor_action(city_id, target):
     if reserve < 0 or reserve > 10:
         raise ContractError(
             "city_governor food_surplus_reserve must be in 0..10")
+    action_target = {"food_surplus_reserve": reserve}
+    if "require_happy" in target:
+        action_target["require_happy"] = _boolean(
+            target.get("require_happy"),
+            "legal_actions.city_governor.target.require_happy",
+            required=True)
     return {
         "action_type": "city_governor",
         "city_id": _integer(
             city_id, "legal_actions.city_governor.city_id", required=True),
-        "target": {"food_surplus_reserve": reserve},
+        "target": action_target,
     }
 
 

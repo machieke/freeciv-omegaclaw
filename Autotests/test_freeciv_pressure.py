@@ -520,6 +520,12 @@ def test_impact_category_goal_mapping_matches_outcome_semantics():
         "population_recovery") == "score"
     assert ImpactPressureRanker.goal_for_category(
         "population_recovery_move") == "score"
+    assert ImpactPressureRanker.goal_for_category(
+        "disorder_luxury_shift") == "survival"
+    assert ImpactPressureRanker.goal_for_category(
+        "city_happiness_governor") == "survival"
+    assert ImpactPressureRanker.goal_for_category(
+        "disorder_luxury_restore") == "score"
 
 
 def test_clone_projection_loses_confidence_under_maximal_disagreement():
@@ -1429,6 +1435,7 @@ def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
     assert {goal["goal_id"] for goal in artifact["pressure"]["goals"]} == {
         "pf-impact:survival", "pf-impact:expansion",
         "pf-impact:score", "pf-impact:exploration",
+        "pf-impact:governance",
         "pf-impact:food_sustainability",
         "pf-impact:treasury_sustainability"}
     goals = dict(

@@ -165,11 +165,16 @@ class ImpactPressureRanker(object):
     CATEGORY_GOALS = {
         "city_defense": "survival",
         "city_food_governor": "food_sustainability",
+        "city_happiness_governor": "survival",
         "city_founding": "expansion",
         "city_garrison_move": "survival",
+        "disorder_luxury_restore": "score",
+        "disorder_luxury_shift": "survival",
         "expansion_move": "expansion",
         "food_support_disband": "food_sustainability",
         "food_support_rehome": "food_sustainability",
+        "government_recovery": "governance",
+        "government_transition": "governance",
         "hut_exploration": "exploration",
         "population_recovery": "score",
         "population_recovery_move": "score",
@@ -381,13 +386,27 @@ class ImpactPressureRanker(object):
             defense_city_ids
             if "defense_deficit_city_ids" in goal_facts
             else "production_defense" in categories)
+        disorder_city_ids = tuple(
+            goal_facts.get("disorder_city_ids", ()))
         survival_truth = (
-            0.0 if relevant_threats or defense_deficit else 1.0)
+            0.0 if relevant_threats or defense_deficit
+            or disorder_city_ids else 1.0)
         food_city_ids = tuple(goal_facts.get("food_deficit_city_ids", ()))
         food_truth = float(goal_facts.get(
             "food_safe_fraction", 1.0 if not food_city_ids else 0.0))
         food_truth = min(1.0, max(0.0, food_truth))
         treasury_deficit = bool(goal_facts.get("treasury_deficit", False))
+        government_recovery = next((
+            candidate for candidate in candidates
+            if candidate.category == "government_recovery"), None)
+        government_transition = next((
+            candidate for candidate in candidates
+            if candidate.category == "government_transition"), None)
+        governance_candidate = (
+            government_recovery or government_transition)
+        governance_target = (
+            (governance_candidate.projection or {}).get("target_government")
+            if governance_candidate is not None else None)
         exploration_categories = tuple(
             candidate for candidate in candidates
             if cls.goal_for_category(candidate.category) == "exploration")
@@ -417,7 +436,10 @@ class ImpactPressureRanker(object):
         return {
             "survival": (
                 survival_truth, 1.50, True,
-                ("authoritative:grounded-production-defense-deficit"
+                ("authoritative:city-disorder-deficit:{}".format(
+                    ",".join(str(value) for value in disorder_city_ids))
+                 if disorder_city_ids else
+                 "authoritative:grounded-production-defense-deficit"
                  if defense_deficit else
                  "authoritative:visible-enemy-within-city-threat-radius:{}".format(
                      int(survival_threat_radius))
@@ -434,6 +456,16 @@ class ImpactPressureRanker(object):
                 ("authoritative:net-gold-or-turn-start-upkeep-reserve-deficit"
                  if treasury_deficit else
                  "authoritative:net-gold-and-turn-start-upkeep-reserve-safe")),
+            "governance": (
+                0.0 if governance_candidate is not None else 1.0,
+                2.00 if government_recovery is not None else 1.35,
+                government_recovery is not None,
+                ("authoritative:post-revolution-government-selection-required"
+                 if government_recovery is not None else
+                 "authoritative:packet-legal-preferred-government:{}".format(
+                     governance_target)
+                 if government_transition is not None else
+                 "authoritative:no-grounded-government-action")),
             "expansion": (
                 expansion_truth, 1.25, False,
                 "authoritative:city-count-over-target"),
