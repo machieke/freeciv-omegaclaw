@@ -8,6 +8,86 @@ import invalidationTrace from "../../../../Autotests/fixtures/freeciv-events/v1/
 import quarantineTrace from "../../../../Autotests/fixtures/freeciv-events/v1/quarantine-40.jsonl?raw";
 import writeThroughTrace from "../../../../Autotests/fixtures/freeciv-events/v1/bad-write-through.jsonl?raw";
 import { App } from "../App";
+import { event } from "./helpers";
+
+const pfHash = "a".repeat(64);
+const pfTrace = [
+  event(1, "pressure_propagated", {
+    pressure_id: "pressure-test",
+    graph_hash: pfHash,
+    result_hash: "b".repeat(64),
+    goals: [
+      {
+        goal_id: "pf-impact:expansion", utility: 1.25, urgency: 1,
+        target_strength: 1, safety: false, context: ["authoritative:city-count-over-target"],
+      },
+      {
+        goal_id: "pf-impact:survival", utility: 1.5, urgency: 1,
+        target_strength: 1, safety: true, context: ["authoritative:visible-threat"],
+      },
+    ],
+    dependency: { "pf-impact:expansion": { "pf-impact-goal:expansion": 1 } },
+    operational_pressure: {
+      "pf-impact:expansion": {
+        "pf-impact-category:expansion": {
+          act: 0.85, direction: 1, expand: 0, infer: 0, observe: 0, retain: 0,
+        },
+      },
+    },
+    traces: [{
+      goal_id: "pf-impact:expansion", hop: 1,
+      conclusion_id: "pf-impact-goal:expansion",
+      premise_id: "pf-impact-category:expansion",
+      rule_id: "pf-impact-category-route:production_expansion",
+      transported_pressure: 0.85,
+    }],
+    config: { damping: 0.85 },
+    conductance_state: null,
+  }, 1, 1),
+  event(2, "operation_scored", {
+    decision_id: "decision-test",
+    pressure_id: "pressure-test",
+    solver_identity: "pf-pln-pressure-scheduler/1.0",
+    selected_operation_id: "operation-founder",
+    scores: [{
+      operation: {
+        operation_id: "operation-founder", mode: "act",
+        payload: {
+          category: "production_expansion",
+          rationale: "produce the next grounded founder",
+          action: { action_type: "city_change_production" },
+        },
+      },
+      admissible: true, priority: 0.84, value: 0.85, reason: null,
+    }],
+    allocations: [],
+    structural_hash: "c".repeat(64),
+  }, 1, 2),
+  event(3, "conductance_updated", {
+    feedback_id: "feedback-test",
+    category: "production_expansion",
+    rule_id: "pf-impact-category-route:production_expansion",
+    effect_observed: true,
+    applied: true,
+    previous_conductance: 1,
+    conductance: 0.9753,
+    successes: 1,
+    no_progress: 1,
+    learning_method: "grounded-goal-relief-ema-v2",
+    credit_kind: "effect_without_goal_relief",
+    realized_relief: 0,
+    no_progress_amount: 0.25,
+    state_hash: "d".repeat(64),
+  }, 1, 3),
+  event(4, "metric_sample", {
+    name: "pf_pln_phase_enabled", value: 1, unit: "ratio",
+    labels: { phase: "1", component: "goal_regression_planner", reason: "enabled" },
+  }, 1, 4),
+  event(5, "metric_sample", {
+    name: "impact_planning_pressure_graph_latency_ms", value: 1.75, unit: "ms",
+    labels: { condition: "e_full_loop" },
+  }, 1, 5),
+].map((row) => JSON.stringify(row)).join("\n");
 
 describe("Decision Observatory", () => {
   it("opens an action ancestry and reaches the supporting proof in five interactions", async () => {
@@ -88,6 +168,22 @@ describe("Decision Observatory", () => {
     expect(screen.getByText("loop_latency_ms")).toBeInTheDocument();
     expect(screen.getByText("10")).toBeInTheDocument();
     expect(screen.getByText(/UI calculations disabled/)).toBeInTheDocument();
+  });
+
+  it("replays PF-PLN goals, scheduling, conductance, activation, and runtime events", async () => {
+    const user = userEvent.setup();
+    render(<App initialText={pfTrace} />);
+    await user.click(screen.getByRole("button", { name: /^08 PF-PLN/ }));
+    expect(screen.getByRole("heading", { name: "PF-PLN control path" })).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "PF-PLN operation schedule" })).toBeInTheDocument();
+    expect(screen.getAllByText("expansion").length).toBeGreaterThan(0);
+    expect(screen.getByText("◆ selected")).toBeInTheDocument();
+    expect(screen.getAllByText("production_expansion").length).toBeGreaterThan(0);
+    expect(screen.getByText("effect_without_goal_relief")).toBeInTheDocument();
+    expect(screen.getByText("goal_regression_planner")).toBeInTheDocument();
+    expect(screen.getByText("impact_planning_pressure_graph_latency_ms")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "inspect event →" }));
+    expect(screen.getByRole("heading", { name: "operation_scored" })).toBeInTheDocument();
   });
 
   it("filters and loads a generated experiment trace from the repository catalog", async () => {

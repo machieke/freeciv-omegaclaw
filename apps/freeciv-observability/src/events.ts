@@ -37,6 +37,10 @@ export interface ReplayState {
   atoms: Map<string, AtomView>;
   plans: Map<string, Plan>;
   proofs: Array<{ event: TraceEvent; result: PlnResult }>;
+  pfPlnEvents: TraceEvent[];
+  pressurePropagations: TraceEvent[];
+  operationScores: TraceEvent[];
+  conductanceUpdates: TraceEvent[];
   quarantines: TraceEvent[];
   metrics: TraceEvent[];
   unknown: TraceEvent[];

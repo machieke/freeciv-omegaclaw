@@ -1,0 +1,212 @@
+[
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-27T06:09:42.987Z"
+  },
+  {
+    "action": "click @e8",
+    "relativeTimeSec": 11.5,
+    "timestamp": "2026-07-27T06:09:49.428Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 11.9,
+    "timestamp": "2026-07-27T06:09:49.835Z"
+  },
+  {
+    "action": "click @e37",
+    "relativeTimeSec": 19.8,
+    "timestamp": "2026-07-27T06:09:57.790Z"
+  },
+  {
+    "action": "click @e16",
+    "relativeTimeSec": 21.3,
+    "timestamp": "2026-07-27T06:09:59.235Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 21.7,
+    "timestamp": "2026-07-27T06:09:59.647Z"
+  },
+  {
+    "action": "click @e16",
+    "relativeTimeSec": 32.4,
+    "timestamp": "2026-07-27T06:10:10.346Z"
+  },
+  {
+    "action": "screenshot pf-pln-overview.png",
+    "relativeTimeSec": 32.7,
+    "timestamp": "2026-07-27T06:10:10.687Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 33.2,
+    "timestamp": "2026-07-27T06:10:11.120Z"
+  },
+  {
+    "action": "eval JSON.stringify(Array.from(document.querySelectorAll('.side-nav > button')).map((element) => ({text: element.textContent, active: element.classList.contains('active')})))",
+    "relativeTimeSec": 49.8,
+    "timestamp": "2026-07-27T06:10:27.747Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll('.side-nav > button')).find((element) => element.textContent.includes('PF-PLN')).click(); 'clicked'",
+    "relativeTimeSec": 57.8,
+    "timestamp": "2026-07-27T06:10:35.731Z"
+  },
+  {
+    "action": "eval location.search",
+    "relativeTimeSec": 58.3,
+    "timestamp": "2026-07-27T06:10:36.230Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 58.6,
+    "timestamp": "2026-07-27T06:10:36.543Z"
+  },
+  {
+    "action": "screenshot pf-pln-dashboard.png",
+    "relativeTimeSec": 69.6,
+    "timestamp": "2026-07-27T06:10:47.565Z"
+  },
+  {
+    "action": "eval document.querySelector('main').scrollTop = 850; document.querySelector('main').scrollTop",
+    "relativeTimeSec": 100.4,
+    "timestamp": "2026-07-27T06:11:18.325Z"
+  },
+  {
+    "action": "screenshot pf-pln-schedule-learning.png",
+    "relativeTimeSec": 100.8,
+    "timestamp": "2026-07-27T06:11:18.732Z"
+  },
+  {
+    "action": "eval document.querySelector('main').scrollTop = document.querySelector('main').scrollHeight; document.querySelector('main').scrollTop",
+    "relativeTimeSec": 101.2,
+    "timestamp": "2026-07-27T06:11:19.116Z"
+  },
+  {
+    "action": "screenshot pf-pln-runtime.png",
+    "relativeTimeSec": 101.5,
+    "timestamp": "2026-07-27T06:11:19.458Z"
+  },
+  {
+    "action": "eval const nav=document.querySelector('.side-nav'); nav.scrollTop=nav.scrollHeight; nav.scrollTop",
+    "relativeTimeSec": 119.7,
+    "timestamp": "2026-07-27T06:11:37.635Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 120,
+    "timestamp": "2026-07-27T06:11:37.976Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll('.side-nav > button')).find((element) => element.textContent.includes('Decision timeline')).click(); const nav=document.querySelector('.side-nav'); nav.scrollTop=nav.scrollHeight; 'timeline'",
+    "relativeTimeSec": 130.4,
+    "timestamp": "2026-07-27T06:11:48.386Z"
+  },
+  {
+    "action": "eval (() => { Array.from(document.querySelectorAll('.side-nav > button')).find((element) => element.textContent.includes('Decision timeline')).click(); const side = document.querySelector('.side-nav'); side.scrollTop = side.scrollHeight; return 'timeline'; })()",
+    "relativeTimeSec": 136.4,
+    "timestamp": "2026-07-27T06:11:54.300Z"
+  },
+  {
+    "action": "click @e16",
+    "relativeTimeSec": 137.9,
+    "timestamp": "2026-07-27T06:11:55.807Z"
+  },
+  {
+    "action": "eval location.search",
+    "relativeTimeSec": 138.3,
+    "timestamp": "2026-07-27T06:11:56.245Z"
+  },
+  {
+    "action": "click @e85",
+    "relativeTimeSec": 146.3,
+    "timestamp": "2026-07-27T06:12:04.244Z"
+  },
+  {
+    "action": "eval document.querySelector('.inspector h2').textContent",
+    "relativeTimeSec": 146.8,
+    "timestamp": "2026-07-27T06:12:04.713Z"
+  },
+  {
+    "action": "screenshot pf-pln-inspector.png",
+    "relativeTimeSec": 147.1,
+    "timestamp": "2026-07-27T06:12:05.061Z"
+  },
+  {
+    "action": "eval document.querySelector('main').scrollTop=0; document.querySelector('.side-nav').scrollTop=document.querySelector('.side-nav').scrollHeight; 'top'",
+    "relativeTimeSec": 155.5,
+    "timestamp": "2026-07-27T06:12:13.400Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 155.8,
+    "timestamp": "2026-07-27T06:12:13.736Z"
+  },
+  {
+    "action": "click @e85",
+    "relativeTimeSec": 162.8,
+    "timestamp": "2026-07-27T06:12:20.782Z"
+  },
+  {
+    "action": "eval document.querySelector('.inspector h2').textContent",
+    "relativeTimeSec": 163.3,
+    "timestamp": "2026-07-27T06:12:21.232Z"
+  },
+  {
+    "action": "screenshot pf-pln-inspector.png",
+    "relativeTimeSec": 163.6,
+    "timestamp": "2026-07-27T06:12:21.592Z"
+  },
+  {
+    "action": "eval document.querySelector('.side-nav').scrollTop=0; 'nav-top'",
+    "relativeTimeSec": 176.1,
+    "timestamp": "2026-07-27T06:12:34.065Z"
+  },
+  {
+    "action": "click @e8",
+    "relativeTimeSec": 177.4,
+    "timestamp": "2026-07-27T06:12:35.379Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 178,
+    "timestamp": "2026-07-27T06:12:35.938Z"
+  },
+  {
+    "action": "fill @e178 4644101 baseline",
+    "relativeTimeSec": 184.7,
+    "timestamp": "2026-07-27T06:12:42.625Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 185.1,
+    "timestamp": "2026-07-27T06:12:43.017Z"
+  },
+  {
+    "action": "fill @e178 4644101",
+    "relativeTimeSec": 195.8,
+    "timestamp": "2026-07-27T06:12:53.702Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 196.1,
+    "timestamp": "2026-07-27T06:12:54.074Z"
+  },
+  {
+    "action": "click @e180",
+    "relativeTimeSec": 204.2,
+    "timestamp": "2026-07-27T06:13:02.110Z"
+  },
+  {
+    "action": "eval document.querySelector('main').innerText.slice(0,500)",
+    "relativeTimeSec": 204.6,
+    "timestamp": "2026-07-27T06:13:02.520Z"
+  },
+  {
+    "action": "screenshot pf-pln-baseline-gap.png",
+    "relativeTimeSec": 204.9,
+    "timestamp": "2026-07-27T06:13:02.853Z"
+  }
+]

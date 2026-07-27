@@ -26,7 +26,8 @@ it("renders a 200-node DOM-selectable proof in under 300 ms", () => {
   const state: ReplayState = {
     cursor: { turn: 1, seq: 0 }, events: [proofEvent],
     eventsById: new Map([[proofEvent.event_id, proofEvent]]), atoms: new Map(), plans: new Map(),
-    proofs: [{ event: proofEvent, result }], quarantines: [], metrics: [], unknown: [],
+    proofs: [{ event: proofEvent, result }], pfPlnEvents: [], pressurePropagations: [],
+    operationScores: [], conductanceUpdates: [], quarantines: [], metrics: [], unknown: [],
     loggingGaps: [], snapshots: [], invalidations: new Map(), verifications: [], actionResults: [],
   };
   const started = performance.now();
@@ -55,7 +56,8 @@ it("keeps proof nodes beyond the default depth-four collapse inspectable", async
   const state: ReplayState = {
     cursor: { turn: 1, seq: 0 }, events: [proofEvent],
     eventsById: new Map([[proofEvent.event_id, proofEvent]]), atoms: new Map(), plans: new Map(),
-    proofs: [{ event: proofEvent, result }], quarantines: [], metrics: [], unknown: [],
+    proofs: [{ event: proofEvent, result }], pfPlnEvents: [], pressurePropagations: [],
+    operationScores: [], conductanceUpdates: [], quarantines: [], metrics: [], unknown: [],
     loggingGaps: [], snapshots: [], invalidations: new Map(), verifications: [], actionResults: [],
   };
   render(<ProofExplorer state={state} onSelect={() => undefined} />);

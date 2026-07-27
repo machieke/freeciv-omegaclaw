@@ -5,6 +5,17 @@ import {
 } from "./events";
 import { isKnownType } from "./validation";
 
+const PF_PLN_EVENT_TYPES = new Set([
+  "pressure_propagated",
+  "operation_scored",
+  "conductance_updated",
+  "rule_proposed",
+  "rule_validated",
+  "llm_call_scheduled",
+  "llm_gateway_result",
+  "rule_parameter_updated",
+]);
+
 const recordAtom = (
   atoms: Map<string, AtomView>, atom: Atom, event: TraceEvent,
   operation: string, provenanceId?: string,
@@ -26,6 +37,10 @@ export const foldEvents = (allEvents: TraceEvent[], cursor: Cursor): ReplayState
   const atoms = new Map<string, AtomView>();
   const plans = new Map<string, Plan>();
   const proofs: Array<{ event: TraceEvent; result: PlnResult }> = [];
+  const pfPlnEvents: TraceEvent[] = [];
+  const pressurePropagations: TraceEvent[] = [];
+  const operationScores: TraceEvent[] = [];
+  const conductanceUpdates: TraceEvent[] = [];
   const quarantines: TraceEvent[] = [];
   const metrics: TraceEvent[] = [];
   const unknown: TraceEvent[] = [];
@@ -75,14 +90,19 @@ export const foldEvents = (allEvents: TraceEvent[], cursor: Cursor): ReplayState
       }
     }
     if (event.type === "quarantine") quarantines.push(event);
+    if (PF_PLN_EVENT_TYPES.has(event.type)) pfPlnEvents.push(event);
+    if (event.type === "pressure_propagated") pressurePropagations.push(event);
+    if (event.type === "operation_scored") operationScores.push(event);
+    if (event.type === "conductance_updated") conductanceUpdates.push(event);
     if (event.type === "metric_sample") metrics.push(event);
     if (event.type === "logging_gap") loggingGaps.push(event);
     if (event.type === "verification") verifications.push(event);
     if (event.type === "action_result") actionResults.push(event);
   }
   return {
-    cursor, events, eventsById, atoms, plans, proofs, quarantines, metrics, unknown,
-    loggingGaps, snapshots, invalidations, verifications, actionResults,
+    cursor, events, eventsById, atoms, plans, proofs, pfPlnEvents,
+    pressurePropagations, operationScores, conductanceUpdates, quarantines, metrics,
+    unknown, loggingGaps, snapshots, invalidations, verifications, actionResults,
   };
 };
 

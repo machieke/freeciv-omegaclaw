@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure",
+  "commitSha": "18a33f4d06df7e2cb3f4409fb25b013b0bf798bc",
+  "startedAt": "2026-07-27T06:09:08.173Z",
+  "description": "Verify the PF-PLN observability dashboard against an engine-backed fifth-city treatment trace, including artifact loading, goals, scheduler selection, pressure flow, conductance learning, runtime metrics, and inspector interaction."
+}

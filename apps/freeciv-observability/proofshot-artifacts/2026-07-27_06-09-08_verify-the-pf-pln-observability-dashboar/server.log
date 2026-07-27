@@ -1,0 +1,10 @@
+1785132549589	
+1785132549590	> @omegaclaw/freeciv-observability@0.1.0 dev
+1785132549590	> vite --host 127.0.0.1 --port 4178
+1785132549590	
+1785132549949	
+1785132549950	  VITE v7.3.6  ready in 241 ms
+1785132549950	
+1785132549950	  ➜  Local:   http://127.0.0.1:4178/
+1785132670234	6:11:10 AM [vite] (client) hmr update /src/styles.css
+1785132793288	6:13:13 AM [vite] (client) page reload proofshot-artifacts/2026-07-27_06-09-08_verify-the-pf-pln-observability-dashboar/viewer.html

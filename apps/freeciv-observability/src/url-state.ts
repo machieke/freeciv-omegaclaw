@@ -1,6 +1,7 @@
 import type { Cursor } from "./events";
 
-export type ViewName = "timeline" | "proofs" | "atoms" | "plans" | "map" | "audit" | "metrics";
+export type ViewName =
+  | "timeline" | "proofs" | "atoms" | "plans" | "map" | "audit" | "metrics" | "pfpln";
 
 export interface UrlState {
   view: ViewName;
@@ -10,7 +11,9 @@ export interface UrlState {
   channel?: "all" | "crisp" | "uncertain";
 }
 
-const views = new Set<ViewName>(["timeline", "proofs", "atoms", "plans", "map", "audit", "metrics"]);
+const views = new Set<ViewName>([
+  "timeline", "proofs", "atoms", "plans", "map", "audit", "metrics", "pfpln",
+]);
 
 export const decodeUrlState = (search: string, fallback: Cursor): UrlState => {
   const params = new URLSearchParams(search);

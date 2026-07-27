@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, ReactNode } from "react";
-import type { Atom, Plan, PlanStep, PlnResult, ProofNode } from "../../../schemas/freeciv-events/v1/types.generated";
+import type {
+  Atom, Plan, PlanStep, PlnResult, ProofNode,
+} from "../../../schemas/freeciv-events/v1/types.generated";
 import demoTrace from "../../../Autotests/fixtures/freeciv-events/v1/normal-crisp.jsonl?raw";
 import {
   type AtomView, type Cursor, type ReplayState, type TraceEvent,
@@ -33,6 +35,7 @@ const NAV: Array<{ view: ViewName; label: string; key: string }> = [
   { view: "map", label: "Map overlay", key: "05" },
   { view: "audit", label: "Epistemic audit", key: "06" },
   { view: "metrics", label: "Metrics", key: "07" },
+  { view: "pfpln", label: "PF-PLN", key: "08" },
 ];
 
 const STAGES: Array<{ name: string; types: Set<string> }> = [
@@ -40,6 +43,11 @@ const STAGES: Array<{ name: string; types: Set<string> }> = [
   { name: "Proposal", types: new Set(["llm_proposal", "quarantine"]) },
   { name: "Verification", types: new Set(["verification", "grounded_check"]) },
   { name: "PLN", types: new Set(["pln_query", "pln_result"]) },
+  { name: "PF-PLN", types: new Set([
+    "pressure_propagated", "operation_scored", "conductance_updated",
+    "rule_proposed", "rule_validated", "llm_call_scheduled",
+    "llm_gateway_result", "rule_parameter_updated",
+  ]) },
   { name: "Plan", types: new Set(["plan_created", "plan_invalidated", "plan_step_executed"]) },
   { name: "Action", types: new Set(["action_sent", "action_result"]) },
 ];
@@ -468,6 +476,238 @@ function EpistemicAudit({ state, onSelect }: {
   </div></div>;
 }
 
+const rowsOf = (value: unknown): Array<Record<string, unknown>> =>
+  Array.isArray(value)
+    ? value.filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === "object")
+    : [];
+
+const recordOf = (value: unknown): Record<string, unknown> =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown> : {};
+
+const numeric = (value: unknown): string =>
+  typeof value === "number" && Number.isFinite(value)
+    ? value.toLocaleString(undefined, { maximumFractionDigits: 4 }) : "—";
+
+const compactPfId = (value: unknown): string => {
+  const text = String(value ?? "—");
+  return text.startsWith("pf-impact:") ? text.slice("pf-impact:".length) : text;
+};
+
+function PfPlnDashboard({ state, onSelect }: {
+  state: ReplayState; onSelect: (selection: Selection) => void;
+}) {
+  const [decisionId, setDecisionId] = useState<string>();
+  const decisions = state.operationScores;
+  const selectedDecision = decisions.find(
+    (event) => event.payload.decision_id === decisionId) ?? decisions.at(-1);
+  const selectedDecisionId = String(selectedDecision?.payload.decision_id ?? "");
+  const pressureId = String(selectedDecision?.payload.pressure_id ?? "");
+  const pressureEvent = [...state.pressurePropagations].reverse().find(
+    (event) => event.payload.pressure_id === pressureId) ?? state.pressurePropagations.at(-1);
+  const goals = rowsOf(pressureEvent?.payload.goals);
+  const traces = rowsOf(pressureEvent?.payload.traces);
+  const scores = rowsOf(selectedDecision?.payload.scores);
+  const selectedOperationId = String(selectedDecision?.payload.selected_operation_id ?? "");
+  const selectedScore = scores.find((score) =>
+    recordOf(score.operation).operation_id === selectedOperationId);
+  const selectedOperation = recordOf(selectedScore?.operation);
+  const selectedPayload = recordOf(selectedOperation.payload);
+  const phaseMetrics = state.metrics.filter(
+    (event) => event.payload.name === "pf_pln_phase_enabled");
+  const runtimeMetrics = state.metrics.filter((event) => {
+    const name = String(event.payload.name ?? "");
+    return name.startsWith("impact_planning_pressure_")
+      || name.startsWith("turn_impact_learning_");
+  });
+
+  if (!state.pfPlnEvents.length && !phaseMetrics.length) {
+    return <LoggingGap title="No PF-PLN control events at this cursor"
+      detail="Load a pressure-enabled treatment trace or emit pressure_propagated, operation_scored, and conductance_updated. The browser will not reconstruct pressure or scheduler output." />;
+  }
+
+  const summary: Array<{
+    label: string; value: number; event?: TraceEvent; detail: string;
+  }> = [
+    {
+      label: "propagations", value: state.pressurePropagations.length,
+      event: state.pressurePropagations.at(-1), detail: "pressure fields",
+    },
+    {
+      label: "decisions", value: decisions.length,
+      event: decisions.at(-1), detail: "scored schedules",
+    },
+    {
+      label: "selections", value: decisions.filter(
+        (event) => event.payload.selected_operation_id !== null).length,
+      event: decisions.at(-1), detail: "selected operations",
+    },
+    {
+      label: "learning", value: state.conductanceUpdates.length,
+      event: state.conductanceUpdates.at(-1), detail: "conductance feedback",
+    },
+  ];
+
+  return <div className="view-content pf-view">
+    <div className="view-heading">
+      <div><span className="eyebrow">pressure fields / probabilistic logic networks</span>
+        <h2>PF-PLN control path</h2></div>
+      <p>Trace-only replay. Counts index logged events; goals, pressure, scores,
+        selections, and learning values are rendered verbatim.</p>
+    </div>
+
+    <div className="pf-summary" aria-label="PF-PLN event coverage">
+      {summary.map((item) => <button key={item.label} disabled={!item.event}
+        onClick={() => item.event && onSelect({ kind: "event", value: item.event })}>
+        <span>{item.label}</span><strong>{item.value.toLocaleString()}</strong>
+        <small>{item.detail}</small>
+      </button>)}
+    </div>
+
+    <section className="pf-decision-focus">
+      <header>
+        <div><span className="eyebrow">scheduler replay</span><h3>Decision focus</h3></div>
+        {decisions.length > 0 && <label>decision
+          <select aria-label="PF-PLN decision" value={selectedDecisionId}
+            onChange={(event) => setDecisionId(event.target.value)}>
+            {decisions.slice(-500).reverse().map((event) =>
+              <option key={event.event_id} value={String(event.payload.decision_id)}>
+                T{event.turn}.{event.seq} · {String(event.payload.decision_id)}
+              </option>)}
+          </select>
+        </label>}
+      </header>
+      {selectedDecision ? <div className="pf-selected-operation">
+        <span className="pf-selection-mark">selected</span>
+        <div><strong>{String(selectedPayload.category ?? "uncategorized")}</strong>
+          <small>{String(selectedPayload.rationale ?? selectedOperationId ?? "—")}</small></div>
+        <div><span>action</span><strong>{
+          String(recordOf(selectedPayload.action).action_type ?? selectedOperation.mode ?? "—")
+        }</strong></div>
+        <div><span>priority</span><strong>{numeric(selectedScore?.priority)}</strong></div>
+        <button onClick={() => onSelect({ kind: "event", value: selectedDecision })}>
+          inspect event →
+        </button>
+      </div> : <div className="pf-panel-gap">No operation_scored event was logged.</div>}
+    </section>
+
+    <div className="pf-two-column">
+      <section className="pf-panel">
+        <header><div><span className="eyebrow">latest matched propagation</span>
+          <h3>Goal field</h3></div>
+          {pressureEvent && <button onClick={() =>
+            onSelect({ kind: "event", value: pressureEvent })}>inspect</button>}
+        </header>
+        {goals.length ? <div className="pf-goals">
+          {goals.map((goal, index) => <article key={String(goal.goal_id ?? index)}
+            className={goal.safety === true ? "safety" : ""}>
+            <div><strong>{compactPfId(goal.goal_id)}</strong>
+              {goal.safety === true && <span>safety</span>}</div>
+            <dl><div><dt>utility</dt><dd>{numeric(goal.utility)}</dd></div>
+              <div><dt>urgency</dt><dd>{numeric(goal.urgency)}</dd></div>
+              <div><dt>target</dt><dd>{numeric(goal.target_strength)}</dd></div></dl>
+            <small>{Array.isArray(goal.context)
+              ? goal.context.map(String).join(" · ") : "no context logged"}</small>
+          </article>)}
+        </div> : <div className="pf-panel-gap">No goals were logged for this decision.</div>}
+      </section>
+
+      <section className="pf-panel">
+        <header><div><span className="eyebrow">runtime activation</span>
+          <h3>PF-PLN phases</h3></div><span className="pf-count">{phaseMetrics.length}</span></header>
+        {phaseMetrics.length ? <div className="pf-phase-list">
+          {phaseMetrics.map((event) => {
+            const labels = recordOf(event.payload.labels);
+            return <button key={event.event_id}
+              onClick={() => onSelect({ kind: "event", value: event })}>
+              <span>{String(labels.phase ?? "—")}</span>
+              <strong>{String(labels.component ?? "unlabeled phase")}</strong>
+              <small>{String(labels.reason ?? "—")} · {numeric(event.payload.value)}</small>
+            </button>;
+          })}
+        </div> : <div className="pf-panel-gap">No pf_pln_phase_enabled metrics were logged.</div>}
+      </section>
+    </div>
+
+    <section className="pf-panel pf-schedule">
+      <header><div><span className="eyebrow">event-provided order / {scores.length} candidates</span>
+        <h3>Operation schedule</h3></div>
+        <span className="pf-solver">{String(selectedDecision?.payload.solver_identity ?? "no solver identity")}</span>
+      </header>
+      {scores.length ? <div className="pf-table" role="table" aria-label="PF-PLN operation schedule">
+        <div className="pf-score-row head" role="row">
+          <span>selection</span><span>category / action</span><span>admissible</span>
+          <span>priority</span><span>value</span><span>reason</span>
+        </div>
+        {scores.slice(0, 100).map((score, index) => {
+          const operation = recordOf(score.operation);
+          const payload = recordOf(operation.payload);
+          const action = recordOf(payload.action);
+          const operationId = String(operation.operation_id ?? index);
+          const selected = operationId === selectedOperationId;
+          return <button role="row" key={operationId}
+            className={`pf-score-row ${selected ? "selected" : ""}`}
+            onClick={() => selectedDecision
+              && onSelect({ kind: "event", value: selectedDecision })}>
+            <span>{selected ? "◆ selected" : String(index + 1).padStart(2, "0")}</span>
+            <span><strong>{String(payload.category ?? "uncategorized")}</strong>
+              <small>{String(action.action_type ?? operation.mode ?? "—")}</small></span>
+            <span className={score.admissible ? "yes" : "no"}>{
+              score.admissible ? "yes" : "no"
+            }</span>
+            <span>{numeric(score.priority)}</span><span>{numeric(score.value)}</span>
+            <span>{String(score.reason ?? "—")}</span>
+          </button>;
+        })}
+      </div> : <div className="pf-panel-gap">No scheduler scores were logged.</div>}
+    </section>
+
+    <div className="pf-two-column">
+      <section className="pf-panel">
+        <header><div><span className="eyebrow">transport lineage / {traces.length} routes</span>
+          <h3>Pressure flow</h3></div></header>
+        {traces.length ? <div className="pf-flow-list">
+          {traces.slice(0, 100).map((trace, index) =>
+            <div key={`${String(trace.rule_id)}-${index}`}>
+              <span>T{String(trace.hop ?? "—")}</span>
+              <strong>{compactPfId(trace.goal_id)}</strong>
+              <p>{compactPfId(trace.conclusion_id)} → {compactPfId(trace.premise_id)}</p>
+              <em>{numeric(trace.transported_pressure)}</em>
+            </div>)}
+        </div> : <div className="pf-panel-gap">No pressure transport traces were logged.</div>}
+      </section>
+
+      <section className="pf-panel">
+        <header><div><span className="eyebrow">grounded feedback / latest first</span>
+          <h3>Conductance learning</h3></div>
+          <span className="pf-count">{state.conductanceUpdates.length}</span></header>
+        {state.conductanceUpdates.length ? <div className="pf-learning-list">
+          {[...state.conductanceUpdates].reverse().slice(0, 100).map((event) =>
+            <button key={event.event_id}
+              onClick={() => onSelect({ kind: "event", value: event })}>
+              <span>T{event.turn}</span><strong>{String(event.payload.category)}</strong>
+              <span>{numeric(event.payload.previous_conductance)}
+                <b>→</b>{numeric(event.payload.conductance)}</span>
+              <small>{String(event.payload.credit_kind ?? "legacy feedback")}</small>
+            </button>)}
+        </div> : <div className="pf-panel-gap">No conductance_updated feedback was logged.</div>}
+      </section>
+    </div>
+
+    <section className="pf-panel pf-runtime">
+      <header><div><span className="eyebrow">harness-emitted / no browser recomputation</span>
+        <h3>Pressure runtime</h3></div><span className="pf-count">{runtimeMetrics.length}</span></header>
+      {runtimeMetrics.length ? <div className="pf-runtime-grid">
+        {runtimeMetrics.map((event) => <button key={event.event_id}
+          onClick={() => onSelect({ kind: "event", value: event })}>
+          <strong>{numeric(event.payload.value)}</strong><span>{String(event.payload.unit)}</span>
+          <small>{String(event.payload.name)}</small>
+        </button>)}
+      </div> : <div className="pf-panel-gap">No pressure latency or learning metrics were logged.</div>}
+    </section>
+  </div>;
+}
+
 function MetricsDashboard({ state, onSelect }: {
   state: ReplayState; onSelect: (selection: Selection) => void;
 }) {
@@ -772,8 +1012,9 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
           : view === "map" ? <MapOverlay state={state} selection={selection} onSelect={setSelection} />
             : view === "audit" ? <EpistemicAudit state={state} onSelect={setSelection} />
               : view === "metrics" ? <MetricsDashboard state={state} onSelect={setSelection} />
-                : <LoggingGap title={`${NAV.find((item) => item.view === view)?.label} awaits its event milestone`}
-                  detail="This surface never derives missing data from another event type." />;
+                : view === "pfpln" ? <PfPlnDashboard state={state} onSelect={setSelection} />
+                  : <LoggingGap title={`${NAV.find((item) => item.view === view)?.label} awaits its event milestone`}
+                    detail="This surface never derives missing data from another event type." />;
 
   return <div className="app-shell">
     <Header events={events} state={state} mode={mode} status={liveStatus} gameId={liveGameId} />

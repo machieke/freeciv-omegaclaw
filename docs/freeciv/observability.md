@@ -32,12 +32,37 @@ The UI exposes one global `(turn, seq)` cursor across:
 - current/as-of atom truth values, provenance, and revisions;
 - plans, ledger, assumptions, invalidations, repairs, and map overlays;
 - quarantined LLM claims and the write-through alarm; and
+- the PF-PLN goal field, pressure transport lineage, emitted operation schedule,
+  selected operation, conductance feedback, activation phases, and runtime
+  counters; and
 - harness-emitted calibration, latency, error, depth, and ablation metrics.
 
 Unknown future event types are preserved as raw JSON. Missing source data is shown as
 a logging gap. Duplicate, gap, out-of-order, incompatible-schema, causal-orphan,
 crisp-drift, and duplicate-provenance diagnostics are visible rather than repaired in
 the browser.
+
+## PF-PLN replay
+
+Open **PF-PLN** after loading a pressure-enabled treatment trace. The view matches
+each `operation_scored` decision to its `pressure_propagated` input by the logged
+`pressure_id`, and exposes:
+
+- goal utility, urgency, safety, target strength, and grounded context;
+- the scheduler's emitted candidate order, admissibility, priority, value,
+  rejection reason, selected operation, and solver identity;
+- pressure transport traces and their logged transported values;
+- grounded `conductance_updated` feedback, including prior/posterior
+  conductance and credit kind;
+- `pf_pln_phase_enabled` activation records; and
+- emitted pressure-planning and conductance-learning latency metrics.
+
+All values remain subject to the global `(turn, seq)` cursor and open their exact
+source event in the inspector. The cards count indexed event families, but the
+application does not recalculate pressure, rescore operations, infer missing
+goals, or estimate unlogged latency. A missing family is displayed as a logging
+gap. Baseline traces without PF-PLN events therefore remain explicitly empty
+rather than being presented as zero-pressure runs.
 
 ## Live mode
 

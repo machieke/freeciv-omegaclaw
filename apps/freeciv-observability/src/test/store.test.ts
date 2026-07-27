@@ -66,6 +66,19 @@ describe("event sourced replay", () => {
     });
   });
 
+  it("indexes PF-PLN event families strictly as of the replay cursor", () => {
+    const pressure = event(1, "pressure_propagated", {}, 2, 1);
+    const scored = event(2, "operation_scored", {}, 2, 2);
+    const learned = event(3, "conductance_updated", {}, 3, 1);
+    const beforeLearning = foldEvents([pressure, scored, learned], { turn: 2, seq: 2 });
+    expect(beforeLearning.pfPlnEvents).toEqual([pressure, scored]);
+    expect(beforeLearning.pressurePropagations).toEqual([pressure]);
+    expect(beforeLearning.operationScores).toEqual([scored]);
+    expect(beforeLearning.conductanceUpdates).toEqual([]);
+    expect(foldEvents([pressure, scored, learned], { turn: 3, seq: 1 }).conductanceUpdates)
+      .toEqual([learned]);
+  });
+
   it("folds a representative 200-turn, 50k-atom trace within the UI budgets", () => {
     const events = Array.from({ length: 50_000 }, (_, index) => event(
       index + 1, "observation",
