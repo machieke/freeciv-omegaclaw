@@ -152,6 +152,7 @@ METRICS = (
     "planner_founder_route_threat_observations",
     "planner_founder_final_escort_deferral_snapshots",
     "planner_founder_final_escort_rendezvous_hold_snapshots",
+    "planner_founder_final_escort_rendezvous_no_progress_snapshots",
     "planner_founder_escort_defense_production_attempts",
     "planner_founder_escort_defense_production_successes",
     "planner_founder_escort_defense_production_success_rate",

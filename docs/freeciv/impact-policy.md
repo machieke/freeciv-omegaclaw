@@ -176,6 +176,15 @@ After co-location, founder and escort alternate legal route moves so the
 escort can rejoin after every founder step. Dedicated rendezvous-hold
 snapshots expose the correction independently.
 
+The adapter-1.13 ten-seed generalization showed that nominal spare capacity is
+not sufficient: two founders waited without any legal escort traversal.
+Adapter 1.14 requires at least one exact authoritative unit move that strictly
+reduces a non-garrison combat unit's distance to the assigned founder before
+creating a rendezvous hold. Without such a move, ordinary founder routing
+remains eligible and
+`planner_founder_final_escort_rendezvous_no_progress_snapshots` records the
+bypass.
+
 Founder routing is feedback-driven in the horizon-score policy. On the first step from
 a city, aggregate distance from the complete city network breaks minimum-distance ties
 in favor of open expansion space. A move target becomes a proven traversable edge only

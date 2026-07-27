@@ -773,6 +773,40 @@ def test_final_settlement_escort_prepares_early_and_tracks_only_last_founder():
     assert founding.candidate.projection["settlement_escort_present"] is True
 
 
+def test_final_founder_does_not_wait_without_a_legal_escort_progress_step():
+    second_city = dict(
+        _city(), id=20, name="Antium", tile=30, x=0, y=3,
+        production_kind=3, production_value=14, shield_stock=0)
+    founder_move = {
+        "action_type": "unit_move", "actor_id": 2,
+        "target": {"x": 6, "y": 3}, "is_valid": True,
+    }
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 4,
+        "expansion_escort_retention_enabled": True,
+        "expansion_escort_threat_gating_enabled": True,
+        "expansion_final_settlement_escort_enabled": True,
+        "horizon_turn": 60,
+    }, ruleset_ir=_ruleset_ir((
+        ("Settlers", "unit", 30),
+        ("Riflemen", "unit", 30),
+    ), pop_costs={"Settlers": 1}))
+    snapshot = _snapshot([
+        _unit(1, "Settlers", 3, 0),
+        _unit(2, "Settlers", 5, 3),
+        _unit(12, "Riflemen", 1, 1),
+    ], [founder_move, {"action_type": "end_turn", "is_valid": True}],
+        cities=[_city(), second_city], source_seq=3, turn=21)
+
+    decision = planner.plan(snapshot)
+
+    assert decision.candidate.category == "expansion_move"
+    assert decision.candidate.action["actor_id"] == 2
+    assert planner.founder_final_escort_rendezvous_hold_snapshots == 0
+    assert (
+        planner.founder_final_escort_rendezvous_no_progress_snapshots == 1)
+
+
 def test_packet_site_preference_records_exact_move_outcome():
     action = {
         "action_type": "unit_move", "actor_id": 1,

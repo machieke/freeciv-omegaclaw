@@ -1528,3 +1528,18 @@ create a hold. The correction must retain recovery and threat-avoidance
 priority, preserve the accepted `3746776` chain, expose blocked no-progress
 holds separately, and receive source-fresh selected and generalization
 replays before a fresh pilot.
+
+Adapter 1.14 implements the exact legal-progress precondition. It creates a
+final-founder hold only when the current authoritative action set advertises
+a non-garrison combat move that strictly reduces wrapped distance to that
+founder and does not enter a visible enemy stack. Otherwise the ordinary
+founder route remains eligible and a unique no-progress rendezvous snapshot
+is exported.
+
+The claim-ineligible
+`final_settlement_escort_legal_progress_mechanism_v1` cohort freezes
+`3790239` as the exposed no-progress case and `3746776` as the accepted
+positive control. A predeclared ten-seed
+`final_settlement_escort_preparation_generalization_v2` may run only after
+that gate passes. Both isolate the parent final-settlement switch and cannot
+update score or win-rate claims.

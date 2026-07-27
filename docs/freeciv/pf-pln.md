@@ -627,6 +627,14 @@ evaluated first. Once co-located, the founder may route normally and the
 escort can rejoin after each founder step. Rendezvous-hold snapshots are
 exported as a separate mechanism metric.
 
+The adapter-1.13 ten-seed generalization found two cases with rendezvous holds
+but zero legal escort progress. Adapter `grounded-impact-planner/1.14`
+therefore requires a currently advertised, distance-reducing move for a
+non-garrison combat unit before holding the assigned founder. A nominal spare
+unit without that exact progress leaves the founder's normal expansion
+candidate intact. No-progress rendezvous snapshots are exported separately
+from actual holds.
+
 Direct `GroundedImpactPlanner` consumers remain backward compatible:
 `pressure_enabled` and `pressure_score_alignment_enabled` default to `false`
 unless the runtime profile enables them. This preserves unit-level policy

@@ -399,3 +399,25 @@ rendezvous and separately count blocked no-progress holds.
 
 Machine-readable evidence is
 [`pf-final-settlement-escort-preparation-generalization-v1.json`](pf-final-settlement-escort-preparation-generalization-v1.json).
+
+## Adapter 1.14 legal-progress rendezvous
+
+Adapter 1.14 retains all preparation, final-founder assignment, recovery, and
+threat-avoidance rules. Before suppressing an ordinary founder move, it now
+requires the current authoritative action set to advertise at least one
+non-garrison combat move whose target strictly reduces wrapped distance to
+that founder and does not enter a visible enemy stack. A nominal spare unit
+without such a move cannot cause a hold.
+
+`planner_founder_final_escort_rendezvous_no_progress_snapshots` counts unique
+snapshot/founder bypasses, separately from actual rendezvous holds. The
+claim-ineligible `final_settlement_escort_legal_progress_mechanism_v1` cohort
+freezes exposed seed `3790239` and accepted positive-control seed `3746776`.
+The former must eliminate its 17 futile holds without losing ordinary founder
+routing; the latter must preserve its confirmed final escorted settlement.
+
+If that two-pair gate passes,
+`final_settlement_escort_preparation_generalization_v2` repeats the unchanged
+correction across the ten selected packet-site seeds. Both cohorts isolate
+only `expansion_final_settlement_escort_enabled`, reuse historical seeds, and
+cannot revise the score or win-rate claim.

@@ -128,6 +128,8 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "final_settlement_escort_preparation_mechanism_v1": 1,
             "final_settlement_escort_preparation_mechanism_v2": 1,
             "final_settlement_escort_preparation_generalization_v1": 10,
+            "final_settlement_escort_legal_progress_mechanism_v1": 2,
+            "final_settlement_escort_preparation_generalization_v2": 10,
         }
     seed_sets = [
         set(row["seeds"]) for row in paired["cohorts"].values()
@@ -478,6 +480,20 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "expansion_final_settlement_escort_enabled"] is False
     assert final_escort_generalization["arms"]["treatment"][
         "expansion_final_settlement_escort_enabled"] is True
+    final_escort_progress = paired["cohorts"][
+        "final_settlement_escort_legal_progress_mechanism_v1"]
+    assert final_escort_progress["seeds"] == [3746776, 3790239]
+    assert final_escort_progress["claim_eligible"] is False
+    assert final_escort_progress["isolated_policy_keys"] == [
+        "expansion_final_settlement_escort_enabled"]
+    final_escort_generalization_v2 = paired["cohorts"][
+        "final_settlement_escort_preparation_generalization_v2"]
+    assert final_escort_generalization_v2["seeds"] == (
+        final_escort_generalization["seeds"])
+    assert final_escort_generalization_v2["planned_pairs"] == 10
+    assert final_escort_generalization_v2["claim_eligible"] is False
+    assert final_escort_generalization_v2["isolated_policy_keys"] == [
+        "expansion_final_settlement_escort_enabled"]
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.2",
         "source_sha256": "3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e",

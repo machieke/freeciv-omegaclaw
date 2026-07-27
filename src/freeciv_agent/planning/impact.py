@@ -207,7 +207,7 @@ def _target_name(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.13"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.14"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -427,6 +427,7 @@ class GroundedImpactPlanner(object):
         self._founder_escort_persisted_threat_deferral_snapshots = set()
         self._founder_final_escort_deferral_snapshots = set()
         self._founder_final_escort_rendezvous_hold_snapshots = set()
+        self._founder_final_escort_rendezvous_no_progress_snapshots = set()
         self._founder_route_threat_observations = set()
         self._founder_route_threats = {}
         self._failed_exploration_target_sources = {}
@@ -1829,8 +1830,13 @@ class GroundedImpactPlanner(object):
     def founder_final_escort_rendezvous_hold_snapshots(self):
         return len(self._founder_final_escort_rendezvous_hold_snapshots)
 
+    @property
+    def founder_final_escort_rendezvous_no_progress_snapshots(self):
+        return len(
+            self._founder_final_escort_rendezvous_no_progress_snapshots)
+
     def _final_founder_waits_for_rendezvous(
-            self, snapshot, founder, founder_types):
+            self, snapshot, founder, founder_types, actions=None):
         """Hold the assigned final founder while a spare combat unit closes.
 
         Founder and escort usually have the same movement rate. Allowing both
@@ -1845,6 +1851,8 @@ class GroundedImpactPlanner(object):
             return False
         if self._founder_site_escorts(snapshot, founder, founder_types):
             return False
+        if actions is None:
+            return False
         spare_combat = tuple(
             unit for unit in self._combat_units(snapshot, founder_types)
             if unit.x is not None
@@ -1852,6 +1860,35 @@ class GroundedImpactPlanner(object):
             and not self._city_defender_is_required(
                 snapshot, unit, founder_types))
         if not spare_combat:
+            return False
+        spare_by_id = {unit.unit_id: unit for unit in spare_combat}
+        progress_available = False
+        for action in actions:
+            if action.get("action_type") != "unit_move":
+                continue
+            escort = spare_by_id.get(action.get("actor_id"))
+            target = action.get("target")
+            if escort is None or not isinstance(target, dict):
+                continue
+            x, y = target.get("x"), target.get("y")
+            if x is None or y is None:
+                continue
+            if any(
+                    (enemy.x, enemy.y) == (x, y)
+                    for enemy in snapshot.visible_enemy_units):
+                continue
+            current_distance = _distance(
+                escort.x, escort.y, founder.x, founder.y,
+                snapshot.map_width, snapshot.map_height)
+            target_distance = _distance(
+                x, y, founder.x, founder.y,
+                snapshot.map_width, snapshot.map_height)
+            if target_distance < current_distance:
+                progress_available = True
+                break
+        if not progress_available:
+            self._founder_final_escort_rendezvous_no_progress_snapshots.add(
+                (snapshot.snapshot_id, founder.unit_id))
             return False
         self._founder_final_escort_rendezvous_hold_snapshots.add(
             (snapshot.snapshot_id, founder.unit_id))
@@ -2872,7 +2909,7 @@ class GroundedImpactPlanner(object):
                 self._record_founder_escort_deferral(snapshot, unit)
                 return None
             if self._final_founder_waits_for_rendezvous(
-                    snapshot, unit, founder_types):
+                    snapshot, unit, founder_types, actions):
                 return None
             if (len(snapshot.cities) >= self.expansion_city_target
                     or self._founder_settlement_deadline_exhausted(snapshot)):
