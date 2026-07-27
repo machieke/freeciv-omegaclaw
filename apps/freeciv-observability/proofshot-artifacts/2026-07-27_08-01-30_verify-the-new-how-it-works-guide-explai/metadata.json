@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure",
+  "commitSha": "86446c1a2b3f3e7c2a72c4ee83a861ede2f8ed06",
+  "startedAt": "2026-07-27T08:01:30.794Z",
+  "description": "Verify the new How it works guide explains the evidence pipeline, trust boundary, workflow, and navigation clearly"
+}

@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure",
+  "commitSha": "86446c1a2b3f3e7c2a72c4ee83a861ede2f8ed06",
+  "startedAt": "2026-07-27T08:16:34.310Z",
+  "description": "Verify the expanded How PF-PLN is applied walkthrough, worked example, event chain, guardrails, and link into PF-PLN replay"
+}

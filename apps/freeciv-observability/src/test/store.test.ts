@@ -57,12 +57,12 @@ describe("event sourced replay", () => {
 
   it("round trips view, cursor, selection, PF decision, filters, and workspace layout", () => {
     const encoded = encodeUrlState({
-      view: "atoms", cursor: { turn: 41, seq: 17 }, selected: "a-1",
+      view: "about", cursor: { turn: 41, seq: 17 }, selected: "a-1",
       decision: "decision-7", search: "chokepoint", channel: "uncertain",
       focus: true, inspector: false,
     });
     expect(decodeUrlState(encoded, { turn: 0, seq: 0 })).toEqual({
-      view: "atoms", cursor: { turn: 41, seq: 17 }, selected: "a-1",
+      view: "about", cursor: { turn: 41, seq: 17 }, selected: "a-1",
       decision: "decision-7", search: "chokepoint", channel: "uncertain",
       focus: true, inspector: false,
     });

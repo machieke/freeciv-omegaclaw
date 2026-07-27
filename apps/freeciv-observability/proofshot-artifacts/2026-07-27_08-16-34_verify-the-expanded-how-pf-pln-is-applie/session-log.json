@@ -1,0 +1,92 @@
+[
+  {
+    "action": "open http://127.0.0.1:4178/?view=about&turn=2&seq=0",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-27T08:17:01.552Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 5.8,
+    "timestamp": "2026-07-27T08:17:02.301Z"
+  },
+  {
+    "action": "eval document.querySelector('main')?.scrollTo({top: 600, behavior: 'instant'})",
+    "relativeTimeSec": 6.6,
+    "timestamp": "2026-07-27T08:17:03.156Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 7,
+    "timestamp": "2026-07-27T08:17:03.510Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 7.7,
+    "timestamp": "2026-07-27T08:17:04.170Z"
+  },
+  {
+    "action": "screenshot 01-pf-pln-application-overview.png",
+    "relativeTimeSec": 8.1,
+    "timestamp": "2026-07-27T08:17:04.563Z"
+  },
+  {
+    "action": "eval document.querySelector('main')?.scrollTo({top: 1050, behavior: 'instant'})",
+    "relativeTimeSec": 23.4,
+    "timestamp": "2026-07-27T08:17:19.931Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 23.8,
+    "timestamp": "2026-07-27T08:17:20.281Z"
+  },
+  {
+    "action": "screenshot 02-pf-pln-stages-and-worked-example.png",
+    "relativeTimeSec": 24.4,
+    "timestamp": "2026-07-27T08:17:20.931Z"
+  },
+  {
+    "action": "eval document.querySelector('main')?.scrollTo({top: 1420, behavior: 'instant'})",
+    "relativeTimeSec": 52,
+    "timestamp": "2026-07-27T08:17:48.493Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 52.3,
+    "timestamp": "2026-07-27T08:17:48.839Z"
+  },
+  {
+    "action": "screenshot 03-pf-pln-example-events-guardrails.png",
+    "relativeTimeSec": 53,
+    "timestamp": "2026-07-27T08:17:49.492Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('main button')].find((button) => button.textContent?.includes('Open PF-PLN replay'))?.click()",
+    "relativeTimeSec": 53.4,
+    "timestamp": "2026-07-27T08:17:49.928Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 53.8,
+    "timestamp": "2026-07-27T08:17:50.327Z"
+  },
+  {
+    "action": "eval JSON.stringify({heading: document.querySelector('main h2')?.textContent, view: new URLSearchParams(location.search).get('view')})",
+    "relativeTimeSec": 54.4,
+    "timestamp": "2026-07-27T08:17:50.959Z"
+  },
+  {
+    "action": "screenshot 04-pf-pln-replay-route.png",
+    "relativeTimeSec": 54.8,
+    "timestamp": "2026-07-27T08:17:51.304Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 55.2,
+    "timestamp": "2026-07-27T08:17:51.718Z"
+  },
+  {
+    "action": "console",
+    "relativeTimeSec": 55.6,
+    "timestamp": "2026-07-27T08:17:52.075Z"
+  }
+]

@@ -41,6 +41,7 @@ const NAV: Array<{ view: ViewName; label: string; key: string }> = [
   { view: "audit", label: "Epistemic audit", key: "06" },
   { view: "metrics", label: "Metrics", key: "07" },
   { view: "pfpln", label: "PF-PLN", key: "08" },
+  { view: "about", label: "How it works", key: "09" },
 ];
 
 const STAGES: Array<{ name: string; types: Set<string> }> = [
@@ -1247,6 +1248,264 @@ function MetricsDashboard({ state, onSelect }: {
   </div>;
 }
 
+function HowItWorks({ onNavigate }: { onNavigate: (view: ViewName) => void }) {
+  const questions: Array<{
+    question: string; answer: string; view: ViewName; label: string;
+  }> = [
+    {
+      question: "What happened?",
+      answer: "Replay every logged stage in order and follow an action back through its causal ancestry.",
+      view: "timeline",
+      label: "Decision timeline",
+    },
+    {
+      question: "Why was it allowed?",
+      answer: "Inspect the exact proof tree, confidence values, rules, and unsatisfied frontier.",
+      view: "proofs",
+      label: "Proof explorer",
+    },
+    {
+      question: "What did the agent know?",
+      answer: "See the atomspace exactly as it existed at the selected turn and sequence.",
+      view: "atoms",
+      label: "Atomspace",
+    },
+    {
+      question: "What changed the plan?",
+      answer: "Trace dependencies, invalidations, repairs, timing, and their map-level consequences.",
+      view: "plans",
+      label: "Plan board",
+    },
+    {
+      question: "Did the policy behave differently?",
+      answer: "Compare exact paired arms and inspect pressure, rankings, learning, and logged outcomes.",
+      view: "pfpln",
+      label: "PF-PLN",
+    },
+    {
+      question: "Can I trust the trace?",
+      answer: "Surface quarantines, causal gaps, schema issues, and prohibited write-throughs.",
+      view: "audit",
+      label: "Epistemic audit",
+    },
+  ];
+
+  return <div className="view-content about-view">
+    <section className="about-hero">
+      <div className="about-hero-copy">
+        <span className="eyebrow">orientation / evidence before inference</span>
+        <h2>See the decision, not just the outcome.</h2>
+        <p>The Decision Observatory turns the agent&apos;s append-only event stream into a
+          time-traveling explanation of what it observed, proved, planned, selected, and learned.</p>
+        <div className="about-hero-actions">
+          <button onClick={() => onNavigate("timeline")}>Explore a decision <span>→</span></button>
+          <button onClick={() => onNavigate("pfpln")}>Inspect PF-PLN <span>→</span></button>
+        </div>
+      </div>
+      <aside className="about-trust">
+        <span>trust contract</span>
+        <strong>Observe what was emitted.</strong>
+        <p>The browser never reruns the planner, fills missing facts, or upgrades a visual
+          difference into a performance claim.</p>
+        <div><span>schema</span><b>v1.0</b></div>
+        <div><span>projection</span><b>strict as-of</b></div>
+        <div><span>missing data</span><b>shown as a gap</b></div>
+      </aside>
+    </section>
+
+    <section className="about-section about-pipeline-section">
+      <header>
+        <div><span className="eyebrow">one source of truth</span><h3>How evidence becomes a view</h3></div>
+        <p>Every screen is a read-only projection over accepted JSONL events at the global cursor.</p>
+      </header>
+      <ol className="about-pipeline" aria-label="Evidence pipeline">
+        <li>
+          <span>01</span><strong>Emit</strong>
+          <p>The agent and harness append typed decisions, proofs, state, actions, and metrics.</p>
+          <code>events.jsonl</code>
+        </li>
+        <li>
+          <span>02</span><strong>Validate</strong>
+          <p>Schema-compatible events pass through; malformed input is quarantined and stays visible.</p>
+          <code>strict + lossless</code>
+        </li>
+        <li>
+          <span>03</span><strong>Fold</strong>
+          <p>The global turn and sequence cursor reconstructs only what was known at that moment.</p>
+          <code>state @ T.seq</code>
+        </li>
+        <li>
+          <span>04</span><strong>Inspect</strong>
+          <p>Linked views expose causal ancestry while the inspector preserves the exact payload.</p>
+          <code>trace → evidence</code>
+        </li>
+        <li>
+          <span>05</span><strong>Compare</strong>
+          <p>Exact seed-matched arms reveal descriptive differences without claiming causality.</p>
+          <code>treatment ↔ baseline</code>
+        </li>
+      </ol>
+    </section>
+
+    <section className="about-section pf-about" aria-labelledby="pf-about-title">
+      <header>
+        <div><span className="eyebrow">applied control path / bounded authority</span>
+          <h3 id="pf-about-title">How PF-PLN is applied</h3></div>
+        <p>PF-PLN ranks where the existing agent should spend attention. It does not replace
+          authoritative state, legal-action enumeration, planning, or execution checks.</p>
+      </header>
+      <div className="pf-about-intro">
+        <div>
+          <span className="eyebrow">the core idea</span>
+          <h4>Turn unsatisfied goals into pressure on grounded operations.</h4>
+          <p>Each goal keeps its own demand while pressure travels backward through declared
+            causal and procedural routes. The scheduler compares only resolvable, admissible
+            operations, then the ordinary plan and engine boundary retain final authority.</p>
+        </div>
+        <dl>
+          <div><dt>inputs</dt><dd>immutable snapshot + server-advertised legal candidates</dd></div>
+          <div><dt>changes</dt><dd>candidate priority and bounded attention allocation</dd></div>
+          <div><dt>never changes</dt><dd>truth values, legality, or execution authorization</dd></div>
+        </dl>
+      </div>
+
+      <ol className="pf-application-flow" aria-label="PF-PLN application stages">
+        <li>
+          <span>01 / ground</span><strong>Read authoritative state</strong>
+          <p>The adapter derives its view from the immutable turn snapshot and the exact legal
+            candidates advertised by the server.</p>
+          <code>state_snapshot</code>
+        </li>
+        <li>
+          <span>02 / demand</span><strong>Form active goals</strong>
+          <p>Survival, expansion, score, and exploration receive utility, urgency, target
+            strength, safety status, and grounded context.</p>
+          <code>goals[]</code>
+        </li>
+        <li>
+          <span>03 / transport</span><strong>Propagate pressure</strong>
+          <p>Damped reverse traversal follows compatible causal or procedural routes.
+            Conductance modulates learned routes; pressure remains keyed by goal.</p>
+          <code>pressure_propagated</code>
+        </li>
+        <li>
+          <span>04 / schedule</span><strong>Filter and rank operations</strong>
+          <p>The scheduler combines expected goal relief, grounded value, information or option
+            value, and scalarized cost. Harm to an active safety goal is a veto.</p>
+          <code>operation_scored</code>
+        </li>
+        <li>
+          <span>05 / commit</span><strong>Use the existing execution path</strong>
+          <p>The selected operation becomes a snapshot-bound plan and still passes commitment,
+            monitor, legal-action, refresh, and engine checks.</p>
+          <code>plan_created → action_result</code>
+        </li>
+        <li>
+          <span>06 / learn</span><strong>Credit verified relief</strong>
+          <p>Post-action authoritative state classifies no effect, local effect, direct relief,
+            or bounded downstream relief before route conductance changes.</p>
+          <code>conductance_updated</code>
+        </li>
+      </ol>
+
+      <div className="pf-example">
+        <header>
+          <div><span className="eyebrow">worked control example</span><h4>Expansion target not yet met</h4></div>
+          <button onClick={() => onNavigate("pfpln")}>Open PF-PLN replay <span>→</span></button>
+        </header>
+        <div className="pf-example-path">
+          <article><span>observe</span><strong>Owned city count is below the configured target.</strong>
+            <p>The gap is grounded in the snapshot; it is not inferred from pressure.</p></article>
+          <i aria-hidden="true">→</i>
+          <article><span>focus</span><strong>Expansion demand reaches legal production, movement,
+            and settlement categories.</strong>
+            <p>Route conductance can favor categories that previously produced real relief.</p></article>
+          <i aria-hidden="true">→</i>
+          <article><span>choose</span><strong>The scheduler selects one admissible concrete
+            operation.</strong>
+            <p>Safety and materially worse grounded choices remain guarded.</p></article>
+          <i aria-hidden="true">→</i>
+          <article><span>verify</span><strong>A later snapshot must confirm city or population
+            progress.</strong>
+            <p>Movement or production changes alone do not count as goal relief.</p></article>
+        </div>
+      </div>
+
+      <div className="pf-event-chain" role="region" aria-label="PF-PLN emitted event chain">
+        <span>emitted evidence</span>
+        <code>state_snapshot</code><i>→</i><code>pressure_propagated</code><i>→</i>
+        <code>operation_scored</code><i>→</i><code>plan_created</code><i>→</i>
+        <code>action_sent</code><i>→</i><code>action_result</code><i>→</i>
+        <code>state_snapshot</code><i>→</i><code>conductance_updated</code>
+      </div>
+
+      <div className="pf-guardrails">
+        <article><span>truth firewall</span><strong>Pressure is not belief.</strong>
+          <p>Propagation cannot write atoms or modify confidence.</p></article>
+        <article><span>safety firewall</span><strong>Safety is not a soft weight.</strong>
+          <p>A harmful operation is inadmissible, regardless of aggregate benefit.</p></article>
+        <article><span>causal firewall</span><strong>Association cannot authorize action.</strong>
+          <p>Only compatible causal and procedural paths carry action pressure.</p></article>
+        <article><span>learning firewall</span><strong>Effect is not automatically relief.</strong>
+          <p>Credit is idempotent, provenance-linked, and grounded in admitted predicates.</p></article>
+      </div>
+    </section>
+
+    <section className="about-section">
+      <header>
+        <div><span className="eyebrow">question-led navigation</span><h3>Start with what you need to know</h3></div>
+        <p>Each view answers a different layer of the same recorded decision.</p>
+      </header>
+      <div className="about-question-grid">
+        {questions.map((item) => <button key={item.question}
+          onClick={() => onNavigate(item.view)}>
+          <span>{item.question}</span>
+          <strong>{item.answer}</strong>
+          <small>{item.label} <b>→</b></small>
+        </button>)}
+      </div>
+    </section>
+
+    <div className="about-lower-grid">
+      <section className="about-section about-workflow">
+        <header>
+          <div><span className="eyebrow">recommended workflow</span><h3>From run to root cause</h3></div>
+        </header>
+        <ol>
+          <li><span>1</span><div><strong>Load a trace</strong>
+            <p>Open a generated experiment or local JSONL stream.</p></div></li>
+          <li><span>2</span><div><strong>Move through time</strong>
+            <p>Use the global cursor; every view stays aligned to the same moment.</p></div></li>
+          <li><span>3</span><div><strong>Follow the evidence</strong>
+            <p>Select a decision, proof, atom, or plan and inspect its exact source event.</p></div></li>
+          <li><span>4</span><div><strong>Compare carefully</strong>
+            <p>Prefer exact pairs, then use the experiment statistics for score or win-rate claims.</p></div></li>
+        </ol>
+      </section>
+
+      <section className="about-section about-why">
+        <header>
+          <div><span className="eyebrow">why it matters</span><h3>Accountability for autonomous play</h3></div>
+        </header>
+        <div>
+          <article><span>01 / correctness</span><strong>Debug causes, not symptoms.</strong>
+            <p>Distinguish a bad observation, proof, plan, selection, or action from the final result.</p></article>
+          <article><span>02 / honesty</span><strong>Keep absence visible.</strong>
+            <p>A logging gap remains a gap—never a fabricated zero, inferred path, or reconstructed proof.</p></article>
+          <article><span>03 / improvement</span><strong>Connect behavior to evidence.</strong>
+            <p>Use paired replays to locate divergence, then rely on repeated cohorts to quantify impact.</p></article>
+        </div>
+      </section>
+    </div>
+
+    <footer className="about-boundary">
+      <span>interpretation boundary</span>
+      <p>This app explains recorded behavior. Statistical reliability still comes from paired seeds,
+        sufficient cohorts, confidence intervals, and fresh engine-backed confirmation.</p>
+    </footer>
+  </div>;
+}
+
 function LoggingGap({ title, detail }: { title: string; detail: string }) {
   return <div className="logging-gap"><span>logging gap</span><h2>{title}</h2><p>{detail}</p></div>;
 }
@@ -1657,6 +1916,7 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
                   decisionId={pfDecision} onDecision={setPfDecision}
                   comparisonState={comparisonState} comparisonSource={comparisonSource}
                   pairQuality={pairQuality} />
+                  : view === "about" ? <HowItWorks onNavigate={setView} />
                   : <LoggingGap title={`${NAV.find((item) => item.view === view)?.label} awaits its event milestone`}
                     detail="This surface never derives missing data from another event type." />;
 

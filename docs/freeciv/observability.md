@@ -35,6 +35,12 @@ Manual **Load JSONL** remains available.
 
 The UI exposes one global `(turn, seq)` cursor across:
 
+- an in-app **How it works** guide that explains the event pipeline, trust
+  boundary, recommended investigation workflow, paired-comparison limits, and
+  routes each common diagnostic question to the relevant view. Its applied
+  PF-PLN walkthrough follows authoritative state through grounded goals,
+  reverse pressure transport, safety-constrained scheduling, the unchanged
+  execution gate, and conductance updates backed by verified goal relief;
 - the decision timeline, turn-by-stage activity matrix, milestone overlays, and
   complete causal ancestry;
 - selectable AND/OR proof topology, lossless tree, formulas, frontiers, and proof

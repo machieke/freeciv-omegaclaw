@@ -119,6 +119,28 @@ describe("Decision Observatory", () => {
     expect(screen.getByRole("button", { name: "Close inspector" })).toBeInTheDocument();
   });
 
+  it("explains the evidence pipeline, trust boundary, and routes users to an answer", async () => {
+    const user = userEvent.setup();
+    render(<App initialText={demoTrace} />);
+    await user.click(screen.getByRole("button", { name: /^09 How it works/ }));
+    expect(screen.getByRole("heading", {
+      name: "See the decision, not just the outcome.",
+    })).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Evidence pipeline" })).toBeInTheDocument();
+    expect(screen.getByText("Observe what was emitted.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "How PF-PLN is applied" })).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "PF-PLN application stages" }))
+      .toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "PF-PLN emitted event chain" }))
+      .toBeInTheDocument();
+    expect(screen.getByText("Pressure is not belief.")).toBeInTheDocument();
+    expect(screen.getByText("Safety is not a soft weight.")).toBeInTheDocument();
+    expect(screen.getByText(/Statistical reliability still comes from paired seeds/))
+      .toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Can I trust the trace\?/ }));
+    expect(screen.getByRole("heading", { name: "Epistemic audit" })).toBeInTheDocument();
+  });
+
   it("restores deep-linked cursor, view, filters, and selection", () => {
     window.history.replaceState(null, "", "/?view=proofs&turn=1&seq=4&selected=node-premise");
     render(<App initialText={demoTrace} />);

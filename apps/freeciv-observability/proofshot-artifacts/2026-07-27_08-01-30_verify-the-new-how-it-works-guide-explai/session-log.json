@@ -1,0 +1,142 @@
+[
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-27T08:01:51.053Z"
+  },
+  {
+    "action": "click @e17",
+    "relativeTimeSec": 15.6,
+    "timestamp": "2026-07-27T08:02:01.615Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 15.9,
+    "timestamp": "2026-07-27T08:02:01.976Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 16.8,
+    "timestamp": "2026-07-27T08:02:02.830Z"
+  },
+  {
+    "action": "screenshot 01-how-it-works-overview.png",
+    "relativeTimeSec": 17.2,
+    "timestamp": "2026-07-27T08:02:03.213Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('button')].find((button) => button.textContent?.includes('How it works'))?.click()",
+    "relativeTimeSec": 23.7,
+    "timestamp": "2026-07-27T08:02:09.736Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 24.1,
+    "timestamp": "2026-07-27T08:02:10.176Z"
+  },
+  {
+    "action": "eval JSON.stringify({heading: document.querySelector('main h2')?.textContent, view: new URLSearchParams(location.search).get('view')})",
+    "relativeTimeSec": 25,
+    "timestamp": "2026-07-27T08:02:11.019Z"
+  },
+  {
+    "action": "screenshot 02-how-it-works-overview.png",
+    "relativeTimeSec": 25.3,
+    "timestamp": "2026-07-27T08:02:11.368Z"
+  },
+  {
+    "action": "eval document.querySelector('main')?.scrollTo({top: 480, behavior: 'instant'})",
+    "relativeTimeSec": 42.7,
+    "timestamp": "2026-07-27T08:02:28.726Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 43,
+    "timestamp": "2026-07-27T08:02:29.052Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 43.6,
+    "timestamp": "2026-07-27T08:02:29.662Z"
+  },
+  {
+    "action": "screenshot 03-guide-pipeline-and-questions.png",
+    "relativeTimeSec": 44.1,
+    "timestamp": "2026-07-27T08:02:30.136Z"
+  },
+  {
+    "action": "eval document.querySelector('main')?.scrollTo({top: 1120, behavior: 'instant'})",
+    "relativeTimeSec": 65.7,
+    "timestamp": "2026-07-27T08:02:51.755Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 66.1,
+    "timestamp": "2026-07-27T08:02:52.120Z"
+  },
+  {
+    "action": "screenshot 04-guide-workflow-and-impact.png",
+    "relativeTimeSec": 66.7,
+    "timestamp": "2026-07-27T08:02:52.758Z"
+  },
+  {
+    "action": "click @e31",
+    "relativeTimeSec": 68.1,
+    "timestamp": "2026-07-27T08:02:54.151Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 68.5,
+    "timestamp": "2026-07-27T08:02:54.538Z"
+  },
+  {
+    "action": "eval JSON.stringify({heading: document.querySelector('main h2')?.textContent, view: new URLSearchParams(location.search).get('view')})",
+    "relativeTimeSec": 69.1,
+    "timestamp": "2026-07-27T08:02:55.185Z"
+  },
+  {
+    "action": "screenshot 05-question-route-to-audit.png",
+    "relativeTimeSec": 69.5,
+    "timestamp": "2026-07-27T08:02:55.538Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 69.9,
+    "timestamp": "2026-07-27T08:02:55.954Z"
+  },
+  {
+    "action": "console",
+    "relativeTimeSec": 70.2,
+    "timestamp": "2026-07-27T08:02:56.303Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('main button')].find((button) => button.textContent?.includes('Can I trust the trace?'))?.click()",
+    "relativeTimeSec": 78.6,
+    "timestamp": "2026-07-27T08:03:04.637Z"
+  },
+  {
+    "action": "wait 400",
+    "relativeTimeSec": 79,
+    "timestamp": "2026-07-27T08:03:05.028Z"
+  },
+  {
+    "action": "eval JSON.stringify({heading: document.querySelector('main h2')?.textContent, view: new URLSearchParams(location.search).get('view')})",
+    "relativeTimeSec": 79.7,
+    "timestamp": "2026-07-27T08:03:05.755Z"
+  },
+  {
+    "action": "screenshot 06-question-route-to-audit.png",
+    "relativeTimeSec": 80.1,
+    "timestamp": "2026-07-27T08:03:06.104Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 80.5,
+    "timestamp": "2026-07-27T08:03:06.552Z"
+  },
+  {
+    "action": "console",
+    "relativeTimeSec": 80.9,
+    "timestamp": "2026-07-27T08:03:06.916Z"
+  }
+]
