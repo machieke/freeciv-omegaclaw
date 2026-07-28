@@ -61,7 +61,11 @@ prevents forced building sales and the engine-side research freeze observed
 after bankruptcy. Technology observability independently marks unchanged
 research progress across turn boundaries as
 `research_progress_not_advancing`, even when the projected beaker rate remains
-positive.
+positive. It also records the authoritative progress delta, elapsed turn
+delta, and observed effective beakers per turn. A negative counter delta is
+`research_progress_declining`; repeated snapshots within the same turn retain
+that diagnosis without inflating `stalled_turns`. These fields are
+observability evidence and do not change adapter selection or planner pressure.
 Adapter 1.30 makes packet-exact player-rate changes first-class confirmed
 effects. Confirmation compares the authoritative tax/science/luxury tuple and
 retry grounding includes the current tuple. A material-state tax floor prevents

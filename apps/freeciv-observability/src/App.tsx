@@ -1747,6 +1747,8 @@ export function TechnologyDashboard({ state, onSelect }: {
       ? "At least one city is in disorder, so its productive output is disrupted."
       : progress.stall_reason === "zero_science_output"
         ? "The emitted city economy currently produces zero net science."
+        : progress.stall_reason === "research_progress_declining"
+          ? "The authoritative research counter is declining between turn boundaries despite the projected rate. The observed rate is the reliable throughput signal; check technology upkeep and treasury pressure."
         : progress.stall_reason === "research_progress_not_advancing"
           ? "The authoritative research total did not advance between turns despite positive projected science. Check treasury bankruptcy, government state, and server-side research allocation."
           : null;
@@ -1767,7 +1769,10 @@ export function TechnologyDashboard({ state, onSelect }: {
         <progress max={Math.max(1, target?.cost ?? 1)} value={target?.progress ?? 0} />
       </div>
       <dl>
-        <div><dt>rate</dt><dd>{target?.beakers_per_turn ?? "—"} / turn</dd></div>
+        <div><dt>projected rate</dt><dd>{target?.beakers_per_turn ?? "—"} / turn</dd></div>
+        <div><dt>observed rate</dt><dd>{
+          target?.observed_effective_beakers_per_turn ?? "—"
+        } / turn</dd></div>
         <div><dt>gross</dt><dd>{researchFlow?.gross_beakers_per_turn ?? "—"} / turn</dd></div>
         <div><dt>tech upkeep</dt><dd>{researchFlow?.tech_upkeep ?? "—"} / turn</dd></div>
         <div><dt>ETA</dt><dd>{target?.eta_turns === null || target?.eta_turns === undefined
@@ -1779,7 +1784,9 @@ export function TechnologyDashboard({ state, onSelect }: {
     {progress.status === "stalled" && <section className="research-alert" role="status">
       <strong>Research is stalled.</strong>
       <span>{target?.name} still needs {target?.remaining ?? "unknown"} beakers, but the
-        latest emitted rate is {target?.beakers_per_turn ?? "unknown"} per turn. Running longer
+        projected rate is {target?.beakers_per_turn ?? "unknown"} per turn and the observed
+        turn-boundary rate is {target?.observed_effective_beakers_per_turn ?? "unknown"}.
+        Running longer
         under the same economy will not finish it.{stallExplanation && ` ${stallExplanation}`}</span>
     </section>}
     {government && <section className={`government-status ${

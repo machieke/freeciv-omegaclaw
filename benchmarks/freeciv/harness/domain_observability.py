@@ -131,6 +131,12 @@ class DomainObservabilityEmitter(object):
         self._research_key = None
         self._research_turn = None
         self._stalled_turns = 0
+        self._research_observed_target = None
+        self._research_observed_progress = None
+        self._research_observed_turn = None
+        self._research_observed_delta = None
+        self._research_observed_turn_delta = None
+        self._research_observed_rate = None
 
     def _emit_catalog(self, snapshot, parent):
         if self._catalog_emitted:
@@ -185,6 +191,46 @@ class DomainObservabilityEmitter(object):
                 status = "researching"
             else:
                 status = "stalled"
+            observed_delta = self._research_observed_delta
+            observed_turn_delta = self._research_observed_turn_delta
+            observed_rate = self._research_observed_rate
+            new_observed_boundary = False
+            if (self._research_observed_turn is not None
+                    and snapshot.turn > self._research_observed_turn):
+                new_observed_boundary = True
+                observed_turn_delta = (
+                    int(snapshot.turn) - int(self._research_observed_turn))
+                if (target_name == self._research_observed_target
+                        and progress is not None
+                        and self._research_observed_progress is not None):
+                    observed_delta = (
+                        int(progress)
+                        - int(self._research_observed_progress))
+                    observed_rate = (
+                        float(observed_delta) / observed_turn_delta)
+                else:
+                    observed_delta = None
+                    observed_turn_delta = None
+                    observed_rate = None
+                self._research_observed_target = target_name
+                self._research_observed_progress = progress
+                self._research_observed_turn = int(snapshot.turn)
+            elif self._research_observed_turn is None:
+                self._research_observed_target = target_name
+                self._research_observed_progress = progress
+                self._research_observed_turn = int(snapshot.turn)
+                observed_delta = None
+                observed_turn_delta = None
+                observed_rate = None
+            elif snapshot.turn == self._research_observed_turn:
+                # Preserve the latest same-turn counter as the next boundary's
+                # baseline without pretending that intra-turn refreshes are a
+                # production interval.
+                self._research_observed_target = target_name
+                self._research_observed_progress = progress
+            self._research_observed_delta = observed_delta
+            self._research_observed_turn_delta = observed_turn_delta
+            self._research_observed_rate = observed_rate
             key = (target_name, progress)
             unchanged_across_turn = bool(
                 self._research_key == key
@@ -192,9 +238,22 @@ class DomainObservabilityEmitter(object):
                 and snapshot.turn > self._research_turn
                 and remaining is not None
                 and remaining > 0)
-            if unchanged_across_turn:
+            declining_across_turn = bool(
+                observed_delta is not None
+                and observed_delta < 0
+                and remaining is not None
+                and remaining > 0)
+            if unchanged_across_turn or declining_across_turn:
                 status = "stalled"
-                self._stalled_turns += snapshot.turn - self._research_turn
+                # The latest observed delta remains visible on same-turn
+                # refreshes, but only a newly crossed turn boundary contributes
+                # elapsed stalled time.
+                if unchanged_across_turn or new_observed_boundary:
+                    elapsed = (
+                        observed_turn_delta
+                        if observed_turn_delta is not None
+                        else snapshot.turn - self._research_turn)
+                    self._stalled_turns += elapsed
             elif status == "stalled":
                 if self._research_key != key:
                     self._stalled_turns = 0
@@ -210,11 +269,20 @@ class DomainObservabilityEmitter(object):
                 "remaining": remaining,
                 "beakers_per_turn": rate,
                 "eta_turns": eta,
+                "observed_progress_delta": observed_delta,
+                "observed_turn_delta": observed_turn_delta,
+                "observed_effective_beakers_per_turn": observed_rate,
             }
         else:
             self._research_key = None
             self._research_turn = snapshot.turn
             self._stalled_turns = 0
+            self._research_observed_target = None
+            self._research_observed_progress = None
+            self._research_observed_turn = int(snapshot.turn)
+            self._research_observed_delta = None
+            self._research_observed_turn_delta = None
+            self._research_observed_rate = None
         self._previous_known = known
         return {
             "snapshot_id": snapshot.snapshot_id,
@@ -238,6 +306,10 @@ class DomainObservabilityEmitter(object):
                 if status == "stalled"
                 and (research.beakers_per_turn is None
                      or research.beakers_per_turn <= 0)
+                else "research_progress_declining"
+                if status == "stalled"
+                and self._research_observed_delta is not None
+                and self._research_observed_delta < 0
                 else "research_progress_not_advancing"
                 if status == "stalled" else None),
             "government": snapshot.government.to_dict(),
@@ -358,6 +430,12 @@ class DomainObservabilityEmitter(object):
                     snapshot.research.gross_beakers_per_turn),
                 "tech_upkeep": snapshot.research.tech_upkeep,
                 "net_beakers_per_turn": snapshot.research.beakers_per_turn,
+                "observed_progress_delta": (
+                    self._research_observed_delta),
+                "observed_turn_delta": (
+                    self._research_observed_turn_delta),
+                "observed_effective_beakers_per_turn": (
+                    self._research_observed_rate),
             },
             "score": {
                 "own": snapshot.own_score,

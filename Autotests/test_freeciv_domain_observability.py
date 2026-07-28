@@ -134,6 +134,9 @@ def test_domain_events_make_stalls_yields_and_lifecycle_explicit(tmp_path):
         "gross_beakers_per_turn": 1,
         "tech_upkeep": 1,
         "net_beakers_per_turn": 0,
+        "observed_progress_delta": None,
+        "observed_turn_delta": None,
+        "observed_effective_beakers_per_turn": None,
     }
     assert production["score"]["gap_to_leader"] == -3
     assert production["economy"]["operating_gold_per_turn"] == -1
@@ -176,8 +179,54 @@ def test_positive_beaker_projection_does_not_hide_frozen_research_progress(
     assert progress[1]["status"] == "stalled"
     assert progress[1]["stalled_turns"] == 1
     assert progress[1]["stall_reason"] == "research_progress_not_advancing"
+    assert progress[1]["target"]["observed_progress_delta"] == 0
+    assert progress[1]["target"]["observed_turn_delta"] == 1
+    assert progress[1]["target"]["observed_effective_beakers_per_turn"] == 0
     assert progress[2]["status"] == "researching"
     assert progress[2]["stalled_turns"] == 0
+    assert progress[2]["target"]["observed_progress_delta"] == 1
+    assert progress[2]["target"]["observed_effective_beakers_per_turn"] == 1
+
+
+def test_declining_research_counter_overrides_positive_projected_rate(tmp_path):
+    path = str(tmp_path / "events.jsonl")
+    writer = EventWriter(path, "game", durable=False)
+    root = writer.emit(
+        "run_started", 0,
+        {"manifest_identity": "manifest", "condition_id": "condition"})
+    emitter = DomainObservabilityEmitter(writer, _ir())
+    parent = root["event_id"]
+    for snapshot in (
+            _snapshot(10, (), progress=8, rate=57),
+            _snapshot(11, (), progress=4, rate=57),
+            # Multiple proxy refreshes can arrive during the same game turn.
+            # They must retain the declining status without double-counting it.
+            _snapshot(11, (), progress=4, rate=57)):
+        state = writer.emit(
+            "state_snapshot", snapshot.turn, snapshot.event_payload(),
+            caused_by=[parent])
+        emitter.emit_snapshot(snapshot, state["event_id"])
+        parent = state["event_id"]
+
+    rows = _read(path)
+    progress = [
+        row["payload"] for row in rows
+        if row["type"] == "technology_progress"]
+    assert progress[-1]["status"] == "stalled"
+    assert progress[-1]["stall_reason"] == "research_progress_declining"
+    assert progress[-1]["stalled_turns"] == 1
+    assert progress[-2]["stalled_turns"] == 1
+    assert progress[-1]["target"]["beakers_per_turn"] == 57
+    assert progress[-1]["target"]["observed_progress_delta"] == -4
+    assert progress[-1]["target"]["observed_turn_delta"] == 1
+    assert progress[-1]["target"][
+        "observed_effective_beakers_per_turn"] == -4
+    production = [
+        row["payload"] for row in rows
+        if row["type"] == "production_state"][-1]
+    assert production["research_flow"]["net_beakers_per_turn"] == 57
+    assert production["research_flow"][
+        "observed_effective_beakers_per_turn"] == -4
 
 
 def test_proxy_combat_journal_upgrades_disappearance_to_exact(tmp_path):

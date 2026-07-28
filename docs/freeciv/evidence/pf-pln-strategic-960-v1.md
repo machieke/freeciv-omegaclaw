@@ -321,6 +321,41 @@ loss is too late: the only buildable recovery city is already exposed to
 same-boundary attrition, while its two-shield production rate and treasury
 runway cannot reliably deliver Armor.
 
+V43 tested only a six-city expansion target, leaving the accepted adapter 1.31
+logic otherwise unchanged. It founded the sixth city on turn 93 and led v41 at
+the turn-160, turn-260, and turn-360 checkpoints, but the advantage reversed
+late. It finished at 381 against 4576 with components `48/124/209`, versus
+v41's 455 against 4274 and `38/130/287`. It acquired eleven technologies rather
+than fourteen. Mobile Warfare reached 1449/1590 on turn 746, then declined on
+151 later turn boundaries and finished at 957/1590 while the proxy still
+reported 57 net beakers per turn. The six-city target was reverted to five.
+This is selected-seed rejection evidence, not a claim that expansion is
+generally harmful.
+
+V44 was intentionally interrupted at turn 70 after the first implementation of
+observed research throughput revealed that repeated same-turn snapshots could
+increment `stalled_turns` more than once. It is excluded from outcome evidence.
+The emitter now increments elapsed stall duration only at a newly crossed turn
+boundary, with a regression test covering repeated same-turn refreshes.
+
+V45 tested a broader construction-runway gate on the accepted five-city
+profile. It completed 960 turns with zero infrastructure failures, but scored
+368 against 4338, acquired ten technologies, and produced components
+`38/122/208`. Meaningful actions fell to 506 (0.527 per turn), versus v41's
+1,075 (1.120 per turn). The generic gate suppressed productive work rather than
+merely preventing unsafe queue churn and was fully reverted; adapter identity
+remains 1.31.
+
+V46 reran the exact accepted adapter 1.31 profile with the corrected research
+observability contract. It reproduced v41 exactly: score 455 against 4274,
+components `38/130/287`, fourteen acquired technologies, 1,075 meaningful
+actions (1.120 per turn), zero engine rejections, and zero effect-confirmation
+timeouts. The authoritative counter exposed 63 negative research boundaries.
+Four occurred while the proxy projection was still positive: Refining on turn
+434, Combustion on turns 652 and 654, and Flight on turn 724. This accepts the
+telemetry as behavior-neutral diagnostic evidence; it does not revise the score
+claim.
+
 Any score claim still requires a preregistered paired-seed cohort with the
 historical five-city policy held fixed. The current evidence supports contract,
 mechanism, queue-efficiency, and runtime claims only.

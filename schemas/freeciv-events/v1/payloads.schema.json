@@ -254,7 +254,10 @@
         "cost": {"type": ["integer", "null"], "minimum": 0},
         "remaining": {"type": ["integer", "null"], "minimum": 0},
         "beakers_per_turn": {"type": ["integer", "null"]},
-        "eta_turns": {"type": ["integer", "null"], "minimum": 0}
+        "eta_turns": {"type": ["integer", "null"], "minimum": 0},
+        "observed_progress_delta": {"type": ["integer", "null"]},
+        "observed_turn_delta": {"type": ["integer", "null"], "minimum": 1},
+        "observed_effective_beakers_per_turn": {"type": ["number", "null"]}
       }
     },
     "technology_catalog": {
@@ -304,6 +307,7 @@
           "type": ["string", "null"],
           "enum": [
             "government_anarchy", "city_disorder", "zero_science_output",
+            "research_progress_declining",
             "research_progress_not_advancing", null
           ]
         },
@@ -496,7 +500,10 @@
       "properties": {
         "gross_beakers_per_turn": {"type": ["integer", "null"]},
         "tech_upkeep": {"type": ["integer", "null"]},
-        "net_beakers_per_turn": {"type": ["integer", "null"]}
+        "net_beakers_per_turn": {"type": ["integer", "null"]},
+        "observed_progress_delta": {"type": ["integer", "null"]},
+        "observed_turn_delta": {"type": ["integer", "null"], "minimum": 1},
+        "observed_effective_beakers_per_turn": {"type": ["number", "null"]}
       }
     },
     "playerScore": {

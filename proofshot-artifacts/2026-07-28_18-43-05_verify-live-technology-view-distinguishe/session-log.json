@@ -1,0 +1,107 @@
+[
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-28T18:43:51.931Z"
+  },
+  {
+    "action": "fill @e31 m7-main-e_full_loop-4543804-00",
+    "relativeTimeSec": 12.1,
+    "timestamp": "2026-07-28T18:43:59.031Z"
+  },
+  {
+    "action": "click @e7",
+    "relativeTimeSec": 13.4,
+    "timestamp": "2026-07-28T18:44:00.331Z"
+  },
+  {
+    "action": "wait 1500",
+    "relativeTimeSec": 13.9,
+    "timestamp": "2026-07-28T18:44:00.767Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 15.7,
+    "timestamp": "2026-07-28T18:44:02.575Z"
+  },
+  {
+    "action": "wait 5000",
+    "relativeTimeSec": 22.6,
+    "timestamp": "2026-07-28T18:44:09.517Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 28,
+    "timestamp": "2026-07-28T18:44:14.867Z"
+  },
+  {
+    "action": "wait 5000",
+    "relativeTimeSec": 36.8,
+    "timestamp": "2026-07-28T18:44:23.736Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 42.2,
+    "timestamp": "2026-07-28T18:44:29.110Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 46.7,
+    "timestamp": "2026-07-28T18:44:33.582Z"
+  },
+  {
+    "action": "screenshot technology-live-observed-rate.png",
+    "relativeTimeSec": 57,
+    "timestamp": "2026-07-28T18:44:43.954Z"
+  },
+  {
+    "action": "wait 15000",
+    "relativeTimeSec": 66.7,
+    "timestamp": "2026-07-28T18:44:53.589Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 82,
+    "timestamp": "2026-07-28T18:45:08.914Z"
+  },
+  {
+    "action": "wait 30000",
+    "relativeTimeSec": 92.7,
+    "timestamp": "2026-07-28T18:45:19.594Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 123,
+    "timestamp": "2026-07-28T18:45:49.959Z"
+  },
+  {
+    "action": "wait 20000",
+    "relativeTimeSec": 134.5,
+    "timestamp": "2026-07-28T18:46:01.465Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 154.9,
+    "timestamp": "2026-07-28T18:46:21.812Z"
+  },
+  {
+    "action": "wait 2000",
+    "relativeTimeSec": 160.9,
+    "timestamp": "2026-07-28T18:46:27.787Z"
+  },
+  {
+    "action": "snapshot",
+    "relativeTimeSec": 163.2,
+    "timestamp": "2026-07-28T18:46:30.145Z"
+  },
+  {
+    "action": "screenshot technology-live-stalled.png",
+    "relativeTimeSec": 172,
+    "timestamp": "2026-07-28T18:46:38.930Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 172.5,
+    "timestamp": "2026-07-28T18:46:39.382Z"
+  }
+]

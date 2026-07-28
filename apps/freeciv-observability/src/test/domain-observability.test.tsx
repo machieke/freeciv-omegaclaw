@@ -114,7 +114,9 @@ describe("typed domain observability", () => {
     expect(screen.getByText("Industrialization", { selector: ".research-hero h3" }))
       .toBeInTheDocument();
     expect(screen.getByText("6 turns")).toBeInTheDocument();
-    expect(screen.getByText(/latest emitted rate is 0 per turn/i)).toBeInTheDocument();
+    expect(screen.getByText(
+      /projected rate is 0 per turn and the observed turn-boundary rate is unknown/i,
+    )).toBeInTheDocument();
     expect(screen.getByText(/Freeciv is waiting for a government selection/i))
       .toBeInTheDocument();
     expect(screen.getByText(/PF-PLN now prioritizes/i)).toBeInTheDocument();

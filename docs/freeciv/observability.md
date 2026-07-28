@@ -65,6 +65,17 @@ upkeep style, unit and building upkeep, and the immediate upkeep reserve. Each
 yield is displayed as produced, consumed, and net at empire and city level.
 Gross science, technology upkeep, and net beakers share the same view and also
 appear beside the current target in **Technology**.
+The Technology view keeps the packet projection and authoritative observation
+separate. **Projected rate** is the latest proxy-reported net beaker rate.
+**Observed rate** is the change in the same target's authoritative progress
+counter divided by elapsed game turns. Same-turn refreshes update the next
+boundary baseline but do not add elapsed stalled time. A negative observed
+delta is emitted as `research_progress_declining`; an unchanged positive-cost
+target is `research_progress_not_advancing`. These diagnoses remain visible
+even when the projected rate is positive, so a nominal science allocation is
+not presented as delivered research throughput.
+The accepted live-tail visual check is retained in the
+[research-throughput ProofShot report](../../proofshot-artifacts/2026-07-28_18-43-05_verify-live-technology-view-distinguishe/SUMMARY.md).
 It marks food-reserve, treasury-reserve, and local-defense status alongside the exact PF goal context,
 adds a per-city `+1` food-reserve check, identifies sustainability queue
 overrides and their discarded shields, and indexes rate, rehome, disband, and

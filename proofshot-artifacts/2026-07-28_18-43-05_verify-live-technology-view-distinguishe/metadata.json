@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure",
+  "commitSha": "185ff51e1f59c5cbaf98f0d9045f7e57f526a8c3",
+  "startedAt": "2026-07-28T18:43:05.954Z",
+  "description": "Verify live Technology view distinguishes projected and observed research throughput and explains research stalls"
+}

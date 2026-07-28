@@ -182,6 +182,9 @@ export type ResearchTarget = {
   "eta_turns": number | null;
   "id": number | null;
   "name": string;
+  "observed_effective_beakers_per_turn"?: number | null;
+  "observed_progress_delta"?: number | null;
+  "observed_turn_delta"?: number | null;
   "progress": number | null;
   "remaining": number | null;
 };
@@ -202,7 +205,7 @@ export type TechnologyProgress = {
   "known_techs": Array<string>;
   "researchable_techs": Array<string>;
   "snapshot_id": string;
-  "stall_reason"?: "government_anarchy" | "city_disorder" | "zero_science_output" | "research_progress_not_advancing" | null;
+  "stall_reason"?: "government_anarchy" | "city_disorder" | "zero_science_output" | "research_progress_declining" | "research_progress_not_advancing" | null;
   "stalled_turns": number;
   "status": "unavailable" | "idle" | "researching" | "stalled" | "complete";
   "target": ResearchTarget | null;
@@ -326,6 +329,9 @@ export type ProductionEconomy = {
 export type ResearchFlow = {
   "gross_beakers_per_turn": number | null;
   "net_beakers_per_turn": number | null;
+  "observed_effective_beakers_per_turn"?: number | null;
+  "observed_progress_delta"?: number | null;
+  "observed_turn_delta"?: number | null;
   "tech_upkeep": number | null;
 };
 
