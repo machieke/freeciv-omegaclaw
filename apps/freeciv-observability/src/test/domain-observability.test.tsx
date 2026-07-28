@@ -42,6 +42,24 @@ const progress = event(2, "technology_progress", {
     remaining: 25, beakers_per_turn: 0, eta_turns: null,
   },
 }, 20, 1);
+const frozenProgress = event(6, "technology_progress", {
+  snapshot_id: "snapshot-21", available: true,
+  known_techs: ["Banking", "Railroad", "Economics"],
+  researchable_techs: ["Industrialization"],
+  blocked_technologies: [{
+    name: "The Corporation", missing_prerequisites: ["Industrialization"],
+  }],
+  acquired_techs: [], status: "stalled", stalled_turns: 1,
+  stall_reason: "research_progress_not_advancing", government: {
+    ...government, current_id: 3, current_name: "Republic",
+    target_id: 3, target_name: "Republic", revolution_finishes: null,
+    in_revolution: false, selection_required: false,
+  },
+  target: {
+    id: 36, name: "Industrialization", progress: 1115, cost: 1140,
+    remaining: 25, beakers_per_turn: 41, eta_turns: 1,
+  },
+}, 21, 1);
 const production = event(3, "production_state", {
   snapshot_id: "snapshot-20", government,
   economy: {
@@ -104,6 +122,17 @@ describe("typed domain observability", () => {
       .toBeInTheDocument();
     expect(screen.getByRole("img", { name: /Prerequisite graph for Industrialization/i }))
       .toBeInTheDocument();
+  });
+
+  it("explains an authoritative research counter that stopped advancing", () => {
+    const frozenState = foldEvents(
+      [catalog, progress, frozenProgress],
+      { turn: 21, seq: 1 },
+    );
+    render(<TechnologyDashboard state={frozenState} onSelect={() => undefined} />);
+    expect(screen.getByText(/authoritative research total did not advance/i))
+      .toBeInTheDocument();
+    expect(screen.getByText(/treasury bankruptcy/i)).toBeInTheDocument();
   });
 
   it("shows named yields, city stocks, queues, and model coverage", () => {

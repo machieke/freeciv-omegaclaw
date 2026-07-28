@@ -150,6 +150,36 @@ def test_domain_events_make_stalls_yields_and_lifecycle_explicit(tmp_path):
     assert appeared["evidence_quality"] == "inferred"
 
 
+def test_positive_beaker_projection_does_not_hide_frozen_research_progress(
+        tmp_path):
+    path = str(tmp_path / "events.jsonl")
+    writer = EventWriter(path, "game", durable=False)
+    root = writer.emit(
+        "run_started", 0,
+        {"manifest_identity": "manifest", "condition_id": "condition"})
+    emitter = DomainObservabilityEmitter(writer, _ir())
+    parent = root["event_id"]
+    for snapshot in (
+            _snapshot(1, (), progress=5, rate=4),
+            _snapshot(2, (), progress=5, rate=4),
+            _snapshot(3, (), progress=6, rate=4)):
+        state = writer.emit(
+            "state_snapshot", snapshot.turn, snapshot.event_payload(),
+            caused_by=[parent])
+        emitter.emit_snapshot(snapshot, state["event_id"])
+        parent = state["event_id"]
+
+    progress = [
+        row["payload"] for row in _read(path)
+        if row["type"] == "technology_progress"]
+    assert progress[0]["status"] == "researching"
+    assert progress[1]["status"] == "stalled"
+    assert progress[1]["stalled_turns"] == 1
+    assert progress[1]["stall_reason"] == "research_progress_not_advancing"
+    assert progress[2]["status"] == "researching"
+    assert progress[2]["stalled_turns"] == 0
+
+
 def test_proxy_combat_journal_upgrades_disappearance_to_exact(tmp_path):
     path = str(tmp_path / "events.jsonl")
     writer = EventWriter(path, "game", durable=False)

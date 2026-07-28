@@ -372,9 +372,10 @@ def test_naval_response_keeps_funded_queue_until_safety_or_completion():
             "gold_upkeep_reserve": 0,
         })
     planner.observe(distributed)
-    assert planner._production_sustainability_route(
+    reserve_breach = planner._production_sustainability_route(
         distributed, distributed.cities[0], "destroyer", "coinage",
-        frozenset()) is None
+        frozenset())
+    assert reserve_breach[0] == "production_treasury_stabilization"
 
     delivered = _snapshot(
         [_unit(21, "Destroyer"), _enemy(91, "Cruiser", 4, 4)],
@@ -448,13 +449,16 @@ def test_ruleset_driven_policy_modernizes_and_repairs_industry():
             "current_domain_power"]
 
     defensive_city = _city(production_kind=6, production_value=11)
-    defensive_city["buildability"]["options"].append(
-        {"type": "unit", "id": 22, "name": "Marines"})
+    defensive_city["buildability"]["options"].extend([
+        {"type": "unit", "id": 22, "name": "Marines"},
+        {"type": "unit", "id": 23, "name": "Engineers"},
+    ])
     second_city = json.loads(json.dumps(defensive_city))
     second_city.update({"id": 11, "name": "Antium", "x": 2, "y": 2})
     defensive_ir = _ruleset_ir((
         ("Alpine Troops", "unit", 60),
         ("Marines", "unit", 60),
+        ("Engineers", "unit", 40),
     ), capabilities={
         "Alpine Troops": {
             "class": "Land", "attack": 7, "defense": 4,
@@ -464,6 +468,12 @@ def test_ruleset_driven_policy_modernizes_and_repairs_industry():
             "class": "Land", "attack": 8, "defense": 5,
             "hitpoints": 20, "firepower": 1,
         },
+        # A worker can have nonzero combat scalars in a ruleset, but it is not
+        # persistent force modernization.
+        "Engineers": {
+            "class": "Land", "attack": 20, "defense": 20,
+            "hitpoints": 20, "firepower": 1,
+        },
     })
     defensive = GroundedImpactPlanner(dict(
         settings, expansion_city_target=2, pressure_enabled=True,
@@ -471,6 +481,7 @@ def test_ruleset_driven_policy_modernizes_and_repairs_industry():
         ruleset_ir=defensive_ir).plan(_snapshot(
             [_unit(11, "Alpine Troops", 4, 4)],
             [_production(10, "Marines", 6, 22),
+             _production(10, "Engineers", 6, 23),
              {"action_type": "end_turn", "is_valid": True}],
             cities=[defensive_city, second_city],
             own_score=20, opponent_score=35))
@@ -4012,7 +4023,126 @@ def test_funded_structural_treasury_recovery_finishes_before_garrison():
 
     assert GroundedImpactPlanner(
         {"expansion_city_target": 1}, ruleset_ir=ruleset).plan(
-            snapshot) is None
+        snapshot) is None
+
+
+def test_ruleset_defender_requires_counterfactual_treasury_runway():
+    city = _city(
+        size=4, shield_stock=0, surplus=(2, 10, 3, -10, 0, 2),
+        production_kind=3, production_value=72)
+    city["buildability"]["options"].extend([
+        {"type": "unit", "id": 14, "name": "Marines"},
+        {"type": "improvement", "id": 72, "name": "Coinage"},
+    ])
+    actions = [
+        _production(10, "Marines", 6, 14),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    ruleset = _ruleset_ir((
+        ("Marines", "unit", 60),
+        ("Coinage", "improvement", 999),
+    ), founders=(), workers=(), capabilities={
+        "Marines": {
+            "class": "Land", "attack": 8, "defense": 5,
+            "hitpoints": 20, "firepower": 1,
+        },
+    })
+    settings = {
+        "expansion_city_target": 1,
+        "ruleset_driven_production_enabled": True,
+        "modernization_enabled": True,
+        "treasury_minimum_gold": 5,
+        "treasury_reserve_turns": 2,
+    }
+    unfunded = _snapshot(
+        [], actions, cities=[city],
+        player={
+            "gold": 30, "gold_per_turn": 0,
+            "operating_gold_per_turn": -10,
+            "capitalization_gold_per_turn": 10,
+            "city_gold_surplus_per_turn": -10,
+            "gold_upkeep_style": "Mixed",
+            "unit_gold_upkeep": 0, "gold_upkeep_reserve": 0,
+        })
+    funded = _snapshot(
+        [], actions, cities=[city], source_seq=2,
+        player={
+            "gold": 100, "gold_per_turn": 0,
+            "operating_gold_per_turn": -10,
+            "capitalization_gold_per_turn": 10,
+            "city_gold_surplus_per_turn": -10,
+            "gold_upkeep_style": "Mixed",
+            "unit_gold_upkeep": 0, "gold_upkeep_reserve": 0,
+        })
+
+    assert GroundedImpactPlanner(settings, ruleset_ir=ruleset).plan(
+        unfunded) is None
+    decision = GroundedImpactPlanner(settings, ruleset_ir=ruleset).plan(funded)
+    assert decision.candidate.category == "production_defense"
+    assert decision.candidate.action["target"]["production_type"] == "Marines"
+    assert decision.candidate.projection["treasury_at_completion"] == 40
+
+
+def test_funded_ruleset_defender_queue_survives_transient_treasury_pressure():
+    city = _city(
+        size=4, shield_stock=20, surplus=(2, 10, 3, -1, 0, 2),
+        production_kind=6, production_value=14)
+    city["buildability"]["options"].extend([
+        {"type": "unit", "id": 14, "name": "Marines"},
+        {"type": "improvement", "id": 72, "name": "Coinage"},
+    ])
+    actions = [
+        _production(10, "Alpine Troops", 6, 11),
+        _production(10, "Coinage", 3, 72),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    ruleset = _ruleset_ir((
+        ("Alpine Troops", "unit", 20),
+        ("Marines", "unit", 60),
+        ("Coinage", "improvement", 999),
+    ), founders=(), workers=(), capabilities={
+        "Alpine Troops": {
+            "class": "Land", "attack": 5, "defense": 5,
+            "hitpoints": 20, "firepower": 1,
+        },
+        "Marines": {
+            "class": "Land", "attack": 8, "defense": 5,
+            "hitpoints": 20, "firepower": 1,
+        },
+    })
+    settings = {
+        "expansion_city_target": 1,
+        "ruleset_driven_production_enabled": True,
+        "modernization_enabled": True,
+        "treasury_minimum_gold": 5,
+        "treasury_reserve_turns": 2,
+    }
+    funded = _snapshot(
+        [], actions, cities=[city],
+        player={
+            "gold": 20, "gold_per_turn": -1,
+            "operating_gold_per_turn": -1,
+            "capitalization_gold_per_turn": 0,
+            "city_gold_surplus_per_turn": -1,
+            "gold_upkeep_style": "Mixed",
+            "unit_gold_upkeep": 0, "gold_upkeep_reserve": 0,
+        })
+    crisis = _snapshot(
+        [], actions, cities=[city], source_seq=2,
+        player={
+            "gold": 5, "gold_per_turn": -5,
+            "operating_gold_per_turn": -5,
+            "capitalization_gold_per_turn": 0,
+            "city_gold_surplus_per_turn": -5,
+            "gold_upkeep_style": "Mixed",
+            "unit_gold_upkeep": 0, "gold_upkeep_reserve": 0,
+        })
+
+    assert GroundedImpactPlanner(settings, ruleset_ir=ruleset).plan(
+        funded) is None
+    emergency = GroundedImpactPlanner(settings, ruleset_ir=ruleset).plan(crisis)
+    assert emergency.candidate.category == "production_treasury_stabilization"
+    assert emergency.candidate.action["target"]["production_type"] == "Coinage"
 
 
 def test_visible_pressure_blocks_rebuild_after_observed_founder_attrition():

@@ -252,7 +252,7 @@ def _spatial_target(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.27"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.29"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -2601,6 +2601,32 @@ class GroundedImpactPlanner(object):
             (attack * 1.15 + defense) * hitpoints * firepower / 10.0
             + mobility * 0.5 + transport * 0.25)
 
+    def _persistent_combat_unit_type(self, normalized):
+        """Reject ruleset roles that cannot satisfy force modernization."""
+        spec = self._production_specs.get(normalized, {})
+        if spec.get("target_kind") != "unit":
+            return False
+        if normalized in (
+                self._ruleset_worker_types
+                | self._ruleset_founder_types
+                | self._server_founder_types
+                | EXPLORER_TYPES):
+            return False
+        if self._unit_domain(normalized) == "missile":
+            return False
+        return bool(
+            float(spec.get("attack", 0)) > 0
+            or float(spec.get("defense", 0)) > 0)
+
+    def _defensive_unit_type(self, normalized):
+        if normalized in NORMALIZED_DEFENDER_TYPES:
+            return True
+        spec = self._production_specs.get(normalized, {})
+        return bool(
+            self._persistent_combat_unit_type(normalized)
+            and self._unit_domain(normalized) == "land"
+            and float(spec.get("defense", 0)) > 0)
+
     def _recent_domain_threat(self, snapshot, domain):
         turn = self._enemy_domain_last_seen.get(domain)
         return (
@@ -2632,7 +2658,7 @@ class GroundedImpactPlanner(object):
 
     def _strategic_production_candidate(
             self, snapshot, action, city, name, normalized, projection,
-            current_projection, defenders):
+            current_projection, defenders, current_normalized):
         """Rank ruleset-derived capabilities once survival/expansion are safe."""
         if not self.ruleset_driven_production_enabled:
             return None
@@ -2643,6 +2669,8 @@ class GroundedImpactPlanner(object):
             return None
         score_gap = self._score_gap(snapshot)
         if kind == "unit":
+            if not self._persistent_combat_unit_type(normalized):
+                return None
             if not self._production_upkeep_safe(snapshot, city, normalized):
                 return None
             if (self._production_requires_support(normalized)
@@ -2703,6 +2731,23 @@ class GroundedImpactPlanner(object):
                     and len(defenders) < sum(
                         self._required_garrison_count(row)
                         for row in snapshot.cities))
+                if defense_deficit:
+                    net_gold = (
+                        self._net_gold_per_turn(snapshot)
+                        - self._current_coinage_contribution(
+                            snapshot, city, current_normalized))
+                    treasury_reserve = self._treasury_reserve_required(snapshot)
+                    gold = int(snapshot.economy.gold or 0)
+                    if (net_gold is None
+                            or (net_gold < 0
+                                and gold + net_gold * max(1, int(eta))
+                                < treasury_reserve)):
+                        return None
+                    projection.update({
+                        "treasury_at_completion": (
+                            gold + net_gold * max(1, int(eta))),
+                        "treasury_reserve_required": treasury_reserve,
+                    })
                 category = (
                     "production_threat_modernization"
                     if threat_deficit else
@@ -3370,7 +3415,7 @@ class GroundedImpactPlanner(object):
         current_food_upkeep = int(current_spec.get("uk_food", 0))
         current_gold_upkeep = int(current_spec.get("uk_gold", 0))
         current_is_required_defender = bool(
-            current_normalized in NORMALIZED_DEFENDER_TYPES
+            self._defensive_unit_type(current_normalized)
             and len(tuple(
                 unit for unit in self._combat_units(snapshot, founder_types)
                 if (unit.x, unit.y) == (city.x, city.y)))
@@ -3396,6 +3441,11 @@ class GroundedImpactPlanner(object):
                 and current_is_unit and current_gold_upkeep > 0
                 and self._treasury_deficit(
                     snapshot, current_gold_upkeep)))
+        treasury_reserve_breached = bool(
+            snapshot.economy.available
+            and snapshot.economy.gold is not None
+            and int(snapshot.economy.gold)
+            < self._treasury_reserve_required(snapshot))
         current_food_stabilizer = any(
             _normalized_type(name) == current_normalized
             for name in FOOD_STABILIZATION_PRIORITY)
@@ -3416,7 +3466,11 @@ class GroundedImpactPlanner(object):
                 current_food_upkeep,
                 "interrupt an automatic support-unit repeat before its next "
                 "completion breaches the city food-surplus reserve")
-        if (treasury_risk and not current_treasury_stabilizer
+        if (treasury_risk
+                and (not current_treasury_stabilizer
+                     or (treasury_reserve_breached
+                         and current_normalized != "coinage"
+                         and proposed_name == "Coinage"))
                 and proposed_name in TREASURY_STABILIZATION_PRIORITY):
             # A treasury switch was observed discarding every newly selected
             # combat-vessel queue after two or three shields, then reopening
@@ -3426,9 +3480,29 @@ class GroundedImpactPlanner(object):
             # use immediate Coinage, but not a long treasury building, as its
             # last safety escape hatch.
             if (current_is_funded_naval_response
+                    and (not treasury_reserve_breached
+                         or proposed_name != "Coinage")
                     and (len(snapshot.cities) > 1
                          or proposed_name != "Coinage")):
                 return None
+            if current_is_required_defender:
+                if (treasury_reserve_breached
+                        and proposed_name != "Coinage"):
+                    return None
+                projection = self._production_projection(
+                    city, self._current_production_name(city),
+                    self.horizon_turn - snapshot.turn, snapshot=snapshot,
+                    founder_types=founder_types)
+                completion_eta = projection.get("completion_eta_turns")
+                net_gold = self._net_gold_per_turn(snapshot)
+                gold = snapshot.economy.gold
+                if (not treasury_reserve_breached
+                        and completion_eta is not None and gold is not None
+                        and (net_gold >= 0
+                             or int(gold) + net_gold * max(
+                                 1, int(completion_eta))
+                             >= self._treasury_reserve_required(snapshot))):
+                    return None
             return (
                 "production_treasury_stabilization",
                 TREASURY_STABILIZATION_PRIORITY.index(proposed_name),
@@ -3543,7 +3617,14 @@ class GroundedImpactPlanner(object):
         current_naval_response_in_progress = bool(
             self._naval_response_delivery_pending(
                 snapshot, current_normalized))
-        if current_food_output_recovery:
+        treasury_reserve_breached = bool(
+            snapshot.economy.available
+            and snapshot.economy.gold is not None
+            and int(snapshot.economy.gold)
+            < self._treasury_reserve_required(snapshot))
+        if (current_food_output_recovery
+                and not (treasury_reserve_breached
+                         and normalized == "coinage")):
             # The server applies the building effect only on completion. Do not
             # destroy accumulated recovery shields because food briefly touches
             # the reserve before the structural building is complete. The
@@ -3551,7 +3632,7 @@ class GroundedImpactPlanner(object):
             return None
         mandatory_local_defense = bool(
             local_defender_count < required_garrison
-            and current_normalized not in NORMALIZED_DEFENDER_TYPES
+            and not self._defensive_unit_type(current_normalized)
             and normalized in NORMALIZED_DEFENDER_TYPES
             and not current_naval_response_in_progress
             and not current_treasury_recovery
@@ -3961,7 +4042,7 @@ class GroundedImpactPlanner(object):
         defenders = combat_units
         strategic_candidate = self._strategic_production_candidate(
             snapshot, action, city, name, normalized, projection,
-            current_projection, defenders)
+            current_projection, defenders, current_normalized)
         if strategic_candidate is not None:
             return strategic_candidate
         local_defenders = tuple(
@@ -3971,7 +4052,7 @@ class GroundedImpactPlanner(object):
         total_required_garrisons = sum(
             self._required_garrison_count(row) for row in snapshot.cities)
         defense_deficit = len(defenders) < total_required_garrisons
-        if defense_deficit and current_name in DEFENDER_PRIORITY:
+        if defense_deficit and self._defensive_unit_type(current_normalized):
             return None
         if defense_deficit:
             for index, target in enumerate(DEFENDER_PRIORITY):

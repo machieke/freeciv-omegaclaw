@@ -186,11 +186,17 @@ class DomainObservabilityEmitter(object):
             else:
                 status = "stalled"
             key = (target_name, progress)
-            if status == "stalled":
-                if (self._research_key == key and self._research_turn is not None
-                        and snapshot.turn > self._research_turn):
-                    self._stalled_turns += snapshot.turn - self._research_turn
-                elif self._research_key != key:
+            unchanged_across_turn = bool(
+                self._research_key == key
+                and self._research_turn is not None
+                and snapshot.turn > self._research_turn
+                and remaining is not None
+                and remaining > 0)
+            if unchanged_across_turn:
+                status = "stalled"
+                self._stalled_turns += snapshot.turn - self._research_turn
+            elif status == "stalled":
+                if self._research_key != key:
                     self._stalled_turns = 0
             else:
                 self._stalled_turns = 0
@@ -229,6 +235,10 @@ class DomainObservabilityEmitter(object):
                 if status == "stalled"
                 and any(city.disorder is True for city in snapshot.cities)
                 else "zero_science_output"
+                if status == "stalled"
+                and (research.beakers_per_turn is None
+                     or research.beakers_per_turn <= 0)
+                else "research_progress_not_advancing"
                 if status == "stalled" else None),
             "government": snapshot.government.to_dict(),
         }

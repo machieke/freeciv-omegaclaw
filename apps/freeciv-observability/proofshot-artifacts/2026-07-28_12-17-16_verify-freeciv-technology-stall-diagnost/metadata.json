@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure",
+  "commitSha": "41a0da3c18c220d3e19e918dcf01330190a62cea",
+  "startedAt": "2026-07-28T12:17:16.801Z",
+  "description": "Verify FreeCiv technology stall diagnostics in production build"
+}

@@ -1,0 +1,57 @@
+[
+  {
+    "action": "open http://127.0.0.1:4178/?view=technology",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-28T12:17:39.312Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 5.7,
+    "timestamp": "2026-07-28T12:17:40.006Z"
+  },
+  {
+    "action": "screenshot technology-view-production.png",
+    "relativeTimeSec": 6.1,
+    "timestamp": "2026-07-28T12:17:40.405Z"
+  },
+  {
+    "action": "click @e8",
+    "relativeTimeSec": 13.2,
+    "timestamp": "2026-07-28T12:17:47.432Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 13.5,
+    "timestamp": "2026-07-28T12:17:47.806Z"
+  },
+  {
+    "action": "fill @e34 pf-pln-strategic-960-v20",
+    "relativeTimeSec": 20.3,
+    "timestamp": "2026-07-28T12:17:54.525Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 20.7,
+    "timestamp": "2026-07-28T12:17:54.969Z"
+  },
+  {
+    "action": "click @e35",
+    "relativeTimeSec": 31.5,
+    "timestamp": "2026-07-28T12:18:05.771Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 31.9,
+    "timestamp": "2026-07-28T12:18:06.184Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 36.6,
+    "timestamp": "2026-07-28T12:18:10.864Z"
+  },
+  {
+    "action": "screenshot v20-technology-stall.png",
+    "relativeTimeSec": 46.6,
+    "timestamp": "2026-07-28T12:18:20.862Z"
+  }
+]

@@ -356,6 +356,20 @@ Already-funded structural treasury recovery is retained through completion.
 This prevents Coinage/defender and Marketplace/defender alternation from
 spending capitalization that the proposed action itself removes.
 
+Adapter 1.28 restricts modernization to persistent combat roles. Ruleset
+workers, founders, explorers, and one-shot missiles cannot become defensive
+modernization merely because they report nonzero combat scalars. A
+ruleset-derived defender must pass the post-Coinage treasury runway before
+selection and is retained through first completion while that runway remains
+funded. A real reserve crisis still permits treasury recovery to preempt it.
+
+Adapter 1.29 limits that crisis override to immediate Coinage. When
+authoritative gold is already below the configured reserve, Coinage may preempt
+a funded naval, defensive, or food-output queue; another long construction
+target may not. This prevents forced building sales and the associated
+engine-side research freeze while retaining first-completion holds during
+ordinary projected deficits.
+
 A packet-visible same-domain unit whose ruleset-derived capability exceeds the
 owned domain ceiling creates `production_threat_modernization`. That category
 routes to survival pressure even when FreeCiv still hides opponent scores; the

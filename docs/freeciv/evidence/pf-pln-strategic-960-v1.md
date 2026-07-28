@@ -19,6 +19,8 @@ the raw same-seed scores are diagnostic rather than a paired causal estimate.
 | v17 | first-completion naval queue hold without a general infrastructure runway | 375 / 4643 | 5 | 493.4 s | rejected infrastructure/treasury oscillation |
 | v18 | adapter 1.26, first-completion naval hold, output recovery hold, and structural runway for all long infrastructure | 473 / 4566 | 5 | 456.4 s | accepted mechanism hardening; no score superiority |
 | v19 | adapter 1.27, counterfactual Coinage release and funded treasury-building hold | 472 / 4594 | 5 | 457.0 s | accepted queue/economy hardening; no score superiority |
+| v20 | adapter 1.28, noncombat-role exclusion and funded ruleset-defender hold | 240 / 4890 | 5 | 406.1 s | rejected reserve-breach starvation |
+| v21 | adapter 1.29, immediate reserve-breach Coinage override and authoritative research-stall detection | 441 / 4630 | 5 | 435.9 s | accepted research-continuity hardening; no score superiority |
 
 Artifacts:
 
@@ -29,7 +31,9 @@ Artifacts:
 - reproducibility check: `artifacts/freeciv/pf-pln-strategic-960-v8`
 - rejected infrastructure diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v17`
 - first-completion diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v18`
-- final completed diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v19`
+- accepted treasury diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v19`
+- rejected reserve-breach diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v20`
+- reserve-breach recovery diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v21`
 
 All listed completed diagnostics completed 1/1 jobs with zero gameplay or
 infrastructure failures. Interrupted integration diagnostics are intentionally
@@ -159,8 +163,43 @@ selected Engineers once as `production_defense` after the conventional force
 ceiling had collapsed; five Engineers were later lost in combat. Ruleset worker
 roles must be excluded from persistent combat modernization, and a funded
 ruleset-derived defensive queue should not be replaced by a legacy defender.
-That follow-up is a correctness target, not evidence for a stronger score
-claim.
+Adapter 1.28 implemented both constraints, and v20 selected no worker as
+modernization.
+
+V20 nevertheless rejected the initial hold boundary. Authoritative gold fell
+to 1 on turn 784 and 0 on turn 785 while two cities already ran Coinage. The
+planner retained a funded Destroyer, Alpine Troops, and Supermarket because
+reported effective cash flow was zero. On turn 786 FreeCiv forcibly removed a
+Courthouse, treasury jumped to 60, and Communism research progress froze at
+776 through turn 960 even though the projected research flow remained 41 net
+beakers per turn. The old telemetry incorrectly continued to report
+`researching`.
+
+Adapter 1.29 therefore permits an **immediate Coinage** switch to preempt those
+funded queues only after authoritative gold is already below the configured
+reserve; it does not permit a long treasury building to do so. Technology
+observability now labels unchanged progress across successive turns
+`research_progress_not_advancing` even when projected beakers remain positive.
+V20 is rejection evidence for the boundary, not support for adapter 1.29 or a
+stronger score claim.
+
+V21 completed all 960 turns with zero rejected engine actions. Gold never
+reached zero (minimum 3, final 255), authoritative research acquired seven
+technologies, and the final Refining counter remained live at 660/1200 with
+8 net beakers per turn. No worker-role unit was selected or completed as force
+modernization. These results accept the narrow research-continuity and
+modernization-type-safety corrections.
+
+They do not establish treasury or score success. FreeCiv still removed five
+buildings after low-gold boundaries, the final structural operating balance
+was -27 gold per turn, and Coinage reduced the effective deficit only to -8.
+The trace also contains 1,022 disordered city samples. City102 ended at size 15
+in disorder, suppressing 24 trade and all shield, gold, and science output.
+Twelve attempted treasury production changes had exact candidate-specific
+no-effect confirmation before the first forced sale. The proxy transport
+acknowledgement therefore remains distinct from authoritative execution, as
+the harness correctly records. Adapter 1.29 is a bounded safety recovery, not a
+claim that the structural economy or production-delivery lifecycle is solved.
 
 Any score claim still requires a preregistered paired-seed cohort with the
 historical five-city policy held fixed. The current evidence supports contract,

@@ -1747,7 +1747,9 @@ export function TechnologyDashboard({ state, onSelect }: {
       ? "At least one city is in disorder, so its productive output is disrupted."
       : progress.stall_reason === "zero_science_output"
         ? "The emitted city economy currently produces zero net science."
-        : null;
+        : progress.stall_reason === "research_progress_not_advancing"
+          ? "The authoritative research total did not advance between turns despite positive projected science. Check treasury bankruptcy, government state, and server-side research allocation."
+          : null;
   return <div className="view-content technology-view">
     <div className="view-heading">
       <div><span className="eyebrow">ruleset-pinned research telemetry</span>

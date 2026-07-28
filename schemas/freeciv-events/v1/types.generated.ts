@@ -202,7 +202,7 @@ export type TechnologyProgress = {
   "known_techs": Array<string>;
   "researchable_techs": Array<string>;
   "snapshot_id": string;
-  "stall_reason"?: "government_anarchy" | "city_disorder" | "zero_science_output" | null;
+  "stall_reason"?: "government_anarchy" | "city_disorder" | "zero_science_output" | "research_progress_not_advancing" | null;
   "stalled_turns": number;
   "status": "unavailable" | "idle" | "researching" | "stalled" | "complete";
   "target": ResearchTarget | null;

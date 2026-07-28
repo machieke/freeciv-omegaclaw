@@ -303,7 +303,8 @@
         "stall_reason": {
           "type": ["string", "null"],
           "enum": [
-            "government_anarchy", "city_disorder", "zero_science_output", null
+            "government_anarchy", "city_disorder", "zero_science_output",
+            "research_progress_not_advancing", null
           ]
         },
         "government": {"$ref": "#/$defs/governmentState"}

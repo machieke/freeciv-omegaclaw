@@ -5,7 +5,7 @@ All phases 0-9 have deterministic acceptance evidence, but only phases with an
 engine adapter may affect a live harness game. The versioned support declaration
 is `pf_pln_runtime` in `profile/freeciv_agent.yaml`.
 
-The current engine adapter is `grounded-impact-planner/1.27`. Its score-alignment
+The current engine adapter is `grounded-impact-planner/1.29`. Its score-alignment
 guard changes how the already-live phases 0, 1, 4, and 9 rank grounded
 operations. It also exposes a bounded post-settlement-runway gate for
 score-bearing founder production and carries that deadline through settlement
@@ -48,6 +48,20 @@ building is held through completion instead of alternating with a garrison
 queue as effective cash crosses the reserve boundary. These decisions use the
 authoritative capitalization total and city shield surplus; they do not infer
 unreported income.
+Adapter 1.28 excludes ruleset worker, founder, explorer, and one-shot missile
+roles from persistent combat modernization even when they expose nonzero
+combat scalars. Ruleset-derived defensive units use the same local-garrison
+queue retention as legacy defenders and must pass a counterfactual treasury
+runway before replacing Coinage. A funded defender remains in production
+through transient cash pressure; an actual reserve crisis may still preempt it.
+Adapter 1.29 makes that last boundary explicit: an authoritative treasury below
+the configured reserve may preempt a funded naval, defensive, or food-output
+queue for immediate Coinage, but not for another long-lived building. This
+prevents forced building sales and the engine-side research freeze observed
+after bankruptcy. Technology observability independently marks unchanged
+research progress across turn boundaries as
+`research_progress_not_advancing`, even when the projected beaker rate remains
+positive.
 Adapter 1.7 additionally consumes an optional, packet-grounded
 `settlement_site_eligible` fact on founder moves and prefers a directly
 reachable valid site over continued frontier wandering. Unknown destinations
