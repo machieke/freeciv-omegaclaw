@@ -377,6 +377,17 @@ not suppressed after the current allocation changes. A tax boundary learned
 unsafe is retained until material economy structure changes; a rejected fixed
 ten-turn restoration delay is not part of the live policy.
 
+Adapter 1.31 separates offensive modernization from durable local-garrison
+work. The emergency garrison path keeps its proven explicit defender list.
+Outside that list, a ruleset-derived land unit qualifies for the garrison role
+only when it is a persistent combat unit with nonzero defense and defense at
+least attack. The deficit is evaluated for the production city. An offensive
+unit with incidental defense therefore remains ordinary modernization instead
+of silently acquiring survival selection priority. Existing queue-continuity
+semantics remain broad because a queued combat unit can still defend; a
+selected-seed ablation that also narrowed that hold caused a large regression
+and is not part of the adapter.
+
 The adapter also contains an opt-in, finite disorder bridge. Only
 persistence-qualified, size-threshold cities with zero shields and an exact
 packet-buildable Temple, Cathedral, or Amphitheater may enroll. Luxury moves

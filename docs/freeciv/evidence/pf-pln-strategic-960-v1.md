@@ -28,6 +28,9 @@ the raw same-seed scores are diagnostic rather than a paired causal estimate.
 | v35 | ten-turn tax-restore stability window, bridge disabled | 362 / 4424 | 5 | 454.4 s | rejected score regression |
 | v36 | any ruleset land unit with nonzero defense may fill an emergency garrison | 177 / 807 at elimination | 0 | 123.1 s | rejected; Cannon entered the garrison path and the player was eliminated on turn 265 |
 | v37 | only the most durable currently buildable ruleset defender may fill an emergency garrison | 177 / 1557 at elimination | 0 | 215.7 s | rejected; Marines displaced the stable legacy trajectory and the player was eliminated on turn 412 |
+| v38 | city-local defense-first ruleset role for strategic selection; adapter still declared 1.30 | 455 / 4274 | 5 | 530.5 s | accepted behavior diagnostic; identity not suitable for release audit |
+| v40 | adapter 1.31 plus defense-first role applied to all queue-retention boundaries | 335 / 4296 | 5 | 468.8 s | rejected; productive and military continuity regressed |
+| v41 | adapter 1.31 selection-only role boundary with proven queue continuity restored | 455 / 4274 | 5 | 530.5 s | accepted engine confirmation; exact v38 reproduction, no score claim |
 
 Artifacts:
 
@@ -48,6 +51,9 @@ Artifacts:
 - rejected tax-stability-window diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v35`
 - rejected generic ruleset-garrison diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v36`
 - rejected durability-gated ruleset-garrison diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v37`
+- pre-version selection-role diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v38`
+- rejected queue-role narrowing diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v40`
+- adapter-1.31 confirmation: `artifacts/freeciv/pf-pln-strategic-960-v41`
 
 All listed completed diagnostics completed 1/1 jobs with zero gameplay or
 infrastructure failures. Interrupted integration diagnostics are intentionally
@@ -257,6 +263,38 @@ trajectory enough for elimination on turn 412. Both variants were fully
 reverted. Advanced offensive modernization must remain a separate bounded
 lifecycle rather than changing the semantics or timing of mandatory local
 garrisons.
+
+Adapter 1.31 instead narrows only the strategic selection boundary. A
+ruleset-derived alternative outside the explicit defender list must be a
+persistent land combat unit with nonzero defense and defense at least attack
+before a city-local deficit can route it to `production_defense`. The emitted
+projection records the current and required local garrison plus whether the
+role came from the explicit list or from ruleset attack/defense values.
+Offensive Armor remained `production_modernization`; it did not inherit
+emergency-defense pressure.
+
+V38 completed 960 turns with zero rejected actions and scored 455 against
+4274. It selected Partisan as a ruleset-derived local defender twice, on turns
+845 and 910, while all other defense selections remained the proven Alpine
+Troops/Riflemen path. Because that trace still declared adapter 1.30, it is
+behavior evidence only.
+
+V40 tested the stronger interpretation in which the defense-first role also
+controlled every queue-continuity boundary. It completed the horizon but
+regressed to 335 against 4296. Citizens remained 39, while technology and
+residual score fell to 118 and 178; meaningful actions fell from 1,075 to 707,
+and effect-confirmation timeouts rose from zero to 13. Marines, Submarine, and
+Cruiser no longer appeared. That extension was fully reverted: a queued combat
+unit can still contribute actual defense even when its selection role is
+offensive.
+
+V41 reran the accepted selection-only policy with the correct adapter 1.31
+identity. It exactly reproduced v38: score 455 against 4274, score components
+`38/130/287`, 2,035 accepted actions, 1,075 meaningful actions, fourteen
+acquired technologies, and zero effect-confirmation timeouts. The exact
+reproduction supports mechanism stability and accepts the role-classification
+correction. The two-point selected-seed difference from v34 is not a
+statistically reliable score improvement.
 
 Any score claim still requires a preregistered paired-seed cohort with the
 historical five-city policy held fixed. The current evidence supports contract,

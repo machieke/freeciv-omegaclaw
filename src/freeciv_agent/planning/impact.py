@@ -259,7 +259,7 @@ def _spatial_target(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.30"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.31"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -2820,6 +2820,25 @@ class GroundedImpactPlanner(object):
             and self._unit_domain(normalized) == "land"
             and float(spec.get("defense", 0)) > 0)
 
+    def _garrison_unit_type(self, normalized):
+        """Return units whose grounded role is durable local defense.
+
+        The broad defensive predicate remains useful for capability accounting
+        and queue continuity, but an offensive unit with incidental defense
+        must not inherit emergency garrison selection priority. Explicit legacy
+        defenders retain their established role; a ruleset-derived alternative
+        qualifies only when defense is at least attack.
+        """
+        if normalized in NORMALIZED_DEFENDER_TYPES:
+            return True
+        spec = self._production_specs.get(normalized, {})
+        return bool(
+            self._persistent_combat_unit_type(normalized)
+            and self._unit_domain(normalized) == "land"
+            and float(spec.get("defense", 0)) > 0
+            and float(spec.get("defense", 0))
+            >= float(spec.get("attack", 0)))
+
     def _recent_domain_threat(self, snapshot, domain):
         turn = self._enemy_domain_last_seen.get(domain)
         return (
@@ -2918,12 +2937,13 @@ class GroundedImpactPlanner(object):
             if (self.modernization_enabled and power > 0
                     and power >= max(own_best + 1.0, own_best * 1.10)):
                 threat_deficit = visible_enemy_power > own_best
-                defense_deficit = (
-                    domain == "land"
-                    and float(spec.get("defense", 0)) > 0
-                    and len(defenders) < sum(
-                        self._required_garrison_count(row)
-                        for row in snapshot.cities))
+                local_defender_count = sum(
+                    (unit.x, unit.y) == (city.x, city.y)
+                    for unit in defenders)
+                required_local_garrison = self._required_garrison_count(city)
+                defense_deficit = bool(
+                    self._garrison_unit_type(normalized)
+                    and local_defender_count < required_local_garrison)
                 if defense_deficit:
                     net_gold = (
                         self._net_gold_per_turn(snapshot)
@@ -2937,6 +2957,12 @@ class GroundedImpactPlanner(object):
                                 < treasury_reserve)):
                         return None
                     projection.update({
+                        "current_garrison": local_defender_count,
+                        "garrison_role_source": (
+                            "explicit_defender_priority"
+                            if normalized in NORMALIZED_DEFENDER_TYPES else
+                            "ruleset_defense_not_less_than_attack"),
+                        "required_garrison": required_local_garrison,
                         "treasury_at_completion": (
                             gold + net_gold * max(1, int(eta))),
                         "treasury_reserve_required": treasury_reserve,
@@ -2950,7 +2976,7 @@ class GroundedImpactPlanner(object):
                 projection["defensive_modernization"] = defense_deficit
                 return ImpactCandidate(
                     action, category,
-                    (900.0 if defense_deficit else 820.0)
+                    (2050.0 if defense_deficit else 820.0)
                     + power * 2.0 - eta,
                     ("answer a packet-visible same-domain capability deficit "
                      "with a materially stronger ruleset-derived unit"

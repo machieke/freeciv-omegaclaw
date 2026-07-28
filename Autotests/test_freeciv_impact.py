@@ -447,26 +447,34 @@ def test_ruleset_driven_policy_modernizes_and_repairs_industry():
     assert threatened.candidate.projection[
         "visible_enemy_domain_power"] > threatened.candidate.projection[
             "current_domain_power"]
+    offensive_deficit = GroundedImpactPlanner(
+        settings, ruleset_ir=modernization_ir).plan(_snapshot(
+            [_unit(11, "Alpine Troops", 4, 4)],
+            [_production(10, "Armor", 6, 20),
+             {"action_type": "end_turn", "is_valid": True}],
+            cities=[modernization_city]))
+    assert offensive_deficit.candidate.category == "production_modernization"
+    assert "garrison_role_source" not in offensive_deficit.candidate.projection
 
     defensive_city = _city(production_kind=6, production_value=11)
     defensive_city["buildability"]["options"].extend([
-        {"type": "unit", "id": 22, "name": "Marines"},
+        {"type": "unit", "id": 22, "name": "Mech. Inf."},
         {"type": "unit", "id": 23, "name": "Engineers"},
     ])
     second_city = json.loads(json.dumps(defensive_city))
     second_city.update({"id": 11, "name": "Antium", "x": 2, "y": 2})
     defensive_ir = _ruleset_ir((
         ("Alpine Troops", "unit", 60),
-        ("Marines", "unit", 60),
+        ("Mech. Inf.", "unit", 60),
         ("Engineers", "unit", 40),
     ), capabilities={
         "Alpine Troops": {
             "class": "Land", "attack": 7, "defense": 4,
             "hitpoints": 20, "firepower": 1,
         },
-        "Marines": {
-            "class": "Land", "attack": 8, "defense": 5,
-            "hitpoints": 20, "firepower": 1,
+        "Mech. Inf.": {
+            "class": "Land", "attack": 6, "defense": 6,
+            "hitpoints": 30, "firepower": 1,
         },
         # A worker can have nonzero combat scalars in a ruleset, but it is not
         # persistent force modernization.
@@ -480,15 +488,17 @@ def test_ruleset_driven_policy_modernizes_and_repairs_industry():
         pressure_score_alignment_enabled=True),
         ruleset_ir=defensive_ir).plan(_snapshot(
             [_unit(11, "Alpine Troops", 4, 4)],
-            [_production(10, "Marines", 6, 22),
+            [_production(10, "Mech. Inf.", 6, 22),
              _production(10, "Engineers", 6, 23),
              {"action_type": "end_turn", "is_valid": True}],
             cities=[defensive_city, second_city],
             own_score=20, opponent_score=35))
     assert defensive.candidate.category == "production_defense"
     assert defensive.candidate.action[
-        "target"]["production_type"] == "Marines"
+        "target"]["production_type"] == "Mech. Inf."
     assert defensive.candidate.projection["defensive_modernization"] is True
+    assert defensive.candidate.projection[
+        "garrison_role_source"] == "explicit_defender_priority"
 
     industry_city = _city(production_kind=3, production_value=99)
     industry_city["buildability"]["options"].append(
@@ -4079,19 +4089,19 @@ def test_ruleset_defender_requires_counterfactual_treasury_runway():
         size=4, shield_stock=0, surplus=(2, 10, 3, -10, 0, 2),
         production_kind=3, production_value=72)
     city["buildability"]["options"].extend([
-        {"type": "unit", "id": 14, "name": "Marines"},
+        {"type": "unit", "id": 14, "name": "Sentinel"},
         {"type": "improvement", "id": 72, "name": "Coinage"},
     ])
     actions = [
-        _production(10, "Marines", 6, 14),
+        _production(10, "Sentinel", 6, 14),
         {"action_type": "end_turn", "is_valid": True},
     ]
     ruleset = _ruleset_ir((
-        ("Marines", "unit", 60),
+        ("Sentinel", "unit", 60),
         ("Coinage", "improvement", 999),
     ), founders=(), workers=(), capabilities={
-        "Marines": {
-            "class": "Land", "attack": 8, "defense": 5,
+        "Sentinel": {
+            "class": "Land", "attack": 4, "defense": 6,
             "hitpoints": 20, "firepower": 1,
         },
     })
@@ -4127,7 +4137,9 @@ def test_ruleset_defender_requires_counterfactual_treasury_runway():
         unfunded) is None
     decision = GroundedImpactPlanner(settings, ruleset_ir=ruleset).plan(funded)
     assert decision.candidate.category == "production_defense"
-    assert decision.candidate.action["target"]["production_type"] == "Marines"
+    assert decision.candidate.action["target"]["production_type"] == "Sentinel"
+    assert decision.candidate.projection[
+        "garrison_role_source"] == "ruleset_defense_not_less_than_attack"
     assert decision.candidate.projection["treasury_at_completion"] == 40
 
 
@@ -4136,7 +4148,7 @@ def test_funded_ruleset_defender_queue_survives_transient_treasury_pressure():
         size=4, shield_stock=20, surplus=(2, 10, 3, -1, 0, 2),
         production_kind=6, production_value=14)
     city["buildability"]["options"].extend([
-        {"type": "unit", "id": 14, "name": "Marines"},
+        {"type": "unit", "id": 14, "name": "Sentinel"},
         {"type": "improvement", "id": 72, "name": "Coinage"},
     ])
     actions = [
@@ -4146,15 +4158,15 @@ def test_funded_ruleset_defender_queue_survives_transient_treasury_pressure():
     ]
     ruleset = _ruleset_ir((
         ("Alpine Troops", "unit", 20),
-        ("Marines", "unit", 60),
+        ("Sentinel", "unit", 60),
         ("Coinage", "improvement", 999),
     ), founders=(), workers=(), capabilities={
         "Alpine Troops": {
             "class": "Land", "attack": 5, "defense": 5,
             "hitpoints": 20, "firepower": 1,
         },
-        "Marines": {
-            "class": "Land", "attack": 8, "defense": 5,
+        "Sentinel": {
+            "class": "Land", "attack": 4, "defense": 6,
             "hitpoints": 20, "firepower": 1,
         },
     })

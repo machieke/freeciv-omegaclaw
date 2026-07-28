@@ -70,6 +70,13 @@ facts change. The optional disorder bridge now has persistence, city-size,
 local-buildability, and lifetime bounds plus an exact happiness-building exit.
 Its selected-seed stability gain did not improve score, so the bridge remains
 disabled in live profiles.
+Adapter 1.31 narrows strategic garrison selection without changing established
+queue continuity. Explicit legacy defenders retain their proven behavior; a
+ruleset-derived alternative must be a persistent land combat unit whose defense
+is at least its attack. This keeps offensive modernization out of
+emergency-defense pressure. A queued combat unit with nonzero defense retains
+the broader existing completion protection because a selected-seed ablation of
+that hold caused a large behavioral and score regression.
 Adapter 1.7 additionally consumes an optional, packet-grounded
 `settlement_site_eligible` fact on founder moves and prefers a directly
 reachable valid site over continued frontier wandering. Unknown destinations
