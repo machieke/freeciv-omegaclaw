@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure",
+  "commitSha": "130f2eefa87b1e8f434846d3fc8fecefa94883a6",
+  "startedAt": "2026-07-28T09:16:48.950Z",
+  "description": "Verify strategic FreeCiv resource, research, score, fleet, building, and lifecycle observability against the completed 960-turn trace"
+}

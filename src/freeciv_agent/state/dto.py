@@ -5,9 +5,9 @@ import hashlib
 from dataclasses import dataclass
 
 from ..events.schema import canonical_json_bytes
-from .snapshot import (AuthoritativeSnapshot, CityState, EconomicState,
-                       GovernmentState, ResearchState, SnapshotIdentity,
-                       UnitState)
+from .snapshot import (AuthoritativeSnapshot, BuildingState, CityState,
+                       EconomicState, GovernmentState, PlayerScoreState,
+                       ResearchState, SnapshotIdentity, UnitState)
 
 
 class ContractError(ValueError):
@@ -418,6 +418,11 @@ class ProxyStateDTO:
                                  "research.researching_cost")
         beakers = _integer(research_packet.get("beakers_per_turn"),
                            "research.beakers_per_turn")
+        gross_beakers = _integer(
+            research_packet.get("gross_beakers_per_turn"),
+            "research.gross_beakers_per_turn")
+        tech_upkeep = _integer(
+            research_packet.get("tech_upkeep"), "research.tech_upkeep")
         research_available = all(value is not None for value in (progress, beakers))
         research_diagnostic = None if research_available else (
             "proxy omitted authoritative research progress or beakers_per_turn")
@@ -425,6 +430,12 @@ class ProxyStateDTO:
         gold = _integer(player.get("gold", economic.get("gold")), "economy.gold")
         gold_per_turn = _integer(player.get("gold_per_turn", economic.get("gold_per_turn")),
                                  "economy.gold_per_turn")
+        operating_gold_per_turn = _integer(
+            player.get("operating_gold_per_turn"),
+            "economy.operating_gold_per_turn")
+        capitalization_gold_per_turn = _integer(
+            player.get("capitalization_gold_per_turn"),
+            "economy.capitalization_gold_per_turn")
         city_gold_surplus_per_turn = _integer(
             player.get(
                 "city_gold_surplus_per_turn",
@@ -528,6 +539,18 @@ class ProxyStateDTO:
                 kind = str(option.get("type", option.get("kind", "unknown")))
                 item_id = _integer(option.get("id"), "city.buildable.id", required=True)
                 buildable.append((kind, item_id, str(option.get("name", item_id))))
+            buildings = []
+            for improvement in _collection(
+                    row.get("built_improvements"), "city.built_improvements"):
+                improvement_id = _integer(
+                    improvement.get("id", improvement.get("improvement_id")),
+                    "city.built_improvements.id", required=True)
+                buildings.append(BuildingState(
+                    improvement_id=improvement_id,
+                    name=str(improvement.get("name", improvement_id)),
+                    upkeep=_integer(
+                        improvement.get("upkeep"),
+                        "city.built_improvements.upkeep")))
             governor = row.get("governor")
             governor_available = False
             governor_enabled = None
@@ -602,7 +625,30 @@ class ProxyStateDTO:
                 governor_allow_disorder=governor_allow_disorder,
                 governor_max_growth=governor_max_growth,
                 governor_allow_specialists=governor_allow_specialists,
-                governor_happy_factor=governor_happy_factor))
+                governor_happy_factor=governor_happy_factor,
+                buildings=tuple(sorted(
+                    buildings, key=lambda item: item.improvement_id))))
+
+        score_packet = (
+            authoritative.get("score")
+            if isinstance(authoritative.get("score"), dict) else {})
+        own_score = _integer(score_packet.get("own"), "score.own")
+        if own_score is not None and own_score < 0:
+            own_score = None
+        opponent_scores = []
+        for row in _collection(score_packet.get("opponents"), "score.opponents"):
+            opponent_score = _integer(
+                row.get("score"), "score.opponents.score")
+            if opponent_score is not None and opponent_score < 0:
+                opponent_score = None
+            opponent_scores.append(PlayerScoreState(
+                player_id=_integer(
+                    row.get("player_id"), "score.opponents.player_id",
+                    required=True),
+                name=str(row.get("name", row.get("player_id", "Player"))),
+                score=opponent_score,
+                is_alive=_boolean(
+                    row.get("is_alive"), "score.opponents.is_alive")))
 
         map_data = payload.get("map") if isinstance(payload.get("map"), dict) else {}
         width = _integer(map_data.get("width", 0), "map.width", required=True)
@@ -641,7 +687,10 @@ class ProxyStateDTO:
                 city_gold_surplus_per_turn=city_gold_surplus_per_turn,
                 unit_gold_upkeep=unit_gold_upkeep,
                 gold_upkeep_reserve=gold_upkeep_reserve,
-                gold_upkeep_style=gold_upkeep_style).to_dict(),
+                gold_upkeep_style=gold_upkeep_style,
+                operating_gold_per_turn=operating_gold_per_turn,
+                capitalization_gold_per_turn=(
+                    capitalization_gold_per_turn)).to_dict(),
             "government": government.to_dict(),
             "game_id": str(game_id), "legal_action_json": list(legal_json),
             "map": {"height": height,
@@ -652,7 +701,16 @@ class ProxyStateDTO:
             "player_alive": player_alive, "player_id": player_id,
             "research": ResearchState(tuple(sorted(set(known))), target_id, target_name,
                                       progress, research_cost, beakers,
-                                      research_available, research_diagnostic).to_dict(),
+                                      research_available, research_diagnostic,
+                                      gross_beakers_per_turn=gross_beakers,
+                                      tech_upkeep=tech_upkeep).to_dict(),
+            "score": {
+                "opponents": [
+                    row.to_dict() for row in sorted(
+                        opponent_scores, key=lambda item: item.player_id)
+                ],
+                "own": own_score,
+            },
             "ruleset_ready": ruleset_ready, "turn": turn,
             "units": [unit.to_dict() for unit in sorted(units, key=lambda item: item.unit_id)],
             "visible_enemy_units": [unit.to_dict() for unit in sorted(
@@ -665,14 +723,18 @@ class ProxyStateDTO:
             ruleset_ready=ruleset_ready, ruleset_diagnostic=ruleset_diagnostic,
             research=ResearchState(tuple(sorted(set(known))), target_id, target_name,
                                    progress, research_cost, beakers,
-                                   research_available, research_diagnostic),
+                                   research_available, research_diagnostic,
+                                   gross_beakers_per_turn=gross_beakers,
+                                   tech_upkeep=tech_upkeep),
             economy=EconomicState(
                 gold, gold_per_turn, tax, science, luxury,
                 economy_available, economy_diagnostic,
                 city_gold_surplus_per_turn=city_gold_surplus_per_turn,
                 unit_gold_upkeep=unit_gold_upkeep,
                 gold_upkeep_reserve=gold_upkeep_reserve,
-                gold_upkeep_style=gold_upkeep_style),
+                gold_upkeep_style=gold_upkeep_style,
+                operating_gold_per_turn=operating_gold_per_turn,
+                capitalization_gold_per_turn=capitalization_gold_per_turn),
             cities=tuple(sorted(cities, key=lambda item: item.city_id)),
             units=tuple(sorted(units, key=lambda item: item.unit_id)),
             visible_enemy_units=tuple(sorted(
@@ -682,7 +744,10 @@ class ProxyStateDTO:
             map_tiles=tuple(copy.deepcopy(tiles)), legal_action_json=legal_json,
             legal_actions_digest=legal_digest,
             legal_action_kinds=legal_action_kinds,
-            government=government))
+            government=government,
+            own_score=own_score,
+            opponent_scores=tuple(sorted(
+                opponent_scores, key=lambda item: item.player_id))))
 
     def to_snapshot(self):
         return self.snapshot

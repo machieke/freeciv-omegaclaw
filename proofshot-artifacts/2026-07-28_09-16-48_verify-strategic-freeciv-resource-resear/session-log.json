@@ -1,0 +1,152 @@
+[
+  {
+    "action": "open http://127.0.0.1:4179/",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-28T09:17:32.157Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 5.8,
+    "timestamp": "2026-07-28T09:17:32.930Z"
+  },
+  {
+    "action": "click @e8",
+    "relativeTimeSec": 25,
+    "timestamp": "2026-07-28T09:17:52.119Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 25.4,
+    "timestamp": "2026-07-28T09:17:52.538Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 181.8,
+    "timestamp": "2026-07-28T09:20:28.883Z"
+  },
+  {
+    "action": "click @e66",
+    "relativeTimeSec": 189,
+    "timestamp": "2026-07-28T09:20:36.106Z"
+  },
+  {
+    "action": "wait 2500",
+    "relativeTimeSec": 189.5,
+    "timestamp": "2026-07-28T09:20:36.613Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 192.3,
+    "timestamp": "2026-07-28T09:20:39.447Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 201,
+    "timestamp": "2026-07-28T09:20:48.070Z"
+  },
+  {
+    "action": "click @e18",
+    "relativeTimeSec": 230.7,
+    "timestamp": "2026-07-28T09:21:17.823Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 231.1,
+    "timestamp": "2026-07-28T09:21:18.229Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 232,
+    "timestamp": "2026-07-28T09:21:19.062Z"
+  },
+  {
+    "action": "screenshot economy-production.png",
+    "relativeTimeSec": 237.6,
+    "timestamp": "2026-07-28T09:21:24.717Z"
+  },
+  {
+    "action": "scrollintoview @e18",
+    "relativeTimeSec": 262.5,
+    "timestamp": "2026-07-28T09:21:49.601Z"
+  },
+  {
+    "action": "click @e18",
+    "relativeTimeSec": 263.8,
+    "timestamp": "2026-07-28T09:21:50.903Z"
+  },
+  {
+    "action": "wait 600",
+    "relativeTimeSec": 264.4,
+    "timestamp": "2026-07-28T09:21:51.480Z"
+  },
+  {
+    "action": "eval document.querySelector(\"main\")?.innerText.slice(-4000) || document.body.innerText.slice(-4000)",
+    "relativeTimeSec": 265.3,
+    "timestamp": "2026-07-28T09:21:52.427Z"
+  },
+  {
+    "action": "screenshot economy-production.png",
+    "relativeTimeSec": 274.1,
+    "timestamp": "2026-07-28T09:22:01.248Z"
+  },
+  {
+    "action": "scrollintoview @e17",
+    "relativeTimeSec": 274.6,
+    "timestamp": "2026-07-28T09:22:01.705Z"
+  },
+  {
+    "action": "click @e17",
+    "relativeTimeSec": 275.9,
+    "timestamp": "2026-07-28T09:22:03.016Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 276.4,
+    "timestamp": "2026-07-28T09:22:03.506Z"
+  },
+  {
+    "action": "eval document.querySelector(\"main\")?.innerText.slice(-2200) || document.body.innerText.slice(-2200)",
+    "relativeTimeSec": 277.2,
+    "timestamp": "2026-07-28T09:22:04.321Z"
+  },
+  {
+    "action": "screenshot technology-progress.png",
+    "relativeTimeSec": 282.7,
+    "timestamp": "2026-07-28T09:22:09.846Z"
+  },
+  {
+    "action": "scrollintoview @e19",
+    "relativeTimeSec": 283.2,
+    "timestamp": "2026-07-28T09:22:10.297Z"
+  },
+  {
+    "action": "click @e19",
+    "relativeTimeSec": 284.5,
+    "timestamp": "2026-07-28T09:22:11.579Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 284.9,
+    "timestamp": "2026-07-28T09:22:12.032Z"
+  },
+  {
+    "action": "eval document.querySelector(\"main\")?.innerText.slice(-2600) || document.body.innerText.slice(-2600)",
+    "relativeTimeSec": 285.8,
+    "timestamp": "2026-07-28T09:22:12.860Z"
+  },
+  {
+    "action": "screenshot unit-lifecycle.png",
+    "relativeTimeSec": 295.6,
+    "timestamp": "2026-07-28T09:22:22.723Z"
+  },
+  {
+    "action": "console",
+    "relativeTimeSec": 296,
+    "timestamp": "2026-07-28T09:22:23.140Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 296.4,
+    "timestamp": "2026-07-28T09:22:23.482Z"
+  }
+]

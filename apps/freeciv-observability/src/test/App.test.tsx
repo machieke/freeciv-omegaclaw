@@ -137,6 +137,44 @@ const productionMapTrace = [
   }, 1, 1),
 ].map((row) => JSON.stringify(row)).join("\n");
 
+const resourceFlowTrace = [
+  event(0, "production_state", {
+    snapshot_id: "resource-flow-snapshot",
+    government: {
+      available: true, current_id: 2, current_name: "Monarchy",
+      target_id: 2, target_name: "Monarchy", revolution_finishes: -1,
+      in_revolution: false, selection_required: false, diagnostic: null,
+    },
+    economy: {
+      available: true, diagnostic: null, gold: 50, gold_per_turn: 2,
+      operating_gold_per_turn: -3, capitalization_gold_per_turn: 5,
+      city_gold_surplus_per_turn: -2, unit_gold_upkeep: 1,
+      gold_upkeep_reserve: 1, gold_upkeep_style: "Mixed",
+      tax_rate: 40, science_rate: 50, luxury_rate: 10,
+    },
+    research_flow: {
+      gross_beakers_per_turn: 13, tech_upkeep: 4, net_beakers_per_turn: 9,
+    },
+    score: {
+      own: 42, gap_to_leader: -13,
+      leader: { player_id: 1, name: "Vikings", score: 55, is_alive: true },
+      opponents: [{ player_id: 1, name: "Vikings", score: 55, is_alive: true }],
+    },
+    cities: [{
+      city_id: 3, name: "Roma", size: 5, food_stock: 12, shield_stock: 4,
+      outputs: { food: 10, shield: 8, trade: 6, gold: 2, luxury: 1, science: 5 },
+      usage: { food: 8, shield: 1, trade: 0, gold: 4, luxury: 0, science: 0 },
+      surplus: { food: 2, shield: 7, trade: 6, gold: -2, luxury: 1, science: 5 },
+      target: { kind: 3, value: 7, name: "Factory" }, buildable_count: 18,
+      buildings: [{ improvement_id: 7, name: "Library", upkeep: 1 }],
+      building_changes: [{
+        transition: "completed", improvement_id: 7, name: "Library", upkeep: 1,
+      }],
+      building_upkeep: 1,
+    }],
+  }, 10, 1),
+].map((row) => JSON.stringify(row)).join("\n");
+
 const decisionOnlyAuditTrace = [
   event(0, "llm_proposal", {
     claims: [],
@@ -176,6 +214,24 @@ const decisionOnlyAuditTrace = [
 ].map((row) => JSON.stringify(row)).join("\n");
 
 describe("Decision Observatory", () => {
+  it("defaults Live mode to the dedicated event-tail port", () => {
+    render(<App initialText={demoTrace} />);
+    expect(screen.getByRole("textbox", { name: "Live endpoint" }))
+      .toHaveValue("ws://127.0.0.1:18765");
+  });
+
+  it("shows authoritative resource flow, score gap, research upkeep, and buildings", async () => {
+    const user = userEvent.setup();
+    render(<App initialText={resourceFlowTrace} />);
+    await user.click(screen.getByRole("button", { name: /^10 Economy & production/ }));
+    expect(screen.getByText("operating flow")).toBeInTheDocument();
+    expect(screen.getByText("Coinage conversion")).toBeInTheDocument();
+    expect(screen.getByText(/-13 to leader/)).toBeInTheDocument();
+    expect(screen.getByText(/13 gross/)).toBeInTheDocument();
+    expect(screen.getAllByText("Library")).toHaveLength(2);
+    expect(screen.getAllByText(/10 produced · 8 consumed/)).toHaveLength(2);
+  });
+
   it("opens an action ancestry and reaches the supporting proof in five interactions", async () => {
     const user = userEvent.setup();
     render(<App initialText={demoTrace} />);

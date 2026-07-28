@@ -52,10 +52,17 @@ class StateSummaryService(object):
             research={"target": snapshot.research.target_name,
                       "progress": snapshot.research.progress,
                       "cost": snapshot.research.cost,
-                      "beakers_per_turn": snapshot.research.beakers_per_turn},
+                      "beakers_per_turn": snapshot.research.beakers_per_turn,
+                      "gross_beakers_per_turn": (
+                          snapshot.research.gross_beakers_per_turn),
+                      "tech_upkeep": snapshot.research.tech_upkeep},
             economy={
                 "gold": snapshot.economy.gold,
                 "gold_per_turn": snapshot.economy.gold_per_turn,
+                "operating_gold_per_turn": (
+                    snapshot.economy.operating_gold_per_turn),
+                "capitalization_gold_per_turn": (
+                    snapshot.economy.capitalization_gold_per_turn),
                 "city_gold_surplus_per_turn": (
                     snapshot.economy.city_gold_surplus_per_turn),
                 "gold_upkeep_reserve": (
@@ -66,6 +73,10 @@ class StateSummaryService(object):
             cities=tuple({"id": city.city_id, "name": city.name, "size": city.size,
                           "food_surplus": (
                               city.surplus[0] if city.surplus else None),
+                          "usage": list(city.usage),
+                          "buildings": [
+                              building.to_dict() for building in city.buildings
+                          ],
                           "production_kind": city.production_kind,
                           "production_value": city.production_value}
                          for city in snapshot.cities),
@@ -81,7 +92,11 @@ class StateSummaryService(object):
             } for unit in snapshot.visible_enemy_units),
             map_summary={"width": snapshot.map_width, "height": snapshot.map_height,
                          "known_huts": len(snapshot.known_hut_tile_ids),
-                         "visible_tiles": len(snapshot.visible_tile_ids)},
+                         "visible_tiles": len(snapshot.visible_tile_ids),
+                         "own_score": snapshot.own_score,
+                         "opponent_scores": [
+                             row.to_dict() for row in snapshot.opponent_scores
+                         ]},
             # Legal action documents remain opaque here; only the kinds derived
             # while the DTO normalizes those documents cross this boundary.
             legal_action_kinds=snapshot.legal_action_kinds,

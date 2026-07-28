@@ -19,8 +19,9 @@ from freeciv.harness.domain_observability import (  # noqa: E402
 from freeciv_agent.events.writer import EventWriter  # noqa: E402
 from freeciv_agent.rulesets.ir import Requirement, Rule, RulesetIR  # noqa: E402
 from freeciv_agent.state.snapshot import (  # noqa: E402
-    AuthoritativeSnapshot, CityState, EconomicState, GovernmentState,
-    ResearchState, SnapshotIdentity, UnitState,
+    AuthoritativeSnapshot, BuildingState, CityState, EconomicState,
+    GovernmentState, PlayerScoreState, ResearchState, SnapshotIdentity,
+    UnitState,
 )
 
 
@@ -48,8 +49,10 @@ def _city(city_id=1, name="Roma", target="Riflemen"):
         city_id=city_id, owner=0, name=name, tile=10, x=2, y=3, size=2,
         production_kind=6, production_value=10, food_stock=4,
         shield_stock=8, surplus=(3, 4, 2, 1, 0, 1),
-        production=(5, 4, 2, 1, 0, 1), buildability_available=True,
-        buildable=(("unit", 10, target),))
+        production=(5, 4, 2, 1, 0, 1), usage=(2, 0, 0, 0, 0, 0),
+        buildability_available=True,
+        buildable=(("unit", 10, target),),
+        buildings=(BuildingState(7, "Library", 1),))
 
 
 def _unit(unit_id, unit_type, x=2, y=3):
@@ -65,14 +68,18 @@ def _snapshot(turn, units, cities=None, progress=0, rate=0):
         ruleset_ready=True, ruleset_diagnostic=None,
         research=ResearchState(
             known_techs=("Alphabet",), target_id=2, target_name="Writing",
-            progress=progress, cost=10, beakers_per_turn=rate, available=True),
+            progress=progress, cost=10, beakers_per_turn=rate, available=True,
+            gross_beakers_per_turn=rate + 1, tech_upkeep=1),
         economy=EconomicState(
             gold=50, gold_per_turn=1, tax_rate=40, science_rate=60,
-            luxury_rate=0, available=True),
+            luxury_rate=0, available=True, operating_gold_per_turn=-1,
+            capitalization_gold_per_turn=2),
         cities=tuple(cities or (_city(),)), units=tuple(units),
         visible_enemy_units=(), visible_tile_ids=(), known_hut_tile_ids=(),
         map_width=4, map_height=4, map_tiles=(), legal_action_json=(),
-        legal_actions_digest="0" * 64, legal_action_kinds=())
+        legal_actions_digest="0" * 64, legal_action_kinds=(),
+        own_score=12,
+        opponent_scores=(PlayerScoreState(1, "Enemy", 15, True),))
 
 
 def _read(path):
@@ -121,6 +128,16 @@ def test_domain_events_make_stalls_yields_and_lifecycle_explicit(tmp_path):
         "food": 5, "shield": 4, "trade": 2,
         "gold": 1, "luxury": 0, "science": 1,
     }
+    assert production["cities"][0]["usage"]["food"] == 2
+    assert production["cities"][0]["buildings"][0]["name"] == "Library"
+    assert production["research_flow"] == {
+        "gross_beakers_per_turn": 1,
+        "tech_upkeep": 1,
+        "net_beakers_per_turn": 0,
+    }
+    assert production["score"]["gap_to_leader"] == -3
+    assert production["economy"]["operating_gold_per_turn"] == -1
+    assert production["economy"]["capitalization_gold_per_turn"] == 2
     lifecycle = [row["payload"] for row in rows
                  if row["type"] == "unit_lifecycle"]
     by_unit = {row["unit_id"]: row for row in lifecycle if row["transition"] == "disappeared"}

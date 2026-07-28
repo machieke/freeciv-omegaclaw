@@ -30,7 +30,7 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
             ("max_actions_per_turn", 1, 32),
             ("expansion_city_target", 1, 20),
             ("settle_min_distance", 1, 12),
-            ("horizon_turn", 1, 500),
+            ("horizon_turn", 1, 1000),
             ("production_minimum_remaining_turns", 1, 100),
             ("expansion_minimum_remaining_turns", 1, 100),
             ("expansion_minimum_settlement_runway_turns", 0, 100),
@@ -80,6 +80,18 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
         raise ValueError(
             "{}.expansion_final_settlement_escort_enabled must be "
             "boolean".format(prefix))
+    for key in (
+            "ruleset_driven_production_enabled", "naval_response_enabled",
+            "modernization_enabled", "industrialization_enabled"):
+        if not isinstance(impact.get(key, False), bool):
+            raise ValueError("{}.{} must be boolean".format(prefix, key))
+    threat_memory = impact.get("strategic_threat_memory_turns", 60)
+    if (isinstance(threat_memory, bool)
+            or not isinstance(threat_memory, int)
+            or not 0 <= threat_memory <= 200):
+        raise ValueError(
+            "{}.strategic_threat_memory_turns must be in 0..200".format(
+                prefix))
     if impact.get("production_strategy") not in ("static_priority", "horizon_score"):
         raise ValueError(
             "{}.production_strategy must be static_priority or horizon_score".format(prefix))
@@ -566,7 +578,9 @@ def load(path=None):
             "harness model.selection_call_policy must be "
             "canonical-singleton-bypass-v1")
     rulebase = value.get("rulebase", {})
-    if rulebase.get("compiler_version") != "freeciv-ruleset-compiler/1.2":
+    if rulebase.get("compiler_version") not in (
+            "freeciv-ruleset-compiler/1.2",
+            "freeciv-ruleset-compiler/1.3"):
         raise ValueError("harness rulebase compiler version is not pinned")
     for key in ("source_sha256", "ir_sha256", "atomese_sha256"):
         digest = rulebase.get(key)

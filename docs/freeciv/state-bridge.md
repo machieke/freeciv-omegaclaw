@@ -10,6 +10,8 @@ stable-government transitions and post-revolution selection are described by
 `contracts/freeciv-proxy/v9/contract.json`. Bounded rate transitions and the
 optional city-local happiness template are described by
 `contracts/freeciv-proxy/v10/contract.json`.
+Resource-flow, building-inventory, and score observations are described by
+`contracts/freeciv-proxy/v11/contract.json`.
 Apply the tracked patch series to the pinned external checkout before starting
 its container:
 
@@ -33,9 +35,11 @@ the city-food-governor patch is pinned at
 the government-transition patch is pinned at
 `1b3ecb9458559b0552f232e41804e545a94ccd4d2d774a0f0e6c90dac8dd013c`;
 the disorder-recovery patch is pinned at
-`e800adbe5a4f3a8e68e30a4e21019ef92dabbb272b28ecd50d90c64e7dcb417b`.
-The ordered eight-patch series identity is
-`99a5f09f6a8904c8843787eff6964711d6928a15ff3b08da86030d67038b8b90`.
+`e800adbe5a4f3a8e68e30a4e21019ef92dabbb272b28ecd50d90c64e7dcb417b`;
+and the strategic-observability patch is pinned at
+`9a768dda13455760f5d02a3e66ebc3eae564c3b37c8965c77c9e9565c3656e44`.
+The ordered nine-patch series identity is
+`fd9c5fef6556c903baf5b022d6f88ab560596b552b289dd35b68dbd037b3a603`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 The v9 projection closes the stable-government initiation gap. The proxy now
@@ -89,6 +93,14 @@ and one return toward the configured 40/60 tax/science split, always inside the
 owned co-located city ID; `unit_disband` remains actor exact. Normalization,
 sanitization, validation, packet conversion, and canonical legal-action membership
 all preserve those identifiers.
+
+The v11 strategic projection closes the long-horizon accounting gaps. Effective
+gold now equals structural operating flow plus exact Coinage conversion; both
+components remain separately observable. Research emits gross beakers,
+technology upkeep, and net beakers. Owned-city improvement bitvectors become a
+named building inventory with ruleset upkeep, and packet player scores become
+an own/opponent score table. These remain observations: the proxy does not infer
+building effects, military policy, or the cause of a score change.
 
 The v6 projection emits only player-known `PACKET_TILE_INFO` records. Every
 record has a bounded tile index and coordinates derived from the authoritative

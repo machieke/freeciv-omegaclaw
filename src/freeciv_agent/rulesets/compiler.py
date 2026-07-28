@@ -9,7 +9,7 @@ from .ir import Requirement, Rule, RulesetIR
 from .secfile import SecTable, SecfileError, parse
 
 
-COMPILER_VERSION = "freeciv-ruleset-compiler/1.2"
+COMPILER_VERSION = "freeciv-ruleset-compiler/1.3"
 FILES = ("techs.ruleset", "units.ruleset", "buildings.ruleset", "game.ruleset")
 ALLOWED_REQUIREMENT_COLUMNS = {"type", "name", "range", "present", "quiet", "survives"}
 REQUIREMENT_PREDICATES = {
@@ -156,7 +156,9 @@ def _quantitative(section, ruleset, filename):
     result = {}
     for field_name in (
             "build_cost", "pop_cost", "upkeep", "cost",
-            "uk_food", "uk_shield", "uk_gold", "happy_cost"):
+            "uk_food", "uk_shield", "uk_gold", "happy_cost",
+            "attack", "defense", "hitpoints", "firepower", "move_rate",
+            "transport_cap", "fuel"):
         field = section.fields.get(field_name)
         if field is not None:
             if not isinstance(field.value, (int, float)):
@@ -179,7 +181,7 @@ def _traits(section, ruleset, filename, kind):
     if kind != "unit":
         return {}
     result = {}
-    for field_name in ("flags", "roles"):
+    for field_name in ("class", "flags", "roles", "cargo", "targets"):
         field = section.fields.get(field_name)
         if field is None:
             continue

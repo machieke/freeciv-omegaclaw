@@ -1,0 +1,36 @@
+{
+  "schema_version": "11.0",
+  "extends": "../v10/contract.json",
+  "upstream_base_commit": "26ba7124249f34fd3050ef29bf191bd4d8808018",
+  "authoritative_observations": {
+    "economy": {
+      "operating_gold_per_turn": "city surplus adjusted exactly once for the packet gold-upkeep style",
+      "capitalization_gold_per_turn": "for each city producing Coinage, shield_stock plus current shield surplus",
+      "gold_per_turn": "operating_gold_per_turn plus capitalization_gold_per_turn"
+    },
+    "research": {
+      "gross_beakers_per_turn": "sum of owned-city science production",
+      "tech_upkeep": "PACKET_PLAYER_INFO tech_upkeep",
+      "beakers_per_turn": "gross_beakers_per_turn minus tech_upkeep"
+    },
+    "city_buildings": "owned-city improvements bitvector decoded against PACKET_RULESET_BUILDING with name and upkeep",
+    "score": "non-negative own and opponent PACKET_PLAYER_INFO score, identity, name, and alive state; the protocol's hidden -1 sentinel is normalized to null"
+  },
+  "policy_boundary": {
+    "proxy": "projects packet and ruleset facts only",
+    "planner": "may compare score and capability, but must select only a current legal production or research action",
+    "observability": "may aggregate produced, consumed, and net city yields but may not attribute a city yield delta causally to one building"
+  },
+  "fail_closed": [
+    "unknown upkeep style keeps operating and effective gold unavailable",
+    "missing Coinage shield stock or surplus keeps capitalization and effective gold unavailable",
+    "missing building bitvectors produce an empty inventory rather than inferred buildings",
+    "missing or negative hidden player scores remain null and do not create score-gap pressure"
+  ],
+  "invariants": [
+    "Coinage is never relabeled as structural operating income",
+    "technology upkeep is never hidden inside a gross science label",
+    "building inventory and score tables remain player-authoritative",
+    "all strategic actions still pass exact legal-action membership and post-action verification"
+  ]
+}

@@ -1,0 +1,214 @@
+diff --git a/freeciv-proxy/civcom.py b/freeciv-proxy/civcom.py
+index e9ba302..2246826 100755
+--- a/freeciv-proxy/civcom.py
++++ b/freeciv-proxy/civcom.py
+@@ -3223,20 +3223,90 @@ class CivCom(Thread):
+         gold_upkeep_style = getattr(self, 'gold_upkeep_style', None)
+         if gold_upkeep_style == 'City':
+             # City surplus already includes both building and unit upkeep.
+-            gold_per_turn = city_gold_surplus_per_turn
++            operating_gold_per_turn = city_gold_surplus_per_turn
+         elif gold_upkeep_style == 'Mixed':
+             # City surplus includes building upkeep; units are paid nationally.
+-            gold_per_turn = (
++            operating_gold_per_turn = (
+                 city_gold_surplus_per_turn - unit_gold_upkeep
+                 if city_gold_surplus_per_turn is not None
+                 and unit_gold_upkeep is not None else None)
+         else:
+             # Nation-style building upkeep is not yet projected exactly. An
+             # absent game-info style is equally unavailable, not permission.
+-            gold_per_turn = None
++            operating_gold_per_turn = None
++        capitalization_gold_per_turn = 0
++        for city in own_cities:
++            if not self._is_city_producing_coinage(city):
++                continue
++            surplus = city.get('surplus')
++            shield_stock = city.get('shield_stock')
++            if (
++                not isinstance(surplus, list)
++                or len(surplus) <= 1
++                or shield_stock is None
++            ):
++                capitalization_gold_per_turn = None
++                break
++            # Freeciv's Coinage conversion deposits both the accumulated stock
++            # and this turn's shield surplus into the treasury.
++            capitalization_gold_per_turn += shield_stock + surplus[1]
++        gold_per_turn = (
++            operating_gold_per_turn + capitalization_gold_per_turn
++            if operating_gold_per_turn is not None
++            and capitalization_gold_per_turn is not None else None
++        )
+         researching = research.get('researching')
+         researching_def = self.techs.get(researching, {})
+ 
++        def built_improvements(city):
++            bitvector = city.get('improvements')
++            if not isinstance(bitvector, list):
++                return []
++            rows = []
++            for raw_id, improvement in self.improvements.items():
++                try:
++                    improvement_id = int(raw_id)
++                except (TypeError, ValueError):
++                    continue
++                byte_index = improvement_id // 8
++                bit_index = improvement_id % 8
++                if (
++                    byte_index >= len(bitvector)
++                    or not bitvector[byte_index] & (1 << bit_index)
++                ):
++                    continue
++                rows.append({
++                    'id': improvement_id,
++                    'name': improvement.get('name', str(improvement_id)),
++                    'upkeep': improvement.get('upkeep'),
++                })
++            return sorted(rows, key=lambda row: row['id'])
++
++        for city in self._normalize_to_dict(state.get('cities', {})).values():
++            if city.get('owner') == player_id:
++                city['built_improvements'] = built_improvements(city)
++
++        score_players = []
++
++        def visible_score(value):
++            return (
++                value if isinstance(value, int)
++                and not isinstance(value, bool) and value >= 0 else None
++            )
++
++        for raw_id, score_player in self._normalize_to_dict(
++                self.player_packets).items():
++            try:
++                score_player_id = int(raw_id)
++            except (TypeError, ValueError):
++                continue
++            score_players.append({
++                'player_id': score_player_id,
++                'name': score_player.get('name', str(score_player_id)),
++                'score': visible_score(score_player.get('score')),
++                'is_alive': score_player.get('is_alive'),
++            })
++
+         state['format'] = 'pln_authoritative'
+         state['authoritative'] = {
+             'source_seq': self.source_seq,
+@@ -3244,6 +3314,8 @@ class CivCom(Thread):
+                 'is_alive': player_alive,
+                 'gold': player.get('gold'),
+                 'gold_per_turn': gold_per_turn,
++                'operating_gold_per_turn': operating_gold_per_turn,
++                'capitalization_gold_per_turn': capitalization_gold_per_turn,
+                 'city_gold_surplus_per_turn': city_gold_surplus_per_turn,
+                 'unit_gold_upkeep': unit_gold_upkeep,
+                 'gold_upkeep_reserve': unit_gold_upkeep,
+@@ -3259,6 +3331,8 @@ class CivCom(Thread):
+                 'researching_cost': research.get('researching_cost'),
+                 'bulbs_researched': research.get('bulbs_researched'),
+                 'beakers_per_turn': beakers_per_turn,
++                'gross_beakers_per_turn': gross_beakers,
++                'tech_upkeep': tech_upkeep,
+                 'total_bulbs_prod': research.get('total_bulbs_prod'),
+                 'inventions': research.get('inventions'),
+             },
+@@ -3271,6 +3345,14 @@ class CivCom(Thread):
+                 'governments': len(getattr(self, 'governments', {})),
+                 'diagnostic': None if self.rulesets_ready else 'PACKET_RULESETS_READY not received',
+             },
++            'score': {
++                'own': visible_score(player.get('score')),
++                'opponents': [
++                    row for row in sorted(
++                        score_players, key=lambda row: row['player_id'])
++                    if row['player_id'] != player_id
++                ],
++            },
+             # Packet-known map facts only. A remembered hut may be stale under
+             # fog of war, so execution independently rechecks the same exact
+             # tile/extra cause before selecting its action packet.
+diff --git a/freeciv-proxy/tests/test_pln_authoritative_state.py b/freeciv-proxy/tests/test_pln_authoritative_state.py
+index 65dcb8d..b6ef86c 100644
+--- a/freeciv-proxy/tests/test_pln_authoritative_state.py
++++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
+@@ -31,7 +31,9 @@ def make_civcom():
+     civcom.player_packets = {
+         0: {"is_alive": True, "gold": 31, "tax": 30, "science": 60, "luxury": 10,
+             "tech_upkeep": 1, "government": 1, "target_government": 1,
+-            "revolution_finishes": -1}
++            "revolution_finishes": -1, "name": "Romans", "score": 42},
++        1: {"is_alive": True, "name": "Vikings", "score": 51},
++        2: {"is_alive": True, "name": "Hidden", "score": -1},
+     }
+     civcom.research_info = {
+         0: {"researching": 2, "researching_cost": 50,
+@@ -46,10 +48,14 @@ def make_civcom():
+             "reqs": [{"kind": 1, "value": 1, "present": True}]},
+     }
+     civcom.unit_types = {1: {"name": "Warriors"}}
+-    civcom.improvements = {1: {"name": "Barracks"}}
++    civcom.improvements = {
++        1: {"name": "Barracks", "upkeep": 1},
++        2: {"name": "Coinage", "upkeep": 0},
++    }
+     civcom.player_cities = {
+         4: {"id": 4, "owner": 0, "prod": [5, 4, 3, 2, 0, 10],
+             "surplus": [2, 3, 3, 4, 0, 10],
++            "shield_stock": 0, "improvements": [2],
+             "governor": {
+                 "available": True, "enabled": True,
+                 "minimal_surplus": [1, 0, 0, 0, 0, 0],
+@@ -92,8 +98,29 @@ def test_authoritative_state_uses_player_packet_and_owned_city_outputs():
+     assert state["authoritative"]["player"]["gold_upkeep_reserve"] == 2
+     assert state["authoritative"]["player"]["gold_upkeep_style"] == "Mixed"
+     assert state["authoritative"]["player"]["gold_per_turn"] == 2
++    assert state["authoritative"]["player"]["operating_gold_per_turn"] == 2
++    assert state["authoritative"]["player"]["capitalization_gold_per_turn"] == 0
+     assert state["authoritative"]["research"]["beakers_per_turn"] == 9
++    assert state["authoritative"]["research"]["gross_beakers_per_turn"] == 10
++    assert state["authoritative"]["research"]["tech_upkeep"] == 1
+     assert state["authoritative"]["research"]["researching_name"] == "Writing"
++    assert state["authoritative"]["score"] == {
++        "own": 42,
++        "opponents": [{
++            "player_id": 1,
++            "name": "Vikings",
++            "score": 51,
++            "is_alive": True,
++        }, {
++            "player_id": 2,
++            "name": "Hidden",
++            "score": None,
++            "is_alive": True,
++        }],
++    }
++    assert state["cities"][4]["built_improvements"] == [{
++        "id": 1, "name": "Barracks", "upkeep": 1,
++    }]
+     assert state["authoritative"]["government"]["current_name"] == "Despotism"
+     assert state["authoritative"]["government"]["selection_required"] is False
+     assert state["authoritative"]["ruleset"]["ready"] is True
+@@ -282,6 +309,21 @@ def test_net_gold_respects_packet_gold_upkeep_style_without_double_counting():
+     assert missing_style["authoritative"]["player"]["gold_per_turn"] is None
+ 
+ 
++def test_coinage_is_included_in_effective_gold_flow():
++    civcom = make_civcom()
++    civcom.player_cities[4].update({
++        "production_kind": 3,
++        "production_value": 2,
++        "shield_stock": 2,
++    })
++
++    state = CivCom.build_pln_authoritative_state(civcom, 0)
++
++    assert state["authoritative"]["player"]["operating_gold_per_turn"] == 2
++    assert state["authoritative"]["player"]["capitalization_gold_per_turn"] == 5
++    assert state["authoritative"]["player"]["gold_per_turn"] == 7
++
++
+ def test_removal_notification_attributes_gold_and_food_losses_exactly():
+     civcom = make_civcom()
+     civcom.player_units = {

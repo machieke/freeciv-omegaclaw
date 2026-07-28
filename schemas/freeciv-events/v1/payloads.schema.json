@@ -362,13 +362,40 @@
         "food_stock": {"type": ["integer", "null"]},
         "shield_stock": {"type": ["integer", "null"]},
         "outputs": {"$ref": "#/$defs/yieldVector"},
+        "usage": {"$ref": "#/$defs/yieldVector"},
         "surplus": {"$ref": "#/$defs/yieldVector"},
         "target": {"$ref": "#/$defs/productionTarget"},
         "buildable_count": {"type": "integer", "minimum": 0},
+        "buildings": {
+          "type": "array", "items": {"$ref": "#/$defs/cityBuilding"}
+        },
+        "building_changes": {
+          "type": "array", "items": {"$ref": "#/$defs/buildingChange"}
+        },
+        "building_upkeep": {"type": "integer", "minimum": 0},
         "mood": {"$ref": "#/$defs/cityMood"},
         "support": {"$ref": "#/$defs/citySupport"},
         "had_famine": {"type": ["boolean", "null"]},
         "governor": {"$ref": "#/$defs/cityGovernor"}
+      }
+    },
+    "cityBuilding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["improvement_id", "name", "upkeep"],
+      "properties": {
+        "improvement_id": {"type": "integer", "minimum": 0},
+        "name": {"type": "string", "minLength": 1},
+        "upkeep": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "buildingChange": {
+      "type": "object", "additionalProperties": false,
+      "required": ["transition", "improvement_id", "name", "upkeep"],
+      "properties": {
+        "transition": {"enum": ["completed", "removed"]},
+        "improvement_id": {"type": "integer", "minimum": 0},
+        "name": {"type": "string", "minLength": 1},
+        "upkeep": {"type": ["integer", "null"], "minimum": 0}
       }
     },
     "cityGovernor": {
@@ -447,6 +474,8 @@
         "diagnostic": {"type": ["string", "null"]},
         "gold": {"type": ["integer", "null"]},
         "gold_per_turn": {"type": ["integer", "null"]},
+        "operating_gold_per_turn": {"type": ["integer", "null"]},
+        "capitalization_gold_per_turn": {"type": ["integer", "null"]},
         "gold_upkeep_reserve": {"type": ["integer", "null"], "minimum": 0},
         "city_gold_surplus_per_turn": {"type": ["integer", "null"]},
         "gold_upkeep_style": {
@@ -458,6 +487,44 @@
         "unit_gold_upkeep": {"type": ["integer", "null"], "minimum": 0}
       }
     },
+    "researchFlow": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "gross_beakers_per_turn", "tech_upkeep", "net_beakers_per_turn"
+      ],
+      "properties": {
+        "gross_beakers_per_turn": {"type": ["integer", "null"]},
+        "tech_upkeep": {"type": ["integer", "null"]},
+        "net_beakers_per_turn": {"type": ["integer", "null"]}
+      }
+    },
+    "playerScore": {
+      "type": "object", "additionalProperties": false,
+      "required": ["player_id", "name", "score", "is_alive"],
+      "properties": {
+        "player_id": {"type": "integer", "minimum": 0},
+        "name": {"type": "string"},
+        "score": {"type": ["integer", "null"]},
+        "is_alive": {"type": ["boolean", "null"]}
+      }
+    },
+    "scoreState": {
+      "type": "object", "additionalProperties": false,
+      "required": ["own", "leader", "gap_to_leader", "opponents"],
+      "properties": {
+        "own": {"type": ["integer", "null"]},
+        "leader": {
+          "oneOf": [
+            {"$ref": "#/$defs/playerScore"},
+            {"type": "null"}
+          ]
+        },
+        "gap_to_leader": {"type": ["integer", "null"]},
+        "opponents": {
+          "type": "array", "items": {"$ref": "#/$defs/playerScore"}
+        }
+      }
+    },
     "production_state": {
       "type": "object", "additionalProperties": false,
       "required": ["snapshot_id", "economy", "cities"],
@@ -465,6 +532,8 @@
         "snapshot_id": {"type": "string", "minLength": 1},
         "government": {"$ref": "#/$defs/governmentState"},
         "economy": {"$ref": "#/$defs/productionEconomy"},
+        "research_flow": {"$ref": "#/$defs/researchFlow"},
+        "score": {"$ref": "#/$defs/scoreState"},
         "cities": {
           "type": "array", "items": {"$ref": "#/$defs/cityProductionState"}
         }

@@ -59,12 +59,22 @@ The UI exposes one global `(turn, seq)` cursor across:
 - grouped harness-emitted calibration, latency, error, depth, and ablation metric
   series.
 
-The **Economy & production** view separates city gold surplus, the packet
-upkeep style, unit gold upkeep, net cash flow, and the immediate upkeep reserve.
+The **Economy & production** view separates operating cash flow from Coinage
+shield conversion, then shows their effective net, city gold surplus, packet
+upkeep style, unit and building upkeep, and the immediate upkeep reserve. Each
+yield is displayed as produced, consumed, and net at empire and city level.
+Gross science, technology upkeep, and net beakers share the same view and also
+appear beside the current target in **Technology**.
 It marks food-reserve, treasury-reserve, and local-defense status alongside the exact PF goal context,
 adds a per-city `+1` food-reserve check, identifies sustainability queue
 overrides and their discarded shields, and indexes rate, rehome, disband, and
 production interventions without reconstructing unlogged planner state.
+The current score, opponent leader, exact gap, fleet completions, building
+inventory, building upkeep, and observed building completion/removal transitions
+make strategic stalls visible. Building/yield correlation remains explicitly
+city-level; the UI does not claim that one building caused a contemporaneous
+yield delta. FreeCiv's negative hidden-score sentinel is normalized to unknown;
+it cannot create a leader comparison or a PF-PLN score-pressure route.
 
 The header can collapse the inspector or enable focus mode. View, cursor, selected
 entity, atom filters, PF decision, focus mode, and inspector state are deep-linked
@@ -141,10 +151,10 @@ Start the persisted-first read-only tail over an existing event file:
 ```bash
 PYTHONPATH=src python3 scripts/freeciv/serve_event_tail.py \
   --events artifacts/freeciv/v5-live-200/events.jsonl \
-  --game-id pln-v5-live-200 --host 127.0.0.1 --port 8765
+  --game-id pln-v5-live-200 --host 127.0.0.1 --port 18765
 ```
 
-Set `ws://127.0.0.1:8765` and the matching game ID in the Live view. Reconnects
+Set `ws://127.0.0.1:18765` and the matching game ID in the Live view. Reconnects
 resume after the last accepted `(game_id, turn, seq)`. Backfilled and new records go
 through the same validator, indexes, and fold as file replay.
 
@@ -165,6 +175,8 @@ apps/freeciv-observability/node_modules/.bin/vite-node \
 ```
 
 The accepted soak is documented in [Phase 12 evidence](evidence/phase-12-v5.md).
+The matched 480-turn active-tail runtime check is documented in
+[live-tail runtime evidence](evidence/live-tail-runtime-comparison-v1.md).
 Replay/performance results are in [Phase 5 evidence](evidence/phase-5-v1-v2.md),
 plan/map behavior in [Phase 7 evidence](evidence/phase-7-v3.md), and audit/metrics
 behavior in [Phases 10](evidence/phase-10-m6-v4.md) and

@@ -186,6 +186,44 @@ def test_player_rates_action_and_net_gold_components_are_typed():
     }
 
 
+def test_resource_building_and_score_components_are_typed():
+    payload = _payload()
+    payload["authoritative"]["player"].update({
+        "operating_gold_per_turn": -3,
+        "capitalization_gold_per_turn": 5,
+        "gold_per_turn": 2,
+    })
+    payload["authoritative"]["research"].update({
+        "gross_beakers_per_turn": 13,
+        "tech_upkeep": 4,
+    })
+    payload["authoritative"]["score"] = {
+        "own": 42,
+        "opponents": [{
+            "player_id": 1, "name": "Vikings",
+            "score": 55, "is_alive": True,
+        }, {
+            "player_id": 2, "name": "Hidden",
+            "score": -1, "is_alive": True,
+        }],
+    }
+    payload["cities"]["3"]["built_improvements"] = [{
+        "id": 7, "name": "Library", "upkeep": 1,
+    }]
+
+    snapshot = _snapshot(payload=payload)
+
+    assert snapshot.economy.operating_gold_per_turn == -3
+    assert snapshot.economy.capitalization_gold_per_turn == 5
+    assert snapshot.research.gross_beakers_per_turn == 13
+    assert snapshot.research.tech_upkeep == 4
+    assert snapshot.city(3).buildings[0].name == "Library"
+    assert snapshot.city(3).buildings[0].upkeep == 1
+    assert snapshot.own_score == 42
+    assert snapshot.opponent_scores[0].score == 55
+    assert snapshot.opponent_scores[1].score is None
+
+
 def test_packet_parity_normalizes_sustainability_control_actions_independently():
     payload = _payload()
     payload["legal_actions"] = [

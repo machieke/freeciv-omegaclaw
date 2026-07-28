@@ -37,6 +37,11 @@ impact_policy:
   expansion_escort_threat_gating_enabled: false
   expansion_escort_route_threat_memory_enabled: false
   expansion_final_settlement_escort_enabled: false
+  ruleset_driven_production_enabled: false
+  naval_response_enabled: false
+  modernization_enabled: false
+  industrialization_enabled: false
+  strategic_threat_memory_turns: 60
   foodbox_percent: 100
   unit_build_score_divisor: 10
   food_surplus_reserve: 1
@@ -313,6 +318,49 @@ governor in the examined server states. Adapter 1.24 therefore keeps both
 features explicitly disabled in live profiles. The proxy and DTO still
 preserve their exact typed actions so future ablations can be run without
 weakening validation or inventing capability.
+
+Adapter 1.25 adds opt-in ruleset-driven long-horizon production. The compiler
+supplies unit class and quantitative combat/transport facts. Once expansion,
+food, treasury, and local garrison premises are safe, the planner can choose a
+material domain upgrade, a first fleet while trailing the score leader, or a
+naval response while bounded packet-visible sea-threat memory remains live.
+It can also choose ruleset-buildable Factory/power, research, commerce, port,
+and coastal-defense infrastructure under their corresponding authoritative
+deficits. No hardcoded advanced-unit whitelist creates legality: every target
+must be in the current city production actions, complete inside the horizon,
+and pass population and upkeep guards. Missile-class and ruleset `OneAttack`
+units are tactical consumables, not persistent domain modernization; they are
+excluded from both modernization ranking and strategic research-unlock value
+until a separate target-and-launch policy exists. The 30-turn paired cohorts
+keep these switches false; the versioned 960-turn diagnostic profile enables
+them.
+
+A packet-visible same-domain unit whose ruleset-derived capability exceeds the
+owned domain ceiling creates `production_threat_modernization`. That category
+routes to survival pressure even when FreeCiv still hides opponent scores; the
+ordinary modernization category remains score-routed. A conventional upgrade
+must exceed the current ceiling by at least ten percent (and one absolute
+capability point), remain sustainable, and still pass exact legal production.
+
+Research selection now ranks current legal technologies by immediate compiled
+unlock value. A candidate receives value only when adding that exact technology
+closes all currently missing technology antecedents of a unit or building.
+When no explicit server choice set is present, the selector reconstructs the
+current research frontier from satisfied technology antecedents and excludes
+deeper future nodes; it re-ranks after each completion instead of hiding a long
+dependency chain behind one attractive endpoint.
+A positive compiled capability/infrastructure unlock is emitted as a canonical
+singleton and bypasses the model. If every current frontier node has zero
+grounded strategic value, the cheapest legal technology is the deterministic
+fallback. This removes a model-choice branch that was observed selecting the
+cheap comparison despite a stronger declared unlock.
+
+Commerce infrastructure also requires a structural construction runway:
+authoritative treasury minus negative operating cash flow must remain above the
+reserve through the projected completion ETA plus the configured reserve band.
+Coinage capitalization is excluded from that runway. This prevents a
+Bank/Coinage or Marketplace/defender queue oscillation from repeatedly
+abandoning construction whenever Coinage briefly makes effective cash positive.
 
 A post-expansion replacement-reserve experiment was also rejected. It doubled
 defender completions from 17 to 32, but the opponent destroyed 25 instead of

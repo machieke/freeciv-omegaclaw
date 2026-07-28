@@ -237,6 +237,9 @@ export type ProductionTarget = {
 
 export type CityProductionState = {
   "buildable_count": number;
+  "building_changes"?: Array<BuildingChange>;
+  "building_upkeep"?: number;
+  "buildings"?: Array<CityBuilding>;
   "city_id": number;
   "food_stock": number | null;
   "governor"?: CityGovernor;
@@ -249,6 +252,20 @@ export type CityProductionState = {
   "support"?: CitySupport;
   "surplus": YieldVector;
   "target": ProductionTarget;
+  "usage"?: YieldVector;
+};
+
+export type CityBuilding = {
+  "improvement_id": number;
+  "name": string;
+  "upkeep": number | null;
+};
+
+export type BuildingChange = {
+  "improvement_id": number;
+  "name": string;
+  "transition": "completed" | "removed";
+  "upkeep": number | null;
 };
 
 export type CityGovernor = {
@@ -292,6 +309,7 @@ export type CitySupport = {
 
 export type ProductionEconomy = {
   "available": boolean;
+  "capitalization_gold_per_turn"?: number | null;
   "city_gold_surplus_per_turn"?: number | null;
   "diagnostic"?: string | null;
   "gold": number | null;
@@ -299,15 +317,38 @@ export type ProductionEconomy = {
   "gold_upkeep_reserve"?: number | null;
   "gold_upkeep_style"?: "City" | "Mixed" | "Nation" | null;
   "luxury_rate": number | null;
+  "operating_gold_per_turn"?: number | null;
   "science_rate": number | null;
   "tax_rate": number | null;
   "unit_gold_upkeep"?: number | null;
+};
+
+export type ResearchFlow = {
+  "gross_beakers_per_turn": number | null;
+  "net_beakers_per_turn": number | null;
+  "tech_upkeep": number | null;
+};
+
+export type PlayerScore = {
+  "is_alive": boolean | null;
+  "name": string;
+  "player_id": number;
+  "score": number | null;
+};
+
+export type ScoreState = {
+  "gap_to_leader": number | null;
+  "leader": PlayerScore | null;
+  "opponents": Array<PlayerScore>;
+  "own": number | null;
 };
 
 export type ProductionState = {
   "cities": Array<CityProductionState>;
   "economy": ProductionEconomy;
   "government"?: GovernmentState;
+  "research_flow"?: ResearchFlow;
+  "score"?: ScoreState;
   "snapshot_id": string;
 };
 

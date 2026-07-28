@@ -36,6 +36,8 @@ class ResearchState:
     beakers_per_turn: Optional[int]
     available: bool
     diagnostic: Optional[str] = None
+    gross_beakers_per_turn: Optional[int] = None
+    tech_upkeep: Optional[int] = None
 
     def to_dict(self):
         return {
@@ -43,10 +45,12 @@ class ResearchState:
             "beakers_per_turn": self.beakers_per_turn,
             "cost": self.cost,
             "diagnostic": self.diagnostic,
+            "gross_beakers_per_turn": self.gross_beakers_per_turn,
             "known_techs": list(self.known_techs),
             "progress": self.progress,
             "target_id": self.target_id,
             "target_name": self.target_name,
+            "tech_upkeep": self.tech_upkeep,
         }
 
 
@@ -63,10 +67,13 @@ class EconomicState:
     unit_gold_upkeep: Optional[int] = None
     gold_upkeep_reserve: Optional[int] = None
     gold_upkeep_style: Optional[str] = None
+    operating_gold_per_turn: Optional[int] = None
+    capitalization_gold_per_turn: Optional[int] = None
 
     def to_dict(self):
         return {
             "available": self.available,
+            "capitalization_gold_per_turn": self.capitalization_gold_per_turn,
             "diagnostic": self.diagnostic,
             "gold": self.gold,
             "gold_per_turn": self.gold_per_turn,
@@ -74,6 +81,7 @@ class EconomicState:
             "gold_upkeep_style": self.gold_upkeep_style,
             "city_gold_surplus_per_turn": self.city_gold_surplus_per_turn,
             "luxury_rate": self.luxury_rate,
+            "operating_gold_per_turn": self.operating_gold_per_turn,
             "science_rate": self.science_rate,
             "tax_rate": self.tax_rate,
             "unit_gold_upkeep": self.unit_gold_upkeep,
@@ -132,6 +140,36 @@ class UnitState:
 
 
 @dataclass(frozen=True)
+class BuildingState:
+    improvement_id: int
+    name: str
+    upkeep: Optional[int] = None
+
+    def to_dict(self):
+        return {
+            "improvement_id": self.improvement_id,
+            "name": self.name,
+            "upkeep": self.upkeep,
+        }
+
+
+@dataclass(frozen=True)
+class PlayerScoreState:
+    player_id: int
+    name: str
+    score: Optional[int]
+    is_alive: Optional[bool] = None
+
+    def to_dict(self):
+        return {
+            "is_alive": self.is_alive,
+            "name": self.name,
+            "player_id": self.player_id,
+            "score": self.score,
+        }
+
+
+@dataclass(frozen=True)
 class CityState:
     city_id: int
     owner: int
@@ -167,12 +205,14 @@ class CityState:
     governor_max_growth: Optional[bool] = None
     governor_allow_specialists: Optional[bool] = None
     governor_happy_factor: Optional[int] = None
+    buildings: Tuple[BuildingState, ...] = field(default_factory=tuple)
 
     def to_dict(self):
         return {
             "buildability_available": self.buildability_available,
             "buildability_diagnostic": self.buildability_diagnostic,
             "buildable": [list(item) for item in self.buildable],
+            "buildings": [item.to_dict() for item in self.buildings],
             "city_id": self.city_id, "food_stock": self.food_stock, "name": self.name,
             "owner": self.owner, "production": list(self.production),
             "production_kind": self.production_kind,
@@ -225,6 +265,8 @@ class AuthoritativeSnapshot:
     legal_action_kinds: Tuple[str, ...]
     government: GovernmentState = field(default_factory=GovernmentState)
     game_over: bool = False
+    own_score: Optional[int] = None
+    opponent_scores: Tuple[PlayerScoreState, ...] = field(default_factory=tuple)
 
     @property
     def snapshot_id(self):
@@ -255,6 +297,10 @@ class AuthoritativeSnapshot:
             "government": self.government.to_dict(),
             "legal_actions_digest": self.legal_actions_digest,
             "player_alive": self.player_alive,
+            "score": {
+                "opponents": [row.to_dict() for row in self.opponent_scores],
+                "own": self.own_score,
+            },
             "research": self.research.to_dict(),
             "ruleset_diagnostic": self.ruleset_diagnostic,
             "ruleset_ready": self.ruleset_ready,

@@ -179,7 +179,15 @@ class ImpactPressureRanker(object):
         "population_recovery": "score",
         "population_recovery_move": "score",
         "production_defense": "survival",
+        "production_coastal_defense": "survival",
+        "production_fleet_readiness": "score",
         "production_food_stabilization": "food_sustainability",
+        "production_industrialization": "score",
+        "production_modernization": "score",
+        "production_threat_modernization": "survival",
+        "production_naval_response": "survival",
+        "production_research_infrastructure": "score",
+        "production_commerce_infrastructure": "treasury_sustainability",
         "production_treasury_stabilization": "treasury_sustainability",
         "tactical_attack": "survival",
         "tactical_move": "survival",
@@ -294,6 +302,18 @@ class ImpactPressureRanker(object):
         category = str(candidate.category)
         if category in ("production_defense", "city_garrison_move"):
             return bool(defense_deficit)
+        if category in (
+                "production_naval_response", "production_coastal_defense"):
+            # These candidates exist only while the planner's bounded,
+            # packet-visible naval-threat memory is active.
+            return True
+        if category == "production_threat_modernization":
+            projection = candidate.projection or {}
+            return bool(
+                relevant_threats
+                and float(projection.get(
+                    "visible_enemy_domain_power", 0.0))
+                > float(projection.get("current_domain_power", 0.0)))
         if category == "city_defense" and defense_deficit:
             return True
         if category not in (
@@ -388,9 +408,11 @@ class ImpactPressureRanker(object):
             else "production_defense" in categories)
         disorder_city_ids = tuple(
             goal_facts.get("disorder_city_ids", ()))
+        recent_naval_threat = bool(
+            goal_facts.get("recent_naval_threat", False))
         survival_truth = (
             0.0 if relevant_threats or defense_deficit
-            or disorder_city_ids else 1.0)
+            or disorder_city_ids or recent_naval_threat else 1.0)
         food_city_ids = tuple(goal_facts.get("food_deficit_city_ids", ()))
         food_truth = float(goal_facts.get(
             "food_safe_fraction", 1.0 if not food_city_ids else 0.0))
@@ -433,6 +455,9 @@ class ImpactPressureRanker(object):
              if score_alignment else
              cls.goal_for_category(candidate.category) == "score")
             for candidate in candidates)
+        score_gap = goal_facts.get("score_gap_to_leader")
+        score_deficit = bool(
+            score_gap is not None and float(score_gap) < 0.0)
         return {
             "survival": (
                 survival_truth, 1.50, True,
@@ -441,6 +466,8 @@ class ImpactPressureRanker(object):
                  if disorder_city_ids else
                  "authoritative:grounded-production-defense-deficit"
                  if defense_deficit else
+                 "authoritative:bounded-packet-visible-naval-threat-memory"
+                 if recent_naval_threat else
                  "authoritative:visible-enemy-within-city-threat-radius:{}".format(
                      int(survival_threat_radius))
                  if relevant_threats else
@@ -470,8 +497,12 @@ class ImpactPressureRanker(object):
                 expansion_truth, 1.25, False,
                 "authoritative:city-count-over-target"),
             "score": (
-                0.0 if score_actionable else 1.0, 1.00, False,
-                ("authoritative:grounded-guaranteed-horizon-score-action"
+                0.0 if score_actionable or score_deficit else 1.0,
+                min(1.75, 1.00 + abs(float(score_gap or 0)) / 100.0),
+                False,
+                ("authoritative:score-gap-to-leader:{}".format(score_gap)
+                 if score_deficit else
+                 "authoritative:grounded-guaranteed-horizon-score-action"
                  if score_alignment and score_actionable
                  else "authoritative:grounded-score-action"
                  if score_actionable

@@ -121,7 +121,7 @@ describe("typed domain observability", () => {
     expect(screen.getByText(/planner reserve satisfied/i)).toBeInTheDocument();
     expect(screen.getByText("food governor")).toBeInTheDocument();
     expect(screen.getByText(/packet floor 1 · food weight 6/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/PF goal not logged/i)).toHaveLength(3);
+    expect(screen.getAllByText(/PF goal not logged/i)).toHaveLength(4);
     expect(screen.getByText(/No buildable PLN query was logged/i)).toBeInTheDocument();
   });
 

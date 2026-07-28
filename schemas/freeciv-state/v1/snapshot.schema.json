@@ -27,6 +27,8 @@
             "is_alive": {"type": "boolean"},
             "gold": {"type": "integer"},
             "gold_per_turn": {"type": ["integer", "null"]},
+            "operating_gold_per_turn": {"type": ["integer", "null"]},
+            "capitalization_gold_per_turn": {"type": ["integer", "null"]},
             "city_gold_surplus_per_turn": {"type": ["integer", "null"]},
             "gold_upkeep_style": {
               "type": ["string", "null"], "enum": ["City", "Mixed", "Nation", null]
@@ -44,8 +46,32 @@
           "properties": {
             "bulbs_researched": {"type": "integer"},
             "beakers_per_turn": {"type": "integer"},
+            "gross_beakers_per_turn": {"type": ["integer", "null"]},
+            "tech_upkeep": {"type": ["integer", "null"]},
             "researching": {"type": ["integer", "null"]},
             "researching_cost": {"type": ["integer", "null"]}
+          }
+        },
+        "score": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["own", "opponents"],
+          "properties": {
+            "own": {"type": ["integer", "null"]},
+            "opponents": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["player_id", "name", "score", "is_alive"],
+                "properties": {
+                  "player_id": {"type": "integer", "minimum": 0},
+                  "name": {"type": "string"},
+                  "score": {"type": ["integer", "null"]},
+                  "is_alive": {"type": ["boolean", "null"]}
+                }
+              }
+            }
           }
         },
         "ruleset": {

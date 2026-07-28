@@ -45,6 +45,27 @@ PYTHONPATH=src:benchmarks python3 scripts/freeciv/run_harness.py \
   --workers 1 --limit-seeds 1 --main-only --condition e_full_loop
 ```
 
+The exploratory 960-turn horizon extension uses the same single-game shape
+with its versioned long-horizon profile:
+
+```bash
+PYTHONPATH=src:benchmarks python3 scripts/freeciv/run_harness.py \
+  --config profile/freeciv_harness_960_turn.yaml \
+  --out artifacts/freeciv/pf-pln-960-turn-live-tail \
+  --backend engine-live --workers 1 --limit-seeds 1 \
+  --main-only --condition e_full_loop
+```
+
+This extended run is diagnostic and does not create a score or win-rate claim.
+Its long-horizon treatment enables the v1.3 ruleset capability policy:
+the confirmed five-city expansion capacity, ruleset-derived modernization,
+naval response with 80-turn visible-threat memory,
+industrial/research/commerce infrastructure, and authoritative score-gap
+pressure. The previously rejected global luxury, city-governor, Monarchy, and
+speculative overexpansion experiments remain disabled. Every production target
+must still be in the current server legal set and pass upkeep, horizon, and
+execution gates.
+
 Scheduler-enabled engine conditions also use the declared grounded gameplay impact
 policy in `impact_policy`. See [impact-policy.md](impact-policy.md) for its exact
 action priorities, safety boundaries, and decision-impact metrics. For CPU-hosted

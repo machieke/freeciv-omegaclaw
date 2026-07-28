@@ -295,10 +295,10 @@ read-only tail in another terminal:
 ```bash
 PYTHONPATH=src python3 scripts/freeciv/serve_event_tail.py \
   --events artifacts/freeciv/v5-live-200/events.jsonl \
-  --game-id pln-v5-live-200 --host 127.0.0.1 --port 8765
+  --game-id pln-v5-live-200 --host 127.0.0.1 --port 18765
 ```
 
-In the UI set the endpoint to `ws://127.0.0.1:8765`, set the matching game ID, and choose
+In the UI set the endpoint to `ws://127.0.0.1:18765`, set the matching game ID, and choose
 Live. Replay and live events use the same parser, validator, fold, indexes, and views.
 
 Compare every turn cursor after a soak:

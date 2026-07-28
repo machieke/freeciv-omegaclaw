@@ -39,13 +39,22 @@ from freeciv.harness.engine_live import (  # noqa: E402
     _impact_refresh_timeout,
     _decision_state_fingerprint, _decision_state_ready, _global_state_ready,
     _global_state, _player_eliminated, _release_configuration_active, _state,
-    _selection_target_rules, _validate_compact_goal_proposal,
+    _selection_target_rules, _target_rules, _validate_compact_goal_proposal,
     _websocket_compression)
 from freeciv.harness import engine_live  # noqa: E402
 from freeciv_agent.events.schema import canonical_json_bytes, structural_hash  # noqa: E402
 from freeciv_agent.events.validator import validate_file  # noqa: E402
 from freeciv_agent.events.writer import EventWriter  # noqa: E402
 from freeciv_agent.state import ProxyStateDTO  # noqa: E402
+
+
+def test_config_accepts_the_versioned_960_turn_horizon():
+    config = load(os.path.join(
+        REPO, "profile", "freeciv_harness_960_turn.yaml"))
+
+    assert config["turn_limit"] == 960
+    assert config["engine_max_turns"] == 960
+    assert config["impact_policy"]["horizon_turn"] == 960
 
 
 def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
@@ -931,6 +940,84 @@ def test_active_research_is_the_only_selection_target_without_new_choices():
     assert _active_research_continuation(snapshot, (), (active,))
     assert not _active_research_continuation(
         snapshot, ("Tech2",), (active, other))
+
+
+def test_research_choices_canonicalize_best_immediate_capability_unlock():
+    cheap = SimpleNamespace(
+        rule_id="tech-cheap", rule_name="Cheap", target_kind="tech",
+        disabled=False, quantitative={"cost": {"value": 10}},
+        antecedents=())
+    strategic = SimpleNamespace(
+        rule_id="tech-strategic", rule_name="Strategic",
+        target_kind="tech", disabled=False,
+        quantitative={"cost": {"value": 80}}, antecedents=())
+    scout = SimpleNamespace(
+        rule_id="unit-scout", rule_name="Scout", target_kind="unit",
+        disabled=False,
+        quantitative={
+            "attack": {"value": 1}, "defense": {"value": 1},
+            "hitpoints": {"value": 10}, "firepower": {"value": 1},
+        },
+        antecedents=(SimpleNamespace(
+            kind="Tech", name="Cheap", present=True),))
+    armor = SimpleNamespace(
+        rule_id="unit-armor", rule_name="Armor", target_kind="unit",
+        disabled=False,
+        quantitative={
+            "attack": {"value": 12}, "defense": {"value": 6},
+            "hitpoints": {"value": 20}, "firepower": {"value": 1},
+        },
+        antecedents=(SimpleNamespace(
+            kind="Tech", name="Strategic", present=True),))
+    nuclear_tech = SimpleNamespace(
+        rule_id="tech-nuclear", rule_name="Nuclear Tech", target_kind="tech",
+        disabled=False, quantitative={"cost": {"value": 20}},
+        antecedents=())
+    nuclear = SimpleNamespace(
+        rule_id="unit-nuclear", rule_name="Nuclear", target_kind="unit",
+        disabled=False,
+        quantitative={
+            "attack": {"value": 99}, "defense": {"value": 0},
+            "hitpoints": {"value": 10}, "firepower": {"value": 1},
+        },
+        traits={
+            "class": {"values": ["Missile"]},
+            "flags": {"values": ["Nuclear", "OneAttack"]},
+        },
+        antecedents=(SimpleNamespace(
+            kind="Tech", name="Nuclear Tech", present=True),))
+    ir = SimpleNamespace(
+        rules=(cheap, strategic, nuclear_tech, scout, armor, nuclear))
+
+    targets = _target_rules(
+        ir, known=(),
+        available_names=("Cheap", "Strategic", "Nuclear Tech"))
+
+    assert targets == (strategic,)
+
+
+def test_research_choices_do_not_rank_beyond_the_current_frontier():
+    frontier = SimpleNamespace(
+        rule_id="tech-frontier", rule_name="Frontier", target_kind="tech",
+        disabled=False, quantitative={"cost": {"value": 10}},
+        antecedents=())
+    future = SimpleNamespace(
+        rule_id="tech-future", rule_name="Future", target_kind="tech",
+        disabled=False, quantitative={"cost": {"value": 20}},
+        antecedents=(SimpleNamespace(
+            kind="Tech", name="Missing Base", present=True),))
+    future_unit = SimpleNamespace(
+        rule_id="unit-future", rule_name="Future Armor", target_kind="unit",
+        disabled=False, traits={},
+        quantitative={
+            "attack": {"value": 30}, "defense": {"value": 20},
+            "hitpoints": {"value": 40}, "firepower": {"value": 2},
+        },
+        antecedents=(SimpleNamespace(
+            kind="Tech", name="Future", present=True),))
+    ir = SimpleNamespace(rules=(frontier, future, future_unit))
+
+    assert _target_rules(ir, known=()) == (frontier,)
 
 
 def test_active_research_continuation_defers_planning_views(monkeypatch):

@@ -70,7 +70,8 @@ def extract_reference(ruleset_root, ruleset):
                 edges.add((kind, target, "reqs", json.dumps(item)))
             if kind == "unit":
                 traits[(kind, target)] = {}
-                for field_name in ("flags", "roles"):
+                for field_name in (
+                        "class", "flags", "roles", "cargo", "targets"):
                     trait_field = section.fields.get(field_name)
                     if trait_field is None:
                         continue

@@ -233,8 +233,7 @@ class DomainObservabilityEmitter(object):
             "government": snapshot.government.to_dict(),
         }
 
-    @staticmethod
-    def _production_payload(snapshot):
+    def _production_payload(self, snapshot):
         economy = snapshot.economy
         support = {}
         for unit in snapshot.units:
@@ -263,39 +262,54 @@ class DomainObservabilityEmitter(object):
             else observed_unit_gold_upkeep)
         net_gold_per_turn = (
             economy.gold_per_turn
-            if economy.city_gold_surplus_per_turn is not None
+            if economy.gold_per_turn is not None
             else (
                 city_gold_surplus_per_turn - unit_gold_upkeep
                 if city_gold_surplus_per_turn is not None else None))
-        return {
-            "snapshot_id": snapshot.snapshot_id,
-            "government": snapshot.government.to_dict(),
-            "economy": {
-                "available": economy.available,
-                "diagnostic": economy.diagnostic,
-                "gold": economy.gold,
-                "gold_per_turn": net_gold_per_turn,
-                "gold_upkeep_reserve": (
-                    economy.gold_upkeep_reserve
-                    if economy.gold_upkeep_reserve is not None
-                    else unit_gold_upkeep),
-                "city_gold_surplus_per_turn": city_gold_surplus_per_turn,
-                "gold_upkeep_style": economy.gold_upkeep_style,
-                "tax_rate": economy.tax_rate,
-                "science_rate": economy.science_rate,
-                "luxury_rate": economy.luxury_rate,
-                "unit_gold_upkeep": unit_gold_upkeep,
-            },
-            "cities": [{
+        previous_cities = {
+            city.city_id: city for city in self._previous.cities
+        } if self._previous is not None else {}
+
+        def city_payload(city):
+            previous = previous_cities.get(city.city_id)
+            previous_buildings = {
+                item.improvement_id: item
+                for item in previous.buildings
+            } if previous is not None else {}
+            current_buildings = {
+                item.improvement_id: item for item in city.buildings
+            }
+            building_changes = []
+            for improvement_id in sorted(
+                    set(previous_buildings) | set(current_buildings)):
+                before = previous_buildings.get(improvement_id)
+                after = current_buildings.get(improvement_id)
+                if (before is None) == (after is None):
+                    continue
+                building = after or before
+                building_changes.append({
+                    "transition": "completed" if after is not None else "removed",
+                    "improvement_id": building.improvement_id,
+                    "name": building.name,
+                    "upkeep": building.upkeep,
+                })
+            return {
                 "city_id": city.city_id,
                 "name": city.name,
                 "size": city.size,
                 "food_stock": city.food_stock,
                 "shield_stock": city.shield_stock,
                 "outputs": _yield_vector(city.production),
+                "usage": _yield_vector(city.usage),
                 "surplus": _yield_vector(city.surplus),
                 "target": _target(city),
                 "buildable_count": len(city.buildable),
+                "buildings": [
+                    building.to_dict() for building in city.buildings
+                ],
+                "building_changes": building_changes,
+                "building_upkeep": sum(
+                    int(building.upkeep or 0) for building in city.buildings),
                 "mood": _city_mood(city),
                 "support": dict(support.get(
                     city.city_id,
@@ -314,7 +328,55 @@ class DomainObservabilityEmitter(object):
                         city.governor_allow_specialists),
                     "happy_factor": city.governor_happy_factor,
                 },
-            } for city in snapshot.cities],
+            }
+
+        scored_opponents = [
+            row for row in snapshot.opponent_scores
+            if row.score is not None and row.score >= 0
+            and row.is_alive is not False
+        ]
+        leader = max(scored_opponents, key=lambda row: row.score, default=None)
+        score_gap = (
+            snapshot.own_score - leader.score
+            if snapshot.own_score is not None and snapshot.own_score >= 0
+            and leader is not None else None)
+        return {
+            "snapshot_id": snapshot.snapshot_id,
+            "government": snapshot.government.to_dict(),
+            "research_flow": {
+                "gross_beakers_per_turn": (
+                    snapshot.research.gross_beakers_per_turn),
+                "tech_upkeep": snapshot.research.tech_upkeep,
+                "net_beakers_per_turn": snapshot.research.beakers_per_turn,
+            },
+            "score": {
+                "own": snapshot.own_score,
+                "leader": leader.to_dict() if leader is not None else None,
+                "gap_to_leader": score_gap,
+                "opponents": [
+                    row.to_dict() for row in snapshot.opponent_scores
+                ],
+            },
+            "economy": {
+                "available": economy.available,
+                "diagnostic": economy.diagnostic,
+                "gold": economy.gold,
+                "gold_per_turn": net_gold_per_turn,
+                "operating_gold_per_turn": economy.operating_gold_per_turn,
+                "capitalization_gold_per_turn": (
+                    economy.capitalization_gold_per_turn),
+                "gold_upkeep_reserve": (
+                    economy.gold_upkeep_reserve
+                    if economy.gold_upkeep_reserve is not None
+                    else unit_gold_upkeep),
+                "city_gold_surplus_per_turn": city_gold_surplus_per_turn,
+                "gold_upkeep_style": economy.gold_upkeep_style,
+                "tax_rate": economy.tax_rate,
+                "science_rate": economy.science_rate,
+                "luxury_rate": economy.luxury_rate,
+                "unit_gold_upkeep": unit_gold_upkeep,
+            },
+            "cities": [city_payload(city) for city in snapshot.cities],
         }
 
     def _removal_evidence(self, unit, raw, previous_source_seq):

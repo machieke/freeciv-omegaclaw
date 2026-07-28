@@ -5,7 +5,7 @@ All phases 0-9 have deterministic acceptance evidence, but only phases with an
 engine adapter may affect a live harness game. The versioned support declaration
 is `pf_pln_runtime` in `profile/freeciv_agent.yaml`.
 
-The current engine adapter is `grounded-impact-planner/1.24`. Its score-alignment
+The current engine adapter is `grounded-impact-planner/1.25`. Its score-alignment
 guard changes how the already-live phases 0, 1, 4, and 9 rank grounded
 operations. It also exposes a bounded post-settlement-runway gate for
 score-bearing founder production and carries that deadline through settlement
@@ -17,6 +17,14 @@ score by `+1.56`. They are not pooled or added into a direct
 three-to-five-city claim. Adapter 1.6 and the later route/escort changes remain
 post-confirmation correctness hardening except where the adapter-1.17
 fifth-city cohort explicitly holds them constant.
+
+Adapter 1.25 also adds opt-in, ruleset-derived strategic production routes to
+the existing live multi-goal field. Authoritative score deficit and bounded
+visible naval-threat memory route pressure toward modernization, fleet
+readiness, coastal response, and industrial/research/commerce infrastructure.
+The routes remain constrained by the server legal set, exact prerequisite
+proofs, upkeep reserves, and remaining-horizon gates; they do not activate a
+component-only phase or revise any existing score claim.
 Adapter 1.7 additionally consumes an optional, packet-grounded
 `settlement_site_eligible` fact on founder moves and prefers a directly
 reachable valid site over continued frontier wandering. Unknown destinations

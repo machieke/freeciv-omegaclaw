@@ -1700,6 +1700,9 @@ export function TechnologyDashboard({ state, onSelect }: {
     detail="Load an observability-v2 trace or run the hardened harness. The browser will not infer a tech tree from Atomspace snapshots." />;
   const catalog = catalogEvent.payload as unknown as TechnologyCatalog;
   const progress = progressEvent.payload as unknown as TechnologyProgress;
+  const latestProduction = state.productionStates.at(-1)?.payload as
+    unknown as ProductionState | undefined;
+  const researchFlow = latestProduction?.research_flow;
   const byName = new Map(catalog.technologies.map((tech) => [tech.name, tech]));
   const known = new Set(progress.known_techs);
   const researchable = new Set(progress.researchable_techs);
@@ -1763,6 +1766,8 @@ export function TechnologyDashboard({ state, onSelect }: {
       </div>
       <dl>
         <div><dt>rate</dt><dd>{target?.beakers_per_turn ?? "—"} / turn</dd></div>
+        <div><dt>gross</dt><dd>{researchFlow?.gross_beakers_per_turn ?? "—"} / turn</dd></div>
+        <div><dt>tech upkeep</dt><dd>{researchFlow?.tech_upkeep ?? "—"} / turn</dd></div>
         <div><dt>ETA</dt><dd>{target?.eta_turns === null || target?.eta_turns === undefined
           ? "not converging" : `${target.eta_turns} turns`}</dd></div>
         <div><dt>stalled</dt><dd>{progress.stalled_turns} turns</dd></div>
@@ -1870,9 +1875,12 @@ export function EconomyProductionDashboard({ state, onSelect }: {
     (row.payload as unknown as UnitLifecycle).cause === "production_completed");
   const buildableProofs = state.proofs.filter(({ result }) =>
     result.proof.nodes.some((node) => node.atom.predicate === "buildable"));
-  const totalSeries = (key: typeof yieldKeys[number]) => state.productionStates.map((row) => {
+  const totalSeries = (
+    key: typeof yieldKeys[number], field: "outputs" | "usage" | "surplus" = "outputs",
+  ) => state.productionStates.map((row) => {
     const payload = row.payload as unknown as ProductionState;
-    return payload.cities.reduce((sum, city) => sum + Number(city.outputs[key] ?? 0), 0);
+    return payload.cities.reduce((sum, city) =>
+      sum + Number((field === "usage" ? city.usage : city[field])?.[key] ?? 0), 0);
   });
   const latestProjection = (cityId: number, targetName: string | null) => {
     for (const scored of [...state.operationScores].reverse()) {
@@ -1908,6 +1916,8 @@ export function EconomyProductionDashboard({ state, onSelect }: {
   }), { count: 0, food: 0, shield: 0, gold: 0 });
   const cityGoldSurplus = production.economy.city_gold_surplus_per_turn;
   const unitGoldUpkeep = production.economy.unit_gold_upkeep;
+  const operatingGold = production.economy.operating_gold_per_turn;
+  const capitalizationGold = production.economy.capitalization_gold_per_turn;
   const netGold = production.economy.gold_per_turn
     ?? (cityGoldSurplus !== null && cityGoldSurplus !== undefined
       && unitGoldUpkeep !== null && unitGoldUpkeep !== undefined
@@ -1943,6 +1953,14 @@ export function EconomyProductionDashboard({ state, onSelect }: {
   const defenseAtRisk =
     defenseContext.includes("authoritative:grounded-production-defense-deficit")
     || defenseContext.includes("authoritative:visible-enemy");
+  const scoreContext = goalContext("score");
+  const navalPressure = defenseContext.includes("naval-threat");
+  const score = production.score;
+  const fleetCompletions = [...completionsByType].filter(([name]) =>
+    /destroyer|cruiser|battleship|submarine|carrier|transport|galleon|ironclad|frigate|trireme/i
+      .test(name)).reduce((sum, [, count]) => sum + count, 0);
+  const buildingChanges = production.cities.flatMap((city) =>
+    (city.building_changes ?? []).map((change) => ({ city: city.name, change })));
   return <div className="view-content economy-view">
     <div className="view-heading">
       <div><span className="eyebrow">authoritative stocks, rates, queues, projections</span>
@@ -1953,7 +1971,12 @@ export function EconomyProductionDashboard({ state, onSelect }: {
     <section className="economy-strip">
       <div><span>treasury</span><strong>{production.economy.gold ?? "—"}</strong><small>gold</small></div>
       <div className={treasuryAtRisk ? "at-risk" : ""}><span>net cash flow</span>
-        <strong>{netGold ?? "—"}</strong><small>after unit upkeep</small></div>
+        <strong>{netGold ?? "—"}</strong><small>operating + Coinage</small></div>
+      <div className={operatingGold !== undefined && operatingGold !== null && operatingGold < 0
+        ? "at-risk" : ""}><span>operating flow</span>
+        <strong>{operatingGold ?? "—"}</strong><small>before Coinage</small></div>
+      <div><span>Coinage conversion</span><strong>{capitalizationGold ?? "—"}</strong>
+        <small>shield stock + surplus</small></div>
       <div><span>city gold surplus</span><strong>{cityGoldSurplus ?? "—"}</strong>
         <small>{production.economy.gold_upkeep_style ?? "unknown"} upkeep style</small></div>
       <div><span>unit upkeep</span><strong>{unitGoldUpkeep ?? "—"}</strong><small>gold / turn</small></div>
@@ -1961,6 +1984,34 @@ export function EconomyProductionDashboard({ state, onSelect }: {
       <div><span>science</span><strong>{production.economy.science_rate ?? "—"}%</strong><small>allocation</small></div>
       <div><span>tax</span><strong>{production.economy.tax_rate ?? "—"}%</strong><small>allocation</small></div>
       <div><span>luxury</span><strong>{production.economy.luxury_rate ?? "—"}%</strong><small>allocation</small></div>
+    </section>
+    <section className="strategic-readiness">
+      <article className={score?.gap_to_leader !== undefined
+          && score?.gap_to_leader !== null && score.gap_to_leader < 0 ? "at-risk" : "safe"}>
+        <span>score position</span>
+        <strong>{score?.own ?? "—"} <i>vs</i> {score?.leader?.score ?? "—"}</strong>
+        <small>{score?.gap_to_leader === null || score?.gap_to_leader === undefined
+          ? "authoritative score unavailable"
+          : `${score.gap_to_leader >= 0 ? "+" : ""}${score.gap_to_leader} to leader`}
+          {" · "}{scoreContext}</small>
+      </article>
+      <article className={navalPressure ? "at-risk" : fleetCompletions ? "safe" : ""}>
+        <span>fleet readiness</span><strong>{fleetCompletions} completed vessels</strong>
+        <small>{navalPressure
+          ? "bounded packet-visible naval-threat pressure is active"
+          : "no active naval-threat pressure at this cursor"}</small>
+      </article>
+      <article>
+        <span>research throughput</span>
+        <strong>{production.research_flow?.gross_beakers_per_turn ?? "—"} gross
+          {" · "}{production.research_flow?.net_beakers_per_turn ?? "—"} net</strong>
+        <small>{production.research_flow?.tech_upkeep ?? "—"} beakers / turn technology upkeep</small>
+      </article>
+      <article>
+        <span>building lifecycle</span><strong>{buildingChanges.length} changes</strong>
+        <small>{production.cities.reduce((sum, city) => sum + (city.buildings?.length ?? 0), 0)}
+          {" "}current buildings with inventory telemetry</small>
+      </article>
     </section>
     <section className="sustainability-overview">
       <article className={foodAtRisk ? "at-risk" : "safe"}>
@@ -1996,12 +2047,15 @@ export function EconomyProductionDashboard({ state, onSelect }: {
     </section>}
     <section className="yield-series">
       {yieldKeys.map((key, index) => {
-        const values = totalSeries(key);
+        const gross = totalSeries(key);
+        const consumed = totalSeries(key, "usage");
+        const net = totalSeries(key, "surplus");
         return <div key={key}><header><strong>{humanize(key)}</strong>
-          <span>{values.at(-1) ?? 0}</span></header>
-          <Sparkline values={values} minimum={0}
+          <span>{net.at(-1) ?? 0} net</span></header>
+          <small>{gross.at(-1) ?? 0} produced · {consumed.at(-1) ?? 0} consumed</small>
+          <Sparkline values={net}
             color={CHART_COLORS[index % CHART_COLORS.length]}
-            label={`Emitted city ${key} output display sum`} /></div>;
+            label={`Emitted city ${key} net flow display sum`} /></div>;
       })}
     </section>
     <div className="production-layout">
@@ -2053,10 +2107,23 @@ export function EconomyProductionDashboard({ state, onSelect }: {
             </div>}
             <div className="yield-grid">
               {yieldKeys.map((key) => <div key={key}><span>{key}</span>
-                <strong>{city.outputs[key] ?? "—"}</strong>
-                <small>{city.surplus[key] === null ? "—" :
-                  `${Number(city.surplus[key]) >= 0 ? "+" : ""}${city.surplus[key]} surplus`}</small>
+                <strong>{city.surplus[key] === null ? "—" :
+                  `${Number(city.surplus[key]) >= 0 ? "+" : ""}${city.surplus[key]} net`}</strong>
+                <small>{city.outputs[key] ?? "—"} produced ·
+                  {" "}{city.usage?.[key] ?? "—"} consumed</small>
               </div>)}
+            </div>
+            <div className="building-inventory">
+              <header><span>building inventory</span>
+                <strong>{city.buildings?.length ?? 0} buildings ·
+                  {" "}{city.building_upkeep ?? "—"} gold upkeep</strong></header>
+              <div>{city.buildings?.length
+                ? city.buildings.map((building) => <span key={building.improvement_id}>
+                  {building.name}<small>{building.upkeep ?? "—"}g</small></span>)
+                : <em>Building inventory was not emitted for this snapshot.</em>}</div>
+              {!!city.building_changes?.length && <footer>{city.building_changes.map((change) =>
+                <b key={`${change.transition}-${change.improvement_id}`}>
+                  {change.transition} {change.name}</b>)}</footer>}
             </div>
             {projected ? <button className="production-projection"
               onClick={() => onSelect({ kind: "event", value: projected.event })}>
@@ -2106,6 +2173,15 @@ export function EconomyProductionDashboard({ state, onSelect }: {
             </button>;
           })}
           {!sustainabilityActions.length && <p>No sustainability control action at this cursor.</p>}
+        </section>
+        <section><span className="eyebrow">building lifecycle</span><h3>Recent completions</h3>
+          {buildingChanges.slice(-12).reverse().map(({ city, change }, index) =>
+            <div key={`${city}-${change.improvement_id}-${index}`}>
+              <span>{city} · {change.transition}</span><strong>{change.name}</strong>
+            </div>)}
+          {!buildingChanges.length && <p>No building transition at this cursor.</p>}
+          <small>Inventory and upkeep are exact. Yield changes remain city-level observations,
+            not causal attribution to one building.</small>
         </section>
       </aside>
     </div>
@@ -2790,7 +2866,7 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
   const [comparisonArtifact, setComparisonArtifact] = useState<ArtifactCatalogEntry>();
   const [liveStatus, setLiveStatus] = useState<LiveStatus>("idle");
   const [liveUrl, setLiveUrl] = useState(
-    String(import.meta.env.VITE_FREECIV_LIVE_URL ?? "ws://127.0.0.1:8765"));
+    String(import.meta.env.VITE_FREECIV_LIVE_URL ?? "ws://127.0.0.1:18765"));
   const [liveGameId, setLiveGameId] = useState(initial.events[0]?.game_id ?? "freeciv-live");
   const liveClient = useRef<LiveEventClient | undefined>(undefined);
   const state = useMemo(() => foldEvents(events, cursor), [events, cursor]);

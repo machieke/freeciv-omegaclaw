@@ -206,6 +206,19 @@ NORMALIZED_FOOD_OUTPUT_TYPES = frozenset(
     _normalized_type(name) for name in FOOD_OUTPUT_PRIORITY)
 NORMALIZED_TREASURY_STABILIZATION_TYPES = frozenset(
     _normalized_type(name) for name in TREASURY_STABILIZATION_PRIORITY)
+INDUSTRIAL_IMPROVEMENT_PRIORITY = (
+    "Manufacturing Plant", "Factory", "Offshore Platform", "Power Plant",
+    "Hydro Plant", "Solar Plant",
+)
+RESEARCH_IMPROVEMENT_PRIORITY = (
+    "Research Lab", "University", "Library",
+)
+COMMERCE_IMPROVEMENT_PRIORITY = (
+    "Stock Exchange", "Bank", "Marketplace", "Courthouse",
+)
+NAVAL_IMPROVEMENT_PRIORITY = (
+    "Port Facility", "Coastal Defense", "SAM Battery", "SDI Defense",
+)
 
 
 def _distance(x, y, tx, ty, width, height):
@@ -239,7 +252,7 @@ def _spatial_target(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.24"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.25"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -423,6 +436,23 @@ class GroundedImpactPlanner(object):
                 "expansion_final_settlement_escort_enabled must be boolean")
         self.expansion_final_settlement_escort_enabled = (
             final_settlement_escort)
+        for setting in (
+                "ruleset_driven_production_enabled",
+                "naval_response_enabled",
+                "modernization_enabled",
+                "industrialization_enabled"):
+            value = values.get(setting, False)
+            if not isinstance(value, bool):
+                raise ValueError("{} must be boolean".format(setting))
+            setattr(self, setting, value)
+        threat_memory_turns = values.get("strategic_threat_memory_turns", 60)
+        if (isinstance(threat_memory_turns, bool)
+                or not isinstance(threat_memory_turns, (int, float))
+                or int(threat_memory_turns) != threat_memory_turns
+                or not 0 <= int(threat_memory_turns) <= 200):
+            raise ValueError(
+                "strategic_threat_memory_turns must be in 0..200")
+        self.strategic_threat_memory_turns = int(threat_memory_turns)
         self.foodbox_percent = int(values.get("foodbox_percent", 100))
         self.unit_build_score_divisor = int(values.get(
             "unit_build_score_divisor", 10))
@@ -471,8 +501,8 @@ class GroundedImpactPlanner(object):
             raise ValueError("expansion_city_target must be in 1..20")
         if not 1 <= self.settle_min_distance <= 12:
             raise ValueError("settle_min_distance must be in 1..12")
-        if not 1 <= self.horizon_turn <= 500:
-            raise ValueError("horizon_turn must be in 1..500")
+        if not 1 <= self.horizon_turn <= 1000:
+            raise ValueError("horizon_turn must be in 1..1000")
         if not 0 <= self.government_minimum_remaining_turns <= 100:
             raise ValueError(
                 "government_minimum_remaining_turns must be in 0..100")
@@ -536,6 +566,7 @@ class GroundedImpactPlanner(object):
         self.no_effect_retries_blocked = 0
         self._build_costs = {}
         self._production_specs = {}
+        self._enemy_domain_last_seen = {}
         self._ruleset_founder_types = set()
         self._ruleset_worker_types = set()
         self._ruleset_add_to_city_types = set()
@@ -665,6 +696,17 @@ class GroundedImpactPlanner(object):
                     0 if isinstance(value, bool)
                     or not isinstance(value, (int, float))
                     else max(0, int(value)))
+            capabilities = {}
+            for field_name in (
+                    "attack", "defense", "hitpoints", "firepower",
+                    "move_rate", "transport_cap", "fuel"):
+                value = quantitative.get(field_name, 0)
+                if isinstance(value, dict):
+                    value = value.get("value", 0)
+                capabilities[field_name] = (
+                    0 if isinstance(value, bool)
+                    or not isinstance(value, (int, float))
+                    else max(0, int(value)))
             if (getattr(rule, "target_kind", None) not in (
                     "unit", "building", "improvement")
                     or isinstance(cost, bool) or not isinstance(cost, (int, float))
@@ -681,6 +723,17 @@ class GroundedImpactPlanner(object):
                                      or not isinstance(pop_cost, (int, float))
                                      else max(0, int(pop_cost))),
                         "target_kind": getattr(rule, "target_kind", None),
+                        "unit_class": next(iter(
+                            self._trait_values(rule, "class")), ""),
+                        "flags": tuple(sorted(
+                            self._trait_values(rule, "flags"))),
+                        "roles": tuple(sorted(
+                            self._trait_values(rule, "roles"))),
+                        "cargo": tuple(sorted(
+                            self._trait_values(rule, "cargo"))),
+                        "targets": tuple(sorted(
+                            self._trait_values(rule, "targets"))),
+                        **capabilities,
                         **upkeep,
                     }
                     flags = self._trait_values(rule, "flags")
@@ -740,6 +793,14 @@ class GroundedImpactPlanner(object):
 
     def observe(self, snapshot):
         actions = self._actions(snapshot)
+        for enemy in snapshot.visible_enemy_units:
+            domain = self._unit_domain(_normalized_type(enemy.unit_type))
+            self._enemy_domain_last_seen[domain] = int(snapshot.turn)
+        self._enemy_domain_last_seen = {
+            domain: turn
+            for domain, turn in self._enemy_domain_last_seen.items()
+            if int(snapshot.turn) - int(turn) <= self.strategic_threat_memory_turns
+        }
         self._server_founder_types.update(self._legal_unit_types(
             snapshot, "unit_build_city", actions))
         founder_types = self._founder_types(snapshot, actions)
@@ -2443,7 +2504,7 @@ class GroundedImpactPlanner(object):
         disorder_city_ids = tuple(sorted(
             city.city_id for city in snapshot.cities
             if city.disorder is True))
-        return {
+        facts = {
             "defense_deficit_city_ids": tuple(
                 row["city_id"] for row in defense_deficits),
             "disorder_city_ids": disorder_city_ids,
@@ -2457,6 +2518,12 @@ class GroundedImpactPlanner(object):
             "treasury_reserve_required": (
                 self._treasury_reserve_required(snapshot)),
         }
+        score_gap = self._score_gap(snapshot)
+        if score_gap is not None:
+            facts["score_gap_to_leader"] = score_gap
+        if self._recent_domain_threat(snapshot, "sea"):
+            facts["recent_naval_threat"] = True
+        return facts
 
     def _production_upkeep_safe(
             self, snapshot, city, normalized, food_surplus_floor=None):
@@ -2483,6 +2550,208 @@ class GroundedImpactPlanner(object):
         return any(
             int(spec.get(field_name, 0)) > 0
             for field_name in ("uk_food", "uk_shield", "uk_gold"))
+
+    def _unit_domain(self, normalized):
+        unit_class = _normalized_type(
+            self._production_specs.get(normalized, {}).get("unit_class"))
+        if "missile" in unit_class:
+            return "missile"
+        if any(value in unit_class for value in ("sea", "ocean", "trireme")):
+            return "sea"
+        if "air" in unit_class or "heli" in unit_class:
+            return "air"
+        return "land"
+
+    def _unit_power(self, normalized):
+        spec = self._production_specs.get(normalized, {})
+        if spec.get("target_kind") != "unit":
+            return 0.0
+        attack = float(spec.get("attack", 0))
+        defense = float(spec.get("defense", 0))
+        hitpoints = max(1.0, float(spec.get("hitpoints", 10)))
+        firepower = max(1.0, float(spec.get("firepower", 1)))
+        mobility = float(spec.get("move_rate", 0)) / 3.0
+        transport = float(spec.get("transport_cap", 0))
+        # Preserve both offensive reach and staying power. Transport capacity
+        # is useful strategic capability, but cannot dominate combat vessels.
+        return (
+            (attack * 1.15 + defense) * hitpoints * firepower / 10.0
+            + mobility * 0.5 + transport * 2.0)
+
+    def _recent_domain_threat(self, snapshot, domain):
+        turn = self._enemy_domain_last_seen.get(domain)
+        return (
+            turn is not None
+            and int(snapshot.turn) - int(turn)
+            <= self.strategic_threat_memory_turns)
+
+    @staticmethod
+    def _score_gap(snapshot):
+        opponent_scores = [
+            row.score for row in getattr(snapshot, "opponent_scores", ())
+            if row.score is not None and row.score >= 0
+            and row.is_alive is not False]
+        if (snapshot.own_score is None or snapshot.own_score < 0
+                or not opponent_scores):
+            return None
+        return int(snapshot.own_score) - max(int(value) for value in opponent_scores)
+
+    def _strategic_production_candidate(
+            self, snapshot, action, city, name, normalized, projection,
+            current_projection, defenders):
+        """Rank ruleset-derived capabilities once survival/expansion are safe."""
+        if not self.ruleset_driven_production_enabled:
+            return None
+        spec = self._production_specs.get(normalized, {})
+        kind = spec.get("target_kind")
+        eta = projection.get("completion_eta_turns")
+        if eta is None:
+            return None
+        score_gap = self._score_gap(snapshot)
+        if kind == "unit":
+            if not self._production_upkeep_safe(snapshot, city, normalized):
+                return None
+            if (self._production_requires_support(normalized)
+                    and len(defenders) >= self._military_capacity(snapshot)):
+                return None
+            domain = self._unit_domain(normalized)
+            power = self._unit_power(normalized)
+            own_domain_units = [
+                unit for unit in snapshot.units
+                if self._unit_domain(_normalized_type(unit.unit_type)) == domain]
+            own_best = max((
+                self._unit_power(_normalized_type(unit.unit_type))
+                for unit in own_domain_units), default=0.0)
+            visible_enemy_power = max((
+                self._unit_power(_normalized_type(unit.unit_type))
+                for unit in snapshot.visible_enemy_units
+                if self._unit_domain(
+                    _normalized_type(unit.unit_type)) == domain),
+                default=0.0)
+            projection.update({
+                "capability_domain": domain,
+                "capability_power": round(power, 3),
+                "current_domain_power": round(own_best, 3),
+                "visible_enemy_domain_power": round(
+                    visible_enemy_power, 3),
+                "score_gap_to_leader": score_gap,
+                "ruleset_driven": True,
+            })
+            # One-shot missile payloads are tactical consumables, not a
+            # persistent domain-capability ceiling. They require a separate
+            # target and launch policy and must not displace conventional
+            # modernization merely because their attack scalar is extreme.
+            if domain == "missile":
+                return None
+            if (domain == "sea" and self.naval_response_enabled
+                    and self._recent_domain_threat(snapshot, "sea")):
+                return ImpactCandidate(
+                    action, "production_naval_response",
+                    1120.0 + power * 2.0 - eta,
+                    "answer the remembered packet-visible naval threat with "
+                    "the strongest sustainable ruleset-buildable sea capability",
+                    projection)
+            if (domain == "sea" and self.naval_response_enabled
+                    and not own_domain_units and score_gap is not None
+                    and score_gap < 0):
+                return ImpactCandidate(
+                    action, "production_fleet_readiness",
+                    835.0 + power * 2.0 - eta,
+                    "establish a first packet-legal fleet capability while "
+                    "trailing the authoritative score leader",
+                    projection)
+            if (self.modernization_enabled and power > 0
+                    and power >= max(own_best + 1.0, own_best * 1.10)):
+                threat_deficit = visible_enemy_power > own_best
+                return ImpactCandidate(
+                    action, (
+                        "production_threat_modernization"
+                        if threat_deficit else
+                        "production_modernization"),
+                    820.0 + power * 2.0 - eta,
+                    ("answer a packet-visible same-domain capability deficit "
+                     "with a materially stronger ruleset-derived unit"
+                     if threat_deficit else
+                     "replace the current domain capability ceiling with a "
+                     "materially stronger ruleset-derived unit"),
+                    projection)
+            return None
+
+        if kind not in ("building", "improvement"):
+            return None
+        normalized_priorities = {
+            "production_industrialization": tuple(
+                map(_normalized_type, INDUSTRIAL_IMPROVEMENT_PRIORITY)),
+            "production_research_infrastructure": tuple(
+                map(_normalized_type, RESEARCH_IMPROVEMENT_PRIORITY)),
+            "production_commerce_infrastructure": tuple(
+                map(_normalized_type, COMMERCE_IMPROVEMENT_PRIORITY)),
+            "production_coastal_defense": tuple(
+                map(_normalized_type, NAVAL_IMPROVEMENT_PRIORITY)),
+        }
+        category = next((
+            candidate_category
+            for candidate_category, names in normalized_priorities.items()
+            if normalized in names), None)
+        if category is None:
+            return None
+        if category == "production_industrialization":
+            if not self.industrialization_enabled:
+                return None
+            utility = 805.0
+            rationale = (
+                "expand the city's ruleset-buildable industrial base before "
+                "another long fixed-horizon production cycle")
+        elif category == "production_research_infrastructure":
+            gross = snapshot.research.gross_beakers_per_turn
+            upkeep = snapshot.research.tech_upkeep
+            research_pressure = bool(
+                upkeep is not None and gross is not None
+                and (gross <= 0 or upkeep * 4 >= gross))
+            if not (research_pressure or score_gap is not None and score_gap < 0):
+                return None
+            utility = 815.0
+            rationale = (
+                "increase research infrastructure while technology upkeep "
+                "materially consumes gross science or score trails")
+        elif category == "production_commerce_infrastructure":
+            operating = snapshot.economy.operating_gold_per_turn
+            if operating is None or operating >= 0:
+                return None
+            if (snapshot.economy.gold is None
+                    or int(snapshot.economy.gold)
+                    + int(operating) * (
+                        int(eta) + self.treasury_reserve_turns)
+                    < self._treasury_reserve_required(snapshot)):
+                return None
+            utility = 825.0
+            rationale = (
+                "repair negative operating cash flow only when the observed "
+                "treasury can fund construction without treating Coinage "
+                "capitalization as structural income")
+            projection.update({
+                "operating_gold_per_turn": int(operating),
+                "treasury_construction_runway_turns": (
+                    int(eta) + self.treasury_reserve_turns),
+            })
+        else:
+            if not (self.naval_response_enabled
+                    and self._recent_domain_threat(snapshot, "sea")):
+                return None
+            utility = 850.0
+            rationale = (
+                "add packet-legal coastal infrastructure while the remembered "
+                "naval threat remains active")
+        index = normalized_priorities[category].index(normalized)
+        projection.update({
+            "score_gap_to_leader": score_gap,
+            "ruleset_driven": True,
+            "strategic_improvement_rank": index,
+        })
+        return ImpactCandidate(
+            action, category,
+            utility + projection["score_value"] * 10.0 - eta - index * 0.01,
+            rationale, projection)
 
     def _move_creates_vulnerable_stack(
             self, snapshot, unit, x, y, founder_types):
@@ -3127,7 +3396,10 @@ class GroundedImpactPlanner(object):
         # projections.
         if (normalized not in founder_types
                 and normalized not in LEGACY_FOUNDER_TYPES
-                and normalized not in PLANNED_PRODUCTION_TYPES):
+                and normalized not in PLANNED_PRODUCTION_TYPES
+                and not (
+                    self.ruleset_driven_production_enabled
+                    and normalized in self._production_specs)):
             return None
         city_count = len(snapshot.cities)
         current_name = shared(
@@ -3605,6 +3877,11 @@ class GroundedImpactPlanner(object):
             return None
 
         defenders = combat_units
+        strategic_candidate = self._strategic_production_candidate(
+            snapshot, action, city, name, normalized, projection,
+            current_projection, defenders)
+        if strategic_candidate is not None:
+            return strategic_candidate
         local_defenders = tuple(
             unit for unit in defenders
             if (unit.x, unit.y) == (city.x, city.y))

@@ -842,20 +842,108 @@ def _target_rule(ir, known):
     return next((rule for rule in candidates if rule.rule_name not in known), candidates[0])
 
 
+def _rule_numeric(rule, field, default=0.0):
+    value = getattr(rule, "quantitative", {}).get(field, default)
+    if isinstance(value, dict):
+        value = value.get("value", default)
+    return (
+        float(value)
+        if isinstance(value, (int, float)) and not isinstance(value, bool)
+        else float(default))
+
+
+def _rule_trait_values(rule, name):
+    trait = getattr(rule, "traits", {}).get(name, {})
+    values = trait.get("values", ()) if isinstance(trait, dict) else ()
+    return {
+        str(value).strip().lower().replace("_", " ")
+        for value in values
+    }
+
+
+def _strategic_unlock_value(ir, technology, known):
+    """Score immediate ruleset unlocks without inventing future legality."""
+    known_after = set(map(str, known)) | {str(technology.rule_name)}
+    value = 0.0
+    for rule in ir.rules:
+        if rule.disabled or rule.target_kind not in (
+                "unit", "building", "improvement"):
+            continue
+        required = {
+            str(requirement.name)
+            for requirement in rule.antecedents
+            if requirement.kind == "Tech" and requirement.present}
+        if technology.rule_name not in required or required - known_after:
+            continue
+        if rule.target_kind == "unit":
+            unit_classes = _rule_trait_values(rule, "class")
+            unit_flags = _rule_trait_values(rule, "flags")
+            if ("missile" in unit_classes
+                    or unit_flags.intersection(
+                        {"nuclear", "oneattack", "one attack"})):
+                continue
+            attack = _rule_numeric(rule, "attack")
+            defense = _rule_numeric(rule, "defense")
+            hitpoints = max(1.0, _rule_numeric(rule, "hitpoints", 10.0))
+            firepower = max(1.0, _rule_numeric(rule, "firepower", 1.0))
+            transport = _rule_numeric(rule, "transport_cap")
+            value += (
+                (attack * 1.15 + defense) * hitpoints * firepower / 10.0
+                + transport * 2.0)
+        else:
+            name = str(rule.rule_name).lower()
+            value += (
+                18.0 if any(token in name for token in (
+                    "factory", "manufacturing", "power plant",
+                    "offshore platform")) else
+                16.0 if any(token in name for token in (
+                    "university", "research lab", "library")) else
+                14.0 if any(token in name for token in (
+                    "bank", "stock exchange", "marketplace")) else
+                10.0)
+    return value
+
+
 def _target_rules(ir, known, count=2, available_names=()):
     available = {str(name) for name in available_names}
     candidates = [rule for rule in ir.rules if rule.target_kind == "tech"
                   and not rule.disabled and rule.rule_name != "None"
                   and rule.rule_name not in known
                   and (not available or rule.rule_name in available)]
+    if not available:
+        # Choose from the exact current research frontier. A future technology
+        # may directly unlock a powerful unit but still hide a long prerequisite
+        # chain; ranking it as an "immediate" unlock caused the proof planner to
+        # spend hundreds of turns on the chain while a stronger current unlock
+        # (for example Armor) was already researchable.
+        known_names = set(map(str, known))
+        frontier = [
+            rule for rule in candidates
+            if all(
+                str(requirement.name) in known_names
+                for requirement in rule.antecedents
+                if requirement.kind == "Tech" and requirement.present)
+        ]
+        if frontier:
+            candidates = frontier
     candidates.sort(key=lambda rule: (_tech_cost(rule), rule.rule_name, rule.rule_id))
     if not candidates:
         return (_target_rule(ir, known),)
     if len(candidates) == 1 or count == 1:
         return (candidates[0],)
-    # Maximize the likelihood that grading has a measurable policy choice while
-    # keeping the prompt bounded to two canonical goals.
-    return (candidates[0], candidates[-1])
+    cheapest = candidates[0]
+    strategic = max(candidates, key=lambda rule: (
+        _strategic_unlock_value(ir, rule, known),
+        -_tech_cost(rule), rule.rule_name, rule.rule_id))
+    # A positive compiled unlock is already a complete deterministic decision.
+    # Sending both "cheapest" and "strategic" through the model allowed the
+    # cheaper branch to win despite the declared objective and consumed a model
+    # call. Keep the cheapest fallback only when no frontier node has grounded
+    # strategic value.
+    return (
+        (strategic,)
+        if _strategic_unlock_value(ir, strategic, known) > 0
+        else (cheapest,))
 
 
 def _selection_target_rules(ir, snapshot, available_names):

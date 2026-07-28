@@ -20,7 +20,7 @@ from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 
 def _snapshot(units, actions, cities=None, source_seq=1, turn=4,
               city_surplus=None, known_hut_tiles=None, government=None,
-              player=None):
+              player=None, own_score=None, opponent_score=None):
     cities = cities if cities is not None else [_city()]
     if city_surplus is not None:
         cities[0]["surplus"] = list(city_surplus)
@@ -47,6 +47,14 @@ def _snapshot(units, actions, cities=None, source_seq=1, turn=4,
     }
     if government is not None:
         payload["authoritative"]["government"] = dict(government)
+    if own_score is not None or opponent_score is not None:
+        payload["authoritative"]["score"] = {
+            "own": own_score,
+            "opponents": [{
+                "player_id": 1, "name": "Opponent",
+                "score": opponent_score, "is_alive": True,
+            }],
+        }
     return ProxyStateDTO.parse("impact-test", source_seq, payload).to_snapshot()
 
 
@@ -92,9 +100,11 @@ def _city(size=2, food_stock=4, shield_stock=0,
 def _ruleset_ir(costs, founders=("Settlers",),
                 workers=("Settlers", "Migrants", "Workers", "Engineers"),
                 add_to_city=None, pop_costs=None,
-                growth_food=(20,), growth_increment=10, upkeeps=None):
+                growth_food=(20,), growth_increment=10, upkeeps=None,
+                capabilities=None):
     pop_costs = dict(pop_costs or {})
     upkeeps = dict(upkeeps or {})
+    capabilities = dict(capabilities or {})
     add_to_city = set(founders if add_to_city is None else add_to_city)
     rules = []
     for name, kind, cost in costs:
@@ -114,8 +124,20 @@ def _ruleset_ir(costs, founders=("Settlers",),
                     key: {"value": value, "source": {}}
                     for key, value in upkeeps.get(name, {}).items()
                 },
+                **{
+                    key: {"value": value, "source": {}}
+                    for key, value in capabilities.get(name, {}).items()
+                    if key != "class"
+                },
             },
-            traits={"flags": {"values": flags, "source": {}}}))
+            traits={
+                "flags": {"values": flags, "source": {}},
+                "class": {
+                    "values": [capabilities.get(name, {}).get(
+                        "class", "Land")],
+                    "source": {},
+                },
+            }))
     return SimpleNamespace(rules=tuple(rules), parameters={
         "granary_food_ini": {"value": list(growth_food), "source": {}},
         "granary_food_inc": {"value": growth_increment, "source": {}},
@@ -206,6 +228,184 @@ def test_candidate_enumeration_skips_unplanned_production_projection():
 
     assert decision.candidate.action["target"]["production_type"] == "Library"
     assert "Pyramids" not in projected
+
+
+def test_ruleset_driven_policy_answers_naval_threat_with_buildable_vessel():
+    city = _city(production_kind=6, production_value=11)
+    city["buildability"]["options"].extend([
+        {"type": "unit", "id": 20, "name": "Armor"},
+        {"type": "unit", "id": 21, "name": "Destroyer"},
+    ])
+    actions = [
+        _production(10, "Armor", 6, 20),
+        _production(10, "Destroyer", 6, 21),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    ir = _ruleset_ir((
+        ("Alpine Troops", "unit", 60),
+        ("Armor", "unit", 80),
+        ("Destroyer", "unit", 70),
+    ), capabilities={
+        "Alpine Troops": {
+            "class": "Land", "attack": 5, "defense": 5,
+            "hitpoints": 20, "firepower": 1,
+        },
+        "Armor": {
+            "class": "Land", "attack": 10, "defense": 5,
+            "hitpoints": 20, "firepower": 1,
+        },
+        "Destroyer": {
+            "class": "Sea", "attack": 8, "defense": 6,
+            "hitpoints": 30, "firepower": 2,
+        },
+    })
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 1,
+        "horizon_turn": 100,
+        "ruleset_driven_production_enabled": True,
+        "naval_response_enabled": True,
+        "modernization_enabled": True,
+    }, ruleset_ir=ir)
+    snapshot = _snapshot([
+        _unit(11, "Alpine Troops"),
+        _enemy(90, "Destroyer", 4, 4),
+    ], actions, cities=[city], own_score=20, opponent_score=35)
+
+    planner.observe(snapshot)
+    decision = planner.plan(snapshot)
+
+    assert decision.candidate.category == "production_naval_response"
+    assert decision.candidate.action["target"]["production_type"] == "Destroyer"
+    assert decision.candidate.projection["capability_domain"] == "sea"
+    assert decision.candidate.projection["score_gap_to_leader"] == -15
+
+
+def test_hidden_negative_score_sentinel_does_not_create_score_pressure():
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops")],
+        [{"action_type": "end_turn", "is_valid": True}],
+        own_score=109, opponent_score=-1)
+
+    assert snapshot.opponent_scores[0].score is None
+    assert GroundedImpactPlanner._score_gap(snapshot) is None
+
+
+def test_ruleset_driven_policy_modernizes_and_repairs_industry():
+    modernization_city = _city(production_kind=6, production_value=11)
+    modernization_city["buildability"]["options"].extend([
+        {"type": "unit", "id": 20, "name": "Armor"},
+        {"type": "unit", "id": 21, "name": "Nuclear"},
+    ])
+    modernization_ir = _ruleset_ir((
+        ("Alpine Troops", "unit", 60),
+        ("Armor", "unit", 80),
+        ("Nuclear", "unit", 160),
+    ), capabilities={
+        "Alpine Troops": {
+            "class": "Land", "attack": 5, "defense": 5,
+            "hitpoints": 20, "firepower": 1,
+        },
+        "Armor": {
+            "class": "Land", "attack": 10, "defense": 5,
+            "hitpoints": 20, "firepower": 1,
+        },
+        "Nuclear": {
+            "class": "Missile", "attack": 99, "defense": 0,
+            "hitpoints": 10, "firepower": 1,
+        },
+    })
+    settings = {
+        "expansion_city_target": 1,
+        "horizon_turn": 100,
+        "ruleset_driven_production_enabled": True,
+        "modernization_enabled": True,
+    }
+    modernization = GroundedImpactPlanner(
+        settings, ruleset_ir=modernization_ir).plan(_snapshot(
+            [_unit(11, "Alpine Troops")],
+            [_production(10, "Armor", 6, 20),
+             _production(10, "Nuclear", 6, 21),
+             {"action_type": "end_turn", "is_valid": True}],
+            cities=[modernization_city]))
+    assert modernization.candidate.category == "production_modernization"
+    assert modernization.candidate.action["target"]["production_type"] == "Armor"
+    threatened = GroundedImpactPlanner(
+        settings, ruleset_ir=modernization_ir).plan(_snapshot(
+            [_unit(11, "Alpine Troops"), _enemy(90, "Armor", 3, 0)],
+            [_production(10, "Armor", 6, 20),
+             {"action_type": "end_turn", "is_valid": True}],
+            cities=[modernization_city]))
+    assert threatened.candidate.category == "production_threat_modernization"
+    assert threatened.candidate.projection[
+        "visible_enemy_domain_power"] > threatened.candidate.projection[
+            "current_domain_power"]
+
+    industry_city = _city(production_kind=3, production_value=99)
+    industry_city["buildability"]["options"].append(
+        {"type": "improvement", "id": 30, "name": "Factory"})
+    industry_ir = _ruleset_ir((
+        ("Alpine Troops", "unit", 60),
+        ("Factory", "building", 100),
+    ), capabilities={
+        "Alpine Troops": {
+            "class": "Land", "attack": 5, "defense": 5,
+            "hitpoints": 20, "firepower": 1,
+        },
+    })
+    industry = GroundedImpactPlanner(dict(
+        settings, modernization_enabled=False,
+        industrialization_enabled=True), ruleset_ir=industry_ir).plan(
+            _snapshot(
+                [_unit(11, "Alpine Troops")],
+                [_production(10, "Factory", 3, 30),
+                 {"action_type": "end_turn", "is_valid": True}],
+                cities=[industry_city], own_score=20, opponent_score=35))
+    assert industry.candidate.category == "production_industrialization"
+    assert industry.candidate.action["target"]["production_type"] == "Factory"
+
+
+def test_commerce_infrastructure_requires_structural_construction_runway():
+    city = _city(production_kind=3, production_value=31)
+    city["buildability"]["options"].extend([
+        {"type": "improvement", "id": 30, "name": "Bank"},
+        {"type": "improvement", "id": 31, "name": "Coinage"},
+    ])
+    ruleset = _ruleset_ir((
+        ("Alpine Troops", "unit", 60),
+        ("Bank", "building", 100),
+        ("Coinage", "building", 10),
+    ))
+    actions = [
+        _production(10, "Bank", 3, 30),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    settings = {
+        "expansion_city_target": 1,
+        "horizon_turn": 100,
+        "ruleset_driven_production_enabled": True,
+    }
+    insufficient = _snapshot(
+        [_unit(11, "Alpine Troops")], actions, cities=[city],
+        player={
+            "gold": 30, "gold_per_turn": 2,
+            "operating_gold_per_turn": -10,
+            "capitalization_gold_per_turn": 12,
+        })
+    durable = _snapshot(
+        [_unit(11, "Alpine Troops")], actions, cities=[city], source_seq=2,
+        player={
+            "gold": 500, "gold_per_turn": 2,
+            "operating_gold_per_turn": -10,
+            "capitalization_gold_per_turn": 12,
+        })
+
+    assert GroundedImpactPlanner(
+        settings, ruleset_ir=ruleset).plan(insufficient) is None
+    decision = GroundedImpactPlanner(
+        settings, ruleset_ir=ruleset).plan(durable)
+    assert decision.candidate.category == "production_commerce_infrastructure"
+    assert decision.candidate.projection[
+        "treasury_construction_runway_turns"] > 2
 
 
 def test_founder_moves_outward_then_founds_only_at_configured_spacing():
@@ -1558,7 +1758,7 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
     assert GroundedImpactPlanner().plan(snapshot) is None
     for config in ({"max_actions_per_turn": 0}, {"max_actions_per_turn": 33},
                    {"settle_min_distance": 0}, {"expansion_city_target": 21},
-                   {"horizon_turn": 0},
+                   {"horizon_turn": 0}, {"horizon_turn": 1001},
                    {"preferred_government": 3},
                    {"preferred_government": "x" * 65},
                    {"government_minimum_remaining_turns": True},
@@ -1626,6 +1826,8 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
             pass
         else:
             raise AssertionError("invalid impact-policy budget was accepted")
+
+    assert GroundedImpactPlanner({"horizon_turn": 960}).horizon_turn == 960
 
 
 def test_action_scopes_limit_one_unit_and_one_city_choice_per_turn():
