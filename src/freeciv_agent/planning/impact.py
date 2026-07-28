@@ -221,6 +221,8 @@ RESEARCH_IMPROVEMENT_PRIORITY = (
 COMMERCE_IMPROVEMENT_PRIORITY = (
     "Stock Exchange", "Bank", "Marketplace", "Courthouse",
 )
+NORMALIZED_COMMERCE_IMPROVEMENT_TYPES = frozenset(
+    _normalized_type(name) for name in COMMERCE_IMPROVEMENT_PRIORITY)
 NAVAL_IMPROVEMENT_PRIORITY = (
     "Port Facility", "Coastal Defense", "SAM Battery", "SDI Defense",
 )
@@ -259,7 +261,7 @@ def _spatial_target(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.32"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.33"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -379,6 +381,47 @@ class GroundedImpactPlanner(object):
                 "government_minimum_city_count must be an integer")
         self.government_minimum_city_count = int(
             government_minimum_city_count)
+        government_economic_gate_enabled = values.get(
+            "government_economic_gate_enabled", False)
+        if not isinstance(government_economic_gate_enabled, bool):
+            raise ValueError(
+                "government_economic_gate_enabled must be boolean")
+        self.government_economic_gate_enabled = (
+            government_economic_gate_enabled)
+        government_transition_cost_turns = values.get(
+            "government_transition_cost_turns", 6)
+        government_maximum_payback_turns = values.get(
+            "government_maximum_payback_turns", 60)
+        government_expected_operating_gold_gain = values.get(
+            "government_expected_operating_gold_gain", 0)
+        for setting, value, lower, upper in (
+                ("government_transition_cost_turns",
+                 government_transition_cost_turns, 1, 20),
+                ("government_maximum_payback_turns",
+                 government_maximum_payback_turns, 1, 100),
+                ("government_expected_operating_gold_gain",
+                 government_expected_operating_gold_gain, 0, 100)):
+            if (isinstance(value, bool)
+                    or not isinstance(value, (int, float))
+                    or int(value) != value
+                    or not lower <= int(value) <= upper):
+                raise ValueError(
+                    "{} must be in {}..{}".format(setting, lower, upper))
+        self.government_transition_cost_turns = int(
+            government_transition_cost_turns)
+        self.government_maximum_payback_turns = int(
+            government_maximum_payback_turns)
+        self.government_expected_operating_gold_gain = int(
+            government_expected_operating_gold_gain)
+        if (self.government_economic_gate_enabled
+                and not self.preferred_government):
+            raise ValueError(
+                "government economic gate requires preferred_government")
+        if (self.government_economic_gate_enabled
+                and self.government_expected_operating_gold_gain <= 0):
+            raise ValueError(
+                "government economic gate requires a positive declared "
+                "operating-gold gain")
         founder_attrition_rebuild_limit = values.get(
             "founder_attrition_rebuild_limit", 0)
         if (isinstance(founder_attrition_rebuild_limit, bool)
@@ -467,6 +510,20 @@ class GroundedImpactPlanner(object):
             "military_units_per_city_limit", 3))
         self.food_surplus_reserve = int(values.get(
             "food_surplus_reserve", 1))
+        structural_economy_maximum_completion_turns = values.get(
+            "structural_economy_maximum_completion_turns", 20)
+        if (isinstance(structural_economy_maximum_completion_turns, bool)
+                or not isinstance(
+                    structural_economy_maximum_completion_turns, (int, float))
+                or int(structural_economy_maximum_completion_turns)
+                != structural_economy_maximum_completion_turns
+                or not 1 <= int(
+                    structural_economy_maximum_completion_turns) <= 100):
+            raise ValueError(
+                "structural_economy_maximum_completion_turns must be in "
+                "1..100")
+        self.structural_economy_maximum_completion_turns = int(
+            structural_economy_maximum_completion_turns)
         disorder_luxury_recovery_enabled = values.get(
             "disorder_luxury_recovery_enabled", False)
         if not isinstance(disorder_luxury_recovery_enabled, bool):
@@ -744,6 +801,13 @@ class GroundedImpactPlanner(object):
                     0 if isinstance(value, bool)
                     or not isinstance(value, (int, float))
                     else max(0, int(value)))
+            building_upkeep = quantitative.get("upkeep", 0)
+            if isinstance(building_upkeep, dict):
+                building_upkeep = building_upkeep.get("value", 0)
+            building_upkeep = (
+                0 if isinstance(building_upkeep, bool)
+                or not isinstance(building_upkeep, (int, float))
+                else max(0, int(building_upkeep)))
             capabilities = {}
             for field_name in (
                     "attack", "defense", "hitpoints", "firepower",
@@ -781,6 +845,7 @@ class GroundedImpactPlanner(object):
                             self._trait_values(rule, "cargo"))),
                         "targets": tuple(sorted(
                             self._trait_values(rule, "targets"))),
+                        "building_upkeep": building_upkeep,
                         **capabilities,
                         **upkeep,
                     }
@@ -2610,6 +2675,102 @@ class GroundedImpactPlanner(object):
             max(0, int(capitalization)),
             self._city_output(city, 1))
 
+    def _structural_commerce_projects(self, snapshot):
+        """Return exact city queues already repairing structural cash flow."""
+        return tuple(sorted(
+            (
+                int(city.city_id),
+                _normalized_type(self._current_production_name(city)),
+                max(0, int(city.shield_stock or 0)),
+            )
+            for city in snapshot.cities
+            if _normalized_type(self._current_production_name(city))
+            in NORMALIZED_COMMERCE_IMPROVEMENT_TYPES
+            and any(
+                _normalized_type(option[2])
+                == _normalized_type(self._current_production_name(city))
+                for option in city.buildable)))
+
+    def _structural_commerce_financing(
+            self, snapshot, city, current_normalized, eta, spec):
+        """Prove one commerce build is financeable without circular income.
+
+        Coinage is a legitimate temporary bridge but not structural income.
+        During construction, other cities may continue that bridge. Switching
+        the selected city away from Coinage removes only its packet-bounded
+        contribution. The candidate must preserve the treasury reserve through
+        completion and for the configured post-completion runway after paying
+        the new building's ruleset-declared upkeep. No unobserved commerce
+        benefit is credited.
+        """
+        active_projects = tuple(
+            project for project in self._structural_commerce_projects(snapshot)
+            if project[0] != int(city.city_id))
+        if active_projects:
+            return None
+        if int(eta) > self.structural_economy_maximum_completion_turns:
+            return None
+        economy = snapshot.economy
+        if (not economy.available or economy.gold is None
+                or economy.operating_gold_per_turn is None
+                or int(economy.operating_gold_per_turn) >= 0):
+            return None
+        effective_net = self._net_gold_per_turn(snapshot)
+        if effective_net is None:
+            return None
+        coinage_removed = self._current_coinage_contribution(
+            snapshot, city, current_normalized)
+        construction_net = int(effective_net) - int(coinage_removed)
+        gold = int(economy.gold)
+        reserve = self._treasury_reserve_required(snapshot)
+        # The first engine ablation showed that merely surviving a negative
+        # construction flow at the reserve boundary caused forced building
+        # sales and food/treasury queue oscillation hundreds of turns later.
+        # A structural repair must therefore be self-financing from the moment
+        # it is selected and retain a second reserve buffer. Coinage may bridge
+        # the work, but the project cannot spend down the treasury principal.
+        minimum_structural_reserve = reserve * 2
+        if gold < minimum_structural_reserve or construction_net < 0:
+            return None
+        completion_turns = max(1, int(eta))
+        treasury_at_completion = gold + construction_net * completion_turns
+        if treasury_at_completion < minimum_structural_reserve:
+            return None
+        building_upkeep = max(0, int(spec.get("building_upkeep", 0)))
+        post_completion_net = construction_net - building_upkeep
+        post_completion_runway = self.treasury_reserve_turns + 1
+        treasury_after_runway = (
+            treasury_at_completion
+            + min(0, post_completion_net) * post_completion_runway)
+        if treasury_after_runway < minimum_structural_reserve:
+            return None
+        capitalization = getattr(
+            economy, "capitalization_gold_per_turn", None)
+        return {
+            "operating_gold_per_turn": int(
+                economy.operating_gold_per_turn),
+            "capitalization_gold_per_turn": (
+                None if capitalization is None else int(capitalization)),
+            "effective_gold_per_turn": int(effective_net),
+            "selected_city_coinage_removed": int(coinage_removed),
+            "construction_gold_per_turn": construction_net,
+            "treasury_at_construction_start": gold,
+            "treasury_at_completion": treasury_at_completion,
+            "treasury_reserve_required": reserve,
+            "structural_treasury_reserve_required": (
+                minimum_structural_reserve),
+            "building_upkeep_at_completion": building_upkeep,
+            "post_completion_gold_per_turn_without_unobserved_benefit": (
+                post_completion_net),
+            "post_completion_runway_turns": post_completion_runway,
+            "structural_maximum_completion_turns": (
+                self.structural_economy_maximum_completion_turns),
+            "treasury_after_post_completion_runway": (
+                treasury_after_runway),
+            "active_structural_commerce_projects": active_projects,
+            "structural_benefit_assumption": "none-until-observed",
+        }
+
     def _treasury_recovery_can_release(
             self, snapshot, city=None, current_normalized=None):
         """Require a structural runway before leaving a cash stabilizer.
@@ -3095,7 +3256,13 @@ class GroundedImpactPlanner(object):
         if category is None:
             return None
         operating = snapshot.economy.operating_gold_per_turn
-        if operating is not None and operating < 0:
+        if category == "production_commerce_infrastructure":
+            financing = self._structural_commerce_financing(
+                snapshot, city, current_normalized, eta, spec)
+            if financing is None:
+                return None
+            projection.update(financing)
+        elif operating is not None and operating < 0:
             runway_turns = int(eta) + self.treasury_reserve_turns
             if (snapshot.economy.gold is None
                     or int(snapshot.economy.gold)
@@ -3126,13 +3293,11 @@ class GroundedImpactPlanner(object):
                 "increase research infrastructure while technology upkeep "
                 "materially consumes gross science or score trails")
         elif category == "production_commerce_infrastructure":
-            if operating is None or operating >= 0:
-                return None
-            utility = 825.0
+            utility = 875.0
             rationale = (
-                "repair negative operating cash flow only when the observed "
-                "treasury can fund construction without treating Coinage "
-                "capitalization as structural income")
+                "use temporary Coinage financing for one packet-legal "
+                "structural commerce repair, crediting no benefit before the "
+                "server reports completion")
         else:
             if not (self.naval_response_enabled
                     and self._recent_domain_threat(snapshot, "sea")):
@@ -3929,12 +4094,22 @@ class GroundedImpactPlanner(object):
             and current_normalized
             in NORMALIZED_HAPPINESS_IMPROVEMENT_TYPES
             and int(city.shield_stock or 0) > 0)
+        current_structural_commerce_recovery = bool(
+            current_normalized in NORMALIZED_COMMERCE_IMPROVEMENT_TYPES
+            and snapshot.economy.operating_gold_per_turn is not None
+            and int(snapshot.economy.operating_gold_per_turn) < 0
+            and any(
+                _normalized_type(option[2]) == current_normalized
+                for option in city.buildable))
         current_funded_treasury_recovery = bool(
-            current_normalized in NORMALIZED_TREASURY_STABILIZATION_TYPES
-            and current_normalized != "coinage"
-            and int(city.shield_stock or 0) > 0)
+            current_structural_commerce_recovery
+            or (
+                current_normalized in NORMALIZED_TREASURY_STABILIZATION_TYPES
+                and current_normalized != "coinage"
+                and int(city.shield_stock or 0) > 0))
         current_treasury_recovery = bool(
-            current_normalized in NORMALIZED_TREASURY_STABILIZATION_TYPES
+            (current_normalized in NORMALIZED_TREASURY_STABILIZATION_TYPES
+             or current_structural_commerce_recovery)
             and (self._treasury_deficit(snapshot)
                  or current_funded_treasury_recovery))
         current_naval_response_in_progress = bool(
@@ -3960,6 +4135,14 @@ class GroundedImpactPlanner(object):
             and snapshot.economy.gold is not None
             and int(snapshot.economy.gold)
             < self._treasury_reserve_required(snapshot))
+        if (current_structural_commerce_recovery
+                and not (
+                    treasury_reserve_breached and normalized == "coinage")):
+            # A structural repair is an empire-wide one-at-a-time lifecycle.
+            # Retain it from the first zero-stock authoritative snapshot through
+            # completion; only an actual reserve breach may use Coinage as the
+            # immediate safety escape hatch.
+            return None
         if (current_food_output_recovery
                 and not (treasury_reserve_breached
                          and normalized == "coinage")):
@@ -5181,6 +5364,72 @@ class GroundedImpactPlanner(object):
                 })
         return None
 
+    def _government_economic_projection(self, snapshot, remaining_turns):
+        """Evaluate an explicitly declared transition benefit against downtime.
+
+        Government effects are not yet part of the compiled ruleset IR. The
+        planner therefore never invents a target benefit: configuration must
+        declare the expected operating-gold delta for the exact preferred
+        government. The gate prices revolution downtime from authoritative
+        current science, shields, and structural cash, and requires both a
+        treasury runway and bounded payback before initiating the transition.
+        Mandatory recovery from an already-started revolution never uses this
+        optional initiation gate.
+        """
+        economy = snapshot.economy
+        gross_beakers = snapshot.research.gross_beakers_per_turn
+        operating = economy.operating_gold_per_turn
+        if (not economy.available or economy.gold is None
+                or gross_beakers is None or operating is None):
+            return None
+        if any(
+                city.disorder is True
+                or self._raw_city_surplus(city, 0) < self.food_surplus_reserve
+                for city in snapshot.cities):
+            return None
+        transition_turns = self.government_transition_cost_turns
+        reserve = self._treasury_reserve_required(snapshot)
+        treasury_after_transition = (
+            int(economy.gold)
+            + min(0, int(operating)) * transition_turns)
+        if treasury_after_transition < reserve:
+            return None
+        shield_output = sum(
+            max(0, self._raw_city_surplus(city, 1))
+            for city in snapshot.cities)
+        productive_output = (
+            max(0, int(gross_beakers))
+            + shield_output
+            + max(0, int(operating)))
+        downtime_cost = productive_output * transition_turns
+        payback_turns = min(
+            self.government_maximum_payback_turns,
+            max(0, int(remaining_turns) - transition_turns))
+        declared_benefit = (
+            self.government_expected_operating_gold_gain * payback_turns)
+        if payback_turns <= 0 or declared_benefit < downtime_cost:
+            return None
+        return {
+            "economic_gate_enabled": True,
+            "economic_gate_evidence": (
+                "authoritative-current-output-plus-declared-target-delta"),
+            "declared_operating_gold_gain_per_turn": (
+                self.government_expected_operating_gold_gain),
+            "transition_cost_turns": transition_turns,
+            "gross_beakers_per_turn_before": int(gross_beakers),
+            "shield_surplus_per_turn_before": shield_output,
+            "operating_gold_per_turn_before": int(operating),
+            "productive_output_per_turn_before": productive_output,
+            "transition_downtime_cost": downtime_cost,
+            "maximum_payback_turns": (
+                self.government_maximum_payback_turns),
+            "evaluated_payback_turns": payback_turns,
+            "declared_benefit_over_payback": declared_benefit,
+            "declared_net_value": declared_benefit - downtime_cost,
+            "treasury_after_transition": treasury_after_transition,
+            "treasury_reserve_required": reserve,
+        }
+
     def _government_candidate(self, snapshot, action):
         """Select an exact transition target or finish an active revolution."""
         if action.get("action_type") != "government_change":
@@ -5232,21 +5481,38 @@ class GroundedImpactPlanner(object):
         remaining_turns = self._settlement_runway_remaining(snapshot)
         if remaining_turns < self.government_minimum_remaining_turns:
             return None
+        economic_projection = None
+        if self.government_economic_gate_enabled:
+            economic_projection = self._government_economic_projection(
+                snapshot, remaining_turns)
+            if economic_projection is None:
+                return None
+        projection = {
+            "current_government": government.current_name,
+            "government_minimum_remaining_turns": (
+                self.government_minimum_remaining_turns),
+            "government_minimum_city_count": (
+                self.government_minimum_city_count),
+            "observed_city_count": len(snapshot.cities),
+            "remaining_turns": remaining_turns,
+            "target_government": name,
+            "target_government_id": int(government_id),
+        }
+        if economic_projection is not None:
+            projection.update(economic_projection)
         return ImpactCandidate(
-            action, "government_transition", 1500.0,
+            action, "government_transition",
+            1500.0 + min(
+                100.0,
+                float((economic_projection or {}).get(
+                    "declared_net_value", 0))),
             "start an exact packet-legal transition to the configured "
-            "government while the declared horizon retains recovery runway",
-            {
-                "current_government": government.current_name,
-                "government_minimum_remaining_turns": (
-                    self.government_minimum_remaining_turns),
-                "government_minimum_city_count": (
-                    self.government_minimum_city_count),
-                "observed_city_count": len(snapshot.cities),
-                "remaining_turns": remaining_turns,
-                "target_government": name,
-                "target_government_id": int(government_id),
-            })
+            "government while the declared horizon retains recovery runway"
+            + (
+                " and the bounded economic counterfactual repays revolution "
+                "downtime"
+                if economic_projection is not None else ""),
+            projection)
 
     def _garrison_move_candidate(
             self, snapshot, action, unit, founder_types):

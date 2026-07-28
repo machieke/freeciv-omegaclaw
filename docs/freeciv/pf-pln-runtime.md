@@ -89,6 +89,20 @@ release require structural runway; and a completely missing persistent land
 capability becomes a funded, retained survival route. These mechanisms remain
 subject to engine-backed score validation and do not revise the established
 paired score claim by themselves.
+Adapter 1.33 adds a bounded structural-economy route under the existing
+`treasury_sustainability` pressure goal. Only one packet-legal commerce
+building may be active empire-wide. Its projection subtracts the selected
+city's Coinage contribution, includes compiled building upkeep, requires
+nonnegative construction cash, twice the ordinary treasury reserve, and a
+maximum 20-turn completion ETA. The queue is retained through completion.
+Two looser engine ablations were rejected before this boundary was accepted:
+reserve-edge construction produced forced removals and food/treasury
+oscillation, while self-financing 30-60 turn projects still lost too much
+production opportunity. The accepted selected-seed arm scored 605 versus the
+adapter-1.32 control's 602, but this does not revise a score or win-rate claim.
+The same adapter contains an opt-in government economic counterfactual;
+live profiles keep it disabled after a matched Monarchy diagnostic scored 201
+versus 202 under Despotism.
 Adapter 1.7 additionally consumes an optional, packet-grounded
 `settlement_site_eligible` fact on founder moves and prefers a directly
 reachable valid site over continued frontier wandering. Unknown destinations

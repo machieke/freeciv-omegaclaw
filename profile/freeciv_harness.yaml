@@ -41,6 +41,10 @@ impact_policy:
   preferred_government: ""
   government_minimum_remaining_turns: 12
   government_minimum_city_count: 3
+  government_economic_gate_enabled: false
+  government_transition_cost_turns: 6
+  government_maximum_payback_turns: 60
+  government_expected_operating_gold_gain: 0
   founder_attrition_rebuild_limit: 1
   production_minimum_remaining_turns: 8
   expansion_minimum_remaining_turns: 12
@@ -56,6 +60,7 @@ impact_policy:
   foodbox_percent: 100
   unit_build_score_divisor: 10
   food_surplus_reserve: 1
+  structural_economy_maximum_completion_turns: 20
   disorder_luxury_recovery_enabled: false
   city_happiness_governor_enabled: false
   treasury_reserve_turns: 2

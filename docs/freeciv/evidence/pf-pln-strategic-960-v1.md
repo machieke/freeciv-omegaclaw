@@ -33,6 +33,9 @@ the raw same-seed scores are diagnostic rather than a paired causal estimate.
 | v41 | adapter 1.31 selection-only role boundary with proven queue continuity restored | 455 / 4274 | 5 | 530.5 s | accepted engine confirmation; exact v38 reproduction, no score claim |
 | v42 | empty-land-force survival route for balanced offensive units | 452 / 4274 | 5 | 529.0 s | rejected; no surviving force recovery and a three-point regression |
 | v48 | adapter 1.32 corrected government state, grounded controller retries, funded land-capability retention, and settled refresh | 602 / 4443 | 5 | 402.6 s | accepted mechanism and efficiency hardening; selected-seed score diagnostic only |
+| v51 | loose Coinage-financed structural-commerce runway | 416 / 4602 | 5 | 442.5 s | rejected; reserve-edge construction caused forced building removals and maintenance oscillation |
+| v52 | self-financing structural commerce with a doubled reserve | 470 / 4565 | 5 | 414.5 s | rejected; 30-60 turn projects remained too expensive in production opportunity cost |
+| v53 | adapter 1.33 self-financing, doubled-reserve, maximum-20-turn structural commerce | 605 / 4437 | 5 | 409.3 s | accepted mechanism boundary; selected-seed score diagnostic only |
 
 Artifacts:
 
@@ -59,6 +62,12 @@ Artifacts:
 - rejected empty-land-force recovery diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v42`
 - adapter-1.32 strategic-loop confirmation:
   `artifacts/freeciv/pf-pln-strategic-960-v48`
+- rejected loose structural-commerce diagnostic:
+  `artifacts/freeciv/pf-pln-structural-economy-960-v51`
+- rejected self-financing structural-commerce diagnostic:
+  `artifacts/freeciv/pf-pln-structural-economy-960-v52`
+- adapter-1.33 bounded structural-commerce confirmation:
+  `artifacts/freeciv/pf-pln-structural-economy-960-v53`
 
 All listed completed diagnostics completed 1/1 jobs with zero gameplay or
 infrastructure failures. Interrupted integration diagnostics are intentionally
@@ -422,6 +431,51 @@ Coinage still occupied 1,696 of 4,800 city-turns. Adapter 1.32 therefore proves
 that the controller no longer oscillates on Coinage-funded cash or restores tax
 against an unfunded projection; it does not prove positive structural cash
 flow, a superior government policy, or a win-rate improvement.
+
+Adapter 1.33 tests a bounded escape from permanent Coinage capitalization. The
+first v51 gate allowed construction to consume treasury principal as long as
+the configured reserve survived. Its first Marketplace projected `-1`
+gold/turn during construction and only six gold after the post-completion
+runway, exactly the minimum reserve. Five commerce projects completed, but four
+of those buildings were later forcibly removed. Treasury-stabilization
+selections rose from 23 to 83, food-stabilization selections rose from 14 to
+75, known technologies fell from 65 to 59, population fell from 47 to 36, and
+score fell to 416. That gate is rejected.
+
+V52 required nonnegative post-switch cash flow and twice the ordinary reserve.
+It eliminated the reserve-edge failure but still selected seven projects,
+including Marketplaces with 30- and 60-turn completion times. Five completed
+commerce buildings were later removed, and the arm scored 470. This proves
+that treasury safety alone does not price the production opportunity cost.
+
+The accepted v53 boundary additionally requires completion within 20 turns.
+It selected five short projects from turn 634 onward: a Marketplace, two Banks,
+a Courthouse, and a Stock Exchange. Every selected instance completed and none
+was removed. Relative to v48:
+
+- score was 605 versus 602 and score margin was `-3832` versus `-3841`;
+- known technologies were 67 versus 65 and final net research was 35 versus
+  25 beakers/turn;
+- Coinage occupied 1,615 versus 1,696 city-turns;
+- population was 43 versus 47 and surviving units were six versus eight;
+- meaningful actions were 414 versus 375; and
+- gameplay runtime was 409.3 versus 402.6 seconds.
+
+The `+3` score and `+9` margin are selected-seed diagnostics, not evidence of
+superiority. The accepted claim is narrower: the controller can complete
+short, self-financing structural repairs without reproducing the forced-removal
+cascade observed in v51 and v52.
+
+The government counterfactual was separately tested at 240 turns. With a
+declared six-gold operating gain, the gate initiated exactly one Monarchy
+transition at turn 102, observed one Anarchy turn, and remained in Monarchy.
+It scored 201 against the matched bounded-policy Despotism control's 202; its
+margin was `-430` versus `-381`. Although final net research was 26 versus six
+beakers/turn, population was 34 versus 35. The mechanism is retained as opt-in,
+but `preferred_government` and `government_economic_gate_enabled` remain
+disabled in every live profile. Artifacts:
+`artifacts/freeciv/pf-pln-government-gate-240-v54` and
+`artifacts/freeciv/pf-pln-government-gate-240-control-v55`.
 
 Any score claim still requires a preregistered paired-seed cohort with the
 historical five-city policy held fixed. The current evidence supports contract,

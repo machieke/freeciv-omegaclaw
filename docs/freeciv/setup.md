@@ -94,6 +94,12 @@ its exact listening socket; it does not rely on a fixed post-spawn delay.
 
 The live harnesses configure `preferred_government: ""`, which disables
 transition initiation after two 480-turn Monarchy cohorts regressed materially.
+They also configure `government_economic_gate_enabled: false`. The optional
+gate requires a positive declared `government_expected_operating_gold_gain`,
+prices current productive output over `government_transition_cost_turns`, and
+caps payback at `government_maximum_payback_turns`. A later matched 240-turn
+gate diagnostic still scored 201 under Monarchy versus 202 under Despotism, so
+the additional gate did not justify enabling the policy.
 The proxy still advertises every exact legal alternative. Once a revolution has
 already started, recovery remains mandatory and uses the packet-declared
 intended target whenever it remains legal, regardless of remaining horizon.
@@ -104,6 +110,14 @@ release game by default. The bounded luxury diagnostic additionally accepts
 `disorder_luxury_trigger_turns`, `disorder_luxury_minimum_city_size`, and
 `disorder_luxury_bridge_max_turns`; these settings are inert while recovery is
 disabled.
+
+Live profiles set `structural_economy_maximum_completion_turns: 20`.
+Ruleset-driven commerce repair may use Coinage as a temporary bridge only when
+the post-switch cash flow is nonnegative, twice the ordinary treasury reserve
+survives construction plus upkeep, and no other structural commerce project is
+active. The exact selected queue is held through completion. This is the
+accepted adapter-1.33 boundary; longer or reserve-consuming variants are
+documented as rejected engine ablations.
 
 ## 3. Runtime environment
 

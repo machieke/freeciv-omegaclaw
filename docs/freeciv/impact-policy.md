@@ -437,14 +437,37 @@ grounded strategic value, the cheapest legal technology is the deterministic
 fallback. This removes a model-choice branch that was observed selecting the
 cheap comparison despite a stronger declared unlock.
 
-Every long ruleset-derived infrastructure route requires a structural
-construction runway:
-authoritative treasury minus negative operating cash flow must remain above the
-reserve through the projected completion ETA plus the configured reserve band.
-Coinage capitalization is excluded from that runway. This prevents a
-Factory/Coinage, University/Coinage, Bank/Coinage, coastal, or
-Marketplace/defender queue oscillation from repeatedly abandoning construction
-whenever Coinage briefly makes effective cash positive.
+Every long ruleset-derived non-commerce infrastructure route requires a
+structural construction runway: authoritative treasury minus negative
+operating cash flow must remain above the reserve through the projected
+completion ETA plus the configured reserve band. Coinage capitalization is
+excluded from that ordinary runway.
+
+Adapter 1.33 gives commerce infrastructure a narrower staged exception.
+Temporary Coinage from other cities may finance one Marketplace, Bank, Stock
+Exchange, or Courthouse at a time, but the selected city's own Coinage
+contribution is removed from the counterfactual immediately. The remaining
+cash flow must be nonnegative, the treasury must retain twice the ordinary
+reserve through completion and the ruleset-declared building upkeep runway,
+and the project must complete within
+`structural_economy_maximum_completion_turns` (20 in live profiles). The
+projection credits no unobserved commerce benefit. Once selected, the exact
+queue is retained from zero shields through completion unless the authoritative
+treasury actually breaches its reserve. These bounds were derived from the
+rejected v51/v52 engine ablations; see
+`evidence/pf-pln-strategic-960-v1.md`.
+
+Stable-government initiation can optionally add a bounded economic gate. The
+configured `government_expected_operating_gold_gain` is an explicit policy
+assumption, not a ruleset inference. The gate prices
+`government_transition_cost_turns` against current gross beakers, city shield
+surplus, and operating cash, limits benefit to
+`government_maximum_payback_turns`, rejects food/disorder or treasury risk, and
+records every term in the candidate projection. Recovery from an already
+active revolution remains mandatory and bypasses this optional initiation
+test. The live profiles leave both `preferred_government` empty and
+`government_economic_gate_enabled` false after the matched 240-turn Monarchy
+ablation scored 201 versus the Despotism control's 202.
 
 A post-expansion replacement-reserve experiment was also rejected. It doubled
 defender completions from 17 to 32, but the opponent destroyed 25 instead of

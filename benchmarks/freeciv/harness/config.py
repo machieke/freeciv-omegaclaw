@@ -36,6 +36,7 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
             ("expansion_minimum_settlement_runway_turns", 0, 100),
             ("foodbox_percent", 1, 1000),
             ("unit_build_score_divisor", 1, 100),
+            ("structural_economy_maximum_completion_turns", 1, 100),
             ("no_effect_retry_limit", 1, 8),
             ("max_no_effect_failovers_per_scope", 0, 8),
             ("pressure_survival_threat_radius", 1, 12),
@@ -82,9 +83,33 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
             "boolean".format(prefix))
     for key in (
             "ruleset_driven_production_enabled", "naval_response_enabled",
-            "modernization_enabled", "industrialization_enabled"):
+            "modernization_enabled", "industrialization_enabled",
+            "government_economic_gate_enabled"):
         if not isinstance(impact.get(key, False), bool):
             raise ValueError("{}.{} must be boolean".format(prefix, key))
+    for key, lower, upper in (
+            ("government_transition_cost_turns", 1, 20),
+            ("government_maximum_payback_turns", 1, 100),
+            ("government_expected_operating_gold_gain", 0, 100)):
+        setting = impact.get(key, {
+            "government_transition_cost_turns": 6,
+            "government_maximum_payback_turns": 60,
+            "government_expected_operating_gold_gain": 0,
+        }[key])
+        if (isinstance(setting, bool) or not isinstance(setting, int)
+                or not lower <= setting <= upper):
+            raise ValueError(
+                "{}.{} must be in {}..{}".format(
+                    prefix, key, lower, upper))
+    if impact.get("government_economic_gate_enabled", False):
+        if not str(impact.get("preferred_government", "")).strip():
+            raise ValueError(
+                "{} government economic gate requires "
+                "preferred_government".format(prefix))
+        if impact.get("government_expected_operating_gold_gain", 0) <= 0:
+            raise ValueError(
+                "{} government economic gate requires positive declared "
+                "operating gain".format(prefix))
     threat_memory = impact.get("strategic_threat_memory_turns", 60)
     if (isinstance(threat_memory, bool)
             or not isinstance(threat_memory, int)

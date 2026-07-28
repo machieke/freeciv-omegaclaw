@@ -64,7 +64,10 @@ industrial/research/commerce infrastructure, and authoritative score-gap
 pressure. The previously rejected global luxury, city-governor, Monarchy, and
 speculative overexpansion experiments remain disabled. Every production target
 must still be in the current server legal set and pass upkeep, horizon, and
-execution gates.
+execution gates. Commerce repair is limited to one self-financing project at a
+time, twice the ordinary treasury reserve, and a maximum 20-turn completion
+ETA; the selected city's Coinage contribution is removed before evaluating
+that counterfactual.
 
 Scheduler-enabled engine conditions also use the declared grounded gameplay impact
 policy in `impact_policy`. See [impact-policy.md](impact-policy.md) for its exact

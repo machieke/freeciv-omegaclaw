@@ -20,7 +20,7 @@ from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 
 def _snapshot(units, actions, cities=None, source_seq=1, turn=4,
               city_surplus=None, known_hut_tiles=None, government=None,
-              player=None, own_score=None, opponent_score=None):
+              player=None, research=None, own_score=None, opponent_score=None):
     cities = cities if cities is not None else [_city()]
     if city_surplus is not None:
         cities[0]["surplus"] = list(city_surplus)
@@ -33,9 +33,11 @@ def _snapshot(units, actions, cities=None, source_seq=1, turn=4,
                 {"gold": 30, "gold_per_turn": 3, "tax": 40,
                  "science": 60, "luxury": 0},
                 **dict(player or {})),
-            "research": {"researching": 5, "researching_name": "Writing",
-                         "researching_cost": 40, "bulbs_researched": 10,
-                         "beakers_per_turn": 5},
+            "research": dict(
+                {"researching": 5, "researching_name": "Writing",
+                 "researching_cost": 40, "bulbs_researched": 10,
+                 "beakers_per_turn": 5},
+                **dict(research or {})),
             "ruleset": {"ready": True},
             "known_hut_tiles": list(known_hut_tiles or ()),
         },
@@ -657,29 +659,140 @@ def test_commerce_infrastructure_requires_structural_construction_runway():
         "expansion_city_target": 1,
         "horizon_turn": 100,
         "ruleset_driven_production_enabled": True,
+        "structural_economy_maximum_completion_turns": 30,
     }
     insufficient = _snapshot(
         [_unit(11, "Alpine Troops")], actions, cities=[city],
         player={
-            "gold": 30, "gold_per_turn": 2,
+            "gold": 4, "gold_per_turn": 5,
             "operating_gold_per_turn": -10,
-            "capitalization_gold_per_turn": 12,
+            "capitalization_gold_per_turn": 15,
+            "gold_upkeep_style": "Mixed",
         })
     durable = _snapshot(
         [_unit(11, "Alpine Troops")], actions, cities=[city], source_seq=2,
         player={
-            "gold": 500, "gold_per_turn": 2,
+            "gold": 500, "gold_per_turn": 5,
             "operating_gold_per_turn": -10,
-            "capitalization_gold_per_turn": 12,
+            "capitalization_gold_per_turn": 15,
+            "gold_upkeep_style": "Mixed",
+        })
+    treasury_funded_but_not_self_financing = _snapshot(
+        [_unit(11, "Alpine Troops")], actions, cities=[city], source_seq=3,
+        player={
+            "gold": 500, "gold_per_turn": 3,
+            "operating_gold_per_turn": -10,
+            "capitalization_gold_per_turn": 13,
+            "gold_upkeep_style": "Mixed",
         })
 
     assert GroundedImpactPlanner(
         settings, ruleset_ir=ruleset).plan(insufficient) is None
+    assert GroundedImpactPlanner(
+        settings, ruleset_ir=ruleset).plan(
+            treasury_funded_but_not_self_financing) is None
+    assert GroundedImpactPlanner(
+        dict(settings, structural_economy_maximum_completion_turns=20),
+        ruleset_ir=ruleset).plan(durable) is None
     decision = GroundedImpactPlanner(
         settings, ruleset_ir=ruleset).plan(durable)
     assert decision.candidate.category == "production_commerce_infrastructure"
+    assert decision.candidate.projection["operating_gold_per_turn"] == -10
+    assert decision.candidate.projection["effective_gold_per_turn"] == 5
+    assert decision.candidate.projection["selected_city_coinage_removed"] == 4
+    assert decision.candidate.projection["construction_gold_per_turn"] == 1
     assert decision.candidate.projection[
-        "treasury_construction_runway_turns"] > 2
+        "treasury_after_post_completion_runway"] >= (
+            decision.candidate.projection[
+                "structural_treasury_reserve_required"])
+    assert decision.candidate.projection[
+        "structural_benefit_assumption"] == "none-until-observed"
+
+
+def test_structural_commerce_recovery_is_one_at_a_time_and_held_from_zero_stock():
+    first = _city(
+        shield_stock=0, production_kind=3, production_value=30)
+    first["buildability"]["options"].extend([
+        {"type": "improvement", "id": 30, "name": "Marketplace"},
+        {"type": "improvement", "id": 31, "name": "Coinage"},
+    ])
+    second = dict(
+        _city(
+            shield_stock=0, production_kind=3, production_value=31),
+        id=20, name="Antium", tile=2, x=2)
+    second["buildability"] = {"available": True, "options": [
+        {"type": "improvement", "id": 30, "name": "Marketplace"},
+        {"type": "improvement", "id": 31, "name": "Coinage"},
+        {"type": "improvement", "id": 32, "name": "Bank"},
+    ]}
+    ruleset = _ruleset_ir((
+        ("Alpine Troops", "unit", 60),
+        ("Marketplace", "building", 60),
+        ("Bank", "building", 100),
+        ("Coinage", "building", 10),
+    ))
+    settings = {
+        "expansion_city_target": 1,
+        "horizon_turn": 100,
+        "ruleset_driven_production_enabled": True,
+    }
+    player = {
+        "gold": 500, "gold_per_turn": 4,
+        "operating_gold_per_turn": -4,
+        "capitalization_gold_per_turn": 8,
+        "gold_upkeep_style": "Mixed",
+    }
+
+    held = _snapshot(
+        [_unit(11, "Alpine Troops")],
+        [_production(10, "Coinage", 3, 31),
+         {"action_type": "end_turn", "is_valid": True}],
+        cities=[first, second], player=player)
+    parallel = _snapshot(
+        [_unit(11, "Alpine Troops")],
+        [_production(20, "Bank", 3, 32),
+         {"action_type": "end_turn", "is_valid": True}],
+        cities=[first, second], source_seq=2, player=player)
+
+    planner = GroundedImpactPlanner(settings, ruleset_ir=ruleset)
+    assert planner.plan(held) is None
+    assert planner.plan(parallel) is None
+    assert planner._structural_commerce_projects(parallel) == (
+        (10, "marketplace", 0),)
+
+
+def test_structural_commerce_financing_includes_ruleset_building_upkeep():
+    city = _city(production_kind=3, production_value=31)
+    city["buildability"]["options"].extend([
+        {"type": "improvement", "id": 30, "name": "Bank"},
+        {"type": "improvement", "id": 31, "name": "Coinage"},
+    ])
+    ruleset = _ruleset_ir((
+        ("Alpine Troops", "unit", 60),
+        ("Bank", "building", 100),
+        ("Coinage", "building", 10),
+    ), upkeeps={"Bank": {"upkeep": 3}})
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops")],
+        [_production(10, "Bank", 3, 30),
+         {"action_type": "end_turn", "is_valid": True}],
+        cities=[city],
+        player={
+            "gold": 12, "gold_per_turn": 4,
+            "operating_gold_per_turn": -10,
+            "capitalization_gold_per_turn": 14,
+            "gold_upkeep_style": "Mixed",
+        })
+
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 1,
+        "horizon_turn": 100,
+        "ruleset_driven_production_enabled": True,
+        "structural_economy_maximum_completion_turns": 30,
+    }, ruleset_ir=ruleset)
+
+    assert planner._production_specs["bank"]["building_upkeep"] == 3
+    assert planner.plan(snapshot) is None
 
 
 def test_founder_moves_outward_then_founds_only_at_configured_spacing():
@@ -2579,6 +2692,95 @@ def test_government_transition_is_disabled_without_policy_or_runway():
         "government_minimum_remaining_turns": 6,
         "horizon_turn": 30,
     }).plan(no_runway) is None
+
+
+def test_government_economic_gate_prices_downtime_and_declared_payback():
+    action = {
+        "action_type": "government_change", "actor_id": 0,
+        "target": {"government_id": 2, "government_name": "Monarchy"},
+        "is_valid": True,
+    }
+    government = {
+        "available": True, "current_id": 1, "current_name": "Despotism",
+        "target_id": 1, "target_name": "Despotism",
+        "revolution_finishes": -1, "in_revolution": False,
+        "selection_required": False, "diagnostic": None,
+    }
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops")],
+        [action, {"action_type": "end_turn", "is_valid": True}],
+        government=government,
+        player={
+            "gold": 200, "gold_per_turn": 5,
+            "operating_gold_per_turn": 5,
+            "capitalization_gold_per_turn": 0,
+        },
+        research={
+            "gross_beakers_per_turn": 5,
+            "tech_upkeep": 0,
+        })
+    values = {
+        "preferred_government": "Monarchy",
+        "government_economic_gate_enabled": True,
+        "government_transition_cost_turns": 2,
+        "government_maximum_payback_turns": 20,
+        "government_expected_operating_gold_gain": 3,
+        "government_minimum_remaining_turns": 12,
+        "horizon_turn": 30,
+    }
+
+    decision = GroundedImpactPlanner(values).plan(snapshot)
+
+    assert decision.candidate.category == "government_transition"
+    projection = decision.candidate.projection
+    assert projection["productive_output_per_turn_before"] == 14
+    assert projection["transition_downtime_cost"] == 28
+    assert projection["declared_benefit_over_payback"] == 60
+    assert projection["declared_net_value"] == 32
+    assert projection["treasury_after_transition"] == 200
+    assert projection["economic_gate_evidence"] == (
+        "authoritative-current-output-plus-declared-target-delta")
+
+    uneconomic = dict(
+        values, government_expected_operating_gold_gain=1)
+    assert GroundedImpactPlanner(uneconomic).plan(snapshot) is None
+
+
+def test_government_economic_gate_rejects_unsafe_transition_runway():
+    action = {
+        "action_type": "government_change", "actor_id": 0,
+        "target": {"government_id": 2, "government_name": "Monarchy"},
+        "is_valid": True,
+    }
+    government = {
+        "available": True, "current_id": 1, "current_name": "Despotism",
+        "target_id": 1, "target_name": "Despotism",
+        "revolution_finishes": -1, "in_revolution": False,
+        "selection_required": False, "diagnostic": None,
+    }
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops")],
+        [action, {"action_type": "end_turn", "is_valid": True}],
+        government=government,
+        player={
+            "gold": 12, "gold_per_turn": -4,
+            "operating_gold_per_turn": -4,
+            "capitalization_gold_per_turn": 0,
+        },
+        research={
+            "gross_beakers_per_turn": 0,
+            "tech_upkeep": 0,
+        })
+    values = {
+        "preferred_government": "Monarchy",
+        "government_economic_gate_enabled": True,
+        "government_transition_cost_turns": 3,
+        "government_maximum_payback_turns": 20,
+        "government_expected_operating_gold_gain": 20,
+        "horizon_turn": 30,
+    }
+
+    assert GroundedImpactPlanner(values).plan(snapshot) is None
 
 
 def test_disorder_risk_prioritizes_city_local_martial_law_garrison():
