@@ -15,12 +15,12 @@ opponent:
 machine_profile: codex-dev-linux
 engine:
   freeciv_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018
-  proxy_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:99a5f09f6a8904c8843787eff6964711d6928a15ff3b08da86030d67038b8b90
+  proxy_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:464d96f39d91cfae59fdac5f74170cfcb45a89aa14a6840118fb05f26c7ecb00
 rulebase:
-  compiler_version: freeciv-ruleset-compiler/1.2
+  compiler_version: freeciv-ruleset-compiler/1.3
   source_sha256: 3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e
-  ir_sha256: be57b9141bc0c9a439abcc6ab4052601c2cec82c6c6e148f5ebd587fde120687
-  atomese_sha256: cecd6aa53684e276c6d2426f93151d19998635d60bbcf02383a4387557f19edb
+  ir_sha256: 2f25a21c969e60b94c2da4d40c336fcc14a41e6741d8edf86d0eb8be4e696f06
+  atomese_sha256: 86b3108f12c30690af34f72f40150ca0250caf7479ce07f11d40236e8e00220e
 model:
   provider: Ollama-local
   name: qwen3-coder-next:latest
@@ -52,6 +52,11 @@ impact_policy:
   expansion_escort_threat_gating_enabled: false
   expansion_escort_route_threat_memory_enabled: false
   expansion_final_settlement_escort_enabled: false
+  ruleset_driven_production_enabled: true
+  naval_response_enabled: true
+  modernization_enabled: true
+  industrialization_enabled: true
+  strategic_threat_memory_turns: 80
   foodbox_percent: 100
   unit_build_score_divisor: 10
   food_surplus_reserve: 1

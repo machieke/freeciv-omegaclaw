@@ -5,7 +5,7 @@ All phases 0-9 have deterministic acceptance evidence, but only phases with an
 engine adapter may affect a live harness game. The versioned support declaration
 is `pf_pln_runtime` in `profile/freeciv_agent.yaml`.
 
-The current engine adapter is `grounded-impact-planner/1.25`. Its score-alignment
+The current engine adapter is `grounded-impact-planner/1.26`. Its score-alignment
 guard changes how the already-live phases 0, 1, 4, and 9 rank grounded
 operations. It also exposes a bounded post-settlement-runway gate for
 score-bearing founder production and carries that deadline through settlement
@@ -25,6 +25,22 @@ readiness, coastal response, and industrial/research/commerce infrastructure.
 The routes remain constrained by the server legal set, exact prerequisite
 proofs, upkeep reserves, and remaining-horizon gates; they do not activate a
 component-only phase or revise any existing score claim.
+Adapter 1.26 hardens those routes after engine traces exposed two lifecycle
+gaps: a selected fleet queue could be discarded by the next ordinary garrison
+switch, and a stronger ruleset-derived defender could remain score-routed while
+survival pressure was active. A selected sea capability is retained through
+zero-shield disorder and funded production until the first owned instance
+appears; the automatic repeat is then released. Structural food recovery is
+held through building completion. Treasury recovery moves to another city
+while one exists, with immediate Coinage retained as the one-city escape hatch.
+A structural operating-cash runway gates every long strategic building so
+temporary Coinage capitalization cannot reopen a Factory/University/building
+queue that the next treasury decision would immediately discard.
+A materially stronger land unit that fills an authoritative garrison deficit
+is routed as `production_defense`. Transport capacity remains strategically
+useful but no longer lets an unarmed ferry outrank a combat vessel in threat
+response. These are mechanism and correctness changes only; they do not revise
+a score or win-rate claim.
 Adapter 1.7 additionally consumes an optional, packet-grounded
 `settlement_site_eligible` fact on founder moves and prefers a directly
 reachable valid site over continued frontier wandering. Unknown destinations

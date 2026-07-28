@@ -235,16 +235,19 @@ def test_ruleset_driven_policy_answers_naval_threat_with_buildable_vessel():
     city["buildability"]["options"].extend([
         {"type": "unit", "id": 20, "name": "Armor"},
         {"type": "unit", "id": 21, "name": "Destroyer"},
+        {"type": "unit", "id": 22, "name": "Transport"},
     ])
     actions = [
         _production(10, "Armor", 6, 20),
         _production(10, "Destroyer", 6, 21),
+        _production(10, "Transport", 6, 22),
         {"action_type": "end_turn", "is_valid": True},
     ]
     ir = _ruleset_ir((
         ("Alpine Troops", "unit", 60),
         ("Armor", "unit", 80),
-        ("Destroyer", "unit", 70),
+        ("Destroyer", "unit", 60),
+        ("Transport", "unit", 50),
     ), capabilities={
         "Alpine Troops": {
             "class": "Land", "attack": 5, "defense": 5,
@@ -255,8 +258,13 @@ def test_ruleset_driven_policy_answers_naval_threat_with_buildable_vessel():
             "hitpoints": 20, "firepower": 1,
         },
         "Destroyer": {
-            "class": "Sea", "attack": 8, "defense": 6,
-            "hitpoints": 30, "firepower": 2,
+            "class": "Sea", "attack": 4, "defense": 4,
+            "hitpoints": 30, "firepower": 1, "move_rate": 6,
+        },
+        "Transport": {
+            "class": "Sea", "attack": 0, "defense": 3,
+            "hitpoints": 30, "firepower": 1, "move_rate": 5,
+            "transport_cap": 8,
         },
     })
     planner = GroundedImpactPlanner({
@@ -278,6 +286,105 @@ def test_ruleset_driven_policy_answers_naval_threat_with_buildable_vessel():
     assert decision.candidate.action["target"]["production_type"] == "Destroyer"
     assert decision.candidate.projection["capability_domain"] == "sea"
     assert decision.candidate.projection["score_gap_to_leader"] == -15
+
+
+def test_naval_response_keeps_funded_queue_until_safety_or_completion():
+    city = _city(
+        shield_stock=5, production_kind=6, production_value=21)
+    city["buildability"]["options"].extend([
+        {"type": "unit", "id": 21, "name": "Destroyer"},
+        {"type": "unit", "id": 22, "name": "Transport"},
+    ])
+    ruleset = _ruleset_ir((
+        ("Alpine Troops", "unit", 60),
+        ("Destroyer", "unit", 60),
+        ("Transport", "unit", 50),
+    ), upkeeps={
+        "Destroyer": {"uk_food": 1},
+    }, capabilities={
+        "Alpine Troops": {
+            "class": "Land", "attack": 5, "defense": 5,
+            "hitpoints": 20, "firepower": 1,
+        },
+        "Destroyer": {
+            "class": "Sea", "attack": 4, "defense": 4,
+            "hitpoints": 30, "firepower": 1, "move_rate": 6,
+        },
+        "Transport": {
+            "class": "Sea", "attack": 0, "defense": 3,
+            "hitpoints": 30, "firepower": 1, "move_rate": 5,
+            "transport_cap": 8,
+        },
+    })
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 1,
+        "horizon_turn": 100,
+        "ruleset_driven_production_enabled": True,
+        "naval_response_enabled": True,
+    }, ruleset_ir=ruleset)
+    snapshot = _snapshot(
+        [_unit(11, "Alpine Troops", 4, 4),
+         _enemy(90, "Destroyer", 4, 4)],
+        [_production(10, "Alpine Troops", 6, 11),
+         _production(10, "Transport", 6, 22),
+         {"action_type": "end_turn", "is_valid": True}],
+        cities=[city], own_score=20, opponent_score=35)
+
+    planner.observe(snapshot)
+
+    assert planner.plan(snapshot) is None
+
+    deficit = _snapshot(
+        [_unit(11, "Alpine Troops", 4, 4),
+         _enemy(90, "Destroyer", 4, 4)],
+        [_production(10, "Marketplace", 3, 18),
+         _production(10, "Coinage", 3, 72),
+         {"action_type": "end_turn", "is_valid": True}],
+        cities=[city], source_seq=2, turn=5,
+        player={
+            "gold": 0, "city_gold_surplus_per_turn": -1,
+            "gold_per_turn": -1, "unit_gold_upkeep": 0,
+            "gold_upkeep_reserve": 0,
+        })
+    planner.observe(deficit)
+    assert planner._production_sustainability_route(
+        deficit, deficit.cities[0], "destroyer", "marketplace",
+        frozenset()) is None
+    assert planner._production_sustainability_route(
+        deficit, deficit.cities[0], "destroyer", "granary",
+        frozenset()) is None
+    immediate = planner._production_sustainability_route(
+        deficit, deficit.cities[0], "destroyer", "coinage", frozenset())
+    assert immediate[0] == "production_treasury_stabilization"
+
+    recovery_city = _city(production_kind=3, production_value=72)
+    recovery_city.update({"id": 11, "name": "Antium", "x": 2, "y": 2})
+    distributed = _snapshot(
+        [_unit(11, "Alpine Troops", 4, 4),
+         _enemy(90, "Destroyer", 4, 4)],
+        [_production(10, "Coinage", 3, 72),
+         _production(11, "Coinage", 3, 72),
+         {"action_type": "end_turn", "is_valid": True}],
+        cities=[city, recovery_city], source_seq=3, turn=6,
+        player={
+            "gold": 0, "city_gold_surplus_per_turn": -1,
+            "gold_per_turn": -1, "unit_gold_upkeep": 0,
+            "gold_upkeep_reserve": 0,
+        })
+    planner.observe(distributed)
+    assert planner._production_sustainability_route(
+        distributed, distributed.cities[0], "destroyer", "coinage",
+        frozenset()) is None
+
+    delivered = _snapshot(
+        [_unit(21, "Destroyer"), _enemy(91, "Cruiser", 4, 4)],
+        [_production(10, "Granary", 3, 14),
+         {"action_type": "end_turn", "is_valid": True}],
+        cities=[city], source_seq=4, turn=7)
+    planner.observe(delivered)
+    assert planner._production_sustainability_route(
+        delivered, delivered.cities[0], "destroyer", "granary",
+        frozenset())[0] == "production_food_stabilization"
 
 
 def test_hidden_negative_score_sentinel_does_not_create_score_pressure():
@@ -340,6 +447,38 @@ def test_ruleset_driven_policy_modernizes_and_repairs_industry():
         "visible_enemy_domain_power"] > threatened.candidate.projection[
             "current_domain_power"]
 
+    defensive_city = _city(production_kind=6, production_value=11)
+    defensive_city["buildability"]["options"].append(
+        {"type": "unit", "id": 22, "name": "Marines"})
+    second_city = json.loads(json.dumps(defensive_city))
+    second_city.update({"id": 11, "name": "Antium", "x": 2, "y": 2})
+    defensive_ir = _ruleset_ir((
+        ("Alpine Troops", "unit", 60),
+        ("Marines", "unit", 60),
+    ), capabilities={
+        "Alpine Troops": {
+            "class": "Land", "attack": 7, "defense": 4,
+            "hitpoints": 20, "firepower": 1,
+        },
+        "Marines": {
+            "class": "Land", "attack": 8, "defense": 5,
+            "hitpoints": 20, "firepower": 1,
+        },
+    })
+    defensive = GroundedImpactPlanner(dict(
+        settings, expansion_city_target=2, pressure_enabled=True,
+        pressure_score_alignment_enabled=True),
+        ruleset_ir=defensive_ir).plan(_snapshot(
+            [_unit(11, "Alpine Troops", 4, 4)],
+            [_production(10, "Marines", 6, 22),
+             {"action_type": "end_turn", "is_valid": True}],
+            cities=[defensive_city, second_city],
+            own_score=20, opponent_score=35))
+    assert defensive.candidate.category == "production_defense"
+    assert defensive.candidate.action[
+        "target"]["production_type"] == "Marines"
+    assert defensive.candidate.projection["defensive_modernization"] is True
+
     industry_city = _city(production_kind=3, production_value=99)
     industry_city["buildability"]["options"].append(
         {"type": "improvement", "id": 30, "name": "Factory"})
@@ -362,6 +501,44 @@ def test_ruleset_driven_policy_modernizes_and_repairs_industry():
                 cities=[industry_city], own_score=20, opponent_score=35))
     assert industry.candidate.category == "production_industrialization"
     assert industry.candidate.action["target"]["production_type"] == "Factory"
+
+    unfunded_industry = _snapshot(
+        [_unit(11, "Alpine Troops")],
+        [_production(10, "Factory", 3, 30),
+         {"action_type": "end_turn", "is_valid": True}],
+        cities=[industry_city], own_score=20, opponent_score=35,
+        player={
+            "gold": 10, "gold_per_turn": 2,
+            "operating_gold_per_turn": -10,
+            "capitalization_gold_per_turn": 12,
+            "city_gold_surplus_per_turn": -10,
+            "unit_gold_upkeep": 0, "gold_upkeep_reserve": 0,
+        })
+    assert GroundedImpactPlanner(dict(
+        settings, modernization_enabled=False,
+        industrialization_enabled=True),
+        ruleset_ir=industry_ir).plan(unfunded_industry) is None
+
+    funded_industry = _snapshot(
+        [_unit(11, "Alpine Troops")],
+        [_production(10, "Factory", 3, 30),
+         {"action_type": "end_turn", "is_valid": True}],
+        cities=[industry_city], source_seq=2,
+        own_score=20, opponent_score=35,
+        player={
+            "gold": 500, "gold_per_turn": 2,
+            "operating_gold_per_turn": -10,
+            "capitalization_gold_per_turn": 12,
+            "city_gold_surplus_per_turn": -10,
+            "unit_gold_upkeep": 0, "gold_upkeep_reserve": 0,
+        })
+    funded = GroundedImpactPlanner(dict(
+        settings, modernization_enabled=False,
+        industrialization_enabled=True),
+        ruleset_ir=industry_ir).plan(funded_industry)
+    assert funded.candidate.category == "production_industrialization"
+    assert funded.candidate.projection[
+        "treasury_construction_runway_turns"] > 0
 
 
 def test_commerce_infrastructure_requires_structural_construction_runway():
@@ -3896,6 +4073,14 @@ def test_food_recovery_prefers_output_building_and_finishes_before_garrison():
              {"action_type": "end_turn", "is_valid": True}],
         cities=[recovering_city], source_seq=2, turn=101)
     assert planner.plan(undefended) is None
+
+    reserve_touched_city = dict(
+        recovering_city, surplus=[1, 7, 5, 2, 0, 3])
+    reserve_touched = _snapshot(
+        [], [supermarket, coinage, defender,
+             {"action_type": "end_turn", "is_valid": True}],
+        cities=[reserve_touched_city], source_seq=3, turn=102)
+    assert planner.plan(reserve_touched) is None
 
 
 def test_missing_garrison_waits_for_full_build_treasury_runway():

@@ -335,6 +335,20 @@ until a separate target-and-launch policy exists. The 30-turn paired cohorts
 keep these switches false; the versioned 960-turn diagnostic profile enables
 them.
 
+Adapter 1.26 preserves a selected sea-unit response while the bounded
+packet-visible sea threat remains relevant, including zero-shield turns in
+disorder. Ordinary garrison production cannot discard the queue before the
+first owned instance appears; once it does, the automatic repeat is released.
+Multi-city treasury recovery must use another city, while a one-city empire
+retains immediate Coinage as a safety escape hatch. A funded Harbor or
+Supermarket recovery is likewise retained through authoritative completion so
+a transient reserve boundary cannot recreate the food deficit. Naval threat
+ranking weights transport capacity as a secondary capability so an unarmed
+ferry cannot outrank an available combat vessel. Ruleset-derived land
+modernization that also fills an authoritative garrison deficit is categorized
+as `production_defense`, allowing PF-PLN survival pressure to select the
+stronger defender even when opponent score is hidden.
+
 A packet-visible same-domain unit whose ruleset-derived capability exceeds the
 owned domain ceiling creates `production_threat_modernization`. That category
 routes to survival pressure even when FreeCiv still hides opponent scores; the
@@ -355,12 +369,14 @@ grounded strategic value, the cheapest legal technology is the deterministic
 fallback. This removes a model-choice branch that was observed selecting the
 cheap comparison despite a stronger declared unlock.
 
-Commerce infrastructure also requires a structural construction runway:
+Every long ruleset-derived infrastructure route requires a structural
+construction runway:
 authoritative treasury minus negative operating cash flow must remain above the
 reserve through the projected completion ETA plus the configured reserve band.
 Coinage capitalization is excluded from that runway. This prevents a
-Bank/Coinage or Marketplace/defender queue oscillation from repeatedly
-abandoning construction whenever Coinage briefly makes effective cash positive.
+Factory/Coinage, University/Coinage, Bank/Coinage, coastal, or
+Marketplace/defender queue oscillation from repeatedly abandoning construction
+whenever Coinage briefly makes effective cash positive.
 
 A post-expansion replacement-reserve experiment was also rejected. It doubled
 defender completions from 17 to 32, but the opponent destroyed 25 instead of

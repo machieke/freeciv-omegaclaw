@@ -1,0 +1,27 @@
+diff --git a/freeciv-proxy/security.py b/freeciv-proxy/security.py
+--- a/freeciv-proxy/security.py
++++ b/freeciv-proxy/security.py
+@@ -43,7 +43,11 @@ class InputSanitizer:
+ 
+     # SQL injection patterns to detect
+     SQL_INJECTION_PATTERNS = [
+-        r'(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION)\b)',
++        # ``UNION`` by itself is a legitimate FreeCiv ruleset token (for
++        # example, ``Labor Union``). Compound UNION SELECT remains covered by
++        # the dedicated pattern below, while the other standalone SQL verbs
++        # retain their defense-in-depth checks.
++        r'(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC)\b)',
+         r'(--|\#|/\*|\*/)',  # SQL comments
+         r'(\b(OR|AND)\s+\d+\s*=\s*\d+)',  # OR 1=1, AND 1=1
+         r'(\bUNION\s+SELECT)',  # UNION SELECT
+diff --git a/freeciv-proxy/tests/test_security.py b/freeciv-proxy/tests/test_security.py
+--- a/freeciv-proxy/tests/test_security.py
++++ b/freeciv-proxy/tests/test_security.py
+@@ -70,6 +70,7 @@ class TestInputSanitization(unittest.TestCase):
+             ("test-agent-1", "agent_id"),
+             ("Warriors", "unit_type"),
+             ("Alphabet", "tech_name"),
++            ("Labor Union", "tech_name"),
+             ("Capital", "production_type")
+         ]
+ 

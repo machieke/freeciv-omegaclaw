@@ -43,7 +43,9 @@ The patch series is tracked at
 `scripts/freeciv/upstream/0005-pln-sustainability-control.patch`, and
 `scripts/freeciv/upstream/0006-pln-city-food-governor.patch`, and
 `scripts/freeciv/upstream/0007-pln-government-transition.patch`, and
-`scripts/freeciv/upstream/0008-pln-disorder-luxury-recovery.patch`. The
+`scripts/freeciv/upstream/0008-pln-disorder-luxury-recovery.patch`,
+`scripts/freeciv/upstream/0009-pln-strategic-observability.patch`, and
+`scripts/freeciv/upstream/0010-pln-ruleset-name-sanitization.patch`. The
 application script verifies every digest, is idempotent, rejects a different upstream
 commit, and supports normal checkouts and Git worktrees. It adds the
 `pln_authoritative` DTO, monotonic packet sequence, bounded and conditional
@@ -56,6 +58,9 @@ exact unit rehoming, causal unit-removal attribution, bounded server-side
 food-surplus governance, stable-government revolution initiation, exact
 post-revolution recovery, bounded packet-exact tax/luxury/science transitions,
 optional city-local `require_happy` governance, and proxy contract tests.
+The final sanitizer patch permits legitimate ruleset tokens such as
+`Labor Union` while retaining the compound `UNION SELECT` rejection and exact
+server-advertised technology validation.
 
 Engine-live fixed-horizon games configure `victories=SPACERACE` with
 `endspaceship=false`. This retains spaceship construction and arrival behavior

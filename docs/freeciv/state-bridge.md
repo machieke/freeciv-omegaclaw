@@ -38,8 +38,10 @@ the disorder-recovery patch is pinned at
 `e800adbe5a4f3a8e68e30a4e21019ef92dabbb272b28ecd50d90c64e7dcb417b`;
 and the strategic-observability patch is pinned at
 `9a768dda13455760f5d02a3e66ebc3eae564c3b37c8965c77c9e9565c3656e44`.
-The ordered nine-patch series identity is
-`fd9c5fef6556c903baf5b022d6f88ab560596b552b289dd35b68dbd037b3a603`.
+The ruleset-name sanitizer patch is pinned at
+`09480dc463d3347d26db27e387a5a528c6b525fb65089aa1f6f5cd1fb999ce67`.
+The ordered ten-patch series identity is
+`464d96f39d91cfae59fdac5f74170cfcb45a89aa14a6840118fb05f26c7ecb00`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 The v9 projection closes the stable-government initiation gap. The proxy now
