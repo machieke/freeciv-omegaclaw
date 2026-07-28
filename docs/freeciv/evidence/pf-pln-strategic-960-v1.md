@@ -32,6 +32,7 @@ the raw same-seed scores are diagnostic rather than a paired causal estimate.
 | v40 | adapter 1.31 plus defense-first role applied to all queue-retention boundaries | 335 / 4296 | 5 | 468.8 s | rejected; productive and military continuity regressed |
 | v41 | adapter 1.31 selection-only role boundary with proven queue continuity restored | 455 / 4274 | 5 | 530.5 s | accepted engine confirmation; exact v38 reproduction, no score claim |
 | v42 | empty-land-force survival route for balanced offensive units | 452 / 4274 | 5 | 529.0 s | rejected; no surviving force recovery and a three-point regression |
+| v48 | adapter 1.32 corrected government state, grounded controller retries, funded land-capability retention, and settled refresh | 602 / 4443 | 5 | 402.6 s | accepted mechanism and efficiency hardening; selected-seed score diagnostic only |
 
 Artifacts:
 
@@ -56,6 +57,8 @@ Artifacts:
 - rejected queue-role narrowing diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v40`
 - adapter-1.31 confirmation: `artifacts/freeciv/pf-pln-strategic-960-v41`
 - rejected empty-land-force recovery diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v42`
+- adapter-1.32 strategic-loop confirmation:
+  `artifacts/freeciv/pf-pln-strategic-960-v48`
 
 All listed completed diagnostics completed 1/1 jobs with zero gameplay or
 infrastructure failures. Interrupted integration diagnostics are intentionally
@@ -355,6 +358,70 @@ Four occurred while the proxy projection was still positive: Refining on turn
 434, Combustion on turns 652 and 654, and Flight on turn 724. This accepts the
 telemetry as behavior-neutral diagnostic evidence; it does not revise the score
 claim.
+
+V48 validates adapter 1.32 against the same seed, initial-state fingerprint,
+condition, opponent class, five-city target, and 960-turn horizon as v46. A
+v47 launch without `FREECIV_RULESET_ROOT` failed during preflight before a game
+was created and is excluded from mechanism and outcome evidence. V48 completed
+1/1 jobs, reached the fixed horizon, had zero engine rejections, zero
+effect-confirmation timeouts, and passed the complete release audit including
+all PF-PLN phase replays and cognitive ancestry validation.
+
+The upstream government-state correction removed a false transition lifecycle.
+V46 reported revolution on 215 unique turns although only 25 were actual
+Anarchy turns, then issued 27 government selections, including 19 Federation
+selections. V48 reported revolution on exactly the seven turns whose current
+government was Anarchy and issued no government selection after authoritative
+Despotism became stable. The observability stall reason now follows the same
+boundary, so a stale completion-turn marker cannot masquerade as active
+Anarchy.
+
+The retry and treasury changes reduced maintenance loops without weakening the
+engine boundary:
+
+- player-rate actions fell from 268 to 25 (`-90.7%`);
+- food-governor actions fell from 294 to 94 (`-68.0%`);
+- treasury queue selections fell from 122 to 23;
+- Coinage occupancy fell from 2,022 to 1,696 city-turns (`-16.1%`);
+- disordered city samples fell from 799 to 180 (`-77.5%`);
+- deferred confirmations fell from 290 to 54 and expired confirmations from
+  270 to 54, with zero timeouts in both arms; and
+- meaningful actions fell from 1,075 to 375 (`-65.1%`) while the city count,
+  technology count, and fixed horizon were preserved.
+
+The action refresh now accepts the proxy's exact source-sequence quiet marker
+as a settled full transfer. Queries per refresh fell from 2.207 to exactly
+1.000, settled-marker and settled-response rates rose from zero to one, and
+refresh wire traffic per turn fell from about 251 KB to 62 KB (`-75.2%`).
+Refresh latency per turn fell from 136.5 ms to 47.8 ms (`-65.0%`). Combined
+with fewer maintenance actions, engine gameplay time fell from 531.7 to 402.6
+seconds (`-24.3%`), total actions from 2,035 to 1,335, and emitted events from
+23,186 to 16,429.
+
+The funded land-capability continuity boundary did not need its new dedicated
+`production_land_capability` selection route in this trajectory: an ordinary
+grounded garrison deficit selected Mech. Infantry first. The shared retention
+boundary then allowed that unit to complete. V48 finished with three Alpine
+Troops, two Riflemen, two Triremes, and one Mech. Infantry, versus two Triremes
+and no land combat unit in v46. All 39 combat removals in v48 were exactly
+attributed to `combat_defender_lost`; the four founder removals were exactly
+attributed to `city_founded`.
+
+V48 scored 602 against 4443, with components `47/130/425`, versus v46's 455
+against 4274 and `38/130/287`. It retained the same fourteen acquired
+technologies, ended with 47 citizens instead of 38, and had progressed 932
+beakers into Mass Production rather than 152. This is a `+147` (`+32.3%`)
+selected-seed player-score diagnostic, not a causal score claim: the opponent
+also gained 169 points and the final score margin changed from `-3819` to
+`-3841`. Both arms remain losses.
+
+The structural economy is more stable but is not solved. V48 ended at
+`-20` operating gold and `+20` Coinage capitalization for zero effective cash,
+and structural operating cash was negative on 863 turns versus 845 in v46.
+Coinage still occupied 1,696 of 4,800 city-turns. Adapter 1.32 therefore proves
+that the controller no longer oscillates on Coinage-funded cash or restores tax
+against an unfunded projection; it does not prove positive structural cash
+flow, a superior government policy, or a win-rate improvement.
 
 Any score claim still requires a preregistered paired-seed cohort with the
 historical five-city policy held fixed. The current evidence supports contract,

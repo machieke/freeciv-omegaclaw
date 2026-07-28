@@ -1,0 +1,147 @@
+[
+  {
+    "action": "open http://127.0.0.1:4178",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-28T20:21:57.392Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 5.7,
+    "timestamp": "2026-07-28T20:21:58.085Z"
+  },
+  {
+    "action": "click @e8",
+    "relativeTimeSec": 12.1,
+    "timestamp": "2026-07-28T20:22:04.548Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 12.5,
+    "timestamp": "2026-07-28T20:22:04.960Z"
+  },
+  {
+    "action": "click @e66",
+    "relativeTimeSec": 22.8,
+    "timestamp": "2026-07-28T20:22:15.243Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 27.8,
+    "timestamp": "2026-07-28T20:22:20.201Z"
+  },
+  {
+    "action": "click @e17",
+    "relativeTimeSec": 34.6,
+    "timestamp": "2026-07-28T20:22:26.969Z"
+  },
+  {
+    "action": "screenshot v48-technology-government-corrected.png",
+    "relativeTimeSec": 34.9,
+    "timestamp": "2026-07-28T20:22:27.334Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 35.4,
+    "timestamp": "2026-07-28T20:22:27.770Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 50.4,
+    "timestamp": "2026-07-28T20:22:42.795Z"
+  },
+  {
+    "action": "click @e17",
+    "relativeTimeSec": 58.6,
+    "timestamp": "2026-07-28T20:22:51.022Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 59,
+    "timestamp": "2026-07-28T20:22:51.396Z"
+  },
+  {
+    "action": "find role button click --name 09 Technology",
+    "relativeTimeSec": 75,
+    "timestamp": "2026-07-28T20:23:07.440Z"
+  },
+  {
+    "action": "find text Technology click",
+    "relativeTimeSec": 79.1,
+    "timestamp": "2026-07-28T20:23:11.503Z"
+  },
+  {
+    "action": "scrollintoview @e17",
+    "relativeTimeSec": 88.6,
+    "timestamp": "2026-07-28T20:23:21.011Z"
+  },
+  {
+    "action": "click @e17",
+    "relativeTimeSec": 89.9,
+    "timestamp": "2026-07-28T20:23:22.283Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 90.3,
+    "timestamp": "2026-07-28T20:23:22.748Z"
+  },
+  {
+    "action": "screenshot v48-technology-government-corrected.png",
+    "relativeTimeSec": 91.2,
+    "timestamp": "2026-07-28T20:23:23.599Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 105.7,
+    "timestamp": "2026-07-28T20:23:38.078Z"
+  },
+  {
+    "action": "scrollintoview @e7",
+    "relativeTimeSec": 113.1,
+    "timestamp": "2026-07-28T20:23:45.499Z"
+  },
+  {
+    "action": "click @e7",
+    "relativeTimeSec": 114.4,
+    "timestamp": "2026-07-28T20:23:46.819Z"
+  },
+  {
+    "action": "wait 1500",
+    "relativeTimeSec": 114.8,
+    "timestamp": "2026-07-28T20:23:47.230Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 116.7,
+    "timestamp": "2026-07-28T20:23:49.097Z"
+  },
+  {
+    "action": "screenshot v48-live-tail-technology.png",
+    "relativeTimeSec": 117,
+    "timestamp": "2026-07-28T20:23:49.462Z"
+  },
+  {
+    "action": "wait 10000",
+    "relativeTimeSec": 157,
+    "timestamp": "2026-07-28T20:24:29.403Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 167.3,
+    "timestamp": "2026-07-28T20:24:39.736Z"
+  },
+  {
+    "action": "screenshot v48-live-tail-technology.png",
+    "relativeTimeSec": 167.8,
+    "timestamp": "2026-07-28T20:24:40.263Z"
+  },
+  {
+    "action": "console",
+    "relativeTimeSec": 176.6,
+    "timestamp": "2026-07-28T20:24:49.042Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 176.9,
+    "timestamp": "2026-07-28T20:24:49.359Z"
+  }
+]
