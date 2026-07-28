@@ -3937,6 +3937,84 @@ def test_treasury_stabilizer_requires_extra_runway_before_expansion_release():
     assert planner.plan(durable).candidate.category == "production_expansion"
 
 
+def test_coinage_release_uses_post_switch_cash_flow_for_garrison_runway():
+    city = _city(
+        size=4, shield_stock=0, surplus=(2, 5, 3, -5, 0, 2),
+        production_kind=3, production_value=72)
+    city["buildability"]["options"].extend([
+        {"type": "unit", "id": 10, "name": "Riflemen"},
+        {"type": "improvement", "id": 72, "name": "Coinage"},
+    ])
+    defender = _production(10, "Riflemen", 6, 10)
+    ruleset = _ruleset_ir((
+        ("Riflemen", "unit", 20),
+        ("Coinage", "improvement", 999),
+    ), founders=(), workers=())
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 1,
+        "treasury_minimum_gold": 5,
+        "treasury_reserve_turns": 2,
+    }, ruleset_ir=ruleset)
+    actions = [defender, {"action_type": "end_turn", "is_valid": True}]
+    boundary = _snapshot(
+        [], actions, cities=[city],
+        player={
+            "gold": 19, "gold_per_turn": 0,
+            "operating_gold_per_turn": -5,
+            "capitalization_gold_per_turn": 5,
+            "city_gold_surplus_per_turn": -5,
+            "gold_upkeep_style": "Mixed",
+            "unit_gold_upkeep": 0, "gold_upkeep_reserve": 0,
+        })
+    funded = _snapshot(
+        [], actions, cities=[city], source_seq=2,
+        player={
+            "gold": 30, "gold_per_turn": 0,
+            "operating_gold_per_turn": -5,
+            "capitalization_gold_per_turn": 5,
+            "city_gold_surplus_per_turn": -5,
+            "gold_upkeep_style": "Mixed",
+            "unit_gold_upkeep": 0, "gold_upkeep_reserve": 0,
+        })
+
+    assert planner._treasury_deficit(boundary) is False
+    assert planner._treasury_recovery_can_release(
+        boundary, boundary.cities[0]) is False
+    assert planner.plan(boundary) is None
+    decision = planner.plan(funded)
+    assert decision.candidate.category == "production_defense"
+    assert decision.candidate.projection["treasury_at_completion"] == 10
+
+
+def test_funded_structural_treasury_recovery_finishes_before_garrison():
+    city = _city(
+        size=4, shield_stock=7, surplus=(2, 5, 3, 2, 0, 2),
+        production_kind=3, production_value=18)
+    city["buildability"]["options"].extend([
+        {"type": "unit", "id": 10, "name": "Riflemen"},
+        {"type": "improvement", "id": 18, "name": "Marketplace"},
+    ])
+    ruleset = _ruleset_ir((
+        ("Riflemen", "unit", 20),
+        ("Marketplace", "improvement", 60),
+    ), founders=(), workers=())
+    snapshot = _snapshot(
+        [], [_production(10, "Riflemen", 6, 10),
+             {"action_type": "end_turn", "is_valid": True}],
+        cities=[city],
+        player={
+            "gold": 100, "gold_per_turn": 2,
+            "operating_gold_per_turn": 2,
+            "capitalization_gold_per_turn": 0,
+            "city_gold_surplus_per_turn": 2,
+            "unit_gold_upkeep": 0, "gold_upkeep_reserve": 0,
+        })
+
+    assert GroundedImpactPlanner(
+        {"expansion_city_target": 1}, ruleset_ir=ruleset).plan(
+            snapshot) is None
+
+
 def test_visible_pressure_blocks_rebuild_after_observed_founder_attrition():
     settler = _production(10, "Settlers", 6, 0)
     actions = [settler, {"action_type": "end_turn", "is_valid": True}]

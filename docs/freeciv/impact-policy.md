@@ -349,6 +349,13 @@ modernization that also fills an authoritative garrison deficit is categorized
 as `production_defense`, allowing PF-PLN survival pressure to select the
 stronger defender even when opponent score is hidden.
 
+Adapter 1.27 makes Coinage release counterfactual: before switching that city
+to a unit or building, the planner subtracts its packet-grounded
+shield-to-gold contribution and verifies the remaining treasury runway.
+Already-funded structural treasury recovery is retained through completion.
+This prevents Coinage/defender and Marketplace/defender alternation from
+spending capitalization that the proposed action itself removes.
+
 A packet-visible same-domain unit whose ruleset-derived capability exceeds the
 owned domain ceiling creates `production_threat_modernization`. That category
 routes to survival pressure even when FreeCiv still hides opponent scores; the

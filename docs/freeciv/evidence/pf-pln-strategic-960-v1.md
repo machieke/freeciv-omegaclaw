@@ -18,6 +18,7 @@ the raw same-seed scores are diagnostic rather than a paired causal estimate.
 | v8 | reproducibility check of the v7 policy | 477 / 4616 | 5 | 424.4 s | exact selected-seed score reproduction |
 | v17 | first-completion naval queue hold without a general infrastructure runway | 375 / 4643 | 5 | 493.4 s | rejected infrastructure/treasury oscillation |
 | v18 | adapter 1.26, first-completion naval hold, output recovery hold, and structural runway for all long infrastructure | 473 / 4566 | 5 | 456.4 s | accepted mechanism hardening; no score superiority |
+| v19 | adapter 1.27, counterfactual Coinage release and funded treasury-building hold | 472 / 4594 | 5 | 457.0 s | accepted queue/economy hardening; no score superiority |
 
 Artifacts:
 
@@ -27,7 +28,8 @@ Artifacts:
 - original hardened diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v7`
 - reproducibility check: `artifacts/freeciv/pf-pln-strategic-960-v8`
 - rejected infrastructure diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v17`
-- final completed diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v18`
+- first-completion diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v18`
+- final completed diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v19`
 
 All listed completed diagnostics completed 1/1 jobs with zero gameplay or
 infrastructure failures. Interrupted integration diagnostics are intentionally
@@ -109,6 +111,28 @@ keyword. Patch 0010 narrows that guard: `Labor Union` is accepted, while the
 explicit `UNION SELECT` injection pattern remains rejected. The release audit
 pins the resulting ten-patch series and passes against the v18 cognitive trace.
 
+V19 then corrected a second counterfactual error: a replacement queue had been
+evaluated against effective cash flow that still included the current city's
+Coinage capitalization, even though the proposed switch would remove that
+income. Adapter 1.27 subtracts the city's bounded packet-grounded contribution
+before testing the replacement runway and holds a funded structural treasury
+building through completion.
+
+Against v18 on the same diagnostic seed, v19 reduced defense selections from
+123 to 36 and treasury-stabilization selections from 119 to 31. Engine actions
+fell from 1519 to 1432 and meaningful actions from 559 to 472. The
+Factory/Coinage and defender/treasury turn-by-turn queue cycles were absent.
+Gameplay runtime remained effectively flat at 457.0 versus 456.4 seconds.
+
+The stronger construction continuity produced two Triremes, an Ironclad, and a
+Destroyer; the Ironclad and Destroyer were later removed with exact
+`combat_defender_lost` attribution. It also completed Mech. Infantry on turn
+894 and retained one at the horizon. Final research flow rose from 15 gross /
+5 upkeep / 10 net beakers per turn in v18 to 44 / 14 / 30 in v19. Final
+effective cash flow rose from -12 to +8 gold per turn and final treasury from
+40 to 69. The fixed-horizon score nevertheless remained flat at 472 versus
+473, with the opponent at 4594 versus 4566.
+
 Unit removal attribution was complete in the v4 engine trace: 41 removals were
 `combat_defender_lost` and six were `city_founded`; there were no unattributed
 food-loss removals. Building removals remained observations, not invented
@@ -117,27 +141,26 @@ causal claims.
 ## Remaining boundary
 
 The completed arms do **not** prove score improvement. The best new arm scored
-479 and the final adapter 1.26 arm scored 473 versus the historical 495;
+479 and the final adapter 1.27 arm scored 472 versus the historical 495;
 opponent scores also differed. One selected seed cannot establish a reliable
 effect.
 
-V18 proves that naval pressure can cause a real advanced combat vessel to
-complete, but the single Destroyer was lost five turns later. It does not prove
-naval parity, durable force modernization, or score improvement. Conventional
+V19 proves that naval pressure can cause several real combat vessels and an
+advanced conventional land unit to complete. It does not prove naval parity,
+durable force modernization, or score improvement. Conventional
 land modernization now routes a packet-visible same-domain capability deficit
 to survival pressure without relying on opponent score visibility, and the
-Marines defensive route has unit coverage. This route did not activate in v18:
-the observed engine trajectory kept selecting Alpine Troops to replace local
-garrison losses.
+Marines defensive route has unit coverage. V19 selected Marines once and
+completed Mech. Infantry, but ordinary Alpine Troops still supplied most
+replacement garrisons.
 
-V18 also exposes the next queue-efficiency boundary. The structural runway
-removed the Factory/Coinage loop, but prolonged combat losses drove 123 defense
-and 119 treasury-stabilization selections, including repeated alternation
-between an Alpine Troops queue and Coinage or commerce recovery. Final research
-flow was 15 gross, 5 upkeep, and 10 net beakers/turn; final operating cash flow
-was -30 gold/turn, partly offset by 18 Coinage gold/turn. A follow-up policy
-should preserve funded defensive replacements across transient treasury
-pressure without permitting unsupported repeat-unit production.
+V19 exposes the next type-safety boundary. The generic modernization path
+selected Engineers once as `production_defense` after the conventional force
+ceiling had collapsed; five Engineers were later lost in combat. Ruleset worker
+roles must be excluded from persistent combat modernization, and a funded
+ruleset-derived defensive queue should not be replaced by a legacy defender.
+That follow-up is a correctness target, not evidence for a stronger score
+claim.
 
 Any score claim still requires a preregistered paired-seed cohort with the
 historical five-city policy held fixed. The current evidence supports contract,

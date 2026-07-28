@@ -5,7 +5,7 @@ All phases 0-9 have deterministic acceptance evidence, but only phases with an
 engine adapter may affect a live harness game. The versioned support declaration
 is `pf_pln_runtime` in `profile/freeciv_agent.yaml`.
 
-The current engine adapter is `grounded-impact-planner/1.26`. Its score-alignment
+The current engine adapter is `grounded-impact-planner/1.27`. Its score-alignment
 guard changes how the already-live phases 0, 1, 4, and 9 rank grounded
 operations. It also exposes a bounded post-settlement-runway gate for
 score-bearing founder production and carries that deadline through settlement
@@ -41,6 +41,13 @@ is routed as `production_defense`. Transport capacity remains strategically
 useful but no longer lets an unarmed ferry outrank a combat vessel in threat
 response. These are mechanism and correctness changes only; they do not revise
 a score or win-rate claim.
+Adapter 1.27 corrects treasury-release projections. When a city leaves
+Coinage, its packet-grounded shield-to-gold contribution is removed before the
+planner tests the replacement queue's runway. A funded structural treasury
+building is held through completion instead of alternating with a garrison
+queue as effective cash crosses the reserve boundary. These decisions use the
+authoritative capitalization total and city shield surplus; they do not infer
+unreported income.
 Adapter 1.7 additionally consumes an optional, packet-grounded
 `settlement_site_eligible` fact on founder moves and prefers a directly
 reachable valid site over continued frontier wandering. Unknown destinations

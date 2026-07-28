@@ -252,7 +252,7 @@ def _spatial_target(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.26"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.27"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -2383,7 +2383,27 @@ class GroundedImpactPlanner(object):
             or (net < 0
                 and gold + net * self.treasury_reserve_turns < reserve))
 
-    def _treasury_recovery_can_release(self, snapshot):
+    def _current_coinage_contribution(
+            self, snapshot, city, current_normalized=None):
+        """Return packet-grounded cash that vanishes with a Coinage switch."""
+        if city is None:
+            return 0
+        normalized = (
+            _normalized_type(self._current_production_name(city))
+            if current_normalized is None else current_normalized)
+        capitalization = getattr(
+            snapshot.economy, "capitalization_gold_per_turn", None)
+        if normalized != "coinage" or capitalization is None:
+            return 0
+        # V9 exposes the nation total. The current city's nonnegative shield
+        # surplus is its bounded contribution to that total; taking the minimum
+        # remains conservative when another ruleset applies a conversion bonus.
+        return min(
+            max(0, int(capitalization)),
+            self._city_output(city, 1))
+
+    def _treasury_recovery_can_release(
+            self, snapshot, city=None, current_normalized=None):
         """Require one extra funded turn before leaving a cash stabilizer.
 
         The ordinary deficit threshold answers whether the current snapshot can
@@ -2400,6 +2420,8 @@ class GroundedImpactPlanner(object):
         net = self._net_gold_per_turn(snapshot)
         if net is None:
             return False
+        net -= self._current_coinage_contribution(
+            snapshot, city, current_normalized)
         return (
             int(economy.gold)
             + min(0, int(net)) * (self.treasury_reserve_turns + 1)
@@ -3510,9 +3532,14 @@ class GroundedImpactPlanner(object):
         current_food_output_recovery = bool(
             current_normalized in NORMALIZED_FOOD_OUTPUT_TYPES
             and int(city.shield_stock or 0) > 0)
+        current_funded_treasury_recovery = bool(
+            current_normalized in NORMALIZED_TREASURY_STABILIZATION_TYPES
+            and current_normalized != "coinage"
+            and int(city.shield_stock or 0) > 0)
         current_treasury_recovery = bool(
             current_normalized in NORMALIZED_TREASURY_STABILIZATION_TYPES
-            and self._treasury_deficit(snapshot))
+            and (self._treasury_deficit(snapshot)
+                 or current_funded_treasury_recovery))
         current_naval_response_in_progress = bool(
             self._naval_response_delivery_pending(
                 snapshot, current_normalized))
@@ -3536,7 +3563,9 @@ class GroundedImpactPlanner(object):
         treasury_recovery_hold = bool(
             current_normalized in NORMALIZED_TREASURY_STABILIZATION_TYPES
             and normalized not in NORMALIZED_TREASURY_STABILIZATION_TYPES
-            and not self._treasury_recovery_can_release(snapshot))
+            and (current_funded_treasury_recovery
+                 or not self._treasury_recovery_can_release(
+                     snapshot, city, current_normalized)))
         if (treasury_recovery_hold
                 and not mandatory_local_defense
                 and not direct_food_output_recovery):
@@ -3709,7 +3738,13 @@ class GroundedImpactPlanner(object):
             if (target_index is None or completion_eta is None
                     or completion_eta > remaining_turns):
                 return None
-            net_gold = self._net_gold_per_turn(snapshot)
+            # Switching this city away from Coinage removes its shield-to-gold
+            # contribution immediately. Project the replacement against that
+            # post-switch flow instead of spending income the action destroys.
+            net_gold = (
+                self._net_gold_per_turn(snapshot)
+                - self._current_coinage_contribution(
+                    snapshot, city, current_normalized))
             treasury_reserve = self._treasury_reserve_required(snapshot)
             gold = int(snapshot.economy.gold or 0)
             if (net_gold is None
