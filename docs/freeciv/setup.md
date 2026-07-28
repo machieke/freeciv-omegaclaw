@@ -45,7 +45,8 @@ The patch series is tracked at
 `scripts/freeciv/upstream/0007-pln-government-transition.patch`, and
 `scripts/freeciv/upstream/0008-pln-disorder-luxury-recovery.patch`,
 `scripts/freeciv/upstream/0009-pln-strategic-observability.patch`, and
-`scripts/freeciv/upstream/0010-pln-ruleset-name-sanitization.patch`. The
+`scripts/freeciv/upstream/0010-pln-ruleset-name-sanitization.patch`, and
+`scripts/freeciv/upstream/0011-pln-government-state-correction.patch`. The
 application script verifies every digest, is idempotent, rejects a different upstream
 commit, and supports normal checkouts and Git worktrees. It adds the
 `pln_authoritative` DTO, monotonic packet sequence, bounded and conditional

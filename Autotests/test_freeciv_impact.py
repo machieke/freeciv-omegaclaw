@@ -562,6 +562,82 @@ def test_ruleset_driven_policy_modernizes_and_repairs_industry():
         "treasury_construction_runway_turns"] > 0
 
 
+def test_missing_land_capability_is_funded_retained_survival_work():
+    city = _city(
+        shield_stock=0, surplus=(1, 5, 2, 1, 0, 3),
+        production_kind=3, production_value=72)
+    city["buildability"]["options"].extend([
+        {"type": "unit", "id": 20, "name": "Armor"},
+        {"type": "unit", "id": 21, "name": "Marines"},
+        {"type": "improvement", "id": 72, "name": "Coinage"},
+    ])
+    ruleset = _ruleset_ir((
+        ("Workers", "unit", 20),
+        ("Armor", "unit", 80),
+        ("Marines", "unit", 100),
+        ("Coinage", "improvement", 10),
+    ), founders=(), workers=("Workers",), capabilities={
+        "Workers": {
+            "class": "Land", "attack": 1, "defense": 1,
+            "hitpoints": 10, "firepower": 1,
+        },
+        "Armor": {
+            "class": "Land", "attack": 10, "defense": 5,
+            "hitpoints": 20, "firepower": 1,
+        },
+        "Marines": {
+            "class": "Land", "attack": 12, "defense": 5,
+            "hitpoints": 20, "firepower": 1,
+        },
+    })
+    settings = {
+        "expansion_city_target": 1,
+        "horizon_turn": 100,
+        "ruleset_driven_production_enabled": True,
+        "modernization_enabled": True,
+        "pressure_enabled": True,
+        "pressure_score_alignment_enabled": True,
+    }
+    snapshot = _snapshot(
+        [_unit(30, "Workers")],
+        [_production(10, "Armor", 6, 20),
+         {"action_type": "end_turn", "is_valid": True}],
+        cities=[city],
+        player={
+            "gold": 200, "gold_per_turn": 6,
+            "operating_gold_per_turn": -5,
+            "capitalization_gold_per_turn": 11,
+            "city_gold_surplus_per_turn": -5,
+            "unit_gold_upkeep": 0, "gold_upkeep_reserve": 0,
+        })
+    planner = GroundedImpactPlanner(settings, ruleset_ir=ruleset)
+
+    decision = planner.plan(snapshot)
+
+    assert decision.candidate.category == "production_land_capability"
+    assert decision.candidate.action["target"]["production_type"] == "Armor"
+    assert decision.candidate.projection["land_capability_deficit"] is True
+    assert decision.candidate.projection[
+        "treasury_at_completion"] >= decision.candidate.projection[
+            "treasury_reserve_required"]
+
+    queued_city = dict(city, shield_stock=5, production_kind=6,
+                       production_value=20)
+    queued = _snapshot(
+        [_unit(30, "Workers")],
+        [_production(10, "Marines", 6, 21),
+         {"action_type": "end_turn", "is_valid": True}],
+        cities=[queued_city], source_seq=2, turn=5,
+        player={
+            "gold": 200, "gold_per_turn": -5,
+            "operating_gold_per_turn": -5,
+            "capitalization_gold_per_turn": 0,
+            "city_gold_surplus_per_turn": -5,
+            "unit_gold_upkeep": 0, "gold_upkeep_reserve": 0,
+        })
+    assert planner.plan(queued) is None
+
+
 def test_commerce_infrastructure_requires_structural_construction_runway():
     city = _city(production_kind=3, production_value=31)
     city["buildability"]["options"].extend([
@@ -2367,6 +2443,10 @@ def test_finished_revolution_is_recovered_before_ordinary_planning():
     assert decision.candidate.action["target"] == {
         "government_id": 1, "government_name": "Despotism"}
     assert decision.candidate.utility > 2000
+    assert decision.candidate.terminal_on_accept
+    budget = ImpactTurnBudget(max_no_effect_failovers=4)
+    budget.record(decision.candidate, effect_observed=False)
+    assert decision.candidate.scope in budget.excluded_scopes
 
 
 def test_finished_revolution_selects_intended_preferred_government():
@@ -4455,7 +4535,7 @@ def test_food_deficit_activates_exact_server_city_governor_once():
         after, decision.candidate.action) is None
 
 
-def test_infeasible_city_governor_is_not_retried_for_shield_accumulation():
+def test_infeasible_city_governor_retries_only_after_topology_change():
     city = _city(
         size=4, shield_stock=10, surplus=(0, 7, 5, 2, 0, 3),
         production_kind=3, production_value=14)
@@ -4492,12 +4572,20 @@ def test_infeasible_city_governor_is_not_retried_for_shield_accumulation():
     assert planner.no_effect_retries_blocked == 1
 
     changed_output = dict(accumulating, surplus=[-1, 7, 5, 2, 0, 3])
-    materially_changed = _snapshot(
+    output_only = _snapshot(
         [], [action, {"action_type": "end_turn", "is_valid": True}],
         cities=[changed_output], source_seq=3, turn=6)
+    assert not any(
+        candidate.category == "city_food_governor"
+        for candidate in planner.candidates(output_only))
+
+    grown = dict(changed_output, size=5)
+    topology_changed = _snapshot(
+        [], [action, {"action_type": "end_turn", "is_valid": True}],
+        cities=[grown], source_seq=4, turn=7)
     assert any(
         candidate.category == "city_food_governor"
-        for candidate in planner.candidates(materially_changed))
+        for candidate in planner.candidates(topology_changed))
 
 
 def test_net_gold_does_not_double_subtract_city_style_unit_upkeep():
@@ -4624,6 +4712,33 @@ def test_packet_legal_tax_shift_recovers_and_then_restores_science_rate():
     restored = GroundedImpactPlanner().plan(safe)
     assert restored.candidate.category == "treasury_tax_restore"
     assert restored.candidate.action["target"]["science_rate"] == 60
+
+
+def test_tax_restore_requires_post_restore_structural_runway():
+    restore_science = {
+        "action_type": "player_rates", "actor_id": 0,
+        "target": {
+            "tax_rate": 50, "science_rate": 50, "luxury_rate": 0,
+        }, "is_valid": True,
+    }
+    snapshot = _snapshot(
+        [], [restore_science, {"action_type": "end_turn", "is_valid": True}],
+        player={
+            "gold": 100, "gold_per_turn": 10,
+            "operating_gold_per_turn": -20,
+            "capitalization_gold_per_turn": 30,
+            "city_gold_surplus_per_turn": -20,
+            "unit_gold_upkeep": 30, "gold_upkeep_reserve": 30,
+            "tax": 60, "science": 40, "luxury": 0,
+        })
+    planner = GroundedImpactPlanner()
+    action = next(
+        json.loads(row) for row in snapshot.legal_action_json
+        if json.loads(row)["action_type"] == "player_rates")
+
+    assert planner._project_operating_gold_for_tax_rate(
+        snapshot, 50) == -22
+    assert planner._rate_recovery_candidate(snapshot, action) is None
 
 
 def test_tax_recovery_holds_learned_floor_until_economy_structure_changes():

@@ -1,0 +1,55 @@
+diff --git a/freeciv-proxy/civcom.py b/freeciv-proxy/civcom.py
+index 2246826..a23d187 100755
+--- a/freeciv-proxy/civcom.py
++++ b/freeciv-proxy/civcom.py
+@@ -677,13 +677,13 @@ class CivCom(Thread):
+         current_name = self._ruleset_name(governments.get(current_id))
+         target_name = self._ruleset_name(governments.get(target_id))
+         revolution_finishes = player.get('revolution_finishes')
+-        in_revolution = bool(
+-            (current_name and current_name.casefold() == 'anarchy')
+-            or (
+-                isinstance(revolution_finishes, int)
+-                and revolution_finishes >= 0
+-            )
+-        )
++        # ``revolution_finishes`` is retained on the completion-turn player
++        # packet even after Freeciv has installed a stable government. The
++        # current government is the authoritative active-revolution signal;
++        # treating the completion marker as Anarchy suppresses legal rates and
++        # misdiagnoses otherwise productive science turns.
++        in_revolution = bool(
++            current_name and current_name.casefold() == 'anarchy')
+         selection_required = bool(
+             current_name
+             and current_name.casefold() == 'anarchy'
+diff --git a/freeciv-proxy/tests/test_pln_authoritative_state.py b/freeciv-proxy/tests/test_pln_authoritative_state.py
+index b6ef86c..4bbb54d 100644
+--- a/freeciv-proxy/tests/test_pln_authoritative_state.py
++++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
+@@ -197,6 +197,25 @@ def test_stable_government_advertises_known_transition_targets():
+     assert actions[0]["reason"] == "government_transition_available"
+ 
+ 
++def test_stable_government_completion_marker_is_not_active_revolution():
++    civcom = make_civcom()
++    civcom.game_turn = 12
++    civcom.player_packets[0].update({
++        "government": 1,
++        "target_government": 1,
++        "revolution_finishes": 12,
++    })
++    civcom.research_info[0]["inventions"] = [2, 2]
++
++    state = CivCom._government_state(civcom, 0)
++    actions = CivCom._get_government_change_actions(civcom, 0)
++
++    assert state["current_name"] == "Despotism"
++    assert state["in_revolution"] is False
++    assert state["selection_required"] is False
++    assert actions[0]["reason"] == "government_transition_available"
++
++
+ def test_government_transition_survives_normalization_and_sanitization():
+     handler = object.__new__(LLMWSHandler)
+ 

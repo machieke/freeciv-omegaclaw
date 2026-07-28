@@ -553,7 +553,8 @@ def _game_terminal(snapshot):
 
 async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=20.0,
                  require_decision_ready=False, require_own_units=False,
-                 stable_samples=1, poll_interval=0.05, diagnostics=None):
+                 stable_samples=1, poll_interval=0.05, diagnostics=None,
+                 settle_first_projection=False):
     if (isinstance(stable_samples, bool) or not isinstance(stable_samples, int)
             or not 1 <= stable_samples <= 5):
         raise ValueError("stable_samples must be in 1..5")
@@ -614,12 +615,13 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
                         "after_source_seq": int(wait_after),
                         "wait_timeout_ms": wait_ms,
                     }
-                    # Only a turn boundary may combine projection and quiet
-                    # confirmation. Action-effect refreshes intentionally keep
-                    # the longer v4 post-projection sample: delayed effect
-                    # packets can change same-turn planning even after the
-                    # canonical decision state has been quiet for 50 ms.
-                    if require_decision_ready:
+                    # A caller that consumes the complete action result may
+                    # request the same packet-lock plus quiet-interval proof
+                    # used at turn boundaries. Candidate-specific effect
+                    # predicates still run after this response, so the marker
+                    # removes a duplicate full transfer without weakening
+                    # action attribution.
+                    if require_decision_ready or settle_first_projection:
                         query_options["settle_quiet_ms"] = settle_ms
                         record("settle_wait_requested_ms", float(settle_ms))
         query_started = time.perf_counter()
@@ -1905,6 +1907,7 @@ async def _play(run_dir, manifest, context):
                     ws, manifest["game_id"], minimum_turn=current.turn,
                     minimum_source_seq=minimum_seq, timeout=remaining,
                     stable_samples=2,
+                    settle_first_projection=True,
                     poll_interval=(
                         impact_planner.refresh_stability_interval_seconds
                         if impact_planner is not None else 0.2),

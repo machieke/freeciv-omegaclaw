@@ -81,6 +81,14 @@ is at least its attack. This keeps offensive modernization out of
 emergency-defense pressure. A queued combat unit with nonzero defense retains
 the broader existing completion protection because a selected-seed ablation of
 that hold caused a large behavioral and score regression.
+Adapter 1.32 corrects active-government truth at the proxy boundary and closes
+the repeated maintenance routes measured in the 960-turn diagnostic. Accepted
+government transitions are one-shot per turn; infeasible food-governor actions
+remain quarantined across output oscillation; tax restoration and Coinage
+release require structural runway; and a completely missing persistent land
+capability becomes a funded, retained survival route. These mechanisms remain
+subject to engine-backed score validation and do not revise the established
+paired score claim by themselves.
 Adapter 1.7 additionally consumes an optional, packet-grounded
 `settlement_site_eligible` fact on founder moves and prefers a directly
 reachable valid site over continued frontier wandering. Unknown destinations

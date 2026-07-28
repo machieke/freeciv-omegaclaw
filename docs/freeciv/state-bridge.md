@@ -40,8 +40,10 @@ and the strategic-observability patch is pinned at
 `9a768dda13455760f5d02a3e66ebc3eae564c3b37c8965c77c9e9565c3656e44`.
 The ruleset-name sanitizer patch is pinned at
 `09480dc463d3347d26db27e387a5a528c6b525fb65089aa1f6f5cd1fb999ce67`.
-The ordered ten-patch series identity is
-`464d96f39d91cfae59fdac5f74170cfcb45a89aa14a6840118fb05f26c7ecb00`.
+The government-state correction patch is pinned at
+`dee93c53c8f0dcc06c0a0ea98ee278e19cc360fbf36ef554f096cebe11f5d4b3`.
+The ordered eleven-patch series identity is
+`13fe398469c077a64bae59bed4588350e119813da432fc695fe24a515cec940e`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 The v9 projection closes the stable-government initiation gap. The proxy now
@@ -54,6 +56,11 @@ Strategic preference remains outside the proxy: the planner chooses only its
 configured preferred target, only while the horizon retains recovery runway,
 and prioritizes the packet-declared intended target after revolution. Unknown
 requirements, unknown identifiers, and ID/name mismatches fail closed.
+Patch 0011 corrects the completion-turn interpretation of that state:
+`revolution_finishes == game_turn` can remain on a stable-government packet
+after Freeciv has completed the transition. Only a current government of
+Anarchy now reports `in_revolution`; stable completion markers no longer hide
+rate actions or produce false research-stall diagnoses.
 
 The v10 projection preserves strict booleans and integer bounds from legal
 action generation through normalization, sanitization, validation, exact legal

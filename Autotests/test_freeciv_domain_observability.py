@@ -343,3 +343,33 @@ def test_government_city_support_and_upkeep_loss_explain_stalled_science(
     assert production["cities"][0]["had_famine"] is True
     assert removal["cause"] == "upkeep_food"
     assert removal["evidence_quality"] == "exact"
+
+
+def test_stable_government_completion_marker_is_not_reported_as_anarchy(
+        tmp_path):
+    path = str(tmp_path / "events.jsonl")
+    writer = EventWriter(path, "game", durable=False)
+    root = writer.emit(
+        "run_started", 0,
+        {"manifest_identity": "manifest", "condition_id": "condition"})
+    emitter = DomainObservabilityEmitter(writer, _ir())
+    stable_marker = GovernmentState(
+        current_id=5, current_name="Federation",
+        target_id=5, target_name="Federation", revolution_finishes=21,
+        in_revolution=True, selection_required=False, available=True)
+    parent = root["event_id"]
+    for turn in (20, 21):
+        snapshot = replace(
+            _snapshot(turn, (), progress=5, rate=4),
+            government=stable_marker)
+        state = writer.emit(
+            "state_snapshot", turn, snapshot.event_payload(),
+            caused_by=[parent])
+        emitter.emit_snapshot(snapshot, state["event_id"])
+        parent = state["event_id"]
+
+    progress = [
+        row["payload"] for row in _read(path)
+        if row["type"] == "technology_progress"][-1]
+    assert progress["status"] == "stalled"
+    assert progress["stall_reason"] == "research_progress_not_advancing"

@@ -254,6 +254,52 @@ def test_persisted_tail_rejects_partial_records_and_incompatible_subscriptions()
             assert exc.code == "E_SUBSCRIBE_SCHEMA"
 
 
+def test_persisted_tail_validates_only_appended_bytes_and_resets_on_replacement(
+        tmp_path, monkeypatch):
+    path = str(tmp_path / "events.jsonl")
+    writer = EventWriter(
+        path, "g", clock=synthetic.fixed_clock,
+        id_factory=synthetic.DeterministicIds(), durable=False)
+    first = writer.emit(
+        "run_started", 0,
+        {"manifest_identity": "x", "condition_id": "a"})
+    tail = PersistedEventTail(path, "g", max_batch=10)
+    validations = []
+    original = schema.validate_event_schema
+
+    def count_validation(event):
+        validations.append(event["event_id"])
+        return original(event)
+
+    monkeypatch.setattr(
+        "freeciv_agent.events.tail.validate_event_schema",
+        count_validation)
+    assert [row["event_id"] for row in tail._read_after(
+        EventCursor(-1, -1))] == [first["event_id"]]
+    assert validations == [first["event_id"]]
+    assert [row["event_id"] for row in tail._read_after(
+        EventCursor(-1, -1))] == [first["event_id"]]
+    assert validations == [first["event_id"]]
+
+    second = writer.emit("metric_sample", 1, {
+        "name": "m", "value": 1, "unit": "n", "labels": {}})
+    assert [row["event_id"] for row in tail._read_after(
+        EventCursor(0, 0))] == [second["event_id"]]
+    assert validations == [first["event_id"], second["event_id"]]
+
+    replacement = str(tmp_path / "replacement.jsonl")
+    replacement_writer = EventWriter(
+        replacement, "g", clock=synthetic.fixed_clock,
+        id_factory=lambda: "replacement", durable=False)
+    replacement_writer.emit(
+        "run_started", 0,
+        {"manifest_identity": "y", "condition_id": "b"})
+    os.replace(replacement, path)
+    assert [row["event_id"] for row in tail._read_after(
+        EventCursor(-1, -1))] == ["replacement"]
+    assert validations[-1] == "replacement"
+
+
 def test_concurrent_writer_keeps_unique_contiguous_sequences():
     with tempfile.TemporaryDirectory() as directory:
         path = os.path.join(directory, "events.jsonl")

@@ -1739,7 +1739,7 @@ export function TechnologyDashboard({ state, onSelect }: {
       && node.atom.args.some((argument) => String(argument) === selectedTech)));
   const government = progress.government;
   const stallExplanation = progress.stall_reason === "government_anarchy"
-    ? `${government?.current_name ?? "Anarchy"} is suppressing science output. ${
+    ? `Freeciv reports ${government?.current_name ?? "Anarchy"} as the current government, which suppresses science output. ${
       government?.selection_required
         ? "The revolution has finished and Freeciv is waiting for a government selection."
         : "The revolution is still in progress."}`

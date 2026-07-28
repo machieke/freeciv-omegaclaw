@@ -185,6 +185,7 @@ class ImpactPressureRanker(object):
         "production_food_stabilization": "food_sustainability",
         "production_happiness_recovery": "survival",
         "production_industrialization": "score",
+        "production_land_capability": "survival",
         "production_modernization": "score",
         "production_threat_modernization": "survival",
         "production_naval_response": "survival",
@@ -302,7 +303,9 @@ class ImpactPressureRanker(object):
             survival_threat_radius):
         """Bind safety compatibility to the threat that activated safety."""
         category = str(candidate.category)
-        if category in ("production_defense", "city_garrison_move"):
+        if category in (
+                "production_defense", "production_land_capability",
+                "city_garrison_move"):
             return bool(defense_deficit)
         if category in (
                 "production_naval_response", "production_coastal_defense"):

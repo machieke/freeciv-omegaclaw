@@ -1769,6 +1769,40 @@ def test_state_accepts_exact_proxy_settled_full_sample(monkeypatch):
     assert diagnostics["settled_responses"] == 1
 
 
+def test_action_state_accepts_proxy_settled_full_sample_without_second_transfer(
+        monkeypatch):
+    raw = _ready_raw(source_seq=45, turn=12)
+    raw["authoritative"]["stability"] = {
+        "policy": "source-seq-quiet-v1",
+        "quiet_interval_ms": 50,
+        "source_seq": 45,
+    }
+    calls = []
+    diagnostics = {}
+
+    async def source_state(_ws, _format, **kwargs):
+        calls.append(kwargs)
+        return raw
+
+    monkeypatch.setattr(engine_live.turncycle, "get_state", source_state)
+    returned, snapshot = asyncio.run(_state(
+        object(), "settled-action-state-test", minimum_turn=12,
+        minimum_source_seq=45, stable_samples=2, poll_interval=0.05,
+        timeout=0.5, settle_first_projection=True,
+        diagnostics=diagnostics))
+
+    assert returned is raw
+    assert snapshot.identity.source_seq == 45
+    assert calls[0].pop("diagnostics") == {}
+    assert calls == [{
+        "after_source_seq": 44,
+        "wait_timeout_ms": pytest.approx(450, abs=2),
+        "settle_quiet_ms": 50,
+    }]
+    assert diagnostics["queries"] == 1
+    assert diagnostics["settled_responses"] == 1
+
+
 @pytest.mark.parametrize("stability", (
     {"policy": "unreviewed-policy", "quiet_interval_ms": 50, "source_seq": 45},
     {"policy": "source-seq-quiet-v1", "quiet_interval_ms": 49, "source_seq": 45},

@@ -6,6 +6,7 @@ record on disk.
 """
 
 import asyncio
+import bisect
 import json
 import os
 from dataclasses import dataclass
@@ -65,6 +66,12 @@ class PersistedEventTail(object):
             raise ValueError("poll_interval must be positive")
         if self.max_batch < 1:
             raise ValueError("max_batch must be positive")
+        self._file_identity = None
+        self._offset = 0
+        self._line_count = 0
+        self._events = []
+        self._cursors = []
+        self._seen_event_ids = set()
 
     def _parse_subscription(self, raw):
         try:
@@ -79,23 +86,45 @@ class PersistedEventTail(object):
             raise TailProtocolError("E_SUBSCRIBE_SCHEMA", "schema_version is incompatible")
         return EventCursor.from_value(value.get("after"))
 
-    def _read_after(self, after):
-        """Re-scan the persisted file and return at most one bounded batch.
+    def _reset_index(self):
+        self._file_identity = None
+        self._offset = 0
+        self._line_count = 0
+        self._events = []
+        self._cursors = []
+        self._seen_event_ids = set()
 
-        Re-scanning makes process restarts and file replacement deterministic and
-        avoids an in-memory acknowledgement window.  A partial final line is an
-        explicit truncation error rather than an event.
+    def _sync_index(self):
+        """Validate only bytes appended since the last persisted scan.
+
+        The cache is an index over bytes already present on disk, never an
+        acknowledgement buffer. File replacement or truncation resets it and
+        deterministically validates the new file from byte zero.
         """
         if not os.path.exists(self.path):
-            return []
+            self._reset_index()
+            return
+        stat = os.stat(self.path)
+        identity = (stat.st_dev, stat.st_ino)
+        if (self._file_identity != identity or stat.st_size < self._offset):
+            self._reset_index()
+            self._file_identity = identity
+        if stat.st_size == self._offset:
+            return
         with open(self.path, "rb") as stream:
+            stream.seek(self._offset)
             content = stream.read()
         if content and not content.endswith(b"\n"):
-            raise TailProtocolError("E_TAIL_TRUNCATED", "persisted log ends in a partial JSONL record")
-        events = []
-        prior = EventCursor(-1, -1)
-        seen = set()
-        for line_number, raw in enumerate(content.splitlines(), 1):
+            raise TailProtocolError(
+                "E_TAIL_TRUNCATED",
+                "persisted log ends in a partial JSONL record")
+        prior = (
+            self._cursors[-1] if self._cursors else EventCursor(-1, -1))
+        parsed = []
+        parsed_cursors = []
+        parsed_ids = set()
+        for line_number, raw in enumerate(
+                content.splitlines(), self._line_count + 1):
             if not raw.strip():
                 continue
             try:
@@ -115,15 +144,24 @@ class PersistedEventTail(object):
             cursor = EventCursor(event["turn"], event["seq"])
             if cursor <= prior:
                 raise TailProtocolError("E_TAIL_ORDER", "persisted event cursor is not increasing")
-            if event["event_id"] in seen:
+            if (event["event_id"] in self._seen_event_ids
+                    or event["event_id"] in parsed_ids):
                 raise TailProtocolError("E_TAIL_DUPLICATE", "persisted event_id is duplicated")
             prior = cursor
-            seen.add(event["event_id"])
-            if cursor > after:
-                events.append(event)
-                if len(events) == self.max_batch:
-                    break
-        return events
+            parsed.append(event)
+            parsed_cursors.append(cursor)
+            parsed_ids.add(event["event_id"])
+        self._events.extend(parsed)
+        self._cursors.extend(parsed_cursors)
+        self._seen_event_ids.update(parsed_ids)
+        self._offset += len(content)
+        self._line_count += len(content.splitlines())
+
+    def _read_after(self, after):
+        """Return one bounded batch from the validated persisted-file index."""
+        self._sync_index()
+        start = bisect.bisect_right(self._cursors, after)
+        return self._events[start:start + self.max_batch]
 
     async def handler(self, websocket, _legacy_path=None):
         try:

@@ -388,6 +388,25 @@ semantics remain broad because a queued combat unit can still defend; a
 selected-seed ablation that also narrowed that hold caused a large regression
 and is not part of the adapter.
 
+Adapter 1.32 addresses the measured long-horizon maintenance loops without
+reintroducing a broad construction gate:
+
+- accepted government changes consume the government scope for the turn, so a
+  delayed player packet cannot trigger a burst of alternative selections;
+- a failed food-governor request is quarantined until population, buildings,
+  production, government, or governor state changes, rather than retrying on
+  the food/famine oscillation it failed to solve;
+- science-rate restoration projects the lower-tax structural operating balance
+  and requires a post-change treasury runway, while Coinage release uses
+  operating cash excluding capitalization;
+- workers and other noncombat land units do not satisfy military capability;
+  when no persistent land combat unit exists, one funded ruleset-derived land
+  unit becomes survival work and its installed queue is retained through first
+  completion; and
+- action refreshes may consume the proxy's exact source-sequence quiet marker
+  in one transfer, while the read-only live tail validates only newly appended
+  persisted bytes.
+
 The adapter also contains an opt-in, finite disorder bridge. Only
 persistence-qualified, size-threshold cities with zero shields and an exact
 packet-buildable Temple, Cathedral, or Amphitheater may enroll. Luxury moves

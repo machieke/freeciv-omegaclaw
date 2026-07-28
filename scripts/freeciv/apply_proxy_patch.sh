@@ -13,6 +13,7 @@ government_transition_patch="$repo_root/scripts/freeciv/upstream/0007-pln-govern
 disorder_luxury_recovery_patch="$repo_root/scripts/freeciv/upstream/0008-pln-disorder-luxury-recovery.patch"
 strategic_observability_patch="$repo_root/scripts/freeciv/upstream/0009-pln-strategic-observability.patch"
 ruleset_name_sanitization_patch="$repo_root/scripts/freeciv/upstream/0010-pln-ruleset-name-sanitization.patch"
+government_state_correction_patch="$repo_root/scripts/freeciv/upstream/0011-pln-government-state-correction.patch"
 pinned_commit="26ba7124249f34fd3050ef29bf191bd4d8808018"
 pinned_authoritative_sha256="48e416000bf36c3c7ce13c8c59bb51bc682a1f17ee8568e432a82f673a10df55"
 pinned_spatial_sha256="a4eb88c827c7a2ea68db602aa2463c2aa53bb0c6156a71e1a5a5e7fc09908856"
@@ -24,6 +25,7 @@ pinned_government_transition_sha256="1b3ecb9458559b0552f232e41804e545a94ccd4d2d7
 pinned_disorder_luxury_recovery_sha256="e800adbe5a4f3a8e68e30a4e21019ef92dabbb272b28ecd50d90c64e7dcb417b"
 pinned_strategic_observability_sha256="9a768dda13455760f5d02a3e66ebc3eae564c3b37c8965c77c9e9565c3656e44"
 pinned_ruleset_name_sanitization_sha256="09480dc463d3347d26db27e387a5a528c6b525fb65089aa1f6f5cd1fb999ce67"
+pinned_government_state_correction_sha256="dee93c53c8f0dcc06c0a0ea98ee278e19cc360fbf36ef554f096cebe11f5d4b3"
 
 if [[ -z "$upstream_root" ]]; then
   echo "usage: $0 /path/to/freeciv-llm (or set FREECIV_LLM_ROOT)" >&2
@@ -43,7 +45,8 @@ for patch_spec in \
   "$government_transition_patch:$pinned_government_transition_sha256" \
   "$disorder_luxury_recovery_patch:$pinned_disorder_luxury_recovery_sha256" \
   "$strategic_observability_patch:$pinned_strategic_observability_sha256" \
-  "$ruleset_name_sanitization_patch:$pinned_ruleset_name_sanitization_sha256"; do
+  "$ruleset_name_sanitization_patch:$pinned_ruleset_name_sanitization_sha256" \
+  "$government_state_correction_patch:$pinned_government_state_correction_sha256"; do
   patch_file="${patch_spec%:*}"
   pinned_patch_sha256="${patch_spec##*:}"
   actual_patch_sha256="$(sha256sum "$patch_file" | cut -d' ' -f1)"
@@ -55,8 +58,8 @@ done
 
 # Each later patch depends on its predecessors. If the final reverse check
 # succeeds, the complete patch series is already present.
-if git -C "$upstream_root" apply --reverse --check "$ruleset_name_sanitization_patch" >/dev/null 2>&1; then
-  echo "PLN authoritative-state through ruleset-name-sanitization patches are already applied"
+if git -C "$upstream_root" apply --reverse --check "$government_state_correction_patch" >/dev/null 2>&1; then
+  echo "PLN authoritative-state through government-state-correction patches are already applied"
   exit 0
 fi
 actual_commit="$(git -C "$upstream_root" rev-parse HEAD)"
@@ -74,7 +77,8 @@ for patch_file in \
   "$government_transition_patch" \
   "$disorder_luxury_recovery_patch" \
   "$strategic_observability_patch" \
-  "$ruleset_name_sanitization_patch"; do
+  "$ruleset_name_sanitization_patch" \
+  "$government_state_correction_patch"; do
   if git -C "$upstream_root" apply --reverse --check "$patch_file" >/dev/null 2>&1; then
     echo "$(basename "$patch_file") is already applied"
     continue

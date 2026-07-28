@@ -34,9 +34,10 @@ PINNED_PROXY_PATCH_SHA256S = (
     "e800adbe5a4f3a8e68e30a4e21019ef92dabbb272b28ecd50d90c64e7dcb417b",
     "9a768dda13455760f5d02a3e66ebc3eae564c3b37c8965c77c9e9565c3656e44",
     "09480dc463d3347d26db27e387a5a528c6b525fb65089aa1f6f5cd1fb999ce67",
+    "dee93c53c8f0dcc06c0a0ea98ee278e19cc360fbf36ef554f096cebe11f5d4b3",
 )
 PINNED_PROXY_PATCH_SERIES_SHA256 = (
-    "464d96f39d91cfae59fdac5f74170cfcb45a89aa14a6840118fb05f26c7ecb00")
+    "13fe398469c077a64bae59bed4588350e119813da432fc695fe24a515cec940e")
 REQUIRED_CONFIDENCE_PARAMETERS = frozenset({
     "actionable_threshold", "minimum_logged_confidence", "dampening_lambda",
     "observation_strength", "observation_confidence", "abduction_strength",
@@ -252,6 +253,7 @@ def run(args):
             "0008-pln-disorder-luxury-recovery.patch",
             "0009-pln-strategic-observability.patch",
             "0010-pln-ruleset-name-sanitization.patch",
+            "0011-pln-government-state-correction.patch",
         )
     ]
     series_digest = hashlib.sha256()

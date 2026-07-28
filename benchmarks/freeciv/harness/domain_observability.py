@@ -298,7 +298,13 @@ class DomainObservabilityEmitter(object):
             "stalled_turns": self._stalled_turns,
             "stall_reason": (
                 "government_anarchy"
-                if status == "stalled" and snapshot.government.in_revolution
+                if status == "stalled"
+                and (
+                    snapshot.government.selection_required
+                    or str(
+                        snapshot.government.current_name or ""
+                    ).strip().casefold() == "anarchy"
+                )
                 else "city_disorder"
                 if status == "stalled"
                 and any(city.disorder is True for city in snapshot.cities)
