@@ -26,6 +26,8 @@ the raw same-seed scores are diagnostic rather than a paired causal estimate.
 | v33 | adapter 1.30 material-state tax floor, bridge enabled | 371 / 4452 | 5 | 445.0 s | accepted correctness mechanism; rejected as default score policy |
 | v34 | adapter 1.30 material-state tax floor, bridge disabled | 453 / 4280 | 5 | 526.6 s | accepted selected-seed control; no score claim |
 | v35 | ten-turn tax-restore stability window, bridge disabled | 362 / 4424 | 5 | 454.4 s | rejected score regression |
+| v36 | any ruleset land unit with nonzero defense may fill an emergency garrison | 177 / 807 at elimination | 0 | 123.1 s | rejected; Cannon entered the garrison path and the player was eliminated on turn 265 |
+| v37 | only the most durable currently buildable ruleset defender may fill an emergency garrison | 177 / 1557 at elimination | 0 | 215.7 s | rejected; Marines displaced the stable legacy trajectory and the player was eliminated on turn 412 |
 
 Artifacts:
 
@@ -44,6 +46,8 @@ Artifacts:
 - tax-floor happiness diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v33`
 - bridge-disabled adapter-1.30 control: `artifacts/freeciv/pf-pln-strategic-960-v34`
 - rejected tax-stability-window diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v35`
+- rejected generic ruleset-garrison diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v36`
+- rejected durability-gated ruleset-garrison diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v37`
 
 All listed completed diagnostics completed 1/1 jobs with zero gameplay or
 infrastructure failures. Interrupted integration diagnostics are intentionally
@@ -242,6 +246,17 @@ selected development seed and does not revise a score or win-rate claim.
 The v35 stability-window ablation reduced rate churn but scored 362. That
 window was removed. The accepted implementation retains exact rate effects and
 the material-state tax floor, not a fixed elapsed-turn hold.
+
+V36 and v37 tested whether the emergency garrison lifecycle could also solve
+the advanced-unit gap. V36 admitted every persistent ruleset land unit with
+nonzero defense and selected Cannon as a defender; the player was eliminated
+on turn 265. V37 required the maximum ruleset-derived defensive durability
+among the currently buildable alternatives, excluded Cannon, and selected
+Marines five times before turn 279. It still changed the early survival
+trajectory enough for elimination on turn 412. Both variants were fully
+reverted. Advanced offensive modernization must remain a separate bounded
+lifecycle rather than changing the semantics or timing of mandatory local
+garrisons.
 
 Any score claim still requires a preregistered paired-seed cohort with the
 historical five-city policy held fixed. The current evidence supports contract,
