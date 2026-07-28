@@ -60,6 +60,7 @@ agent-instructions
 
 # PLN-FreeCiv generated rulebases, run logs, engine helpers, and UI artifacts
 /artifacts/freeciv/
+/artifacts/freeciv
 /build/freeciv/
 /apps/freeciv-observability/node_modules/
 /apps/freeciv-observability/dist/

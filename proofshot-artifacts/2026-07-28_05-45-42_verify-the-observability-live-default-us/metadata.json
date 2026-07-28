@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure",
+  "commitSha": "130f2eefa87b1e8f434846d3fc8fecefa94883a6",
+  "startedAt": "2026-07-28T05:45:42.438Z",
+  "description": "Verify the observability Live default uses port 18765 and actively follows a matched 480-turn FreeCiv run"
+}

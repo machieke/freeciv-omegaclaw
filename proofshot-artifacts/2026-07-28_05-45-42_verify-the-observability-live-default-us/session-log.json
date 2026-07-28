@@ -1,0 +1,47 @@
+[
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-28T05:46:17.495Z"
+  },
+  {
+    "action": "screenshot 01-live-default-18765.png",
+    "relativeTimeSec": 12.4,
+    "timestamp": "2026-07-28T05:46:24.867Z"
+  },
+  {
+    "action": "fill @e40 m7-main-e_full_loop-4543804-00",
+    "relativeTimeSec": 32.4,
+    "timestamp": "2026-07-28T05:46:44.864Z"
+  },
+  {
+    "action": "click @e7",
+    "relativeTimeSec": 33.7,
+    "timestamp": "2026-07-28T05:46:46.183Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 34.1,
+    "timestamp": "2026-07-28T05:46:46.565Z"
+  },
+  {
+    "action": "screenshot 02-live-subscribed-before-run.png",
+    "relativeTimeSec": 34.5,
+    "timestamp": "2026-07-28T05:46:46.962Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 152.5,
+    "timestamp": "2026-07-28T05:48:45.017Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 325,
+    "timestamp": "2026-07-28T05:51:37.539Z"
+  },
+  {
+    "action": "screenshot 03-live-run-complete-turn-480.png",
+    "relativeTimeSec": 325.9,
+    "timestamp": "2026-07-28T05:51:38.401Z"
+  }
+]
