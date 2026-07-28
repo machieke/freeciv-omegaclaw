@@ -31,6 +31,7 @@ the raw same-seed scores are diagnostic rather than a paired causal estimate.
 | v38 | city-local defense-first ruleset role for strategic selection; adapter still declared 1.30 | 455 / 4274 | 5 | 530.5 s | accepted behavior diagnostic; identity not suitable for release audit |
 | v40 | adapter 1.31 plus defense-first role applied to all queue-retention boundaries | 335 / 4296 | 5 | 468.8 s | rejected; productive and military continuity regressed |
 | v41 | adapter 1.31 selection-only role boundary with proven queue continuity restored | 455 / 4274 | 5 | 530.5 s | accepted engine confirmation; exact v38 reproduction, no score claim |
+| v42 | empty-land-force survival route for balanced offensive units | 452 / 4274 | 5 | 529.0 s | rejected; no surviving force recovery and a three-point regression |
 
 Artifacts:
 
@@ -54,6 +55,7 @@ Artifacts:
 - pre-version selection-role diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v38`
 - rejected queue-role narrowing diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v40`
 - adapter-1.31 confirmation: `artifacts/freeciv/pf-pln-strategic-960-v41`
+- rejected empty-land-force recovery diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v42`
 
 All listed completed diagnostics completed 1/1 jobs with zero gameplay or
 infrastructure failures. Interrupted integration diagnostics are intentionally
@@ -295,6 +297,29 @@ acquired technologies, and zero effect-confirmation timeouts. The exact
 reproduction supports mechanism stability and accepts the role-classification
 correction. The two-point selected-seed difference from v34 is not a
 statistically reliable score improvement.
+
+V42 tested a separate bounded recovery route after the owned land-combat domain
+became empty. It required a negative score gap, an actionable authoritative
+defense deficit, horizon completion, and a balanced ruleset unit whose defense
+was at least half its attack; this admitted Marines and Armor while excluding
+Cannon. The route selected Marines on turns 845 and 917 and Armor on turn 875.
+
+The trace did not establish a surviving recovery unit. In both Marines cycles,
+city 131 advanced from 58 of 60 shields to zero while retaining Marines as its
+target, but no Marines instance was present in the next authoritative snapshot.
+This grounds a production-boundary reset, not the unobserved unit's intervening
+lifecycle or removal cause. Armor reached 72 of 90 shields before the treasury
+controller switched to an immediately completing Marketplace on turn 911:
+authoritative gold was 15, effective cash was `-6` per turn, and retaining the
+queue could not preserve the five-gold reserve through its remaining ETA.
+
+V42 finished with score 452 against the same opponent score 4274. Its
+`36/130/286` components regressed from v41's `38/130/287`; actions fell from
+2,035 to 2,023 and meaningful actions from 1,075 to 1,063. The experiment was
+fully reverted. It shows that lifting the safety firewall after complete force
+loss is too late: the only buildable recovery city is already exposed to
+same-boundary attrition, while its two-shield production rate and treasury
+runway cannot reliably deliver Armor.
 
 Any score claim still requires a preregistered paired-seed cohort with the
 historical five-city policy held fixed. The current evidence supports contract,
