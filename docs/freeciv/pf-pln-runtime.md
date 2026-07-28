@@ -62,6 +62,14 @@ after bankruptcy. Technology observability independently marks unchanged
 research progress across turn boundaries as
 `research_progress_not_advancing`, even when the projected beaker rate remains
 positive.
+Adapter 1.30 makes packet-exact player-rate changes first-class confirmed
+effects. Confirmation compares the authoritative tax/science/luxury tuple and
+retry grounding includes the current tuple. A material-state tax floor prevents
+an unsafe science restoration from being retried until structural economy
+facts change. The optional disorder bridge now has persistence, city-size,
+local-buildability, and lifetime bounds plus an exact happiness-building exit.
+Its selected-seed stability gain did not improve score, so the bridge remains
+disabled in live profiles.
 Adapter 1.7 additionally consumes an optional, packet-grounded
 `settlement_site_eligible` fact on founder moves and prefers a directly
 reachable valid site over continued frontier wandering. Unknown destinations

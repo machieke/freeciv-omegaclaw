@@ -370,6 +370,23 @@ target may not. This prevents forced building sales and the associated
 engine-side research freeze while retaining first-completion holds during
 ordinary projected deficits.
 
+Adapter 1.30 confirms a player-rate action against the authoritative
+tax/science/luxury tuple instead of treating its player ID as a unit ID. The
+same economy tuple is part of no-effect retry grounding, so a rate target is
+not suppressed after the current allocation changes. A tax boundary learned
+unsafe is retained until material economy structure changes; a rejected fixed
+ten-turn restoration delay is not part of the live policy.
+
+The adapter also contains an opt-in, finite disorder bridge. Only
+persistence-qualified, size-threshold cities with zero shields and an exact
+packet-buildable Temple, Cathedral, or Amphitheater may enroll. Luxury moves
+one legal increment at a time, the selected local remedy is held through
+completion, each material happiness change opens a new downward probe, and the
+episode expires at its configured bound. PF-PLN routes the bridge, its local
+production exit, and emergency unwind to survival pressure. Selected-seed
+evidence improved disorder but regressed score, so
+`disorder_luxury_recovery_enabled` remains false in all live profiles.
+
 A packet-visible same-domain unit whose ruleset-derived capability exceeds the
 owned domain ceiling creates `production_threat_modernization`. That category
 routes to survival pressure even when FreeCiv still hides opponent scores; the

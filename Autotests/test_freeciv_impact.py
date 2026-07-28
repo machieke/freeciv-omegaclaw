@@ -1962,6 +1962,18 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
                    {"founder_attrition_rebuild_limit": 1.5},
                    {"founder_attrition_rebuild_limit": 21},
                    {"disorder_luxury_recovery_enabled": 1},
+                   {"disorder_luxury_trigger_turns": True},
+                   {"disorder_luxury_trigger_turns": 0},
+                   {"disorder_luxury_trigger_turns": 1.5},
+                   {"disorder_luxury_trigger_turns": 21},
+                   {"disorder_luxury_minimum_city_size": True},
+                   {"disorder_luxury_minimum_city_size": 0},
+                   {"disorder_luxury_minimum_city_size": 1.5},
+                   {"disorder_luxury_minimum_city_size": 31},
+                   {"disorder_luxury_bridge_max_turns": True},
+                   {"disorder_luxury_bridge_max_turns": 0},
+                   {"disorder_luxury_bridge_max_turns": 1.5},
+                   {"disorder_luxury_bridge_max_turns": 101},
                    {"city_happiness_governor_enabled": 1},
                    {"production_minimum_remaining_turns": 0},
                    {"expansion_minimum_settlement_runway_turns": True},
@@ -2247,6 +2259,42 @@ def test_actor_resource_change_is_an_observed_effect_even_when_position_is_stabl
         [move, {"action_type": "end_turn", "is_valid": True}], source_seq=3)
     assert GroundedImpactPlanner().local_actor_effect_observed(
         decision.candidate, before, spent)
+
+
+def test_player_rate_effect_and_retry_grounding_use_exact_economy_rates():
+    action = {
+        "action_type": "player_rates", "actor_id": 0,
+        "target": {
+            "tax_rate": 50, "science_rate": 50, "luxury_rate": 0,
+        },
+        "is_valid": True,
+    }
+    candidate = ImpactCandidate(
+        action, "treasury_tax_restore", 760.0,
+        "exact player-rate effect regression")
+    before = _snapshot(
+        [], [action, {"action_type": "end_turn", "is_valid": True}],
+        player={"tax": 60, "science": 40, "luxury": 0})
+    unchanged = _snapshot(
+        [], [action, {"action_type": "end_turn", "is_valid": True}],
+        source_seq=2,
+        player={"tax": 60, "science": 40, "luxury": 0})
+    applied = _snapshot(
+        [], [{"action_type": "end_turn", "is_valid": True}],
+        source_seq=3,
+        player={"tax": 50, "science": 50, "luxury": 0})
+    planner = GroundedImpactPlanner({"no_effect_retry_limit": 1})
+
+    assert not planner.candidate_effect_observed(
+        candidate, before, unchanged)
+    assert planner.candidate_effect_observed(candidate, before, applied)
+    assert planner._grounding_signature(
+        before, candidate) != planner._grounding_signature(
+            applied, candidate)
+
+    planner.record_outcome(candidate, before, effect_observed=False)
+    assert planner._no_effect_suppressed(before, candidate)
+    assert not planner._no_effect_suppressed(applied, candidate)
 
 
 def test_offensive_effect_observes_target_stack_when_attacker_is_unchanged():
@@ -4566,6 +4614,66 @@ def test_packet_legal_tax_shift_recovers_and_then_restores_science_rate():
     assert restored.candidate.action["target"]["science_rate"] == 60
 
 
+def test_tax_recovery_holds_learned_floor_until_economy_structure_changes():
+    increase_tax = {
+        "action_type": "player_rates", "actor_id": 0,
+        "target": {
+            "tax_rate": 50, "science_rate": 50, "luxury_rate": 0,
+        }, "is_valid": True,
+    }
+    restore_science = {
+        "action_type": "player_rates", "actor_id": 0,
+        "target": {
+            "tax_rate": 40, "science_rate": 60, "luxury_rate": 0,
+        }, "is_valid": True,
+    }
+    city = _city()
+    planner = GroundedImpactPlanner({"expansion_city_target": 1})
+    unsafe = _snapshot(
+        [], [increase_tax, {"action_type": "end_turn", "is_valid": True}],
+        cities=[city],
+        player={
+            "gold": 0, "city_gold_surplus_per_turn": 1,
+            "gold_per_turn": 1, "unit_gold_upkeep": 0,
+            "gold_upkeep_reserve": 0,
+            "tax": 40, "science": 60, "luxury": 0,
+        })
+    planner.observe(unsafe)
+    assert planner._minimum_safe_tax_rate == 50
+    assert planner.plan(unsafe).candidate.category == "treasury_tax_shift"
+
+    stable = _snapshot(
+        [], [restore_science, {"action_type": "end_turn", "is_valid": True}],
+        cities=[city], source_seq=2,
+        player={
+            "gold": 20, "city_gold_surplus_per_turn": 1,
+            "gold_per_turn": 1, "unit_gold_upkeep": 0,
+            "gold_upkeep_reserve": 0,
+            "tax": 50, "science": 50, "luxury": 0,
+        })
+    planner.observe(stable)
+    rate_action = next(
+        json.loads(row) for row in stable.legal_action_json
+        if json.loads(row)["action_type"] == "player_rates")
+    assert planner._rate_recovery_candidate(stable, rate_action) is None
+    assert planner._minimum_safe_tax_rate == 50
+
+    grown_city = dict(city, size=int(city["size"]) + 1)
+    reprobe = _snapshot(
+        [], [restore_science, {"action_type": "end_turn", "is_valid": True}],
+        cities=[grown_city], source_seq=3,
+        player={
+            "gold": 20, "city_gold_surplus_per_turn": 1,
+            "gold_per_turn": 1, "unit_gold_upkeep": 0,
+            "gold_upkeep_reserve": 0,
+            "tax": 50, "science": 50, "luxury": 0,
+        })
+    planner.observe(reprobe)
+    candidate = planner._rate_recovery_candidate(reprobe, rate_action)
+    assert candidate.category == "treasury_tax_restore"
+    assert candidate.projection["minimum_safe_tax_rate"] == 40
+
+
 def test_packet_legal_luxury_shift_breaks_disorder_without_rate_oscillation():
     city = _city()
     city.update({
@@ -4573,6 +4681,9 @@ def test_packet_legal_luxury_shift_breaks_disorder_without_rate_oscillation():
         "ppl_unhappy": [2], "ppl_angry": [0],
         "disorder": True,
     })
+    city["surplus"][1] = 0
+    city["buildability"]["options"].append(
+        {"type": "improvement", "id": 40, "name": "Temple"})
     recover_from_tax = {
         "action_type": "player_rates", "actor_id": 0,
         "target": {
@@ -4602,6 +4713,8 @@ def test_packet_legal_luxury_shift_breaks_disorder_without_rate_oscillation():
         })
     planner = GroundedImpactPlanner({
         "disorder_luxury_recovery_enabled": True,
+        "disorder_luxury_trigger_turns": 1,
+        "disorder_luxury_minimum_city_size": 1,
     })
     planner.observe(disorder)
 
@@ -4643,6 +4756,245 @@ def test_packet_legal_luxury_shift_breaks_disorder_without_rate_oscillation():
     restored = planner.plan(grounded_garrison_change)
     assert restored.candidate.category == "disorder_luxury_restore"
     assert restored.candidate.action["target"] == restore_science["target"]
+
+
+def test_luxury_bridge_builds_local_happiness_exit_and_reprobes_safe_rate():
+    city = _city(
+        size=14, shield_stock=5, surplus=(0, 0, 21, -9, 0, 0),
+        production_kind=6, production_value=10)
+    city.update({
+        "ppl_happy": [0], "ppl_content": [9],
+        "ppl_unhappy": [5], "ppl_angry": [0],
+        "disorder": True,
+        "buildability": {"available": True, "options": [
+            {"type": "unit", "id": 10, "name": "Riflemen"},
+            {"type": "improvement", "id": 40, "name": "Temple"},
+        ]},
+        "built_improvements": [{
+            "id": 11, "name": "Amphitheater", "upkeep": 3,
+        }],
+    })
+    raise_from_tax = {
+        "action_type": "player_rates", "actor_id": 0,
+        "target": {
+            "tax_rate": 50, "science_rate": 40, "luxury_rate": 10,
+        }, "is_valid": True,
+    }
+    raise_from_science = {
+        "action_type": "player_rates", "actor_id": 0,
+        "target": {
+            "tax_rate": 60, "science_rate": 30, "luxury_rate": 10,
+        }, "is_valid": True,
+    }
+    temple = _production(10, "Temple", 3, 40)
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 1,
+        "disorder_luxury_recovery_enabled": True,
+        "disorder_luxury_trigger_turns": 1,
+        "disorder_luxury_minimum_city_size": 1,
+    }, ruleset_ir=_ruleset_ir((
+        ("Riflemen", "unit", 40),
+        ("Temple", "improvement", 30),
+    )))
+    blocked = _snapshot(
+        [], [raise_from_tax, raise_from_science, temple,
+             {"action_type": "end_turn", "is_valid": True}],
+        cities=[city], turn=5,
+        player={
+            "gold": 100, "gold_per_turn": -10,
+            "operating_gold_per_turn": -10,
+            "city_gold_surplus_per_turn": -10,
+            "tax": 60, "science": 40, "luxury": 0,
+        })
+    planner.observe(blocked)
+
+    bridge = planner.plan(blocked)
+
+    assert bridge.candidate.category == "disorder_luxury_shift"
+    assert bridge.candidate.action["target"] == raise_from_science["target"]
+    assert bridge.candidate.projection["bridge_city_ids"] == (10,)
+
+    recovered_city = dict(city, disorder=False, surplus=[0, 4, 21, -4, 2, 5])
+    recovered_city["ppl_unhappy"] = [0]
+    recovered = _snapshot(
+        [], [temple, {"action_type": "end_turn", "is_valid": True}],
+        cities=[recovered_city], source_seq=2, turn=6,
+        player={
+            "gold": 90, "gold_per_turn": -5,
+            "operating_gold_per_turn": -5,
+            "city_gold_surplus_per_turn": -5,
+            "tax": 60, "science": 30, "luxury": 10,
+        })
+    planner.observe(recovered)
+
+    local_exit = planner.plan(recovered)
+
+    assert local_exit.candidate.category == "production_happiness_recovery"
+    assert local_exit.candidate.action == {
+        key: value for key, value in temple.items() if key != "is_valid"}
+    assert local_exit.candidate.projection[
+        "missing_happiness_improvements"] == ("Temple",)
+
+    building_city = dict(
+        recovered_city, production_kind=3, production_value=40,
+        shield_stock=4)
+    restore = {
+        "action_type": "player_rates", "actor_id": 0,
+        "target": {
+            "tax_rate": 60, "science_rate": 40, "luxury_rate": 0,
+        }, "is_valid": True,
+    }
+    unrelated_disorder = dict(
+        _city(size=2, surplus=(0, 0, 2, 0, 0, 0)),
+        id=20, name="Small", tile=22, x=2, y=2, disorder=True,
+        ppl_happy=[0], ppl_content=[1], ppl_unhappy=[1], ppl_angry=[0])
+    probing = _snapshot(
+        [], [restore, {"action_type": "end_turn", "is_valid": True}],
+        cities=[building_city, unrelated_disorder], source_seq=3, turn=7,
+        player={
+            "gold": 85, "gold_per_turn": -5,
+            "operating_gold_per_turn": -5,
+            "city_gold_surplus_per_turn": -5,
+            "tax": 60, "science": 30, "luxury": 10,
+        })
+    planner.observe(probing)
+
+    probe = planner.plan(probing)
+
+    assert probe.candidate.category == "disorder_luxury_unwind"
+    assert probe.candidate.action["target"] == restore["target"]
+    assert probe.candidate.utility >= 2650.0
+
+    blocked_again = _snapshot(
+        [], [raise_from_science, {"action_type": "end_turn", "is_valid": True}],
+        cities=[dict(building_city, disorder=True, surplus=[0, 0, 21, -9, 0, 0])],
+        source_seq=4, turn=8,
+        player={
+            "gold": 80, "gold_per_turn": -10,
+            "operating_gold_per_turn": -10,
+            "city_gold_surplus_per_turn": -10,
+            "tax": 60, "science": 40, "luxury": 0,
+        })
+    planner.observe(blocked_again)
+    assert planner.plan(
+        blocked_again).candidate.category == "disorder_luxury_shift"
+
+    stable = _snapshot(
+        [], [restore, {"action_type": "end_turn", "is_valid": True}],
+        cities=[building_city], source_seq=5, turn=9,
+        player={
+            "gold": 75, "gold_per_turn": -5,
+            "operating_gold_per_turn": -5,
+            "city_gold_surplus_per_turn": -5,
+            "tax": 60, "science": 30, "luxury": 10,
+        })
+    planner.observe(stable)
+    assert planner.plan(stable) is None
+
+    # Completing the local remedy changes the grounded happiness signature.
+    # The previously learned unsafe boundary belongs to the pre-Temple city
+    # and must not strand the economy at the emergency luxury rate.
+    completed_city = dict(
+        building_city, production_kind=6, production_value=10,
+        built_improvements=[
+            {"id": 11, "name": "Amphitheater", "upkeep": 3},
+            {"id": 40, "name": "Temple", "upkeep": 1},
+        ])
+    completed = _snapshot(
+        [], [restore, {"action_type": "end_turn", "is_valid": True}],
+        cities=[completed_city], source_seq=6, turn=10,
+        player={
+            "gold": 70, "gold_per_turn": -5,
+            "operating_gold_per_turn": -5,
+            "city_gold_surplus_per_turn": -5,
+            "tax": 60, "science": 30, "luxury": 10,
+        })
+    planner.observe(completed)
+    completion_probe = planner.plan(completed)
+    assert completion_probe.candidate.category == "disorder_luxury_unwind"
+    assert completion_probe.candidate.action["target"] == restore["target"]
+    assert completion_probe.candidate.projection[
+        "minimum_safe_luxury_rate"] == 0
+
+
+def test_luxury_bridge_ignores_transient_disorder_until_turn_persistence():
+    city = _city(surplus=(0, 0, 12, -4, 0, 0))
+    city.update({
+        "ppl_happy": [0], "ppl_content": [4],
+        "ppl_unhappy": [2], "ppl_angry": [0],
+        "disorder": True,
+    })
+    city["buildability"]["options"].append(
+        {"type": "improvement", "id": 40, "name": "Temple"})
+    raise_luxury = {
+        "action_type": "player_rates", "actor_id": 0,
+        "target": {
+            "tax_rate": 40, "science_rate": 50, "luxury_rate": 10,
+        }, "is_valid": True,
+    }
+    actions = [raise_luxury, {"action_type": "end_turn", "is_valid": True}]
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 1,
+        "disorder_luxury_recovery_enabled": True,
+        "disorder_luxury_trigger_turns": 3,
+        "disorder_luxury_minimum_city_size": 1,
+    })
+
+    for source_seq, turn in ((1, 5), (2, 6)):
+        snapshot = _snapshot(
+            [], actions, cities=[city], source_seq=source_seq, turn=turn)
+        planner.observe(snapshot)
+        assert planner.plan(snapshot) is None
+
+    persistent = _snapshot(
+        [], actions, cities=[city], source_seq=3, turn=7)
+    planner.observe(persistent)
+
+    assert planner.plan(
+        persistent).candidate.category == "disorder_luxury_shift"
+
+
+def test_luxury_bridge_expires_instead_of_permanently_starving_science():
+    city = _city(
+        size=14, surplus=(0, 0, 21, -9, 0, 0),
+        production_kind=6, production_value=10)
+    city.update({
+        "ppl_happy": [0], "ppl_content": [9],
+        "ppl_unhappy": [5], "ppl_angry": [0],
+        "disorder": True,
+        "buildability": {"available": True, "options": [
+            {"type": "improvement", "id": 40, "name": "Temple"},
+        ]},
+    })
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 1,
+        "disorder_luxury_recovery_enabled": True,
+        "disorder_luxury_trigger_turns": 1,
+        "disorder_luxury_minimum_city_size": 1,
+        "disorder_luxury_bridge_max_turns": 1,
+    }, ruleset_ir=_ruleset_ir((("Temple", "improvement", 30),)))
+    start = _snapshot(
+        [], [{"action_type": "end_turn", "is_valid": True}],
+        cities=[city], turn=5)
+    planner.observe(start)
+    restore = {
+        "action_type": "player_rates", "actor_id": 0,
+        "target": {
+            "tax_rate": 50, "science_rate": 40, "luxury_rate": 10,
+        }, "is_valid": True,
+    }
+    changed_signature_city = dict(
+        city, size=15, production_kind=3, production_value=40)
+    expired = _snapshot(
+        [], [restore, {"action_type": "end_turn", "is_valid": True}],
+        cities=[changed_signature_city], source_seq=2, turn=6,
+        player={"tax": 40, "science": 40, "luxury": 20})
+    planner.observe(expired)
+
+    decision = planner.plan(expired)
+
+    assert decision.candidate.category == "disorder_luxury_unwind"
+    assert decision.candidate.projection["bridge_expired"] is True
 
 
 def test_disordered_city_uses_local_happiness_governor_before_global_rates():

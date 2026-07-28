@@ -28,6 +28,9 @@ IMPROVEMENT_PRIORITY = (
     "City Walls", "Barracks II", "Barracks I", "Temple", "Courthouse",
     "Aqueduct, River", "Coinage",
 )
+HAPPINESS_IMPROVEMENT_PRIORITY = (
+    "Temple", "Cathedral", "Amphitheater",
+)
 FOOD_OUTPUT_PRIORITY = ("Harbor", "Supermarket")
 FOOD_STABILIZATION_PRIORITY = (
     FOOD_OUTPUT_PRIORITY + (
@@ -199,7 +202,9 @@ def _normalized_type(value):
 
 PLANNED_PRODUCTION_TYPES = frozenset(
     _normalized_type(name)
-    for name in IMPROVEMENT_PRIORITY + DEFENDER_PRIORITY)
+    for name in (
+        IMPROVEMENT_PRIORITY + HAPPINESS_IMPROVEMENT_PRIORITY
+        + DEFENDER_PRIORITY))
 NORMALIZED_DEFENDER_TYPES = frozenset(
     _normalized_type(name) for name in DEFENDER_PRIORITY)
 NORMALIZED_FOOD_OUTPUT_TYPES = frozenset(
@@ -219,6 +224,8 @@ COMMERCE_IMPROVEMENT_PRIORITY = (
 NAVAL_IMPROVEMENT_PRIORITY = (
     "Port Facility", "Coastal Defense", "SAM Battery", "SDI Defense",
 )
+NORMALIZED_HAPPINESS_IMPROVEMENT_TYPES = frozenset(
+    _normalized_type(name) for name in HAPPINESS_IMPROVEMENT_PRIORITY)
 
 
 def _distance(x, y, tx, ty, width, height):
@@ -252,7 +259,7 @@ def _spatial_target(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.29"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.30"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -474,6 +481,42 @@ class GroundedImpactPlanner(object):
                 "city_happiness_governor_enabled must be boolean")
         self.city_happiness_governor_enabled = (
             city_happiness_governor_enabled)
+        disorder_luxury_trigger_turns = values.get(
+            "disorder_luxury_trigger_turns", 3)
+        if (isinstance(disorder_luxury_trigger_turns, bool)
+                or not isinstance(
+                    disorder_luxury_trigger_turns, (int, float))
+                or int(disorder_luxury_trigger_turns)
+                != disorder_luxury_trigger_turns
+                or not 1 <= int(disorder_luxury_trigger_turns) <= 20):
+            raise ValueError(
+                "disorder_luxury_trigger_turns must be in 1..20")
+        self.disorder_luxury_trigger_turns = int(
+            disorder_luxury_trigger_turns)
+        disorder_luxury_minimum_city_size = values.get(
+            "disorder_luxury_minimum_city_size", 10)
+        if (isinstance(disorder_luxury_minimum_city_size, bool)
+                or not isinstance(
+                    disorder_luxury_minimum_city_size, (int, float))
+                or int(disorder_luxury_minimum_city_size)
+                != disorder_luxury_minimum_city_size
+                or not 1 <= int(disorder_luxury_minimum_city_size) <= 30):
+            raise ValueError(
+                "disorder_luxury_minimum_city_size must be in 1..30")
+        self.disorder_luxury_minimum_city_size = int(
+            disorder_luxury_minimum_city_size)
+        disorder_luxury_bridge_max_turns = values.get(
+            "disorder_luxury_bridge_max_turns", 40)
+        if (isinstance(disorder_luxury_bridge_max_turns, bool)
+                or not isinstance(
+                    disorder_luxury_bridge_max_turns, (int, float))
+                or int(disorder_luxury_bridge_max_turns)
+                != disorder_luxury_bridge_max_turns
+                or not 1 <= int(disorder_luxury_bridge_max_turns) <= 100):
+            raise ValueError(
+                "disorder_luxury_bridge_max_turns must be in 1..100")
+        self.disorder_luxury_bridge_max_turns = int(
+            disorder_luxury_bridge_max_turns)
         self.treasury_reserve_turns = int(values.get(
             "treasury_reserve_turns", 2))
         self.treasury_minimum_gold = int(values.get(
@@ -581,6 +624,11 @@ class GroundedImpactPlanner(object):
         self._luxury_safety_signature = None
         self._minimum_safe_luxury_rate = max(
             0, 100 - self.normal_tax_rate - self.normal_science_rate)
+        self._treasury_safety_signature = None
+        self._minimum_safe_tax_rate = self.normal_tax_rate
+        self._disorder_luxury_bridge_city_ids = set()
+        self._disorder_luxury_bridge_started_turn = None
+        self._disorder_luxury_first_seen_turns = {}
         self._failed_settlement_sites = set()
         self._failed_settlement_site_prunes = set()
         self._founder_escort_deferral_snapshots = set()
@@ -805,22 +853,99 @@ class GroundedImpactPlanner(object):
             snapshot, "unit_build_city", actions))
         founder_types = self._founder_types(snapshot, actions)
         combat_units = self._combat_units(snapshot, founder_types)
+        treasury_signature = (
+            snapshot.government.current_id,
+            tuple(
+                (
+                    int(city.city_id),
+                    int(city.size or 0),
+                    tuple(sorted(
+                        (_normalized_type(building.name),
+                         int(building.upkeep or 0))
+                        for building in city.buildings)),
+                    _normalized_type(self._current_production_name(city))
+                    == "coinage",
+                )
+                for city in sorted(
+                    snapshot.cities, key=lambda row: row.city_id)),
+            tuple(sorted(
+                (
+                    int(unit.unit_id),
+                    int(unit.homecity or 0),
+                    self._unit_upkeep(unit, 3),
+                )
+                for unit in snapshot.units
+                if self._unit_upkeep(unit, 3) > 0)),
+        )
+        if treasury_signature != self._treasury_safety_signature:
+            # A tax floor learned for one exact structural economy must not
+            # permanently suppress science after population, buildings,
+            # Coinage, government, or supported-unit upkeep changes.
+            self._treasury_safety_signature = treasury_signature
+            self._minimum_safe_tax_rate = self.normal_tax_rate
+        if (snapshot.economy.tax_rate is not None
+                and self._treasury_deficit(snapshot)):
+            # The current exact tax rate cannot retain the configured reserve.
+            # Hold the next packet-valid boundary until material economy state
+            # changes instead of oscillating tax/science every turn.
+            self._minimum_safe_tax_rate = max(
+                self._minimum_safe_tax_rate,
+                min(60, int(snapshot.economy.tax_rate) + 10))
         luxury_signature = tuple(
             (int(city.city_id), int(city.size or 0), sum(
                 (unit.x, unit.y) == (city.x, city.y)
-                for unit in combat_units))
+                for unit in combat_units),
+             tuple(sorted(
+                 _normalized_type(building.name)
+                 for building in city.buildings
+                 if _normalized_type(building.name)
+                 in NORMALIZED_HAPPINESS_IMPROVEMENT_TYPES)),
+             (_normalized_type(self._current_production_name(city))
+              if _normalized_type(self._current_production_name(city))
+              in NORMALIZED_HAPPINESS_IMPROVEMENT_TYPES else None))
             for city in sorted(snapshot.cities, key=lambda row: row.city_id))
         normal_luxury = max(
             0, 100 - self.normal_tax_rate - self.normal_science_rate)
+        luxury_rate = snapshot.economy.luxury_rate
         if luxury_signature != self._luxury_safety_signature:
-            # A city, population, or grounded-garrison change can alter the
-            # luxury threshold. Permit a new bounded downward probe.
+            # A city, population, grounded-garrison, happiness-building, or
+            # happiness-queue change can alter the luxury threshold. Permit a
+            # new bounded downward probe instead of retaining a permanently
+            # science-starving rate discovered for the prior local lifecycle.
             self._luxury_safety_signature = luxury_signature
             self._minimum_safe_luxury_rate = normal_luxury
-        luxury_rate = snapshot.economy.luxury_rate
+        eligible_disorder_city_ids = set(
+            self._eligible_disorder_city_ids(snapshot))
+        self._disorder_luxury_first_seen_turns = {
+            city_id: self._disorder_luxury_first_seen_turns.get(
+                city_id, int(snapshot.turn))
+            for city_id in eligible_disorder_city_ids
+        }
+        recoverable_disorder_city_ids = {
+            city_id for city_id, first_turn
+            in self._disorder_luxury_first_seen_turns.items()
+            if (int(snapshot.turn) - int(first_turn)
+                >= self.disorder_luxury_trigger_turns - 1)
+        }
+        self._disorder_luxury_bridge_city_ids.update(
+            recoverable_disorder_city_ids)
+        self._disorder_luxury_bridge_city_ids.intersection_update(
+            city.city_id for city in snapshot.cities
+            if self._missing_happiness_improvements(city))
+        if (self._disorder_luxury_bridge_city_ids
+                and self._disorder_luxury_bridge_started_turn is None):
+            self._disorder_luxury_bridge_started_turn = int(snapshot.turn)
+        elif (not self._disorder_luxury_bridge_city_ids
+              and (luxury_rate is None
+                   or int(luxury_rate) <= normal_luxury)):
+            self._disorder_luxury_bridge_started_turn = None
         if (self.disorder_luxury_recovery_enabled
                 and luxury_rate is not None
-                and any(city.disorder is True for city in snapshot.cities)):
+                and any(
+                    city.disorder is True
+                    and city.city_id
+                    in self._disorder_luxury_bridge_city_ids
+                    for city in snapshot.cities)):
             # The current rate is authoritatively insufficient for this exact
             # city/garrison signature. Remember the next ten-point boundary so
             # restoration cannot oscillate below it after disorder clears.
@@ -1159,6 +1284,29 @@ class GroundedImpactPlanner(object):
                     != after.government.target_id
                     or before.government.current_id
                     != after.government.current_id))
+        if action.get("action_type") == "player_rates":
+            target = action.get("target")
+            if not isinstance(target, dict):
+                return False
+            expected = (
+                target.get("tax_rate"),
+                target.get("science_rate"),
+                target.get("luxury_rate"),
+            )
+            actual = (
+                after.economy.tax_rate,
+                after.economy.science_rate,
+                after.economy.luxury_rate,
+            )
+            before_rates = (
+                before.economy.tax_rate,
+                before.economy.science_rate,
+                before.economy.luxury_rate,
+            )
+            return bool(
+                None not in expected
+                and tuple(int(value) for value in expected) == actual
+                and actual != before_rates)
         if action.get("action_type") in OFFENSIVE_ACTIONS:
             return (self.local_actor_effect_observed(candidate, before, after)
                     or self._combat_target_grounding(before, action)
@@ -1399,11 +1547,19 @@ class GroundedImpactPlanner(object):
             if candidate.category in (
                 "city_founding", "expansion_move",
                 "founder_threat_avoidance_move") else [])
+        economy_grounding = (
+            {
+                "luxury_rate": snapshot.economy.luxury_rate,
+                "science_rate": snapshot.economy.science_rate,
+                "tax_rate": snapshot.economy.tax_rate,
+            }
+            if action.get("action_type") == "player_rates" else None)
         return structural_hash({
             "action": action,
             "actor": self._unit_grounding(actor),
             "cities": city_layout,
             "city": city_grounding,
+            "economy": economy_grounding,
             "target_unit": self._unit_grounding(target_unit),
         })
 
@@ -2302,6 +2458,43 @@ class GroundedImpactPlanner(object):
             int(city.feeling_happy[-1])
             - int(city.feeling_unhappy[-1])
             - 2 * int(city.feeling_angry[-1]))
+
+    @staticmethod
+    def _missing_happiness_improvements(city):
+        """Return the exact packet-buildable local order restorers.
+
+        The active civ2civ3 chain is Temple -> Cathedral, while Amphitheater is
+        independently buildable. Keeping the rule name set explicit makes the
+        recovery bounded: the national luxury bridge is available only while
+        the server advertises a concrete local exit from disorder.
+        """
+        built = {
+            _normalized_type(building.name) for building in city.buildings}
+        buildable = {
+            _normalized_type(name)
+            for kind, _, name in city.buildable
+            if str(kind).strip().lower() in ("building", "improvement")}
+        return tuple(
+            name for name in HAPPINESS_IMPROVEMENT_PRIORITY
+            if (_normalized_type(name) in buildable
+                and _normalized_type(name) not in built))
+
+    def _eligible_disorder_city_ids(self, snapshot):
+        """Cities eligible for persistence-qualified local order recovery."""
+        return tuple(sorted(
+            int(city.city_id) for city in snapshot.cities
+            if (city.disorder is True
+                and int(city.size or 0)
+                >= self.disorder_luxury_minimum_city_size
+                and self._city_output(city, 1) <= 0
+                and self._missing_happiness_improvements(city))))
+
+    def _disorder_luxury_bridge_expired(self, snapshot):
+        started = self._disorder_luxury_bridge_started_turn
+        return bool(
+            started is not None
+            and int(snapshot.turn) - int(started)
+            >= self.disorder_luxury_bridge_max_turns)
 
     def _required_garrison_count(self, city):
         """Keep packet-observed martial-law coverage near disorder."""
@@ -3606,6 +3799,12 @@ class GroundedImpactPlanner(object):
         current_food_output_recovery = bool(
             current_normalized in NORMALIZED_FOOD_OUTPUT_TYPES
             and int(city.shield_stock or 0) > 0)
+        current_happiness_recovery = bool(
+            self.disorder_luxury_recovery_enabled
+            and city.city_id in self._disorder_luxury_bridge_city_ids
+            and current_normalized
+            in NORMALIZED_HAPPINESS_IMPROVEMENT_TYPES
+            and int(city.shield_stock or 0) > 0)
         current_funded_treasury_recovery = bool(
             current_normalized in NORMALIZED_TREASURY_STABILIZATION_TYPES
             and current_normalized != "coinage"
@@ -3630,6 +3829,14 @@ class GroundedImpactPlanner(object):
             # the reserve before the structural building is complete. The
             # authoritative completion removes the queue and releases this hold.
             return None
+        if (current_happiness_recovery
+                and not (treasury_reserve_breached
+                         and normalized == "coinage")):
+            # Luxury is a temporary bridge to a finite local remedy. Preserve
+            # accumulated shields on that remedy until completion; otherwise
+            # treasury or generic defense churn can strand the national rates
+            # at their emergency allocation.
+            return None
         mandatory_local_defense = bool(
             local_defender_count < required_garrison
             and not self._defensive_unit_type(current_normalized)
@@ -3641,6 +3848,11 @@ class GroundedImpactPlanner(object):
             self._raw_city_surplus(city, 0) < self.food_surplus_reserve
             and normalized in NORMALIZED_FOOD_OUTPUT_TYPES
             and current_normalized not in NORMALIZED_FOOD_OUTPUT_TYPES)
+        direct_happiness_recovery = bool(
+            self.disorder_luxury_recovery_enabled
+            and city.city_id in self._disorder_luxury_bridge_city_ids
+            and normalized in NORMALIZED_HAPPINESS_IMPROVEMENT_TYPES
+            and normalized != current_normalized)
         treasury_recovery_hold = bool(
             current_normalized in NORMALIZED_TREASURY_STABILIZATION_TYPES
             and normalized not in NORMALIZED_TREASURY_STABILIZATION_TYPES
@@ -3730,6 +3942,7 @@ class GroundedImpactPlanner(object):
                 and not urgent_repurpose
                 and not mandatory_local_defense
                 and not direct_food_output_recovery
+                and not direct_happiness_recovery
                 and sustainability_route is None):
             return None
         city_has_grounded_defender = any(
@@ -3752,8 +3965,10 @@ class GroundedImpactPlanner(object):
                 repurpose_shield_stock_assumption
                 if urgent_repurpose else
                 0 if (mandatory_local_defense
-                      or direct_food_output_recovery) else None))
-        if sustainability_route is not None:
+                      or direct_food_output_recovery
+                      or direct_happiness_recovery) else None))
+        if (sustainability_route is not None
+                and not direct_happiness_recovery):
             category, target_index, avoided_upkeep, rationale = (
                 sustainability_route)
             projection.update({
@@ -3795,6 +4010,51 @@ class GroundedImpactPlanner(object):
                 - completion_eta - target_index * 0.01,
                 "complete a packet-legal food-output building before further "
                 "famine or garrison work",
+                projection)
+        if direct_happiness_recovery:
+            completion_eta = projection.get("completion_eta_turns")
+            if completion_eta is None or completion_eta > remaining_turns:
+                return None
+            # An actual reserve breach retains the immediate Coinage escape
+            # hatch. A projected deficit alone must not interrupt the local
+            # building that releases otherwise permanently suppressed output.
+            if (treasury_reserve_breached and sustainability_route is not None):
+                category, target_index, avoided_upkeep, rationale = (
+                    sustainability_route)
+                projection.update({
+                    "avoided_next_completion_upkeep": avoided_upkeep,
+                    "discarded_shield_stock": max(
+                        0, int(city.shield_stock or 0)),
+                    "sustainability_override": True,
+                    "treasury_reserve_required": (
+                        self._treasury_reserve_required(snapshot)),
+                })
+                return ImpactCandidate(
+                    action, category,
+                    1900.0 - target_index * 10.0
+                    - min(100.0, float(city.shield_stock or 0)),
+                    rationale, projection)
+            target_index = next(
+                index for index, target in enumerate(
+                    HAPPINESS_IMPROVEMENT_PRIORITY)
+                if normalized == _normalized_type(target))
+            projection.update({
+                "authoritative_disorder_before": city.disorder,
+                "disorder_luxury_bridge": True,
+                "disorder_luxury_bridge_city_ids": tuple(sorted(
+                    self._disorder_luxury_bridge_city_ids)),
+                "discarded_shield_stock": max(
+                    0, int(city.shield_stock or 0)),
+                "mood_margin_before": self._city_mood_margin(city),
+                "missing_happiness_improvements": (
+                    self._missing_happiness_improvements(city)),
+            })
+            return ImpactCandidate(
+                action, "production_happiness_recovery",
+                2350.0 - completion_eta - target_index * 0.01,
+                "use the temporary luxury bridge to complete a packet-legal "
+                "local happiness building, then return the national rate "
+                "allocation to science and tax",
                 projection)
         if normalized in NORMALIZED_DEFENDER_TYPES:
             defender_food_floor = (
@@ -4643,8 +4903,15 @@ class GroundedImpactPlanner(object):
         disorder_city_ids = tuple(sorted(
             city.city_id for city in snapshot.cities
             if city.disorder is True))
+        tracked_bridge_city_ids = tuple(sorted(
+            self._disorder_luxury_bridge_city_ids))
+        bridge_city_ids = tuple(sorted(
+            set(disorder_city_ids).intersection(
+                tracked_bridge_city_ids)))
+        bridge_expired = self._disorder_luxury_bridge_expired(snapshot)
         if (self.disorder_luxury_recovery_enabled
-                and disorder_city_ids
+                and bridge_city_ids
+                and not bridge_expired
                 and int(target_luxury) == int(economy.luxury_rate) + 10
                 and int(target_luxury) <= 60
                 and int(target_tax) <= int(economy.tax_rate)
@@ -4655,11 +4922,20 @@ class GroundedImpactPlanner(object):
             return ImpactCandidate(
                 action, "disorder_luxury_shift",
                 2300.0 + len(disorder_city_ids) * 25.0
-                + int(target_science) * 0.01,
+                + (int(target_tax)
+                   if (economy.operating_gold_per_turn is not None
+                       and economy.operating_gold_per_turn < 0)
+                   else int(target_science)) * 0.01,
                 "shift one packet-valid rate increment to luxury until "
-                "authoritative city disorder clears and shield production "
-                "can resume",
+                "authoritative city disorder clears, shield production "
+                "resumes, and a local happiness building can complete",
                 {
+                    "bridge_age_turns": (
+                        int(snapshot.turn)
+                        - int(self._disorder_luxury_bridge_started_turn)),
+                    "bridge_city_ids": bridge_city_ids,
+                    "bridge_max_turns": (
+                        self.disorder_luxury_bridge_max_turns),
                     "disorder_city_ids": disorder_city_ids,
                     "luxury_rate_before": int(economy.luxury_rate),
                     "luxury_rate_after": int(target_luxury),
@@ -4692,6 +4968,7 @@ class GroundedImpactPlanner(object):
                 and int(economy.tax_rate) > self.normal_tax_rate
                 and int(target_tax) < int(economy.tax_rate)
                 and int(target_science) > int(economy.science_rate)
+                and int(target_tax) >= self._minimum_safe_tax_rate
                 and int(target_tax) >= self.normal_tax_rate
                 and int(target_science) <= self.normal_science_rate):
             return ImpactCandidate(
@@ -4702,29 +4979,52 @@ class GroundedImpactPlanner(object):
                     "gold": economy.gold,
                     "science_rate_before": economy.science_rate,
                     "science_rate_after": int(target_science),
+                    "minimum_safe_tax_rate": (
+                        self._minimum_safe_tax_rate),
                     "treasury_reserve_required": reserve,
                 })
         normal_luxury = max(
             0, 100 - self.normal_tax_rate - self.normal_science_rate)
         if (self.disorder_luxury_recovery_enabled
-                and not disorder_city_ids
-                and not self._local_garrison_deficits(snapshot)
+                and (bridge_expired
+                     or not tracked_bridge_city_ids
+                     or not bridge_city_ids)
                 and int(economy.luxury_rate) > normal_luxury
                 and int(target_luxury) == int(economy.luxury_rate) - 10
-                and int(target_luxury) >= max(
-                    normal_luxury, self._minimum_safe_luxury_rate)
+                and (bridge_expired
+                     or not tracked_bridge_city_ids
+                     or int(target_luxury) >= max(
+                         normal_luxury, self._minimum_safe_luxury_rate))
                 and int(target_tax) >= int(economy.tax_rate)
                 and int(target_science) >= int(economy.science_rate)):
+            bridge_unwind = (
+                self._disorder_luxury_bridge_started_turn is not None)
+            survival_unwind = bool(
+                bridge_unwind
+                and (
+                    bridge_expired
+                    or disorder_city_ids
+                    or self._local_garrison_deficits(snapshot)
+                    or snapshot.visible_enemy_units
+                    or self._recent_domain_threat(snapshot, "sea")))
             return ImpactCandidate(
-                action, "disorder_luxury_restore",
-                755.0
+                action, ("disorder_luxury_unwind" if survival_unwind
+                         else "disorder_luxury_restore"),
+                (2650.0 if bridge_unwind else 755.0)
                 + max(
                     0, int(target_science) - int(economy.science_rate))
                 + (5.0 if self._treasury_deficit(snapshot)
                    and int(target_tax) > int(economy.tax_rate) else 0.0),
-                "restore one packet-valid luxury increment only after all "
-                "cities are orderly and have a grounded local garrison",
+                "restore one packet-valid luxury increment after the local "
+                "happiness lifecycle establishes a lower safe boundary, or "
+                "when the bounded bridge expires",
                 {
+                    "bridge_expired": bridge_expired,
+                    "bridge_unwind": bridge_unwind,
+                    "survival_unwind": survival_unwind,
+                    "bridge_city_ids": tracked_bridge_city_ids,
+                    "bridge_max_turns": (
+                        self.disorder_luxury_bridge_max_turns),
                     "luxury_rate_before": int(economy.luxury_rate),
                     "luxury_rate_after": int(target_luxury),
                     "minimum_safe_luxury_rate": (

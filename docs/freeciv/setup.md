@@ -99,7 +99,10 @@ intended target whenever it remains legal, regardless of remaining horizon.
 `disorder_luxury_recovery_enabled` and
 `city_happiness_governor_enabled` are also false in live profiles. Their exact
 actions remain available for explicit diagnostic ablations but cannot alter a
-release game by default.
+release game by default. The bounded luxury diagnostic additionally accepts
+`disorder_luxury_trigger_turns`, `disorder_luxury_minimum_city_size`, and
+`disorder_luxury_bridge_max_turns`; these settings are inert while recovery is
+disabled.
 
 ## 3. Runtime environment
 

@@ -61,6 +61,9 @@ impact_policy:
   unit_build_score_divisor: 10
   food_surplus_reserve: 1
   disorder_luxury_recovery_enabled: false
+  disorder_luxury_trigger_turns: 3
+  disorder_luxury_minimum_city_size: 10
+  disorder_luxury_bridge_max_turns: 40
   city_happiness_governor_enabled: false
   treasury_reserve_turns: 2
   treasury_minimum_gold: 5

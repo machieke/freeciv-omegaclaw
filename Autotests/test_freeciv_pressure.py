@@ -525,7 +525,11 @@ def test_impact_category_goal_mapping_matches_outcome_semantics():
     assert ImpactPressureRanker.goal_for_category(
         "city_happiness_governor") == "survival"
     assert ImpactPressureRanker.goal_for_category(
+        "production_happiness_recovery") == "survival"
+    assert ImpactPressureRanker.goal_for_category(
         "disorder_luxury_restore") == "score"
+    assert ImpactPressureRanker.goal_for_category(
+        "disorder_luxury_unwind") == "survival"
 
 
 def test_clone_projection_loses_confidence_under_maximal_disagreement():

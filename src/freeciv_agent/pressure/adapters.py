@@ -170,6 +170,7 @@ class ImpactPressureRanker(object):
         "city_garrison_move": "survival",
         "disorder_luxury_restore": "score",
         "disorder_luxury_shift": "survival",
+        "disorder_luxury_unwind": "survival",
         "expansion_move": "expansion",
         "food_support_disband": "food_sustainability",
         "food_support_rehome": "food_sustainability",
@@ -182,6 +183,7 @@ class ImpactPressureRanker(object):
         "production_coastal_defense": "survival",
         "production_fleet_readiness": "score",
         "production_food_stabilization": "food_sustainability",
+        "production_happiness_recovery": "survival",
         "production_industrialization": "score",
         "production_modernization": "score",
         "production_threat_modernization": "survival",
@@ -306,6 +308,15 @@ class ImpactPressureRanker(object):
                 "production_naval_response", "production_coastal_defense"):
             # These candidates exist only while the planner's bounded,
             # packet-visible naval-threat memory is active.
+            return True
+        if category == "production_happiness_recovery":
+            # This candidate exists only while an authoritative disordered
+            # city has a packet-buildable local happiness exit and the bounded
+            # national luxury bridge is active.
+            return True
+        if category == "disorder_luxury_unwind":
+            # Returning an active or expired emergency bridge to ordinary
+            # rates is part of completing that bounded survival lifecycle.
             return True
         if category == "production_threat_modernization":
             projection = candidate.projection or {}

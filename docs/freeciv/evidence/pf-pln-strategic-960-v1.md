@@ -21,6 +21,11 @@ the raw same-seed scores are diagnostic rather than a paired causal estimate.
 | v19 | adapter 1.27, counterfactual Coinage release and funded treasury-building hold | 472 / 4594 | 5 | 457.0 s | accepted queue/economy hardening; no score superiority |
 | v20 | adapter 1.28, noncombat-role exclusion and funded ruleset-defender hold | 240 / 4890 | 5 | 406.1 s | rejected reserve-breach starvation |
 | v21 | adapter 1.29, immediate reserve-breach Coinage override and authoritative research-stall detection | 441 / 4630 | 5 | 435.9 s | accepted research-continuity hardening; no score superiority |
+| v24 | first bounded luxury bridge and local happiness-building lifecycle | 373 / 4799 | 5 | 497.6 s | rejected score regression; retained as mechanism evidence |
+| v32 | adapter 1.30 player-rate effect confirmation, bridge enabled, no tax-floor hysteresis | 359 / 4474 | 5 | 568.9 s | rejected rate oscillation |
+| v33 | adapter 1.30 material-state tax floor, bridge enabled | 371 / 4452 | 5 | 445.0 s | accepted correctness mechanism; rejected as default score policy |
+| v34 | adapter 1.30 material-state tax floor, bridge disabled | 453 / 4280 | 5 | 526.6 s | accepted selected-seed control; no score claim |
+| v35 | ten-turn tax-restore stability window, bridge disabled | 362 / 4424 | 5 | 454.4 s | rejected score regression |
 
 Artifacts:
 
@@ -34,6 +39,11 @@ Artifacts:
 - accepted treasury diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v19`
 - rejected reserve-breach diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v20`
 - reserve-breach recovery diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v21`
+- initial bounded happiness diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v24`
+- exact rate-effect diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v32`
+- tax-floor happiness diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v33`
+- bridge-disabled adapter-1.30 control: `artifacts/freeciv/pf-pln-strategic-960-v34`
+- rejected tax-stability-window diagnostic: `artifacts/freeciv/pf-pln-strategic-960-v35`
 
 All listed completed diagnostics completed 1/1 jobs with zero gameplay or
 infrastructure failures. Interrupted integration diagnostics are intentionally
@@ -200,6 +210,38 @@ no-effect confirmation before the first forced sale. The proxy transport
 acknowledgement therefore remains distinct from authoritative execution, as
 the harness correctly records. Adapter 1.29 is a bounded safety recovery, not a
 claim that the structural economy or production-delivery lifecycle is solved.
+
+Adapter 1.30 corrects a cross-layer player-rate confirmation defect. A
+`player_rates` action carries player ID `0`, but the old generic effect path
+looked up that ID as a unit. Every accepted rate change was consequently
+reported as no effect. The retry grounding also omitted the current economy,
+so an exact target could remain suppressed after tax, science, and luxury had
+changed. Adapter 1.30 confirms the authoritative
+`(tax, science, luxury)` tuple and includes the current tuple in retry
+grounding. A material-state tax floor retains the next known-safe packet
+boundary until population, buildings, Coinage state, government, or supported
+unit upkeep changes.
+
+The bounded happiness experiment now requires three consecutive disorder
+turns, a city of at least size ten, zero shield output, and a packet-buildable
+Temple, Cathedral, or Amphitheater. It raises luxury one legal increment at a
+time, preserves the local remedy through completion, re-probes after each
+material happiness change, and has a forty-turn expiry. V33 reduced disordered
+city samples from 1,022 in v21 to 261 and ended with zero disorder. It
+nevertheless scored 371, versus 453 for the v34 bridge-disabled control.
+Population/technology/residual score components were `35/116/220` in v33 and
+`38/128/287` in v34. The bridge therefore remains disabled in every live
+profile.
+
+V34 completed 960 turns with zero rejected actions and scored 453, twelve
+points above v21 but nineteen below v19. It ended with 46 buildings, 38
+citizens, 13 acquired technologies, 33 net beakers per turn, and no current
+disorder; its trace still contained 1,858 disordered city samples. This is one
+selected development seed and does not revise a score or win-rate claim.
+
+The v35 stability-window ablation reduced rate churn but scored 362. That
+window was removed. The accepted implementation retains exact rate effects and
+the material-state tax floor, not a fixed elapsed-turn hold.
 
 Any score claim still requires a preregistered paired-seed cohort with the
 historical five-city policy held fixed. The current evidence supports contract,
