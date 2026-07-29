@@ -17,6 +17,11 @@ from .impact_flow_adapter import (
     ScalarV2Controller,
     UnifiedFlowController,
 )
+from .commit_validator import (
+    ImpactCommitValidator,
+    ValidationDisposition,
+    ValidationResult,
+)
 from .model import (BranchScore, NonPlan, Plan, PlanAssumption, PlanStep,
                     PlanningSnapshot, ResourceLedger, ResourceLedgerEntry)
 from .scheduler import ProofScheduler, research_duration_turns, validate_next_step
@@ -31,6 +36,8 @@ __all__ = [
     "ControlOutcomeRecord", "ControlQuery", "ImpactControlAdapter",
     "LegacyImpactPressureController", "ScalarV2Controller",
     "UnifiedFlowController",
+    "ImpactCommitValidator", "ValidationDisposition",
+    "ValidationResult",
     "PlanningSnapshot",
     "ProductionGoal", "ProductionScheduler", "ProofScheduler",
     "ResourceLedger", "ResourceLedgerEntry", "research_duration_turns", "validate_next_step",
