@@ -36,6 +36,7 @@ the raw same-seed scores are diagnostic rather than a paired causal estimate.
 | v51 | loose Coinage-financed structural-commerce runway | 416 / 4602 | 5 | 442.5 s | rejected; reserve-edge construction caused forced building removals and maintenance oscillation |
 | v52 | self-financing structural commerce with a doubled reserve | 470 / 4565 | 5 | 414.5 s | rejected; 30-60 turn projects remained too expensive in production opportunity cost |
 | v53 | adapter 1.33 self-financing, doubled-reserve, maximum-20-turn structural commerce | 605 / 4437 | 5 | 409.3 s | accepted mechanism boundary; selected-seed score diagnostic only |
+| v56 | adapter 1.33 extended to a 2,000-turn horizon | 653 / 9375 | 5 | 916.2 s | completed diagnostic; rejected as long-horizon correctness evidence because captured-city ownership remained stale |
 
 Artifacts:
 
@@ -68,6 +69,8 @@ Artifacts:
   `artifacts/freeciv/pf-pln-structural-economy-960-v52`
 - adapter-1.33 bounded structural-commerce confirmation:
   `artifacts/freeciv/pf-pln-structural-economy-960-v53`
+- adapter-1.33 2,000-turn lifecycle diagnostic:
+  `artifacts/freeciv/pf-pln-strategic-2000-v56`
 
 All listed completed diagnostics completed 1/1 jobs with zero gameplay or
 infrastructure failures. Interrupted integration diagnostics are intentionally
@@ -476,6 +479,39 @@ but `preferred_government` and `government_economic_gate_enabled` remain
 disabled in every live profile. Artifacts:
 `artifacts/freeciv/pf-pln-government-gate-240-v54` and
 `artifacts/freeciv/pf-pln-government-gate-240-control-v55`.
+
+V56 extended the same selected seed and adapter to a 2,000-turn policy and
+engine horizon. It completed all 2,000 turns with zero rejected actions, no
+infrastructure failure, 37,190 validated events, and a passing 10-check release
+audit. Engine gameplay took 916.2 seconds; total backend time, including a
+48.8-second cold model-readiness call, was 965.5 seconds. Live event streaming
+remained responsive throughout.
+
+The extended trajectory is rejection evidence for long-horizon correctness.
+At turn 960 it had only 59 known technologies and a score of 420, versus v53's
+67 and 605. By turn 2,000 it had acquired only two additional technologies
+(`Flight` and `Automobile`), reached 991/1,590 progress toward
+`Mobile Warfare`, and scored 653 against 9,375. Operating cash ended at -21
+gold/turn, temporary Coinage capitalization at +16, effective cash at -5, and
+treasury at eight gold.
+
+More importantly, three cities' Alpine Troops shield stocks stopped changing
+at turns 415, 458, and 461, respectively. The terminal relay projection still
+listed cities 109, 127, and 131 as player-owned with those unchanged queues.
+The terminal observer packets instead reported all three city IDs as owned by
+the opponent. The relay therefore retained captured cities as authoritative
+own cities. After turn 960, the stale queues occupied 3,120 apparent
+city-turns; the two actually retained cities spent 2,060 city-turns on
+Coinage. No unit appeared after turn 453, and the planner made no impact
+selection between turns 891 and 1,800.
+
+The unit-removal journal itself remained attributable: 18 disappearances were
+exact packet-backed combat losses and four were inferred founder consumption,
+with no unattributed removal. The failure is city ownership/lifecycle
+reconciliation, not unit-removal attribution. Until captured cities are
+removed or re-owned in the relay projection and score/population components
+are derived from that corrected set, a 2,000-turn score comparison would
+measure stale state as well as policy behavior.
 
 Any score claim still requires a preregistered paired-seed cohort with the
 historical five-city policy held fixed. The current evidence supports contract,
