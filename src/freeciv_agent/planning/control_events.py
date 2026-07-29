@@ -122,6 +122,31 @@ def _compact_transport_readout(value):
     }
 
 
+def _flow_candidate_key(decision, flow_artifact):
+    """Identify the flow proposal even when shadow/advisory falls back."""
+    keys = flow_artifact.get(
+        "admissible_candidate_keys", ())
+    if (isinstance(keys, (list, tuple))
+            and len(keys) == 1
+            and isinstance(keys[0], str)
+            and keys[0]):
+        return keys[0]
+    return decision.selected_candidate_key
+
+
+def _flow_selection_disposition(decision):
+    artifact = decision.artifact
+    if decision.controller_mode == "unified_shadow":
+        return "shadow-only"
+    if artifact.get("advisory_accepted") is False:
+        return "guarded-fallback"
+    if artifact.get("advisory_accepted") is True:
+        return "advisory-accepted"
+    if decision.controller_mode == "unified_flow_live":
+        return "live-accepted"
+    return "controller-selected"
+
+
 class ControlEventEmitter:
     """Write compact semantic-boundary events, never per-probe/path events."""
 
@@ -360,9 +385,16 @@ class ControlEventEmitter:
                     "confidence":
                         flow_artifact.get(
                             "confidence", 0.0),
-                    "selected_candidate_key":
+                    "effective_candidate_key":
                         decision
                         .selected_candidate_key,
+                    "selected_candidate_key":
+                        _flow_candidate_key(
+                            decision,
+                            flow_artifact),
+                    "selection_disposition":
+                        _flow_selection_disposition(
+                            decision),
                     "transport_readout":
                         _compact_transport_readout(
                             flow.get(
@@ -395,6 +427,18 @@ class ControlEventEmitter:
                         decision.artifact.get(
                             "gate_reasons", ()),
                     "health": decision.health,
+                    "advisory_candidate_key":
+                        decision.artifact.get(
+                            "advisory_candidate_key"),
+                    "advisory_candidate_terminal":
+                        decision.artifact.get(
+                            "advisory_candidate_terminal"),
+                    "fallback_candidate_key":
+                        decision.artifact.get(
+                            "fallback_candidate_key"),
+                    "fallback_candidate_terminal":
+                        decision.artifact.get(
+                            "fallback_candidate_terminal"),
                 }, flow_artifact, decision_hash)
             emitted.append(event)
         return tuple(emitted)

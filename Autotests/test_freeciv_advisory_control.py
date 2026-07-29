@@ -12,9 +12,11 @@ if SRC not in sys.path:
 from freeciv_agent.pf_runtime import (  # noqa: E402
     build_controller_activation,
 )
+from freeciv_agent.events.writer import EventWriter  # noqa: E402
 from freeciv_agent.planning import (  # noqa: E402
     AdvisoryPolicy,
     ControlDecision,
+    ControlEventEmitter,
     ImpactCandidate,
     ImpactControlAdapter,
 )
@@ -259,6 +261,20 @@ def test_uncalibrated_advisory_cannot_displace_terminal_action():
     assert (
         "uncalibrated-terminal-action-disagreement"
         in decision.artifact["gate_reasons"])
+    assert decision.artifact[
+        "fallback_candidate_terminal"]
+    assert not decision.artifact[
+        "advisory_candidate_terminal"]
+    assert decision.artifact[
+        "fallback_candidate_key"] == (
+            query.candidate_keys[0])
+    assert decision.artifact[
+        "advisory_candidate_key"] == (
+            query.candidate_keys[1])
+    assert decision.artifact[
+        "target_artifact"][
+            "selected_candidate_key"] == (
+                query.candidate_keys[1])
     assert len(adapter.disagreement_records) == 1
 
 
@@ -287,6 +303,52 @@ def test_calibrated_advisory_may_displace_terminal_action():
     assert decision.health == "healthy"
     assert decision.selected_candidate_key == (
         query.candidate_keys[1])
+
+
+def test_guarded_fallback_event_preserves_candidate_identities(
+        tmp_path):
+    candidates = (
+        ImpactCandidate(
+            {
+                "action_type": "unit_build_city",
+                "actor_id": 1,
+            },
+            "expansion_move", 10.0,
+            "complete settlement"),
+        ImpactCandidate(
+            {
+                "action_type": "unit_move",
+                "actor_id": 1,
+            },
+            "expansion_move", 1.0,
+            "continue settlement route"),
+    )
+    adapter = _adapter(
+        calibrated=False,
+        require_calibration=False)
+    query = _query(adapter, candidates)
+    decision = adapter.rank_or_schedule(
+        query, "unified_flow_advisory")
+    writer = EventWriter(
+        str(tmp_path / "events.jsonl"),
+        "guarded-fallback-events",
+        durable=False)
+
+    events = ControlEventEmitter().emit_decision(
+        writer, _Snapshot.turn,
+        query, decision)
+
+    assert [row["type"] for row in events] == [
+        "controller_fallback"]
+    summary = events[0]["payload"]["summary"]
+    assert summary["advisory_candidate_key"] == (
+        query.candidate_keys[1])
+    assert summary["fallback_candidate_key"] == (
+        query.candidate_keys[0])
+    assert not summary[
+        "advisory_candidate_terminal"]
+    assert summary[
+        "fallback_candidate_terminal"]
 
 
 def test_runtime_declares_advisory_layers_without_live_flow():

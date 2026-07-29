@@ -143,6 +143,7 @@ impact_policy:
     estimator: immediate_loss
     max_horizon: 6
     calibration_required: false
+    protect_uncalibrated_terminal_actions: true
     metacontrol_budget_fraction: 0.05
   safety:
     hard_tail_risk_gate: true

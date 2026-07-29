@@ -1011,6 +1011,10 @@ class ImpactControlAdapter:
         target_key = (
             target_decision.selected_candidate_key
             if target_decision is not None else None)
+        baseline_candidate = self._candidate(
+            query, baseline_key)
+        target_candidate = self._candidate(
+            query, target_key)
         disagreement_id = None
         if target_key != baseline_key:
             fields = (
@@ -1063,12 +1067,25 @@ class ImpactControlAdapter:
             artifact={
                 "advisory_accepted": False,
                 "advisory_candidate_key": target_key,
+                "advisory_candidate_terminal": bool(
+                    target_candidate is not None
+                    and target_candidate.terminal_on_accept),
                 "disagreement_id": disagreement_id,
                 "fallback_artifact":
                     fallback_decision.to_dict(),
+                "fallback_candidate_key": baseline_key,
+                "fallback_candidate_terminal": bool(
+                    baseline_candidate is not None
+                    and baseline_candidate.terminal_on_accept),
                 "gate_reasons": list(reasons),
                 "query_hash": query.query_hash,
                 "requested_mode": requested_mode,
+                "target_artifact": (
+                    target_decision.to_dict()
+                    if (
+                        target_decision is not None
+                        and target_key != baseline_key)
+                    else None),
                 "validation": (
                     validation.to_dict()
                     if validation is not None else None),

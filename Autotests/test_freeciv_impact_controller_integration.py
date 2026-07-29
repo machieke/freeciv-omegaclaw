@@ -547,6 +547,18 @@ def test_unified_control_events_are_aggregate_schema_valid_and_linked(
                 .query_id)
     assert "paths" not in events[2][
         "payload"]["summary"]["batches"][0]
+    flow_selection = events[-1][
+        "payload"]["summary"]
+    assert flow_selection[
+        "selection_disposition"] == "shadow-only"
+    assert flow_selection[
+        "effective_candidate_key"] == (
+            planner.last_control_decision
+            .selected_candidate_key)
+    assert flow_selection[
+        "selected_candidate_key"] in (
+            planner.last_control_query
+            .candidate_keys)
 
     planner.record_outcome(
         decision.candidate, snapshot, True,

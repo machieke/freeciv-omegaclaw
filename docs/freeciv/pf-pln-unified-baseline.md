@@ -349,6 +349,15 @@ live gate continues to require eligible fresh paired evidence and calibrated
 transitions, neither of which this configuration has. The plan's
 stop/simplification rule also leaves native flow acceleration out of scope.
 
+The subsequent v2 diagnostic added a fail-closed guard that prevents an
+uncalibrated advisory from changing either side of a terminal-action
+disagreement. Across ten fresh pairs it guarded five decisions and retained
+city founding on every affected turn. Settlement completions became exactly
+equal, but the four remaining reversible disagreements produced nine score
+ties and one one-point decline: `-0.10 [-0.30, 0.00]`. The correctness defect
+is closed, but there is still no directional evidence that justifies another
+pilot. Flow advisory remains stopped for live use.
+
 Run the diagnostic or pilot with:
 
 ```bash
@@ -372,3 +381,6 @@ The complete pilot and frozen confirmation design are recorded in the
 [pilot evidence](evidence/pf-unified-flow-advisory-pilot-v1.md). The
 completed negative confirmation and gate decision are recorded in the
 [confirmation evidence](evidence/pf-unified-flow-advisory-confirmatory-v1.md).
+The terminal guard and its claim-ineligible engine diagnostic are recorded in
+the
+[v2 guard evidence](evidence/pf-unified-flow-advisory-terminal-guard-diagnostic-v2.md).
