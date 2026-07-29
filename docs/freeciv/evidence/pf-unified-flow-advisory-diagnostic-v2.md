@@ -53,10 +53,20 @@ accounted for `135.50` ms/turn above baseline because the same large semantic
 decision hash was recomputed for every event in a causal chain.
 
 The subsequent event hardening computes that semantic decision hash once per
-chain and reuses the already recorded outcome hash. This is a
-telemetry-only optimization; it does not alter query identity, selected
-candidates, packets, or outcome semantics. A reused-seed performance replay
-must verify the latency change before the untouched pilot.
+chain and reuses the already recorded outcome hash. Its first reused-seed
+performance replay exposed a separate defect: commit-local transport sequence
+was leaking through query/topology identity into the probe RNG seed. The
+controller now retains that identity for strict commit revalidation but
+excludes it from versioned probe semantic identity.
+
+Two independent engine replays of exposed seed `4752647` then produced
+identical 98-action streams and identical flow-selection summaries. The
+hardened treatment was also action-equivalent to baseline and scored `117`,
+not the original diagnostic treatment score of `124`. Consequently, the
+four-pair result above remains implementation-debugging history and is not
+directional evidence for the hardened controller. The full correction and
+latency measurements are recorded in the
+[determinism replay](pf-unified-flow-advisory-determinism-replay-v1.md).
 
 ## Reproduction
 
