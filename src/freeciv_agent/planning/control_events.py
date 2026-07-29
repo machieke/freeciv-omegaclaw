@@ -124,6 +124,21 @@ def _compact_transport_readout(value):
     }
 
 
+def _protected_bridge_union(value):
+    """Return a logged direct-bridge union without reconstructing it."""
+    if not isinstance(value, dict):
+        return None
+    for row in reversed(
+            value.get("goal_selections", ())):
+        if not isinstance(row, dict):
+            continue
+        candidate = row.get(
+            "protected_candidate_union")
+        if isinstance(candidate, dict):
+            return candidate
+    return None
+
+
 def _flow_candidate_key(decision, flow_artifact):
     """Identify the flow proposal even when shadow/advisory falls back."""
     keys = flow_artifact.get(
@@ -218,6 +233,15 @@ class ControlEventEmitter:
             else direct_ranker
             if isinstance(direct_ranker, dict)
             else {})
+        direct_bridge = (
+            direct_ranker.get("bridge")
+            if (
+                flow_artifact is None
+                and isinstance(direct_ranker, dict)
+                and isinstance(
+                    direct_ranker.get("bridge"),
+                    dict))
+            else None)
         teleology = (
             pressure.get("teleology", {})
             if isinstance(pressure, dict)
@@ -332,6 +356,89 @@ class ControlEventEmitter:
                 }, flow_artifact, decision_hash)
             emitted.append(event)
             parents = (event["event_id"],)
+        if direct_bridge is not None:
+            potential_summary = direct_bridge.get(
+                "potential_summary")
+            potential_rows = (
+                (potential_summary,)
+                if isinstance(
+                    potential_summary, dict)
+                else potential_summary
+                if isinstance(
+                    potential_summary, (list, tuple))
+                else None)
+            if potential_rows is not None:
+                event = self._emit(
+                    writer, "bridge_estimated",
+                    turn, query, decision, parents, {
+                        "controller_mode":
+                            decision.controller_mode,
+                        "goal_summaries":
+                            potential_rows,
+                        "normalization_contract":
+                            query
+                            .normalization_contract_hash,
+                    }, None, decision_hash)
+                emitted.append(event)
+                parents = (event["event_id"],)
+            candidate_union = (
+                _protected_bridge_union(
+                    direct_bridge))
+            if candidate_union is not None:
+                scalar = direct_bridge.get(
+                    "scalar_decision", {})
+                scalar_id = (
+                    scalar.get(
+                        "selected_route_id")
+                    if isinstance(scalar, dict)
+                    else None)
+                selected_id = direct_bridge.get(
+                    "selected_operation_id")
+                calibration = (
+                    teleology.get(
+                        "calibration", {})
+                    if isinstance(
+                        teleology, dict)
+                    else {})
+                event = self._emit(
+                    writer,
+                    "flow_candidate_selected",
+                    turn, query, decision, parents, {
+                        "calibrated": bool(
+                            calibration.get(
+                                "authority_active",
+                                False)),
+                        "confidence": 0.0,
+                        "effective_candidate_key":
+                            decision
+                            .selected_candidate_key,
+                        "readout_source":
+                            "protected-bridge-scalar",
+                        "selected_candidate_key":
+                            decision
+                            .selected_candidate_key,
+                        "selection_disposition":
+                            _flow_selection_disposition(
+                                decision),
+                        "transport_readout": {
+                            "candidate_regions": [],
+                            "candidate_readouts": [],
+                            "candidate_union":
+                                candidate_union,
+                            "disagrees_with_scalar":
+                                selected_id != scalar_id,
+                            "maximum_overlap": None,
+                            "scalar_selected_operation_id":
+                                scalar_id,
+                            "selected_node_id": None,
+                            "selected_operation_id":
+                                selected_id,
+                            "selected_overlap": None,
+                        },
+                        "typed_advantage": None,
+                    }, None, decision_hash)
+                emitted.append(event)
+                parents = (event["event_id"],)
         if flow_artifact is not None:
             flow = flow_artifact.get("flow", {})
             potential_summary = flow.get(

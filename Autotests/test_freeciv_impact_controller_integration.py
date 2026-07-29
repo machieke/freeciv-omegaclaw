@@ -613,6 +613,59 @@ def test_unified_control_events_are_aggregate_schema_valid_and_linked(
     assert validate_file(path).valid
 
 
+def test_direct_bridge_union_is_emitted_without_numerical_flow(
+        tmp_path):
+    planner = GroundedImpactPlanner({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "bridge_scalar",
+        "pressure_packet_scheduler_enabled": True,
+        "pressure_requirement_sets_enabled": True,
+        "pressure_bridge_enabled": True,
+        "pressure_bridge_readout_policy":
+            "protected-message-union",
+    })
+    snapshot = _snapshot()
+    planner.plan(snapshot)
+    path = str(tmp_path / "events.jsonl")
+    writer = EventWriter(
+        path, "direct-bridge-events-test",
+        durable=False)
+    root = writer.emit(
+        "run_started", 0, {
+            "condition_id": "test",
+            "manifest_identity": "test",
+        })
+
+    events = ControlEventEmitter().emit_decision(
+        writer, snapshot.turn,
+        planner.last_control_query,
+        planner.last_control_decision,
+        caused_by=(root["event_id"],))
+
+    event_types = [
+        row["type"] for row in events]
+    assert "bridge_estimated" in event_types
+    assert "flow_candidate_selected" in event_types
+    assert "probe_block_completed" not in event_types
+    selection = next(
+        row for row in events
+        if row["type"]
+        == "flow_candidate_selected")
+    summary = selection[
+        "payload"]["summary"]
+    assert summary["readout_source"] == (
+        "protected-bridge-scalar")
+    candidate_union = summary[
+        "transport_readout"][
+            "candidate_union"]
+    assert candidate_union[
+        "readout_policy"] == (
+            "protected-message-union")
+    assert candidate_union["members"]
+    assert validate_file(path).valid
+
+
 def test_control_event_chain_hashes_large_decision_once(
         tmp_path, monkeypatch):
     planner = GroundedImpactPlanner(

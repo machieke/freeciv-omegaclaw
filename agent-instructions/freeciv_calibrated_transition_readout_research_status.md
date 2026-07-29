@@ -49,7 +49,7 @@ FreeCiv score, gameplay, or win rate improves.
 |---|---|---|---|---|
 | CT0 frozen scalar PF-v2 + packets | complete | passed | captured replay passed | supported comparator |
 | CT1 calibrated scalar | complete | passed | safety/semantic gate passed; score neutral | fail-closed abstention |
-| CT2 protected deterministic bridge | complete | passed | paired diagnostic authorized | membership only |
+| CT2 protected deterministic bridge | complete | passed | first attempt score-neutral but recall telemetry incomplete; clean rerun pending | membership only |
 | CT3 corrected probes | complete | passed | pending CT2 recall gate | membership only |
 | CT4 path persistence | complete | passed | pending paired diagnostic | calibrated near-ties only |
 | CT5 source–sink flow | existing numerical layer, newly hard-gated | not entered | not entered | closed |
@@ -142,9 +142,13 @@ Verification completed at this checkpoint:
 ## Next executable gate
 
 Run the predeclared, seed-disjoint
-`protected_bridge_readout_diagnostic_v1`. CT1 activated calibrated authority
+`protected_bridge_readout_diagnostic_v1` again after the direct-bridge
+candidate-union telemetry correction. CT1 activated calibrated authority
 on `559/569` treatment decisions, changed grounded trajectories in `5/10`
 pairs, and preserved all absolute safety gates without material controller
 latency. Its paired fixed-horizon score and win deltas were both exactly zero,
 so no gameplay-benefit claim is available. CT2 is authorized only as a
 candidate-recall ablation; it must preserve calibrated scalar final ordering.
+The first CT2 attempt completed `10/10` pairs with zero score/win delta and
+all safety gates passing, but is retained as diagnostic-only because direct
+bridge union membership was not serialized into the event stream.
