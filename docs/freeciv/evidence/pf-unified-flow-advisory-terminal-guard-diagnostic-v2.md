@@ -108,9 +108,28 @@ disagreements and emits:
 - fallback and advisory candidate keys; and
 - terminal-action flags.
 
-This is an observability-only hardening after the recorded cohort. It requires
-a same-seed engineering replay before relying on the new fields, and it does
-not alter this diagnostic's outcome.
+This is an observability-only hardening after the recorded cohort. A
+claim-ineligible two-pair same-seed engineering replay from clean commit
+`fbfad28afda2a1a29d421a9b8d514ceddf66b8e2` completed all four arms with
+zero failures. Its configuration hash was
+`a2bf8093594c6198804960957182907e08196c291dd52f5331ba2a1586e79a85`
+and its implementation hash was
+`c86ebcc8fa7cb2932817eef0aa03782f8de08f507bb00a5e306fc78da4c1d362`.
+
+At seed `5031457`, turn 4, the linked compact events now reconstruct the
+complete decision:
+
+- flow proposed a settlement-eligible `unit_move`;
+- its own scalar comparator preferred `unit_build_city`;
+- `selection_disposition` was `guarded-fallback`;
+- the effective candidate was `unit_build_city`;
+- fallback candidate terminal was `true` and advisory candidate terminal was
+  `false`; and
+- the exact gate reason was
+  `uncalibrated-terminal-action-disagreement`.
+
+All four replay streams passed schema and causal validation. The replay makes
+no outcome claim and does not alter the ten-pair diagnostic result.
 
 ## Decision
 
