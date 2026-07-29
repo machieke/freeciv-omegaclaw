@@ -320,12 +320,34 @@ score delta occurred in that subset. Score-lead rate moved `-0.05
 [-0.125, 0.00]`, so the pilot supports a score confirmation but not a
 lead-rate claim.
 
-The pilot remains claim-ineligible. Its paired SD of `1.6391` freezes a
+The pilot remains claim-ineligible. Its paired SD of `1.6391` froze a
 seed-disjoint 100-pair score confirmation with conservative planning SD
-`1.75` and minimum detectable delta `0.5`; the declared calculation requires
-97 pairs. Controller parameters are unchanged. Live authority remains gated
-because the current one-step transition artifact is explicitly uncalibrated
-and the fresh confirmation has not yet completed.
+`1.75` and minimum detectable delta `0.5`; the declared calculation required
+97 pairs. Controller parameters were unchanged.
+
+The untouched `unified_flow_advisory_confirmatory_v1` cohort subsequently
+completed all 100 pairs and 200 engine arms without a failure. Player score
+changed by only `+0.05 [-0.33, +0.43]`, with exact paired sign-flip
+`p=0.8391`; 22 pairs improved, 21 declined, and 57 tied. The preregistered
+score endpoint was not met, so the evaluator correctly returned `no_claim`.
+All source-freeze, initial-state, legality, safety, turn-budget, replay, and
+event-validation gates passed.
+
+The failure is localized to advisory policy rather than numerical health.
+Treatment made 205 direct disagreements across 64 seeds, including 165 cases
+where per-goal overlap thresholding excluded scalar-v2's immediately legal
+city-founding operation and selected another settlement-eligible movement.
+All 12,258 projections were healthy, but the directly affected subset
+averaged only `+0.078` score and settlement completions moved
+`-0.04 [-0.10, +0.01]`. The current region heuristic is therefore not a
+calibrated reason to delay terminal completion.
+
+The live release gate is stopped for unified-flow advisory v1. `scalar_v2`
+remains the supported live controller; unified flow remains experimental in
+offline, replay, shadow, and explicitly selected advisory modes. The existing
+live gate continues to require eligible fresh paired evidence and calibrated
+transitions, neither of which this configuration has. The plan's
+stop/simplification rule also leaves native flow acceleration out of scope.
 
 Run the diagnostic or pilot with:
 
@@ -347,4 +369,6 @@ Detailed diagnostic evidence is recorded in
 same-commit action replay and post-optimization timing are recorded in the
 [determinism replay](evidence/pf-unified-flow-advisory-determinism-replay-v1.md).
 The complete pilot and frozen confirmation design are recorded in the
-[pilot evidence](evidence/pf-unified-flow-advisory-pilot-v1.md).
+[pilot evidence](evidence/pf-unified-flow-advisory-pilot-v1.md). The
+completed negative confirmation and gate decision are recorded in the
+[confirmation evidence](evidence/pf-unified-flow-advisory-confirmatory-v1.md).
