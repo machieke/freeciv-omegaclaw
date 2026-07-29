@@ -311,11 +311,21 @@ diagnostic is therefore implementation-debugging history, not directional
 evidence for the hardened controller and not a gameplay, score, or win-rate
 claim.
 
-The untouched 40-pair `unified_flow_advisory_pilot_v1` cohort remains
-predeclared and seed-disjoint. It is also claim-ineligible: its purpose is to
-estimate disagreement, variance, controller overhead, and whether a
-confirmation is justified. Live authority remains gated because the current
-one-step transition artifact is explicitly uncalibrated.
+The untouched 40-pair `unified_flow_advisory_pilot_v1` cohort completed all
+80 arms without a failure from the deterministic hardened implementation.
+Player score changed by `+0.675 [+0.20, +1.20]` with exact paired sign-flip
+`p=0.0144`; 15 pairs improved, seven declined, and 18 tied. Treatment made
+86 direct flow-versus-scalar disagreements across 27 seeds. Every nonzero
+score delta occurred in that subset. Score-lead rate moved `-0.05
+[-0.125, 0.00]`, so the pilot supports a score confirmation but not a
+lead-rate claim.
+
+The pilot remains claim-ineligible. Its paired SD of `1.6391` freezes a
+seed-disjoint 100-pair score confirmation with conservative planning SD
+`1.75` and minimum detectable delta `0.5`; the declared calculation requires
+97 pairs. Controller parameters are unchanged. Live authority remains gated
+because the current one-step transition artifact is explicitly uncalibrated
+and the fresh confirmation has not yet completed.
 
 Run the diagnostic or pilot with:
 
@@ -336,3 +346,5 @@ Detailed diagnostic evidence is recorded in
 [v2](evidence/pf-unified-flow-advisory-diagnostic-v2.md). The hardened
 same-commit action replay and post-optimization timing are recorded in the
 [determinism replay](evidence/pf-unified-flow-advisory-determinism-replay-v1.md).
+The complete pilot and frozen confirmation design are recorded in the
+[pilot evidence](evidence/pf-unified-flow-advisory-pilot-v1.md).

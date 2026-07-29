@@ -2136,6 +2136,50 @@ paired_impact:
         count: 40
         minimum: 4400000
         maximum: 4499999
+    unified_flow_advisory_confirmatory_v1:
+      claim_eligible: true
+      purpose: confirmatory
+      require_clean_source: true
+      endpoints: [score_turn_n]
+      horizon_turn: 60
+      planned_pairs: 100
+      controller_workers: 3
+      score_design:
+        minimum_detectable_delta: 0.5
+        maximum_planning_sd: 1.75
+      isolated_policy_keys:
+        - pressure_bridge_enabled
+        - pressure_controller_mode
+        - pressure_flow_enabled
+      arms:
+        baseline:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_bridge_enabled: false
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_flow_enabled: false
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+        treatment:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_bridge_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: unified_flow_advisory
+          pressure_distributional_risk_enabled: true
+          pressure_flow_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-unified-flow-advisory-confirmatory-v1
+        count: 100
+        minimum: 4900000
+        maximum: 4999999
   retired_cohorts:
     confirmatory_score_horizon_60_v4:
       retired_reason: terminal_player_elimination_misclassified_as_infrastructure_timeout
