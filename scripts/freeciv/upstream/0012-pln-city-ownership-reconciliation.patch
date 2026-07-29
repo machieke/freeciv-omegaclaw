@@ -1,0 +1,185 @@
+diff --git a/freeciv-proxy/civcom.py b/freeciv-proxy/civcom.py
+--- a/freeciv-proxy/civcom.py
++++ b/freeciv-proxy/civcom.py
+@@ -35,6 +35,7 @@ from packet_constants import (
+     PACKET_UNIT_COMBAT_INFO,
+     PACKET_UNIT_SHORT_INFO,
+     PACKET_CITY_INFO,
++    PACKET_CITY_SHORT_INFO,
+     PACKET_CITY_REMOVE,
+     PACKET_TILE_INFO,
+     PACKET_CHAT_MSG,
+@@ -2327,6 +2328,70 @@ class CivCom:
+                     self._wonder_cache.pop(f"{owner}_wonders", None)
+                     logger.info(f"✓ Stored city {city_id} ({city_data['name']}, size={city_data['size']}) for owner {owner}")
+ 
++            # Short city info replaces full city info when the player loses
++            # visibility into a city's internals, most importantly after
++            # another player captures it. Treat an owner transition like the
++            # native client does: discard stale production/economy fields and
++            # retain only the public city data carried by this packet.
++            elif packet_type == PACKET_CITY_SHORT_INFO:
++                city_id = packet.get('id')
++                owner = packet.get('owner')
++                if city_id is not None and owner is not None:
++                    if not isinstance(self.player_cities, dict):
++                        self.player_cities = {}
++                    previous = self.player_cities.get(city_id)
++                    previous_owner = (
++                        previous.get('owner')
++                        if isinstance(previous, dict) else None)
++                    tile_idx = packet.get(
++                        'tile',
++                        previous.get('tile') if isinstance(previous, dict) else None)
++                    x, y = None, None
++                    if tile_idx is not None:
++                        xsize = max(1, self.map_info.get('width', 80))
++                        x = tile_idx % xsize
++                        y = tile_idx // xsize
++
++                    public_fields = {
++                        'id': city_id,
++                        'owner': owner,
++                        'name': packet.get(
++                            'name',
++                            previous.get('name', f'City{city_id}')
++                            if isinstance(previous, dict) else f'City{city_id}'),
++                        'tile': tile_idx,
++                        'x': x,
++                        'y': y,
++                        'size': packet.get(
++                            'size',
++                            previous.get('size', 1)
++                            if isinstance(previous, dict) else 1),
++                        'improvements': packet.get('improvements', []),
++                        'short_info': True,
++                        'internals_available': False,
++                    }
++                    if previous_owner is not None and previous_owner != owner:
++                        self.player_cities[city_id] = public_fields
++                        wonder_cache = getattr(self, '_wonder_cache', {})
++                        wonder_cache.pop(f"{previous_owner}_wonders", None)
++                        wonder_cache.pop(f"{owner}_wonders", None)
++                        logger.info(
++                            f"✓ Reconciled city {city_id} ownership "
++                            f"{previous_owner} → {owner}; discarded stale internals")
++                    elif previous is None:
++                        self.player_cities[city_id] = public_fields
++                        logger.info(
++                            f"✓ Stored externally visible city {city_id} "
++                            f"for owner {owner}")
++                    else:
++                        # A same-owner short update must not erase a still
++                        # authoritative full packet, but its public fields are
++                        # newer and safe to merge.
++                        previous.update({
++                            key: value for key, value in public_fields.items()
++                            if key not in ('short_info', 'internals_available')
++                        })
++
+             # City removal packet - sent when a city is destroyed or disbanded
+             # Must invalidate wonder cache as wonders may be lost
+             elif packet_type == PACKET_CITY_REMOVE:
+diff --git a/freeciv-proxy/tests/test_pln_authoritative_state.py b/freeciv-proxy/tests/test_pln_authoritative_state.py
+--- a/freeciv-proxy/tests/test_pln_authoritative_state.py
++++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
+@@ -13,8 +13,9 @@ from civcom import ACTION_TRANSPORT_EMBARK, CivCom, get_activity_name
+ from llm_handler import LLMWSHandler, logger as proxy_logger
+ from message_validator import MessageValidator, ValidationError
+ from packet_constants import (
+-    DS_ALLIANCE, DS_WAR, PACKET_UNIT_COMBAT_INFO, PACKET_UNIT_REMOVE,
+-    PACKET_UNIT_SHORT_INFO, PACKET_WEB_CITY_INFO_ADDITION,
++    DS_ALLIANCE, DS_WAR, PACKET_CITY_SHORT_INFO, PACKET_UNIT_COMBAT_INFO,
++    PACKET_UNIT_REMOVE, PACKET_UNIT_SHORT_INFO,
++    PACKET_WEB_CITY_INFO_ADDITION,
+ )
+ from security import InputSanitizer, SecurityError
+ from state_extractor import StateExtractor, StateFormat
+@@ -875,6 +876,87 @@ def test_packet_visible_foreign_short_unit_is_preserved_as_observation_input():
+     assert civcom._action_cache == {}
+ 
+ 
++def test_city_short_info_reconciles_capture_and_discards_stale_internals():
++    civcom = make_civcom()
++    civcom.source_update_event = asyncio.Event()
++    civcom.source_update_loop = None
++    civcom._action_cache = {"12_0_city_actions": [{"stale": True}]}
++    civcom._wonder_cache = {
++        "0_wonders": ["Pyramids"],
++        "1_wonders": [],
++    }
++    civcom.username = "packet-observer"
++    civcom.player_cities[4].update({
++        "name": "Rome",
++        "tile": 23,
++        "production_kind": 0,
++        "production_value": 1,
++        "can_build": [{"kind": "unit", "value": 1}],
++    })
++
++    CivCom.parse_and_store_packet(civcom, json.dumps({
++        "pid": PACKET_CITY_SHORT_INFO,
++        "id": 4,
++        "owner": 1,
++        "tile": 23,
++        "size": 7,
++        "name": "Captured Rome",
++        "improvements": [1],
++    }))
++
++    city = civcom.player_cities[4]
++    assert city == {
++        "id": 4,
++        "owner": 1,
++        "name": "Captured Rome",
++        "tile": 23,
++        "x": 3,
++        "y": 2,
++        "size": 7,
++        "improvements": [1],
++        "short_info": True,
++        "internals_available": False,
++    }
++    assert CivCom._filter_by_owner(civcom, civcom.player_cities, 0) == {}
++    assert civcom._action_cache == {}
++    assert civcom._wonder_cache == {}
++
++
++def test_same_owner_city_short_info_preserves_full_city_internals():
++    civcom = make_civcom()
++    civcom.source_update_event = asyncio.Event()
++    civcom.source_update_loop = None
++    civcom._action_cache = {}
++    civcom._wonder_cache = {}
++    civcom.username = "packet-observer"
++    civcom.player_cities[4].update({
++        "name": "Rome",
++        "tile": 23,
++        "production_kind": 0,
++        "production_value": 1,
++    })
++
++    CivCom.parse_and_store_packet(civcom, json.dumps({
++        "pid": PACKET_CITY_SHORT_INFO,
++        "id": 4,
++        "owner": 0,
++        "tile": 24,
++        "size": 8,
++        "name": "Roma",
++    }))
++
++    city = civcom.player_cities[4]
++    assert city["name"] == "Roma"
++    assert city["tile"] == 24
++    assert city["x"] == 4
++    assert city["y"] == 2
++    assert city["size"] == 8
++    assert city["production_kind"] == 0
++    assert city["production_value"] == 1
++    assert "short_info" not in city
++    assert "internals_available" not in city
++
++
+ def test_web_city_packet_preserves_authoritative_governor_state():
+     civcom = object.__new__(CivCom)
+     civcom.source_seq = 0

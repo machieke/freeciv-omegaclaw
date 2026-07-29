@@ -516,3 +516,38 @@ measure stale state as well as policy behavior.
 Any score claim still requires a preregistered paired-seed cohort with the
 historical five-city policy held fixed. The current evidence supports contract,
 mechanism, queue-efficiency, and runtime claims only.
+
+V58 confirms the captured-city correction on the same 2,000-turn seed,
+condition, opponent class, policy horizon, and engine horizon. A v57 launch
+without `FREECIV_RULESET_ROOT` failed during preflight before creating a game
+and is excluded. V58 used pinned proxy patch-series identity
+`cbc47dc57bd8457ee12a76e3bb60d187dd485c4d7bf4534bed6fd2add401cc57`,
+completed all 2,000 turns, emitted 40,431 validated events, had zero rejected
+actions and zero infrastructure failures, and passed all ten release-audit
+checks including cognitive-trace ancestry. Engine gameplay took 919.4 seconds
+and total backend time took 921.1 seconds.
+
+The engine trajectory exercised all three ownership transitions that v56
+misrepresented:
+
+- city 127 was present in authoritative production state through turn 414 and
+  absent from turn 415 onward;
+- city 131 was present through turn 1006 and absent from turn 1007 onward; and
+- city 109 was present through turn 1009 and absent from turn 1010 onward.
+
+The terminal observer packets reported cities 109, 127, and 131 as opponent
+owned. The terminal agent projection contained only the actually retained
+cities 101 and 182. By contrast, v56 retained all three captured cities in
+every production snapshot through turn 2,000. The corrected proxy now handles
+`PACKET_CITY_SHORT_INFO`, replaces a captured city's cached full record with
+its public foreign-city fields, invalidates both owners' wonder caches, and
+therefore prevents stale production, economy, and buildability data from
+entering own-city planning.
+
+V58 scored 717 against 9,172, versus v56's 653 against 9,375. Its terminal
+components were 10 citizen, 130 technology, and 577 residual points. Those
+numbers are a selected-seed post-correction diagnostic, not a causal score
+improvement claim: the corrected ownership changes the agent's later action
+trajectory, this is one game, and both runs remain losses. The accepted claim
+is that captured-city ownership and own-city planning state now agree with the
+engine through a full 2,000-turn run.

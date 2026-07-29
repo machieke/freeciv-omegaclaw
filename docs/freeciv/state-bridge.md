@@ -42,8 +42,10 @@ The ruleset-name sanitizer patch is pinned at
 `09480dc463d3347d26db27e387a5a528c6b525fb65089aa1f6f5cd1fb999ce67`.
 The government-state correction patch is pinned at
 `dee93c53c8f0dcc06c0a0ea98ee278e19cc360fbf36ef554f096cebe11f5d4b3`.
-The ordered eleven-patch series identity is
-`13fe398469c077a64bae59bed4588350e119813da432fc695fe24a515cec940e`.
+The captured-city ownership-reconciliation patch is pinned at
+`db29d472e49bd8b24bb227142c3635a77d44932a697b1fe9eafc49517198cf0d`.
+The ordered twelve-patch series identity is
+`cbc47dc57bd8457ee12a76e3bb60d187dd485c4d7bf4534bed6fd2add401cc57`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 The v9 projection closes the stable-government initiation gap. The proxy now
