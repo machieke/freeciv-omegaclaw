@@ -70,6 +70,10 @@ from .cycles import (
     CycleClosurePlanner,
     PathClosure,
 )
+from .projection import (
+    ProjectionResult,
+    ProjectionSolver,
+)
 
 __all__ = [
     "CandidateGrounding",
@@ -111,6 +115,8 @@ __all__ = [
     "ProbeHealth",
     "ProbeNodeFeatures",
     "ProbePath",
+    "ProjectionResult",
+    "ProjectionSolver",
     "REQUIRED_ROBUST_SCALES",
     "RobustNormalizer",
     "RobustScale",
