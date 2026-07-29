@@ -179,6 +179,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "unified_flow_advisory_diagnostic_v2": 4,
             "unified_flow_advisory_pilot_v1": 40,
             "unified_flow_advisory_confirmatory_v1": 100,
+            "unified_flow_advisory_terminal_guard_diagnostic_v2": 10,
         }
     seed_sets = [
         set(row["seeds"]) for row in paired["cohorts"].values()
@@ -658,6 +659,8 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "unified_flow_advisory_pilot_v1"]
     unified_confirmation = paired["cohorts"][
         "unified_flow_advisory_confirmatory_v1"]
+    unified_terminal_guard = paired["cohorts"][
+        "unified_flow_advisory_terminal_guard_diagnostic_v2"]
     assert unified_diagnostic["seed_derivation"] == {
         "algorithm": "sha256-counter-v1",
         "namespace":
@@ -686,6 +689,16 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "count": 100, "minimum": 4900000,
         "maximum": 4999999,
     }
+    assert unified_terminal_guard["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": (
+            "pf-pln-unified-flow-advisory-terminal-guard-diagnostic-v2"),
+        "count": 10, "minimum": 5000000,
+        "maximum": 5099999,
+    }
+    assert unified_terminal_guard["planned_pairs"] == 10
+    assert unified_terminal_guard["claim_eligible"] is False
+    assert unified_terminal_guard["purpose"] == "diagnostic"
     assert unified_confirmation["score_design"] == {
         "minimum_detectable_delta": 0.5,
         "maximum_planning_sd": 1.75,

@@ -123,20 +123,27 @@ def _engine(
     return run
 
 
-def _adapter(**engine_options):
+def _adapter(
+        require_calibration=True,
+        protect_uncalibrated_terminal_actions=True,
+        **engine_options):
     return ImpactControlAdapter(
         scalar_v2_ranker=_ScalarRanker(),
         unified_flow_engine=_engine(
             **engine_options),
         advisory_policy=AdvisoryPolicy(
             minimum_confidence=0.8,
-            require_calibration=True,
+            require_calibration=require_calibration,
+            protect_uncalibrated_terminal_actions=(
+                protect_uncalibrated_terminal_actions),
             fallback_mode="scalar_v2"))
 
 
-def _query(adapter):
+def _query(adapter, candidates=None):
     return adapter.build_query(
-        _Snapshot(), _candidates(),
+        _Snapshot(), (
+            _candidates()
+            if candidates is None else candidates),
         expansion_city_target=5,
         horizon_turn=40,
         survival_threat_radius=6,
@@ -219,6 +226,67 @@ def test_incomplete_packets_cannot_reorder_advisory_candidates():
         decision.artifact["gate_reasons"])
     assert decision.selected_candidate_key == (
         query.candidate_keys[0])
+
+
+def test_uncalibrated_advisory_cannot_displace_terminal_action():
+    candidates = (
+        ImpactCandidate(
+            {
+                "action_type": "unit_build_city",
+                "actor_id": 1,
+            },
+            "expansion_move", 10.0,
+            "complete settlement"),
+        ImpactCandidate(
+            {
+                "action_type": "unit_move",
+                "actor_id": 1,
+            },
+            "expansion_move", 1.0,
+            "continue settlement route"),
+    )
+    adapter = _adapter(
+        calibrated=False,
+        require_calibration=False)
+    query = _query(adapter, candidates)
+    decision = adapter.rank_or_schedule(
+        query, "unified_flow_advisory")
+
+    assert decision.health == "fallback"
+    assert decision.controller_mode == "scalar_v2"
+    assert decision.selected_candidate_key == (
+        query.candidate_keys[0])
+    assert (
+        "uncalibrated-terminal-action-disagreement"
+        in decision.artifact["gate_reasons"])
+    assert len(adapter.disagreement_records) == 1
+
+
+def test_calibrated_advisory_may_displace_terminal_action():
+    candidates = (
+        ImpactCandidate(
+            {
+                "action_type": "unit_build_city",
+                "actor_id": 1,
+            },
+            "expansion_move", 10.0,
+            "complete settlement"),
+        ImpactCandidate(
+            {
+                "action_type": "unit_move",
+                "actor_id": 1,
+            },
+            "expansion_move", 1.0,
+            "continue settlement route"),
+    )
+    adapter = _adapter(calibrated=True)
+    query = _query(adapter, candidates)
+    decision = adapter.rank_or_schedule(
+        query, "unified_flow_advisory")
+
+    assert decision.health == "healthy"
+    assert decision.selected_candidate_key == (
+        query.candidate_keys[1])
 
 
 def test_runtime_declares_advisory_layers_without_live_flow():

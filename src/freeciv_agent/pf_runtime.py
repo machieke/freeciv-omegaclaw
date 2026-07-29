@@ -151,6 +151,7 @@ CONTROLLER_CONFIGURATION_DEFAULTS = {
         "estimator": "immediate_loss",
         "max_horizon": 6,
         "calibration_required": False,
+        "protect_uncalibrated_terminal_actions": True,
         "metacontrol_budget_fraction": 0.05,
     },
     "bridge": {
@@ -329,7 +330,8 @@ def _validate_controller_configuration(configuration):
                 "enabled", "scalar_fallback",
                 "shaping_capacity_structural_updates")),
             ("teleology", (
-                "calibration_required",)),
+                "calibration_required",
+                "protect_uncalibrated_terminal_actions")),
             ("safety", (
                 "hard_tail_risk_gate",
                 "commit_revalidation"))):

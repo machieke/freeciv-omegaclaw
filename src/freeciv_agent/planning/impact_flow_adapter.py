@@ -301,6 +301,7 @@ class ShadowBudgetConfig:
 class AdvisoryPolicy:
     minimum_confidence: float = 0.80
     require_calibration: bool = True
+    protect_uncalibrated_terminal_actions: bool = True
     fallback_mode: str = "scalar_v2"
 
     def __post_init__(self):
@@ -312,6 +313,11 @@ class AdvisoryPolicy:
                 self.require_calibration, bool):
             raise TypeError(
                 "advisory calibration policy must be boolean")
+        if not isinstance(
+                self.protect_uncalibrated_terminal_actions,
+                bool):
+            raise TypeError(
+                "advisory terminal-action protection must be boolean")
         if self.fallback_mode not in (
                 "scalar_v2", "legacy_scalar",
                 "canonical"):
@@ -941,6 +947,13 @@ class ImpactControlAdapter:
             if candidate is not None else None)
 
     @staticmethod
+    def _candidate(query, key):
+        return next((
+            row for row in query.grounded_candidates
+            if row.action_key == key
+        ), None)
+
+    @staticmethod
     def _advisory_fields(decision):
         artifact = decision.artifact
         ranker = (
@@ -1121,6 +1134,24 @@ class ImpactControlAdapter:
         if (self.advisory_policy.require_calibration
                 and not fields["calibrated"]):
             reasons.append("calibration-required")
+        if (self.advisory_policy
+                .protect_uncalibrated_terminal_actions
+                and not fields["calibrated"]
+                and target.selected_candidate_key
+                != fallback.selected_candidate_key):
+            target_candidate = self._candidate(
+                query, target.selected_candidate_key)
+            fallback_candidate = self._candidate(
+                query, fallback.selected_candidate_key)
+            if (
+                    target_candidate is not None
+                    and fallback_candidate is not None
+                    and (
+                        target_candidate.terminal_on_accept
+                        or fallback_candidate
+                        .terminal_on_accept)):
+                reasons.append(
+                    "uncalibrated-terminal-action-disagreement")
         fallback_admissible = (
             fallback.artifact.get(
                 "admissible_candidate_keys")

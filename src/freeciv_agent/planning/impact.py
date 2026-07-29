@@ -997,6 +997,10 @@ class GroundedImpactPlanner(object):
                             controller_configuration[
                                 "teleology"][
                                     "calibration_required"]),
+                        protect_uncalibrated_terminal_actions=bool(
+                            controller_configuration[
+                                "teleology"][
+                                    "protect_uncalibrated_terminal_actions"]),
                         fallback_mode="scalar_v2"),
                     live_activation_gate=(
                         live_activation_gate),
