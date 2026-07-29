@@ -16,6 +16,7 @@ from freeciv_agent.events.validator import validate_file  # noqa: E402
 from freeciv_agent.events.writer import EventWriter  # noqa: E402
 import freeciv_agent.planning.impact_flow_adapter as impact_flow_adapter_module  # noqa: E402
 from freeciv_agent.planning import (  # noqa: E402
+    ControlDecision,
     ControlEventEmitter,
     GroundedImpactPlanner,
 )
@@ -663,6 +664,74 @@ def test_direct_bridge_union_is_emitted_without_numerical_flow(
         "readout_policy"] == (
             "protected-message-union")
     assert candidate_union["members"]
+    assert validate_file(path).valid
+
+
+def test_direct_bridge_fallback_reason_is_emitted(
+        tmp_path):
+    planner = GroundedImpactPlanner({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "bridge_scalar",
+        "pressure_packet_scheduler_enabled": True,
+        "pressure_requirement_sets_enabled": True,
+        "pressure_bridge_enabled": True,
+        "pressure_bridge_readout_policy":
+            "protected-message-union",
+    })
+    snapshot = _snapshot()
+    planner.plan(snapshot)
+    source = planner.last_control_decision
+    artifact = deepcopy(source.artifact)
+    bridge = artifact[
+        "ranker_artifact"]["bridge"]
+    bridge["fallback_required"] = True
+    bridge["fallback_reason"] = (
+        "no_admissible_bridge_region")
+    bridge["goal_selections"] = []
+    bridge["selected_operation_id"] = None
+    decision = ControlDecision(
+        ordered_candidate_keys=(
+            source.ordered_candidate_keys),
+        selected_candidate_key=(
+            source.selected_candidate_key),
+        packet_schedule=(
+            source.packet_schedule),
+        controller_mode=(
+            source.controller_mode),
+        artifact=artifact,
+        health=source.health,
+        fallback_chain=source.fallback_chain)
+    path = str(tmp_path / "events.jsonl")
+    writer = EventWriter(
+        path, "direct-bridge-fallback-test",
+        durable=False)
+    root = writer.emit(
+        "run_started", 0, {
+            "condition_id": "test",
+            "manifest_identity": "test",
+        })
+
+    events = ControlEventEmitter().emit_decision(
+        writer, snapshot.turn,
+        planner.last_control_query,
+        decision,
+        caused_by=(root["event_id"],))
+
+    fallback = next(
+        row for row in events
+        if row["type"]
+        == "controller_fallback")
+    summary = fallback[
+        "payload"]["summary"]
+    assert summary["reason"] == (
+        "no_admissible_bridge_region")
+    assert summary["readout_source"] == (
+        "protected-bridge-scalar")
+    assert not any(
+        row["type"]
+        == "flow_candidate_selected"
+        for row in events)
     assert validate_file(path).valid
 
 

@@ -381,6 +381,30 @@ class ControlEventEmitter:
                     }, None, decision_hash)
                 emitted.append(event)
                 parents = (event["event_id"],)
+            if direct_bridge.get(
+                    "fallback_required") is True:
+                event = self._emit(
+                    writer,
+                    "controller_fallback",
+                    turn, query, decision, parents, {
+                        "controller_identity":
+                            direct_bridge.get(
+                                "controller_identity"),
+                        "controller_mode":
+                            decision.controller_mode,
+                        "effective_candidate_key":
+                            decision
+                            .selected_candidate_key,
+                        "fallback_chain": list(
+                            decision.fallback_chain),
+                        "reason":
+                            direct_bridge.get(
+                                "fallback_reason"),
+                        "readout_source":
+                            "protected-bridge-scalar",
+                    }, None, decision_hash)
+                emitted.append(event)
+                parents = (event["event_id"],)
             candidate_union = (
                 _protected_bridge_union(
                     direct_bridge))
