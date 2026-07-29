@@ -735,6 +735,65 @@ def test_direct_bridge_fallback_reason_is_emitted(
     assert validate_file(path).valid
 
 
+def test_direct_corrected_probe_health_is_emitted(
+        tmp_path):
+    planner = GroundedImpactPlanner({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "bridge_scalar",
+        "pressure_packet_scheduler_enabled": True,
+        "pressure_requirement_sets_enabled": True,
+        "pressure_bridge_enabled": True,
+        "pressure_bridge_estimator_policy":
+            "importance_corrected",
+        "pressure_bridge_importance_corrected_enabled":
+            True,
+        "pressure_bridge_readout_policy":
+            "corrected-probe-union",
+        "pressure_bridge_reference_likelihood_enabled":
+            True,
+    })
+    snapshot = _snapshot()
+    planner.plan(snapshot)
+    path = str(tmp_path / "events.jsonl")
+    writer = EventWriter(
+        path, "direct-probe-events-test",
+        durable=False)
+    root = writer.emit(
+        "run_started", 0, {
+            "condition_id": "test",
+            "manifest_identity": "test",
+        })
+
+    events = ControlEventEmitter().emit_decision(
+        writer, snapshot.turn,
+        planner.last_control_query,
+        planner.last_control_decision,
+        caused_by=(root["event_id"],))
+
+    probe = next(
+        row for row in events
+        if row["type"]
+        == "probe_block_completed")
+    summary = probe[
+        "payload"]["summary"]
+    assert summary["readout_source"] == (
+        "protected-bridge-scalar")
+    assert summary["batches"]
+    assert {
+        row["side"]
+        for row in summary["batches"]
+    } == {"forward", "backward"}
+    for batch in summary["batches"]:
+        health = batch["health"]
+        assert "effective_sample_size" in health
+        assert "clipped_weight_fraction" in health
+        assert "path_diversity" in health
+        assert "healthy" in health
+    assert summary["goal_readouts"]
+    assert validate_file(path).valid
+
+
 def test_control_event_chain_hashes_large_decision_once(
         tmp_path, monkeypatch):
     planner = GroundedImpactPlanner(

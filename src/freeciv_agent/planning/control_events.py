@@ -381,6 +381,67 @@ class ControlEventEmitter:
                     }, None, decision_hash)
                 emitted.append(event)
                 parents = (event["event_id"],)
+            probe_batches = []
+            goal_readouts = []
+            for goal_row in direct_bridge.get(
+                    "goal_selections", ()):
+                if not isinstance(goal_row, dict):
+                    continue
+                goal_id = goal_row.get(
+                    "goal_id")
+                for side in (
+                        "forward", "backward"):
+                    probe = goal_row.get(
+                        "{}_probe".format(side))
+                    if not isinstance(probe, dict):
+                        continue
+                    probe_batches.append({
+                        "artifact_hash":
+                            probe.get(
+                                "artifact_hash"),
+                        "goal_id": goal_id,
+                        "health":
+                            probe.get("health"),
+                        "meet_count":
+                            probe.get(
+                                "meet_count"),
+                        "path_count":
+                            probe.get(
+                                "path_count"),
+                        "side": side,
+                    })
+                selection = goal_row.get(
+                    "selection")
+                if isinstance(selection, dict):
+                    goal_readouts.append({
+                        "fallback_reason":
+                            selection.get(
+                                "fallback_reason"),
+                        "fallback_required":
+                            selection.get(
+                                "fallback_required",
+                                False),
+                        "goal_id": goal_id,
+                        "selected_operation_count":
+                            len(selection.get(
+                                "selected_operation_node_ids",
+                                ())),
+                    })
+            if probe_batches:
+                event = self._emit(
+                    writer,
+                    "probe_block_completed",
+                    turn, query, decision, parents, {
+                        "batches": probe_batches,
+                        "controller_mode":
+                            decision.controller_mode,
+                        "goal_readouts":
+                            goal_readouts,
+                        "readout_source":
+                            "protected-bridge-scalar",
+                    }, None, decision_hash)
+                emitted.append(event)
+                parents = (event["event_id"],)
             if direct_bridge.get(
                     "fallback_required") is True:
                 event = self._emit(
