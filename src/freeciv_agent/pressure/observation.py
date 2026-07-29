@@ -15,6 +15,7 @@ from .model import (
     TruthState,
 )
 from .provenance import ObservationPolicy
+from .packets import PacketCost, ResourceKind
 from .scheduler import PressureScheduler
 
 
@@ -86,6 +87,9 @@ class ObservationTest:
     success_probability: float = 1.0
     feasibility: float = 1.0
     deadline_fit: float = 1.0
+    decision_sensitivity: float = 1.0
+    evidence_overlap: float = 0.0
+    execution_kind: str = "observation"
 
     def __post_init__(self):
         if not self.test_id or not self.atom_id or not self.outcomes:
@@ -106,9 +110,16 @@ class ObservationTest:
         _probability(self.success_probability, "test success probability")
         _probability(self.feasibility, "test feasibility")
         _probability(self.deadline_fit, "test deadline fit")
+        _probability(
+            self.decision_sensitivity, "decision sensitivity")
+        _probability(self.evidence_overlap, "evidence overlap")
+        if self.execution_kind not in ("observation", "simulation"):
+            raise ValueError(
+                "observation execution kind must be "
+                "observation or simulation")
 
     def to_dict(self):
-        return {
+        value = {
             "atom_id": self.atom_id,
             "cost": self.cost.to_dict(),
             "deadline_fit": float(self.deadline_fit),
@@ -118,6 +129,15 @@ class ObservationTest:
             "success_probability": float(self.success_probability),
             "test_id": self.test_id,
         }
+        if self.decision_sensitivity != 1.0:
+            value["decision_sensitivity"] = float(
+                self.decision_sensitivity)
+        if self.evidence_overlap:
+            value["evidence_overlap"] = float(
+                self.evidence_overlap)
+        if self.execution_kind != "observation":
+            value["execution_kind"] = self.execution_kind
+        return value
 
 
 @dataclass(frozen=True)
@@ -127,9 +147,12 @@ class InformationValue:
     expected_posterior_entropy: float
     expected_information_gain: float
     outcome_probabilities: tuple
+    raw_information_gain: object = None
+    decision_relevance_factor: float = 1.0
+    overlap_discount: float = 1.0
 
     def to_dict(self):
-        return {
+        value = {
             "expected_information_gain": float(
                 self.expected_information_gain),
             "expected_posterior_entropy": float(
@@ -138,6 +161,116 @@ class InformationValue:
             "prior_entropy": float(self.prior_entropy),
             "test": self.test.to_dict(),
         }
+        if self.raw_information_gain is not None:
+            value["raw_information_gain"] = float(
+                self.raw_information_gain)
+        if self.decision_relevance_factor != 1.0:
+            value["decision_relevance_factor"] = float(
+                self.decision_relevance_factor)
+        if self.overlap_discount != 1.0:
+            value["overlap_discount"] = float(
+                self.overlap_discount)
+        return value
+
+
+@dataclass(frozen=True)
+class ObservationSelectionRecord:
+    operation_id: str
+    goal_id: str
+    selected: bool
+    priority: float
+    propensity: object
+    reason: str
+    recorded_before_execution: bool = True
+
+    def __post_init__(self):
+        if not self.operation_id or not self.goal_id:
+            raise ValueError(
+                "observation selection requires operation and goal IDs")
+        if not isinstance(self.selected, bool):
+            raise TypeError("observation selection flag must be boolean")
+        if float(self.priority) < 0.0 or not math.isfinite(
+                float(self.priority)):
+            raise ValueError(
+                "observation selection priority must be non-negative")
+        if (self.propensity is not None
+                and not 0.0 < float(self.propensity) <= 1.0):
+            raise ValueError(
+                "selection propensity must be in (0,1]")
+        if not self.reason:
+            raise ValueError(
+                "observation selection requires reason")
+        if not self.recorded_before_execution:
+            raise ValueError(
+                "selection must be recorded before execution")
+
+    def to_dict(self):
+        return {
+            "goal_id": self.goal_id,
+            "operation_id": self.operation_id,
+            "priority": float(self.priority),
+            "propensity": self.propensity,
+            "reason": self.reason,
+            "recorded_before_execution": True,
+            "selected": bool(self.selected),
+        }
+
+
+class ObservationEvidenceGate:
+    """Register evidence only for selected authoritative completions."""
+
+    def __init__(self, evidence_ledger):
+        from .provenance import EvidenceLedger
+        if not isinstance(evidence_ledger, EvidenceLedger):
+            raise TypeError(
+                "observation gate requires EvidenceLedger")
+        self.evidence_ledger = evidence_ledger
+        self._selections = {}
+        self._completed = {}
+
+    @property
+    def selection_records(self):
+        return tuple(
+            self._selections[key]
+            for key in sorted(self._selections))
+
+    def record_selection(self, record):
+        if not isinstance(record, ObservationSelectionRecord):
+            raise TypeError(
+                "selection log requires "
+                "ObservationSelectionRecord")
+        existing = self._selections.get(record.operation_id)
+        if existing is not None and existing != record:
+            raise ValueError(
+                "observation selection identity reused")
+        self._selections[record.operation_id] = record
+        return record
+
+    def authoritative_return(
+            self, operation_id, evidence_token,
+            authoritative=True):
+        from .provenance import EvidenceToken
+        record = self._selections.get(str(operation_id))
+        if record is None or not record.selected:
+            raise ValueError(
+                "evidence requires a selected observation")
+        if not isinstance(authoritative, bool):
+            raise TypeError(
+                "authoritative flag must be boolean")
+        if not authoritative:
+            raise ValueError(
+                "non-authoritative observation cannot register evidence")
+        if not isinstance(evidence_token, EvidenceToken):
+            raise TypeError(
+                "authoritative return requires EvidenceToken")
+        if record.operation_id in self._completed:
+            if self._completed[record.operation_id] != evidence_token:
+                raise ValueError(
+                    "observation completion identity reused")
+            return evidence_token
+        registered = self.evidence_ledger.register(evidence_token)
+        self._completed[record.operation_id] = registered
+        return registered
 
 
 @dataclass(frozen=True)
@@ -216,26 +349,38 @@ def expected_information_value(hypotheses, test):
             / outcome_probability
             for hypothesis in hypotheses)
         expected_posterior += outcome_probability * _entropy(posterior)
-    gain = max(
-        0.0,
-        (prior_entropy - expected_posterior)
-        * float(test.success_probability))
+    raw_gain = max(
+        0.0, prior_entropy - expected_posterior)
+    relevance = float(test.decision_sensitivity)
+    overlap_discount = 1.0 - float(test.evidence_overlap)
+    gain = (
+        raw_gain * float(test.success_probability)
+        * relevance * overlap_discount)
     return InformationValue(
         test=test,
         prior_entropy=prior_entropy,
         expected_posterior_entropy=expected_posterior,
         expected_information_gain=gain,
         outcome_probabilities=tuple(outcome_probabilities),
+        raw_information_gain=(
+            raw_gain
+            if relevance != 1.0 or overlap_discount != 1.0
+            else None),
+        decision_relevance_factor=relevance,
+        overlap_discount=overlap_discount,
     )
 
 
 class ValueOfInformationPlanner(object):
     """Ranks bounded hypothesis tests and schedules them through typed pressure."""
 
-    def __init__(self, config=None):
+    def __init__(self, config=None, engine_live=False):
         self.config = config or PressureConfig()
         self.engine = PressureEngine(self.config)
         self.scheduler = PressureScheduler(self.config)
+        if not isinstance(engine_live, bool):
+            raise TypeError("engine_live must be boolean")
+        self.engine_live = engine_live
 
     @staticmethod
     def rank(hypotheses, tests):
@@ -246,14 +391,36 @@ class ValueOfInformationPlanner(object):
             key=lambda row: (
                 -row.expected_information_gain, row.test.test_id)))
 
-    @staticmethod
-    def operation(value, goal_id):
+    def operation(
+            self, value, goal_id, propensity=None,
+            deterministic_reason=None):
         if not isinstance(value, InformationValue):
             raise TypeError("operation requires InformationValue")
         policy = ObservationPolicy(
             str(goal_id), "observe",
-            value.expected_information_gain, propensity=None)
+            value.expected_information_gain,
+            propensity=propensity)
         test = value.test
+        packet_costs = ()
+        if self.engine_live:
+            packet_resource = (
+                ResourceKind.SIMULATION
+                if test.execution_kind == "simulation" else
+                ResourceKind.OBSERVATION)
+            packet_costs = (
+                PacketCost(ResourceKind.CPU, 1),
+                PacketCost(packet_resource, 1),
+            )
+        payload = {
+            "expected_information_value": value.to_dict(),
+            "model_provenance": test.model_provenance.to_dict(),
+            "observation_policy": policy.to_dict(),
+        }
+        if deterministic_reason is not None:
+            payload["selection_declaration"] = {
+                "propensity": propensity,
+                "reason": str(deterministic_reason),
+            }
         return Operation(
             operation_id="observe:{}".format(test.test_id),
             atom_id=test.atom_id,
@@ -264,11 +431,8 @@ class ValueOfInformationPlanner(object):
             feasibility=test.feasibility,
             deadline_fit=test.deadline_fit,
             information_gain=value.expected_information_gain,
-            payload={
-                "expected_information_value": value.to_dict(),
-                "model_provenance": test.model_provenance.to_dict(),
-                "observation_policy": policy.to_dict(),
-            },
+            payload=payload,
+            packet_costs=packet_costs,
         )
 
     def decision_for_conflict(
@@ -299,13 +463,32 @@ class ValueOfInformationPlanner(object):
         if any(row.test.atom_id != conflict.conflict_id for row in values):
             raise ValueError("conflict tests must target the conflict atom")
         operations = tuple(
-            self.operation(value, goal.goal_id) for value in values)
+            self.operation(
+                value, goal.goal_id,
+                deterministic_reason=(
+                    "deterministic-highest-priority"))
+            for value in values)
+        schedule = self.scheduler.decision_artifact(
+            operations, pressure)
+        selected_id = schedule["selected_operation_id"]
+        score_by_id = dict(
+            (row["operation"]["operation_id"], row["priority"])
+            for row in schedule["scores"])
+        selection_records = tuple(
+            ObservationSelectionRecord(
+                operation.operation_id,
+                goal.goal_id,
+                operation.operation_id == selected_id,
+                max(0.0, float(score_by_id[operation.operation_id])),
+                None,
+                "deterministic-highest-priority")
+            for operation in operations)
         return {
             "goal": goal,
             "graph": graph,
             "information_values": values,
             "operations": operations,
             "pressure": pressure,
-            "schedule": self.scheduler.decision_artifact(
-                operations, pressure),
+            "schedule": schedule,
+            "selection_records": selection_records,
         }

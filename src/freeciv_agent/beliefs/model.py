@@ -15,6 +15,7 @@ class ModelProvenance:
     model_hash: str
     exact: bool
     confidence_cap: float
+    validity_scope: tuple = ()
 
     def __post_init__(self):
         if self.source_kind != "simulator":
@@ -27,9 +28,13 @@ class ModelProvenance:
         _bounded(self.confidence_cap, "confidence_cap")
         if not self.exact and self.confidence_cap >= 1.0:
             raise ValueError("an inexact simulator requires a finite confidence cap")
+        if any(not isinstance(value, str) or not value
+               for value in self.validity_scope):
+            raise ValueError(
+                "model validity scope must contain non-empty strings")
 
     def to_dict(self):
-        return {
+        value = {
             "confidence_cap": float(self.confidence_cap),
             "exact": bool(self.exact),
             "model_hash": self.model_hash,
@@ -37,6 +42,9 @@ class ModelProvenance:
             "model_version": self.model_version,
             "source_kind": self.source_kind,
         }
+        if self.validity_scope:
+            value["validity_scope"] = list(self.validity_scope)
+        return value
 
 
 def _bounded(value, name):
