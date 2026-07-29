@@ -552,6 +552,7 @@ class ImpactControlAdapter:
             bridge_scalar_ranker=None,
             unified_flow_engine=None,
             shadow_budget=None,
+            shadow_live_mode="canonical",
             advisory_policy=None,
             live_activation_gate=None,
             live_evidence=None):
@@ -580,6 +581,16 @@ class ImpactControlAdapter:
                 self.shadow_budget, ShadowBudgetConfig):
             raise TypeError(
                 "shadow budget has wrong type")
+        if shadow_live_mode not in (
+                "canonical", "legacy_scalar",
+                "scalar_v2"):
+            raise ValueError(
+                "shadow live mode is not a safe baseline")
+        if (shadow_live_mode != "canonical"
+                and shadow_live_mode not in self.controllers):
+            raise ValueError(
+                "shadow live controller is unavailable")
+        self.shadow_live_mode = shadow_live_mode
         self.advisory_policy = (
             advisory_policy
             if advisory_policy is not None
@@ -735,8 +746,9 @@ class ImpactControlAdapter:
         return structural_hash(material)
 
     def _shadow_decision(self, query, snapshot):
-        canonical = self.controllers[
-            "canonical"].decide(query, snapshot)
+        live_baseline = self.controllers[
+            self.shadow_live_mode].decide(
+                query, snapshot)
         snapshot_before = self._snapshot_hash(
             snapshot)
         candidates_before = structural_hash([
@@ -837,7 +849,9 @@ class ImpactControlAdapter:
             "candidate_set_unchanged": (
                 candidates_before == candidates_after),
             "canonical_live_decision": (
-                canonical.to_dict()),
+                live_baseline.to_dict()),
+            "live_baseline_mode":
+                self.shadow_live_mode,
             "controller_identity":
                 "impact-unified-shadow/1.0",
             "live_execution_ledger_writes": 0,
@@ -870,10 +884,11 @@ class ImpactControlAdapter:
             invariants_healthy)
         return ControlDecision(
             ordered_candidate_keys=(
-                canonical.ordered_candidate_keys),
+                live_baseline.ordered_candidate_keys),
             selected_candidate_key=(
-                canonical.selected_candidate_key),
-            packet_schedule=None,
+                live_baseline.selected_candidate_key),
+            packet_schedule=(
+                live_baseline.packet_schedule),
             controller_mode="unified_shadow",
             artifact=semantic_artifact,
             health=(

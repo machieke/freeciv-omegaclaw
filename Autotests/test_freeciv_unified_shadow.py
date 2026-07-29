@@ -224,3 +224,29 @@ def test_runtime_accepts_only_fully_declared_unified_shadow():
             "pressure_bridge_enabled": True,
             "pressure_flow_enabled": False,
         })
+
+
+def test_shadow_can_preserve_the_existing_legacy_live_baseline():
+    snapshot = _Snapshot()
+    candidates = _candidates()
+    adapter = ImpactControlAdapter(
+        legacy_ranker=_Ranker(),
+        scalar_v2_ranker=_Ranker(),
+        shadow_live_mode="legacy_scalar")
+    query = adapter.build_query(
+        snapshot, candidates, 5, 40, 6,
+        {"expansion": {}},
+        normalization_contract_hash="normalization-v1",
+        ruleset_digest="ruleset-v1")
+
+    legacy = adapter.rank_or_schedule(
+        query, "legacy_scalar")
+    shadow = adapter.rank_or_schedule(
+        query, "unified_shadow")
+
+    assert shadow.selected_candidate_key == (
+        legacy.selected_candidate_key)
+    assert shadow.ordered_candidate_keys == (
+        legacy.ordered_candidate_keys)
+    assert shadow.artifact[
+        "live_baseline_mode"] == "legacy_scalar"

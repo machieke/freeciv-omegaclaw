@@ -273,9 +273,20 @@ class GroundedImpactPlanner(object):
     FOUNDER_SETTLEMENT_SITE_UTILITY = 990.0
     FOUNDER_SETTLEMENT_ALTERNATIVE_UTILITY_CEILING = 980.0
 
-    def __init__(self, config=None, ruleset_ir=None, pressure_state_path=None,
-                 pressure_state_identity=None):
+    def __init__(
+            self, config=None, ruleset_ir=None,
+            pressure_state_path=None,
+            pressure_state_identity=None,
+            unified_flow_engine=None,
+            live_activation_gate=None,
+            live_evidence=None):
         values = dict(config or {})
+        from ..pf_runtime import validate_controller_policy
+        controller_policy = validate_controller_policy(
+            values)
+        self.pressure_controller_mode = (
+            controller_policy[
+                "pressure_controller_mode"])
         pressure_enabled = values.get("pressure_enabled", False)
         if not isinstance(pressure_enabled, bool):
             raise ValueError("pressure_enabled must be boolean")
@@ -746,7 +757,13 @@ class GroundedImpactPlanner(object):
         self._pending_goal_routes = {}
         self._queued_conductance_updates = []
         self._pressure_ranker = None
-        if self.pressure_enabled:
+        self._pressure_ranker_v2 = None
+        self._bridge_pressure_ranker = None
+        self._control_adapter = None
+        self.last_control_decision = None
+        if (self.pressure_enabled
+                and self.pressure_controller_mode
+                != "canonical"):
             from ..pressure import (
                 ConductanceState, ImpactPressureRanker, PressureConfig)
             conductance_state = None
@@ -775,6 +792,81 @@ class GroundedImpactPlanner(object):
                     self.pressure_exploration_information_enabled),
                 score_alignment_utility_tolerance=(
                     self.pressure_score_alignment_utility_tolerance))
+            if self.pressure_controller_mode != "legacy_scalar":
+                from ..pressure import ImpactPressureRankerV2
+                self._pressure_ranker_v2 = (
+                    ImpactPressureRankerV2(
+                        PressureConfig(
+                            damping=float(values.get(
+                                "pressure_damping", 0.85)),
+                            exploration_floor=float(values.get(
+                                "pressure_exploration_floor", 0.05)),
+                            softmax_temperature=float(values.get(
+                                "pressure_temperature", 0.15)),
+                            max_routes_per_conclusion=int(values.get(
+                                "pressure_max_routes_per_conclusion", 32))),
+                        conductance_state=conductance_state,
+                        score_alignment=(
+                            self.pressure_score_alignment_enabled),
+                        exploration_information_enabled=(
+                            self.pressure_exploration_information_enabled),
+                        score_alignment_utility_tolerance=(
+                            self.pressure_score_alignment_utility_tolerance),
+                        teleological_enabled=(
+                            self.pressure_controller_mode
+                            in (
+                                "bridge_scalar",
+                                "unified_shadow",
+                                "bridge_scalar_advisory",
+                                "unified_flow_advisory",
+                                "unified_flow_live"))))
+                self._bridge_pressure_ranker = (
+                    ImpactPressureRankerV2(
+                        PressureConfig(
+                            damping=float(values.get(
+                                "pressure_damping", 0.85)),
+                            exploration_floor=float(values.get(
+                                "pressure_exploration_floor", 0.05)),
+                            softmax_temperature=float(values.get(
+                                "pressure_temperature", 0.15)),
+                            max_routes_per_conclusion=int(values.get(
+                                "pressure_max_routes_per_conclusion", 32))),
+                        conductance_state=conductance_state,
+                        score_alignment=(
+                            self.pressure_score_alignment_enabled),
+                        exploration_information_enabled=(
+                            self.pressure_exploration_information_enabled),
+                        score_alignment_utility_tolerance=(
+                            self.pressure_score_alignment_utility_tolerance),
+                        teleological_enabled=True,
+                        bridge_scalar_enabled=True))
+                from .impact_flow_adapter import (
+                    AdvisoryPolicy,
+                    ImpactControlAdapter,
+                )
+                self._control_adapter = ImpactControlAdapter(
+                    legacy_ranker=self._pressure_ranker,
+                    scalar_v2_ranker=(
+                        self._pressure_ranker_v2),
+                    bridge_scalar_ranker=(
+                        self._bridge_pressure_ranker),
+                    unified_flow_engine=unified_flow_engine,
+                    shadow_live_mode="legacy_scalar",
+                    advisory_policy=AdvisoryPolicy(
+                        fallback_mode="scalar_v2"),
+                    live_activation_gate=(
+                        live_activation_gate),
+                    live_evidence=live_evidence)
+        self._controller_config = controller_policy
+        self._controller_ruleset_digest = structural_hash({
+            "adapter": self.SOLVER_IDENTITY,
+            "ruleset_compiler": getattr(
+                ruleset_ir, "compiler_version", None),
+            "ruleset_ir_hash": getattr(
+                ruleset_ir, "ir_sha256", None),
+            "ruleset_source_hash": getattr(
+                ruleset_ir, "source_sha256", None),
+        })
         self.founder_route_successes = 0
         self.founder_route_failures = 0
         self.founder_cardinal_corridor_attempts = 0
@@ -6228,9 +6320,50 @@ class GroundedImpactPlanner(object):
                 + (time.perf_counter() - finalize_started) * 1000.0)
         return ordered
 
+    @staticmethod
+    def _serialized_control_pressure_artifact(value):
+        if not isinstance(value, dict):
+            return None
+        artifact = value.get("artifact")
+        if not isinstance(artifact, dict):
+            return None
+        pressure = artifact.get("ranker_artifact")
+        if isinstance(pressure, dict):
+            return pressure
+        pressure = artifact.get("pressure_artifact")
+        if isinstance(pressure, dict):
+            return pressure
+        return None
+
+    @classmethod
+    def _control_pressure_artifact(cls, decision):
+        """Expose the live controller's legacy-compatible event artifact."""
+        artifact = decision.artifact
+        direct = cls._serialized_control_pressure_artifact(
+            decision.to_dict())
+        if direct is not None:
+            return direct
+        if decision.controller_mode == "unified_shadow":
+            return cls._serialized_control_pressure_artifact(
+                artifact.get("canonical_live_decision"))
+        if artifact.get("advisory_accepted") is False:
+            return cls._serialized_control_pressure_artifact(
+                artifact.get("fallback_artifact"))
+        if artifact.get("advisory_accepted") is True:
+            return cls._serialized_control_pressure_artifact(
+                artifact.get("target_artifact"))
+        advisory = artifact.get("advisory")
+        if isinstance(advisory, dict):
+            advisory_artifact = advisory.get(
+                "artifact", {})
+            return cls._serialized_control_pressure_artifact(
+                advisory_artifact.get("target_artifact"))
+        return None
+
     def plan(self, snapshot, excluded=(), excluded_scopes=(),
              diagnostics=None):
         self.last_stranded_pressure_artifact = None
+        self.last_control_decision = None
         candidate_started = time.perf_counter()
         rows = self.candidates(
             snapshot, excluded=excluded, excluded_scopes=excluded_scopes,
@@ -6245,10 +6378,14 @@ class GroundedImpactPlanner(object):
                 diagnostics.get("candidate_latency_ms", 0.0)
                 + candidate_latency_ms)
         if not rows:
-            if self._pressure_ranker is not None:
+            stranded_ranker = (
+                self._pressure_ranker_v2
+                if self._control_adapter is not None
+                else self._pressure_ranker)
+            if stranded_ranker is not None:
                 pressure_started = time.perf_counter()
                 _, self.last_stranded_pressure_artifact = (
-                    self._pressure_ranker.rank(
+                    stranded_ranker.rank(
                         snapshot, (), self.expansion_city_target,
                         self.horizon_turn,
                         self.pressure_survival_threat_radius,
@@ -6279,7 +6416,51 @@ class GroundedImpactPlanner(object):
                     self.last_stranded_pressure_artifact = None
             return None
         pressure_artifact = None
-        if self._pressure_ranker is not None:
+        if self._control_adapter is not None:
+            control_started = time.perf_counter()
+            goal_facts = self._sustainability_facts(
+                snapshot)
+            query = self._control_adapter.build_query(
+                snapshot, rows,
+                self.expansion_city_target,
+                self.horizon_turn,
+                self.pressure_survival_threat_radius,
+                goal_facts,
+                normalization_contract_hash=(
+                    self._controller_config[
+                        "pressure_bridge_normalization_contract"]),
+                controller_config=(
+                    self._controller_config),
+                ruleset_digest=(
+                    self._controller_ruleset_digest))
+            control = self._control_adapter.rank_or_schedule(
+                query, self.pressure_controller_mode)
+            self.last_control_decision = control
+            candidate_by_key = dict(
+                (row.action_key, row) for row in rows)
+            rows = tuple(
+                candidate_by_key[key]
+                for key in control.ordered_candidate_keys
+                if key in candidate_by_key)
+            pressure_artifact = (
+                self._control_pressure_artifact(control))
+            if diagnostics is not None:
+                diagnostics["controller_latency_ms"] = (
+                    diagnostics.get(
+                        "controller_latency_ms", 0.0)
+                    + (
+                        time.perf_counter()
+                        - control_started) * 1000.0)
+                diagnostics["controller_calls"] = (
+                    diagnostics.get(
+                        "controller_calls", 0) + 1)
+                diagnostics["controller_fallbacks"] = (
+                    diagnostics.get(
+                        "controller_fallbacks", 0)
+                    + int(control.health == "fallback"))
+            if not rows:
+                return None
+        elif self._pressure_ranker is not None:
             pressure_started = time.perf_counter()
             rows, pressure_artifact = self._pressure_ranker.rank(
                 snapshot, rows, self.expansion_city_target, self.horizon_turn,
