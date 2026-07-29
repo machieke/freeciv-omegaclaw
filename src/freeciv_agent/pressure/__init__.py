@@ -13,6 +13,16 @@ from .artifact_validator import (
     validate_packet_schedule,
     validate_pressure_artifact,
 )
+from .budget_arbiter import (
+    ACTIVITY_KINDS,
+    ActivityAllocation,
+    ActivityBid,
+    BudgetArbiter,
+    BudgetArbiterConfig,
+    BudgetDecision,
+    ExplorationFloorAllocation,
+    UnmetMinimum,
+)
 from .engine import (
     ConductanceLearner,
     PressureEngine,
@@ -169,11 +179,17 @@ from .scalar_baseline import (
 
 __all__ = [
     "ACTION_CAUSAL_KINDS",
+    "ACTIVITY_KINDS",
     "ADScalar",
     "AdjointReverseOperator",
     "AdjointPressure",
+    "ActivityAllocation",
+    "ActivityBid",
     "AtomState",
     "BudgetAllocation",
+    "BudgetArbiter",
+    "BudgetArbiterConfig",
+    "BudgetDecision",
     "CAUSAL_KINDS",
     "CloneManager",
     "CloneState",
@@ -198,6 +214,7 @@ __all__ = [
     "EvidenceTokenConflict",
     "ExpansionDecision",
     "ExpansionGate",
+    "ExplorationFloorAllocation",
     "ExpectedTransition",
     "FactorDemand",
     "GoalEffect",
@@ -280,6 +297,7 @@ __all__ = [
     "TransitionCalibrationRecord",
     "TransitionModelRegistry",
     "TypedAdvantage",
+    "UnmetMinimum",
     "ValueOfInformationPlanner",
     "confidence_to_weight",
     "adjoint_pressure",
