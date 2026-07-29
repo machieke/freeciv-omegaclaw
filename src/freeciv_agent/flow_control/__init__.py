@@ -60,6 +60,16 @@ from .normalization import (
     RobustScale,
     default_normalization_contract,
 )
+from .currents import (
+    DirectionalField,
+    RequestedCurrent,
+    RequestedCurrentBuilder,
+)
+from .cycles import (
+    ClosurePolicy,
+    CycleClosurePlanner,
+    PathClosure,
+)
 
 __all__ = [
     "CandidateGrounding",
@@ -70,6 +80,9 @@ __all__ = [
     "BridgeScalarConfig",
     "BridgeScalarController",
     "BridgeScalarDecision",
+    "ClosurePolicy",
+    "CycleClosurePlanner",
+    "DirectionalField",
     "MixedDirection",
     "NormalizationContract",
     "NormalizedDirection",
@@ -101,6 +114,9 @@ __all__ = [
     "REQUIRED_ROBUST_SCALES",
     "RobustNormalizer",
     "RobustScale",
+    "RequestedCurrent",
+    "RequestedCurrentBuilder",
+    "PathClosure",
     "QueryLocalFlowBuilder",
     "ShortestMeetPotentialEstimator",
     "SignalUse",
