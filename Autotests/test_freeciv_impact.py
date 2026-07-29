@@ -2145,7 +2145,7 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
     assert GroundedImpactPlanner().plan(snapshot) is None
     for config in ({"max_actions_per_turn": 0}, {"max_actions_per_turn": 33},
                    {"settle_min_distance": 0}, {"expansion_city_target": 21},
-                   {"horizon_turn": 0}, {"horizon_turn": 1001},
+                   {"horizon_turn": 0}, {"horizon_turn": 2001},
                    {"preferred_government": 3},
                    {"preferred_government": "x" * 65},
                    {"government_minimum_remaining_turns": True},
@@ -2226,7 +2226,7 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
         else:
             raise AssertionError("invalid impact-policy budget was accepted")
 
-    assert GroundedImpactPlanner({"horizon_turn": 960}).horizon_turn == 960
+    assert GroundedImpactPlanner({"horizon_turn": 2000}).horizon_turn == 2000
 
 
 def test_action_scopes_limit_one_unit_and_one_city_choice_per_turn():

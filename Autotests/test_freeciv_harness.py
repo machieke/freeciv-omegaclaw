@@ -57,6 +57,15 @@ def test_config_accepts_the_versioned_960_turn_horizon():
     assert config["impact_policy"]["horizon_turn"] == 960
 
 
+def test_config_accepts_the_versioned_2000_turn_horizon():
+    config = load(os.path.join(
+        REPO, "profile", "freeciv_harness_2000_turn.yaml"))
+
+    assert config["turn_limit"] == 2000
+    assert config["engine_max_turns"] == 2000
+    assert config["impact_policy"]["horizon_turn"] == 2000
+
+
 def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     config = load()
     assert len(config["seeds"]) == 30 == len(set(config["seeds"]))

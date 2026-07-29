@@ -601,8 +601,8 @@ class GroundedImpactPlanner(object):
             raise ValueError("expansion_city_target must be in 1..20")
         if not 1 <= self.settle_min_distance <= 12:
             raise ValueError("settle_min_distance must be in 1..12")
-        if not 1 <= self.horizon_turn <= 1000:
-            raise ValueError("horizon_turn must be in 1..1000")
+        if not 1 <= self.horizon_turn <= 2000:
+            raise ValueError("horizon_turn must be in 1..2000")
         if not 0 <= self.government_minimum_remaining_turns <= 100:
             raise ValueError(
                 "government_minimum_remaining_turns must be in 0..100")

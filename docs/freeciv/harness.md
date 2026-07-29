@@ -69,6 +69,21 @@ time, twice the ordinary treasury reserve, and a maximum 20-turn completion
 ETA; the selected city's Coinage contribution is removed before evaluating
 that counterfactual.
 
+The versioned 2,000-turn continuation profile preserves the same first seed,
+opponent, model, and policy while extending both the policy and engine
+horizons:
+
+```bash
+PYTHONPATH=src:benchmarks python3 scripts/freeciv/run_harness.py \
+  --config profile/freeciv_harness_2000_turn.yaml \
+  --out artifacts/freeciv/pf-pln-strategic-2000 \
+  --backend engine-live --workers 1 --limit-seeds 1 \
+  --main-only --condition e_full_loop
+```
+
+This remains a single-seed lifecycle and stability diagnostic, not a paired
+score or win-rate claim.
+
 Scheduler-enabled engine conditions also use the declared grounded gameplay impact
 policy in `impact_policy`. See [impact-policy.md](impact-policy.md) for its exact
 action priorities, safety boundaries, and decision-impact metrics. For CPU-hosted

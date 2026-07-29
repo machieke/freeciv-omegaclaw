@@ -30,7 +30,7 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
             ("max_actions_per_turn", 1, 32),
             ("expansion_city_target", 1, 20),
             ("settle_min_distance", 1, 12),
-            ("horizon_turn", 1, 1000),
+            ("horizon_turn", 1, 2000),
             ("production_minimum_remaining_turns", 1, 100),
             ("expansion_minimum_remaining_turns", 1, 100),
             ("expansion_minimum_settlement_runway_turns", 0, 100),
