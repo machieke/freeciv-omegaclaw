@@ -110,6 +110,15 @@ from .diagnostics import (
     FlowRepairDecision,
     FlowRepairPlanner,
 )
+from .patches import (
+    INVALIDATION_PATCHES,
+    SCALAR_PATCHES,
+    STRUCTURAL_PATCHES,
+    SUPPORTED_PATCHES,
+    BoundedFlowViewOwner,
+    FlowPatch,
+    FlowSafePointResult,
+)
 
 __all__ = [
     "CandidateGrounding",
@@ -157,6 +166,13 @@ __all__ = [
     "FlowPacketIntegrator",
     "FlowRepairDecision",
     "FlowRepairPlanner",
+    "BoundedFlowViewOwner",
+    "FlowPatch",
+    "FlowSafePointResult",
+    "INVALIDATION_PATCHES",
+    "SCALAR_PATCHES",
+    "STRUCTURAL_PATCHES",
+    "SUPPORTED_PATCHES",
     "FlowProcess",
     "FlowTopologyIndex",
     "FlowView",
