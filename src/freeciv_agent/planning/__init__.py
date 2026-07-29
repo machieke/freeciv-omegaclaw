@@ -7,6 +7,8 @@ from .impact import (DeferredImpactOutcomeLedger, DeferredImpactResolution,
                      ImpactCandidate, ImpactDecision, ImpactTurnBudget)
 from .impact_flow_adapter import (
     CONTROLLER_MODES,
+    AdvisoryDisagreement,
+    AdvisoryPolicy,
     BridgeScalarImpactController,
     CanonicalUtilityController,
     ControlDecision,
@@ -33,6 +35,7 @@ __all__ = [
     "GroundedGoalRelief", "GroundedImpactPlanner", "ImpactCandidate",
     "ImpactDecision", "ImpactTurnBudget",
     "CONTROLLER_MODES", "BridgeScalarImpactController",
+    "AdvisoryDisagreement", "AdvisoryPolicy",
     "CanonicalUtilityController", "ControlDecision",
     "ControlOutcomeRecord", "ControlQuery", "ImpactControlAdapter",
     "LegacyImpactPressureController", "ScalarV2Controller",

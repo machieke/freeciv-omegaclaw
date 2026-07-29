@@ -144,7 +144,9 @@ def validate_controller_policy(impact_policy):
     if policy["pressure_controller_mode"] not in (
             "auto", "legacy_scalar",
             "scalar_v2", "bridge_scalar",
-            "unified_shadow"):
+            "unified_shadow",
+            "bridge_scalar_advisory",
+            "unified_flow_advisory"):
         raise PFRuntimeConfigurationError(
             "unknown pressure_controller_mode")
     if policy["pressure_controller_mode"] == "auto":
@@ -184,7 +186,9 @@ def validate_controller_policy(impact_policy):
         raise PFRuntimeConfigurationError(
             "scalar_v2 mode requires pressure semantics v2")
     if (policy["pressure_controller_mode"] in (
-            "bridge_scalar", "unified_shadow")
+            "bridge_scalar", "unified_shadow",
+            "bridge_scalar_advisory",
+            "unified_flow_advisory")
             and (
                 policy["pressure_semantics_version"] != "v2"
                 or not policy["pressure_bridge_enabled"]
@@ -193,10 +197,13 @@ def validate_controller_policy(impact_policy):
         raise PFRuntimeConfigurationError(
             "{} mode requires v2 bridge and packet scheduling".format(
                 policy["pressure_controller_mode"]))
-    if (policy["pressure_controller_mode"] == "unified_shadow"
+    if (policy["pressure_controller_mode"] in (
+            "unified_shadow",
+            "unified_flow_advisory")
             and not policy["pressure_flow_enabled"]):
         raise PFRuntimeConfigurationError(
-            "unified_shadow requires pressure flow")
+            "{} requires pressure flow".format(
+                policy["pressure_controller_mode"]))
     if (policy["pressure_flow_enabled"]
             and (not policy["pressure_bridge_enabled"]
                  or not policy["pressure_packet_scheduler_enabled"])):
@@ -228,12 +235,16 @@ def build_controller_activation(impact_policy):
         "teleological_cost_to_go": (
             pressure_enabled
             and mode in (
-                "bridge_scalar", "unified_shadow")),
+                "bridge_scalar", "unified_shadow",
+                "bridge_scalar_advisory",
+                "unified_flow_advisory")),
         "bridge": (
             pressure_enabled and v2
             and policy["pressure_bridge_enabled"]
             and mode in (
-                "bridge_scalar", "unified_shadow")),
+                "bridge_scalar", "unified_shadow",
+                "bridge_scalar_advisory",
+                "unified_flow_advisory")),
         "source_sink_flow": (
             pressure_enabled and v2
             and policy["pressure_flow_enabled"]),

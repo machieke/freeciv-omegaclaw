@@ -1,14 +1,20 @@
 """Versioned boundary between grounded Impact candidates and controllers."""
 
 from collections import OrderedDict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import time
 
 from ..events.schema import (
     canonical_json_bytes,
     structural_hash,
 )
-from ..pressure.packets import PacketSchedule
+from ..pressure.packets import (
+    PacketBudget,
+    PacketCost,
+    PacketReservation,
+    PacketSchedule,
+    ResourceKind,
+)
 from .impact import ImpactCandidate
 
 
@@ -19,6 +25,8 @@ CONTROLLER_MODES = (
     "bridge_scalar",
     "unified_flow",
     "unified_shadow",
+    "bridge_scalar_advisory",
+    "unified_flow_advisory",
 )
 
 
@@ -270,6 +278,68 @@ class ShadowBudgetConfig:
                 "shadow artifact budget must be positive")
 
 
+@dataclass(frozen=True)
+class AdvisoryPolicy:
+    minimum_confidence: float = 0.80
+    require_calibration: bool = True
+    fallback_mode: str = "scalar_v2"
+
+    def __post_init__(self):
+        confidence = float(self.minimum_confidence)
+        if not 0.0 <= confidence <= 1.0:
+            raise ValueError(
+                "advisory confidence must be in [0, 1]")
+        if not isinstance(
+                self.require_calibration, bool):
+            raise TypeError(
+                "advisory calibration policy must be boolean")
+        if self.fallback_mode not in (
+                "scalar_v2", "legacy_scalar",
+                "canonical"):
+            raise ValueError(
+                "unknown advisory fallback mode")
+
+
+@dataclass(frozen=True)
+class AdvisoryDisagreement:
+    disagreement_id: str
+    query_id: str
+    baseline_candidate_key: object
+    advisory_candidate_key: object
+    baseline_category: object
+    advisory_category: object
+    typed_advantage: object
+    bridge_summary: object
+    packet_complete: bool
+    risk_summary: object
+    deadline_summary: object
+    expected_resource_use: object
+    controller_health: str
+    later_outcome_status: str = "unknown-counterfactual"
+
+    def to_dict(self):
+        return {
+            "advisory_candidate_key": (
+                self.advisory_candidate_key),
+            "advisory_category": self.advisory_category,
+            "baseline_candidate_key": (
+                self.baseline_candidate_key),
+            "baseline_category": self.baseline_category,
+            "bridge_summary": self.bridge_summary,
+            "controller_health": self.controller_health,
+            "deadline_summary": self.deadline_summary,
+            "disagreement_id": self.disagreement_id,
+            "expected_resource_use": (
+                self.expected_resource_use),
+            "later_outcome_status": (
+                self.later_outcome_status),
+            "packet_complete": self.packet_complete,
+            "query_id": self.query_id,
+            "risk_summary": self.risk_summary,
+            "typed_advantage": self.typed_advantage,
+        }
+
+
 class CanonicalUtilityController:
     """Historical utility ordering and final safe fallback."""
 
@@ -313,6 +383,62 @@ class ImpactRankerController:
         self.mode = mode
         self.ranker = ranker
 
+    @staticmethod
+    def _packet_cost(value):
+        return PacketCost(
+            ResourceKind(value["resource"]),
+            int(value["quanta"]))
+
+    @classmethod
+    def _packet_schedule(cls, artifact):
+        if not isinstance(artifact, dict):
+            return None
+        bridge = artifact.get("bridge")
+        value = (
+            bridge.get("packet_schedule")
+            if isinstance(bridge, dict) else None)
+        if not isinstance(value, dict):
+            return None
+        try:
+            budgets = tuple(
+                PacketBudget(
+                    ResourceKind(row["resource"]),
+                    int(row["available"]))
+                for row in value["budgets"])
+            reservations = tuple(
+                PacketReservation(
+                    operation_id=row["operation_id"],
+                    costs=tuple(
+                        cls._packet_cost(cost)
+                        for cost in row["costs"]),
+                    reserved=tuple(
+                        cls._packet_cost(cost)
+                        for cost in row["reserved"]),
+                    state=row["state"],
+                    requirement_set_id=row.get(
+                        "requirement_set_id"),
+                    reason=row.get("reason"))
+                for row in value["reservations"])
+            return PacketSchedule(
+                budgets=budgets,
+                reservations=reservations,
+                committed_operation_ids=tuple(
+                    value["committed_operation_ids"]),
+                stranded_quanta=tuple(
+                    cls._packet_cost(row)
+                    for row in value["stranded_quanta"]),
+                integrality_gap=float(
+                    value["integrality_gap"]),
+                relaxed_value=float(
+                    value["relaxed_value"]),
+                committed_value=float(
+                    value["committed_value"]),
+                scheduler_identity=str(
+                    value["scheduler_identity"]))
+        except (
+                KeyError, TypeError, ValueError):
+            return None
+
     def decide(self, query, snapshot):
         rows, artifact = self.ranker.rank(
             snapshot,
@@ -325,14 +451,41 @@ class ImpactRankerController:
         keys = tuple(row.action_key for row in rows)
         packet_schedule = None
         serialized_artifact = artifact
+        admissible_candidate_keys = None
         if isinstance(artifact, dict):
             candidate = artifact.get(
                 "_packet_schedule_object")
             if isinstance(candidate, PacketSchedule):
                 packet_schedule = candidate
+            if packet_schedule is None:
+                packet_schedule = self._packet_schedule(
+                    artifact)
             serialized_artifact = dict(artifact)
             serialized_artifact.pop(
                 "_packet_schedule_object", None)
+            declared = artifact.get(
+                "admissible_candidate_keys")
+            if isinstance(declared, (list, tuple)):
+                admissible_candidate_keys = tuple(
+                    str(value) for value in declared)
+            else:
+                schedule = artifact.get("schedule")
+                if isinstance(schedule, dict):
+                    derived = []
+                    for score in schedule.get(
+                            "scores", ()):
+                        operation = score.get(
+                            "operation", {})
+                        payload = operation.get(
+                            "payload", {})
+                        action = payload.get("action")
+                        if (score.get("admissible")
+                                and isinstance(action, dict)):
+                            derived.append(
+                                canonical_json_bytes(
+                                    action).decode("utf-8"))
+                    admissible_candidate_keys = tuple(
+                        derived)
         return ControlDecision(
             ordered_candidate_keys=keys,
             selected_candidate_key=(
@@ -342,6 +495,10 @@ class ImpactRankerController:
             artifact={
                 "controller_identity":
                     "impact-ranker-wrapper/1.0",
+                "admissible_candidate_keys": (
+                    list(admissible_candidate_keys)
+                    if admissible_candidate_keys is not None
+                    else None),
                 "query_hash": query.query_hash,
                 "ranker_artifact": serialized_artifact,
             },
@@ -393,7 +550,8 @@ class ImpactControlAdapter:
             scalar_v2_ranker=None,
             bridge_scalar_ranker=None,
             unified_flow_engine=None,
-            shadow_budget=None):
+            shadow_budget=None,
+            advisory_policy=None):
         self.controllers = {
             "canonical": CanonicalUtilityController(),
         }
@@ -419,9 +577,18 @@ class ImpactControlAdapter:
                 self.shadow_budget, ShadowBudgetConfig):
             raise TypeError(
                 "shadow budget has wrong type")
+        self.advisory_policy = (
+            advisory_policy
+            if advisory_policy is not None
+            else AdvisoryPolicy())
+        if not isinstance(
+                self.advisory_policy, AdvisoryPolicy):
+            raise TypeError(
+                "advisory policy has wrong type")
         self._snapshots = OrderedDict()
         self.maximum_owned_queries = 128
         self._outcomes = []
+        self._disagreements = []
 
     def build_query(
             self, snapshot, candidates,
@@ -708,6 +875,325 @@ class ImpactControlAdapter:
                 else "unhealthy"),
             fallback_chain=())
 
+    def _fallback_controller(
+            self, query, snapshot):
+        mode = self.advisory_policy.fallback_mode
+        controller = self.controllers.get(mode)
+        if controller is None:
+            mode = "canonical"
+            controller = self.controllers[mode]
+        decision = controller.decide(
+            query, snapshot)
+        self._validate_decision(query, decision)
+        return mode, decision
+
+    @staticmethod
+    def _candidate_category(query, key):
+        candidate = next((
+            row for row in query.grounded_candidates
+            if row.action_key == key
+        ), None)
+        return (
+            candidate.category
+            if candidate is not None else None)
+
+    @staticmethod
+    def _advisory_fields(decision):
+        artifact = decision.artifact
+        ranker = (
+            artifact.get("ranker_artifact", {})
+            if isinstance(artifact, dict) else {})
+        bridge = (
+            ranker.get("bridge", {})
+            if isinstance(ranker, dict) else {})
+        source = artifact
+        if isinstance(artifact, dict) and (
+                "confidence" not in artifact
+                and isinstance(ranker, dict)):
+            source = ranker
+        return {
+            "bridge": bridge,
+            "calibrated": bool(
+                source.get("calibrated", False))
+            if isinstance(source, dict) else False,
+            "confidence": float(
+                source.get("confidence", 0.0))
+            if isinstance(source, dict) else 0.0,
+            "deadline": (
+                source.get("deadline")
+                if isinstance(source, dict) else None),
+            "evidence_overlap_valid": bool(
+                source.get(
+                    "evidence_overlap_valid", True))
+            if isinstance(source, dict) else False,
+            "expected_resource_use": (
+                source.get("expected_resource_use")
+                if isinstance(source, dict) else None),
+            "predicted_cost": (
+                source.get("predicted_cost")
+                if isinstance(source, dict) else None),
+            "quarantined": bool(
+                source.get("quarantined", False))
+            if isinstance(source, dict) else True,
+            "risk": (
+                source.get("risk")
+                if isinstance(source, dict) else None),
+            "safety_conflict": bool(
+                source.get("safety_conflict", True))
+            if isinstance(source, dict) else True,
+            "typed_advantage": (
+                source.get("typed_advantage")
+                if isinstance(source, dict) else None),
+        }
+
+    def _advisory_fallback(
+            self, query, snapshot, requested_mode,
+            target_decision, fallback_decision,
+            reasons, validation=None):
+        baseline_key = (
+            fallback_decision.selected_candidate_key)
+        target_key = (
+            target_decision.selected_candidate_key
+            if target_decision is not None else None)
+        disagreement_id = None
+        if target_key != baseline_key:
+            fields = (
+                self._advisory_fields(target_decision)
+                if target_decision is not None else {})
+            material = {
+                "advisory_candidate_key": target_key,
+                "baseline_candidate_key": baseline_key,
+                "query_id": query.query_id,
+                "requested_mode": requested_mode,
+            }
+            row = AdvisoryDisagreement(
+                disagreement_id=(
+                    "control-disagreement:{}".format(
+                        structural_hash(material))),
+                query_id=query.query_id,
+                baseline_candidate_key=baseline_key,
+                advisory_candidate_key=target_key,
+                baseline_category=self._candidate_category(
+                    query, baseline_key),
+                advisory_category=self._candidate_category(
+                    query, target_key),
+                typed_advantage=fields.get(
+                    "typed_advantage"),
+                bridge_summary=fields.get("bridge"),
+                packet_complete=bool(
+                    target_decision is not None
+                    and target_decision.packet_schedule is not None
+                    and target_decision.packet_schedule
+                    .committed_operation_ids),
+                risk_summary=fields.get("risk"),
+                deadline_summary=fields.get("deadline"),
+                expected_resource_use=fields.get(
+                    "expected_resource_use"),
+                controller_health=(
+                    target_decision.health
+                    if target_decision is not None
+                    else "unavailable"))
+            self._disagreements.append(row)
+            disagreement_id = row.disagreement_id
+        return ControlDecision(
+            ordered_candidate_keys=(
+                fallback_decision.ordered_candidate_keys),
+            selected_candidate_key=(
+                fallback_decision.selected_candidate_key),
+            packet_schedule=(
+                fallback_decision.packet_schedule),
+            controller_mode=(
+                fallback_decision.controller_mode),
+            artifact={
+                "advisory_accepted": False,
+                "advisory_candidate_key": target_key,
+                "disagreement_id": disagreement_id,
+                "fallback_artifact":
+                    fallback_decision.to_dict(),
+                "gate_reasons": list(reasons),
+                "query_hash": query.query_hash,
+                "requested_mode": requested_mode,
+                "validation": (
+                    validation.to_dict()
+                    if validation is not None else None),
+            },
+            health="fallback",
+            fallback_chain=(
+                requested_mode,
+                fallback_decision.controller_mode))
+
+    def _advisory_decision(
+            self, query, snapshot, advisory_mode):
+        target_mode = (
+            "bridge_scalar"
+            if advisory_mode
+            == "bridge_scalar_advisory"
+            else "unified_flow")
+        fallback_mode, fallback = (
+            self._fallback_controller(
+                query, snapshot))
+        del fallback_mode
+        controller = self.controllers.get(
+            target_mode)
+        if controller is None:
+            return self._advisory_fallback(
+                query, snapshot, advisory_mode,
+                None, fallback,
+                ("controller-unavailable",))
+        try:
+            target = controller.decide(
+                query, snapshot)
+            self._validate_decision(
+                query, target)
+        except Exception as error:
+            return self._advisory_fallback(
+                query, snapshot, advisory_mode,
+                None, fallback, (
+                    "controller-error:{}".format(
+                        type(error).__name__),))
+        fields = self._advisory_fields(target)
+        reasons = []
+        if target.health != "healthy":
+            reasons.append("controller-unhealthy")
+        bridge = fields["bridge"]
+        if (isinstance(bridge, dict)
+                and bridge.get("fallback_required")):
+            reasons.append("bridge-fallback-required")
+        if (target.selected_candidate_key is None
+                or target.selected_candidate_key
+                not in query.candidate_keys):
+            reasons.append("candidate-not-authoritative")
+        if target.packet_schedule is None:
+            reasons.append("packet-schedule-required")
+        elif (
+                not target.packet_schedule.conserved
+                or not target.packet_schedule
+                .committed_operation_ids):
+            reasons.append("packet-incomplete")
+        if fields["safety_conflict"]:
+            reasons.append("safety-conflict")
+        if fields["confidence"] < (
+                self.advisory_policy.minimum_confidence):
+            reasons.append("confidence-below-threshold")
+        if (self.advisory_policy.require_calibration
+                and not fields["calibrated"]):
+            reasons.append("calibration-required")
+        fallback_admissible = (
+            fallback.artifact.get(
+                "admissible_candidate_keys")
+            if isinstance(fallback.artifact, dict)
+            else None)
+        if fallback_admissible is None:
+            fallback_admissible = (
+                fallback.ordered_candidate_keys
+                if fallback.controller_mode == "canonical"
+                else ())
+        if (fallback.health not in (
+                "healthy", "fallback")
+                or target.selected_candidate_key
+                not in fallback_admissible):
+            reasons.append(
+                "fallback-controller-disagrees-on-admissibility")
+        validation = None
+        if not reasons:
+            from .commit_validator import (
+                ImpactCommitValidator,
+                ValidationDisposition,
+            )
+            reservation = next((
+                row
+                for row in target.packet_schedule.reservations
+                if row.state in ("complete", "committed")
+            ), None)
+            operation_id = (
+                reservation.operation_id
+                if reservation is not None else None)
+            validation = ImpactCommitValidator().validate(
+                source_query=query,
+                candidate_key=target.selected_candidate_key,
+                current_snapshot=snapshot,
+                current_candidates=(
+                    query.grounded_candidates),
+                reservation=reservation,
+                reservation_operation_id=operation_id,
+                current_context_digest=(
+                    query.context_digest),
+                current_clone_generation=(
+                    query.lifecycle_clone_generation),
+                evidence_overlap_valid=fields[
+                    "evidence_overlap_valid"],
+                quarantined=fields["quarantined"],
+                source_predicted_cost=fields[
+                    "predicted_cost"],
+                current_predicted_cost=fields[
+                    "predicted_cost"])
+            if validation.disposition != (
+                    ValidationDisposition.COMMIT):
+                reasons.append(
+                    "exact-revalidation:{}".format(
+                        validation.reason))
+        if reasons:
+            return self._advisory_fallback(
+                query, snapshot, advisory_mode,
+                target, fallback, tuple(reasons),
+                validation=validation)
+
+        disagreement_id = None
+        if (target.selected_candidate_key
+                != fallback.selected_candidate_key):
+            material = {
+                "advisory_candidate_key":
+                    target.selected_candidate_key,
+                "baseline_candidate_key":
+                    fallback.selected_candidate_key,
+                "query_id": query.query_id,
+                "requested_mode": advisory_mode,
+            }
+            row = AdvisoryDisagreement(
+                disagreement_id=(
+                    "control-disagreement:{}".format(
+                        structural_hash(material))),
+                query_id=query.query_id,
+                baseline_candidate_key=(
+                    fallback.selected_candidate_key),
+                advisory_candidate_key=(
+                    target.selected_candidate_key),
+                baseline_category=self._candidate_category(
+                    query,
+                    fallback.selected_candidate_key),
+                advisory_category=self._candidate_category(
+                    query,
+                    target.selected_candidate_key),
+                typed_advantage=fields[
+                    "typed_advantage"],
+                bridge_summary=fields["bridge"],
+                packet_complete=True,
+                risk_summary=fields["risk"],
+                deadline_summary=fields["deadline"],
+                expected_resource_use=fields[
+                    "expected_resource_use"],
+                controller_health=target.health)
+            self._disagreements.append(row)
+            disagreement_id = row.disagreement_id
+        return ControlDecision(
+            ordered_candidate_keys=(
+                target.ordered_candidate_keys),
+            selected_candidate_key=(
+                target.selected_candidate_key),
+            packet_schedule=target.packet_schedule,
+            controller_mode=advisory_mode,
+            artifact={
+                "advisory_accepted": True,
+                "disagreement_id": disagreement_id,
+                "fallback_admissibility":
+                    fallback.to_dict(),
+                "query_hash": query.query_hash,
+                "target_artifact": target.to_dict(),
+                "validation": validation.to_dict(),
+            },
+            health="healthy",
+            fallback_chain=())
+
     def rank_or_schedule(self, query, mode):
         if not isinstance(query, ControlQuery):
             raise TypeError(
@@ -722,6 +1208,14 @@ class ImpactControlAdapter:
         if mode == "unified_shadow":
             decision = self._shadow_decision(
                 query, snapshot)
+            self._validate_decision(
+                query, decision)
+            return decision
+        if mode in (
+                "bridge_scalar_advisory",
+                "unified_flow_advisory"):
+            decision = self._advisory_decision(
+                query, snapshot, mode)
             self._validate_decision(
                 query, decision)
             return decision
@@ -808,8 +1302,33 @@ class ImpactControlAdapter:
             execution_result_digest=structural_hash(
                 execution_result))
         self._outcomes.append(record)
+        disagreement_id = (
+            decision.artifact.get(
+                "disagreement_id")
+            if isinstance(decision.artifact, dict)
+            else None)
+        if (selected_executed
+                and disagreement_id is not None):
+            self._disagreements = [
+                (
+                    replace(
+                        row,
+                        later_outcome_status=(
+                            "observed-executed-effect"
+                            if effect is True else
+                            "observed-executed-no-effect"
+                            if effect is False else
+                            "observed-executed-outcome-unknown"))
+                    if row.disagreement_id
+                    == disagreement_id else row)
+                for row in self._disagreements
+            ]
         return record
 
     @property
     def outcome_records(self):
         return tuple(self._outcomes)
+
+    @property
+    def disagreement_records(self):
+        return tuple(self._disagreements)
