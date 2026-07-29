@@ -1427,6 +1427,101 @@ def test_sustainability_goals_are_factual_and_lexicographically_safe():
         "authoritative:net-gold-and-turn-start-upkeep-reserve-safe"]
 
 
+def test_research_and_production_continuity_pressures_are_factual():
+    snapshot = SimpleNamespace(cities=(object(), object()), turn=25)
+    research = _Candidate(
+        "production_research_infrastructure", 815.0, "research")
+    continuity = _Candidate(
+        "production_continuity", 825.0, "leave-coinage")
+
+    ordered, artifact = ImpactPressureRanker().rank(
+        snapshot, (continuity, research),
+        expansion_city_target=2, horizon_turn=100,
+        _goal_facts={
+            "defense_deficit_city_ids": (),
+            "food_deficit_city_ids": (),
+            "food_safe_fraction": 1.0,
+            "production_continuity_blocked_city_ids": (20,),
+            "production_continuity_city_ids": (10, 20),
+            "production_continuity_deficit": True,
+            "production_continuity_releasable_city_ids": (10,),
+            "research_deficit": True,
+            "research_gross_beakers_per_turn": 8,
+            "research_net_beakers_per_turn": -3,
+            "research_stalled_turns": 39,
+            "research_tech_upkeep": 11,
+            "treasury_deficit": False,
+        })
+
+    assert set(ordered) == {research, continuity}
+    goals = dict(
+        (row["goal_id"], row) for row in artifact["pressure"]["goals"])
+    assert goals["pf-impact:research_sustainability"]["context"] == [
+        "authoritative:material-research-throughput-deficit:"
+        "gross=8:upkeep=11:net=-3:stalled=39"]
+    assert goals["pf-impact:production_continuity"]["context"] == [
+        "authoritative:expired-coinage-bridge-cities:10,20:"
+        "releasable=10:treasury-blocked=20"]
+
+
+def test_masked_structural_treasury_deficit_is_not_reported_safe():
+    snapshot = SimpleNamespace(cities=(object(),), turn=25)
+
+    _, artifact = ImpactPressureRanker().rank(
+        snapshot, (), expansion_city_target=1, horizon_turn=100,
+        _goal_facts={
+            "defense_deficit_city_ids": (),
+            "food_deficit_city_ids": (),
+            "food_safe_fraction": 1.0,
+            "treasury_deficit": True,
+            "treasury_net_gold_per_turn": 0,
+            "treasury_operating_gold_per_turn": -9,
+            "treasury_structural_deficit": True,
+        })
+
+    goals = dict(
+        (row["goal_id"], row) for row in artifact["pressure"]["goals"])
+    treasury = goals["pf-impact:treasury_sustainability"]
+    assert treasury["target_strength"] == 1.0
+    assert treasury["context"] == [
+        "authoritative:expired-coinage-masks-negative-operating-gold:"
+        "operating=-9:effective=0"]
+
+
+def test_empty_candidate_set_retains_stranded_goal_pressure_artifact():
+    snapshot = SimpleNamespace(
+        cities=(object(),), turn=25, visible_enemy_units=(),
+        map_width=10, map_height=10)
+
+    ordered, artifact = ImpactPressureRanker().rank(
+        snapshot, (), expansion_city_target=3, horizon_turn=100,
+        _goal_facts={
+            "defense_deficit_city_ids": (),
+            "food_deficit_city_ids": (),
+            "food_safe_fraction": 1.0,
+            "research_deficit": True,
+            "research_gross_beakers_per_turn": 0,
+            "research_net_beakers_per_turn": -1,
+            "research_stalled_turns": 10,
+            "research_tech_upkeep": 1,
+            "treasury_deficit": False,
+        })
+
+    assert ordered == ()
+    assert artifact["schedule"]["scores"] == []
+    assert artifact["schedule"]["selected_operation_id"] is None
+    assert artifact["pressure"]["traces"] == []
+    goals = dict(
+        (row["goal_id"], row) for row in artifact["pressure"]["goals"])
+    assert goals["pf-impact:expansion"]["context"] == [
+        "authoritative:city-count-below-target:1-of-3"]
+    assert artifact["pressure"]["dependency"]["pf-impact:expansion"][
+        "pf-impact-goal:expansion"] > 0.0
+    assert artifact["pressure"]["dependency"][
+        "pf-impact:research_sustainability"][
+            "pf-impact-goal:research_sustainability"] > 0.0
+
+
 def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
     snapshot = SimpleNamespace(cities=(), turn=5)
     candidates = (
@@ -1441,6 +1536,8 @@ def test_impact_adapter_keeps_goals_separate_and_emits_schema_valid_events():
         "pf-impact:score", "pf-impact:exploration",
         "pf-impact:governance",
         "pf-impact:food_sustainability",
+        "pf-impact:production_continuity",
+        "pf-impact:research_sustainability",
         "pf-impact:treasury_sustainability"}
     goals = dict(
         (row["goal_id"], row) for row in artifact["pressure"]["goals"])

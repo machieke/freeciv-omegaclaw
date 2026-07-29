@@ -261,7 +261,7 @@ def _spatial_target(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.33"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.34"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -433,6 +433,25 @@ class GroundedImpactPlanner(object):
                 "founder_attrition_rebuild_limit must be an integer")
         self.founder_attrition_rebuild_limit = int(
             founder_attrition_rebuild_limit)
+        founder_attrition_memory_turns = values.get(
+            "founder_attrition_memory_turns", 20)
+        if (isinstance(founder_attrition_memory_turns, bool)
+                or not isinstance(
+                    founder_attrition_memory_turns, (int, float))
+                or int(founder_attrition_memory_turns)
+                != founder_attrition_memory_turns):
+            raise ValueError(
+                "founder_attrition_memory_turns must be an integer")
+        self.founder_attrition_memory_turns = int(
+            founder_attrition_memory_turns)
+        coinage_bridge_max_turns = values.get(
+            "coinage_bridge_max_turns", 20)
+        if (isinstance(coinage_bridge_max_turns, bool)
+                or not isinstance(coinage_bridge_max_turns, (int, float))
+                or int(coinage_bridge_max_turns)
+                != coinage_bridge_max_turns):
+            raise ValueError("coinage_bridge_max_turns must be an integer")
+        self.coinage_bridge_max_turns = int(coinage_bridge_max_turns)
         self.production_minimum_remaining_turns = int(
             values.get("production_minimum_remaining_turns", 8))
         self.expansion_minimum_remaining_turns = int(
@@ -612,6 +631,11 @@ class GroundedImpactPlanner(object):
         if not 0 <= self.founder_attrition_rebuild_limit <= 20:
             raise ValueError(
                 "founder_attrition_rebuild_limit must be in 0..20")
+        if not 1 <= self.founder_attrition_memory_turns <= 200:
+            raise ValueError(
+                "founder_attrition_memory_turns must be in 1..200")
+        if not 1 <= self.coinage_bridge_max_turns <= 200:
+            raise ValueError("coinage_bridge_max_turns must be in 1..200")
         if not 1 <= self.production_minimum_remaining_turns <= 100:
             raise ValueError("production_minimum_remaining_turns must be in 1..100")
         if not 1 <= self.expansion_minimum_remaining_turns <= 100:
@@ -678,6 +702,16 @@ class GroundedImpactPlanner(object):
         self._founder_actor_failed_edges = set()
         self._observed_founders = {}
         self._founder_attrition_positions = {}
+        self._founder_attrition_last_turns = {}
+        self._founder_attrition_history = []
+        self._observed_city_ids = None
+        self._city_loss_recovery_target = 0
+        self._city_loss_recovery_started_turn = None
+        self._city_loss_recovery_lost_city_ids = set()
+        self._coinage_started_turns = {}
+        self._research_progress_observation = None
+        self._research_stalled_turns = 0
+        self.last_stranded_pressure_artifact = None
         self._luxury_safety_signature = None
         self._minimum_safe_luxury_rate = max(
             0, 100 - self.normal_tax_rate - self.normal_science_rate)
@@ -1017,6 +1051,61 @@ class GroundedImpactPlanner(object):
             self._minimum_safe_luxury_rate = max(
                 self._minimum_safe_luxury_rate,
                 min(60, int(luxury_rate) + 10))
+        current_city_ids = frozenset(
+            int(city.city_id) for city in snapshot.cities)
+        if self._observed_city_ids is not None:
+            lost_city_ids = self._observed_city_ids - current_city_ids
+            if lost_city_ids:
+                # Losing an owned city is a new expansion lifecycle. A founder
+                # lost before this event must not permanently consume the
+                # recovery budget needed to restore the prior city count.
+                self._city_loss_recovery_target = max(
+                    self._city_loss_recovery_target,
+                    min(self.expansion_city_target,
+                        len(self._observed_city_ids)))
+                self._city_loss_recovery_started_turn = int(snapshot.turn)
+                self._city_loss_recovery_lost_city_ids.update(lost_city_ids)
+        if (self._city_loss_recovery_target > 0
+                and len(current_city_ids)
+                >= self._city_loss_recovery_target):
+            self._city_loss_recovery_target = 0
+            self._city_loss_recovery_started_turn = None
+            self._city_loss_recovery_lost_city_ids.clear()
+        self._observed_city_ids = current_city_ids
+
+        active_coinage_city_ids = set()
+        for city in snapshot.cities:
+            city_id = int(city.city_id)
+            if (_normalized_type(self._current_production_name(city))
+                    == "coinage"):
+                active_coinage_city_ids.add(city_id)
+                self._coinage_started_turns.setdefault(
+                    city_id, int(snapshot.turn))
+        self._coinage_started_turns = {
+            city_id: started_turn
+            for city_id, started_turn in self._coinage_started_turns.items()
+            if city_id in active_coinage_city_ids
+        }
+
+        research = snapshot.research
+        research_observation = (
+            research.target_id, research.progress, int(snapshot.turn))
+        previous_research = self._research_progress_observation
+        if (previous_research is not None
+                and previous_research[0] == research.target_id
+                and previous_research[1] is not None
+                and research.progress is not None
+                and int(snapshot.turn) > int(previous_research[2])):
+            turn_delta = int(snapshot.turn) - int(previous_research[2])
+            if int(research.progress) <= int(previous_research[1]):
+                self._research_stalled_turns += turn_delta
+            else:
+                self._research_stalled_turns = 0
+        elif (previous_research is not None
+              and previous_research[0] != research.target_id):
+            self._research_stalled_turns = 0
+        self._research_progress_observation = research_observation
+
         current_founders = {
             int(unit.unit_id): {
                 "city_layout": self._city_layout(snapshot),
@@ -1050,6 +1139,11 @@ class GroundedImpactPlanner(object):
             )
             self._founder_attrition_positions[key] = (
                 self._founder_attrition_positions.get(key, 0) + 1)
+            self._founder_attrition_last_turns[key] = int(snapshot.turn)
+            self._founder_attrition_history.append((
+                int(snapshot.turn), key[0], key[1], key[2]))
+        self._founder_attrition_history = (
+            self._founder_attrition_history[-256:])
         self._observed_founders = current_founders
         for unit in snapshot.units:
             if unit.x is not None and unit.y is not None:
@@ -2062,6 +2156,98 @@ class GroundedImpactPlanner(object):
                 and key[1] == int(snapshot.map_width)
                 and key[2] == int(snapshot.map_height)))
 
+    def _city_loss_recovery_active(self, snapshot):
+        return bool(
+            self._city_loss_recovery_target > 0
+            and len(snapshot.cities) < self._city_loss_recovery_target)
+
+    def _founder_attrition_recent_total(self, snapshot, founder_types):
+        """Count only founder losses inside the configured safety memory."""
+        turn = int(snapshot.turn)
+        return sum(
+            1 for lost_turn, unit_type, map_width, map_height
+            in self._founder_attrition_history
+            if (unit_type in founder_types
+                and map_width == int(snapshot.map_width)
+                and map_height == int(snapshot.map_height)
+                and 0 <= turn - lost_turn
+                <= self.founder_attrition_memory_turns))
+
+    def _founder_attrition_backoff(self, snapshot, founder_types):
+        """Return the bounded retry guard for the current recovery lifecycle."""
+        matching_turns = tuple(
+            lost_turn
+            for lost_turn, unit_type, map_width, map_height
+            in self._founder_attrition_history
+            if (unit_type in founder_types
+                and map_width == int(snapshot.map_width)
+                and map_height == int(snapshot.map_height)
+                and (
+                    not self._city_loss_recovery_active(snapshot)
+                    or self._city_loss_recovery_started_turn is None
+                    or lost_turn
+                    >= int(self._city_loss_recovery_started_turn))))
+        if not matching_turns:
+            return self.founder_attrition_memory_turns, None, 0
+        loss_count = len(matching_turns)
+        multiplier = 2 ** min(3, max(0, loss_count - 1))
+        return (
+            min(200, self.founder_attrition_memory_turns * multiplier),
+            max(matching_turns), loss_count)
+
+    def _founder_production_attrition_blocked(
+            self, snapshot, city, founder_types):
+        """Apply the rebuild guard only to a recent, locally threatened loss.
+
+        An owned-city loss starts a new recovery lifecycle. Attrition observed
+        before that loss cannot consume the new lifecycle's rebuild budget.
+        Later founder losses remain guarded for a bounded number of turns and
+        only at a producing city that is actually near a visible threat.
+        """
+        if self.founder_attrition_rebuild_limit <= 0:
+            return False
+        guard_turns, latest_attrition_turn, _ = (
+            self._founder_attrition_backoff(snapshot, founder_types))
+        if latest_attrition_turn is None:
+            return False
+        if (self._city_loss_recovery_active(snapshot)
+                and self._city_loss_recovery_started_turn is not None
+                and int(self._city_loss_recovery_started_turn)
+                > latest_attrition_turn):
+            return False
+        turn = int(snapshot.turn)
+        matching_recent_losses = sum(
+            1 for lost_turn, unit_type, map_width, map_height
+            in self._founder_attrition_history
+            if (unit_type in founder_types
+                and map_width == int(snapshot.map_width)
+                and map_height == int(snapshot.map_height)
+                and 0 <= turn - lost_turn <= guard_turns
+                and (
+                    not self._city_loss_recovery_active(snapshot)
+                    or self._city_loss_recovery_started_turn is None
+                    or lost_turn
+                    >= int(self._city_loss_recovery_started_turn))))
+        if matching_recent_losses < self.founder_attrition_rebuild_limit:
+            return False
+        if self._city_loss_recovery_active(snapshot):
+            # A replacement founder lost away from its producer is exact
+            # evidence about the current settlement route lifecycle. Enforce
+            # the bounded retry guard even when no enemy is presently visible
+            # inside the producing city's local threat radius.
+            return True
+        if not snapshot.visible_enemy_units:
+            return False
+        if city is None or None in (city.x, city.y):
+            return True
+        return any(
+            None not in (enemy.x, enemy.y)
+            and _distance(
+                city.x, city.y, enemy.x, enemy.y,
+                snapshot.map_width, snapshot.map_height)
+            <= self.pressure_survival_threat_radius
+            for enemy in snapshot.visible_enemy_units)
+
     def _founder_attrition_has_alternative(
             self, snapshot, action, founder_types, actions=None):
         """Avoid a grounded loss site only when a legal fresh route remains."""
@@ -2799,6 +2985,59 @@ class GroundedImpactPlanner(object):
             + min(0, int(net)) * (self.treasury_reserve_turns + 1)
             >= reserve)
 
+    def _coinage_bridge_expired(
+            self, snapshot, city, current_normalized=None):
+        normalized = (
+            _normalized_type(self._current_production_name(city))
+            if current_normalized is None else current_normalized)
+        if normalized != "coinage" or city is None:
+            return False
+        started_turn = self._coinage_started_turns.get(
+            int(city.city_id), int(snapshot.turn))
+        return bool(
+            int(snapshot.turn) - int(started_turn)
+            >= self.coinage_bridge_max_turns)
+
+    def _coinage_exit_ready(
+            self, snapshot, city, current_normalized=None):
+        return bool(
+            self._coinage_bridge_expired(
+                snapshot, city, current_normalized)
+            and self._city_output(city, 1) > 0
+            and self._treasury_recovery_can_release(
+                snapshot, city, current_normalized))
+
+    def _production_continuity_candidate(
+            self, snapshot, city, current_normalized, candidate):
+        """Expose a productive exit after a bounded Coinage bridge."""
+        if (candidate is None
+                or candidate.category not in (
+                    "production_economy",
+                    "production_fleet_readiness",
+                    "production_industrialization",
+                    "production_military_score",
+                    "production_modernization",
+                )
+                or not self._coinage_exit_ready(
+                    snapshot, city, current_normalized)):
+            return candidate
+        projection = dict(candidate.projection or {})
+        projection.update({
+            "coinage_bridge_started_turn": self._coinage_started_turns.get(
+                int(city.city_id)),
+            "coinage_bridge_turns": (
+                int(snapshot.turn) - int(self._coinage_started_turns.get(
+                    int(city.city_id), int(snapshot.turn)))),
+            "coinage_bridge_max_turns": self.coinage_bridge_max_turns,
+            "continuity_original_category": candidate.category,
+        })
+        return ImpactCandidate(
+            candidate.action, "production_continuity",
+            max(825.0, float(candidate.utility)),
+            "exit the bounded Coinage bridge into a grounded productive "
+            "queue while the authoritative treasury retains its reserve",
+            projection)
+
     def _project_operating_gold_for_tax_rate(self, snapshot, target_tax_rate):
         """Conservatively scale observed tax income to one legal rate step.
 
@@ -2939,6 +3178,33 @@ class GroundedImpactPlanner(object):
         disorder_city_ids = tuple(sorted(
             city.city_id for city in snapshot.cities
             if city.disorder is True))
+        expired_coinage_city_ids = tuple(sorted(
+            int(city.city_id) for city in snapshot.cities
+            if self._coinage_bridge_expired(snapshot, city)))
+        releasable_coinage_city_ids = tuple(sorted(
+            int(city.city_id) for city in snapshot.cities
+            if self._coinage_exit_ready(snapshot, city)))
+        blocked_coinage_city_ids = tuple(sorted(
+            set(expired_coinage_city_ids)
+            - set(releasable_coinage_city_ids)))
+        net_beakers = snapshot.research.beakers_per_turn
+        gross_beakers = snapshot.research.gross_beakers_per_turn
+        tech_upkeep = snapshot.research.tech_upkeep
+        research_deficit = bool(
+            snapshot.research.available
+            and (
+                net_beakers is not None and int(net_beakers) <= 0
+                or (gross_beakers is not None and tech_upkeep is not None
+                    and (
+                        int(gross_beakers) <= 0
+                        or int(tech_upkeep) * 4
+                        >= int(gross_beakers)))))
+        operating_gold = snapshot.economy.operating_gold_per_turn
+        effective_treasury_deficit = self._treasury_deficit(snapshot)
+        structural_treasury_deficit = bool(
+            expired_coinage_city_ids
+            and operating_gold is not None
+            and int(operating_gold) < 0)
         facts = {
             "defense_deficit_city_ids": tuple(
                 row["city_id"] for row in defense_deficits),
@@ -2948,14 +3214,41 @@ class GroundedImpactPlanner(object):
                 1.0 if not snapshot.cities else
                 float(len(snapshot.cities) - len(food_deficits))
                 / len(snapshot.cities)),
-            "treasury_deficit": self._treasury_deficit(snapshot),
+            "production_continuity_blocked_city_ids": (
+                blocked_coinage_city_ids),
+            "production_continuity_city_ids": expired_coinage_city_ids,
+            "production_continuity_deficit": bool(
+                expired_coinage_city_ids),
+            "production_continuity_releasable_city_ids": (
+                releasable_coinage_city_ids),
+            "research_deficit": research_deficit,
+            "research_gross_beakers_per_turn": gross_beakers,
+            "research_net_beakers_per_turn": net_beakers,
+            "research_stalled_turns": self._research_stalled_turns,
+            "research_tech_upkeep": tech_upkeep,
+            "treasury_deficit": bool(
+                effective_treasury_deficit
+                or structural_treasury_deficit),
+            "treasury_effective_deficit": effective_treasury_deficit,
             "treasury_net_gold_per_turn": self._net_gold_per_turn(snapshot),
+            "treasury_operating_gold_per_turn": operating_gold,
             "treasury_reserve_required": (
                 self._treasury_reserve_required(snapshot)),
+            "treasury_structural_deficit": structural_treasury_deficit,
         }
         score_gap = self._score_gap(snapshot)
         if score_gap is not None:
             facts["score_gap_to_leader"] = score_gap
+        if self._city_loss_recovery_active(snapshot):
+            facts.update({
+                "city_loss_recovery": True,
+                "city_loss_recovery_started_turn": (
+                    self._city_loss_recovery_started_turn),
+                "city_loss_recovery_target": (
+                    self._city_loss_recovery_target),
+                "lost_city_ids": tuple(sorted(
+                    self._city_loss_recovery_lost_city_ids)),
+            })
         if self._recent_domain_threat(snapshot, "sea"):
             facts["recent_naval_threat"] = True
         return facts
@@ -3993,6 +4286,141 @@ class GroundedImpactPlanner(object):
                 "turn-start gold-upkeep shortfall")
         return None
 
+    def _viable_founder_production_projections(
+            self, snapshot, actions, founder_types, remaining_turns):
+        """Return legal founder builds that can actually satisfy expansion.
+
+        Expansion reservation is safe only when at least one such build exists.
+        Keeping this predicate identical to founder materialization prevents the
+        planner from reserving all production for an operation it has already
+        rejected.
+        """
+        result = {}
+        if remaining_turns < self.expansion_minimum_remaining_turns:
+            return result
+        for candidate_action in actions:
+            if candidate_action.get("action_type") != "city_production":
+                continue
+            normalized = _normalized_type(_target_name(candidate_action))
+            if normalized not in founder_types:
+                continue
+            city = snapshot.city(candidate_action.get("city_id"))
+            if (city is None or not city.buildability_available
+                    or self._current_production_matches(
+                        city, candidate_action)
+                    or self._founder_production_attrition_blocked(
+                        snapshot, city, founder_types)):
+                continue
+            projection = self._production_projection(
+                city, _target_name(candidate_action), remaining_turns,
+                snapshot=snapshot, founder_types=founder_types)
+            if (projection.get("settlement_eta_turns") is None
+                    or projection["settlement_eta_turns"] > remaining_turns
+                    or projection.get("settlement_runway_turns", -1)
+                    < self.expansion_minimum_settlement_runway_turns
+                    or projection.get("score_value", 0) <= 0):
+                continue
+            survival = self._founder_production_survival(
+                snapshot, city, founder_types)
+            if survival is None:
+                continue
+            financing = self._founder_production_financing(
+                snapshot, city, normalized, projection)
+            if financing is None:
+                continue
+            projection.update(survival)
+            projection.update(financing)
+            result[
+                canonical_json_bytes(candidate_action).decode("utf-8")
+            ] = projection
+        return result
+
+    def _founder_production_survival(
+            self, snapshot, city, founder_types):
+        """Require a spare local defender for expansion under exact threat."""
+        local_threats = tuple(
+            enemy for enemy in snapshot.visible_enemy_units
+            if None not in (city.x, city.y, enemy.x, enemy.y)
+            and _distance(
+                city.x, city.y, enemy.x, enemy.y,
+                snapshot.map_width, snapshot.map_height)
+            <= self.pressure_survival_threat_radius)
+        local_defender_count = sum(
+            (unit.x, unit.y) == (city.x, city.y)
+            for unit in self._combat_units(snapshot, founder_types))
+        required_garrison = self._required_garrison_count(city)
+        minimum_defenders = (
+            required_garrison + 1 if local_threats else
+            required_garrison
+            if self._city_loss_recovery_active(snapshot) else 0)
+        if local_defender_count < minimum_defenders:
+            return None
+        return {
+            "founder_local_defenders": local_defender_count,
+            "founder_local_visible_threat": bool(local_threats),
+            "founder_minimum_local_defenders": minimum_defenders,
+            "founder_required_garrison": required_garrison,
+            "founder_city_loss_recovery": (
+                self._city_loss_recovery_active(snapshot)),
+            "founder_visible_threat_unit_ids": tuple(sorted(
+                int(enemy.unit_id) for enemy in local_threats)),
+        }
+
+    def _founder_production_financing(
+            self, snapshot, city, founder_normalized, projection):
+        """Prove the treasury can carry a founder from queue to settlement.
+
+        A Coinage city can make the effective balance look safe while the
+        proposed queue switch removes the exact cash that provides that safety.
+        Count that loss immediately, then include ruleset-declared founder
+        upkeep between completion and settlement. Missing authoritative economy
+        evidence preserves the previous behavior and is explicitly projected.
+        """
+        economy = snapshot.economy
+        if not economy.available or economy.gold is None:
+            return {"founder_financing_available": False}
+        effective_net = self._net_gold_per_turn(snapshot)
+        if effective_net is None:
+            return {"founder_financing_available": False}
+        current_normalized = _normalized_type(
+            self._current_production_name(city))
+        coinage_removed = self._current_coinage_contribution(
+            snapshot, city, current_normalized)
+        construction_net = int(effective_net) - int(coinage_removed)
+        completion_turns = max(
+            1, int(projection.get("completion_eta_turns") or 1))
+        settlement_turns = max(
+            completion_turns,
+            int(projection.get("settlement_eta_turns")
+                or completion_turns))
+        founder_upkeep = max(
+            0, int(self._production_specs.get(
+                founder_normalized, {}).get("uk_gold", 0)))
+        gold = int(economy.gold)
+        treasury_at_completion = (
+            gold + construction_net * completion_turns)
+        post_completion_turns = settlement_turns - completion_turns
+        treasury_at_settlement = (
+            treasury_at_completion
+            + (construction_net - founder_upkeep)
+            * post_completion_turns)
+        reserve = self._treasury_reserve_required(
+            snapshot, founder_upkeep)
+        if min(treasury_at_completion, treasury_at_settlement) < reserve:
+            return None
+        return {
+            "founder_financing_available": True,
+            "founder_financing_coinage_removed": coinage_removed,
+            "founder_financing_construction_gold_per_turn": (
+                construction_net),
+            "founder_financing_gold_at_completion": (
+                treasury_at_completion),
+            "founder_financing_gold_at_settlement": (
+                treasury_at_settlement),
+            "founder_financing_post_completion_upkeep": founder_upkeep,
+            "founder_financing_reserve_required": reserve,
+        }
+
     def _production_candidate(
             self, snapshot, action, founder_types, actions,
             action_key=None, action_keys=None, shared_context=None):
@@ -4051,12 +4479,50 @@ class GroundedImpactPlanner(object):
         expansion_capacity = city_count + len(founders) + queued_founders
         founder_deficit = max(0, self.expansion_city_target - expansion_capacity)
         needs_founder = founder_deficit > 0
+        viable_founder_projections = (
+            shared(
+                "viable_founder_production_projections",
+                lambda: self._viable_founder_production_projections(
+                    snapshot, actions, founder_types, remaining_turns))
+            if needs_founder else {})
+        current_action_key = (
+            action_key if action_key is not None else
+            canonical_json_bytes(action).decode("utf-8"))
         current_projection = shared(
             ("current_projection", city.city_id),
             lambda: (self._production_projection(
                 city, current_name, remaining_turns, snapshot=snapshot,
                 founder_types=founder_types)
                      if current_name else None))
+        current_founder_attrition_blocked = bool(
+            current_normalized in founder_types
+            and self._founder_production_attrition_blocked(
+                snapshot, city, founder_types))
+        if (current_founder_attrition_blocked
+                and normalized == "coinage"):
+            guard_turns, latest_attrition_turn, lifecycle_losses = (
+                self._founder_attrition_backoff(
+                    snapshot, founder_types))
+            treasury_emergency = self._treasury_deficit(snapshot)
+            return ImpactCandidate(
+                action,
+                ("production_treasury_stabilization"
+                 if treasury_emergency else
+                 "production_founder_attrition_recovery"),
+                2075.0 if treasury_emergency else 1900.0,
+                "interrupt a repeating founder queue after a recent local "
+                "attrition event; retain cash production until the bounded "
+                "recovery backoff permits another grounded attempt",
+                {
+                    "city_id": int(city.city_id),
+                    "discarded_shield_stock": max(
+                        0, int(city.shield_stock or 0)),
+                    "founder_attrition_backoff_turns": guard_turns,
+                    "founder_attrition_latest_turn": latest_attrition_turn,
+                    "founder_attrition_lifecycle_losses": lifecycle_losses,
+                    "founder_queue_before": current_name,
+                    "treasury_emergency": treasury_emergency,
+                })
         current_queue_counted = int(
             current_normalized in founder_types
             and current_projection is not None
@@ -4586,18 +5052,25 @@ class GroundedImpactPlanner(object):
         if preexpansion_growth is not None:
             return preexpansion_growth
         if (needs_founder and normalized in founder_types
-                and not (
-                    self.founder_attrition_rebuild_limit > 0
-                    and self._founder_attrition_total(
-                        snapshot, founder_types)
-                    >= self.founder_attrition_rebuild_limit
-                    and snapshot.visible_enemy_units)
-                and remaining_turns >= self.expansion_minimum_remaining_turns
-                and projection.get("settlement_eta_turns") is not None
-                and projection["settlement_eta_turns"] <= remaining_turns
-                and projection.get("settlement_runway_turns", -1)
-                >= self.expansion_minimum_settlement_runway_turns
-                and projection["score_value"] > 0):
+                and current_action_key in viable_founder_projections):
+            projection = dict(
+                viable_founder_projections[current_action_key])
+            projection.update({
+                "existing_founders": len(founders),
+                "expansion_capacity_before": expansion_capacity,
+                "founder_deficit_before": founder_deficit,
+                "queued_founders": queued_founders,
+            })
+            if self._city_loss_recovery_active(snapshot):
+                projection.update({
+                    "city_loss_recovery": True,
+                    "city_loss_recovery_started_turn": (
+                        self._city_loss_recovery_started_turn),
+                    "city_loss_recovery_target": (
+                        self._city_loss_recovery_target),
+                    "lost_city_ids": tuple(sorted(
+                        self._city_loss_recovery_lost_city_ids)),
+                })
             return ImpactCandidate(
                 action, "production_expansion",
                 920.0 + projection["score_value"] * 10.0
@@ -4607,10 +5080,11 @@ class GroundedImpactPlanner(object):
                 "route ETA project positive score value by the horizon",
                 projection)
 
-        # Protect expansion capacity: when the target has not been met and no
-        # founder exists, economy or military production must not displace the
-        # legal founder opportunity.
-        if needs_founder:
+        # Protect expansion capacity only while a founder opportunity is truly
+        # executable. If every founder build is blocked by authoritative safety,
+        # timing, population, or runway evidence, retain recovery, research, and
+        # strategic production instead of deadlocking all cities.
+        if needs_founder and viable_founder_projections:
             return None
 
         # A late accepted switch can register as transport activity while being
@@ -4627,7 +5101,8 @@ class GroundedImpactPlanner(object):
             snapshot, action, city, name, normalized, projection,
             current_projection, defenders, current_normalized)
         if strategic_candidate is not None:
-            return strategic_candidate
+            return self._production_continuity_candidate(
+                snapshot, city, current_normalized, strategic_candidate)
         local_defenders = tuple(
             unit for unit in defenders
             if (unit.x, unit.y) == (city.x, city.y))
@@ -4669,12 +5144,14 @@ class GroundedImpactPlanner(object):
                     return None
                 if projection["score_value"] <= 0:
                     return None
-                return ImpactCandidate(
+                candidate = ImpactCandidate(
                     action, "production_economy",
                     740.0 + projection["score_value"] * 10.0
                     - projection["completion_eta_turns"] - index * 0.01,
                     "select score-bearing economy production using build ETA and city output",
                     projection)
+                return self._production_continuity_candidate(
+                    snapshot, city, current_normalized, candidate)
 
         for index, target in enumerate(DEFENDER_PRIORITY):
             if name.lower() != target.lower():
@@ -4713,11 +5190,13 @@ class GroundedImpactPlanner(object):
                 if current_is_redundant_founder else
                 "select a confirmed city batch whose incremental repeated unit "
                 "production guarantees fixed-horizon units-built score")
-            return ImpactCandidate(
+            candidate = ImpactCandidate(
                 action, category,
                 base_utility + projection["score_value"] * 10.0
                 - projection["completion_eta_turns"] - index * 0.01,
                 reason, projection)
+            return self._production_continuity_candidate(
+                snapshot, city, current_normalized, candidate)
 
         # Sub-threshold non-deficit unit churn remains excluded unless it
         # retires a now-redundant founder build.
@@ -5751,6 +6230,7 @@ class GroundedImpactPlanner(object):
 
     def plan(self, snapshot, excluded=(), excluded_scopes=(),
              diagnostics=None):
+        self.last_stranded_pressure_artifact = None
         candidate_started = time.perf_counter()
         rows = self.candidates(
             snapshot, excluded=excluded, excluded_scopes=excluded_scopes,
@@ -5765,6 +6245,38 @@ class GroundedImpactPlanner(object):
                 diagnostics.get("candidate_latency_ms", 0.0)
                 + candidate_latency_ms)
         if not rows:
+            if self._pressure_ranker is not None:
+                pressure_started = time.perf_counter()
+                _, self.last_stranded_pressure_artifact = (
+                    self._pressure_ranker.rank(
+                        snapshot, (), self.expansion_city_target,
+                        self.horizon_turn,
+                        self.pressure_survival_threat_radius,
+                        diagnostics=diagnostics,
+                        _goal_facts=self._sustainability_facts(snapshot)))
+                if diagnostics is not None:
+                    diagnostics["pressure_latency_ms"] = (
+                        diagnostics.get("pressure_latency_ms", 0.0)
+                        + (time.perf_counter() - pressure_started) * 1000.0)
+                    diagnostics["pressure_calls"] = (
+                        diagnostics.get("pressure_calls", 0) + 1)
+                    diagnostics["stranded_pressure_calls"] = (
+                        diagnostics.get("stranded_pressure_calls", 0) + 1)
+                    dependency = self.last_stranded_pressure_artifact[
+                        "pressure"]["dependency"]
+                    active_goal_count = sum(
+                        any(float(value) > 0.0 for value in atoms.values())
+                        for atoms in dependency.values())
+                    diagnostics["stranded_goal_count"] = (
+                        diagnostics.get("stranded_goal_count", 0)
+                        + active_goal_count)
+                else:
+                    active_goal_count = sum(
+                        any(float(value) > 0.0 for value in atoms.values())
+                        for atoms in self.last_stranded_pressure_artifact[
+                            "pressure"]["dependency"].values())
+                if active_goal_count == 0:
+                    self.last_stranded_pressure_artifact = None
             return None
         pressure_artifact = None
         if self._pressure_ranker is not None:

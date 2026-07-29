@@ -39,13 +39,26 @@ from freeciv.harness.engine_live import (  # noqa: E402
     _impact_refresh_timeout,
     _decision_state_fingerprint, _decision_state_ready, _global_state_ready,
     _global_state, _player_eliminated, _release_configuration_active, _state,
-    _selection_target_rules, _target_rules, _validate_compact_goal_proposal,
+    _retain_terminal_predictions, _selection_target_rules, _target_rules,
+    _validate_compact_goal_proposal,
     _websocket_compression)
 from freeciv.harness import engine_live  # noqa: E402
 from freeciv_agent.events.schema import canonical_json_bytes, structural_hash  # noqa: E402
 from freeciv_agent.events.validator import validate_file  # noqa: E402
 from freeciv_agent.events.writer import EventWriter  # noqa: E402
 from freeciv_agent.state import ProxyStateDTO  # noqa: E402
+
+
+def test_terminal_calibration_retains_only_latest_prediction_per_atom():
+    earlier = SimpleNamespace(atom_id="belief-a", strength=0.4)
+    other = SimpleNamespace(atom_id="belief-b", strength=0.6)
+    later = SimpleNamespace(atom_id="belief-a", strength=0.9)
+    predictions = {}
+
+    _retain_terminal_predictions(predictions, (earlier, other))
+    _retain_terminal_predictions(predictions, (later,))
+
+    assert predictions == {"belief-a": later, "belief-b": other}
 
 
 def test_config_accepts_the_versioned_960_turn_horizon():

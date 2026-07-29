@@ -1246,6 +1246,11 @@ def _emit_observations(snapshot, manifest, store, inference, writer, parent, see
     return predictions, parent
 
 
+def _retain_terminal_predictions(predictions, revisions):
+    """Retain the latest post-game calibration prediction for each atom."""
+    predictions.update((belief.atom_id, belief) for belief in revisions)
+
+
 def _emit_opponent_presence(raw, snapshot, manifest, store, writer, parent, player_id):
     """Ground a monitor assumption in player-visible roster packets.
 
@@ -1629,7 +1634,12 @@ async def _play(run_dir, manifest, context):
         # A declared neutral prior is used for game one. Later predictions are
         # read from persisted prior games before current-game truth is available.
         induction_prediction = induction_estimate["predicted"]
-    predictions = []
+    # A belief atom can be revised after many independent unit sightings.  The
+    # post-game calibration population is one terminal prediction per atom,
+    # not one copy of every intermediate revision.  Keeping the latest value
+    # also prevents a large late-game army from creating an unbounded terminal
+    # telemetry burst.
+    predictions = {}
     monitor_belief = None
     seen = set()
     blocked_moves = set()
@@ -1974,7 +1984,7 @@ async def _play(run_dir, manifest, context):
                 context.use("uncertain_beliefs")
                 rows, parent = _emit_observations(
                     snapshot, manifest, belief_store, inference, writer, parent, seen)
-                predictions.extend(rows)
+                _retain_terminal_predictions(predictions, rows)
             if _game_terminal(snapshot):
                 terminal_game_over = snapshot.game_over
                 terminal_player_elimination = _player_eliminated(snapshot)
@@ -2078,6 +2088,35 @@ async def _play(run_dir, manifest, context):
                         time.perf_counter() - impact_planning_started) * 1000.0
                     impact_planning_calls += 1
                     if decision is None:
+                        stranded = (
+                            impact_planner.last_stranded_pressure_artifact)
+                        if stranded is not None:
+                            pressure_value = stranded["pressure"]
+                            schedule_value = stranded["schedule"]
+                            pressure_hash = schedule_value["pressure_hash"]
+                            pressure_id = (
+                                "pressure-" + pressure_hash[:20])
+                            pressure_event = writer.emit(
+                                "pressure_propagated", snapshot.turn, {
+                                    "conductance_state": stranded[
+                                        "conductance_state"],
+                                    "config": pressure_value["config"],
+                                    "dependency": pressure_value[
+                                        "dependency"],
+                                    "goals": pressure_value["goals"],
+                                    "graph_hash": pressure_value[
+                                        "graph_hash"],
+                                    "operational_pressure": pressure_value[
+                                        "pressure"],
+                                    "pressure_id": pressure_id,
+                                    "result_hash": pressure_hash,
+                                    "traces": pressure_value["traces"],
+                                }, caused_by=[parent])
+                            parent = pressure_event["event_id"]
+                            impact_planning_diagnostics[
+                                "stranded_pressure_events"] = (
+                                    impact_planning_diagnostics.get(
+                                        "stranded_pressure_events", 0) + 1)
                         break
                     impact_action = decision.candidate.action
                     action_snapshot = snapshot
@@ -2420,7 +2459,7 @@ async def _play(run_dir, manifest, context):
     truth_techs = set((final_global or {}).get("techs", {}).get(
         "player{}".format(opponent.get("id", 1)), []))
     correct = []
-    for belief in predictions:
+    for belief in predictions.values():
         tech = str(belief.key.arguments[-1])
         is_true = tech in truth_techs
         correct.append(is_true)
@@ -2430,7 +2469,8 @@ async def _play(run_dir, manifest, context):
             opponent=manifest["opponent"].get("id", "builtin-ai-experimental"),
             atom_id=belief.atom_id)
     calibration_error = (sum(abs(belief.strength - int(value))
-                             for belief, value in zip(predictions, correct)) / len(correct)
+                             for belief, value in zip(
+                                 predictions.values(), correct)) / len(correct)
                          if correct else 0.0)
     player_row = _player_row(final_global or {}, player_id)
     opponent_row = _player_row(final_global or {}, opponent.get("id", 1))
@@ -2519,6 +2559,14 @@ async def _play(run_dir, manifest, context):
          / max(1, impact_planning_calls)),
         ("impact_planning_candidate_count",
          float(impact_planning_diagnostics.get("candidate_count", 0))
+         / max(1, impact_planning_calls)),
+        ("impact_planning_stranded_pressure_events_per_turn",
+         float(impact_planning_diagnostics.get(
+             "stranded_pressure_events", 0))
+         / max(1, turns_executed)),
+        ("impact_planning_stranded_goals_per_decision",
+         float(impact_planning_diagnostics.get(
+             "stranded_goal_count", 0))
          / max(1, impact_planning_calls)),
         ("impact_planning_legal_action_count",
          float(impact_planning_diagnostics.get("legal_action_count", 0))

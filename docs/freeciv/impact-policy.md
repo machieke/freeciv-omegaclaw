@@ -26,6 +26,9 @@ its own causal trace before `plan_created`.
 impact_policy:
   max_actions_per_turn: 8
   expansion_city_target: 3
+  founder_attrition_rebuild_limit: 1
+  founder_attrition_memory_turns: 20
+  coinage_bridge_max_turns: 20
   settle_min_distance: 3
   horizon_turn: 30
   production_minimum_remaining_turns: 8
@@ -456,6 +459,43 @@ queue is retained from zero shields through completion unless the authoritative
 treasury actually breaches its reserve. These bounds were derived from the
 rejected v51/v52 engine ablations; see
 `evidence/pf-pln-strategic-960-v1.md`.
+
+Adapter 1.34 closes the production deadlock found by the 2,000-turn diagnostic.
+Founder attrition is now a recent, city-local safety memory rather than a
+permanent map-wide ban. Losing an owned city starts a new recovery lifecycle,
+so attrition predating that loss cannot consume the replacement-founder budget.
+Repeated losses inside that lifecycle double the local retry guard up to a
+bounded eight-times/200-turn ceiling. During active city-loss recovery, a
+replacement founder lost along its settlement route enforces that bounded
+guard even when the producer has no currently visible local enemy; outside that
+lifecycle the guard remains city-local. A newly lost founder also interrupts
+an already repeating founder queue immediately, preferring an available
+grounded defense operation and otherwise using Coinage until the retry guard
+expires.
+Expansion reserves other city queues only when at least one founder build passes
+the same legal, attrition, population, runway, treasury-financing, and horizon
+checks used to materialize it. Founder financing removes the selected city's
+packet-observed Coinage contribution immediately, carries ruleset-declared
+founder upkeep from completion to settlement, and requires the exact treasury
+to retain its upkeep reserve at both boundaries. A city-loss replacement founder
+requires the producing city to meet its full exact garrison requirement; when a
+packet-visible enemy is inside the city threat radius, it additionally requires
+one surplus local defender. This prevents an automatic defender queue's first
+completion from opening a founder queue that must be discarded as soon as the
+remaining garrison deficit or same combat window is observed. If no founder
+route is viable, research, survival, and productive fallbacks remain eligible.
+
+The same adapter adds explicit `research_sustainability` pressure when net
+beakers are nonpositive or technology upkeep consumes at least one quarter of
+gross science. `production_continuity` becomes unresolved whenever a Coinage
+bridge exceeds `coinage_bridge_max_turns`, even when treasury safety correctly
+blocks its release. In that case the artifact distinguishes expired,
+releasable, and treasury-blocked city IDs. Negative structural operating cash
+masked by expired Coinage remains an unresolved `treasury_sustainability` goal
+instead of being reported safe from the effective balance alone. An active goal
+with no candidate still emits a `pressure_propagated` artifact with no operation
+traces, plus stranded-pressure metrics, instead of disappearing from
+observability.
 
 Stable-government initiation can optionally add a bounded economic gate. The
 configured `government_expected_operating_gold_gain` is an explicit policy
@@ -1283,6 +1323,12 @@ development direction only: the five seeds were already exposed by the invalid f
 `n=5` is underpowered, and the result cannot revise the immutable claim.
 
 ## Operational note
+
+The long-horizon production-recovery and stranded-pressure correction is
+documented in
+[PF-PLN production-recovery hardening](evidence/pf-pln-production-recovery-v1.md).
+Its final 2,000-turn engine confirmation is mechanism and queue-efficiency
+evidence only; it does not revise the score or win-rate claim.
 
 On the recorded CPU host, a cold load of `qwen3-coder-next:latest` took 41.6 seconds,
 which exceeds the configured 28-second generation budget. The runner handles this

@@ -34,6 +34,8 @@ METRICS = (
     "impact_planning_pressure_latency_ms",
     "impact_planning_materialization_latency_ms",
     "impact_planning_candidate_count",
+    "impact_planning_stranded_pressure_events_per_turn",
+    "impact_planning_stranded_goals_per_decision",
     "impact_planning_legal_action_count",
     "impact_planning_catalog_latency_ms",
     "impact_planning_candidate_setup_latency_ms",

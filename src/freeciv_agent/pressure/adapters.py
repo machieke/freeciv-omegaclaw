@@ -182,6 +182,7 @@ class ImpactPressureRanker(object):
         "production_defense": "survival",
         "production_coastal_defense": "survival",
         "production_fleet_readiness": "score",
+        "production_founder_attrition_recovery": "survival",
         "production_food_stabilization": "food_sustainability",
         "production_happiness_recovery": "survival",
         "production_industrialization": "score",
@@ -189,7 +190,8 @@ class ImpactPressureRanker(object):
         "production_modernization": "score",
         "production_threat_modernization": "survival",
         "production_naval_response": "survival",
-        "production_research_infrastructure": "score",
+        "production_research_infrastructure": "research_sustainability",
+        "production_continuity": "production_continuity",
         "production_commerce_infrastructure": "treasury_sustainability",
         "production_treasury_stabilization": "treasury_sustainability",
         "tactical_attack": "survival",
@@ -432,6 +434,38 @@ class ImpactPressureRanker(object):
             "food_safe_fraction", 1.0 if not food_city_ids else 0.0))
         food_truth = min(1.0, max(0.0, food_truth))
         treasury_deficit = bool(goal_facts.get("treasury_deficit", False))
+        treasury_structural_deficit = bool(
+            goal_facts.get("treasury_structural_deficit", False))
+        research_deficit = bool(goal_facts.get("research_deficit", False))
+        research_stalled_turns = int(
+            goal_facts.get("research_stalled_turns", 0) or 0)
+        production_continuity_city_ids = tuple(
+            goal_facts.get("production_continuity_city_ids", ()))
+        production_continuity_releasable_city_ids = tuple(
+            goal_facts.get(
+                "production_continuity_releasable_city_ids", ()))
+        production_continuity_blocked_city_ids = tuple(
+            goal_facts.get(
+                "production_continuity_blocked_city_ids", ()))
+        production_continuity_deficit = bool(
+            goal_facts.get(
+                "production_continuity_deficit",
+                production_continuity_city_ids))
+        city_loss_recovery = bool(
+            goal_facts.get("city_loss_recovery", False))
+        if current_cities < int(expansion_city_target):
+            expansion_grounding = (
+                "authoritative:owned-city-loss-recovery:{}-of-{}".format(
+                    current_cities,
+                    int(goal_facts.get(
+                        "city_loss_recovery_target",
+                        expansion_city_target)))
+                if city_loss_recovery else
+                "authoritative:city-count-below-target:{}-of-{}".format(
+                    current_cities, int(expansion_city_target)))
+        else:
+            expansion_grounding = (
+                "authoritative:city-count-at-or-above-target")
         government_recovery = next((
             candidate for candidate in candidates
             if candidate.category == "government_recovery"), None)
@@ -494,9 +528,37 @@ class ImpactPressureRanker(object):
                  "authoritative:all-city-food-reserves-safe")),
             "treasury_sustainability": (
                 0.0 if treasury_deficit else 1.0, 1.65, True,
-                ("authoritative:net-gold-or-turn-start-upkeep-reserve-deficit"
+                ("authoritative:expired-coinage-masks-negative-operating-gold"
+                 ":operating={}:effective={}".format(
+                     goal_facts.get("treasury_operating_gold_per_turn"),
+                     goal_facts.get("treasury_net_gold_per_turn"))
+                 if treasury_structural_deficit else
+                 "authoritative:net-gold-or-turn-start-upkeep-reserve-deficit"
                  if treasury_deficit else
                  "authoritative:net-gold-and-turn-start-upkeep-reserve-safe")),
+            "research_sustainability": (
+                0.0 if research_deficit else 1.0, 1.55, False,
+                ("authoritative:material-research-throughput-deficit"
+                 ":gross={}:upkeep={}:net={}:stalled={}".format(
+                     goal_facts.get("research_gross_beakers_per_turn"),
+                     goal_facts.get("research_tech_upkeep"),
+                     goal_facts.get("research_net_beakers_per_turn"),
+                     research_stalled_turns)
+                 if research_deficit else
+                 "authoritative:positive-net-research")),
+            "production_continuity": (
+                0.0 if production_continuity_deficit else 1.0,
+                1.25, False,
+                ("authoritative:expired-coinage-bridge-cities:{}"
+                 ":releasable={}:treasury-blocked={}".format(
+                     ",".join(str(value)
+                              for value in production_continuity_city_ids),
+                     ",".join(str(value) for value
+                              in production_continuity_releasable_city_ids),
+                     ",".join(str(value) for value
+                              in production_continuity_blocked_city_ids))
+                 if production_continuity_deficit else
+                 "authoritative:no-expired-coinage-bridge")),
             "governance": (
                 0.0 if governance_candidate is not None else 1.0,
                 2.00 if government_recovery is not None else 1.35,
@@ -508,8 +570,9 @@ class ImpactPressureRanker(object):
                  if government_transition is not None else
                  "authoritative:no-grounded-government-action")),
             "expansion": (
-                expansion_truth, 1.25, False,
-                "authoritative:city-count-over-target"),
+                expansion_truth,
+                1.60 if city_loss_recovery else 1.25,
+                False, expansion_grounding),
             "score": (
                 0.0 if score_actionable or score_deficit else 1.0,
                 min(1.75, 1.00 + abs(float(score_gap or 0)) / 100.0),
@@ -637,8 +700,6 @@ class ImpactPressureRanker(object):
             diagnostics=None, _conservative_safety_replay=False,
             _goal_facts=None):
         candidates = tuple(candidates)
-        if not candidates:
-            return (), None
         if (isinstance(survival_threat_radius, bool)
                 or not 1 <= int(survival_threat_radius) <= 12):
             raise ValueError("survival threat radius must be in 1..12")

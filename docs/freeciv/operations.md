@@ -123,7 +123,14 @@ Action-phase attribution reports `turn_action_refresh_state_latency_ms`,
 `impact_planning_candidate_latency_ms`,
 `impact_planning_pressure_latency_ms`,
 `impact_planning_materialization_latency_ms`, and the mean
-`impact_planning_candidate_count`. Candidate attribution further reports mean
+`impact_planning_candidate_count`. Zero-candidate cycles also report
+`impact_planning_stranded_pressure_events_per_turn` and
+`impact_planning_stranded_goals_per_decision`, preserving unresolved goal
+pressure in the event stream. Coinage-continuity goal context identifies
+expired, releasable, and treasury-blocked city IDs; treasury context separately
+identifies a negative operating balance masked by Coinage, so a safe refusal is
+observable rather than mislabeled as a satisfied goal. Candidate attribution
+further reports mean
 legal-action count plus catalog, setup, production, movement, other-action, and
 finalization latency. Pressure attribution separates graph construction,
 propagation, operation construction, scheduling, and artifact materialization.

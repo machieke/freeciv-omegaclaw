@@ -46,6 +46,8 @@ impact_policy:
   government_maximum_payback_turns: 60
   government_expected_operating_gold_gain: 0
   founder_attrition_rebuild_limit: 1
+  founder_attrition_memory_turns: 20
+  coinage_bridge_max_turns: 20
   production_minimum_remaining_turns: 8
   expansion_minimum_remaining_turns: 12
   # Default zero preserves prior cohorts. Fresh expansion-target cohorts

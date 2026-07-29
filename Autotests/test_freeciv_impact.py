@@ -2160,6 +2160,14 @@ def test_policy_budget_is_bounded_and_end_turn_is_never_an_impact_candidate():
                    {"founder_attrition_rebuild_limit": -1},
                    {"founder_attrition_rebuild_limit": 1.5},
                    {"founder_attrition_rebuild_limit": 21},
+                   {"founder_attrition_memory_turns": True},
+                   {"founder_attrition_memory_turns": 0},
+                   {"founder_attrition_memory_turns": 1.5},
+                   {"founder_attrition_memory_turns": 201},
+                   {"coinage_bridge_max_turns": True},
+                   {"coinage_bridge_max_turns": 0},
+                   {"coinage_bridge_max_turns": 1.5},
+                   {"coinage_bridge_max_turns": 201},
                    {"disorder_luxury_recovery_enabled": 1},
                    {"disorder_luxury_trigger_turns": True},
                    {"disorder_luxury_trigger_turns": 0},
@@ -2324,6 +2332,32 @@ def test_plan_diagnostics_attribute_candidate_pressure_and_materialization():
     assert diagnostics["pressure_schedule_latency_ms"] >= 0.0
     assert diagnostics["pressure_artifact_latency_ms"] >= 0.0
     assert diagnostics["materialization_latency_ms"] >= 0.0
+
+
+def test_plan_retains_pressure_when_active_goals_have_no_candidates():
+    snapshot = _snapshot(
+        [], [{"action_type": "end_turn", "is_valid": True}],
+        research={
+            "beakers_per_turn": -1,
+            "gross_beakers_per_turn": 0,
+            "tech_upkeep": 1,
+        })
+    planner = GroundedImpactPlanner({
+        "pressure_enabled": True,
+        "expansion_city_target": 2,
+    })
+    diagnostics = {}
+
+    assert planner.plan(snapshot, diagnostics=diagnostics) is None
+
+    artifact = planner.last_stranded_pressure_artifact
+    assert artifact is not None
+    assert artifact["schedule"]["selected_operation_id"] is None
+    assert artifact["pressure"]["traces"] == []
+    assert artifact["pressure"]["dependency"]["pf-impact:expansion"][
+        "pf-impact-goal:expansion"] > 0.0
+    assert diagnostics["stranded_pressure_calls"] == 1
+    assert diagnostics["stranded_goal_count"] >= 2
 
 
 def test_legal_actions_are_decoded_once_per_immutable_snapshot():
@@ -4276,7 +4310,7 @@ def test_treasury_stabilizer_requires_extra_runway_before_expansion_release():
     durable = _snapshot(
         [_unit(11, "Alpine Troops")], actions, cities=[city],
         player={
-            "gold": 38, "city_gold_surplus_per_turn": -9,
+            "gold": 80, "city_gold_surplus_per_turn": -9,
             "gold_per_turn": -9, "unit_gold_upkeep": 0,
             "gold_upkeep_reserve": 0,
         }, source_seq=2)
@@ -4285,7 +4319,12 @@ def test_treasury_stabilizer_requires_extra_runway_before_expansion_release():
     assert planner._treasury_recovery_can_release(boundary) is False
     assert planner.plan(boundary) is None
     assert planner._treasury_recovery_can_release(durable) is True
-    assert planner.plan(durable).candidate.category == "production_expansion"
+    decision = planner.plan(durable)
+    assert decision.candidate.category == "production_expansion"
+    assert decision.candidate.projection[
+        "founder_financing_gold_at_settlement"] >= (
+            decision.candidate.projection[
+                "founder_financing_reserve_required"])
 
 
 def test_coinage_release_uses_post_switch_cash_flow_for_garrison_runway():
@@ -4510,6 +4549,444 @@ def test_visible_pressure_blocks_rebuild_after_observed_founder_attrition():
     assert planner.plan(under_pressure) is None
     assert planner.plan(
         pressure_gone).candidate.category == "production_expansion"
+
+
+def test_founder_attrition_guard_expires_even_while_enemy_remains_visible():
+    settler = _production(10, "Settlers", 6, 0)
+    actions = [settler, {"action_type": "end_turn", "is_valid": True}]
+    ruleset = _ruleset_ir((("Settlers", "unit", 20),))
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 2,
+        "founder_attrition_rebuild_limit": 1,
+        "founder_attrition_memory_turns": 5,
+        "horizon_turn": 100,
+    }, ruleset_ir=ruleset)
+    founder_present = _snapshot(
+        [_unit(1, "Settlers", x=2), _enemy(99, "Riflemen", 3, 0)],
+        actions, turn=1)
+    founder_lost = _snapshot(
+        [_enemy(99, "Riflemen", 3, 0)],
+        actions, source_seq=2, turn=2)
+    memory_expired = _snapshot(
+        [_unit(11, "Alpine Troops"), _unit(12, "Alpine Troops"),
+         _enemy(99, "Riflemen", 3, 0)],
+        actions, source_seq=3, turn=8)
+
+    planner.observe(founder_present)
+    planner.observe(founder_lost)
+
+    assert planner.plan(founder_lost) is None
+    assert planner.plan(
+        memory_expired).candidate.category == "production_expansion"
+
+
+def test_founder_attrition_backoff_grows_after_repeated_recovery_losses():
+    actions = [
+        _production(10, "Settlers", 6, 0),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    ruleset = _ruleset_ir((("Settlers", "unit", 20),))
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 2,
+        "founder_attrition_rebuild_limit": 1,
+        "founder_attrition_memory_turns": 5,
+        "horizon_turn": 100,
+    }, ruleset_ir=ruleset)
+    enemy = _enemy(99, "Riflemen", 3, 0)
+
+    planner.observe(_snapshot(
+        [_unit(1, "Settlers", x=2), enemy], actions, turn=1))
+    planner.observe(_snapshot(
+        [enemy], actions, source_seq=2, turn=2))
+    planner.observe(_snapshot(
+        [_unit(2, "Settlers", x=2), enemy],
+        actions, source_seq=3, turn=8))
+    second_loss = _snapshot(
+        [enemy], actions, source_seq=4, turn=9)
+    planner.observe(second_loss)
+
+    guard_turns, latest_turn, losses = planner._founder_attrition_backoff(
+        second_loss, frozenset({"settlers"}))
+    assert (guard_turns, latest_turn, losses) == (10, 9, 2)
+    assert planner.plan(second_loss) is None
+
+    expired = _snapshot(
+        [_unit(11, "Alpine Troops"), _unit(12, "Alpine Troops"), enemy],
+        actions, source_seq=5, turn=20)
+    assert planner.plan(
+        expired).candidate.category == "production_expansion"
+
+
+def test_owned_city_loss_reopens_recovery_after_older_founder_attrition():
+    settler = _production(10, "Settlers", 6, 0)
+    actions = [settler, {"action_type": "end_turn", "is_valid": True}]
+    ruleset = _ruleset_ir((("Settlers", "unit", 20),))
+    second_city = dict(_city())
+    second_city.update({"id": 20, "name": "Antium", "x": 5, "tile": 5})
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 3,
+        "founder_attrition_rebuild_limit": 1,
+        "founder_attrition_memory_turns": 200,
+        "horizon_turn": 200,
+    }, ruleset_ir=ruleset)
+    founder_present = _snapshot(
+        [_unit(1, "Settlers", x=2), _enemy(99, "Riflemen", 3, 0)],
+        actions, cities=[_city(), second_city], turn=1)
+    founder_lost = _snapshot(
+        [_enemy(99, "Riflemen", 3, 0)],
+        actions, cities=[_city(), second_city], source_seq=2, turn=2)
+    city_lost_unprotected = _snapshot(
+        [], actions, cities=[_city()], source_seq=3, turn=100)
+    city_lost = _snapshot(
+        [_unit(11, "Alpine Troops"), _unit(12, "Alpine Troops"),
+         _enemy(99, "Riflemen", 3, 0)],
+        actions, cities=[_city()], source_seq=4, turn=101)
+
+    planner.observe(founder_present)
+    planner.observe(founder_lost)
+    assert planner.plan(founder_lost) is None
+
+    planner.observe(city_lost_unprotected)
+    assert planner.plan(city_lost_unprotected) is None
+
+    planner.observe(city_lost)
+    decision = planner.plan(city_lost)
+
+    assert decision.candidate.category == "production_expansion"
+    assert decision.candidate.projection["city_loss_recovery"] is True
+    assert decision.candidate.projection["city_loss_recovery_target"] == 2
+    assert decision.candidate.projection["lost_city_ids"] == (20,)
+
+
+def test_city_loss_recovery_honors_route_attrition_without_local_enemy():
+    settler = _production(10, "Settlers", 6, 0)
+    actions = [settler, {"action_type": "end_turn", "is_valid": True}]
+    ruleset = _ruleset_ir((("Settlers", "unit", 20),))
+    second_city = dict(_city())
+    second_city.update({"id": 20, "name": "Antium", "x": 5, "tile": 5})
+    defenders = [
+        _unit(11, "Alpine Troops"), _unit(12, "Alpine Troops")]
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 2,
+        "founder_attrition_rebuild_limit": 1,
+        "founder_attrition_memory_turns": 20,
+        "horizon_turn": 100,
+    }, ruleset_ir=ruleset)
+    planner.observe(_snapshot(
+        defenders, actions, cities=[_city(), second_city], turn=1))
+    city_lost = _snapshot(
+        defenders, actions, cities=[_city()], source_seq=2, turn=2)
+    planner.observe(city_lost)
+    assert planner.plan(
+        city_lost).candidate.category == "production_expansion"
+
+    planner.observe(_snapshot(
+        defenders + [_unit(50, "Settlers", x=2)],
+        actions, cities=[_city()], source_seq=3, turn=3))
+    route_loss = _snapshot(
+        defenders, actions, cities=[_city()], source_seq=4, turn=4)
+    planner.observe(route_loss)
+
+    assert route_loss.visible_enemy_units == ()
+    assert planner.plan(route_loss) is None
+
+    expired = _snapshot(
+        defenders, actions, cities=[_city()], source_seq=5, turn=25)
+    assert planner.plan(
+        expired).candidate.category == "production_expansion"
+
+
+def test_blocked_founder_does_not_reserve_research_recovery_production():
+    actions = [
+        _production(10, "Settlers", 6, 0),
+        _production(10, "Library", 3, 17),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    ruleset = _ruleset_ir((
+        ("Settlers", "unit", 20),
+        ("Library", "improvement", 40),
+        ("Coinage", "improvement", 999),
+    ))
+    city = _city(
+        size=4, production_kind=3, production_value=72,
+        surplus=(1, 4, 2, 1, 0, 3))
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 2,
+        "founder_attrition_rebuild_limit": 1,
+        "founder_attrition_memory_turns": 20,
+        "horizon_turn": 100,
+        "ruleset_driven_production_enabled": True,
+    }, ruleset_ir=ruleset)
+    founder_present = _snapshot(
+        [_unit(1, "Settlers", x=2), _unit(11, "Alpine Troops"),
+         _enemy(99, "Riflemen", 3, 0)],
+        actions, cities=[city], turn=1,
+        research={
+            "beakers_per_turn": -1,
+            "gross_beakers_per_turn": 2,
+            "tech_upkeep": 3,
+        })
+    founder_lost = _snapshot(
+        [_unit(11, "Alpine Troops"), _enemy(99, "Riflemen", 3, 0)],
+        actions, cities=[city], source_seq=2, turn=2,
+        research={
+            "beakers_per_turn": -1,
+            "gross_beakers_per_turn": 2,
+            "tech_upkeep": 3,
+        })
+
+    planner.observe(founder_present)
+    planner.observe(founder_lost)
+    decision = planner.plan(founder_lost)
+
+    assert decision.candidate.category == "production_research_infrastructure"
+    assert decision.candidate.action["target"]["production_type"] == "Library"
+
+
+def test_founder_viability_removes_current_coinage_through_settlement():
+    actions = [
+        _production(10, "Settlers", 6, 0),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    ruleset = _ruleset_ir((
+        ("Settlers", "unit", 20),
+        ("Coinage", "improvement", 999),
+    ), upkeeps={"Settlers": {"uk_gold": 1}})
+    city = _city(
+        size=4, production_kind=3, production_value=72,
+        surplus=(1, 9, 2, -8, 0, 3))
+    city["buildability"]["options"].extend([
+        {"type": "unit", "id": 0, "name": "Settlers"},
+        {"type": "improvement", "id": 72, "name": "Coinage"},
+    ])
+    settings = {
+        "expansion_city_target": 2,
+        "horizon_turn": 100,
+    }
+    masked = _snapshot(
+        [], actions, cities=[city], turn=1,
+        player={
+            "gold": 8, "gold_per_turn": 0,
+            "operating_gold_per_turn": -9,
+            "capitalization_gold_per_turn": 9,
+            "city_gold_surplus_per_turn": -8,
+            "gold_upkeep_style": "Mixed",
+            "unit_gold_upkeep": 1, "gold_upkeep_reserve": 1,
+        })
+    funded = _snapshot(
+        [], actions, cities=[city], source_seq=2, turn=1,
+        player={
+            "gold": 100, "gold_per_turn": 0,
+            "operating_gold_per_turn": -9,
+            "capitalization_gold_per_turn": 9,
+            "city_gold_surplus_per_turn": -8,
+            "gold_upkeep_style": "Mixed",
+            "unit_gold_upkeep": 1, "gold_upkeep_reserve": 1,
+        })
+
+    assert GroundedImpactPlanner(
+        settings, ruleset_ir=ruleset).plan(masked) is None
+    decision = GroundedImpactPlanner(
+        settings, ruleset_ir=ruleset).plan(funded)
+
+    assert decision.candidate.category == "production_expansion"
+    assert decision.candidate.projection[
+        "founder_financing_coinage_removed"] == 9
+    assert decision.candidate.projection[
+        "founder_financing_construction_gold_per_turn"] == -9
+    assert decision.candidate.projection[
+        "founder_financing_gold_at_settlement"] >= (
+            decision.candidate.projection[
+                "founder_financing_reserve_required"])
+
+
+def test_threatened_founder_build_requires_a_surplus_local_defender():
+    actions = [
+        _production(10, "Settlers", 6, 0),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    ruleset = _ruleset_ir((("Settlers", "unit", 20),))
+    enemy = _enemy(99, "Riflemen", 3, 0)
+    settings = {"expansion_city_target": 2, "horizon_turn": 100}
+    planner = GroundedImpactPlanner(settings, ruleset_ir=ruleset)
+    city = _city()
+    required = planner._required_garrison_count(
+        _snapshot([], actions, cities=[city]).cities[0])
+    exact_garrison = [
+        _unit(10 + index, "Alpine Troops")
+        for index in range(required)]
+    surplus_garrison = exact_garrison + [
+        _unit(10 + required, "Alpine Troops")]
+    threatened = _snapshot(
+        exact_garrison + [enemy], actions, cities=[city], turn=1)
+    buffered = _snapshot(
+        surplus_garrison + [enemy], actions, cities=[city],
+        source_seq=2, turn=1)
+
+    assert GroundedImpactPlanner(
+        settings, ruleset_ir=ruleset).plan(threatened) is None
+    decision = GroundedImpactPlanner(
+        settings, ruleset_ir=ruleset).plan(buffered)
+
+    assert decision.candidate.category == "production_expansion"
+    assert decision.candidate.projection[
+        "founder_local_visible_threat"] is True
+    assert decision.candidate.projection[
+        "founder_local_defenders"] == required + 1
+    assert decision.candidate.projection[
+        "founder_minimum_local_defenders"] == required + 1
+
+
+def test_expired_coinage_bridge_materializes_productive_continuity():
+    actions = [
+        _production(10, "Mech. Inf.", 6, 16),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    ruleset = _ruleset_ir((
+        ("Alpine Troops", "unit", 20),
+        ("Mech. Inf.", "unit", 40),
+        ("Coinage", "improvement", 999),
+    ), founders=(), workers=(), capabilities={
+        "Alpine Troops": {
+            "class": "Land", "attack": 5, "defense": 5,
+            "hitpoints": 20, "firepower": 1,
+        },
+        "Mech. Inf.": {
+            "class": "Land", "attack": 6, "defense": 12,
+            "hitpoints": 30, "firepower": 1,
+        },
+    })
+    city = _city(
+        size=4, production_kind=3, production_value=72,
+        surplus=(2, 8, 4, -4, 0, 3))
+    city["buildability"]["options"].extend([
+        {"type": "unit", "id": 16, "name": "Mech. Inf."},
+        {"type": "improvement", "id": 72, "name": "Coinage"},
+    ])
+    settings = {
+        "expansion_city_target": 1,
+        "horizon_turn": 100,
+        "coinage_bridge_max_turns": 10,
+        "ruleset_driven_production_enabled": True,
+        "modernization_enabled": True,
+    }
+    initial = _snapshot(
+        [_unit(11, "Alpine Troops")], actions, cities=[city], turn=1,
+        player={
+            "gold": 100, "gold_per_turn": 1,
+            "operating_gold_per_turn": -5,
+            "capitalization_gold_per_turn": 8,
+            "city_gold_surplus_per_turn": -4,
+            "gold_upkeep_style": "Mixed",
+            "unit_gold_upkeep": 0, "gold_upkeep_reserve": 0,
+        })
+    expired = _snapshot(
+        [_unit(11, "Alpine Troops")], actions, cities=[city],
+        source_seq=2, turn=12,
+        player={
+            "gold": 111, "gold_per_turn": 1,
+            "operating_gold_per_turn": -5,
+            "capitalization_gold_per_turn": 8,
+            "city_gold_surplus_per_turn": -4,
+            "gold_upkeep_style": "Mixed",
+            "unit_gold_upkeep": 0, "gold_upkeep_reserve": 0,
+        })
+    planner = GroundedImpactPlanner(settings, ruleset_ir=ruleset)
+
+    planner.observe(initial)
+    planner.observe(expired)
+    decision = planner.plan(expired)
+
+    assert decision.candidate.category == "production_continuity"
+    assert decision.candidate.projection[
+        "continuity_original_category"] == "production_modernization"
+    assert decision.candidate.projection["coinage_bridge_turns"] == 11
+
+
+def test_recent_founder_loss_interrupts_unsafe_repeating_founder_queue():
+    actions = [
+        _production(10, "Coinage", 3, 72),
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    ruleset = _ruleset_ir((
+        ("Settlers", "unit", 20),
+        ("Coinage", "improvement", 999),
+    ))
+    city = _city(
+        size=4, production_kind=6, production_value=0,
+        shield_stock=8, surplus=(1, 9, 2, 0, 0, 3))
+    city["buildability"]["options"].append(
+        {"type": "improvement", "id": 72, "name": "Coinage"})
+    planner = GroundedImpactPlanner({
+        "expansion_city_target": 2,
+        "founder_attrition_rebuild_limit": 1,
+        "founder_attrition_memory_turns": 20,
+    }, ruleset_ir=ruleset)
+    founder_present = _snapshot(
+        [_unit(1, "Settlers", x=2), _enemy(99, "Riflemen", 3, 0)],
+        actions, cities=[city], turn=1)
+    founder_lost = _snapshot(
+        [_enemy(99, "Riflemen", 3, 0)],
+        actions, cities=[city], source_seq=2, turn=2)
+
+    planner.observe(founder_present)
+    planner.observe(founder_lost)
+    decision = planner.plan(founder_lost)
+
+    assert (
+        decision.candidate.category
+        == "production_founder_attrition_recovery")
+    assert decision.candidate.action["target"][
+        "production_type"] == "Coinage"
+    assert decision.candidate.projection[
+        "founder_attrition_backoff_turns"] == 20
+    assert decision.candidate.projection[
+        "founder_attrition_lifecycle_losses"] == 1
+    assert decision.candidate.projection["discarded_shield_stock"] == 8
+
+
+def test_masked_structural_and_research_deficits_remain_pressure_facts():
+    city = _city(
+        size=4, production_kind=3, production_value=72,
+        surplus=(1, 9, 2, -8, 0, 3))
+    city["buildability"]["options"].append(
+        {"type": "improvement", "id": 72, "name": "Coinage"})
+    settings = {
+        "expansion_city_target": 1,
+        "coinage_bridge_max_turns": 20,
+    }
+    player = {
+        "gold": 8, "gold_per_turn": 0,
+        "operating_gold_per_turn": -9,
+        "capitalization_gold_per_turn": 9,
+        "city_gold_surplus_per_turn": -8,
+        "gold_upkeep_style": "Mixed",
+        "unit_gold_upkeep": 1, "gold_upkeep_reserve": 1,
+    }
+    research = {
+        "beakers_per_turn": 2,
+        "gross_beakers_per_turn": 6,
+        "tech_upkeep": 4,
+    }
+    planner = GroundedImpactPlanner(settings)
+    planner.observe(_snapshot(
+        [], [{"action_type": "end_turn", "is_valid": True}],
+        cities=[city], turn=1, player=player, research=research))
+    expired = _snapshot(
+        [], [{"action_type": "end_turn", "is_valid": True}],
+        cities=[city], source_seq=2, turn=22,
+        player=player, research=research)
+    planner.observe(expired)
+
+    facts = planner._sustainability_facts(expired)
+
+    assert facts["production_continuity_city_ids"] == (10,)
+    assert facts["production_continuity_releasable_city_ids"] == ()
+    assert facts["production_continuity_blocked_city_ids"] == (10,)
+    assert facts["research_deficit"] is True
+    assert facts["treasury_effective_deficit"] is False
+    assert facts["treasury_structural_deficit"] is True
+    assert facts["treasury_deficit"] is True
 
 
 def test_required_city_defender_reaches_first_completion_before_food_recovery():
