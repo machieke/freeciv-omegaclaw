@@ -1,0 +1,373 @@
+{
+  "arm": "treatment",
+  "claim_eligible": false,
+  "cohort": "transition_value_collection_diagnostic_v1",
+  "duplicate_observations": 0,
+  "event_files": [
+    {
+      "arm": "treatment",
+      "events_sha256": "fb7cdddcaf51619151fe6ea5a569389fba833531c9cf3a115b58f6defaba6cdb",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5101785-00/events.jsonl",
+      "seed": 5101785,
+      "transition_update_events": 33
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "2f97bfb96472056e79376d712f33a14d6309601ff9084316610c07a196a2d2ab",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5104053-00/events.jsonl",
+      "seed": 5104053,
+      "transition_update_events": 41
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "0545ed6a4ca76318b3df560513891e7775d26dd15c9fbfbddf62e37b55842484",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5105077-00/events.jsonl",
+      "seed": 5105077,
+      "transition_update_events": 46
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "c3d4338c9b04cb793edb14a7fab7084439b6368ae8903b09bf4fcb75fed690a7",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5108245-00/events.jsonl",
+      "seed": 5108245,
+      "transition_update_events": 72
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "ec2801a2b5eecb7d5e50d669b35b4d16b2f02f79ecea515c21f6686f864a679b",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5111758-00/events.jsonl",
+      "seed": 5111758,
+      "transition_update_events": 68
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "b9ba2ba339af7a4cbb2cd3c705b5c4234266c4e8508e30fd845553276fa81977",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5113331-00/events.jsonl",
+      "seed": 5113331,
+      "transition_update_events": 32
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "bba5735b23201f0ca47370fa544ad9bef0047a9b22b1d027026bf1e0d06b0f70",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5113800-00/events.jsonl",
+      "seed": 5113800,
+      "transition_update_events": 31
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "9ac5cce8083a1dcea21df7bd806f68bdfc2feee5d61f9222621ee9eb347c18e6",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5114772-00/events.jsonl",
+      "seed": 5114772,
+      "transition_update_events": 30
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "b577098b11409ddb523204b0448a33cadf1610c7a600a6e8a8c1eea3adec8c30",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5119716-00/events.jsonl",
+      "seed": 5119716,
+      "transition_update_events": 46
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "dc4f29b89dce0f3f331e417f28cbe8b036b029a35933a954609feef0986eddd6",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5122354-00/events.jsonl",
+      "seed": 5122354,
+      "transition_update_events": 44
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "2f88eb2d9e0e6da173fcb2a5126fe0b28fb84037e9c62a6849bb76a5907e1f7f",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5126510-00/events.jsonl",
+      "seed": 5126510,
+      "transition_update_events": 45
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "345f0c3b684d675847b9b5d33e977c97e9aff4c62e6eaace5b01b4f4df154d01",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5127202-00/events.jsonl",
+      "seed": 5127202,
+      "transition_update_events": 84
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "4f72cfff063f1c083dbf5cbfdeb0df59d7187111a0e8025e9de6e8b7ea262bbe",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5127791-00/events.jsonl",
+      "seed": 5127791,
+      "transition_update_events": 65
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "bb218d9a105434ceab15e4362e5ce8e5634a8c3a3ad36580c109b7e2d1c56e99",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5129015-00/events.jsonl",
+      "seed": 5129015,
+      "transition_update_events": 58
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "44a50b7d7dcef9237e63c5d4825e0b7bd2a4517e98ac1c5d496fb85c11d60c4e",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5135348-00/events.jsonl",
+      "seed": 5135348,
+      "transition_update_events": 45
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "3235243fbe492aa84eb045f3b5070fe942d63a1b3e8ed8e3fe479f991a0a72e2",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5142406-00/events.jsonl",
+      "seed": 5142406,
+      "transition_update_events": 23
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "005aeef0403ec6189934832601ea1927f21ccdbaf11bea575f8b291f5f0ecf3e",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5150106-00/events.jsonl",
+      "seed": 5150106,
+      "transition_update_events": 33
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "951d491d9a6f1c0d701e0cd1710368971662ee0afb5059b0d063397c157ec60b",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5152314-00/events.jsonl",
+      "seed": 5152314,
+      "transition_update_events": 52
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "113bf5d984a1fcf6879c7de7d86dfc795fbe3e1b23b35d5d6ddc199bcfb400ba",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5152802-00/events.jsonl",
+      "seed": 5152802,
+      "transition_update_events": 37
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "31154554894d93652d7be2de82bdd06140c1bb1edd8c6cd62d4e0c1e113e61bd",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5159289-00/events.jsonl",
+      "seed": 5159289,
+      "transition_update_events": 61
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "83c8557a312cb476fbddba91f9f7ed392ff56a767b2018db2f8d9d5ef33f71f6",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5163523-00/events.jsonl",
+      "seed": 5163523,
+      "transition_update_events": 85
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "712119b8681793dd4220667734886901685f1a6e9053ffea7906ef1a3898eb23",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5163675-00/events.jsonl",
+      "seed": 5163675,
+      "transition_update_events": 84
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "787e18fd9e7aa7460450ace4669c0008058c8a502fc14fade4e8c93a311b77bc",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5169546-00/events.jsonl",
+      "seed": 5169546,
+      "transition_update_events": 57
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "d3f28e1e0de99cbba7b0d77be4575910b63b9f64b1a71b5b0e3731b71c32c732",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5174343-00/events.jsonl",
+      "seed": 5174343,
+      "transition_update_events": 41
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "e2dc2129bc868b6d1b389e6952426639887826ce60dccb32a90700af5b49b95a",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5176809-00/events.jsonl",
+      "seed": 5176809,
+      "transition_update_events": 58
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "4b3d25f3cd1b3797a26d5c22f6993f5bcf866e884434ad579b1fe40a7511d2d5",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5182461-00/events.jsonl",
+      "seed": 5182461,
+      "transition_update_events": 43
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "611319882833f94c1de472f5d694b8a119609c212e371a7a7df6b11d1eaabb43",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5184770-00/events.jsonl",
+      "seed": 5184770,
+      "transition_update_events": 45
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "b01ff58794f8c225560280de5b355bbcb6558caecadfc7ef222c08950c8c4b0a",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5194492-00/events.jsonl",
+      "seed": 5194492,
+      "transition_update_events": 40
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "3132bb049bb0048b9625eb42c82221a679818d9972092ce3d94b485bc12d1a30",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5196155-00/events.jsonl",
+      "seed": 5196155,
+      "transition_update_events": 44
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "d45abb41172dc08b4898314537aa3428431b521da98f3927ffefd85a0d7b3f3a",
+      "path": "games/impact_pair/transition_value_collection_diagnostic_v1/treatment/e_full_loop/5198697-00/events.jsonl",
+      "seed": 5198697,
+      "transition_update_events": 98
+    }
+  ],
+  "exact_support": [
+    {
+      "calibrated": true,
+      "confidence_half_width": 0.25665706184496795,
+      "key": {
+        "action_category": "city-policy",
+        "goal_id": "pf-impact:food_sustainability",
+        "lifecycle_state": "reversible-execution"
+      },
+      "sample_count": 112
+    },
+    {
+      "calibrated": false,
+      "confidence_half_width": 1.0,
+      "key": {
+        "action_category": "combat",
+        "goal_id": "pf-impact:survival",
+        "lifecycle_state": "tactical-execution"
+      },
+      "sample_count": 7
+    },
+    {
+      "calibrated": false,
+      "confidence_half_width": 1.0,
+      "key": {
+        "action_category": "fiscal-policy",
+        "goal_id": "pf-impact:score",
+        "lifecycle_state": "policy-transition"
+      },
+      "sample_count": 2
+    },
+    {
+      "calibrated": false,
+      "confidence_half_width": 1.0,
+      "key": {
+        "action_category": "fiscal-policy",
+        "goal_id": "pf-impact:treasury_sustainability",
+        "lifecycle_state": "policy-transition"
+      },
+      "sample_count": 4
+    },
+    {
+      "calibrated": true,
+      "confidence_half_width": 0.2521931202442211,
+      "key": {
+        "action_category": "movement",
+        "goal_id": "pf-impact:expansion",
+        "lifecycle_state": "route-progress"
+      },
+      "sample_count": 116
+    },
+    {
+      "calibrated": true,
+      "confidence_half_width": 0.10670253236888008,
+      "key": {
+        "action_category": "movement",
+        "goal_id": "pf-impact:exploration",
+        "lifecycle_state": "route-progress"
+      },
+      "sample_count": 648
+    },
+    {
+      "calibrated": true,
+      "confidence_half_width": 0.20532564947597437,
+      "key": {
+        "action_category": "movement",
+        "goal_id": "pf-impact:survival",
+        "lifecycle_state": "route-progress"
+      },
+      "sample_count": 175
+    },
+    {
+      "calibrated": true,
+      "confidence_half_width": 0.32464835719871854,
+      "key": {
+        "action_category": "production",
+        "goal_id": "pf-impact:expansion",
+        "lifecycle_state": "production-commitment"
+      },
+      "sample_count": 70
+    },
+    {
+      "calibrated": true,
+      "confidence_half_width": 0.29461358357382345,
+      "key": {
+        "action_category": "production",
+        "goal_id": "pf-impact:food_sustainability",
+        "lifecycle_state": "production-commitment"
+      },
+      "sample_count": 85
+    },
+    {
+      "calibrated": false,
+      "confidence_half_width": 1.0,
+      "key": {
+        "action_category": "production",
+        "goal_id": "pf-impact:score",
+        "lifecycle_state": "production-commitment"
+      },
+      "sample_count": 3
+    },
+    {
+      "calibrated": true,
+      "confidence_half_width": 0.2578105825417595,
+      "key": {
+        "action_category": "production",
+        "goal_id": "pf-impact:survival",
+        "lifecycle_state": "production-commitment"
+      },
+      "sample_count": 111
+    },
+    {
+      "calibrated": false,
+      "confidence_half_width": 1.0,
+      "key": {
+        "action_category": "production",
+        "goal_id": "pf-impact:treasury_sustainability",
+        "lifecycle_state": "production-commitment"
+      },
+      "sample_count": 7
+    },
+    {
+      "calibrated": true,
+      "confidence_half_width": 0.4591221097525728,
+      "key": {
+        "action_category": "settlement",
+        "goal_id": "pf-impact:expansion",
+        "lifecycle_state": "terminal-completion"
+      },
+      "sample_count": 35
+    },
+    {
+      "calibrated": true,
+      "confidence_half_width": 0.21081824108092986,
+      "key": {
+        "action_category": "unit-posture",
+        "goal_id": "pf-impact:survival",
+        "lifecycle_state": "reversible-execution"
+      },
+      "sample_count": 166
+    }
+  ],
+  "fit_scope": "selected actions with authoritative realized goal relief; no off-policy correction",
+  "identity": "pf-transition-value-training-v1",
+  "model_path": "/home/purplezky/work/takopi/freeciv-omegaclaw/docs/freeciv/evidence/pf-transition-value-training-v1-model.json",
+  "model_sha256": "58dd046030fcf0455b10da001684069b7267db55347f0997d596a9927d65ebe4",
+  "model_state_hash": "d65d1418b2339a7356c2b5d0b1f901da4f87e00d71795e04dc0b4cac162c5c31",
+  "observation_count": 1541,
+  "schema_version": "1.0",
+  "seed_count": 30,
+  "source_identity": "bcd7d5665c86cb08cc153716ff976817e25589b3bf362ac8c480de95b772fb67",
+  "supported_key_count": 9,
+  "total_key_count": 14,
+  "training_hash": "2cac7fe543fc68aaab1771fa1d6a135047ed9be15126d28efb122343dc8e2684",
+  "update_scope": "control-model-only"
+}

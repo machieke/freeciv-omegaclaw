@@ -27,16 +27,28 @@ The offline results are intentionally claim-ineligible:
 - synthetic reversible switch reduction: `1.000`;
 - maximum persistence priority regret: `0.0126`.
 
+The first engine-backed collection and frozen-fit gate is also complete:
+
+- collection: `30/30` complete pairs and `60/60` complete arms;
+- infrastructure or run failures: `0`;
+- authoritative selected-action observations: `1,541`;
+- duplicate observations: `0`;
+- exact observed keys passing support and interval gates: `9/14`;
+- training decisions with complete candidate support: `1,518/1,547`
+  (`98.13%`);
+- unsupported decisions: `29`, all retained on the frozen scalar fallback.
+
 These results show that the implementations have their intended effects in
-the preregistered synthetic regimes. They do not show that FreeCiv score,
-gameplay, or win rate improves.
+the preregistered synthetic regimes and that the frozen model has sufficient
+decision-level coverage to enter the CT1 diagnostic. They do not show that
+FreeCiv score, gameplay, or win rate improves.
 
 ## Stage status
 
 | Stage | Implementation | Offline gate | Engine gate | Authority |
 |---|---|---|---|---|
 | CT0 frozen scalar PF-v2 + packets | complete | passed | captured replay passed | supported comparator |
-| CT1 calibrated scalar | complete | passed | pending collection and frozen-fit diagnostic | fail-closed abstention |
+| CT1 calibrated scalar | complete | passed | collection/frozen fit passed; paired diagnostic pending | fail-closed abstention |
 | CT2 protected deterministic bridge | complete | passed | pending CT1 engine gate | membership only |
 | CT3 corrected probes | complete | passed | pending CT2 recall gate | membership only |
 | CT4 path persistence | complete | passed | pending paired diagnostic | calibrated near-ties only |
@@ -103,6 +115,12 @@ read-only model. Seeds are disjoint across all five stages.
   `docs/freeciv/evidence/pf-calibrated-transition-readout-offline-v1.json`
 - Offline evaluator:
   `scripts/freeciv/run_transition_readout_experiment.py`
+- Frozen engine-trained model:
+  `docs/freeciv/evidence/pf-transition-value-training-v1-model.json`
+- Frozen-fit provenance and exact support report:
+  `docs/freeciv/evidence/pf-transition-value-training-v1-report.json`
+- Decision-level support coverage:
+  `docs/freeciv/evidence/pf-transition-value-training-v1-coverage.json`
 - Frozen-fit tool:
   `scripts/freeciv/fit_transition_value_model.py`
 - Schema-valid UI proof trace:
@@ -121,10 +139,9 @@ Verification completed at this checkpoint:
 
 ## Next executable gate
 
-Run `transition_value_collection_diagnostic_v1`, fit
-`docs/freeciv/evidence/pf-transition-value-training-v1-model.json`, and inspect
-exact-key support before enabling CT1 authority. If candidate-changing keys do
-not meet the frozen support/interval criteria, extend claim-ineligible
-collection or simplify the keying scheme without inspecting CT1 gameplay
-outcomes. Only a supported frozen fit may enter
-`calibrated_scalar_diagnostic_v1`.
+Run the predeclared, seed-disjoint
+`calibrated_scalar_diagnostic_v1`. Inspect authority activation, abstention,
+decision disagreement, terminal delay, rejection/no-effect rate, latency, and
+paired fixed-horizon score direction. CT2 remains closed unless CT1 changes
+grounded decisions under exact support without violating a safety or
+terminal-action gate.

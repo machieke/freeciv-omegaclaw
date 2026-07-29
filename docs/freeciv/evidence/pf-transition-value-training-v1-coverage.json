@@ -1,0 +1,19 @@
+{
+  "all_candidate_supported_decisions": 1518,
+  "authority_coverage_rate": 0.9812540400775694,
+  "claim_eligible": false,
+  "cohort": "transition_value_collection_diagnostic_v1",
+  "decision_count": 1547,
+  "model_identity": "pf-transition-value-training-v1",
+  "model_state_hash": "d65d1418b2339a7356c2b5d0b1f901da4f87e00d71795e04dc0b4cac162c5c31",
+  "schema_version": "1.0",
+  "unsupported_key_decision_presence": {
+    "combat|tactical-execution|pf-impact:survival": 10,
+    "fiscal-policy|policy-transition|pf-impact:score": 2,
+    "fiscal-policy|policy-transition|pf-impact:treasury_sustainability": 4,
+    "grounded:unit_capture|reversible-execution|pf-impact:survival": 10,
+    "grounded:unit_conquer_city|reversible-execution|pf-impact:survival": 10,
+    "production|production-commitment|pf-impact:score": 4,
+    "production|production-commitment|pf-impact:treasury_sustainability": 12
+  }
+}
