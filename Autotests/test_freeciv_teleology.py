@@ -13,13 +13,19 @@ if SRC not in sys.path:
 
 from freeciv_agent.pressure import (  # noqa: E402
     AtomState,
+    BoundedDynamicProgrammingEstimator,
+    CalibratedHeuristicEstimator,
     CostToGoEstimate,
     CostVector,
+    ExactTerminalEstimator,
     GoalLoss,
     GoalState,
     ImmediateLossEstimator,
     LeverageEstimate,
     Operation,
+    OneStepTransitionEstimator,
+    ExpectedTransition,
+    PredictedOutcome,
     PressureEngineV2,
     PressureGraph,
     PressureMagnitude,
@@ -158,3 +164,55 @@ def test_uncalibrated_estimator_is_labeled_in_artifact():
     assert estimate.to_dict()["calibrated"] is False
     assert leverage.to_dict()["assumptions"] == [
         "no-transition-model"]
+
+
+def test_cost_to_go_estimator_hierarchy_declares_exactness_and_calibration():
+    exact = ExactTerminalEstimator().estimate(
+        "goal", 0.0, horizon=0,
+        features=("terminal",))
+    heuristic = CalibratedHeuristicEstimator(
+        minimum_calibration_samples=2).estimate(
+            "goal", 2.0, 0.5,
+            calibration_samples=1,
+            horizon=4,
+            features=("utility", "deadline", "conductance"))
+    transition = ExpectedTransition(
+        "operation",
+        (PredictedOutcome(
+            "success", 0.75, (),
+            (("goal", 1.0),), (), 2.0, 0.0,
+            ("grounded-test",)),),
+        0.25, "model", "group",
+        residual_goal_losses=(("*", 5.0),))
+    one_step = OneStepTransitionEstimator().estimate(
+        transition, "goal", horizon=2)
+
+    assert exact.calibrated
+    assert exact.lower_bound == exact.upper_bound == 0.0
+    assert not heuristic.calibrated
+    assert heuristic.lower_bound == 1.5
+    assert heuristic.upper_bound == 2.5
+    assert one_step.expected_loss == 2.0
+    assert not one_step.calibrated
+
+
+def test_bounded_dynamic_programming_finds_lower_loss_route():
+    estimator = BoundedDynamicProgrammingEstimator(
+        maximum_horizon=4)
+    transitions = {
+        "start": {
+            "safe": ((1.0, "done", 1.0),),
+            "costly": ((1.0, "done", 3.0),),
+        },
+        "done": {},
+    }
+
+    estimate = estimator.estimate(
+        "goal", "start",
+        {"start": 4.0, "done": 0.0},
+        transitions, horizon=1)
+
+    assert estimate.expected_loss == 1.0
+    assert estimate.estimator_id == (
+        "bounded-dynamic-programming/1.0")
+    assert estimate.calibrated

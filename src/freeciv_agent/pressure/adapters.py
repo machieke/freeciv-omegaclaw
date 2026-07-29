@@ -694,6 +694,15 @@ class ImpactPressureRanker(object):
         """Compatibility hook for v2 risk, deadline, and packet metadata."""
         return {}
 
+    def _teleological_operations(
+            self, snapshot, operations, candidate_by_operation,
+            pressure_result, horizon_turn):
+        """Compatibility hook; scalar-v1 remains byte-exact."""
+        del (
+            snapshot, candidate_by_operation,
+            pressure_result, horizon_turn)
+        return tuple(operations), None
+
     @classmethod
     def _score_aligned_scores(
             cls, scores, candidate_by_operation, safety_active,
@@ -1025,6 +1034,11 @@ class ImpactPressureRanker(object):
             diagnostics["pressure_operation_latency_ms"] = (
                 diagnostics.get("pressure_operation_latency_ms", 0.0)
                 + (time.perf_counter() - operation_started) * 1000.0)
+        operations, teleological_artifact = (
+            self._teleological_operations(
+                snapshot, tuple(operations),
+                candidate_by_operation, result, horizon_turn))
+        operations = list(operations)
         schedule_started = time.perf_counter()
         scores = self.scheduler.score_all(operations, result)
         if self.score_alignment:
@@ -1070,6 +1084,8 @@ class ImpactPressureRanker(object):
                 operations, result, scores=scores,
                 pressure_artifact=pressure_artifact),
         }
+        if teleological_artifact is not None:
+            artifact["teleology"] = teleological_artifact
         if diagnostics is not None:
             diagnostics["pressure_artifact_latency_ms"] = (
                 diagnostics.get("pressure_artifact_latency_ms", 0.0)
@@ -1109,7 +1125,7 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             score_alignment=False,
             exploration_information_enabled=True,
             score_alignment_utility_tolerance=0.0,
-            policy=None):
+            policy=None, teleological_enabled=False):
         super().__init__(
             config=config,
             conductance_state=conductance_state,
@@ -1119,8 +1135,215 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             score_alignment_utility_tolerance=(
                 score_alignment_utility_tolerance))
         self.v2_policy = policy or PressureV2Policy()
+        if not isinstance(teleological_enabled, bool):
+            raise TypeError(
+                "teleological_enabled must be boolean")
+        self.teleological_enabled = teleological_enabled
         self.engine = PressureEngineV2(
             self.config, policy=self.v2_policy)
+
+    @staticmethod
+    def _expected_state_cost(transition, goal_id):
+        fallback = transition.residual_loss_for(goal_id)
+        return (
+            sum(
+                float(outcome.probability) * (
+                    float(outcome.cost_to_go_for(goal_id))
+                    if outcome.cost_to_go_for(goal_id) is not None
+                    else fallback)
+                for outcome in transition.outcomes)
+            + float(transition.residual_probability) * fallback)
+
+    def _teleological_operations(
+            self, snapshot, operations, candidate_by_operation,
+            pressure_result, horizon_turn):
+        if not self.teleological_enabled:
+            return tuple(operations), None
+        from .teleology import (
+            CostToGoEstimate,
+            GoalLoss,
+            LeverageEstimate,
+            TypedAdvantage,
+        )
+        from .transitions import (
+            ProjectionTransitionModel,
+            TransitionModelRegistry,
+        )
+        goal_losses = {}
+        for goal in pressure_result.goals:
+            demand = pressure_result.demand(goal.goal_id)
+            goal_losses[goal.goal_id] = GoalLoss(
+                goal.goal_id,
+                demand.achievement,
+                demand.epistemic,
+                demand.deadline,
+                demand.safety,
+                demand.total)
+        registries = {}
+        decorated = []
+        estimates = []
+        current_turn = float(getattr(snapshot, "turn", 0))
+        for operation in operations:
+            candidate = candidate_by_operation[
+                operation.operation_id]
+            goal_id = "pf-impact:{}".format(
+                self.goal_for_category(candidate.category))
+            current_loss = goal_losses[goal_id].total
+            vector = pressure_result.pressure(
+                goal_id, operation.atom_id)
+            grounded_relief = min(
+                current_loss,
+                abs(float(vector.net(operation.mode)))
+                * float(operation.success_probability)
+                * float(operation.relief_scale))
+            next_cost = max(
+                0.0, current_loss - grounded_relief)
+            payload = dict(operation.payload or {})
+            projection = dict(payload.get("projection", {}))
+            projection["next_goal_cost_to_go"] = {
+                goal_id: next_cost}
+            projection.setdefault(
+                "provenance", (
+                    "scalar-v2-grounded-category-effect",
+                    "existing-impact-candidate-projection",
+                ))
+            payload["projection"] = projection
+            modeled_operation = replace(
+                operation, payload=payload)
+            registry = registries.get(candidate.category)
+            if registry is None:
+                registry = TransitionModelRegistry()
+                registry.register(
+                    candidate.category,
+                    ProjectionTransitionModel(
+                        "grounded-impact-one-step:{}/1.0".format(
+                            candidate.category),
+                        "impact:{}:horizon-{}".format(
+                            candidate.category,
+                            max(
+                                0,
+                                int(horizon_turn)
+                                - int(current_turn))),
+                        fallback_loss=max(
+                            current_loss, 1e-12)))
+                registries[candidate.category] = registry
+            transition = registry.predict(
+                snapshot, modeled_operation)
+            expected_state_cost = self._expected_state_cost(
+                transition, goal_id)
+            expected_relief = max(
+                0.0, current_loss - expected_state_cost)
+            state_cost_rows = tuple(
+                (
+                    outcome.probability,
+                    outcome.cost_to_go_for(goal_id)
+                    if outcome.cost_to_go_for(goal_id) is not None
+                    else transition.residual_loss_for(goal_id),
+                )
+                for outcome in transition.outcomes)
+            state_cost_values = tuple(
+                float(value) for _, value in state_cost_rows) + (
+                (transition.residual_loss_for(goal_id),)
+                if transition.residual_probability > 0.0 else ())
+            expected_total_cost = transition.expected_cost_to_go(
+                goal_id)
+            lower = min(
+                state_cost_values or (expected_total_cost,))
+            upper = max(
+                max(
+                    state_cost_values
+                    or (expected_total_cost,)),
+                expected_total_cost)
+            cost_to_go = CostToGoEstimate(
+                goal_id=goal_id,
+                expected_loss=expected_total_cost,
+                lower_bound=min(lower, expected_total_cost),
+                upper_bound=upper,
+                horizon=max(
+                    0, int(horizon_turn) - int(current_turn)),
+                estimator_id=transition.model_id,
+                feature_digest=structural_hash(
+                    transition.to_dict()),
+                calibrated=False)
+            variance = sum(
+                float(probability)
+                * (float(value) - expected_state_cost) ** 2
+                for probability, value in state_cost_rows)
+            if transition.residual_probability > 0.0:
+                variance += (
+                    float(transition.residual_probability)
+                    * (
+                        transition.residual_loss_for(goal_id)
+                        - expected_state_cost) ** 2)
+            resource_use = {}
+            for outcome in transition.outcomes:
+                for resource, delta in outcome.resource_delta:
+                    if delta < 0.0:
+                        resource_use[resource] = (
+                            resource_use.get(resource, 0.0)
+                            + float(outcome.probability)
+                            * abs(float(delta)))
+            completion_turns = tuple(
+                float(outcome.completion_turn)
+                for outcome in transition.outcomes
+                if outcome.completion_turn is not None)
+            advantage = TypedAdvantage(
+                goal_id=goal_id,
+                target_id=operation.atom_id,
+                mode=operation.mode,
+                expected_relief=expected_relief,
+                relief_variance=variance,
+                information_gain=operation.information_gain,
+                option_value=operation.future_option_value,
+                predicted_latency=(
+                    max(0.0, min(completion_turns) - current_turn)
+                    if completion_turns else 0.0),
+                predicted_resource_use=tuple(
+                    sorted(resource_use.items())),
+                estimator_id=transition.model_id)
+            leverage = LeverageEstimate(
+                goal_id, operation.atom_id,
+                expected_relief,
+                "counterfactual",
+                transition.modeled_probability,
+                (
+                    "one-step-grounded-impact-projection",
+                    "risk-penalty-applied-separately-once",
+                ))
+            decorated.append(replace(
+                operation, typed_advantages=(advantage,)))
+            estimates.append({
+                "advantage": advantage.to_dict(),
+                "category": candidate.category,
+                "cost_to_go": cost_to_go.to_dict(),
+                "current_goal_loss": float(current_loss),
+                "goal_id": goal_id,
+                "leverage": leverage.to_dict(),
+                "operation_id": operation.operation_id,
+                "transition": transition.to_dict(),
+            })
+        artifact = {
+            "enabled": True,
+            "estimator_hierarchy": (
+                "exact-terminal",
+                "grounded-impact-one-step",
+                "bounded-dynamic-programming",
+                "calibrated-heuristic",
+                "immediate-loss-fallback"),
+            "goal_losses": [
+                goal_losses[key].to_dict()
+                for key in sorted(goal_losses)],
+            "horizon_turn": int(horizon_turn),
+            "operation_estimates": sorted(
+                estimates,
+                key=lambda row: row["operation_id"]),
+            "risk_accounting": (
+                "transition state relief plus scheduler risk penalty; "
+                "risk is not included in TypedAdvantage"),
+            "schema_version": "1.0",
+        }
+        artifact["artifact_hash"] = structural_hash(artifact)
+        return tuple(decorated), artifact
 
     def _goal_risk_profile(self, name, safety):
         from .risk import RiskProfile

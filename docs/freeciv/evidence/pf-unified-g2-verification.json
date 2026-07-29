@@ -1,0 +1,104 @@
+{
+  "artifact_type": "semantic",
+  "base_commit": "9374259",
+  "calibration_contract": {
+    "claim_eligible": false,
+    "relief_plot": [
+      {
+        "category": "city_defense",
+        "count": 1,
+        "horizon": "medium",
+        "mean_absolute_error": 0.1,
+        "mean_predicted_relief": 0.6,
+        "mean_realized_relief": 0.5
+      },
+      {
+        "category": "city_defense",
+        "count": 1,
+        "horizon": "short",
+        "mean_absolute_error": 0.0,
+        "mean_predicted_relief": 0.75,
+        "mean_realized_relief": 0.75
+      },
+      {
+        "category": "city_founding",
+        "count": 1,
+        "horizon": "medium",
+        "mean_absolute_error": 0.2,
+        "mean_predicted_relief": 0.7,
+        "mean_realized_relief": 0.5
+      },
+      {
+        "category": "city_founding",
+        "count": 1,
+        "horizon": "short",
+        "mean_absolute_error": 0.2,
+        "mean_predicted_relief": 0.8,
+        "mean_realized_relief": 1.0
+      },
+      {
+        "category": "exploration_move",
+        "count": 1,
+        "horizon": "medium",
+        "mean_absolute_error": 0.2,
+        "mean_predicted_relief": 0.45,
+        "mean_realized_relief": 0.25
+      },
+      {
+        "category": "exploration_move",
+        "count": 1,
+        "horizon": "short",
+        "mean_absolute_error": 0.3,
+        "mean_predicted_relief": 0.3,
+        "mean_realized_relief": 0.0
+      },
+      {
+        "category": "production_economy",
+        "count": 1,
+        "horizon": "medium",
+        "mean_absolute_error": 0.55,
+        "mean_predicted_relief": 0.55,
+        "mean_realized_relief": 0.0
+      },
+      {
+        "category": "production_economy",
+        "count": 1,
+        "horizon": "short",
+        "mean_absolute_error": 0.15,
+        "mean_predicted_relief": 0.4,
+        "mean_realized_relief": 0.25
+      }
+    ],
+    "source": "deterministic contract fixture; held-out engine outcomes are required before a gameplay calibration claim"
+  },
+  "claim_status": "implementation-acceptance-only",
+  "command": "python3 scripts/freeciv/run_pf_unified_baseline.py g2-verify",
+  "component_live_contracts": {
+    "llm_whole_packet_and_quarantine": true,
+    "observation_whole_packet_and_evidence_firewall": true,
+    "shadow_structural_operations": true
+  },
+  "live_impact": {
+    "candidate_count": 34,
+    "complete_teleological_paths": true,
+    "deterministic": true,
+    "goal_loss_count": 9,
+    "operation_estimate_count": 34,
+    "parity_selected_action": true,
+    "selected_action_legal": true,
+    "selected_estimate_count": 1,
+    "snapshot_path": "benchmarks/freeciv/samples/real_state_turn1.json",
+    "snapshot_unchanged": true
+  },
+  "no_bridge_or_flow_required": true,
+  "schema_version": "1.0",
+  "strong_scalar_common_features": {
+    "cost_counted_once": true,
+    "selected_route_id": "operation-0",
+    "same_typed_feature_hash": "9e01a5e1f2798a2690dd26d48b66b4a7f041b293fb03a1e8fc0506e774f3d965"
+  },
+  "v1_byte_exact": true,
+  "v1_replay_hash": "520f9105c62bd9a09e5e3617a3606209c728581387e2964fd8226db3dfc077df",
+  "valid": true,
+  "verification_hash": "215348c54676677bae91f4023dfc7a2e29abc11d8d9972ef3abece59d0a93821"
+}

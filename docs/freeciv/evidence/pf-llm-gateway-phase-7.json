@@ -5,7 +5,7 @@
     "quarantine_escapes_zero": true,
     "token_budget_respected": true
   },
-  "artifact_hash": "d481fcbc4ca2907b471ac5773d9d4b762c949846c37746f284cd903c848ca95b",
+  "artifact_hash": "8d54ba1e4b80aaa258a33ad9806ecb6d82aa4aa5d420692880cde1af8ed2bd77",
   "benchmark": "pf-pln-phase-7-llm-gateway",
   "configuration": {
     "cases": 100,
@@ -16,7 +16,7 @@
   },
   "implementation": {
     "benchmark_sha256": "03414e09d0ad1968c81f8f0812174156be540b28081f38436b8803a72f934524",
-    "gateway_sha256": "2da20d2b84441c301faea13e312c7a5acc6125c6e766266e03bb126c76077877",
+    "gateway_sha256": "7a867aec0639d5d2b8ea2fd6326e71a3f3ce44ea7d1e556c55fcaef0cb42bc49",
     "python_version": "3.8.10"
   },
   "pressure_gated": {

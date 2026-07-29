@@ -293,6 +293,34 @@ class SmoothedScalarController:
             self.SOLVER_IDENTITY, self.config.to_dict())
 
     @staticmethod
+    def bid_from_typed_operation(
+            operation, instantaneous_score=0.0,
+            cost_weights=None):
+        """Consume the same typed advantages as scalar-v2 exactly once."""
+        from .model import Operation
+        if not isinstance(operation, Operation):
+            raise TypeError(
+                "typed scalar bid requires Operation")
+        weights = (
+            tuple(cost_weights)
+            if cost_weights is not None else (
+                ("commitment", 1.0), ("compute", 1.0),
+                ("energy", 1.0), ("latency", 1.0),
+                ("opportunity", 1.0), ("resource", 1.0),
+                ("risk", 1.0)))
+        advantage = sum(
+            row.pre_cost_value
+            for row in operation.typed_advantages)
+        return ScalarRouteBid(
+            route_id=operation.operation_id,
+            instantaneous_score=(
+                float(instantaneous_score)
+                - operation.cost.scalar(weights)),
+            pf_advantage=advantage,
+            bridge_estimate=0.0,
+            admissible=True)
+
+    @staticmethod
     def schedule_packets(
             operations, scores, budgets, **kwargs):
         """Use the same whole-packet scheduler as scalar PF-v2."""

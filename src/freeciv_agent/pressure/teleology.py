@@ -276,3 +276,213 @@ class ImmediateLossEstimator:
                 (name, value) for name, value
                 in operation.cost.to_dict().items() if value > 0.0)),
             estimator_id=self.ESTIMATOR_ID)
+
+
+class ExactTerminalEstimator:
+    """Exact cost for a declared terminal goal state."""
+
+    ESTIMATOR_ID = "exact-terminal/1.0"
+
+    def estimate(
+            self, goal_id, terminal_loss,
+            horizon=0, terminal=True, features=()):
+        if terminal is not True:
+            raise ValueError(
+                "exact terminal estimator requires terminal state")
+        loss = _nonnegative(
+            terminal_loss, "terminal loss")
+        if (isinstance(horizon, bool)
+                or not isinstance(horizon, int)
+                or horizon < 0):
+            raise ValueError(
+                "terminal horizon must be non-negative")
+        material = {
+            "features": list(features),
+            "goal_id": str(goal_id),
+            "horizon": horizon,
+            "terminal_loss": loss,
+        }
+        return CostToGoEstimate(
+            str(goal_id), loss, loss, loss, horizon,
+            self.ESTIMATOR_ID, structural_hash(material), True)
+
+
+class OneStepTransitionEstimator:
+    """Cost-to-go from one typed expected transition."""
+
+    ESTIMATOR_ID = "expected-transition-one-step/1.0"
+
+    def estimate(
+            self, transition, goal_id, horizon=None,
+            calibrated=False):
+        from .transitions import ExpectedTransition
+        if not isinstance(transition, ExpectedTransition):
+            raise TypeError(
+                "one-step estimator requires ExpectedTransition")
+        goal_id = str(goal_id)
+        fallback = transition.residual_loss_for(goal_id)
+        values = tuple(
+            (
+                float(outcome.cost_to_go_for(goal_id))
+                if outcome.cost_to_go_for(goal_id) is not None
+                else fallback)
+            + float(outcome.adverse_loss)
+            for outcome in transition.outcomes)
+        if transition.residual_probability > 0.0:
+            values += (fallback,)
+        expected = transition.expected_cost_to_go(goal_id)
+        lower = min(values or (expected,))
+        upper = max(values or (expected,))
+        return CostToGoEstimate(
+            goal_id, expected,
+            min(lower, expected), max(upper, expected),
+            horizon,
+            "{}:{}".format(
+                self.ESTIMATOR_ID, transition.model_id),
+            structural_hash(transition.to_dict()),
+            bool(calibrated))
+
+
+class BoundedDynamicProgrammingEstimator:
+    """Exact finite-horizon DP for small declared transition tables."""
+
+    ESTIMATOR_ID = "bounded-dynamic-programming/1.0"
+
+    def __init__(self, maximum_horizon=16, maximum_states=128):
+        if (isinstance(maximum_horizon, bool)
+                or not isinstance(maximum_horizon, int)
+                or maximum_horizon < 1):
+            raise ValueError(
+                "maximum DP horizon must be positive")
+        if (isinstance(maximum_states, bool)
+                or not isinstance(maximum_states, int)
+                or maximum_states < 1):
+            raise ValueError(
+                "maximum DP states must be positive")
+        self.maximum_horizon = maximum_horizon
+        self.maximum_states = maximum_states
+
+    def estimate(
+            self, goal_id, initial_state,
+            terminal_losses, transitions, horizon):
+        if (isinstance(horizon, bool)
+                or not isinstance(horizon, int)
+                or not 0 <= horizon <= self.maximum_horizon):
+            raise ValueError(
+                "DP horizon exceeds configured bound")
+        terminal_losses = dict(
+            (str(key), _nonnegative(value, "terminal loss"))
+            for key, value in dict(terminal_losses).items())
+        transitions = dict(transitions)
+        states = set(terminal_losses) | set(str(key)
+                                            for key in transitions)
+        if str(initial_state) not in states:
+            raise ValueError(
+                "DP initial state is not declared")
+        if len(states) > self.maximum_states:
+            raise ValueError(
+                "DP state count exceeds configured bound")
+        value = dict(
+            (state, terminal_losses.get(state, 0.0))
+            for state in states)
+        maximum_immediate = 0.0
+        for _ in range(horizon):
+            following = {}
+            for state in sorted(states):
+                actions = transitions.get(state, {})
+                if not actions:
+                    following[state] = value[state]
+                    continue
+                action_values = []
+                for action_id, outcomes in sorted(actions.items()):
+                    del action_id
+                    probability = 0.0
+                    expected = 0.0
+                    for row in tuple(outcomes):
+                        if (not isinstance(row, tuple)
+                                or len(row) != 3):
+                            raise TypeError(
+                                "DP outcomes must be "
+                                "(probability, next_state, loss)")
+                        chance, next_state, immediate = row
+                        chance = float(chance)
+                        if (not 0.0 <= chance <= 1.0
+                                or not math.isfinite(chance)):
+                            raise ValueError(
+                                "DP probability must be in [0,1]")
+                        next_state = str(next_state)
+                        if next_state not in states:
+                            raise ValueError(
+                                "DP outcome references unknown state")
+                        immediate = _nonnegative(
+                            immediate, "DP immediate loss")
+                        maximum_immediate = max(
+                            maximum_immediate, immediate)
+                        probability += chance
+                        expected += chance * (
+                            immediate + value[next_state])
+                    if abs(probability - 1.0) > 1e-9:
+                        raise ValueError(
+                            "DP outcome probabilities must sum to one")
+                    action_values.append(expected)
+                following[state] = min(action_values)
+            value = following
+        expected = value[str(initial_state)]
+        upper = max(
+            expected,
+            max(terminal_losses.values() or (0.0,))
+            + horizon * maximum_immediate)
+        material = {
+            "goal_id": str(goal_id),
+            "horizon": horizon,
+            "initial_state": str(initial_state),
+            "terminal_losses": terminal_losses,
+            "transitions": transitions,
+        }
+        return CostToGoEstimate(
+            str(goal_id), expected, 0.0, upper, horizon,
+            self.ESTIMATOR_ID, structural_hash(material), True)
+
+
+class CalibratedHeuristicEstimator:
+    """Bounded heuristic labeled by held-out calibration support."""
+
+    ESTIMATOR_ID = "calibrated-heuristic/1.0"
+
+    def __init__(self, minimum_calibration_samples=30):
+        if (isinstance(minimum_calibration_samples, bool)
+                or not isinstance(minimum_calibration_samples, int)
+                or minimum_calibration_samples < 1):
+            raise ValueError(
+                "minimum calibration samples must be positive")
+        self.minimum_calibration_samples = (
+            minimum_calibration_samples)
+
+    def estimate(
+            self, goal_id, predicted_loss,
+            absolute_error_bound, calibration_samples,
+            horizon=None, features=()):
+        predicted = _nonnegative(
+            predicted_loss, "heuristic predicted loss")
+        error = _nonnegative(
+            absolute_error_bound,
+            "heuristic absolute error bound")
+        if (isinstance(calibration_samples, bool)
+                or not isinstance(calibration_samples, int)
+                or calibration_samples < 0):
+            raise ValueError(
+                "calibration samples must be non-negative")
+        material = {
+            "calibration_samples": calibration_samples,
+            "features": list(features),
+            "goal_id": str(goal_id),
+            "horizon": horizon,
+            "predicted_loss": predicted,
+        }
+        return CostToGoEstimate(
+            str(goal_id), predicted,
+            max(0.0, predicted - error),
+            predicted + error, horizon,
+            self.ESTIMATOR_ID, structural_hash(material),
+            calibration_samples
+            >= self.minimum_calibration_samples)

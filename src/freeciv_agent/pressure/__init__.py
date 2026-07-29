@@ -168,10 +168,14 @@ from .time import (
     evaluate_deadline,
 )
 from .teleology import (
+    BoundedDynamicProgrammingEstimator,
+    CalibratedHeuristicEstimator,
     CostToGoEstimate,
+    ExactTerminalEstimator,
     GoalLoss,
     ImmediateLossEstimator,
     LeverageEstimate,
+    OneStepTransitionEstimator,
     TypedAdvantage,
 )
 from .structural_operations import (
@@ -211,7 +215,9 @@ __all__ = [
     "BudgetArbiter",
     "BudgetArbiterConfig",
     "BudgetDecision",
+    "BoundedDynamicProgrammingEstimator",
     "CAUSAL_KINDS",
+    "CalibratedHeuristicEstimator",
     "CloneManager",
     "CloneState",
     "CloneSplitRequest",
@@ -245,6 +251,7 @@ __all__ = [
     "ExpansionGate",
     "ExplorationFloorAllocation",
     "ExpectedTransition",
+    "ExactTerminalEstimator",
     "FactorDemand",
     "GoalEffect",
     "GoalDemand",
@@ -267,6 +274,7 @@ __all__ = [
     "ObservationOutcome",
     "ObservationSelectionRecord",
     "ObservationTest",
+    "OneStepTransitionEstimator",
     "Operation",
     "OperationScore",
     "PacketBudget",

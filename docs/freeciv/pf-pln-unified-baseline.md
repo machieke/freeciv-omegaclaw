@@ -109,3 +109,56 @@ claim improvement only if it:
 - replays semantic artifacts without truth or legal-action mutation;
 - compares against both scalar-v1 and this smoothed scalar controller;
 - reports held-out paired engine evidence under the benchmark protocol.
+
+## Scalar-v2 and teleological gates
+
+Stage S1 adds an opt-in scalar-v2 controller with separated achievement and
+epistemic demand, signed pressure rails, distributional risk, requirement
+sets, whole packets, and a strict runtime/artifact contract. Verify it with:
+
+```bash
+python3 scripts/freeciv/run_pf_unified_baseline.py v2-verify
+python3 scripts/freeciv/run_pf_unified_baseline.py v2-timing --repetitions 1000
+```
+
+Stage S2 adds first-class goal loss, expected transitions, cost-to-go,
+leverage, typed pre-cost advantage, composite reverse operators, cross-goal
+value-of-computation arbitration, engine-live observation/simulation and LLM
+packet contracts, selection coverage, shadow structural operations, and
+context-qualified control calibration. The live Impact integration is opt-in
+through `ImpactPressureRankerV2(teleological_enabled=True)` so scalar-v1 and
+the archived v1 corpus remain unchanged.
+
+The teleological artifact exposes one reconstructable chain per operation:
+
+```text
+goal loss
+  -> expected post-operation transition
+  -> cost-to-go
+  -> signed leverage
+  -> typed pre-cost advantage
+  -> post-cost schedule score
+```
+
+Expected state relief enters `TypedAdvantage`; operation cost is subtracted
+only by the scheduler. Distributional risk remains a separate scheduler term,
+so it is not counted again inside the advantage. The strong smoothed scalar
+comparator consumes the same `TypedAdvantage` values through
+`bid_from_typed_operation`, subtracting operation cost exactly once and
+setting bridge contribution to zero.
+
+Verify G2 and measure its controller-inclusive live-Impact overhead with:
+
+```bash
+python3 scripts/freeciv/run_pf_unified_baseline.py g2-verify
+python3 scripts/freeciv/run_pf_unified_baseline.py g2-timing --repetitions 100
+```
+
+The recorded G2 evidence is in
+`docs/freeciv/evidence/pf-unified-g2-verification.json` and
+`docs/freeciv/evidence/pf-unified-g2-controller-timing.json`. G2 is an
+implementation and parity gate, not a gameplay claim. Its category/horizon
+relief [plot](evidence/pf-unified-g2-relief-calibration.svg) uses a
+deterministic contract fixture and is explicitly
+claim-ineligible; a held-out engine cohort must replace that fixture before
+claiming empirical calibration or score improvement.

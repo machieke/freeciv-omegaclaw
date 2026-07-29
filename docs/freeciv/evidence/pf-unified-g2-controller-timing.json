@@ -1,0 +1,23 @@
+{
+  "artifact_type": "performance",
+  "base_commit": "9374259",
+  "command": "python3 scripts/freeciv/run_pf_unified_baseline.py g2-timing --repetitions 100",
+  "measurement_scope": "controller-inclusive live Impact candidate ranking, pressure propagation, expected transitions, teleological artifacts, scoring, and serialization",
+  "platform": {
+    "machine": "x86_64",
+    "python_version": "3.8.10",
+    "system": "Linux"
+  },
+  "repetitions": 100,
+  "scalar_v2_live_impact": {
+    "mean_ms": 9.518978609703481,
+    "total_seconds": 0.9518978609703481
+  },
+  "schema_version": "1.0",
+  "teleological_over_scalar_v2_ratio": 2.283537346765631,
+  "teleological_v2_live_impact": {
+    "mean_ms": 21.736943158321083,
+    "total_seconds": 2.1736943158321083
+  },
+  "timing_hash": "ed0f0ffcff2fc3d85f60b057058211c362e09312e9319441701e9ff23b12a6b3"
+}

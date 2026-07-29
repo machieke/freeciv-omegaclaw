@@ -30,6 +30,10 @@ from freeciv.pf_unified.v2_benchmark import (  # noqa: E402
     run_v2_timing,
     run_v2_verification,
 )
+from freeciv.pf_unified.teleology_benchmark import (  # noqa: E402
+    run_g2_timing,
+    run_g2_verification,
+)
 
 
 def _parser():
@@ -44,6 +48,9 @@ def _parser():
     v2_timing = commands.add_parser("v2-timing")
     v2_timing.add_argument("--repetitions", type=int, default=500)
     commands.add_parser("v2-verify")
+    g2_timing = commands.add_parser("g2-timing")
+    g2_timing.add_argument("--repetitions", type=int, default=50)
+    commands.add_parser("g2-verify")
     compare = commands.add_parser("compare")
     compare.add_argument("left")
     compare.add_argument("right")
@@ -71,6 +78,12 @@ def main(argv=None):
         status = 0
     elif command == "v2-verify":
         result = run_v2_verification()
+        status = 0 if result["valid"] else 1
+    elif command == "g2-timing":
+        result = run_g2_timing(arguments.repetitions)
+        status = 0
+    elif command == "g2-verify":
+        result = run_g2_verification()
         status = 0 if result["valid"] else 1
     else:
         result = assert_comparable(
