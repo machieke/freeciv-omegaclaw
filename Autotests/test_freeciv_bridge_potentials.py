@@ -3,6 +3,7 @@
 import math
 import os
 import sys
+from dataclasses import replace
 
 import pytest
 
@@ -14,6 +15,7 @@ if SRC not in sys.path:
 
 from freeciv_agent.flow_control import (  # noqa: E402
     CorrectedProbeEstimator,
+    BridgeCandidateSelector,
     DeterministicMessagePotentialEstimator,
     FlowEdge,
     FlowEdgeKind,
@@ -26,6 +28,8 @@ from freeciv_agent.flow_control import (  # noqa: E402
     PotentialEstimate,
     ProbeConfig,
     ProbeNodeFeatures,
+    SignalUse,
+    SignalUseLedger,
     ShortestMeetPotentialEstimator,
 )
 
@@ -78,7 +82,7 @@ def _bridge_fixture():
     nodes = (
         ("forward", FlowNodeKind.FORWARD_BOUNDARY, ("snapshot",)),
         ("goal", FlowNodeKind.BACKWARD_BOUNDARY, ("goal-a",)),
-        ("bridge", FlowNodeKind.PROPOSITION, ()),
+        ("bridge", FlowNodeKind.OPERATION, ()),
         ("reachable-irrelevant", FlowNodeKind.PROPOSITION, ()),
         ("useful-unreachable", FlowNodeKind.PROPOSITION, ()),
     )
@@ -344,3 +348,88 @@ def test_probe_meet_and_topology_generation_are_explicit():
         row.topology_generation == 1
         and row.rng_substream >= 0
         for row in batch.paths)
+
+
+def test_signal_ledger_rejects_raw_bridge_reapplication():
+    with pytest.raises(ValueError, match="cannot be reapplied"):
+        SignalUseLedger((
+            SignalUse(
+                "bridge_height", "probe_steering",
+                "softmax", False, False),
+            SignalUse(
+                "bridge_height", "operation_scoring",
+                "multiply_score", True, False),
+        ))
+
+
+def test_raw_probe_count_cannot_scale_current_amplitude():
+    with pytest.raises(ValueError, match="raw probe count"):
+        SignalUseLedger((
+            SignalUse(
+                "raw_probe_count", "route_current",
+                "scale_current_amplitude",
+                False, False),
+        ))
+
+
+def test_signal_ledger_rejects_duplicate_uncalibrated_feature():
+    with pytest.raises(ValueError, match="reused in final score"):
+        SignalUseLedger((
+            SignalUse(
+                "typed_advantage", "operation_scoring",
+                "add_once", True, False),
+            SignalUse(
+                "typed_advantage", "tie_break",
+                "multiply_again", True, False),
+        ))
+
+
+def test_residualized_bridge_feature_requires_heldout_model_id():
+    with pytest.raises(ValueError, match="held-out"):
+        SignalUseLedger((
+            SignalUse(
+                "bridge_height", "operation_scoring",
+                "residual_feature", True, True,
+                model_id="training-fit:bridge-v1"),
+        ))
+    ledger = SignalUseLedger((
+        SignalUse(
+            "bridge_height", "operation_scoring",
+            "residual_feature", True, True,
+            model_id="heldout:bridge-residual-v1"),
+    ))
+    assert ledger.to_dict()["ledger_hash"]
+
+
+def test_corrected_overlap_is_invariant_to_raw_probe_duplication():
+    view = _bridge_fixture()
+    config = ProbeConfig(
+        mode="two_stream", path_count=64,
+        max_steps=3, reference_fraction=0.25,
+        minimum_path_diversity=0.0)
+    estimator = CorrectedProbeEstimator(config)
+    forward = estimator.run(
+        view, "forward", ("forward",), ("bridge",))
+    backward = estimator.run(
+        view, "backward", ("goal",), ("bridge",))
+    selector = BridgeCandidateSelector()
+
+    original = selector.select(
+        view, "goal-a", ("bridge",),
+        forward, backward)
+    duplicated = selector.select(
+        view, "goal-a", ("bridge",),
+        replace(forward, paths=forward.paths * 2),
+        replace(backward, paths=backward.paths * 2))
+
+    assert original.readouts == duplicated.readouts
+    assert original.selected_operation_node_ids == (
+        ("bridge",))
+    assert not original.fallback_required
+    final_signals = tuple(
+        row.signal_name
+        for row in original.signal_ledger.uses
+        if row.used_in_final_score)
+    assert "bridge_height" not in final_signals
+    assert "raw_probe_count" not in final_signals
+    assert final_signals.count("typed_advantage") == 1

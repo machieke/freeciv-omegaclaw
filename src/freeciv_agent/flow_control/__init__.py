@@ -38,10 +38,21 @@ from .probes import (
     ProbeNodeFeatures,
     ProbePath,
 )
+from .candidate_selector import (
+    BridgeCandidateSelector,
+    BridgeReadout,
+    BridgeRegionSelection,
+    SignalUse,
+    SignalUseLedger,
+    default_signal_use_ledger,
+)
 
 __all__ = [
     "CandidateGrounding",
     "CandidateFactorization",
+    "BridgeCandidateSelector",
+    "BridgeReadout",
+    "BridgeRegionSelection",
     "CorrectedProbeEstimator",
     "FlowBuildBudget",
     "FlowBuildRejection",
@@ -69,5 +80,8 @@ __all__ = [
     "ProbePath",
     "QueryLocalFlowBuilder",
     "ShortestMeetPotentialEstimator",
+    "SignalUse",
+    "SignalUseLedger",
     "DeterministicMessagePotentialEstimator",
+    "default_signal_use_ledger",
 ]
