@@ -14,7 +14,10 @@ import threading
 from freeciv_agent.events.schema import structural_hash
 from freeciv_agent.events.validator import validate_file
 from freeciv_agent.paths import REPO_ROOT
-from freeciv_agent.pf_runtime import build_runtime_activation
+from freeciv_agent.pf_runtime import (
+    build_controller_activation,
+    build_runtime_activation,
+)
 
 from .config import CapabilityContext, load
 from .representative import run_game as representative_game
@@ -213,6 +216,8 @@ class HarnessRunner(object):
                 self.config["capabilities"][job["condition"]],
                 impact_policy,
             ),
+            "pf_pln_controller": build_controller_activation(
+                impact_policy),
             "rulebase": self.config["rulebase"],
             "ruleset": self.config["ruleset"], "seed": job["seed"],
             "sequence": job["sequence"], "track": job["track"],

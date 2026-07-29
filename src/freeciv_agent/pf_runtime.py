@@ -6,6 +6,7 @@ identity, and emits it into every harness event stream.
 """
 
 import copy
+import math
 
 from .events.schema import structural_hash
 
@@ -90,6 +91,17 @@ PHASE_SPECS = (
 )
 
 CONTROLLER_SCHEMA_VERSION = "2.0"
+PRESSURE_ARTIFACT_SCHEMAS = ("1.0", "2.0")
+CONTROLLER_MODES = (
+    "canonical",
+    "legacy_scalar",
+    "scalar_v2",
+    "bridge_scalar",
+    "unified_shadow",
+    "bridge_scalar_advisory",
+    "unified_flow_advisory",
+    "unified_flow_live",
+)
 CONTROLLER_LAYER_SPECS = (
     {"layer": "scalar_pf_v1", "support": "engine-live"},
     {"layer": "scalar_pf_v2", "support": "experimental"},
@@ -97,21 +109,126 @@ CONTROLLER_LAYER_SPECS = (
     {"layer": "teleological_cost_to_go", "support": "experimental"},
     {"layer": "bridge", "support": "experimental"},
     {"layer": "source_sink_flow", "support": "component-only"},
+    {"layer": "bounded_staleness_view", "support": "experimental"},
+    {"layer": "decision_explanations", "support": "experimental"},
+    {"layer": "exact_commit_revalidation", "support": "experimental"},
     {"layer": "native_flowpack", "support": "not-built"},
 )
 
 CONTROLLER_POLICY_DEFAULTS = {
+    "pressure_achievement_uncertainty_split_enabled": False,
     "pressure_bridge_enabled": False,
+    "pressure_bridge_importance_corrected_enabled": False,
+    "pressure_bridge_reference_likelihood_enabled": False,
+    "pressure_bridge_estimator_policy": "holdout",
+    "pressure_bridge_normalization_contract":
+        "robust-feature-scales/1.0",
     "pressure_distributional_risk_enabled": False,
     "pressure_enabled": True,
     "pressure_flow_enabled": False,
     "pressure_flow_live_enabled": False,
     "pressure_commit_revalidation_enabled": False,
+    "pressure_llm_expansion_enabled": False,
+    "pressure_llm_validation_packet_budget": 0,
     "pressure_packet_scheduler_enabled": False,
     "pressure_requirement_sets_enabled": False,
     "pressure_scalar_fallback_enabled": True,
+    "pressure_shaping_capacity_structural_updates_enabled": False,
+    "pressure_signed_channels_enabled": False,
     "pressure_controller_mode": "auto",
     "pressure_semantics_version": "v1",
+}
+
+CONTROLLER_CONFIGURATION_DEFAULTS = {
+    "pressure_v2": {
+        "achievement_uncertainty_split": False,
+        "signed_channels": False,
+        "distributional_risk": False,
+        "requirement_sets": False,
+        "packet_scheduler": False,
+    },
+    "teleology": {
+        "estimator": "immediate_loss",
+        "max_horizon": 6,
+        "calibration_required": False,
+        "metacontrol_budget_fraction": 0.05,
+    },
+    "bridge": {
+        "enabled": False,
+        "estimator_policy": "holdout",
+        "forward_depth": 8,
+        "backward_depth": 8,
+        "probe_count": 256,
+        "reference_probe_fraction": 0.20,
+        "max_importance_weight": 20.0,
+        "minimum_ess": 32.0,
+        "temperature": 1.0,
+        "deposit_decay": 0.10,
+        "current_following_gain": 0.0,
+        "importance_corrected": False,
+        "reference_likelihood_support": False,
+        "normalization_contract": "robust-feature-scales/1.0",
+    },
+    "flow": {
+        "enabled": False,
+        "turnover_fraction": 0.30,
+        "time_step": 0.10,
+        "cfl_limit": 0.80,
+        "diffusion": 0.03,
+        "projection_tolerance": 1.0e-8,
+        "mass_tolerance": 1.0e-8,
+        "maximum_microsteps": 16,
+        "scalar_fallback": True,
+        "shaping_capacity_structural_updates": False,
+    },
+    "packets": {
+        "budgets": {
+            "cpu": 64,
+            "exact_rule": 8,
+            "observation": 2,
+            "simulation": 4,
+            "action": 1,
+            "expansion": 1,
+            "llm_token": 0,
+        },
+        "reservation_ttl": 2,
+        "backup_route_fraction": 0.10,
+    },
+    "safety": {
+        "hard_tail_risk_gate": True,
+        "commit_revalidation": False,
+    },
+}
+
+_GROUP_TO_POLICY = {
+    ("pressure_v2", "achievement_uncertainty_split"):
+        "pressure_achievement_uncertainty_split_enabled",
+    ("pressure_v2", "signed_channels"):
+        "pressure_signed_channels_enabled",
+    ("pressure_v2", "distributional_risk"):
+        "pressure_distributional_risk_enabled",
+    ("pressure_v2", "requirement_sets"):
+        "pressure_requirement_sets_enabled",
+    ("pressure_v2", "packet_scheduler"):
+        "pressure_packet_scheduler_enabled",
+    ("bridge", "enabled"):
+        "pressure_bridge_enabled",
+    ("bridge", "importance_corrected"):
+        "pressure_bridge_importance_corrected_enabled",
+    ("bridge", "reference_likelihood_support"):
+        "pressure_bridge_reference_likelihood_enabled",
+    ("bridge", "estimator_policy"):
+        "pressure_bridge_estimator_policy",
+    ("bridge", "normalization_contract"):
+        "pressure_bridge_normalization_contract",
+    ("flow", "enabled"):
+        "pressure_flow_enabled",
+    ("flow", "scalar_fallback"):
+        "pressure_scalar_fallback_enabled",
+    ("flow", "shaping_capacity_structural_updates"):
+        "pressure_shaping_capacity_structural_updates_enabled",
+    ("safety", "commit_revalidation"):
+        "pressure_commit_revalidation_enabled",
 }
 
 _SPEC_BY_COMPONENT = {
@@ -122,12 +239,211 @@ class PFRuntimeConfigurationError(ValueError):
     """A PF-PLN support declaration or activation report is inconsistent."""
 
 
+def _merged_controller_configuration(impact_policy):
+    configuration = copy.deepcopy(
+        CONTROLLER_CONFIGURATION_DEFAULTS)
+    for group in configuration:
+        declared = impact_policy.get(group)
+        if declared is None:
+            continue
+        if not isinstance(declared, dict):
+            raise PFRuntimeConfigurationError(
+                "{} controller configuration must be an object".format(
+                    group))
+        unknown = sorted(
+            set(declared) - set(configuration[group]))
+        if unknown:
+            raise PFRuntimeConfigurationError(
+                "{} controller configuration has unknown fields: {}".format(
+                    group, unknown))
+        if group == "packets" and "budgets" in declared:
+            budgets = declared["budgets"]
+            if not isinstance(budgets, dict):
+                raise PFRuntimeConfigurationError(
+                    "packet budgets must be an object")
+            unknown_budgets = sorted(
+                set(budgets)
+                - set(configuration[group]["budgets"]))
+            if unknown_budgets:
+                raise PFRuntimeConfigurationError(
+                    "unknown packet resources: {}".format(
+                        unknown_budgets))
+            configuration[group]["budgets"].update(
+                budgets)
+            declared = dict(declared)
+            declared.pop("budgets")
+        configuration[group].update(declared)
+    for (group, field), policy_name in (
+            _GROUP_TO_POLICY.items()):
+        if policy_name not in impact_policy:
+            continue
+        declared_group = impact_policy.get(group)
+        if (isinstance(declared_group, dict)
+                and field in declared_group
+                and declared_group[field]
+                != impact_policy[policy_name]):
+            raise PFRuntimeConfigurationError(
+                "conflicting flat and grouped settings for {}".format(
+                    policy_name))
+        configuration[group][field] = (
+            impact_policy[policy_name])
+    return configuration
+
+
+def _policy_with_group_aliases(impact_policy, configuration):
+    aliased = dict(impact_policy)
+    for (group, field), policy_name in (
+            _GROUP_TO_POLICY.items()):
+        declared_group = impact_policy.get(group)
+        if (not isinstance(declared_group, dict)
+                or field not in declared_group):
+            continue
+        grouped_value = configuration[group][field]
+        if (policy_name in impact_policy
+                and impact_policy[policy_name]
+                != grouped_value):
+            raise PFRuntimeConfigurationError(
+                "conflicting flat and grouped settings for {}".format(
+                    policy_name))
+        aliased[policy_name] = grouped_value
+    return aliased
+
+
+def _validate_controller_configuration(configuration):
+    for group, names in (
+            ("pressure_v2", (
+                "achievement_uncertainty_split",
+                "signed_channels",
+                "distributional_risk",
+                "requirement_sets",
+                "packet_scheduler")),
+            ("bridge", (
+                "enabled", "importance_corrected",
+                "reference_likelihood_support")),
+            ("flow", (
+                "enabled", "scalar_fallback",
+                "shaping_capacity_structural_updates")),
+            ("teleology", (
+                "calibration_required",)),
+            ("safety", (
+                "hard_tail_risk_gate",
+                "commit_revalidation"))):
+        if any(not isinstance(
+                configuration[group][name], bool)
+                for name in names):
+            raise PFRuntimeConfigurationError(
+                "{} boolean controller settings are invalid".format(
+                    group))
+    if configuration["teleology"]["estimator"] not in (
+            "immediate_loss", "finite_horizon",
+            "learned_value", "hybrid"):
+        raise PFRuntimeConfigurationError(
+            "unknown teleology estimator")
+    if configuration["bridge"]["estimator_policy"] not in (
+            "holdout", "importance_corrected", "mixed"):
+        raise PFRuntimeConfigurationError(
+            "unknown bridge estimator policy")
+    for group, name, minimum, maximum, strict_minimum in (
+            ("teleology", "max_horizon", 1, 1000, False),
+            ("bridge", "forward_depth", 1, 1000, False),
+            ("bridge", "backward_depth", 1, 1000, False),
+            ("bridge", "probe_count", 1, 10000000, False),
+            ("bridge", "minimum_ess", 0.0, 10000000.0, True),
+            ("bridge", "max_importance_weight", 1.0, 1000000.0, False),
+            ("bridge", "temperature", 0.0, 1000000.0, True),
+            ("flow", "time_step", 0.0, 1.0, True),
+            ("flow", "cfl_limit", 0.0, 1.0, True),
+            ("flow", "projection_tolerance", 0.0, 1.0, True),
+            ("flow", "mass_tolerance", 0.0, 1.0, True),
+            ("flow", "maximum_microsteps", 1, 1000000, False),
+            ("packets", "reservation_ttl", 1, 1000000, False)):
+        value = configuration[group][name]
+        if isinstance(value, bool) or not isinstance(
+                value, (int, float)):
+            raise PFRuntimeConfigurationError(
+                "{}.{} must be numeric".format(group, name))
+        if (not math.isfinite(float(value))
+                or (strict_minimum and value <= minimum)
+                or (not strict_minimum and value < minimum)
+                or value > maximum):
+            raise PFRuntimeConfigurationError(
+                "{}.{} is outside its valid range".format(
+                    group, name))
+    for group, name in (
+            ("teleology", "metacontrol_budget_fraction"),
+            ("bridge", "reference_probe_fraction"),
+            ("bridge", "deposit_decay"),
+            ("flow", "turnover_fraction"),
+            ("flow", "diffusion"),
+            ("packets", "backup_route_fraction")):
+        value = configuration[group][name]
+        if (isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+                or not 0.0 <= float(value) <= 1.0):
+            raise PFRuntimeConfigurationError(
+                "{}.{} must be in [0, 1]".format(
+                    group, name))
+    for resource, quanta in (
+            configuration["packets"]["budgets"].items()):
+        if (isinstance(quanta, bool)
+                or not isinstance(quanta, int)
+                or quanta < 0):
+            raise PFRuntimeConfigurationError(
+                "packet budget {} must be a non-negative integer".format(
+                    resource))
+    for group, name in (
+            ("bridge", "normalization_contract"),):
+        value = configuration[group][name]
+        if not isinstance(value, str) or not value:
+            raise PFRuntimeConfigurationError(
+                "{}.{} is required".format(group, name))
+    if (configuration["bridge"]["importance_corrected"]
+            and not configuration["bridge"][
+                "reference_likelihood_support"]):
+        raise PFRuntimeConfigurationError(
+            "importance-corrected probes require reference "
+            "likelihood support")
+    if (configuration["bridge"]["estimator_policy"]
+            in ("importance_corrected", "mixed")
+            and not configuration["bridge"][
+                "reference_likelihood_support"]):
+        raise PFRuntimeConfigurationError(
+            "corrected bridge estimator requires reference "
+            "likelihood support")
+    gain = configuration["bridge"][
+        "current_following_gain"]
+    if (isinstance(gain, bool)
+            or not isinstance(gain, (int, float))
+            or not math.isfinite(float(gain))
+            or gain < 0.0):
+        raise PFRuntimeConfigurationError(
+            "bridge.current_following_gain must be non-negative")
+    if configuration["flow"][
+            "shaping_capacity_structural_updates"]:
+        raise PFRuntimeConfigurationError(
+            "shaping capacities cannot authorize structural updates")
+    return configuration
+
+
 def controller_declaration():
     return {
+        "adapter": "impact-control-adapter/1.0",
+        "artifact_schemas": {
+            "control_query": "1.0",
+            "control_decision": "1.0",
+            "flow_patch": "1.0",
+            "pressure": list(PRESSURE_ARTIFACT_SCHEMAS),
+        },
+        "fallback_modes": [
+            "scalar_v2", "legacy_scalar", "canonical"],
         "layers": {
             row["layer"]: {"support": row["support"]}
             for row in CONTROLLER_LAYER_SPECS
         },
+        "modes": list(CONTROLLER_MODES),
+        "normalization_contract":
+            "robust-feature-scales/1.0",
         "schema_version": CONTROLLER_SCHEMA_VERSION,
     }
 
@@ -136,6 +452,10 @@ def validate_controller_policy(impact_policy):
     if not isinstance(impact_policy, dict):
         raise PFRuntimeConfigurationError(
             "controller impact policy must be an object")
+    configuration = _validate_controller_configuration(
+        _merged_controller_configuration(impact_policy))
+    impact_policy = _policy_with_group_aliases(
+        impact_policy, configuration)
     policy = dict(CONTROLLER_POLICY_DEFAULTS)
     for name in CONTROLLER_POLICY_DEFAULTS:
         if name in impact_policy:
@@ -144,12 +464,7 @@ def validate_controller_policy(impact_policy):
         raise PFRuntimeConfigurationError(
             "pressure_semantics_version must be v1 or v2")
     if policy["pressure_controller_mode"] not in (
-            "auto", "legacy_scalar",
-            "scalar_v2", "bridge_scalar",
-            "unified_shadow",
-            "bridge_scalar_advisory",
-            "unified_flow_advisory",
-            "unified_flow_live"):
+            ("auto",) + CONTROLLER_MODES):
         raise PFRuntimeConfigurationError(
             "unknown pressure_controller_mode")
     if policy["pressure_controller_mode"] == "auto":
@@ -160,16 +475,17 @@ def validate_controller_policy(impact_policy):
             if policy["pressure_semantics_version"] == "v2"
             else "legacy_scalar")
     boolean_names = tuple(
-        name for name in CONTROLLER_POLICY_DEFAULTS
-        if name not in (
-            "pressure_controller_mode",
-            "pressure_semantics_version"))
+        name for name, value
+        in CONTROLLER_POLICY_DEFAULTS.items()
+        if isinstance(value, bool))
     if any(not isinstance(policy[name], bool) for name in boolean_names):
         raise PFRuntimeConfigurationError(
             "PF controller feature flags must be boolean")
     if (policy["pressure_semantics_version"] == "v1"
             and any(policy[name] for name in (
+                "pressure_achievement_uncertainty_split_enabled",
                 "pressure_distributional_risk_enabled",
+                "pressure_signed_channels_enabled",
                 "pressure_packet_scheduler_enabled",
                 "pressure_requirement_sets_enabled",
                 "pressure_bridge_enabled",
@@ -188,6 +504,10 @@ def validate_controller_policy(impact_policy):
             and policy["pressure_semantics_version"] != "v2"):
         raise PFRuntimeConfigurationError(
             "scalar_v2 mode requires pressure semantics v2")
+    if (policy["pressure_controller_mode"] == "canonical"
+            and policy["pressure_flow_live_enabled"]):
+        raise PFRuntimeConfigurationError(
+            "canonical mode cannot enable live flow")
     if (policy["pressure_controller_mode"] in (
             "bridge_scalar", "unified_shadow",
             "bridge_scalar_advisory",
@@ -217,31 +537,76 @@ def validate_controller_policy(impact_policy):
         raise PFRuntimeConfigurationError(
             "unified_flow_live requires explicit live enablement "
             "and commit revalidation")
+    if (policy["pressure_flow_live_enabled"]
+            and policy["pressure_controller_mode"]
+            != "unified_flow_live"):
+        raise PFRuntimeConfigurationError(
+            "live flow enablement requires unified_flow_live mode")
     if (policy["pressure_flow_enabled"]
             and (not policy["pressure_bridge_enabled"]
                  or not policy["pressure_packet_scheduler_enabled"])):
         raise PFRuntimeConfigurationError(
             "pressure flow requires bridge and packet scheduling")
+    if (policy[
+            "pressure_bridge_importance_corrected_enabled"]
+            and not policy[
+                "pressure_bridge_reference_likelihood_enabled"]):
+        raise PFRuntimeConfigurationError(
+            "importance-corrected probes require reference "
+            "likelihood support")
+    if policy[
+            "pressure_shaping_capacity_structural_updates_enabled"]:
+        raise PFRuntimeConfigurationError(
+            "shaping capacities cannot authorize structural updates")
+    if (policy["pressure_llm_expansion_enabled"]
+            and policy[
+                "pressure_llm_validation_packet_budget"] < 1):
+        raise PFRuntimeConfigurationError(
+            "LLM expansion requires validation packet budget")
+    if (isinstance(
+            policy["pressure_llm_validation_packet_budget"], bool)
+            or not isinstance(
+                policy[
+                    "pressure_llm_validation_packet_budget"], int)
+            or policy[
+                "pressure_llm_validation_packet_budget"] < 0):
+        raise PFRuntimeConfigurationError(
+            "LLM validation packet budget must be non-negative")
+    for name in (
+            "pressure_bridge_estimator_policy",
+            "pressure_bridge_normalization_contract"):
+        if not isinstance(policy[name], str) or not policy[name]:
+            raise PFRuntimeConfigurationError(
+                "{} must be nonempty".format(name))
     if (not policy["pressure_enabled"]
             and any(policy[name] for name in (
+                "pressure_achievement_uncertainty_split_enabled",
                 "pressure_distributional_risk_enabled",
+                "pressure_signed_channels_enabled",
                 "pressure_packet_scheduler_enabled",
                 "pressure_requirement_sets_enabled",
                 "pressure_bridge_enabled",
-                "pressure_flow_enabled"))):
+                "pressure_flow_enabled",
+                "pressure_flow_live_enabled"))):
         raise PFRuntimeConfigurationError(
             "disabled pressure cannot enable controller layers")
     return policy
 
 
 def build_controller_activation(impact_policy):
+    configuration = _validate_controller_configuration(
+        _merged_controller_configuration(impact_policy))
     policy = validate_controller_policy(impact_policy)
     pressure_enabled = policy["pressure_enabled"]
     v2 = policy["pressure_semantics_version"] == "v2"
     mode = policy["pressure_controller_mode"]
     enabled = {
-        "scalar_pf_v1": pressure_enabled and not v2,
-        "scalar_pf_v2": pressure_enabled and v2,
+        "scalar_pf_v1": (
+            pressure_enabled and not v2
+            and mode != "canonical"),
+        "scalar_pf_v2": (
+            pressure_enabled and v2
+            and mode != "canonical"),
         "packet_scheduler": (
             pressure_enabled and v2
             and policy["pressure_packet_scheduler_enabled"]),
@@ -263,6 +628,15 @@ def build_controller_activation(impact_policy):
         "source_sink_flow": (
             pressure_enabled and v2
             and policy["pressure_flow_enabled"]),
+        "bounded_staleness_view": (
+            pressure_enabled and v2
+            and policy["pressure_flow_enabled"]),
+        "decision_explanations": (
+            pressure_enabled and mode
+            not in ("canonical", "legacy_scalar")),
+        "exact_commit_revalidation": (
+            pressure_enabled and policy[
+                "pressure_commit_revalidation_enabled"]),
         "native_flowpack": False,
     }
     layers = {}
@@ -286,8 +660,25 @@ def build_controller_activation(impact_policy):
             "support": spec["support"],
         }
     value = {
+        "artifact_schema_versions": {
+            "control_decision": "1.0",
+            "control_query": "1.0",
+            "flow_patch": "1.0",
+            "pressure": (
+                "2.0" if v2 else "1.0"),
+        },
+        "configuration_groups": configuration,
         "controller_policy": policy,
+        "estimator_policy": configuration[
+            "bridge"]["estimator_policy"],
+        "fallback_available": {
+            "canonical": True,
+            "legacy_scalar": True,
+            "scalar_v2": v2,
+        },
         "layers": layers,
+        "normalization_contract": configuration[
+            "bridge"]["normalization_contract"],
         "schema_version": CONTROLLER_SCHEMA_VERSION,
     }
     value["activation_hash"] = structural_hash(value)

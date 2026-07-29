@@ -16,6 +16,10 @@ from freeciv_agent.config import (
 )
 from freeciv_agent.events.schema import structural_hash
 from freeciv_agent.paths import repo_path
+from freeciv_agent.pf_runtime import (
+    PFRuntimeConfigurationError,
+    validate_controller_policy,
+)
 
 from .statistics import paired_win_design_power
 
@@ -195,6 +199,12 @@ def _validate_impact_policy(impact, prefix="impact_policy"):
         raise ValueError(
             "{}.expansion_minimum_remaining_turns cannot be shorter than production"
             .format(prefix))
+    try:
+        validate_controller_policy(impact)
+    except PFRuntimeConfigurationError as error:
+        raise ValueError(
+            "{} controller configuration: {}".format(
+                prefix, error))
 
 
 def _derive_seeds(spec, prefix):
