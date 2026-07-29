@@ -83,6 +83,14 @@ from .capacities import (
     MultiCommodityCapacitySolver,
     MultiCommodityResult,
 )
+from .advection import (
+    AdvectionStepResult,
+    AttentionState,
+    PacketReservationLedger,
+    ReservationMass,
+    TransportRun,
+    TwoDyeAdvectionKernel,
+)
 
 __all__ = [
     "CandidateGrounding",
@@ -93,6 +101,8 @@ __all__ = [
     "BridgeScalarConfig",
     "BridgeScalarController",
     "BridgeScalarDecision",
+    "AdvectionStepResult",
+    "AttentionState",
     "CapacityDual",
     "CapacityKind",
     "CapacityRecord",
@@ -123,6 +133,7 @@ __all__ = [
     "LocalNodeHandle",
     "MonteCarloMeetPotentialEstimator",
     "POTENTIAL_PROCESS_SEMANTICS",
+    "PacketReservationLedger",
     "PotentialBudget",
     "PotentialEstimate",
     "PotentialEstimator",
@@ -138,11 +149,14 @@ __all__ = [
     "RobustScale",
     "RequestedCurrent",
     "RequestedCurrentBuilder",
+    "ReservationMass",
     "PathClosure",
     "QueryLocalFlowBuilder",
     "ShortestMeetPotentialEstimator",
     "SignalUse",
     "SignalUseLedger",
+    "TransportRun",
+    "TwoDyeAdvectionKernel",
     "DeterministicMessagePotentialEstimator",
     "default_signal_use_ledger",
     "default_normalization_contract",
