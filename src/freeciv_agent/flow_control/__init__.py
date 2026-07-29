@@ -1,9 +1,12 @@
 """Query-local bridge and resource-flow control contracts."""
 
 from .builder import (
+    CandidateFactorization,
     FlowBuildBudget,
     FlowBuildRejection,
     FlowBuildResult,
+    FreeCivFactorGraphBuilder,
+    FreeCivFactorizationResult,
     QueryLocalFlowBuilder,
 )
 from .model import (
@@ -21,6 +24,7 @@ from .topology import FlowTopologyIndex
 
 __all__ = [
     "CandidateGrounding",
+    "CandidateFactorization",
     "FlowBuildBudget",
     "FlowBuildRejection",
     "FlowBuildResult",
@@ -32,6 +36,8 @@ __all__ = [
     "FlowProcess",
     "FlowTopologyIndex",
     "FlowView",
+    "FreeCivFactorGraphBuilder",
+    "FreeCivFactorizationResult",
     "LocalNodeHandle",
     "QueryLocalFlowBuilder",
 ]

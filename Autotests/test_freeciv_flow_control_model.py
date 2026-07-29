@@ -21,6 +21,7 @@ from freeciv_agent.flow_control import (  # noqa: E402
     FlowNodeKind,
     FlowProcess,
     FlowTopologyIndex,
+    FreeCivFactorGraphBuilder,
     QueryLocalFlowBuilder,
 )
 from freeciv_agent.planning import GroundedImpactPlanner  # noqa: E402
@@ -204,3 +205,136 @@ def test_materialization_budget_is_deterministic_and_leaves_frontier_stub():
     stub = first.view.node(first.view.frontier_stub_ids[0])
     assert stub.kind == FlowNodeKind.FRONTIER_STUB
     assert stub.provenance_ids == ()
+
+
+def _deep_build(reverse=False, budget=None, per_category=64):
+    snapshot, candidates = _fixture()
+    if reverse:
+        candidates = tuple(reversed(candidates))
+    result = FreeCivFactorGraphBuilder(
+        budget=budget,
+        max_candidates_per_category=per_category).build(
+            "deep-factor-test", snapshot, candidates,
+            goal_ids=("expansion", "exploration"),
+            goal_by_category={
+                "city_founding": "expansion",
+                "expansion_move": "expansion",
+                "exploration_move": "exploration",
+            },
+            semantic_epoch=5,
+            topology_generation=11,
+            clone_generation=3)
+    return snapshot, candidates, result
+
+
+def test_candidate_factorization_preserves_premise_roles():
+    _, _, result = _deep_build()
+    founding = next(
+        row for row in result.view.candidate_groundings
+        if row.category == "city_founding")
+    route = next(
+        row for row in result.factorizations
+        if row.operation_node_id
+        == founding.operation_node_id)
+
+    assert route.complete
+    assert set(route.requirement_roles) >= {
+        "actor_exists_and_is_available",
+        "legal_action_is_still_advertised",
+        "safety_and_provenance_guards",
+        "target_or_destination_remains_valid",
+    }
+    roles = {
+        result.view.node(node_id).semantic_role
+        for node_id in route.factor_node_ids}
+    assert set((
+        "desired_outcome_factor",
+        "effect_model_factor",
+        "operation_requirement_set",
+    )).issubset(roles)
+
+
+def test_deep_factorization_has_distinct_forward_and_backward_routes():
+    _, _, result = _deep_build()
+    route = result.factorizations[0]
+    route_nodes = frozenset(route.factor_node_ids) | {
+        route.operation_node_id}
+    forward = tuple(
+        row for row in result.view.edges
+        if row.kind in (
+            FlowEdgeKind.FORWARD_TRUTH,
+            FlowEdgeKind.PROBE_FORWARD)
+        and (row.source_node_id in route_nodes
+             or row.target_node_id in route_nodes))
+    backward = tuple(
+        row for row in result.view.edges
+        if row.kind == FlowEdgeKind.BACKWARD_DEMAND
+        and (row.source_node_id in route_nodes
+             or row.target_node_id in route_nodes))
+
+    assert forward
+    assert backward
+    assert all(
+        not row.legality.probe_backward
+        for row in forward)
+    assert all(
+        not row.legality.probe_forward
+        for row in backward)
+    assert {
+        row.stable_id for row in forward
+    }.isdisjoint({
+        row.stable_id for row in backward
+    })
+
+
+def test_unknown_requirement_is_frontier_not_proposition_or_evidence():
+    _, _, result = _deep_build()
+    route = next(
+        row for row in result.factorizations
+        if "required_observation_or_simulation_result"
+        in row.frontier_roles)
+    frontier = next(
+        result.view.node(node_id)
+        for node_id in route.factor_node_ids
+        if result.view.node(node_id).semantic_role
+        == "required_observation_or_simulation_result")
+
+    assert frontier.kind == FlowNodeKind.FRONTIER_STUB
+    assert not frontier.evidence_mirror
+    assert not frontier.committable
+
+
+def test_deep_factorization_is_order_invariant_and_category_bounded():
+    budget = FlowBuildBudget(
+        max_nodes=1024, max_edges=4096,
+        max_candidates=512, max_frontier_stubs=64)
+    _, _, first = _deep_build(
+        budget=budget, per_category=1)
+    _, _, second = _deep_build(
+        reverse=True, budget=budget,
+        per_category=1)
+
+    assert first.to_dict() == second.to_dict()
+    assert first.budget_exhausted
+    complete = [
+        row for row in first.factorizations
+        if row.complete]
+    assert len(complete) == 3
+    assert first.frontier_candidate_count == (
+        len(first.view.candidate_groundings) - 3)
+
+
+def test_operation_grounding_keeps_authoritative_commit_identity():
+    snapshot, _, result = _deep_build()
+
+    assert result.view.candidate_groundings
+    for grounding in result.view.candidate_groundings:
+        operation = result.view.node(
+            grounding.operation_node_id)
+        assert grounding.snapshot_id == snapshot.snapshot_id
+        assert grounding.legal_action_digest == (
+            snapshot.legal_actions_digest)
+        assert grounding.topology_generation == 11
+        assert operation.kind == FlowNodeKind.OPERATION
+        assert operation.committable
+        assert not operation.evidence_mirror

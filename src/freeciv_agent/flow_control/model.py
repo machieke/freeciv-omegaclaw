@@ -144,6 +144,10 @@ class FlowNode:
     born_generation: int = 0
     retired_generation: object = None
     active: bool = True
+    semantic_role: object = None
+    payload_digest: object = None
+    evidence_mirror: bool = False
+    committable: bool = False
 
     def __post_init__(self):
         _local_id(self.local_id, "node local ID")
@@ -174,6 +178,22 @@ class FlowNode:
                     "node cannot retire before it is born")
         if not isinstance(self.active, bool):
             raise TypeError("node active state must be boolean")
+        if (self.semantic_role is not None
+                and (not isinstance(self.semantic_role, str)
+                     or not self.semantic_role)):
+            raise ValueError(
+                "node semantic role must be nonempty when declared")
+        if (self.payload_digest is not None
+                and (not isinstance(self.payload_digest, str)
+                     or not self.payload_digest)):
+            raise ValueError(
+                "node payload digest must be nonempty when declared")
+        if not isinstance(self.evidence_mirror, bool):
+            raise TypeError(
+                "node evidence mirror state must be boolean")
+        if not isinstance(self.committable, bool):
+            raise TypeError(
+                "node committable state must be boolean")
         if (self.kind in (
                 FlowNodeKind.RESERVOIR,
                 FlowNodeKind.SHARD_PORTAL)
@@ -181,6 +201,14 @@ class FlowNode:
             raise ValueError(
                 "{} nodes are inactive in Stage S3".format(
                     self.kind.value))
+        if (self.kind == FlowNodeKind.FRONTIER_STUB
+                and (self.evidence_mirror or self.committable)):
+            raise ValueError(
+                "frontier stubs cannot be evidence or committable")
+        if (self.committable
+                and self.kind != FlowNodeKind.OPERATION):
+            raise ValueError(
+                "only operation nodes may be committable")
 
     def to_dict(self):
         """Return durable fields only; local_id is intentionally omitted."""
@@ -189,10 +217,14 @@ class FlowNode:
             "born_generation": self.born_generation,
             "clone_generation": self.clone_generation,
             "context_digest": self.context_digest,
+            "committable": self.committable,
+            "evidence_mirror": self.evidence_mirror,
             "kind": self.kind.value,
+            "payload_digest": self.payload_digest,
             "provenance_ids": list(self.provenance_ids),
             "retired_generation": self.retired_generation,
             "semantic_generation": self.semantic_generation,
+            "semantic_role": self.semantic_role,
             "source": self.source,
             "stable_id": self.stable_id,
             "topology_generation": self.topology_generation,
