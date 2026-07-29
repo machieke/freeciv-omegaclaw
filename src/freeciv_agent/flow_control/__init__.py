@@ -91,6 +91,14 @@ from .advection import (
     TransportRun,
     TwoDyeAdvectionKernel,
 )
+from .eligibility import (
+    FlowCandidate,
+    FlowCandidateFactory,
+    FlowIntegralityDiagnostics,
+    FlowPacketDecision,
+    FlowPacketIntegrator,
+    PacketStarvation,
+)
 
 __all__ = [
     "CandidateGrounding",
@@ -120,11 +128,16 @@ __all__ = [
     "FlowBuildBudget",
     "FlowBuildRejection",
     "FlowBuildResult",
+    "FlowCandidate",
+    "FlowCandidateFactory",
     "FlowEdge",
     "FlowEdgeKind",
     "FlowLegality",
     "FlowNode",
     "FlowNodeKind",
+    "FlowIntegralityDiagnostics",
+    "FlowPacketDecision",
+    "FlowPacketIntegrator",
     "FlowProcess",
     "FlowTopologyIndex",
     "FlowView",
@@ -134,6 +147,7 @@ __all__ = [
     "MonteCarloMeetPotentialEstimator",
     "POTENTIAL_PROCESS_SEMANTICS",
     "PacketReservationLedger",
+    "PacketStarvation",
     "PotentialBudget",
     "PotentialEstimate",
     "PotentialEstimator",
