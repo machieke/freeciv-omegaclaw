@@ -274,3 +274,54 @@ Its verification hash is
 These are synthetic controller results, not a FreeCiv score, gameplay, or
 win-rate claim. Engine-backed shadow and paired confirmation remain required
 before any such claim.
+
+### Stage S5 engine integration
+
+The Python reference controller is now connected to
+`GroundedImpactPlanner` through a versioned `ControlQuery` and
+`ControlDecision` adapter. The legacy and scalar-v2 paths remain available;
+`unified_shadow` cannot change the live action, and
+`unified_flow_advisory` can reorder only an authoritative grounded candidate
+after whole-packet completion, health checks, and exact current-state
+revalidation. Every failure follows the explicit flow-to-scalar fallback
+chain. Belief, attention, and action explanations use separate ledgers.
+
+Flow overlap has one declared use: it selects a bounded per-goal candidate
+region. Typed PF priority then scores concrete operations within that region.
+The controller records the flow selection, scalar comparator, region
+threshold, packet state, signal-use ledger, and later authoritative outcome.
+It never multiplies overlap into PF value.
+
+The first two-pair engine diagnostic found a structural no-op in the initial
+adapter: every positive-overlap candidate was retained and then sorted by the
+unchanged scalar score, so all 282 executed actions matched. The corrected
+four-pair diagnostic completed without failures or safety violations and
+produced 13 direct disagreements. Its paired score deltas were
+`[0, -2, +7, 0]`, for a diagnostic mean of `+1.25` with interval
+`[-1.50, +5.25]`; the score-lead-rate delta was `+0.25 [0.00, +0.75]`.
+This is directional mechanism evidence only, not a gameplay, score, or
+win-rate claim.
+
+The untouched 40-pair `unified_flow_advisory_pilot_v1` cohort remains
+predeclared and seed-disjoint. It is also claim-ineligible: its purpose is to
+estimate disagreement, variance, controller overhead, and whether a
+confirmation is justified. Live authority remains gated because the current
+one-step transition artifact is explicitly uncalibrated.
+
+Run the diagnostic or pilot with:
+
+```bash
+FREECIV_RULESET_ROOT=/path/to/freeciv/data \
+PYTHONPATH=src:benchmarks python3.8 \
+  scripts/freeciv/run_impact_evaluation.py \
+  --out artifacts/freeciv/unified-flow-advisory-pilot-v1-engine \
+  --backend engine-live \
+  --cohort unified_flow_advisory_pilot_v1 \
+  --workers 3 \
+  --server-ports 6001,6003,6004 \
+  --no-resume
+```
+
+Detailed diagnostic evidence is recorded in
+[v1](evidence/pf-unified-flow-advisory-diagnostic-v1.md) and
+[v2](evidence/pf-unified-flow-advisory-diagnostic-v2.md).

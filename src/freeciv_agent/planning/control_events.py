@@ -131,7 +131,8 @@ class ControlEventEmitter:
     def _emit(
             writer, event_type, turn, query,
             decision, parents, summary,
-            flow_artifact=None):
+            flow_artifact=None,
+            decision_hash=None):
         parents = tuple(str(value) for value in parents)
         summary = json.loads(
             canonical_json_bytes(
@@ -141,7 +142,9 @@ class ControlEventEmitter:
                 summary),
             "config_digest": query.config_digest,
             "controller_decision_hash":
-                decision.decision_hash,
+                (decision_hash
+                 if decision_hash is not None
+                 else decision.decision_hash),
             "event_schema_version":
                 CONTROL_EVENT_SCHEMA_VERSION,
             "parent_event_ids": list(parents),
@@ -170,6 +173,11 @@ class ControlEventEmitter:
         emitted = []
         flow_artifact = _flow_artifact(
             decision)
+        # A unified artifact contains probe, projection, transport, and packet
+        # blocks. Its semantic hash is intentionally comprehensive, but
+        # recomputing it for every event in the same causal chain made
+        # observability more expensive than the controller itself.
+        decision_hash = decision.decision_hash
         if flow_artifact is not None:
             flow = flow_artifact.get("flow", {})
             pressure = flow_artifact.get(
@@ -194,7 +202,7 @@ class ControlEventEmitter:
                             teleology.get(
                                 "operation_estimates",
                                 ())),
-                    }, flow_artifact)
+                    }, flow_artifact, decision_hash)
                 emitted.append(event)
                 parents = (event["event_id"],)
             potential_summary = flow.get(
@@ -208,7 +216,7 @@ class ControlEventEmitter:
                         "normalization_contract":
                             query
                             .normalization_contract_hash,
-                    }, flow_artifact)
+                    }, flow_artifact, decision_hash)
                 emitted.append(event)
                 parents = (event["event_id"],)
             probe_batches = flow.get(
@@ -234,7 +242,7 @@ class ControlEventEmitter:
                             for row in probe_batches
                             if isinstance(row, dict)
                         ],
-                    }, flow_artifact)
+                    }, flow_artifact, decision_hash)
                 emitted.append(event)
                 parents = (event["event_id"],)
             currents = flow.get(
@@ -261,7 +269,7 @@ class ControlEventEmitter:
                             for row in currents
                             if isinstance(row, dict)
                         ],
-                    }, flow_artifact)
+                    }, flow_artifact, decision_hash)
                 emitted.append(event)
                 parents = (event["event_id"],)
             projections = flow.get(
@@ -291,7 +299,7 @@ class ControlEventEmitter:
                             for row in projections
                             if isinstance(row, dict)
                         ],
-                    }, flow_artifact)
+                    }, flow_artifact, decision_hash)
                 emitted.append(event)
                 parents = (event["event_id"],)
             transport = flow.get(
@@ -318,7 +326,7 @@ class ControlEventEmitter:
                             _compact_transport_readout(
                                 flow.get(
                                     "transport_readout")),
-                    }, flow_artifact)
+                    }, flow_artifact, decision_hash)
                 emitted.append(event)
                 parents = (event["event_id"],)
             packet = flow.get(
@@ -336,7 +344,7 @@ class ControlEventEmitter:
                         "revalidation":
                             packet.get(
                                 "revalidation"),
-                    }, flow_artifact)
+                    }, flow_artifact, decision_hash)
                 emitted.append(event)
                 parents = (event["event_id"],)
             event = self._emit(
@@ -362,7 +370,7 @@ class ControlEventEmitter:
                     "typed_advantage":
                         flow_artifact.get(
                             "typed_advantage"),
-                }, flow_artifact)
+                }, flow_artifact, decision_hash)
             emitted.append(event)
             parents = (event["event_id"],)
         validation = decision.artifact.get(
@@ -371,7 +379,8 @@ class ControlEventEmitter:
             event = self._emit(
                 writer, "candidate_revalidated",
                 turn, query, decision, parents,
-                validation, flow_artifact)
+                validation, flow_artifact,
+                decision_hash)
             emitted.append(event)
             parents = (event["event_id"],)
         if (decision.health in (
@@ -386,7 +395,7 @@ class ControlEventEmitter:
                         decision.artifact.get(
                             "gate_reasons", ()),
                     "health": decision.health,
-                }, flow_artifact)
+                }, flow_artifact, decision_hash)
             emitted.append(event)
         return tuple(emitted)
 
@@ -400,4 +409,5 @@ class ControlEventEmitter:
             writer, "control_outcome_recorded",
             turn, query, decision, caused_by,
             outcome.to_dict(),
-            _flow_artifact(decision))
+            _flow_artifact(decision),
+            outcome.decision_hash)

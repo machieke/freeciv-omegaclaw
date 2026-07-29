@@ -14,6 +14,7 @@ if SRC not in sys.path:
 
 from freeciv_agent.events.validator import validate_file  # noqa: E402
 from freeciv_agent.events.writer import EventWriter  # noqa: E402
+import freeciv_agent.planning.impact_flow_adapter as impact_flow_adapter_module  # noqa: E402
 from freeciv_agent.planning import (  # noqa: E402
     ControlEventEmitter,
     GroundedImpactPlanner,
@@ -516,3 +517,54 @@ def test_unified_control_events_are_aggregate_schema_valid_and_linked(
         "counterfactual_status"] == (
             "observed-selected-execution")
     assert validate_file(path).valid
+
+
+def test_control_event_chain_hashes_large_decision_once(
+        tmp_path, monkeypatch):
+    planner = GroundedImpactPlanner(
+        _shadow_config())
+    snapshot = _snapshot()
+    decision = planner.plan(snapshot)
+    path = str(tmp_path / "events.jsonl")
+    writer = EventWriter(
+        path, "control-event-hash-test",
+        durable=False)
+    root = writer.emit(
+        "run_started", 0, {
+            "condition_id": "test",
+            "manifest_identity": "test",
+        })
+    calls = {"count": 0}
+    original = (
+        impact_flow_adapter_module
+        .structural_hash)
+
+    def tracked(value):
+        calls["count"] += 1
+        return original(value)
+
+    monkeypatch.setattr(
+        impact_flow_adapter_module,
+        "structural_hash", tracked)
+    emitter = ControlEventEmitter()
+    events = emitter.emit_decision(
+        writer, snapshot.turn,
+        planner.last_control_query,
+        planner.last_control_decision,
+        caused_by=(root["event_id"],))
+
+    assert len(events) == 8
+    assert calls["count"] == 1
+
+    planner.record_outcome(
+        decision.candidate, snapshot, True,
+        after_snapshot=snapshot,
+        feedback_id="control-event-hash-outcome")
+    calls["count"] = 0
+    emitter.emit_outcome(
+        writer, snapshot.turn,
+        planner.last_control_outcome_query,
+        planner.last_control_outcome_decision,
+        planner.last_control_outcome_record,
+        caused_by=(events[-1]["event_id"],))
+    assert calls["count"] == 0
