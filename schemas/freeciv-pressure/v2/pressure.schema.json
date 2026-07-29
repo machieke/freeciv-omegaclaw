@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omegaclaw.local/schemas/freeciv-pressure/v2/pressure.schema.json",
+  "title": "PF-PLN scalar-v2 pressure artifact",
+  "type": "object",
+  "required": [
+    "pressure_artifact_schema",
+    "teleology_semantics",
+    "pressure_representation",
+    "coalition_semantics",
+    "demands",
+    "achievement_dependency",
+    "epistemic_dependency",
+    "achievement_pressure",
+    "epistemic_pressure",
+    "pressure"
+  ],
+  "properties": {
+    "pressure_artifact_schema": {"const": "2.0"},
+    "teleology_semantics": {"const": "achievement-uncertainty-split/1.0"},
+    "pressure_representation": {"const": "signed-channel-rails/1.0"},
+    "coalition_semantics": {"const": "requirement-set/1.0"},
+    "demands": {"type": "object"},
+    "achievement_dependency": {"type": "object"},
+    "epistemic_dependency": {"type": "object"},
+    "achievement_pressure": {"type": "object"},
+    "epistemic_pressure": {"type": "object"},
+    "pressure": {"type": "object"}
+  }
+}

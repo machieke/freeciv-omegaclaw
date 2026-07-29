@@ -5,7 +5,12 @@ from dataclasses import dataclass, replace
 from types import SimpleNamespace
 
 from ..events.schema import structural_hash
-from .engine import PressureEngine, PressureGraph
+from .engine import (
+    PressureEngine,
+    PressureEngineV2,
+    PressureGraph,
+    PressureV2Policy,
+)
 from .model import (
     AtomState,
     CostVector,
@@ -17,6 +22,7 @@ from .model import (
     TruthState,
 )
 from .scheduler import PressureScheduler
+from .time import DeadlineState, evaluate_deadline
 
 
 PROCEDURAL_PREDICATES = frozenset((
@@ -157,6 +163,16 @@ class ProofPressureAdapter(object):
             "schedule": self.scheduler.decision_artifact(
                 operations, result) if operations else None,
         }
+
+
+class ProofPressureAdapterV2(ProofPressureAdapter):
+    """Opt-in proof adapter for achievement/uncertainty split semantics."""
+
+    def __init__(self, config=None, policy=None):
+        super().__init__(config=config)
+        self.policy = policy or PressureV2Policy()
+        self.engine = PressureEngineV2(
+            self.config, policy=self.policy)
 
 
 class ImpactPressureRanker(object):
@@ -641,6 +657,43 @@ class ImpactPressureRanker(object):
             return 0.0
         return 1.0
 
+    @staticmethod
+    def _deadline_estimate(candidate):
+        """Return a structured v2 estimate without changing v1 ranking."""
+        projection = candidate.projection or {}
+        remaining = projection.get("remaining_turns")
+        eta = projection.get(
+            "settlement_eta_turns",
+            projection.get(
+                "preexpansion_sequence_settlement_eta_turns",
+                projection.get(
+                    "repeat_completion_eta_turns",
+                    projection.get("completion_eta_turns"))))
+        completes = projection.get(
+            "repurpose_target_completes_by_horizon")
+        expected = None if eta is None else float(eta)
+        deadline = None if remaining is None else int(remaining)
+        if completes is False and deadline is not None:
+            expected = max(
+                float(deadline) + 1.0,
+                expected if expected is not None else 0.0)
+        state = DeadlineState(
+            current_turn=0,
+            deadline_turn=deadline,
+            expected_completion_turn=expected,
+            completion_variance=float(
+                projection.get("completion_variance", 0.0) or 0.0))
+        return evaluate_deadline(
+            state, hard_horizon_turn=deadline)
+
+    def _goal_risk_profile(self, name, safety):
+        """Compatibility hook; scalar-v1 has no distributional profile."""
+        return None
+
+    def _operation_semantics(self, candidate, goal_id):
+        """Compatibility hook for v2 risk, deadline, and packet metadata."""
+        return {}
+
     @classmethod
     def _score_aligned_scores(
             cls, scores, candidate_by_operation, safety_active,
@@ -751,7 +804,8 @@ class ImpactPressureRanker(object):
                 if name == "score" else 1.0)
             goals.append(GoalState(
                 "pf-impact:{}".format(name), atom_id, 1.0, utility,
-                urgency, safety=safety, context=(grounding,)))
+                urgency, safety=safety, context=(grounding,),
+                risk_profile=self._goal_risk_profile(name, safety)))
         for index, candidate in enumerate(candidates):
             goal_name = self.goal_for_category(candidate.category)
             atom_id = "pf-impact-candidate:{}".format(structural_hash({
@@ -964,7 +1018,9 @@ class ImpactPressureRanker(object):
                         goal_name in active_safety_goals
                         and (not self.score_alignment
                              or safety_candidate_relevant(candidate)))),
-                payload=candidate.to_dict()))
+                payload=candidate.to_dict(),
+                **self._operation_semantics(
+                    candidate, "pf-impact:{}".format(goal_name))))
         if diagnostics is not None:
             diagnostics["pressure_operation_latency_ms"] = (
                 diagnostics.get("pressure_operation_latency_ms", 0.0)
@@ -1043,3 +1099,61 @@ class ImpactPressureRanker(object):
         return self.record_category_outcome(
             candidate.category, effect_observed, feedback_id,
             realized_relief, relief_source, diagnostics=diagnostics)
+
+
+class ImpactPressureRankerV2(ImpactPressureRanker):
+    """Opt-in Impact adapter using scalar-v2 pressure semantics."""
+
+    def __init__(
+            self, config=None, conductance_state=None,
+            score_alignment=False,
+            exploration_information_enabled=True,
+            score_alignment_utility_tolerance=0.0,
+            policy=None):
+        super().__init__(
+            config=config,
+            conductance_state=conductance_state,
+            score_alignment=score_alignment,
+            exploration_information_enabled=(
+                exploration_information_enabled),
+            score_alignment_utility_tolerance=(
+                score_alignment_utility_tolerance))
+        self.v2_policy = policy or PressureV2Policy()
+        self.engine = PressureEngineV2(
+            self.config, policy=self.v2_policy)
+
+    def _goal_risk_profile(self, name, safety):
+        from .risk import RiskProfile
+        return RiskProfile(
+            aversion=(1.0 if safety else 0.15),
+            max_tail_loss=(1.0 if safety else None),
+            hard_gate=bool(safety))
+
+    def _operation_semantics(self, candidate, goal_id):
+        from .packets import PacketCost, ResourceKind
+        from .risk import estimate_uncertain_loss
+        projection = candidate.projection or {}
+        declared = projection.get("risk_estimate")
+        estimates = ()
+        if isinstance(declared, dict):
+            provenance = tuple(declared.get("provenance", ()))
+            if not provenance:
+                raise ValueError(
+                    "v2 candidate risk estimate requires provenance")
+            estimate = estimate_uncertain_loss(
+                expected_loss=declared.get("expected_loss", 0.0),
+                outcome_variance=declared.get("variance", 0.0),
+                confidence=declared.get("confidence", 0.0),
+                tail_alpha=declared.get("tail_alpha", 0.10),
+                provenance=provenance)
+            estimates = ((goal_id, estimate),)
+        reversible = bool(projection.get("reversible", True))
+        return {
+            "deadline_estimate": self._deadline_estimate(candidate),
+            "externally_consequential": True,
+            "packet_costs": (
+                PacketCost(ResourceKind.ACTION, 1),
+                PacketCost(ResourceKind.CPU, 1)),
+            "reversible": reversible,
+            "risk_estimates": estimates,
+        }

@@ -1,0 +1,45 @@
+{
+  "artifact_type": "semantic",
+  "base_commit": "63e7351",
+  "command": "python3 scripts/freeciv/run_pf_unified_baseline.py v2-verify",
+  "packet_validation": {
+    "artifact_hash": "a0251b98e2c4934583f2e94207bcf1bb4b05c07c21ec5c3a9f14aa771f525ecf",
+    "scheduler_identity": "pf-pln-packet-scheduler/2.0",
+    "valid": true
+  },
+  "pressure_validation": {
+    "artifact_hash": "bd9a070690cf133e7bc279be5817d10d752b30bfaee254879f7e85e00c0fd241",
+    "pressure_artifact_schema": "2.0",
+    "valid": true
+  },
+  "schema_version": "1.0",
+  "snapshot_replay": [
+    {
+      "candidate_count": 0,
+      "path": "benchmarks/freeciv/samples/real_state_turn0.json",
+      "source_unchanged": true,
+      "state_unchanged": true,
+      "v1_selected": null,
+      "v2_selected": null,
+      "v2_selection_legal": true
+    },
+    {
+      "candidate_count": 34,
+      "path": "benchmarks/freeciv/samples/real_state_turn1.json",
+      "same_selection_as_v1": true,
+      "source_unchanged": true,
+      "state_unchanged": true,
+      "v2_pressure_valid": true,
+      "v2_selected_category": "city_founding",
+      "v2_selection_legal": true
+    }
+  ],
+  "snapshot_replay_safe_and_legal": true,
+  "truth_unchanged": true,
+  "v1_byte_exact": true,
+  "v1_replay_hash": "520f9105c62bd9a09e5e3617a3606209c728581387e2964fd8226db3dfc077df",
+  "v2_deterministic": true,
+  "v2_pressure_hash": "bd9a070690cf133e7bc279be5817d10d752b30bfaee254879f7e85e00c0fd241",
+  "valid": true,
+  "runner_verification_hash": "2279d7cea1375327670ecd8caf2768f3d6abdef5f0019a06678e250a18d066c3"
+}

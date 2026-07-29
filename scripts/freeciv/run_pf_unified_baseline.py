@@ -26,6 +26,10 @@ from freeciv.pf_unified.golden import (  # noqa: E402
     controller_timings,
     reproduce_golden,
 )
+from freeciv.pf_unified.v2_benchmark import (  # noqa: E402
+    run_v2_timing,
+    run_v2_verification,
+)
 
 
 def _parser():
@@ -37,6 +41,9 @@ def _parser():
     commands.add_parser("replay")
     timing = commands.add_parser("timing")
     timing.add_argument("--repetitions", type=int, default=20)
+    v2_timing = commands.add_parser("v2-timing")
+    v2_timing.add_argument("--repetitions", type=int, default=500)
+    commands.add_parser("v2-verify")
     compare = commands.add_parser("compare")
     compare.add_argument("left")
     compare.add_argument("right")
@@ -59,6 +66,12 @@ def main(argv=None):
     elif command == "timing":
         result = controller_timings(arguments.repetitions)
         status = 0
+    elif command == "v2-timing":
+        result = run_v2_timing(arguments.repetitions)
+        status = 0
+    elif command == "v2-verify":
+        result = run_v2_verification()
+        status = 0 if result["valid"] else 1
     else:
         result = assert_comparable(
             load_baseline_manifest(arguments.left),

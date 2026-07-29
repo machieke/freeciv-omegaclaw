@@ -11,6 +11,7 @@ from .model import (
     Operation,
     PressureConfig,
     Resolvability,
+    TruthAssessment,
     TruthState,
 )
 from .provenance import ObservationPolicy
@@ -137,6 +138,39 @@ class InformationValue:
             "prior_entropy": float(self.prior_entropy),
             "test": self.test.to_dict(),
         }
+
+
+@dataclass(frozen=True)
+class DecisionRelevantUncertainty:
+    """Epistemic uncertainty after declared decision sensitivity."""
+
+    assessment: TruthAssessment
+    decision_sensitivity: float
+    amount: float
+
+    def to_dict(self):
+        return {
+            "amount": float(self.amount),
+            "assessment": self.assessment.to_dict(),
+            "decision_sensitivity": float(self.decision_sensitivity),
+            "semantics": "decision-relevant-uncertainty/1.0",
+        }
+
+
+def decision_relevant_uncertainty(
+        truth, decision_sensitivity=1.0, posterior_variance=None):
+    """Return uncertainty demand without treating it as state failure."""
+    if not isinstance(truth, TruthState):
+        raise TypeError("uncertainty source must be TruthState")
+    sensitivity = float(decision_sensitivity)
+    if sensitivity < 0.0 or not math.isfinite(sensitivity):
+        raise ValueError(
+            "decision sensitivity must be finite and non-negative")
+    assessment = TruthAssessment.from_truth(
+        truth, posterior_variance=posterior_variance)
+    return DecisionRelevantUncertainty(
+        assessment, sensitivity,
+        sensitivity * assessment.epistemic_uncertainty())
 
 
 def expected_information_value(hypotheses, test):

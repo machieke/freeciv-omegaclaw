@@ -7,7 +7,12 @@ import threading
 from dataclasses import dataclass
 
 from ..events.schema import canonical_json_bytes, structural_hash
-from .model import PressureVector, TruthState
+from .model import (
+    PressureMagnitude,
+    PressureVector,
+    SignedPressureVector,
+    TruthState,
+)
 
 
 @dataclass(frozen=True)
@@ -31,11 +36,19 @@ class CloneState:
             raise ValueError("successor probabilities must be nonnegative")
         if len(dict(self.pressure)) != len(self.pressure):
             raise ValueError("clone goal pressure IDs must be unique")
-        if any(not isinstance(value, PressureVector) for _, value in self.pressure):
-            raise TypeError("clone pressure values must be PressureVector")
+        if any(not isinstance(
+                value, (PressureVector, SignedPressureVector))
+                for _, value in self.pressure):
+            raise TypeError(
+                "clone pressure values must be pressure vectors")
+        pressure_types = set(
+            type(value) for _, value in self.pressure)
+        if len(pressure_types) > 1:
+            raise TypeError(
+                "one clone cannot mix v1 and v2 pressure values")
 
     def to_dict(self):
-        return {
+        value = {
             "atom_id": self.atom_id,
             "clone_id": self.clone_id,
             "lifecycle": self.lifecycle,
@@ -47,10 +60,29 @@ class CloneState:
                 for key, value in self.successor_distribution),
             "truth": self.truth.to_dict(),
         }
+        if any(isinstance(
+                pressure, SignedPressureVector)
+                for _, pressure in self.pressure):
+            value["pressure_schema_version"] = "2.0"
+        return value
 
     @classmethod
     def from_dict(cls, value):
         truth = value["truth"]
+        pressure_schema = value.get("pressure_schema_version", "1.0")
+        if pressure_schema not in ("1.0", "2.0"):
+            raise ValueError("unsupported clone pressure schema")
+
+        def pressure_value(row):
+            if pressure_schema == "2.0":
+                if set(row) != {"negative", "positive"}:
+                    raise ValueError(
+                        "signed clone pressure requires both rails")
+                return SignedPressureVector(
+                    positive=PressureMagnitude(**row["positive"]),
+                    negative=PressureMagnitude(**row["negative"]))
+            return PressureVector(**row)
+
         return cls(
             clone_id=value["clone_id"],
             atom_id=value["atom_id"],
@@ -65,7 +97,7 @@ class CloneState:
                 for key, probability in
                 value.get("successor_distribution", {}).items())),
             pressure=tuple(sorted(
-                (str(goal_id), PressureVector(**pressure))
+                (str(goal_id), pressure_value(pressure))
                 for goal_id, pressure in value.get("pressure", {}).items())),
         )
 
@@ -150,31 +182,61 @@ class CloneManager(object):
 
     def visible_pressure(self, clones, goal_id, risk_alpha=None):
         clones = self.normalize(clones)
+        present = tuple(
+            dict(clone.pressure)[goal_id]
+            for clone in clones if goal_id in dict(clone.pressure))
+        pressure_types = set(type(value) for value in present)
+        if len(pressure_types) > 1:
+            raise TypeError(
+                "clone projection cannot mix v1 and v2 pressure")
+        signed = bool(
+            present and isinstance(present[0], SignedPressureVector))
+        empty = (
+            SignedPressureVector() if signed else PressureVector())
         if risk_alpha is not None:
             risk_alpha = float(risk_alpha)
             if not 0.0 < risk_alpha <= 1.0:
                 raise ValueError("risk alpha must be in (0,1]")
-            values = {}
-            for channel in ("infer", "observe", "act", "expand", "retain"):
+            def tail_mean(extract):
                 remaining = risk_alpha
                 total = 0.0
                 ordered = sorted(
                     clones,
-                    key=lambda row: dict(row.pressure).get(
-                        goal_id, PressureVector()).value(channel),
+                    key=lambda row: extract(
+                        dict(row.pressure).get(goal_id, empty)),
                     reverse=True)
                 for clone in ordered:
                     mass = min(remaining, clone.posterior)
-                    total += mass * dict(clone.pressure).get(
-                        goal_id, PressureVector()).value(channel)
+                    total += mass * extract(
+                        dict(clone.pressure).get(goal_id, empty))
                     remaining -= mass
                     if remaining <= 1e-15:
                         break
-                values[channel] = total / risk_alpha
+                return total / risk_alpha
+
+            if signed:
+                positive = {}
+                negative = {}
+                for channel in (
+                        "infer", "observe", "act", "expand", "retain"):
+                    positive[channel] = tail_mean(
+                        lambda value, name=channel:
+                        value.positive.value(name))
+                    negative[channel] = tail_mean(
+                        lambda value, name=channel:
+                        value.negative.value(name))
+                return SignedPressureVector(
+                    positive=PressureMagnitude(**positive),
+                    negative=PressureMagnitude(**negative))
+            values = {}
+            for channel in (
+                    "infer", "observe", "act", "expand", "retain"):
+                values[channel] = tail_mean(
+                    lambda value, name=channel: value.value(name))
             return PressureVector(**values)
-        result = PressureVector()
+        result = empty
         for clone in clones:
-            value = dict(clone.pressure).get(goal_id, PressureVector())
+            value = dict(clone.pressure).get(goal_id, empty)
             result = result.plus(value.scaled(clone.posterior))
         return result
 
@@ -209,12 +271,34 @@ class CloneManager(object):
         goals = set(dict(left.pressure)) | set(dict(right.pressure))
         pressure_distance = 0.0
         for goal_id in goals:
-            a = dict(left.pressure).get(goal_id, PressureVector())
-            b = dict(right.pressure).get(goal_id, PressureVector())
+            a = dict(left.pressure).get(goal_id)
+            b = dict(right.pressure).get(goal_id)
+            if a is None:
+                a = (
+                    SignedPressureVector()
+                    if isinstance(b, SignedPressureVector)
+                    else PressureVector())
+            if b is None:
+                b = (
+                    SignedPressureVector()
+                    if isinstance(a, SignedPressureVector)
+                    else PressureVector())
+            if type(a) is not type(b):
+                return False
+            if isinstance(a, SignedPressureVector):
+                distances = tuple(
+                    abs(getattr(a, rail).value(channel)
+                        - getattr(b, rail).value(channel))
+                    for rail in ("positive", "negative")
+                    for channel in (
+                        "infer", "observe", "act", "expand", "retain"))
+            else:
+                distances = tuple(
+                    abs(a.value(channel) - b.value(channel))
+                    for channel in (
+                        "infer", "observe", "act", "expand", "retain"))
             pressure_distance = max(
-                pressure_distance,
-                max(abs(a.value(channel) - b.value(channel))
-                    for channel in ("infer", "observe", "act", "expand", "retain")))
+                pressure_distance, max(distances, default=0.0))
         return (
             truth_close <= self.merge_truth_tolerance
             and successor_distance <= self.merge_successor_tolerance

@@ -89,12 +89,139 @@ PHASE_SPECS = (
     },
 )
 
+CONTROLLER_SCHEMA_VERSION = "2.0"
+CONTROLLER_LAYER_SPECS = (
+    {"layer": "scalar_pf_v1", "support": "engine-live"},
+    {"layer": "scalar_pf_v2", "support": "experimental"},
+    {"layer": "packet_scheduler", "support": "experimental"},
+    {"layer": "teleological_cost_to_go", "support": "component-only"},
+    {"layer": "bridge", "support": "component-only"},
+    {"layer": "source_sink_flow", "support": "component-only"},
+    {"layer": "native_flowpack", "support": "not-built"},
+)
+
+CONTROLLER_POLICY_DEFAULTS = {
+    "pressure_bridge_enabled": False,
+    "pressure_distributional_risk_enabled": False,
+    "pressure_enabled": True,
+    "pressure_flow_enabled": False,
+    "pressure_packet_scheduler_enabled": False,
+    "pressure_requirement_sets_enabled": False,
+    "pressure_scalar_fallback_enabled": True,
+    "pressure_semantics_version": "v1",
+}
+
 _SPEC_BY_COMPONENT = {
     row["component"]: row for row in PHASE_SPECS}
 
 
 class PFRuntimeConfigurationError(ValueError):
     """A PF-PLN support declaration or activation report is inconsistent."""
+
+
+def controller_declaration():
+    return {
+        "layers": {
+            row["layer"]: {"support": row["support"]}
+            for row in CONTROLLER_LAYER_SPECS
+        },
+        "schema_version": CONTROLLER_SCHEMA_VERSION,
+    }
+
+
+def validate_controller_policy(impact_policy):
+    if not isinstance(impact_policy, dict):
+        raise PFRuntimeConfigurationError(
+            "controller impact policy must be an object")
+    policy = dict(CONTROLLER_POLICY_DEFAULTS)
+    for name in CONTROLLER_POLICY_DEFAULTS:
+        if name in impact_policy:
+            policy[name] = impact_policy[name]
+    if policy["pressure_semantics_version"] not in ("v1", "v2"):
+        raise PFRuntimeConfigurationError(
+            "pressure_semantics_version must be v1 or v2")
+    boolean_names = tuple(
+        name for name in CONTROLLER_POLICY_DEFAULTS
+        if name != "pressure_semantics_version")
+    if any(not isinstance(policy[name], bool) for name in boolean_names):
+        raise PFRuntimeConfigurationError(
+            "PF controller feature flags must be boolean")
+    if (policy["pressure_semantics_version"] == "v1"
+            and any(policy[name] for name in (
+                "pressure_distributional_risk_enabled",
+                "pressure_packet_scheduler_enabled",
+                "pressure_requirement_sets_enabled",
+                "pressure_bridge_enabled",
+                "pressure_flow_enabled"))):
+        raise PFRuntimeConfigurationError(
+            "v2 controller features require pressure semantics v2")
+    if (policy["pressure_bridge_enabled"]
+            and not policy["pressure_packet_scheduler_enabled"]):
+        raise PFRuntimeConfigurationError(
+            "pressure bridge requires packet scheduling")
+    if (policy["pressure_flow_enabled"]
+            and (not policy["pressure_bridge_enabled"]
+                 or not policy["pressure_packet_scheduler_enabled"])):
+        raise PFRuntimeConfigurationError(
+            "pressure flow requires bridge and packet scheduling")
+    if (not policy["pressure_enabled"]
+            and any(policy[name] for name in (
+                "pressure_distributional_risk_enabled",
+                "pressure_packet_scheduler_enabled",
+                "pressure_requirement_sets_enabled",
+                "pressure_bridge_enabled",
+                "pressure_flow_enabled"))):
+        raise PFRuntimeConfigurationError(
+            "disabled pressure cannot enable controller layers")
+    return policy
+
+
+def build_controller_activation(impact_policy):
+    policy = validate_controller_policy(impact_policy)
+    pressure_enabled = policy["pressure_enabled"]
+    v2 = policy["pressure_semantics_version"] == "v2"
+    enabled = {
+        "scalar_pf_v1": pressure_enabled and not v2,
+        "scalar_pf_v2": pressure_enabled and v2,
+        "packet_scheduler": (
+            pressure_enabled and v2
+            and policy["pressure_packet_scheduler_enabled"]),
+        "teleological_cost_to_go": False,
+        "bridge": (
+            pressure_enabled and v2
+            and policy["pressure_bridge_enabled"]),
+        "source_sink_flow": (
+            pressure_enabled and v2
+            and policy["pressure_flow_enabled"]),
+        "native_flowpack": False,
+    }
+    layers = {}
+    for spec in CONTROLLER_LAYER_SPECS:
+        layer = spec["layer"]
+        if enabled[layer]:
+            reason = "enabled"
+        elif spec["support"] in ("component-only", "not-built"):
+            reason = spec["support"]
+        elif not pressure_enabled:
+            reason = "pressure-disabled"
+        elif layer == "scalar_pf_v1" and v2:
+            reason = "v2-selected"
+        elif layer == "scalar_pf_v2" and not v2:
+            reason = "v1-selected"
+        else:
+            reason = "feature-disabled"
+        layers[layer] = {
+            "enabled": bool(enabled[layer]),
+            "reason": reason,
+            "support": spec["support"],
+        }
+    value = {
+        "controller_policy": policy,
+        "layers": layers,
+        "schema_version": CONTROLLER_SCHEMA_VERSION,
+    }
+    value["activation_hash"] = structural_hash(value)
+    return value
 
 
 def canonical_declaration():

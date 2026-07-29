@@ -1,0 +1,33 @@
+{
+  "artifact_type": "performance",
+  "base_commit": "63e7351",
+  "command": "python3 scripts/freeciv/run_pf_unified_baseline.py v2-timing --repetitions 1000",
+  "schema_version": "1.0",
+  "timing": {
+    "measurement_scope": "controller-inclusive Python wall time including semantic transport, validation-ready serialization, scoring, packet reservation, and accounting",
+    "packet_schedule_8_operations": {
+      "mean_ms": 0.3520414577797055,
+      "repetitions": 1000,
+      "total_seconds": 0.3520414577797055
+    },
+    "platform": {
+      "machine": "x86_64",
+      "python_version": "3.8.10",
+      "system": "Linux"
+    },
+    "scalar_v1_8_premise": {
+      "mean_ms": 0.35048955399543047,
+      "repetitions": 1000,
+      "total_seconds": 0.35048955399543047
+    },
+    "scalar_v2_8_premise": {
+      "mean_ms": 0.8345762812532485,
+      "repetitions": 1000,
+      "total_seconds": 0.8345762812532485
+    },
+    "schema_version": "1.0",
+    "timing_hash": "46509a97b36c60b2b83856283776877e9f734d455b8716b28127d94792fd94f1",
+    "v2_over_v1_ratio": 2.3811730527755737,
+    "v2_plus_packets_over_v1_ratio": 3.3856008702856366
+  }
+}

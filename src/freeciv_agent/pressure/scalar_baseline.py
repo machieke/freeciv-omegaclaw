@@ -291,3 +291,11 @@ class SmoothedScalarController:
                 scores, key=lambda row: (-row.total_score, row.route_id))),
             retained_by_dwell, retained_by_hysteresis,
             self.SOLVER_IDENTITY, self.config.to_dict())
+
+    @staticmethod
+    def schedule_packets(
+            operations, scores, budgets, **kwargs):
+        """Use the same whole-packet scheduler as scalar PF-v2."""
+        from .packets import PacketScheduler
+        return PacketScheduler().schedule(
+            operations, scores, budgets, **kwargs)
