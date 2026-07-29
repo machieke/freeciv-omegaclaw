@@ -51,6 +51,15 @@ from .controller import (
     BridgeScalarController,
     BridgeScalarDecision,
 )
+from .normalization import (
+    REQUIRED_ROBUST_SCALES,
+    MixedDirection,
+    NormalizationContract,
+    NormalizedDirection,
+    RobustNormalizer,
+    RobustScale,
+    default_normalization_contract,
+)
 
 __all__ = [
     "CandidateGrounding",
@@ -61,6 +70,9 @@ __all__ = [
     "BridgeScalarConfig",
     "BridgeScalarController",
     "BridgeScalarDecision",
+    "MixedDirection",
+    "NormalizationContract",
+    "NormalizedDirection",
     "CorrectedProbeEstimator",
     "FlowBuildBudget",
     "FlowBuildRejection",
@@ -86,10 +98,14 @@ __all__ = [
     "ProbeHealth",
     "ProbeNodeFeatures",
     "ProbePath",
+    "REQUIRED_ROBUST_SCALES",
+    "RobustNormalizer",
+    "RobustScale",
     "QueryLocalFlowBuilder",
     "ShortestMeetPotentialEstimator",
     "SignalUse",
     "SignalUseLedger",
     "DeterministicMessagePotentialEstimator",
     "default_signal_use_ledger",
+    "default_normalization_contract",
 ]
