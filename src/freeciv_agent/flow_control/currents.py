@@ -164,13 +164,20 @@ class RequestedCurrentBuilder:
 
     BUILDER_IDENTITY = "pf-requested-current/1.0"
 
-    def __init__(self, normalizer=None):
+    def __init__(
+            self, normalizer=None,
+            deposit_decay=0.0):
         self.normalizer = (
             normalizer if normalizer is not None
             else RobustNormalizer())
         if not isinstance(self.normalizer, RobustNormalizer):
             raise TypeError(
                 "current builder requires RobustNormalizer")
+        self.deposit_decay = float(deposit_decay)
+        if (not math.isfinite(self.deposit_decay)
+                or not 0.0 <= self.deposit_decay <= 1.0):
+            raise ValueError(
+                "probe deposit decay must be in [0, 1]")
 
     @staticmethod
     def _mapping(values, edge_ids, name):
@@ -188,8 +195,8 @@ class RequestedCurrentBuilder:
                 "{} must align with flow edges".format(name))
         return values
 
-    @staticmethod
-    def _probe_deposit(edge_ids, paths, legality_mask):
+    def _probe_deposit(
+            self, edge_ids, paths, legality_mask):
         edge_index = dict(
             (edge_id, index)
             for index, edge_id in enumerate(edge_ids))
@@ -207,7 +214,7 @@ class RequestedCurrentBuilder:
                 * float(path.reliability))
             total_weight += weight
             squared_weight += weight * weight
-            for edge_id in path_edges:
+            for offset, edge_id in enumerate(path_edges):
                 if edge_id not in edge_index:
                     raise ValueError(
                         "probe path references edge outside view")
@@ -215,7 +222,11 @@ class RequestedCurrentBuilder:
                 if not legality_mask[index]:
                     raise ValueError(
                         "probe path traverses illegal edge")
-                deposits[index] += weight / energy
+                deposits[index] += (
+                    weight / energy
+                    * (
+                        (1.0 - self.deposit_decay)
+                        ** offset))
         if total_weight > 0.0:
             deposits = [
                 value / total_weight for value in deposits]

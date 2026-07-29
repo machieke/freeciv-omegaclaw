@@ -156,12 +156,15 @@ CONTROLLER_CONFIGURATION_DEFAULTS = {
     "bridge": {
         "enabled": False,
         "estimator_policy": "holdout",
-        "forward_depth": 8,
-        "backward_depth": 8,
-        "probe_count": 256,
-        "reference_probe_fraction": 0.20,
+        # Production-safe deterministic defaults.  Larger probe blocks remain
+        # opt-in experiment settings; the default must fit the live 500 ms
+        # controller-inclusive latency gate on captured FreeCiv snapshots.
+        "forward_depth": 16,
+        "backward_depth": 16,
+        "probe_count": 8,
+        "reference_probe_fraction": 0.25,
         "max_importance_weight": 20.0,
-        "minimum_ess": 32.0,
+        "minimum_ess": 0.8,
         "temperature": 1.0,
         "deposit_decay": 0.10,
         "current_following_gain": 0.0,
@@ -171,13 +174,13 @@ CONTROLLER_CONFIGURATION_DEFAULTS = {
     },
     "flow": {
         "enabled": False,
-        "turnover_fraction": 0.30,
-        "time_step": 0.10,
-        "cfl_limit": 0.80,
+        "turnover_fraction": 0.25,
+        "time_step": 1.0,
+        "cfl_limit": 0.90,
         "diffusion": 0.03,
         "projection_tolerance": 1.0e-8,
         "mass_tolerance": 1.0e-8,
-        "maximum_microsteps": 16,
+        "maximum_microsteps": 8,
         "scalar_fallback": True,
         "shaping_capacity_structural_updates": False,
     },
@@ -369,6 +372,10 @@ def _validate_controller_configuration(configuration):
             raise PFRuntimeConfigurationError(
                 "{}.{} is outside its valid range".format(
                     group, name))
+    if (float(configuration["bridge"]["minimum_ess"])
+            > int(configuration["bridge"]["probe_count"])):
+        raise PFRuntimeConfigurationError(
+            "bridge.minimum_ess cannot exceed probe_count")
     for group, name in (
             ("teleology", "metacontrol_budget_fraction"),
             ("bridge", "reference_probe_fraction"),

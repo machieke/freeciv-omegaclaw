@@ -170,6 +170,43 @@ def test_probe_deposit_count_changes_variance_not_current_amplitude():
         one.probe_variance_proxy)
 
 
+def test_probe_deposit_decay_attenuates_later_path_edges():
+    path = ProbePath(
+        path_id="long-path",
+        side="forward",
+        start_node_id="source",
+        node_ids=("source", "middle", "target"),
+        edge_ids=("first", "second"),
+        total_cost=2.0,
+        met_opposite_frontier=True,
+        meet_node_id="target",
+        novelty=1.0,
+        evidence_risk=0.0,
+        reliability=1.0,
+        behavior_log_probability=0.0,
+        reference_log_probability=0.0,
+        importance_weight=1.0,
+        topology_generation=4,
+        rng_substream=0,
+        sampling_stream="reference")
+
+    stable = RequestedCurrentBuilder(
+        deposit_decay=0.0)._probe_deposit(
+            ("first", "second"), (path,),
+            (True, True))[0]
+    decayed = RequestedCurrentBuilder(
+        deposit_decay=0.25)._probe_deposit(
+            ("first", "second"), (path,),
+            (True, True))[0]
+
+    assert stable[0] == pytest.approx(
+        stable[1])
+    assert decayed[0] == pytest.approx(
+        stable[0])
+    assert decayed[1] == pytest.approx(
+        stable[1] * 0.75)
+
+
 def test_semantic_and_probe_fields_are_unit_normalized_before_mix():
     requested = RequestedCurrentBuilder().build(
         _view(), "goal:observe:cpu",

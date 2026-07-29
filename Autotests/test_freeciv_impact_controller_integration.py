@@ -147,6 +147,91 @@ def test_unified_flow_semantic_artifact_is_deterministic():
     assert decisions[0] == decisions[1]
 
 
+def test_grouped_configuration_drives_live_engine_and_query_identity():
+    default = GroundedImpactPlanner(
+        _shadow_config())
+    configured_values = _shadow_config()
+    configured_values.update({
+        "bridge": {
+            "deposit_decay": 0.20,
+            "minimum_ess": 0.40,
+            "probe_count": 4,
+            "reference_probe_fraction": 0.50,
+            "temperature": 0.75,
+        },
+        "flow": {
+            "cfl_limit": 0.70,
+            "diffusion": 0.02,
+            "mass_tolerance": 1.0e-7,
+            "maximum_microsteps": 4,
+            "projection_tolerance": 1.0e-7,
+            "time_step": 0.50,
+            "turnover_fraction": 0.20,
+        },
+        "packets": {
+            "budgets": {
+                "cpu": 2,
+            },
+        },
+    })
+    configured = GroundedImpactPlanner(
+        configured_values)
+    engine = configured._control_adapter.controllers[
+        "unified_flow"].engine
+
+    assert engine.config.probe_path_count == 4
+    assert engine.config.probe_reference_fraction == 0.50
+    assert engine.config.probe_minimum_ess_fraction == 0.10
+    assert engine.config.probe_deposit_decay == 0.20
+    assert engine.config.turnover_fraction == 0.20
+    assert engine.config.transport_time_step == 0.50
+    assert engine.config.transport_microsteps == 4
+    assert dict(engine.config.packet_budgets)["cpu"] == 2
+    assert engine.probes.config.temperature == 0.75
+    assert engine.current_builder.deposit_decay == 0.20
+    assert engine.transport.cfl_limit == 0.70
+
+    default.plan(_snapshot())
+    configured.plan(_snapshot())
+    assert default.last_control_query.config_digest != (
+        configured.last_control_query.config_digest)
+    assert configured.last_control_query\
+        .normalization_contract_hash == (
+            engine.normalization_contract
+            .contract_hash)
+
+
+def test_disabled_flow_configuration_has_no_query_semantic_effect():
+    base = {
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+        "pressure_packet_scheduler_enabled": True,
+        "pressure_requirement_sets_enabled": True,
+    }
+    changed = dict(base)
+    changed["flow"] = {
+        "diffusion": 0.25,
+        "maximum_microsteps": 3,
+        "time_step": 0.25,
+        "turnover_fraction": 0.50,
+    }
+    left = GroundedImpactPlanner(base)
+    right = GroundedImpactPlanner(changed)
+
+    left.plan(_snapshot())
+    right.plan(_snapshot())
+
+    assert left.last_control_query.config_digest == (
+        right.last_control_query.config_digest)
+    assert left.last_control_query\
+        .normalization_contract_hash == (
+            right.last_control_query
+            .normalization_contract_hash)
+    assert left.last_control_decision.decision_hash == (
+        right.last_control_decision.decision_hash)
+
+
 def test_unified_flow_fault_falls_back_without_changing_live_shadow_plan():
     snapshot = _snapshot()
     legacy = GroundedImpactPlanner({

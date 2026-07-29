@@ -1,6 +1,7 @@
 """Production-shaped Python unified flow controller for grounded Impact."""
 
 from dataclasses import dataclass, replace
+import math
 import time
 
 from ..events.schema import canonical_json_bytes, structural_hash
@@ -9,6 +10,7 @@ from ..flow_control import (
     CorrectedProbeEstimator,
     DeterministicMessagePotentialEstimator,
     FlowCandidateFactory,
+    FlowDiagnosticsConfig,
     FlowHealthMonitor,
     FlowHealthSample,
     FlowNodeKind,
@@ -21,6 +23,7 @@ from ..flow_control import (
     ProbeNodeFeatures,
     ProjectionSolver,
     RequestedCurrentBuilder,
+    RobustNormalizer,
     TwoDyeAdvectionKernel,
     default_normalization_contract,
 )
@@ -47,11 +50,34 @@ class UnifiedImpactFlowConfig:
     probe_path_count: int = 8
     probe_max_steps: int = 16
     probe_reference_fraction: float = 0.25
+    probe_estimator_mode: str = "two_stream"
+    probe_temperature: float = 1.0
+    probe_maximum_importance_weight: float = 20.0
+    probe_minimum_ess_fraction: float = 0.10
+    probe_maximum_clipped_fraction: float = 0.50
+    probe_minimum_path_diversity: float = 0.0
+    probe_current_following_gain: float = 0.0
+    probe_deposit_decay: float = 0.10
     potential_iterations: int = 64
     transport_microsteps: int = 8
     transport_time_step: float = 1.0
+    turnover_fraction: float = 0.25
+    cfl_limit: float = 0.90
     diffusion: float = 0.03
+    projection_tolerance: float = 1.0e-8
+    mass_tolerance: float = 1.0e-8
     controller_budget_ms: float = 500.0
+    normalization_contract_id: str = (
+        "robust-feature-scales/1.0")
+    packet_budgets: tuple = (
+        ("action", 1),
+        ("cpu", 64),
+        ("exact_rule", 8),
+        ("expansion", 1),
+        ("llm_token", 0),
+        ("observation", 2),
+        ("simulation", 4),
+    )
     seed: int = 4401
 
     def __post_init__(self):
@@ -66,24 +92,137 @@ class UnifiedImpactFlowConfig:
                 raise ValueError(
                     "{} must be a positive integer".format(name))
         for name in (
-                "probe_reference_fraction",):
+                "probe_reference_fraction",
+                "probe_minimum_ess_fraction",
+                "probe_maximum_clipped_fraction",
+                "probe_minimum_path_diversity",
+                "probe_deposit_decay",
+                "turnover_fraction",
+                "diffusion"):
             value = float(getattr(self, name))
-            if not 0.0 < value <= 1.0:
+            if not 0.0 <= value <= 1.0:
                 raise ValueError(
-                    "{} must be in (0, 1]".format(name))
+                    "{} must be in [0, 1]".format(name))
+        if self.probe_reference_fraction <= 0.0:
+            raise ValueError(
+                "probe_reference_fraction must be positive")
+        if self.turnover_fraction <= 0.0:
+            raise ValueError(
+                "turnover_fraction must be positive")
+        if self.probe_estimator_mode not in (
+                "importance", "two_stream"):
+            raise ValueError(
+                "probe_estimator_mode is invalid")
         for name in (
+                "probe_temperature",
+                "probe_maximum_importance_weight",
                 "transport_time_step",
+                "cfl_limit",
+                "projection_tolerance",
+                "mass_tolerance",
                 "controller_budget_ms"):
-            if float(getattr(self, name)) <= 0.0:
+            value = float(getattr(self, name))
+            if not math.isfinite(value) or value <= 0.0:
                 raise ValueError(
                     "{} must be positive".format(name))
-        if not 0.0 <= float(self.diffusion) <= 1.0:
+        if self.cfl_limit > 1.0:
             raise ValueError(
-                "flow diffusion must be in [0, 1]")
+                "cfl_limit must be at most one")
+        if self.probe_maximum_importance_weight < 1.0:
+            raise ValueError(
+                "probe maximum importance weight must be at least one")
+        if (not isinstance(
+                self.probe_current_following_gain,
+                (int, float))
+                or not math.isfinite(float(
+                    self.probe_current_following_gain))
+                or self.probe_current_following_gain < 0.0):
+            raise ValueError(
+                "probe current-following gain must be non-negative")
+        if (not isinstance(
+                self.normalization_contract_id, str)
+                or not self.normalization_contract_id):
+            raise ValueError(
+                "normalization contract ID is required")
+        budgets = tuple(self.packet_budgets)
+        if (any(
+                not isinstance(row, tuple)
+                or len(row) != 2
+                for row in budgets)
+                or len(dict(budgets)) != len(budgets)
+                or any(
+                    not isinstance(name, str)
+                    or not name
+                    or isinstance(value, bool)
+                    or not isinstance(value, int)
+                    or value < 0
+                    for name, value in budgets)):
+            raise ValueError(
+                "packet budgets must be unique non-negative integers")
         if (isinstance(self.seed, bool)
                 or not isinstance(self.seed, int)):
             raise ValueError(
                 "flow seed must be an integer")
+
+    def to_dict(self):
+        return {
+            "cfl_limit": float(self.cfl_limit),
+            "controller_budget_ms":
+                float(self.controller_budget_ms),
+            "diffusion": float(self.diffusion),
+            "mass_tolerance":
+                float(self.mass_tolerance),
+            "normalization_contract_id":
+                self.normalization_contract_id,
+            "packet_budgets": dict(
+                sorted(self.packet_budgets)),
+            "potential_iterations":
+                int(self.potential_iterations),
+            "probe_current_following_gain":
+                float(
+                    self.probe_current_following_gain),
+            "probe_deposit_decay":
+                float(self.probe_deposit_decay),
+            "probe_estimator_mode":
+                self.probe_estimator_mode,
+            "probe_maximum_clipped_fraction":
+                float(
+                    self.probe_maximum_clipped_fraction),
+            "probe_maximum_importance_weight":
+                float(
+                    self.probe_maximum_importance_weight),
+            "probe_max_steps":
+                int(self.probe_max_steps),
+            "probe_minimum_ess_fraction":
+                float(
+                    self.probe_minimum_ess_fraction),
+            "probe_minimum_path_diversity":
+                float(
+                    self.probe_minimum_path_diversity),
+            "probe_path_count":
+                int(self.probe_path_count),
+            "probe_reference_fraction":
+                float(self.probe_reference_fraction),
+            "probe_temperature":
+                float(self.probe_temperature),
+            "projection_tolerance":
+                float(self.projection_tolerance),
+            "seed": int(self.seed),
+            "transport_microsteps":
+                int(self.transport_microsteps),
+            "transport_time_step":
+                float(self.transport_time_step),
+            "turnover_fraction":
+                float(self.turnover_fraction),
+        }
+
+    def normalization_contract(self):
+        return replace(
+            default_normalization_contract(),
+            contract_id=(
+                self.normalization_contract_id),
+            turnover_fraction=(
+                self.turnover_fraction))
 
 
 def _cost(value):
@@ -217,27 +356,70 @@ class UnifiedImpactFlowEngine:
                 self.config, UnifiedImpactFlowConfig):
             raise TypeError(
                 "unified flow config has wrong type")
+        self.normalization_contract = (
+            self.config.normalization_contract())
         self.factor_builder = FreeCivFactorGraphBuilder()
         self.potentials = (
             DeterministicMessagePotentialEstimator())
         self.probes = CorrectedProbeEstimator(
             ProbeConfig(
-                mode="two_stream",
+                mode=(
+                    self.config
+                    .probe_estimator_mode),
                 path_count=self.config.probe_path_count,
                 max_steps=self.config.probe_max_steps,
                 reference_fraction=(
                     self.config.probe_reference_fraction),
-                minimum_ess_fraction=0.10,
-                maximum_clipped_fraction=0.50,
-                minimum_path_diversity=0.0,
+                temperature=(
+                    self.config.probe_temperature),
+                current_following_gain=(
+                    self.config
+                    .probe_current_following_gain),
+                maximum_importance_weight=(
+                    self.config
+                    .probe_maximum_importance_weight),
+                minimum_ess_fraction=(
+                    self.config
+                    .probe_minimum_ess_fraction),
+                maximum_clipped_fraction=(
+                    self.config
+                    .probe_maximum_clipped_fraction),
+                minimum_path_diversity=(
+                    self.config
+                    .probe_minimum_path_diversity),
                 seed=self.config.seed))
-        self.current_builder = RequestedCurrentBuilder()
+        self.current_builder = RequestedCurrentBuilder(
+            RobustNormalizer(
+                self.normalization_contract),
+            deposit_decay=(
+                self.config.probe_deposit_decay))
         self.projector = ProjectionSolver()
         self.transport = TwoDyeAdvectionKernel(
-            cfl_limit=0.9)
+            cfl_limit=self.config.cfl_limit,
+            correction_tolerance=(
+                self.config.mass_tolerance))
         self.candidate_factory = FlowCandidateFactory()
         self.packet_integrator = FlowPacketIntegrator()
-        self.health_monitor = FlowHealthMonitor()
+        self.health_monitor = FlowHealthMonitor(
+            FlowDiagnosticsConfig(
+                mass_tolerance=(
+                    self.config.mass_tolerance),
+                balance_tolerance=(
+                    self.config
+                    .projection_tolerance),
+                cfl_limit=self.config.cfl_limit,
+                minimum_ess_fraction=(
+                    self.config
+                    .probe_minimum_ess_fraction),
+                maximum_clipped_fraction=(
+                    self.config
+                    .probe_maximum_clipped_fraction),
+                minimum_path_diversity=(
+                    self.config
+                    .probe_minimum_path_diversity),
+                controller_budget_ms=(
+                    self.config
+                    .controller_budget_ms)))
 
     @staticmethod
     def _serialized_pressure(artifact):
@@ -344,7 +526,10 @@ class UnifiedImpactFlowEngine:
                 requested.velocity,
                 requested.legality_mask))
         return self.projector.solve(
-            view, zero_request, mobility=mobility)
+            view, zero_request,
+            tolerance=(
+                self.config.projection_tolerance),
+            mobility=mobility)
 
     @staticmethod
     def _fallback(
@@ -715,12 +900,14 @@ class UnifiedImpactFlowEngine:
             packet_started = time.perf_counter()
             packet = self.packet_integrator.integrate(
                 view, flow_candidates,
-                score_rows, (
+                score_rows, tuple(
                     PacketBudget(
-                        ResourceKind.ACTION, 1),
-                    PacketBudget(
-                        ResourceKind.CPU, 1),
-                ), revalidate=revalidate)
+                        ResourceKind(resource),
+                        available)
+                    for resource, available
+                    in sorted(
+                        self.config.packet_budgets)),
+                revalidate=revalidate)
             packet_ms = (
                 time.perf_counter()
                 - packet_started
@@ -755,10 +942,10 @@ class UnifiedImpactFlowEngine:
                 packet_decision=packet,
                 stale_view_lag=0,
                 expected_normalization_hash=(
-                    default_normalization_contract()
-                    .contract_hash),
+                    query
+                    .normalization_contract_hash),
                 observed_normalization_hash=(
-                    default_normalization_contract()
+                    self.normalization_contract
                     .contract_hash),
                 controller_overhead_ms=elapsed_ms)
             health = self.health_monitor.evaluate(
@@ -821,6 +1008,8 @@ class UnifiedImpactFlowEngine:
                     "confidence": float(confidence),
                     "controller_identity":
                         self.ENGINE_IDENTITY,
+                    "effective_configuration":
+                        self.config.to_dict(),
                     "controller_telemetry": {
                         "factor_edge_count": len(
                             view.edges),
@@ -858,6 +1047,9 @@ class UnifiedImpactFlowEngine:
                         for row in selected_score
                         .operation.packet_costs},
                     "flow": {
+                        "normalization_contract":
+                            self.normalization_contract
+                            .to_dict(),
                         "factorization":
                             factorization.to_dict(),
                         "health": semantic_health,

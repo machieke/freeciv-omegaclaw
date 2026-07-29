@@ -104,6 +104,7 @@ def test_grouped_configuration_maps_to_flat_policy_and_is_reported():
             "importance_corrected": True,
             "reference_likelihood_support": True,
             "minimum_ess": 64.0,
+            "probe_count": 128,
         },
         "flow": {
             "enabled": True,
@@ -150,6 +151,12 @@ def test_grouped_configuration_maps_to_flat_policy_and_is_reported():
             "unknown": 1,
         },
     }, "unknown fields"),
+    ({
+        "bridge": {
+            "minimum_ess": 9.0,
+            "probe_count": 8,
+        },
+    }, "cannot exceed probe_count"),
 ))
 def test_invalid_controller_combinations_fail_closed(policy, reason):
     with pytest.raises(

@@ -36,9 +36,13 @@ class BridgeScalarConfig:
     probe_path_count: int = 128
     probe_max_steps: int = 32
     probe_reference_fraction: float = 0.2
+    probe_temperature: float = 1.0
+    probe_maximum_importance_weight: float = 20.0
     probe_minimum_ess_fraction: float = 0.2
     probe_maximum_clipped_fraction: float = 0.25
     probe_minimum_path_diversity: float = 0.01
+    probe_current_following_gain: float = 0.0
+    probe_estimator_mode: str = "two_stream"
     seed: int = 1729
     allow_unvalidated_reordering: bool = False
     force_fallback_reason: object = None
@@ -65,6 +69,22 @@ class BridgeScalarConfig:
         if self.probe_reference_fraction <= 0.0:
             raise ValueError(
                 "bridge probes require reference stream")
+        if self.probe_estimator_mode not in (
+                "importance", "two_stream"):
+            raise ValueError(
+                "bridge probe estimator mode is invalid")
+        for name, minimum in (
+                ("probe_temperature", 0.0),
+                ("probe_maximum_importance_weight", 1.0),
+                ("probe_current_following_gain", 0.0)):
+            value = float(getattr(self, name))
+            if (not math.isfinite(value)
+                    or value < minimum
+                    or (name == "probe_temperature"
+                        and value == 0.0)):
+                raise ValueError(
+                    "{} is outside its valid range".format(
+                        name))
         if (isinstance(self.seed, bool)
                 or not isinstance(self.seed, int)):
             raise ValueError(
@@ -91,6 +111,12 @@ class BridgeScalarConfig:
             "probe_max_steps": self.probe_max_steps,
             "probe_maximum_clipped_fraction": (
                 self.probe_maximum_clipped_fraction),
+            "probe_maximum_importance_weight": (
+                self.probe_maximum_importance_weight),
+            "probe_current_following_gain": (
+                self.probe_current_following_gain),
+            "probe_estimator_mode": (
+                self.probe_estimator_mode),
             "probe_minimum_ess_fraction": (
                 self.probe_minimum_ess_fraction),
             "probe_minimum_path_diversity": (
@@ -98,6 +124,8 @@ class BridgeScalarConfig:
             "probe_path_count": self.probe_path_count,
             "probe_reference_fraction": (
                 self.probe_reference_fraction),
+            "probe_temperature": (
+                self.probe_temperature),
             "seed": self.seed,
         }
 
@@ -178,11 +206,19 @@ class BridgeScalarController:
             DeterministicMessagePotentialEstimator())
         self.probe_estimator = CorrectedProbeEstimator(
             ProbeConfig(
-                mode="two_stream",
+                mode=self.config.probe_estimator_mode,
                 path_count=self.config.probe_path_count,
                 max_steps=self.config.probe_max_steps,
                 reference_fraction=(
                     self.config.probe_reference_fraction),
+                temperature=(
+                    self.config.probe_temperature),
+                current_following_gain=(
+                    self.config
+                    .probe_current_following_gain),
+                maximum_importance_weight=(
+                    self.config
+                    .probe_maximum_importance_weight),
                 minimum_ess_fraction=(
                     self.config.probe_minimum_ess_fraction),
                 maximum_clipped_fraction=(

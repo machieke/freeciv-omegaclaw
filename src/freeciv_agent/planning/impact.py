@@ -281,9 +281,15 @@ class GroundedImpactPlanner(object):
             live_activation_gate=None,
             live_evidence=None):
         values = dict(config or {})
-        from ..pf_runtime import validate_controller_policy
-        controller_policy = validate_controller_policy(
-            values)
+        from ..pf_runtime import build_controller_activation
+        controller_activation = (
+            build_controller_activation(values))
+        controller_policy = (
+            controller_activation[
+                "controller_policy"])
+        controller_configuration = (
+            controller_activation[
+                "configuration_groups"])
         self.pressure_controller_mode = (
             controller_policy[
                 "pressure_controller_mode"])
@@ -799,6 +805,116 @@ class GroundedImpactPlanner(object):
                     self.pressure_score_alignment_utility_tolerance))
             if self.pressure_controller_mode != "legacy_scalar":
                 from ..pressure import ImpactPressureRankerV2
+                from ..flow_control import BridgeScalarConfig
+                from .impact_unified_flow import (
+                    UnifiedImpactFlowConfig,
+                )
+                bridge_configuration = (
+                    controller_configuration[
+                        "bridge"])
+                flow_configuration = (
+                    controller_configuration[
+                        "flow"])
+                packet_configuration = (
+                    controller_configuration[
+                        "packets"])
+                probe_count = int(
+                    bridge_configuration[
+                        "probe_count"])
+                probe_minimum_ess_fraction = min(
+                    1.0,
+                    float(
+                        bridge_configuration[
+                            "minimum_ess"])
+                    / float(probe_count))
+                probe_estimator_mode = (
+                    "importance"
+                    if bridge_configuration[
+                        "estimator_policy"]
+                    == "importance_corrected"
+                    else "two_stream")
+                bridge_scalar_config = (
+                    BridgeScalarConfig(
+                        probe_path_count=(
+                            probe_count),
+                        probe_max_steps=max(
+                            int(
+                                bridge_configuration[
+                                    "forward_depth"]),
+                            int(
+                                bridge_configuration[
+                                    "backward_depth"])),
+                        probe_reference_fraction=(
+                            float(
+                                bridge_configuration[
+                                    "reference_probe_fraction"])),
+                        probe_temperature=float(
+                            bridge_configuration[
+                                "temperature"]),
+                        probe_maximum_importance_weight=float(
+                            bridge_configuration[
+                                "max_importance_weight"]),
+                        probe_minimum_ess_fraction=(
+                            probe_minimum_ess_fraction),
+                        probe_current_following_gain=float(
+                            bridge_configuration[
+                                "current_following_gain"]),
+                        probe_estimator_mode=(
+                            probe_estimator_mode)))
+                unified_flow_config = (
+                    UnifiedImpactFlowConfig(
+                        probe_path_count=(
+                            probe_count),
+                        probe_max_steps=(
+                            bridge_scalar_config
+                            .probe_max_steps),
+                        probe_reference_fraction=(
+                            bridge_scalar_config
+                            .probe_reference_fraction),
+                        probe_estimator_mode=(
+                            probe_estimator_mode),
+                        probe_temperature=float(
+                            bridge_configuration[
+                                "temperature"]),
+                        probe_maximum_importance_weight=float(
+                            bridge_configuration[
+                                "max_importance_weight"]),
+                        probe_minimum_ess_fraction=(
+                            probe_minimum_ess_fraction),
+                        probe_current_following_gain=float(
+                            bridge_configuration[
+                                "current_following_gain"]),
+                        probe_deposit_decay=float(
+                            bridge_configuration[
+                                "deposit_decay"]),
+                        transport_microsteps=int(
+                            flow_configuration[
+                                "maximum_microsteps"]),
+                        transport_time_step=float(
+                            flow_configuration[
+                                "time_step"]),
+                        turnover_fraction=float(
+                            flow_configuration[
+                                "turnover_fraction"]),
+                        cfl_limit=float(
+                            flow_configuration[
+                                "cfl_limit"]),
+                        diffusion=float(
+                            flow_configuration[
+                                "diffusion"]),
+                        projection_tolerance=float(
+                            flow_configuration[
+                                "projection_tolerance"]),
+                        mass_tolerance=float(
+                            flow_configuration[
+                                "mass_tolerance"]),
+                        normalization_contract_id=str(
+                            bridge_configuration[
+                                "normalization_contract"]),
+                        packet_budgets=tuple(
+                            sorted(
+                                packet_configuration[
+                                    "budgets"].items()))))
                 self._pressure_ranker_v2 = (
                     ImpactPressureRankerV2(
                         PressureConfig(
@@ -844,7 +960,9 @@ class GroundedImpactPlanner(object):
                         score_alignment_utility_tolerance=(
                             self.pressure_score_alignment_utility_tolerance),
                         teleological_enabled=True,
-                        bridge_scalar_enabled=True))
+                        bridge_scalar_enabled=True,
+                        bridge_scalar_config=(
+                            bridge_scalar_config)))
                 from .impact_flow_adapter import (
                     AdvisoryPolicy,
                     ImpactControlAdapter,
@@ -858,7 +976,8 @@ class GroundedImpactPlanner(object):
                         UnifiedImpactFlowEngine,
                     )
                     unified_flow_engine = UnifiedImpactFlowEngine(
-                        self._pressure_ranker_v2)
+                        self._pressure_ranker_v2,
+                        unified_flow_config)
                 self._control_adapter = ImpactControlAdapter(
                     legacy_ranker=self._pressure_ranker,
                     scalar_v2_ranker=(
@@ -869,22 +988,72 @@ class GroundedImpactPlanner(object):
                     shadow_live_mode="legacy_scalar",
                     advisory_policy=AdvisoryPolicy(
                         require_calibration=bool(
-                            (
-                                values.get(
-                                    "teleology", {})
-                                if isinstance(
-                                    values.get(
-                                        "teleology", {}),
-                                    dict)
-                                else {}
-                            ).get(
-                                "calibration_required",
-                                False)),
+                            controller_configuration[
+                                "teleology"][
+                                    "calibration_required"]),
                         fallback_mode="scalar_v2"),
                     live_activation_gate=(
                         live_activation_gate),
                     live_evidence=live_evidence)
-        self._controller_config = controller_policy
+        self.controller_activation = (
+            controller_activation)
+        active_configuration_groups = {}
+        controller_layers = (
+            controller_activation["layers"])
+        for group, active in (
+                ("pressure_v2", controller_layers[
+                    "scalar_pf_v2"]["enabled"]),
+                ("teleology", controller_layers[
+                    "teleological_cost_to_go"][
+                        "enabled"]),
+                ("bridge", controller_layers[
+                    "bridge"]["enabled"]),
+                ("flow", controller_layers[
+                    "source_sink_flow"]["enabled"]),
+                ("packets", controller_layers[
+                    "packet_scheduler"]["enabled"]),
+                ("safety", (
+                    controller_layers[
+                        "exact_commit_revalidation"][
+                            "enabled"]
+                    or self.pressure_controller_mode
+                    in (
+                        "bridge_scalar_advisory",
+                        "unified_flow_advisory",
+                        "unified_flow_live")))):
+            if active:
+                active_configuration_groups[group] = (
+                    controller_configuration[group])
+        self._controller_config = {
+            "effective_configuration_groups":
+                active_configuration_groups,
+            "controller_policy":
+                controller_policy,
+        }
+        self._controller_config[
+            "effective_activation_hash"] = (
+                structural_hash(
+                    self._controller_config))
+        self._controller_normalization_contract_hash = (
+            (
+                unified_flow_engine
+                .normalization_contract
+                .contract_hash
+            )
+            if unified_flow_engine is not None
+            and hasattr(
+                unified_flow_engine,
+                "normalization_contract")
+            else structural_hash({
+                "contract_id":
+                    (
+                        controller_configuration[
+                            "bridge"][
+                                "normalization_contract"]
+                        if controller_layers[
+                            "bridge"]["enabled"]
+                        else "not-applicable"),
+            }))
         self._controller_ruleset_digest = structural_hash({
             "adapter": self.SOLVER_IDENTITY,
             "ruleset_compiler": getattr(
@@ -6501,8 +6670,8 @@ class GroundedImpactPlanner(object):
                 self.pressure_survival_threat_radius,
                 goal_facts,
                 normalization_contract_hash=(
-                    self._controller_config[
-                        "pressure_bridge_normalization_contract"]),
+                    self
+                    ._controller_normalization_contract_hash),
                 controller_config=(
                     self._controller_config),
                 ruleset_digest=(
