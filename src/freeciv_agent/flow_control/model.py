@@ -513,6 +513,51 @@ class FlowView:
             row for row in self.edges
             if row.legality.allows(process))
 
+    @property
+    def probe_semantic_hash(self):
+        """Identity of the control topology, independent of its commit epoch.
+
+        Snapshot IDs, query IDs, generations, context digests, provenance,
+        and payload digests are deliberately excluded.  They authorize a
+        commit or explain how a view was produced, but none of them changes
+        probe traversal.  Keeping them out of the RNG identity makes
+        semantically identical authoritative states replay identically even
+        when their transport sequence differs.
+        """
+        material = {
+            "candidate_groundings": [{
+                "action_digest": row.action_digest,
+                "actor_id": row.actor_id,
+                "category": row.category,
+                "committable": row.committable,
+                "operation_node_id": row.operation_node_id,
+                "target_digest": row.target_digest,
+            } for row in self.candidate_groundings],
+            "edges": [{
+                "control_weight": float(row.control_weight),
+                "kind": row.kind.value,
+                "legality": row.legality.to_dict(),
+                "source": row.source,
+                "source_node_id": row.source_node_id,
+                "stable_id": row.stable_id,
+                "target_node_id": row.target_node_id,
+            } for row in self.edges],
+            "frontier_stub_ids": list(self.frontier_stub_ids),
+            "legal_action_digest": self.legal_action_digest,
+            "materialization_budget": self.materialization_budget,
+            "nodes": [{
+                "active": row.active,
+                "committable": row.committable,
+                "evidence_mirror": row.evidence_mirror,
+                "kind": row.kind.value,
+                "semantic_role": row.semantic_role,
+                "source": row.source,
+                "stable_id": row.stable_id,
+            } for row in self.nodes],
+            "schema_version": "probe-semantic-identity/1.0",
+        }
+        return structural_hash(material)
+
     def to_dict(self):
         material = {
             "candidate_groundings": [
@@ -525,6 +570,7 @@ class FlowView:
             "legal_action_digest": self.legal_action_digest,
             "materialization_budget": self.materialization_budget,
             "nodes": [row.to_dict() for row in self.nodes],
+            "probe_semantic_hash": self.probe_semantic_hash,
             "query_id": self.query_id,
             "schema_version": "1.0",
             "semantic_epoch": self.semantic_epoch,

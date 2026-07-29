@@ -67,7 +67,7 @@ def test_unvalidated_live_reordering_falls_back_to_scalar_v2(live_fixture):
         teleological_enabled=True,
         bridge_scalar_enabled=True,
         bridge_scalar_config=_test_config(
-            maximum_regions_per_goal=8))
+            maximum_regions_per_goal=1))
 
     scalar_order, scalar_artifact = _rank(
         baseline, snapshot, candidates)

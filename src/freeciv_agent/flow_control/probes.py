@@ -559,7 +559,7 @@ class CorrectedProbeEstimator:
             "config": self.config.to_dict(),
             "side": side,
             "starts": list(starts),
-            "view_hash": view.to_dict()["view_hash"],
+            "probe_semantic_hash": view.probe_semantic_hash,
         }
         seed = (
             self.config.seed

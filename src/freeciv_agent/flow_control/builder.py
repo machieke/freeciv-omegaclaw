@@ -299,14 +299,13 @@ class QueryLocalFlowBuilder:
         forward_id = "flow:forward-boundary:{}".format(
             structural_hash({
                 "legal_action_digest": legal_action_digest,
-                "snapshot_id": snapshot_id,
+                "role": "authoritative_snapshot_boundary",
             }))
         goal_node_ids = dict(
             (goal_id, "flow:backward-boundary:{}".format(
                 structural_hash({
                     "goal_id": goal_id,
-                    "query_id": query_id,
-                    "snapshot_id": snapshot_id,
+                    "role": "active_goal_boundary",
                 })))
             for goal_id in goals)
         base_nodes = 1 + len(goal_node_ids)
@@ -441,9 +440,10 @@ class QueryLocalFlowBuilder:
         if truncated and reserve_stub:
             frontier_id = "flow:frontier-stub:{}".format(
                 structural_hash({
+                    "legal_action_digest": legal_action_digest,
                     "legal_candidate_count": len(legal_rows),
                     "materialized_candidate_count": len(selected),
-                    "query_id": query_id,
+                    "role": "candidate_materialization_frontier",
                 }))
             node_specs.append({
                 "active": True,

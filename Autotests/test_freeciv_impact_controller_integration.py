@@ -25,7 +25,7 @@ from freeciv_agent.planning.impact_unified_flow import (  # noqa: E402
 from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 
 
-def _snapshot():
+def _snapshot(source_seq=1):
     path = os.path.join(
         REPO, "benchmarks", "freeciv", "samples",
         "real_state_turn1.json")
@@ -33,7 +33,7 @@ def _snapshot():
         payload = json.load(stream)
     return ProxyStateDTO.parse(
         "impact-controller-integration",
-        1, payload).to_snapshot()
+        source_seq, payload).to_snapshot()
 
 
 def _shadow_config():
@@ -175,6 +175,54 @@ def test_unified_flow_semantic_artifact_is_deterministic():
         decisions.append(decision)
 
     assert decisions[0] == decisions[1]
+
+
+def test_unified_flow_action_replay_ignores_transport_sequence():
+    rows = []
+    for source_seq in (7, 73):
+        planner = GroundedImpactPlanner(
+            _shadow_config())
+        planner.plan(_snapshot(source_seq))
+        row = next(
+            value for value in
+            planner.last_control_decision.artifact[
+                "shadow_decisions"]
+            if value["controller_mode"]
+            == "unified_flow")
+        rows.append(row["decision"])
+
+    first, second = rows
+    first_flow = first["artifact"]["flow"]
+    second_flow = second["artifact"]["flow"]
+
+    def semantic_paths(flow):
+        return tuple(
+            tuple(
+                (
+                    tuple(path["node_ids"]),
+                    tuple(path["edge_ids"]),
+                    path["rng_substream"],
+                    path["sampling_stream"],
+                )
+                for path in batch["paths"])
+            for batch in flow["probe_batches"])
+
+    assert first["selected_candidate_key"] == (
+        second["selected_candidate_key"])
+    assert first["ordered_candidate_keys"] == (
+        second["ordered_candidate_keys"])
+    assert first_flow["factorization"]["view"][
+        "probe_semantic_hash"
+    ] == second_flow["factorization"]["view"][
+        "probe_semantic_hash"]
+    assert semantic_paths(first_flow) == (
+        semantic_paths(second_flow))
+    assert first_flow["transport_readout"] == (
+        second_flow["transport_readout"])
+    assert first_flow["factorization"]["view"][
+        "snapshot_id"
+    ] != second_flow["factorization"]["view"][
+        "snapshot_id"]
 
 
 def test_grouped_configuration_drives_live_engine_and_query_identity():

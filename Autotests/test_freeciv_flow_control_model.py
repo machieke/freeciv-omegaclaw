@@ -207,6 +207,73 @@ def test_materialization_budget_is_deterministic_and_leaves_frontier_stub():
     assert stub.provenance_ids == ()
 
 
+def test_builder_semantic_identity_ignores_transport_sequence():
+    path = os.path.join(
+        REPO, "benchmarks", "freeciv", "samples",
+        "real_state_turn1.json")
+    with open(path, encoding="utf-8") as stream:
+        payload = json.load(stream)
+    first_snapshot = ProxyStateDTO.parse(
+        "semantic-identity", 1, payload).to_snapshot()
+    second_snapshot = ProxyStateDTO.parse(
+        "semantic-identity", 99, payload).to_snapshot()
+    first_candidates = GroundedImpactPlanner({
+        "pressure_enabled": False}).candidates(
+            first_snapshot)
+    second_candidates = GroundedImpactPlanner({
+        "pressure_enabled": False}).candidates(
+            second_snapshot)
+    builder = FreeCivFactorGraphBuilder()
+    first = builder.build(
+        "semantic-query-1", first_snapshot,
+        first_candidates,
+        goal_ids=("expansion", "exploration"),
+        goal_by_category={
+            "city_founding": "expansion",
+            "expansion_move": "expansion",
+            "exploration_move": "exploration",
+        },
+        semantic_epoch=5,
+        topology_generation=11,
+        clone_generation=3)
+    second = builder.build(
+        "semantic-query-99", second_snapshot,
+        second_candidates,
+        goal_ids=("expansion", "exploration"),
+        goal_by_category={
+            "city_founding": "expansion",
+            "expansion_move": "expansion",
+            "exploration_move": "exploration",
+        },
+        semantic_epoch=8,
+        topology_generation=19,
+        clone_generation=4)
+
+    assert first_snapshot.snapshot_id != (
+        second_snapshot.snapshot_id)
+    assert first.view.query_id != second.view.query_id
+    assert tuple(
+        row.stable_id for row in first.view.nodes
+    ) == tuple(
+        row.stable_id for row in second.view.nodes)
+    assert tuple(
+        row.stable_id for row in first.view.edges
+    ) == tuple(
+        row.stable_id for row in second.view.edges)
+    assert first.view.probe_semantic_hash == (
+        second.view.probe_semantic_hash)
+    assert first.view.to_dict()["view_hash"] != (
+        second.view.to_dict()["view_hash"])
+    assert {
+        row.snapshot_id
+        for row in first.view.candidate_groundings
+    } == {first_snapshot.snapshot_id}
+    assert {
+        row.snapshot_id
+        for row in second.view.candidate_groundings
+    } == {second_snapshot.snapshot_id}
+
+
 def _deep_build(reverse=False, budget=None, per_category=64):
     snapshot, candidates = _fixture()
     if reverse:

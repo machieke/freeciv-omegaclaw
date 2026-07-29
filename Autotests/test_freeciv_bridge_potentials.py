@@ -328,6 +328,69 @@ def test_two_stream_probe_replay_is_deterministic_and_non_evidential():
         "verified_evidence"})
 
 
+def test_probe_replay_ignores_commit_only_view_identity():
+    original = _bridge_fixture()
+    replay = replace(
+        original,
+        query_id="transport-query-99",
+        snapshot_id="transport-snapshot-99",
+        semantic_epoch=9,
+        topology_generation=17,
+        context_digest="transport-context-99",
+        clone_generation=3,
+        nodes=tuple(
+            replace(
+                row,
+                semantic_generation=9,
+                topology_generation=17,
+                context_digest="transport-context-99",
+                clone_generation=3,
+                born_generation=17,
+                payload_digest="transport-payload-99")
+            for row in original.nodes),
+        edges=tuple(
+            replace(
+                row,
+                semantic_generation=9,
+                topology_generation=17,
+                context_digest="transport-context-99",
+                clone_generation=3,
+                born_generation=17)
+            for row in original.edges))
+    estimator = CorrectedProbeEstimator(ProbeConfig(
+        mode="two_stream", path_count=40,
+        max_steps=3, reference_fraction=0.25,
+        minimum_path_diversity=0.0,
+        seed=91))
+
+    first = estimator.run(
+        original, "forward", ("forward",), ("bridge",))
+    second = estimator.run(
+        replay, "forward", ("forward",), ("bridge",))
+
+    def semantic_paths(batch):
+        return tuple(
+            (
+                row.side, row.start_node_id,
+                row.node_ids, row.edge_ids,
+                row.total_cost, row.met_opposite_frontier,
+                row.meet_node_id, row.novelty,
+                row.evidence_risk, row.reliability,
+                row.behavior_log_probability,
+                row.reference_log_probability,
+                row.importance_weight, row.rng_substream,
+                row.sampling_stream, row.clipped,
+            )
+            for row in batch.paths)
+
+    assert original.probe_semantic_hash == (
+        replay.probe_semantic_hash)
+    assert original.to_dict()["view_hash"] != (
+        replay.to_dict()["view_hash"])
+    assert semantic_paths(first) == semantic_paths(second)
+    assert first.health == second.health
+
+
 def test_probe_meet_and_topology_generation_are_explicit():
     batch = CorrectedProbeEstimator(ProbeConfig(
         mode="importance", path_count=32,
