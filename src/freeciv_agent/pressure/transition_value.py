@@ -287,6 +287,48 @@ def candidate_lifecycle_state(candidate):
     return "irreversible-execution"
 
 
+def candidate_action_category(candidate):
+    """Return a bounded grounded-action family for calibration support.
+
+    Planner microcategories describe tactical rationale and are too sparse for
+    selected-action calibration. Goal ID preserves the strategic objective;
+    this field identifies the grounded kind of transition being attempted.
+    """
+    action = getattr(candidate, "action", None) or {}
+    action_type = str(
+        action.get("action_type", "")).strip()
+    if action_type == "city_production":
+        return "production"
+    if action_type == "city_governor":
+        return "city-policy"
+    if action_type == "player_rates":
+        return "fiscal-policy"
+    if action_type == "government_change":
+        return "government-policy"
+    if action_type == "unit_build_city":
+        return "settlement"
+    if action_type in (
+            "unit_move", "unit_goto",
+            "unit_transport"):
+        return "movement"
+    if action_type in (
+            "unit_fortify", "unit_sentry",
+            "unit_pillage"):
+        return "unit-posture"
+    if action_type in (
+            "unit_attack", "unit_bombard",
+            "unit_nuke", "unit_bribe",
+            "unit_suicide_attack"):
+        return "combat"
+    if action_type:
+        return "grounded:{}".format(
+            action_type[:64])
+    category = str(
+        getattr(candidate, "category", "")).strip()
+    return "planner:{}".format(
+        category[:64] or "unknown")
+
+
 class TransitionValueModel:
     """Idempotent category/lifecycle residual calibration.
 

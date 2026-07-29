@@ -1361,11 +1361,13 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             if self.transition_value_model is not None:
                 from .transition_value import (
                     TransitionValueKey,
+                    candidate_action_category,
                     candidate_lifecycle_state,
                 )
                 transition_key = TransitionValueKey(
-                    action_category=str(
-                        candidate.category),
+                    action_category=(
+                        candidate_action_category(
+                            candidate)),
                     lifecycle_state=(
                         candidate_lifecycle_state(
                             candidate)),

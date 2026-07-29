@@ -17,6 +17,7 @@ from freeciv_agent.pressure import (  # noqa: E402
     TransitionValueKey,
     TransitionValueModel,
     TransitionValueObservation,
+    candidate_action_category,
     candidate_lifecycle_state,
 )
 
@@ -155,6 +156,9 @@ def test_lifecycle_classifier_separates_route_terminal_and_production():
     assert candidate_lifecycle_state(found) == "terminal-completion"
     assert candidate_lifecycle_state(production) == (
         "production-commitment")
+    assert candidate_action_category(move) == "movement"
+    assert candidate_action_category(found) == "settlement"
+    assert candidate_action_category(production) == "production"
 
 
 def test_transition_model_batch_is_atomic_and_persists_once():

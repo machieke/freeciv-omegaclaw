@@ -2248,7 +2248,7 @@ paired_impact:
       require_clean_source: true
       endpoints: [score_turn_n, score_lead_turn_n]
       horizon_turn: 60
-      planned_pairs: 10
+      planned_pairs: 30
       controller_workers: 3
       isolated_policy_keys:
         - pressure_transition_value_enabled
@@ -2278,7 +2278,7 @@ paired_impact:
       seed_derivation:
         algorithm: sha256-counter-v1
         namespace: pf-pln-transition-value-collection-diagnostic-v1
-        count: 10
+        count: 30
         minimum: 5100000
         maximum: 5199999
     calibrated_scalar_diagnostic_v1:

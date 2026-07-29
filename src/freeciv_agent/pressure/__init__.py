@@ -204,6 +204,7 @@ from .transition_value import (
     TransitionValueModel,
     TransitionValueObservation,
     TransitionValueUpdate,
+    candidate_action_category,
     candidate_lifecycle_state,
 )
 from .scalar_baseline import (
@@ -367,6 +368,7 @@ __all__ = [
     "confidence_to_weight",
     "adjoint_pressure",
     "characterize_threshold",
+    "candidate_action_category",
     "candidate_lifecycle_state",
     "counterfactual_pressure",
     "decision_relevant_uncertainty",
