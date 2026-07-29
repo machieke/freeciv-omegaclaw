@@ -130,24 +130,38 @@ class PressureScheduler(object):
         risk_traces = []
         risk_gate_reason = None
         effects = []
+        typed_pre_cost_bonus = 0.0
         safety_harm = False
         for goal_id in sorted(goal_by_id):
             goal = goal_by_id[goal_id]
             vector = pressure_result.pressure(goal_id, operation.atom_id)
+            advantage = operation.typed_advantage_for(goal_id)
             channel_conflict = 0.0
-            if isinstance(vector, SignedPressureVector):
+            if advantage is not None:
+                channel_pressure = advantage.expected_relief
+                typed_pre_cost_bonus += (
+                    advantage.information_gain
+                    + advantage.option_value)
+            elif isinstance(vector, SignedPressureVector):
                 channel_pressure = abs(vector.net(operation.mode))
                 channel_conflict = vector.conflict(operation.mode)
             else:
                 channel_pressure = vector.value(operation.mode)
             relief = (
+                advantage.expected_relief
+                if advantage is not None else
                 channel_pressure * operation.success_probability
                 * operation.relief_scale)
             # Goal demand already contains U*h.  Divide it out before applying
             # the declared scheduling weight so utility is counted exactly once.
-            normalized = relief / goal.weight_basis if goal.weight_basis else 0.0
+            normalized = (
+                relief if advantage is not None else
+                relief / goal.weight_basis
+                if goal.weight_basis else 0.0)
             effect = operation.effect_for(goal_id)
-            weighted = weights[goal_id] * normalized * effect
+            weighted = (
+                normalized * effect if advantage is not None else
+                weights[goal_id] * normalized * effect)
             signed_value += weighted
             if channel_conflict:
                 normalized_conflict = (
@@ -213,11 +227,21 @@ class PressureScheduler(object):
                 conflict_penalty, tuple(effects),
                 risk_penalty, tuple(risk_traces))
 
-        value = (
-            signed_value - conflict_penalty - risk_penalty
-            + self.config.information_gain_weight * operation.information_gain
-            + self.config.coherence_weight * operation.coherence_gain
-            + self.config.future_option_weight * operation.future_option_value)
+        if operation.typed_advantages:
+            value = (
+                signed_value - conflict_penalty - risk_penalty
+                + typed_pre_cost_bonus
+                + self.config.coherence_weight
+                * operation.coherence_gain)
+        else:
+            value = (
+                signed_value - conflict_penalty - risk_penalty
+                + self.config.information_gain_weight
+                * operation.information_gain
+                + self.config.coherence_weight
+                * operation.coherence_gain
+                + self.config.future_option_weight
+                * operation.future_option_value)
         scalar_cost = operation.cost.scalar(self.config.cost_weights)
         priority = (
             value * operation.feasibility

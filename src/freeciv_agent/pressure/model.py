@@ -627,6 +627,7 @@ class Operation:
     packet_threshold: int = 1
     reservation_policy: str = "atomic"
     requirement_set_id: object = None
+    typed_advantages: tuple = ()
 
     def __post_init__(self):
         if not self.operation_id or not self.atom_id:
@@ -691,6 +692,23 @@ class Operation:
                      or not self.requirement_set_id)):
             raise ValueError(
                 "operation requirement_set_id must be a non-empty string")
+        if self.typed_advantages:
+            from .teleology import TypedAdvantage
+            if any(not isinstance(row, TypedAdvantage)
+                   for row in self.typed_advantages):
+                raise TypeError(
+                    "operation typed_advantages must contain "
+                    "TypedAdvantage")
+            advantage_goals = [
+                row.goal_id for row in self.typed_advantages]
+            if len(advantage_goals) != len(set(advantage_goals)):
+                raise ValueError(
+                    "operation typed advantage goals must be unique")
+            if any(row.target_id != self.atom_id
+                   or row.mode != self.mode
+                   for row in self.typed_advantages):
+                raise ValueError(
+                    "typed advantage target and mode must match operation")
 
     def effect_for(self, goal_id):
         effects = dict(self.goal_effects)
@@ -699,6 +717,11 @@ class Operation:
     def risk_estimate_for(self, goal_id):
         estimates = dict(self.risk_estimates)
         return estimates.get(str(goal_id), estimates.get("*"))
+
+    def typed_advantage_for(self, goal_id):
+        return dict(
+            (row.goal_id, row)
+            for row in self.typed_advantages).get(str(goal_id))
 
     @property
     def effective_deadline_fit(self):
@@ -751,6 +774,9 @@ class Operation:
             value["reservation_policy"] = self.reservation_policy
         if self.requirement_set_id is not None:
             value["requirement_set_id"] = self.requirement_set_id
+        if self.typed_advantages:
+            value["typed_advantages"] = [
+                row.to_dict() for row in self.typed_advantages]
         return value
 
 
