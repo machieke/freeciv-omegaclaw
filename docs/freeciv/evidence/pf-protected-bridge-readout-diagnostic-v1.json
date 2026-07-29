@@ -1,0 +1,75 @@
+{
+  "claim_eligible": false,
+  "cohort": "protected_bridge_readout_diagnostic_v1",
+  "engine": {
+    "complete_arms": 20,
+    "complete_pairs": 10,
+    "failures": 0,
+    "infrastructure_failures": 0,
+    "source_commit": "32d257e04f9ae77655325c8cffde15989e72ca99",
+    "source_stable": true
+  },
+  "mechanism": {
+    "active_pressure_decisions": 67,
+    "bridge_added_memberships": 226,
+    "bridge_additions_per_active_decision": 3.373134328358209,
+    "fallback_decisions": 444,
+    "fallback_reasons": {
+      "incomplete_packet_reservation": 444
+    },
+    "fallbacks_with_positive_scalar_priority": 0,
+    "mean_union_size": 4.91044776119403,
+    "protected_union_decisions": 67,
+    "protected_union_memberships": 329,
+    "readout_disagreements_with_scalar": 0,
+    "scalar_top_k_memberships": 103,
+    "scalar_winner_memberships": 67,
+    "safety_protected_memberships": 0,
+    "terminal_protected_memberships": 11
+  },
+  "paired_deltas": {
+    "cities_founded": {
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.0
+    },
+    "decision_no_effect_actions": {
+      "estimate": 0.0,
+      "lower": -0.3,
+      "upper": 0.3
+    },
+    "engine_rejected_action_rate": {
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.0
+    },
+    "impact_planning_decision_latency_ms": {
+      "estimate": 13.99563751643829,
+      "lower": 5.813973383501132,
+      "upper": 22.147106784076193
+    },
+    "loop_latency_ms": {
+      "estimate": 18.198100712615986,
+      "lower": -35.798171811426684,
+      "upper": 66.31889101583508
+    },
+    "score_turn_n": {
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.0
+    },
+    "win_rate": {
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.0
+    }
+  },
+  "result": {
+    "candidate_recall_mechanism": "passed",
+    "gameplay_benefit": "not_observed",
+    "next_gate": "corrected_probe_readout_diagnostic_v1",
+    "safety_gates_passed": true,
+    "stage": "mechanism_and_safety_gate_passed"
+  },
+  "schema_version": "1.0"
+}
