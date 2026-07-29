@@ -21,6 +21,15 @@ from .model import (
     LocalNodeHandle,
 )
 from .topology import FlowTopologyIndex
+from .potentials import (
+    POTENTIAL_PROCESS_SEMANTICS,
+    DeterministicMessagePotentialEstimator,
+    MonteCarloMeetPotentialEstimator,
+    PotentialBudget,
+    PotentialEstimate,
+    PotentialEstimator,
+    ShortestMeetPotentialEstimator,
+)
 
 __all__ = [
     "CandidateGrounding",
@@ -39,5 +48,12 @@ __all__ = [
     "FreeCivFactorGraphBuilder",
     "FreeCivFactorizationResult",
     "LocalNodeHandle",
+    "MonteCarloMeetPotentialEstimator",
+    "POTENTIAL_PROCESS_SEMANTICS",
+    "PotentialBudget",
+    "PotentialEstimate",
+    "PotentialEstimator",
     "QueryLocalFlowBuilder",
+    "ShortestMeetPotentialEstimator",
+    "DeterministicMessagePotentialEstimator",
 ]
