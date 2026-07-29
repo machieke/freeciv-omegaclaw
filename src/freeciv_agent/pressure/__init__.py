@@ -112,9 +112,13 @@ from .model import (
 )
 from .provenance import (
     EvidenceLedger,
+    EvidenceRiskSummary,
     EvidenceToken,
     EvidenceTokenConflict,
     ObservationPolicy,
+    SelectionBiasMonitor,
+    SelectionCoverageRecord,
+    SelectionExposure,
     confidence_to_weight,
     weight_to_confidence,
 )
@@ -212,6 +216,7 @@ __all__ = [
     "DeadlineState",
     "DeclaredFallbackTransitionModel",
     "EvidenceLedger",
+    "EvidenceRiskSummary",
     "EvidenceToken",
     "EvidenceTokenConflict",
     "ExpansionDecision",
@@ -287,6 +292,9 @@ __all__ = [
     "ReverseOperatorResult",
     "ScalarBaselineConfig",
     "ScalarRouteBid",
+    "SelectionBiasMonitor",
+    "SelectionCoverageRecord",
+    "SelectionExposure",
     "SimilarityLink",
     "SignedPressureVector",
     "SmoothedRouteScore",
