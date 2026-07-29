@@ -48,8 +48,8 @@ FreeCiv score, gameplay, or win rate improves.
 | Stage | Implementation | Offline gate | Engine gate | Authority |
 |---|---|---|---|---|
 | CT0 frozen scalar PF-v2 + packets | complete | passed | captured replay passed | supported comparator |
-| CT1 calibrated scalar | complete | passed | collection/frozen fit passed; paired diagnostic pending | fail-closed abstention |
-| CT2 protected deterministic bridge | complete | passed | pending CT1 engine gate | membership only |
+| CT1 calibrated scalar | complete | passed | safety/semantic gate passed; score neutral | fail-closed abstention |
+| CT2 protected deterministic bridge | complete | passed | paired diagnostic authorized | membership only |
 | CT3 corrected probes | complete | passed | pending CT2 recall gate | membership only |
 | CT4 path persistence | complete | passed | pending paired diagnostic | calibrated near-ties only |
 | CT5 source–sink flow | existing numerical layer, newly hard-gated | not entered | not entered | closed |
@@ -121,6 +121,8 @@ read-only model. Seeds are disjoint across all five stages.
   `docs/freeciv/evidence/pf-transition-value-training-v1-report.json`
 - Decision-level support coverage:
   `docs/freeciv/evidence/pf-transition-value-training-v1-coverage.json`
+- CT1 paired engine diagnostic:
+  `docs/freeciv/evidence/pf-calibrated-scalar-diagnostic-v1.json`
 - Frozen-fit tool:
   `scripts/freeciv/fit_transition_value_model.py`
 - Schema-valid UI proof trace:
@@ -140,8 +142,9 @@ Verification completed at this checkpoint:
 ## Next executable gate
 
 Run the predeclared, seed-disjoint
-`calibrated_scalar_diagnostic_v1`. Inspect authority activation, abstention,
-decision disagreement, terminal delay, rejection/no-effect rate, latency, and
-paired fixed-horizon score direction. CT2 remains closed unless CT1 changes
-grounded decisions under exact support without violating a safety or
-terminal-action gate.
+`protected_bridge_readout_diagnostic_v1`. CT1 activated calibrated authority
+on `559/569` treatment decisions, changed grounded trajectories in `5/10`
+pairs, and preserved all absolute safety gates without material controller
+latency. Its paired fixed-horizon score and win deltas were both exactly zero,
+so no gameplay-benefit claim is available. CT2 is authorized only as a
+candidate-recall ablation; it must preserve calibrated scalar final ordering.

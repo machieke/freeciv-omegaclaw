@@ -1,0 +1,62 @@
+{
+  "action_readout": {
+    "index_aligned_action_differences": 55,
+    "pairs_with_grounded_action_divergence": 5,
+    "total_pairs": 10
+  },
+  "authority": {
+    "active_decisions": 559,
+    "abstained_decisions": 10,
+    "activation_rate": 0.9824253075571178,
+    "model_update_events": 0
+  },
+  "claim_eligible": false,
+  "cohort": "calibrated_scalar_diagnostic_v1",
+  "engine": {
+    "complete_arms": 20,
+    "complete_pairs": 10,
+    "failures": 0,
+    "infrastructure_failures": 0,
+    "source_stable": true
+  },
+  "paired_deltas": {
+    "cities_founded": {
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.0
+    },
+    "decision_no_effect_actions": {
+      "estimate": 0.3,
+      "lower": 0.0,
+      "upper": 0.7
+    },
+    "engine_rejected_action_rate": {
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.0
+    },
+    "impact_planning_decision_latency_ms": {
+      "estimate": -0.5980320450204399,
+      "lower": -11.733223284554086,
+      "upper": 10.274449140809729
+    },
+    "score_turn_n": {
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.0
+    },
+    "win_rate": {
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.0
+    }
+  },
+  "result": {
+    "gameplay_benefit": "not_observed",
+    "next_gate": "protected_bridge_readout_diagnostic_v1",
+    "safety_gates_passed": true,
+    "stage": "semantic_and_safety_gate_passed"
+  },
+  "schema_version": "1.0",
+  "source_commit": "94da49259e80804884ee96b70838a650b897fce5"
+}
