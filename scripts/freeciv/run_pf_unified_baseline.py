@@ -37,6 +37,10 @@ from freeciv.pf_unified.teleology_benchmark import (  # noqa: E402
 from freeciv.pf_unified.bridge_experiment import (  # noqa: E402
     run_g3_bridge_experiment,
 )
+from freeciv.pf_unified.bridge_controller_benchmark import (  # noqa: E402
+    run_g3_live_timing,
+    run_g3_verification,
+)
 
 
 def _parser():
@@ -61,6 +65,16 @@ def _parser():
         "--heldout-seeds-per-family", type=int, default=64)
     g3_bridge.add_argument(
         "--timing-repetitions", type=int, default=20)
+    g3_verify = commands.add_parser("g3-verify")
+    g3_verify.add_argument(
+        "--train-seeds-per-family", type=int, default=64)
+    g3_verify.add_argument(
+        "--heldout-seeds-per-family", type=int, default=64)
+    g3_timing = commands.add_parser("g3-live-timing")
+    g3_timing.add_argument(
+        "--repetitions", type=int, default=10)
+    g3_timing.add_argument(
+        "--controller-budget-ms", type=float, default=500.0)
     compare = commands.add_parser("compare")
     compare.add_argument("left")
     compare.add_argument("right")
@@ -101,6 +115,16 @@ def main(argv=None):
             arguments.heldout_seeds_per_family,
             arguments.timing_repetitions)
         status = 0 if result["valid"] else 1
+    elif command == "g3-verify":
+        result = run_g3_verification(
+            arguments.train_seeds_per_family,
+            arguments.heldout_seeds_per_family)
+        status = 0 if result["valid"] else 1
+    elif command == "g3-live-timing":
+        result = run_g3_live_timing(
+            arguments.repetitions,
+            arguments.controller_budget_ms)
+        status = 0 if result["bridge_within_budget"] else 1
     else:
         result = assert_comparable(
             load_baseline_manifest(arguments.left),

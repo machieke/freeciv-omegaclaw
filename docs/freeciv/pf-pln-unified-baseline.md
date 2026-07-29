@@ -175,6 +175,19 @@ python3 scripts/freeciv/run_pf_unified_baseline.py \
   --timing-repetitions 20
 ```
 
+Run the final semantic and controller-inclusive G3 gates with:
+
+```bash
+python3 scripts/freeciv/run_pf_unified_baseline.py \
+  g3-verify \
+  --train-seeds-per-family 64 \
+  --heldout-seeds-per-family 64
+python3 scripts/freeciv/run_pf_unified_baseline.py \
+  g3-live-timing \
+  --repetitions 20 \
+  --controller-budget-ms 500
+```
+
 The experiment covers all nine preregistered graph failure families and ten
 arms, including context-conditioned conductance, explicit bridge geometry,
 fusion, forward/backward shuffle controls, bridge without typed PF scoring,
@@ -185,7 +198,10 @@ independent held-out query.
 The recorded
 [G3 bridge evidence](evidence/pf-unified-g3-bridge-experiment.json) supports
 incremental forward-reachability value on held-out synthetic packet
-completion. It is deliberately not a FreeCiv gameplay score claim. Its timing
-is ranking-kernel timing; final Gate G3 still requires the bridge-scalar
-controller, health fallback, and live graph/probe/controller-inclusive
-overhead.
+completion. It is deliberately not a FreeCiv gameplay score claim. The final
+G3 gate also verifies live captured-snapshot legality, exact replay, one
+conserved action/CPU packet, non-evidential probes, single-use bridge signals,
+and scalar-v2 fallback under injected or unvalidated disagreement. The full
+bridge path takes 239.0 ms mean and 245.0 ms p95 on the recorded machine,
+versus 22.1 ms for teleological scalar-v2, and remains within the
+preregistered 500 ms per-query controller budget.

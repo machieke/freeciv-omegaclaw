@@ -94,8 +94,8 @@ CONTROLLER_LAYER_SPECS = (
     {"layer": "scalar_pf_v1", "support": "engine-live"},
     {"layer": "scalar_pf_v2", "support": "experimental"},
     {"layer": "packet_scheduler", "support": "experimental"},
-    {"layer": "teleological_cost_to_go", "support": "component-only"},
-    {"layer": "bridge", "support": "component-only"},
+    {"layer": "teleological_cost_to_go", "support": "experimental"},
+    {"layer": "bridge", "support": "experimental"},
     {"layer": "source_sink_flow", "support": "component-only"},
     {"layer": "native_flowpack", "support": "not-built"},
 )
@@ -108,6 +108,7 @@ CONTROLLER_POLICY_DEFAULTS = {
     "pressure_packet_scheduler_enabled": False,
     "pressure_requirement_sets_enabled": False,
     "pressure_scalar_fallback_enabled": True,
+    "pressure_controller_mode": "auto",
     "pressure_semantics_version": "v1",
 }
 
@@ -140,9 +141,23 @@ def validate_controller_policy(impact_policy):
     if policy["pressure_semantics_version"] not in ("v1", "v2"):
         raise PFRuntimeConfigurationError(
             "pressure_semantics_version must be v1 or v2")
+    if policy["pressure_controller_mode"] not in (
+            "auto", "legacy_scalar",
+            "scalar_v2", "bridge_scalar"):
+        raise PFRuntimeConfigurationError(
+            "unknown pressure_controller_mode")
+    if policy["pressure_controller_mode"] == "auto":
+        policy["pressure_controller_mode"] = (
+            "bridge_scalar"
+            if policy["pressure_bridge_enabled"]
+            else "scalar_v2"
+            if policy["pressure_semantics_version"] == "v2"
+            else "legacy_scalar")
     boolean_names = tuple(
         name for name in CONTROLLER_POLICY_DEFAULTS
-        if name != "pressure_semantics_version")
+        if name not in (
+            "pressure_controller_mode",
+            "pressure_semantics_version"))
     if any(not isinstance(policy[name], bool) for name in boolean_names):
         raise PFRuntimeConfigurationError(
             "PF controller feature flags must be boolean")
@@ -159,6 +174,22 @@ def validate_controller_policy(impact_policy):
             and not policy["pressure_packet_scheduler_enabled"]):
         raise PFRuntimeConfigurationError(
             "pressure bridge requires packet scheduling")
+    if (policy["pressure_controller_mode"] == "legacy_scalar"
+            and policy["pressure_semantics_version"] != "v1"):
+        raise PFRuntimeConfigurationError(
+            "legacy_scalar mode requires pressure semantics v1")
+    if (policy["pressure_controller_mode"] == "scalar_v2"
+            and policy["pressure_semantics_version"] != "v2"):
+        raise PFRuntimeConfigurationError(
+            "scalar_v2 mode requires pressure semantics v2")
+    if (policy["pressure_controller_mode"] == "bridge_scalar"
+            and (
+                policy["pressure_semantics_version"] != "v2"
+                or not policy["pressure_bridge_enabled"]
+                or not policy[
+                    "pressure_packet_scheduler_enabled"])):
+        raise PFRuntimeConfigurationError(
+            "bridge_scalar mode requires v2 bridge and packet scheduling")
     if (policy["pressure_flow_enabled"]
             and (not policy["pressure_bridge_enabled"]
                  or not policy["pressure_packet_scheduler_enabled"])):
@@ -180,16 +211,20 @@ def build_controller_activation(impact_policy):
     policy = validate_controller_policy(impact_policy)
     pressure_enabled = policy["pressure_enabled"]
     v2 = policy["pressure_semantics_version"] == "v2"
+    mode = policy["pressure_controller_mode"]
     enabled = {
         "scalar_pf_v1": pressure_enabled and not v2,
         "scalar_pf_v2": pressure_enabled and v2,
         "packet_scheduler": (
             pressure_enabled and v2
             and policy["pressure_packet_scheduler_enabled"]),
-        "teleological_cost_to_go": False,
+        "teleological_cost_to_go": (
+            pressure_enabled
+            and mode == "bridge_scalar"),
         "bridge": (
             pressure_enabled and v2
-            and policy["pressure_bridge_enabled"]),
+            and policy["pressure_bridge_enabled"]
+            and mode == "bridge_scalar"),
         "source_sink_flow": (
             pressure_enabled and v2
             and policy["pressure_flow_enabled"]),

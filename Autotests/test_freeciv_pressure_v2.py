@@ -668,10 +668,25 @@ def test_controller_activation_preserves_v1_and_declares_v2_layers():
     assert v2["layers"]["scalar_pf_v2"]["enabled"]
     assert v2["layers"]["packet_scheduler"]["enabled"]
     assert not v2["layers"]["bridge"]["enabled"]
+    assert legacy["controller_policy"][
+        "pressure_controller_mode"] == "legacy_scalar"
+    assert v2["controller_policy"][
+        "pressure_controller_mode"] == "scalar_v2"
     assert v2["activation_hash"] == structural_hash({
         key: value for key, value in v2.items()
         if key != "activation_hash"
     })
+
+    bridge = build_controller_activation({
+        "pressure_controller_mode": "bridge_scalar",
+        "pressure_semantics_version": "v2",
+        "pressure_packet_scheduler_enabled": True,
+        "pressure_bridge_enabled": True,
+    })
+    assert bridge["layers"]["bridge"]["enabled"]
+    assert bridge["layers"][
+        "teleological_cost_to_go"]["enabled"]
+    assert not bridge["layers"]["source_sink_flow"]["enabled"]
 
 
 def test_controller_activation_invalid_combinations_fail_closed():
@@ -689,6 +704,14 @@ def test_controller_activation_invalid_combinations_fail_closed():
             "pressure_semantics_version": "v2",
             "pressure_packet_scheduler_enabled": True,
             "pressure_flow_enabled": True,
+        })
+    with pytest.raises(
+            PFRuntimeConfigurationError,
+            match="bridge_scalar mode requires"):
+        build_controller_activation({
+            "pressure_controller_mode": "bridge_scalar",
+            "pressure_semantics_version": "v2",
+            "pressure_packet_scheduler_enabled": True,
         })
 
 

@@ -703,6 +703,16 @@ class ImpactPressureRanker(object):
             pressure_result, horizon_turn)
         return tuple(operations), None
 
+    def _bridge_scalar_scores(
+            self, snapshot, operations,
+            candidate_by_operation, scores,
+            diagnostics=None):
+        """Compatibility hook; scalar-v1 has no bridge controller."""
+        del (
+            snapshot, operations,
+            candidate_by_operation, diagnostics)
+        return tuple(scores), None
+
     @classmethod
     def _score_aligned_scores(
             cls, scores, candidate_by_operation, safety_active,
@@ -1058,6 +1068,10 @@ class ImpactPressureRanker(object):
                     + sum(
                         row.reason == "score_alignment_deadline"
                         for row in scores))
+        scores, bridge_artifact = self._bridge_scalar_scores(
+            snapshot, tuple(operations),
+            candidate_by_operation, tuple(scores),
+            diagnostics=diagnostics)
         rank = dict((row.operation_id, index) for index, row in enumerate(scores)
                     if row.admissible)
         ordered = tuple(sorted(candidates, key=lambda candidate: (
@@ -1086,6 +1100,8 @@ class ImpactPressureRanker(object):
         }
         if teleological_artifact is not None:
             artifact["teleology"] = teleological_artifact
+        if bridge_artifact is not None:
+            artifact["bridge"] = bridge_artifact
         if diagnostics is not None:
             diagnostics["pressure_artifact_latency_ms"] = (
                 diagnostics.get("pressure_artifact_latency_ms", 0.0)
@@ -1125,7 +1141,9 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             score_alignment=False,
             exploration_information_enabled=True,
             score_alignment_utility_tolerance=0.0,
-            policy=None, teleological_enabled=False):
+            policy=None, teleological_enabled=False,
+            bridge_scalar_enabled=False,
+            bridge_scalar_config=None):
         super().__init__(
             config=config,
             conductance_state=conductance_state,
@@ -1138,7 +1156,15 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
         if not isinstance(teleological_enabled, bool):
             raise TypeError(
                 "teleological_enabled must be boolean")
+        if not isinstance(bridge_scalar_enabled, bool):
+            raise TypeError(
+                "bridge_scalar_enabled must be boolean")
+        if bridge_scalar_enabled and not teleological_enabled:
+            raise ValueError(
+                "bridge_scalar requires teleological scoring")
         self.teleological_enabled = teleological_enabled
+        self.bridge_scalar_enabled = bridge_scalar_enabled
+        self.bridge_scalar_config = bridge_scalar_config
         self.engine = PressureEngineV2(
             self.config, policy=self.v2_policy)
 
@@ -1344,6 +1370,62 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
         }
         artifact["artifact_hash"] = structural_hash(artifact)
         return tuple(decorated), artifact
+
+    def _bridge_scalar_scores(
+            self, snapshot, operations,
+            candidate_by_operation, scores,
+            diagnostics=None):
+        if not self.bridge_scalar_enabled:
+            return tuple(scores), None
+        from ..flow_control import (
+            BridgeScalarConfig,
+            BridgeScalarController,
+        )
+        if (self.bridge_scalar_config is not None
+                and not isinstance(
+                    self.bridge_scalar_config,
+                    BridgeScalarConfig)):
+            raise TypeError(
+                "bridge_scalar_config must be BridgeScalarConfig")
+        started = time.perf_counter()
+        goal_by_category = dict(
+            (candidate.category,
+             "pf-impact:{}".format(
+                 self.goal_for_category(candidate.category)))
+            for candidate in candidate_by_operation.values())
+        decision = BridgeScalarController(
+            self.bridge_scalar_config).rank(
+                snapshot, candidate_by_operation,
+                operations, scores, goal_by_category,
+                semantic_epoch=int(snapshot.turn),
+                topology_generation=int(
+                    snapshot.identity.source_seq),
+                clone_generation=0)
+        if diagnostics is not None:
+            diagnostics["pressure_bridge_scalar_latency_ms"] = (
+                diagnostics.get(
+                    "pressure_bridge_scalar_latency_ms", 0.0)
+                + (time.perf_counter() - started) * 1000.0)
+            diagnostics["pressure_bridge_scalar_fallbacks"] = (
+                diagnostics.get(
+                    "pressure_bridge_scalar_fallbacks", 0)
+                + int(decision.fallback_required))
+        if decision.fallback_required:
+            return tuple(scores), decision.to_dict()
+        rank = dict(
+            (operation_id, index)
+            for index, operation_id in enumerate(
+                decision.ranked_operation_ids))
+        original = dict(
+            (row.operation_id, index)
+            for index, row in enumerate(scores))
+        ordered = tuple(sorted(
+            scores,
+            key=lambda row: (
+                rank.get(
+                    row.operation_id, len(rank)),
+                original[row.operation_id])))
+        return ordered, decision.to_dict()
 
     def _goal_risk_profile(self, name, safety):
         from .risk import RiskProfile

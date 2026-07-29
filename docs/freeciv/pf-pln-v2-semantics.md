@@ -97,6 +97,7 @@ declarations. Its initial flags are:
 
 ```yaml
 pressure_enabled: true
+pressure_controller_mode: legacy_scalar
 pressure_semantics_version: v1
 pressure_packet_scheduler_enabled: false
 pressure_distributional_risk_enabled: false
@@ -109,6 +110,21 @@ pressure_scalar_fallback_enabled: true
 Bridge requires packet scheduling. Flow requires bridge and packet scheduling.
 V2 features cannot be enabled under v1 semantics or while pressure is disabled.
 Invalid combinations fail closed.
+
+The experimental bridge-scalar mode is declared explicitly:
+
+```yaml
+pressure_enabled: true
+pressure_controller_mode: bridge_scalar
+pressure_semantics_version: v2
+pressure_packet_scheduler_enabled: true
+pressure_bridge_enabled: true
+pressure_flow_enabled: false
+```
+
+It combines teleological scalar-v2 operation scoring, query-local bridge
+geometry, corrected probes, strong smoothed scalar selection, and whole
+packets. Unhealthy or unvalidated bridge decisions fall back to scalar-v2.
 
 ## Verification
 

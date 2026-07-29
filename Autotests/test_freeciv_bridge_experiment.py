@@ -17,6 +17,9 @@ from freeciv.pf_unified.bridge_experiment import (  # noqa: E402
     GRAPH_FAMILIES,
     run_g3_bridge_experiment,
 )
+from freeciv.pf_unified.bridge_controller_benchmark import (  # noqa: E402
+    run_g3_verification,
+)
 
 
 def test_g3_bridge_experiment_is_seed_disjoint_and_falsifiable():
@@ -73,3 +76,21 @@ def test_g3_semantic_hash_excludes_nondeterministic_wall_timing():
         second["verification_hash"])
     assert first["controller_inclusive_timing"] != (
         second["controller_inclusive_timing"])
+
+
+def test_g3_final_gate_includes_live_controller_and_fallback():
+    report = run_g3_verification(
+        train_seeds_per_family=8,
+        heldout_seeds_per_family=8)
+
+    assert report["valid"]
+    assert report["live_controller"]["healthy"]
+    assert report["live_controller"]["deterministic"]
+    assert report["live_controller"]["packet_conserved"]
+    assert report["live_controller"]["packet_selected_once"]
+    assert report["live_controller"]["signal_single_use"]
+    assert report["live_controller"]["snapshot_unchanged"]
+    assert report["fallback"][
+        "fault_injection_preserves_scalar_selection"]
+    assert report["fallback"][
+        "unvalidated_policy_preserves_scalar_selection"]

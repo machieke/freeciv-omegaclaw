@@ -46,6 +46,11 @@ from .candidate_selector import (
     SignalUseLedger,
     default_signal_use_ledger,
 )
+from .controller import (
+    BridgeScalarConfig,
+    BridgeScalarController,
+    BridgeScalarDecision,
+)
 
 __all__ = [
     "CandidateGrounding",
@@ -53,6 +58,9 @@ __all__ = [
     "BridgeCandidateSelector",
     "BridgeReadout",
     "BridgeRegionSelection",
+    "BridgeScalarConfig",
+    "BridgeScalarController",
+    "BridgeScalarDecision",
     "CorrectedProbeEstimator",
     "FlowBuildBudget",
     "FlowBuildRejection",

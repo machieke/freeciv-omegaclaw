@@ -1,19 +1,24 @@
 {
   "artifact_type": "semantic-and-performance",
-  "base_commit": "415834e",
+  "base_commit": "9d0ac43",
+  "bridge_experiment_verification_hash": "49490d3a9d96389256327adc0798509fa0e6e47813c05e4c4583da20eef1fbb9",
   "bridge_calibration": {
     "brier_score": 0.033311632056405756,
     "claim_eligible": false,
     "scope": "held-out synthetic graph packets only",
     "synthetic_gate_eligible": true
   },
-  "claim_status": "synthetic-control-evidence-only;not-a-FreeCiv-gameplay-score-claim",
-  "command": "python3 scripts/freeciv/run_pf_unified_baseline.py g3-bridge-experiment --train-seeds-per-family 64 --heldout-seeds-per-family 64 --timing-repetitions 20",
+  "claim_status": "G3-synthetic-control-gate;not-a-FreeCiv-gameplay-score-claim",
+  "command": "python3 scripts/freeciv/run_pf_unified_baseline.py g3-verify --train-seeds-per-family 64 --heldout-seeds-per-family 64",
   "conditional_mutual_information_bits": 0.16260187626631945,
   "controller_kernel_timing": {
     "explicit_bridge_mean_microseconds_per_case": 1.3435573136020038,
     "scalar_context_conductance_mean_microseconds_per_case": 1.2180750167721675,
     "scope": "ranking kernel only; live graph, probe, and controller overhead remains part of the final G3 gate"
+  },
+  "fallback": {
+    "fault_injection_preserves_scalar_selection": true,
+    "unvalidated_policy_preserves_scalar_selection": true
   },
   "heldout": {
     "case_count": 576,
@@ -40,6 +45,33 @@
       "false_corridor_allocations": 384,
       "mean_verified_goal_loss_relief": 0.13389732987193728
     }
+  },
+  "live_controller": {
+    "candidate_count": 34,
+    "deterministic": true,
+    "edge_count": 855,
+    "goal_selection_count": 2,
+    "healthy": true,
+    "minimum_effective_sample_fraction": 0.5487411066719659,
+    "minimum_path_diversity": 0.34375,
+    "node_count": 354,
+    "packet_conserved": true,
+    "packet_selected_once": true,
+    "parity_selected_action": true,
+    "potential_process_semantics": "fixed-reference-process",
+    "probe_telemetry_is_non_evidential": true,
+    "selected_action_legal": true,
+    "signal_single_use": true,
+    "snapshot_unchanged": true
+  },
+  "live_controller_timing": {
+    "bridge_mean_ms": 239.01246536988765,
+    "bridge_p95_ms": 245.01605704426765,
+    "bridge_within_500_ms_budget": true,
+    "command": "python3 scripts/freeciv/run_pf_unified_baseline.py g3-live-timing --repetitions 20 --controller-budget-ms 500",
+    "scalar_v2_teleological_mean_ms": 22.091146744787693,
+    "teleological_bridge_over_scalar_ratio": 10.819377922347176,
+    "timing_hash": "1b3c64a0bc872aec3a58925bf461c38102c14716071fd51e03367b8e03ae876e"
   },
   "primary_comparison": {
     "bootstrap_95_ci": [
@@ -72,5 +104,5 @@
     ]
   },
   "valid": true,
-  "verification_hash": "49490d3a9d96389256327adc0798509fa0e6e47813c05e4c4583da20eef1fbb9"
+  "verification_hash": "1688a5eca83d2c029a97db17586a6e802c537d4830dcbc5ea674ca565520788d"
 }
