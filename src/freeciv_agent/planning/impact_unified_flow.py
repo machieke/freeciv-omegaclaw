@@ -25,6 +25,7 @@ from ..flow_control import (
     RequestedCurrentBuilder,
     RobustNormalizer,
     TwoDyeAdvectionKernel,
+    default_signal_use_ledger,
     default_normalization_contract,
 )
 from ..pressure import (
@@ -62,6 +63,8 @@ class UnifiedImpactFlowConfig:
     transport_microsteps: int = 8
     transport_time_step: float = 1.0
     turnover_fraction: float = 0.25
+    candidate_region_relative_overlap: float = 0.50
+    maximum_candidate_regions_per_goal: int = 8
     cfl_limit: float = 0.90
     diffusion: float = 0.03
     projection_tolerance: float = 1.0e-8
@@ -84,7 +87,8 @@ class UnifiedImpactFlowConfig:
         for name in (
                 "probe_path_count", "probe_max_steps",
                 "potential_iterations",
-                "transport_microsteps"):
+                "transport_microsteps",
+                "maximum_candidate_regions_per_goal"):
             value = getattr(self, name)
             if (isinstance(value, bool)
                     or not isinstance(value, int)
@@ -98,6 +102,7 @@ class UnifiedImpactFlowConfig:
                 "probe_minimum_path_diversity",
                 "probe_deposit_decay",
                 "turnover_fraction",
+                "candidate_region_relative_overlap",
                 "diffusion"):
             value = float(getattr(self, name))
             if not 0.0 <= value <= 1.0:
@@ -109,6 +114,9 @@ class UnifiedImpactFlowConfig:
         if self.turnover_fraction <= 0.0:
             raise ValueError(
                 "turnover_fraction must be positive")
+        if self.candidate_region_relative_overlap <= 0.0:
+            raise ValueError(
+                "candidate_region_relative_overlap must be positive")
         if self.probe_estimator_mode not in (
                 "importance", "two_stream"):
             raise ValueError(
@@ -167,11 +175,15 @@ class UnifiedImpactFlowConfig:
     def to_dict(self):
         return {
             "cfl_limit": float(self.cfl_limit),
+            "candidate_region_relative_overlap":
+                float(self.candidate_region_relative_overlap),
             "controller_budget_ms":
                 float(self.controller_budget_ms),
             "diffusion": float(self.diffusion),
             "mass_tolerance":
                 float(self.mass_tolerance),
+            "maximum_candidate_regions_per_goal":
+                int(self.maximum_candidate_regions_per_goal),
             "normalization_contract_id":
                 self.normalization_contract_id,
             "packet_budgets": dict(
@@ -501,6 +513,56 @@ class UnifiedImpactFlowEngine:
                 target.get(edge_id, 0.0)
                 + max(0.0, float(value))
                 / float(divisor))
+
+    @staticmethod
+    def _select_candidate_region(
+            eligible_overlaps, score_by_operation,
+            goal_by_operation, relative_overlap,
+            maximum_regions_per_goal):
+        """Let flow select regions and typed PF rank operations within them."""
+        regions = []
+        selected_ids = set()
+        processed_goals = tuple(sorted(set(
+            goal_by_operation.get(row[0])
+            for row in eligible_overlaps
+            if (score_by_operation[row[0]].admissible
+                and goal_by_operation.get(row[0]) is not None))))
+        for goal_id in processed_goals:
+            rows = tuple(
+                row for row in eligible_overlaps
+                if (score_by_operation[row[0]].admissible
+                    and goal_by_operation.get(row[0])
+                    == goal_id))
+            maximum = max(
+                (row[2] for row in rows),
+                default=0.0)
+            threshold = maximum * float(relative_overlap)
+            selected = tuple(sorted(
+                (row for row in rows
+                 if row[2] + 1e-15 >= threshold),
+                key=lambda row: (
+                    -score_by_operation[row[0]].priority,
+                    row[0])
+            )[:maximum_regions_per_goal])
+            selected_ids.update(
+                row[0] for row in selected)
+            regions.append({
+                "candidate_count": len(rows),
+                "goal_id": goal_id,
+                "maximum_overlap": float(maximum),
+                "relative_overlap_threshold":
+                    float(relative_overlap),
+                "selected_operation_ids": [
+                    row[0] for row in selected],
+                "threshold_overlap": float(threshold),
+            })
+        selected = tuple(sorted(
+            (row for row in eligible_overlaps
+             if row[0] in selected_ids),
+            key=lambda row: (
+                -score_by_operation[row[0]].priority,
+                row[0])))
+        return selected, tuple(regions)
 
     def _project_directed(self, view, requested):
         """Project a bridge-steered prior without reversing legal edges.
@@ -855,21 +917,32 @@ class UnifiedImpactFlowEngine:
                     continue
                 eligible_overlaps.append((
                     operation_id, node_id, value))
-            eligible_overlaps.sort(key=lambda row: (
-                not score_by_operation[row[0]].admissible,
-                -score_by_operation[
-                    row[0]].priority,
-                row[0]))
-            if not eligible_overlaps:
+            goal_by_operation = dict(
+                (operation_id,
+                 goal_by_category.get(candidate.category))
+                for operation_id, candidate
+                in candidate_by_operation.items())
+            region_overlaps, candidate_regions = (
+                self._select_candidate_region(
+                    eligible_overlaps,
+                    score_by_operation,
+                    goal_by_operation,
+                    self.config
+                    .candidate_region_relative_overlap,
+                    self.config
+                    .maximum_candidate_regions_per_goal))
+            if not region_overlaps:
                 raise ValueError(
                     "flow emitted no eligible operation")
+            region_operation_ids = frozenset(
+                row[0] for row in region_overlaps)
             operation_id, node_id, value = (
-                eligible_overlaps[0])
+                region_overlaps[0])
             score = score_by_operation[operation_id]
-            # Overlap is an eligibility/readout signal. Select by the typed
-            # PF score first, then build only the single whole-packet
-            # candidate; hashing the entire FlowView per discarded
-            # alternative is both semantically pointless and expensive.
+            # Overlap selects a bounded region independently for each goal;
+            # typed PF priority scores concrete operations only within that
+            # region. The signals are never multiplied into a composite
+            # score. Build only the selected whole-packet candidate.
             flow_candidates = (
                 self.candidate_factory.build(
                     view, node_id,
@@ -924,6 +997,9 @@ class UnifiedImpactFlowEngine:
                     selected_operation_id].action_key)
             scalar_keys = tuple(
                 row.action_key for row in ordered)
+            scalar_selected_operation_id = next(
+                (row.operation_id for row in score_rows
+                 if row.admissible), None)
             ordered_keys = (
                 (selected_key,)
                 + tuple(
@@ -1067,8 +1143,42 @@ class UnifiedImpactFlowEngine:
                             row.to_dict()
                             for row in requested_currents],
                         "transport_readout": {
+                            "candidate_regions": list(
+                                candidate_regions),
+                            "candidate_readouts": [
+                                {
+                                    "action_key":
+                                        candidate_by_operation[
+                                            row[0]].action_key,
+                                    "flow_region_selected":
+                                        row[0]
+                                        in region_operation_ids,
+                                    "goal_id":
+                                        goal_by_operation.get(
+                                            row[0]),
+                                    "operation_id": row[0],
+                                    "overlap": float(row[2]),
+                                    "scalar_admissible": bool(
+                                        score_by_operation[
+                                            row[0]].admissible),
+                                    "scalar_priority": float(
+                                        score_by_operation[
+                                            row[0]].priority),
+                                }
+                                for row in sorted(
+                                    eligible_overlaps,
+                                    key=lambda row: (
+                                        -row[2], row[0]))
+                            ][:64],
+                            "disagrees_with_scalar": (
+                                selected_operation_id
+                                != scalar_selected_operation_id),
                             "maximum_overlap": max(
                                 overlap, default=0.0),
+                            "scalar_selected_operation_id":
+                                scalar_selected_operation_id,
+                            "selected_operation_id":
+                                selected_operation_id,
                             "selected_node_id":
                                 flow_node_by_operation[
                                     selected_operation_id],
@@ -1077,6 +1187,8 @@ class UnifiedImpactFlowEngine:
                                     flow_node_by_operation[
                                         selected_operation_id]]]),
                         },
+                        "signal_use_ledger":
+                            default_signal_use_ledger().to_dict(),
                         "transport":
                             semantic_transport,
                     },

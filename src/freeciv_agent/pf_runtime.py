@@ -175,6 +175,8 @@ CONTROLLER_CONFIGURATION_DEFAULTS = {
     "flow": {
         "enabled": False,
         "turnover_fraction": 0.25,
+        "candidate_region_relative_overlap": 0.50,
+        "maximum_candidate_regions_per_goal": 8,
         "time_step": 1.0,
         "cfl_limit": 0.90,
         "diffusion": 0.03,
@@ -359,6 +361,8 @@ def _validate_controller_configuration(configuration):
             ("flow", "projection_tolerance", 0.0, 1.0, True),
             ("flow", "mass_tolerance", 0.0, 1.0, True),
             ("flow", "maximum_microsteps", 1, 1000000, False),
+            ("flow", "maximum_candidate_regions_per_goal",
+             1, 1000000, False),
             ("packets", "reservation_ttl", 1, 1000000, False)):
         value = configuration[group][name]
         if isinstance(value, bool) or not isinstance(
@@ -381,6 +385,7 @@ def _validate_controller_configuration(configuration):
             ("bridge", "reference_probe_fraction"),
             ("bridge", "deposit_decay"),
             ("flow", "turnover_fraction"),
+            ("flow", "candidate_region_relative_overlap"),
             ("flow", "diffusion"),
             ("packets", "backup_route_fraction")):
         value = configuration[group][name]

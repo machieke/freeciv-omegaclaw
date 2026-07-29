@@ -896,6 +896,12 @@ class GroundedImpactPlanner(object):
                         turnover_fraction=float(
                             flow_configuration[
                                 "turnover_fraction"]),
+                        candidate_region_relative_overlap=float(
+                            flow_configuration[
+                                "candidate_region_relative_overlap"]),
+                        maximum_candidate_regions_per_goal=int(
+                            flow_configuration[
+                                "maximum_candidate_regions_per_goal"]),
                         cfl_limit=float(
                             flow_configuration[
                                 "cfl_limit"]),

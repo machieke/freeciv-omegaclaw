@@ -4,6 +4,7 @@ from copy import deepcopy
 import json
 import os
 import sys
+from types import SimpleNamespace
 
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -16,6 +17,9 @@ from freeciv_agent.events.writer import EventWriter  # noqa: E402
 from freeciv_agent.planning import (  # noqa: E402
     ControlEventEmitter,
     GroundedImpactPlanner,
+)
+from freeciv_agent.planning.impact_unified_flow import (  # noqa: E402
+    UnifiedImpactFlowEngine,
 )
 from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 
@@ -185,9 +189,11 @@ def test_grouped_configuration_drives_live_engine_and_query_identity():
             "temperature": 0.75,
         },
         "flow": {
+            "candidate_region_relative_overlap": 0.60,
             "cfl_limit": 0.70,
             "diffusion": 0.02,
             "mass_tolerance": 1.0e-7,
+            "maximum_candidate_regions_per_goal": 3,
             "maximum_microsteps": 4,
             "projection_tolerance": 1.0e-7,
             "time_step": 0.50,
@@ -209,6 +215,12 @@ def test_grouped_configuration_drives_live_engine_and_query_identity():
     assert engine.config.probe_minimum_ess_fraction == 0.10
     assert engine.config.probe_deposit_decay == 0.20
     assert engine.config.turnover_fraction == 0.20
+    assert (
+        engine.config.candidate_region_relative_overlap
+        == 0.60)
+    assert (
+        engine.config.maximum_candidate_regions_per_goal
+        == 3)
     assert engine.config.transport_time_step == 0.50
     assert engine.config.transport_microsteps == 4
     assert dict(engine.config.packet_budgets)["cpu"] == 2
@@ -224,6 +236,64 @@ def test_grouped_configuration_drives_live_engine_and_query_identity():
         .normalization_contract_hash == (
             engine.normalization_contract
             .contract_hash)
+
+
+def test_flow_overlap_selects_region_then_pf_scores_operation_once():
+    scores = {
+        "scalar-first": SimpleNamespace(
+            admissible=True, priority=10.0),
+        "flow-first": SimpleNamespace(
+            admissible=True, priority=5.0),
+        "inadmissible": SimpleNamespace(
+            admissible=False, priority=100.0),
+    }
+    selected, regions = (
+        UnifiedImpactFlowEngine
+        ._select_candidate_region(
+            (
+                ("scalar-first", "node-a", 0.20),
+                ("flow-first", "node-b", 1.00),
+                ("inadmissible", "node-c", 2.00),
+            ),
+            scores,
+            {
+                "scalar-first": "goal",
+                "flow-first": "goal",
+                "inadmissible": "goal",
+            },
+            relative_overlap=0.50,
+            maximum_regions_per_goal=8))
+
+    assert tuple(row[0] for row in selected) == (
+        "flow-first",)
+    assert regions[0]["maximum_overlap"] == 1.0
+    assert regions[0]["threshold_overlap"] == 0.5
+
+
+def test_flow_region_cap_preserves_typed_pf_order_after_overlap_gate():
+    scores = {
+        "a": SimpleNamespace(
+            admissible=True, priority=3.0),
+        "b": SimpleNamespace(
+            admissible=True, priority=2.0),
+        "c": SimpleNamespace(
+            admissible=True, priority=1.0),
+    }
+    selected, _ = (
+        UnifiedImpactFlowEngine
+        ._select_candidate_region(
+            (
+                ("a", "node-a", 0.80),
+                ("b", "node-b", 1.00),
+                ("c", "node-c", 0.90),
+            ),
+            scores,
+            dict((key, "goal") for key in scores),
+            relative_overlap=0.50,
+            maximum_regions_per_goal=2))
+
+    assert tuple(row[0] for row in selected) == (
+        "a", "b")
 
 
 def test_disabled_flow_configuration_has_no_query_semantic_effect():

@@ -76,6 +76,52 @@ def _topology_generation(query, flow_artifact):
         return int(query.pressure_generation)
 
 
+def _compact_transport_readout(value):
+    if not isinstance(value, dict):
+        return value
+    selected_id = value.get(
+        "selected_operation_id")
+    scalar_id = value.get(
+        "scalar_selected_operation_id")
+    candidates = []
+    seen = set()
+    rows = value.get(
+        "candidate_readouts", ())
+    if isinstance(rows, list):
+        priority = [
+            row for row in rows
+            if (isinstance(row, dict)
+                and row.get("operation_id")
+                in (selected_id, scalar_id))]
+        priority.extend(
+            row for row in rows[:8]
+            if isinstance(row, dict))
+        for row in priority:
+            operation_id = row.get(
+                "operation_id")
+            if operation_id in seen:
+                continue
+            seen.add(operation_id)
+            candidates.append(row)
+    return {
+        "candidate_readouts": candidates,
+        "candidate_regions": value.get(
+            "candidate_regions", ()),
+        "disagrees_with_scalar": value.get(
+            "disagrees_with_scalar"),
+        "maximum_overlap": value.get(
+            "maximum_overlap"),
+        "scalar_selected_operation_id":
+            scalar_id,
+        "selected_node_id": value.get(
+            "selected_node_id"),
+        "selected_operation_id":
+            selected_id,
+        "selected_overlap": value.get(
+            "selected_overlap"),
+    }
+
+
 class ControlEventEmitter:
     """Write compact semantic-boundary events, never per-probe/path events."""
 
@@ -268,8 +314,10 @@ class ControlEventEmitter:
                         "microsteps":
                             transport.get(
                                 "microsteps"),
-                        "readout": flow.get(
-                            "transport_readout"),
+                        "readout":
+                            _compact_transport_readout(
+                                flow.get(
+                                    "transport_readout")),
                     }, flow_artifact)
                 emitted.append(event)
                 parents = (event["event_id"],)
@@ -307,6 +355,10 @@ class ControlEventEmitter:
                     "selected_candidate_key":
                         decision
                         .selected_candidate_key,
+                    "transport_readout":
+                        _compact_transport_readout(
+                            flow.get(
+                                "transport_readout")),
                     "typed_advantage":
                         flow_artifact.get(
                             "typed_advantage"),
