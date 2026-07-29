@@ -2054,6 +2054,47 @@ paired_impact:
         count: 2
         minimum: 4300000
         maximum: 4399999
+    unified_flow_advisory_diagnostic_v2:
+      claim_eligible: false
+      purpose: diagnostic
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 4
+      controller_workers: 2
+      isolated_policy_keys:
+        - pressure_bridge_enabled
+        - pressure_controller_mode
+        - pressure_flow_enabled
+      arms:
+        baseline:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_bridge_enabled: false
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_flow_enabled: false
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+        treatment:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_bridge_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: unified_flow_advisory
+          pressure_distributional_risk_enabled: true
+          pressure_flow_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-unified-flow-advisory-diagnostic-v2
+        count: 4
+        minimum: 4700000
+        maximum: 4799999
     unified_flow_advisory_pilot_v1:
       claim_eligible: false
       purpose: pilot

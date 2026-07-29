@@ -176,6 +176,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "final_settlement_escort_preparation_pilot_v1": 40,
             "final_settlement_escort_preparation_confirmatory_v1": 100,
             "unified_flow_advisory_diagnostic_v1": 2,
+            "unified_flow_advisory_diagnostic_v2": 4,
             "unified_flow_advisory_pilot_v1": 40,
         }
     seed_sets = [
@@ -650,6 +651,8 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     }
     unified_diagnostic = paired["cohorts"][
         "unified_flow_advisory_diagnostic_v1"]
+    unified_diagnostic_v2 = paired["cohorts"][
+        "unified_flow_advisory_diagnostic_v2"]
     unified_pilot = paired["cohorts"][
         "unified_flow_advisory_pilot_v1"]
     assert unified_diagnostic["seed_derivation"] == {
@@ -666,6 +669,19 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "count": 40, "minimum": 4400000,
         "maximum": 4499999,
     }
+    assert unified_diagnostic_v2["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace":
+            "pf-pln-unified-flow-advisory-diagnostic-v2",
+        "count": 4, "minimum": 4700000,
+        "maximum": 4799999,
+    }
+    assert unified_diagnostic_v2[
+        "isolated_policy_keys"] == [
+            "pressure_bridge_enabled",
+            "pressure_controller_mode",
+            "pressure_flow_enabled",
+        ]
     assert unified_diagnostic[
         "isolated_policy_keys"] == [
             "pressure_bridge_enabled",
