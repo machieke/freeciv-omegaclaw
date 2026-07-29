@@ -5,6 +5,18 @@ from .bounded import ProductionGoal, ProductionScheduler
 from .impact import (DeferredImpactOutcomeLedger, DeferredImpactResolution,
                      GroundedGoalRelief, GroundedImpactPlanner,
                      ImpactCandidate, ImpactDecision, ImpactTurnBudget)
+from .impact_flow_adapter import (
+    CONTROLLER_MODES,
+    BridgeScalarImpactController,
+    CanonicalUtilityController,
+    ControlDecision,
+    ControlOutcomeRecord,
+    ControlQuery,
+    ImpactControlAdapter,
+    LegacyImpactPressureController,
+    ScalarV2Controller,
+    UnifiedFlowController,
+)
 from .model import (BranchScore, NonPlan, Plan, PlanAssumption, PlanStep,
                     PlanningSnapshot, ResourceLedger, ResourceLedgerEntry)
 from .scheduler import ProofScheduler, research_duration_turns, validate_next_step
@@ -14,6 +26,11 @@ __all__ = [
     "DeferredImpactOutcomeLedger", "DeferredImpactResolution",
     "GroundedGoalRelief", "GroundedImpactPlanner", "ImpactCandidate",
     "ImpactDecision", "ImpactTurnBudget",
+    "CONTROLLER_MODES", "BridgeScalarImpactController",
+    "CanonicalUtilityController", "ControlDecision",
+    "ControlOutcomeRecord", "ControlQuery", "ImpactControlAdapter",
+    "LegacyImpactPressureController", "ScalarV2Controller",
+    "UnifiedFlowController",
     "PlanningSnapshot",
     "ProductionGoal", "ProductionScheduler", "ProofScheduler",
     "ResourceLedger", "ResourceLedgerEntry", "research_duration_turns", "validate_next_step",
