@@ -25,6 +25,14 @@ from .commit_validator import (
     ValidationDisposition,
     ValidationResult,
 )
+from .live_activation import (
+    ControllerRollback,
+    LimitedLiveActivationGate,
+    LiveActivationResult,
+    LiveScopePolicy,
+    PairedCohortEvidence,
+    RollbackResult,
+)
 from .model import (BranchScore, NonPlan, Plan, PlanAssumption, PlanStep,
                     PlanningSnapshot, ResourceLedger, ResourceLedgerEntry)
 from .scheduler import ProofScheduler, research_duration_turns, validate_next_step
@@ -43,6 +51,9 @@ __all__ = [
     "UnifiedFlowController",
     "ImpactCommitValidator", "ValidationDisposition",
     "ValidationResult",
+    "ControllerRollback", "LimitedLiveActivationGate",
+    "LiveActivationResult", "LiveScopePolicy",
+    "PairedCohortEvidence", "RollbackResult",
     "PlanningSnapshot",
     "ProductionGoal", "ProductionScheduler", "ProofScheduler",
     "ResourceLedger", "ResourceLedgerEntry", "research_duration_turns", "validate_next_step",

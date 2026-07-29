@@ -105,6 +105,8 @@ CONTROLLER_POLICY_DEFAULTS = {
     "pressure_distributional_risk_enabled": False,
     "pressure_enabled": True,
     "pressure_flow_enabled": False,
+    "pressure_flow_live_enabled": False,
+    "pressure_commit_revalidation_enabled": False,
     "pressure_packet_scheduler_enabled": False,
     "pressure_requirement_sets_enabled": False,
     "pressure_scalar_fallback_enabled": True,
@@ -146,7 +148,8 @@ def validate_controller_policy(impact_policy):
             "scalar_v2", "bridge_scalar",
             "unified_shadow",
             "bridge_scalar_advisory",
-            "unified_flow_advisory"):
+            "unified_flow_advisory",
+            "unified_flow_live"):
         raise PFRuntimeConfigurationError(
             "unknown pressure_controller_mode")
     if policy["pressure_controller_mode"] == "auto":
@@ -188,7 +191,8 @@ def validate_controller_policy(impact_policy):
     if (policy["pressure_controller_mode"] in (
             "bridge_scalar", "unified_shadow",
             "bridge_scalar_advisory",
-            "unified_flow_advisory")
+            "unified_flow_advisory",
+            "unified_flow_live")
             and (
                 policy["pressure_semantics_version"] != "v2"
                 or not policy["pressure_bridge_enabled"]
@@ -199,11 +203,20 @@ def validate_controller_policy(impact_policy):
                 policy["pressure_controller_mode"]))
     if (policy["pressure_controller_mode"] in (
             "unified_shadow",
-            "unified_flow_advisory")
+            "unified_flow_advisory",
+            "unified_flow_live")
             and not policy["pressure_flow_enabled"]):
         raise PFRuntimeConfigurationError(
             "{} requires pressure flow".format(
                 policy["pressure_controller_mode"]))
+    if (policy["pressure_controller_mode"] == "unified_flow_live"
+            and (
+                not policy["pressure_flow_live_enabled"]
+                or not policy[
+                    "pressure_commit_revalidation_enabled"])):
+        raise PFRuntimeConfigurationError(
+            "unified_flow_live requires explicit live enablement "
+            "and commit revalidation")
     if (policy["pressure_flow_enabled"]
             and (not policy["pressure_bridge_enabled"]
                  or not policy["pressure_packet_scheduler_enabled"])):
@@ -237,14 +250,16 @@ def build_controller_activation(impact_policy):
             and mode in (
                 "bridge_scalar", "unified_shadow",
                 "bridge_scalar_advisory",
-                "unified_flow_advisory")),
+                "unified_flow_advisory",
+                "unified_flow_live")),
         "bridge": (
             pressure_enabled and v2
             and policy["pressure_bridge_enabled"]
             and mode in (
                 "bridge_scalar", "unified_shadow",
                 "bridge_scalar_advisory",
-                "unified_flow_advisory")),
+                "unified_flow_advisory",
+                "unified_flow_live")),
         "source_sink_flow": (
             pressure_enabled and v2
             and policy["pressure_flow_enabled"]),

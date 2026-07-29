@@ -27,6 +27,7 @@ CONTROLLER_MODES = (
     "unified_shadow",
     "bridge_scalar_advisory",
     "unified_flow_advisory",
+    "unified_flow_live",
 )
 
 
@@ -551,7 +552,9 @@ class ImpactControlAdapter:
             bridge_scalar_ranker=None,
             unified_flow_engine=None,
             shadow_budget=None,
-            advisory_policy=None):
+            advisory_policy=None,
+            live_activation_gate=None,
+            live_evidence=None):
         self.controllers = {
             "canonical": CanonicalUtilityController(),
         }
@@ -589,6 +592,9 @@ class ImpactControlAdapter:
         self.maximum_owned_queries = 128
         self._outcomes = []
         self._disagreements = []
+        self.live_activation_gate = (
+            live_activation_gate)
+        self.live_evidence = live_evidence
 
     def build_query(
             self, snapshot, candidates,
@@ -1194,6 +1200,74 @@ class ImpactControlAdapter:
             health="healthy",
             fallback_chain=())
 
+    def _live_decision(self, query, snapshot):
+        advisory = self._advisory_decision(
+            query, snapshot,
+            "unified_flow_advisory")
+        fallback_mode, fallback = (
+            self._fallback_controller(
+                query, snapshot))
+        if (self.live_activation_gate is None
+                or self.live_evidence is None):
+            return self._advisory_fallback(
+                query, snapshot, "unified_flow_live",
+                advisory, fallback,
+                ("live-activation-evidence-unavailable",))
+        candidate = next((
+            row for row in query.grounded_candidates
+            if row.action_key
+            == advisory.selected_candidate_key
+        ), None)
+        if candidate is None:
+            return self._advisory_fallback(
+                query, snapshot, "unified_flow_live",
+                advisory, fallback,
+                ("live-candidate-not-authoritative",))
+        telemetry = advisory.artifact.get(
+            "target_artifact", {}).get(
+                "artifact", {}).get(
+                    "controller_telemetry", {})
+        latency = float(
+            telemetry.get("total_latency_ms", 0.0))
+        rejection_rate = float(
+            advisory.artifact.get(
+                "commit_rejection_rate", 0.0))
+        transition_calibrated = bool(
+            advisory.artifact.get(
+                "target_artifact", {}).get(
+                    "artifact", {}).get(
+                        "calibrated", True))
+        activation = self.live_activation_gate.evaluate(
+            candidate=candidate,
+            context_digest=query.context_digest,
+            evidence=self.live_evidence,
+            advisory_decision=advisory,
+            commit_rejection_rate=rejection_rate,
+            controller_latency_ms=latency,
+            transition_calibrated=(
+                transition_calibrated))
+        if not activation.allowed:
+            return self._advisory_fallback(
+                query, snapshot, "unified_flow_live",
+                advisory, fallback,
+                (activation.reason,))
+        return ControlDecision(
+            ordered_candidate_keys=(
+                advisory.ordered_candidate_keys),
+            selected_candidate_key=(
+                advisory.selected_candidate_key),
+            packet_schedule=advisory.packet_schedule,
+            controller_mode="unified_flow_live",
+            artifact={
+                "activation": activation.to_dict(),
+                "advisory": advisory.to_dict(),
+                "engine_evidence_hash":
+                    self.live_evidence.evidence_hash,
+                "query_hash": query.query_hash,
+            },
+            health="healthy",
+            fallback_chain=())
+
     def rank_or_schedule(self, query, mode):
         if not isinstance(query, ControlQuery):
             raise TypeError(
@@ -1216,6 +1290,12 @@ class ImpactControlAdapter:
                 "unified_flow_advisory"):
             decision = self._advisory_decision(
                 query, snapshot, mode)
+            self._validate_decision(
+                query, decision)
+            return decision
+        if mode == "unified_flow_live":
+            decision = self._live_decision(
+                query, snapshot)
             self._validate_decision(
                 query, decision)
             return decision
