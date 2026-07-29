@@ -205,3 +205,72 @@ and scalar-v2 fallback under injected or unvalidated disagreement. The full
 bridge path takes 239.0 ms mean and 245.0 ms p95 on the recorded machine,
 versus 22.1 ms for teleological scalar-v2, and remains within the
 preregistered 500 ms per-query controller budget.
+
+### Stage S4 flow reference and Gate G4
+
+Stage S4 adds Python reference contracts for robust unit normalization,
+typed semantic/probe requested currents, explicit open-path and accounting
+closures, gauge-fixed source-sink projection, provenance-typed
+multi-commodity capacities, conservative asymmetric two-dye advection,
+continuous location eligibility with whole-packet execution, and a
+truth-preserving health/fallback ladder.
+
+The flow path retains the following authority boundary:
+
+```text
+overlap location
+  -> grounded operation
+  -> typed PF value and risk
+  -> whole-packet reservation
+  -> complete RequirementSet
+  -> exact current-state revalidation
+  -> commit or packet return
+```
+
+Overlap, current, congestion duals, and fractional mass never become proof,
+truth, or action progress. Resource-return edges remain accounting-only.
+Measured, allocated, and shaping capacities produce different permitted
+responses, and an unconverged dual is never reported as an economic price.
+
+The independent reference model lives under `research/flow_control/`. Run
+the full scientific-risk gate with:
+
+```bash
+python3 scripts/freeciv/run_pf_unified_baseline.py \
+  g4-sandbox \
+  --train-seeds-per-family 32 \
+  --heldout-seeds-per-family 64 \
+  --timing-repetitions 10 \
+  --out docs/freeciv/evidence/pf-unified-g4-flow-sandbox.json
+```
+
+The recorded
+[G4 flow evidence](evidence/pf-unified-g4-flow-sandbox.json) covers 512
+training and 1,024 seed-disjoint held-out cases across 16 graph, packet,
+capacity, dynamic-failure, and evidence-selection families. It evaluates 12
+named baselines, the complete 15-arm implementation/ablation sequence
+(including corrected and uncorrected probe arms), an exact small packet
+oracle, 256 stability settings, and corridor lengths from 4 through 128.
+
+On that synthetic held-out cohort, the strong smoothed scalar comparator
+completed 107/1,024 packets (10.45%), bridge scoring without flow completed
+536/1,024 (52.34%), bridge plus the scalar packet scheduler completed
+756/1,024 (73.83%), and the full controller completed 930/1,024 (90.82%).
+The full-versus-scalar paired completion lift was +0.8037 with a bootstrap
+95% interval of `[+0.7793, +0.8281]`; the full-versus-bridge-packet lift was
++0.1699 with `[+0.1475, +0.1934]`. Packet completion correlated 0.9661 with
+realized synthetic value, compared with 0.4898 for relaxed mass.
+
+The reference controller took 2.57 microseconds per synthetic case versus
+1.54 microseconds for the scalar comparator. Conservative transport ranged
+from 3.0 microseconds per length-4 run to 2.13 milliseconds per length-128
+run on the recorded machine. The stability map publishes 228 recovering and
+28 false-corridor fixed-point settings; the selected neighborhood recovered
+in all four packet-quantum/corridor-length variations.
+
+Gate G4 therefore permits **shadow live integration**, not live authority.
+Its verification hash is
+`11afc9143ddd86f76f69555d6bfca50fa83524bf4946c492ad7ce02446e4dcee`.
+These are synthetic controller results, not a FreeCiv score, gameplay, or
+win-rate claim. Engine-backed shadow and paired confirmation remain required
+before any such claim.

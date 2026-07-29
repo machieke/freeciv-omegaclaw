@@ -10,6 +10,7 @@ import sys
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))))
 for candidate in (
+        REPO,
         os.path.join(REPO, "src"),
         os.path.join(REPO, "benchmarks"),
 ):
@@ -40,6 +41,9 @@ from freeciv.pf_unified.bridge_experiment import (  # noqa: E402
 from freeciv.pf_unified.bridge_controller_benchmark import (  # noqa: E402
     run_g3_live_timing,
     run_g3_verification,
+)
+from freeciv.pf_unified.flow_sandbox import (  # noqa: E402
+    run_g4_flow_sandbox,
 )
 
 
@@ -75,6 +79,16 @@ def _parser():
         "--repetitions", type=int, default=10)
     g3_timing.add_argument(
         "--controller-budget-ms", type=float, default=500.0)
+    g4_sandbox = commands.add_parser("g4-sandbox")
+    g4_sandbox.add_argument(
+        "--train-seeds-per-family", type=int, default=32)
+    g4_sandbox.add_argument(
+        "--heldout-seeds-per-family", type=int, default=64)
+    g4_sandbox.add_argument(
+        "--timing-repetitions", type=int, default=10)
+    g4_sandbox.add_argument(
+        "--out",
+        help="write the complete G4 report to this JSON file")
     compare = commands.add_parser("compare")
     compare.add_argument("left")
     compare.add_argument("right")
@@ -125,6 +139,18 @@ def main(argv=None):
             arguments.repetitions,
             arguments.controller_budget_ms)
         status = 0 if result["bridge_within_budget"] else 1
+    elif command == "g4-sandbox":
+        result = run_g4_flow_sandbox(
+            arguments.train_seeds_per_family,
+            arguments.heldout_seeds_per_family,
+            arguments.timing_repetitions)
+        if arguments.out:
+            with open(arguments.out, "w", encoding="utf-8") as stream:
+                json.dump(
+                    result, stream, indent=2,
+                    sort_keys=True)
+                stream.write("\n")
+        status = 0 if result["valid"] else 1
     else:
         result = assert_comparable(
             load_baseline_manifest(arguments.left),
