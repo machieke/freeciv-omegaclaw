@@ -16,6 +16,7 @@ class ResourceKind(str, Enum):
     EXPANSION = "expansion"
     LLM_TOKEN = "llm_token"
     MEMORY = "memory"
+    DURABLE_MUTATION = "durable_mutation"
 
 
 @dataclass(frozen=True)

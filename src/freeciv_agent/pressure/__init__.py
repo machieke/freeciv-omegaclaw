@@ -166,6 +166,13 @@ from .teleology import (
     LeverageEstimate,
     TypedAdvantage,
 )
+from .structural_operations import (
+    CloneSplitRequest,
+    StructuralOperationDecision,
+    StructuralOperationFactory,
+    StructuralShadowLedger,
+    StructuralShadowRecord,
+)
 from .transitions import (
     DeclaredFallbackTransitionModel,
     ExpectedTransition,
@@ -199,6 +206,7 @@ __all__ = [
     "CAUSAL_KINDS",
     "CloneManager",
     "CloneState",
+    "CloneSplitRequest",
     "CloneLifecycleStore",
     "CloneTransactionError",
     "ConductanceLearner",
@@ -301,6 +309,10 @@ __all__ = [
     "SmoothedScalarController",
     "SmoothedScalarDecision",
     "StructuralAnalogy",
+    "StructuralOperationDecision",
+    "StructuralOperationFactory",
+    "StructuralShadowLedger",
+    "StructuralShadowRecord",
     "TensorTruth",
     "ThresholdCharacterization",
     "TruthState",

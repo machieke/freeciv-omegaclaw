@@ -395,6 +395,15 @@ class CloneLifecycleStore(object):
                 return ()
             return tuple(CloneState.from_dict(item) for item in row["clones"])
 
+    def generation(self, atom_id):
+        """Return the current clone-set generation without exposing mutation."""
+        with self._lock:
+            row = self._state["atoms"].get(str(atom_id))
+            if row is None:
+                raise KeyError(
+                    "unknown clone atom {}".format(atom_id))
+            return int(row["version"])
+
     def _begin(self, event_id, atom_id, operation):
         event_id = str(event_id)
         if not event_id:
