@@ -61,7 +61,9 @@ const STAGES: Array<{ name: string; types: Set<string> }> = [
     "pressure_propagated", "operation_scored", "conductance_updated",
     "rule_proposed", "rule_validated", "llm_call_scheduled",
     "llm_gateway_result", "rule_parameter_updated",
-    "teleology_estimated", "reverse_operator_applied",
+    "teleology_estimated", "transition_value_estimated",
+    "transition_value_updated", "path_persistence_applied",
+    "reverse_operator_applied",
     "requirement_set_materialized", "bridge_estimated",
     "probe_block_completed", "path_current_deposited",
     "flow_projected", "attention_advected",
@@ -1493,12 +1495,47 @@ function UnifiedFlowTelemetry({ state, onSelect }: {
   const latestPacket = state.packetReservations.at(-1);
   const packetSchedule = recordOf(recordOf(latestPacket?.payload.summary).packet_schedule);
   const accounting = recordOf(packetSchedule.accounting);
+  const latestTransitionEstimate = state.transitionValueEstimates.at(-1);
+  const transitionSummary = recordOf(latestTransitionEstimate?.payload.summary);
+  const transitionModel = recordOf(transitionSummary.model);
+  const transitionConfiguration = recordOf(transitionModel.configuration);
+  const transitionSupport = rowsOf(transitionModel.exact_support);
+  const latestTransitionUpdate = state.transitionValueUpdates.at(-1);
+  const transitionUpdateSummary = recordOf(latestTransitionUpdate?.payload.summary);
+  const transitionObservation = recordOf(transitionUpdateSummary.observation);
+  const latestPersistence = state.pathPersistenceEvents.at(-1);
+  const persistenceSummary = recordOf(latestPersistence?.payload.summary);
+  const persistenceDecision = recordOf(persistenceSummary.decision);
+  const latestUnionEvent = [...state.flowSelections].reverse().find((event) => {
+    const summary = recordOf(event.payload.summary);
+    const readout = recordOf(summary.transport_readout);
+    return Object.keys(recordOf(readout.candidate_union)).length > 0;
+  });
+  const latestUnionSummary = recordOf(latestUnionEvent?.payload.summary);
+  const latestUnionReadout = recordOf(latestUnionSummary.transport_readout);
+  const candidateUnion = recordOf(latestUnionReadout.candidate_union);
+  const candidateUnionMembers = rowsOf(candidateUnion.members);
+  const bridgeAdditions = Array.isArray(candidateUnion.bridge_added_operation_ids)
+    ? candidateUnion.bridge_added_operation_ids : [];
+  const terminalProtections = Array.isArray(candidateUnion.terminal_protected_operation_ids)
+    ? candidateUnion.terminal_protected_operation_ids : [];
+  const safetyProtections = Array.isArray(candidateUnion.safety_protected_operation_ids)
+    ? candidateUnion.safety_protected_operation_ids : [];
+  const authorityActive = transitionSummary.authority_active === true;
+  const persistenceRetained = state.pathPersistenceEvents.filter((event) => {
+    const decision = recordOf(recordOf(event.payload.summary).decision);
+    return decision.retained_by_dwell === true || decision.retained_by_hysteresis === true;
+  }).length;
+  const persistenceRejected = state.pathPersistenceEvents.filter((event) =>
+    recordOf(event.payload.summary).fallback_reason === "priority-regret-exceeded").length;
   const eventsOf = (...types: string[]): TraceEvent[] => {
     const accepted = new Set(types);
     return state.pfPlnEvents.filter((event) => accepted.has(event.type));
   };
   const pipeline = [
     ["teleology", eventsOf("teleology_estimated", "reverse_operator_applied")],
+    ["calibration", eventsOf("transition_value_estimated", "transition_value_updated")],
+    ["persistence", state.pathPersistenceEvents],
     ["requirements", state.requirementSets],
     ["bridge", eventsOf("bridge_estimated", "probe_block_completed")],
     ["flow", eventsOf("path_current_deposited", "flow_projected", "attention_advected")],
@@ -1540,6 +1577,133 @@ function UnifiedFlowTelemetry({ state, onSelect }: {
           state.flowSelections.length}</strong><small>calibrated flow selections</small></div>
         <div><span>revalidation</span><strong>{commitRevalidations}/{
           state.candidateRevalidations.length}</strong><small>commit dispositions</small></div>
+      </div>
+
+      <div className="pf-research-gates" aria-label="Calibrated readout research gates">
+        <div className={latestTransitionEstimate
+          ? authorityActive ? "active" : "abstained" : "not-logged"}>
+          <span>01</span><strong>calibrated scalar</strong>
+          <b>{latestTransitionEstimate
+            ? authorityActive ? "authority" : "abstaining" : "not logged"}</b>
+          <small>{String(transitionSummary.gate_reason
+            ?? "exact category · lifecycle · goal support")}</small>
+        </div>
+        <div className={candidateUnionMembers.length ? "active" : "not-logged"}>
+          <span>02</span><strong>protected readout</strong>
+          <b>{candidateUnionMembers.length ? "observed" : "not logged"}</b>
+          <small>{candidateUnion.readout_policy
+            ? humanize(candidateUnion.readout_policy)
+            : "bridge may enlarge membership, never final score"}</small>
+        </div>
+        <div className={candidateUnion.readout_policy === "corrected-probe-union"
+          ? "active" : "not-logged"}>
+          <span>03</span><strong>corrected probes</strong>
+          <b>{candidateUnion.readout_policy === "corrected-probe-union"
+            ? "observed" : "not logged"}</b>
+          <small>probe-informed reachability is membership-only</small>
+        </div>
+        <div className={latestPersistence
+          ? persistenceSummary.authority_active === true ? "active" : "abstained"
+            : "not-logged"}>
+          <span>04</span><strong>path persistence</strong>
+          <b>{latestPersistence
+            ? persistenceSummary.authority_active === true ? "observed" : "gated"
+            : "not logged"}</b>
+          <small>smoothed corridor momentum with bounded regret</small>
+        </div>
+        <div className={state.flowProjections.length ? "experimental" : "not-logged"}>
+          <span>05</span><strong>source–sink flow</strong>
+          <b>{state.flowProjections.length ? "experimental" : "hard gated"}</b>
+          <small>numerical transport follows the cheaper controller gates</small>
+        </div>
+      </div>
+
+      <div className="pf-research-readout">
+        <section aria-labelledby="transition-calibration-title">
+          <header><div><span className="eyebrow">authoritative outcome pairs</span>
+            <h4 id="transition-calibration-title">Transition calibration</h4></div>
+            {latestTransitionEstimate && <button onClick={() =>
+              onSelect({ kind: "event", value: latestTransitionEstimate })}>inspect</button>}</header>
+          {latestTransitionEstimate ? <>
+            <div className="pf-calibration-stats">
+              <div><span>decision authority</span><strong>{
+                authorityActive ? "active" : "abstaining"}</strong></div>
+              <div><span>supported candidates</span><strong>{
+                Math.max(0, Number(transitionSummary.operation_count ?? 0)
+                  - Number(transitionSummary.abstained_operation_count ?? 0))
+              }/{numeric(transitionSummary.operation_count)}</strong></div>
+              <div><span>observations</span><strong>{
+                numeric(transitionModel.observation_count)}</strong></div>
+              <div><span>exact support keys</span><strong>{
+                transitionSupport.length}</strong></div>
+              <div><span>minimum per key</span><strong>{
+                numeric(transitionConfiguration.minimum_samples)}</strong></div>
+              <div><span>maximum CI half-width</span><strong>{
+                numeric(transitionConfiguration.maximum_half_width)}</strong></div>
+            </div>
+            {latestTransitionUpdate && <button className="pf-latest-outcome"
+              onClick={() => onSelect({ kind: "event", value: latestTransitionUpdate })}>
+              <span>latest authoritative pair</span>
+              <strong>predicted {numeric(transitionObservation.predicted_relief)}
+                <i>→</i> realized {numeric(transitionObservation.realized_relief)}</strong>
+              <small>{String(transitionObservation.relief_source ?? "source not logged")}
+                {" · "}{transitionUpdateSummary.applied === true ? "model updated" : "duplicate ignored"}
+              </small>
+            </button>}
+          </> : <div className="pf-mini-gap">
+            No transition_value_estimated event at this cursor.
+          </div>}
+        </section>
+
+        <section aria-labelledby="candidate-union-title">
+          <header><div><span className="eyebrow">recall without score reuse</span>
+            <h4 id="candidate-union-title">Protected candidate union</h4></div>
+            {latestUnionEvent && <button onClick={() =>
+              onSelect({ kind: "event", value: latestUnionEvent })}>inspect</button>}</header>
+          {candidateUnionMembers.length ? <>
+            <div className="pf-union-summary">
+              <span><b>{candidateUnionMembers.length}</b> protected</span>
+              <span><b>{bridgeAdditions.length}</b> bridge additions</span>
+              <span><b>{terminalProtections.length}</b> terminal</span>
+              <span><b>{safetyProtections.length}</b> safety</span>
+            </div>
+            <div className="pf-union-members">
+              {candidateUnionMembers.slice(0, 12).map((member, index) =>
+                <div key={String(member.operation_id ?? index)}>
+                  <strong>{compactPfId(member.operation_id)}</strong>
+                  <small>{Array.isArray(member.reasons)
+                    ? member.reasons.map(humanize).join(" · ") : "reason not logged"}</small>
+                </div>)}
+            </div>
+          </> : <div className="pf-mini-gap">
+            No protected candidate union at this cursor.
+          </div>}
+        </section>
+
+        <section aria-labelledby="path-persistence-title">
+          <header><div><span className="eyebrow">cheap temporal comparator</span>
+            <h4 id="path-persistence-title">Path persistence</h4></div>
+            {latestPersistence && <button onClick={() =>
+              onSelect({ kind: "event", value: latestPersistence })}>inspect</button>}</header>
+          {latestPersistence ? <>
+            <div className="pf-persistence-status">
+              <span>selected corridor</span><strong>{
+                compactPfId(persistenceSummary.selected_corridor)}</strong>
+              <small>scalar: {compactPfId(persistenceSummary.scalar_corridor)}</small>
+              <span>retention</span><strong>{
+                persistenceDecision.retained_by_dwell === true ? "minimum dwell"
+                  : persistenceDecision.retained_by_hysteresis === true ? "hysteresis"
+                    : persistenceSummary.reordered === true ? "smoothed reorder" : "scalar order"
+              }</strong><small>{persistenceRetained} retained decisions total</small>
+              <span>priority regret</span><strong>{
+                numeric(persistenceSummary.priority_regret)}</strong>
+              <small>maximum {numeric(persistenceSummary.maximum_priority_regret)}
+                {" · "}{persistenceRejected} rejected total</small>
+            </div>
+          </> : <div className="pf-mini-gap">
+            No path_persistence_applied event at this cursor.
+          </div>}
+        </section>
       </div>
 
       <div className="pf-unified-signal-grid">

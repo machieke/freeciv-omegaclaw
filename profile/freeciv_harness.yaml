@@ -101,12 +101,32 @@ impact_policy:
   pressure_distributional_risk_enabled: false
   pressure_requirement_sets_enabled: false
   pressure_packet_scheduler_enabled: false
+  pressure_transition_value_enabled: false
+  pressure_transition_value_authority_enabled: false
+  pressure_transition_value_minimum_samples: 30
+  pressure_transition_value_maximum_half_width: 0.50
+  pressure_transition_value_alpha: 0.05
+  pressure_transition_value_model_path: ""
+  pressure_transition_value_model_identity: ""
+  pressure_transition_value_read_only: false
+  pressure_path_persistence_enabled: false
+  pressure_path_persistence_smoothing: 0.35
+  pressure_path_persistence_route_momentum: 0.15
+  pressure_path_persistence_minimum_dwell_steps: 2
+  pressure_path_persistence_dwell_bonus: 0.05
+  pressure_path_persistence_switch_margin: 0.01
+  pressure_path_persistence_maximum_priority_regret: 0.05
   pressure_bridge_enabled: false
   pressure_bridge_importance_corrected_enabled: false
   pressure_bridge_reference_likelihood_enabled: false
   pressure_bridge_estimator_policy: holdout
   pressure_bridge_normalization_contract: robust-feature-scales/1.0
+  pressure_bridge_readout_policy: corrected-probe-overlap
+  pressure_bridge_protected_scalar_top_k: 3
   pressure_flow_enabled: false
+  pressure_flow_protected_candidate_union_enabled: false
+  pressure_flow_protected_scalar_top_k: 3
+  pressure_flow_research_entry_gate_required: false
   pressure_flow_live_enabled: false
   pressure_scalar_fallback_enabled: true
   pressure_commit_revalidation_enabled: false
@@ -2222,6 +2242,252 @@ paired_impact:
         count: 10
         minimum: 5000000
         maximum: 5099999
+    transition_value_collection_diagnostic_v1:
+      claim_eligible: false
+      purpose: diagnostic
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 10
+      controller_workers: 3
+      isolated_policy_keys:
+        - pressure_transition_value_enabled
+      arms:
+        baseline:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+          pressure_transition_value_authority_enabled: false
+          pressure_transition_value_enabled: false
+        treatment:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+          pressure_transition_value_authority_enabled: false
+          pressure_transition_value_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-transition-value-collection-diagnostic-v1
+        count: 10
+        minimum: 5100000
+        maximum: 5199999
+    calibrated_scalar_diagnostic_v1:
+      claim_eligible: false
+      purpose: diagnostic
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 10
+      controller_workers: 3
+      isolated_policy_keys:
+        - pressure_transition_value_authority_enabled
+      arms:
+        baseline:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+          pressure_transition_value_authority_enabled: false
+          pressure_transition_value_enabled: true
+          pressure_transition_value_model_identity: pf-transition-value-training-v1
+          pressure_transition_value_model_path: docs/freeciv/evidence/pf-transition-value-training-v1-model.json
+          pressure_transition_value_read_only: true
+        treatment:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+          pressure_transition_value_authority_enabled: true
+          pressure_transition_value_enabled: true
+          pressure_transition_value_model_identity: pf-transition-value-training-v1
+          pressure_transition_value_model_path: docs/freeciv/evidence/pf-transition-value-training-v1-model.json
+          pressure_transition_value_read_only: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-calibrated-scalar-diagnostic-v1
+        count: 10
+        minimum: 5200000
+        maximum: 5299999
+    protected_bridge_readout_diagnostic_v1:
+      claim_eligible: false
+      purpose: diagnostic
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 10
+      controller_workers: 3
+      isolated_policy_keys:
+        - pressure_bridge_enabled
+        - pressure_controller_mode
+      arms:
+        baseline:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_bridge_enabled: false
+          pressure_bridge_readout_policy: protected-message-union
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+          pressure_transition_value_authority_enabled: true
+          pressure_transition_value_enabled: true
+          pressure_transition_value_model_identity: pf-transition-value-training-v1
+          pressure_transition_value_model_path: docs/freeciv/evidence/pf-transition-value-training-v1-model.json
+          pressure_transition_value_read_only: true
+        treatment:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_bridge_enabled: true
+          pressure_bridge_readout_policy: protected-message-union
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: bridge_scalar
+          pressure_distributional_risk_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+          pressure_transition_value_authority_enabled: true
+          pressure_transition_value_enabled: true
+          pressure_transition_value_model_identity: pf-transition-value-training-v1
+          pressure_transition_value_model_path: docs/freeciv/evidence/pf-transition-value-training-v1-model.json
+          pressure_transition_value_read_only: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-protected-bridge-readout-diagnostic-v1
+        count: 10
+        minimum: 5300000
+        maximum: 5399999
+    corrected_probe_readout_diagnostic_v1:
+      claim_eligible: false
+      purpose: diagnostic
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 10
+      controller_workers: 3
+      isolated_policy_keys:
+        - pressure_bridge_readout_policy
+      arms:
+        baseline:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_bridge_enabled: true
+          pressure_bridge_estimator_policy: importance_corrected
+          pressure_bridge_importance_corrected_enabled: true
+          pressure_bridge_readout_policy: protected-message-union
+          pressure_bridge_reference_likelihood_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: bridge_scalar
+          pressure_distributional_risk_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+          pressure_transition_value_authority_enabled: true
+          pressure_transition_value_enabled: true
+          pressure_transition_value_model_identity: pf-transition-value-training-v1
+          pressure_transition_value_model_path: docs/freeciv/evidence/pf-transition-value-training-v1-model.json
+          pressure_transition_value_read_only: true
+        treatment:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_bridge_enabled: true
+          pressure_bridge_estimator_policy: importance_corrected
+          pressure_bridge_importance_corrected_enabled: true
+          pressure_bridge_readout_policy: corrected-probe-union
+          pressure_bridge_reference_likelihood_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: bridge_scalar
+          pressure_distributional_risk_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+          pressure_transition_value_authority_enabled: true
+          pressure_transition_value_enabled: true
+          pressure_transition_value_model_identity: pf-transition-value-training-v1
+          pressure_transition_value_model_path: docs/freeciv/evidence/pf-transition-value-training-v1-model.json
+          pressure_transition_value_read_only: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-corrected-probe-readout-diagnostic-v1
+        count: 10
+        minimum: 5400000
+        maximum: 5499999
+    path_persistence_diagnostic_v1:
+      claim_eligible: false
+      purpose: diagnostic
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 10
+      controller_workers: 3
+      isolated_policy_keys:
+        - pressure_path_persistence_enabled
+      arms:
+        baseline:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_bridge_enabled: true
+          pressure_bridge_estimator_policy: importance_corrected
+          pressure_bridge_importance_corrected_enabled: true
+          pressure_bridge_readout_policy: corrected-probe-union
+          pressure_bridge_reference_likelihood_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: bridge_scalar
+          pressure_distributional_risk_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_path_persistence_enabled: false
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+          pressure_transition_value_authority_enabled: true
+          pressure_transition_value_enabled: true
+          pressure_transition_value_model_identity: pf-transition-value-training-v1
+          pressure_transition_value_model_path: docs/freeciv/evidence/pf-transition-value-training-v1-model.json
+          pressure_transition_value_read_only: true
+        treatment:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_bridge_enabled: true
+          pressure_bridge_estimator_policy: importance_corrected
+          pressure_bridge_importance_corrected_enabled: true
+          pressure_bridge_readout_policy: corrected-probe-union
+          pressure_bridge_reference_likelihood_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: bridge_scalar
+          pressure_distributional_risk_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_path_persistence_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+          pressure_transition_value_authority_enabled: true
+          pressure_transition_value_enabled: true
+          pressure_transition_value_model_identity: pf-transition-value-training-v1
+          pressure_transition_value_model_path: docs/freeciv/evidence/pf-transition-value-training-v1-model.json
+          pressure_transition_value_read_only: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-path-persistence-diagnostic-v1
+        count: 10
+        minimum: 5500000
+        maximum: 5599999
   retired_cohorts:
     confirmatory_score_horizon_60_v4:
       retired_reason: terminal_player_elimination_misclassified_as_infrastructure_timeout

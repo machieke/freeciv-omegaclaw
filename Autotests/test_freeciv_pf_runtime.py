@@ -28,9 +28,11 @@ from freeciv_agent.events.validator import validate_file  # noqa: E402
 from freeciv_agent.events.writer import EventWriter  # noqa: E402
 from freeciv_agent.pf_runtime import (  # noqa: E402
     PFRuntimeConfigurationError,
+    build_controller_activation,
     build_runtime_activation,
     emit_runtime_activation,
     enabled_phases,
+    validate_controller_policy,
     validate_runtime_activation,
 )
 
@@ -164,3 +166,73 @@ def test_harness_manifest_records_backend_specific_activation():
     assert enabled_phases(representative["pf_pln_runtime"]) == ()
     assert live["manifest_identity"] != representative[
         "manifest_identity"]
+
+
+def test_source_sink_research_gate_requires_all_cheaper_stages():
+    base = {
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "unified_shadow",
+        "pressure_packet_scheduler_enabled": True,
+        "pressure_requirement_sets_enabled": True,
+        "pressure_bridge_enabled": True,
+        "pressure_flow_enabled": True,
+        "pressure_flow_research_entry_gate_required": True,
+    }
+    with pytest.raises(
+            PFRuntimeConfigurationError,
+            match="protected candidate union"):
+        validate_controller_policy(base)
+
+    enabled = dict(base, **{
+        "pressure_bridge_readout_policy":
+            "corrected-probe-union",
+        "pressure_flow_protected_candidate_union_enabled":
+            True,
+        "pressure_transition_value_enabled": True,
+        "pressure_transition_value_authority_enabled": True,
+        "pressure_path_persistence_enabled": True,
+    })
+    policy = validate_controller_policy(enabled)
+    activation = build_controller_activation(enabled)
+
+    assert policy[
+        "pressure_flow_research_entry_gate_required"]
+    assert activation["layers"][
+        "path_persistence"]["enabled"]
+    assert activation["layers"][
+        "source_sink_flow"]["enabled"]
+
+
+def test_frozen_transition_model_declaration_is_explicit():
+    base = {
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+        "pressure_packet_scheduler_enabled": True,
+        "pressure_transition_value_enabled": True,
+        "pressure_transition_value_read_only": True,
+    }
+    with pytest.raises(
+            PFRuntimeConfigurationError,
+            match="explicit model path"):
+        validate_controller_policy(base)
+    with pytest.raises(
+            PFRuntimeConfigurationError,
+            match="declared together"):
+        validate_controller_policy(dict(
+            base,
+            pressure_transition_value_model_path=(
+                "docs/freeciv/evidence/model.json")))
+
+    policy = validate_controller_policy(dict(
+        base,
+        pressure_transition_value_model_path=(
+            "docs/freeciv/evidence/model.json"),
+        pressure_transition_value_model_identity=(
+            "frozen-training-v1")))
+    assert policy[
+        "pressure_transition_value_read_only"]
+    assert policy[
+        "pressure_transition_value_model_identity"] == (
+            "frozen-training-v1")

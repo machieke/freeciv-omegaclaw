@@ -104,6 +104,8 @@ def _compact_transport_readout(value):
             seen.add(operation_id)
             candidates.append(row)
     return {
+        "candidate_union": value.get(
+            "candidate_union"),
         "candidate_readouts": candidates,
         "candidate_regions": value.get(
             "candidate_regions", ()),
@@ -203,33 +205,135 @@ class ControlEventEmitter:
         # recomputing it for every event in the same causal chain made
         # observability more expensive than the controller itself.
         decision_hash = decision.decision_hash
-        if flow_artifact is not None:
-            flow = flow_artifact.get("flow", {})
-            pressure = flow_artifact.get(
+        direct_ranker = (
+            decision.artifact.get(
+                "ranker_artifact")
+            if isinstance(
+                decision.artifact, dict)
+            else None)
+        pressure = (
+            flow_artifact.get(
                 "pressure_artifact", {})
-            teleology = pressure.get(
-                "teleology", {})
-            if isinstance(teleology, dict):
+            if flow_artifact is not None
+            else direct_ranker
+            if isinstance(direct_ranker, dict)
+            else {})
+        teleology = (
+            pressure.get("teleology", {})
+            if isinstance(pressure, dict)
+            else {})
+        if isinstance(teleology, dict) and teleology:
+            event = self._emit(
+                writer, "teleology_estimated",
+                turn, query, decision, parents, {
+                    "artifact_hash":
+                        teleology.get(
+                            "artifact_hash"),
+                    "calibration":
+                        teleology.get(
+                            "calibration"),
+                    "estimator_hierarchy":
+                        teleology.get(
+                            "estimator_hierarchy",
+                            ()),
+                    "goal_count": len(
+                        teleology.get(
+                            "goal_losses", ())),
+                    "operation_count": len(
+                        teleology.get(
+                            "operation_estimates",
+                            ())),
+                }, flow_artifact, decision_hash)
+            emitted.append(event)
+            parents = (event["event_id"],)
+            calibration = teleology.get(
+                "calibration", {})
+            if (isinstance(calibration, dict)
+                    and calibration.get(
+                        "model") is not None):
+                estimates = tuple(
+                    row.get("transition_value")
+                    for row in teleology.get(
+                        "operation_estimates", ())
+                    if isinstance(row, dict)
+                    and isinstance(
+                        row.get(
+                            "transition_value"),
+                        dict))
                 event = self._emit(
-                    writer, "teleology_estimated",
+                    writer,
+                    "transition_value_estimated",
                     turn, query, decision, parents, {
-                        "artifact_hash":
-                            teleology.get(
-                                "artifact_hash"),
-                        "estimator_hierarchy":
-                            teleology.get(
-                                "estimator_hierarchy",
-                                ()),
-                        "goal_count": len(
-                            teleology.get(
-                                "goal_losses", ())),
-                        "operation_count": len(
-                            teleology.get(
-                                "operation_estimates",
-                                ())),
+                        "abstained_operation_count":
+                            sum(
+                                not row.get(
+                                    "calibrated",
+                                    False)
+                                for row in estimates),
+                        "all_candidate_support":
+                            calibration.get(
+                                "all_candidate_support",
+                                False),
+                        "authority_active":
+                            calibration.get(
+                                "authority_active",
+                                False),
+                        "authority_requested":
+                            calibration.get(
+                                "authority_requested",
+                                False),
+                        "gate_reason":
+                            calibration.get(
+                                "gate_reason"),
+                        "model":
+                            calibration.get("model"),
+                        "operation_count":
+                            len(estimates),
                     }, flow_artifact, decision_hash)
                 emitted.append(event)
                 parents = (event["event_id"],)
+        path_persistence = (
+            pressure.get("path_persistence")
+            if isinstance(pressure, dict)
+            else None)
+        if isinstance(path_persistence, dict):
+            event = self._emit(
+                writer,
+                "path_persistence_applied",
+                turn, query, decision, parents, {
+                    "artifact_hash":
+                        path_persistence.get(
+                            "artifact_hash"),
+                    "authority_active":
+                        path_persistence.get(
+                            "authority_active",
+                            False),
+                    "decision":
+                        path_persistence.get(
+                            "decision"),
+                    "fallback_reason":
+                        path_persistence.get(
+                            "fallback_reason"),
+                    "maximum_priority_regret":
+                        path_persistence.get(
+                            "maximum_priority_regret"),
+                    "priority_regret":
+                        path_persistence.get(
+                            "priority_regret"),
+                    "reordered":
+                        path_persistence.get(
+                            "reordered", False),
+                    "scalar_corridor":
+                        path_persistence.get(
+                            "scalar_corridor"),
+                    "selected_corridor":
+                        path_persistence.get(
+                            "selected_corridor"),
+                }, flow_artifact, decision_hash)
+            emitted.append(event)
+            parents = (event["event_id"],)
+        if flow_artifact is not None:
+            flow = flow_artifact.get("flow", {})
             potential_summary = flow.get(
                 "potential_summary")
             if isinstance(potential_summary, list):
@@ -455,3 +559,20 @@ class ControlEventEmitter:
             outcome.to_dict(),
             _flow_artifact(decision),
             outcome.decision_hash)
+
+    def emit_transition_value_update(
+            self, writer, turn, query,
+            decision, update, caused_by=()):
+        from ..pressure.transition_value import (
+            TransitionValueUpdate,
+        )
+        if not isinstance(
+                update, TransitionValueUpdate):
+            raise TypeError(
+                "transition value event has wrong type")
+        return self._emit(
+            writer, "transition_value_updated",
+            turn, query, decision, caused_by,
+            update.to_dict(),
+            _flow_artifact(decision),
+            decision.decision_hash)

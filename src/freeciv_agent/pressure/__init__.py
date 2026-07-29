@@ -196,6 +196,16 @@ from .transitions import (
     TransitionCalibrationRecord,
     TransitionModelRegistry,
 )
+from .transition_value import (
+    TRANSITION_VALUE_MODEL_ID,
+    TRANSITION_VALUE_SCHEMA_VERSION,
+    TransitionValueEstimate,
+    TransitionValueKey,
+    TransitionValueModel,
+    TransitionValueObservation,
+    TransitionValueUpdate,
+    candidate_lifecycle_state,
+)
 from .scalar_baseline import (
     ScalarBaselineConfig,
     ScalarRouteBid,
@@ -343,6 +353,13 @@ __all__ = [
     "TruthAssessment",
     "TransitionCalibrationLedger",
     "TransitionCalibrationRecord",
+    "TRANSITION_VALUE_MODEL_ID",
+    "TRANSITION_VALUE_SCHEMA_VERSION",
+    "TransitionValueEstimate",
+    "TransitionValueKey",
+    "TransitionValueModel",
+    "TransitionValueObservation",
+    "TransitionValueUpdate",
     "TransitionModelRegistry",
     "TypedAdvantage",
     "UnmetMinimum",
@@ -350,6 +367,7 @@ __all__ = [
     "confidence_to_weight",
     "adjoint_pressure",
     "characterize_threshold",
+    "candidate_lifecycle_state",
     "counterfactual_pressure",
     "decision_relevant_uncertainty",
     "expected_information_value",

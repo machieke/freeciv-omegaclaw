@@ -17,7 +17,10 @@ from .builder import (
     FlowBuildBudget,
     FreeCivFactorGraphBuilder,
 )
-from .candidate_selector import BridgeCandidateSelector
+from .candidate_selector import (
+    BridgeCandidateSelector,
+    DecisionSafeCandidateSelector,
+)
 from .model import FlowNodeKind
 from .potentials import (
     DeterministicMessagePotentialEstimator,
@@ -45,12 +48,15 @@ class BridgeScalarConfig:
     probe_estimator_mode: str = "two_stream"
     seed: int = 1729
     allow_unvalidated_reordering: bool = False
+    readout_policy: str = "corrected-probe-overlap"
+    protected_scalar_top_k: int = 3
     force_fallback_reason: object = None
 
     def __post_init__(self):
         for name in (
                 "maximum_regions_per_goal",
-                "probe_path_count", "probe_max_steps"):
+                "probe_path_count", "probe_max_steps",
+                "protected_scalar_top_k"):
             value = getattr(self, name)
             if (isinstance(value, bool)
                     or not isinstance(value, int)
@@ -73,6 +79,12 @@ class BridgeScalarConfig:
                 "importance", "two_stream"):
             raise ValueError(
                 "bridge probe estimator mode is invalid")
+        if self.readout_policy not in (
+                "corrected-probe-overlap",
+                "protected-message-union",
+                "corrected-probe-union"):
+            raise ValueError(
+                "bridge readout policy is invalid")
         for name, minimum in (
                 ("probe_temperature", 0.0),
                 ("probe_maximum_importance_weight", 1.0),
@@ -126,6 +138,9 @@ class BridgeScalarConfig:
                 self.probe_reference_fraction),
             "probe_temperature": (
                 self.probe_temperature),
+            "protected_scalar_top_k": (
+                self.protected_scalar_top_k),
+            "readout_policy": self.readout_policy,
             "seed": self.seed,
         }
 
@@ -227,6 +242,8 @@ class BridgeScalarController:
                     self.config.probe_minimum_path_diversity),
                 seed=self.config.seed))
         self.selector = BridgeCandidateSelector()
+        self.protected_selector = (
+            DecisionSafeCandidateSelector())
 
     def _fallback(
             self, reason, flow_summary=None,
@@ -393,6 +410,42 @@ class BridgeScalarController:
                 relevant_flow_ids = tuple(
                     flow_by_pressure[value]
                     for value in relevant_pressure_ids)
+                if self.config.readout_policy == (
+                        "protected-message-union"):
+                    estimate_by_node = dict(
+                        (row.node_id, row)
+                        for row in goal_estimates)
+                    selected_messages = tuple(sorted(
+                        relevant_flow_ids,
+                        key=lambda value: (
+                            -estimate_by_node[
+                                value].bridge_factor,
+                            value)
+                    )[:min(
+                        self.config
+                        .maximum_regions_per_goal,
+                        len(relevant_flow_ids))])
+                    selected_flow_operations.update(
+                        selected_messages)
+                    goal_selections.append({
+                        "backward_probe": None,
+                        "forward_probe": None,
+                        "goal_id": goal_id,
+                        "selection": {
+                            "estimator_id":
+                                self.potential_estimator
+                                .ESTIMATOR_ID,
+                            "readout_policy":
+                                self.config
+                                .readout_policy,
+                            "selected_operation_node_ids":
+                                list(
+                                    selected_messages),
+                            "signal_authority":
+                                "candidate-union-only",
+                        },
+                    })
+                    continue
                 forward_batch = self.probe_estimator.run(
                     view, "forward", forward_starts,
                     all_flow_operations, features)
@@ -438,9 +491,60 @@ class BridgeScalarController:
                         goal_selections)
                 selected_flow_operations.update(
                     selection.selected_operation_node_ids)
-            selected_pressure_ids = frozenset(
-                pressure_by_flow[value]
-                for value in selected_flow_operations)
+            protected_union = None
+            if self.config.readout_policy in (
+                    "protected-message-union",
+                    "corrected-probe-union"):
+                bridge_pressure_ids = tuple(
+                    pressure_by_flow[value]
+                    for value in sorted(
+                        selected_flow_operations))
+                scalar_ranked_ids = tuple(
+                    row.operation_id for row in scores
+                    if row.admissible)
+                terminal_ids = tuple(
+                    operation_id
+                    for operation_id, candidate
+                    in sorted(
+                        candidate_by_operation.items())
+                    if candidate.terminal_on_accept)
+                safety_active = any(
+                    row.admissible
+                    and not row.operation
+                    .safety_compatible
+                    for row in scores)
+                safety_ids = (
+                    tuple(
+                        row.operation_id
+                        for row in scores
+                        if (
+                            row.admissible
+                            and row.operation
+                            .safety_compatible))
+                    if safety_active else ())
+                protected_union = (
+                    self.protected_selector.select(
+                        scalar_ranked_ids,
+                        tuple(sorted(
+                            candidate_by_operation)),
+                        bridge_operation_ids=(
+                            bridge_pressure_ids),
+                        terminal_operation_ids=(
+                            terminal_ids),
+                        safety_operation_ids=(
+                            safety_ids),
+                        scalar_top_k=(
+                            self.config
+                            .protected_scalar_top_k),
+                        readout_policy=(
+                            self.config
+                            .readout_policy)))
+                selected_pressure_ids = frozenset(
+                    protected_union.operation_ids)
+            else:
+                selected_pressure_ids = frozenset(
+                    pressure_by_flow[value]
+                    for value in selected_flow_operations)
             selected_scores = tuple(
                 row for row in scores
                 if (row.operation_id in selected_pressure_ids
@@ -491,10 +595,17 @@ class BridgeScalarController:
             scalar_order = tuple(
                 row.route_id for row in scalar_decision.scores
                 if row.admissible)
-            remaining = tuple(
-                row.operation_id for row in scores
-                if row.operation_id not in scalar_order)
-            ranked = scalar_order + remaining
+            if protected_union is not None:
+                # Candidate-union membership is a recall/readout signal only.
+                # With no separately calibrated final value, preserve the
+                # complete scalar ordering byte-for-byte.
+                ranked = tuple(
+                    row.operation_id for row in scores)
+            else:
+                remaining = tuple(
+                    row.operation_id for row in scores
+                    if row.operation_id not in scalar_order)
+                ranked = scalar_order + remaining
             return BridgeScalarDecision(
                 selected_operation_id=selected_id,
                 ranked_operation_ids=ranked,
@@ -504,7 +615,15 @@ class BridgeScalarController:
                 config=self.config.to_dict(),
                 flow_summary=flow_summary,
                 potential_summary=potential_summary,
-                goal_selections=tuple(goal_selections),
+                goal_selections=tuple(
+                    goal_selections)
+                + (
+                    ({
+                        "protected_candidate_union":
+                            protected_union.to_dict(),
+                    },)
+                    if protected_union is not None
+                    else ()),
                 scalar_decision=scalar_decision.to_dict(),
                 packet_schedule=packet_schedule.to_dict())
         except (

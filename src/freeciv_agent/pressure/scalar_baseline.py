@@ -184,6 +184,27 @@ class SmoothedScalarController:
         self._selected_route_id = None
         self._selected_since = None
         self._last_step = None
+        self._last_rank_digest = None
+        self._last_decision = None
+
+    def retain_routes(self, route_ids):
+        """Expire state for routes absent from the authoritative candidate set."""
+        available = frozenset(
+            str(value) for value in route_ids)
+        changed = (
+            frozenset(self._smoothed) != available)
+        self._smoothed = dict(
+            (key, value)
+            for key, value in self._smoothed.items()
+            if key in available)
+        if self._selected_route_id not in available:
+            changed = changed or (
+                self._selected_route_id is not None)
+            self._selected_route_id = None
+            self._selected_since = None
+        if changed:
+            self._last_rank_digest = None
+            self._last_decision = None
 
     def update_route_score(
             self, route_id, instantaneous_score, route_momentum=None,
@@ -230,6 +251,18 @@ class SmoothedScalarController:
             raise ValueError("step must be non-negative")
         if self._last_step is not None and step < self._last_step:
             raise ValueError("step must not regress")
+        rank_digest = structural_hash({
+            "bids": [
+                row.to_dict()
+                for row in sorted(
+                    bids,
+                    key=lambda value:
+                        value.route_id)],
+            "step": step,
+        })
+        if (rank_digest == self._last_rank_digest
+                and self._last_decision is not None):
+            return self._last_decision
 
         scores = []
         for bid in sorted(bids, key=lambda row: row.route_id):
@@ -285,12 +318,15 @@ class SmoothedScalarController:
                     (selected_id, 1.0 - self.config.diversity_floor),
                     (backup.route_id, self.config.diversity_floor),
                 )
-        return SmoothedScalarDecision(
+        decision = SmoothedScalarDecision(
             step, selected_id, None if backup is None else backup.route_id,
             allocations, tuple(sorted(
                 scores, key=lambda row: (-row.total_score, row.route_id))),
             retained_by_dwell, retained_by_hysteresis,
             self.SOLVER_IDENTITY, self.config.to_dict())
+        self._last_rank_digest = rank_digest
+        self._last_decision = decision
+        return decision
 
     @staticmethod
     def bid_from_typed_operation(

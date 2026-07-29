@@ -21,6 +21,12 @@ export type ControlAggregate = {
 
 export type TeleologyEstimated = ControlAggregate;
 
+export type TransitionValueEstimated = ControlAggregate;
+
+export type TransitionValueUpdated = ControlAggregate;
+
+export type PathPersistenceApplied = ControlAggregate;
+
 export type ReverseOperatorApplied = ControlAggregate;
 
 export type RequirementSetMaterialized = ControlAggregate;
@@ -751,7 +757,7 @@ export type LoggingGap = {
   "missing": string;
 };
 
-export type KnownEventType = "teleology_estimated" | "reverse_operator_applied" | "requirement_set_materialized" | "bridge_estimated" | "probe_block_completed" | "path_current_deposited" | "flow_projected" | "attention_advected" | "packet_reserved" | "packet_returned" | "flow_candidate_selected" | "candidate_revalidated" | "controller_fallback" | "control_outcome_recorded" | "selection_coverage_sample" | "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "technology_catalog" | "technology_progress" | "production_state" | "unit_lifecycle" | "observation" | "revision" | "belief_conflict" | "context_quarantine" | "llm_proposal" | "goal_selection" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "rule_proposed" | "rule_validated" | "llm_call_scheduled" | "llm_gateway_result" | "rule_parameter_updated" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
+export type KnownEventType = "teleology_estimated" | "transition_value_estimated" | "transition_value_updated" | "path_persistence_applied" | "reverse_operator_applied" | "requirement_set_materialized" | "bridge_estimated" | "probe_block_completed" | "path_current_deposited" | "flow_projected" | "attention_advected" | "packet_reserved" | "packet_returned" | "flow_candidate_selected" | "candidate_revalidated" | "controller_fallback" | "control_outcome_recorded" | "selection_coverage_sample" | "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "technology_catalog" | "technology_progress" | "production_state" | "unit_lifecycle" | "observation" | "revision" | "belief_conflict" | "context_quarantine" | "llm_proposal" | "goal_selection" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "rule_proposed" | "rule_validated" | "llm_call_scheduled" | "llm_gateway_result" | "rule_parameter_updated" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
 
 export interface EventEnvelope<T extends string = string, P extends object = Record<string, unknown>> {
   schema_version: typeof EVENT_SCHEMA_VERSION;
@@ -767,6 +773,9 @@ export interface EventEnvelope<T extends string = string, P extends object = Rec
 
 export interface KnownPayloadMap {
   "teleology_estimated": TeleologyEstimated;
+  "transition_value_estimated": TransitionValueEstimated;
+  "transition_value_updated": TransitionValueUpdated;
+  "path_persistence_applied": PathPersistenceApplied;
   "reverse_operator_applied": ReverseOperatorApplied;
   "requirement_set_materialized": RequirementSetMaterialized;
   "bridge_estimated": BridgeEstimated;

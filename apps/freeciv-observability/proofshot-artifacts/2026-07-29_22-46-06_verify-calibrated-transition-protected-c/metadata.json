@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure–bridge–fluid",
+  "commitSha": "242fd25a2b76a9d8935a9e38073528c811b3c024",
+  "startedAt": "2026-07-29T22:46:06.546Z",
+  "description": "Verify calibrated transition, protected candidate union, and path persistence observability"
+}

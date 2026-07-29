@@ -345,6 +345,40 @@ def test_flow_region_cap_preserves_typed_pf_order_after_overlap_gate():
         "a", "b")
 
 
+def test_protected_flow_union_cannot_displace_scalar_candidate():
+    config = _shadow_config()
+    config[
+        "pressure_flow_protected_candidate_union_enabled"
+    ] = True
+    planner = GroundedImpactPlanner(config)
+    planner.plan(_snapshot())
+    shadows = {
+        row["controller_mode"]: row["decision"]
+        for row in planner.last_control_decision
+        .artifact["shadow_decisions"]
+    }
+    scalar = shadows["scalar_v2"]
+    flow = shadows["unified_flow"]
+    union = flow["artifact"]["flow"][
+        "transport_readout"]["candidate_union"]
+
+    assert flow["selected_candidate_key"] == (
+        scalar["selected_candidate_key"])
+    assert union["readout_policy"] == (
+        "corrected-probe-union")
+    assert union["scalar_ranked_operation_ids"][0] == (
+        flow["artifact"]["flow"][
+            "transport_readout"][
+                "selected_operation_id"])
+    assert not any(
+        row["used_in_final_score"]
+        for row in union["signal_ledger"]["uses"]
+        if row["signal_name"] in (
+            "bridge_height",
+            "corrected_probe_weight",
+            "raw_probe_count"))
+
+
 def test_disabled_flow_configuration_has_no_query_semantic_effect():
     base = {
         "pressure_enabled": True,

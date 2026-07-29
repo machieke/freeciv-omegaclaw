@@ -42,9 +42,13 @@ from .candidate_selector import (
     BridgeCandidateSelector,
     BridgeReadout,
     BridgeRegionSelection,
+    DecisionSafeCandidateSelector,
+    DecisionSafeCandidateUnion,
+    ProtectedCandidateMember,
     SignalUse,
     SignalUseLedger,
     default_signal_use_ledger,
+    protected_union_signal_use_ledger,
 )
 from .controller import (
     BridgeScalarConfig,
@@ -129,6 +133,8 @@ __all__ = [
     "BridgeScalarConfig",
     "BridgeScalarController",
     "BridgeScalarDecision",
+    "DecisionSafeCandidateSelector",
+    "DecisionSafeCandidateUnion",
     "AdvectionStepResult",
     "AttentionState",
     "CapacityDual",
@@ -186,6 +192,7 @@ __all__ = [
     "PotentialBudget",
     "PotentialEstimate",
     "PotentialEstimator",
+    "ProtectedCandidateMember",
     "ProbeBatch",
     "ProbeConfig",
     "ProbeHealth",
@@ -209,5 +216,6 @@ __all__ = [
     "TwoDyeAdvectionKernel",
     "DeterministicMessagePotentialEstimator",
     "default_signal_use_ledger",
+    "protected_union_signal_use_ledger",
     "default_normalization_contract",
 ]

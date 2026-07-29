@@ -247,6 +247,103 @@ class BridgeRegionSelection:
         return material
 
 
+@dataclass(frozen=True)
+class ProtectedCandidateMember:
+    operation_id: str
+    reasons: tuple
+
+    def __post_init__(self):
+        if not isinstance(self.operation_id, str) or not self.operation_id:
+            raise ValueError(
+                "protected candidate requires operation ID")
+        if (not self.reasons
+                or any(
+                    not isinstance(value, str)
+                    or not value
+                    for value in self.reasons)
+                or len(self.reasons)
+                != len(set(self.reasons))):
+            raise ValueError(
+                "protected candidate reasons must be unique strings")
+
+    def to_dict(self):
+        return {
+            "operation_id": self.operation_id,
+            "reasons": list(self.reasons),
+        }
+
+
+@dataclass(frozen=True)
+class DecisionSafeCandidateUnion:
+    """A candidate set that bridge/probe signals may enlarge, never score."""
+
+    members: tuple
+    scalar_ranked_operation_ids: tuple
+    bridge_added_operation_ids: tuple
+    terminal_protected_operation_ids: tuple
+    safety_protected_operation_ids: tuple
+    readout_policy: str
+    signal_ledger: SignalUseLedger
+
+    def __post_init__(self):
+        if any(not isinstance(
+                row, ProtectedCandidateMember)
+               for row in self.members):
+            raise TypeError(
+                "candidate union members have wrong type")
+        member_ids = tuple(
+            row.operation_id for row in self.members)
+        if len(member_ids) != len(set(member_ids)):
+            raise ValueError(
+                "candidate union members must be unique")
+        available = frozenset(member_ids)
+        for values, name in (
+                (self.bridge_added_operation_ids,
+                 "bridge additions"),
+                (self.terminal_protected_operation_ids,
+                 "terminal protections"),
+                (self.safety_protected_operation_ids,
+                 "safety protections")):
+            if set(values) - available:
+                raise ValueError(
+                    "{} must be in candidate union".format(name))
+        if not isinstance(
+                self.signal_ledger, SignalUseLedger):
+            raise TypeError(
+                "candidate union requires signal ledger")
+        if self.readout_policy not in (
+                "protected-message-union",
+                "corrected-probe-union"):
+            raise ValueError(
+                "unknown protected readout policy")
+
+    @property
+    def operation_ids(self):
+        return tuple(
+            row.operation_id for row in self.members)
+
+    def to_dict(self):
+        material = {
+            "bridge_added_operation_ids": list(
+                self.bridge_added_operation_ids),
+            "members": [
+                row.to_dict() for row in self.members],
+            "readout_policy": self.readout_policy,
+            "safety_protected_operation_ids": list(
+                self.safety_protected_operation_ids),
+            "scalar_ranked_operation_ids": list(
+                self.scalar_ranked_operation_ids),
+            "schema_version": "1.0",
+            "signal_ledger":
+                self.signal_ledger.to_dict(),
+            "terminal_protected_operation_ids": list(
+                self.terminal_protected_operation_ids),
+        }
+        material["artifact_hash"] = structural_hash(
+            material)
+        return material
+
+
 def default_signal_use_ledger():
     return SignalUseLedger((
         SignalUse(
@@ -279,6 +376,144 @@ def default_signal_use_ledger():
             "subtract_scheduler_penalty_once",
             True, False),
     ))
+
+
+def protected_union_signal_use_ledger(
+        corrected_probes=False):
+    uses = [
+        SignalUse(
+            "bridge_height",
+            "candidate_union",
+            "top_k_membership_only",
+            False, False),
+    ]
+    if corrected_probes:
+        uses.append(SignalUse(
+            "corrected_probe_weight",
+            "candidate_union",
+            "top_k_membership_only",
+            False, False))
+        uses.append(SignalUse(
+            "raw_probe_count",
+            "diagnostics",
+            "count_only",
+            False, False))
+    uses.extend((
+        SignalUse(
+            "typed_advantage",
+            "operation_scoring",
+            "add_pre_cost_value_once",
+            True, False),
+        SignalUse(
+            "operation_cost",
+            "operation_scoring",
+            "subtract_once",
+            True, False),
+        SignalUse(
+            "distributional_risk",
+            "operation_scoring",
+            "subtract_scheduler_penalty_once",
+            True, False),
+    ))
+    return SignalUseLedger(tuple(uses))
+
+
+class DecisionSafeCandidateSelector:
+    """Form a protected union while preserving scalar final-score authority."""
+
+    def select(
+            self, scalar_ranked_operation_ids,
+            all_operation_ids,
+            bridge_operation_ids=(),
+            terminal_operation_ids=(),
+            safety_operation_ids=(),
+            scalar_top_k=3,
+            readout_policy="protected-message-union"):
+        scalar = tuple(
+            str(value)
+            for value in scalar_ranked_operation_ids)
+        available = tuple(
+            str(value) for value in all_operation_ids)
+        if (len(available) != len(set(available))
+                or set(scalar) - set(available)):
+            raise ValueError(
+                "protected union operations are inconsistent")
+        if (isinstance(scalar_top_k, bool)
+                or not isinstance(scalar_top_k, int)
+                or scalar_top_k < 1):
+            raise ValueError(
+                "protected scalar top-k must be positive")
+        if readout_policy not in (
+                "protected-message-union",
+                "corrected-probe-union"):
+            raise ValueError(
+                "unknown protected readout policy")
+        bridge = tuple(dict.fromkeys(
+            str(value)
+            for value in bridge_operation_ids))
+        terminal = tuple(dict.fromkeys(
+            str(value)
+            for value in terminal_operation_ids))
+        safety = tuple(dict.fromkeys(
+            str(value)
+            for value in safety_operation_ids))
+        for values, name in (
+                (bridge, "bridge"),
+                (terminal, "terminal"),
+                (safety, "safety")):
+            if set(values) - set(available):
+                raise ValueError(
+                    "{} candidate is unavailable".format(name))
+        reasons = {}
+
+        def protect(operation_id, reason):
+            reasons.setdefault(
+                operation_id, set()).add(reason)
+
+        for operation_id in scalar[:scalar_top_k]:
+            protect(operation_id, "scalar-top-k")
+        if scalar:
+            protect(scalar[0], "scalar-winner")
+        for operation_id in bridge:
+            protect(operation_id, "bridge-recall")
+        for operation_id in terminal:
+            protect(operation_id, "terminal-protection")
+        for operation_id in safety:
+            protect(operation_id, "safety-protection")
+        # Preserve scalar order for final typed scoring, then append additions
+        # deterministically. Bridge/probe magnitude is intentionally absent.
+        ordered = (
+            tuple(
+                value for value in scalar
+                if value in reasons)
+            + tuple(sorted(
+                set(reasons) - set(scalar))))
+        members = tuple(
+            ProtectedCandidateMember(
+                operation_id=value,
+                reasons=tuple(sorted(reasons[value])))
+            for value in ordered)
+        scalar_protected = frozenset(
+            scalar[:scalar_top_k])
+        return DecisionSafeCandidateUnion(
+            members=members,
+            scalar_ranked_operation_ids=scalar,
+            bridge_added_operation_ids=tuple(
+                value for value in ordered
+                if value in bridge
+                and value not in scalar_protected),
+            terminal_protected_operation_ids=tuple(
+                value for value in ordered
+                if value in terminal),
+            safety_protected_operation_ids=tuple(
+                value for value in ordered
+                if value in safety),
+            readout_policy=readout_policy,
+            signal_ledger=(
+                protected_union_signal_use_ledger(
+                    corrected_probes=(
+                        readout_policy
+                        == "corrected-probe-union"))))
 
 
 class BridgeCandidateSelector:

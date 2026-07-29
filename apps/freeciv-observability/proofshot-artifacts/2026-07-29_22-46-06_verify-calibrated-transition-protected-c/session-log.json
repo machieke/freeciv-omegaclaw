@@ -1,0 +1,117 @@
+[
+  {
+    "action": "set viewport 1500 1000",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-29T22:46:42.077Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 5.6,
+    "timestamp": "2026-07-29T22:46:42.657Z"
+  },
+  {
+    "action": "upload input[type=\"file\"] /home/purplezky/work/takopi/freeciv-omegaclaw/Autotests/fixtures/freeciv-events/v1/calibrated-readout.jsonl",
+    "relativeTimeSec": 13.3,
+    "timestamp": "2026-07-29T22:46:50.307Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 13.6,
+    "timestamp": "2026-07-29T22:46:50.655Z"
+  },
+  {
+    "action": "click @e16",
+    "relativeTimeSec": 15.4,
+    "timestamp": "2026-07-29T22:46:52.462Z"
+  },
+  {
+    "action": "wait 500",
+    "relativeTimeSec": 15.8,
+    "timestamp": "2026-07-29T22:46:52.836Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 16.6,
+    "timestamp": "2026-07-29T22:46:53.667Z"
+  },
+  {
+    "action": "screenshot calibrated-readout-overview.png --full",
+    "relativeTimeSec": 25.9,
+    "timestamp": "2026-07-29T22:47:02.983Z"
+  },
+  {
+    "action": "click @e102",
+    "relativeTimeSec": 27.2,
+    "timestamp": "2026-07-29T22:47:04.205Z"
+  },
+  {
+    "action": "wait 300",
+    "relativeTimeSec": 27.5,
+    "timestamp": "2026-07-29T22:47:04.584Z"
+  },
+  {
+    "action": "screenshot transition-calibration-inspector.png --full",
+    "relativeTimeSec": 28.2,
+    "timestamp": "2026-07-29T22:47:05.221Z"
+  },
+  {
+    "action": "console",
+    "relativeTimeSec": 28.5,
+    "timestamp": "2026-07-29T22:47:05.560Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 28.9,
+    "timestamp": "2026-07-29T22:47:05.931Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 36.4,
+    "timestamp": "2026-07-29T22:47:13.452Z"
+  },
+  {
+    "action": "screenshot calibrated-transition-inspector.png",
+    "relativeTimeSec": 36.8,
+    "timestamp": "2026-07-29T22:47:13.880Z"
+  },
+  {
+    "action": "click @e104",
+    "relativeTimeSec": 38.2,
+    "timestamp": "2026-07-29T22:47:15.273Z"
+  },
+  {
+    "action": "screenshot protected-union-inspector.png",
+    "relativeTimeSec": 38.6,
+    "timestamp": "2026-07-29T22:47:15.615Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 39,
+    "timestamp": "2026-07-29T22:47:16.081Z"
+  },
+  {
+    "action": "console",
+    "relativeTimeSec": 39.4,
+    "timestamp": "2026-07-29T22:47:16.429Z"
+  },
+  {
+    "action": "click @e25",
+    "relativeTimeSec": 47.2,
+    "timestamp": "2026-07-29T22:47:24.256Z"
+  },
+  {
+    "action": "screenshot calibrated-readout-overview.png",
+    "relativeTimeSec": 47.6,
+    "timestamp": "2026-07-29T22:47:24.647Z"
+  },
+  {
+    "action": "click @e106",
+    "relativeTimeSec": 49.1,
+    "timestamp": "2026-07-29T22:47:26.102Z"
+  },
+  {
+    "action": "screenshot path-persistence-inspector.png",
+    "relativeTimeSec": 49.4,
+    "timestamp": "2026-07-29T22:47:26.460Z"
+  }
+]

@@ -7,6 +7,7 @@ through :class:`ExecutionGate` immediately before transport.
 
 import json
 import math
+import os
 import time
 from dataclasses import dataclass
 
@@ -771,6 +772,7 @@ class GroundedImpactPlanner(object):
         self.last_control_outcome_query = None
         self.last_control_outcome_decision = None
         self.last_control_outcome_record = None
+        self.last_transition_value_update = None
         self._pending_control_decisions = {}
         if (self.pressure_enabled
                 and self.pressure_controller_mode
@@ -804,7 +806,10 @@ class GroundedImpactPlanner(object):
                 score_alignment_utility_tolerance=(
                     self.pressure_score_alignment_utility_tolerance))
             if self.pressure_controller_mode != "legacy_scalar":
-                from ..pressure import ImpactPressureRankerV2
+                from ..pressure import (
+                    ImpactPressureRankerV2,
+                    TransitionValueModel,
+                )
                 from ..flow_control import BridgeScalarConfig
                 from .impact_unified_flow import (
                     UnifiedImpactFlowConfig,
@@ -860,7 +865,15 @@ class GroundedImpactPlanner(object):
                             bridge_configuration[
                                 "current_following_gain"]),
                         probe_estimator_mode=(
-                            probe_estimator_mode)))
+                            probe_estimator_mode),
+                        readout_policy=str(values.get(
+                            "pressure_bridge_readout_policy",
+                            bridge_configuration[
+                                "readout_policy"])),
+                        protected_scalar_top_k=int(values.get(
+                            "pressure_bridge_protected_scalar_top_k",
+                            bridge_configuration[
+                                "protected_scalar_top_k"]))))
                 unified_flow_config = (
                     UnifiedImpactFlowConfig(
                         probe_path_count=(
@@ -902,6 +915,14 @@ class GroundedImpactPlanner(object):
                         maximum_candidate_regions_per_goal=int(
                             flow_configuration[
                                 "maximum_candidate_regions_per_goal"]),
+                        protected_candidate_union_enabled=bool(values.get(
+                            "pressure_flow_protected_candidate_union_enabled",
+                            flow_configuration[
+                                "protected_candidate_union_enabled"])),
+                        protected_scalar_top_k=int(values.get(
+                            "pressure_flow_protected_scalar_top_k",
+                            flow_configuration[
+                                "protected_scalar_top_k"])),
                         cfl_limit=float(
                             flow_configuration[
                                 "cfl_limit"]),
@@ -921,6 +942,134 @@ class GroundedImpactPlanner(object):
                             sorted(
                                 packet_configuration[
                                     "budgets"].items()))))
+                transition_value_model = None
+                transition_value_enabled = bool(
+                    controller_policy[
+                        "pressure_transition_value_enabled"])
+                transition_value_authority_enabled = bool(
+                    controller_policy[
+                        "pressure_transition_value_authority_enabled"])
+                if transition_value_enabled:
+                    minimum_samples = values.get(
+                        "pressure_transition_value_minimum_samples",
+                        controller_configuration[
+                            "teleology"][
+                                "transition_value_minimum_samples"])
+                    if (isinstance(minimum_samples, bool)
+                            or not isinstance(
+                                minimum_samples, int)
+                            or minimum_samples < 1):
+                        raise ValueError(
+                            "pressure transition value minimum samples "
+                            "must be positive")
+                    maximum_half_width = float(values.get(
+                        "pressure_transition_value_maximum_half_width",
+                        controller_configuration[
+                            "teleology"][
+                                "transition_value_maximum_half_width"]))
+                    alpha = float(values.get(
+                        "pressure_transition_value_alpha",
+                        controller_configuration[
+                            "teleology"][
+                                "transition_value_alpha"]))
+                    explicit_path = str(values.get(
+                        "pressure_transition_value_model_path",
+                        "")).strip()
+                    explicit_identity = str(values.get(
+                        "pressure_transition_value_model_identity",
+                        "")).strip()
+                    read_only = values.get(
+                        "pressure_transition_value_read_only",
+                        False)
+                    if not isinstance(read_only, bool):
+                        raise ValueError(
+                            "pressure transition value read-only "
+                            "setting must be boolean")
+                    if explicit_path:
+                        if not explicit_identity:
+                            raise ValueError(
+                                "explicit transition-value model "
+                                "requires identity")
+                        if not os.path.isabs(explicit_path):
+                            from ..paths import REPO_ROOT
+                            explicit_path = os.path.join(
+                                REPO_ROOT, explicit_path)
+                        transition_path = os.path.abspath(
+                            explicit_path)
+                        transition_identity = (
+                            explicit_identity)
+                    else:
+                        if read_only:
+                            raise ValueError(
+                                "frozen transition-value model "
+                                "requires explicit path")
+                        transition_path = (
+                            None
+                            if pressure_state_path is None
+                            else "{}.transition-value.json".format(
+                                pressure_state_path))
+                        transition_identity = (
+                            "{}:transition-value".format(
+                                pressure_state_identity
+                                or "grounded-impact-planner"))
+                    transition_value_model = TransitionValueModel(
+                        path=transition_path,
+                        identity=transition_identity,
+                        minimum_samples=minimum_samples,
+                        maximum_half_width=(
+                            maximum_half_width),
+                        alpha=alpha,
+                        read_only=read_only)
+                teleological_enabled = bool(
+                    transition_value_enabled
+                    or self.pressure_controller_mode
+                    in (
+                        "bridge_scalar",
+                        "unified_shadow",
+                        "bridge_scalar_advisory",
+                        "unified_flow_advisory",
+                        "unified_flow_live"))
+                path_persistence_enabled = bool(
+                    controller_policy[
+                        "pressure_path_persistence_enabled"])
+                path_persistence_config = None
+                path_persistence_maximum_priority_regret = (
+                    float(values.get(
+                        "pressure_path_persistence_maximum_priority_regret",
+                        controller_configuration[
+                            "teleology"][
+                                "path_persistence_maximum_priority_regret"])))
+                if path_persistence_enabled:
+                    from ..pressure import (
+                        ScalarBaselineConfig,
+                    )
+                    path_persistence_config = (
+                        ScalarBaselineConfig(
+                            smoothing=float(values.get(
+                                "pressure_path_persistence_smoothing",
+                                controller_configuration[
+                                    "teleology"][
+                                        "path_persistence_smoothing"])),
+                            route_momentum=float(values.get(
+                                "pressure_path_persistence_route_momentum",
+                                controller_configuration[
+                                    "teleology"][
+                                        "path_persistence_route_momentum"])),
+                            minimum_dwell_steps=int(values.get(
+                                "pressure_path_persistence_minimum_dwell_steps",
+                                controller_configuration[
+                                    "teleology"][
+                                        "path_persistence_minimum_dwell_steps"])),
+                            dwell_bonus=float(values.get(
+                                "pressure_path_persistence_dwell_bonus",
+                                controller_configuration[
+                                    "teleology"][
+                                        "path_persistence_dwell_bonus"])),
+                            switch_margin=float(values.get(
+                                "pressure_path_persistence_switch_margin",
+                                controller_configuration[
+                                    "teleology"][
+                                        "path_persistence_switch_margin"]))))
                 self._pressure_ranker_v2 = (
                     ImpactPressureRankerV2(
                         PressureConfig(
@@ -940,13 +1089,17 @@ class GroundedImpactPlanner(object):
                         score_alignment_utility_tolerance=(
                             self.pressure_score_alignment_utility_tolerance),
                         teleological_enabled=(
-                            self.pressure_controller_mode
-                            in (
-                                "bridge_scalar",
-                                "unified_shadow",
-                                "bridge_scalar_advisory",
-                                "unified_flow_advisory",
-                                "unified_flow_live"))))
+                            teleological_enabled),
+                        transition_value_model=(
+                            transition_value_model),
+                        transition_value_authority_enabled=(
+                            transition_value_authority_enabled),
+                        path_persistence_enabled=(
+                            path_persistence_enabled),
+                        path_persistence_config=(
+                            path_persistence_config),
+                        path_persistence_maximum_priority_regret=(
+                            path_persistence_maximum_priority_regret)))
                 self._bridge_pressure_ranker = (
                     ImpactPressureRankerV2(
                         PressureConfig(
@@ -968,7 +1121,17 @@ class GroundedImpactPlanner(object):
                         teleological_enabled=True,
                         bridge_scalar_enabled=True,
                         bridge_scalar_config=(
-                            bridge_scalar_config)))
+                            bridge_scalar_config),
+                        transition_value_model=(
+                            transition_value_model),
+                        transition_value_authority_enabled=(
+                            transition_value_authority_enabled),
+                        path_persistence_enabled=(
+                            path_persistence_enabled),
+                        path_persistence_config=(
+                            path_persistence_config),
+                        path_persistence_maximum_priority_regret=(
+                            path_persistence_maximum_priority_regret)))
                 from .impact_flow_adapter import (
                     AdvisoryPolicy,
                     ImpactControlAdapter,
@@ -2248,6 +2411,16 @@ class GroundedImpactPlanner(object):
                 diagnostics.get("goal_relief_latency_ms", 0.0)
                 + (time.perf_counter() - relief_started) * 1000.0)
         conductance_started = time.perf_counter()
+        self.last_transition_value_update = None
+        if self._pressure_ranker_v2 is not None:
+            self.last_transition_value_update = (
+                self._pressure_ranker_v2
+                .record_transition_outcome(
+                    candidate,
+                    bool(effect_observed),
+                    relief.realized_relief,
+                    relief.source,
+                    feedback_id))
         update = self._pressure_ranker.record_outcome(
             candidate, effect_observed, feedback_id,
             relief.realized_relief, relief.source,

@@ -163,3 +163,65 @@ def test_forced_bridge_fault_preserves_scalar_order(live_fixture):
     assert faulted[1]["bridge"]["fallback_reason"] == (
         "fault-injected-estimator")
     assert faulted[1]["bridge"]["packet_schedule"] is None
+
+
+def test_protected_message_union_skips_probes_and_preserves_scalar(
+        live_fixture):
+    snapshot, candidates = live_fixture
+    baseline = _rank(
+        ImpactPressureRankerV2(
+            teleological_enabled=True),
+        snapshot, candidates)
+    protected = _rank(
+        ImpactPressureRankerV2(
+            teleological_enabled=True,
+            bridge_scalar_enabled=True,
+            bridge_scalar_config=_test_config(
+                readout_policy=(
+                    "protected-message-union"),
+                maximum_regions_per_goal=2)),
+        snapshot, candidates)
+
+    bridge = protected[1]["bridge"]
+    union = bridge["goal_selections"][-1][
+        "protected_candidate_union"]
+    assert not bridge["fallback_required"]
+    assert protected[0] == baseline[0]
+    assert union["readout_policy"] == (
+        "protected-message-union")
+    assert union["scalar_ranked_operation_ids"][0] == (
+        bridge["selected_operation_id"])
+    assert all(
+        row["forward_probe"] is None
+        and row["backward_probe"] is None
+        for row in bridge["goal_selections"][:-1])
+
+
+def test_corrected_probe_union_adds_recall_without_scoring_probe_signal(
+        live_fixture):
+    snapshot, candidates = live_fixture
+    ordered, artifact = _rank(
+        ImpactPressureRankerV2(
+            teleological_enabled=True,
+            bridge_scalar_enabled=True,
+            bridge_scalar_config=_test_config(
+                readout_policy="corrected-probe-union",
+                maximum_regions_per_goal=2)),
+        snapshot, candidates)
+
+    bridge = artifact["bridge"]
+    union = bridge["goal_selections"][-1][
+        "protected_candidate_union"]
+    assert not bridge["fallback_required"]
+    assert ordered
+    assert union["readout_policy"] == (
+        "corrected-probe-union")
+    assert union["scalar_ranked_operation_ids"][0] == (
+        bridge["selected_operation_id"])
+    assert not any(
+        row["used_in_final_score"]
+        for row in union["signal_ledger"]["uses"]
+        if row["signal_name"] in (
+            "bridge_height",
+            "corrected_probe_weight",
+            "raw_probe_count"))

@@ -147,6 +147,17 @@ const unifiedTrace = [
       disagrees_with_scalar: true, selected_overlap: 0.0045,
       scalar_selected_operation_id: "operation-build-city",
       selected_operation_id: "operation-move",
+      candidate_union: {
+        readout_policy: "corrected-probe-union",
+        members: [
+          { operation_id: "operation-build-city",
+            reasons: ["scalar-top-k", "scalar-winner", "terminal-protection"] },
+          { operation_id: "operation-move", reasons: ["bridge-recall"] },
+        ],
+        bridge_added_operation_ids: ["operation-move"],
+        terminal_protected_operation_ids: ["operation-build-city"],
+        safety_protected_operation_ids: [],
+      },
     },
   }), 4, 12),
   event(107, "controller_fallback", unifiedPayload({
@@ -167,6 +178,35 @@ const unifiedTrace = [
   event(109, "control_outcome_recorded", unifiedPayload({
     effect_observed: true, realized_relief: 1,
   }), 4, 15),
+  event(110, "transition_value_estimated", unifiedPayload({
+    abstained_operation_count: 0, all_candidate_support: true,
+    authority_active: true, authority_requested: true, gate_reason: null,
+    operation_count: 2,
+    model: {
+      observation_count: 64,
+      exact_support: [
+        { key: { action_category: "expansion", lifecycle_state: "terminal-completion",
+          goal_id: "pf-impact:expansion" }, sample_count: 32 },
+        { key: { action_category: "expansion", lifecycle_state: "route-progress",
+          goal_id: "pf-impact:expansion" }, sample_count: 32 },
+      ],
+      configuration: { minimum_samples: 30, maximum_half_width: 0.5 },
+    },
+  }), 4, 16),
+  event(111, "transition_value_updated", unifiedPayload({
+    applied: true, sample_count: 33,
+    observation: {
+      predicted_relief: 0.41, realized_relief: 1,
+      relief_source: "authoritative:goal-relief",
+    },
+  }), 4, 17),
+  event(112, "path_persistence_applied", unifiedPayload({
+    authority_active: true, reordered: true, fallback_reason: null,
+    selected_corridor: "unit:102:expansion:route-progress",
+    scalar_corridor: "unit:102:expansion:route-progress",
+    priority_regret: 0.01, maximum_priority_regret: 0.05,
+    decision: { retained_by_dwell: true, retained_by_hysteresis: false },
+  }), 4, 18),
 ].map((row) => JSON.stringify(row)).join("\n");
 
 const productionMapTrace = [
@@ -558,6 +598,18 @@ describe("Decision Observatory", () => {
       .toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Unified controller telemetry" }))
       .toBeInTheDocument();
+    expect(screen.getByLabelText("Calibrated readout research gates"))
+      .toHaveTextContent("calibrated scalarauthority");
+    expect(screen.getByRole("heading", { name: "Transition calibration" }))
+      .toBeInTheDocument();
+    expect(screen.getByText("64")).toBeInTheDocument();
+    expect(screen.getByText(/predicted 0.41.*realized 1/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Protected candidate union" }))
+      .toBeInTheDocument();
+    expect(screen.getByText("Corrected Probe Union")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Path persistence" }))
+      .toBeInTheDocument();
+    expect(screen.getByText("minimum dwell")).toBeInTheDocument();
     expect(screen.getByRole("table", { name: "Unified flow decision ledger" }))
       .toBeInTheDocument();
     expect(screen.getByText("Unit Move")).toBeInTheDocument();

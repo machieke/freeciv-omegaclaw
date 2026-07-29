@@ -107,6 +107,7 @@ CONTROLLER_LAYER_SPECS = (
     {"layer": "scalar_pf_v2", "support": "experimental"},
     {"layer": "packet_scheduler", "support": "experimental"},
     {"layer": "teleological_cost_to_go", "support": "experimental"},
+    {"layer": "path_persistence", "support": "experimental"},
     {"layer": "bridge", "support": "experimental"},
     {"layer": "source_sink_flow", "support": "component-only"},
     {"layer": "bounded_staleness_view", "support": "experimental"},
@@ -123,18 +124,28 @@ CONTROLLER_POLICY_DEFAULTS = {
     "pressure_bridge_estimator_policy": "holdout",
     "pressure_bridge_normalization_contract":
         "robust-feature-scales/1.0",
+    "pressure_bridge_readout_policy":
+        "corrected-probe-overlap",
     "pressure_distributional_risk_enabled": False,
     "pressure_enabled": True,
     "pressure_flow_enabled": False,
+    "pressure_flow_protected_candidate_union_enabled": False,
+    "pressure_flow_research_entry_gate_required": False,
     "pressure_flow_live_enabled": False,
     "pressure_commit_revalidation_enabled": False,
     "pressure_llm_expansion_enabled": False,
     "pressure_llm_validation_packet_budget": 0,
     "pressure_packet_scheduler_enabled": False,
+    "pressure_path_persistence_enabled": False,
     "pressure_requirement_sets_enabled": False,
     "pressure_scalar_fallback_enabled": True,
     "pressure_shaping_capacity_structural_updates_enabled": False,
     "pressure_signed_channels_enabled": False,
+    "pressure_transition_value_authority_enabled": False,
+    "pressure_transition_value_enabled": False,
+    "pressure_transition_value_model_identity": "",
+    "pressure_transition_value_model_path": "",
+    "pressure_transition_value_read_only": False,
     "pressure_controller_mode": "auto",
     "pressure_semantics_version": "v1",
 }
@@ -152,6 +163,18 @@ CONTROLLER_CONFIGURATION_DEFAULTS = {
         "max_horizon": 6,
         "calibration_required": False,
         "protect_uncalibrated_terminal_actions": True,
+        "transition_value_authority_enabled": False,
+        "transition_value_enabled": False,
+        "transition_value_minimum_samples": 30,
+        "transition_value_maximum_half_width": 0.50,
+        "transition_value_alpha": 0.05,
+        "path_persistence_enabled": False,
+        "path_persistence_smoothing": 0.35,
+        "path_persistence_route_momentum": 0.15,
+        "path_persistence_minimum_dwell_steps": 2,
+        "path_persistence_dwell_bonus": 0.05,
+        "path_persistence_switch_margin": 0.01,
+        "path_persistence_maximum_priority_regret": 0.05,
         "metacontrol_budget_fraction": 0.05,
     },
     "bridge": {
@@ -172,9 +195,14 @@ CONTROLLER_CONFIGURATION_DEFAULTS = {
         "importance_corrected": False,
         "reference_likelihood_support": False,
         "normalization_contract": "robust-feature-scales/1.0",
+        "readout_policy": "corrected-probe-overlap",
+        "protected_scalar_top_k": 3,
     },
     "flow": {
         "enabled": False,
+        "protected_candidate_union_enabled": False,
+        "protected_scalar_top_k": 3,
+        "research_entry_gate_required": False,
         "turnover_fraction": 0.25,
         "candidate_region_relative_overlap": 0.50,
         "maximum_candidate_regions_per_goal": 8,
@@ -227,8 +255,20 @@ _GROUP_TO_POLICY = {
         "pressure_bridge_estimator_policy",
     ("bridge", "normalization_contract"):
         "pressure_bridge_normalization_contract",
+    ("bridge", "readout_policy"):
+        "pressure_bridge_readout_policy",
+    ("teleology", "transition_value_enabled"):
+        "pressure_transition_value_enabled",
+    ("teleology", "transition_value_authority_enabled"):
+        "pressure_transition_value_authority_enabled",
+    ("teleology", "path_persistence_enabled"):
+        "pressure_path_persistence_enabled",
     ("flow", "enabled"):
         "pressure_flow_enabled",
+    ("flow", "protected_candidate_union_enabled"):
+        "pressure_flow_protected_candidate_union_enabled",
+    ("flow", "research_entry_gate_required"):
+        "pressure_flow_research_entry_gate_required",
     ("flow", "scalar_fallback"):
         "pressure_scalar_fallback_enabled",
     ("flow", "shaping_capacity_structural_updates"):
@@ -328,10 +368,15 @@ def _validate_controller_configuration(configuration):
                 "reference_likelihood_support")),
             ("flow", (
                 "enabled", "scalar_fallback",
+                "protected_candidate_union_enabled",
+                "research_entry_gate_required",
                 "shaping_capacity_structural_updates")),
             ("teleology", (
                 "calibration_required",
-                "protect_uncalibrated_terminal_actions")),
+                "protect_uncalibrated_terminal_actions",
+                "path_persistence_enabled",
+                "transition_value_enabled",
+                "transition_value_authority_enabled")),
             ("safety", (
                 "hard_tail_risk_gate",
                 "commit_revalidation"))):
@@ -352,9 +397,15 @@ def _validate_controller_configuration(configuration):
             "unknown bridge estimator policy")
     for group, name, minimum, maximum, strict_minimum in (
             ("teleology", "max_horizon", 1, 1000, False),
+            ("teleology", "transition_value_minimum_samples",
+             1, 1000000, False),
+            ("teleology", "path_persistence_minimum_dwell_steps",
+             0, 1000000, False),
             ("bridge", "forward_depth", 1, 1000, False),
             ("bridge", "backward_depth", 1, 1000, False),
             ("bridge", "probe_count", 1, 10000000, False),
+            ("bridge", "protected_scalar_top_k",
+             1, 1000000, False),
             ("bridge", "minimum_ess", 0.0, 10000000.0, True),
             ("bridge", "max_importance_weight", 1.0, 1000000.0, False),
             ("bridge", "temperature", 0.0, 1000000.0, True),
@@ -364,6 +415,8 @@ def _validate_controller_configuration(configuration):
             ("flow", "mass_tolerance", 0.0, 1.0, True),
             ("flow", "maximum_microsteps", 1, 1000000, False),
             ("flow", "maximum_candidate_regions_per_goal",
+             1, 1000000, False),
+            ("flow", "protected_scalar_top_k",
              1, 1000000, False),
             ("packets", "reservation_ttl", 1, 1000000, False)):
         value = configuration[group][name]
@@ -384,6 +437,13 @@ def _validate_controller_configuration(configuration):
             "bridge.minimum_ess cannot exceed probe_count")
     for group, name in (
             ("teleology", "metacontrol_budget_fraction"),
+            ("teleology", "transition_value_maximum_half_width"),
+            ("teleology", "transition_value_alpha"),
+            ("teleology", "path_persistence_smoothing"),
+            ("teleology", "path_persistence_route_momentum"),
+            ("teleology", "path_persistence_dwell_bonus"),
+            ("teleology", "path_persistence_switch_margin"),
+            ("teleology", "path_persistence_maximum_priority_regret"),
             ("bridge", "reference_probe_fraction"),
             ("bridge", "deposit_decay"),
             ("flow", "turnover_fraction"),
@@ -407,11 +467,18 @@ def _validate_controller_configuration(configuration):
                 "packet budget {} must be a non-negative integer".format(
                     resource))
     for group, name in (
-            ("bridge", "normalization_contract"),):
+            ("bridge", "normalization_contract"),
+            ("bridge", "readout_policy")):
         value = configuration[group][name]
         if not isinstance(value, str) or not value:
             raise PFRuntimeConfigurationError(
                 "{}.{} is required".format(group, name))
+    if configuration["bridge"]["readout_policy"] not in (
+            "corrected-probe-overlap",
+            "protected-message-union",
+            "corrected-probe-union"):
+        raise PFRuntimeConfigurationError(
+            "unknown bridge readout policy")
     if (configuration["bridge"]["importance_corrected"]
             and not configuration["bridge"][
                 "reference_likelihood_support"]):
@@ -437,6 +504,36 @@ def _validate_controller_configuration(configuration):
             "shaping_capacity_structural_updates"]:
         raise PFRuntimeConfigurationError(
             "shaping capacities cannot authorize structural updates")
+    if configuration["flow"][
+            "research_entry_gate_required"]:
+        if not configuration["flow"][
+                "protected_candidate_union_enabled"]:
+            raise PFRuntimeConfigurationError(
+                "flow research gate requires protected candidate union")
+        if not configuration["teleology"][
+                "transition_value_authority_enabled"]:
+            raise PFRuntimeConfigurationError(
+                "flow research gate requires transition-value authority")
+        if not configuration["teleology"][
+                "path_persistence_enabled"]:
+            raise PFRuntimeConfigurationError(
+                "flow research gate requires path persistence comparator")
+        if configuration["bridge"]["readout_policy"] == (
+                "corrected-probe-overlap"):
+            raise PFRuntimeConfigurationError(
+                "flow research gate requires decision-safe bridge readout")
+    if configuration["teleology"][
+            "transition_value_authority_enabled"
+            ] and not configuration["teleology"][
+                "transition_value_enabled"]:
+        raise PFRuntimeConfigurationError(
+            "transition-value authority requires transition-value learning")
+    if configuration["teleology"][
+            "path_persistence_enabled"
+            ] and not configuration["teleology"][
+                "transition_value_authority_enabled"]:
+        raise PFRuntimeConfigurationError(
+            "path persistence requires transition-value authority")
     return configuration
 
 
@@ -477,6 +574,12 @@ def validate_controller_policy(impact_policy):
     if policy["pressure_semantics_version"] not in ("v1", "v2"):
         raise PFRuntimeConfigurationError(
             "pressure_semantics_version must be v1 or v2")
+    if policy["pressure_bridge_readout_policy"] not in (
+            "corrected-probe-overlap",
+            "protected-message-union",
+            "corrected-probe-union"):
+        raise PFRuntimeConfigurationError(
+            "unknown pressure bridge readout policy")
     if policy["pressure_controller_mode"] not in (
             ("auto",) + CONTROLLER_MODES):
         raise PFRuntimeConfigurationError(
@@ -503,9 +606,45 @@ def validate_controller_policy(impact_policy):
                 "pressure_packet_scheduler_enabled",
                 "pressure_requirement_sets_enabled",
                 "pressure_bridge_enabled",
-                "pressure_flow_enabled"))):
+                "pressure_flow_enabled",
+                "pressure_transition_value_enabled"))):
         raise PFRuntimeConfigurationError(
             "v2 controller features require pressure semantics v2")
+    if (policy["pressure_transition_value_authority_enabled"]
+            and not policy["pressure_transition_value_enabled"]):
+        raise PFRuntimeConfigurationError(
+            "transition-value authority requires transition-value learning")
+    if (policy["pressure_transition_value_enabled"]
+            and not policy["pressure_packet_scheduler_enabled"]):
+        raise PFRuntimeConfigurationError(
+            "transition-value calibration requires packet scheduling")
+    for name in (
+            "pressure_transition_value_model_identity",
+            "pressure_transition_value_model_path"):
+        if not isinstance(policy[name], str):
+            raise PFRuntimeConfigurationError(
+                "{} must be a string".format(name))
+    explicit_model = bool(
+        policy[
+            "pressure_transition_value_model_path"])
+    explicit_identity = bool(
+        policy[
+            "pressure_transition_value_model_identity"])
+    if explicit_model != explicit_identity:
+        raise PFRuntimeConfigurationError(
+            "transition-value model path and identity must be declared together")
+    if (policy["pressure_transition_value_read_only"]
+            and (
+                not policy["pressure_transition_value_enabled"]
+                or not explicit_model)):
+        raise PFRuntimeConfigurationError(
+            "frozen transition-value evaluation requires an enabled "
+            "explicit model path and identity")
+    if (policy["pressure_path_persistence_enabled"]
+            and not policy[
+                "pressure_transition_value_authority_enabled"]):
+        raise PFRuntimeConfigurationError(
+            "path persistence requires transition-value authority")
     if (policy["pressure_bridge_enabled"]
             and not policy["pressure_packet_scheduler_enabled"]):
         raise PFRuntimeConfigurationError(
@@ -561,6 +700,23 @@ def validate_controller_policy(impact_policy):
                  or not policy["pressure_packet_scheduler_enabled"])):
         raise PFRuntimeConfigurationError(
             "pressure flow requires bridge and packet scheduling")
+    if policy["pressure_flow_research_entry_gate_required"]:
+        if not policy[
+                "pressure_flow_protected_candidate_union_enabled"]:
+            raise PFRuntimeConfigurationError(
+                "flow research gate requires protected candidate union")
+        if not policy[
+                "pressure_transition_value_authority_enabled"]:
+            raise PFRuntimeConfigurationError(
+                "flow research gate requires transition-value authority")
+        if not policy[
+                "pressure_path_persistence_enabled"]:
+            raise PFRuntimeConfigurationError(
+                "flow research gate requires path persistence comparator")
+        if policy["pressure_bridge_readout_policy"] == (
+                "corrected-probe-overlap"):
+            raise PFRuntimeConfigurationError(
+                "flow research gate requires decision-safe bridge readout")
     if (policy[
             "pressure_bridge_importance_corrected_enabled"]
             and not policy[
@@ -626,11 +782,17 @@ def build_controller_activation(impact_policy):
             and policy["pressure_packet_scheduler_enabled"]),
         "teleological_cost_to_go": (
             pressure_enabled
-            and mode in (
+            and (
+                policy["pressure_transition_value_enabled"]
+                or mode in (
                 "bridge_scalar", "unified_shadow",
                 "bridge_scalar_advisory",
                 "unified_flow_advisory",
-                "unified_flow_live")),
+                "unified_flow_live"))),
+        "path_persistence": (
+            pressure_enabled and v2
+            and policy[
+                "pressure_path_persistence_enabled"]),
         "bridge": (
             pressure_enabled and v2
             and policy["pressure_bridge_enabled"]

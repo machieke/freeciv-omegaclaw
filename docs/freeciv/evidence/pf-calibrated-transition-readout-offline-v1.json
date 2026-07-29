@@ -1,0 +1,119 @@
+{
+  "baseline": {
+    "frozen_predecessor": "242fd25",
+    "identity": "scalar-pf-v2+whole-operation-packets",
+    "verification": {
+      "packet_validation": {
+        "artifact_hash": "a0251b98e2c4934583f2e94207bcf1bb4b05c07c21ec5c3a9f14aa771f525ecf",
+        "scheduler_identity": "pf-pln-packet-scheduler/2.0",
+        "valid": true
+      },
+      "pressure_validation": {
+        "artifact_hash": "bd9a070690cf133e7bc279be5817d10d752b30bfaee254879f7e85e00c0fd241",
+        "pressure_artifact_schema": "2.0",
+        "valid": true
+      },
+      "schema_version": "1.0",
+      "snapshot_replay": [
+        {
+          "candidate_count": 0,
+          "path": "benchmarks/freeciv/samples/real_state_turn0.json",
+          "source_unchanged": true,
+          "state_unchanged": true,
+          "v1_selected": null,
+          "v2_selected": null,
+          "v2_selection_legal": true
+        },
+        {
+          "candidate_count": 34,
+          "path": "benchmarks/freeciv/samples/real_state_turn1.json",
+          "source_unchanged": true,
+          "state_unchanged": true,
+          "v1_selected": {
+            "action": {
+              "action_id": 27,
+              "action_type": "unit_build_city",
+              "actor_id": 102
+            },
+            "category": "city_founding",
+            "rationale": "found a city at or beyond the configured spacing",
+            "utility": 1000.0
+          },
+          "v2_pressure_valid": true,
+          "v2_selected": {
+            "action": {
+              "action_id": 27,
+              "action_type": "unit_build_city",
+              "actor_id": 102
+            },
+            "category": "city_founding",
+            "rationale": "found a city at or beyond the configured spacing",
+            "utility": 1000.0
+          },
+          "v2_selection_legal": true
+        }
+      ],
+      "snapshot_replay_safe_and_legal": true,
+      "truth_unchanged": true,
+      "v1_byte_exact": true,
+      "v1_replay_hash": "520f9105c62bd9a09e5e3617a3606209c728581387e2964fd8226db3dfc077df",
+      "v2_deterministic": true,
+      "v2_pressure_hash": "bd9a070690cf133e7bc279be5817d10d752b30bfaee254879f7e85e00c0fd241",
+      "valid": true,
+      "verification_hash": "2279d7cea1375327670ecd8caf2768f3d6abdef5f0019a06678e250a18d066c3"
+    }
+  },
+  "ct1_calibrated_scalar": {
+    "authority_rate": 1.0,
+    "calibrated_mae": 0.026716283864095865,
+    "calibrated_rmse": 0.03374200684099602,
+    "frozen_model_read_only": true,
+    "heldout_rows": 864,
+    "interval_coverage": 1.0,
+    "mae_improvement": 0.10234737236852395,
+    "maximum_confidence_half_width": 0.3395253789351549,
+    "mechanism_gate_pass": true,
+    "minimum_exact_support": 64,
+    "model_state_hash": "00a2fa866b10b792f59943fef6882fef3efb03136dc4c20ab79450b0de49d8a3",
+    "raw_mae": 0.1290636562326198,
+    "replay_byte_exact": true,
+    "split_contract": "disjoint deterministic train/heldout seeds; exact category+lifecycle+goal support only",
+    "training_observations": 1728,
+    "update_scope": "control-model-only"
+  },
+  "ct2_ct3_candidate_recall": {
+    "cases": 300,
+    "corrected_probe_recall": 0.99,
+    "corrected_probe_recall_gain": 0.14,
+    "ct2_mechanism_gate_pass": true,
+    "ct3_mechanism_gate_pass": true,
+    "deterministic_bridge_recall": 0.85,
+    "deterministic_bridge_recall_gain": 0.6,
+    "historical_founding_candidate_protected": true,
+    "mean_case_latency_ms": 0.10619237087666988,
+    "safety_protection_rate": 1.0,
+    "scalar_top_k_recall": 0.25,
+    "terminal_protection_rate": 1.0
+  },
+  "ct4_path_persistence": {
+    "decisions": 5120,
+    "engine_gameplay_gate_pass": false,
+    "engine_gameplay_gate_reason": "paired engine diagnostic has not completed",
+    "maximum_priority_regret": 0.012556219480640063,
+    "mean_decision_latency_ms": 0.04041492420583381,
+    "mean_priority_regret": 0.0054948373860369115,
+    "offline_mechanism_gate_pass": true,
+    "persistent_switches": 0,
+    "retained_by_dwell_or_hysteresis": 0,
+    "scalar_switches": 5056,
+    "switch_reduction": 1.0
+  },
+  "ct5_source_sink_entry": {
+    "entry_gate_pass": false,
+    "reason": "CT4 paired engine diagnostic and route-allocation error attribution are still required"
+  },
+  "evaluation_scope": "synthetic mechanism and captured-snapshot replay; claim-ineligible for FreeCiv score or win rate",
+  "offline_valid": true,
+  "schema_version": "1.0",
+  "semantic_hash": "efcd1f91c728502ae608af0a0b465b819140236b66eb8a466a0d58d7ee5e1b1a"
+}

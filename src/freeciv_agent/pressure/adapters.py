@@ -1,5 +1,6 @@
 """Adapters from existing FreeCiv proof and impact artifacts into PF-PLN."""
 
+import math
 import time
 from dataclasses import dataclass, replace
 from types import SimpleNamespace
@@ -713,6 +714,16 @@ class ImpactPressureRanker(object):
             candidate_by_operation, diagnostics)
         return tuple(scores), None
 
+    def _path_persistent_scores(
+            self, snapshot, scores,
+            candidate_by_operation,
+            teleological_artifact):
+        """Compatibility hook; scalar-v1 has no path persistence."""
+        del (
+            snapshot, candidate_by_operation,
+            teleological_artifact)
+        return tuple(scores), None
+
     def _whole_packet_schedule(
             self, operations, scores):
         """Compatibility hook; scalar-v1 keeps fractional diagnostics only."""
@@ -1074,6 +1085,11 @@ class ImpactPressureRanker(object):
                     + sum(
                         row.reason == "score_alignment_deadline"
                         for row in scores))
+        scores, path_persistence_artifact = (
+            self._path_persistent_scores(
+                snapshot, tuple(scores),
+                candidate_by_operation,
+                teleological_artifact))
         scores, bridge_artifact = self._bridge_scalar_scores(
             snapshot, tuple(operations),
             candidate_by_operation, tuple(scores),
@@ -1110,6 +1126,9 @@ class ImpactPressureRanker(object):
             artifact["teleology"] = teleological_artifact
         if bridge_artifact is not None:
             artifact["bridge"] = bridge_artifact
+        if path_persistence_artifact is not None:
+            artifact["path_persistence"] = (
+                path_persistence_artifact)
         if packet_schedule is not None:
             artifact["packet_schedule"] = (
                 packet_schedule.to_dict())
@@ -1156,7 +1175,12 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             score_alignment_utility_tolerance=0.0,
             policy=None, teleological_enabled=False,
             bridge_scalar_enabled=False,
-            bridge_scalar_config=None):
+            bridge_scalar_config=None,
+            transition_value_model=None,
+            transition_value_authority_enabled=False,
+            path_persistence_enabled=False,
+            path_persistence_config=None,
+            path_persistence_maximum_priority_regret=0.05):
         super().__init__(
             config=config,
             conductance_state=conductance_state,
@@ -1175,9 +1199,70 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
         if bridge_scalar_enabled and not teleological_enabled:
             raise ValueError(
                 "bridge_scalar requires teleological scoring")
+        if not isinstance(
+                transition_value_authority_enabled, bool):
+            raise TypeError(
+                "transition value authority must be boolean")
+        if (transition_value_authority_enabled
+                and transition_value_model is None):
+            raise ValueError(
+                "transition value authority requires a model")
+        if (transition_value_model is not None
+                and not teleological_enabled):
+            raise ValueError(
+                "transition value calibration requires teleology")
+        if (transition_value_model is not None
+                and (
+                    not callable(getattr(
+                        transition_value_model,
+                        "estimate", None))
+                    or not callable(getattr(
+                        transition_value_model,
+                        "observe", None)))):
+            raise TypeError(
+                "transition value model has wrong interface")
+        if not isinstance(path_persistence_enabled, bool):
+            raise TypeError(
+                "path persistence setting must be boolean")
+        if (path_persistence_enabled
+                and not transition_value_authority_enabled):
+            raise ValueError(
+                "path persistence requires calibrated "
+                "transition-value authority")
+        persistence_regret = float(
+            path_persistence_maximum_priority_regret)
+        if (not math.isfinite(persistence_regret)
+                or persistence_regret < 0.0):
+            raise ValueError(
+                "path persistence priority regret "
+                "must be non-negative")
         self.teleological_enabled = teleological_enabled
         self.bridge_scalar_enabled = bridge_scalar_enabled
         self.bridge_scalar_config = bridge_scalar_config
+        self.transition_value_model = (
+            transition_value_model)
+        self.transition_value_authority_enabled = (
+            transition_value_authority_enabled)
+        self.path_persistence_enabled = (
+            path_persistence_enabled)
+        self.path_persistence_maximum_priority_regret = (
+            persistence_regret)
+        self._path_persistence = None
+        if path_persistence_enabled:
+            from .scalar_baseline import (
+                ScalarBaselineConfig,
+                SmoothedScalarController,
+            )
+            if (path_persistence_config is not None
+                    and not isinstance(
+                        path_persistence_config,
+                        ScalarBaselineConfig)):
+                raise TypeError(
+                    "path persistence config has wrong type")
+            self._path_persistence = (
+                SmoothedScalarController(
+                    path_persistence_config))
+        self._pending_transition_predictions = {}
         self.engine = PressureEngineV2(
             self.config, policy=self.v2_policy)
 
@@ -1219,8 +1304,7 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                 demand.safety,
                 demand.total)
         registries = {}
-        decorated = []
-        estimates = []
+        modeled_rows = []
         current_turn = float(getattr(snapshot, "turn", 0))
         for operation in operations:
             candidate = candidate_by_operation[
@@ -1272,6 +1356,45 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                 transition, goal_id)
             expected_relief = max(
                 0.0, current_loss - expected_state_cost)
+            transition_value = None
+            transition_key = None
+            if self.transition_value_model is not None:
+                from .transition_value import (
+                    TransitionValueKey,
+                    candidate_lifecycle_state,
+                )
+                transition_key = TransitionValueKey(
+                    action_category=str(
+                        candidate.category),
+                    lifecycle_state=(
+                        candidate_lifecycle_state(
+                            candidate)),
+                    goal_id=goal_id)
+                transition_value = (
+                    self.transition_value_model.estimate(
+                        transition_key,
+                        min(1.0, expected_relief)))
+                self._pending_transition_predictions[
+                    candidate.action_key] = {
+                        "context_digest":
+                            structural_hash(
+                                snapshot.event_payload()
+                                if hasattr(
+                                    snapshot,
+                                    "event_payload")
+                                else {
+                                    "snapshot_id": getattr(
+                                        snapshot,
+                                        "snapshot_id",
+                                        None),
+                                    "turn": getattr(
+                                        snapshot,
+                                        "turn", None),
+                                }),
+                        "key": transition_key,
+                        "predicted_relief": min(
+                            1.0, expected_relief),
+                    }
             state_cost_rows = tuple(
                 (
                     outcome.probability,
@@ -1293,17 +1416,6 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                     state_cost_values
                     or (expected_total_cost,)),
                 expected_total_cost)
-            cost_to_go = CostToGoEstimate(
-                goal_id=goal_id,
-                expected_loss=expected_total_cost,
-                lower_bound=min(lower, expected_total_cost),
-                upper_bound=upper,
-                horizon=max(
-                    0, int(horizon_turn) - int(current_turn)),
-                estimator_id=transition.model_id,
-                feature_digest=structural_hash(
-                    transition.to_dict()),
-                calibrated=False)
             variance = sum(
                 float(probability)
                 * (float(value) - expected_state_cost) ** 2
@@ -1326,42 +1438,197 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                 float(outcome.completion_turn)
                 for outcome in transition.outcomes
                 if outcome.completion_turn is not None)
+            modeled_rows.append({
+                "category": candidate.category,
+                "completion_turns": completion_turns,
+                "current_goal_loss": float(current_loss),
+                "expected_relief": expected_relief,
+                "expected_total_cost": expected_total_cost,
+                "goal_id": goal_id,
+                "lower_cost": lower,
+                "operation": operation,
+                "operation_id": operation.operation_id,
+                "resource_use": resource_use,
+                "transition": transition.to_dict(),
+                "transition_object": transition,
+                "transition_value": transition_value,
+                "transition_value_key": transition_key,
+                "upper_cost": upper,
+                "variance": variance,
+            })
+        calibration_rows = tuple(
+            row["transition_value"]
+            for row in modeled_rows
+            if row["transition_value"] is not None)
+        authority_active = bool(
+            self.transition_value_authority_enabled
+            and calibration_rows
+            and len(calibration_rows) == len(modeled_rows)
+            and all(
+                row.calibrated
+                for row in calibration_rows))
+        if not self.transition_value_authority_enabled:
+            authority_reason = "authority-disabled"
+        elif not calibration_rows:
+            authority_reason = "model-unavailable"
+        elif len(calibration_rows) != len(modeled_rows):
+            authority_reason = "incomplete-candidate-coverage"
+        elif not all(
+                row.calibrated for row in calibration_rows):
+            authority_reason = "candidate-calibration-abstained"
+        else:
+            authority_reason = None
+        decorated = []
+        estimates = []
+        for row in modeled_rows:
+            operation = row["operation"]
+            transition = row["transition_object"]
+            expected_relief = float(
+                row["expected_relief"])
+            transition_value = row[
+                "transition_value"]
+            selected_relief = (
+                min(
+                    row["current_goal_loss"],
+                    transition_value.decision_relief)
+                if authority_active
+                and transition_value is not None
+                else expected_relief)
+            if authority_active:
+                calibrated_expected_cost = max(
+                    0.0,
+                    row["current_goal_loss"]
+                    - selected_relief)
+                calibrated_lower_cost = max(
+                    0.0,
+                    row["current_goal_loss"]
+                    - min(
+                        row["current_goal_loss"],
+                        transition_value.upper_bound))
+                calibrated_upper_cost = max(
+                    calibrated_expected_cost,
+                    row["current_goal_loss"]
+                    - min(
+                        row["current_goal_loss"],
+                        transition_value.lower_bound))
+                estimator_id = "{}:{}".format(
+                    transition.model_id,
+                    transition_value.estimator_id)
+            else:
+                calibrated_expected_cost = row[
+                    "expected_total_cost"]
+                calibrated_lower_cost = min(
+                    row["lower_cost"],
+                    calibrated_expected_cost)
+                calibrated_upper_cost = max(
+                    row["upper_cost"],
+                    calibrated_expected_cost)
+                estimator_id = transition.model_id
+            cost_to_go = CostToGoEstimate(
+                goal_id=row["goal_id"],
+                expected_loss=calibrated_expected_cost,
+                lower_bound=min(
+                    calibrated_lower_cost,
+                    calibrated_expected_cost),
+                upper_bound=max(
+                    calibrated_upper_cost,
+                    calibrated_expected_cost),
+                horizon=max(
+                    0, int(horizon_turn)
+                    - int(current_turn)),
+                estimator_id=estimator_id,
+                feature_digest=structural_hash({
+                    "authority_active":
+                        authority_active,
+                    "transition":
+                        row["transition"],
+                    "transition_value": (
+                        transition_value.to_dict()
+                        if transition_value is not None
+                        else None),
+                }),
+                calibrated=authority_active)
             advantage = TypedAdvantage(
-                goal_id=goal_id,
+                goal_id=row["goal_id"],
                 target_id=operation.atom_id,
                 mode=operation.mode,
-                expected_relief=expected_relief,
-                relief_variance=variance,
+                expected_relief=selected_relief,
+                relief_variance=(
+                    transition_value.residual_variance
+                    if authority_active
+                    and transition_value is not None
+                    else row["variance"]),
                 information_gain=operation.information_gain,
                 option_value=operation.future_option_value,
                 predicted_latency=(
-                    max(0.0, min(completion_turns) - current_turn)
-                    if completion_turns else 0.0),
+                    max(
+                        0.0,
+                        min(row["completion_turns"])
+                        - current_turn)
+                    if row["completion_turns"] else 0.0),
                 predicted_resource_use=tuple(
-                    sorted(resource_use.items())),
-                estimator_id=transition.model_id)
+                    sorted(row["resource_use"].items())),
+                estimator_id=estimator_id)
             leverage = LeverageEstimate(
-                goal_id, operation.atom_id,
-                expected_relief,
+                row["goal_id"], operation.atom_id,
+                selected_relief,
                 "counterfactual",
-                transition.modeled_probability,
+                (
+                    1.0 - min(
+                        1.0,
+                        transition_value
+                        .confidence_half_width)
+                    if authority_active
+                    and transition_value is not None
+                    else transition
+                    .modeled_probability),
                 (
                     "one-step-grounded-impact-projection",
                     "risk-penalty-applied-separately-once",
+                    (
+                        "category-lifecycle-calibrated"
+                        if authority_active
+                        else "transition-calibration-abstained"),
                 ))
             decorated.append(replace(
-                operation, typed_advantages=(advantage,)))
+                operation,
+                typed_advantages=(advantage,)))
             estimates.append({
                 "advantage": advantage.to_dict(),
-                "category": candidate.category,
+                "category": row["category"],
                 "cost_to_go": cost_to_go.to_dict(),
-                "current_goal_loss": float(current_loss),
-                "goal_id": goal_id,
+                "current_goal_loss":
+                    row["current_goal_loss"],
+                "goal_id": row["goal_id"],
                 "leverage": leverage.to_dict(),
-                "operation_id": operation.operation_id,
-                "transition": transition.to_dict(),
+                "operation_id": row["operation_id"],
+                "transition": row["transition"],
+                "transition_value": (
+                    transition_value.to_dict()
+                    if transition_value is not None
+                    else None),
             })
         artifact = {
+            "calibration": {
+                "all_candidate_support": bool(
+                    calibration_rows
+                    and len(calibration_rows)
+                    == len(modeled_rows)
+                    and all(
+                        value.calibrated
+                        for value in calibration_rows)),
+                "authority_active":
+                    authority_active,
+                "authority_requested":
+                    self
+                    .transition_value_authority_enabled,
+                "gate_reason": authority_reason,
+                "model": (
+                    self.transition_value_model
+                    .decision_snapshot()
+                    if self.transition_value_model
+                    is not None else None),
+            },
             "enabled": True,
             "estimator_hierarchy": (
                 "exact-terminal",
@@ -1383,6 +1650,39 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
         }
         artifact["artifact_hash"] = structural_hash(artifact)
         return tuple(decorated), artifact
+
+    def record_transition_outcome(
+            self, candidate, effect_observed,
+            realized_relief, relief_source,
+            feedback_id):
+        """Pair the selected prediction with authoritative planner relief."""
+        if self.transition_value_model is None:
+            return None
+        prediction = self._pending_transition_predictions.get(
+            candidate.action_key)
+        if prediction is None:
+            return None
+        if self.transition_value_model.read_only:
+            # Evaluation consumes outcomes without mutating the frozen fit.
+            return None
+        from .transition_value import (
+            TransitionValueObservation,
+        )
+        observation = TransitionValueObservation(
+            observation_id=str(feedback_id),
+            key=prediction["key"],
+            predicted_relief=float(
+                prediction["predicted_relief"]),
+            realized_relief=float(realized_relief),
+            effect_observed=bool(effect_observed),
+            relief_source=str(relief_source),
+            context_digest=str(
+                prediction["context_digest"]),
+            # The live policy is deterministic. Do not manufacture an
+            # off-policy propensity or inverse-propensity weight.
+            selection_propensity=None)
+        return self.transition_value_model.observe(
+            observation)
 
     def _bridge_scalar_scores(
             self, snapshot, operations,
@@ -1439,6 +1739,203 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                     row.operation_id, len(rank)),
                 original[row.operation_id])))
         return ordered, decision.to_dict()
+
+    @staticmethod
+    def _candidate_corridor_id(candidate):
+        from .transition_value import (
+            candidate_lifecycle_state,
+        )
+        action = candidate.action or {}
+        target = action.get("target")
+        target = target if isinstance(
+            target, dict) else {}
+        actor_id = action.get("actor_id")
+        city_id = action.get(
+            "city_id", target.get("city_id"))
+        return "path-corridor:{}".format(
+            structural_hash({
+                "action_type": action.get(
+                    "action_type"),
+                "actor_id": actor_id,
+                "category": candidate.category,
+                "city_id": city_id,
+                "lifecycle_state":
+                    candidate_lifecycle_state(
+                        candidate),
+            })[:24])
+
+    def _path_persistent_scores(
+            self, snapshot, scores,
+            candidate_by_operation,
+            teleological_artifact):
+        scores = tuple(scores)
+        if not self.path_persistence_enabled:
+            return scores, None
+        calibration = (
+            teleological_artifact.get(
+                "calibration", {})
+            if isinstance(
+                teleological_artifact, dict)
+            else {})
+        if not calibration.get(
+                "authority_active", False):
+            return scores, {
+                "authority_active": False,
+                "fallback_reason":
+                    "calibrated-transition-authority-required",
+                "reordered": False,
+                "schema_version": "1.0",
+            }
+        scalar_selected = next(
+            (row for row in scores
+             if row.admissible), None)
+        if scalar_selected is None:
+            self._path_persistence.reset()
+            return scores, {
+                "authority_active": True,
+                "fallback_reason":
+                    "no-admissible-candidate",
+                "reordered": False,
+                "schema_version": "1.0",
+            }
+        scalar_candidate = candidate_by_operation[
+            scalar_selected.operation_id]
+        if (scalar_candidate.terminal_on_accept
+                or not scalar_selected
+                .operation.reversible):
+            self._path_persistence.reset()
+            return scores, {
+                "authority_active": True,
+                "fallback_reason":
+                    "terminal-or-irreversible-scalar-protected",
+                "reordered": False,
+                "schema_version": "1.0",
+            }
+        eligible = tuple(
+            row for row in scores
+            if (
+                row.admissible
+                and row.operation.reversible
+                and not candidate_by_operation[
+                    row.operation_id]
+                .terminal_on_accept))
+        corridor_by_operation = dict(
+            (
+                row.operation_id,
+                self._candidate_corridor_id(
+                    candidate_by_operation[
+                        row.operation_id]))
+            for row in eligible)
+        corridor_priorities = {}
+        for row in eligible:
+            corridor = corridor_by_operation[
+                row.operation_id]
+            corridor_priorities[corridor] = max(
+                corridor_priorities.get(
+                    corridor,
+                    float("-inf")),
+                float(row.priority))
+        from .scalar_baseline import ScalarRouteBid
+        bids = tuple(
+            ScalarRouteBid(
+                route_id=corridor,
+                instantaneous_score=priority)
+            for corridor, priority
+            in sorted(corridor_priorities.items()))
+        self._path_persistence.retain_routes(
+            corridor_priorities)
+        persistence = self._path_persistence.rank(
+            bids, step=int(getattr(
+                snapshot, "turn", 0)))
+        selected_corridor = (
+            persistence.selected_route_id)
+        scalar_corridor = corridor_by_operation[
+            scalar_selected.operation_id]
+        selected_score = next(
+            (
+                row for row in eligible
+                if corridor_by_operation[
+                    row.operation_id]
+                == selected_corridor),
+            scalar_selected)
+        regret = max(
+            0.0,
+            float(scalar_selected.priority)
+            - float(selected_score.priority))
+        rejected = bool(
+            selected_corridor != scalar_corridor
+            and regret
+            > self
+            .path_persistence_maximum_priority_regret)
+        if rejected:
+            # Do not let rejected history bias the next decision. Re-anchor
+            # the cheap comparator on the current calibrated ordering.
+            self._path_persistence.reset()
+            self._path_persistence.retain_routes(
+                corridor_priorities)
+            persistence = (
+                self._path_persistence.rank(
+                    bids, step=int(getattr(
+                        snapshot, "turn", 0))))
+            selected_corridor = scalar_corridor
+        reordered = (
+            not rejected
+            and selected_corridor
+            != scalar_corridor)
+        if reordered:
+            ordered = (
+                tuple(
+                    row for row in scores
+                    if (
+                        row.operation_id
+                        in corridor_by_operation
+                        and corridor_by_operation[
+                            row.operation_id]
+                        == selected_corridor))
+                + tuple(
+                    row for row in scores
+                    if (
+                        row.operation_id
+                        not in corridor_by_operation
+                        or corridor_by_operation[
+                            row.operation_id]
+                        != selected_corridor)))
+        else:
+            ordered = scores
+        artifact = {
+            "authority_active": True,
+            "corridors": [
+                {
+                    "operation_ids": [
+                        operation_id
+                        for operation_id in sorted(
+                            corridor_by_operation)
+                        if corridor_by_operation[
+                            operation_id]
+                        == corridor],
+                    "priority": float(
+                        corridor_priorities[corridor]),
+                    "route_id": corridor,
+                }
+                for corridor in sorted(
+                    corridor_priorities)
+            ],
+            "decision": persistence.to_dict(),
+            "fallback_reason": (
+                "priority-regret-exceeded"
+                if rejected else None),
+            "maximum_priority_regret": float(
+                self
+                .path_persistence_maximum_priority_regret),
+            "priority_regret": float(regret),
+            "reordered": bool(reordered),
+            "scalar_corridor": scalar_corridor,
+            "schema_version": "1.0",
+            "selected_corridor": selected_corridor,
+        }
+        artifact["artifact_hash"] = structural_hash(
+            artifact)
+        return tuple(ordered), artifact
 
     @staticmethod
     def _whole_packet_schedule(

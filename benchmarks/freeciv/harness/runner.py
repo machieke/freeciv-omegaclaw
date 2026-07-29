@@ -299,7 +299,8 @@ class HarnessRunner(object):
             os.makedirs(archive, exist_ok=True)
             for name in (
                     "manifest.json", "status.json", "events.jsonl",
-                    "pressure-conductance.json"):
+                    "pressure-conductance.json",
+                    "pressure-conductance.json.transition-value.json"):
                 source = os.path.join(run_dir, name)
                 if os.path.isfile(source):
                     shutil.copy2(source, os.path.join(archive, name))
@@ -310,6 +311,13 @@ class HarnessRunner(object):
             run_dir, "pressure-conductance.json")
         if os.path.exists(pressure_state_path):
             os.remove(pressure_state_path)
+        transition_value_state_path = (
+            pressure_state_path
+            + ".transition-value.json")
+        if os.path.exists(
+                transition_value_state_path):
+            os.remove(
+                transition_value_state_path)
         started_at = _utc_now()
         manifest["runtime"]["started_at"] = started_at
         manifest["attempt_id"] = structural_hash([

@@ -8,6 +8,7 @@ from ..events.schema import canonical_json_bytes, structural_hash
 from ..flow_control import (
     AttentionState,
     CorrectedProbeEstimator,
+    DecisionSafeCandidateSelector,
     DeterministicMessagePotentialEstimator,
     FlowCandidateFactory,
     FlowDiagnosticsConfig,
@@ -65,6 +66,8 @@ class UnifiedImpactFlowConfig:
     turnover_fraction: float = 0.25
     candidate_region_relative_overlap: float = 0.50
     maximum_candidate_regions_per_goal: int = 8
+    protected_candidate_union_enabled: bool = False
+    protected_scalar_top_k: int = 3
     cfl_limit: float = 0.90
     diffusion: float = 0.03
     projection_tolerance: float = 1.0e-8
@@ -95,6 +98,18 @@ class UnifiedImpactFlowConfig:
                     or value < 1):
                 raise ValueError(
                     "{} must be a positive integer".format(name))
+        if (isinstance(self.protected_scalar_top_k, bool)
+                or not isinstance(
+                    self.protected_scalar_top_k, int)
+                or self.protected_scalar_top_k < 1):
+            raise ValueError(
+                "protected scalar top-k must be positive")
+        if not isinstance(
+                self.protected_candidate_union_enabled,
+                bool):
+            raise TypeError(
+                "protected candidate union setting "
+                "must be boolean")
         for name in (
                 "probe_reference_fraction",
                 "probe_minimum_ess_fraction",
@@ -190,6 +205,12 @@ class UnifiedImpactFlowConfig:
                 sorted(self.packet_budgets)),
             "potential_iterations":
                 int(self.potential_iterations),
+            "protected_candidate_union_enabled":
+                bool(
+                    self
+                    .protected_candidate_union_enabled),
+            "protected_scalar_top_k":
+                int(self.protected_scalar_top_k),
             "probe_current_following_gain":
                 float(
                     self.probe_current_following_gain),
@@ -411,6 +432,8 @@ class UnifiedImpactFlowEngine:
             correction_tolerance=(
                 self.config.mass_tolerance))
         self.candidate_factory = FlowCandidateFactory()
+        self.protected_selector = (
+            DecisionSafeCandidateSelector())
         self.packet_integrator = FlowPacketIntegrator()
         self.health_monitor = FlowHealthMonitor(
             FlowDiagnosticsConfig(
@@ -931,13 +954,83 @@ class UnifiedImpactFlowEngine:
                     .candidate_region_relative_overlap,
                     self.config
                     .maximum_candidate_regions_per_goal))
-            if not region_overlaps:
+            if (not region_overlaps
+                    and not self.config
+                    .protected_candidate_union_enabled):
                 raise ValueError(
                     "flow emitted no eligible operation")
-            region_operation_ids = frozenset(
-                row[0] for row in region_overlaps)
-            operation_id, node_id, value = (
-                region_overlaps[0])
+            protected_union = None
+            overlap_by_operation = dict(
+                (row[0], row[2])
+                for row in eligible_overlaps)
+            if self.config\
+                    .protected_candidate_union_enabled:
+                scalar_ranked_ids = tuple(
+                    row.operation_id
+                    for row in score_rows
+                    if row.admissible)
+                terminal_ids = tuple(
+                    operation_id
+                    for operation_id, candidate
+                    in sorted(
+                        candidate_by_operation.items())
+                    if candidate.terminal_on_accept)
+                safety_active = any(
+                    row.admissible
+                    and not row.operation
+                    .safety_compatible
+                    for row in score_rows)
+                safety_ids = (
+                    tuple(
+                        row.operation_id
+                        for row in score_rows
+                        if (
+                            row.admissible
+                            and row.operation
+                            .safety_compatible))
+                    if safety_active else ())
+                protected_union = (
+                    self.protected_selector.select(
+                        scalar_ranked_ids,
+                        tuple(sorted(
+                            candidate_by_operation)),
+                        bridge_operation_ids=tuple(
+                            row[0]
+                            for row in region_overlaps),
+                        terminal_operation_ids=(
+                            terminal_ids),
+                        safety_operation_ids=(
+                            safety_ids),
+                        scalar_top_k=(
+                            self.config
+                            .protected_scalar_top_k),
+                        readout_policy=(
+                            "corrected-probe-union")))
+                region_operation_ids = frozenset(
+                    protected_union.operation_ids)
+                operation_id = next(
+                    row.operation_id
+                    for row in score_rows
+                    if (
+                        row.admissible
+                        and row.operation_id
+                        in region_operation_ids))
+                node_id = flow_node_by_operation[
+                    operation_id]
+                value = overlap_by_operation.get(
+                    operation_id, 0.0)
+                candidate_regions = (
+                    tuple(candidate_regions)
+                    + ({
+                        "protected_candidate_union":
+                            protected_union.to_dict(),
+                    },))
+            else:
+                region_operation_ids = frozenset(
+                    row[0]
+                    for row in region_overlaps)
+                operation_id, node_id, value = (
+                    region_overlaps[0])
             score = score_by_operation[operation_id]
             # Overlap selects a bounded region independently for each goal;
             # typed PF priority scores concrete operations only within that
@@ -1069,6 +1162,16 @@ class UnifiedImpactFlowEngine:
                 (row.health.effective_sample_fraction
                  for row in healthy_batches),
                 default=0.5)
+            calibration = (
+                pressure_artifact.get(
+                    "teleology", {}).get(
+                        "calibration", {})
+                if isinstance(
+                    pressure_artifact, dict)
+                else {})
+            calibrated = bool(
+                calibration.get(
+                    "authority_active", False))
             return ControlDecision(
                 ordered_candidate_keys=ordered_keys,
                 selected_candidate_key=selected_key,
@@ -1080,7 +1183,7 @@ class UnifiedImpactFlowEngine:
                         row.action_key for row
                         in query.grounded_candidates
                         if row.action_key == selected_key],
-                    "calibrated": False,
+                    "calibrated": calibrated,
                     "confidence": float(confidence),
                     "controller_identity":
                         self.ENGINE_IDENTITY,
@@ -1143,6 +1246,10 @@ class UnifiedImpactFlowEngine:
                             row.to_dict()
                             for row in requested_currents],
                         "transport_readout": {
+                            "candidate_union": (
+                                protected_union.to_dict()
+                                if protected_union
+                                is not None else None),
                             "candidate_regions": list(
                                 candidate_regions),
                             "candidate_readouts": [
@@ -1187,8 +1294,13 @@ class UnifiedImpactFlowEngine:
                                     flow_node_by_operation[
                                         selected_operation_id]]]),
                         },
-                        "signal_use_ledger":
-                            default_signal_use_ledger().to_dict(),
+                        "signal_use_ledger": (
+                            protected_union
+                            .signal_ledger.to_dict()
+                            if protected_union
+                            is not None else
+                            default_signal_use_ledger()
+                            .to_dict()),
                         "transport":
                             semantic_transport,
                     },

@@ -180,6 +180,11 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "unified_flow_advisory_pilot_v1": 40,
             "unified_flow_advisory_confirmatory_v1": 100,
             "unified_flow_advisory_terminal_guard_diagnostic_v2": 10,
+            "transition_value_collection_diagnostic_v1": 10,
+            "calibrated_scalar_diagnostic_v1": 10,
+            "protected_bridge_readout_diagnostic_v1": 10,
+            "corrected_probe_readout_diagnostic_v1": 10,
+            "path_persistence_diagnostic_v1": 10,
         }
     seed_sets = [
         set(row["seeds"]) for row in paired["cohorts"].values()

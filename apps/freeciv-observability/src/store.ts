@@ -15,6 +15,9 @@ const PF_PLN_EVENT_TYPES = new Set([
   "llm_gateway_result",
   "rule_parameter_updated",
   "teleology_estimated",
+  "transition_value_estimated",
+  "transition_value_updated",
+  "path_persistence_applied",
   "reverse_operator_applied",
   "requirement_set_materialized",
   "bridge_estimated",
@@ -57,6 +60,9 @@ export const foldEvents = (allEvents: TraceEvent[], cursor: Cursor): ReplayState
   const operationScores: TraceEvent[] = [];
   const conductanceUpdates: TraceEvent[] = [];
   const teleologyEstimates: TraceEvent[] = [];
+  const transitionValueEstimates: TraceEvent[] = [];
+  const transitionValueUpdates: TraceEvent[] = [];
+  const pathPersistenceEvents: TraceEvent[] = [];
   const requirementSets: TraceEvent[] = [];
   const bridgeEstimates: TraceEvent[] = [];
   const flowProjections: TraceEvent[] = [];
@@ -124,6 +130,9 @@ export const foldEvents = (allEvents: TraceEvent[], cursor: Cursor): ReplayState
     if (event.type === "operation_scored") operationScores.push(event);
     if (event.type === "conductance_updated") conductanceUpdates.push(event);
     if (event.type === "teleology_estimated") teleologyEstimates.push(event);
+    if (event.type === "transition_value_estimated") transitionValueEstimates.push(event);
+    if (event.type === "transition_value_updated") transitionValueUpdates.push(event);
+    if (event.type === "path_persistence_applied") pathPersistenceEvents.push(event);
     if (event.type === "requirement_set_materialized") requirementSets.push(event);
     if (event.type === "bridge_estimated") bridgeEstimates.push(event);
     if (event.type === "flow_projected") flowProjections.push(event);
@@ -145,7 +154,8 @@ export const foldEvents = (allEvents: TraceEvent[], cursor: Cursor): ReplayState
   return {
     cursor, events, eventsById, atoms, plans, proofs, pfPlnEvents,
     pressurePropagations, operationScores, conductanceUpdates, quarantines, metrics,
-    teleologyEstimates, requirementSets, bridgeEstimates, flowProjections,
+    teleologyEstimates, transitionValueEstimates, transitionValueUpdates,
+    pathPersistenceEvents, requirementSets, bridgeEstimates, flowProjections,
     packetReservations, packetReturns, flowSelections, candidateRevalidations,
     controllerFallbacks, controlOutcomes,
     unknown, loggingGaps, snapshots, invalidations, verifications, actionResults,

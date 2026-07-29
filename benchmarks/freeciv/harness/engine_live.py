@@ -1873,6 +1873,22 @@ async def _play(run_dir, manifest, context):
                         .last_control_outcome_record,
                         caused_by=(parent,)))
                 parent = outcome_event["event_id"]
+                if (impact_planner
+                        .last_transition_value_update
+                        is not None):
+                    transition_event = (
+                        control_event_emitter
+                        .emit_transition_value_update(
+                            writer, int(after.turn),
+                            impact_planner
+                            .last_control_outcome_query,
+                            impact_planner
+                            .last_control_outcome_decision,
+                            impact_planner
+                            .last_transition_value_update,
+                            caused_by=(parent,)))
+                    parent = transition_event[
+                        "event_id"]
             conductance_updates = (
                 (() if conductance_update is None else (conductance_update,))
                 + impact_planner.drain_conductance_updates())

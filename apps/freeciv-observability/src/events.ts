@@ -42,6 +42,9 @@ export interface ReplayState {
   operationScores: TraceEvent[];
   conductanceUpdates: TraceEvent[];
   teleologyEstimates: TraceEvent[];
+  transitionValueEstimates: TraceEvent[];
+  transitionValueUpdates: TraceEvent[];
+  pathPersistenceEvents: TraceEvent[];
   requirementSets: TraceEvent[];
   bridgeEstimates: TraceEvent[];
   flowProjections: TraceEvent[];

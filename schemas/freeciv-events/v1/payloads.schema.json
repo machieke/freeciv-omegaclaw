@@ -36,6 +36,9 @@
       }
     },
     "teleology_estimated": {"$ref": "#/$defs/controlAggregate"},
+    "transition_value_estimated": {"$ref": "#/$defs/controlAggregate"},
+    "transition_value_updated": {"$ref": "#/$defs/controlAggregate"},
+    "path_persistence_applied": {"$ref": "#/$defs/controlAggregate"},
     "reverse_operator_applied": {"$ref": "#/$defs/controlAggregate"},
     "requirement_set_materialized": {"$ref": "#/$defs/controlAggregate"},
     "bridge_estimated": {"$ref": "#/$defs/controlAggregate"},

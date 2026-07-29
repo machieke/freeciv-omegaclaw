@@ -879,7 +879,7 @@ button.atom-row { cursor: pointer; }.atom-row:hover { background: #0e2027; }.ato
   font: 500 7px/1.4 "JetBrains Mono"; }
 .pf-unified-status > footer code { color: var(--amber); }
 .pf-unified-telemetry { border-color: #294c55; }
-.pf-unified-pipeline { display: grid; grid-template-columns: repeat(8,minmax(86px,1fr));
+.pf-unified-pipeline { display: grid; grid-template-columns: repeat(10,minmax(86px,1fr));
   gap: 1px; background: var(--line); overflow: auto; }
 .pf-unified-pipeline button { min-width: 86px; display: grid; grid-template-columns: auto 1fr auto;
   gap: 6px; align-items: center; padding: 8px 9px; border: 0; background: #0a181e;
@@ -897,6 +897,66 @@ button.atom-row { cursor: pointer; }.atom-row:hover { background: #0e2027; }.ato
 .pf-unified-health span { color: var(--muted); text-transform: uppercase; font: 600 6px "JetBrains Mono"; }
 .pf-unified-health strong { grid-row: span 2; color: var(--cyan); font: 600 17px "JetBrains Mono"; }
 .pf-unified-health small { color: #627b83; font: 500 7px "JetBrains Mono"; }
+.pf-research-gates { display: grid; grid-template-columns: repeat(5,minmax(118px,1fr));
+  gap: 1px; border-top: 1px solid #2a4b54; background: var(--line); }
+.pf-research-gates > div { min-width: 0; display: grid; grid-template-columns: auto 1fr auto;
+  gap: 5px 8px; align-items: center; padding: 10px 11px; background: #08161b;
+  box-shadow: inset 0 2px #34464a; }
+.pf-research-gates > div.active { box-shadow: inset 0 2px var(--green); }
+.pf-research-gates > div.abstained { box-shadow: inset 0 2px var(--amber); }
+.pf-research-gates > div.experimental { box-shadow: inset 0 2px #8eb8ff; }
+.pf-research-gates span { color: var(--cyan); font: 600 7px "JetBrains Mono"; }
+.pf-research-gates strong { min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  color: #b8cdd2; text-transform: uppercase; white-space: nowrap;
+  font: 600 7px "JetBrains Mono"; }
+.pf-research-gates b { color: var(--muted); text-transform: uppercase;
+  font: 600 6px "JetBrains Mono"; }
+.pf-research-gates .active b { color: var(--green); }
+.pf-research-gates .abstained b { color: var(--amber); }
+.pf-research-gates .experimental b { color: #8eb8ff; }
+.pf-research-gates small { grid-column: 1/-1; overflow: hidden; text-overflow: ellipsis;
+  color: #607780; white-space: nowrap; font: 500 6px "JetBrains Mono"; }
+.pf-research-readout { display: grid; grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 1px; border-top: 1px solid var(--line); background: var(--line); }
+.pf-research-readout > section { min-width: 0; background: #09171c; }
+.pf-research-readout > section > header { min-height: 50px; display: flex; align-items: center;
+  justify-content: space-between; gap: 12px; padding: 9px 11px; border-bottom: 1px solid var(--line); }
+.pf-research-readout h4 { margin: 2px 0 0; color: #d3e3e6; font-size: 11px; }
+.pf-research-readout header button { padding: 5px 7px; border: 1px solid var(--line-strong);
+  background: #0e2229; color: var(--cyan); text-transform: uppercase;
+  font: 600 6px "JetBrains Mono"; cursor: pointer; }
+.pf-calibration-stats { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+.pf-calibration-stats > div { min-width: 0; display: grid; gap: 4px; padding: 8px 10px;
+  border-right: 1px solid #14272e; border-bottom: 1px solid #14272e; }
+.pf-calibration-stats span, .pf-latest-outcome > span, .pf-persistence-status > span {
+  color: var(--muted); text-transform: uppercase; font: 600 6px "JetBrains Mono"; }
+.pf-calibration-stats strong { overflow: hidden; text-overflow: ellipsis; color: #bcd2d6;
+  white-space: nowrap; font: 600 9px "JetBrains Mono"; }
+.pf-latest-outcome { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 5px 10px;
+  padding: 9px 10px; border: 0; background: rgba(93,216,208,.035); color: inherit;
+  text-align: left; cursor: pointer; }
+.pf-latest-outcome strong { color: var(--cyan); font: 600 8px "JetBrains Mono"; }
+.pf-latest-outcome i { padding: 0 4px; color: var(--muted); font-style: normal; }
+.pf-latest-outcome small { grid-column: 1/-1; overflow: hidden; color: #627b83;
+  text-overflow: ellipsis; white-space: nowrap; font: 500 6px "JetBrains Mono"; }
+.pf-union-summary { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px;
+  background: #14272e; }
+.pf-union-summary span { display: grid; gap: 3px; padding: 8px 5px; background: #0a191f;
+  color: var(--muted); text-align: center; text-transform: uppercase;
+  font: 500 6px "JetBrains Mono"; }
+.pf-union-summary b { color: var(--cyan); font-size: 11px; }
+.pf-union-members { max-height: 160px; overflow: auto; }
+.pf-union-members > div { display: grid; grid-template-columns: minmax(90px,1fr) minmax(120px,1.25fr);
+  gap: 9px; padding: 7px 10px; border-bottom: 1px solid #14272e; }
+.pf-union-members strong, .pf-union-members small { overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; font: 500 7px "JetBrains Mono"; }
+.pf-union-members strong { color: #c4d7db; }.pf-union-members small { color: #6e8990; }
+.pf-persistence-status { display: grid; grid-template-columns: minmax(100px,.7fr) minmax(100px,1fr);
+  gap: 5px 10px; align-items: center; }
+.pf-persistence-status > * { padding: 8px 10px; border-bottom: 1px solid #14272e; }
+.pf-persistence-status strong { color: #bcd2d6; font: 600 8px "JetBrains Mono"; }
+.pf-persistence-status small { grid-column: 1/-1; margin-top: -6px; padding-top: 0;
+  color: #627b83; font: 500 6px "JetBrains Mono"; }
 .pf-unified-signal-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr));
   gap: 1px; border-top: 1px solid var(--line); background: var(--line); }
 .pf-unified-signal-grid > section { min-width: 0; background: #08161b; }
@@ -1321,6 +1381,8 @@ button.pf-score-row:hover { background: #0d2026; }
   .pf-unified-decision { grid-template-columns: 1fr 1fr; }
   .pf-unified-decision > article { grid-column: 1/-1; }
   .pf-unified-signal-grid { grid-template-columns: 1fr; }
+  .pf-research-readout { grid-template-columns: 1fr; }
+  .pf-research-gates { grid-template-columns: repeat(3,minmax(120px,1fr)); }
   .pf-unified-health { grid-template-columns: repeat(3,minmax(120px,1fr)); }
   .proof-workbench.mode-split { grid-template-columns: 1fr; }
   .about-hero { grid-template-columns: minmax(0,1.35fr) minmax(230px,.65fr); }

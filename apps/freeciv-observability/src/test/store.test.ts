@@ -91,9 +91,12 @@ describe("event sourced replay", () => {
     const fallback = event(17, "controller_fallback", {}, 4, 7);
     const revalidation = event(18, "candidate_revalidated", {}, 4, 8);
     const outcome = event(19, "control_outcome_recorded", {}, 5, 1);
+    const transitionEstimate = event(20, "transition_value_estimated", {}, 5, 2);
+    const transitionUpdate = event(21, "transition_value_updated", {}, 5, 3);
+    const persistence = event(22, "path_persistence_applied", {}, 5, 4);
     const rows = [
       teleology, requirements, bridge, projection, packet, selection, fallback,
-      revalidation, outcome,
+      revalidation, outcome, transitionEstimate, transitionUpdate, persistence,
     ];
     const beforeOutcome = foldEvents(rows, { turn: 4, seq: 8 });
     expect(beforeOutcome.teleologyEstimates).toEqual([teleology]);
@@ -105,7 +108,11 @@ describe("event sourced replay", () => {
     expect(beforeOutcome.controllerFallbacks).toEqual([fallback]);
     expect(beforeOutcome.candidateRevalidations).toEqual([revalidation]);
     expect(beforeOutcome.controlOutcomes).toEqual([]);
-    expect(foldEvents(rows, { turn: 5, seq: 1 }).controlOutcomes).toEqual([outcome]);
+    const afterResearchEvents = foldEvents(rows, { turn: 5, seq: 4 });
+    expect(afterResearchEvents.controlOutcomes).toEqual([outcome]);
+    expect(afterResearchEvents.transitionValueEstimates).toEqual([transitionEstimate]);
+    expect(afterResearchEvents.transitionValueUpdates).toEqual([transitionUpdate]);
+    expect(afterResearchEvents.pathPersistenceEvents).toEqual([persistence]);
   });
 
   it("folds a representative 200-turn, 50k-atom trace within the UI budgets", () => {
