@@ -713,6 +713,12 @@ class ImpactPressureRanker(object):
             candidate_by_operation, diagnostics)
         return tuple(scores), None
 
+    def _whole_packet_schedule(
+            self, operations, scores):
+        """Compatibility hook; scalar-v1 keeps fractional diagnostics only."""
+        del operations, scores
+        return None
+
     @classmethod
     def _score_aligned_scores(
             cls, scores, candidate_by_operation, safety_active,
@@ -1072,6 +1078,8 @@ class ImpactPressureRanker(object):
             snapshot, tuple(operations),
             candidate_by_operation, tuple(scores),
             diagnostics=diagnostics)
+        packet_schedule = self._whole_packet_schedule(
+            tuple(operations), tuple(scores))
         rank = dict((row.operation_id, index) for index, row in enumerate(scores)
                     if row.admissible)
         ordered = tuple(sorted(candidates, key=lambda candidate: (
@@ -1102,6 +1110,11 @@ class ImpactPressureRanker(object):
             artifact["teleology"] = teleological_artifact
         if bridge_artifact is not None:
             artifact["bridge"] = bridge_artifact
+        if packet_schedule is not None:
+            artifact["packet_schedule"] = (
+                packet_schedule.to_dict())
+            artifact["_packet_schedule_object"] = (
+                packet_schedule)
         if diagnostics is not None:
             diagnostics["pressure_artifact_latency_ms"] = (
                 diagnostics.get("pressure_artifact_latency_ms", 0.0)
@@ -1426,6 +1439,20 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                     row.operation_id, len(rank)),
                 original[row.operation_id])))
         return ordered, decision.to_dict()
+
+    @staticmethod
+    def _whole_packet_schedule(
+            operations, scores):
+        from .packets import (
+            PacketBudget,
+            PacketScheduler,
+            ResourceKind,
+        )
+        return PacketScheduler().schedule(
+            tuple(operations), tuple(scores), (
+                PacketBudget(ResourceKind.ACTION, 1),
+                PacketBudget(ResourceKind.CPU, 1),
+            ))
 
     def _goal_risk_profile(self, name, safety):
         from .risk import RiskProfile

@@ -395,9 +395,10 @@ class ImpactRankerController:
         if not isinstance(artifact, dict):
             return None
         bridge = artifact.get("bridge")
-        value = (
-            bridge.get("packet_schedule")
-            if isinstance(bridge, dict) else None)
+        value = artifact.get("packet_schedule")
+        if (not isinstance(value, dict)
+                and isinstance(bridge, dict)):
+            value = bridge.get("packet_schedule")
         if not isinstance(value, dict):
             return None
         try:
@@ -617,7 +618,8 @@ class ImpactControlAdapter:
             controller_config=None,
             ruleset_digest=None,
             truth_summaries=(),
-            evidence_summaries=()):
+            evidence_summaries=(),
+            active_goal_ids=None):
         candidates = tuple(candidates)
         if any(not isinstance(row, ImpactCandidate)
                for row in candidates):
@@ -634,7 +636,9 @@ class ImpactControlAdapter:
             else goal_facts)
         active_goals = tuple(sorted(
             str(value) for value in (
-                goal_facts.keys()
+                active_goal_ids
+                if active_goal_ids is not None
+                else goal_facts.keys()
                 if isinstance(goal_facts, dict)
                 else ())))
         context_material = (

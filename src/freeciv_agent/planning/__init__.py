@@ -39,6 +39,10 @@ from .decision_explainer import (
     BeliefExplanation,
     DecisionExplainer,
 )
+from .impact_unified_flow import (
+    UnifiedImpactFlowConfig,
+    UnifiedImpactFlowEngine,
+)
 from .model import (BranchScore, NonPlan, Plan, PlanAssumption, PlanStep,
                     PlanningSnapshot, ResourceLedger, ResourceLedgerEntry)
 from .scheduler import ProofScheduler, research_duration_turns, validate_next_step
@@ -62,6 +66,8 @@ __all__ = [
     "PairedCohortEvidence", "RollbackResult",
     "ActionExplanation", "AttentionExplanation",
     "BeliefExplanation", "DecisionExplainer",
+    "UnifiedImpactFlowConfig",
+    "UnifiedImpactFlowEngine",
     "PlanningSnapshot",
     "ProductionGoal", "ProductionScheduler", "ProofScheduler",
     "ResourceLedger", "ResourceLedgerEntry", "research_duration_turns", "validate_next_step",

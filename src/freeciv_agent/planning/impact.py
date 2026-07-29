@@ -844,6 +844,16 @@ class GroundedImpactPlanner(object):
                     AdvisoryPolicy,
                     ImpactControlAdapter,
                 )
+                if (unified_flow_engine is None
+                        and self.pressure_controller_mode in (
+                            "unified_shadow",
+                            "unified_flow_advisory",
+                            "unified_flow_live")):
+                    from .impact_unified_flow import (
+                        UnifiedImpactFlowEngine,
+                    )
+                    unified_flow_engine = UnifiedImpactFlowEngine(
+                        self._pressure_ranker_v2)
                 self._control_adapter = ImpactControlAdapter(
                     legacy_ranker=self._pressure_ranker,
                     scalar_v2_ranker=(
@@ -6432,7 +6442,12 @@ class GroundedImpactPlanner(object):
                 controller_config=(
                     self._controller_config),
                 ruleset_digest=(
-                    self._controller_ruleset_digest))
+                    self._controller_ruleset_digest),
+                active_goal_ids=tuple(sorted(set(
+                    "pf-impact:{}".format(
+                        self._pressure_ranker_v2
+                        .goal_for_category(row.category))
+                    for row in rows))))
             control = self._control_adapter.rank_or_schedule(
                 query, self.pressure_controller_mode)
             self.last_control_decision = control

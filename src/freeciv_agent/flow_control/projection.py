@@ -57,9 +57,22 @@ def _preconditioned_cg(
            for value in diagonal):
         return tuple(0.0 for _ in range(size)), 0, False
 
+    # The reduced Laplacian is sparse even though the compatibility API
+    # accepts dense rows. Compact it once so the dependency-free fallback
+    # does not perform O(nodes^2) Python work on every CG iteration.
+    sparse_rows = tuple(
+        tuple(
+            (index, float(value))
+            for index, value in enumerate(row)
+            if value != 0.0)
+        for row in matrix)
+
     def multiply(values):
         return tuple(
-            _dot(row, values) for row in matrix)
+            sum(
+                coefficient * values[index]
+                for index, coefficient in row)
+            for row in sparse_rows)
 
     solution = [0.0] * size
     residual = [float(value) for value in vector]
