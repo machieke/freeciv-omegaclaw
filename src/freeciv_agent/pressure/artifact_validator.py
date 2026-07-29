@@ -10,6 +10,51 @@ class PressureArtifactValidationError(ValueError):
 _CHANNELS = frozenset(("infer", "observe", "act", "expand", "retain"))
 
 
+def pressure_dependency_view(value):
+    """Return the action-bearing dependency rail for v1 or v2 artifacts."""
+    if not isinstance(value, dict):
+        raise PressureArtifactValidationError(
+            "pressure artifact must be an object")
+    version = value.get(
+        "pressure_artifact_schema", "1.0")
+    if version not in ("1.0", "2.0"):
+        raise PressureArtifactValidationError(
+            "unsupported pressure artifact schema {}".format(
+                version))
+    name = (
+        "action_dependency"
+        if version == "2.0"
+        else "dependency")
+    dependency = value.get(name)
+    if not isinstance(dependency, dict):
+        raise PressureArtifactValidationError(
+            "{} pressure artifact requires {}".format(
+                version, name))
+    return dependency
+
+
+def active_pressure_goal_count(value):
+    """Count goals with positive action-bearing dependency demand."""
+    dependency = pressure_dependency_view(value)
+    count = 0
+    for atoms in dependency.values():
+        if not isinstance(atoms, dict):
+            raise PressureArtifactValidationError(
+                "pressure dependency rows must be objects")
+        if any(
+                isinstance(amount, bool)
+                or not isinstance(
+                    amount, (int, float))
+                for amount in atoms.values()):
+            raise PressureArtifactValidationError(
+                "pressure dependency demand must be numeric")
+        if any(
+                float(amount) > 0.0
+                for amount in atoms.values()):
+            count += 1
+    return count
+
+
 def _validate_magnitude(value, path):
     if not isinstance(value, dict) or set(value) != _CHANNELS:
         raise PressureArtifactValidationError(

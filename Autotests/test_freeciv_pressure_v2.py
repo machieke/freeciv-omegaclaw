@@ -52,10 +52,12 @@ from freeciv_agent.pressure import (  # noqa: E402
     SignedPressureVector,
     TruthAssessment,
     TruthState,
+    active_pressure_goal_count,
     decision_relevant_uncertainty,
     estimate_uncertain_loss,
     evaluate_deadline,
     premise_support_requests,
+    pressure_dependency_view,
     requirement_set_for_rule,
     validate_pressure_artifact,
 )
@@ -729,6 +731,20 @@ def test_pressure_artifact_validator_decodes_v1_and_v2():
             PressureArtifactValidationError,
             match="representation"):
         validate_pressure_artifact(changed)
+
+
+def test_pressure_dependency_compatibility_view_uses_action_rail():
+    graph, goal, v2 = _single_atom_result(0.5)
+    v1 = PressureEngine().propagate(
+        graph, (goal,)).to_dict()
+    v2 = v2.to_dict()
+
+    assert pressure_dependency_view(v1) == (
+        v1["dependency"])
+    assert pressure_dependency_view(v2) == (
+        v2["action_dependency"])
+    assert active_pressure_goal_count(v1) == 1
+    assert active_pressure_goal_count(v2) == 1
 
 
 def test_g1_verification_replays_v1_v2_packets_and_real_snapshots():

@@ -31,6 +31,9 @@ from freeciv_agent.pf_runtime import (
     emit_runtime_activation,
     validate_runtime_activation,
 )
+from freeciv_agent.pressure import (
+    pressure_dependency_view,
+)
 from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     PlanStep, PlanningSnapshot, ProofScheduler,
                                     ResourceLedger, GroundedImpactPlanner,
@@ -2120,8 +2123,9 @@ async def _play(run_dir, manifest, context):
                                     "conductance_state": stranded[
                                         "conductance_state"],
                                     "config": pressure_value["config"],
-                                    "dependency": pressure_value[
-                                        "dependency"],
+                                    "dependency":
+                                        pressure_dependency_view(
+                                            pressure_value),
                                     "goals": pressure_value["goals"],
                                     "graph_hash": pressure_value[
                                         "graph_hash"],
@@ -2154,7 +2158,9 @@ async def _play(run_dir, manifest, context):
                                 "conductance_state": decision.pressure_artifact[
                                     "conductance_state"],
                                 "config": pressure_value["config"],
-                                "dependency": pressure_value["dependency"],
+                                "dependency":
+                                    pressure_dependency_view(
+                                        pressure_value),
                                 "goals": pressure_value["goals"],
                                 "graph_hash": pressure_value["graph_hash"],
                                 "operational_pressure": pressure_value["pressure"],

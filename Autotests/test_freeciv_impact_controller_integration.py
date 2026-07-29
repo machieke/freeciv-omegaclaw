@@ -127,6 +127,31 @@ def test_scalar_v2_materializes_only_an_authoritative_candidate():
         GroundedImpactPlanner.SOLVER_IDENTITY)
 
 
+def test_scalar_v2_stranded_pressure_uses_action_dependency_rail():
+    snapshot = _snapshot()
+    planner = GroundedImpactPlanner({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+        "pressure_packet_scheduler_enabled": True,
+        "pressure_requirement_sets_enabled": True,
+    })
+    diagnostics = {}
+    excluded = tuple(
+        row.action_key
+        for row in planner.candidates(snapshot))
+
+    decision = planner.plan(
+        snapshot, excluded=excluded,
+        diagnostics=diagnostics)
+
+    assert decision is None
+    assert planner.last_stranded_pressure_artifact[
+        "pressure"]["pressure_artifact_schema"] == "2.0"
+    assert diagnostics["stranded_pressure_calls"] == 1
+    assert diagnostics["stranded_goal_count"] > 0
+
+
 def test_unified_flow_semantic_artifact_is_deterministic():
     decisions = []
     for _ in range(2):

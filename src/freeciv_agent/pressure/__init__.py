@@ -10,6 +10,8 @@ from .adapters import (
 )
 from .artifact_validator import (
     PressureArtifactValidationError,
+    active_pressure_goal_count,
+    pressure_dependency_view,
     validate_packet_schedule,
     validate_pressure_artifact,
 )
@@ -363,4 +365,6 @@ __all__ = [
     "weight_to_confidence",
     "validate_packet_schedule",
     "validate_pressure_artifact",
+    "active_pressure_goal_count",
+    "pressure_dependency_view",
 ]

@@ -6626,6 +6626,9 @@ class GroundedImpactPlanner(object):
                 if self._control_adapter is not None
                 else self._pressure_ranker)
             if stranded_ranker is not None:
+                from ..pressure import (
+                    active_pressure_goal_count,
+                )
                 pressure_started = time.perf_counter()
                 _, self.last_stranded_pressure_artifact = (
                     stranded_ranker.rank(
@@ -6642,19 +6645,18 @@ class GroundedImpactPlanner(object):
                         diagnostics.get("pressure_calls", 0) + 1)
                     diagnostics["stranded_pressure_calls"] = (
                         diagnostics.get("stranded_pressure_calls", 0) + 1)
-                    dependency = self.last_stranded_pressure_artifact[
-                        "pressure"]["dependency"]
-                    active_goal_count = sum(
-                        any(float(value) > 0.0 for value in atoms.values())
-                        for atoms in dependency.values())
+                    active_goal_count = (
+                        active_pressure_goal_count(
+                            self.last_stranded_pressure_artifact[
+                                "pressure"]))
                     diagnostics["stranded_goal_count"] = (
                         diagnostics.get("stranded_goal_count", 0)
                         + active_goal_count)
                 else:
-                    active_goal_count = sum(
-                        any(float(value) > 0.0 for value in atoms.values())
-                        for atoms in self.last_stranded_pressure_artifact[
-                            "pressure"]["dependency"].values())
+                    active_goal_count = (
+                        active_pressure_goal_count(
+                            self.last_stranded_pressure_artifact[
+                                "pressure"]))
                 if active_goal_count == 0:
                     self.last_stranded_pressure_artifact = None
             return None
