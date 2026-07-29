@@ -57,6 +57,14 @@ from .coalitions import (
     premise_support_requests,
     requirement_set_for_rule,
 )
+from .calibration import (
+    CONTROL_UPDATE_TARGETS,
+    ContextualConductanceStore,
+    ContextualConductanceUpdate,
+    ContextualRouteKey,
+    ControlCalibrationLedger,
+    ControlCalibrationRecord,
+)
 from .lifecycle import (
     CloneLifecycleStore,
     CloneManager,
@@ -209,6 +217,7 @@ __all__ = [
     "CloneSplitRequest",
     "CloneLifecycleStore",
     "CloneTransactionError",
+    "CONTROL_UPDATE_TARGETS",
     "ConductanceLearner",
     "ConductanceState",
     "ConductanceUpdate",
@@ -216,8 +225,13 @@ __all__ = [
     "CounterfactualPressure",
     "CounterfactualReverseOperator",
     "ContextGeneralizer",
+    "ContextualConductanceStore",
+    "ContextualConductanceUpdate",
+    "ContextualRouteKey",
     "CostVector",
     "CostToGoEstimate",
+    "ControlCalibrationLedger",
+    "ControlCalibrationRecord",
     "DifferentiableTruthRule",
     "DecisionRelevantUncertainty",
     "DeadlineFit",
