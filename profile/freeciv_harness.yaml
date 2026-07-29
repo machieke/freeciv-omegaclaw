@@ -92,6 +92,60 @@ impact_policy:
   pressure_learning_rate: 0.10
   pressure_no_progress_rate: 0.10
   pressure_initial_conductance: 1.00
+  # Controller-v2 fields are inert under the legacy default. Cohort arms may
+  # enable them without relying on implicit runtime defaults.
+  pressure_controller_mode: legacy_scalar
+  pressure_semantics_version: v1
+  pressure_achievement_uncertainty_split_enabled: false
+  pressure_signed_channels_enabled: false
+  pressure_distributional_risk_enabled: false
+  pressure_requirement_sets_enabled: false
+  pressure_packet_scheduler_enabled: false
+  pressure_bridge_enabled: false
+  pressure_bridge_importance_corrected_enabled: false
+  pressure_bridge_reference_likelihood_enabled: false
+  pressure_bridge_estimator_policy: holdout
+  pressure_bridge_normalization_contract: robust-feature-scales/1.0
+  pressure_flow_enabled: false
+  pressure_flow_live_enabled: false
+  pressure_scalar_fallback_enabled: true
+  pressure_commit_revalidation_enabled: false
+  bridge:
+    forward_depth: 16
+    backward_depth: 16
+    probe_count: 8
+    reference_probe_fraction: 0.25
+    max_importance_weight: 20.0
+    minimum_ess: 0.8
+    temperature: 1.0
+    deposit_decay: 0.10
+    current_following_gain: 0.0
+  flow:
+    turnover_fraction: 0.25
+    time_step: 1.0
+    cfl_limit: 0.90
+    diffusion: 0.03
+    projection_tolerance: 1.0e-8
+    mass_tolerance: 1.0e-8
+    maximum_microsteps: 8
+  packets:
+    budgets:
+      cpu: 64
+      exact_rule: 8
+      observation: 2
+      simulation: 4
+      action: 1
+      expansion: 1
+      llm_token: 0
+    reservation_ttl: 2
+    backup_route_fraction: 0.10
+  teleology:
+    estimator: immediate_loss
+    max_horizon: 6
+    calibration_required: false
+    metacontrol_budget_fraction: 0.05
+  safety:
+    hard_tail_risk_gate: true
 paired_impact:
   schema_version: "1.0"
   condition: e_full_loop
@@ -1959,6 +2013,88 @@ paired_impact:
         count: 100
         minimum: 4100000
         maximum: 4299999
+    unified_flow_advisory_diagnostic_v1:
+      claim_eligible: false
+      purpose: diagnostic
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 2
+      controller_workers: 2
+      isolated_policy_keys:
+        - pressure_bridge_enabled
+        - pressure_controller_mode
+        - pressure_flow_enabled
+      arms:
+        baseline:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_bridge_enabled: false
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_flow_enabled: false
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+        treatment:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_bridge_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: unified_flow_advisory
+          pressure_distributional_risk_enabled: true
+          pressure_flow_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-unified-flow-advisory-diagnostic-v1
+        count: 2
+        minimum: 4300000
+        maximum: 4399999
+    unified_flow_advisory_pilot_v1:
+      claim_eligible: false
+      purpose: pilot
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 40
+      controller_workers: 3
+      isolated_policy_keys:
+        - pressure_bridge_enabled
+        - pressure_controller_mode
+        - pressure_flow_enabled
+      arms:
+        baseline:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_bridge_enabled: false
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_flow_enabled: false
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+        treatment:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_bridge_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: unified_flow_advisory
+          pressure_distributional_risk_enabled: true
+          pressure_flow_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-unified-flow-advisory-pilot-v1
+        count: 40
+        minimum: 4400000
+        maximum: 4499999
   retired_cohorts:
     confirmatory_score_horizon_60_v4:
       retired_reason: terminal_player_elimination_misclassified_as_infrastructure_timeout

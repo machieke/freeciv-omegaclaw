@@ -175,6 +175,8 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "final_settlement_escort_control_path_hardening_generalization_v1": 40,
             "final_settlement_escort_preparation_pilot_v1": 40,
             "final_settlement_escort_preparation_confirmatory_v1": 100,
+            "unified_flow_advisory_diagnostic_v1": 2,
+            "unified_flow_advisory_pilot_v1": 40,
         }
     seed_sets = [
         set(row["seeds"]) for row in paired["cohorts"].values()
@@ -646,6 +648,30 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "pf-pln-final-settlement-escort-preparation-confirmatory-v1"),
         "count": 100, "minimum": 4100000, "maximum": 4299999,
     }
+    unified_diagnostic = paired["cohorts"][
+        "unified_flow_advisory_diagnostic_v1"]
+    unified_pilot = paired["cohorts"][
+        "unified_flow_advisory_pilot_v1"]
+    assert unified_diagnostic["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace":
+            "pf-pln-unified-flow-advisory-diagnostic-v1",
+        "count": 2, "minimum": 4300000,
+        "maximum": 4399999,
+    }
+    assert unified_pilot["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace":
+            "pf-pln-unified-flow-advisory-pilot-v1",
+        "count": 40, "minimum": 4400000,
+        "maximum": 4499999,
+    }
+    assert unified_diagnostic[
+        "isolated_policy_keys"] == [
+            "pressure_bridge_enabled",
+            "pressure_controller_mode",
+            "pressure_flow_enabled",
+        ]
     assert config["rulebase"] == {
         "compiler_version": "freeciv-ruleset-compiler/1.2",
         "source_sha256": "3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e",
@@ -2229,6 +2255,41 @@ def test_paired_impact_jobs_alternate_order_and_override_only_declared_policy():
     assert terminal_manifest["impact_pair"]["claim_eligible"] is False
     assert terminal_manifest["impact_outcomes"]["early_terminal_score"] == (
         "terminal_absorbing_score_carried_to_horizon")
+
+    unified_runner = HarnessRunner(
+        "unused", seed_limit=1,
+        conditions=("e_full_loop",),
+        impact_cohort=(
+            "unified_flow_advisory_diagnostic_v1"),
+        workers=2)
+    unified_jobs = unified_runner._impact_jobs()
+    unified_baseline = unified_runner._manifest(
+        unified_jobs[0], 0)
+    unified_treatment = unified_runner._manifest(
+        unified_jobs[1], 0)
+    unified_differing = sorted(
+        key for key in unified_baseline[
+            "impact_policy"]
+        if unified_baseline["impact_policy"][key]
+        != unified_treatment[
+            "impact_policy"][key])
+    assert unified_differing == [
+        "pressure_bridge_enabled",
+        "pressure_controller_mode",
+        "pressure_flow_enabled",
+    ]
+    assert unified_baseline["impact_policy"][
+        "pressure_controller_mode"] == "scalar_v2"
+    assert unified_treatment["impact_policy"][
+        "pressure_controller_mode"] == (
+            "unified_flow_advisory")
+    assert unified_treatment["pf_pln_controller"][
+        "layers"]["source_sink_flow"][
+            "enabled"]
+    assert unified_treatment["pf_pln_controller"][
+        "configuration_groups"]["bridge"][
+            "probe_count"] == 8
+    assert unified_treatment["turn_limit"] == 60
 
     pressure_runner = HarnessRunner(
         "unused", seed_limit=1, conditions=("e_full_loop",),
