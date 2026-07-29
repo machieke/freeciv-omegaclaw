@@ -33,6 +33,12 @@ from .live_activation import (
     PairedCohortEvidence,
     RollbackResult,
 )
+from .decision_explainer import (
+    ActionExplanation,
+    AttentionExplanation,
+    BeliefExplanation,
+    DecisionExplainer,
+)
 from .model import (BranchScore, NonPlan, Plan, PlanAssumption, PlanStep,
                     PlanningSnapshot, ResourceLedger, ResourceLedgerEntry)
 from .scheduler import ProofScheduler, research_duration_turns, validate_next_step
@@ -54,6 +60,8 @@ __all__ = [
     "ControllerRollback", "LimitedLiveActivationGate",
     "LiveActivationResult", "LiveScopePolicy",
     "PairedCohortEvidence", "RollbackResult",
+    "ActionExplanation", "AttentionExplanation",
+    "BeliefExplanation", "DecisionExplainer",
     "PlanningSnapshot",
     "ProductionGoal", "ProductionScheduler", "ProofScheduler",
     "ResourceLedger", "ResourceLedgerEntry", "research_duration_turns", "validate_next_step",
