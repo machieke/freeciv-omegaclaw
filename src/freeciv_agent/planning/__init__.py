@@ -15,6 +15,7 @@ from .impact_flow_adapter import (
     ImpactControlAdapter,
     LegacyImpactPressureController,
     ScalarV2Controller,
+    ShadowBudgetConfig,
     UnifiedFlowController,
 )
 from .commit_validator import (
@@ -35,6 +36,7 @@ __all__ = [
     "CanonicalUtilityController", "ControlDecision",
     "ControlOutcomeRecord", "ControlQuery", "ImpactControlAdapter",
     "LegacyImpactPressureController", "ScalarV2Controller",
+    "ShadowBudgetConfig",
     "UnifiedFlowController",
     "ImpactCommitValidator", "ValidationDisposition",
     "ValidationResult",

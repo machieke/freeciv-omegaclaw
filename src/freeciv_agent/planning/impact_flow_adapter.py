@@ -2,8 +2,12 @@
 
 from collections import OrderedDict
 from dataclasses import dataclass
+import time
 
-from ..events.schema import structural_hash
+from ..events.schema import (
+    canonical_json_bytes,
+    structural_hash,
+)
 from ..pressure.packets import PacketSchedule
 from .impact import ImpactCandidate
 
@@ -14,6 +18,7 @@ CONTROLLER_MODES = (
     "scalar_v2",
     "bridge_scalar",
     "unified_flow",
+    "unified_shadow",
 )
 
 
@@ -186,7 +191,13 @@ class ControlDecision:
 
     @property
     def decision_hash(self):
-        return structural_hash(self.to_dict())
+        material = self.to_dict()
+        artifact = dict(material["artifact"])
+        # Wall timing and measured memory are observational telemetry, not
+        # part of the deterministic controller decision.
+        artifact.pop("controller_telemetry", None)
+        material["artifact"] = artifact
+        return structural_hash(material)
 
     def to_dict(self):
         return {
@@ -234,6 +245,29 @@ class ControlOutcomeRecord:
             "selected_candidate_key": (
                 self.selected_candidate_key),
         }
+
+
+@dataclass(frozen=True)
+class ShadowBudgetConfig:
+    per_controller_ms: float = 500.0
+    total_ms: float = 1500.0
+    maximum_artifact_bytes: int = 4 * 1024 * 1024
+
+    def __post_init__(self):
+        for value, name in (
+                (self.per_controller_ms,
+                 "per-controller shadow budget"),
+                (self.total_ms, "total shadow budget")):
+            value = float(value)
+            if value <= 0.0:
+                raise ValueError(
+                    "{} must be positive".format(name))
+        if (isinstance(self.maximum_artifact_bytes, bool)
+                or not isinstance(
+                    self.maximum_artifact_bytes, int)
+                or self.maximum_artifact_bytes < 1):
+            raise ValueError(
+                "shadow artifact budget must be positive")
 
 
 class CanonicalUtilityController:
@@ -358,7 +392,8 @@ class ImpactControlAdapter:
             self, legacy_ranker=None,
             scalar_v2_ranker=None,
             bridge_scalar_ranker=None,
-            unified_flow_engine=None):
+            unified_flow_engine=None,
+            shadow_budget=None):
         self.controllers = {
             "canonical": CanonicalUtilityController(),
         }
@@ -377,6 +412,13 @@ class ImpactControlAdapter:
             self.controllers["unified_flow"] = (
                 UnifiedFlowController(
                     unified_flow_engine))
+        self.shadow_budget = (
+            shadow_budget if shadow_budget is not None
+            else ShadowBudgetConfig())
+        if not isinstance(
+                self.shadow_budget, ShadowBudgetConfig):
+            raise TypeError(
+                "shadow budget has wrong type")
         self._snapshots = OrderedDict()
         self.maximum_owned_queries = 128
         self._outcomes = []
@@ -506,6 +548,166 @@ class ImpactControlAdapter:
             raise ValueError(
                 "controller selected unadvertised candidate")
 
+    @staticmethod
+    def _snapshot_hash(snapshot):
+        material = (
+            snapshot.event_payload()
+            if hasattr(snapshot, "event_payload")
+            else {
+                "legal_actions_digest":
+                    snapshot.legal_actions_digest,
+                "snapshot_id": snapshot.snapshot_id,
+                "turn": snapshot.turn,
+            })
+        return structural_hash(material)
+
+    def _shadow_decision(self, query, snapshot):
+        canonical = self.controllers[
+            "canonical"].decide(query, snapshot)
+        snapshot_before = self._snapshot_hash(
+            snapshot)
+        candidates_before = structural_hash([
+            row.to_dict()
+            for row in query.grounded_candidates])
+        started_total = time.perf_counter()
+        shadows = []
+        telemetry = {}
+        for mode in (
+                "scalar_v2", "bridge_scalar",
+                "unified_flow"):
+            elapsed_total_ms = (
+                time.perf_counter() - started_total
+            ) * 1000.0
+            controller = self.controllers.get(mode)
+            if controller is None:
+                shadows.append({
+                    "controller_mode": mode,
+                    "counterfactual_status":
+                        "unknown-counterfactual",
+                    "decision": None,
+                    "health": "unavailable",
+                    "packet_conserved": None,
+                    "spendable": False,
+                })
+                continue
+            if elapsed_total_ms > (
+                    self.shadow_budget.total_ms):
+                shadows.append({
+                    "controller_mode": mode,
+                    "counterfactual_status":
+                        "unknown-counterfactual",
+                    "decision": None,
+                    "health": "budget-skipped",
+                    "packet_conserved": None,
+                    "spendable": False,
+                })
+                continue
+            started = time.perf_counter()
+            try:
+                decision = controller.decide(
+                    query, snapshot)
+                self._validate_decision(
+                    query, decision)
+                elapsed_ms = (
+                    time.perf_counter() - started
+                ) * 1000.0
+                packet_conserved = (
+                    decision.packet_schedule.conserved
+                    if decision.packet_schedule is not None
+                    else True)
+                health = (
+                    decision.health
+                    if (elapsed_ms <=
+                        self.shadow_budget.per_controller_ms
+                        and packet_conserved)
+                    else "unhealthy")
+                shadows.append({
+                    "controller_mode": mode,
+                    "counterfactual_status":
+                        "unknown-counterfactual",
+                    "decision": decision.to_dict(),
+                    "health": health,
+                    "packet_conserved": (
+                        packet_conserved),
+                    "spendable": False,
+                })
+                telemetry[mode] = {
+                    "latency_ms": elapsed_ms,
+                    "latency_budget_ms": (
+                        self.shadow_budget.per_controller_ms),
+                }
+            except Exception as error:
+                elapsed_ms = (
+                    time.perf_counter() - started
+                ) * 1000.0
+                shadows.append({
+                    "controller_mode": mode,
+                    "counterfactual_status":
+                        "unknown-counterfactual",
+                    "decision": None,
+                    "error_type": type(error).__name__,
+                    "health": "unhealthy",
+                    "packet_conserved": None,
+                    "spendable": False,
+                })
+                telemetry[mode] = {
+                    "latency_ms": elapsed_ms,
+                    "latency_budget_ms": (
+                        self.shadow_budget.per_controller_ms),
+                }
+        snapshot_after = self._snapshot_hash(
+            snapshot)
+        candidates_after = structural_hash([
+            row.to_dict()
+            for row in query.grounded_candidates])
+        semantic_artifact = {
+            "candidate_set_unchanged": (
+                candidates_before == candidates_after),
+            "canonical_live_decision": (
+                canonical.to_dict()),
+            "controller_identity":
+                "impact-unified-shadow/1.0",
+            "live_execution_ledger_writes": 0,
+            "query_hash": query.query_hash,
+            "shadow_decisions": shadows,
+            "shadow_packets_spendable": False,
+            "snapshot_unchanged": (
+                snapshot_before == snapshot_after),
+        }
+        artifact_bytes = len(
+            canonical_json_bytes(semantic_artifact))
+        total_ms = (
+            time.perf_counter() - started_total
+        ) * 1000.0
+        telemetry["artifact_bytes"] = artifact_bytes
+        telemetry["artifact_budget_bytes"] = (
+            self.shadow_budget.maximum_artifact_bytes)
+        telemetry["total_latency_ms"] = total_ms
+        telemetry["total_latency_budget_ms"] = (
+            self.shadow_budget.total_ms)
+        semantic_artifact["controller_telemetry"] = telemetry
+        invariants_healthy = all((
+            semantic_artifact["candidate_set_unchanged"],
+            semantic_artifact["snapshot_unchanged"],
+            artifact_bytes <= (
+                self.shadow_budget.maximum_artifact_bytes),
+            total_ms <= self.shadow_budget.total_ms,
+        ))
+        semantic_artifact["shadow_invariants_healthy"] = (
+            invariants_healthy)
+        return ControlDecision(
+            ordered_candidate_keys=(
+                canonical.ordered_candidate_keys),
+            selected_candidate_key=(
+                canonical.selected_candidate_key),
+            packet_schedule=None,
+            controller_mode="unified_shadow",
+            artifact=semantic_artifact,
+            health=(
+                "healthy" if invariants_healthy
+                else "unhealthy"),
+            fallback_chain=())
+
     def rank_or_schedule(self, query, mode):
         if not isinstance(query, ControlQuery):
             raise TypeError(
@@ -517,6 +719,12 @@ class ImpactControlAdapter:
         if snapshot is None:
             raise ValueError(
                 "control query is not owned by this adapter")
+        if mode == "unified_shadow":
+            decision = self._shadow_decision(
+                query, snapshot)
+            self._validate_decision(
+                query, decision)
+            return decision
         controller = self.controllers.get(mode)
         if controller is None:
             canonical = self.controllers[
