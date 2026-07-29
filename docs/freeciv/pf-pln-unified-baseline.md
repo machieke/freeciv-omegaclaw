@@ -162,3 +162,30 @@ relief [plot](evidence/pf-unified-g2-relief-calibration.svg) uses a
 deterministic contract fixture and is explicitly
 claim-ineligible; a held-out engine cohort must replace that fixture before
 claiming empirical calibration or score improvement.
+
+### Stage S3 bridge experiment
+
+Run the seed-disjoint synthetic conductance-versus-bridge experiment with:
+
+```bash
+python3 scripts/freeciv/run_pf_unified_baseline.py \
+  g3-bridge-experiment \
+  --train-seeds-per-family 64 \
+  --heldout-seeds-per-family 64 \
+  --timing-repetitions 20
+```
+
+The experiment covers all nine preregistered graph failure families and ten
+arms, including context-conditioned conductance, explicit bridge geometry,
+fusion, forward/backward shuffle controls, bridge without typed PF scoring,
+oracle reachability, and a learned forward predictor. The strong smoothed
+scalar controller is checked for first-step selection equivalence on every
+independent held-out query.
+
+The recorded
+[G3 bridge evidence](evidence/pf-unified-g3-bridge-experiment.json) supports
+incremental forward-reachability value on held-out synthetic packet
+completion. It is deliberately not a FreeCiv gameplay score claim. Its timing
+is ranking-kernel timing; final Gate G3 still requires the bridge-scalar
+controller, health fallback, and live graph/probe/controller-inclusive
+overhead.

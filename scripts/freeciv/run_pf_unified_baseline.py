@@ -34,6 +34,9 @@ from freeciv.pf_unified.teleology_benchmark import (  # noqa: E402
     run_g2_timing,
     run_g2_verification,
 )
+from freeciv.pf_unified.bridge_experiment import (  # noqa: E402
+    run_g3_bridge_experiment,
+)
 
 
 def _parser():
@@ -51,6 +54,13 @@ def _parser():
     g2_timing = commands.add_parser("g2-timing")
     g2_timing.add_argument("--repetitions", type=int, default=50)
     commands.add_parser("g2-verify")
+    g3_bridge = commands.add_parser("g3-bridge-experiment")
+    g3_bridge.add_argument(
+        "--train-seeds-per-family", type=int, default=64)
+    g3_bridge.add_argument(
+        "--heldout-seeds-per-family", type=int, default=64)
+    g3_bridge.add_argument(
+        "--timing-repetitions", type=int, default=20)
     compare = commands.add_parser("compare")
     compare.add_argument("left")
     compare.add_argument("right")
@@ -84,6 +94,12 @@ def main(argv=None):
         status = 0
     elif command == "g2-verify":
         result = run_g2_verification()
+        status = 0 if result["valid"] else 1
+    elif command == "g3-bridge-experiment":
+        result = run_g3_bridge_experiment(
+            arguments.train_seeds_per_family,
+            arguments.heldout_seeds_per_family,
+            arguments.timing_repetitions)
         status = 0 if result["valid"] else 1
     else:
         result = assert_comparable(
