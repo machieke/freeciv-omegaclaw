@@ -30,10 +30,19 @@ from .potentials import (
     PotentialEstimator,
     ShortestMeetPotentialEstimator,
 )
+from .probes import (
+    CorrectedProbeEstimator,
+    ProbeBatch,
+    ProbeConfig,
+    ProbeHealth,
+    ProbeNodeFeatures,
+    ProbePath,
+)
 
 __all__ = [
     "CandidateGrounding",
     "CandidateFactorization",
+    "CorrectedProbeEstimator",
     "FlowBuildBudget",
     "FlowBuildRejection",
     "FlowBuildResult",
@@ -53,6 +62,11 @@ __all__ = [
     "PotentialBudget",
     "PotentialEstimate",
     "PotentialEstimator",
+    "ProbeBatch",
+    "ProbeConfig",
+    "ProbeHealth",
+    "ProbeNodeFeatures",
+    "ProbePath",
     "QueryLocalFlowBuilder",
     "ShortestMeetPotentialEstimator",
     "DeterministicMessagePotentialEstimator",

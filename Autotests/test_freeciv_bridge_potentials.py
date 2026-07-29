@@ -13,6 +13,7 @@ if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
 from freeciv_agent.flow_control import (  # noqa: E402
+    CorrectedProbeEstimator,
     DeterministicMessagePotentialEstimator,
     FlowEdge,
     FlowEdgeKind,
@@ -23,6 +24,8 @@ from freeciv_agent.flow_control import (  # noqa: E402
     MonteCarloMeetPotentialEstimator,
     PotentialBudget,
     PotentialEstimate,
+    ProbeConfig,
+    ProbeNodeFeatures,
     ShortestMeetPotentialEstimator,
 )
 
@@ -234,3 +237,110 @@ def test_potential_estimate_rejects_inconsistent_log_geometry():
             estimator_id="test/1.0",
             process_semantics="fixed-reference-process",
             topology_generation=1)
+
+
+def test_probe_records_behavior_reference_likelihood_and_exact_ess():
+    config = ProbeConfig(
+        mode="importance", path_count=256,
+        max_steps=2, temperature=1.0,
+        maximum_importance_weight=2.0,
+        minimum_ess_fraction=0.99,
+        maximum_clipped_fraction=1.0,
+        minimum_path_diversity=0.0,
+        seed=17)
+    batch = CorrectedProbeEstimator(config).run(
+        _bridge_fixture(), "forward",
+        ("forward",), ("bridge",),
+        node_features=(
+            ProbeNodeFeatures(
+                "bridge", local_advantage=2.0),
+            ProbeNodeFeatures(
+                "reachable-irrelevant",
+                local_advantage=0.0),
+        ))
+    weights = tuple(
+        row.importance_weight for row in batch.paths)
+    expected_ess = (
+        sum(weights) ** 2
+        / sum(value ** 2 for value in weights))
+
+    assert batch.health.effective_sample_size == pytest.approx(
+        expected_ess)
+    assert batch.health.effective_sample_fraction < 0.99
+    assert not batch.health.healthy
+    assert "low_effective_sample_size" in (
+        batch.health.reasons)
+    assert batch.health.recommended_fallback == (
+        "deterministic_messages")
+    for path in batch.paths:
+        raw = math.exp(
+            path.reference_log_probability
+            - path.behavior_log_probability)
+        assert path.importance_weight == pytest.approx(
+            min(raw, config.maximum_importance_weight))
+
+
+def test_backward_probe_cannot_traverse_forward_only_edge():
+    batch = CorrectedProbeEstimator(ProbeConfig(
+        mode="two_stream", path_count=32,
+        max_steps=4, reference_fraction=0.25,
+        minimum_path_diversity=0.0)).run(
+            _bridge_fixture(), "backward",
+            ("goal",), ("reachable-irrelevant",))
+
+    assert all(
+        "f-irrelevant" not in path.edge_ids
+        and "f-bridge" not in path.edge_ids
+        for path in batch.paths)
+    assert not any(
+        path.met_opposite_frontier
+        for path in batch.paths)
+
+
+def test_two_stream_probe_replay_is_deterministic_and_non_evidential():
+    view = _bridge_fixture()
+    before = view.to_dict()
+    estimator = CorrectedProbeEstimator(ProbeConfig(
+        mode="two_stream", path_count=40,
+        max_steps=3, reference_fraction=0.25,
+        minimum_path_diversity=0.0,
+        seed=91))
+
+    first = estimator.run(
+        view, "forward", ("forward",),
+        ("bridge",))
+    second = estimator.run(
+        view, "forward", ("forward",),
+        ("bridge",))
+
+    assert first == second
+    assert first.health.reference_path_count == 10
+    assert sum(
+        row.sampling_stream == "reference"
+        for row in first.paths) == 10
+    assert view.to_dict() == before
+    assert set(first.paths[0].to_dict()).isdisjoint({
+        "evidence_ids", "truth", "confidence",
+        "verified_evidence"})
+
+
+def test_probe_meet_and_topology_generation_are_explicit():
+    batch = CorrectedProbeEstimator(ProbeConfig(
+        mode="importance", path_count=32,
+        max_steps=2,
+        minimum_path_diversity=0.0)).run(
+            _bridge_fixture(), "forward",
+            ("forward",), ("bridge",),
+            node_features=(
+                ProbeNodeFeatures(
+                    "bridge", local_advantage=10.0),
+            ))
+
+    assert any(
+        row.met_opposite_frontier
+        and row.meet_node_id == "bridge"
+        for row in batch.paths)
+    assert all(
+        row.topology_generation == 1
+        and row.rng_substream >= 0
+        for row in batch.paths)
