@@ -11,7 +11,12 @@ SRC = os.path.join(REPO, "src")
 if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
-from freeciv_agent.planning import GroundedImpactPlanner  # noqa: E402
+from freeciv_agent.events.validator import validate_file  # noqa: E402
+from freeciv_agent.events.writer import EventWriter  # noqa: E402
+from freeciv_agent.planning import (  # noqa: E402
+    ControlEventEmitter,
+    GroundedImpactPlanner,
+)
 from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 
 
@@ -184,3 +189,150 @@ def test_unified_flow_fault_falls_back_without_changing_live_shadow_plan():
     }
     assert row["decision"]["packet_schedule"][
         "conserved"]
+
+
+def test_configured_uncalibrated_advisory_revalidates_and_can_rank():
+    config = _shadow_config()
+    config["pressure_controller_mode"] = (
+        "unified_flow_advisory")
+    config["teleology"] = {
+        "calibration_required": False,
+    }
+    planner = GroundedImpactPlanner(config)
+    snapshot = _snapshot()
+    decision = planner.plan(snapshot)
+    control = planner.last_control_decision
+
+    assert decision is not None
+    assert control.controller_mode == (
+        "unified_flow_advisory")
+    assert control.health == "healthy"
+    assert control.artifact["advisory_accepted"]
+    assert control.artifact["validation"][
+        "disposition"] == "commit"
+    assert control.selected_candidate_key in (
+        snapshot.legal_action_json)
+
+
+def test_advisory_decision_hash_excludes_nested_wall_clock_telemetry():
+    hashes = []
+    artifacts = []
+    for _ in range(2):
+        config = _shadow_config()
+        config["pressure_controller_mode"] = (
+            "unified_flow_advisory")
+        planner = GroundedImpactPlanner(config)
+        planner.plan(_snapshot())
+        hashes.append(
+            planner.last_control_decision
+            .decision_hash)
+        artifacts.append(
+            planner.last_control_decision
+            .artifact)
+
+    assert hashes[0] == hashes[1]
+    assert artifacts[0]["target_artifact"][
+        "artifact"]["controller_telemetry"] != (
+            artifacts[1]["target_artifact"][
+                "artifact"][
+                    "controller_telemetry"])
+
+
+def test_authoritative_outcome_reaches_versioned_control_ledger():
+    config = _shadow_config()
+    config["pressure_controller_mode"] = (
+        "unified_flow_advisory")
+    planner = GroundedImpactPlanner(config)
+    before = _snapshot()
+    decision = planner.plan(before)
+
+    planner.record_outcome(
+        decision.candidate,
+        before,
+        True,
+        after_snapshot=before,
+        feedback_id="control-outcome-test")
+    record = planner.last_control_outcome_record
+
+    assert record is not None
+    assert record.controller_mode == (
+        "unified_flow_advisory")
+    assert record.selected_candidate_key == (
+        decision.candidate.action_key)
+    assert record.executed_candidate_key == (
+        decision.candidate.action_key)
+    assert record.effect_observed is True
+    assert record.counterfactual_status == (
+        "observed-selected-execution")
+    assert planner._control_adapter.outcome_records == (
+        record,)
+
+
+def test_unified_control_events_are_aggregate_schema_valid_and_linked(
+        tmp_path):
+    planner = GroundedImpactPlanner(
+        _shadow_config())
+    snapshot = _snapshot()
+    decision = planner.plan(snapshot)
+    path = str(tmp_path / "events.jsonl")
+    writer = EventWriter(
+        path, "control-events-test",
+        durable=False,
+        id_factory=(
+            lambda counter=iter(range(1000)):
+            "event-{}".format(next(counter))))
+    root = writer.emit(
+        "run_started", 0, {
+            "condition_id": "test",
+            "manifest_identity": "test",
+        })
+    emitter = ControlEventEmitter()
+    events = emitter.emit_decision(
+        writer, snapshot.turn,
+        planner.last_control_query,
+        planner.last_control_decision,
+        caused_by=(root["event_id"],))
+
+    assert [row["type"] for row in events] == [
+        "teleology_estimated",
+        "bridge_estimated",
+        "probe_block_completed",
+        "path_current_deposited",
+        "flow_projected",
+        "attention_advected",
+        "packet_reserved",
+        "flow_candidate_selected",
+    ]
+    assert events[0]["caused_by"] == [
+        root["event_id"]]
+    for previous, current in zip(
+            events, events[1:]):
+        assert current["caused_by"] == [
+            previous["event_id"]]
+        assert current["payload"][
+            "parent_event_ids"] == (
+                current["caused_by"])
+        assert current["payload"][
+            "query_id"] == (
+                planner.last_control_query
+                .query_id)
+    assert "paths" not in events[2][
+        "payload"]["summary"]["batches"][0]
+
+    planner.record_outcome(
+        decision.candidate, snapshot, True,
+        after_snapshot=snapshot,
+        feedback_id="control-event-outcome")
+    outcome = emitter.emit_outcome(
+        writer, snapshot.turn,
+        planner.last_control_outcome_query,
+        planner.last_control_outcome_decision,
+        planner.last_control_outcome_record,
+        caused_by=(events[-1]["event_id"],))
+
+    assert outcome["type"] == (
+        "control_outcome_recorded")
+    assert outcome["payload"]["summary"][
+        "counterfactual_status"] == (
+            "observed-selected-execution")
+    assert validate_file(path).valid

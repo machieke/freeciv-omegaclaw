@@ -35,7 +35,8 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     PlanStep, PlanningSnapshot, ProofScheduler,
                                     ResourceLedger, GroundedImpactPlanner,
                                     DeferredImpactOutcomeLedger,
-                                    ImpactTurnBudget)
+                                    ImpactTurnBudget,
+                                    ControlEventEmitter)
 from freeciv_agent.rulesets.compiler import compile_ruleset
 from freeciv_agent.state import ProxyStateDTO, SnapshotStore, StateSummaryService
 from .domain_observability import DomainObservabilityEmitter
@@ -1619,6 +1620,7 @@ async def _play(run_dir, manifest, context):
             run_dir, "pressure-conductance.json"),
         pressure_state_identity=pressure_state_identity)
         if context.capabilities["scheduler"] else None)
+    control_event_emitter = ControlEventEmitter()
     memory = None
     induction_prediction = None
     induction_estimate = None
@@ -1851,6 +1853,23 @@ async def _play(run_dir, manifest, context):
                 candidate, before, effect_observed, after_snapshot=after,
                 feedback_id=feedback_id,
                 diagnostics=impact_learning_diagnostics)
+            if (impact_planner.last_control_outcome_record
+                    is not None
+                    and impact_planner
+                    .last_control_outcome_query is not None
+                    and impact_planner
+                    .last_control_outcome_decision is not None):
+                outcome_event = (
+                    control_event_emitter.emit_outcome(
+                        writer, int(after.turn),
+                        impact_planner
+                        .last_control_outcome_query,
+                        impact_planner
+                        .last_control_outcome_decision,
+                        impact_planner
+                        .last_control_outcome_record,
+                        caused_by=(parent,)))
+                parent = outcome_event["event_id"]
             conductance_updates = (
                 (() if conductance_update is None else (conductance_update,))
                 + impact_planner.drain_conductance_updates())
@@ -2159,6 +2178,22 @@ async def _play(run_dir, manifest, context):
                                     "structural_hash"],
                             }, caused_by=[pressure_event["event_id"]])
                         parent = scored_event["event_id"]
+                    if (impact_planner.last_control_query
+                            is not None
+                            and impact_planner
+                            .last_control_decision is not None):
+                        control_events = (
+                            control_event_emitter
+                            .emit_decision(
+                                writer, snapshot.turn,
+                                impact_planner
+                                .last_control_query,
+                                impact_planner
+                                .last_control_decision,
+                                caused_by=(parent,)))
+                        if control_events:
+                            parent = control_events[
+                                -1]["event_id"]
                     plan_event = writer.emit(
                         "plan_created", snapshot.turn,
                         {"plan": decision.plan.to_dict()}, caused_by=[parent])

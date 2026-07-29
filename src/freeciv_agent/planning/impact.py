@@ -760,7 +760,12 @@ class GroundedImpactPlanner(object):
         self._pressure_ranker_v2 = None
         self._bridge_pressure_ranker = None
         self._control_adapter = None
+        self.last_control_query = None
         self.last_control_decision = None
+        self.last_control_outcome_query = None
+        self.last_control_outcome_decision = None
+        self.last_control_outcome_record = None
+        self._pending_control_decisions = {}
         if (self.pressure_enabled
                 and self.pressure_controller_mode
                 != "canonical"):
@@ -863,6 +868,18 @@ class GroundedImpactPlanner(object):
                     unified_flow_engine=unified_flow_engine,
                     shadow_live_mode="legacy_scalar",
                     advisory_policy=AdvisoryPolicy(
+                        require_calibration=bool(
+                            (
+                                values.get(
+                                    "teleology", {})
+                                if isinstance(
+                                    values.get(
+                                        "teleology", {}),
+                                    dict)
+                                else {}
+                            ).get(
+                                "calibration_required",
+                                False)),
                         fallback_mode="scalar_v2"),
                     live_activation_gate=(
                         live_activation_gate),
@@ -1850,7 +1867,53 @@ class GroundedImpactPlanner(object):
         target changes can.
         """
         bookkeeping_started = time.perf_counter()
+        self.last_control_outcome_query = None
+        self.last_control_outcome_decision = None
+        self.last_control_outcome_record = None
         self.commit(candidate)
+        control_key = (
+            candidate.action_key,
+            getattr(snapshot, "snapshot_id", None))
+        pending_control = (
+            self._pending_control_decisions.pop(
+                control_key, None))
+        if isinstance(pending_control, tuple):
+            control_decision, control_query = (
+                pending_control)
+        else:
+            control_decision = pending_control
+            control_query = None
+        if (control_decision is None
+                and self.last_control_decision is not None
+                and self.last_control_decision
+                .selected_candidate_key
+                == candidate.action_key
+                and self.last_control_query is not None
+                and self.last_control_query
+                .snapshot_id
+                == getattr(
+                    snapshot, "snapshot_id", None)):
+            control_decision = (
+                self.last_control_decision)
+            control_query = self.last_control_query
+        if (self._control_adapter is not None
+                and control_decision is not None):
+            self.last_control_outcome_query = (
+                control_query)
+            self.last_control_outcome_decision = (
+                control_decision)
+            self.last_control_outcome_record = (
+                self._control_adapter.record_outcome(
+                    control_decision,
+                    snapshot,
+                    after_snapshot,
+                    {
+                        "effect_observed":
+                            bool(effect_observed),
+                        "executed_candidate_key":
+                            candidate.action_key,
+                        "feedback_id": feedback_id,
+                    }))
         if candidate.category == "production_military_score":
             intent = self._unit_score_batch_intent
             if (not isinstance(intent, dict)
@@ -6373,6 +6436,7 @@ class GroundedImpactPlanner(object):
     def plan(self, snapshot, excluded=(), excluded_scopes=(),
              diagnostics=None):
         self.last_stranded_pressure_artifact = None
+        self.last_control_query = None
         self.last_control_decision = None
         candidate_started = time.perf_counter()
         rows = self.candidates(
@@ -6448,6 +6512,7 @@ class GroundedImpactPlanner(object):
                         self._pressure_ranker_v2
                         .goal_for_category(row.category))
                     for row in rows))))
+            self.last_control_query = query
             control = self._control_adapter.rank_or_schedule(
                 query, self.pressure_controller_mode)
             self.last_control_decision = control
@@ -6531,4 +6596,17 @@ class GroundedImpactPlanner(object):
             diagnostics["materialization_latency_ms"] = (
                 diagnostics.get("materialization_latency_ms", 0.0)
                 + (time.perf_counter() - materialization_started) * 1000.0)
+        if self.last_control_decision is not None:
+            control_key = (
+                candidate.action_key,
+                snapshot.snapshot_id)
+            self._pending_control_decisions[
+                control_key] = (
+                    self.last_control_decision,
+                    self.last_control_query)
+            while len(
+                    self._pending_control_decisions) > 128:
+                self._pending_control_decisions.pop(
+                    next(iter(
+                        self._pending_control_decisions)))
         return ImpactDecision(candidate, plan, pressure_artifact)

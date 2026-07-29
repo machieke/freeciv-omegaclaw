@@ -39,6 +39,10 @@ from .decision_explainer import (
     BeliefExplanation,
     DecisionExplainer,
 )
+from .control_events import (
+    CONTROL_EVENT_SCHEMA_VERSION,
+    ControlEventEmitter,
+)
 from .impact_unified_flow import (
     UnifiedImpactFlowConfig,
     UnifiedImpactFlowEngine,
@@ -66,6 +70,8 @@ __all__ = [
     "PairedCohortEvidence", "RollbackResult",
     "ActionExplanation", "AttentionExplanation",
     "BeliefExplanation", "DecisionExplainer",
+    "CONTROL_EVENT_SCHEMA_VERSION",
+    "ControlEventEmitter",
     "UnifiedImpactFlowConfig",
     "UnifiedImpactFlowEngine",
     "PlanningSnapshot",

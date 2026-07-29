@@ -200,13 +200,31 @@ class ControlDecision:
 
     @property
     def decision_hash(self):
-        material = self.to_dict()
-        artifact = dict(material["artifact"])
-        # Wall timing and measured memory are observational telemetry, not
-        # part of the deterministic controller decision.
-        artifact.pop("controller_telemetry", None)
-        material["artifact"] = artifact
-        return structural_hash(material)
+        def semantic(value):
+            if isinstance(value, dict):
+                return {
+                    key: semantic(item)
+                    for key, item in value.items()
+                    # Wall timing and measured memory are observational
+                    # telemetry, including when another decision is nested
+                    # inside advisory/live artifacts.
+                    if key not in (
+                        "controller_telemetry",
+                        "elapsed_ms",
+                        "microseconds_per_edge_update",
+                        "wall_ms",
+                    )
+                }
+            if isinstance(value, list):
+                return [
+                    semantic(item) for item in value]
+            if isinstance(value, tuple):
+                return tuple(
+                    semantic(item) for item in value)
+            return value
+
+        return structural_hash(
+            semantic(self.to_dict()))
 
     def to_dict(self):
         return {

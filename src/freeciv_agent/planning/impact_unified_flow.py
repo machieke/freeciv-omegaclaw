@@ -387,6 +387,7 @@ class UnifiedImpactFlowEngine:
             raise TypeError(
                 "unified flow requires ControlQuery")
         started = time.perf_counter()
+        rank_started = time.perf_counter()
         ordered, raw_artifact = self.scalar_v2_ranker.rank(
             snapshot,
             query.grounded_candidates,
@@ -394,6 +395,9 @@ class UnifiedImpactFlowEngine:
             query.horizon_turn,
             query.survival_threat_radius,
             _goal_facts=query.goal_facts)
+        rank_ms = (
+            time.perf_counter() - rank_started
+        ) * 1000.0
         scalar_schedule = raw_artifact.get(
             "_packet_schedule_object")
         pressure_artifact = self._serialized_pressure(
@@ -422,6 +426,8 @@ class UnifiedImpactFlowEngine:
             if not active_goals:
                 raise ValueError(
                     "no typed flow goals")
+            factorization_started = (
+                time.perf_counter())
             factorization = self.factor_builder.build(
                 query.query_id, snapshot,
                 query.grounded_candidates,
@@ -432,12 +438,21 @@ class UnifiedImpactFlowEngine:
                 clone_generation=(
                     query.lifecycle_clone_generation),
                 context_digest=query.context_digest)
+            factorization_ms = (
+                time.perf_counter()
+                - factorization_started
+            ) * 1000.0
             view = factorization.view
+            potential_started = time.perf_counter()
             estimates = self.potentials.estimate(
                 view, active_goals,
                 PotentialBudget(
                     max_iterations=(
                         self.config.potential_iterations)))
+            potential_ms = (
+                time.perf_counter()
+                - potential_started
+            ) * 1000.0
             estimates_by_goal = {}
             for estimate in estimates:
                 estimates_by_goal.setdefault(
@@ -469,7 +484,10 @@ class UnifiedImpactFlowEngine:
             backward_field = dict(forward_field)
             projections = []
             batches = []
+            requested_currents = []
             processed_goals = []
+            probe_ms = 0.0
+            projection_ms = 0.0
             for goal_id in active_goals:
                 relevant_operations = tuple(sorted(
                     operation_id
@@ -494,6 +512,7 @@ class UnifiedImpactFlowEngine:
                                 row.stable_id]
                             .bridge_factor))
                     for row in view.nodes)
+                probe_started = time.perf_counter()
                 forward_batch = self.probes.run(
                     view, "forward", forward_starts,
                     relevant_nodes, features)
@@ -501,6 +520,10 @@ class UnifiedImpactFlowEngine:
                     view, "backward",
                     (goal_nodes[goal_id],),
                     relevant_nodes, features)
+                probe_ms += (
+                    time.perf_counter()
+                    - probe_started
+                ) * 1000.0
                 batches.extend((
                     forward_batch, backward_batch))
                 forward_paths = tuple(
@@ -559,10 +582,19 @@ class UnifiedImpactFlowEngine:
                             0.7 if use_backward_probes else 1.0),
                         probe_weight=(
                             0.3 if use_backward_probes else 0.0)))
+                requested_currents.extend((
+                    forward_request,
+                    backward_request))
+                projection_started = (
+                    time.perf_counter())
                 forward_projection = self._project_directed(
                     view, forward_request)
                 backward_projection = self._project_directed(
                     view, backward_request)
+                projection_ms += (
+                    time.perf_counter()
+                    - projection_started
+                ) * 1000.0
                 if (not forward_projection.healthy
                         or not backward_projection.healthy):
                     continue
@@ -606,6 +638,7 @@ class UnifiedImpactFlowEngine:
                 reservoir_mass={},
                 inflight_mass={},
                 reservations=PacketReservationLedger())
+            transport_started = time.perf_counter()
             transport = self.transport.run(
                 view, state,
                 forward_field, backward_field,
@@ -614,6 +647,10 @@ class UnifiedImpactFlowEngine:
                 delta_time=(
                     self.config.transport_time_step),
                 diffusion=self.config.diffusion)
+            transport_stage_ms = (
+                time.perf_counter()
+                - transport_started
+            ) * 1000.0
             if (not transport.steps
                     or not all(
                         row.healthy
@@ -675,6 +712,7 @@ class UnifiedImpactFlowEngine:
                     and candidate.action_key
                     in query.candidate_keys)
 
+            packet_started = time.perf_counter()
             packet = self.packet_integrator.integrate(
                 view, flow_candidates,
                 score_rows, (
@@ -683,6 +721,10 @@ class UnifiedImpactFlowEngine:
                     PacketBudget(
                         ResourceKind.CPU, 1),
                 ), revalidate=revalidate)
+            packet_ms = (
+                time.perf_counter()
+                - packet_started
+            ) * 1000.0
             if not packet.packet_schedule\
                     .committed_operation_ids:
                 raise ValueError(
@@ -735,6 +777,31 @@ class UnifiedImpactFlowEngine:
                 health)
             semantic_transport = (
                 self._semantic_transport(transport))
+            potential_summary = []
+            for goal_id in processed_goals:
+                goal_estimates = tuple(
+                    estimates_by_goal[goal_id].values())
+                bridge_values = tuple(
+                    row.bridge_factor
+                    for row in goal_estimates)
+                potential_summary.append({
+                    "bridge_factor_max": max(
+                        bridge_values, default=0.0),
+                    "bridge_factor_mean": (
+                        sum(bridge_values)
+                        / len(bridge_values)
+                        if bridge_values else 0.0),
+                    "estimator_id": (
+                        goal_estimates[0].estimator_id
+                        if goal_estimates else None),
+                    "estimator_policy": (
+                        goal_estimates[0]
+                        .estimator_policy
+                        if goal_estimates else None),
+                    "goal_id": goal_id,
+                    "node_count":
+                        len(goal_estimates),
+                })
             confidence = min(
                 (row.health.effective_sample_fraction
                  for row in healthy_batches),
@@ -761,6 +828,21 @@ class UnifiedImpactFlowEngine:
                             view.nodes),
                         "projection_count": len(
                             projections),
+                        "stage_latency_ms": {
+                            "factorization":
+                                factorization_ms,
+                            "packet_integration":
+                                packet_ms,
+                            "potential_estimation":
+                                potential_ms,
+                            "probe_blocks": probe_ms,
+                            "projection":
+                                projection_ms,
+                            "scalar_v2_rank":
+                                rank_ms,
+                            "transport":
+                                transport_stage_ms,
+                        },
                         "total_latency_ms": elapsed_ms,
                         "transport_microseconds_per_edge_update":
                             transport
@@ -784,9 +866,25 @@ class UnifiedImpactFlowEngine:
                         "probe_batches": [
                             row.to_dict()
                             for row in batches],
+                        "potential_summary":
+                            potential_summary,
                         "projection_results": [
                             row.to_dict()
                             for row in projections],
+                        "requested_currents": [
+                            row.to_dict()
+                            for row in requested_currents],
+                        "transport_readout": {
+                            "maximum_overlap": max(
+                                overlap, default=0.0),
+                            "selected_node_id":
+                                flow_node_by_operation[
+                                    selected_operation_id],
+                            "selected_overlap": float(
+                                overlap[node_index[
+                                    flow_node_by_operation[
+                                        selected_operation_id]]]),
+                        },
                         "transport":
                             semantic_transport,
                     },

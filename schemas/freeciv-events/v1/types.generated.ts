@@ -5,6 +5,50 @@ export const EVENT_SCHEMA_VERSION = "1.0" as const;
 
 export type JsonValue = null | boolean | number | string | unknown[] | Record<string, unknown>;
 
+export type ControlAggregate = {
+  "artifact_hash": string;
+  "config_digest": string;
+  "controller_decision_hash": string;
+  "event_schema_version": "1.0";
+  "parent_event_ids": Array<string>;
+  "query_id": string;
+  "semantic_epoch": number;
+  "summary": {
+    [key: string]: JsonValue;
+  };
+  "topology_generation": number;
+};
+
+export type TeleologyEstimated = ControlAggregate;
+
+export type ReverseOperatorApplied = ControlAggregate;
+
+export type RequirementSetMaterialized = ControlAggregate;
+
+export type BridgeEstimated = ControlAggregate;
+
+export type ProbeBlockCompleted = ControlAggregate;
+
+export type PathCurrentDeposited = ControlAggregate;
+
+export type FlowProjected = ControlAggregate;
+
+export type AttentionAdvected = ControlAggregate;
+
+export type PacketReserved = ControlAggregate;
+
+export type PacketReturned = ControlAggregate;
+
+export type FlowCandidateSelected = ControlAggregate;
+
+export type CandidateRevalidated = ControlAggregate;
+
+export type ControllerFallback = ControlAggregate;
+
+export type ControlOutcomeRecorded = ControlAggregate;
+
+export type SelectionCoverageSample = ControlAggregate;
+
 export type TruthValue = {
   "confidence": number;
   "strength": number;
@@ -707,7 +751,7 @@ export type LoggingGap = {
   "missing": string;
 };
 
-export type KnownEventType = "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "technology_catalog" | "technology_progress" | "production_state" | "unit_lifecycle" | "observation" | "revision" | "belief_conflict" | "context_quarantine" | "llm_proposal" | "goal_selection" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "rule_proposed" | "rule_validated" | "llm_call_scheduled" | "llm_gateway_result" | "rule_parameter_updated" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
+export type KnownEventType = "teleology_estimated" | "reverse_operator_applied" | "requirement_set_materialized" | "bridge_estimated" | "probe_block_completed" | "path_current_deposited" | "flow_projected" | "attention_advected" | "packet_reserved" | "packet_returned" | "flow_candidate_selected" | "candidate_revalidated" | "controller_fallback" | "control_outcome_recorded" | "selection_coverage_sample" | "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "technology_catalog" | "technology_progress" | "production_state" | "unit_lifecycle" | "observation" | "revision" | "belief_conflict" | "context_quarantine" | "llm_proposal" | "goal_selection" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "rule_proposed" | "rule_validated" | "llm_call_scheduled" | "llm_gateway_result" | "rule_parameter_updated" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
 
 export interface EventEnvelope<T extends string = string, P extends object = Record<string, unknown>> {
   schema_version: typeof EVENT_SCHEMA_VERSION;
@@ -722,6 +766,21 @@ export interface EventEnvelope<T extends string = string, P extends object = Rec
 }
 
 export interface KnownPayloadMap {
+  "teleology_estimated": TeleologyEstimated;
+  "reverse_operator_applied": ReverseOperatorApplied;
+  "requirement_set_materialized": RequirementSetMaterialized;
+  "bridge_estimated": BridgeEstimated;
+  "probe_block_completed": ProbeBlockCompleted;
+  "path_current_deposited": PathCurrentDeposited;
+  "flow_projected": FlowProjected;
+  "attention_advected": AttentionAdvected;
+  "packet_reserved": PacketReserved;
+  "packet_returned": PacketReturned;
+  "flow_candidate_selected": FlowCandidateSelected;
+  "candidate_revalidated": CandidateRevalidated;
+  "controller_fallback": ControllerFallback;
+  "control_outcome_recorded": ControlOutcomeRecorded;
+  "selection_coverage_sample": SelectionCoverageSample;
   "run_started": RunStarted;
   "run_completed": RunCompleted;
   "ruleset_compiled": RulesetCompiled;

@@ -60,6 +60,14 @@ const STAGES: Array<{ name: string; types: Set<string> }> = [
     "pressure_propagated", "operation_scored", "conductance_updated",
     "rule_proposed", "rule_validated", "llm_call_scheduled",
     "llm_gateway_result", "rule_parameter_updated",
+    "teleology_estimated", "reverse_operator_applied",
+    "requirement_set_materialized", "bridge_estimated",
+    "probe_block_completed", "path_current_deposited",
+    "flow_projected", "attention_advected",
+    "packet_reserved", "packet_returned",
+    "flow_candidate_selected", "candidate_revalidated",
+    "controller_fallback", "control_outcome_recorded",
+    "selection_coverage_sample",
   ]) },
   { name: "Plan", types: new Set(["plan_created", "plan_invalidated", "plan_step_executed"]) },
   { name: "Action", types: new Set(["action_sent", "action_result"]) },
@@ -115,6 +123,8 @@ function Scrubber({ events, cursor, onChange }: {
     if (event.type === "plan_invalidated") mark(event.turn, "invalidated");
     if (event.type === "quarantine") mark(event.turn, "quarantine");
     if (event.type === "pressure_propagated") mark(event.turn, "pressure");
+    if (event.type === "flow_candidate_selected") mark(event.turn, "flow");
+    if (event.type === "controller_fallback") mark(event.turn, "fallback");
     if (event.type === "conductance_updated") mark(event.turn, "learning");
     if (event.type === "metric_sample" && [
       "cities_founded", "settlement_completions", "score_gain", "game_win",

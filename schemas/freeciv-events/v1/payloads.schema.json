@@ -7,6 +7,49 @@
       "description": "Any value accepted by the JSON parser; nested JSON validity is structural.",
       "type": ["null", "boolean", "number", "string", "array", "object"]
     },
+    "controlAggregate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_schema_version", "query_id", "semantic_epoch",
+        "topology_generation", "config_digest",
+        "controller_decision_hash", "artifact_hash",
+        "parent_event_ids", "summary"
+      ],
+      "properties": {
+        "event_schema_version": {"const": "1.0"},
+        "query_id": {"type": "string", "minLength": 1},
+        "semantic_epoch": {"type": "integer", "minimum": 0},
+        "topology_generation": {"type": "integer", "minimum": 0},
+        "config_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "controller_decision_hash": {
+          "type": "string", "pattern": "^[0-9a-f]{64}$"
+        },
+        "artifact_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "parent_event_ids": {
+          "type": "array", "items": {"type": "string"}, "uniqueItems": true
+        },
+        "summary": {
+          "type": "object",
+          "additionalProperties": {"$ref": "#/$defs/jsonValue"}
+        }
+      }
+    },
+    "teleology_estimated": {"$ref": "#/$defs/controlAggregate"},
+    "reverse_operator_applied": {"$ref": "#/$defs/controlAggregate"},
+    "requirement_set_materialized": {"$ref": "#/$defs/controlAggregate"},
+    "bridge_estimated": {"$ref": "#/$defs/controlAggregate"},
+    "probe_block_completed": {"$ref": "#/$defs/controlAggregate"},
+    "path_current_deposited": {"$ref": "#/$defs/controlAggregate"},
+    "flow_projected": {"$ref": "#/$defs/controlAggregate"},
+    "attention_advected": {"$ref": "#/$defs/controlAggregate"},
+    "packet_reserved": {"$ref": "#/$defs/controlAggregate"},
+    "packet_returned": {"$ref": "#/$defs/controlAggregate"},
+    "flow_candidate_selected": {"$ref": "#/$defs/controlAggregate"},
+    "candidate_revalidated": {"$ref": "#/$defs/controlAggregate"},
+    "controller_fallback": {"$ref": "#/$defs/controlAggregate"},
+    "control_outcome_recorded": {"$ref": "#/$defs/controlAggregate"},
+    "selection_coverage_sample": {"$ref": "#/$defs/controlAggregate"},
     "truthValue": {
       "type": "object",
       "additionalProperties": false,

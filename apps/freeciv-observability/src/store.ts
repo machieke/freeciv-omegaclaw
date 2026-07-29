@@ -14,6 +14,21 @@ const PF_PLN_EVENT_TYPES = new Set([
   "llm_call_scheduled",
   "llm_gateway_result",
   "rule_parameter_updated",
+  "teleology_estimated",
+  "reverse_operator_applied",
+  "requirement_set_materialized",
+  "bridge_estimated",
+  "probe_block_completed",
+  "path_current_deposited",
+  "flow_projected",
+  "attention_advected",
+  "packet_reserved",
+  "packet_returned",
+  "flow_candidate_selected",
+  "candidate_revalidated",
+  "controller_fallback",
+  "control_outcome_recorded",
+  "selection_coverage_sample",
 ]);
 
 const recordAtom = (
