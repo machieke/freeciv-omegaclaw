@@ -1,0 +1,37 @@
+{
+  "artifact_type": "performance",
+  "baseline_id": "pf-unified-scalar-v1-3586a00",
+  "command": "python3 scripts/freeciv/run_pf_unified_baseline.py timing --repetitions 200",
+  "source_commit": "3586a00ab40e0ea5b08ff83675d4b312447b1d62",
+  "timing": {
+    "capital_pressure": {
+      "mean_ms": 0.2577947243116796,
+      "repetitions": 200,
+      "total_seconds": 0.05155894486233592
+    },
+    "concentration_256": {
+      "mean_ms": 50.217168289236724,
+      "repetitions": 20,
+      "total_seconds": 1.0043433657847345
+    },
+    "measurement_scope": "controller-inclusive Python wall time including validation, ranking, allocation, and artifact serialization",
+    "platform": {
+      "machine": "x86_64",
+      "python_version": "3.8.10",
+      "system": "Linux"
+    },
+    "schema_version": "1.0",
+    "smoothed_scalar_10_steps": {
+      "mean_ms": 0.34423939883708954,
+      "repetitions": 200,
+      "total_seconds": 0.06884787976741791
+    },
+    "snapshot_replay_2_states": {
+      "mean_ms": 20.219760132022202,
+      "repetitions": 20,
+      "total_seconds": 0.40439520264044404
+    },
+    "timing_hash": "d37ded2ba40679c4f883afc55b8d86495b6346d7b97decc7f29ac43ee75c373c"
+  },
+  "schema_version": "1.0"
+}

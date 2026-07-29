@@ -1,0 +1,62 @@
+schema_version: "1.0"
+baseline_id: pf-unified-scalar-v1-3586a00
+repository: machieke/freeciv-omegaclaw
+branch: "experimental/pln-pressure–bridge–fluid"
+source:
+  commit: 3586a00ab40e0ea5b08ff83675d4b312447b1d62
+  implementation_sha256: 13fface905419b79901b67bd60357776751f38289bfc0a4cceb841202d118312
+  source_files: 120
+runtime:
+  python_version: "3.8.10"
+  pf_runtime_schema: "1.0"
+  pressure_artifact_schema: "1.0"
+platform_profile: linux-x86_64-codex-dev
+random_seed:
+  algorithm: fixed-integer-v1
+  value: 20260729
+ruleset:
+  name: civ2civ3
+  compiler_version: freeciv-ruleset-compiler/1.3
+  source_sha256: 3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e
+  ir_sha256: 2f25a21c969e60b94c2da4d40c336fcc14a41e6741d8edf86d0eb8be4e696f06
+  atomese_sha256: 86b3108f12c30690af34f72f40150ca0250caf7479ce07f11d40236e8e00220e
+solvers:
+  pressure_engine: pf-pln-pressure-engine/1.0
+  pressure_scheduler: pf-pln-pressure-scheduler/1.0
+  live_adapter: grounded-impact-planner/1.34
+  scalar_baseline: pf-pln-smoothed-scalar/1.0
+fixtures:
+  fixture_set_sha256: a7317c97a28d34a95c0a9e75102b780f4e9b4db9684768b70c30a5d1219c963a
+  files:
+    - path: benchmarks/freeciv/samples/real_state_turn0.json
+      sha256: 42499ba0fe84c15f3a09aa00da7fd5d869352339a97b4276325de541dde78810
+    - path: benchmarks/freeciv/samples/real_state_turn1.json
+      sha256: 41c57ba169811aa0cbf65086cec4f8d506f493cca227517495232114cf11cc92
+    - path: profile/freeciv_harness_2000_turn.yaml
+      sha256: c718e0abd583341db14b9518f9d072a3d75bd829a1a6d60f1cd95067fd4d63a7
+    - path: schemas/freeciv-events/v1/envelope.schema.json
+      sha256: d6ce057fe846d082e83e5f36891dbbac82dab88700404fa15026f32bf0b26142
+    - path: schemas/freeciv-events/v1/payloads.schema.json
+      sha256: 480d0f3e1d676b1b72c1c568bf33bcb1eab83b442dddc6363b0d2c36e661842c
+golden:
+  directory: benchmarks/freeciv/pf_unified/golden/v1
+  artifact_set_sha256: 525e730d7443347ca9fb0e720b2f86b59d522d91a4b395edf096a31f88fbfe33
+  artifacts:
+    - path: benchmarks/freeciv/pf_unified/golden/v1/capital-pressure.json
+      sha256: d1a65b46969cd3bedbc9a98025c71c05bff4ef680584746df378c36e3d4c8489
+    - path: benchmarks/freeciv/pf_unified/golden/v1/concentration-256.json
+      sha256: 93af173f2e6a4c68f3e01b63e80500fcc4cb478187149a7ce7ec73674ad63db6
+    - path: benchmarks/freeciv/pf_unified/golden/v1/proof-dag.json
+      sha256: 9f23efaf6d6933008a9cb967fab1013bfe0ebaf704a8bfd84d39030add768256
+    - path: benchmarks/freeciv/pf_unified/golden/v1/observation-action.json
+      sha256: b1ff6f5c2d516d9e1ee96d168e61a73040e212d97a61e98988fff3164eebafed
+    - path: benchmarks/freeciv/pf_unified/golden/v1/impact-snapshot-replay.json
+      sha256: e8c04854882ccce0b9f8615a8cbfb24d9b461eba9882a5dbe81dceeb349150d1
+    - path: benchmarks/freeciv/pf_unified/golden/v1/conductance-replay.json
+      sha256: 6617c5a1500398c5464d83511c63b7db532108c8431ff0a2c50a22b445da87a1
+    - path: benchmarks/freeciv/pf_unified/golden/v1/runtime-matrix.json
+      sha256: 95418d60b710047e224a49a65a222e55bca5f38eba3639c3dec0f740f5519df6
+    - path: benchmarks/freeciv/pf_unified/golden/v1/event-contract.json
+      sha256: e3af8ffab75c462d57ba41dcb11133b4922b62f08087e6e54c3bf72fb0bfa1e3
+    - path: benchmarks/freeciv/pf_unified/golden/v1/smoothed-scalar.json
+      sha256: f503bf990609448fca7472380f2b2f754af2c5ce57a8dff51c7432b7dec0c04d

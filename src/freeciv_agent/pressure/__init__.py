@@ -88,6 +88,13 @@ from .scheduler import (
     OperationScore,
     PressureScheduler,
 )
+from .scalar_baseline import (
+    ScalarBaselineConfig,
+    ScalarRouteBid,
+    SmoothedRouteScore,
+    SmoothedScalarController,
+    SmoothedScalarDecision,
+)
 
 __all__ = [
     "ACTION_CAUSAL_KINDS",
@@ -144,7 +151,12 @@ __all__ = [
     "ReplayMetrics",
     "ReplayValidation",
     "ReplayValidator",
+    "ScalarBaselineConfig",
+    "ScalarRouteBid",
     "SimilarityLink",
+    "SmoothedRouteScore",
+    "SmoothedScalarController",
+    "SmoothedScalarDecision",
     "StructuralAnalogy",
     "TensorTruth",
     "ThresholdCharacterization",

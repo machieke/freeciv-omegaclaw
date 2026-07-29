@@ -207,6 +207,8 @@ class PressureResult:
 class PressureEngine(object):
     """Deterministic, finite-horizon approximation of reverse PF transport."""
 
+    SOLVER_IDENTITY = "pf-pln-pressure-engine/1.0"
+
     def __init__(self, config=None):
         self.config = config or PressureConfig()
         if not isinstance(self.config, PressureConfig):
