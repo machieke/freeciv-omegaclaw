@@ -74,6 +74,15 @@ from .projection import (
     ProjectionResult,
     ProjectionSolver,
 )
+from .capacities import (
+    CapacityDual,
+    CapacityKind,
+    CapacityRecord,
+    CommodityFlowAllocation,
+    CommodityFlowRequest,
+    MultiCommodityCapacitySolver,
+    MultiCommodityResult,
+)
 
 __all__ = [
     "CandidateGrounding",
@@ -84,10 +93,17 @@ __all__ = [
     "BridgeScalarConfig",
     "BridgeScalarController",
     "BridgeScalarDecision",
+    "CapacityDual",
+    "CapacityKind",
+    "CapacityRecord",
     "ClosurePolicy",
+    "CommodityFlowAllocation",
+    "CommodityFlowRequest",
     "CycleClosurePlanner",
     "DirectionalField",
     "MixedDirection",
+    "MultiCommodityCapacitySolver",
+    "MultiCommodityResult",
     "NormalizationContract",
     "NormalizedDirection",
     "CorrectedProbeEstimator",
