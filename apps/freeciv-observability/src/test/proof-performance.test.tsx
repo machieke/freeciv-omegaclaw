@@ -28,6 +28,9 @@ it("renders a 200-node DOM-selectable proof in under 300 ms", () => {
     eventsById: new Map([[proofEvent.event_id, proofEvent]]), atoms: new Map(), plans: new Map(),
     proofs: [{ event: proofEvent, result }], pfPlnEvents: [], pressurePropagations: [],
     operationScores: [], conductanceUpdates: [], quarantines: [], metrics: [], unknown: [],
+    teleologyEstimates: [], requirementSets: [], bridgeEstimates: [], flowProjections: [],
+    packetReservations: [], packetReturns: [], flowSelections: [], candidateRevalidations: [],
+    controllerFallbacks: [], controlOutcomes: [],
     loggingGaps: [], snapshots: [], invalidations: new Map(), verifications: [], actionResults: [],
     technologyCatalogs: [], technologyProgress: [], productionStates: [], unitLifecycles: [],
   };
@@ -59,6 +62,9 @@ it("keeps proof nodes beyond the default depth-four collapse inspectable", async
     eventsById: new Map([[proofEvent.event_id, proofEvent]]), atoms: new Map(), plans: new Map(),
     proofs: [{ event: proofEvent, result }], pfPlnEvents: [], pressurePropagations: [],
     operationScores: [], conductanceUpdates: [], quarantines: [], metrics: [], unknown: [],
+    teleologyEstimates: [], requirementSets: [], bridgeEstimates: [], flowProjections: [],
+    packetReservations: [], packetReturns: [], flowSelections: [], candidateRevalidations: [],
+    controllerFallbacks: [], controlOutcomes: [],
     loggingGaps: [], snapshots: [], invalidations: new Map(), verifications: [], actionResults: [],
     technologyCatalogs: [], technologyProgress: [], productionStates: [], unitLifecycles: [],
   };

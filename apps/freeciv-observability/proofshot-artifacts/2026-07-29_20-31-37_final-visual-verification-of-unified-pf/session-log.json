@@ -1,0 +1,102 @@
+[
+  {
+    "action": "eval Array.from(document.querySelectorAll('button')).find((el) => el.textContent.includes('Experiment traces')).click()",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-29T20:32:13.252Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 5.4,
+    "timestamp": "2026-07-29T20:32:13.607Z"
+  },
+  {
+    "action": "click @e66",
+    "relativeTimeSec": 14.1,
+    "timestamp": "2026-07-29T20:32:22.312Z"
+  },
+  {
+    "action": "eval new Promise((resolve) => setTimeout(resolve, 1200))",
+    "relativeTimeSec": 14.6,
+    "timestamp": "2026-07-29T20:32:22.765Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll('nav.side-nav button')).find((el) => el.textContent.includes('PF-PLN')).click()",
+    "relativeTimeSec": 16.1,
+    "timestamp": "2026-07-29T20:32:24.316Z"
+  },
+  {
+    "action": "eval new Promise((resolve) => setTimeout(resolve, 300))",
+    "relativeTimeSec": 16.6,
+    "timestamp": "2026-07-29T20:32:24.802Z"
+  },
+  {
+    "action": "get url",
+    "relativeTimeSec": 17.2,
+    "timestamp": "2026-07-29T20:32:25.426Z"
+  },
+  {
+    "action": "eval document.querySelector('main').scrollTo(0, 1375); document.querySelector('.pf-flow-decisions').scrollTo(0, document.querySelector('.pf-flow-decisions').scrollHeight)",
+    "relativeTimeSec": 23.2,
+    "timestamp": "2026-07-29T20:32:31.425Z"
+  },
+  {
+    "action": "screenshot final-terminal-guard-ledger.png",
+    "relativeTimeSec": 23.6,
+    "timestamp": "2026-07-29T20:32:31.792Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 24,
+    "timestamp": "2026-07-29T20:32:32.194Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll('button.pf-flow-decision')).find((el) => el.textContent.includes('T4.14')).click()",
+    "relativeTimeSec": 35.4,
+    "timestamp": "2026-07-29T20:32:43.571Z"
+  },
+  {
+    "action": "screenshot final-terminal-guard-inspector.png",
+    "relativeTimeSec": 35.8,
+    "timestamp": "2026-07-29T20:32:44.009Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 36.2,
+    "timestamp": "2026-07-29T20:32:44.401Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 36.8,
+    "timestamp": "2026-07-29T20:32:45.004Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll('nav.side-nav button')).find((el) => el.textContent.includes('How it works')).click()",
+    "relativeTimeSec": 46.3,
+    "timestamp": "2026-07-29T20:32:54.494Z"
+  },
+  {
+    "action": "eval new Promise((resolve) => setTimeout(resolve, 200))",
+    "relativeTimeSec": 46.8,
+    "timestamp": "2026-07-29T20:32:54.962Z"
+  },
+  {
+    "action": "eval document.querySelector('main').scrollTo(0, 900)",
+    "relativeTimeSec": 47.3,
+    "timestamp": "2026-07-29T20:32:55.517Z"
+  },
+  {
+    "action": "screenshot unified-how-it-works.png",
+    "relativeTimeSec": 47.7,
+    "timestamp": "2026-07-29T20:32:55.858Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 48,
+    "timestamp": "2026-07-29T20:32:56.249Z"
+  },
+  {
+    "action": "errors",
+    "relativeTimeSec": 48.5,
+    "timestamp": "2026-07-29T20:32:56.670Z"
+  }
+]

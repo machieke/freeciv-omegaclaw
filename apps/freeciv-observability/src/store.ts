@@ -56,6 +56,16 @@ export const foldEvents = (allEvents: TraceEvent[], cursor: Cursor): ReplayState
   const pressurePropagations: TraceEvent[] = [];
   const operationScores: TraceEvent[] = [];
   const conductanceUpdates: TraceEvent[] = [];
+  const teleologyEstimates: TraceEvent[] = [];
+  const requirementSets: TraceEvent[] = [];
+  const bridgeEstimates: TraceEvent[] = [];
+  const flowProjections: TraceEvent[] = [];
+  const packetReservations: TraceEvent[] = [];
+  const packetReturns: TraceEvent[] = [];
+  const flowSelections: TraceEvent[] = [];
+  const candidateRevalidations: TraceEvent[] = [];
+  const controllerFallbacks: TraceEvent[] = [];
+  const controlOutcomes: TraceEvent[] = [];
   const quarantines: TraceEvent[] = [];
   const metrics: TraceEvent[] = [];
   const unknown: TraceEvent[] = [];
@@ -113,6 +123,16 @@ export const foldEvents = (allEvents: TraceEvent[], cursor: Cursor): ReplayState
     if (event.type === "pressure_propagated") pressurePropagations.push(event);
     if (event.type === "operation_scored") operationScores.push(event);
     if (event.type === "conductance_updated") conductanceUpdates.push(event);
+    if (event.type === "teleology_estimated") teleologyEstimates.push(event);
+    if (event.type === "requirement_set_materialized") requirementSets.push(event);
+    if (event.type === "bridge_estimated") bridgeEstimates.push(event);
+    if (event.type === "flow_projected") flowProjections.push(event);
+    if (event.type === "packet_reserved") packetReservations.push(event);
+    if (event.type === "packet_returned") packetReturns.push(event);
+    if (event.type === "flow_candidate_selected") flowSelections.push(event);
+    if (event.type === "candidate_revalidated") candidateRevalidations.push(event);
+    if (event.type === "controller_fallback") controllerFallbacks.push(event);
+    if (event.type === "control_outcome_recorded") controlOutcomes.push(event);
     if (event.type === "metric_sample") metrics.push(event);
     if (event.type === "logging_gap") loggingGaps.push(event);
     if (event.type === "verification") verifications.push(event);
@@ -125,6 +145,9 @@ export const foldEvents = (allEvents: TraceEvent[], cursor: Cursor): ReplayState
   return {
     cursor, events, eventsById, atoms, plans, proofs, pfPlnEvents,
     pressurePropagations, operationScores, conductanceUpdates, quarantines, metrics,
+    teleologyEstimates, requirementSets, bridgeEstimates, flowProjections,
+    packetReservations, packetReturns, flowSelections, candidateRevalidations,
+    controllerFallbacks, controlOutcomes,
     unknown, loggingGaps, snapshots, invalidations, verifications, actionResults,
     technologyCatalogs, technologyProgress, productionStates, unitLifecycles,
   };

@@ -25,6 +25,7 @@ import { decodeUrlState, encodeUrlState, type ViewName } from "./url-state";
 import {
   CHART_COLORS, Sparkline, TurnHeatmap, ValueBar, humanize,
 } from "./visuals";
+import { UNIFIED_CONTROLLER_STATUS } from "./unified-status";
 
 type Selection =
   | { kind: "event"; value: TraceEvent }
@@ -1385,6 +1386,265 @@ function PairedTraceComparison({ state, comparisonState, comparisonSource, decis
   </section>;
 }
 
+interface CandidateKeyView {
+  action: string;
+  detail: string;
+}
+
+const candidateKeyView = (value: unknown): CandidateKeyView => {
+  let candidate: Record<string, unknown> = {};
+  if (typeof value === "string") {
+    try {
+      candidate = recordOf(JSON.parse(value));
+    } catch {
+      return { action: value || "candidate not recorded", detail: "opaque candidate key" };
+    }
+  } else {
+    candidate = recordOf(value);
+  }
+  const target = recordOf(candidate.target);
+  const details = [
+    candidate.actor_id !== undefined ? `actor ${String(candidate.actor_id)}` : "",
+    candidate.city_id !== undefined ? `city ${String(candidate.city_id)}` : "",
+    target.production_type ? String(target.production_type) : "",
+    target.x !== undefined && target.y !== undefined
+      ? `tile ${String(target.x)},${String(target.y)}` : "",
+    candidate.settlement_site_eligible === true ? "settlement eligible" : "",
+  ].filter(Boolean);
+  return {
+    action: humanize(candidate.action_type ?? "candidate not recorded"),
+    detail: details.join(" · ") || "no target detail logged",
+  };
+};
+
+const queryIdOf = (event: TraceEvent): string => String(event.payload.query_id ?? "");
+
+function UnifiedControllerStatus() {
+  const status = UNIFIED_CONTROLLER_STATUS;
+  return <section className="pf-unified-status" aria-labelledby="pf-unified-status-title">
+    <header>
+      <div><span className="eyebrow">implementation closeout / tracked evidence</span>
+        <h3 id="pf-unified-status-title">Unified pressure · bridge · flow authority</h3></div>
+      <span className="pf-release-stopped">{status.releaseDecision}</span>
+    </header>
+    <div className="pf-unified-decision">
+      <article>
+        <span>supported live controller</span>
+        <strong>{status.supportedController}</strong>
+        <p>{status.releaseReason}</p>
+        <small>Unified flow remains available for {status.authority}.</small>
+      </article>
+      <dl>
+        <div><dt>fresh confirmation</dt><dd>{status.confirmation.pairs} pairs / {
+          status.confirmation.arms} arms</dd></div>
+        <div><dt>player score</dt><dd>{status.confirmation.scoreDelta} {
+          status.confirmation.confidenceInterval}</dd></div>
+        <div><dt>exact paired p</dt><dd>{status.confirmation.exactP}</dd></div>
+        <div><dt>claim status</dt><dd>{status.confirmation.claim}</dd></div>
+      </dl>
+      <dl className="guard-result">
+        <div><dt>terminal guards</dt><dd>{status.terminalGuard.guarded} / {
+          status.terminalGuard.pairs} diagnostic pairs</dd></div>
+        <div><dt>displacements accepted</dt><dd>{
+          status.terminalGuard.terminalDisplacementsAccepted}</dd></div>
+        <div><dt>diagnostic score</dt><dd>{status.terminalGuard.scoreResult}</dd></div>
+        <div><dt>decision</dt><dd>{status.terminalGuard.decision}</dd></div>
+      </dl>
+    </div>
+    <ol className="pf-stage-gates" aria-label="Unified PF-PLN stage gates">
+      {status.stages.map((stage) => <li key={stage.stage} className={stage.state}>
+        <span>{stage.stage}</span><strong>{stage.title}</strong>
+        <b>{stage.state}</b><small>{stage.scope}</small>
+      </li>)}
+    </ol>
+    <footer>
+      <span>{status.confirmation.signs}</span>
+      <span>observed overhead {status.overhead.impactPlanning} impact planning · {
+        status.overhead.fullLoop} full loop</span>
+      <code title={status.evidence.status}>{status.statusDate} status artifact</code>
+    </footer>
+  </section>;
+}
+
+function UnifiedFlowTelemetry({ state, onSelect }: {
+  state: ReplayState; onSelect: (selection: Selection) => void;
+}) {
+  const fallbacksByQuery = new Map(
+    state.controllerFallbacks.map((event) => [queryIdOf(event), event]),
+  );
+  const revalidationsByQuery = new Map(
+    state.candidateRevalidations.map((event) => [queryIdOf(event), event]),
+  );
+  const projectionRows = state.flowProjections.flatMap((event) =>
+    rowsOf(recordOf(event.payload.summary).projections));
+  const conservedPackets = state.packetReservations.filter((event) =>
+    recordOf(recordOf(event.payload.summary).packet_schedule).conserved === true).length;
+  const guardedSelections = state.flowSelections.filter((event) =>
+    recordOf(event.payload.summary).selection_disposition === "guarded-fallback").length;
+  const calibratedSelections = state.flowSelections.filter((event) =>
+    recordOf(event.payload.summary).calibrated === true).length;
+  const commitRevalidations = state.candidateRevalidations.filter((event) =>
+    recordOf(event.payload.summary).disposition === "commit").length;
+  const healthyProjections = projectionRows.filter((row) => row.health === "healthy").length;
+  const latestBridge = state.bridgeEstimates.at(-1);
+  const bridgeGoals = rowsOf(recordOf(latestBridge?.payload.summary).goal_summaries);
+  const latestFlow = state.flowProjections.at(-1);
+  const latestProjections = rowsOf(recordOf(latestFlow?.payload.summary).projections);
+  const latestPacket = state.packetReservations.at(-1);
+  const packetSchedule = recordOf(recordOf(latestPacket?.payload.summary).packet_schedule);
+  const accounting = recordOf(packetSchedule.accounting);
+  const eventsOf = (...types: string[]): TraceEvent[] => {
+    const accepted = new Set(types);
+    return state.pfPlnEvents.filter((event) => accepted.has(event.type));
+  };
+  const pipeline = [
+    ["teleology", eventsOf("teleology_estimated", "reverse_operator_applied")],
+    ["requirements", state.requirementSets],
+    ["bridge", eventsOf("bridge_estimated", "probe_block_completed")],
+    ["flow", eventsOf("path_current_deposited", "flow_projected", "attention_advected")],
+    ["packets", eventsOf("packet_reserved", "packet_returned")],
+    ["selection", state.flowSelections],
+    ["authority", eventsOf("candidate_revalidated", "controller_fallback")],
+    ["outcomes", eventsOf("control_outcome_recorded", "selection_coverage_sample")],
+  ] as const;
+  const hasUnifiedTrace = pipeline.some(([, events]) => events.length > 0)
+    || state.controllerFallbacks.length > 0;
+
+  return <section className="pf-panel pf-unified-telemetry"
+    aria-labelledby="pf-unified-telemetry-title">
+    <header>
+      <div><span className="eyebrow">query-local emitted evidence / strict as-of</span>
+        <h3 id="pf-unified-telemetry-title">Unified controller telemetry</h3></div>
+      <span className="pf-count">{state.flowSelections.length} selections · {
+        state.controllerFallbacks.length} fallbacks</span>
+    </header>
+    <div className="pf-unified-pipeline" aria-label="Unified controller event coverage">
+      {pipeline.map(([label, events], index) => <button key={label}
+        disabled={!events.length}
+        onClick={() => events.length && onSelect({ kind: "event", value: events.at(-1)! })}>
+        <span>{String(index + 1).padStart(2, "0")}</span>
+        <strong>{humanize(label)}</strong><b>{events.length.toLocaleString()}</b>
+      </button>)}
+    </div>
+    {!hasUnifiedTrace ? <div className="pf-panel-gap">
+      No unified teleology, bridge, flow, packet, selection, or revalidation events were logged.
+    </div> : <>
+      <div className="pf-unified-health" aria-label="Unified controller health">
+        <div><span>projection health</span><strong>{healthyProjections}/{projectionRows.length}</strong>
+          <small>healthy solver projections</small></div>
+        <div><span>packet conservation</span><strong>{conservedPackets}/{
+          state.packetReservations.length}</strong><small>conserved reservations</small></div>
+        <div><span>terminal guard</span><strong>{guardedSelections}</strong>
+          <small>proposals replaced by scalar fallback</small></div>
+        <div><span>calibration</span><strong>{calibratedSelections}/{
+          state.flowSelections.length}</strong><small>calibrated flow selections</small></div>
+        <div><span>revalidation</span><strong>{commitRevalidations}/{
+          state.candidateRevalidations.length}</strong><small>commit dispositions</small></div>
+      </div>
+
+      <div className="pf-unified-signal-grid">
+        <section>
+          <header><span className="eyebrow">latest query</span><h4>Bridge factors</h4>
+            {latestBridge && <button onClick={() =>
+              onSelect({ kind: "event", value: latestBridge })}>inspect</button>}</header>
+          {bridgeGoals.length ? <div className="pf-bridge-readout">
+            {bridgeGoals.map((goal, index) => <div key={String(goal.goal_id ?? index)}>
+              <strong>{compactPfId(goal.goal_id)}</strong>
+              <span>mean {numeric(goal.bridge_factor_mean)}</span>
+              <span>max {numeric(goal.bridge_factor_max)}</span>
+              <small>{numeric(goal.node_count)} nodes</small>
+            </div>)}
+          </div> : <div className="pf-mini-gap">No bridge estimate at this cursor.</div>}
+        </section>
+        <section>
+          <header><span className="eyebrow">latest query</span><h4>Flow projection</h4>
+            {latestFlow && <button onClick={() =>
+              onSelect({ kind: "event", value: latestFlow })}>inspect</button>}</header>
+          {latestProjections.length ? <div className="pf-projection-readout">
+            {latestProjections.map((projection, index) => <div key={index}>
+              <strong className={projection.health === "healthy" ? "healthy" : "unhealthy"}>
+                {String(projection.health ?? "unknown")}</strong>
+              <span>{String(projection.solver ?? "solver not logged")}</span>
+              <small>{numeric(projection.iterations)} iterations · residual {
+                numeric(projection.balance_residual)}</small>
+            </div>)}
+          </div> : <div className="pf-mini-gap">No flow projection at this cursor.</div>}
+        </section>
+        <section>
+          <header><span className="eyebrow">latest query</span><h4>Packet accounting</h4>
+            {latestPacket && <button onClick={() =>
+              onSelect({ kind: "event", value: latestPacket })}>inspect</button>}</header>
+          {Object.keys(accounting).length ? <div className="pf-packet-readout">
+            <div className="packet-total"><strong>{
+              packetSchedule.conserved === true ? "conserved" : "not conserved"
+            }</strong><span>{rowsOf(packetSchedule.reservations).length} reservations</span>
+              <small>integrality gap {numeric(packetSchedule.integrality_gap)}</small></div>
+            {Object.entries(accounting).map(([resource, value]) => {
+              const row = recordOf(value);
+              return <div key={resource}><strong>{humanize(resource)}</strong>
+                <span>{numeric(row.consumed)} / {numeric(row.declared)}</span>
+                <small>{numeric(row.stranded)} stranded</small></div>;
+            })}
+          </div> : <div className="pf-mini-gap">No packet accounting at this cursor.</div>}
+        </section>
+      </div>
+
+      <div className="pf-flow-ledger">
+        <header><div><span className="eyebrow">proposal ≠ authority</span>
+          <h4>Flow decision ledger</h4></div>
+          <p>Proposed and effective candidates remain separate. Guard and revalidation
+            dispositions are read from the same query lineage.</p></header>
+        {state.flowSelections.length ? <div className="pf-flow-decisions" role="table"
+          aria-label="Unified flow decision ledger">
+          <div className="pf-flow-decision head" role="row">
+            <span>turn / disposition</span><span>flow proposal</span><span>effective action</span>
+            <span>authority evidence</span>
+          </div>
+          {[...state.flowSelections].slice(-40).reverse().map((event) => {
+            const summary = recordOf(event.payload.summary);
+            const queryId = queryIdOf(event);
+            const fallback = fallbacksByQuery.get(queryId);
+            const fallbackSummary = recordOf(fallback?.payload.summary);
+            const revalidation = revalidationsByQuery.get(queryId);
+            const revalidationSummary = recordOf(revalidation?.payload.summary);
+            const transport = recordOf(summary.transport_readout);
+            const proposed = candidateKeyView(summary.selected_candidate_key);
+            const effective = candidateKeyView(summary.effective_candidate_key);
+            const disposition = String(summary.selection_disposition ?? "not recorded");
+            const reasons = Array.isArray(fallbackSummary.gate_reasons)
+              ? fallbackSummary.gate_reasons.map(String) : [];
+            const differs = summary.selected_candidate_key !== summary.effective_candidate_key;
+            return <button className={`pf-flow-decision ${disposition}`} role="row"
+              key={event.event_id} onClick={() => onSelect({ kind: "event", value: event })}>
+              <span><b>T{event.turn}.{event.seq}</b>
+                <em>{humanize(disposition)}</em>
+                <small>confidence {numeric(summary.confidence)} · {
+                  summary.calibrated === true ? "calibrated" : "uncalibrated"}</small></span>
+              <span><strong>{proposed.action}</strong><small>{proposed.detail}</small>
+                {fallbackSummary.advisory_candidate_terminal === true && <i>terminal</i>}</span>
+              <span><strong>{effective.action}</strong><small>{effective.detail}</small>
+                {fallbackSummary.fallback_candidate_terminal === true && <i>terminal retained</i>}
+                <b className={differs ? "different" : "same"}>{
+                  differs ? "guard changed authority" : "proposal retained"}</b></span>
+              <span><strong>{reasons.length ? reasons.map(humanize).join(" · ")
+                : revalidationSummary.disposition
+                  ? `revalidation: ${humanize(revalidationSummary.disposition)}`
+                  : "no gate or revalidation event"}</strong>
+                <small>{transport.disagrees_with_scalar === true
+                  ? "disagrees with scalar-v2" : "agrees with scalar-v2"} · selected overlap {
+                    numeric(transport.selected_overlap)}</small>
+                {revalidationSummary.execution_authority === false
+                  && <i>no direct execution authority</i>}</span>
+            </button>;
+          })}
+        </div> : <div className="pf-panel-gap">
+          Unified component events exist, but no flow_candidate_selected event was logged.
+        </div>}
+      </div>
+    </>}
+  </section>;
+}
+
 function PfPlnDashboard({ state, onSelect, decisionId, onDecision, comparisonState,
   comparisonSource, pairQuality }: {
   state: ReplayState; onSelect: (selection: Selection) => void;
@@ -1441,6 +1701,10 @@ function PfPlnDashboard({ state, onSelect, decisionId, onDecision, comparisonSta
       <p>Trace-only replay. Counts index logged events; goals, pressure, scores,
         selections, and learning values are rendered verbatim.</p>
     </div>
+
+    <UnifiedControllerStatus />
+
+    <UnifiedFlowTelemetry state={state} onSelect={onSelect} />
 
     <div className="pf-summary" aria-label="PF-PLN event coverage">
       {summary.map((item) => <button key={item.label} disabled={!item.event}
@@ -2547,6 +2811,52 @@ function HowItWorks({ onNavigate }: { onNavigate: (view: ViewName) => void }) {
         </li>
       </ol>
 
+      <section className="pf-unified-about" aria-labelledby="pf-unified-about-title">
+        <header>
+          <div><span className="eyebrow">experimental extension / authority stays bounded</span>
+            <h4 id="pf-unified-about-title">How pressure becomes bridge, flow, and a guarded choice</h4></div>
+          <span>live release stopped</span>
+        </header>
+        <div>
+          <article><span>01 / teleology</span><strong>Estimate typed advantage</strong>
+            <p>Explicit loss, cost-to-go, leverage, risk, latency, and resource use describe
+              why a concrete operation could relieve a goal. AND prerequisites stay together
+              as complete RequirementSets.</p>
+            <code>teleology_estimated → requirement_set_materialized</code></article>
+          <article><span>02 / bridge</span><strong>Meet forward and backward feasibility</strong>
+            <p>Separate forward reachability and backward goal demand form query-local bridge
+              factors. They can identify a useful route, but cannot create belief, legality,
+              or execution authority.</p>
+            <code>bridge_estimated</code></article>
+          <article><span>03 / conserved flow</span><strong>Project currents and route attention</strong>
+            <p>A source-sink solve projects requested current through provenance-bounded
+              capacities. Conservative transport locates candidate regions; typed PF
+              advantage still scores the operation exactly once.</p>
+            <code>flow_projected → attention_advected</code></article>
+          <article><span>04 / packets</span><strong>Reserve whole resources</strong>
+            <p>Continuous eligibility must complete a discrete typed packet. Declared,
+              consumed, stranded, returned, and double-spend-protected quanta remain
+              inspectable per resource.</p>
+            <code>packet_reserved ↔ packet_returned</code></article>
+          <article><span>05 / guard</span><strong>Separate proposal from effective action</strong>
+            <p>The flow candidate is advisory. Unhealthy, incomplete, low-confidence, or
+              uncalibrated terminal disagreements retain the scalar-v2 fallback and record
+              both candidate keys plus the exact gate reason.</p>
+            <code>flow_candidate_selected → controller_fallback</code></article>
+          <article><span>06 / revalidate</span><strong>Refresh authoritative state before commit</strong>
+            <p>The selected action must still exist in the current legal set and pass actor,
+              target, route, production, treasury, deadline, packet, and evidence checks.
+              The controller never executes directly.</p>
+            <code>candidate_revalidated → control_outcome_recorded</code></article>
+        </div>
+        <footer>
+          <strong>Why it is not live authority:</strong>
+          <span>The fresh 100-pair engine confirmation measured +0.05 player score with a
+            95% interval of [-0.33, +0.43] and exact p=0.839085. The known terminal-delay
+            defect is guarded, but the remaining behavior has no confirmed benefit.</span>
+        </footer>
+      </section>
+
       <div className="pf-example">
         <header>
           <div><span className="eyebrow">worked control example</span><h4>Expansion target not yet met</h4></div>
@@ -2576,6 +2886,16 @@ function HowItWorks({ onNavigate }: { onNavigate: (view: ViewName) => void }) {
         <code>operation_scored</code><i>→</i><code>plan_created</code><i>→</i>
         <code>action_sent</code><i>→</i><code>action_result</code><i>→</i>
         <code>state_snapshot</code><i>→</i><code>conductance_updated</code>
+      </div>
+
+      <div className="pf-event-chain unified" role="region"
+        aria-label="Unified pressure bridge flow emitted event chain">
+        <span>experimental evidence</span>
+        <code>teleology_estimated</code><i>→</i><code>requirement_set_materialized</code><i>→</i>
+        <code>bridge_estimated</code><i>→</i><code>flow_projected</code><i>→</i>
+        <code>packet_reserved</code><i>→</i><code>flow_candidate_selected</code><i>→</i>
+        <code>controller_fallback?</code><i>→</i><code>candidate_revalidated</code><i>→</i>
+        <code>control_outcome_recorded</code>
       </div>
 
       <div className="pf-guardrails">

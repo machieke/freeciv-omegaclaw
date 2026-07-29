@@ -41,6 +41,16 @@ export interface ReplayState {
   pressurePropagations: TraceEvent[];
   operationScores: TraceEvent[];
   conductanceUpdates: TraceEvent[];
+  teleologyEstimates: TraceEvent[];
+  requirementSets: TraceEvent[];
+  bridgeEstimates: TraceEvent[];
+  flowProjections: TraceEvent[];
+  packetReservations: TraceEvent[];
+  packetReturns: TraceEvent[];
+  flowSelections: TraceEvent[];
+  candidateRevalidations: TraceEvent[];
+  controllerFallbacks: TraceEvent[];
+  controlOutcomes: TraceEvent[];
   quarantines: TraceEvent[];
   metrics: TraceEvent[];
   unknown: TraceEvent[];

@@ -89,6 +89,86 @@ const pfTrace = [
   }, 1, 5),
 ].map((row) => JSON.stringify(row)).join("\n");
 
+const proposedTerminalGuardCandidate = JSON.stringify({
+  action_type: "unit_move", actor_id: 102, settlement_site_eligible: true,
+  target: { x: 13, y: 14 },
+});
+const effectiveTerminalGuardCandidate = JSON.stringify({
+  action_type: "unit_build_city", actor_id: 102,
+});
+const unifiedQueryId = "impact-control-query:terminal-guard-test";
+const unifiedPayload = (summary: Record<string, unknown>) => ({
+  event_schema_version: "1.0",
+  query_id: unifiedQueryId,
+  semantic_epoch: 17,
+  topology_generation: 42,
+  config_digest: "1".repeat(64),
+  controller_decision_hash: "2".repeat(64),
+  artifact_hash: "3".repeat(64),
+  parent_event_ids: [],
+  summary,
+});
+const unifiedTrace = [
+  event(101, "teleology_estimated", unifiedPayload({
+    typed_advantage_count: 2, goal_count: 1,
+  }), 4, 7),
+  event(102, "requirement_set_materialized", unifiedPayload({
+    requirement_set_count: 1, complete_count: 1,
+  }), 4, 8),
+  event(103, "bridge_estimated", unifiedPayload({
+    goal_summaries: [{
+      goal_id: "pf-impact:expansion", bridge_factor_mean: 0.34,
+      bridge_factor_max: 0.81, node_count: 12,
+    }],
+  }), 4, 9),
+  event(104, "flow_projected", unifiedPayload({
+    projections: [{
+      health: "healthy", solver: "diagonal-pcg", iterations: 6,
+      balance_residual: 5.37e-11, component_count: 2,
+    }],
+  }), 4, 10),
+  event(105, "packet_reserved", unifiedPayload({
+    packet_schedule: {
+      conserved: true, integrality_gap: 0,
+      reservations: [{ state: "committed" }],
+      accounting: {
+        action: { consumed: 1, declared: 1, stranded: 0 },
+        cpu: { consumed: 1, declared: 64, stranded: 63 },
+      },
+    },
+  }), 4, 11),
+  event(106, "flow_candidate_selected", unifiedPayload({
+    selected_candidate_key: proposedTerminalGuardCandidate,
+    effective_candidate_key: effectiveTerminalGuardCandidate,
+    selection_disposition: "guarded-fallback",
+    calibrated: false,
+    confidence: 0.8935,
+    transport_readout: {
+      disagrees_with_scalar: true, selected_overlap: 0.0045,
+      scalar_selected_operation_id: "operation-build-city",
+      selected_operation_id: "operation-move",
+    },
+  }), 4, 12),
+  event(107, "controller_fallback", unifiedPayload({
+    advisory_candidate_key: proposedTerminalGuardCandidate,
+    advisory_candidate_terminal: false,
+    fallback_candidate_key: effectiveTerminalGuardCandidate,
+    fallback_candidate_terminal: true,
+    fallback_chain: ["unified_flow_advisory", "scalar_v2"],
+    gate_reasons: ["uncalibrated-terminal-action-disagreement"],
+    health: "fallback",
+  }), 4, 13),
+  event(108, "candidate_revalidated", unifiedPayload({
+    disposition: "commit",
+    execution_authority: false,
+    plan_materialization_authorized: true,
+    checks: ["authoritative-candidate-membership", "server-legal-action-membership"],
+  }), 4, 14),
+  event(109, "control_outcome_recorded", unifiedPayload({
+    effect_observed: true, realized_relief: 1,
+  }), 4, 15),
+].map((row) => JSON.stringify(row)).join("\n");
+
 const productionMapTrace = [
   event(0, "state_snapshot", {
     snapshot_id: "production-map-snapshot",
@@ -275,6 +355,12 @@ describe("Decision Observatory", () => {
       .toBeInTheDocument();
     expect(screen.getByRole("region", { name: "PF-PLN emitted event chain" }))
       .toBeInTheDocument();
+    expect(screen.getByRole("heading", {
+      name: "How pressure becomes bridge, flow, and a guarded choice",
+    })).toBeInTheDocument();
+    expect(screen.getByRole("region", {
+      name: "Unified pressure bridge flow emitted event chain",
+    })).toBeInTheDocument();
     expect(screen.getByText("Pressure is not belief.")).toBeInTheDocument();
     expect(screen.getByText("Safety is not a soft weight.")).toBeInTheDocument();
     expect(screen.getByText(/Statistical reliability still comes from paired seeds/))
@@ -456,6 +542,34 @@ describe("Decision Observatory", () => {
     expect(screen.getByText("impact_planning_pressure_graph_latency_ms")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "inspect event →" }));
     expect(screen.getByRole("heading", { name: "operation_scored" })).toBeInTheDocument();
+  });
+
+  it("shows unified bridge-flow status, health, and proposed-versus-effective authority", async () => {
+    const user = userEvent.setup();
+    render(<App initialText={unifiedTrace} />);
+    await user.click(screen.getByRole("button", { name: /^08 PF-PLN/ }));
+    expect(screen.getByRole("heading", {
+      name: "Unified pressure · bridge · flow authority",
+    })).toBeInTheDocument();
+    expect(screen.getByText("Live authority stopped")).toBeInTheDocument();
+    expect(screen.getByText("No score, gameplay, score-lead, or win-rate claim"))
+      .toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Unified PF-PLN stage gates" }))
+      .toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Unified controller telemetry" }))
+      .toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Unified flow decision ledger" }))
+      .toBeInTheDocument();
+    expect(screen.getByText("Unit Move")).toBeInTheDocument();
+    expect(screen.getByText("Unit Build City")).toBeInTheDocument();
+    expect(screen.getByText(/terminal retained/i)).toBeInTheDocument();
+    expect(screen.getByText(/guard changed authority/i)).toBeInTheDocument();
+    expect(screen.getByText("Uncalibrated Terminal Action Disagreement")).toBeInTheDocument();
+    expect(screen.getAllByText("1/1", { selector: ".pf-unified-health strong" }).length)
+      .toBeGreaterThanOrEqual(3);
+    await user.click(screen.getByRole("row", { name: /guard changed authority/i }));
+    expect(screen.getByRole("heading", { name: "flow_candidate_selected" }))
+      .toBeInTheDocument();
   });
 
   it("loads a second artifact as a turn-aligned PF-PLN comparison", async () => {

@@ -81,6 +81,33 @@ describe("event sourced replay", () => {
       .toEqual([learned]);
   });
 
+  it("indexes unified controller lineage strictly as of the replay cursor", () => {
+    const teleology = event(11, "teleology_estimated", {}, 4, 1);
+    const requirements = event(12, "requirement_set_materialized", {}, 4, 2);
+    const bridge = event(13, "bridge_estimated", {}, 4, 3);
+    const projection = event(14, "flow_projected", {}, 4, 4);
+    const packet = event(15, "packet_reserved", {}, 4, 5);
+    const selection = event(16, "flow_candidate_selected", {}, 4, 6);
+    const fallback = event(17, "controller_fallback", {}, 4, 7);
+    const revalidation = event(18, "candidate_revalidated", {}, 4, 8);
+    const outcome = event(19, "control_outcome_recorded", {}, 5, 1);
+    const rows = [
+      teleology, requirements, bridge, projection, packet, selection, fallback,
+      revalidation, outcome,
+    ];
+    const beforeOutcome = foldEvents(rows, { turn: 4, seq: 8 });
+    expect(beforeOutcome.teleologyEstimates).toEqual([teleology]);
+    expect(beforeOutcome.requirementSets).toEqual([requirements]);
+    expect(beforeOutcome.bridgeEstimates).toEqual([bridge]);
+    expect(beforeOutcome.flowProjections).toEqual([projection]);
+    expect(beforeOutcome.packetReservations).toEqual([packet]);
+    expect(beforeOutcome.flowSelections).toEqual([selection]);
+    expect(beforeOutcome.controllerFallbacks).toEqual([fallback]);
+    expect(beforeOutcome.candidateRevalidations).toEqual([revalidation]);
+    expect(beforeOutcome.controlOutcomes).toEqual([]);
+    expect(foldEvents(rows, { turn: 5, seq: 1 }).controlOutcomes).toEqual([outcome]);
+  });
+
   it("folds a representative 200-turn, 50k-atom trace within the UI budgets", () => {
     const events = Array.from({ length: 50_000 }, (_, index) => event(
       index + 1, "observation",
