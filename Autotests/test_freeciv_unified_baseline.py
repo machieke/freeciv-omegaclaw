@@ -19,6 +19,7 @@ for candidate in (
 
 from freeciv.pf_unified.baseline import (  # noqa: E402
     BaselineIdentityError,
+    _verify_rows,
     assert_comparable,
     baseline_identity,
     load_baseline_manifest,
@@ -66,6 +67,23 @@ def test_baseline_verification_detects_fixture_drift():
     assert not report["fixture_set_matches"]
     assert report["fixture_mismatches"][0]["path"] == (
         "benchmarks/freeciv/samples/real_state_turn0.json")
+
+
+def test_baseline_fixtures_are_read_from_archived_source(
+        monkeypatch):
+    manifest = load_baseline_manifest()
+
+    monkeypatch.setattr(
+        "freeciv.pf_unified.baseline._file_sha256",
+        lambda path: (_ for _ in ()).throw(
+            AssertionError(
+                "archived fixtures must not read mutable working tree")))
+    rows, mismatches = _verify_rows(
+        manifest["fixtures"]["files"],
+        archived_commit=manifest["source"]["commit"])
+
+    assert not mismatches
+    assert rows == manifest["fixtures"]["files"]
 
 
 def test_cross_version_comparison_requires_explicit_flag():

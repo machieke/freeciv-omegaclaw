@@ -7,7 +7,11 @@ controllers are developed.
 
 The manifest is
 `benchmarks/freeciv/pf_unified/baseline_manifest.yaml`. Its source identity is
-derived from the Git object, not the current working tree. It pins:
+derived from the Git object, not the current working tree. Frozen fixture
+bytes are also verified from that archived commit, so later live schema
+versions cannot invalidate or silently redefine the baseline. Current golden
+artifacts remain verified from their committed working-tree paths. The
+manifest pins:
 
 - the complete target-agent, benchmark, and schema source digest;
 - byte hashes for replay states, the 2,000-turn harness profile, and event

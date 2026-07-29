@@ -131,7 +131,8 @@ def _git_source_identity(commit):
     }
 
 
-def _verify_rows(rows):
+def _verify_rows(rows, archived_commit=None):
+    """Verify live artifacts or immutable fixture blobs from a source commit."""
     mismatches = []
     actual_rows = []
     for row in rows:
@@ -139,8 +140,26 @@ def _verify_rows(rows):
             raise BaselineIdentityError(
                 "artifact rows must contain only path and sha256")
         relative = str(row["path"])
-        path = os.path.join(REPO_ROOT, relative)
-        actual = None if not os.path.isfile(path) else _file_sha256(path)
+        if archived_commit is None:
+            path = os.path.join(REPO_ROOT, relative)
+            actual = (
+                None
+                if not os.path.isfile(path)
+                else _file_sha256(path))
+        else:
+            try:
+                data = subprocess.check_output(
+                    [
+                        "git", "show",
+                        "{}:{}".format(
+                            archived_commit, relative),
+                    ],
+                    cwd=REPO_ROOT,
+                    stderr=subprocess.STDOUT)
+            except (OSError, subprocess.CalledProcessError):
+                actual = None
+            else:
+                actual = hashlib.sha256(data).hexdigest()
         actual_rows.append({"path": relative, "sha256": actual})
         if actual != row["sha256"]:
             mismatches.append({
@@ -157,8 +176,13 @@ def verify_baseline(manifest=None):
     archived_source = _git_source_identity(manifest["source"]["commit"])
     expected_source = dict(manifest["source"])
     source_matches = archived_source == expected_source
+    # Baseline fixtures belong to the frozen source identity. Reading mutable
+    # working-tree schema paths would make a valid archived baseline fail as
+    # soon as a later event version is added, or tempt callers to overwrite
+    # the historical hash. Git already provides the immutable fixture bytes.
     fixture_rows, fixture_mismatches = _verify_rows(
-        manifest["fixtures"]["files"])
+        manifest["fixtures"]["files"],
+        archived_commit=manifest["source"]["commit"])
     fixture_set_sha256 = structural_hash(fixture_rows)
     golden_rows, golden_mismatches = _verify_rows(
         manifest["golden"]["artifacts"])
