@@ -118,6 +118,7 @@ CONTROLLER_LAYER_SPECS = (
     {"layer": "research_operations", "support": "experimental"},
     {"layer": "city_worker_macro_actions", "support": "experimental"},
     {"layer": "teleological_cost_to_go", "support": "experimental"},
+    {"layer": "contextual_conductance", "support": "experimental"},
     {"layer": "path_persistence", "support": "experimental"},
     {"layer": "bridge", "support": "experimental"},
     {"layer": "source_sink_flow", "support": "component-only"},
@@ -169,6 +170,12 @@ CONTROLLER_POLICY_DEFAULTS = {
     "pressure_transition_value_model_identity": "",
     "pressure_transition_value_model_path": "",
     "pressure_transition_value_read_only": False,
+    "pressure_contextual_conductance_enabled": False,
+    "pressure_contextual_conductance_authority_enabled": False,
+    "pressure_contextual_conductance_model_identity": "",
+    "pressure_contextual_conductance_model_path": "",
+    "pressure_contextual_conductance_read_only": False,
+    "pressure_contextual_conductance_approval_path": "",
     "pressure_controller_mode": "auto",
     "pressure_semantics_version": "v1",
 }
@@ -196,6 +203,14 @@ CONTROLLER_CONFIGURATION_DEFAULTS = {
         "transition_value_minimum_samples": 30,
         "transition_value_maximum_half_width": 0.50,
         "transition_value_alpha": 0.05,
+        "contextual_conductance_enabled": False,
+        "contextual_conductance_authority_enabled": False,
+        "contextual_minimum_samples": 30,
+        "contextual_maximum_half_width": 0.50,
+        "contextual_alpha": 0.05,
+        "contextual_shrinkage_kappa": 10.0,
+        "contextual_minimum_holdout_coverage": 0.80,
+        "contextual_maximum_context_brier_regression": 0.02,
         "path_persistence_enabled": False,
         "path_persistence_smoothing": 0.35,
         "path_persistence_route_momentum": 0.15,
@@ -295,6 +310,10 @@ _GROUP_TO_POLICY = {
         "pressure_transition_value_enabled",
     ("teleology", "transition_value_authority_enabled"):
         "pressure_transition_value_authority_enabled",
+    ("teleology", "contextual_conductance_enabled"):
+        "pressure_contextual_conductance_enabled",
+    ("teleology", "contextual_conductance_authority_enabled"):
+        "pressure_contextual_conductance_authority_enabled",
     ("teleology", "path_persistence_enabled"):
         "pressure_path_persistence_enabled",
     ("flow", "enabled"):
@@ -413,7 +432,9 @@ def _validate_controller_configuration(configuration):
                 "protect_uncalibrated_terminal_actions",
                 "path_persistence_enabled",
                 "transition_value_enabled",
-                "transition_value_authority_enabled")),
+                "transition_value_authority_enabled",
+                "contextual_conductance_enabled",
+                "contextual_conductance_authority_enabled")),
             ("safety", (
                 "hard_tail_risk_gate",
                 "commit_revalidation"))):
@@ -436,6 +457,10 @@ def _validate_controller_configuration(configuration):
             ("teleology", "max_horizon", 1, 1000, False),
             ("teleology", "transition_value_minimum_samples",
              1, 1000000, False),
+            ("teleology", "contextual_minimum_samples",
+             1, 1000000, False),
+            ("teleology", "contextual_shrinkage_kappa",
+             0.0, 1000000.0, False),
             ("teleology", "path_persistence_minimum_dwell_steps",
              0, 1000000, False),
             ("bridge", "forward_depth", 1, 1000, False),
@@ -476,6 +501,11 @@ def _validate_controller_configuration(configuration):
             ("teleology", "metacontrol_budget_fraction"),
             ("teleology", "transition_value_maximum_half_width"),
             ("teleology", "transition_value_alpha"),
+            ("teleology", "contextual_maximum_half_width"),
+            ("teleology", "contextual_alpha"),
+            ("teleology", "contextual_minimum_holdout_coverage"),
+            ("teleology",
+             "contextual_maximum_context_brier_regression"),
             ("teleology", "path_persistence_smoothing"),
             ("teleology", "path_persistence_route_momentum"),
             ("teleology", "path_persistence_dwell_bonus"),
@@ -548,9 +578,12 @@ def _validate_controller_configuration(configuration):
             raise PFRuntimeConfigurationError(
                 "flow research gate requires protected candidate union")
         if not configuration["teleology"][
-                "transition_value_authority_enabled"]:
+                "transition_value_authority_enabled"
+                ] and not configuration["teleology"][
+                    "contextual_conductance_authority_enabled"]:
             raise PFRuntimeConfigurationError(
-                "flow research gate requires transition-value authority")
+                "flow research gate requires calibrated transition "
+                "authority")
         if not configuration["teleology"][
                 "path_persistence_enabled"]:
             raise PFRuntimeConfigurationError(
@@ -566,11 +599,21 @@ def _validate_controller_configuration(configuration):
         raise PFRuntimeConfigurationError(
             "transition-value authority requires transition-value learning")
     if configuration["teleology"][
-            "path_persistence_enabled"
+            "contextual_conductance_authority_enabled"
             ] and not configuration["teleology"][
-                "transition_value_authority_enabled"]:
+                "contextual_conductance_enabled"]:
         raise PFRuntimeConfigurationError(
-            "path persistence requires transition-value authority")
+            "contextual conductance authority requires contextual "
+            "conductance")
+    if configuration["teleology"][
+            "path_persistence_enabled"
+            ] and not (
+                configuration["teleology"][
+                    "transition_value_authority_enabled"]
+                or configuration["teleology"][
+                    "contextual_conductance_authority_enabled"]):
+        raise PFRuntimeConfigurationError(
+            "path persistence requires calibrated transition authority")
     return configuration
 
 
@@ -655,13 +698,38 @@ def validate_controller_policy(impact_policy):
                 "pressure_domain_estimates_enabled",
                 "pressure_bridge_enabled",
                 "pressure_flow_enabled",
-                "pressure_transition_value_enabled"))):
+                "pressure_transition_value_enabled",
+                "pressure_contextual_conductance_enabled"))):
         raise PFRuntimeConfigurationError(
             "v2 controller features require pressure semantics v2")
     if (policy["pressure_transition_value_authority_enabled"]
             and not policy["pressure_transition_value_enabled"]):
         raise PFRuntimeConfigurationError(
             "transition-value authority requires transition-value learning")
+    if (
+            policy[
+                "pressure_contextual_conductance_authority_enabled"]
+            and not policy[
+                "pressure_contextual_conductance_enabled"]
+    ):
+        raise PFRuntimeConfigurationError(
+            "contextual conductance authority requires contextual "
+            "conductance")
+    if policy[
+            "pressure_contextual_conductance_enabled"]:
+        if (
+                policy["pressure_semantics_version"] != "v2"
+                or not policy[
+                    "pressure_domain_estimates_enabled"]
+        ):
+            raise PFRuntimeConfigurationError(
+                "contextual conductance requires scalar-v2 semantics "
+                "and grounded domain estimates")
+        if policy[
+                "pressure_transition_value_enabled"]:
+            raise PFRuntimeConfigurationError(
+                "contextual conductance v2 and legacy transition-value "
+                "calibration cannot be enabled together")
     if (policy["pressure_domain_estimates_authority_enabled"]
             and not policy["pressure_domain_estimates_enabled"]):
         raise PFRuntimeConfigurationError(
@@ -797,7 +865,10 @@ def validate_controller_policy(impact_policy):
             "city-defence operations require operation lifecycle")
     for name in (
             "pressure_transition_value_model_identity",
-            "pressure_transition_value_model_path"):
+            "pressure_transition_value_model_path",
+            "pressure_contextual_conductance_model_identity",
+            "pressure_contextual_conductance_model_path",
+            "pressure_contextual_conductance_approval_path"):
         if not isinstance(policy[name], str):
             raise PFRuntimeConfigurationError(
                 "{} must be a string".format(name))
@@ -817,11 +888,47 @@ def validate_controller_policy(impact_policy):
         raise PFRuntimeConfigurationError(
             "frozen transition-value evaluation requires an enabled "
             "explicit model path and identity")
-    if (policy["pressure_path_persistence_enabled"]
-            and not policy[
-                "pressure_transition_value_authority_enabled"]):
+    contextual_model = bool(
+        policy[
+            "pressure_contextual_conductance_model_path"])
+    contextual_identity = bool(
+        policy[
+            "pressure_contextual_conductance_model_identity"])
+    if contextual_model != contextual_identity:
         raise PFRuntimeConfigurationError(
-            "path persistence requires transition-value authority")
+            "contextual model path and identity must be declared together")
+    if (
+            policy[
+                "pressure_contextual_conductance_read_only"]
+            and (
+                not policy[
+                    "pressure_contextual_conductance_enabled"]
+                or not contextual_model)
+    ):
+        raise PFRuntimeConfigurationError(
+            "frozen contextual evaluation requires an enabled explicit "
+            "model path and identity")
+    if policy[
+            "pressure_contextual_conductance_authority_enabled"]:
+        if (
+                not policy[
+                    "pressure_contextual_conductance_read_only"]
+                or not policy[
+                    "pressure_contextual_conductance_approval_path"]
+                or not policy[
+                    "pressure_commit_revalidation_enabled"]
+        ):
+            raise PFRuntimeConfigurationError(
+                "contextual conductance authority requires a frozen "
+                "approved model and commit revalidation")
+    if (policy["pressure_path_persistence_enabled"]
+            and not (
+                policy[
+                    "pressure_transition_value_authority_enabled"]
+                or policy[
+                    "pressure_contextual_conductance_authority_enabled"])):
+        raise PFRuntimeConfigurationError(
+            "path persistence requires calibrated transition authority")
     if (policy["pressure_bridge_enabled"]
             and not policy["pressure_packet_scheduler_enabled"]):
         raise PFRuntimeConfigurationError(
@@ -883,9 +990,12 @@ def validate_controller_policy(impact_policy):
             raise PFRuntimeConfigurationError(
                 "flow research gate requires protected candidate union")
         if not policy[
-                "pressure_transition_value_authority_enabled"]:
+                "pressure_transition_value_authority_enabled"
+                ] and not policy[
+                    "pressure_contextual_conductance_authority_enabled"]:
             raise PFRuntimeConfigurationError(
-                "flow research gate requires transition-value authority")
+                "flow research gate requires calibrated transition "
+                "authority")
         if not policy[
                 "pressure_path_persistence_enabled"]:
             raise PFRuntimeConfigurationError(
@@ -1016,11 +1126,17 @@ def build_controller_activation(impact_policy):
             pressure_enabled
             and (
                 policy["pressure_transition_value_enabled"]
+                or policy[
+                    "pressure_contextual_conductance_enabled"]
                 or mode in (
                 "bridge_scalar", "unified_shadow",
                 "bridge_scalar_advisory",
                 "unified_flow_advisory",
                 "unified_flow_live"))),
+        "contextual_conductance": (
+            pressure_enabled and v2
+            and policy[
+                "pressure_contextual_conductance_enabled"]),
         "path_persistence": (
             pressure_enabled and v2
             and policy[

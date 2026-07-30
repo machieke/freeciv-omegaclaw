@@ -589,3 +589,62 @@ def test_city_worker_macros_are_default_off_and_grounded_stack_gated():
         "city_worker_macro_actions"]["enabled"]
     assert enabled["controller_policy"][
         "pressure_city_worker_macro_actions_enabled"]
+
+
+def test_contextual_conductance_is_default_off_and_frozen_authority_gated():
+    base = {
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+    }
+    default = build_controller_activation(base)
+    assert not default["layers"][
+        "contextual_conductance"]["enabled"]
+
+    with pytest.raises(
+            PFRuntimeConfigurationError,
+            match="grounded domain estimates"):
+        validate_controller_policy(dict(
+            base,
+            pressure_contextual_conductance_enabled=True))
+
+    shadow = build_controller_activation(dict(
+        base,
+        pressure_domain_estimates_enabled=True,
+        pressure_contextual_conductance_enabled=True))
+    assert shadow["layers"][
+        "contextual_conductance"]["enabled"]
+    assert shadow["layers"][
+        "teleological_cost_to_go"]["enabled"]
+
+    with pytest.raises(
+            PFRuntimeConfigurationError,
+            match="cannot be enabled together"):
+        validate_controller_policy(dict(
+            base,
+            pressure_packet_scheduler_enabled=True,
+            pressure_domain_estimates_enabled=True,
+            pressure_transition_value_enabled=True,
+            pressure_contextual_conductance_enabled=True))
+
+    with pytest.raises(
+            PFRuntimeConfigurationError,
+            match="frozen approved model"):
+        validate_controller_policy(dict(
+            base,
+            pressure_domain_estimates_enabled=True,
+            pressure_contextual_conductance_enabled=True,
+            pressure_contextual_conductance_authority_enabled=True))
+
+    approved = validate_controller_policy(dict(
+        base,
+        pressure_domain_estimates_enabled=True,
+        pressure_commit_revalidation_enabled=True,
+        pressure_contextual_conductance_enabled=True,
+        pressure_contextual_conductance_authority_enabled=True,
+        pressure_contextual_conductance_model_path="model-v2.json",
+        pressure_contextual_conductance_model_identity="frozen-v2",
+        pressure_contextual_conductance_read_only=True,
+        pressure_contextual_conductance_approval_path="approval-v2.json"))
+    assert approved[
+        "pressure_contextual_conductance_authority_enabled"]

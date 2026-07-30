@@ -18,6 +18,7 @@ from freeciv.pf_unified.teleology_benchmark import (  # noqa: E402
 )
 from freeciv_agent.planning import GroundedImpactPlanner  # noqa: E402
 from freeciv_agent.pressure import (  # noqa: E402
+    ContextualTransitionValueModel,
     CostVector,
     ImpactPressureRankerV2,
     Operation,
@@ -92,6 +93,52 @@ def test_teleological_impact_is_deterministic_for_same_snapshot():
 
     assert first["teleology"] == second["teleology"]
     assert first["schedule"] == second["schedule"]
+
+
+def test_contextual_v2_shadow_records_versioned_outcome_without_authority():
+    snapshot = _snapshot()
+    candidates = GroundedImpactPlanner({
+        "pressure_enabled": False}).candidates(snapshot)
+    model = ContextualTransitionValueModel(
+        identity="live-shadow-test",
+        minimum_samples=1,
+        maximum_half_width=1.0,
+        shrinkage_kappa=0.0)
+    ranker = ImpactPressureRankerV2(
+        teleological_enabled=True,
+        ruleset_digest="test-ruleset-digest",
+        contextual_ruleset_family="test-ruleset",
+        contextual_transition_value_model=model)
+
+    ordered, artifact = ranker.rank(
+        snapshot, candidates,
+        expansion_city_target=5,
+        horizon_turn=int(snapshot.turn) + 6)
+    update = ranker.record_transition_outcome(
+        ordered[0],
+        effect_observed=False,
+        realized_relief=0.0,
+        relief_source="authoritative:test-no-effect",
+        feedback_id="contextual-live-outcome")
+
+    calibration = artifact[
+        "teleology"]["calibration"]
+    estimate = artifact[
+        "teleology"][
+            "operation_estimates"][0][
+                "transition_value"]
+    assert not calibration["authority_active"]
+    assert calibration["model"][
+        "schema_version"] == "2.0"
+    assert estimate["key"][
+        "schema_version"] == "2.0"
+    assert update.observation.outcome_status == (
+        "no-effect")
+    assert update.observation.adverse_loss is None
+    assert update.observation.adverse_loss_status == (
+        "unknown")
+    assert model.decision_snapshot()[
+        "outcome_count"] == 1
 
 
 def test_strong_scalar_consumes_same_typed_advantage_with_one_cost():

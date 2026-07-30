@@ -960,12 +960,19 @@ class GroundedImpactPlanner(object):
                                 packet_configuration[
                                     "budgets"].items()))))
                 transition_value_model = None
+                contextual_transition_value_model = None
                 transition_value_enabled = bool(
                     controller_policy[
                         "pressure_transition_value_enabled"])
                 transition_value_authority_enabled = bool(
                     controller_policy[
                         "pressure_transition_value_authority_enabled"])
+                contextual_transition_value_enabled = bool(
+                    controller_policy[
+                        "pressure_contextual_conductance_enabled"])
+                contextual_transition_value_authority_enabled = bool(
+                    controller_policy[
+                        "pressure_contextual_conductance_authority_enabled"])
                 if transition_value_enabled:
                     minimum_samples = values.get(
                         "pressure_transition_value_minimum_samples",
@@ -1037,8 +1044,91 @@ class GroundedImpactPlanner(object):
                             maximum_half_width),
                         alpha=alpha,
                         read_only=read_only)
+                if contextual_transition_value_enabled:
+                    from ..pressure import (
+                        ContextualTransitionValueModel,
+                        validate_contextual_calibration_bundle,
+                    )
+                    contextual_minimum_samples = int(values.get(
+                        "pressure_contextual_minimum_samples",
+                        controller_configuration[
+                            "teleology"][
+                                "contextual_minimum_samples"]))
+                    contextual_maximum_half_width = float(values.get(
+                        "pressure_contextual_maximum_half_width",
+                        controller_configuration[
+                            "teleology"][
+                                "contextual_maximum_half_width"]))
+                    contextual_alpha = float(values.get(
+                        "pressure_contextual_alpha",
+                        controller_configuration[
+                            "teleology"][
+                                "contextual_alpha"]))
+                    contextual_kappa = float(values.get(
+                        "pressure_contextual_shrinkage_kappa",
+                        controller_configuration[
+                            "teleology"][
+                                "contextual_shrinkage_kappa"]))
+                    contextual_path = str(values.get(
+                        "pressure_contextual_conductance_model_path",
+                        "")).strip()
+                    contextual_identity = str(values.get(
+                        "pressure_contextual_conductance_model_identity",
+                        "")).strip()
+                    contextual_read_only = values.get(
+                        "pressure_contextual_conductance_read_only",
+                        False)
+                    if contextual_path:
+                        if not os.path.isabs(
+                                contextual_path):
+                            from ..paths import REPO_ROOT
+                            contextual_path = os.path.join(
+                                REPO_ROOT,
+                                contextual_path)
+                        contextual_path = os.path.abspath(
+                            contextual_path)
+                    else:
+                        contextual_path = (
+                            None
+                            if pressure_state_path is None
+                            else (
+                                "{}.contextual-transition-value.json"
+                                .format(
+                                    pressure_state_path)))
+                        contextual_identity = (
+                            "{}:contextual-transition-value"
+                            .format(
+                                pressure_state_identity
+                                or "grounded-impact-planner"))
+                    contextual_transition_value_model = (
+                        ContextualTransitionValueModel(
+                            path=contextual_path,
+                            identity=contextual_identity,
+                            minimum_samples=(
+                                contextual_minimum_samples),
+                            maximum_half_width=(
+                                contextual_maximum_half_width),
+                            alpha=contextual_alpha,
+                            shrinkage_kappa=(
+                                contextual_kappa),
+                            read_only=(
+                                contextual_read_only)))
+                    if contextual_transition_value_authority_enabled:
+                        approval_path = str(values.get(
+                            "pressure_contextual_conductance_approval_path",
+                            "")).strip()
+                        if not os.path.isabs(
+                                approval_path):
+                            from ..paths import REPO_ROOT
+                            approval_path = os.path.join(
+                                REPO_ROOT,
+                                approval_path)
+                        validate_contextual_calibration_bundle(
+                            approval_path,
+                            contextual_transition_value_model)
                 teleological_enabled = bool(
                     transition_value_enabled
+                    or contextual_transition_value_enabled
                     or self.pressure_controller_mode
                     in (
                         "bridge_scalar",
@@ -1125,6 +1215,21 @@ class GroundedImpactPlanner(object):
                             transition_value_model),
                         transition_value_authority_enabled=(
                             transition_value_authority_enabled),
+                        contextual_transition_value_model=(
+                            contextual_transition_value_model),
+                        contextual_transition_value_authority_enabled=(
+                            contextual_transition_value_authority_enabled),
+                        contextual_ruleset_family=(
+                            getattr(
+                                ruleset_ir,
+                                "ruleset",
+                                "unknown")
+                            or "unknown"),
+                        contextual_policy_version=(
+                            "controller:{}/1.0"
+                            .format(
+                                self
+                                .pressure_controller_mode)),
                         path_persistence_enabled=(
                             path_persistence_enabled),
                         path_persistence_config=(
@@ -1171,6 +1276,21 @@ class GroundedImpactPlanner(object):
                             transition_value_model),
                         transition_value_authority_enabled=(
                             transition_value_authority_enabled),
+                        contextual_transition_value_model=(
+                            contextual_transition_value_model),
+                        contextual_transition_value_authority_enabled=(
+                            contextual_transition_value_authority_enabled),
+                        contextual_ruleset_family=(
+                            getattr(
+                                ruleset_ir,
+                                "ruleset",
+                                "unknown")
+                            or "unknown"),
+                        contextual_policy_version=(
+                            "controller:{}/1.0"
+                            .format(
+                                self
+                                .pressure_controller_mode)),
                         path_persistence_enabled=(
                             path_persistence_enabled),
                         path_persistence_config=(

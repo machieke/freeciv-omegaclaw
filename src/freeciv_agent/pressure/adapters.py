@@ -1238,6 +1238,10 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             bridge_scalar_config=None,
             transition_value_model=None,
             transition_value_authority_enabled=False,
+            contextual_transition_value_model=None,
+            contextual_transition_value_authority_enabled=False,
+            contextual_ruleset_family="unknown",
+            contextual_policy_version="scalar-v2/1.0",
             path_persistence_enabled=False,
             path_persistence_config=None,
             path_persistence_maximum_priority_regret=0.05):
@@ -1408,11 +1412,64 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                         "observe", None)))):
             raise TypeError(
                 "transition value model has wrong interface")
+        if not isinstance(
+                contextual_transition_value_authority_enabled,
+                bool):
+            raise TypeError(
+                "contextual transition value authority must be boolean")
+        if (
+                contextual_transition_value_model is not None
+                and transition_value_model is not None
+        ):
+            raise ValueError(
+                "legacy and contextual transition models are mutually "
+                "exclusive")
+        if (
+                contextual_transition_value_authority_enabled
+                and contextual_transition_value_model is None
+        ):
+            raise ValueError(
+                "contextual transition value authority requires a model")
+        if (
+                contextual_transition_value_model is not None
+                and not teleological_enabled
+        ):
+            raise ValueError(
+                "contextual transition calibration requires teleology")
+        if (
+                contextual_transition_value_model is not None
+                and (
+                    not callable(getattr(
+                        contextual_transition_value_model,
+                        "estimate", None))
+                    or not callable(getattr(
+                        contextual_transition_value_model,
+                        "observe", None))
+                )
+        ):
+            raise TypeError(
+                "contextual transition value model has wrong interface")
+        if (
+                not isinstance(
+                    contextual_ruleset_family, str)
+                or not contextual_ruleset_family
+        ):
+            raise ValueError(
+                "contextual ruleset family is required")
+        if (
+                not isinstance(
+                    contextual_policy_version, str)
+                or not contextual_policy_version
+        ):
+            raise ValueError(
+                "contextual policy version is required")
         if not isinstance(path_persistence_enabled, bool):
             raise TypeError(
                 "path persistence setting must be boolean")
         if (path_persistence_enabled
-                and not transition_value_authority_enabled):
+                and not (
+                    transition_value_authority_enabled
+                    or contextual_transition_value_authority_enabled)):
             raise ValueError(
                 "path persistence requires calibrated "
                 "transition-value authority")
@@ -1430,6 +1487,14 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             transition_value_model)
         self.transition_value_authority_enabled = (
             transition_value_authority_enabled)
+        self.contextual_transition_value_model = (
+            contextual_transition_value_model)
+        self.contextual_transition_value_authority_enabled = (
+            contextual_transition_value_authority_enabled)
+        self.contextual_ruleset_family = (
+            contextual_ruleset_family)
+        self.contextual_policy_version = (
+            contextual_policy_version)
         self.path_persistence_enabled = (
             path_persistence_enabled)
         self.path_persistence_maximum_priority_regret = (
@@ -1908,6 +1973,9 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                 demand.total)
         registries = {}
         modeled_rows = []
+        active_transition_model = (
+            self.contextual_transition_value_model
+            or self.transition_value_model)
         current_turn = float(getattr(snapshot, "turn", 0))
         for operation in operations:
             candidate = candidate_by_operation[
@@ -1961,7 +2029,49 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                 0.0, current_loss - expected_state_cost)
             transition_value = None
             transition_key = None
-            if self.transition_value_model is not None:
+            if self.contextual_transition_value_model is not None:
+                from .transition_value import (
+                    candidate_transition_context,
+                )
+                transition_key = (
+                    candidate_transition_context(
+                        candidate,
+                        snapshot,
+                        self.ruleset_digest,
+                        self.contextual_ruleset_family,
+                        int(horizon_turn),
+                        goal_id,
+                        estimator_version=(
+                            "grounded-impact-one-step/"
+                            "1.0"),
+                        policy_version=(
+                            self
+                            .contextual_policy_version)))
+                transition_value = (
+                    self.contextual_transition_value_model
+                    .estimate(
+                        transition_key,
+                        min(
+                            1.0,
+                            expected_relief)))
+                self._pending_transition_predictions[
+                    candidate.action_key] = {
+                        "context_digest":
+                            transition_key.context
+                            .exact_context_digest,
+                        "key": transition_key,
+                        "operation_id":
+                            operation.operation_id,
+                        "predicted_relief":
+                            min(
+                                1.0,
+                                expected_relief),
+                        "predicted_transition_digest":
+                            structural_hash(
+                                transition.to_dict()),
+                        "schema_version": "2.0",
+                    }
+            elif self.transition_value_model is not None:
                 from .transition_value import (
                     TransitionValueKey,
                     candidate_action_category,
@@ -2065,14 +2175,18 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             row["transition_value"]
             for row in modeled_rows
             if row["transition_value"] is not None)
-        authority_active = bool(
+        transition_authority_requested = bool(
             self.transition_value_authority_enabled
+            or self
+            .contextual_transition_value_authority_enabled)
+        authority_active = bool(
+            transition_authority_requested
             and calibration_rows
             and len(calibration_rows) == len(modeled_rows)
             and all(
                 row.calibrated
                 for row in calibration_rows))
-        if not self.transition_value_authority_enabled:
+        if not transition_authority_requested:
             authority_reason = "authority-disabled"
         elif not calibration_rows:
             authority_reason = "model-unavailable"
@@ -2191,7 +2305,11 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                     "one-step-grounded-impact-projection",
                     "risk-penalty-applied-separately-once",
                     (
-                        "category-lifecycle-calibrated"
+                        (
+                            "support-aware-contextual-calibrated"
+                            if self.contextual_transition_value_model
+                            is not None
+                            else "category-lifecycle-calibrated")
                         if authority_active
                         else "transition-calibration-abstained"),
                 ))
@@ -2225,13 +2343,12 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                 "authority_active":
                     authority_active,
                 "authority_requested":
-                    self
-                    .transition_value_authority_enabled,
+                    transition_authority_requested,
                 "gate_reason": authority_reason,
                 "model": (
-                    self.transition_value_model
+                    active_transition_model
                     .decision_snapshot()
-                    if self.transition_value_model
+                    if active_transition_model
                     is not None else None),
             },
             "enabled": True,
@@ -2259,17 +2376,105 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
     def record_transition_outcome(
             self, candidate, effect_observed,
             realized_relief, relief_source,
-            feedback_id):
+            feedback_id, adverse_loss=None):
         """Pair the selected prediction with authoritative planner relief."""
-        if self.transition_value_model is None:
+        active_model = (
+            self.contextual_transition_value_model
+            or self.transition_value_model)
+        if active_model is None:
             return None
         prediction = self._pending_transition_predictions.get(
             candidate.action_key)
         if prediction is None:
             return None
-        if self.transition_value_model.read_only:
+        if active_model.read_only:
             # Evaluation consumes outcomes without mutating the frozen fit.
             return None
+        if prediction.get(
+                "schema_version") == "2.0":
+            from .transition_value import (
+                ContextualOutcomeRecord,
+            )
+            if (
+                    adverse_loss is not None
+                    and (
+                        isinstance(adverse_loss, bool)
+                        or not isinstance(
+                            adverse_loss,
+                            (int, float))
+                        or not math.isfinite(
+                            float(adverse_loss))
+                        or not 0.0
+                        <= float(adverse_loss)
+                        <= 1.0)
+            ):
+                raise ValueError(
+                    "authoritative adverse loss must be in [0,1] "
+                    "or unknown")
+            outcome = ContextualOutcomeRecord(
+                observation_id=str(
+                    feedback_id),
+                key=prediction["key"],
+                selected_policy_id=(
+                    prediction["key"]
+                    .policy_version),
+                selection_policy_kind=(
+                    "deterministic"),
+                selection_propensity=None,
+                action_id=structural_hash(
+                    candidate.action),
+                operation_id=str(
+                    prediction[
+                        "operation_id"]),
+                predicted_transition_digest=str(
+                    prediction[
+                        "predicted_transition_digest"]),
+                predicted_relief=float(
+                    prediction[
+                        "predicted_relief"]),
+                realized_outcome_digest=(
+                    structural_hash({
+                        "effect_observed":
+                            bool(
+                                effect_observed),
+                        "feedback_id":
+                            str(feedback_id),
+                        "realized_relief":
+                            float(
+                                realized_relief),
+                        "relief_source":
+                            str(
+                                relief_source),
+                    })),
+                realized_goal_relief=float(
+                    realized_relief),
+                adverse_loss=(
+                    None
+                    if adverse_loss is None
+                    else float(adverse_loss)),
+                adverse_loss_status=(
+                    "unknown"
+                    if adverse_loss is None
+                    else "observed"),
+                eligibility_trace=(
+                    "authoritative-goal-relief",
+                    "deterministic-selected-policy",
+                    "selected-action-identity-matched",
+                ),
+                causal_status="eligible",
+                outcome_status=(
+                    "terminal"
+                    if effect_observed
+                    else "no-effect"),
+                estimator_version=(
+                    prediction["key"]
+                    .estimator_version),
+                policy_version=(
+                    prediction["key"]
+                    .policy_version),
+                relief_source=str(
+                    relief_source))
+            return active_model.observe(outcome)
         from .transition_value import (
             TransitionValueObservation,
         )
@@ -2286,7 +2491,7 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             # The live policy is deterministic. Do not manufacture an
             # off-policy propensity or inverse-propensity weight.
             selection_propensity=None)
-        return self.transition_value_model.observe(
+        return active_model.observe(
             observation)
 
     def _bridge_scalar_scores(

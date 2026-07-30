@@ -24,7 +24,6 @@ from .operation_store import (
 )
 from .operations import (
     OperationState,
-    TERMINAL_OPERATION_STATES,
 )
 
 
@@ -2670,10 +2669,13 @@ class ControlEventEmitter:
             self, writer, turn, query,
             decision, update, caused_by=()):
         from ..pressure.transition_value import (
+            ContextualTransitionValueUpdate,
             TransitionValueUpdate,
         )
         if not isinstance(
-                update, TransitionValueUpdate):
+                update, (
+                    TransitionValueUpdate,
+                    ContextualTransitionValueUpdate)):
             raise TypeError(
                 "transition value event has wrong type")
         return self._emit(
