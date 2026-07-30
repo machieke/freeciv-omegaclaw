@@ -111,6 +111,12 @@ impact_policy:
   pressure_transition_value_model_path: ""
   pressure_transition_value_model_identity: ""
   pressure_transition_value_read_only: false
+  pressure_contextual_conductance_enabled: false
+  pressure_contextual_conductance_authority_enabled: false
+  pressure_contextual_conductance_model_path: ""
+  pressure_contextual_conductance_model_identity: ""
+  pressure_contextual_conductance_read_only: false
+  pressure_contextual_conductance_approval_path: ""
   pressure_path_persistence_enabled: false
   pressure_path_persistence_smoothing: 0.35
   pressure_path_persistence_route_momentum: 0.15
@@ -2283,6 +2289,88 @@ paired_impact:
         count: 30
         minimum: 5100000
         maximum: 5199999
+    contextual_transition_training_diagnostic_v1:
+      claim_eligible: false
+      purpose: diagnostic
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 30
+      controller_workers: 3
+      isolated_policy_keys:
+        - pressure_contextual_conductance_enabled
+      arms:
+        baseline:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_contextual_conductance_authority_enabled: false
+          pressure_contextual_conductance_enabled: false
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+        treatment:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_contextual_conductance_authority_enabled: false
+          pressure_contextual_conductance_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-contextual-transition-training-diagnostic-v1
+        count: 30
+        minimum: 5600000
+        maximum: 5699999
+    contextual_transition_holdout_diagnostic_v1:
+      claim_eligible: false
+      purpose: diagnostic
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 30
+      controller_workers: 3
+      isolated_policy_keys:
+        - pressure_contextual_conductance_enabled
+      arms:
+        baseline:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_contextual_conductance_authority_enabled: false
+          pressure_contextual_conductance_enabled: false
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+        treatment:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_contextual_conductance_authority_enabled: false
+          pressure_contextual_conductance_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-contextual-transition-holdout-diagnostic-v1
+        count: 30
+        minimum: 5700000
+        maximum: 5799999
     calibrated_scalar_diagnostic_v1:
       claim_eligible: false
       purpose: diagnostic
