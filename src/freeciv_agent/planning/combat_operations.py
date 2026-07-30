@@ -231,6 +231,7 @@ class CombatOperationReadout:
     next_action: object
     reason: str
     step_index: int
+    probability_interval: object = None
 
     def __post_init__(self):
         if self.disposition not in (
@@ -256,6 +257,15 @@ class CombatOperationReadout:
         ):
             raise TypeError(
                 "combat next action must be an object or absent")
+        if (
+            self.probability_interval
+                is not None
+            and not isinstance(
+                self.probability_interval,
+                ConditionalProbabilityInterval)
+        ):
+            raise TypeError(
+                "combat readout probability must be an interval or absent")
 
 
 class CombatOperationAssembler:
@@ -775,7 +785,79 @@ class CombatOperationAssembler:
         return CombatOperationReadout(
             "reservable", action,
             "current-step-grounded-and-legal",
-            step_index)
+            step_index,
+            ConditionalProbabilityInterval(
+                probability
+                .lower_probability,
+                probability
+                .upper_probability,
+                "freeciv-server-action-probability:current-snapshot"))
+
+    @staticmethod
+    def step_resource_request(
+            assembly, snapshot,
+            step_index):
+        """Build current-snapshot claims for one re-estimated operation step."""
+        readout = (
+            CombatOperationAssembler
+            .readout(
+                assembly, snapshot,
+                step_index))
+        if readout.disposition != (
+                "reservable"):
+            return None
+        step = assembly.spec.steps[
+            step_index]
+        claims = [
+            claim
+            for claim in
+            assembly.resource_request
+            .claims
+            if claim.source_step_id
+            == step.step_id
+            and claim.resource.kind
+            in (
+                GameResourceKind.ACTOR,
+                GameResourceKind
+                .MOVE_POINTS,
+            )
+        ]
+        for claim in (
+                assembly.resource_request
+                .claims):
+            if claim.resource.kind not in (
+                    GameResourceKind
+                    .TILE_OCCUPANCY,
+                    GameResourceKind
+                    .ACTION_BUDGET,
+            ):
+                continue
+            claims.append(
+                CombatOperationAssembler
+                ._claim(
+                    assembly.spec
+                    .operation_id,
+                    step.step_id,
+                    claim.resource,
+                    ClaimHardness
+                    .HARD_CURRENT,
+                    snapshot.turn,
+                    exclusive=(
+                        claim.exclusive),
+                    quantity=1))
+        if len(claims) != 4:
+            raise ValueError(
+                "combat step requires actor, movement, target, and action claims")
+        return OperationResourceRequest(
+            operation_id=(
+                assembly.spec
+                .operation_id),
+            bid=float(
+                readout
+                .probability_interval
+                .lower),
+            claims=tuple(claims),
+            requirement_set_id=None)
 
 
 def combat_target_capacities(

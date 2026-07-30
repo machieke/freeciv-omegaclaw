@@ -159,9 +159,11 @@ exclusion, sentinel handling, and the absence of policy authority.
 This closes the atomic-versus-independent replay item in GDO-5. It does not
 open live authority. The remaining GDO-5 exit work is:
 
-1. re-estimate after every executed step;
-2. explicit completion, blocking, repair, abandonment, and claim release;
-3. target capture, retention, and material-loss accounting;
-4. the remaining combat-operation catalogue;
-5. a frozen disjoint engine pilot with actual execution and a directional
+1. actual live step execution;
+2. target capture, retention, and material-loss accounting;
+3. the remaining combat-operation catalogue;
+4. a frozen disjoint engine pilot with actual execution and a directional
    outcome gate.
+
+Post-step re-estimation and terminal lifecycle/release semantics are now
+implemented and tested; see `docs/evidence/gdo/gdo5_combat_lifecycle.md`.

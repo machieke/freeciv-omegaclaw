@@ -18,6 +18,9 @@ CORPUS = os.path.join(
 CAPTURED_SCRIPT = os.path.join(
     REPO, "scripts",
     "run_gdo_combat_captured_replay.py")
+LIFECYCLE_SCRIPT = os.path.join(
+    REPO, "scripts",
+    "run_gdo_combat_lifecycle_replay.py")
 CAPTURED_MANIFEST = os.path.join(
     REPO, "benchmarks", "gdo",
     "captured_snapshots",
@@ -28,6 +31,9 @@ STORED_SYNTHETIC_REPORT = os.path.join(
 STORED_CAPTURED_REPORT = os.path.join(
     REPO, "benchmarks", "gdo",
     "gdo5_combat_operation_captured_diagnostic.json")
+STORED_LIFECYCLE_REPORT = os.path.join(
+    REPO, "benchmarks", "gdo",
+    "gdo5_combat_operation_lifecycle_diagnostic.json")
 
 
 def _module():
@@ -50,6 +56,20 @@ def _captured_module():
         .spec_from_file_location(
             "gdo5_captured_combat_replay",
             CAPTURED_SCRIPT))
+    module = (
+        importlib.util
+        .module_from_spec(spec))
+    spec.loader.exec_module(
+        module)
+    return module
+
+
+def _lifecycle_module():
+    spec = (
+        importlib.util
+        .spec_from_file_location(
+            "gdo5_combat_lifecycle_replay",
+            LIFECYCLE_SCRIPT))
     module = (
         importlib.util
         .module_from_spec(spec))
@@ -194,6 +214,10 @@ def test_checked_in_combat_diagnostics_pass_and_are_self_hashed():
             STORED_CAPTURED_REPORT,
             "captured-player-visible-engine-events",
         ),
+        (
+            STORED_LIFECYCLE_REPORT,
+            "synthetic-lifecycle-mechanism-only",
+        ),
     ):
         with open(
                 path,
@@ -216,3 +240,41 @@ def test_checked_in_combat_diagnostics_pass_and_are_self_hashed():
             module.structural_hash(
                 hashable)
         ) == expected
+
+
+def test_combat_lifecycle_replay_closes_terminal_and_release_gates():
+    module = _lifecycle_module()
+    with open(
+            CORPUS,
+            encoding="utf-8") as stream:
+        corpus = json.load(
+            stream)
+
+    report = module.run(
+        corpus, iterations=3)
+
+    assert report["passed"]
+    assert report[
+        "flow_count"] == 9
+    assert all(
+        report["gates"].values())
+    assert {
+        row["flow_id"]:
+            row["final_state"]
+        for row in report[
+            "flows"]
+    } == module.EXPECTED_FINAL_STATES
+    assert all(
+        row[
+            "active_claim_count"]
+        == 0
+        for row in report[
+            "flows"])
+    hashable = copy.deepcopy(
+        report)
+    expected = hashable.pop(
+        "report_hash")
+    assert (
+        module.structural_hash(
+            hashable)
+    ) == expected

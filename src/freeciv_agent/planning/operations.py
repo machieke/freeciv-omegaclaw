@@ -62,6 +62,7 @@ _ALLOWED_TRANSITIONS = {
     OperationState.PROPOSED: frozenset((
         OperationState.RESERVABLE,
         OperationState.BLOCKED,
+        OperationState.COMPLETED,
         OperationState.FAILED,
         OperationState.ABANDONED,
         OperationState.EXPIRED,
@@ -69,6 +70,7 @@ _ALLOWED_TRANSITIONS = {
     OperationState.RESERVABLE: frozenset((
         OperationState.RESERVED,
         OperationState.BLOCKED,
+        OperationState.COMPLETED,
         OperationState.FAILED,
         OperationState.ABANDONED,
         OperationState.EXPIRED,
@@ -76,6 +78,7 @@ _ALLOWED_TRANSITIONS = {
     OperationState.RESERVED: frozenset((
         OperationState.ACTIVE,
         OperationState.BLOCKED,
+        OperationState.COMPLETED,
         OperationState.FAILED,
         OperationState.ABANDONED,
         OperationState.EXPIRED,
@@ -92,6 +95,7 @@ _ALLOWED_TRANSITIONS = {
         OperationState.RESERVABLE,
         OperationState.ACTIVE,
         OperationState.SUSPENDED,
+        OperationState.COMPLETED,
         OperationState.FAILED,
         OperationState.ABANDONED,
         OperationState.EXPIRED,
@@ -100,6 +104,7 @@ _ALLOWED_TRANSITIONS = {
         OperationState.RESERVABLE,
         OperationState.ACTIVE,
         OperationState.BLOCKED,
+        OperationState.COMPLETED,
         OperationState.FAILED,
         OperationState.ABANDONED,
         OperationState.EXPIRED,

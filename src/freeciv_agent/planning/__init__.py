@@ -54,6 +54,10 @@ from .combat_operations import (
     combat_target_capacities,
     conditional_success_interval,
 )
+from .combat_lifecycle import (
+    CombatLifecycleUpdate,
+    CombatOperationLifecycle,
+)
 from .operation_store import (
     OPERATION_STORE_SCHEMA_VERSION,
     OperationRecord,
@@ -111,6 +115,7 @@ __all__ = [
     "assemble_city_defense_operation",
     "CombatOperationAssembler", "CombatOperationAssembly",
     "CombatOperationReadout", "ConditionalProbabilityInterval",
+    "CombatLifecycleUpdate", "CombatOperationLifecycle",
     "combat_target_capacities", "conditional_success_interval",
     "operation_id_from_components",
     "operation_transition_allowed",

@@ -6,6 +6,7 @@ import os
 import sys
 import tempfile
 from dataclasses import replace
+from types import SimpleNamespace
 
 import pytest
 
@@ -18,6 +19,7 @@ if SRC not in sys.path:
 
 from freeciv_agent.planning import (
     CombatOperationAssembler,
+    CombatOperationLifecycle,
     ControlEventEmitter,
     ConditionalProbabilityInterval,
     combat_target_capacities,
@@ -30,6 +32,7 @@ from freeciv_agent.pressure import (
 from freeciv_agent.state import ProxyStateDTO
 from freeciv_agent.events.validator import validate_file
 from freeciv_agent.events.writer import EventWriter
+from freeciv_agent.events.schema import structural_hash
 
 
 def _revision(unit):
@@ -193,6 +196,51 @@ def _snapshot(actor_count=2, intervals=None):
     return ProxyStateDTO.parse(
         "combat-operation", actor_count,
         payload).to_snapshot()
+
+
+def _next_snapshot(
+        snapshot, source_seq,
+        **changes):
+    return replace(
+        snapshot,
+        identity=replace(
+            snapshot.identity,
+            source_seq=source_seq,
+            state_hash=structural_hash({
+                "changes": sorted(
+                    changes),
+                "source_seq":
+                    source_seq,
+            })),
+        **changes)
+
+
+def _assembly_schedule(snapshot):
+    assembly = (
+        CombatOperationAssembler()
+        .assemble(
+            snapshot,
+            "ruleset-proof")[0])
+    capacities = (
+        ResourceCapacityExtractor()
+        .extract(
+            snapshot,
+            action_budget=8)
+        .capacities
+        + combat_target_capacities(
+            (assembly,), snapshot))
+    schedule = (
+        GreedyIdentityScheduler()
+        .schedule(
+            (assembly.resource_request,),
+            capacities,
+            requirement_sets=(
+                assembly
+                .requirement_set,),
+            premise_packets=dict(
+                assembly
+                .initial_premise_packets)))
+    return assembly, schedule
 
 
 def test_conditional_probability_uses_an_explicit_failure_branch():
@@ -592,3 +640,280 @@ def test_missing_joint_support_or_illegal_step_falls_back_closed():
         "blocked")
     assert blocked.reason == (
         "current-step-action-no-longer-legal")
+
+
+def test_combat_lifecycle_completes_and_releases_when_first_attack_kills():
+    snapshot = _snapshot()
+    assembly, schedule = (
+        _assembly_schedule(
+            snapshot))
+    lifecycle = (
+        CombatOperationLifecycle(
+            "game-proof"))
+
+    registered = (
+        lifecycle
+        .register_schedule(
+            (assembly,),
+            schedule,
+            snapshot))
+    committed = (
+        lifecycle
+        .commit_matching_action(
+            snapshot,
+            assembly.action_for_step(0),
+            accepted=True))
+    target_destroyed = (
+        _next_snapshot(
+            snapshot, 20,
+            visible_enemy_units=()))
+    resolved = lifecycle.observe(
+        target_destroyed)
+
+    assert registered[0].state == (
+        "reserved")
+    assert committed[0].disposition == (
+        "step_committed")
+    assert not lifecycle.ledger.reservation(
+        assembly.spec.operation_id
+    ).active
+    assert resolved[0].state == (
+        "completed")
+    assert resolved[0].reason == (
+        "target-neutralized")
+    assert lifecycle.store.get(
+        assembly.spec.operation_id
+    ).progress.current_step_index == 0
+
+
+def test_reserved_combat_operation_completes_if_target_is_removed_externally():
+    snapshot = _snapshot()
+    assembly, schedule = (
+        _assembly_schedule(
+            snapshot))
+    lifecycle = (
+        CombatOperationLifecycle(
+            "game-proof"))
+    lifecycle.register_schedule(
+        (assembly,), schedule,
+        snapshot)
+
+    resolved = lifecycle.observe(
+        _next_snapshot(
+            snapshot, 19,
+            visible_enemy_units=()))
+
+    assert resolved[0].previous_state == (
+        "reserved")
+    assert resolved[0].state == (
+        "completed")
+    assert resolved[0].reason == (
+        "target-neutralized")
+    assert resolved[
+        0].released_reservation is not None
+    assert lifecycle.ledger.active_claims() == ()
+
+
+def test_combat_lifecycle_reestimates_and_reserves_only_the_next_step():
+    snapshot = _snapshot()
+    assembly, schedule = (
+        _assembly_schedule(
+            snapshot))
+    lifecycle = (
+        CombatOperationLifecycle(
+            "game-proof"))
+    lifecycle.register_schedule(
+        (assembly,), schedule,
+        snapshot)
+    lifecycle.commit_matching_action(
+        snapshot,
+        assembly.action_for_step(0),
+        accepted=True)
+    after_first = _next_snapshot(
+        snapshot, 21)
+
+    reestimated = lifecycle.observe(
+        after_first)
+
+    assert len(reestimated) == 1
+    update = reestimated[0]
+    assert update.disposition == (
+        "step_reestimated")
+    assert update.step_index == 1
+    assert update.next_action[
+        "actor_id"] == 103
+    assert update.probability_interval.source.endswith(
+        "current-snapshot")
+    assert len(
+        update.reservation.claims
+    ) == 4
+    action_claim = next(
+        claim for claim in
+        update.reservation.claims
+        if claim.resource.kind.value
+        == "action_budget")
+    assert action_claim.quantity == 1
+    assert update.reservation.snapshot_id == (
+        after_first.snapshot_id)
+
+    lifecycle.commit_matching_action(
+        after_first,
+        assembly.action_for_step(1),
+        accepted=True)
+    target_survived = _next_snapshot(
+        after_first, 22)
+    terminal = lifecycle.observe(
+        target_survived)
+
+    assert terminal[0].state == (
+        "failed")
+    assert terminal[0].reason == (
+        "all-attacks-resolved-target-survived")
+    assert lifecycle.ledger.active_claims() == ()
+
+
+def test_combat_lifecycle_blocks_repairs_and_abandons_removed_participant():
+    snapshot = _snapshot()
+    assembly, schedule = (
+        _assembly_schedule(
+            snapshot))
+    lifecycle = (
+        CombatOperationLifecycle(
+            "game-proof"))
+    lifecycle.register_schedule(
+        (assembly,), schedule,
+        snapshot)
+    lifecycle.commit_matching_action(
+        snapshot,
+        assembly.action_for_step(0),
+        accepted=True)
+    illegal = _next_snapshot(
+        snapshot, 23,
+        legal_action_json=tuple(
+            value for value in
+            snapshot.legal_action_json
+            if json.loads(value).get(
+                "actor_id") != 103))
+
+    blocked = lifecycle.observe(
+        illegal)
+
+    assert blocked[0].state == (
+        "blocked")
+    assert blocked[0].step_index == 1
+    assert blocked[0].reason == (
+        "current-step-action-no-longer-legal")
+    assert lifecycle.ledger.active_claims() == ()
+
+    repaired_snapshot = _next_snapshot(
+        snapshot, 24)
+    repaired = lifecycle.observe(
+        repaired_snapshot)
+
+    assert repaired[0].disposition == (
+        "repaired")
+    assert repaired[0].state == (
+        "reserved")
+    assert repaired[0].step_index == 1
+    assert repaired[0].reservation.active
+
+    removed = _next_snapshot(
+        repaired_snapshot, 25,
+        units=tuple(
+            unit for unit in
+            repaired_snapshot.units
+            if unit.unit_id != 103))
+    abandoned = lifecycle.observe(
+        removed)
+
+    assert abandoned[0].state == (
+        "abandoned")
+    assert abandoned[0].reason == (
+        "required-participant-removed")
+    assert lifecycle.ledger.active_claims() == ()
+
+
+def test_combat_lifecycle_events_are_causal_valid_and_release_every_claim():
+    snapshot = _snapshot()
+    assembly, _ = (
+        _assembly_schedule(
+            snapshot))
+    target_destroyed = _next_snapshot(
+        snapshot, 30,
+        visible_enemy_units=())
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(
+            directory, "events.jsonl")
+        writer = EventWriter(
+            path,
+            "combat-lifecycle-events",
+            durable=False)
+        emitter = ControlEventEmitter()
+        proposed = (
+            emitter
+            .emit_combat_operation_shadow(
+                writer, snapshot,
+                "ruleset-proof",
+                action_budget=8))
+        committed = (
+            emitter
+            .emit_combat_action_outcome(
+                writer, snapshot,
+                assembly.action_for_step(0),
+                SimpleNamespace(
+                    submitted=True,
+                    status="accepted",
+                    action_id="action-proof",
+                    reason=None),
+                caused_by=(
+                    proposed[-1][
+                        "event_id"],)))
+        resolved = (
+            emitter
+            .resolve_combat_operations(
+                writer,
+                target_destroyed,
+                caused_by=(
+                    committed[-1][
+                        "event_id"],)))
+        report = validate_file(
+            path)
+        with open(
+                path,
+                encoding="utf-8") as stream:
+            events = [
+                json.loads(line)
+                for line in stream
+                if line.strip()]
+
+    event_types = [
+        row["type"]
+        for row in events
+    ]
+    assert "operation_reserved" in (
+        event_types)
+    assert "operation_activated" in (
+        event_types)
+    assert "operation_step_committed" in (
+        event_types)
+    assert "operation_completed" in (
+        event_types)
+    releases = [
+        row for row in events
+        if row["type"]
+        == "resource_claim_released"]
+    assert len(releases) == len(
+        assembly.resource_request
+        .claims)
+    assert {
+        row["payload"]["reason"]
+        for row in releases
+    } == {
+        "step-0-committed-reestimate-required"
+    }
+    assert resolved[-1]["payload"][
+        "resolution_status"
+    ] == "resolved_success"
+    assert report.valid, [
+        row.to_dict()
+        for row in report.errors]

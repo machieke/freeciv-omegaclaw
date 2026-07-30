@@ -2044,6 +2044,20 @@ async def _play(run_dir, manifest, context):
                         -1]["event_id"]
                     if operation_events
                     else event["event_id"])
+                combat_lifecycle_events = (
+                    control_event_emitter
+                    .resolve_combat_operations(
+                        writer,
+                        next_snapshot,
+                        caused_by=(
+                            combat_parent,))
+                    if combat_operations_enabled
+                    else ())
+                combat_parent = (
+                    combat_lifecycle_events[
+                        -1]["event_id"]
+                    if combat_lifecycle_events
+                    else combat_parent)
                 combat_events = (
                     control_event_emitter
                     .emit_combat_operation_shadow(
@@ -2103,6 +2117,19 @@ async def _play(run_dir, manifest, context):
                     if operation_events
                     else state_event[
                         "event_id"])
+                combat_lifecycle_events = (
+                    control_event_emitter
+                    .resolve_combat_operations(
+                        writer, snapshot,
+                        caused_by=(
+                            operation_parent,))
+                    if combat_operations_enabled
+                    else ())
+                operation_parent = (
+                    combat_lifecycle_events[
+                        -1]["event_id"]
+                    if combat_lifecycle_events
+                    else operation_parent)
                 combat_events = (
                     control_event_emitter
                     .emit_combat_operation_shadow(
@@ -2373,6 +2400,22 @@ async def _play(run_dir, manifest, context):
                     if operation_events:
                         parent = (
                             operation_events[
+                                -1][
+                                    "event_id"])
+                    combat_operation_events = (
+                        control_event_emitter
+                        .emit_combat_action_outcome(
+                            writer,
+                            action_snapshot,
+                            impact_action,
+                            outcome,
+                            caused_by=(
+                                parent,))
+                        if combat_operations_enabled
+                        else ())
+                    if combat_operation_events:
+                        parent = (
+                            combat_operation_events[
                                 -1][
                                     "event_id"])
                     if outcome.status != "accepted":

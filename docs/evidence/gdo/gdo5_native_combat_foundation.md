@@ -152,9 +152,8 @@ GDO-5 is not complete and receives no live authority. Remaining work includes:
 1. bombard-then-attack and weaken-then-capture role enumeration;
 2. escort-to-staging, attack-then-occupy, and attack-then-hold;
 3. sacrificial interception for a terminal goal;
-4. live step execution with re-estimation after every outcome;
-5. abandonment, repair, completion, and claim-release lifecycle rules;
-6. a fresh disjoint pilot with actual execution and directional
+4. live step execution and outcome accounting;
+5. a fresh disjoint pilot with actual execution and directional
    mechanism benefit.
 
 The captured deterministic joint-combat corpus and its atomic-versus-
@@ -164,3 +163,8 @@ snapshots, uncoordinated readout duplicated a target in 5/5 cases and atomic
 scheduling did so in 0/5 cases. This is a shadow mechanism result, not a score
 claim. The next implementation slice is step-by-step operation re-estimation
 and terminal lifecycle accounting before any live authority is considered.
+That shadow lifecycle slice is now complete; see
+`docs/evidence/gdo/gdo5_combat_lifecycle.md`. Its fresh engine pilot found
+four unique complete reservations and released every claim, but the frozen
+policy executed no matching attack. Actual operation execution and outcome
+benefit therefore remain open.

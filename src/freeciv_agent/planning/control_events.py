@@ -11,6 +11,9 @@ from .impact_flow_adapter import (
     ControlOutcomeRecord,
     ControlQuery,
 )
+from .combat_lifecycle import (
+    CombatOperationLifecycle,
+)
 from .operation_assembler import (
     assemble_city_defense_operation,
 )
@@ -195,6 +198,7 @@ class ControlEventEmitter:
         self._operation_payloads = {}
         self._operation_action_keys = {}
         self._operation_event_ids = {}
+        self._combat_lifecycles = {}
 
     def _operation_store_for(self, writer):
         game_id = str(
@@ -208,6 +212,73 @@ class ControlEventEmitter:
             self._operation_stores[
                 game_id] = store
         return store
+
+    def _combat_lifecycle_for(
+            self, writer):
+        game_id = str(
+            writer.game_id)
+        lifecycle = (
+            self._combat_lifecycles
+            .get(game_id))
+        if lifecycle is None:
+            lifecycle = (
+                CombatOperationLifecycle(
+                    game_id))
+            self._combat_lifecycles[
+                game_id] = lifecycle
+        return lifecycle
+
+    def _apply_combat_lifecycle_update(
+            self, lifecycle, update):
+        payload = self._operation_payloads[
+            update.operation_id]
+        assembly = lifecycle.assembly(
+            update.operation_id)
+        if assembly is None:
+            raise ValueError(
+                "combat lifecycle update has no assembly")
+        step = assembly.spec.steps[
+            min(
+                update.step_index,
+                len(
+                    assembly.spec.steps)
+                - 1)]
+        participant = next(
+            row for row in
+            assembly.spec.participants
+            if row.role
+            == step.actor_role)
+        payload["actor_id"] = (
+            participant.actor_id)
+        if update.next_action is not None:
+            payload["next_action"] = (
+                update.next_action)
+        if (
+            update.probability_interval
+            is not None
+        ):
+            payload["probability_interval"] = (
+                update
+                .probability_interval
+                .to_dict())
+        if update.schedule is not None:
+            payload["assignment_digest"] = (
+                update.schedule
+                .decision_digest)
+            request = next((
+                row for row in
+                update.schedule.requests
+                if row.operation_id
+                == update.operation_id
+            ), None)
+            if request is not None:
+                payload["bid"] = float(
+                    request.bid)
+                payload["claims"] = [
+                    claim.to_dict()
+                    for claim in
+                    request.claims]
+        return payload
 
     def _emit_operation_state(
             self, writer, turn,
@@ -1272,6 +1343,7 @@ class ControlEventEmitter:
                 for row in schedule.entries
             }
 
+        lifecycle_eligible_ids = set()
         for assembly in assemblies:
             operation_id = (
                 assembly.spec.operation_id)
@@ -1365,6 +1437,18 @@ class ControlEventEmitter:
             emitted.append(event)
             parents = (
                 event["event_id"],)
+            if selected:
+                lifecycle_eligible_ids.add(
+                    operation_id)
+                if operation_id not in (
+                        self
+                        ._operation_payloads):
+                    self._operation_payloads[
+                        operation_id] = dict(
+                            payload)
+                    self._operation_event_ids[
+                        operation_id] = (
+                            event["event_id"])
 
         if schedule is not None:
             schedule_dict = schedule.to_dict()
@@ -1400,6 +1484,85 @@ class ControlEventEmitter:
             if schedule_events:
                 parents = (
                     schedule_events[-1][
+                        "event_id"],)
+
+            lifecycle = (
+                self._combat_lifecycle_for(
+                    writer))
+            try:
+                lifecycle_updates = (
+                    lifecycle
+                    .register_schedule(
+                        tuple(
+                            assembly
+                            for assembly in
+                            assemblies
+                            if assembly.spec
+                            .operation_id
+                            in lifecycle_eligible_ids),
+                        schedule,
+                        snapshot))
+            except (
+                    KeyError,
+                    TypeError,
+                    ValueError):
+                lifecycle_updates = ()
+                for operation_id in (
+                        schedule
+                        .selected_operation_ids):
+                    if operation_id not in (
+                            lifecycle_eligible_ids):
+                        continue
+                    if lifecycle.store.get(
+                            operation_id
+                    ) is not None:
+                        continue
+                    blocked = (
+                        self
+                        ._emit_operation_state(
+                            writer,
+                            int(snapshot.turn),
+                            operation_id,
+                            "operation_blocked",
+                            "blocked",
+                            "combat-lifecycle-registration-failed",
+                            snapshot_id,
+                            parents))
+                    emitted.append(
+                        blocked)
+                    parents = (
+                        blocked[
+                            "event_id"],)
+            for update in (
+                    lifecycle_updates):
+                self._apply_combat_lifecycle_update(
+                    lifecycle, update)
+                reserved = (
+                    self._emit_operation_state(
+                        writer,
+                        int(snapshot.turn),
+                        update.operation_id,
+                        "operation_reserved",
+                        "reserved", None,
+                        snapshot_id,
+                        parents))
+                emitted.append(
+                    reserved)
+                selected = (
+                    self._emit_operation_state(
+                        writer,
+                        int(snapshot.turn),
+                        update.operation_id,
+                        "operation_step_selected",
+                        "step_selected",
+                        None,
+                        snapshot_id,
+                        (reserved[
+                            "event_id"],)))
+                emitted.append(
+                    selected)
+                parents = (
+                    selected[
                         "event_id"],)
 
         metrics = (
@@ -1441,6 +1604,346 @@ class ControlEventEmitter:
             emitted.append(event)
             parents = (
                 event["event_id"],)
+        return tuple(emitted)
+
+    def emit_combat_action_outcome(
+            self, writer, snapshot,
+            action, outcome,
+            caused_by=()):
+        """Attribute a real action to a reserved shadow combat step."""
+        if (
+            snapshot is None
+            or not isinstance(
+                action, dict)
+            or outcome is None
+        ):
+            return ()
+        lifecycle = (
+            self._combat_lifecycle_for(
+                writer))
+        accepted = bool(
+            getattr(
+                outcome,
+                "submitted", False)
+            and getattr(
+                outcome,
+                "status", None)
+            == "accepted")
+        updates = (
+            lifecycle
+            .commit_matching_action(
+                snapshot, action,
+                accepted=accepted,
+                reason=getattr(
+                    outcome,
+                    "reason", None)))
+        if not updates:
+            return ()
+        parents = tuple(caused_by)
+        emitted = []
+        action_id = getattr(
+            outcome, "action_id", None)
+        for update in updates:
+            self._apply_combat_lifecycle_update(
+                lifecycle, update)
+            if update.disposition == (
+                    "failed"):
+                event = (
+                    self._emit_operation_state(
+                        writer,
+                        int(snapshot.turn),
+                        update.operation_id,
+                        "operation_failed",
+                        "failed",
+                        update.reason,
+                        snapshot.snapshot_id,
+                        parents,
+                        action_id=action_id,
+                        resolution_status=(
+                            "resolved_failure")))
+                emitted.append(event)
+                parents = (
+                    event["event_id"],)
+            else:
+                if update.previous_state == (
+                        OperationState
+                        .RESERVED.value):
+                    activated = (
+                        self._emit_operation_state(
+                            writer,
+                            int(snapshot.turn),
+                            update.operation_id,
+                            "operation_activated",
+                            "activated", None,
+                            snapshot.snapshot_id,
+                            parents,
+                            action_id=(
+                                action_id)))
+                    emitted.append(
+                        activated)
+                    parents = (
+                        activated[
+                            "event_id"],)
+                revalidated = (
+                    self._emit_operation_state(
+                        writer,
+                        int(snapshot.turn),
+                        update.operation_id,
+                        "operation_step_revalidated",
+                        "step_revalidated",
+                        None,
+                        snapshot.snapshot_id,
+                        parents,
+                        action_id=action_id))
+                emitted.append(
+                    revalidated)
+                committed = (
+                    self._emit_operation_state(
+                        writer,
+                        int(snapshot.turn),
+                        update.operation_id,
+                        "operation_step_committed",
+                        "step_committed",
+                        None,
+                        snapshot.snapshot_id,
+                        (revalidated[
+                            "event_id"],),
+                        action_id=action_id))
+                emitted.append(
+                    committed)
+                parents = (
+                    committed[
+                        "event_id"],)
+            if update.released_reservation is not None:
+                releases = (
+                    self.emit_resource_releases(
+                        writer,
+                        int(snapshot.turn),
+                        (
+                            update
+                            .released_reservation,),
+                        lifecycle.ledger
+                        .ledger_digest,
+                        lifecycle.ledger
+                        .LEDGER_IDENTITY,
+                        caused_by=parents))
+                emitted.extend(
+                    releases)
+                if releases:
+                    parents = (
+                        releases[-1][
+                            "event_id"],)
+        return tuple(emitted)
+
+    def _emit_combat_lifecycle_schedule(
+            self, writer, snapshot,
+            update, caused_by):
+        if update.schedule is None:
+            return ()
+        schedule = update.schedule
+        batch_id = structural_hash({
+            "component":
+                "gdo5-combat-lifecycle-step",
+            "operation_id":
+                update.operation_id,
+            "snapshot_id":
+                snapshot.snapshot_id,
+            "step_index":
+                update.step_index,
+        })
+        artifact = {
+            "batch_id": batch_id,
+            "exact": schedule.to_dict(),
+            "packet_committed_operation_ids":
+                list(
+                    schedule
+                    .selected_operation_ids),
+            "packet_exact_selection_equal":
+                True,
+            "request_count":
+                len(schedule.requests),
+        }
+        artifact["artifact_hash"] = (
+            structural_hash(artifact))
+        return self.emit_resource_schedule_results(
+            writer,
+            int(snapshot.turn),
+            (artifact,),
+            caused_by=caused_by)
+
+    def resolve_combat_operations(
+            self, writer, snapshot,
+            caused_by=()):
+        """Re-estimate committed or blocked combat steps on a new snapshot."""
+        if snapshot is None:
+            return ()
+        lifecycle = (
+            self._combat_lifecycle_for(
+                writer))
+        updates = lifecycle.observe(
+            snapshot)
+        parents = tuple(caused_by)
+        emitted = []
+        for update in updates:
+            self._apply_combat_lifecycle_update(
+                lifecycle, update)
+            if update.released_reservation is not None:
+                releases = (
+                    self.emit_resource_releases(
+                        writer,
+                        int(snapshot.turn),
+                        (
+                            update
+                            .released_reservation,),
+                        lifecycle.ledger
+                        .ledger_digest,
+                        lifecycle.ledger
+                        .LEDGER_IDENTITY,
+                        caused_by=parents))
+                emitted.extend(
+                    releases)
+                if releases:
+                    parents = (
+                        releases[-1][
+                            "event_id"],)
+            schedule_events = (
+                self
+                ._emit_combat_lifecycle_schedule(
+                    writer, snapshot,
+                    update, parents))
+            emitted.extend(
+                schedule_events)
+            if schedule_events:
+                parents = (
+                    schedule_events[-1][
+                        "event_id"],)
+            common = (
+                writer,
+                int(snapshot.turn),
+                update.operation_id)
+            if update.disposition == (
+                    "completed"):
+                event = self._emit_operation_state(
+                    *common,
+                    "operation_completed",
+                    "completed",
+                    update.reason,
+                    snapshot.snapshot_id,
+                    parents,
+                    resolution_status=(
+                        "resolved_success"))
+                emitted.append(event)
+                parents = (
+                    event["event_id"],)
+            elif update.disposition == (
+                    "failed"):
+                event = self._emit_operation_state(
+                    *common,
+                    "operation_failed",
+                    "failed",
+                    update.reason,
+                    snapshot.snapshot_id,
+                    parents,
+                    resolution_status=(
+                        "resolved_no_effect"))
+                emitted.append(event)
+                parents = (
+                    event["event_id"],)
+            elif update.disposition in (
+                    "abandoned",
+                    "expired"):
+                event_type = (
+                    "operation_abandoned"
+                    if update.disposition
+                    == "abandoned"
+                    else "operation_expired")
+                event = self._emit_operation_state(
+                    *common,
+                    event_type,
+                    update.disposition,
+                    update.reason,
+                    snapshot.snapshot_id,
+                    parents,
+                    resolution_status=(
+                        "censored_operation_abort"))
+                emitted.append(event)
+                parents = (
+                    event["event_id"],)
+            elif update.disposition == (
+                    "blocked"):
+                event = self._emit_operation_state(
+                    *common,
+                    "operation_blocked",
+                    "blocked",
+                    update.reason,
+                    snapshot.snapshot_id,
+                    parents)
+                emitted.append(event)
+                parents = (
+                    event["event_id"],)
+            elif update.disposition == (
+                    "repaired"):
+                repaired = self._emit_operation_state(
+                    *common,
+                    "operation_repaired",
+                    "repaired",
+                    update.reason,
+                    snapshot.snapshot_id,
+                    parents)
+                emitted.append(
+                    repaired)
+                reserved = self._emit_operation_state(
+                    *common,
+                    "operation_reserved",
+                    "reserved", None,
+                    snapshot.snapshot_id,
+                    (repaired[
+                        "event_id"],))
+                emitted.append(
+                    reserved)
+                selected = self._emit_operation_state(
+                    *common,
+                    "operation_step_selected",
+                    "step_selected", None,
+                    snapshot.snapshot_id,
+                    (reserved[
+                        "event_id"],))
+                emitted.append(
+                    selected)
+                parents = (
+                    selected[
+                        "event_id"],)
+            elif update.disposition in (
+                    "step_reestimated",
+                    "step_revalidated"):
+                revalidated = (
+                    self._emit_operation_state(
+                        *common,
+                        "operation_step_revalidated",
+                        "step_revalidated",
+                        update.reason,
+                        snapshot.snapshot_id,
+                        parents))
+                emitted.append(
+                    revalidated)
+                parents = (
+                    revalidated[
+                        "event_id"],)
+                if update.disposition == (
+                        "step_reestimated"):
+                    selected = (
+                        self._emit_operation_state(
+                            *common,
+                            "operation_step_selected",
+                            "step_selected",
+                            None,
+                            snapshot.snapshot_id,
+                            parents))
+                    emitted.append(
+                        selected)
+                    parents = (
+                        selected[
+                            "event_id"],)
         return tuple(emitted)
 
     @staticmethod
