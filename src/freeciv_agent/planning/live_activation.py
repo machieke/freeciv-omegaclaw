@@ -31,6 +31,8 @@ class PairedCohortEvidence:
     unsupported_legality_violations: int
     safety_violations: int
     pilot_data_excluded: bool
+    gdo9_entry_gate_passed: bool = False
+    gdo9_entry_report_hash: object = None
 
     def __post_init__(self):
         for value, name in (
@@ -77,6 +79,22 @@ class PairedCohortEvidence:
                     or value < 0):
                 raise ValueError(
                     "{} must be non-negative".format(name))
+        if not isinstance(
+                self.gdo9_entry_gate_passed, bool):
+            raise TypeError(
+                "GDO-9 entry status must be boolean")
+        if self.gdo9_entry_gate_passed:
+            if (
+                    not isinstance(
+                        self.gdo9_entry_report_hash,
+                        str)
+                    or not self.gdo9_entry_report_hash
+            ):
+                raise ValueError(
+                    "passed GDO-9 entry gate requires report hash")
+        elif self.gdo9_entry_report_hash is not None:
+            raise ValueError(
+                "failed GDO-9 entry gate cannot carry approval hash")
 
     @property
     def eligible(self):
@@ -90,6 +108,7 @@ class PairedCohortEvidence:
             self.unsupported_legality_violations == 0,
             self.safety_violations == 0,
             self.pilot_data_excluded,
+            self.gdo9_entry_gate_passed,
         ))
 
     @property
@@ -114,6 +133,10 @@ class PairedCohortEvidence:
                 self.exact_replay_valid),
             "fresh_confirmation": (
                 self.fresh_confirmation),
+            "gdo9_entry_gate_passed":
+                self.gdo9_entry_gate_passed,
+            "gdo9_entry_report_hash":
+                self.gdo9_entry_report_hash,
             "horizon_turns": self.horizon_turns,
             "opponent_profile": self.opponent_profile,
             "pilot_data_excluded": (

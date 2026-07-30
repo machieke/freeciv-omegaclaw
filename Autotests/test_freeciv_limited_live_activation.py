@@ -17,7 +17,6 @@ from freeciv_agent.pf_runtime import (  # noqa: E402
 )
 from freeciv_agent.planning import (  # noqa: E402
     ControllerRollback,
-    ImpactCandidate,
     ImpactControlAdapter,
     LimitedLiveActivationGate,
     LiveScopePolicy,
@@ -54,6 +53,9 @@ def _evidence(**changes):
         "unsupported_legality_violations": 0,
         "safety_violations": 0,
         "pilot_data_excluded": True,
+        "gdo9_entry_gate_passed": True,
+        "gdo9_entry_report_hash":
+            "gdo9-entry-approved-v1",
     }
     values.update(changes)
     return PairedCohortEvidence(**values)
@@ -101,7 +103,11 @@ def test_fresh_engine_paired_evidence_unlocks_only_scoped_category():
 
 def test_missing_or_synthetic_evidence_cannot_enable_live_flow():
     for evidence in (
-            None, _evidence(engine_backed=False)):
+            None,
+            _evidence(engine_backed=False),
+            _evidence(
+                gdo9_entry_gate_passed=False,
+                gdo9_entry_report_hash=None)):
         adapter, query = _adapter(evidence)
         decision = adapter.rank_or_schedule(
             query, "unified_flow_live")
