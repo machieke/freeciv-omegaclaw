@@ -167,6 +167,7 @@ export type ResourceClaimReleased = ResourceClaimEvent;
 export type ResourceCapacityChanged = ResourceCapacityEvent;
 
 export type OperationEvent = {
+  "action_id"?: string | null;
   "actor_id": string | null;
   "assignment_digest": string | null;
   "bid": number;
@@ -183,6 +184,8 @@ export type OperationEvent = {
   "provenance": Array<string>;
   "reason_code": string | null;
   "requirement_id": string | null;
+  "resolution_snapshot_id"?: string | null;
+  "resolution_status"?: "resolved_success" | "resolved_failure" | "resolved_partial" | "resolved_no_effect" | "unresolved_unknown" | "censored_operation_abort" | "invalidated_state_change";
   "selected": boolean;
   "shadow_only": boolean;
   "snapshot_id": string;

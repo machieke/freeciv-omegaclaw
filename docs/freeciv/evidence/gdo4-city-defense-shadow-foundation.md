@@ -28,8 +28,10 @@ This checkpoint establishes the first bounded GDO-4 city-defence mechanism:
 - no policy authority and no change to live ordering.
 
 The runtime flag is `pressure_city_defense_operations_enabled`. Startup rejects
-this flag unless `pressure_resource_scheduler_enabled` is also active. Both
-remain disabled by default.
+this flag unless `pressure_operation_lifecycle_enabled` is active. Operation
+lifecycle in turn requires grounded domain estimates, identity resource
+scheduling, and exact commit revalidation. Every flag remains disabled by
+default.
 
 ## Synthetic B1/B3/B4 diagnostic
 

@@ -2996,6 +2996,8 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                     defense_analysis
                     .protected_union_added_count,
                 "schema_version": "1.0",
+                "ruleset_digest":
+                    self.ruleset_digest,
                 "selected_action_key": (
                     None
                     if readout is None
@@ -3004,6 +3006,8 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                         .next_action)
                     .decode("utf-8")),
                 "shadow_only": True,
+                "source_turn": int(
+                    snapshot.turn),
                 "typed_threat_coverage":
                     coverage,
                 "typed_operation_edge_coverage":

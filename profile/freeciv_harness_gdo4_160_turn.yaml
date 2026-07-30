@@ -88,6 +88,9 @@ impact_policy:
   pressure_controller_mode: scalar_v2
   pressure_packet_scheduler_enabled: true
   pressure_resource_scheduler_enabled: true
+  pressure_domain_estimates_enabled: true
+  pressure_commit_revalidation_enabled: true
+  pressure_operation_lifecycle_enabled: true
   pressure_city_defense_operations_enabled: true
   pressure_score_alignment_enabled: true
   pressure_exploration_information_enabled: true

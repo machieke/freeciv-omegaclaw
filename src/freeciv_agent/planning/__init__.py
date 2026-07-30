@@ -43,6 +43,27 @@ from .control_events import (
     CONTROL_EVENT_SCHEMA_VERSION,
     ControlEventEmitter,
 )
+from .operation_assembler import (
+    assemble_city_defense_operation,
+)
+from .operation_store import (
+    OPERATION_STORE_SCHEMA_VERSION,
+    OperationRecord,
+    OperationStore,
+    OperationStoreError,
+    OperationTransitionError,
+)
+from .operations import (
+    OPERATION_SCHEMA_VERSION,
+    TERMINAL_OPERATION_STATES,
+    OperationParticipant,
+    OperationProgress,
+    OperationSpec,
+    OperationState,
+    OperationStep,
+    operation_id_from_components,
+    operation_transition_allowed,
+)
 from .impact_unified_flow import (
     UnifiedImpactFlowConfig,
     UnifiedImpactFlowEngine,
@@ -72,6 +93,16 @@ __all__ = [
     "BeliefExplanation", "DecisionExplainer",
     "CONTROL_EVENT_SCHEMA_VERSION",
     "ControlEventEmitter",
+    "OPERATION_SCHEMA_VERSION",
+    "OPERATION_STORE_SCHEMA_VERSION",
+    "TERMINAL_OPERATION_STATES",
+    "OperationParticipant", "OperationProgress",
+    "OperationRecord", "OperationSpec", "OperationState",
+    "OperationStep", "OperationStore", "OperationStoreError",
+    "OperationTransitionError",
+    "assemble_city_defense_operation",
+    "operation_id_from_components",
+    "operation_transition_allowed",
     "UnifiedImpactFlowConfig",
     "UnifiedImpactFlowEngine",
     "PlanningSnapshot",

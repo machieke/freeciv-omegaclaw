@@ -1975,9 +1975,25 @@ async def _play(run_dir, manifest, context):
                     caused_by=[cause])
                 domain_observability.emit_snapshot(
                     next_snapshot, event["event_id"], raw=next_raw)
+                operation_events = (
+                    control_event_emitter
+                    .resolve_city_defense_operations(
+                        writer,
+                        next_snapshot,
+                        caused_by=(
+                            event[
+                                "event_id"],)))
                 action_refresh_event_latency_ms += (
                     time.perf_counter() - event_started) * 1000.0
-                return next_raw, next_snapshot, event["event_id"]
+                return (
+                    next_raw,
+                    next_snapshot,
+                    (
+                        operation_events[
+                            -1]["event_id"]
+                        if operation_events
+                        else event[
+                            "event_id"]))
 
         turn_started = time.perf_counter()
         final_turn = snapshot.turn
@@ -1999,7 +2015,19 @@ async def _play(run_dir, manifest, context):
                     caused_by=[parent])
                 domain_observability.emit_snapshot(
                     snapshot, state_event["event_id"], raw=raw)
-                parent = state_event["event_id"]
+                operation_events = (
+                    control_event_emitter
+                    .resolve_city_defense_operations(
+                        writer, snapshot,
+                        caused_by=(
+                            state_event[
+                                "event_id"],)))
+                parent = (
+                    operation_events[
+                        -1]["event_id"]
+                    if operation_events
+                    else state_event[
+                        "event_id"])
                 if _needs_turn_global_state(impact_planner):
                     global_state = await _global_state(
                         ws, player_id=player_id, minimum_turn=snapshot.turn)
@@ -2094,6 +2122,21 @@ async def _play(run_dir, manifest, context):
                     attempted_count += 1
                     action_count += int(outcome.submitted)
                     rejected += int(outcome.submitted and outcome.status != "accepted")
+                    operation_events = (
+                        control_event_emitter
+                        .emit_city_defense_action_outcome(
+                            writer,
+                            snapshot.turn,
+                            action_snapshot,
+                            impact_action,
+                            outcome,
+                            caused_by=(
+                                parent,)))
+                    if operation_events:
+                        parent = (
+                            operation_events[
+                                -1][
+                                    "event_id"])
                     if outcome.status != "accepted":
                         raise RuntimeError(
                             "model-selected action failed: {}".format(outcome.reason))

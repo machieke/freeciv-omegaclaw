@@ -15,6 +15,7 @@ if SRC not in sys.path:
 from freeciv_agent.planning import ImpactCandidate  # noqa: E402
 from freeciv_agent.events.validator import validate_file  # noqa: E402
 from freeciv_agent.events.writer import EventWriter  # noqa: E402
+from freeciv_agent.execution import ActionOutcome  # noqa: E402
 from freeciv_agent.planning import ControlEventEmitter  # noqa: E402
 from freeciv_agent.planning.domain_models import (  # noqa: E402
     CityDefenseAnalysis,
@@ -793,6 +794,9 @@ def test_city_defense_shadow_operations_emit_valid_attributable_events():
         if row.operation_id
         in assignment
         .selected_operation_ids
+        and row.operation_type
+        == DefenseOperationType
+        .MOVE_DEFENDER_TO_CITY
         and row.next_action
         is not None)
 
@@ -804,15 +808,17 @@ def test_city_defense_shadow_operations_emit_valid_attributable_events():
             path,
             "city-defense-events",
             durable=False)
+        emitter = ControlEventEmitter()
         events = (
-            ControlEventEmitter
-            .emit_city_defense_operations(
+            emitter.emit_city_defense_operations(
                 writer,
                 snapshot.turn, {
                     "analysis":
                         analysis.to_dict(),
                     "assignment":
                         assignment.to_dict(),
+                    "ruleset_digest":
+                        "ruleset-proof",
                     "selected_action_key":
                         ImpactCandidate(
                             action=selected_action,
@@ -820,7 +826,83 @@ def test_city_defense_shadow_operations_emit_valid_attributable_events():
                             utility=0.0,
                             rationale="test")
                         .action_key,
+                    "source_turn":
+                        snapshot.turn,
                 }))
+        selection = next(
+            row for row in events
+            if row["type"]
+            == "operation_step_selected")
+        action_events = (
+            emitter
+            .emit_city_defense_action_outcome(
+                writer,
+                snapshot.turn,
+                snapshot,
+                selected_action,
+                ActionOutcome(
+                    action_id=(
+                        "action-proof"),
+                    status="accepted",
+                    reason=None,
+                    submitted=True),
+                caused_by=(
+                    selection[
+                        "event_id"],)))
+        target = selected_action[
+            "target"]
+        actor_id = selected_action[
+            "actor_id"]
+        next_units = tuple(
+            SimpleNamespace(
+                **{
+                    **unit.__dict__,
+                    "x": (
+                        target["x"]
+                        if unit.unit_id
+                        == actor_id
+                        else unit.x),
+                    "y": (
+                        target["y"]
+                        if unit.unit_id
+                        == actor_id
+                        else unit.y),
+                    "activity":
+                        getattr(
+                            unit,
+                            "activity",
+                            None),
+                })
+            for unit in
+            snapshot.units)
+        next_snapshot = (
+            SimpleNamespace(
+                snapshot_id=(
+                    "defence-snapshot-next"),
+                turn=(
+                    snapshot.turn + 1),
+                city=lambda city_id: next(
+                    (
+                        city for city
+                        in snapshot.cities
+                        if city.city_id
+                        == city_id),
+                    None),
+                unit=lambda unit_id: next(
+                    (
+                        unit for unit
+                        in next_units
+                        if unit.unit_id
+                        == unit_id),
+                    None)))
+        resolution_events = (
+            emitter
+            .resolve_city_defense_operations(
+                writer,
+                next_snapshot,
+                caused_by=(
+                    action_events[
+                        -1]["event_id"],)))
         report = validate_file(
             path)
 
@@ -835,6 +917,24 @@ def test_city_defense_shadow_operations_emit_valid_attributable_events():
     assert len(proposals) == len(
         analysis.operations)
     assert len(selections) == 1
+    assert [
+        row["type"]
+        for row in action_events
+    ] == [
+        "operation_activated",
+        "operation_step_revalidated",
+        "operation_step_committed",
+    ]
+    assert [
+        row["type"]
+        for row in resolution_events
+    ] == [
+        "operation_completed",
+    ]
+    assert resolution_events[0][
+        "payload"][
+            "resolution_status"
+    ] == "resolved_success"
     assert {
         row["payload"]["operation_id"]
         for row in selections

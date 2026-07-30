@@ -11,6 +11,18 @@ from .impact_flow_adapter import (
     ControlOutcomeRecord,
     ControlQuery,
 )
+from .operation_assembler import (
+    assemble_city_defense_operation,
+)
+from .operation_store import (
+    OperationStore,
+    OperationStoreError,
+    OperationTransitionError,
+)
+from .operations import (
+    OperationState,
+    TERMINAL_OPERATION_STATES,
+)
 
 
 CONTROL_EVENT_SCHEMA_VERSION = "1.0"
@@ -178,6 +190,61 @@ class ControlEventEmitter:
         # Capacity events describe changes across decisions.  Index by the
         # stable resource identity rather than snapshot-scoped capacity ID.
         self._last_resource_capacity = {}
+        self._operation_stores = {}
+        self._operation_payloads = {}
+        self._operation_action_keys = {}
+        self._operation_event_ids = {}
+
+    def _operation_store_for(self, writer):
+        game_id = str(
+            writer.game_id)
+        store = self._operation_stores.get(
+            game_id)
+        if store is None:
+            store = OperationStore(
+                "game:{}".format(
+                    game_id))
+            self._operation_stores[
+                game_id] = store
+        return store
+
+    def _emit_operation_state(
+            self, writer, turn,
+            operation_id, event_type,
+            state, reason_code,
+            snapshot_id, caused_by,
+            action_id=None,
+            resolution_status=None):
+        payload = dict(
+            self._operation_payloads[
+                operation_id])
+        payload.update({
+            "reason_code":
+                reason_code,
+            "selected": True,
+            "snapshot_id":
+                snapshot_id,
+            "state": state,
+        })
+        if action_id is not None:
+            payload["action_id"] = str(
+                action_id)
+        if resolution_status is not None:
+            payload[
+                "resolution_snapshot_id"
+            ] = snapshot_id
+            payload[
+                "resolution_status"
+            ] = resolution_status
+        event = writer.emit(
+            event_type, turn,
+            payload,
+            caused_by=list(
+                caused_by))
+        self._operation_event_ids[
+            operation_id] = (
+                event["event_id"])
+        return event
 
     @staticmethod
     def _resource_schedule_artifact(pressure):
@@ -413,9 +480,8 @@ class ControlEventEmitter:
                     result["event_id"],)
         return tuple(emitted)
 
-    @staticmethod
     def emit_city_defense_operations(
-            writer, turn, artifact,
+            self, writer, turn, artifact,
             caused_by=()):
         """Emit the shadow proposal graph and exact assignment readout."""
         if not isinstance(artifact, dict):
@@ -581,6 +647,101 @@ class ControlEventEmitter:
                     "event_id"],)
             if not selected:
                 continue
+            store = self._operation_store_for(
+                writer)
+            try:
+                record = store.get(
+                    operation_id)
+                if record is None:
+                    spec = (
+                        assemble_city_defense_operation(
+                            operation,
+                            int(
+                                artifact.get(
+                                    "source_turn",
+                                    turn)),
+                            str(
+                                artifact.get(
+                                    "ruleset_digest")
+                                or "ruleset-digest-unavailable")))
+                    record = store.propose(
+                        spec, snapshot_id,
+                        int(
+                            artifact.get(
+                                "source_turn",
+                                turn)))
+                    record = store.transition(
+                        operation_id,
+                        OperationState
+                        .RESERVABLE,
+                        snapshot_id,
+                        int(
+                            artifact.get(
+                                "source_turn",
+                                turn)))
+                    record = store.transition(
+                        operation_id,
+                        OperationState
+                        .RESERVED,
+                        snapshot_id,
+                        int(
+                            artifact.get(
+                                "source_turn",
+                                turn)))
+                if record.progress.state != (
+                        OperationState
+                        .RESERVED):
+                    raise (
+                        OperationTransitionError(
+                            "operation is not reservable"))
+            except (
+                    OperationStoreError,
+                    OperationTransitionError,
+                    TypeError,
+                    ValueError):
+                blocked_payload = dict(
+                    payload)
+                blocked_payload[
+                    "selected"] = False
+                blocked_payload[
+                    "state"] = "blocked"
+                blocked_payload[
+                    "reason_code"] = (
+                        "operation-lifecycle-registration-failed")
+                blocked_event = writer.emit(
+                    "operation_blocked",
+                    turn,
+                    blocked_payload,
+                    caused_by=list(
+                        parents))
+                emitted.append(
+                    blocked_event)
+                parents = (
+                    blocked_event[
+                        "event_id"],)
+                continue
+            self._operation_payloads[
+                operation_id] = dict(
+                    payload)
+            self._operation_action_keys[
+                operation_id] = (
+                    operation_action_key)
+            reserved_payload = dict(
+                payload)
+            reserved_payload[
+                "state"] = "reserved"
+            reserved_payload[
+                "reason_code"] = None
+            reserved_event = writer.emit(
+                "operation_reserved",
+                turn,
+                reserved_payload,
+                caused_by=list(parents))
+            emitted.append(
+                reserved_event)
+            parents = (
+                reserved_event[
+                    "event_id"],)
             selected_payload = dict(
                 payload)
             selected_payload[
@@ -595,9 +756,344 @@ class ControlEventEmitter:
                 caused_by=list(parents))
             emitted.append(
                 selected_event)
+            self._operation_event_ids[
+                operation_id] = (
+                    selected_event[
+                        "event_id"])
             parents = (
                 selected_event[
                     "event_id"],)
+        return tuple(emitted)
+
+    def emit_city_defense_action_outcome(
+            self, writer, turn,
+            snapshot, action,
+            outcome, caused_by=()):
+        """Attribute an actually submitted current action to one shadow step.
+
+        A selected assignment is not a commit.  It becomes active only when
+        the runtime's current action is byte-identical and the existing
+        execution gate reports acceptance.
+        """
+        if (not isinstance(action, dict)
+                or snapshot is None
+                or outcome is None):
+            return ()
+        action_key = (
+            canonical_json_bytes(
+                action)
+            .decode("utf-8"))
+        store = self._operation_store_for(
+            writer)
+        matches = []
+        for operation_id, expected in (
+                self._operation_action_keys
+                .items()):
+            record = store.get(
+                operation_id)
+            if (expected == action_key
+                    and record is not None
+                    and record.progress.state
+                    == OperationState
+                    .RESERVED):
+                matches.append(
+                    record)
+        if not matches:
+            return ()
+        # One engine action may activate only one operation step. Prefer the
+        # newest selected observation, then stable identity.
+        record = sorted(
+            matches,
+            key=lambda row: (
+                -row.progress
+                .last_updated_turn,
+                row.spec.operation_id))[0]
+        operation_id = (
+            record.spec.operation_id)
+        parent_ids = tuple(
+            dict.fromkeys(
+                tuple(caused_by)
+                + tuple(
+                    value for value in (
+                        self
+                        ._operation_event_ids
+                        .get(operation_id),
+                    )
+                    if value)))
+        action_id = getattr(
+            outcome, "action_id", None)
+        if int(turn) > (
+                record.spec.expiry_turn):
+            reason = (
+                "operation-deadline-passed-before-commit")
+            store.transition(
+                operation_id,
+                OperationState.EXPIRED,
+                snapshot.snapshot_id,
+                int(turn),
+                reason=reason)
+            event = self._emit_operation_state(
+                writer, turn,
+                operation_id,
+                "operation_expired",
+                "expired", reason,
+                snapshot.snapshot_id,
+                parent_ids,
+                action_id=action_id,
+                resolution_status=(
+                    "censored_operation_abort"))
+            self._operation_action_keys.pop(
+                operation_id, None)
+            return (event,)
+        accepted = bool(
+            getattr(
+                outcome,
+                "submitted", False)
+            and getattr(
+                outcome,
+                "status", None)
+            == "accepted")
+        if not accepted:
+            reason = str(
+                getattr(
+                    outcome,
+                    "reason", None)
+                or "current-action-not-accepted")
+            store.transition(
+                operation_id,
+                OperationState.FAILED,
+                snapshot.snapshot_id,
+                int(turn),
+                reason=reason)
+            event = self._emit_operation_state(
+                writer, turn,
+                operation_id,
+                "operation_failed",
+                "failed", reason,
+                snapshot.snapshot_id,
+                parent_ids,
+                action_id=action_id,
+                resolution_status=(
+                    "resolved_failure"))
+            self._operation_action_keys.pop(
+                operation_id, None)
+            return (event,)
+        store.transition(
+            operation_id,
+            OperationState.ACTIVE,
+            snapshot.snapshot_id,
+            int(turn))
+        store.record_attempt(
+            operation_id,
+            snapshot.snapshot_id,
+            int(turn))
+        activated = (
+            self._emit_operation_state(
+                writer, turn,
+                operation_id,
+                "operation_activated",
+                "activated", None,
+                snapshot.snapshot_id,
+                parent_ids,
+                action_id=action_id))
+        revalidated = (
+            self._emit_operation_state(
+                writer, turn,
+                operation_id,
+                "operation_step_revalidated",
+                "step_revalidated",
+                None,
+                snapshot.snapshot_id,
+                (activated[
+                    "event_id"],),
+                action_id=action_id))
+        committed = (
+            self._emit_operation_state(
+                writer, turn,
+                operation_id,
+                "operation_step_committed",
+                "step_committed",
+                None,
+                snapshot.snapshot_id,
+                (revalidated[
+                    "event_id"],),
+                action_id=action_id))
+        return (
+            activated,
+            revalidated,
+            committed,
+        )
+
+    def resolve_city_defense_operations(
+            self, writer, snapshot,
+            caused_by=()):
+        """Resolve committed city-defence steps from authoritative state."""
+        if snapshot is None:
+            return ()
+        store = self._operation_store_for(
+            writer)
+        emitted = []
+        for record in (
+                store.nonterminal_records()):
+            operation_id = (
+                record.spec.operation_id)
+            if operation_id not in (
+                    self._operation_payloads):
+                continue
+            progress = record.progress
+            if (progress.last_snapshot_id
+                    == snapshot.snapshot_id):
+                continue
+            parent_ids = tuple(
+                dict.fromkeys(
+                    tuple(caused_by)
+                    + tuple(
+                        value for value
+                        in (
+                            self
+                            ._operation_event_ids
+                            .get(
+                                operation_id),
+                        )
+                        if value)))
+            terminal_event = None
+            terminal_state = None
+            reason = None
+            resolution = None
+            payload = (
+                self
+                ._operation_payloads[
+                    operation_id])
+            target_id = str(
+                payload.get(
+                    "target_id")
+                or "")
+            city_id = (
+                target_id[5:]
+                if target_id.startswith(
+                    "city:")
+                else target_id)
+            city = (
+                snapshot.city(
+                    int(city_id))
+                if city_id.isdigit()
+                else None)
+            if (progress.state
+                    == OperationState.ACTIVE):
+                actor_id = payload.get(
+                    "actor_id")
+                unit = (
+                    snapshot.unit(
+                        int(actor_id))
+                    if (isinstance(
+                        actor_id, str)
+                        and actor_id
+                        .isdigit())
+                    else None)
+                operation_type = (
+                    payload.get(
+                        "operation_type"))
+                if city is None:
+                    terminal_state = (
+                        OperationState.FAILED)
+                    terminal_event = (
+                        "operation_failed")
+                    reason = (
+                        "target-city-unavailable")
+                    resolution = (
+                        "resolved_failure")
+                elif (actor_id is not None
+                        and unit is None):
+                    terminal_state = (
+                        OperationState.FAILED)
+                    terminal_event = (
+                        "operation_failed")
+                    reason = (
+                        "required-participant-unavailable")
+                    resolution = (
+                        "resolved_failure")
+                elif (operation_type
+                        == "move_defender_to_city"
+                        and unit is not None
+                        and None not in (
+                            unit.x, unit.y,
+                            city.x, city.y)
+                        and (
+                            unit.x, unit.y)
+                        == (
+                            city.x, city.y)):
+                    terminal_state = (
+                        OperationState.COMPLETED)
+                    terminal_event = (
+                        "operation_completed")
+                    reason = (
+                        "completion-predicate-satisfied")
+                    resolution = (
+                        "resolved_success")
+                elif (operation_type
+                        == "fortify_existing_defender"
+                        and unit is not None
+                        and None not in (
+                            unit.x, unit.y,
+                            city.x, city.y)
+                        and (
+                            unit.x, unit.y)
+                        == (
+                            city.x, city.y)
+                        and str(
+                            unit.activity
+                            or "").lower()
+                        in (
+                            "fortify",
+                            "fortified")):
+                    terminal_state = (
+                        OperationState.COMPLETED)
+                    terminal_event = (
+                        "operation_completed")
+                    reason = (
+                        "completion-predicate-satisfied")
+                    resolution = (
+                        "resolved_success")
+            if (terminal_event is None
+                    and int(snapshot.turn)
+                    > record.spec.expiry_turn):
+                terminal_state = (
+                    OperationState.EXPIRED)
+                terminal_event = (
+                    "operation_expired")
+                reason = (
+                    "operation-deadline-passed"
+                    if progress.state
+                    != OperationState.ACTIVE
+                    else
+                    "committed-step-unresolved-at-deadline")
+                resolution = (
+                    "unresolved_unknown"
+                    if progress.state
+                    == OperationState.ACTIVE
+                    else
+                    "censored_operation_abort")
+            if terminal_event is None:
+                continue
+            store.transition(
+                operation_id,
+                terminal_state,
+                snapshot.snapshot_id,
+                int(snapshot.turn),
+                reason=reason)
+            event = self._emit_operation_state(
+                writer, snapshot.turn,
+                operation_id,
+                terminal_event,
+                terminal_state.value,
+                reason,
+                snapshot.snapshot_id,
+                parent_ids,
+                resolution_status=(
+                    resolution))
+            emitted.append(event)
+            self._operation_action_keys.pop(
+                operation_id, None)
         return tuple(emitted)
 
     def emit_resource_schedule_results(

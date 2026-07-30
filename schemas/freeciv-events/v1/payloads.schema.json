@@ -286,6 +286,7 @@
             "suspended", "completed", "failed", "abandoned", "expired"
           ]
         },
+        "action_id": {"type": ["string", "null"], "minLength": 1},
         "reason_code": {"type": ["string", "null"], "minLength": 1},
         "deadline_turn": {"type": ["integer", "null"], "minimum": 0},
         "next_action": {"$ref": "#/$defs/jsonValue"},
@@ -302,6 +303,16 @@
         },
         "policy_authority": {"type": "boolean"},
         "shadow_only": {"type": "boolean"},
+        "resolution_snapshot_id": {
+          "type": ["string", "null"], "minLength": 1
+        },
+        "resolution_status": {
+          "enum": [
+            "resolved_success", "resolved_failure", "resolved_partial",
+            "resolved_no_effect", "unresolved_unknown",
+            "censored_operation_abort", "invalidated_state_change"
+          ]
+        },
         "provenance": {
           "type": "array", "minItems": 1,
           "items": {"type": "string", "minLength": 1}

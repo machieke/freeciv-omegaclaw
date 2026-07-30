@@ -121,3 +121,7 @@ authoritative operation lifecycle resolution:
 5. compute realized completion and city-loss metrics;
 6. retain fail-closed abstention until authoritative movement ETA or native
    parity supplies the missing multi-turn edges.
+
+The default-off operation-contract, restart-store, and current-step resolution
+foundation for this target is documented in
+`docs/evidence/gdo/operation_lifecycle_foundation.md`.
