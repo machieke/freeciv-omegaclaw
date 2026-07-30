@@ -108,6 +108,7 @@ CONTROLLER_LAYER_SPECS = (
     {"layer": "grounded_domain_estimates", "support": "experimental"},
     {"layer": "packet_scheduler", "support": "experimental"},
     {"layer": "identity_resource_scheduler", "support": "experimental"},
+    {"layer": "city_defense_operations", "support": "experimental"},
     {"layer": "teleological_cost_to_go", "support": "experimental"},
     {"layer": "path_persistence", "support": "experimental"},
     {"layer": "bridge", "support": "experimental"},
@@ -137,6 +138,7 @@ CONTROLLER_POLICY_DEFAULTS = {
     "pressure_flow_research_entry_gate_required": False,
     "pressure_flow_live_enabled": False,
     "pressure_commit_revalidation_enabled": False,
+    "pressure_city_defense_operations_enabled": False,
     "pressure_llm_expansion_enabled": False,
     "pressure_llm_validation_packet_budget": 0,
     "pressure_packet_scheduler_enabled": False,
@@ -624,6 +626,7 @@ def validate_controller_policy(impact_policy):
                 "pressure_signed_channels_enabled",
                 "pressure_packet_scheduler_enabled",
                 "pressure_resource_scheduler_enabled",
+                "pressure_city_defense_operations_enabled",
                 "pressure_requirement_sets_enabled",
                 "pressure_domain_estimates_enabled",
                 "pressure_bridge_enabled",
@@ -656,6 +659,11 @@ def validate_controller_policy(impact_policy):
             and not policy["pressure_packet_scheduler_enabled"]):
         raise PFRuntimeConfigurationError(
             "identity resource scheduling requires packet scheduling")
+    if (policy["pressure_city_defense_operations_enabled"]
+            and not policy[
+                "pressure_resource_scheduler_enabled"]):
+        raise PFRuntimeConfigurationError(
+            "city-defence operations require identity resource scheduling")
     for name in (
             "pressure_transition_value_model_identity",
             "pressure_transition_value_model_path"):
@@ -793,6 +801,7 @@ def validate_controller_policy(impact_policy):
                 "pressure_signed_channels_enabled",
                 "pressure_packet_scheduler_enabled",
                 "pressure_resource_scheduler_enabled",
+                "pressure_city_defense_operations_enabled",
                 "pressure_requirement_sets_enabled",
                 "pressure_domain_estimates_enabled",
                 "pressure_bridge_enabled",
@@ -829,6 +838,10 @@ def build_controller_activation(impact_policy):
             pressure_enabled and v2
             and policy[
                 "pressure_resource_scheduler_enabled"]),
+        "city_defense_operations": (
+            pressure_enabled and v2
+            and policy[
+                "pressure_city_defense_operations_enabled"]),
         "teleological_cost_to_go": (
             pressure_enabled
             and (

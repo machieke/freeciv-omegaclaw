@@ -1,0 +1,70 @@
+{
+  "arms": {
+    "B1": {
+      "actor_conflicts": 0,
+      "covered_threat_slots": 63,
+      "description": "synthetic one-action readout proxy for frozen scalar PF-v2",
+      "objective_value": 5867.0,
+      "preventable_loss_proxy": 6500.0,
+      "uncovered_threat_slots": 65
+    },
+    "B3": {
+      "actor_conflicts": 0,
+      "covered_threat_slots": 105,
+      "description": "typed identity-aware greedy city-defence assignment",
+      "objective_value": 7841.0,
+      "preventable_loss_proxy": 2300.0,
+      "uncovered_threat_slots": 23
+    },
+    "B4": {
+      "actor_conflicts": 0,
+      "covered_threat_slots": 109,
+      "description": "typed bounded-exact city-defence assignment",
+      "objective_value": 8469.0,
+      "preventable_loss_proxy": 1900.0,
+      "uncovered_threat_slots": 19
+    }
+  },
+  "claim_status": "synthetic-mechanism-diagnostic-only",
+  "exact_beats_greedy_scenario_count": 4,
+  "exact_objective_gain_scenario_count": 7,
+  "gates": {
+    "all_exact_results_match_brute_force": true,
+    "exact_never_covers_fewer_slots_than_greedy": true,
+    "known_greedy_counterexample_improved": true,
+    "no_actor_conflicts": true,
+    "no_live_authority": true,
+    "synthetic_p95_exact_below_50_ms": true
+  },
+  "latency": {
+    "B3_greedy": {
+      "maximum_ms": 0.019923318177461624,
+      "mean_ms": 0.0034628432331373915,
+      "p50_ms": 0.003426801413297653,
+      "p95_ms": 0.004623085260391235,
+      "p99_ms": 0.005698297172784805,
+      "sample_count": 6400
+    },
+    "B4_exact": {
+      "maximum_ms": 8.230251725763083,
+      "mean_ms": 0.026885815314017236,
+      "p50_ms": 0.022932887077331543,
+      "p95_ms": 0.040700193494558334,
+      "p99_ms": 0.07130485028028488,
+      "sample_count": 6400
+    }
+  },
+  "limitations": [
+    "The graph cohort is synthetic and contains no engine outcomes.",
+    "B1 is a one-action readout proxy, not a replay of the live controller.",
+    "Preventable loss is a fixed uncovered-slot proxy, not calibrated realized loss.",
+    "This report cannot support a Freeciv score or win-rate claim."
+  ],
+  "passed": true,
+  "policy_authority": false,
+  "report_hash": "f6105bcd3b054275124d11bdc519bf9df047e621d5063efba0f2a3ab471ed0cd",
+  "scenario_count": 64,
+  "scenario_digest": "ef2387f3e5556a0847d1e82669e7f09bbd4092f348df44ffe010253e9c1efd45",
+  "schema_version": "1.0",
+  "timing_iterations": 100
+}

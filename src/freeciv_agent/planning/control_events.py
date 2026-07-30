@@ -413,6 +413,170 @@ class ControlEventEmitter:
                     result["event_id"],)
         return tuple(emitted)
 
+    @staticmethod
+    def emit_city_defense_operations(
+            writer, turn, artifact,
+            caused_by=()):
+        """Emit the shadow proposal graph and exact assignment readout."""
+        if not isinstance(artifact, dict):
+            return ()
+        analysis = artifact.get(
+            "analysis")
+        assignment = artifact.get(
+            "assignment")
+        if (not isinstance(analysis, dict)
+                or not isinstance(
+                    assignment, dict)):
+            return ()
+        entries = {
+            row.get("operation_id"): row
+            for row in assignment.get(
+                "entries", ())
+            if isinstance(row, dict)
+            and isinstance(
+                row.get("operation_id"),
+                str)
+        }
+        assignment_digest = (
+            assignment.get(
+                "decision_digest"))
+        snapshot_id = str(
+            analysis.get(
+                "snapshot_id")
+            or "unknown-city-defense-snapshot")
+        parents = tuple(caused_by)
+        emitted = []
+        operations = sorted(
+            (
+                row for row
+                in analysis.get(
+                    "operations", ())
+                if isinstance(row, dict)
+                and isinstance(
+                    row.get(
+                        "operation_id"),
+                    str)
+            ),
+            key=lambda row:
+            row["operation_id"])
+        for operation in operations:
+            operation_id = (
+                operation[
+                    "operation_id"])
+            entry = entries.get(
+                operation_id, {})
+            selected = bool(
+                entry.get(
+                    "selected", False))
+            reason = entry.get(
+                "reason")
+            if reason is None:
+                reason = operation.get(
+                    "support_reason")
+            payload = {
+                "actor_id": (
+                    None
+                    if operation.get(
+                        "actor_id")
+                    is None
+                    else str(
+                        operation[
+                            "actor_id"])),
+                "assignment_digest":
+                    assignment_digest,
+                "bid": float(
+                    operation.get(
+                        "bid", 0.0)),
+                "claims": list(
+                    operation.get(
+                        "claims", ())),
+                "deadline_turn":
+                    operation.get(
+                        "deadline_turn"),
+                "event_schema_version":
+                    CONTROL_EVENT_SCHEMA_VERSION,
+                "expected_prevented_loss":
+                    float(
+                        operation.get(
+                            "expected_prevented_loss",
+                            0.0)),
+                "next_action":
+                    operation.get(
+                        "next_action"),
+                "operation_digest":
+                    structural_hash(
+                        operation),
+                "operation_id":
+                    operation_id,
+                "operation_type": str(
+                    operation.get(
+                        "operation_type")
+                    or "unknown"),
+                "opportunity_cost":
+                    float(
+                        operation.get(
+                            "opportunity_cost",
+                            0.0)),
+                "policy_authority":
+                    False,
+                "provenance": list(
+                    operation.get(
+                        "provenance")
+                    or (
+                        "city-defense-shadow",)),
+                "reason_code": (
+                    None
+                    if selected
+                    else str(
+                        reason
+                        or "not-selected")),
+                "requirement_id":
+                    operation.get(
+                        "requirement_id"),
+                "selected": selected,
+                "shadow_only": True,
+                "snapshot_id":
+                    snapshot_id,
+                "state": "proposed",
+                "target_id": (
+                    "city:{}".format(
+                        operation[
+                            "city_id"])
+                    if operation.get(
+                        "city_id")
+                    is not None
+                    else None),
+            }
+            proposed = writer.emit(
+                "operation_proposed",
+                turn, payload,
+                caused_by=list(parents))
+            emitted.append(
+                proposed)
+            parents = (
+                proposed[
+                    "event_id"],)
+            if not selected:
+                continue
+            selected_payload = dict(
+                payload)
+            selected_payload[
+                "state"] = (
+                    "step_selected")
+            selected_payload[
+                "reason_code"] = None
+            selected_event = writer.emit(
+                "operation_step_selected",
+                turn,
+                selected_payload,
+                caused_by=list(parents))
+            emitted.append(
+                selected_event)
+            parents = (
+                selected_event[
+                    "event_id"],)
+        return tuple(emitted)
+
     def emit_resource_schedule_results(
             self, writer, turn, artifacts,
             caused_by=()):
@@ -495,6 +659,19 @@ class ControlEventEmitter:
             if details:
                 parents = (
                     details[-1][
+                        "event_id"],)
+            operation_events = (
+                self
+                .emit_city_defense_operations(
+                    writer, turn,
+                    artifact.get(
+                        "city_defense"),
+                    caused_by=parents))
+            emitted.extend(
+                operation_events)
+            if operation_events:
+                parents = (
+                    operation_events[-1][
                         "event_id"],)
             self._emitted_resource_batch_ids.add(
                 batch_id)

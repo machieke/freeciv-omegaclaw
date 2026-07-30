@@ -1114,6 +1114,9 @@ class GroundedImpactPlanner(object):
                         resource_scheduler_enabled=bool(
                             controller_policy[
                                 "pressure_resource_scheduler_enabled"]),
+                        city_defense_operations_enabled=bool(
+                            controller_policy[
+                                "pressure_city_defense_operations_enabled"]),
                         domain_ruleset_ir=ruleset_ir,
                         ruleset_digest=domain_ruleset_digest,
                         teleological_enabled=(
@@ -1155,6 +1158,9 @@ class GroundedImpactPlanner(object):
                         resource_scheduler_enabled=bool(
                             controller_policy[
                                 "pressure_resource_scheduler_enabled"]),
+                        city_defense_operations_enabled=bool(
+                            controller_policy[
+                                "pressure_city_defense_operations_enabled"]),
                         domain_ruleset_ir=ruleset_ir,
                         ruleset_digest=domain_ruleset_digest,
                         teleological_enabled=True,

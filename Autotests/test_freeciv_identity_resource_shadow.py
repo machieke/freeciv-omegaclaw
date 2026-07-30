@@ -118,6 +118,40 @@ def test_identity_resource_shadow_is_byte_deterministic():
         second_ranker.close_resource_schedules()
 
 
+def test_city_defense_slice_is_nested_in_deferred_resource_shadow():
+    snapshot, candidates = _fixture()
+    baseline_order, baseline = _rank(
+        ImpactPressureRankerV2(),
+        snapshot, candidates)
+    ranker = ImpactPressureRankerV2(
+        resource_scheduler_enabled=True,
+        city_defense_operations_enabled=True)
+    try:
+        shadow_order, shadow, resource = (
+            _rank_and_complete(
+                ranker, snapshot,
+                candidates))
+        defense = resource[
+            "city_defense"]
+        assert shadow_order == baseline_order
+        assert shadow["schedule"] == (
+            baseline["schedule"])
+        assert defense["shadow_only"]
+        assert not defense[
+            "authority_active"]
+        assert defense[
+            "fallback_to_b1"]
+        assert defense[
+            "fallback_reason"] == (
+                "no-city-defense-requirement")
+        assert not defense[
+            "decision_safe_candidate_readout"]
+        assert defense[
+            "selected_action_key"] is None
+    finally:
+        ranker.close_resource_schedules()
+
+
 def test_normal_planner_configuration_wires_resource_shadow():
     snapshot, _ = _fixture()
     planner = GroundedImpactPlanner({

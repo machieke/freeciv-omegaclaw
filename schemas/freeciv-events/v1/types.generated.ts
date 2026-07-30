@@ -166,6 +166,56 @@ export type ResourceClaimReleased = ResourceClaimEvent;
 
 export type ResourceCapacityChanged = ResourceCapacityEvent;
 
+export type OperationEvent = {
+  "actor_id": string | null;
+  "assignment_digest": string | null;
+  "bid": number;
+  "claims": Array<JsonValue>;
+  "deadline_turn": number | null;
+  "event_schema_version": "1.0";
+  "expected_prevented_loss": number;
+  "next_action": JsonValue;
+  "operation_digest": string;
+  "operation_id": string;
+  "operation_type": string;
+  "opportunity_cost": number;
+  "policy_authority": boolean;
+  "provenance": Array<string>;
+  "reason_code": string | null;
+  "requirement_id": string | null;
+  "selected": boolean;
+  "shadow_only": boolean;
+  "snapshot_id": string;
+  "state": "proposed" | "reserved" | "activated" | "step_selected" | "step_revalidated" | "step_committed" | "blocked" | "repaired" | "suspended" | "completed" | "failed" | "abandoned" | "expired";
+  "target_id": string | null;
+};
+
+export type OperationProposed = OperationEvent;
+
+export type OperationReserved = OperationEvent;
+
+export type OperationActivated = OperationEvent;
+
+export type OperationStepSelected = OperationEvent;
+
+export type OperationStepRevalidated = OperationEvent;
+
+export type OperationStepCommitted = OperationEvent;
+
+export type OperationBlocked = OperationEvent;
+
+export type OperationRepaired = OperationEvent;
+
+export type OperationSuspended = OperationEvent;
+
+export type OperationCompleted = OperationEvent;
+
+export type OperationFailed = OperationEvent;
+
+export type OperationAbandoned = OperationEvent;
+
+export type OperationExpired = OperationEvent;
+
 export type TransitionValueEstimated = ControlAggregate;
 
 export type TransitionValueUpdated = ControlAggregate;
@@ -902,7 +952,7 @@ export type LoggingGap = {
   "missing": string;
 };
 
-export type KnownEventType = "teleology_estimated" | "transition_value_estimated" | "transition_value_updated" | "path_persistence_applied" | "reverse_operator_applied" | "requirement_set_materialized" | "bridge_estimated" | "probe_block_completed" | "path_current_deposited" | "flow_projected" | "attention_advected" | "packet_reserved" | "packet_returned" | "flow_candidate_selected" | "candidate_revalidated" | "controller_fallback" | "control_outcome_recorded" | "selection_coverage_sample" | "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "technology_catalog" | "technology_progress" | "production_state" | "unit_lifecycle" | "observation" | "revision" | "belief_conflict" | "context_quarantine" | "llm_proposal" | "goal_selection" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "rule_proposed" | "rule_validated" | "llm_call_scheduled" | "llm_gateway_result" | "rule_parameter_updated" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
+export type KnownEventType = "teleology_estimated" | "domain_estimate_emitted" | "domain_estimate_abstained" | "resource_schedule_decided" | "resource_claim_requested" | "resource_claim_reserved" | "resource_claim_rejected" | "resource_claim_released" | "resource_capacity_changed" | "operation_proposed" | "operation_reserved" | "operation_activated" | "operation_step_selected" | "operation_step_revalidated" | "operation_step_committed" | "operation_blocked" | "operation_repaired" | "operation_suspended" | "operation_completed" | "operation_failed" | "operation_abandoned" | "operation_expired" | "transition_value_estimated" | "transition_value_updated" | "path_persistence_applied" | "reverse_operator_applied" | "requirement_set_materialized" | "bridge_estimated" | "probe_block_completed" | "path_current_deposited" | "flow_projected" | "attention_advected" | "packet_reserved" | "packet_returned" | "flow_candidate_selected" | "candidate_revalidated" | "controller_fallback" | "control_outcome_recorded" | "selection_coverage_sample" | "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "technology_catalog" | "technology_progress" | "production_state" | "unit_lifecycle" | "observation" | "revision" | "belief_conflict" | "context_quarantine" | "llm_proposal" | "goal_selection" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "rule_proposed" | "rule_validated" | "llm_call_scheduled" | "llm_gateway_result" | "rule_parameter_updated" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
 
 export interface EventEnvelope<T extends string = string, P extends object = Record<string, unknown>> {
   schema_version: typeof EVENT_SCHEMA_VERSION;
@@ -918,6 +968,27 @@ export interface EventEnvelope<T extends string = string, P extends object = Rec
 
 export interface KnownPayloadMap {
   "teleology_estimated": TeleologyEstimated;
+  "domain_estimate_emitted": DomainEstimateEmitted;
+  "domain_estimate_abstained": DomainEstimateAbstained;
+  "resource_schedule_decided": ResourceScheduleDecided;
+  "resource_claim_requested": ResourceClaimRequested;
+  "resource_claim_reserved": ResourceClaimReserved;
+  "resource_claim_rejected": ResourceClaimRejected;
+  "resource_claim_released": ResourceClaimReleased;
+  "resource_capacity_changed": ResourceCapacityChanged;
+  "operation_proposed": OperationProposed;
+  "operation_reserved": OperationReserved;
+  "operation_activated": OperationActivated;
+  "operation_step_selected": OperationStepSelected;
+  "operation_step_revalidated": OperationStepRevalidated;
+  "operation_step_committed": OperationStepCommitted;
+  "operation_blocked": OperationBlocked;
+  "operation_repaired": OperationRepaired;
+  "operation_suspended": OperationSuspended;
+  "operation_completed": OperationCompleted;
+  "operation_failed": OperationFailed;
+  "operation_abandoned": OperationAbandoned;
+  "operation_expired": OperationExpired;
   "transition_value_estimated": TransitionValueEstimated;
   "transition_value_updated": TransitionValueUpdated;
   "path_persistence_applied": PathPersistenceApplied;

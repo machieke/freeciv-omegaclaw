@@ -259,6 +259,68 @@
     "resource_claim_rejected": {"$ref": "#/$defs/resourceClaimEvent"},
     "resource_claim_released": {"$ref": "#/$defs/resourceClaimEvent"},
     "resource_capacity_changed": {"$ref": "#/$defs/resourceCapacityEvent"},
+    "operationEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_schema_version", "operation_id", "operation_digest",
+        "operation_type", "snapshot_id", "requirement_id", "actor_id",
+        "target_id", "state", "reason_code", "deadline_turn",
+        "next_action", "claims", "expected_prevented_loss",
+        "opportunity_cost", "bid", "selected", "assignment_digest",
+        "policy_authority", "shadow_only", "provenance"
+      ],
+      "properties": {
+        "event_schema_version": {"const": "1.0"},
+        "operation_id": {"type": "string", "minLength": 1},
+        "operation_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "operation_type": {"type": "string", "minLength": 1},
+        "snapshot_id": {"type": "string", "minLength": 1},
+        "requirement_id": {"type": ["string", "null"], "minLength": 1},
+        "actor_id": {"type": ["string", "null"], "minLength": 1},
+        "target_id": {"type": ["string", "null"], "minLength": 1},
+        "state": {
+          "enum": [
+            "proposed", "reserved", "activated", "step_selected",
+            "step_revalidated", "step_committed", "blocked", "repaired",
+            "suspended", "completed", "failed", "abandoned", "expired"
+          ]
+        },
+        "reason_code": {"type": ["string", "null"], "minLength": 1},
+        "deadline_turn": {"type": ["integer", "null"], "minimum": 0},
+        "next_action": {"$ref": "#/$defs/jsonValue"},
+        "claims": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/jsonValue"}
+        },
+        "expected_prevented_loss": {"type": "number", "minimum": 0},
+        "opportunity_cost": {"type": "number", "minimum": 0},
+        "bid": {"type": "number", "minimum": 0},
+        "selected": {"type": "boolean"},
+        "assignment_digest": {
+          "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"
+        },
+        "policy_authority": {"type": "boolean"},
+        "shadow_only": {"type": "boolean"},
+        "provenance": {
+          "type": "array", "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "operation_proposed": {"$ref": "#/$defs/operationEvent"},
+    "operation_reserved": {"$ref": "#/$defs/operationEvent"},
+    "operation_activated": {"$ref": "#/$defs/operationEvent"},
+    "operation_step_selected": {"$ref": "#/$defs/operationEvent"},
+    "operation_step_revalidated": {"$ref": "#/$defs/operationEvent"},
+    "operation_step_committed": {"$ref": "#/$defs/operationEvent"},
+    "operation_blocked": {"$ref": "#/$defs/operationEvent"},
+    "operation_repaired": {"$ref": "#/$defs/operationEvent"},
+    "operation_suspended": {"$ref": "#/$defs/operationEvent"},
+    "operation_completed": {"$ref": "#/$defs/operationEvent"},
+    "operation_failed": {"$ref": "#/$defs/operationEvent"},
+    "operation_abandoned": {"$ref": "#/$defs/operationEvent"},
+    "operation_expired": {"$ref": "#/$defs/operationEvent"},
     "transition_value_estimated": {"$ref": "#/$defs/controlAggregate"},
     "transition_value_updated": {"$ref": "#/$defs/controlAggregate"},
     "path_persistence_applied": {"$ref": "#/$defs/controlAggregate"},

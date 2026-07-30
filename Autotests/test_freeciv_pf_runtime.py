@@ -311,3 +311,37 @@ def test_identity_resource_scheduler_is_default_off_and_packet_gated():
         "identity_resource_scheduler"]["enabled"]
     assert shadow["controller_policy"][
         "pressure_resource_scheduler_enabled"]
+
+
+def test_city_defense_operations_are_default_off_and_resource_gated():
+    default = build_controller_activation({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+    })
+    assert not default["layers"][
+        "city_defense_operations"]["enabled"]
+
+    with pytest.raises(
+            PFRuntimeConfigurationError,
+            match="require identity resource scheduling"):
+        validate_controller_policy({
+            "pressure_enabled": True,
+            "pressure_semantics_version": "v2",
+            "pressure_controller_mode": "scalar_v2",
+            "pressure_packet_scheduler_enabled": True,
+            "pressure_city_defense_operations_enabled": True,
+        })
+
+    shadow = build_controller_activation({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+        "pressure_packet_scheduler_enabled": True,
+        "pressure_resource_scheduler_enabled": True,
+        "pressure_city_defense_operations_enabled": True,
+    })
+    assert shadow["layers"][
+        "city_defense_operations"]["enabled"]
+    assert shadow["controller_policy"][
+        "pressure_city_defense_operations_enabled"]

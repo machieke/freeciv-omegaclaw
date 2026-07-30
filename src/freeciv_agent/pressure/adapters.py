@@ -6,7 +6,10 @@ import time
 from dataclasses import dataclass, replace
 from types import SimpleNamespace
 
-from ..events.schema import structural_hash
+from ..events.schema import (
+    canonical_json_bytes,
+    structural_hash,
+)
 from .engine import (
     PressureEngine,
     PressureEngineV2,
@@ -747,12 +750,14 @@ class ImpactPressureRanker(object):
     def _identity_resource_schedule(
             self, snapshot, operations,
             candidate_by_operation, scores,
-            packet_schedule):
+            packet_schedule,
+            survival_threat_radius):
         """Compatibility hook; scalar-v1 has no identity scheduler."""
         del (
             snapshot, operations,
             candidate_by_operation, scores,
-            packet_schedule)
+            packet_schedule,
+            survival_threat_radius)
         return None
 
     @classmethod
@@ -1131,7 +1136,8 @@ class ImpactPressureRanker(object):
                 snapshot, tuple(operations),
                 candidate_by_operation,
                 tuple(scores),
-                packet_schedule))
+                packet_schedule,
+                survival_threat_radius))
         rank = dict((row.operation_id, index) for index, row in enumerate(scores)
                     if row.admissible)
         ordered = tuple(sorted(candidates, key=lambda candidate: (
@@ -1226,6 +1232,7 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             domain_ruleset_ir=None,
             resource_scheduler_enabled=False,
             resource_scheduler_node_budget=5000,
+            city_defense_operations_enabled=False,
             ruleset_digest=None,
             bridge_scalar_enabled=False,
             bridge_scalar_config=None,
@@ -1320,6 +1327,17 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             resource_scheduler_enabled)
         self.resource_scheduler_node_budget = (
             resource_scheduler_node_budget)
+        if not isinstance(
+                city_defense_operations_enabled,
+                bool):
+            raise TypeError(
+                "city-defence operations setting must be boolean")
+        if (city_defense_operations_enabled
+                and not resource_scheduler_enabled):
+            raise ValueError(
+                "city-defence operations require identity resource scheduling")
+        self.city_defense_operations_enabled = (
+            city_defense_operations_enabled)
         self._domain_estimate_executor = None
         self._resource_schedule_executor = None
         if domain_estimates_enabled:
@@ -2529,7 +2547,8 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
     def _identity_resource_schedule(
             self, snapshot, operations,
             candidate_by_operation, scores,
-            packet_schedule):
+            packet_schedule,
+            survival_threat_radius):
         if not self.resource_scheduler_enabled:
             return None
         if packet_schedule is None:
@@ -2543,6 +2562,8 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             ",".join(
                 packet_schedule
                 .committed_operation_ids),
+            str(int(
+                survival_threat_radius)),
         ]
         score_by_operation = {
             row.operation_id: row
@@ -2607,6 +2628,8 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                 tuple(scores),
                 packet_schedule,
                 batch_id,
+                int(
+                    survival_threat_radius),
             ),
             "batch_id": batch_id,
             "failure_artifact": failure,
@@ -2652,7 +2675,8 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
     def _compute_identity_resource_schedule(
             self, snapshot, operations,
             candidate_by_operation, scores,
-            packet_schedule, batch_id):
+            packet_schedule, batch_id,
+            survival_threat_radius):
         from .packets import (
             PacketBudget,
             PacketCost,
@@ -2855,6 +2879,109 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             "schema_version": "1.0",
             "shadow_only": True,
         }
+        if self.city_defense_operations_enabled:
+            from ..planning.domain_models import (
+                CityDefenseAnalyzer,
+                ExactCityDefenseAssignmentSolver,
+            )
+            defense_analysis = (
+                CityDefenseAnalyzer(
+                    threat_radius=(
+                        survival_threat_radius))
+                .analyze(
+                    snapshot,
+                    self.domain_ruleset_ir,
+                    tuple(
+                        candidate_by_operation
+                        .values())))
+            defense_assignment = (
+                ExactCityDefenseAssignmentSolver(
+                    node_budget=(
+                        self
+                        .resource_scheduler_node_budget))
+                .schedule(
+                    defense_analysis))
+            selected_ids = frozenset(
+                defense_assignment
+                .selected_operation_ids)
+            selected_operations = tuple(
+                row
+                for row in
+                defense_analysis.operations
+                if row.operation_id
+                in selected_ids
+                and row.next_action
+                is not None)
+            readout = (
+                sorted(
+                    selected_operations,
+                    key=lambda row: (
+                        -float(row.bid),
+                        row.operation_id))[0]
+                if selected_operations
+                else None)
+            packet_action_key = None
+            if packet_ids:
+                packet_candidate = (
+                    candidate_by_operation
+                    .get(packet_ids[0]))
+                if packet_candidate is not None:
+                    packet_action_key = (
+                        packet_candidate
+                        .action_key)
+            supported_threats = sum(
+                row.supported
+                for row in
+                defense_analysis.threats)
+            threat_count = len(
+                defense_analysis.threats)
+            coverage = (
+                1.0
+                if threat_count == 0
+                else float(
+                    supported_threats)
+                / threat_count)
+            defense_payload = {
+                "analysis":
+                    defense_analysis.to_dict(),
+                "assignment":
+                    defense_assignment.to_dict(),
+                "authority_active": False,
+                "b1_action_key":
+                    packet_action_key,
+                "decision_safe_candidate_readout":
+                    False,
+                "fallback_reason": (
+                    "no-city-defense-requirement"
+                    if not defense_analysis
+                    .requirements
+                    else
+                    "typed-defense-coverage-below-90-percent"
+                    if coverage < 0.90
+                    else
+                    "shadow-only-gdo4"),
+                "fallback_to_b1": True,
+                "live_ordering_unchanged":
+                    True,
+                "policy_authority": False,
+                "schema_version": "1.0",
+                "selected_action_key": (
+                    None
+                    if readout is None
+                    else canonical_json_bytes(
+                        readout
+                        .next_action)
+                    .decode("utf-8")),
+                "shadow_only": True,
+                "typed_threat_coverage":
+                    coverage,
+            }
+            defense_payload[
+                "artifact_hash"] = (
+                    structural_hash(
+                        defense_payload))
+            result["city_defense"] = (
+                defense_payload)
         hash_material = {
             key: value
             for key, value
