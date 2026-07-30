@@ -185,6 +185,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "protected_bridge_readout_diagnostic_v1": 10,
             "corrected_probe_readout_diagnostic_v1": 10,
             "path_persistence_diagnostic_v1": 10,
+            "path_persistence_pilot_v1": 30,
         }
     seed_sets = [
         set(row["seeds"]) for row in paired["cohorts"].values()
