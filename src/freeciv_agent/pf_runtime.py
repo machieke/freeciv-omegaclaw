@@ -113,6 +113,7 @@ CONTROLLER_LAYER_SPECS = (
     {"layer": "native_movement_routes", "support": "experimental"},
     {"layer": "native_combat_probabilities", "support": "experimental"},
     {"layer": "combat_operations", "support": "experimental"},
+    {"layer": "transport_operations", "support": "experimental"},
     {"layer": "teleological_cost_to_go", "support": "experimental"},
     {"layer": "path_persistence", "support": "experimental"},
     {"layer": "bridge", "support": "experimental"},
@@ -151,6 +152,7 @@ CONTROLLER_POLICY_DEFAULTS = {
     "pressure_native_movement_routes_enabled": False,
     "pressure_native_combat_probabilities_enabled": False,
     "pressure_combat_operations_enabled": False,
+    "pressure_transport_operations_enabled": False,
     "pressure_path_persistence_enabled": False,
     "pressure_requirement_sets_enabled": False,
     "pressure_scalar_fallback_enabled": True,
@@ -638,6 +640,7 @@ def validate_controller_policy(impact_policy):
                 "pressure_native_movement_routes_enabled",
                 "pressure_native_combat_probabilities_enabled",
                 "pressure_combat_operations_enabled",
+                "pressure_transport_operations_enabled",
                 "pressure_city_defense_operations_enabled",
                 "pressure_requirement_sets_enabled",
                 "pressure_domain_estimates_enabled",
@@ -685,11 +688,14 @@ def validate_controller_policy(impact_policy):
     if (policy["pressure_native_movement_routes_enabled"]
             and not (
                 policy["pressure_domain_estimates_enabled"]
-                and policy[
-                    "pressure_city_defense_operations_enabled"])):
+                and (
+                    policy[
+                        "pressure_city_defense_operations_enabled"]
+                    or policy[
+                        "pressure_transport_operations_enabled"]))):
         raise PFRuntimeConfigurationError(
             "native movement routes require grounded domain estimates "
-            "and city-defence operations")
+            "and a city-defence or transport operation consumer")
     if (policy[
             "pressure_native_combat_probabilities_enabled"]
             and not policy[
@@ -711,6 +717,23 @@ def validate_controller_policy(impact_policy):
             "combat operations require native combat probabilities, "
             "operation lifecycle, identity resource scheduling, and "
             "RequirementSets")
+    if (policy[
+            "pressure_transport_operations_enabled"]
+            and not (
+                policy[
+                    "pressure_operation_lifecycle_enabled"]
+                and policy[
+                    "pressure_resource_scheduler_enabled"]
+                and policy[
+                    "pressure_requirement_sets_enabled"]
+                and policy[
+                    "pressure_domain_estimates_enabled"]
+                and policy[
+                    "pressure_native_movement_routes_enabled"])):
+        raise PFRuntimeConfigurationError(
+            "transport operations require native movement routes, "
+            "operation lifecycle, identity resource scheduling, "
+            "RequirementSets, and grounded domain estimates")
     if (policy["pressure_city_defense_operations_enabled"]
             and not policy[
                 "pressure_operation_lifecycle_enabled"]):
@@ -856,6 +879,7 @@ def validate_controller_policy(impact_policy):
                 "pressure_native_movement_routes_enabled",
                 "pressure_native_combat_probabilities_enabled",
                 "pressure_combat_operations_enabled",
+                "pressure_transport_operations_enabled",
                 "pressure_city_defense_operations_enabled",
                 "pressure_requirement_sets_enabled",
                 "pressure_domain_estimates_enabled",
@@ -913,6 +937,10 @@ def build_controller_activation(impact_policy):
             pressure_enabled and v2
             and policy[
                 "pressure_combat_operations_enabled"]),
+        "transport_operations": (
+            pressure_enabled and v2
+            and policy[
+                "pressure_transport_operations_enabled"]),
         "teleological_cost_to_go": (
             pressure_enabled
             and (

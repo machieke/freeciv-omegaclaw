@@ -309,6 +309,99 @@ class OperationStore:
             operation_id] = result
         return result
 
+    def initialize_step(
+            self, operation_id,
+            step_index,
+            snapshot_id, turn):
+        """Skip an already-satisfied prefix before an operation activates."""
+        self._writable()
+        record = self._records.get(
+            operation_id)
+        if record is None:
+            raise OperationStoreError(
+                "unknown operation")
+        progress = record.progress
+        if (
+                progress.state
+                    != OperationState.PROPOSED
+                or progress.current_step_index
+                    != 0
+                or progress.attempt_count
+                    != 0
+        ):
+            raise OperationTransitionError(
+                "only a fresh proposed operation can initialize its step")
+        if (
+                isinstance(step_index, bool)
+                or not isinstance(
+                    step_index, int)
+                or not 0 <= step_index
+                    < len(record.spec.steps)
+        ):
+            raise OperationTransitionError(
+                "initial operation step is out of range")
+        updated = OperationProgress(
+            operation_id=operation_id,
+            state=OperationState.PROPOSED,
+            current_step_index=(
+                step_index),
+            attempt_count=0,
+            blocked_reason=None,
+            last_snapshot_id=(
+                snapshot_id),
+            last_updated_turn=int(
+                turn))
+        result = OperationRecord(
+            record.spec, updated)
+        self._records[
+            operation_id] = result
+        return result
+
+    def advance_satisfied_step(
+            self, operation_id,
+            snapshot_id, turn):
+        """Advance a predicate already true in a newer exact snapshot."""
+        self._writable()
+        record = self._records.get(
+            operation_id)
+        if record is None:
+            raise OperationStoreError(
+                "unknown operation")
+        if record.progress.state in (
+                TERMINAL_OPERATION_STATES):
+            raise OperationTransitionError(
+                "terminal operation cannot advance")
+        next_index = (
+            record.progress
+            .current_step_index + 1)
+        if next_index >= len(
+                record.spec.steps):
+            return self.transition(
+                operation_id,
+                OperationState.COMPLETED,
+                snapshot_id, turn,
+                reason=(
+                    "all-step-predicates-satisfied"))
+        progress = OperationProgress(
+            operation_id=operation_id,
+            state=(
+                record.progress.state),
+            current_step_index=(
+                next_index),
+            attempt_count=0,
+            blocked_reason=(
+                record.progress
+                .blocked_reason),
+            last_snapshot_id=(
+                snapshot_id),
+            last_updated_turn=int(
+                turn))
+        result = OperationRecord(
+            record.spec, progress)
+        self._records[
+            operation_id] = result
+        return result
+
     def advance_step(
             self, operation_id,
             snapshot_id, turn):

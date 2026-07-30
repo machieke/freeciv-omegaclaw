@@ -173,3 +173,188 @@ def adjacent_action_corridor(snapshot, legal_action):
             source_tile, target_tile),
         candidate_next_hops=((x, y),),
         visibility=visibility)
+
+
+@dataclass(frozen=True)
+class NativeRouteCorridor:
+    """Stable summary of one exact-revision native pathfinder result."""
+
+    schema_version: int
+    actor_id: str
+    origin_tile: int
+    destination_tile: int
+    first_step_tile: int
+    path_directions: tuple
+    path_length: int
+    estimated_turns: int
+    total_movement_cost: int
+    snapshot_id: str
+    visibility: str
+
+    def __post_init__(self):
+        if self.schema_version != 1:
+            raise ValueError(
+                "unsupported native route corridor schema")
+        if not isinstance(
+                self.actor_id, str
+                ) or not self.actor_id:
+            raise ValueError(
+                "native route corridor requires an actor ID")
+        for value, name in (
+                (self.origin_tile, "origin tile"),
+                (self.destination_tile,
+                 "destination tile"),
+                (self.first_step_tile,
+                 "first-step tile"),
+                (self.path_length,
+                 "path length"),
+                (self.estimated_turns,
+                 "estimated turns"),
+                (self.total_movement_cost,
+                 "total movement cost")):
+            if (
+                    isinstance(value, bool)
+                    or not isinstance(value, int)
+                    or value < 0
+            ):
+                raise ValueError(
+                    "native route corridor {} must be non-negative"
+                    .format(name))
+        directions = tuple(
+            self.path_directions)
+        if (
+                any(
+                    isinstance(value, bool)
+                    or not isinstance(value, int)
+                    or value < 0
+                    for value in directions)
+                or len(directions)
+                    != self.path_length
+        ):
+            raise ValueError(
+                "native route directions must match path length")
+        object.__setattr__(
+            self, "path_directions",
+            directions)
+        if not isinstance(
+                self.snapshot_id, str
+                ) or not self.snapshot_id:
+            raise ValueError(
+                "native route corridor requires snapshot identity")
+        if self.visibility not in (
+                "visible", "known-not-visible",
+                "unknown"):
+            raise ValueError(
+                "unknown native route visibility status")
+
+    @property
+    def corridor_digest(self):
+        return structural_hash({
+            "actor_id": self.actor_id,
+            "destination_tile":
+                self.destination_tile,
+            "estimated_turns":
+                self.estimated_turns,
+            "first_step_tile":
+                self.first_step_tile,
+            "origin_tile": self.origin_tile,
+            "path_directions": list(
+                self.path_directions),
+            "path_length": self.path_length,
+            "schema_version":
+                self.schema_version,
+            "total_movement_cost":
+                self.total_movement_cost,
+            "visibility": self.visibility,
+        })
+
+    def to_dict(self):
+        return {
+            "actor_id": self.actor_id,
+            "corridor_digest":
+                self.corridor_digest,
+            "destination_tile":
+                self.destination_tile,
+            "estimated_turns":
+                self.estimated_turns,
+            "first_step_tile":
+                self.first_step_tile,
+            "origin_tile": self.origin_tile,
+            "path_directions": list(
+                self.path_directions),
+            "path_length": self.path_length,
+            "schema_version":
+                self.schema_version,
+            "snapshot_id": self.snapshot_id,
+            "total_movement_cost":
+                self.total_movement_cost,
+            "visibility": self.visibility,
+        }
+
+
+def native_route_corridor(
+        snapshot, actor_id,
+        destination_tile):
+    """Return a validated exact-turn corridor or raise ``ValueError``."""
+    route = snapshot.movement_route(
+        actor_id, destination_tile)
+    if route is None:
+        raise ValueError(
+            "native route is unavailable")
+    if (
+            route.authority
+                != "freeciv-server-pathfinder"
+            or route.schema_version != "1.0"
+            or not route.reachable
+    ):
+        raise ValueError(
+            "native route is not an authoritative reachable path")
+    actor = snapshot.unit(
+        actor_id)
+    if (
+            actor is None
+            or actor.tile
+                != route.origin_tile
+            or route.turn
+                != snapshot.turn
+            or route.source_seq
+                > snapshot.identity.source_seq
+    ):
+        raise ValueError(
+            "native route does not match current actor revision")
+    visible = set(getattr(
+        snapshot, "visible_tile_ids", ()))
+    known = {
+        int(row["index"])
+        for row in getattr(
+            snapshot, "map_tiles", ())
+        if isinstance(row, dict)
+        and row.get("index") is not None
+    }
+    visibility = (
+        "visible"
+        if route.destination_tile in visible
+        else "known-not-visible"
+        if route.destination_tile in known
+        else "unknown")
+    return NativeRouteCorridor(
+        schema_version=1,
+        actor_id="unit:{}".format(
+            actor_id),
+        origin_tile=int(
+            route.origin_tile),
+        destination_tile=int(
+            route.destination_tile),
+        first_step_tile=int(
+            route.first_step_tile),
+        path_directions=tuple(
+            route.path_directions),
+        path_length=int(
+            route.path_length),
+        estimated_turns=int(
+            route.estimated_turns),
+        total_movement_cost=int(
+            route.total_movement_cost),
+        snapshot_id=(
+            snapshot.snapshot_id),
+        visibility=visibility)

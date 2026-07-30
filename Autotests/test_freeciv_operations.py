@@ -160,6 +160,33 @@ def test_store_enforces_lifecycle_attempt_and_terminal_boundaries():
             "snapshot-12", 12)
 
 
+def test_store_initializes_and_advances_already_satisfied_prefix():
+    store = OperationStore(
+        "game:proof")
+    spec = _spec(steps=3)
+    store.propose(
+        spec, "snapshot-10", 10)
+
+    initialized = store.initialize_step(
+        spec.operation_id, 1,
+        "snapshot-10", 10)
+    advanced = store.advance_satisfied_step(
+        spec.operation_id,
+        "snapshot-11", 11)
+
+    assert initialized.progress.state == (
+        OperationState.PROPOSED)
+    assert initialized.progress.current_step_index == 1
+    assert advanced.progress.current_step_index == 2
+    assert advanced.progress.attempt_count == 0
+    with pytest.raises(
+            OperationTransitionError,
+            match="fresh proposed"):
+        store.initialize_step(
+            spec.operation_id, 2,
+            "snapshot-11", 11)
+
+
 def test_store_rejects_identity_collision_and_stale_progress():
     store = OperationStore(
         "game:proof")

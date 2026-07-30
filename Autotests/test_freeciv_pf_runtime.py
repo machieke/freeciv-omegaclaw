@@ -438,3 +438,43 @@ def test_native_combat_and_atomic_operations_are_default_off_and_gated():
         "native_combat_probabilities"]["enabled"]
     assert enabled["layers"][
         "combat_operations"]["enabled"]
+
+
+def test_transport_operations_are_default_off_and_grounded_stack_gated():
+    default = build_controller_activation({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+    })
+    assert not default["layers"][
+        "transport_operations"]["enabled"]
+
+    with pytest.raises(
+            PFRuntimeConfigurationError,
+            match="transport operations require"):
+        validate_controller_policy({
+            "pressure_enabled": True,
+            "pressure_semantics_version": "v2",
+            "pressure_controller_mode": "scalar_v2",
+            "pressure_transport_operations_enabled": True,
+        })
+
+    enabled = build_controller_activation({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+        "pressure_packet_scheduler_enabled": True,
+        "pressure_resource_scheduler_enabled": True,
+        "pressure_requirement_sets_enabled": True,
+        "pressure_domain_estimates_enabled": True,
+        "pressure_commit_revalidation_enabled": True,
+        "pressure_operation_lifecycle_enabled": True,
+        "pressure_native_movement_routes_enabled": True,
+        "pressure_transport_operations_enabled": True,
+    })
+    assert enabled["layers"][
+        "native_movement_routes"]["enabled"]
+    assert enabled["layers"][
+        "transport_operations"]["enabled"]
+    assert enabled["controller_policy"][
+        "pressure_transport_operations_enabled"]

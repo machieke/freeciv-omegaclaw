@@ -58,6 +58,20 @@ from .combat_lifecycle import (
     CombatLifecycleUpdate,
     CombatOperationLifecycle,
 )
+from .transport_operations import (
+    FounderTransportIntent,
+    FounderTransportOperationAssembler,
+    FounderTransportOperationAssembly,
+    TransportOperationAssemblyDecision,
+    TransportOperationReadout,
+)
+from .transport_lifecycle import (
+    FounderTransportOperationLifecycle,
+    SettlementRetentionResult,
+    SettlementRetentionTracker,
+    TransportLifecycleUpdate,
+    TransportRepairDecision,
+)
 from .operation_store import (
     OPERATION_STORE_SCHEMA_VERSION,
     OperationRecord,
@@ -117,6 +131,16 @@ __all__ = [
     "CombatOperationReadout", "ConditionalProbabilityInterval",
     "CombatLifecycleUpdate", "CombatOperationLifecycle",
     "combat_target_capacities", "conditional_success_interval",
+    "FounderTransportIntent",
+    "FounderTransportOperationAssembler",
+    "FounderTransportOperationAssembly",
+    "TransportOperationAssemblyDecision",
+    "TransportOperationReadout",
+    "FounderTransportOperationLifecycle",
+    "SettlementRetentionResult",
+    "SettlementRetentionTracker",
+    "TransportLifecycleUpdate",
+    "TransportRepairDecision",
     "operation_id_from_components",
     "operation_transition_allowed",
     "UnifiedImpactFlowConfig",
