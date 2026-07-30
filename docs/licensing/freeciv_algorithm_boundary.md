@@ -3,7 +3,7 @@
 Status: active implementation control
 Repository license: MIT
 Upstream Freeciv license: GPLv2
-Grounded-program review basis: `87f3482e631b0713378e69b350e460d4c6a310b7`
+Grounded-program review basis: `97ff07b`
 
 ## Boundary
 
@@ -21,9 +21,9 @@ distributed component pending an explicit licensing decision.
 
 | Domain | Permitted basis | Intended implementation | Native comparison | Status |
 |---|---|---|---|---|
-| Transition envelope | OmegaClaw types and authoritative snapshot contracts | Repository-owned Python | None | In progress |
-| Movement | Public rules, ruleset IR, visible map/unit state | Independent shortest-path implementation | Separately installed Freeciv subprocess | Not started |
-| Combat | Public rules, ruleset IR, visible unit/city state | Independent probability implementation | Separately installed Freeciv subprocess | Not started |
+| Transition envelope | OmegaClaw types and authoritative snapshot contracts | Repository-owned Python | None | Shadow complete |
+| Movement | Public rules, ruleset IR, visible map/unit state | Independent bounded one-edge corridor model | Separately installed Freeciv subprocess | Shadow implemented; parity pending |
+| Combat | Public rules, ruleset IR, visible unit/city state | Independent bounded finite-duel mathematics | Separately installed Freeciv subprocess | Shadow implemented; parity pending |
 | Production | Ruleset IR and authoritative city state | Independent deterministic estimator | Optional black-box fixture comparison | Not started |
 | Transport | Public transport rules and visible actor/capacity state | Independent operation estimator | Optional black-box fixture comparison | Not started |
 
@@ -38,6 +38,9 @@ them.
   implementation.
 - Any future native helper must be invoked across a process boundary and
   documented before use.
+- `NativeGameplayOracle` and `scripts/run_gdo_gameplay_parity.py` define that
+  process boundary. No native gameplay comparator source or binary is
+  distributed by this repository.
 - Reviews must reject patches whose source provenance cannot be explained.
 
 ## Review sign-off

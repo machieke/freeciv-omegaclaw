@@ -59,3 +59,7 @@ def test_paired_shadow_replay_preserves_policy_and_estimate_semantics():
         "semantic_estimates_deterministic"]
     assert not report["policy_authority"]
     assert report["claim_status"] == "diagnostic-only"
+    assert report["domain_readout"][
+        "authority_counts"]
+    assert report["domain_readout"][
+        "estimator_counts"]

@@ -321,6 +321,9 @@ def _visibility(payload, map_data):
             if not isinstance(value, bool):
                 raise ContractError("map.visibility values must be booleans")
             if value:
+                if (isinstance(key, str)
+                        and key.isdigit()):
+                    key = int(key)
                 result.append(_integer(
                     key, "map.visibility tile index", required=True))
         return tuple(sorted(set(result)))
@@ -506,7 +509,19 @@ class ProxyStateDTO:
                 hp=_integer(row.get("hp"), "unit.hp"),
                 activity=None if row.get("activity") is None else str(row.get("activity")),
                 upkeep=_numbers(row.get("upkeep"), "unit.upkeep"),
-                homecity=_integer(row.get("homecity"), "unit.homecity"))
+                homecity=_integer(row.get("homecity"), "unit.homecity"),
+                veteran=_integer(
+                    row.get("veteran"), "unit.veteran"),
+                transported=_boolean(
+                    row.get("transported"), "unit.transported"),
+                transported_by=_integer(
+                    row.get("transported_by"),
+                    "unit.transported_by"),
+                carrying=_integer(
+                    row.get("carrying"), "unit.carrying"),
+                done_moving=_boolean(
+                    row.get("done_moving"),
+                    "unit.done_moving"))
             if owner == player_id:
                 units.append(parsed)
             else:
@@ -653,6 +668,10 @@ class ProxyStateDTO:
         map_data = payload.get("map") if isinstance(payload.get("map"), dict) else {}
         width = _integer(map_data.get("width", 0), "map.width", required=True)
         height = _integer(map_data.get("height", 0), "map.height", required=True)
+        wrap_x = _boolean(
+            map_data.get("wrap_x"), "map.wrap_x")
+        wrap_y = _boolean(
+            map_data.get("wrap_y"), "map.wrap_y")
         if width <= 0 or height <= 0:
             raise ContractError("map dimensions must be positive")
         tiles = _map_tiles(map_data.get("tiles", []), width, height)
@@ -741,6 +760,7 @@ class ProxyStateDTO:
                 visible_enemy_units, key=lambda item: item.unit_id)),
             visible_tile_ids=visible, known_hut_tile_ids=known_hut_tiles,
             map_width=width, map_height=height, game_over=game_over,
+            map_wrap_x=wrap_x, map_wrap_y=wrap_y,
             map_tiles=tuple(copy.deepcopy(tiles)), legal_action_json=legal_json,
             legal_actions_digest=legal_digest,
             legal_action_kinds=legal_action_kinds,

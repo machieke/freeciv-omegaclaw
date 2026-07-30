@@ -1203,6 +1203,7 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             domain_estimates_enabled=False,
             domain_estimates_authority_enabled=False,
             domain_model_registry=None,
+            domain_ruleset_ir=None,
             ruleset_digest=None,
             bridge_scalar_enabled=False,
             bridge_scalar_config=None,
@@ -1251,18 +1252,37 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
         if domain_estimates_enabled and domain_model_registry is None:
             from ..planning.domain_models import (
                 DomainTransitionModelRegistry,
+                GroundedCombatTransitionModel,
+                GroundedMovementTransitionModel,
                 LegacyProjectionTransitionModel,
             )
             domain_model_registry = (
                 DomainTransitionModelRegistry(
                     fallback_model=(
                         LegacyProjectionTransitionModel())))
+            domain_model_registry.register(
+                "unit_move",
+                GroundedMovementTransitionModel())
+            combat_model = (
+                GroundedCombatTransitionModel())
+            for action_type in (
+                    "unit_attack",
+                    "unit_bombard",
+                    "unit_capture",
+                    "unit_conquer_city",
+                    "unit_suicide_attack",
+                    "unit_wipe"):
+                domain_model_registry.register(
+                    action_type,
+                    combat_model)
         self.domain_estimates_enabled = (
             domain_estimates_enabled)
         self.domain_estimates_authority_enabled = (
             domain_estimates_authority_enabled)
         self.domain_model_registry = (
             domain_model_registry)
+        self.domain_ruleset_ir = (
+            domain_ruleset_ir)
         self._domain_estimate_executor = None
         if domain_estimates_enabled:
             from ..planning.domain_models import (
@@ -1426,7 +1446,7 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             request = DomainEstimateRequest(
                 request_id=request_id,
                 snapshot=snapshot,
-                ruleset_ir=None,
+                ruleset_ir=self.domain_ruleset_ir,
                 legal_action=dict(candidate.action),
                 candidate=candidate,
                 goal_losses=goal_losses,
@@ -1485,12 +1505,33 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                 "validity":
                     estimate_dict["validity"],
             }
+            if "model_artifact" in estimate_dict:
+                event_payload["model_artifact"] = (
+                    estimate_dict[
+                        "model_artifact"])
             if estimate.authority == (
                     EstimateAuthority.ABSTAIN):
+                model_artifact = estimate_dict.get(
+                    "model_artifact")
+                missing_fields = (
+                    model_artifact.get(
+                        "missing_fields", [])
+                    if isinstance(
+                        model_artifact, dict)
+                    else [])
+                if (not isinstance(
+                        missing_fields, list)
+                        or any(
+                            not isinstance(
+                                value, str)
+                            for value
+                            in missing_fields)):
+                    missing_fields = []
                 event_payload.update({
                     "abstention_reason":
                         estimate.abstention_reason,
-                    "missing_fields": [],
+                    "missing_fields": list(
+                        missing_fields),
                 })
                 event_type = (
                     "domain_estimate_abstained")

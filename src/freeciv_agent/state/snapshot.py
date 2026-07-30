@@ -128,8 +128,16 @@ class UnitState:
     activity: Optional[str]
     upkeep: Tuple[int, ...] = field(default_factory=tuple)
     homecity: Optional[int] = None
+    veteran: Optional[int] = None
+    transported: Optional[bool] = None
+    transported_by: Optional[int] = None
+    carrying: Optional[int] = None
+    done_moving: Optional[bool] = None
 
     def to_dict(self):
+        # This is the version-1 public/event representation. Grounded-domain
+        # fields above remain available on the immutable object but are not
+        # injected into the frozen v1 snapshot bytes.
         return {
             "activity": self.activity, "hp": self.hp, "moves_left": self.moves_left,
             "homecity": self.homecity,
@@ -267,6 +275,8 @@ class AuthoritativeSnapshot:
     game_over: bool = False
     own_score: Optional[int] = None
     opponent_scores: Tuple[PlayerScoreState, ...] = field(default_factory=tuple)
+    map_wrap_x: Optional[bool] = None
+    map_wrap_y: Optional[bool] = None
 
     @property
     def snapshot_id(self):

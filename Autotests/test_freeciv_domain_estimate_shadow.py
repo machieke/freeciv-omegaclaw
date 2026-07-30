@@ -79,8 +79,15 @@ def test_shadow_estimates_cover_candidates_without_changing_live_order():
         assert not domain["authority_active"]
         assert domain["live_ordering_unchanged"]
         assert domain["estimate_count"] == len(candidates)
-        assert all(
-            row["estimate"]["authority"] == "legacy_proxy"
+        assert set(
+            row["estimate"]["authority"]
+            for row in domain["estimates"]
+        ) <= {"abstain", "legacy_proxy"}
+        assert any(
+            row["estimate"]["estimator_id"]
+            == "grounded_adjacent_movement"
+            and row["estimate"]["authority"]
+            == "abstain"
             for row in domain["estimates"])
     finally:
         ranker.close_domain_estimates()
@@ -94,6 +101,20 @@ def test_shadow_estimate_payloads_are_valid_versioned_events():
     try:
         _, _, domain = _rank_and_complete(
             ranker, snapshot, candidates)
+        movement_abstentions = [
+            row["event_payload"]
+            for row in domain["estimates"]
+            if row["event_type"]
+            == "domain_estimate_abstained"
+            and row["event_payload"][
+                "estimator_id"]
+            == "grounded_adjacent_movement"
+        ]
+        assert movement_abstentions
+        assert all(
+            "authoritative_movement_cost"
+            in row["missing_fields"]
+            for row in movement_abstentions)
 
         with tempfile.TemporaryDirectory() as directory:
             path = os.path.join(directory, "events.jsonl")
@@ -341,6 +362,29 @@ def test_planner_final_drain_emits_the_last_shadow_batch():
         assert report.valid, [
             row.to_dict()
             for row in report.errors]
+    finally:
+        planner.close_domain_estimates()
+
+
+def test_planner_passes_the_same_ruleset_ir_to_domain_rankers():
+    ruleset_ir = object()
+    planner = GroundedImpactPlanner({
+        "pressure_controller_mode": "scalar_v2",
+        "pressure_domain_estimates_enabled": True,
+        "pressure_enabled": True,
+        "pressure_packet_scheduler_enabled": True,
+        "pressure_requirement_sets_enabled": True,
+        "pressure_semantics_version": "v2",
+    }, ruleset_ir=ruleset_ir)
+    try:
+        assert (
+            planner._pressure_ranker_v2
+            .domain_ruleset_ir
+            is ruleset_ir)
+        assert (
+            planner._bridge_pressure_ranker
+            .domain_ruleset_ir
+            is ruleset_ir)
     finally:
         planner.close_domain_estimates()
 

@@ -1111,6 +1111,7 @@ class GroundedImpactPlanner(object):
                         domain_estimates_authority_enabled=bool(
                             controller_policy[
                                 "pressure_domain_estimates_authority_enabled"]),
+                        domain_ruleset_ir=ruleset_ir,
                         ruleset_digest=domain_ruleset_digest,
                         teleological_enabled=(
                             teleological_enabled),
@@ -1148,6 +1149,7 @@ class GroundedImpactPlanner(object):
                         domain_estimates_authority_enabled=bool(
                             controller_policy[
                                 "pressure_domain_estimates_authority_enabled"]),
+                        domain_ruleset_ir=ruleset_ir,
                         ruleset_digest=domain_ruleset_digest,
                         teleological_enabled=True,
                         bridge_scalar_enabled=True,

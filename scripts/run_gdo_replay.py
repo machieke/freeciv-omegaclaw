@@ -67,6 +67,58 @@ def _load_fixture(path):
     return payload, snapshot, candidates
 
 
+def _domain_readout(artifact):
+    authority_counts = {}
+    estimator_counts = {}
+    abstention_counts = {}
+    parity_counts = {}
+    for row in artifact.get(
+            "estimates", ()):
+        estimate = row["estimate"]
+        authority = estimate[
+            "authority"]
+        estimator = "{}/{}".format(
+            estimate["estimator_id"],
+            estimate[
+                "estimator_version"])
+        authority_counts[authority] = (
+            authority_counts.get(
+                authority, 0) + 1)
+        estimator_counts[estimator] = (
+            estimator_counts.get(
+                estimator, 0) + 1)
+        reason = estimate.get(
+            "abstention_reason")
+        if reason:
+            abstention_counts[reason] = (
+                abstention_counts.get(
+                    reason, 0) + 1)
+        artifact_value = estimate.get(
+            "model_artifact")
+        if isinstance(
+                artifact_value, dict):
+            parity = artifact_value.get(
+                "parity_status")
+            if parity:
+                parity_counts[parity] = (
+                    parity_counts.get(
+                        parity, 0) + 1)
+    return {
+        "abstention_reason_counts":
+            dict(sorted(
+                abstention_counts.items())),
+        "authority_counts":
+            dict(sorted(
+                authority_counts.items())),
+        "estimator_counts":
+            dict(sorted(
+                estimator_counts.items())),
+        "parity_status_counts":
+            dict(sorted(
+                parity_counts.items())),
+    }
+
+
 def _replay_snapshot(snapshot, sample_index):
     identity = replace(
         snapshot.identity,
@@ -259,6 +311,9 @@ def run(fixture_path, iterations, warmup):
             "payload_hash": structural_hash(payload),
             "snapshot_id": snapshot.snapshot_id,
         },
+        "domain_readout":
+            _domain_readout(
+                last_completion),
         "gates": {
             "action_trace_byte_identical":
                 action_trace_equal,
@@ -288,7 +343,7 @@ def run(fixture_path, iterations, warmup):
             full_loop_overhead,
         "p95_overhead_fraction": overhead,
         "policy_authority": False,
-        "schema_version": "1.1",
+        "schema_version": "1.2",
         "shadow": shadow_summary,
         "shadow_full_loop": (
             shadow_full_loop_summary),

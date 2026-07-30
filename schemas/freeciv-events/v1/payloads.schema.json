@@ -66,6 +66,7 @@
         "estimator_id": {"type": "string", "minLength": 1},
         "estimator_version": {"type": "string", "minLength": 1},
         "transition": {"type": "object"},
+        "model_artifact": {"type": "object"},
         "expected_relief": {
           "type": "object",
           "additionalProperties": {"type": "number"}
@@ -104,6 +105,7 @@
         "estimator_id": {"type": "string", "minLength": 1},
         "estimator_version": {"type": "string", "minLength": 1},
         "transition": {"type": "object"},
+        "model_artifact": {"type": "object"},
         "expected_relief": {
           "type": "object",
           "additionalProperties": {"type": "number"}

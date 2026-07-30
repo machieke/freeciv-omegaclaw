@@ -1,5 +1,6 @@
 """Authority, context, and validity envelopes for transition predictions."""
 
+import json
 import math
 from dataclasses import dataclass
 from enum import Enum
@@ -9,6 +10,15 @@ from ...pressure.transitions import ExpectedTransition
 
 
 UNKNOWN_CONTEXT = "unknown"
+
+
+def canonical_model_artifact(value):
+    if not isinstance(value, dict):
+        raise TypeError(
+            "domain model artifact must be a dictionary")
+    return json.dumps(
+        value, ensure_ascii=False,
+        sort_keys=True, separators=(",", ":"))
 
 
 class EstimateAuthority(str, Enum):
@@ -145,6 +155,7 @@ class GroundedTransitionEstimate:
     estimator_version: str
     provenance: Tuple[str, ...]
     abstention_reason: Optional[str] = None
+    model_artifact_json: Optional[str] = None
 
     def __post_init__(self):
         if not isinstance(self.transition, ExpectedTransition):
@@ -180,6 +191,21 @@ class GroundedTransitionEstimate:
         if self.context_key.ruleset_digest != self.validity.ruleset_digest:
             raise ValueError(
                 "context and validity ruleset digests must agree")
+        if self.model_artifact_json is not None:
+            if (not isinstance(
+                    self.model_artifact_json, str)
+                    or not self.model_artifact_json):
+                raise ValueError(
+                    "model artifact JSON must be non-empty or absent")
+            try:
+                artifact = json.loads(
+                    self.model_artifact_json)
+            except (TypeError, ValueError) as error:
+                raise ValueError(
+                    "model artifact JSON is invalid") from error
+            if not isinstance(artifact, dict):
+                raise ValueError(
+                    "model artifact JSON must encode an object")
 
     def live_eligible(
             self, snapshot_id, legal_actions_digest,
@@ -191,7 +217,7 @@ class GroundedTransitionEstimate:
                 ruleset_digest, turn))
 
     def to_dict(self):
-        return {
+        result = {
             "abstention_reason": self.abstention_reason,
             "authority": self.authority.value,
             "confidence": float(self.confidence),
@@ -202,3 +228,7 @@ class GroundedTransitionEstimate:
             "transition": self.transition.to_dict(),
             "validity": self.validity.to_dict(),
         }
+        if self.model_artifact_json is not None:
+            result["model_artifact"] = json.loads(
+                self.model_artifact_json)
+        return result

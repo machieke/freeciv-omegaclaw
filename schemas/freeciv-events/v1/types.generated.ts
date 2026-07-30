@@ -38,6 +38,9 @@ export type DomainEstimate = {
     [key: string]: number;
   };
   "latency_ms": number;
+  "model_artifact"?: {
+    [key: string]: unknown;
+  };
   "operation_id": string;
   "provenance": Array<string>;
   "request_id": string;
@@ -69,6 +72,9 @@ export type DomainEstimateAbstention = {
   };
   "latency_ms": number;
   "missing_fields": Array<string>;
+  "model_artifact"?: {
+    [key: string]: unknown;
+  };
   "operation_id": string;
   "provenance": Array<string>;
   "request_id": string;
