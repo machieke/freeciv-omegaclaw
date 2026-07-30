@@ -8,8 +8,8 @@ from ..events.schema import canonical_json_bytes
 from .snapshot import (AuthoritativeSnapshot, BuildingState, CityState,
                        CombatActionProbabilityState, CombatProbabilityState,
                        EconomicState, GovernmentState, MovementRouteState,
-                       PlayerScoreState, ResearchState, SnapshotIdentity,
-                       UnitState)
+                       PlayerScoreState, ResearchOptionState, ResearchState,
+                       SnapshotIdentity, UnitState)
 
 
 class ContractError(ValueError):
@@ -58,7 +58,7 @@ def _numbers(value, field):
     return tuple(_integer(item, field + "[]", required=True) for item in value)
 
 
-def _canonical_actions(actions, player_id=None):
+def _action_rows(actions):
     if actions is None:
         raise ContractError("legal_actions is required for an executable snapshot")
     if isinstance(actions, list):
@@ -75,6 +75,11 @@ def _canonical_actions(actions, player_id=None):
                 raise ContractError("legal_actions.{} must be an object or array".format(key))
     else:
         raise ContractError("legal_actions must be an object or array")
+    return rows
+
+
+def _canonical_actions(actions, player_id=None):
+    rows = _action_rows(actions)
     valid = []
     kinds = set()
     for row in rows:
@@ -88,6 +93,70 @@ def _canonical_actions(actions, player_id=None):
             kinds.add(str(kind))
         valid.append(canonical_json_bytes(normalized).decode("utf-8"))
     return tuple(sorted(set(valid))), tuple(sorted(kinds))
+
+
+def _research_options(actions, player_id=None):
+    """Retain advertised research metadata outside executable action bytes."""
+    options = {}
+    for row in _action_rows(actions):
+        if not isinstance(row, dict):
+            raise ContractError("legal action entries must be objects")
+        if row.get("is_valid") is False:
+            continue
+        normalized = _executable_action(
+            row, player_id=player_id)
+        if normalized.get("action_type") != "tech_research":
+            continue
+        target = normalized.get("target")
+        if not isinstance(target, dict) or not target.get("tech_name"):
+            raise ContractError(
+                "tech_research action is missing tech_name")
+        tech_name = str(target["tech_name"])
+        raw_target = row.get("target")
+        raw_target = raw_target if isinstance(raw_target, dict) else {}
+        # Historical snapshots already contain canonical execution commands
+        # without proxy metadata.  They are legal actions, not authoritative
+        # research-option records.  Preserve their frozen v1 identity and
+        # fail closed on cost grounding.
+        if (
+                row.get("type") != "tech_research"
+                and not any(
+                    name in row or name in raw_target
+                    for name in ("tech_id", "tech_cost"))
+        ):
+            continue
+        tech_id = _integer(
+            row.get("tech_id", raw_target.get("tech_id")),
+            "legal_actions.tech_research.tech_id")
+        tech_cost = _integer(
+            row.get("tech_cost", raw_target.get("tech_cost")),
+            "legal_actions.tech_research.tech_cost")
+        if tech_id is not None and tech_id < 0:
+            raise ContractError(
+                "legal_actions.tech_research.tech_id must be non-negative")
+        if tech_cost is not None and tech_cost < 0:
+            raise ContractError(
+                "legal_actions.tech_research.tech_cost must be non-negative")
+        option = ResearchOptionState(
+            tech_name=tech_name,
+            tech_id=tech_id,
+            tech_cost=tech_cost,
+            action_json=canonical_json_bytes(
+                normalized).decode("utf-8"),
+            diagnostic=(
+                None if tech_cost is not None
+                else "advertised research option omitted tech_cost"))
+        previous = options.get(tech_name)
+        if previous is not None and previous != option:
+            raise ContractError(
+                "conflicting advertised research options for {}".format(
+                    tech_name))
+        options[tech_name] = option
+    return tuple(sorted(
+        options.values(),
+        key=lambda option: (
+            option.tech_name,
+            -1 if option.tech_id is None else option.tech_id)))
 
 
 def _city_governor_action(city_id, target):
@@ -1136,9 +1205,14 @@ class ProxyStateDTO:
                         request_source_seq),
                     response_source_seq=(
                         response_source_seq)))
+        action_source = (
+            payload.get("legal_actions")
+            if legal_actions is None else legal_actions)
         legal_json, legal_action_kinds = _canonical_actions(
-            payload.get("legal_actions") if legal_actions is None else legal_actions,
+            action_source,
             player_id=player_id)
+        research_options = _research_options(
+            action_source, player_id=player_id)
         legal_digest = hashlib.sha256("\n".join(legal_json).encode("utf-8")).hexdigest()
 
         ruleset_ready = ruleset.get("ready") is True
@@ -1216,6 +1290,11 @@ class ProxyStateDTO:
                         item.actor_unit_id,
                         item.target_tile_id))
             ]
+        if research_options:
+            body["research_options"] = [
+                option.to_dict()
+                for option in research_options
+            ]
         state_hash = hashlib.sha256(canonical_json_bytes(body)).hexdigest()
         identity = SnapshotIdentity(str(game_id), turn, source_seq, state_hash)
         return cls(AuthoritativeSnapshot(
@@ -1254,6 +1333,7 @@ class ProxyStateDTO:
                     key=lambda item: (
                         item.actor_unit_id,
                         item.target_tile_id))),
+            research_options=research_options,
             map_tiles=tuple(copy.deepcopy(tiles)), legal_action_json=legal_json,
             legal_actions_digest=legal_digest,
             legal_action_kinds=legal_action_kinds,

@@ -991,15 +991,13 @@ def _active_research_continuation(snapshot, available_names, targets):
         and targets[0].rule_name == snapshot.research.target_name)
 
 
-def _live_tech_costs(ir, raw):
+def _live_tech_costs(ir, snapshot):
     costs = {rule.rule_name: _tech_cost(rule) for rule in ir.rules
              if rule.target_kind == "tech" and not rule.disabled}
-    for row in raw.get("legal_actions", []):
-        if row.get("type") != "tech_research" or row.get("tech_name") is None:
+    for option in snapshot.research_options:
+        if option.tech_cost is None:
             continue
-        value = row.get("tech_cost")
-        if isinstance(value, (int, float)) and value >= 0:
-            costs[str(row["tech_name"])] = int(value)
+        costs[option.tech_name] = int(option.tech_cost)
     return tuple(sorted(costs.items()))
 
 
@@ -1503,7 +1501,7 @@ def _cognitive_turn(manifest, context, store, player_id, raw, snapshot,
         int(snapshot.economy.gold or 0),
         current_research=snapshot.research.target_name,
         current_progress=int(snapshot.research.progress or 0),
-        tech_costs=_live_tech_costs(ir, raw),
+        tech_costs=_live_tech_costs(ir, snapshot),
         legal_actions_digest=snapshot.legal_actions_digest)
                if context.capabilities["scheduler"] else None)
     if proposal is not None:

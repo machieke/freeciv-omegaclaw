@@ -583,6 +583,19 @@ def test_proxy_research_action_is_canonical_and_executable():
     }
     assert snapshot.legal_action_json == (
         json.dumps(action, sort_keys=True, separators=(",", ":")),)
+    assert snapshot.research_option("Engineering").to_dict() == {
+        "action_json": json.dumps(
+            action, sort_keys=True, separators=(",", ":")),
+        "diagnostic": None,
+        "tech_cost": 370,
+        "tech_id": 25,
+        "tech_name": "Engineering",
+    }
+    assert snapshot.event_payload()["grounded_context"][
+        "schema_version"] == "1.4"
+    assert snapshot.event_payload()["grounded_context"][
+        "research_options"] == [
+            snapshot.research_option("Engineering").to_dict()]
     store = SnapshotStore()
     store.replace(snapshot)
     submitted = []
@@ -591,6 +604,38 @@ def test_proxy_research_action_is_canonical_and_executable():
             "state-test", 0, ProposedAction.create(action, snapshot))
     assert outcome.status == "accepted"
     assert submitted == [action]
+
+
+def test_proxy_research_option_cost_is_typed_and_changes_snapshot_identity():
+    payload = _payload()
+    payload["legal_actions"] = [{
+        "type": "tech_research", "tech_id": 25,
+        "tech_name": "Engineering", "tech_cost": 370,
+        "is_valid": True,
+    }]
+    first = _snapshot(payload=payload)
+    payload["legal_actions"][0]["tech_cost"] = 371
+    second = _snapshot(payload=payload)
+
+    assert first.legal_action_json == second.legal_action_json
+    assert first.legal_actions_digest == second.legal_actions_digest
+    assert first.identity.state_hash != second.identity.state_hash
+    assert first.research_option("Engineering").tech_cost == 370
+    assert second.research_option("Engineering").tech_cost == 371
+
+
+def test_proxy_research_option_missing_cost_is_explicitly_diagnostic():
+    payload = _payload()
+    payload["legal_actions"] = [{
+        "type": "tech_research", "tech_id": 25,
+        "tech_name": "Engineering", "is_valid": True,
+    }]
+
+    option = _snapshot(payload=payload).research_option("Engineering")
+
+    assert option.tech_cost is None
+    assert option.diagnostic == (
+        "advertised research option omitted tech_cost")
 
 
 def test_proxy_internal_move_found_city_and_attack_actions_are_canonical():

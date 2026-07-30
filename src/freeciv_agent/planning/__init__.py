@@ -82,6 +82,16 @@ from .production_lifecycle import (
     ProductionLifecycleUpdate,
     ProductionOperationLifecycle,
 )
+from .research_operations import (
+    ResearchEnablingIntent,
+    ResearchEnablingOperationAssembler,
+    ResearchOperationAssembly,
+    ResearchOperationReadout,
+)
+from .research_lifecycle import (
+    ResearchLifecycleUpdate,
+    ResearchOperationLifecycle,
+)
 from .operation_store import (
     OPERATION_STORE_SCHEMA_VERSION,
     OperationRecord,
@@ -157,6 +167,12 @@ __all__ = [
     "ProductionOperationReadout",
     "ProductionLifecycleUpdate",
     "ProductionOperationLifecycle",
+    "ResearchEnablingIntent",
+    "ResearchEnablingOperationAssembler",
+    "ResearchOperationAssembly",
+    "ResearchOperationReadout",
+    "ResearchLifecycleUpdate",
+    "ResearchOperationLifecycle",
     "operation_id_from_components",
     "operation_transition_allowed",
     "UnifiedImpactFlowConfig",

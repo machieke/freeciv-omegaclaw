@@ -56,6 +56,26 @@ class ResearchState:
 
 
 @dataclass(frozen=True)
+class ResearchOptionState:
+    """One currently advertised research selection and its grounded cost."""
+
+    tech_name: str
+    tech_id: Optional[int]
+    tech_cost: Optional[int]
+    action_json: str
+    diagnostic: Optional[str] = None
+
+    def to_dict(self):
+        return {
+            "action_json": self.action_json,
+            "diagnostic": self.diagnostic,
+            "tech_cost": self.tech_cost,
+            "tech_id": self.tech_id,
+            "tech_name": self.tech_name,
+        }
+
+
+@dataclass(frozen=True)
 class EconomicState:
     gold: Optional[int]
     gold_per_turn: Optional[int]
@@ -429,6 +449,8 @@ class AuthoritativeSnapshot:
         default_factory=tuple)
     combat_probabilities: Tuple[CombatProbabilityState, ...] = field(
         default_factory=tuple)
+    research_options: Tuple[ResearchOptionState, ...] = field(
+        default_factory=tuple)
 
     @property
     def snapshot_id(self):
@@ -473,8 +495,15 @@ class AuthoritativeSnapshot:
                     == target_tile)
         ), None)
 
+    def research_option(self, tech_name):
+        tech_name = str(tech_name)
+        return next((
+            option for option in self.research_options
+            if option.tech_name == tech_name
+        ), None)
+
     def own_state_dict(self):
-        return {
+        value = {
             "cities": [city.to_dict() for city in self.cities],
             "economy": self.economy.to_dict(),
             "game_over": self.game_over,
@@ -490,6 +519,12 @@ class AuthoritativeSnapshot:
             "ruleset_ready": self.ruleset_ready,
             "units": [unit.to_dict() for unit in self.units],
         }
+        if self.research_options:
+            value["research_options"] = [
+                option.to_dict()
+                for option in self.research_options
+            ]
+        return value
 
     def map_dict(self):
         tile_count = self.map_width * self.map_height
@@ -538,7 +573,9 @@ class AuthoritativeSnapshot:
             map_topology[
                 "topology_id"] = (
                     self.map_topology_id)
-        if self.combat_probabilities:
+        if self.research_options:
+            grounded_schema_version = "1.4"
+        elif self.combat_probabilities:
             grounded_schema_version = "1.3"
         elif (
             self.map_topology_id
@@ -557,7 +594,7 @@ class AuthoritativeSnapshot:
             grounded_schema_version = "1.2"
         else:
             grounded_schema_version = "1.1"
-        return {
+        payload = {
             "grounded_context": {
                 "combat_probabilities": [
                     result.to_dict()
@@ -595,3 +632,11 @@ class AuthoritativeSnapshot:
             "source_seq": self.identity.source_seq,
             "state_hash": self.identity.state_hash, "uncertain_atoms": [],
         }
+        if self.research_options:
+            payload["grounded_context"][
+                "research_options"] = [
+                    option.to_dict()
+                    for option in
+                    self.research_options
+                ]
+        return payload

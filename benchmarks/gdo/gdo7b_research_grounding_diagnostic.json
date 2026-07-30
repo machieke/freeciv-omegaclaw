@@ -1,0 +1,47 @@
+{
+  "diagnostic": "gdo7b-grounded-research",
+  "latency_ms": {
+    "mean": 1.264909841120243,
+    "p95": 1.9340827129781246,
+    "sample_count": 180
+  },
+  "repeatability": {
+    "deterministic": true,
+    "estimate_set_hash": "6ba8735021f47895e99e2db4d09d3702532b9bf40885c0a986e82e042dbf7ebc",
+    "repeat_count": 10,
+    "semantic_report_hash": "dbf1ecc62477c26b0e53adba76c822109eab3442c20753b117b566d67c4bad92"
+  },
+  "schema_version": "1.0",
+  "scope": {
+    "engine_backed": false,
+    "policy_authority": false,
+    "score_claim": false,
+    "synthetic_graph_regime": true
+  },
+  "semantic_results": {
+    "candidate_count": 180,
+    "case_count": 60,
+    "grounded": {
+      "admitted_candidate_count": 60,
+      "false_admission_count": 0,
+      "frontier_recall": 1.0,
+      "legacy_tech_want_application_count": 0,
+      "precision": 1.0,
+      "switch_history_unresolved_count": 30,
+      "technology_known_now_claim_count": 0
+    },
+    "immediate_simpler_baseline": {
+      "admitted_candidate_count": 180,
+      "description": "admit every server-advertised research action",
+      "false_admission_count": 120,
+      "frontier_recall": 1.0,
+      "precision": 0.3333333333333333
+    },
+    "mechanism_gate": {
+      "decision_safe_candidate_precision_improved": true,
+      "frontier_recall_preserved": true,
+      "no_immediate_completion_claims": true,
+      "single_propagation_mode": true
+    }
+  }
+}

@@ -38,6 +38,11 @@ from .production import (
     ProductionTargetProfile,
     production_target_profile,
 )
+from .research import (
+    GroundedResearchTransitionModel,
+    ResearchDependencyProfile,
+    research_dependency_profile,
+)
 from .registry import (
     AbstainingTransitionModel,
     DomainTransitionModelRegistry,
@@ -71,6 +76,7 @@ __all__ = [
     "GroundedTransitionEstimate",
     "GroundedMovementTransitionModel",
     "GroundedProductionTransitionModel",
+    "GroundedResearchTransitionModel",
     "GroundedTransportTransitionModel",
     "GroundedCombatTransitionModel",
     "grounded_operation_result",
@@ -78,10 +84,12 @@ __all__ = [
     "LegacyProjectionTransitionModel",
     "TransitionContextKey",
     "ProductionTargetProfile",
+    "ResearchDependencyProfile",
     "TransportUnitProfile",
     "VisibleCityThreat",
     "canonical_model_artifact",
     "finite_duel_distribution",
     "production_target_profile",
+    "research_dependency_profile",
     "transport_unit_profile",
 ]

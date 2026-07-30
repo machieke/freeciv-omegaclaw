@@ -115,6 +115,7 @@ CONTROLLER_LAYER_SPECS = (
     {"layer": "combat_operations", "support": "experimental"},
     {"layer": "transport_operations", "support": "experimental"},
     {"layer": "production_operations", "support": "experimental"},
+    {"layer": "research_operations", "support": "experimental"},
     {"layer": "teleological_cost_to_go", "support": "experimental"},
     {"layer": "path_persistence", "support": "experimental"},
     {"layer": "bridge", "support": "experimental"},
@@ -155,6 +156,7 @@ CONTROLLER_POLICY_DEFAULTS = {
     "pressure_combat_operations_enabled": False,
     "pressure_transport_operations_enabled": False,
     "pressure_production_operations_enabled": False,
+    "pressure_research_operations_enabled": False,
     "pressure_path_persistence_enabled": False,
     "pressure_requirement_sets_enabled": False,
     "pressure_scalar_fallback_enabled": True,
@@ -644,6 +646,7 @@ def validate_controller_policy(impact_policy):
                 "pressure_combat_operations_enabled",
                 "pressure_transport_operations_enabled",
                 "pressure_production_operations_enabled",
+                "pressure_research_operations_enabled",
                 "pressure_city_defense_operations_enabled",
                 "pressure_requirement_sets_enabled",
                 "pressure_domain_estimates_enabled",
@@ -750,6 +753,21 @@ def validate_controller_policy(impact_policy):
                     "pressure_domain_estimates_enabled"])):
         raise PFRuntimeConfigurationError(
             "production operations require operation lifecycle, "
+            "identity resource scheduling, RequirementSets, and "
+            "grounded domain estimates")
+    if (policy[
+            "pressure_research_operations_enabled"]
+            and not (
+                policy[
+                    "pressure_operation_lifecycle_enabled"]
+                and policy[
+                    "pressure_resource_scheduler_enabled"]
+                and policy[
+                    "pressure_requirement_sets_enabled"]
+                and policy[
+                    "pressure_domain_estimates_enabled"])):
+        raise PFRuntimeConfigurationError(
+            "research operations require operation lifecycle, "
             "identity resource scheduling, RequirementSets, and "
             "grounded domain estimates")
     if (policy["pressure_city_defense_operations_enabled"]
@@ -899,6 +917,7 @@ def validate_controller_policy(impact_policy):
                 "pressure_combat_operations_enabled",
                 "pressure_transport_operations_enabled",
                 "pressure_production_operations_enabled",
+                "pressure_research_operations_enabled",
                 "pressure_city_defense_operations_enabled",
                 "pressure_requirement_sets_enabled",
                 "pressure_domain_estimates_enabled",
@@ -964,6 +983,10 @@ def build_controller_activation(impact_policy):
             pressure_enabled and v2
             and policy[
                 "pressure_production_operations_enabled"]),
+        "research_operations": (
+            pressure_enabled and v2
+            and policy[
+                "pressure_research_operations_enabled"]),
         "teleological_cost_to_go": (
             pressure_enabled
             and (

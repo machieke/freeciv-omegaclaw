@@ -7,7 +7,7 @@ from .grounded import GroundedCheck, GroundedRegistry
 from .snapshot import (AuthoritativeSnapshot, CityState, EconomicState,
                        CombatActionProbabilityState, CombatProbabilityState,
                        MovementRouteState, ResearchState, SnapshotIdentity,
-                       UnitState)
+                       ResearchOptionState, UnitState)
 from .store import SnapshotConflict, SnapshotStore
 from .summary import QueryStateSummary, StateSummaryService
 
@@ -16,7 +16,7 @@ __all__ = [
     "EconomicState", "GroundedCheck", "GroundedRegistry",
     "CombatActionProbabilityState", "CombatProbabilityState",
     "MovementRouteState", "ProxyStateDTO",
-    "QueryStateSummary", "ResearchState", "SnapshotAtomspaces",
+    "QueryStateSummary", "ResearchOptionState", "ResearchState", "SnapshotAtomspaces",
     "SnapshotConflict", "SnapshotIdentity", "SnapshotStore",
     "StateSummaryService", "UnitState", "build_atomspaces",
 ]
