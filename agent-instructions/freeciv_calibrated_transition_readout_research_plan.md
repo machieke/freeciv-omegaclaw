@@ -1,6 +1,6 @@
 # Calibrated transition value and decision-safe readout research plan
 
-Status: active
+Status: complete — stopped after adverse CT4 pilot; CT5 entry gate remained closed
 Frozen predecessor: `242fd25` (`experimental/pln-pressure–bridge–fluid`)
 Supported live baseline: scalar PF-v2 plus whole-operation packets
 Primary question: can better grounded transition value and candidate recall

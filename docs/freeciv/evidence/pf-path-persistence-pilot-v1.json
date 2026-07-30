@@ -1,0 +1,96 @@
+{
+  "claim_eligible": false,
+  "cohort": "path_persistence_pilot_v1",
+  "engine": {
+    "complete_arms": 60,
+    "complete_pairs": 30,
+    "failures": 0,
+    "infrastructure_failures": 0,
+    "source_commit": "06ebb010ae1a843899bdd1f2c0bf1e886ecc3137",
+    "source_stable": true
+  },
+  "mechanism": {
+    "applied_reorders": 74,
+    "authority_active_events": 1706,
+    "authority_abstentions": 23,
+    "maximum_applied_priority_regret": 0.0,
+    "priority_regret_rejections": 1,
+    "rejected_priority_regret": 0.7891817581298883,
+    "terminal_or_irreversible_bypasses": 36
+  },
+  "oscillation": {
+    "aba_rate": {
+      "baseline_mean": 0.17313736556321263,
+      "paired_delta": -0.0031917751254279605,
+      "pairs_improved": 15,
+      "pairs_same": 3,
+      "pairs_worsened": 12,
+      "treatment_mean": 0.16994559043778465
+    },
+    "corridor_switch_rate": {
+      "baseline_mean": 0.6938319476990156,
+      "paired_delta": -0.011051785490785004,
+      "pairs_improved": 14,
+      "pairs_same": 3,
+      "pairs_worsened": 13,
+      "treatment_mean": 0.6827801622082306
+    }
+  },
+  "paired_deltas": {
+    "cities_founded": {
+      "estimate": -0.03333333333333333,
+      "lower": -0.1,
+      "upper": 0.0
+    },
+    "decision_no_effect_actions": {
+      "estimate": 0.5,
+      "lower": 0.13333333333333333,
+      "upper": 0.8666666666666667
+    },
+    "engine_rejected_action_rate": {
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.0
+    },
+    "impact_planning_decision_latency_ms": {
+      "estimate": 6.120960647094468,
+      "lower": 0.6445579394162863,
+      "upper": 12.166344062867706
+    },
+    "loop_latency_ms": {
+      "estimate": 40.679994963316474,
+      "lower": 11.515814386722138,
+      "upper": 79.94589145036622
+    },
+    "score_turn_n": {
+      "estimate": -0.16666666666666666,
+      "exact_randomization_p": 0.59375,
+      "lower": -0.6333333333333333,
+      "upper": 0.2
+    },
+    "settlement_completions": {
+      "estimate": -0.03333333333333333,
+      "lower": -0.1,
+      "upper": 0.0
+    },
+    "win_rate": {
+      "estimate": 0.03333333333333333,
+      "exact_mcnemar_p": 1.0,
+      "lower": 0.0,
+      "upper": 0.1
+    }
+  },
+  "power": {
+    "detectable_score_delta_at_30_pairs": 0.616777960256916,
+    "observed_paired_score_sd": 1.2058287558794356,
+    "ready": true
+  },
+  "result": {
+    "confirmation_authorized": false,
+    "gameplay_direction": "negative",
+    "source_sink_flow_gate": "closed",
+    "stage": "stopped_adverse_pilot",
+    "supported_baseline": "scalar-pf-v2-plus-packets"
+  },
+  "schema_version": "1.0"
+}

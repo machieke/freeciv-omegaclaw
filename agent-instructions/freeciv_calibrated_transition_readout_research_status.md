@@ -38,10 +38,24 @@ The first engine-backed collection and frozen-fit gate is also complete:
   (`98.13%`);
 - unsupported decisions: `29`, all retained on the frozen scalar fallback.
 
+The staged engine ablations are complete:
+
+- CT1 changed grounded trajectories safely but produced exactly zero score or
+  win delta;
+- CT2 added `226` deterministic bridge-only candidate memberships without
+  changing final scalar ordering or score;
+- CT3 produced `1,514/1,514` healthy probe batches but no incremental
+  candidate recall and added about `20 ms` of planning latency;
+- CT4's 10-pair diagnostic was weakly positive, but its predeclared 30-pair
+  pilot reversed to `-0.167` paired score and increased no-effect actions by
+  `+0.50`;
+- CT5 did not meet its entry gate and was not run.
+
 These results show that the implementations have their intended effects in
 the preregistered synthetic regimes and that the frozen model has sufficient
-decision-level coverage to enter the CT1 diagnostic. They do not show that
-FreeCiv score, gameplay, or win rate improves.
+decision-level coverage for safe engine evaluation. They also show that the
+mechanism effects do not improve FreeCiv score under this track. The supported
+gameplay controller remains scalar PF-v2 plus whole-operation packets.
 
 ## Stage status
 
@@ -51,11 +65,12 @@ FreeCiv score, gameplay, or win rate improves.
 | CT1 calibrated scalar | complete | passed | safety/semantic gate passed; score neutral | fail-closed abstention |
 | CT2 protected deterministic bridge | complete | passed | recall mechanism/safety passed; score neutral | membership only |
 | CT3 corrected probes | complete | passed | stopped: no incremental recall, higher latency | no supported authority |
-| CT4 path persistence | complete | passed | diagnostic positive/uncertain; pilot authorized | calibrated near-ties only |
-| CT5 source–sink flow | existing numerical layer, newly hard-gated | not entered | not entered | closed |
+| CT4 path persistence | complete | passed | stopped after adverse 30-pair pilot | no supported authority |
+| CT5 source–sink flow | existing numerical layer, hard-gated | entry criteria failed | not entered | closed |
 
-CT5 remains closed because CT4 has not completed a paired engine diagnostic
-and remaining error has not been attributed to route allocation.
+CT5 remains closed because CT3 added no candidate recall, CT4 worsened the
+pilot's primary score direction and no-effect endpoint, and remaining error
+has not been attributed to source-sink route allocation.
 
 ## Implemented controls
 
@@ -129,6 +144,8 @@ read-only model. Seeds are disjoint across all five stages.
   `docs/freeciv/evidence/pf-corrected-probe-readout-diagnostic-v1.json`
 - CT4 path-persistence engine diagnostic:
   `docs/freeciv/evidence/pf-path-persistence-diagnostic-v1.json`
+- CT4 path-persistence engine pilot:
+  `docs/freeciv/evidence/pf-path-persistence-pilot-v1.json`
 - Frozen-fit tool:
   `scripts/freeciv/fit_transition_value_model.py`
 - Schema-valid UI proof trace:
@@ -145,13 +162,17 @@ Verification completed at this checkpoint:
   boundary validation, type checking, and production build;
 - ProofShot found zero console errors and zero server errors.
 
-## Next executable gate
+## Terminal decision
 
-Run the predeclared, seed-disjoint `path_persistence_pilot_v1`. CT4 reordered
-`32` calibrated equal-priority near-ties with zero priority regret. Mean
-corridor-switch rate fell by `0.0264` and A-B-A oscillation rate by `0.0096`,
-each improving in `7/10` pairs. The diagnostic direction was `+0.2` score,
-`+0.1` win rate, and `+0.2` settlement completions, with no rejection,
-terminal-followup, safety, or material latency regression. These intervals
-remain wide and the cohort is claim-ineligible. CT5 remains closed because
-the remaining error has not been attributed to source-sink route allocation.
+No further cohort is authorized on this ablation ladder. The 30-pair CT4
+pilot produced `-0.167` paired score (`95%` interval `[-0.633, 0.200]`,
+exact randomization `p=0.594`), `-0.033` settlement completions, and `+0.50`
+no-effect actions (`95%` interval `[0.133, 0.867]`). Planner latency increased
+by about `6.1 ms` and full-loop latency by about `40.7 ms`. Its small
+oscillation-rate reduction did not transfer into gameplay value.
+
+Do not run a confirmation cohort or CT5 from these results. Retain CT1–CT4 as
+diagnostic/replay capabilities, keep their decision authority off in the
+supported profile, and use scalar PF-v2 plus packets as the supported
+baseline. A future track needs a new preregistered hypothesis rather than
+retuning this completed sequence.
