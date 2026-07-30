@@ -2445,10 +2445,10 @@ paired_impact:
         baseline:
           pressure_achievement_uncertainty_split_enabled: true
           pressure_bridge_enabled: true
-          pressure_bridge_estimator_policy: importance_corrected
-          pressure_bridge_importance_corrected_enabled: true
-          pressure_bridge_readout_policy: corrected-probe-union
-          pressure_bridge_reference_likelihood_enabled: true
+          pressure_bridge_estimator_policy: holdout
+          pressure_bridge_importance_corrected_enabled: false
+          pressure_bridge_readout_policy: protected-message-union
+          pressure_bridge_reference_likelihood_enabled: false
           pressure_commit_revalidation_enabled: true
           pressure_controller_mode: bridge_scalar
           pressure_distributional_risk_enabled: true
@@ -2465,10 +2465,10 @@ paired_impact:
         treatment:
           pressure_achievement_uncertainty_split_enabled: true
           pressure_bridge_enabled: true
-          pressure_bridge_estimator_policy: importance_corrected
-          pressure_bridge_importance_corrected_enabled: true
-          pressure_bridge_readout_policy: corrected-probe-union
-          pressure_bridge_reference_likelihood_enabled: true
+          pressure_bridge_estimator_policy: holdout
+          pressure_bridge_importance_corrected_enabled: false
+          pressure_bridge_readout_policy: protected-message-union
+          pressure_bridge_reference_likelihood_enabled: false
           pressure_commit_revalidation_enabled: true
           pressure_controller_mode: bridge_scalar
           pressure_distributional_risk_enabled: true

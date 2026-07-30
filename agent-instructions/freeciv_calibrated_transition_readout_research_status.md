@@ -50,8 +50,8 @@ FreeCiv score, gameplay, or win rate improves.
 | CT0 frozen scalar PF-v2 + packets | complete | passed | captured replay passed | supported comparator |
 | CT1 calibrated scalar | complete | passed | safety/semantic gate passed; score neutral | fail-closed abstention |
 | CT2 protected deterministic bridge | complete | passed | recall mechanism/safety passed; score neutral | membership only |
-| CT3 corrected probes | complete | passed | paired diagnostic authorized | membership only |
-| CT4 path persistence | complete | passed | pending paired diagnostic | calibrated near-ties only |
+| CT3 corrected probes | complete | passed | stopped: no incremental recall, higher latency | no supported authority |
+| CT4 path persistence | complete | passed | paired diagnostic authorized on CT2 comparator | calibrated near-ties only |
 | CT5 source–sink flow | existing numerical layer, newly hard-gated | not entered | not entered | closed |
 
 CT5 remains closed because CT4 has not completed a paired engine diagnostic
@@ -125,6 +125,8 @@ read-only model. Seeds are disjoint across all five stages.
   `docs/freeciv/evidence/pf-calibrated-scalar-diagnostic-v1.json`
 - CT2 protected-bridge engine diagnostic:
   `docs/freeciv/evidence/pf-protected-bridge-readout-diagnostic-v1.json`
+- CT3 corrected-probe engine diagnostic:
+  `docs/freeciv/evidence/pf-corrected-probe-readout-diagnostic-v1.json`
 - Frozen-fit tool:
   `scripts/freeciv/fit_transition_value_model.py`
 - Schema-valid UI proof trace:
@@ -143,12 +145,10 @@ Verification completed at this checkpoint:
 
 ## Next executable gate
 
-Run the predeclared, seed-disjoint
-`corrected_probe_readout_diagnostic_v1`. In the final CT2 run, every one of
-the `67` positive-pressure decisions produced a protected union, adding `226`
-bridge-only memberships (`3.37` per active decision), preserving `67` scalar
-winners and `11` terminal candidates, and producing zero final-order
-disagreements. The `444` packet fallbacks all occurred at zero scalar
-priority. Score, win rate, cities founded, no-effect actions, and rejection
-rate were neutral; controller planning latency increased by about `14 ms`.
-CT3 is authorized only to test incremental corrected-probe candidate recall.
+Run the seed-disjoint `path_persistence_diagnostic_v1` on the CT2
+protected-message comparator. CT3 produced `1,514/1,514` healthy probe
+batches, but its union decisions, memberships, bridge additions, fallbacks,
+and final readouts were exactly identical to deterministic bridge messages.
+It added about `20 ms` of planner latency and produced zero score, win, or
+safety delta. Corrected probes therefore stop here and are removed from the
+CT4 comparator rather than being silently carried forward.

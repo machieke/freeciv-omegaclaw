@@ -1,0 +1,86 @@
+{
+  "claim_eligible": false,
+  "cohort": "corrected_probe_readout_diagnostic_v1",
+  "engine": {
+    "complete_arms": 20,
+    "complete_pairs": 10,
+    "failures": 0,
+    "infrastructure_failures": 0,
+    "source_commit": "6f1bd9ba3600adcf5cd0e3ebfda342b63f205e5c",
+    "source_stable": true
+  },
+  "mechanism": {
+    "baseline": {
+      "bridge_added_memberships": 249,
+      "fallback_decisions": 436,
+      "mean_union_size": 5.161764705882353,
+      "protected_union_decisions": 68,
+      "protected_union_memberships": 351,
+      "readout_disagreements_with_scalar": 0
+    },
+    "incremental": {
+      "bridge_added_memberships": 0,
+      "mean_union_size": 0.0,
+      "protected_union_decisions": 0,
+      "protected_union_memberships": 0
+    },
+    "treatment": {
+      "bridge_added_memberships": 249,
+      "fallback_decisions": 436,
+      "mean_union_size": 5.161764705882353,
+      "protected_union_decisions": 68,
+      "protected_union_memberships": 351,
+      "readout_disagreements_with_scalar": 0
+    }
+  },
+  "paired_deltas": {
+    "cities_founded": {
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.0
+    },
+    "decision_no_effect_actions": {
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.0
+    },
+    "engine_rejected_action_rate": {
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.0
+    },
+    "impact_planning_decision_latency_ms": {
+      "estimate": 20.208633298619286,
+      "lower": 8.48799029547815,
+      "upper": 32.93188516438412
+    },
+    "score_turn_n": {
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.0
+    },
+    "win_rate": {
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.0
+    }
+  },
+  "probe_health": {
+    "clipped_weight_fraction_maximum": 0.0,
+    "effective_sample_fraction_mean": 0.8368353712306409,
+    "effective_sample_fraction_minimum": 0.1598361570640296,
+    "healthy_batches": 1514,
+    "path_diversity_mean": 0.6305317040951123,
+    "path_diversity_minimum": 0.125,
+    "total_batches": 1514,
+    "unhealthy_batches": 0
+  },
+  "result": {
+    "gameplay_benefit": "not_observed",
+    "incremental_candidate_recall": "not_observed",
+    "next_gate": "path_persistence_diagnostic_v1_on_ct2",
+    "safety_gates_passed": true,
+    "stage": "stopped_no_incremental_value"
+  },
+  "schema_version": "1.0"
+}
