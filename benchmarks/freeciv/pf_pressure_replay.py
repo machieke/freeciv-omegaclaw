@@ -960,7 +960,9 @@ def score_alignment_counterfactual_paths(
     return value
 
 
-def replay_snapshot_file(path, display_path=None, policy=None):
+def replay_snapshot_file(
+        path, display_path=None, policy=None,
+        planner_identity=None):
     """Run pressure off/on over one byte-real snapshot without execution."""
     path = os.path.abspath(path)
     source_hash = _file_sha256(path)
@@ -1038,7 +1040,9 @@ def replay_snapshot_file(path, display_path=None, policy=None):
             and baseline_value["category"] != pressure_value["category"]),
         "legal_action_count": len(snapshot.legal_action_json),
         "path": display_path or path,
-        "planner_identity": GroundedImpactPlanner.SOLVER_IDENTITY,
+        "planner_identity": (
+            planner_identity
+            or GroundedImpactPlanner.SOLVER_IDENTITY),
         "policy": policy,
         "pressure": pressure_value,
         "pressure_integrity_passed": pressure_integrity,
@@ -1050,7 +1054,9 @@ def replay_snapshot_file(path, display_path=None, policy=None):
     }
 
 
-def replay_snapshot_paths(paths, relative_to=None, policy=None):
+def replay_snapshot_paths(
+        paths, relative_to=None, policy=None,
+        planner_identity=None):
     files = []
     for value in paths:
         path = os.path.abspath(value)
@@ -1070,7 +1076,10 @@ def replay_snapshot_paths(paths, relative_to=None, policy=None):
             os.path.relpath(path, relative_to)
             if relative_to is not None else path)
         rows.append(replay_snapshot_file(
-            path, display_path=display, policy=policy))
+            path,
+            display_path=display,
+            policy=policy,
+            planner_identity=planner_identity))
     comparable = [
         row for row in rows
         if row["baseline"] is not None and row["pressure"] is not None]

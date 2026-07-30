@@ -12,7 +12,7 @@ from .events.schema import structural_hash
 
 
 SCHEMA_VERSION = "1.0"
-LIVE_ADAPTER = "grounded-impact-planner/1.34"
+LIVE_ADAPTER = "grounded-impact-planner/1.35"
 SUPPORT_ENGINE_LIVE = "engine-live"
 SUPPORT_COMPONENT_ONLY = "component-only"
 
@@ -994,9 +994,9 @@ def build_controller_activation(impact_policy):
     return value
 
 
-def canonical_declaration():
+def canonical_declaration(adapter=None):
     return {
-        "adapter": LIVE_ADAPTER,
+        "adapter": adapter or LIVE_ADAPTER,
         "components": {
             row["component"]: {
                 "phase": row["phase"],
@@ -1008,7 +1008,7 @@ def canonical_declaration():
     }
 
 
-def validate_declaration(value):
+def validate_declaration(value, expected_adapter=None):
     if not isinstance(value, dict):
         raise PFRuntimeConfigurationError(
             "pf_pln_runtime must be an object")
@@ -1019,9 +1019,10 @@ def validate_declaration(value):
     if value.get("schema_version") != SCHEMA_VERSION:
         raise PFRuntimeConfigurationError(
             "pf_pln_runtime.schema_version must be 1.0")
-    if value.get("adapter") != LIVE_ADAPTER:
+    expected_adapter = expected_adapter or LIVE_ADAPTER
+    if value.get("adapter") != expected_adapter:
         raise PFRuntimeConfigurationError(
-            "pf_pln_runtime.adapter must be {}".format(LIVE_ADAPTER))
+            "pf_pln_runtime.adapter must be {}".format(expected_adapter))
     components = value.get("components")
     if not isinstance(components, dict):
         raise PFRuntimeConfigurationError(
@@ -1049,9 +1050,12 @@ def validate_declaration(value):
 
 
 def build_runtime_activation(
-        declaration, backend, capabilities, impact_policy):
+        declaration, backend, capabilities, impact_policy,
+        expected_adapter=None):
     """Derive the exact per-game activation matrix."""
-    declaration = validate_declaration(declaration)
+    declaration = validate_declaration(
+        declaration,
+        expected_adapter=expected_adapter)
     if backend not in ("engine-live", "representative"):
         raise PFRuntimeConfigurationError(
             "unsupported PF-PLN runtime backend {}".format(backend))

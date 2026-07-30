@@ -21,6 +21,9 @@ CAPTURED_SCRIPT = os.path.join(
 LIFECYCLE_SCRIPT = os.path.join(
     REPO, "scripts",
     "run_gdo_combat_lifecycle_replay.py")
+CANDIDATE_READOUT_SCRIPT = os.path.join(
+    REPO, "scripts",
+    "run_gdo_combat_candidate_readout_replay.py")
 CAPTURED_MANIFEST = os.path.join(
     REPO, "benchmarks", "gdo",
     "captured_snapshots",
@@ -34,6 +37,9 @@ STORED_CAPTURED_REPORT = os.path.join(
 STORED_LIFECYCLE_REPORT = os.path.join(
     REPO, "benchmarks", "gdo",
     "gdo5_combat_operation_lifecycle_diagnostic.json")
+STORED_CANDIDATE_READOUT_REPORT = os.path.join(
+    REPO, "benchmarks", "gdo",
+    "gdo5_combat_candidate_readout_diagnostic.json")
 
 
 def _module():
@@ -70,6 +76,20 @@ def _lifecycle_module():
         .spec_from_file_location(
             "gdo5_combat_lifecycle_replay",
             LIFECYCLE_SCRIPT))
+    module = (
+        importlib.util
+        .module_from_spec(spec))
+    spec.loader.exec_module(
+        module)
+    return module
+
+
+def _candidate_readout_module():
+    spec = (
+        importlib.util
+        .spec_from_file_location(
+            "gdo5_combat_candidate_readout",
+            CANDIDATE_READOUT_SCRIPT))
     module = (
         importlib.util
         .module_from_spec(spec))
@@ -218,6 +238,10 @@ def test_checked_in_combat_diagnostics_pass_and_are_self_hashed():
             STORED_LIFECYCLE_REPORT,
             "synthetic-lifecycle-mechanism-only",
         ),
+        (
+            STORED_CANDIDATE_READOUT_REPORT,
+            "captured-player-visible-engine-events",
+        ),
     ):
         with open(
                 path,
@@ -240,6 +264,47 @@ def test_checked_in_combat_diagnostics_pass_and_are_self_hashed():
             module.structural_hash(
                 hashable)
         ) == expected
+
+
+def test_captured_combat_candidate_readout_recovers_safe_spare_attackers():
+    module = _candidate_readout_module()
+
+    report = module.run(
+        CAPTURED_MANIFEST,
+        iterations=3)
+
+    assert report["passed"]
+    assert report[
+        "fixture_count"] == 5
+    assert all(
+        row["readout"][
+            "legacy_all_joint_actors_suppressed"]
+        and row["readout"][
+            "recalled_attack_actor_ids"]
+        and row["readout"][
+            "single_step_preserves_required_garrison"]
+        for row in report[
+            "replays"])
+    assert {
+        row["readout"][
+            "current_required_garrison"]
+        for row in report[
+            "replays"]
+    } == {1, 2}
+    assert {
+        row["readout"][
+            "legacy_required_garrison"]
+        for row in report[
+            "replays"]
+    } == {3}
+    hashable = copy.deepcopy(
+        report)
+    expected = hashable.pop(
+        "report_hash")
+    assert (
+        module.structural_hash(
+            hashable)
+    ) == expected
 
 
 def test_combat_lifecycle_replay_closes_terminal_and_release_gates():

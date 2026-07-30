@@ -151,8 +151,8 @@ not a paired outcome comparison.
 
 This closes GDO-5 tasks for post-step re-estimation, explicit completion,
 blocking, repair, abandonment, expiry, and claim release at the shadow
-mechanism level. It does not close the GDO-5 live pilot gate. The next slice
-must improve decision-safe combat candidate readout or add a narrowly bounded
-authority experiment, then obtain actual step execution before evaluating
-target neutralization, friendly loss, abandoned partial attacks, or score.
-
+mechanism level. It does not close the GDO-5 live pilot gate. The subsequent
+candidate-readout correction is documented in
+`docs/evidence/gdo/gdo5_combat_candidate_readout.md`; actual step execution is
+still required before evaluating target neutralization, friendly loss,
+abandoned partial attacks, or score.

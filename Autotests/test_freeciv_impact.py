@@ -2840,6 +2840,61 @@ def test_disorder_risk_prioritizes_city_local_martial_law_garrison():
     assert "martial-law" in decision.candidate.rationale
 
 
+def test_stable_martial_law_city_releases_only_packet_proven_spare_attacker():
+    city = _city(
+        size=6,
+        production_kind=6,
+        production_value=0)
+    city.update({
+        "ppl_happy": [0, 0, 0, 0, 0, 0],
+        "ppl_content": [4, 4, 4, 4, 6, 6],
+        "ppl_unhappy": [2, 2, 2, 2, 0, 0],
+        "ppl_angry": [0, 0, 0, 0, 0, 0],
+        "disorder": False,
+    })
+    attack = {
+        "action_type": "unit_attack",
+        "actor_id": 11,
+        "target": {"x": 1, "y": 0},
+        "is_valid": True,
+    }
+    units = [
+        _unit(11, "Alpine Troops"),
+        _unit(12, "Riflemen"),
+        _unit(13, "Riflemen"),
+        _enemy(99, "Riflemen", 1, 0),
+    ]
+    planner = GroundedImpactPlanner()
+    snapshot = _snapshot(
+        units,
+        [attack, {
+            "action_type": "end_turn",
+            "is_valid": True,
+        }],
+        cities=[city])
+
+    assert planner._city_martial_law_relief(
+        snapshot.cities[0]) == 2
+    assert planner._required_garrison_count(
+        snapshot.cities[0]) == 2
+    assert [
+        row.category
+        for row in planner.candidates(
+            snapshot)
+    ] == ["tactical_attack"]
+
+    no_spare = _snapshot(
+        units[:2] + units[3:],
+        [attack, {
+            "action_type": "end_turn",
+            "is_valid": True,
+        }],
+        cities=[city],
+        source_seq=2)
+    assert planner.candidates(
+        no_spare) == ()
+
+
 def test_food_support_unit_is_not_queued_by_a_zero_food_surplus_city():
     city = _city(surplus=(0, 5, 2, 1, 0, 3))
     action = _production(10, "Alpine Troops", 6, 11)

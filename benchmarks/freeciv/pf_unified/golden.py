@@ -251,7 +251,11 @@ def snapshot_replay_artifact(manifest):
         "benchmarks/freeciv/samples/real_state_turn1.json",
     )
     paths = tuple(os.path.join(REPO_ROOT, path) for path in relative)
-    replay = replay_snapshot_paths(paths, relative_to=REPO_ROOT)
+    replay = replay_snapshot_paths(
+        paths,
+        relative_to=REPO_ROOT,
+        planner_identity=manifest[
+            "solvers"]["live_adapter"])
     fixture = [
         row for row in manifest["fixtures"]["files"]
         if row["path"] in relative
@@ -313,13 +317,17 @@ def _runtime_cases():
 
 
 def runtime_matrix_artifact(manifest):
-    declaration = canonical_declaration()
+    adapter = manifest[
+        "solvers"]["live_adapter"]
+    declaration = canonical_declaration(
+        adapter=adapter)
     rows = []
     for case, backend, capabilities, policy in _runtime_cases():
         rows.append({
             "case": case,
             "report": build_runtime_activation(
-                declaration, backend, capabilities, policy),
+                declaration, backend, capabilities, policy,
+                expected_adapter=adapter),
         })
     return _wrap(
         manifest, "runtime-matrix", {"cases": rows},
@@ -343,8 +351,13 @@ def event_contract_artifact(manifest):
             "manifest_identity": baseline_identity(manifest),
         })
         case = _runtime_cases()[0]
+        adapter = manifest[
+            "solvers"]["live_adapter"]
         report = build_runtime_activation(
-            canonical_declaration(), case[1], case[2], case[3])
+            canonical_declaration(
+                adapter=adapter),
+            case[1], case[2], case[3],
+            expected_adapter=adapter)
         parent, activation_events = emit_runtime_activation(
             writer, 0, root["event_id"], report,
             "engine-full", "golden")

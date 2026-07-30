@@ -262,7 +262,7 @@ def _spatial_target(action):
 class GroundedImpactPlanner(object):
     """Select high-impact legal actions without weakening the execution gate."""
 
-    SOLVER_IDENTITY = "grounded-impact-planner/1.34"
+    SOLVER_IDENTITY = "grounded-impact-planner/1.35"
 
     # Routing evidence is deliberately a tie-breaker within the strategic
     # expansion policy.  It must never manufacture legality or bypass the
@@ -3283,6 +3283,30 @@ class GroundedImpactPlanner(object):
             - 2 * int(city.feeling_angry[-1]))
 
     @staticmethod
+    def _city_martial_law_relief(city):
+        """Return packet-observed disorder burden removed by martial law.
+
+        The six citizen-feeling entries are a protocol-ordered pipeline.
+        Index three is the state before martial-law effects and index four is
+        the state after them.  Measuring the burden delta avoids interpreting
+        an all-content final population as a zero happiness margin that needs
+        every available defender.
+        """
+        unhappy = tuple(
+            getattr(city, "feeling_unhappy", ()) or ())
+        angry = tuple(
+            getattr(city, "feeling_angry", ()) or ())
+        if len(unhappy) < 5 or len(angry) < 5:
+            return None
+        before = (
+            int(unhappy[3])
+            + 2 * int(angry[3]))
+        after = (
+            int(unhappy[4])
+            + 2 * int(angry[4]))
+        return max(0, before - after)
+
+    @staticmethod
     def _missing_happiness_improvements(city):
         """Return the exact packet-buildable local order restorers.
 
@@ -3321,11 +3345,28 @@ class GroundedImpactPlanner(object):
 
     def _required_garrison_count(self, city):
         """Keep packet-observed martial-law coverage near disorder."""
-        margin = self._city_mood_margin(city)
-        if city.disorder is True or (margin is not None and margin <= 1):
+        if city.disorder is True:
             return min(
                 self.military_units_per_city_limit,
                 max(1, int(city.size or 1)))
+        martial_law_relief = (
+            self._city_martial_law_relief(
+                city))
+        margin = self._city_mood_margin(city)
+        if (
+                martial_law_relief is not None
+                and margin is not None):
+            # Positive final margin can absorb that many lost martial-law
+            # points.  Each remaining observed relief point is conservatively
+            # treated as requiring one defender; rulesets with stronger
+            # per-unit effects therefore remain safe rather than optimistic.
+            required_relief = max(
+                0,
+                martial_law_relief
+                - max(0, margin))
+            return min(
+                self.military_units_per_city_limit,
+                max(1, required_relief))
         return 1
 
     def _military_capacity(self, snapshot):
