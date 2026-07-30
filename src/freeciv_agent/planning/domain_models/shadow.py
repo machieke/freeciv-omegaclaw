@@ -14,7 +14,12 @@ class DomainEstimateShadowExecutor:
     timing can never authorize or alter a live decision.
     """
 
-    def __init__(self, maximum_pending=2, maximum_cached=8):
+    def __init__(
+            self, maximum_pending=2, maximum_cached=8,
+            thread_name_prefix="freeciv-domain-shadow",
+            count_field="estimate_count",
+            collection_field="estimates",
+            completed_count_key="completed_estimate_count"):
         maximum_pending = int(maximum_pending)
         maximum_cached = int(maximum_cached)
         if maximum_pending < 1:
@@ -23,11 +28,27 @@ class DomainEstimateShadowExecutor:
         if maximum_cached < maximum_pending:
             raise ValueError(
                 "shadow executor cache must cover pending capacity")
+        for value, name in (
+                (thread_name_prefix,
+                 "shadow thread prefix"),
+                (count_field,
+                 "shadow count field"),
+                (collection_field,
+                 "shadow collection field"),
+                (completed_count_key,
+                 "shadow completed-count key")):
+            if not isinstance(value, str) or not value:
+                raise ValueError(
+                    "{} must be non-empty".format(name))
         self.maximum_pending = maximum_pending
         self.maximum_cached = maximum_cached
+        self.count_field = count_field
+        self.collection_field = collection_field
+        self.completed_count_key = (
+            completed_count_key)
         self._executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=1,
-            thread_name_prefix="freeciv-domain-shadow")
+            thread_name_prefix=thread_name_prefix)
         self._lock = threading.RLock()
         self._pending = {}
         self._completed = OrderedDict()
@@ -37,7 +58,7 @@ class DomainEstimateShadowExecutor:
         self._completed_count = 0
         self._failed_count = 0
         self._capacity_rejection_count = 0
-        self._completed_estimate_count = 0
+        self._completed_item_count = 0
 
     @staticmethod
     def _run(submitted_at, function, arguments):
@@ -79,8 +100,8 @@ class DomainEstimateShadowExecutor:
                 artifact = dict(failure_artifact)
                 artifact.update({
                     "error_type": type(error).__name__,
-                    "estimate_count": 0,
-                    "estimates": [],
+                    self.count_field: 0,
+                    self.collection_field: [],
                     "status": "failed",
                 })
                 self._failed_count += 1
@@ -95,8 +116,9 @@ class DomainEstimateShadowExecutor:
                     "worker_latency_ms":
                         float(result["worker_latency_ms"]),
                 })
-                self._completed_estimate_count += int(
-                    artifact.get("estimate_count", 0))
+                self._completed_item_count += int(
+                    artifact.get(
+                        self.count_field, 0))
             self._completed_count += 1
             self._store_completed_locked(
                 batch_id, artifact)
@@ -183,14 +205,12 @@ class DomainEstimateShadowExecutor:
     def statistics(self):
         with self._lock:
             self._harvest_locked()
-            return {
+            result = {
                 "cache_size": len(self._completed),
                 "capacity_rejection_count":
                     self._capacity_rejection_count,
                 "completed_batch_count":
                     self._completed_count,
-                "completed_estimate_count":
-                    self._completed_estimate_count,
                 "failed_batch_count":
                     self._failed_count,
                 "maximum_cached": self.maximum_cached,
@@ -200,6 +220,9 @@ class DomainEstimateShadowExecutor:
                 "submitted_batch_count":
                     self._submitted_count,
             }
+            result[self.completed_count_key] = (
+                self._completed_item_count)
+            return result
 
     def close(self, wait=True):
         with self._lock:

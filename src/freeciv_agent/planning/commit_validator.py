@@ -404,3 +404,37 @@ class ImpactCommitValidator:
             None, current_snapshot, reservation,
             current_key if refreshed else None,
             checks)
+
+    def validate_with_resource_ledger(
+            self, resource_ledger,
+            resource_operation_id,
+            *args, **kwargs):
+        """Validate once and settle the separate v2 resource reservation."""
+        from ..pressure.resource_ledger import (
+            ResourceReservationLedger,
+        )
+
+        if not isinstance(
+                resource_ledger,
+                ResourceReservationLedger):
+            raise TypeError(
+                "resource-aware validation requires reservation ledger")
+        if (not isinstance(
+                resource_operation_id, str)
+                or not resource_operation_id):
+            raise ValueError(
+                "resource-aware validation requires operation ID")
+        result = self.validate(
+            *args, **kwargs)
+        if result.disposition == (
+                ValidationDisposition.COMMIT):
+            resource_reservation = (
+                resource_ledger.commit(
+                    resource_operation_id))
+        else:
+            resource_reservation = (
+                resource_ledger.release(
+                    resource_operation_id,
+                    "commit-validation:{}".format(
+                        result.reason)))
+        return result, resource_reservation

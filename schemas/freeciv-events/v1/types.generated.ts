@@ -91,6 +91,81 @@ export type DomainEstimateEmitted = DomainEstimate;
 
 export type DomainEstimateAbstained = DomainEstimateAbstention;
 
+export type ResourceRef = {
+  "kind": "actor" | "move_points" | "city_production_slot" | "tile_occupancy" | "transport_seat" | "treasury" | "research_slot" | "diplomatic_commitment" | "action_budget" | "cpu";
+  "owner_id": string;
+  "scope": string;
+  "subresource": string | null;
+};
+
+export type ResourceTurnWindow = {
+  "end_turn_exclusive": number;
+  "start_turn": number;
+};
+
+export type ResourceClaimEvent = {
+  "claim_id": string;
+  "conflict_resource_ids": Array<string>;
+  "conflicting_operation_ids": Array<string>;
+  "disposition": "requested" | "reserved" | "rejected" | "released" | "expired";
+  "event_schema_version": "1.0";
+  "exclusive": boolean;
+  "hardness": "hard_current" | "conditional_future" | "advisory";
+  "operation_id": string;
+  "quantity": number;
+  "reason": string | null;
+  "resource": ResourceRef;
+  "schedule_digest": string;
+  "scheduler_identity": string;
+  "shadow_only": true;
+  "snapshot_id": string;
+  "source_step_id": string;
+  "window": ResourceTurnWindow;
+};
+
+export type ResourceCapacityEvent = {
+  "authority": string;
+  "capacity_id": string;
+  "event_schema_version": "1.0";
+  "previous_capacity_id": string | null;
+  "previous_quantity": number | null;
+  "quantity": number;
+  "reason": "initial-observation" | "snapshot-changed";
+  "resource": ResourceRef;
+  "shadow_only": true;
+  "snapshot_id": string;
+  "window": ResourceTurnWindow;
+};
+
+export type ResourceScheduleEvent = {
+  "artifact_hash": string;
+  "batch_id": string;
+  "event_schema_version": "1.0";
+  "exact_status": "exact" | "greedy" | "greedy_fallback";
+  "fallback_reason": string | null;
+  "packet_committed_operation_ids": Array<string>;
+  "packet_exact_selection_equal": boolean;
+  "policy_authority": false;
+  "rejected_operation_count": number;
+  "request_count": number;
+  "schedule_digest": string;
+  "scheduler_identity": string;
+  "selected_operation_ids": Array<string>;
+  "shadow_only": true;
+};
+
+export type ResourceScheduleDecided = ResourceScheduleEvent;
+
+export type ResourceClaimRequested = ResourceClaimEvent;
+
+export type ResourceClaimReserved = ResourceClaimEvent;
+
+export type ResourceClaimRejected = ResourceClaimEvent;
+
+export type ResourceClaimReleased = ResourceClaimEvent;
+
+export type ResourceCapacityChanged = ResourceCapacityEvent;
+
 export type TransitionValueEstimated = ControlAggregate;
 
 export type TransitionValueUpdated = ControlAggregate;

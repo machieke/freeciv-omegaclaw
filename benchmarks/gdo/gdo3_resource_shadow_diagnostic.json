@@ -1,0 +1,83 @@
+{
+  "baseline": {
+    "maximum_ms": 20.328712183982134,
+    "mean_ms": 14.648524967487901,
+    "p50_ms": 14.549830695614219,
+    "p95_ms": 15.028445050120354,
+    "p99_ms": 16.60162815824151,
+    "sample_count": 200
+  },
+  "claim_status": "diagnostic-only",
+  "fixture": {
+    "path": "benchmarks/freeciv/samples/real_state_turn1.json",
+    "payload_hash": "7efd89dec897602aca8995c08b7866c3803ee34ee64bf37da706aad1bc3a5618",
+    "snapshot_id": "gdo3-resource-replay:1:1:3ec9511d1af7e5af"
+  },
+  "gates": {
+    "all_batches_completed": true,
+    "all_rejections_attributable": true,
+    "exact_schedule_status": true,
+    "hard_capacity_violations_absent": true,
+    "live_action_byte_identical": true,
+    "live_order_identical": true,
+    "no_live_authority": true,
+    "p95_absolute_overhead_within_50_ms": true,
+    "p95_relative_overhead_within_15_percent": true,
+    "packet_exact_selection_equal": true,
+    "queue_capacity_not_exceeded": true,
+    "scalar_schedule_identical": true,
+    "semantic_schedule_deterministic": true
+  },
+  "hard_capacity_violations": [],
+  "iterations": 200,
+  "measurement_protocol": {
+    "alternating_arm_order": true,
+    "fresh_snapshot_per_pair": true,
+    "paired_gc_stabilization": true,
+    "worker_completed_before_next_arm": true,
+    "worker_cost_reported_separately": true
+  },
+  "p95_absolute_overhead_ms": -0.039111822843551636,
+  "p95_overhead_fraction": -0.0026025196028672815,
+  "passed": true,
+  "policy_authority": false,
+  "report_hash": "27c6981cc99df81ca206efb1f34cbff63ebc0779be7ccee25381fb0e9766e4bb",
+  "resource_executor": {
+    "cache_size": 8,
+    "capacity_rejection_count": 0,
+    "completed_batch_count": 220,
+    "completed_request_count": 7480,
+    "enabled": true,
+    "failed_batch_count": 0,
+    "maximum_cached": 8,
+    "maximum_pending": 2,
+    "pending_batch_count": 0,
+    "submitted_batch_count": 220
+  },
+  "schema_version": "1.0",
+  "shadow_dispatch": {
+    "maximum_ms": 21.208785939961672,
+    "mean_ms": 14.652628628537059,
+    "p50_ms": 14.572799671441317,
+    "p95_ms": 14.989333227276802,
+    "p99_ms": 15.72656212374568,
+    "sample_count": 200
+  },
+  "shadow_full_loop": {
+    "maximum_ms": 40.08129192516208,
+    "mean_ms": 33.51615057326853,
+    "p50_ms": 33.49482361227274,
+    "p95_ms": 34.941303078085184,
+    "p99_ms": 35.53763963282108,
+    "sample_count": 200
+  },
+  "shadow_worker": {
+    "maximum_ms": 20.937427878379822,
+    "mean_ms": 18.568209330551326,
+    "p50_ms": 18.644027877599,
+    "p95_ms": 19.807856995612383,
+    "p99_ms": 20.162791945040226,
+    "sample_count": 200
+  },
+  "warmup_iterations": 20
+}

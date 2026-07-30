@@ -744,6 +744,17 @@ class ImpactPressureRanker(object):
         del operations, scores
         return None
 
+    def _identity_resource_schedule(
+            self, snapshot, operations,
+            candidate_by_operation, scores,
+            packet_schedule):
+        """Compatibility hook; scalar-v1 has no identity scheduler."""
+        del (
+            snapshot, operations,
+            candidate_by_operation, scores,
+            packet_schedule)
+        return None
+
     @classmethod
     def _score_aligned_scores(
             cls, scores, candidate_by_operation, safety_active,
@@ -1115,6 +1126,12 @@ class ImpactPressureRanker(object):
             diagnostics=diagnostics)
         packet_schedule = self._whole_packet_schedule(
             tuple(operations), tuple(scores))
+        identity_resource_schedule = (
+            self._identity_resource_schedule(
+                snapshot, tuple(operations),
+                candidate_by_operation,
+                tuple(scores),
+                packet_schedule))
         rank = dict((row.operation_id, index) for index, row in enumerate(scores)
                     if row.admissible)
         ordered = tuple(sorted(candidates, key=lambda candidate: (
@@ -1156,6 +1173,9 @@ class ImpactPressureRanker(object):
                 packet_schedule.to_dict())
             artifact["_packet_schedule_object"] = (
                 packet_schedule)
+        if identity_resource_schedule is not None:
+            artifact["identity_resource_schedule"] = (
+                identity_resource_schedule)
         if diagnostics is not None:
             diagnostics["pressure_artifact_latency_ms"] = (
                 diagnostics.get("pressure_artifact_latency_ms", 0.0)
@@ -1204,6 +1224,8 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             domain_estimates_authority_enabled=False,
             domain_model_registry=None,
             domain_ruleset_ir=None,
+            resource_scheduler_enabled=False,
+            resource_scheduler_node_budget=5000,
             ruleset_digest=None,
             bridge_scalar_enabled=False,
             bridge_scalar_config=None,
@@ -1283,13 +1305,43 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             domain_model_registry)
         self.domain_ruleset_ir = (
             domain_ruleset_ir)
+        if not isinstance(
+                resource_scheduler_enabled, bool):
+            raise TypeError(
+                "identity resource scheduler setting must be boolean")
+        if (isinstance(
+                resource_scheduler_node_budget, bool)
+                or not isinstance(
+                    resource_scheduler_node_budget, int)
+                or resource_scheduler_node_budget < 1):
+            raise ValueError(
+                "identity resource scheduler node budget must be positive")
+        self.resource_scheduler_enabled = (
+            resource_scheduler_enabled)
+        self.resource_scheduler_node_budget = (
+            resource_scheduler_node_budget)
         self._domain_estimate_executor = None
+        self._resource_schedule_executor = None
         if domain_estimates_enabled:
             from ..planning.domain_models import (
                 DomainEstimateShadowExecutor,
             )
             self._domain_estimate_executor = (
                 DomainEstimateShadowExecutor())
+        if resource_scheduler_enabled:
+            from ..planning.domain_models import (
+                DomainEstimateShadowExecutor,
+            )
+            self._resource_schedule_executor = (
+                DomainEstimateShadowExecutor(
+                    thread_name_prefix=(
+                        "freeciv-resource-shadow"),
+                    count_field=(
+                        "request_count"),
+                    collection_field=(
+                        "requests"),
+                    completed_count_key=(
+                        "completed_request_count")))
         self.ruleset_digest = (
             ruleset_digest or structural_hash({
                 "ruleset": "not-supplied",
@@ -1369,6 +1421,7 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                     path_persistence_config))
         self._pending_transition_predictions = {}
         self._staged_domain_estimate_submission = None
+        self._staged_resource_schedule_submission = None
         self.engine = PressureEngineV2(
             self.config, policy=self.v2_policy)
 
@@ -1752,6 +1805,38 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
     def close_domain_estimates(self, wait=True):
         if self._domain_estimate_executor is not None:
             self._domain_estimate_executor.close(
+                wait=wait)
+
+    def wait_for_resource_schedule(
+            self, batch_id, timeout=None):
+        if self._resource_schedule_executor is None:
+            return None
+        return self._resource_schedule_executor.wait(
+            batch_id, timeout=timeout)
+
+    def dispatch_resource_schedule(self):
+        """Start staged shadow work after the live decision timer stops."""
+        return self._dispatch_identity_resource_schedule()
+
+    def flush_resource_schedules(self, timeout=None):
+        if self._resource_schedule_executor is None:
+            return ()
+        return self._resource_schedule_executor.flush(
+            timeout=timeout)
+
+    def resource_schedule_statistics(self):
+        if self._resource_schedule_executor is None:
+            return {
+                "enabled": False,
+            }
+        return {
+            "enabled": True,
+            **self._resource_schedule_executor.statistics(),
+        }
+
+    def close_resource_schedules(self, wait=True):
+        if self._resource_schedule_executor is not None:
+            self._resource_schedule_executor.close(
                 wait=wait)
 
     @staticmethod
@@ -2440,6 +2525,353 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                 PacketBudget(ResourceKind.ACTION, 1),
                 PacketBudget(ResourceKind.CPU, 1),
             ))
+
+    def _identity_resource_schedule(
+            self, snapshot, operations,
+            candidate_by_operation, scores,
+            packet_schedule):
+        if not self.resource_scheduler_enabled:
+            return None
+        if packet_schedule is None:
+            raise ValueError(
+                "identity resource shadow requires packet schedule")
+        fields = [
+            "identity-resource-shadow-batch/1",
+            str(snapshot.snapshot_id),
+            str(snapshot.legal_actions_digest),
+            packet_schedule.scheduler_identity,
+            ",".join(
+                packet_schedule
+                .committed_operation_ids),
+        ]
+        score_by_operation = {
+            row.operation_id: row
+            for row in scores}
+        for operation in sorted(
+                operations,
+                key=lambda row:
+                row.operation_id):
+            score = score_by_operation[
+                operation.operation_id]
+            fields.extend((
+                operation.operation_id,
+                repr(float(
+                    score.priority)),
+                str(bool(
+                    score.admissible)),
+            ))
+        batch_id = hashlib.sha256(
+            "\x1f".join(fields).encode(
+                "utf-8")).hexdigest()
+        pending = {
+            "artifact_hash": structural_hash({
+                "batch_id": batch_id,
+                "schema_version": "1.0",
+                "shadow_only": True,
+                "status": "pending",
+            }),
+            "batch_id": batch_id,
+            "dispatch_batch_id": batch_id,
+            "expected_request_count":
+                len(operations),
+            "live_ordering_unchanged": True,
+            "policy_authority": False,
+            "schema_version": "1.0",
+            "shadow_only": True,
+            "status": "pending",
+        }
+        failure = dict(
+            pending)
+        failure["artifact_hash"] = (
+            structural_hash({
+                "batch_id": batch_id,
+                "schema_version": "1.0",
+                "shadow_only": True,
+                "status": "failed",
+            }))
+        artifact = (
+            self._resource_schedule_executor.poll(
+                preferred_batch_id=batch_id))
+        if artifact is not None:
+            artifact = dict(
+                artifact)
+            artifact[
+                "dispatch_batch_id"] = (
+                    batch_id)
+        self._staged_resource_schedule_submission = {
+            "arguments": (
+                snapshot,
+                tuple(operations),
+                dict(
+                    candidate_by_operation),
+                tuple(scores),
+                packet_schedule,
+                batch_id,
+            ),
+            "batch_id": batch_id,
+            "failure_artifact": failure,
+            "pending_artifact": (
+                pending
+                if artifact is None
+                else None),
+        }
+        if artifact is None:
+            artifact = pending
+            artifact["submission"] = (
+                "staged")
+            artifact["executor"] = (
+                self._resource_schedule_executor
+                .statistics())
+        return artifact
+
+    def _dispatch_identity_resource_schedule(
+            self):
+        staged = (
+            self
+            ._staged_resource_schedule_submission)
+        self._staged_resource_schedule_submission = (
+            None)
+        if staged is None:
+            return None
+        submission = (
+            self._resource_schedule_executor.submit(
+                staged["batch_id"],
+                self
+                ._compute_identity_resource_schedule,
+                arguments=staged[
+                    "arguments"],
+                failure_artifact=staged[
+                    "failure_artifact"]))
+        pending = staged[
+            "pending_artifact"]
+        if pending is not None:
+            pending["submission"] = (
+                submission)
+        return submission
+
+    def _compute_identity_resource_schedule(
+            self, snapshot, operations,
+            candidate_by_operation, scores,
+            packet_schedule, batch_id):
+        from .packets import (
+            PacketBudget,
+            PacketCost,
+            ResourceKind,
+        )
+        from .resource_capacity import (
+            ResourceCapacityExtractor,
+        )
+        from .resource_claims import (
+            ClaimHardness,
+            GameResourceKind,
+            ResourceClaim,
+            ResourceRef,
+            TurnWindow,
+            capacities_from_packet_budgets,
+            claims_from_packet_costs,
+        )
+        from .resource_scheduler import (
+            BoundedExactScheduler,
+            OperationResourceRequest,
+        )
+
+        turn = int(
+            snapshot.turn)
+        snapshot_id = str(
+            snapshot.snapshot_id)
+        player_scope = "player:{}".format(
+            snapshot.player_id)
+        packet_budgets = (
+            PacketBudget(
+                ResourceKind.ACTION, 1),
+            PacketBudget(
+                ResourceKind.CPU, 1),
+        )
+        capacity_snapshot = (
+            ResourceCapacityExtractor()
+            .extract(
+                snapshot,
+                ruleset_ir=(
+                    self.domain_ruleset_ir)))
+        capacities = tuple(sorted(
+            capacity_snapshot.capacities
+            + capacities_from_packet_budgets(
+                packet_budgets, turn,
+                snapshot_id),
+            key=lambda row: row.sort_key))
+        score_by_operation = {
+            row.operation_id: row
+            for row in scores}
+        requests = []
+        for operation in sorted(
+                operations,
+                key=lambda row:
+                row.operation_id):
+            packet_costs = tuple(
+                PacketCost(
+                    row.resource,
+                    row.quanta
+                    * operation.packet_threshold)
+                for row in operation.packet_costs)
+            claims = list(
+                claims_from_packet_costs(
+                    operation.operation_id,
+                    "packet-cost",
+                    packet_costs,
+                    turn))
+            candidate = candidate_by_operation[
+                operation.operation_id]
+            action = candidate.action
+            action_type = str(
+                action.get(
+                    "action_type", ""))
+            actor_id = action.get(
+                "actor_id",
+                action.get("unit_id"))
+            if (action_type.startswith(
+                    "unit_")
+                    and actor_id is not None):
+                claims.append(
+                    ResourceClaim(
+                        resource=ResourceRef(
+                            GameResourceKind.ACTOR,
+                            "unit:{}".format(
+                                actor_id),
+                            "whole_actor",
+                            player_scope),
+                        quantity=1,
+                        window=TurnWindow(
+                            turn, turn + 1),
+                        hardness=(
+                            ClaimHardness
+                            .HARD_CURRENT),
+                        exclusive=True,
+                        source_operation_id=(
+                            operation
+                            .operation_id),
+                        source_step_id=(
+                            "current-action")))
+            if action_type == (
+                    "city_production"):
+                city_id = action.get(
+                    "city_id")
+                if city_id is not None:
+                    claims.append(
+                        ResourceClaim(
+                            resource=ResourceRef(
+                                GameResourceKind
+                                .CITY_PRODUCTION_SLOT,
+                                "city:{}".format(
+                                    city_id),
+                                "production",
+                                player_scope),
+                            quantity=1,
+                            window=TurnWindow(
+                                turn,
+                                turn + 1),
+                            hardness=(
+                                ClaimHardness
+                                .HARD_CURRENT),
+                            exclusive=True,
+                            source_operation_id=(
+                                operation
+                                .operation_id),
+                            source_step_id=(
+                                "current-action")))
+            if action_type == (
+                    "tech_research"):
+                claims.append(
+                    ResourceClaim(
+                        resource=ResourceRef(
+                            GameResourceKind
+                            .RESEARCH_SLOT,
+                            player_scope,
+                            "current_target",
+                            player_scope),
+                        quantity=1,
+                        window=TurnWindow(
+                            turn, turn + 1),
+                        hardness=(
+                            ClaimHardness
+                            .HARD_CURRENT),
+                        exclusive=True,
+                        source_operation_id=(
+                            operation
+                            .operation_id),
+                        source_step_id=(
+                            "current-action")))
+            score = score_by_operation[
+                operation.operation_id]
+            requests.append(
+                OperationResourceRequest(
+                    operation_id=(
+                        operation
+                        .operation_id),
+                    bid=(
+                        max(
+                            0.0,
+                            float(score.priority))
+                        if score.admissible
+                        else 0.0),
+                    claims=tuple(claims),
+                    requirement_set_id=(
+                        operation
+                        .requirement_set_id)))
+        exact = BoundedExactScheduler(
+            node_budget=(
+                self
+                .resource_scheduler_node_budget)
+        ).schedule(
+            requests, capacities)
+        packet_ids = tuple(sorted(
+            packet_schedule
+            .committed_operation_ids))
+        result = {
+            "batch_id": batch_id,
+            "capacity_snapshot":
+                capacity_snapshot.to_dict(),
+            # Wall time is available on the direct ResourceSchedule
+            # diagnostics, but is deliberately excluded from a decision
+            # artifact so identical inputs remain byte-identical.
+            "exact": exact.to_dict(
+                include_latency=False),
+            # The greedy backend is independently tested and remains
+            # available for explicit diagnostics.  Running it beside the
+            # exact shadow on every live decision duplicates all conflict
+            # checks without adding authority or packet-comparison evidence.
+            "greedy": None,
+            "live_ordering_unchanged": True,
+            "expected_request_count":
+                len(requests),
+            "packet_committed_operation_ids":
+                list(packet_ids),
+            "packet_exact_selection_equal": (
+                packet_ids
+                == exact
+                .selected_operation_ids),
+            "policy_authority": False,
+            "request_count": len(
+                requests),
+            "schema_version": "1.0",
+            "shadow_only": True,
+        }
+        hash_material = {
+            key: value
+            for key, value
+            in result.items()
+            if key not in (
+                "artifact_hash",
+                "exact",
+                "greedy")
+        }
+        hash_material.update({
+            "exact_decision_digest":
+                exact.decision_digest,
+        })
+        result["artifact_hash"] = (
+            structural_hash(
+                hash_material))
+        return result
 
     def _goal_risk_profile(self, name, safety):
         from .risk import RiskProfile

@@ -1111,6 +1111,9 @@ class GroundedImpactPlanner(object):
                         domain_estimates_authority_enabled=bool(
                             controller_policy[
                                 "pressure_domain_estimates_authority_enabled"]),
+                        resource_scheduler_enabled=bool(
+                            controller_policy[
+                                "pressure_resource_scheduler_enabled"]),
                         domain_ruleset_ir=ruleset_ir,
                         ruleset_digest=domain_ruleset_digest,
                         teleological_enabled=(
@@ -1149,6 +1152,9 @@ class GroundedImpactPlanner(object):
                         domain_estimates_authority_enabled=bool(
                             controller_policy[
                                 "pressure_domain_estimates_authority_enabled"]),
+                        resource_scheduler_enabled=bool(
+                            controller_policy[
+                                "pressure_resource_scheduler_enabled"]),
                         domain_ruleset_ir=ruleset_ir,
                         ruleset_digest=domain_ruleset_digest,
                         teleological_enabled=True,
@@ -7022,6 +7028,59 @@ class GroundedImpactPlanner(object):
                 artifacts.append(artifact)
         return tuple(artifacts)
 
+    def flush_resource_schedules(self, timeout=None):
+        """Drain retained non-authoritative resource scheduling artifacts."""
+        artifacts = []
+        seen = set()
+        for ranker in (
+                self._pressure_ranker_v2,
+                self._bridge_pressure_ranker):
+            if (ranker is None
+                    or not callable(getattr(
+                        ranker,
+                        "flush_resource_schedules",
+                        None))):
+                continue
+            for artifact in (
+                    ranker.flush_resource_schedules(
+                        timeout=timeout)):
+                batch_id = artifact.get(
+                    "batch_id")
+                identity = (
+                    batch_id
+                    if isinstance(batch_id, str)
+                    and batch_id else
+                    artifact.get(
+                        "artifact_hash"))
+                if identity in seen:
+                    continue
+                seen.add(identity)
+                artifacts.append(artifact)
+        return tuple(artifacts)
+
+    def dispatch_resource_schedules(self):
+        """Start staged resource shadows outside decision-critical planning."""
+        submissions = []
+        seen = set()
+        for ranker in (
+                self._pressure_ranker_v2,
+                self._bridge_pressure_ranker):
+            if (ranker is None
+                    or id(ranker) in seen):
+                continue
+            seen.add(id(ranker))
+            dispatch = getattr(
+                ranker,
+                "dispatch_resource_schedule",
+                None)
+            if not callable(dispatch):
+                continue
+            submission = dispatch()
+            if submission is not None:
+                submissions.append(
+                    submission)
+        return tuple(submissions)
+
     def close_domain_estimates(self, wait=True):
         """Release any optional shadow workers owned by this planner."""
         seen = set()
@@ -7037,3 +7096,9 @@ class GroundedImpactPlanner(object):
                 None)
             if callable(close):
                 close(wait=wait)
+            close_resources = getattr(
+                ranker,
+                "close_resource_schedules",
+                None)
+            if callable(close_resources):
+                close_resources(wait=wait)

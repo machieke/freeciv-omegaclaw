@@ -107,6 +107,7 @@ CONTROLLER_LAYER_SPECS = (
     {"layer": "scalar_pf_v2", "support": "experimental"},
     {"layer": "grounded_domain_estimates", "support": "experimental"},
     {"layer": "packet_scheduler", "support": "experimental"},
+    {"layer": "identity_resource_scheduler", "support": "experimental"},
     {"layer": "teleological_cost_to_go", "support": "experimental"},
     {"layer": "path_persistence", "support": "experimental"},
     {"layer": "bridge", "support": "experimental"},
@@ -139,6 +140,7 @@ CONTROLLER_POLICY_DEFAULTS = {
     "pressure_llm_expansion_enabled": False,
     "pressure_llm_validation_packet_budget": 0,
     "pressure_packet_scheduler_enabled": False,
+    "pressure_resource_scheduler_enabled": False,
     "pressure_path_persistence_enabled": False,
     "pressure_requirement_sets_enabled": False,
     "pressure_scalar_fallback_enabled": True,
@@ -164,6 +166,7 @@ CONTROLLER_CONFIGURATION_DEFAULTS = {
         "distributional_risk": False,
         "requirement_sets": False,
         "packet_scheduler": False,
+        "resource_scheduler": False,
     },
     "teleology": {
         "estimator": "immediate_loss",
@@ -256,6 +259,8 @@ _GROUP_TO_POLICY = {
         "pressure_requirement_sets_enabled",
     ("pressure_v2", "packet_scheduler"):
         "pressure_packet_scheduler_enabled",
+    ("pressure_v2", "resource_scheduler"):
+        "pressure_resource_scheduler_enabled",
     ("bridge", "enabled"):
         "pressure_bridge_enabled",
     ("bridge", "importance_corrected"):
@@ -375,7 +380,8 @@ def _validate_controller_configuration(configuration):
                 "signed_channels",
                 "distributional_risk",
                 "requirement_sets",
-                "packet_scheduler")),
+                "packet_scheduler",
+                "resource_scheduler")),
             ("bridge", (
                 "enabled", "importance_corrected",
                 "reference_likelihood_support")),
@@ -617,6 +623,7 @@ def validate_controller_policy(impact_policy):
                 "pressure_distributional_risk_enabled",
                 "pressure_signed_channels_enabled",
                 "pressure_packet_scheduler_enabled",
+                "pressure_resource_scheduler_enabled",
                 "pressure_requirement_sets_enabled",
                 "pressure_domain_estimates_enabled",
                 "pressure_bridge_enabled",
@@ -645,6 +652,10 @@ def validate_controller_policy(impact_policy):
             and not policy["pressure_packet_scheduler_enabled"]):
         raise PFRuntimeConfigurationError(
             "transition-value calibration requires packet scheduling")
+    if (policy["pressure_resource_scheduler_enabled"]
+            and not policy["pressure_packet_scheduler_enabled"]):
+        raise PFRuntimeConfigurationError(
+            "identity resource scheduling requires packet scheduling")
     for name in (
             "pressure_transition_value_model_identity",
             "pressure_transition_value_model_path"):
@@ -781,6 +792,7 @@ def validate_controller_policy(impact_policy):
                 "pressure_distributional_risk_enabled",
                 "pressure_signed_channels_enabled",
                 "pressure_packet_scheduler_enabled",
+                "pressure_resource_scheduler_enabled",
                 "pressure_requirement_sets_enabled",
                 "pressure_domain_estimates_enabled",
                 "pressure_bridge_enabled",
@@ -813,6 +825,10 @@ def build_controller_activation(impact_policy):
         "packet_scheduler": (
             pressure_enabled and v2
             and policy["pressure_packet_scheduler_enabled"]),
+        "identity_resource_scheduler": (
+            pressure_enabled and v2
+            and policy[
+                "pressure_resource_scheduler_enabled"]),
         "teleological_cost_to_go": (
             pressure_enabled
             and (

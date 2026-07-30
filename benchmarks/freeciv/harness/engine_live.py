@@ -2125,6 +2125,10 @@ async def _play(run_dir, manifest, context):
                     impact_planning_latency_ms += (
                         time.perf_counter() - impact_planning_started) * 1000.0
                     impact_planning_calls += 1
+                    # Identity-resource scheduling is observational in GDO-3.
+                    # Dispatch it only after the complete live planning
+                    # boundary has stopped its latency clock.
+                    impact_planner.dispatch_resource_schedules()
                     if decision is None:
                         stranded = (
                             impact_planner.last_stranded_pressure_artifact)
@@ -3214,6 +3218,8 @@ async def _play(run_dir, manifest, context):
                         induction_estimate["samples"]))
     drained_domain_estimates = ()
     final_domain_estimate_events = ()
+    drained_resource_schedules = ()
+    final_resource_schedule_events = ()
     if impact_planner is not None:
         drained_domain_estimates = (
             impact_planner.flush_domain_estimates(
@@ -3227,12 +3233,30 @@ async def _play(run_dir, manifest, context):
         if final_domain_estimate_events:
             parent = final_domain_estimate_events[
                 -1]["event_id"]
+        drained_resource_schedules = (
+            impact_planner
+            .flush_resource_schedules(
+                timeout=5.0))
+        final_resource_schedule_events = (
+            control_event_emitter
+            .emit_resource_schedule_results(
+                writer, final_turn,
+                drained_resource_schedules,
+                caused_by=(parent,)))
+        if final_resource_schedule_events:
+            parent = (
+                final_resource_schedule_events[
+                    -1]["event_id"])
         impact_planner.close_domain_estimates()
         metrics.extend((
             ("domain_estimate_final_drain_batches",
              len(drained_domain_estimates)),
             ("domain_estimate_final_drain_events",
              len(final_domain_estimate_events)),
+            ("resource_schedule_final_drain_batches",
+             len(drained_resource_schedules)),
+            ("resource_schedule_final_drain_events",
+             len(final_resource_schedule_events)),
         ))
     for name, value in metrics:
         parent = _metric(writer, final_turn, parent, name, value, manifest,

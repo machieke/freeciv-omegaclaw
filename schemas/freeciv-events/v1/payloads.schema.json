@@ -126,6 +126,139 @@
     },
     "domain_estimate_emitted": {"$ref": "#/$defs/domainEstimate"},
     "domain_estimate_abstained": {"$ref": "#/$defs/domainEstimateAbstention"},
+    "resourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "owner_id", "scope", "subresource"],
+      "properties": {
+        "kind": {
+          "enum": [
+            "actor", "move_points", "city_production_slot",
+            "tile_occupancy", "transport_seat", "treasury",
+            "research_slot", "diplomatic_commitment",
+            "action_budget", "cpu"
+          ]
+        },
+        "owner_id": {"type": "string", "minLength": 1},
+        "scope": {"type": "string", "minLength": 1},
+        "subresource": {"type": ["string", "null"], "minLength": 1}
+      }
+    },
+    "resourceTurnWindow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start_turn", "end_turn_exclusive"],
+      "properties": {
+        "start_turn": {"type": "integer", "minimum": 0},
+        "end_turn_exclusive": {"type": "integer", "minimum": 1}
+      }
+    },
+    "resourceClaimEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_schema_version", "scheduler_identity", "schedule_digest",
+        "snapshot_id", "operation_id", "claim_id", "resource", "window",
+        "quantity", "hardness", "exclusive", "source_step_id",
+        "disposition", "reason", "conflict_resource_ids",
+        "conflicting_operation_ids", "shadow_only"
+      ],
+      "properties": {
+        "event_schema_version": {"const": "1.0"},
+        "scheduler_identity": {"type": "string", "minLength": 1},
+        "schedule_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "snapshot_id": {"type": "string", "minLength": 1},
+        "operation_id": {"type": "string", "minLength": 1},
+        "claim_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "resource": {"$ref": "#/$defs/resourceRef"},
+        "window": {"$ref": "#/$defs/resourceTurnWindow"},
+        "quantity": {"type": "integer", "minimum": 1},
+        "hardness": {
+          "enum": ["hard_current", "conditional_future", "advisory"]
+        },
+        "exclusive": {"type": "boolean"},
+        "source_step_id": {"type": "string", "minLength": 1},
+        "disposition": {
+          "enum": ["requested", "reserved", "rejected", "released", "expired"]
+        },
+        "reason": {"type": ["string", "null"], "minLength": 1},
+        "conflict_resource_ids": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "conflicting_operation_ids": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "shadow_only": {"const": true}
+      }
+    },
+    "resourceCapacityEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_schema_version", "capacity_id", "resource", "window",
+        "quantity", "snapshot_id", "authority", "previous_capacity_id",
+        "previous_quantity", "reason", "shadow_only"
+      ],
+      "properties": {
+        "event_schema_version": {"const": "1.0"},
+        "capacity_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "resource": {"$ref": "#/$defs/resourceRef"},
+        "window": {"$ref": "#/$defs/resourceTurnWindow"},
+        "quantity": {"type": "integer", "minimum": 0},
+        "snapshot_id": {"type": "string", "minLength": 1},
+        "authority": {"type": "string", "minLength": 1},
+        "previous_capacity_id": {
+          "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"
+        },
+        "previous_quantity": {"type": ["integer", "null"], "minimum": 0},
+        "reason": {"enum": ["initial-observation", "snapshot-changed"]},
+        "shadow_only": {"const": true}
+      }
+    },
+    "resourceScheduleEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_schema_version", "artifact_hash", "batch_id",
+        "schedule_digest", "scheduler_identity", "exact_status",
+        "fallback_reason", "selected_operation_ids",
+        "packet_committed_operation_ids", "packet_exact_selection_equal",
+        "request_count", "rejected_operation_count",
+        "policy_authority", "shadow_only"
+      ],
+      "properties": {
+        "event_schema_version": {"const": "1.0"},
+        "artifact_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "batch_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "schedule_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "scheduler_identity": {"type": "string", "minLength": 1},
+        "exact_status": {"enum": ["exact", "greedy", "greedy_fallback"]},
+        "fallback_reason": {"type": ["string", "null"], "minLength": 1},
+        "selected_operation_ids": {
+          "type": "array", "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "packet_committed_operation_ids": {
+          "type": "array", "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "packet_exact_selection_equal": {"type": "boolean"},
+        "request_count": {"type": "integer", "minimum": 0},
+        "rejected_operation_count": {"type": "integer", "minimum": 0},
+        "policy_authority": {"const": false},
+        "shadow_only": {"const": true}
+      }
+    },
+    "resource_schedule_decided": {"$ref": "#/$defs/resourceScheduleEvent"},
+    "resource_claim_requested": {"$ref": "#/$defs/resourceClaimEvent"},
+    "resource_claim_reserved": {"$ref": "#/$defs/resourceClaimEvent"},
+    "resource_claim_rejected": {"$ref": "#/$defs/resourceClaimEvent"},
+    "resource_claim_released": {"$ref": "#/$defs/resourceClaimEvent"},
+    "resource_capacity_changed": {"$ref": "#/$defs/resourceCapacityEvent"},
     "transition_value_estimated": {"$ref": "#/$defs/controlAggregate"},
     "transition_value_updated": {"$ref": "#/$defs/controlAggregate"},
     "path_persistence_applied": {"$ref": "#/$defs/controlAggregate"},

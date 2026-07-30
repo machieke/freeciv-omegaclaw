@@ -279,3 +279,35 @@ def test_grounded_domain_authority_fails_closed_during_shadow_stage():
         validate_controller_policy(dict(
             base,
             pressure_commit_revalidation_enabled=True))
+
+
+def test_identity_resource_scheduler_is_default_off_and_packet_gated():
+    default = build_controller_activation({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+    })
+    assert not default["layers"][
+        "identity_resource_scheduler"]["enabled"]
+
+    with pytest.raises(
+            PFRuntimeConfigurationError,
+            match="requires packet scheduling"):
+        validate_controller_policy({
+            "pressure_enabled": True,
+            "pressure_semantics_version": "v2",
+            "pressure_controller_mode": "scalar_v2",
+            "pressure_resource_scheduler_enabled": True,
+        })
+
+    shadow = build_controller_activation({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+        "pressure_packet_scheduler_enabled": True,
+        "pressure_resource_scheduler_enabled": True,
+    })
+    assert shadow["layers"][
+        "identity_resource_scheduler"]["enabled"]
+    assert shadow["controller_policy"][
+        "pressure_resource_scheduler_enabled"]

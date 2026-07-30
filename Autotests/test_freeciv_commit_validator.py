@@ -21,9 +21,19 @@ from freeciv_agent.planning import (  # noqa: E402
     ValidationDisposition,
 )
 from freeciv_agent.pressure import (  # noqa: E402
+    ClaimHardness,
+    GameResourceKind,
+    GreedyIdentityScheduler,
+    OperationResourceRequest,
     PacketCost,
     PacketReservation,
+    ResourceCapacity,
+    ResourceClaim,
+    ResourceRef,
+    ResourceReservationLedger,
+    ResourceReservationState,
     ResourceKind,
+    TurnWindow,
 )
 
 
@@ -83,6 +93,34 @@ def _reservation(candidate, state="complete"):
         costs=(cost,),
         reserved=(cost,),
         state=state)
+
+
+def _resource_ledger(candidate):
+    resource = ResourceRef(
+        GameResourceKind.ACTOR,
+        "unit:7", "whole_actor",
+        "player:1")
+    claim = ResourceClaim(
+        resource, 1,
+        TurnWindow(5, 6),
+        ClaimHardness.HARD_CURRENT,
+        True, candidate.action_key,
+        "move")
+    request = OperationResourceRequest(
+        candidate.action_key, 1.0,
+        (claim,))
+    capacity = ResourceCapacity(
+        resource, 1,
+        TurnWindow(5, 6),
+        "snapshot-1",
+        "authoritative-own-unit")
+    schedule = GreedyIdentityScheduler().schedule(
+        (request,), (capacity,))
+    ledger = ResourceReservationLedger(
+        "commit-validator-test")
+    ledger.reserve_schedule(
+        schedule)
+    return ledger
 
 
 def test_stale_candidate_is_revalidated_before_materialization():
@@ -219,3 +257,53 @@ def test_packetless_canonical_validation_can_be_declared():
 
     assert result.disposition == ValidationDisposition.COMMIT
     assert result.released_packets == ()
+
+
+def test_v2_resource_reservation_commits_with_exact_validation():
+    query, snapshot, candidate = _query()
+    ledger = _resource_ledger(
+        candidate)
+
+    result, resource_reservation = (
+        ImpactCommitValidator()
+        .validate_with_resource_ledger(
+            ledger,
+            candidate.action_key,
+            query, candidate.action_key,
+            snapshot, (candidate,),
+            reservation=(
+                _reservation(candidate)),
+            current_clone_generation=3))
+
+    assert result.disposition == (
+        ValidationDisposition.COMMIT)
+    assert resource_reservation.state == (
+        ResourceReservationState.COMMITTED)
+
+
+def test_v2_resource_reservation_releases_on_commit_rejection():
+    query, _, candidate = _query()
+    ledger = _resource_ledger(
+        candidate)
+    current = _Snapshot(
+        "snapshot-2", "legal-2", ())
+
+    result, resource_reservation = (
+        ImpactCommitValidator()
+        .validate_with_resource_ledger(
+            ledger,
+            candidate.action_key,
+            query, candidate.action_key,
+            current, (),
+            reservation=(
+                _reservation(candidate)),
+            accepted_refresh=True,
+            current_clone_generation=3))
+
+    assert result.disposition == (
+        ValidationDisposition.REJECT)
+    assert resource_reservation.state == (
+        ResourceReservationState.RELEASED)
+    assert resource_reservation.reason == (
+        "commit-validation:"
+        "action-retired-or-not-authoritative")

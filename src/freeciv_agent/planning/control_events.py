@@ -174,6 +174,399 @@ class ControlEventEmitter:
         # surfaced by more than one decision.  A request is one observation,
         # so emit it once per run-scoped emitter.
         self._emitted_domain_request_ids = set()
+        self._emitted_resource_batch_ids = set()
+        # Capacity events describe changes across decisions.  Index by the
+        # stable resource identity rather than snapshot-scoped capacity ID.
+        self._last_resource_capacity = {}
+
+    @staticmethod
+    def _resource_schedule_artifact(pressure):
+        if not isinstance(pressure, dict):
+            return None
+        artifact = pressure.get(
+            "identity_resource_schedule")
+        if not isinstance(artifact, dict):
+            return None
+        schedule = artifact.get("exact")
+        if not isinstance(schedule, dict):
+            return None
+        return artifact, schedule
+
+    @staticmethod
+    def _resource_snapshot_id(schedule):
+        snapshot_ids = sorted(set(
+            str(row.get("snapshot_id"))
+            for row in schedule.get(
+                "capacities", ())
+            if isinstance(row, dict)
+            and row.get("snapshot_id")))
+        if len(snapshot_ids) == 1:
+            return snapshot_ids[0]
+        if snapshot_ids:
+            return structural_hash(
+                snapshot_ids)
+        return "capacityless-shadow"
+
+    @staticmethod
+    def _resource_claim_payload(
+            schedule, claim, disposition,
+            reason=None, entry=None,
+            snapshot_id=None):
+        entry = (
+            entry
+            if isinstance(entry, dict)
+            else {})
+        return {
+            "claim_id":
+                structural_hash(claim),
+            "conflict_resource_ids":
+                list(entry.get(
+                    "conflict_resource_ids",
+                    ())),
+            "conflicting_operation_ids":
+                list(entry.get(
+                    "conflicting_operation_ids",
+                    ())),
+            "disposition": disposition,
+            "event_schema_version":
+                CONTROL_EVENT_SCHEMA_VERSION,
+            "exclusive": bool(
+                claim["exclusive"]),
+            "hardness": claim["hardness"],
+            "operation_id":
+                claim[
+                    "source_operation_id"],
+            "quantity": int(
+                claim["quantity"]),
+            "reason": reason,
+            "resource": claim["resource"],
+            "schedule_digest":
+                schedule["decision_digest"],
+            "scheduler_identity":
+                schedule[
+                    "scheduler_identity"],
+            "shadow_only": True,
+            "snapshot_id": (
+                snapshot_id
+                or ControlEventEmitter
+                ._resource_snapshot_id(
+                    schedule)),
+            "source_step_id":
+                claim["source_step_id"],
+            "window": claim["window"],
+        }
+
+    def emit_resource_schedule_artifacts(
+            self, writer, turn, schedule,
+            caused_by=()):
+        """Emit full identity/window resource evidence for one shadow schedule."""
+        if not isinstance(schedule, dict):
+            return ()
+        parents = tuple(caused_by)
+        emitted = []
+        for capacity in schedule.get(
+                "capacities", ()):
+            if not isinstance(capacity, dict):
+                continue
+            resource = capacity.get(
+                "resource")
+            window = capacity.get(
+                "window")
+            if (not isinstance(resource, dict)
+                    or not isinstance(
+                        window, dict)):
+                continue
+            resource_id = structural_hash(
+                resource)
+            capacity_id = structural_hash(
+                capacity)
+            previous = (
+                self
+                ._last_resource_capacity
+                .get(resource_id))
+            if (previous is not None
+                    and previous[
+                        "capacity_id"]
+                    == capacity_id):
+                continue
+            event = writer.emit(
+                "resource_capacity_changed",
+                turn, {
+                    "authority":
+                        capacity["authority"],
+                    "capacity_id":
+                        capacity_id,
+                    "event_schema_version":
+                        CONTROL_EVENT_SCHEMA_VERSION,
+                    "previous_capacity_id":
+                        (
+                            previous[
+                                "capacity_id"]
+                            if previous
+                            is not None
+                            else None),
+                    "previous_quantity":
+                        (
+                            previous[
+                                "quantity"]
+                            if previous
+                            is not None
+                            else None),
+                    "quantity": int(
+                        capacity[
+                            "quantity"]),
+                    "reason": (
+                        "snapshot-changed"
+                        if previous
+                        is not None
+                        else
+                        "initial-observation"),
+                    "resource": resource,
+                    "shadow_only": True,
+                    "snapshot_id":
+                        capacity[
+                            "snapshot_id"],
+                    "window": window,
+                }, caused_by=list(parents))
+            emitted.append(event)
+            parents = (
+                event["event_id"],)
+            self._last_resource_capacity[
+                resource_id] = {
+                    "capacity_id":
+                        capacity_id,
+                    "quantity": int(
+                        capacity[
+                            "quantity"]),
+                }
+        entries = {
+            row["operation_id"]: row
+            for row in schedule.get(
+                "entries", ())
+            if isinstance(row, dict)
+            and isinstance(
+                row.get(
+                    "operation_id"),
+                str)
+        }
+        snapshot_id = (
+            self._resource_snapshot_id(
+                schedule))
+        for request in schedule.get(
+                "requests", ()):
+            if not isinstance(request, dict):
+                continue
+            operation_id = request.get(
+                "operation_id")
+            entry = entries.get(
+                operation_id, {})
+            selected = bool(
+                entry.get(
+                    "selected", False))
+            reason = (
+                None
+                if selected
+                else str(
+                    entry.get(
+                        "reason")
+                    or "scheduler-rejected"))
+            for claim in request.get(
+                    "claims", ()):
+                if not isinstance(claim, dict):
+                    continue
+                requested = writer.emit(
+                    "resource_claim_requested",
+                    turn,
+                    self._resource_claim_payload(
+                        schedule, claim,
+                        "requested",
+                        entry=entry,
+                        snapshot_id=(
+                            snapshot_id)),
+                    caused_by=list(parents))
+                emitted.append(
+                    requested)
+                parents = (
+                    requested[
+                        "event_id"],)
+                event_type = (
+                    "resource_claim_reserved"
+                    if selected
+                    else
+                    "resource_claim_rejected")
+                disposition = (
+                    "reserved"
+                    if selected
+                    else "rejected")
+                result = writer.emit(
+                    event_type, turn,
+                    self._resource_claim_payload(
+                        schedule, claim,
+                        disposition,
+                        reason=reason,
+                        entry=entry,
+                        snapshot_id=(
+                            snapshot_id)),
+                    caused_by=list(parents))
+                emitted.append(result)
+                parents = (
+                    result["event_id"],)
+        return tuple(emitted)
+
+    def emit_resource_schedule_results(
+            self, writer, turn, artifacts,
+            caused_by=()):
+        """Emit completed resource batches once, including final drains."""
+        parents = tuple(caused_by)
+        emitted = []
+        for artifact in artifacts:
+            if not isinstance(artifact, dict):
+                continue
+            batch_id = artifact.get(
+                "batch_id")
+            schedule = artifact.get(
+                "exact")
+            if (not isinstance(batch_id, str)
+                    or not batch_id
+                    or batch_id in
+                    self._emitted_resource_batch_ids
+                    or not isinstance(
+                        schedule, dict)):
+                continue
+            entries = tuple(
+                row
+                for row in schedule.get(
+                    "entries", ())
+                if isinstance(row, dict))
+            event = writer.emit(
+                "resource_schedule_decided",
+                turn, {
+                    "artifact_hash":
+                        artifact[
+                            "artifact_hash"],
+                    "batch_id": batch_id,
+                    "event_schema_version":
+                        CONTROL_EVENT_SCHEMA_VERSION,
+                    "exact_status":
+                        schedule["status"],
+                    "fallback_reason":
+                        schedule.get(
+                            "fallback_reason"),
+                    "packet_committed_operation_ids":
+                        list(artifact.get(
+                            "packet_committed_operation_ids",
+                            ())),
+                    "packet_exact_selection_equal":
+                        bool(artifact.get(
+                            "packet_exact_selection_equal",
+                            False)),
+                    "policy_authority": False,
+                    "rejected_operation_count":
+                        sum(
+                            not row.get(
+                                "selected",
+                                False)
+                            for row in entries),
+                    "request_count": int(
+                        artifact.get(
+                            "request_count",
+                            len(schedule.get(
+                                "requests", ())))),
+                    "schedule_digest":
+                        schedule[
+                            "decision_digest"],
+                    "scheduler_identity":
+                        schedule[
+                            "scheduler_identity"],
+                    "selected_operation_ids":
+                        list(schedule.get(
+                            "selected_operation_ids",
+                            ())),
+                    "shadow_only": True,
+                }, caused_by=list(parents))
+            emitted.append(event)
+            parents = (
+                event["event_id"],)
+            details = (
+                self.emit_resource_schedule_artifacts(
+                    writer, turn, schedule,
+                    caused_by=parents))
+            emitted.extend(details)
+            if details:
+                parents = (
+                    details[-1][
+                        "event_id"],)
+            self._emitted_resource_batch_ids.add(
+                batch_id)
+        return tuple(emitted)
+
+    @staticmethod
+    def emit_resource_releases(
+            writer, turn, reservations,
+            ledger_digest, scheduler_identity,
+            caused_by=()):
+        """Emit release/expiry rows returned by a reservation ledger."""
+        parents = tuple(caused_by)
+        emitted = []
+        for reservation in reservations:
+            state = getattr(
+                getattr(
+                    reservation,
+                    "state", None),
+                "value", None)
+            if state not in (
+                    "released", "expired"):
+                continue
+            for claim in getattr(
+                    reservation, "claims", ()):
+                claim_payload = (
+                    claim.to_dict())
+                payload = {
+                    "claim_id":
+                        claim.claim_id,
+                    "conflict_resource_ids":
+                        [],
+                    "conflicting_operation_ids":
+                        [],
+                    "disposition": state,
+                    "event_schema_version":
+                        CONTROL_EVENT_SCHEMA_VERSION,
+                    "exclusive":
+                        claim.exclusive,
+                    "hardness":
+                        claim.hardness.value,
+                    "operation_id":
+                        reservation
+                        .operation_id,
+                    "quantity":
+                        claim.quantity,
+                    "reason":
+                        reservation.reason,
+                    "resource":
+                        claim_payload[
+                            "resource"],
+                    "schedule_digest":
+                        ledger_digest,
+                    "scheduler_identity":
+                        scheduler_identity,
+                    "shadow_only": True,
+                    "snapshot_id":
+                        reservation
+                        .snapshot_id,
+                    "source_step_id":
+                        claim.source_step_id,
+                    "window":
+                        claim_payload[
+                            "window"],
+                }
+                event = writer.emit(
+                    "resource_claim_released",
+                    turn, payload,
+                    caused_by=list(parents))
+                emitted.append(event)
+                parents = (
+                    event["event_id"],)
+        return tuple(emitted)
 
     def emit_domain_estimate_artifacts(
             self, writer, turn, artifacts,
@@ -301,6 +694,21 @@ class ControlEventEmitter:
             if domain_events:
                 parents = (
                     domain_events[-1][
+                        "event_id"],)
+        resource_artifacts = (
+            self._resource_schedule_artifact(
+                pressure))
+        if resource_artifacts is not None:
+            resource_events = (
+                self.emit_resource_schedule_results(
+                    writer, turn,
+                    (resource_artifacts[0],),
+                    caused_by=parents))
+            emitted.extend(
+                resource_events)
+            if resource_events:
+                parents = (
+                    resource_events[-1][
                         "event_id"],)
         teleology = (
             pressure.get("teleology", {})
