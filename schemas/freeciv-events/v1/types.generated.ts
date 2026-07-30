@@ -393,6 +393,9 @@ export type RulesetCompiled = {
 };
 
 export type StateSnapshot = {
+  "grounded_context"?: {
+    [key: string]: unknown;
+  };
   "legal_actions_digest"?: string;
   "map": {
     [key: string]: unknown;

@@ -31,14 +31,16 @@ The analyzer now:
 - emits `defender-route-eta-unavailable` for a multi-turn route whose arrival
   time is not grounded by the captured state.
 
-Unsupported threats remain visible in the analysis with confidence zero and
-unknown mass one. They do not silently become assignment demand.
+Units that are definitively non-combat-capable are recorded as typed omissions
+and do not enter the threat denominator. Potential threats whose ruleset or
+class support is unavailable remain visible with confidence zero and unknown
+mass one. Neither case silently becomes assignment demand.
 
 ## Before and after
 
 The retained report is
 `benchmarks/gdo/gdo4_city_defense_replay_diagnostic.json`, with report hash
-`a08ecc1bb80e4119d80319ba0227419ac0f0b2d5a1aa1d93770d555c27eaec08`.
+`80635bdcd1f47efae9159e13a6405ee0a7c3409521215b6a24db6b2083ab1c32`.
 
 | Metric | Initial replay | Hardened replay |
 | --- | ---: | ---: |
@@ -89,9 +91,13 @@ Focused city-defence tests now cover:
 - the existing exactness, legality, resource, invariance, event, and safety
   cases.
 
-The focused result is `16 passed`. Replay validation passes, B4 has zero actor,
+The focused result is `19 passed`. Replay validation passes, B4 has zero actor,
 city-production, late-arrival, and sole-defender violations, and replay
-analyzer-plus-solver p95 is approximately 4.27 ms over 900 samples.
+analyzer-plus-solver p95 is approximately 4.21 ms over 900 samples.
+
+The follow-on fresh engine cohort and protected candidate-union result are
+documented in
+`docs/evidence/gdo/gdo4_grounded_160_replay.md`.
 
 ## Claim boundary
 

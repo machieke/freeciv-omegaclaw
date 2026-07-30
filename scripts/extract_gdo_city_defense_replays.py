@@ -228,6 +228,7 @@ def _load_trace(path):
     last_snapshot = None
     scored = {}
     final_snapshot_by_turn = {}
+    proposed_snapshot_ids = set()
     with open(
             path,
             encoding="utf-8") as stream:
@@ -261,16 +262,31 @@ def _load_trace(path):
                     scored[
                         snapshot_id] = (
                             event)
+                continue
+            if event_type == (
+                    "operation_proposed"):
+                proposed_snapshot_id = (
+                    event.get(
+                        "payload", {})
+                    .get(
+                        "snapshot_id"))
+                if isinstance(
+                        proposed_snapshot_id,
+                        str):
+                    proposed_snapshot_ids.add(
+                        proposed_snapshot_id)
     return (
         snapshots,
         scored,
-        final_snapshot_by_turn)
+        final_snapshot_by_turn,
+        proposed_snapshot_ids)
 
 
 def extract(
         event_path, manifest_path,
         output_directory,
-        snapshot_ids):
+        snapshot_ids,
+        output_manifest_path=None):
     with open(
             manifest_path,
             encoding="utf-8") as stream:
@@ -280,6 +296,7 @@ def extract(
         snapshots,
         scored,
         final_snapshot_by_turn,
+        _proposed_snapshot_ids,
     ) = _load_trace(
         event_path)
     os.makedirs(
@@ -458,10 +475,14 @@ def extract(
     manifest["manifest_hash"] = (
         structural_hash(
             manifest))
-    manifest_path = os.path.join(
-        os.path.dirname(
-            output_directory),
-        "city_defense_replay_manifest.json")
+    manifest_path = (
+        os.path.abspath(
+            output_manifest_path)
+        if output_manifest_path
+        else os.path.join(
+            os.path.dirname(
+                output_directory),
+            "city_defense_replay_manifest.json"))
     with open(
             manifest_path, "w",
             encoding="utf-8") as stream:
@@ -486,10 +507,50 @@ def main():
         "--output-directory",
         default=DEFAULT_OUTPUT_DIRECTORY)
     parser.add_argument(
+        "--output-manifest")
+    parser.add_argument(
+        "--all-proposed-defense-snapshots",
+        action="store_true")
+    parser.add_argument(
         "--snapshot-id",
         action="append",
         dest="snapshot_ids")
     arguments = parser.parse_args()
+    snapshot_ids = (
+        tuple(arguments.snapshot_ids)
+        if arguments.snapshot_ids
+        else None)
+    if (arguments
+            .all_proposed_defense_snapshots):
+        if snapshot_ids:
+            parser.error(
+                "--all-proposed-defense-snapshots cannot be combined with --snapshot-id")
+        (
+            snapshots,
+            scored,
+            _outcomes,
+            proposed_snapshot_ids,
+        ) = _load_trace(
+            os.path.abspath(
+                arguments.events))
+        snapshot_ids = tuple(sorted(
+            (
+                snapshot_id
+                for snapshot_id
+                in proposed_snapshot_ids
+                if snapshot_id
+                in snapshots
+                and snapshot_id
+                in scored),
+            key=lambda snapshot_id: (
+                int(
+                    snapshots[
+                        snapshot_id][
+                            "turn"]),
+                snapshot_id)))
+        if not snapshot_ids:
+            parser.error(
+                "source trace contains no replayable proposed defence snapshots")
     path, manifest = extract(
         os.path.abspath(
             arguments.events),
@@ -498,8 +559,10 @@ def main():
         os.path.abspath(
             arguments.output_directory),
         tuple(
-            arguments.snapshot_ids
-            or DEFAULT_SNAPSHOT_IDS))
+            snapshot_ids
+            or DEFAULT_SNAPSHOT_IDS),
+        output_manifest_path=(
+            arguments.output_manifest))
     print(json.dumps({
         "fixture_count":
             manifest[

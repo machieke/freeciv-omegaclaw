@@ -122,3 +122,9 @@ The first captured replay and its semantic hardening are documented in
 `docs/evidence/gdo/gdo4_captured_replay_hardening.md`. That replay localized the
 remaining blocker to grounded threat/defender ETA and representative earlier
 warning states; it did not establish a B4 improvement over B1.
+
+The next fresh 160-turn engine trace is documented in
+`docs/evidence/gdo/gdo4_grounded_160_replay.md`. It closes candidate recall for
+the retained defence requirements and shows a diagnostic one-action readout
+delta versus B1, while leaving the movement-ETA and realized-outcome gates
+closed.

@@ -1016,8 +1016,10 @@ class CityDefenseAnalyzer:
                 support_reason = (
                     "enemy-ruleset-spec-unavailable")
             elif not attack_supported:
-                support_reason = (
-                    "enemy-unit-not-combat-capable")
+                omissions.append(
+                    "enemy:{}:not-combat-capable".format(
+                        enemy.unit_id))
+                continue
             elif unit_class is None:
                 support_reason = (
                     "enemy-unit-class-unavailable")

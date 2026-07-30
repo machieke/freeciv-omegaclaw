@@ -1,7 +1,9 @@
 """Captured city-defence replay input completeness."""
 
 import importlib.util
+import json
 import os
+import tempfile
 
 
 REPO = os.path.dirname(
@@ -100,3 +102,69 @@ def test_grounded_snapshot_completeness_is_measured_per_input_family():
     # or counterfactual operation outcomes.
     assert not authority[
         "policy_authority_eligible"]
+
+
+def test_trace_loader_retains_only_explicit_operation_proposal_snapshot_ids():
+    events = [
+        {
+            "type": "state_snapshot",
+            "turn": 4,
+            "payload": {
+                "snapshot_id": "snapshot-4",
+            },
+        },
+        {
+            "type": "operation_scored",
+            "turn": 4,
+            "payload": {
+                "snapshot_id": "snapshot-4",
+            },
+        },
+        {
+            "type": "operation_proposed",
+            "turn": 4,
+            "payload": {
+                "snapshot_id": "snapshot-4",
+            },
+        },
+        {
+            "type": "state_snapshot",
+            "turn": 5,
+            "payload": {
+                "snapshot_id": "snapshot-5",
+            },
+        },
+    ]
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(
+            directory, "events.jsonl")
+        with open(
+                path, "w",
+                encoding="utf-8") as stream:
+            for event in events:
+                stream.write(
+                    json.dumps(event))
+                stream.write("\n")
+        (
+            snapshots,
+            scored,
+            final_snapshot_by_turn,
+            proposed_snapshot_ids,
+        ) = (
+            _extractor_module()
+            ._load_trace(path))
+
+    assert set(snapshots) == {
+        "snapshot-4",
+        "snapshot-5",
+    }
+    assert set(scored) == {
+        "snapshot-4",
+    }
+    assert set(
+        final_snapshot_by_turn) == {
+            4, 5,
+        }
+    assert proposed_snapshot_ids == {
+        "snapshot-4",
+    }

@@ -509,6 +509,18 @@ def _selected_for_action(
                 row.operation_id))[:1])
 
 
+def _single_action_readout(selected):
+    return tuple(sorted(
+        (
+            row for row in selected
+            if row.next_action
+            is not None
+        ),
+        key=lambda row: (
+            -float(row.bid),
+            row.operation_id))[:1])
+
+
 def _metrics(
         requirements, selected,
         analysis):
@@ -712,6 +724,10 @@ def run(
         for name in (
             "B1", "B2",
             "B3", "B4")}
+    assignment_totals = {
+        name: {}
+        for name in (
+            "B3", "B4")}
     scenarios = []
     exact_never_worse = True
     exact_status = True
@@ -773,9 +789,19 @@ def run(
                 analysis.operations
                 if row.operation_id
                 in b4_ids)
+            b3_readout = (
+                _single_action_readout(
+                    b3_selected))
+            b4_readout = (
+                _single_action_readout(
+                    b4_selected))
             arms = {
                 "B1": b1_selected,
                 "B2": b2_selected,
+                "B3": b3_readout,
+                "B4": b4_readout,
+            }
+            assignment_arms = {
                 "B3": b3_selected,
                 "B4": b4_selected,
             }
@@ -790,11 +816,27 @@ def run(
                 _add(
                     totals[name],
                     arm_metrics[name])
+            assignment_arm_metrics = {}
+            for name, selected in (
+                    assignment_arms
+                    .items()):
+                assignment_arm_metrics[
+                    name] = _metrics(
+                        analysis.requirements,
+                        selected,
+                        analysis)
+                _add(
+                    assignment_totals[
+                        name],
+                    assignment_arm_metrics[
+                        name])
             exact_never_worse = bool(
                 exact_never_worse
-                and arm_metrics["B4"][
+                and assignment_arm_metrics[
+                    "B4"][
                     "covered_threat_slots"]
-                >= arm_metrics["B3"][
+                >= assignment_arm_metrics[
+                    "B3"][
                     "covered_threat_slots"])
             exact_status = bool(
                 exact_status
@@ -857,6 +899,8 @@ def run(
             scenarios.append({
                 "arms":
                     arm_metrics,
+                "assignment_arms":
+                    assignment_arm_metrics,
                 "candidate_count":
                     len(candidates),
                 "candidate_edge_requirement_count":
@@ -1017,14 +1061,30 @@ def run(
             },
             "B3": {
                 "description":
-                    "typed identity-aware greedy defence assignment",
+                    "typed identity-aware greedy assignment with one-action readout",
                 **totals["B3"],
             },
             "B4": {
                 "description":
-                    "typed bounded-exact defence assignment",
+                    "typed bounded-exact assignment with one-action readout",
                 **totals["B4"],
             },
+        },
+        "assignment_arms": {
+            "B3": {
+                "description":
+                    "typed identity-aware greedy intent assignment before one-action readout",
+                **assignment_totals[
+                    "B3"],
+            },
+            "B4": {
+                "description":
+                    "typed bounded-exact intent assignment before one-action readout",
+                **assignment_totals[
+                    "B4"],
+            },
+            "warning":
+                "Intent assignments are not credited as executed operations; headline arm metrics include only one current-action readout per fixture.",
         },
         "claim_status":
             "captured-replay-diagnostic-only",

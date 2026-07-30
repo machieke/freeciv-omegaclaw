@@ -456,12 +456,10 @@ def test_non_military_visible_unit_does_not_create_defense_requirement():
         snapshot, ruleset,
         candidates)
 
-    assert analysis.threats
-    assert all(
-        row.support_reason
-        == "enemy-unit-not-combat-capable"
-        for row in analysis.threats)
+    assert analysis.threats == ()
     assert analysis.requirements == ()
+    assert analysis.omissions == (
+        "enemy:90:not-combat-capable",)
 
 
 def test_existing_garrison_surplus_is_not_an_uncovered_response_slot():
@@ -789,6 +787,14 @@ def test_city_defense_shadow_operations_emit_valid_attributable_events():
     assignment = (
         ExactCityDefenseAssignmentSolver()
         .schedule(analysis))
+    selected_action = next(
+        row.next_action
+        for row in analysis.operations
+        if row.operation_id
+        in assignment
+        .selected_operation_ids
+        and row.next_action
+        is not None)
 
     with tempfile.TemporaryDirectory() as directory:
         path = os.path.join(
@@ -807,6 +813,13 @@ def test_city_defense_shadow_operations_emit_valid_attributable_events():
                         analysis.to_dict(),
                     "assignment":
                         assignment.to_dict(),
+                    "selected_action_key":
+                        ImpactCandidate(
+                            action=selected_action,
+                            category="test",
+                            utility=0.0,
+                            rationale="test")
+                        .action_key,
                 }))
         report = validate_file(
             path)
@@ -821,10 +834,11 @@ def test_city_defense_shadow_operations_emit_valid_attributable_events():
         == "operation_step_selected"]
     assert len(proposals) == len(
         analysis.operations)
+    assert len(selections) == 1
     assert {
         row["payload"]["operation_id"]
         for row in selections
-    } == set(
+    } <= set(
         assignment
         .selected_operation_ids)
     assert all(

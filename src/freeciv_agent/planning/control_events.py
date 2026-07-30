@@ -440,6 +440,9 @@ class ControlEventEmitter:
         assignment_digest = (
             assignment.get(
                 "decision_digest"))
+        selected_action_key = (
+            artifact.get(
+                "selected_action_key"))
         snapshot_id = str(
             analysis.get(
                 "snapshot_id")
@@ -465,11 +468,31 @@ class ControlEventEmitter:
                     "operation_id"])
             entry = entries.get(
                 operation_id, {})
-            selected = bool(
+            assigned = bool(
                 entry.get(
                     "selected", False))
+            operation_action = (
+                operation.get(
+                    "next_action"))
+            operation_action_key = (
+                canonical_json_bytes(
+                    operation_action)
+                .decode("utf-8")
+                if isinstance(
+                    operation_action, dict)
+                else None)
+            selected = bool(
+                assigned
+                and selected_action_key
+                is not None
+                and operation_action_key
+                == selected_action_key)
             reason = entry.get(
                 "reason")
+            if (assigned
+                    and not selected):
+                reason = (
+                    "assignment-selected-awaiting-readout")
             if reason is None:
                 reason = operation.get(
                     "support_reason")
