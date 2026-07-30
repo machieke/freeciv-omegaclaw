@@ -51,7 +51,7 @@ FreeCiv score, gameplay, or win rate improves.
 | CT1 calibrated scalar | complete | passed | safety/semantic gate passed; score neutral | fail-closed abstention |
 | CT2 protected deterministic bridge | complete | passed | recall mechanism/safety passed; score neutral | membership only |
 | CT3 corrected probes | complete | passed | stopped: no incremental recall, higher latency | no supported authority |
-| CT4 path persistence | complete | passed | paired diagnostic authorized on CT2 comparator | calibrated near-ties only |
+| CT4 path persistence | complete | passed | diagnostic positive/uncertain; pilot authorized | calibrated near-ties only |
 | CT5 source–sink flow | existing numerical layer, newly hard-gated | not entered | not entered | closed |
 
 CT5 remains closed because CT4 has not completed a paired engine diagnostic
@@ -127,6 +127,8 @@ read-only model. Seeds are disjoint across all five stages.
   `docs/freeciv/evidence/pf-protected-bridge-readout-diagnostic-v1.json`
 - CT3 corrected-probe engine diagnostic:
   `docs/freeciv/evidence/pf-corrected-probe-readout-diagnostic-v1.json`
+- CT4 path-persistence engine diagnostic:
+  `docs/freeciv/evidence/pf-path-persistence-diagnostic-v1.json`
 - Frozen-fit tool:
   `scripts/freeciv/fit_transition_value_model.py`
 - Schema-valid UI proof trace:
@@ -145,10 +147,11 @@ Verification completed at this checkpoint:
 
 ## Next executable gate
 
-Run the seed-disjoint `path_persistence_diagnostic_v1` on the CT2
-protected-message comparator. CT3 produced `1,514/1,514` healthy probe
-batches, but its union decisions, memberships, bridge additions, fallbacks,
-and final readouts were exactly identical to deterministic bridge messages.
-It added about `20 ms` of planner latency and produced zero score, win, or
-safety delta. Corrected probes therefore stop here and are removed from the
-CT4 comparator rather than being silently carried forward.
+Run the predeclared, seed-disjoint `path_persistence_pilot_v1`. CT4 reordered
+`32` calibrated equal-priority near-ties with zero priority regret. Mean
+corridor-switch rate fell by `0.0264` and A-B-A oscillation rate by `0.0096`,
+each improving in `7/10` pairs. The diagnostic direction was `+0.2` score,
+`+0.1` win rate, and `+0.2` settlement completions, with no rejection,
+terminal-followup, safety, or material latency regression. These intervals
+remain wide and the cohort is claim-ineligible. CT5 remains closed because
+the remaining error has not been attributed to source-sink route allocation.

@@ -1,0 +1,87 @@
+{
+  "claim_eligible": false,
+  "cohort": "path_persistence_diagnostic_v1",
+  "engine": {
+    "complete_arms": 20,
+    "complete_pairs": 10,
+    "failures": 0,
+    "infrastructure_failures": 0,
+    "source_commit": "7edf7ee0460823ff5a7979bf0d8bf65068f98cf0",
+    "source_stable": true
+  },
+  "mechanism": {
+    "authority_active_events": 490,
+    "authority_abstentions": 5,
+    "maximum_priority_regret": 0.0,
+    "path_events": 495,
+    "priority_regret_rejections": 0,
+    "reordered_decisions": 32,
+    "terminal_or_irreversible_bypasses": 14
+  },
+  "oscillation": {
+    "aba_rate": {
+      "baseline_mean": 0.15023120186456254,
+      "paired_delta": -0.009630463186805608,
+      "pairs_improved": 7,
+      "pairs_worsened": 3,
+      "treatment_mean": 0.14060073867775694
+    },
+    "corridor_switch_rate": {
+      "baseline_mean": 0.7421924163832687,
+      "paired_delta": -0.026412018626590907,
+      "pairs_improved": 7,
+      "pairs_worsened": 3,
+      "treatment_mean": 0.7157803977566778
+    }
+  },
+  "paired_deltas": {
+    "cities_founded": {
+      "estimate": 0.2,
+      "lower": 0.0,
+      "upper": 0.5
+    },
+    "decision_no_effect_actions": {
+      "estimate": 0.1,
+      "lower": -0.5,
+      "upper": 0.6
+    },
+    "engine_rejected_action_rate": {
+      "estimate": 0.0,
+      "lower": 0.0,
+      "upper": 0.0
+    },
+    "impact_planning_decision_latency_ms": {
+      "estimate": -1.8388411602050188,
+      "lower": -10.095944012220599,
+      "upper": 5.352384831254284
+    },
+    "planned_engine_actions": {
+      "estimate": 1.9,
+      "lower": 0.9,
+      "upper": 2.9
+    },
+    "score_turn_n": {
+      "estimate": 0.2,
+      "lower": -0.2,
+      "upper": 0.7
+    },
+    "settlement_completions": {
+      "estimate": 0.2,
+      "lower": 0.0,
+      "upper": 0.5
+    },
+    "win_rate": {
+      "estimate": 0.1,
+      "lower": 0.0,
+      "upper": 0.3
+    }
+  },
+  "result": {
+    "gameplay_direction": "positive_but_uncertain",
+    "next_gate": "path_persistence_pilot_v1",
+    "safety_gates_passed": true,
+    "source_sink_flow_gate": "closed",
+    "stage": "diagnostic_passed"
+  },
+  "schema_version": "1.0"
+}
