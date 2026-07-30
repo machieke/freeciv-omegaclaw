@@ -12,6 +12,8 @@ optional city-local happiness template are described by
 `contracts/freeciv-proxy/v10/contract.json`.
 Resource-flow, building-inventory, and score observations are described by
 `contracts/freeciv-proxy/v11/contract.json`.
+Opt-in native combat probability intervals and selected-defender observations
+are described by `contracts/freeciv-proxy/v12/contract.json`.
 Apply the tracked patch series to the pinned external checkout before starting
 its container:
 
@@ -50,8 +52,10 @@ The player-known-terrain-semantics patch is pinned at
 `c6b813be4dd6b7c2f2679f8aa2444f0fffb36597e23fb403ee1201d497ffdd81`.
 The route-refresh-validity patch is pinned at
 `594fee9fd8cf07237cfc83036842aba1e0171d3ac1f01b99ea93b43618bea7e7`.
-The ordered fifteen-patch series identity is
-`5a8cf967816ac6e692c27fae0cce59755ce27ea23e184c452a2aae0da767974e`.
+The native-combat-probabilities patch is pinned at
+`659627003f09f980692021bd27eff1620e805dbadd2e9b42faedc98329bcc59c`.
+The ordered sixteen-patch series identity is
+`56f9ae36e3e985bc36c04600df294436498854321c2390d7e281b7a3071cd6ca`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 The v9 projection closes the stable-government initiation gap. The proxy now
@@ -79,6 +83,15 @@ advertise the audited `PACKET_WEB_CMA_SET` template with
 Engine evidence showed that global luxury starved research and that the local
 happiness template was infeasible in the examined city states, so both planner
 selectors are disabled by default.
+
+The v12 projection uses Freeciv's own action subsystem for combat odds. An
+opt-in state query sends at most 32 background action requests for adjacent
+packet-visible foreign-unit tiles. The response retains the server-selected
+defender and half-percentage-point probability intervals for the declared
+combat action subset. Results are exposed only while the exact actor revision,
+target stack, turn, and player still match. Unsolicited, stale, timed-out, and
+malformed replies are discarded. This is a transport and estimation boundary;
+multi-unit assembly remains shadow-only and must re-estimate after each step.
 
 The v8 transport also projects `GameSession.game_is_over` into every player's
 authoritative `game.is_over` value. This closes the observer-first endgame-report

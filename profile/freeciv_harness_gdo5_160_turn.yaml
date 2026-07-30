@@ -1,7 +1,7 @@
 schema_version: "1.0"
 ruleset: civ2civ3
-turn_limit: 480
-engine_max_turns: 480
+turn_limit: 160
+engine_max_turns: 160
 live:
   civserver_port: 6001
   topology: dedicated-serial-process-recycle
@@ -17,10 +17,10 @@ engine:
   freeciv_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018
   proxy_commit: 26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:56f9ae36e3e985bc36c04600df294436498854321c2390d7e281b7a3071cd6ca
 rulebase:
-  compiler_version: freeciv-ruleset-compiler/1.2
+  compiler_version: freeciv-ruleset-compiler/1.3
   source_sha256: 3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e
-  ir_sha256: be57b9141bc0c9a439abcc6ab4052601c2cec82c6c6e148f5ebd587fde120687
-  atomese_sha256: cecd6aa53684e276c6d2426f93151d19998635d60bbcf02383a4387557f19edb
+  ir_sha256: 2f25a21c969e60b94c2da4d40c336fcc14a41e6741d8edf86d0eb8be4e696f06
+  atomese_sha256: 86b3108f12c30690af34f72f40150ca0250caf7479ce07f11d40236e8e00220e
 model:
   provider: Ollama-local
   name: qwen3-coder-next:latest
@@ -38,7 +38,7 @@ impact_policy:
   max_actions_per_turn: 8
   expansion_city_target: 5
   settle_min_distance: 3
-  horizon_turn: 480
+  horizon_turn: 160
   preferred_government: ""
   government_minimum_remaining_turns: 12
   government_minimum_city_count: 5
@@ -58,11 +58,19 @@ impact_policy:
   expansion_escort_threat_gating_enabled: false
   expansion_escort_route_threat_memory_enabled: false
   expansion_final_settlement_escort_enabled: false
+  ruleset_driven_production_enabled: true
+  naval_response_enabled: true
+  modernization_enabled: true
+  industrialization_enabled: true
+  strategic_threat_memory_turns: 80
   foodbox_percent: 100
   unit_build_score_divisor: 10
   food_surplus_reserve: 1
   structural_economy_maximum_completion_turns: 20
   disorder_luxury_recovery_enabled: false
+  disorder_luxury_trigger_turns: 3
+  disorder_luxury_minimum_city_size: 10
+  disorder_luxury_bridge_max_turns: 40
   city_happiness_governor_enabled: false
   treasury_reserve_turns: 2
   treasury_minimum_gold: 5
@@ -76,6 +84,18 @@ impact_policy:
   preserve_city_defenders: true
   production_strategy: horizon_score
   pressure_enabled: true
+  pressure_semantics_version: v2
+  pressure_controller_mode: scalar_v2
+  pressure_packet_scheduler_enabled: true
+  pressure_resource_scheduler_enabled: true
+  pressure_requirement_sets_enabled: true
+  pressure_domain_estimates_enabled: true
+  pressure_native_movement_routes_enabled: true
+  pressure_native_combat_probabilities_enabled: true
+  pressure_combat_operations_enabled: true
+  pressure_commit_revalidation_enabled: true
+  pressure_operation_lifecycle_enabled: true
+  pressure_city_defense_operations_enabled: true
   pressure_score_alignment_enabled: true
   pressure_exploration_information_enabled: true
   pressure_score_alignment_utility_tolerance: 0.05
@@ -83,14 +103,12 @@ impact_policy:
   pressure_exploration_floor: 0.05
   pressure_temperature: 0.15
   pressure_max_routes_per_conclusion: 32
-  pressure_survival_threat_radius: 3
+  pressure_survival_threat_radius: 6
   pressure_learning_enabled: true
   pressure_learning_rate: 0.10
   pressure_no_progress_rate: 0.10
   pressure_initial_conductance: 1.00
 seeds:
-  # First seed is the requested exploratory horizon extension. The remaining
-  # pinned seeds preserve the harness schema's minimum deterministic catalog.
   - 4543804
   - 104743
   - 104759

@@ -237,6 +237,94 @@ class MovementRouteState:
 
 
 @dataclass(frozen=True)
+class CombatActionProbabilityState:
+    """One uninterpreted native action-probability interval."""
+
+    action_id: int
+    action_name: str
+    minimum: int
+    maximum: int
+    status: str
+
+    @property
+    def lower_probability(self):
+        return (
+            float(self.minimum) / 200.0
+            if self.status == "bounded"
+            else None)
+
+    @property
+    def upper_probability(self):
+        return (
+            float(self.maximum) / 200.0
+            if self.status == "bounded"
+            else None)
+
+    def to_dict(self):
+        return {
+            "action_id": self.action_id,
+            "action_name": self.action_name,
+            "maximum": self.maximum,
+            "minimum": self.minimum,
+            "status": self.status,
+        }
+
+
+@dataclass(frozen=True)
+class CombatProbabilityState:
+    """Exact-revision combat odds returned by Freeciv's action subsystem."""
+
+    player_id: int
+    actor_unit_id: int
+    target_tile_id: int
+    target_unit_id: int
+    target_city_id: int
+    target_extra_id: int
+    target_unit_ids: Tuple[int, ...]
+    action_probabilities: Tuple[CombatActionProbabilityState, ...]
+    actor_revision_digest: str
+    target_stack_revision_digest: str
+    turn: int
+    request_source_seq: int
+    response_source_seq: int
+    authority: str = "freeciv-server-action-probability"
+    schema_version: str = "1.0"
+
+    def action_probability(self, action_name):
+        action_name = str(action_name)
+        return next((
+            row for row in self.action_probabilities
+            if row.action_name == action_name
+        ), None)
+
+    def to_dict(self):
+        return {
+            "action_probabilities": [
+                row.to_dict()
+                for row in self.action_probabilities],
+            "actor_revision_digest":
+                self.actor_revision_digest,
+            "actor_unit_id": self.actor_unit_id,
+            "authority": self.authority,
+            "player_id": self.player_id,
+            "request_source_seq":
+                self.request_source_seq,
+            "response_source_seq":
+                self.response_source_seq,
+            "schema_version": self.schema_version,
+            "target_city_id": self.target_city_id,
+            "target_extra_id": self.target_extra_id,
+            "target_stack_revision_digest":
+                self.target_stack_revision_digest,
+            "target_tile_id": self.target_tile_id,
+            "target_unit_id": self.target_unit_id,
+            "target_unit_ids": list(
+                self.target_unit_ids),
+            "turn": self.turn,
+        }
+
+
+@dataclass(frozen=True)
 class CityState:
     city_id: int
     owner: int
@@ -339,6 +427,8 @@ class AuthoritativeSnapshot:
     map_topology_id: Optional[int] = None
     movement_routes: Tuple[MovementRouteState, ...] = field(
         default_factory=tuple)
+    combat_probabilities: Tuple[CombatProbabilityState, ...] = field(
+        default_factory=tuple)
 
     @property
     def snapshot_id(self):
@@ -370,6 +460,17 @@ class AuthoritativeSnapshot:
                 route.unit_id == unit_id
                 and route.destination_tile
                     == destination_tile)
+        ), None)
+
+    def combat_probability(self, unit_id, target_tile):
+        unit_id = int(unit_id)
+        target_tile = int(target_tile)
+        return next((
+            result for result in self.combat_probabilities
+            if (
+                result.actor_unit_id == unit_id
+                and result.target_tile_id
+                    == target_tile)
         ), None)
 
     def own_state_dict(self):
@@ -437,24 +538,32 @@ class AuthoritativeSnapshot:
             map_topology[
                 "topology_id"] = (
                     self.map_topology_id)
-        grounded_schema_version = (
-            "1.2"
-            if (
-                self.map_topology_id
-                is not None
-                or any(
-                    isinstance(tile, dict)
-                    and (
-                        "terrain_class"
-                        in tile
-                        or
-                        "native_unit_classes"
-                        in tile)
-                    for tile in
-                    self.map_tiles))
-            else "1.1")
+        if self.combat_probabilities:
+            grounded_schema_version = "1.3"
+        elif (
+            self.map_topology_id
+            is not None
+            or any(
+                isinstance(tile, dict)
+                and (
+                    "terrain_class"
+                    in tile
+                    or
+                    "native_unit_classes"
+                    in tile)
+                for tile in
+                self.map_tiles)
+        ):
+            grounded_schema_version = "1.2"
+        else:
+            grounded_schema_version = "1.1"
         return {
             "grounded_context": {
+                "combat_probabilities": [
+                    result.to_dict()
+                    for result in
+                    self.combat_probabilities
+                ],
                 "legal_actions": [
                     json.loads(value)
                     for value

@@ -1,0 +1,774 @@
+diff --git a/freeciv-proxy/civcom.py b/freeciv-proxy/civcom.py
+index a1852b4..d02ad0e 100755
+--- a/freeciv-proxy/civcom.py
++++ b/freeciv-proxy/civcom.py
+@@ -63,6 +63,8 @@ from packet_constants import (
+     PACKET_PLAYER_READY,  # Player ready signal
+     PACKET_PLAYER_RESEARCH,  # Player research selection
+     PACKET_UNIT_ORDERS,  # Unit order queue for pathfinding
++    PACKET_UNIT_GET_ACTIONS,  # Server-side authoritative action query
++    PACKET_UNIT_ACTIONS,  # Server-side authoritative action probabilities
+     PACKET_WEB_GOTO_PATH_REQ,  # Server-side authoritative path request
+     PACKET_WEB_GOTO_PATH,  # Server-side authoritative path result
+     PACKET_PLAYER_DIPLSTATE,  # Player diplomatic state (war/peace/ceasefire/alliance)
+@@ -376,6 +378,12 @@ class CivCom(Thread):
+         # origin, movement allowance, and turn that produced them.
+         self.pln_movement_routes = {}
+         self.pln_movement_route_event = asyncio.Event()
++        # Combat odds are retained only for explicitly requested, exact actor
++        # and visible-target-stack revisions. They are never inferred from
++        # locally reconstructed combat rules.
++        self.pln_combat_probabilities = {}
++        self.pln_combat_probability_requests = {}
++        self.pln_combat_probability_event = asyncio.Event()
+         try:
+             self.source_update_loop = asyncio.get_event_loop()
+         except RuntimeError:
+@@ -1982,6 +1990,334 @@ class CivCom(Thread):
+                 break
+         return len(requests) - len(pending)
+ 
++    @staticmethod
++    def _pln_combat_probability_key(unit_id, target_tile):
++        return "{}:{}".format(int(unit_id), int(target_tile))
++
++    @staticmethod
++    def _pln_combat_unit_revision(
++            unit, require_actor_state=False):
++        """Return only packet fields that can invalidate native combat odds."""
++        if not isinstance(unit, dict):
++            return None
++        fields = (
++            'id', 'owner', 'type_id', 'tile', 'moves_left', 'hp', 'veteran',
++            'activity', 'transported', 'transported_by')
++        revision = {
++            field: unit.get(field)
++            for field in fields
++        }
++        required = (
++            'id', 'owner', 'type_id', 'tile', 'hp',
++            'veteran', 'activity', 'transported')
++        if require_actor_state:
++            required += ('moves_left',)
++        return revision if all(
++            revision.get(field) is not None
++            for field in required) else None
++
++    def _pln_visible_stack_revision(self, target_tile):
++        """Describe exactly the visible unit stack used by the server query."""
++        rows = []
++        for unit in self._normalize_to_dict(
++                getattr(self, 'player_units', {})).values():
++            if unit.get('tile') != target_tile:
++                continue
++            revision = self._pln_combat_unit_revision(
++                unit)
++            # Foreign PACKET_UNIT_SHORT_INFO intentionally omits movement
++            # state, which cannot affect defender identity. Preserve that
++            # omission as None. Any missing combat-relevant target field makes
++            # the complete stack unrevisionable and the query must abstain.
++            if revision is None:
++                return None
++            rows.append(revision)
++        return sorted(rows, key=lambda row: row['id'])
++
++    def _valid_pln_combat_probability(self, result, player_id):
++        """Reject cross-player, stale-actor, and stale-target probability rows."""
++        if not isinstance(result, dict) or result.get('player_id') != player_id:
++            return False
++        units = self._normalize_to_dict(getattr(self, 'player_units', {}))
++        actor_id = result.get('actor_unit_id')
++        actor = units.get(str(actor_id))
++        if actor is None:
++            actor = units.get(actor_id)
++        return bool(
++            isinstance(actor, dict)
++            and actor.get('owner') == player_id
++            and result.get('turn') == self.game_turn
++            and result.get('actor_revision')
++                == self._pln_combat_unit_revision(
++                    actor, require_actor_state=True)
++            and result.get('target_stack_revision')
++                == self._pln_visible_stack_revision(
++                    result.get('target_tile_id')))
++
++    @staticmethod
++    def _pln_combat_probability_rows(probabilities):
++        """Normalize bounded combat action intervals without interpreting them."""
++        if not isinstance(probabilities, list):
++            return None
++        # These IDs are stable protocol action IDs in the pinned server:
++        # capture-units, attack, suicide-attack, conquer-city, bombard.
++        action_names = {
++            24: 'capture_units',
++            45: 'attack',
++            46: 'suicide_attack',
++            49: 'conquer_city',
++            53: 'bombard',
++        }
++        rows = []
++        for action_id, action_name in sorted(action_names.items()):
++            if action_id >= len(probabilities):
++                return None
++            probability = probabilities[action_id]
++            if not isinstance(probability, dict):
++                return None
++            minimum = probability.get('min')
++            maximum = probability.get('max')
++            if any(
++                isinstance(value, bool) or not isinstance(value, int)
++                for value in (minimum, maximum)
++            ):
++                return None
++            if 0 <= minimum <= maximum <= 200:
++                status = 'bounded'
++            elif (minimum, maximum) == (253, 0):
++                status = 'not_applicable'
++            elif (minimum, maximum) == (254, 0):
++                status = 'not_implemented'
++            else:
++                return None
++            rows.append({
++                'action_id': action_id,
++                'action_name': action_name,
++                'minimum': minimum,
++                'maximum': maximum,
++                'status': status,
++            })
++        return rows
++
++    def _record_pln_combat_probability(self, packet):
++        """Store one response only when it matches an explicit PLN request."""
++        actor_id = packet.get('actor_unit_id')
++        target_tile = packet.get('target_tile_id')
++        if any(
++            isinstance(value, bool) or not isinstance(value, int)
++            for value in (actor_id, target_tile)
++        ):
++            return
++        key = self._pln_combat_probability_key(actor_id, target_tile)
++        pending = getattr(
++            self, 'pln_combat_probability_requests', {}).pop(key, None)
++        if not isinstance(pending, dict):
++            return
++        rows = self._pln_combat_probability_rows(
++            packet.get('action_probabilities'))
++        if rows is None or packet.get('request_kind') != 1:
++            return
++        selected_target_id = packet.get('target_unit_id')
++        target_city_id = packet.get('target_city_id')
++        target_extra_id = packet.get('target_extra_id')
++        if any(
++            isinstance(value, bool) or not isinstance(value, int)
++            for value in (
++                selected_target_id, target_city_id, target_extra_id)
++        ):
++            return
++        if (
++            selected_target_id != 0
++            and selected_target_id not in {
++                row.get('id')
++                for row in pending[
++                    'target_stack_revision']
++            }
++        ):
++            return
++        result = {
++            'schema_version': '1.0',
++            'authority': 'freeciv-server-action-probability',
++            'player_id': pending['player_id'],
++            'actor_unit_id': actor_id,
++            'actor_revision': pending['actor_revision'],
++            'target_tile_id': target_tile,
++            'target_unit_id': selected_target_id,
++            'target_city_id': target_city_id,
++            'target_extra_id': target_extra_id,
++            'target_stack_revision': pending['target_stack_revision'],
++            'request_kind': 'background_refresh',
++            'action_probabilities': rows,
++            'turn': pending['turn'],
++            'request_source_seq': pending['source_seq'],
++            'response_source_seq': self.source_seq,
++        }
++        cache = getattr(self, 'pln_combat_probabilities', None)
++        if not isinstance(cache, dict):
++            cache = {}
++            self.pln_combat_probabilities = cache
++        cache[key] = result
++        if len(cache) > 256:
++            oldest = min(
++                cache, key=lambda cache_key: (
++                    cache[cache_key].get('response_source_seq', -1),
++                    cache_key))
++            del cache[oldest]
++        event = getattr(self, 'pln_combat_probability_event', None)
++        if event is not None:
++            loop = getattr(self, 'source_update_loop', None)
++            if loop is not None and loop.is_running():
++                loop.call_soon_threadsafe(event.set)
++            else:
++                event.set()
++
++    def _current_pln_combat_probabilities(self, player_id):
++        rows = [
++            dict(result)
++            for result in getattr(
++                self, 'pln_combat_probabilities', {}).values()
++            if self._valid_pln_combat_probability(result, player_id)
++        ]
++        return sorted(
++            rows,
++            key=lambda row: (
++                row['actor_unit_id'], row['target_tile_id']))
++
++    async def prepare_pln_combat_probabilities(
++            self, player_id, maximum_queries=32, timeout_seconds=0.25):
++        """Request bounded native odds for adjacent visible combat targets."""
++        if (
++            isinstance(maximum_queries, bool)
++            or not isinstance(maximum_queries, int)
++            or maximum_queries < 1 or maximum_queries > 32
++        ):
++            raise ValueError("maximum_queries must be in 1..32")
++        width = getattr(self, 'map_info', {}).get('width')
++        if not isinstance(width, int) or isinstance(width, bool) or width < 1:
++            return 0
++        visible_foreign_tiles = {
++            unit.get('tile')
++            for unit in self._normalize_to_dict(
++                getattr(self, 'player_units', {})).values()
++            if (
++                unit.get('owner') != player_id
++                and isinstance(unit.get('tile'), int)
++                and not isinstance(unit.get('tile'), bool)
++            )
++        }
++        candidates = set()
++        combat_names = {
++            'attack', 'suicide_attack', 'capture', 'conquer_city', 'bombard'}
++        for action in self._get_unit_actions(player_id):
++            if (
++                not isinstance(action, dict)
++                or action.get('is_valid') is not True
++                or action.get('action') not in combat_names
++            ):
++                continue
++            actor_id = action.get('unit_id')
++            target = (
++                action.get('params', {}).get('target')
++                if isinstance(action.get('params'), dict) else None)
++            if (
++                not isinstance(actor_id, int)
++                or isinstance(actor_id, bool)
++                or not isinstance(target, dict)
++                or not isinstance(target.get('x'), int)
++                or isinstance(target.get('x'), bool)
++                or not isinstance(target.get('y'), int)
++                or isinstance(target.get('y'), bool)
++            ):
++                continue
++            target_tile = target['x'] + target['y'] * width
++            if target_tile in visible_foreign_tiles:
++                candidates.add((actor_id, target_tile))
++        units = self._normalize_to_dict(getattr(self, 'player_units', {}))
++        cache = getattr(self, 'pln_combat_probabilities', {})
++        requests = []
++        for actor_id, target_tile in sorted(candidates):
++            actor = units.get(str(actor_id))
++            if actor is None:
++                actor = units.get(actor_id)
++            actor_revision = self._pln_combat_unit_revision(
++                actor, require_actor_state=True)
++            target_stack_revision = (
++                self._pln_visible_stack_revision(
++                    target_tile))
++            if (
++                actor_revision is None
++                or target_stack_revision is None
++                or actor.get('owner') != player_id
++                or actor.get('moves_left', 0) <= 0
++            ):
++                continue
++            key = self._pln_combat_probability_key(actor_id, target_tile)
++            if self._valid_pln_combat_probability(cache.get(key), player_id):
++                continue
++            requests.append((key, actor_id, target_tile, {
++                'player_id': player_id,
++                'actor_revision': actor_revision,
++                'target_stack_revision':
++                    target_stack_revision,
++                'turn': self.game_turn,
++                'source_seq': self.source_seq,
++            }))
++            if len(requests) >= maximum_queries:
++                break
++        if not requests:
++            return 0
++
++        event = getattr(self, 'pln_combat_probability_event', None)
++        if event is None:
++            event = asyncio.Event()
++            self.pln_combat_probability_event = event
++        pending_cache = getattr(
++            self, 'pln_combat_probability_requests', None)
++        if not isinstance(pending_cache, dict):
++            pending_cache = {}
++            self.pln_combat_probability_requests = pending_cache
++        self.source_update_loop = asyncio.get_running_loop()
++        event.clear()
++        for key, actor_id, target_tile, revision in requests:
++            pending_cache[key] = revision
++            self.queue_to_civserver(json.dumps({
++                'pid': PACKET_UNIT_GET_ACTIONS,
++                'actor_unit_id': actor_id,
++                'target_unit_id': 0,
++                'target_tile_id': target_tile,
++                'target_extra_id': -1,
++                'request_kind': 1,
++            }))
++        self.send_packets_to_civserver()
++
++        loop = asyncio.get_running_loop()
++        deadline = loop.time() + timeout_seconds
++        pending = {key for key, _, _, _ in requests}
++        while pending:
++            pending = {
++                key for key in pending
++                if key in pending_cache
++            }
++            if not pending:
++                break
++            remaining = deadline - loop.time()
++            if remaining <= 0:
++                break
++            event.clear()
++            pending = {
++                key for key in pending
++                if key in pending_cache
++            }
++            if not pending:
++                break
++            try:
++                await asyncio.wait_for(event.wait(), timeout=remaining)
++            except asyncio.TimeoutError:
++                break
++        for key in pending:
++            pending_cache.pop(key, None)
++        return len(requests) - len(pending)
++
+     def _pln_first_step_context(self, player_id, unit_id, target_tile):
+         """Return an exact native edge cost only when all matching paths agree."""
+         matching_routes = [
+@@ -3331,6 +3667,9 @@ class CivCom(Thread):
+             elif packet_type == PACKET_WEB_GOTO_PATH:
+                 self._record_pln_movement_route(packet)
+ 
++            elif packet_type == PACKET_UNIT_ACTIONS:
++                self._record_pln_combat_probability(packet)
++
+             # Default handler for unknown/unhandled packet types
+             # This prevents "unsupported packet type" disconnects from civserver
+             else:
+@@ -3772,6 +4111,11 @@ class CivCom(Thread):
+             # pathfinder for this player connection. Stale unit revisions are
+             # filtered before projection.
+             'movement_routes': self._current_pln_movement_routes(player_id),
++            # Player-visible probabilities and selected defender returned by
++            # the native action subsystem. Exact actor/target revisions are
++            # rechecked before projection.
++            'combat_probabilities':
++                self._current_pln_combat_probabilities(player_id),
+         }
+         if player_alive is False:
+             # An eliminated player's connection may stop receiving city-owner or
+diff --git a/freeciv-proxy/llm_handler.py b/freeciv-proxy/llm_handler.py
+index a5e0caa..00a0d86 100644
+--- a/freeciv-proxy/llm_handler.py
++++ b/freeciv-proxy/llm_handler.py
+@@ -1227,6 +1227,8 @@ class LLMWSHandler(websocket.WebSocketHandler):
+             'projection_attempts': 0,
+             'movement_route_wait_ms': 0.0,
+             'movement_route_responses': 0,
++            'combat_probability_wait_ms': 0.0,
++            'combat_probability_responses': 0,
+         }
+ 
+         def finish_timing():
+@@ -1360,6 +1362,17 @@ class LLMWSHandler(websocket.WebSocketHandler):
+                 server_timing['movement_route_wait_ms'] += (
+                     time.perf_counter() - route_started) * 1000.0
+ 
++            if (
++                msg_data.get('include_combat_probabilities')
++                and msg_data.get('format') == 'pln_authoritative'
++            ):
++                combat_started = time.perf_counter()
++                server_timing['combat_probability_responses'] = (
++                    await self.civcom.prepare_pln_combat_probabilities(
++                        self.player_id))
++                server_timing['combat_probability_wait_ms'] += (
++                    time.perf_counter() - combat_started) * 1000.0
++
+             # A caller that already consumed a packet revision can wait on the
+             # CivCom packet event instead of issuing repeated state queries.
+             # The wait is bounded by the validated wire value and a timeout
+diff --git a/freeciv-proxy/message_validator.py b/freeciv-proxy/message_validator.py
+index afdae44..2cbabf4 100644
+--- a/freeciv-proxy/message_validator.py
++++ b/freeciv-proxy/message_validator.py
+@@ -118,6 +118,7 @@ class MessageValidator:
+                 "correlation_id", "after_source_seq", "wait_timeout_ms",
+                 "accept_unchanged", "settle_quiet_ms",
+                 "include_movement_routes",
++                "include_combat_probabilities",
+             ],
+             "field_types": {
+                 "type": str,
+@@ -131,6 +132,7 @@ class MessageValidator:
+                 "accept_unchanged": bool,
+                 "settle_quiet_ms": int,
+                 "include_movement_routes": bool,
++                "include_combat_probabilities": bool,
+             },
+             "field_constraints": {
+                 "format": {"allowed_values": ["full", "delta", "llm_optimized", "pln_authoritative"]},
+@@ -440,6 +442,11 @@ class MessageValidator:
+                 raise ValidationError(
+                     "include_movement_routes requires pln_authoritative format",
+                     ErrorCodes.INPUT_MISSING_FIELD)
++            if message.get('include_combat_probabilities') and (
++                    message.get('format') != 'pln_authoritative'):
++                raise ValidationError(
++                    "include_combat_probabilities requires pln_authoritative format",
++                    ErrorCodes.INPUT_MISSING_FIELD)
+             if ('wait_timeout_ms' in message
+                     and 'after_source_seq' not in message):
+                 raise ValidationError(
+diff --git a/freeciv-proxy/security.py b/freeciv-proxy/security.py
+index 3880c35..6346c8b 100644
+--- a/freeciv-proxy/security.py
++++ b/freeciv-proxy/security.py
+@@ -400,6 +400,14 @@ class InputSanitizer:
+                 raise SecurityError(
+                     "include_movement_routes must be boolean")
+ 
++        if 'include_combat_probabilities' in params:
++            if isinstance(params['include_combat_probabilities'], bool):
++                sanitized['include_combat_probabilities'] = (
++                    params['include_combat_probabilities'])
++            else:
++                raise SecurityError(
++                    "include_combat_probabilities must be boolean")
++
+         for field, minimum, maximum in (
+                 ('after_source_seq', 0, 9223372036854775807),
+                 ('wait_timeout_ms', 1, 5000),
+@@ -417,6 +425,10 @@ class InputSanitizer:
+                 sanitized.get('format') != 'pln_authoritative'):
+             raise SecurityError(
+                 "include_movement_routes requires pln_authoritative format")
++        if sanitized.get('include_combat_probabilities') and (
++                sanitized.get('format') != 'pln_authoritative'):
++            raise SecurityError(
++                "include_combat_probabilities requires pln_authoritative format")
+         if sanitized.get('accept_unchanged') and (
+                 sanitized.get('format') != 'pln_authoritative'
+                 or 'after_source_seq' not in sanitized
+diff --git a/freeciv-proxy/tests/test_pln_authoritative_state.py b/freeciv-proxy/tests/test_pln_authoritative_state.py
+index 86184c2..54952e0 100644
+--- a/freeciv-proxy/tests/test_pln_authoritative_state.py
++++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
+@@ -14,7 +14,8 @@ from llm_handler import LLMWSHandler, logger as proxy_logger
+ from message_validator import MessageValidator, ValidationError
+ from packet_constants import (
+     DS_ALLIANCE, DS_WAR, PACKET_CITY_SHORT_INFO, PACKET_UNIT_COMBAT_INFO,
+-    PACKET_MAP_INFO, PACKET_UNIT_REMOVE, PACKET_UNIT_SHORT_INFO,
++    PACKET_MAP_INFO, PACKET_UNIT_GET_ACTIONS, PACKET_UNIT_REMOVE,
++    PACKET_UNIT_SHORT_INFO,
+     PACKET_WEB_CITY_INFO_ADDITION, PACKET_WEB_GOTO_PATH_REQ,
+ )
+ from security import InputSanitizer, SecurityError
+@@ -680,13 +681,15 @@ def test_authoritative_format_passes_protocol_security_and_extractor_layers():
+         "type": "state_query", "format": "pln_authoritative",
+         "after_source_seq": 44, "wait_timeout_ms": 5000,
+         "accept_unchanged": True, "settle_quiet_ms": 50,
+-        "include_movement_routes": True}))
++        "include_movement_routes": True,
++        "include_combat_probabilities": True}))
+     assert message["format"] == "pln_authoritative"
+     assert message["after_source_seq"] == 44
+     assert message["wait_timeout_ms"] == 5000
+     assert message["accept_unchanged"] is True
+     assert message["settle_quiet_ms"] == 50
+     assert message["include_movement_routes"] is True
++    assert message["include_combat_probabilities"] is True
+     sanitized = InputSanitizer.sanitize_state_query_params({
+         "format": "pln_authoritative",
+         "after_source_seq": 44,
+@@ -694,6 +697,7 @@ def test_authoritative_format_passes_protocol_security_and_extractor_layers():
+         "accept_unchanged": True,
+         "settle_quiet_ms": 50,
+         "include_movement_routes": True,
++        "include_combat_probabilities": True,
+     })
+     assert sanitized == {
+         "format": "pln_authoritative",
+@@ -702,6 +706,7 @@ def test_authoritative_format_passes_protocol_security_and_extractor_layers():
+         "accept_unchanged": True,
+         "settle_quiet_ms": 50,
+         "include_movement_routes": True,
++        "include_combat_probabilities": True,
+     }
+     state = StateExtractor(civcom=make_civcom()).extract_state(
+         "contract-game", 0, StateFormat.PLN_AUTHORITATIVE)
+@@ -887,6 +892,7 @@ def test_source_sequence_wait_fields_are_strictly_bounded():
+             ("wait_timeout_ms", 5001),
+             ("accept_unchanged", 1),
+             ("include_movement_routes", 1),
++            ("include_combat_probabilities", 1),
+             ("settle_quiet_ms", 0),
+             ("settle_quiet_ms", 1001)):
+         try:
+@@ -919,6 +925,11 @@ def test_source_sequence_wait_fields_are_strictly_bounded():
+                 "type": "state_query",
+                 "format": "full",
+                 "include_movement_routes": True,
++            },
++            {
++                "type": "state_query",
++                "format": "full",
++                "include_combat_probabilities": True,
+             }):
+         try:
+             validator.validate_message(json.dumps(message))
+@@ -1079,6 +1090,230 @@ async def test_stale_native_route_does_not_complete_fresh_request():
+     }
+ 
+ 
++def _combat_unit(unit_id, owner, tile, hp=10):
++    return {
++        "id": unit_id,
++        "owner": owner,
++        "type": "Warriors",
++        "type_id": 1,
++        "tile": tile,
++        "moves_left": 3,
++        "hp": hp,
++        "veteran": 0,
++        "activity": "idle",
++        "transported": False,
++        "transported_by": None,
++        "upkeep": [0, 0, 0, 0, 0, 0],
++    }
++
++
++def _combat_probability_packet(actor_id=7, target_id=8, target_tile=12):
++    probabilities = [
++        {"min": 253, "max": 0}
++        for _ in range(54)
++    ]
++    probabilities[45] = {"min": 119, "max": 121}
++    return {
++        "actor_unit_id": actor_id,
++        "target_unit_id": target_id,
++        "target_city_id": 0,
++        "target_tile_id": target_tile,
++        "target_extra_id": -1,
++        "request_kind": 1,
++        "action_probabilities": probabilities,
++    }
++
++
++def test_native_combat_probability_projection_is_exact_revision_scoped():
++    civcom = make_civcom()
++    civcom.player_units = {
++        7: _combat_unit(7, 0, 11),
++        8: _combat_unit(8, 1, 12),
++    }
++    civcom.pln_combat_probabilities = {}
++    civcom.pln_combat_probability_requests = {
++        "7:12": {
++            "player_id": 0,
++            "actor_revision": CivCom._pln_combat_unit_revision(
++                civcom.player_units[7]),
++            "target_stack_revision":
++                CivCom._pln_visible_stack_revision(civcom, 12),
++            "turn": 12,
++            "source_seq": 44,
++        },
++    }
++    civcom.pln_combat_probability_event = asyncio.Event()
++
++    CivCom._record_pln_combat_probability(
++        civcom, _combat_probability_packet())
++
++    state = CivCom.build_pln_authoritative_state(civcom, 0)
++    rows = state["authoritative"]["combat_probabilities"]
++    assert len(rows) == 1
++    assert rows[0]["authority"] == (
++        "freeciv-server-action-probability")
++    assert rows[0]["target_unit_id"] == 8
++    attack = next(
++        row for row in rows[0]["action_probabilities"]
++        if row["action_name"] == "attack")
++    assert attack == {
++        "action_id": 45,
++        "action_name": "attack",
++        "minimum": 119,
++        "maximum": 121,
++        "status": "bounded",
++    }
++
++    civcom.player_units[8]["hp"] = 9
++    assert CivCom.build_pln_authoritative_state(
++        civcom, 0)["authoritative"][
++            "combat_probabilities"] == []
++
++
++def test_native_combat_probability_preserves_short_target_omissions():
++    civcom = make_civcom()
++    civcom.player_units = {
++        7: _combat_unit(7, 0, 11),
++        8: _combat_unit(8, 1, 12),
++    }
++    civcom.player_units[8]["moves_left"] = None
++    civcom.pln_combat_probabilities = {}
++    target_revision = (
++        CivCom._pln_visible_stack_revision(
++            civcom, 12))
++    assert target_revision[0][
++        "moves_left"] is None
++    civcom.pln_combat_probability_requests = {
++        "7:12": {
++            "player_id": 0,
++            "actor_revision":
++                CivCom._pln_combat_unit_revision(
++                    civcom.player_units[7],
++                    require_actor_state=True),
++            "target_stack_revision":
++                target_revision,
++            "turn": 12,
++            "source_seq": 44,
++        },
++    }
++    civcom.pln_combat_probability_event = (
++        asyncio.Event())
++
++    CivCom._record_pln_combat_probability(
++        civcom, _combat_probability_packet())
++
++    rows = CivCom.build_pln_authoritative_state(
++        civcom, 0)["authoritative"][
++            "combat_probabilities"]
++    assert len(rows) == 1
++    assert rows[0][
++        "target_stack_revision"][0][
++            "moves_left"] is None
++
++
++@pytest.mark.asyncio
++async def test_native_combat_probability_abstains_on_incomplete_target_identity():
++    civcom = make_civcom()
++    civcom.player_units = {
++        7: _combat_unit(7, 0, 11),
++        8: _combat_unit(8, 1, 12),
++    }
++    civcom.player_units[8]["hp"] = None
++    civcom.pln_combat_probabilities = {}
++    civcom.pln_combat_probability_requests = {}
++    civcom.pln_combat_probability_event = (
++        asyncio.Event())
++    civcom._get_unit_actions = lambda player_id: [{
++        "action": "attack",
++        "action_id": 45,
++        "is_valid": True,
++        "unit_id": 7,
++        "params": {
++            "target": {"x": 2, "y": 1}},
++    }]
++    queued = []
++    civcom.queue_to_civserver = queued.append
++    civcom.send_packets_to_civserver = (
++        lambda: None)
++
++    completed = (
++        await
++        CivCom.prepare_pln_combat_probabilities(
++            civcom, 0,
++            maximum_queries=1,
++            timeout_seconds=0.001))
++
++    assert completed == 0
++    assert queued == []
++
++
++def test_native_combat_probability_rejects_unsolicited_or_malformed_rows():
++    civcom = make_civcom()
++    civcom.player_units = {
++        7: _combat_unit(7, 0, 11),
++        8: _combat_unit(8, 1, 12),
++    }
++    civcom.pln_combat_probabilities = {}
++    civcom.pln_combat_probability_requests = {}
++
++    CivCom._record_pln_combat_probability(
++        civcom, _combat_probability_packet())
++    assert civcom.pln_combat_probabilities == {}
++
++    civcom.pln_combat_probability_requests["7:12"] = {
++        "player_id": 0,
++        "actor_revision": CivCom._pln_combat_unit_revision(
++            civcom.player_units[7]),
++        "target_stack_revision":
++            CivCom._pln_visible_stack_revision(civcom, 12),
++        "turn": 12,
++        "source_seq": 44,
++    }
++    malformed = _combat_probability_packet()
++    malformed["action_probabilities"][45] = {
++        "min": 201, "max": 202}
++    CivCom._record_pln_combat_probability(
++        civcom, malformed)
++    assert civcom.pln_combat_probabilities == {}
++
++
++@pytest.mark.asyncio
++async def test_native_combat_probability_requests_are_bounded_and_visible():
++    civcom = make_civcom()
++    civcom.player_units = {
++        7: _combat_unit(7, 0, 11),
++        8: _combat_unit(8, 1, 12),
++    }
++    civcom.pln_combat_probabilities = {}
++    civcom.pln_combat_probability_requests = {}
++    civcom.pln_combat_probability_event = asyncio.Event()
++    civcom._get_unit_actions = lambda player_id: [{
++        "action": "attack",
++        "action_id": 45,
++        "is_valid": True,
++        "unit_id": 7,
++        "params": {"target": {"x": 2, "y": 1}},
++    }]
++    queued = []
++    civcom.queue_to_civserver = queued.append
++    civcom.send_packets_to_civserver = lambda: None
++
++    completed = await CivCom.prepare_pln_combat_probabilities(
++        civcom, 0, maximum_queries=1, timeout_seconds=0.001)
++
++    assert completed == 0
++    assert len(queued) == 1
++    assert json.loads(queued[0]) == {
++        "pid": PACKET_UNIT_GET_ACTIONS,
++        "actor_unit_id": 7,
++        "target_unit_id": 0,
++        "target_tile_id": 12,
++        "target_extra_id": -1,
++        "request_kind": 1,
++    }
++    assert civcom.pln_combat_probability_requests == {}
++
++
+ def test_packet_visible_foreign_short_unit_is_preserved_as_observation_input():
+     civcom = object.__new__(CivCom)
+     civcom.source_seq = 0

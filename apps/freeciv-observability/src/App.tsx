@@ -71,6 +71,15 @@ const STAGES: Array<{ name: string; types: Set<string> }> = [
     "flow_candidate_selected", "candidate_revalidated",
     "controller_fallback", "control_outcome_recorded",
     "selection_coverage_sample",
+    "resource_schedule_decided", "resource_claim_requested",
+    "resource_claim_reserved", "resource_claim_rejected",
+    "resource_capacity_changed", "operation_proposed",
+    "operation_reserved", "operation_activated",
+    "operation_step_selected", "operation_step_revalidated",
+    "operation_step_committed", "operation_blocked",
+    "operation_repaired", "operation_suspended",
+    "operation_completed", "operation_failed",
+    "operation_abandoned", "operation_expired",
   ]) },
   { name: "Plan", types: new Set(["plan_created", "plan_invalidated", "plan_step_executed"]) },
   { name: "Action", types: new Set(["action_sent", "action_result"]) },
@@ -1933,6 +1942,152 @@ function UnifiedRepresentationMap({ state, onSelect }: {
   </section>;
 }
 
+function CombatOperationTelemetry({ state, onSelect }: {
+  state: ReplayState; onSelect: (selection: Selection) => void;
+}) {
+  const combatSnapshot = [...state.snapshots].reverse().find((event) =>
+    rowsOf(recordOf(event.payload.grounded_context).combat_probabilities).length > 0);
+  const snapshotId = String(combatSnapshot?.payload.snapshot_id ?? "");
+  const probabilities = rowsOf(
+    recordOf(combatSnapshot?.payload.grounded_context).combat_probabilities);
+  const proposals = state.events.filter((event) =>
+    event.type === "operation_proposed"
+    && event.payload.operation_type === "attack_then_conditional_attack"
+    && (!snapshotId || event.payload.snapshot_id === snapshotId));
+  const proposalIds = new Set(proposals.map((event) =>
+    String(event.payload.operation_id ?? "")));
+  const schedule = [...state.events].reverse().find((event) =>
+    event.type === "resource_schedule_decided"
+    && Array.isArray(event.payload.selected_operation_ids)
+    && event.payload.selected_operation_ids.some((id) =>
+      proposalIds.has(String(id))));
+  const rejectedClaims = state.events.filter((event) =>
+    event.type === "resource_claim_rejected"
+    && proposalIds.has(String(event.payload.operation_id ?? "")));
+  const selected = proposals.filter((event) => event.payload.selected === true);
+  const actorsWithOdds = new Set(probabilities.map((row) =>
+    String(row.actor_unit_id ?? ""))).size;
+  const visibleTargetIds = (row: Record<string, unknown>): string[] => {
+    const stackIds = Array.isArray(row.target_unit_ids)
+      ? row.target_unit_ids.map(String).filter((value) => value !== "0")
+      : [];
+    if (stackIds.length) return stackIds;
+    const selectedId = String(row.target_unit_id ?? "");
+    return selectedId && selectedId !== "0" ? [selectedId] : [];
+  };
+  const targetKeys = probabilities.flatMap((row) => {
+    const ids = visibleTargetIds(row);
+    return ids.length ? ids : [`tile:${String(row.target_tile_id ?? "—")}`];
+  });
+  const targetCount = new Set(targetKeys).size;
+  const boundedAttack = (row: Record<string, unknown>): Record<string, unknown> =>
+    rowsOf(row.action_probabilities).find((action) =>
+      action.action_name === "attack" && action.status === "bounded") ?? {};
+  const percent = (value: unknown): string =>
+    Number.isFinite(Number(value)) ? `${(Number(value) / 2).toFixed(1)}%` : "—";
+
+  if (!combatSnapshot && !proposals.length) return null;
+
+  return <section className="pf-panel pf-combat-operations"
+    aria-labelledby="pf-combat-operations-title">
+    <header>
+      <div><span className="eyebrow">GDO-5 / exact-revision FreeCiv evidence</span>
+        <h3 id="pf-combat-operations-title">Native combat operation laboratory</h3></div>
+      <span className="pf-combat-shadow">shadow only · no policy authority</span>
+    </header>
+    <div className="pf-combat-summary" aria-label="Native combat operation coverage">
+      <button disabled={!combatSnapshot} onClick={() => combatSnapshot
+        && onSelect({ kind: "event", value: combatSnapshot })}>
+        <span>native actors</span><strong>{actorsWithOdds}</strong>
+        <small>server probability replies</small>
+      </button>
+      <button disabled={!combatSnapshot} onClick={() => combatSnapshot
+        && onSelect({ kind: "event", value: combatSnapshot })}>
+        <span>visible targets</span><strong>{targetCount}</strong>
+        <small>exact visible stack revision</small>
+      </button>
+      <button disabled={!proposals.length} onClick={() => proposals.length
+        && onSelect({ kind: "event", value: proposals.at(-1)! })}>
+        <span>atomic candidates</span><strong>{proposals.length}</strong>
+        <small>two required participants</small>
+      </button>
+      <button disabled={!schedule} onClick={() => schedule
+        && onSelect({ kind: "event", value: schedule })}>
+        <span>shadow selected</span><strong>{selected.length}</strong>
+        <small>{rejectedClaims.length} conflicting claims rejected</small>
+      </button>
+    </div>
+    <div className="pf-combat-grid">
+      <div>
+        <header><strong>Server combat intervals</strong>
+          <small>{snapshotId ? compactPfId(snapshotId) : "no snapshot"}</small></header>
+        {probabilities.length ? <div className="pf-combat-odds" role="table"
+          aria-label="Native FreeCiv combat probability intervals">
+          <div className="head" role="row">
+            <span>actor</span><span>target</span><span>attack interval</span><span>revision</span>
+          </div>
+          {probabilities.map((row, index) => {
+            const attack = boundedAttack(row);
+            const targetIds = visibleTargetIds(row);
+            const targetLabel = targetIds.length
+              ? targetIds.map((id) => `unit:${id}`).join(" + ")
+              : `tile:${String(row.target_tile_id ?? "—")}`;
+            return <button role="row" key={`${String(row.actor_unit_id)}-${index}`}
+              onClick={() => combatSnapshot
+                && onSelect({ kind: "event", value: combatSnapshot })}>
+              <strong>unit:{String(row.actor_unit_id ?? "—")}</strong>
+              <span>{targetLabel}</span>
+              <b>{percent(attack.minimum)} – {percent(attack.maximum)}</b>
+              <small>{String(row.response_source_seq ?? "—")}</small>
+            </button>;
+          })}
+        </div> : <div className="pf-panel-gap">No bounded native combat odds logged.</div>}
+      </div>
+      <div>
+        <header><strong>Atomic candidate union</strong>
+          <small>{String(schedule?.payload.exact_status ?? "unscheduled")}</small></header>
+        {proposals.length ? <div className="pf-combat-candidates" role="table"
+          aria-label="Atomic combat operation candidates">
+          <div className="head" role="row">
+            <span>status</span><span>participants / target</span>
+            <span>step bounds</span><span>AND set</span>
+          </div>
+          {proposals.map((event) => {
+            const payload = event.payload;
+            const participants = rowsOf(payload.participants);
+            const steps = rowsOf(payload.step_probability_intervals);
+            const requirement = recordOf(payload.requirement_set);
+            const premiseCount = Array.isArray(requirement.premise_ids)
+              ? requirement.premise_ids.length : 0;
+            return <button role="row" key={event.event_id}
+              className={payload.selected === true ? "selected" : "rejected"}
+              onClick={() => onSelect({ kind: "event", value: event })}>
+              <span><b>{payload.selected === true ? "◆ selected" : "rejected"}</b>
+                <small>{humanize(payload.reason_code)}</small></span>
+              <span><strong>{participants.map((row) =>
+                String(row.actor_id ?? "—")).join(" + ")}</strong>
+                <small>→ {String(payload.target_id ?? "—")}</small></span>
+              <span><strong>{steps.map((row) =>
+                `${percent(Number(row.lower) * 200)}–${percent(Number(row.upper) * 200)}`)
+                .join(" · ")}</strong>
+                <small>re-estimate after step one</small></span>
+              <span><strong>{premiseCount} / {premiseCount}</strong>
+                <small>premises complete</small></span>
+            </button>;
+          })}
+        </div> : <div className="pf-panel-gap">
+          Native odds were logged, but no complete multi-actor combination was assembled.</div>}
+      </div>
+    </div>
+    <footer>
+      <strong>Decision boundary</strong>
+      <span>The scheduler reserves both actors, their current movement, and one target slot
+        atomically. These rows measure candidate coverage and conflict prevention; they do
+        not authorize or execute an attack.</span>
+    </footer>
+  </section>;
+}
+
 function PfPlnDashboard({ state, onSelect, decisionId, onDecision, comparisonState,
   comparisonSource, pairQuality }: {
   state: ReplayState; onSelect: (selection: Selection) => void;
@@ -1995,6 +2150,8 @@ function PfPlnDashboard({ state, onSelect, decisionId, onDecision, comparisonSta
     <UnifiedControllerStatus />
 
     <UnifiedFlowTelemetry state={state} onSelect={onSelect} />
+
+    <CombatOperationTelemetry state={state} onSelect={onSelect} />
 
     <div className="pf-summary" aria-label="PF-PLN event coverage">
       {summary.map((item) => <button key={item.label} disabled={!item.event}

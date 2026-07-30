@@ -187,6 +187,7 @@ class ControlEventEmitter:
         # so emit it once per run-scoped emitter.
         self._emitted_domain_request_ids = set()
         self._emitted_resource_batch_ids = set()
+        self._emitted_combat_snapshot_ids = set()
         # Capacity events describe changes across decisions.  Index by the
         # stable resource identity rather than snapshot-scoped capacity ID.
         self._last_resource_capacity = {}
@@ -1194,6 +1195,248 @@ class ControlEventEmitter:
                         "event_id"],)
             self._emitted_resource_batch_ids.add(
                 batch_id)
+        return tuple(emitted)
+
+    def emit_combat_operation_shadow(
+            self, writer, snapshot,
+            ruleset_digest, caused_by=(),
+            maximum_operations=32):
+        """Emit one exact, shadow-only GDO-5 readout per snapshot."""
+        from ..pressure.resource_capacity import (
+            ResourceCapacityExtractor,
+        )
+        from ..pressure.resource_scheduler import (
+            BoundedExactScheduler,
+        )
+        from .combat_operations import (
+            CombatOperationAssembler,
+            combat_target_capacities,
+        )
+
+        snapshot_id = str(
+            getattr(snapshot, "snapshot_id", ""))
+        if (
+            not snapshot_id
+            or snapshot_id
+                in self._emitted_combat_snapshot_ids
+        ):
+            return ()
+        self._emitted_combat_snapshot_ids.add(
+            snapshot_id)
+        parents = tuple(caused_by)
+        emitted = []
+        assembler = CombatOperationAssembler()
+        assemblies = assembler.assemble(
+            snapshot,
+            str(ruleset_digest),
+            maximum_operations=(
+                maximum_operations))
+        schedule = None
+        entries = {}
+        if assemblies:
+            capacity_snapshot = (
+                ResourceCapacityExtractor()
+                .extract(snapshot))
+            capacities = (
+                capacity_snapshot.capacities
+                + combat_target_capacities(
+                    assemblies, snapshot))
+            premise_packets = {
+                premise_id: value
+                for assembly in assemblies
+                for premise_id, value in
+                assembly.initial_premise_packets
+            }
+            schedule = (
+                BoundedExactScheduler(
+                    node_budget=4096,
+                    time_budget_ms=20.0)
+                .schedule(
+                    tuple(
+                        assembly.resource_request
+                        for assembly
+                        in assemblies),
+                    capacities,
+                    requirement_sets=tuple(
+                        assembly.requirement_set
+                        for assembly
+                        in assemblies),
+                    premise_packets=(
+                        premise_packets)))
+            entries = {
+                row.operation_id: row
+                for row in schedule.entries
+            }
+
+        for assembly in assemblies:
+            operation_id = (
+                assembly.spec.operation_id)
+            entry = entries.get(
+                operation_id)
+            selected = bool(
+                entry is not None
+                and entry.selected)
+            reason = (
+                "shadow-schedule-selected-no-policy-authority"
+                if selected
+                else (
+                    entry.reason
+                    if entry is not None
+                    else
+                    "shadow-scheduler-unavailable"))
+            readout = assembler.readout(
+                assembly, snapshot, 0)
+            if readout.disposition != (
+                    "reservable"):
+                selected = False
+                reason = readout.reason
+            payload = {
+                "actor_id": (
+                    assembly.spec
+                    .participants[0]
+                    .actor_id),
+                "assignment_digest": (
+                    schedule.decision_digest
+                    if schedule is not None
+                    else None),
+                "bid": float(
+                    assembly.resource_request
+                    .bid),
+                "claims": [
+                    claim.to_dict()
+                    for claim in
+                    assembly.resource_request
+                    .claims],
+                "deadline_turn": (
+                    assembly.spec.expiry_turn),
+                "event_schema_version":
+                    CONTROL_EVENT_SCHEMA_VERSION,
+                "expected_prevented_loss":
+                    0.0,
+                "next_action":
+                    readout.next_action,
+                "operation_digest":
+                    structural_hash(
+                        assembly.spec.to_dict()),
+                "operation_id":
+                    operation_id,
+                "operation_type":
+                    assembly.spec.operation_type,
+                "opportunity_cost": 0.0,
+                "participants": [
+                    participant.to_dict()
+                    for participant in
+                    assembly.spec.participants],
+                "policy_authority": False,
+                "probability_interval": (
+                    assembly
+                    .operation_probability_interval
+                    .to_dict()),
+                "provenance": list(
+                    assembly.spec.provenance),
+                "reason_code": str(reason),
+                "requirement_id": (
+                    assembly.requirement_set
+                    .requirement_set_id),
+                "requirement_set": (
+                    assembly.requirement_set
+                    .to_dict()),
+                "selected": selected,
+                "shadow_only": True,
+                "snapshot_id": snapshot_id,
+                "state": "proposed",
+                "step_probability_intervals": [
+                    interval.to_dict()
+                    for interval in
+                    assembly
+                    .step_probability_intervals],
+                "target_id":
+                    assembly.spec.target_ref,
+            }
+            event = writer.emit(
+                "operation_proposed",
+                int(snapshot.turn),
+                payload,
+                caused_by=list(parents))
+            emitted.append(event)
+            parents = (
+                event["event_id"],)
+
+        if schedule is not None:
+            schedule_dict = schedule.to_dict()
+            batch_id = structural_hash({
+                "component":
+                    "gdo5-combat-operation-shadow",
+                "ruleset_digest":
+                    str(ruleset_digest),
+                "snapshot_id": snapshot_id,
+            })
+            artifact = {
+                "batch_id": batch_id,
+                "exact": schedule_dict,
+                "packet_committed_operation_ids":
+                    list(
+                        schedule
+                        .selected_operation_ids),
+                "packet_exact_selection_equal":
+                    True,
+                "request_count":
+                    len(assemblies),
+            }
+            artifact["artifact_hash"] = (
+                structural_hash(artifact))
+            schedule_events = (
+                self.emit_resource_schedule_results(
+                    writer,
+                    int(snapshot.turn),
+                    (artifact,),
+                    caused_by=parents))
+            emitted.extend(
+                schedule_events)
+            if schedule_events:
+                parents = (
+                    schedule_events[-1][
+                        "event_id"],)
+
+        metrics = (
+            (
+                "native_combat_probability_rows",
+                len(getattr(
+                    snapshot,
+                    "combat_probabilities", ()))),
+            (
+                "combat_operation_candidate_count",
+                len(assemblies)),
+            (
+                "combat_operation_selected_count",
+                0 if schedule is None else
+                len(schedule
+                    .selected_operation_ids)),
+            (
+                "combat_operation_scheduler_latency_ms",
+                0.0 if schedule is None
+                else schedule.latency_ms),
+        )
+        for name, value in metrics:
+            event = writer.emit(
+                "metric_sample",
+                int(snapshot.turn), {
+                    "labels": {
+                        "component": "gdo5",
+                        "mode": "shadow",
+                    },
+                    "name": name,
+                    "unit": (
+                        "milliseconds"
+                        if name.endswith(
+                            "_latency_ms")
+                        else "count"),
+                    "value": float(value),
+                },
+                caused_by=list(parents))
+            emitted.append(event)
+            parents = (
+                event["event_id"],)
         return tuple(emitted)
 
     @staticmethod

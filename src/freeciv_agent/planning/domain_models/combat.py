@@ -78,10 +78,10 @@ def _unit_spec(ruleset_ir, unit_type):
 
 
 class GroundedCombatTransitionModel:
-    """Estimate only an explicit unmodified one-versus-one attack context."""
+    """Prefer native odds, with a clean-room duel as a narrow fallback."""
 
-    model_id = "grounded_finite_duel"
-    model_version = "1.0"
+    model_id = "grounded_combat_transition"
+    model_version = "2.0"
     immutable_request_safe = True
 
     def supports(self, request):
@@ -183,6 +183,195 @@ class GroundedCombatTransitionModel:
                 canonical_model_artifact(
                     artifact)))
 
+    def _native_estimate(
+            self, request, attacker,
+            target_tile, specified_target_id):
+        snapshot = request.snapshot
+        result = (
+            snapshot.combat_probability(
+                attacker.unit_id,
+                target_tile)
+            if callable(getattr(
+                snapshot,
+                "combat_probability",
+                None))
+            else None)
+        if result is None:
+            return None
+        selected_target_id = (
+            result.target_unit_id)
+        if (
+            selected_target_id == 0
+            or (
+                specified_target_id
+                is not None
+                and int(specified_target_id)
+                    != selected_target_id)
+        ):
+            return None
+        defender = (
+            snapshot.visible_enemy_unit(
+                selected_target_id)
+            if callable(getattr(
+                snapshot,
+                "visible_enemy_unit",
+                None))
+            else None)
+        if (
+            defender is None
+            or defender.tile
+                != target_tile
+        ):
+            return None
+        probability = (
+            result.action_probability(
+                "attack"))
+        if (
+            probability is None
+            or probability.status
+                != "bounded"
+        ):
+            return None
+        lower = (
+            probability.lower_probability)
+        upper = (
+            probability.upper_probability)
+        if (
+            lower is None or upper is None
+            or not 0.0 <= lower
+                <= upper <= 1.0
+        ):
+            return None
+        definite_loss = 1.0 - upper
+        residual = upper - lower
+        current_turn = int(getattr(
+            snapshot, "turn", 0))
+        goal_features = tuple(sorted(
+            (goal_id, float(loss))
+            for goal_id, loss
+            in request.goal_losses))
+        outcomes = []
+        if lower > 0.0:
+            outcomes.append(
+                PredictedOutcome(
+                    outcome_id=(
+                        "{}:native-attacker-wins"
+                        .format(
+                            request
+                            .stable_operation_id)),
+                    probability=lower,
+                    next_truth_summaries=(),
+                    next_goal_features=(
+                        goal_features),
+                    resource_delta=(),
+                    completion_turn=float(
+                        current_turn),
+                    adverse_loss=0.0,
+                    provenance=(
+                        "freeciv-server-action-probability-lower-bound",
+                        "server-selected-defender",
+                    )))
+        if definite_loss > 0.0:
+            outcomes.append(
+                PredictedOutcome(
+                    outcome_id=(
+                        "{}:native-defender-wins"
+                        .format(
+                            request
+                            .stable_operation_id)),
+                    probability=(
+                        definite_loss),
+                    next_truth_summaries=(),
+                    next_goal_features=(
+                        goal_features),
+                    resource_delta=(),
+                    completion_turn=float(
+                        current_turn),
+                    # The protocol proves terminal loss probability but does
+                    # not expose damage-conditioned material value.
+                    adverse_loss=0.0,
+                    provenance=(
+                        "freeciv-server-action-probability-upper-complement",
+                        "server-selected-defender",
+                    )))
+        artifact = {
+            "action_probability_half_percent": {
+                "maximum":
+                    probability.maximum,
+                "minimum":
+                    probability.minimum,
+            },
+            "adverse_loss_distribution": [],
+            "city_capture_probability": None,
+            "expected_enemy_shield_equivalent_loss":
+                None,
+            "expected_friendly_shield_equivalent_loss":
+                None,
+            "immediate_goal_feature_deltas": {},
+            "missing_fields": [
+                "damage_conditioned_survivor_hp",
+                "material_loss_distribution",
+                "post_action_exposure",
+            ],
+            "parity_status":
+                "native-authoritative",
+            "post_action_exposure": {
+                "status": "not-exposed-by-action-probability-packet",
+            },
+            "probability_attacker_survives":
+                lower,
+            "probability_attacker_survives_upper":
+                upper,
+            "probability_target_destroyed":
+                lower,
+            "probability_target_destroyed_upper":
+                upper,
+            "reason_code": None,
+            "residual_unknown_mass":
+                residual,
+            "schema_version": "2.0",
+            "selected_target_unit_id":
+                selected_target_id,
+            "supported_subset":
+                "server-selected-one-versus-one-action-probability",
+            "target_unit_ids": [
+                selected_target_id],
+        }
+        return GroundedTransitionEstimate(
+            transition=ExpectedTransition(
+                operation_id=(
+                    request.stable_operation_id),
+                outcomes=tuple(outcomes),
+                residual_probability=(
+                    residual),
+                model_id="{}/{}".format(
+                    self.model_id,
+                    self.model_version),
+                calibration_group=(
+                    "combat:native-action-probability"),
+                residual_goal_losses=(
+                    residual_losses(request))),
+            context_key=context_key_for_request(
+                request),
+            authority=(
+                EstimateAuthority
+                .DETERMINISTIC_DERIVED),
+            confidence=max(
+                0.0, 1.0 - residual),
+            validity=request.validity,
+            estimator_id=self.model_id,
+            estimator_version=(
+                self.model_version),
+            provenance=(
+                "server-advertised-action",
+                "freeciv-server-action-probability",
+                "server-selected-defender",
+                "interval-residual-preserved",
+            ),
+            model_artifact_json=(
+                canonical_model_artifact(
+                    artifact)))
+
     def estimate(self, request):
         if not self.supports(request):
             return self._abstain(
@@ -212,6 +401,44 @@ class GroundedCombatTransitionModel:
             if callable(getattr(
                 snapshot, "unit", None))
             else None)
+        target = action.get("target")
+        target = (
+            target if isinstance(
+                target, dict) else {})
+        target_x = target.get("x")
+        target_y = target.get("y")
+        target_tile = None
+        if (
+            isinstance(target_x, int)
+            and not isinstance(
+                target_x, bool)
+            and isinstance(target_y, int)
+            and not isinstance(
+                target_y, bool)
+            and isinstance(getattr(
+                snapshot,
+                "map_width", None), int)
+            and snapshot.map_width > 0
+        ):
+            target_tile = (
+                target_x
+                + target_y
+                * snapshot.map_width)
+        specified_target_id = (
+            target.get(
+                "target_unit_id",
+                action.get("target_id")))
+        if (
+            attacker is not None
+            and target_tile is not None
+        ):
+            native = self._native_estimate(
+                request,
+                attacker,
+                target_tile,
+                specified_target_id)
+            if native is not None:
+                return native
         targets = self._target_units(
             request)
         target_ids = tuple(

@@ -24,7 +24,7 @@ from freeciv_agent.planning.domain_models import (  # noqa: E402
     GroundedCombatTransitionModel,
     finite_duel_distribution,
 )
-from freeciv_agent.state import ProxyStateDTO  # noqa: E402
+from freeciv_agent.state import ContractError, ProxyStateDTO  # noqa: E402
 
 
 def _unit_rule(
@@ -53,7 +53,67 @@ def _ruleset():
     ))
 
 
-def _combat_snapshot(context=True, veteran=0):
+def _native_combat_row(payload):
+    attacker = payload["units"]["102"]
+    defender = payload["units"]["999"]
+
+    def revision(unit):
+        return {
+            "activity": unit.get("activity"),
+            "hp": unit.get("hp"),
+            "id": unit.get("id"),
+            "moves_left": unit.get("moves_left"),
+            "owner": unit.get("owner"),
+            "tile": unit.get("tile"),
+            "transported": unit.get("transported"),
+            "transported_by":
+                unit.get("transported_by"),
+            "type_id": unit.get("type_id"),
+            "veteran": unit.get("veteran"),
+        }
+
+    action_rows = []
+    for action_id, action_name in (
+            (24, "capture_units"),
+            (45, "attack"),
+            (46, "suicide_attack"),
+            (49, "conquer_city"),
+            (53, "bombard")):
+        minimum, maximum, status = (
+            (119, 121, "bounded")
+            if action_id == 45
+            else (253, 0, "not_applicable"))
+        action_rows.append({
+            "action_id": action_id,
+            "action_name": action_name,
+            "maximum": maximum,
+            "minimum": minimum,
+            "status": status,
+        })
+    return {
+        "action_probabilities": action_rows,
+        "actor_revision": revision(attacker),
+        "actor_unit_id": 102,
+        "authority":
+            "freeciv-server-action-probability",
+        "player_id": 0,
+        "request_kind": "background_refresh",
+        "request_source_seq": 0,
+        "response_source_seq": 1,
+        "schema_version": "1.0",
+        "target_city_id": 0,
+        "target_extra_id": -1,
+        "target_stack_revision": [
+            revision(defender)],
+        "target_tile_id": 1982,
+        "target_unit_id": 999,
+        "turn": 1,
+    }
+
+
+def _combat_snapshot(
+        context=True, veteran=0,
+        native_probability=False):
     path = os.path.join(
         REPO, "benchmarks", "freeciv",
         "samples", "real_state_turn1.json")
@@ -104,6 +164,12 @@ def _combat_snapshot(context=True, veteran=0):
         }
     payload["legal_actions"]["102"].append(
         action)
+    if native_probability:
+        payload["authoritative"] = {
+            "combat_probabilities": [
+                _native_combat_row(
+                    payload)],
+        }
     snapshot = ProxyStateDTO.parse(
         "grounded-combat", 1,
         payload).to_snapshot()
@@ -250,6 +316,82 @@ def test_explicit_unmodified_combat_is_heuristic_until_native_parity():
     assert artifact[
         "expected_enemy_shield_equivalent_loss"] >= 0.0
     assert artifact["parity_status"] == "unverified"
+
+
+def test_native_combat_interval_is_authoritative_and_preserves_residual():
+    snapshot, action = _combat_snapshot(
+        context=False,
+        native_probability=True)
+
+    estimate = GroundedCombatTransitionModel().estimate(
+        _request(snapshot, action))
+    artifact = estimate.to_dict()[
+        "model_artifact"]
+
+    assert estimate.authority == (
+        EstimateAuthority.DETERMINISTIC_DERIVED)
+    assert estimate.confidence == pytest.approx(
+        0.99)
+    assert (
+        estimate.transition.modeled_probability
+        == pytest.approx(0.99))
+    assert (
+        estimate.transition.residual_probability
+        == pytest.approx(0.01))
+    assert artifact[
+        "probability_target_destroyed"] == (
+            pytest.approx(0.595))
+    assert artifact[
+        "probability_target_destroyed_upper"] == (
+            pytest.approx(0.605))
+    assert artifact["selected_target_unit_id"] == 999
+    assert artifact["parity_status"] == (
+        "native-authoritative")
+    assert artifact[
+        "expected_friendly_shield_equivalent_loss"] is None
+
+
+def test_native_combat_snapshot_rejects_stale_target_revision():
+    path = os.path.join(
+        REPO, "benchmarks", "freeciv",
+        "samples", "real_state_turn1.json")
+    with open(path, encoding="utf-8") as stream:
+        payload = json.load(stream)
+    payload = copy.deepcopy(payload)
+    payload["units"]["102"].update({
+        "activity": "idle",
+        "hp": 10,
+        "transported": False,
+        "type": "Warriors",
+        "veteran": 0,
+    })
+    payload["units"]["999"] = {
+        "activity": "idle",
+        "done_moving": False,
+        "hp": 10,
+        "id": 999,
+        "moves_left": 3,
+        "owner": 1,
+        "tile": 1982,
+        "transported": False,
+        "type": "Phalanx",
+        "type_id": 2,
+        "veteran": 0,
+        "x": 14,
+        "y": 41,
+    }
+    payload["authoritative"] = {
+        "combat_probabilities": [
+            _native_combat_row(payload)],
+    }
+    payload["units"]["999"]["hp"] = 9
+
+    with pytest.raises(
+            ContractError,
+            match="target stack revision is stale"):
+        ProxyStateDTO.parse(
+            "grounded-combat", 1,
+            payload)
 
 
 def test_combat_probability_is_candidate_utility_invariant():

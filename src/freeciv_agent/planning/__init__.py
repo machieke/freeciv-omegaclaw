@@ -46,6 +46,14 @@ from .control_events import (
 from .operation_assembler import (
     assemble_city_defense_operation,
 )
+from .combat_operations import (
+    CombatOperationAssembler,
+    CombatOperationAssembly,
+    CombatOperationReadout,
+    ConditionalProbabilityInterval,
+    combat_target_capacities,
+    conditional_success_interval,
+)
 from .operation_store import (
     OPERATION_STORE_SCHEMA_VERSION,
     OperationRecord,
@@ -101,6 +109,9 @@ __all__ = [
     "OperationStep", "OperationStore", "OperationStoreError",
     "OperationTransitionError",
     "assemble_city_defense_operation",
+    "CombatOperationAssembler", "CombatOperationAssembly",
+    "CombatOperationReadout", "ConditionalProbabilityInterval",
+    "combat_target_capacities", "conditional_success_interval",
     "operation_id_from_components",
     "operation_transition_allowed",
     "UnifiedImpactFlowConfig",

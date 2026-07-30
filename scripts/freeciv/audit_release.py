@@ -39,9 +39,10 @@ PINNED_PROXY_PATCH_SHA256S = (
     "e2d2681acdeb53a2b3ace5fb519273d83e5acb20dcadfb2cc590fa16da4c023e",
     "c6b813be4dd6b7c2f2679f8aa2444f0fffb36597e23fb403ee1201d497ffdd81",
     "594fee9fd8cf07237cfc83036842aba1e0171d3ac1f01b99ea93b43618bea7e7",
+    "659627003f09f980692021bd27eff1620e805dbadd2e9b42faedc98329bcc59c",
 )
 PINNED_PROXY_PATCH_SERIES_SHA256 = (
-    "5a8cf967816ac6e692c27fae0cce59755ce27ea23e184c452a2aae0da767974e")
+    "56f9ae36e3e985bc36c04600df294436498854321c2390d7e281b7a3071cd6ca")
 REQUIRED_CONFIDENCE_PARAMETERS = frozenset({
     "actionable_threshold", "minimum_logged_confidence", "dampening_lambda",
     "observation_strength", "observation_confidence", "abduction_strength",
@@ -262,6 +263,7 @@ def run(args):
             "0013-pln-native-movement-routes.patch",
             "0014-pln-known-terrain-semantics.patch",
             "0015-pln-route-refresh-validity.patch",
+            "0016-pln-native-combat-probabilities.patch",
         )
     ]
     series_digest = hashlib.sha256()

@@ -1202,6 +1202,63 @@ button.pf-score-row:hover { background: #0d2026; }
 .pf-exact-table summary { padding: 8px 12px; color: var(--muted); text-transform: uppercase;
   font: 600 9px "JetBrains Mono"; cursor: pointer; background: #0a171c; }
 
+.pf-combat-operations { overflow: hidden; border-color: #4a432f; background:
+  radial-gradient(circle at 92% 0, rgba(232,174,87,.09), transparent 28rem), #08161b; }
+.pf-combat-shadow { padding: 5px 7px; border: 1px solid rgba(232,174,87,.46);
+  background: rgba(232,174,87,.06); color: var(--amber); text-transform: uppercase;
+  letter-spacing: .07em; font: 600 8px "JetBrains Mono"; }
+.pf-combat-summary { display: grid; grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 1px; background: var(--line); }
+.pf-combat-summary button { min-height: 90px; display: grid; grid-template-columns: 1fr auto;
+  align-content: center; gap: 3px 10px; padding: 12px 14px; border: 0; background: #0a181e;
+  color: inherit; text-align: left; cursor: pointer; }
+.pf-combat-summary button:hover:not(:disabled) { background: #0e2027; box-shadow: inset 0 2px var(--amber); }
+.pf-combat-summary button:disabled { cursor: default; }
+.pf-combat-summary span { color: var(--muted); text-transform: uppercase;
+  font: 600 8px "JetBrains Mono"; }
+.pf-combat-summary strong { color: var(--amber); font: 600 20px "JetBrains Mono"; }
+.pf-combat-summary small { grid-column: 1/-1; color: #7e969e; font: 500 8px "JetBrains Mono"; }
+.pf-combat-grid { display: grid; grid-template-columns: minmax(340px,.8fr) minmax(560px,1.2fr);
+  gap: 1px; background: var(--line); border-top: 1px solid var(--line); }
+.pf-combat-grid > div { min-width: 0; background: #09171c; overflow: auto; }
+.pf-combat-grid > div > header { min-width: 510px; display: flex; justify-content: space-between;
+  gap: 12px; padding: 10px 12px; border-bottom: 1px solid #183039; }
+.pf-combat-grid > div > header strong { color: #c8dadd; font-size: 10px; }
+.pf-combat-grid > div > header small { color: var(--muted); font: 500 8px "JetBrains Mono"; }
+.pf-combat-odds, .pf-combat-candidates { min-width: 510px; }
+.pf-combat-odds > div, .pf-combat-odds > button { width: 100%; display: grid;
+  grid-template-columns: 95px 95px minmax(120px,1fr) 70px; gap: 9px; align-items: center;
+  padding: 8px 11px; border: 0; border-bottom: 1px solid #14272e; background: transparent;
+  color: #91a9b0; text-align: left; font: 500 9px "JetBrains Mono"; }
+.pf-combat-odds > button { cursor: pointer; }.pf-combat-odds > button:hover { background: #0d2026; }
+.pf-combat-odds strong { color: #c8dadd; }.pf-combat-odds b { color: var(--green); }
+.pf-combat-odds small { color: var(--muted); }
+.pf-combat-candidates { min-width: 740px; }
+.pf-combat-candidates > div, .pf-combat-candidates > button { width: 100%; display: grid;
+  grid-template-columns: 145px minmax(180px,1fr) minmax(170px,1fr) 80px; gap: 10px;
+  align-items: center; padding: 8px 11px; border: 0; border-bottom: 1px solid #14272e;
+  background: transparent; color: #91a9b0; text-align: left; font: 500 9px "JetBrains Mono"; }
+.pf-combat-candidates > button { cursor: pointer; }
+.pf-combat-candidates > button:hover { background: #0d2026; }
+.pf-combat-candidates > button.selected { background: rgba(128,212,154,.07);
+  box-shadow: inset 3px 0 var(--green); }
+.pf-combat-candidates > button.rejected { background-image: repeating-linear-gradient(135deg,
+  transparent 0, transparent 8px, rgba(239,106,103,.025) 8px, rgba(239,106,103,.025) 12px); }
+.pf-combat-candidates span { min-width: 0; display: grid; gap: 2px; }
+.pf-combat-candidates strong, .pf-combat-candidates small { overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.pf-combat-candidates strong { color: #c5d8dc; }.pf-combat-candidates small { color: var(--muted); }
+.pf-combat-candidates button.selected b { color: var(--green); }
+.pf-combat-candidates button.rejected b { color: var(--red); }
+.pf-combat-odds .head, .pf-combat-candidates .head { color: var(--muted);
+  background: #0c1b21; text-transform: uppercase; font-size: 8px; }
+.pf-combat-operations > footer { display: grid; grid-template-columns: auto 1fr; gap: 14px;
+  padding: 10px 13px; border-top: 1px solid #3e3b2d; background: rgba(232,174,87,.035);
+  font-size: 8px; line-height: 1.5; }
+.pf-combat-operations > footer strong { color: var(--amber); text-transform: uppercase;
+  font: 600 8px "JetBrains Mono"; }
+.pf-combat-operations > footer span { color: #929890; }
+
 .pf-flow-graph-wrap { overflow: auto; background:
   radial-gradient(circle at 10% 50%, rgba(93,216,208,.08), transparent 24rem),
   radial-gradient(circle at 90% 50%, rgba(232,174,87,.06), transparent 24rem), #071318; }
@@ -1430,6 +1487,8 @@ button.pf-score-row:hover { background: #0d2026; }
   .pf-unified-decision { grid-template-columns: 1fr 1fr; }
   .pf-unified-decision > article { grid-column: 1/-1; }
   .pf-unified-signal-grid { grid-template-columns: 1fr; }
+  .pf-combat-summary { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .pf-combat-grid { grid-template-columns: 1fr; }
   .pf-research-readout { grid-template-columns: 1fr; }
   .pf-research-gates { grid-template-columns: repeat(3,minmax(120px,1fr)); }
   .pf-unified-health { grid-template-columns: repeat(3,minmax(120px,1fr)); }

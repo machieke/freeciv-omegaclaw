@@ -1,0 +1,57 @@
+[
+  {
+    "action": "open http://127.0.0.1:4178/?view=pfpln",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-30T18:34:22.275Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 5.8,
+    "timestamp": "2026-07-30T18:34:23.058Z"
+  },
+  {
+    "action": "click @e8",
+    "relativeTimeSec": 10.6,
+    "timestamp": "2026-07-30T18:34:27.907Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 11,
+    "timestamp": "2026-07-30T18:34:28.295Z"
+  },
+  {
+    "action": "fill @e34 gdo5-native-combat-pilot-v3",
+    "relativeTimeSec": 17.2,
+    "timestamp": "2026-07-30T18:34:34.508Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 18.7,
+    "timestamp": "2026-07-30T18:34:35.939Z"
+  },
+  {
+    "action": "click @e35",
+    "relativeTimeSec": 28.7,
+    "timestamp": "2026-07-30T18:34:45.925Z"
+  },
+  {
+    "action": "snapshot -i",
+    "relativeTimeSec": 34.1,
+    "timestamp": "2026-07-30T18:34:51.324Z"
+  },
+  {
+    "action": "click @e147",
+    "relativeTimeSec": 35.8,
+    "timestamp": "2026-07-30T18:34:53.043Z"
+  },
+  {
+    "action": "eval Array.from(document.querySelectorAll('h3')).find(e => e.textContent.includes('Native combat operation laboratory'))?.scrollIntoView({block:'start'})",
+    "relativeTimeSec": 36.3,
+    "timestamp": "2026-07-30T18:34:53.527Z"
+  },
+  {
+    "action": "screenshot gdo5-visible-defender-post-fix.png",
+    "relativeTimeSec": 36.6,
+    "timestamp": "2026-07-30T18:34:53.886Z"
+  }
+]

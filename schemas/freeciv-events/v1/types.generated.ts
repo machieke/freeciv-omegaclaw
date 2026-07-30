@@ -180,16 +180,20 @@ export type OperationEvent = {
   "operation_id": string;
   "operation_type": string;
   "opportunity_cost": number;
+  "participants"?: Array<JsonValue>;
   "policy_authority": boolean;
+  "probability_interval"?: JsonValue;
   "provenance": Array<string>;
   "reason_code": string | null;
   "requirement_id": string | null;
+  "requirement_set"?: JsonValue;
   "resolution_snapshot_id"?: string | null;
   "resolution_status"?: "resolved_success" | "resolved_failure" | "resolved_partial" | "resolved_no_effect" | "unresolved_unknown" | "censored_operation_abort" | "invalidated_state_change";
   "selected": boolean;
   "shadow_only": boolean;
   "snapshot_id": string;
   "state": "proposed" | "reserved" | "activated" | "step_selected" | "step_revalidated" | "step_committed" | "blocked" | "repaired" | "suspended" | "completed" | "failed" | "abandoned" | "expired";
+  "step_probability_intervals"?: Array<JsonValue>;
   "target_id": string | null;
 };
 

@@ -387,3 +387,54 @@ def test_native_movement_routes_are_default_off_and_grounded_defense_gated():
         "native_movement_routes"]["enabled"]
     assert enabled["controller_policy"][
         "pressure_native_movement_routes_enabled"]
+
+
+def test_native_combat_and_atomic_operations_are_default_off_and_gated():
+    default = build_controller_activation({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+    })
+    assert not default["layers"][
+        "native_combat_probabilities"]["enabled"]
+    assert not default["layers"][
+        "combat_operations"]["enabled"]
+
+    with pytest.raises(
+            PFRuntimeConfigurationError,
+            match="require grounded domain estimates"):
+        validate_controller_policy({
+            "pressure_enabled": True,
+            "pressure_semantics_version": "v2",
+            "pressure_controller_mode": "scalar_v2",
+            "pressure_native_combat_probabilities_enabled": True,
+        })
+    with pytest.raises(
+            PFRuntimeConfigurationError,
+            match="combat operations require"):
+        validate_controller_policy({
+            "pressure_enabled": True,
+            "pressure_semantics_version": "v2",
+            "pressure_controller_mode": "scalar_v2",
+            "pressure_domain_estimates_enabled": True,
+            "pressure_native_combat_probabilities_enabled": True,
+            "pressure_combat_operations_enabled": True,
+        })
+
+    enabled = build_controller_activation({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+        "pressure_packet_scheduler_enabled": True,
+        "pressure_resource_scheduler_enabled": True,
+        "pressure_requirement_sets_enabled": True,
+        "pressure_domain_estimates_enabled": True,
+        "pressure_commit_revalidation_enabled": True,
+        "pressure_operation_lifecycle_enabled": True,
+        "pressure_native_combat_probabilities_enabled": True,
+        "pressure_combat_operations_enabled": True,
+    })
+    assert enabled["layers"][
+        "native_combat_probabilities"]["enabled"]
+    assert enabled["layers"][
+        "combat_operations"]["enabled"]

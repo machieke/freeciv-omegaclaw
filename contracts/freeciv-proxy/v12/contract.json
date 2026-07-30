@@ -1,0 +1,43 @@
+{
+  "schema_version": "12.0",
+  "extends": "../v11/contract.json",
+  "upstream_base_commit": "26ba7124249f34fd3050ef29bf191bd4d8808018",
+  "websocket_state_query": {
+    "optional_fields": {
+      "include_combat_probabilities": {
+        "type": "boolean",
+        "default": false,
+        "requires_format": "pln_authoritative",
+        "maximum_queries": 32,
+        "timeout_seconds": 0.25
+      }
+    }
+  },
+  "authoritative_observations": {
+    "combat_probabilities": {
+      "source": "PACKET_UNIT_ACTIONS after an explicit PACKET_UNIT_GET_ACTIONS background-refresh request",
+      "scope": "adjacent packet-visible foreign-unit tiles reachable by a current server-advertised combat action",
+      "selected_defender": "target_unit_id selected by the native Freeciv action subsystem",
+      "interval_units": "half percentage points in 0..200",
+      "supported_action_ids": [24, 45, 46, 49, 53]
+    }
+  },
+  "fail_closed": [
+    "unsolicited PACKET_UNIT_ACTIONS replies are ignored",
+    "actor owner, type, tile, moves, HP, veteran, activity, and transport revision must still match",
+    "the complete packet-visible target stack revision must still match",
+    "malformed probability intervals and protocol sentinels are rejected",
+    "timed-out requests are removed and cannot complete a later projection"
+  ],
+  "policy_boundary": {
+    "proxy": "projects native player-visible action probability intervals and selected defender without reconstructing combat mechanics",
+    "planner": "preserves interval width as residual unknown mass and keeps multi-unit combat operations shadow-only",
+    "authority": "no combat operation may execute from this transport capability alone"
+  },
+  "invariants": [
+    "the query is opt-in and bounded to 32 actor-target pairs",
+    "no hidden tile, unit, route, or opponent action is requested",
+    "current legal action membership remains independently required",
+    "joint multi-step probability is never formed by multiplying unconditional current-state action probabilities"
+  ]
+}

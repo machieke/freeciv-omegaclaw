@@ -50,7 +50,8 @@ The patch series is tracked at
 `scripts/freeciv/upstream/0012-pln-city-ownership-reconciliation.patch`, and
 `scripts/freeciv/upstream/0013-pln-native-movement-routes.patch`, and
 `scripts/freeciv/upstream/0014-pln-known-terrain-semantics.patch`, and
-`scripts/freeciv/upstream/0015-pln-route-refresh-validity.patch`. The
+`scripts/freeciv/upstream/0015-pln-route-refresh-validity.patch`, and
+`scripts/freeciv/upstream/0016-pln-native-combat-probabilities.patch`. The
 application script verifies every digest, is idempotent, rejects a different upstream
 commit, and supports normal checkouts and Git worktrees. It adds the
 `pln_authoritative` DTO, monotonic packet sequence, bounded and conditional
@@ -78,6 +79,11 @@ Patch 0015 keeps a native route request pending until a response matches the
 unit's current origin, movement allowance, transport state, destination, and
 turn. A stale same-key cache entry therefore cannot masquerade as a completed
 fresh route query.
+Patch 0016 adds bounded, opt-in native combat probability requests for
+current advertised combat actions against packet-visible adjacent targets.
+The projection records the server-selected defender and preserves probability
+intervals without inventing combat modifiers. Exact actor and target-stack
+revision checks prevent stale or cross-state results from entering a snapshot.
 The final sanitizer patch permits legitimate ruleset tokens such as
 `Labor Union` while retaining the compound `UNION SELECT` rejection and exact
 server-advertised technology validation.

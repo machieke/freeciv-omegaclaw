@@ -60,7 +60,8 @@ def test_state_query_carries_bounded_source_wait_hint():
         state = await turncycle.get_state(
             ws, "pln_authoritative", after_source_seq=44,
             wait_timeout_ms=5000, accept_unchanged=True,
-            settle_quiet_ms=50, include_movement_routes=True)
+            settle_quiet_ms=50, include_movement_routes=True,
+            include_combat_probabilities=True)
         return state, ws.received[-1]
 
     state, query = _run(go())
@@ -73,6 +74,7 @@ def test_state_query_carries_bounded_source_wait_hint():
         "accept_unchanged": True,
         "settle_quiet_ms": 50,
         "include_movement_routes": True,
+        "include_combat_probabilities": True,
     }
 
 
@@ -92,6 +94,8 @@ def test_state_query_collects_server_timing_without_changing_state_body():
                     "quiet_wait_ms": 50.25,
                     "movement_route_wait_ms": 7.5,
                     "movement_route_responses": 12,
+                    "combat_probability_wait_ms": 8.5,
+                    "combat_probability_responses": 3,
                     "elapsed_before_serialize_ms": 68.0,
                     "projection_attempts": 1,
                     "ignored": 99,
@@ -111,6 +115,8 @@ def test_state_query_collects_server_timing_without_changing_state_body():
         "quiet_wait_ms": 50.25,
         "movement_route_wait_ms": 7.5,
         "movement_route_responses": 12.0,
+        "combat_probability_wait_ms": 8.5,
+        "combat_probability_responses": 3.0,
         "elapsed_before_serialize_ms": 68.0,
         "projection_attempts": 1.0,
     }
@@ -158,12 +164,24 @@ def test_state_query_rejects_invalid_source_wait_hint():
         with pytest.raises(ValueError, match="include_movement_routes"):
             _run(turncycle.get_state(
                 MockProxyWS(), include_movement_routes=value))
+        with pytest.raises(
+                ValueError,
+                match="include_combat_probabilities"):
+            _run(turncycle.get_state(
+                MockProxyWS(),
+                include_combat_probabilities=value))
     with pytest.raises(
             ValueError,
             match="requires pln_authoritative"):
         _run(turncycle.get_state(
             MockProxyWS(), "full",
             include_movement_routes=True))
+    with pytest.raises(
+            ValueError,
+            match="requires pln_authoritative"):
+        _run(turncycle.get_state(
+            MockProxyWS(), "full",
+            include_combat_probabilities=True))
 
 
 def test_v4_contract_declares_conditional_stability_response():
@@ -191,6 +209,28 @@ def test_v5_contract_declares_settled_full_response():
             "after_source_seq", "wait_timeout_ms"]
     assert contract["websocket_state_response"]["stability"]["policy"] == (
         "source-seq-quiet-v1")
+
+
+def test_v12_contract_declares_bounded_native_combat_query():
+    path = os.path.join(
+        _REPO_ROOT, "contracts",
+        "freeciv-proxy", "v12",
+        "contract.json")
+    contract = json.load(open(
+        path, encoding="utf-8"))
+
+    assert contract["extends"] == (
+        "../v11/contract.json")
+    option = contract[
+        "websocket_state_query"
+    ]["optional_fields"][
+        "include_combat_probabilities"]
+    assert option["default"] is False
+    assert option["maximum_queries"] == 32
+    assert contract[
+        "policy_boundary"][
+            "authority"].startswith(
+                "no combat operation")
 
 
 # --- advancement (correct envelope) ----------------------------------------

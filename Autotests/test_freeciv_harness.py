@@ -1814,6 +1814,39 @@ def test_state_requests_native_routes_only_when_enabled(monkeypatch):
     }]
 
 
+def test_state_requests_native_combat_probabilities_only_when_enabled(
+        monkeypatch):
+    raw = _ready_raw(
+        source_seq=45, turn=12)
+    calls = []
+
+    async def source_state(
+            _ws, _format, **kwargs):
+        calls.append(
+            kwargs)
+        return raw
+
+    monkeypatch.setattr(
+        engine_live.turncycle,
+        "get_state",
+        source_state)
+    returned, snapshot = asyncio.run(
+        _state(
+            object(),
+            "native-combat-state-test",
+            minimum_turn=12,
+            stable_samples=1,
+            timeout=0.5,
+            include_combat_probabilities=True))
+
+    assert returned is raw
+    assert snapshot.identity.source_seq == 45
+    assert calls == [{
+        "include_combat_probabilities":
+            True,
+    }]
+
+
 def test_state_default_stability_interval_is_50ms(monkeypatch):
     raw = _ready_raw(source_seq=45, turn=12)
     sleeps = []

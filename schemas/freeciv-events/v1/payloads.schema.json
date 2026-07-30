@@ -294,6 +294,16 @@
           "type": "array",
           "items": {"$ref": "#/$defs/jsonValue"}
         },
+        "participants": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/jsonValue"}
+        },
+        "requirement_set": {"$ref": "#/$defs/jsonValue"},
+        "probability_interval": {"$ref": "#/$defs/jsonValue"},
+        "step_probability_intervals": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/jsonValue"}
+        },
         "expected_prevented_loss": {"type": "number", "minimum": 0},
         "opportunity_cost": {"type": "number", "minimum": 0},
         "bid": {"type": "number", "minimum": 0},

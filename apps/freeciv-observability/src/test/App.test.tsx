@@ -209,6 +209,97 @@ const unifiedTrace = [
   }), 4, 18),
 ].map((row) => JSON.stringify(row)).join("\n");
 
+const combatOperationTrace = [
+  event(0, "state_snapshot", {
+    snapshot_id: "combat-snapshot-17",
+    player_id: 0,
+    state_hash: "4".repeat(64),
+    source_seq: 17,
+    legal_actions_digest: "5".repeat(64),
+    own_state: {},
+    uncertain_atoms: [],
+    map: {},
+    grounded_context: {
+      schema_version: "1.3",
+      legal_actions: [],
+      own_units: [],
+      visible_enemy_units: [],
+      movement_routes: [],
+      map_topology: { wrap_x: false, wrap_y: false },
+      combat_probabilities: [
+        {
+          actor_unit_id: 102, target_unit_id: 0, target_unit_ids: [999],
+          target_tile_id: 1982,
+          response_source_seq: 17, authority: "freeciv-server-action-probability",
+          action_probabilities: [
+            { action_name: "attack", status: "bounded", minimum: 140, maximum: 140 },
+          ],
+        },
+        {
+          actor_unit_id: 103, target_unit_id: 0, target_unit_ids: [999],
+          target_tile_id: 1982,
+          response_source_seq: 17, authority: "freeciv-server-action-probability",
+          action_probabilities: [
+            { action_name: "attack", status: "bounded", minimum: 80, maximum: 100 },
+          ],
+        },
+      ],
+    },
+  }, 3, 0),
+  event(1, "operation_proposed", {
+    event_schema_version: "1.0",
+    operation_id: "combat-operation-1",
+    operation_digest: "6".repeat(64),
+    operation_type: "attack_then_conditional_attack",
+    snapshot_id: "combat-snapshot-17",
+    requirement_id: "requirement-set-combat-1",
+    actor_id: "unit:102",
+    target_id: "unit:999@tile:1982",
+    state: "proposed",
+    reason_code: "shadow-schedule-selected-no-policy-authority",
+    deadline_turn: 3,
+    next_action: { action_type: "unit_attack", actor_id: 102 },
+    claims: [{ resource: { kind: "actor", owner_id: "unit:102" } }],
+    participants: [
+      { role: "primary_attacker", actor_id: "unit:102" },
+      { role: "conditional_attacker", actor_id: "unit:103" },
+    ],
+    requirement_set: {
+      requirement_set_id: "requirement-set-combat-1",
+      premise_ids: ["actor:102:present", "actor:103:present", "target:999:visible"],
+    },
+    probability_interval: { lower: 0.7, upper: 1, source: "conditional" },
+    step_probability_intervals: [
+      { lower: 0.7, upper: 0.7, source: "native" },
+      { lower: 0.4, upper: 0.5, source: "native" },
+    ],
+    expected_prevented_loss: 0,
+    opportunity_cost: 0,
+    bid: 0.7,
+    selected: true,
+    assignment_digest: "7".repeat(64),
+    policy_authority: false,
+    shadow_only: true,
+    provenance: ["freeciv-server-action-probability", "shadow-only-gdo5"],
+  }, 3, 1),
+  event(2, "resource_schedule_decided", {
+    event_schema_version: "1.0",
+    artifact_hash: "8".repeat(64),
+    batch_id: "9".repeat(64),
+    schedule_digest: "7".repeat(64),
+    scheduler_identity: "freeciv-bounded-exact-resource-scheduler/1.0",
+    exact_status: "exact",
+    fallback_reason: null,
+    selected_operation_ids: ["combat-operation-1"],
+    packet_committed_operation_ids: ["combat-operation-1"],
+    packet_exact_selection_equal: true,
+    request_count: 1,
+    rejected_operation_count: 0,
+    policy_authority: false,
+    shadow_only: true,
+  }, 3, 2),
+].map((row) => JSON.stringify(row)).join("\n");
+
 const productionMapTrace = [
   event(0, "state_snapshot", {
     snapshot_id: "production-map-snapshot",
@@ -623,6 +714,34 @@ describe("Decision Observatory", () => {
     expect(screen.getByRole("heading", { name: "flow_candidate_selected" }))
       .toBeInTheDocument();
   });
+
+  it("renders native combat intervals and atomic shadow operations without implying authority",
+    async () => {
+      const user = userEvent.setup();
+      render(<App initialText={combatOperationTrace} />);
+      await user.click(screen.getByRole("button", { name: /^08 PF-PLN/ }));
+      expect(screen.getByRole("heading", {
+        name: "Native combat operation laboratory",
+      })).toBeInTheDocument();
+      expect(screen.getByText("shadow only · no policy authority")).toBeInTheDocument();
+      expect(screen.getByRole("table", {
+        name: "Native FreeCiv combat probability intervals",
+      })).toBeInTheDocument();
+      const oddsTable = screen.getByRole("table", {
+        name: "Native FreeCiv combat probability intervals",
+      });
+      expect(within(oddsTable).getAllByText("unit:999")).toHaveLength(2);
+      expect(within(oddsTable).queryByText("unit:0")).not.toBeInTheDocument();
+      expect(screen.getByRole("table", {
+        name: "Atomic combat operation candidates",
+      })).toBeInTheDocument();
+      expect(screen.getByText("70.0% – 70.0%")).toBeInTheDocument();
+      expect(screen.getByText("◆ selected")).toBeInTheDocument();
+      expect(screen.getByText("3 / 3")).toBeInTheDocument();
+      await user.click(screen.getByText("◆ selected"));
+      expect(screen.getByRole("heading", { name: "operation_proposed" }))
+        .toBeInTheDocument();
+    });
 
   it("loads a second artifact as a turn-aligned PF-PLN comparison", async () => {
     const user = userEvent.setup();

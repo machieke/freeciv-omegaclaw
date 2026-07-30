@@ -559,7 +559,8 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
                  require_decision_ready=False, require_own_units=False,
                  stable_samples=1, poll_interval=0.05, diagnostics=None,
                  settle_first_projection=False,
-                 include_movement_routes=False):
+                 include_movement_routes=False,
+                 include_combat_probabilities=False):
     if (isinstance(stable_samples, bool) or not isinstance(stable_samples, int)
             or not 1 <= stable_samples <= 5):
         raise ValueError("stable_samples must be in 1..5")
@@ -635,6 +636,9 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
         if include_movement_routes:
             state_query_options[
                 "include_movement_routes"] = True
+        if include_combat_probabilities:
+            state_query_options[
+                "include_combat_probabilities"] = True
         if diagnostics is not None:
             state_query_options["diagnostics"] = query_diagnostics
         try:
@@ -752,7 +756,8 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
 
 async def _next_turn_state(ws, game_id, api_token, agent_id, minimum_turn,
                            minimum_source_seq, diagnostics=None,
-                           timeout=20.0, include_movement_routes=False):
+                           timeout=20.0, include_movement_routes=False,
+                           include_combat_probabilities=False):
     """Wait for one turn boundary, recovering one lost phase-done signal.
 
     A submitted ``end_turn`` can be acknowledged before the civserver consumes
@@ -778,6 +783,9 @@ async def _next_turn_state(ws, game_id, api_token, agent_id, minimum_turn,
     if include_movement_routes:
         state_options[
             "include_movement_routes"] = True
+    if include_combat_probabilities:
+        state_options[
+            "include_combat_probabilities"] = True
     try:
         return await _state(ws, game_id, **state_options)
     except TimeoutError:
@@ -1566,11 +1574,24 @@ async def _play(run_dir, manifest, context):
     movement_routes_enabled = bool(
         manifest["impact_policy"].get(
             "pressure_native_movement_routes_enabled", False))
+    combat_probabilities_enabled = bool(
+        manifest["impact_policy"].get(
+            "pressure_native_combat_probabilities_enabled",
+            False))
+    combat_operations_enabled = bool(
+        manifest["impact_policy"].get(
+            "pressure_combat_operations_enabled",
+            False))
     if _needs_cognitive_stack(context):
         ir, catalog, proposal_parser, oracle, scheduler = _cognitive_stack()
     else:
         ir = catalog = proposal_parser = oracle = scheduler = None
     observability_ir = ir or compile_ruleset(_ruleset_root(), "civ2civ3")
+    combat_ruleset_digest = (
+        structural_hash(
+            observability_ir.to_dict())
+        if combat_operations_enabled
+        else None)
     events_path = manifest["events_path"]
     if not os.path.isabs(events_path):
         events_path = os.path.join(run_dir, events_path)
@@ -1800,13 +1821,26 @@ async def _play(run_dir, manifest, context):
         raw, snapshot = await _state(
             ws, manifest["game_id"], require_decision_ready=True,
             require_own_units=True, stable_samples=5,
-            include_movement_routes=movement_routes_enabled)
+            include_movement_routes=movement_routes_enabled,
+            include_combat_probabilities=(
+                combat_probabilities_enabled))
         store.replace(snapshot)
         state_event = writer.emit("state_snapshot", snapshot.turn, snapshot.event_payload(),
                                   caused_by=[parent])
         domain_observability.emit_snapshot(
             snapshot, state_event["event_id"], raw=raw)
         parent = state_event["event_id"]
+        if combat_operations_enabled:
+            combat_events = (
+                control_event_emitter
+                .emit_combat_operation_shadow(
+                    writer,
+                    snapshot,
+                    combat_ruleset_digest,
+                    caused_by=(parent,)))
+            if combat_events:
+                parent = combat_events[
+                    -1]["event_id"]
         global_state = await _global_state(
             ws, player_id=player_id, minimum_turn=snapshot.turn)
         observer_global_state_queries += 1
@@ -1972,7 +2006,9 @@ async def _play(run_dir, manifest, context):
                         impact_planner.refresh_stability_interval_seconds
                         if impact_planner is not None else 0.2),
                     diagnostics=action_state_diagnostics,
-                    include_movement_routes=movement_routes_enabled)
+                    include_movement_routes=movement_routes_enabled,
+                    include_combat_probabilities=(
+                        combat_probabilities_enabled))
                 if predicate is not None and not predicate(next_snapshot):
                     minimum_seq = next_snapshot.identity.source_seq + 1
                     await asyncio.sleep(0.05)
@@ -1996,17 +2032,31 @@ async def _play(run_dir, manifest, context):
                         caused_by=(
                             event[
                                 "event_id"],)))
+                combat_parent = (
+                    operation_events[
+                        -1]["event_id"]
+                    if operation_events
+                    else event["event_id"])
+                combat_events = (
+                    control_event_emitter
+                    .emit_combat_operation_shadow(
+                        writer,
+                        next_snapshot,
+                        combat_ruleset_digest,
+                        caused_by=(
+                            combat_parent,))
+                    if combat_operations_enabled
+                    else ())
                 action_refresh_event_latency_ms += (
                     time.perf_counter() - event_started) * 1000.0
                 return (
                     next_raw,
                     next_snapshot,
                     (
-                        operation_events[
+                        combat_events[
                             -1]["event_id"]
-                        if operation_events
-                        else event[
-                            "event_id"]))
+                        if combat_events
+                        else combat_parent))
 
         turn_started = time.perf_counter()
         final_turn = snapshot.turn
@@ -2022,7 +2072,9 @@ async def _play(run_dir, manifest, context):
                     minimum_turn=snapshot.turn + 1,
                     minimum_source_seq=snapshot.identity.source_seq + 1,
                     diagnostics=transition_state_diagnostics,
-                    include_movement_routes=movement_routes_enabled)
+                    include_movement_routes=movement_routes_enabled,
+                    include_combat_probabilities=(
+                        combat_probabilities_enabled))
                 store.replace(snapshot)
                 state_event = writer.emit(
                     "state_snapshot", snapshot.turn, snapshot.event_payload(),
@@ -2036,12 +2088,27 @@ async def _play(run_dir, manifest, context):
                         caused_by=(
                             state_event[
                                 "event_id"],)))
-                parent = (
+                operation_parent = (
                     operation_events[
                         -1]["event_id"]
                     if operation_events
                     else state_event[
                         "event_id"])
+                combat_events = (
+                    control_event_emitter
+                    .emit_combat_operation_shadow(
+                        writer,
+                        snapshot,
+                        combat_ruleset_digest,
+                        caused_by=(
+                            operation_parent,))
+                    if combat_operations_enabled
+                    else ())
+                parent = (
+                    combat_events[
+                        -1]["event_id"]
+                    if combat_events
+                    else operation_parent)
                 if _needs_turn_global_state(impact_planner):
                     global_state = await _global_state(
                         ws, player_id=player_id, minimum_turn=snapshot.turn)

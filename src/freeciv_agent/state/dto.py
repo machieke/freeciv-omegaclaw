@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 from ..events.schema import canonical_json_bytes
 from .snapshot import (AuthoritativeSnapshot, BuildingState, CityState,
+                       CombatActionProbabilityState, CombatProbabilityState,
                        EconomicState, GovernmentState, MovementRouteState,
                        PlayerScoreState, ResearchState, SnapshotIdentity,
                        UnitState)
@@ -893,6 +894,248 @@ class ProxyStateDTO:
                         initially_transported),
                     turn=route_turn,
                     source_seq=route_source_seq))
+        all_visible_units = tuple(units) + tuple(
+            visible_enemy_units)
+
+        def combat_revision(unit):
+            return {
+                "activity": unit.activity,
+                "hp": unit.hp,
+                "id": unit.unit_id,
+                "moves_left": unit.moves_left,
+                "owner": unit.owner,
+                "tile": unit.tile,
+                "transported": unit.transported,
+                "transported_by":
+                    unit.transported_by,
+                "type_id": unit.type_id,
+                "veteran": unit.veteran,
+            }
+
+        combat_probabilities = []
+        combat_action_names = {
+            24: "capture_units",
+            45: "attack",
+            46: "suicide_attack",
+            49: "conquer_city",
+            53: "bombard",
+        }
+        for row in _collection(
+                authoritative.get(
+                    "combat_probabilities"),
+                "authoritative.combat_probabilities"):
+            if row.get("schema_version") != "1.0":
+                raise ContractError(
+                    "combat probability schema_version must be 1.0")
+            if row.get("authority") != (
+                    "freeciv-server-action-probability"):
+                raise ContractError(
+                    "combat probability authority must be the native action subsystem")
+            combat_player_id = _integer(
+                row.get("player_id"),
+                "combat_probability.player_id",
+                required=True)
+            if combat_player_id != player_id:
+                raise ContractError(
+                    "combat probability player must match the snapshot")
+            actor_id = _integer(
+                row.get("actor_unit_id"),
+                "combat_probability.actor_unit_id",
+                required=True)
+            actor = own_units_by_id.get(
+                actor_id)
+            if actor is None:
+                raise ContractError(
+                    "combat probability actor must be a current own unit")
+            actor_revision = row.get(
+                "actor_revision")
+            if (
+                not isinstance(
+                    actor_revision, dict)
+                or actor_revision
+                    != combat_revision(actor)
+            ):
+                raise ContractError(
+                    "combat probability actor revision is stale")
+            target_tile = _integer(
+                row.get("target_tile_id"),
+                "combat_probability.target_tile_id",
+                required=True)
+            if (
+                target_tile < 0
+                or target_tile >= tile_count):
+                raise ContractError(
+                    "combat probability target tile must be within the map")
+            target_stack = _collection(
+                row.get(
+                    "target_stack_revision"),
+                "combat_probability.target_stack_revision")
+            target_unit_ids = tuple(
+                _integer(
+                    unit.get("id"),
+                    "combat_probability.target_stack_revision.id",
+                    required=True)
+                for unit in target_stack)
+            if (
+                len(set(target_unit_ids))
+                    != len(target_unit_ids)
+                or tuple(sorted(
+                    target_unit_ids))
+                    != target_unit_ids
+            ):
+                raise ContractError(
+                    "combat probability target stack must have sorted unique unit IDs")
+            expected_stack = [
+                combat_revision(unit)
+                for unit in sorted(
+                    all_visible_units,
+                    key=lambda item:
+                        item.unit_id)
+                if unit.tile == target_tile
+            ]
+            if target_stack != expected_stack:
+                raise ContractError(
+                    "combat probability target stack revision is stale")
+            selected_target_id = _integer(
+                row.get("target_unit_id"),
+                "combat_probability.target_unit_id",
+                required=True)
+            if (
+                selected_target_id != 0
+                and selected_target_id
+                    not in target_unit_ids):
+                raise ContractError(
+                    "combat probability selected target must be visible on its target tile")
+            action_probabilities = []
+            seen_action_ids = set()
+            for probability in _collection(
+                    row.get(
+                        "action_probabilities"),
+                    "combat_probability.action_probabilities"):
+                action_id = _integer(
+                    probability.get(
+                        "action_id"),
+                    "combat_probability.action_probability.action_id",
+                    required=True)
+                action_name = str(
+                    probability.get(
+                        "action_name") or "")
+                if (
+                    action_id not in combat_action_names
+                    or action_name
+                        != combat_action_names[
+                            action_id]
+                    or action_id in
+                        seen_action_ids
+                ):
+                    raise ContractError(
+                        "combat action probability identity is invalid")
+                seen_action_ids.add(
+                    action_id)
+                minimum = _integer(
+                    probability.get("minimum"),
+                    "combat_probability.action_probability.minimum",
+                    required=True)
+                maximum = _integer(
+                    probability.get("maximum"),
+                    "combat_probability.action_probability.maximum",
+                    required=True)
+                status = str(
+                    probability.get("status")
+                    or "")
+                if status == "bounded":
+                    if not (
+                            0 <= minimum
+                            <= maximum <= 200):
+                        raise ContractError(
+                            "bounded combat probability must be in 0..200")
+                elif status == (
+                        "not_applicable"):
+                    if (minimum, maximum) != (
+                            253, 0):
+                        raise ContractError(
+                            "not-applicable combat probability sentinel is invalid")
+                elif status == (
+                        "not_implemented"):
+                    if (minimum, maximum) != (
+                            254, 0):
+                        raise ContractError(
+                            "not-implemented combat probability sentinel is invalid")
+                else:
+                    raise ContractError(
+                        "combat probability status is invalid")
+                action_probabilities.append(
+                    CombatActionProbabilityState(
+                        action_id=action_id,
+                        action_name=action_name,
+                        minimum=minimum,
+                        maximum=maximum,
+                        status=status))
+            if seen_action_ids != set(
+                    combat_action_names):
+                raise ContractError(
+                    "combat probability must include the complete supported action subset")
+            combat_turn = _integer(
+                row.get("turn"),
+                "combat_probability.turn",
+                required=True)
+            request_source_seq = _integer(
+                row.get("request_source_seq"),
+                "combat_probability.request_source_seq",
+                required=True)
+            response_source_seq = _integer(
+                row.get("response_source_seq"),
+                "combat_probability.response_source_seq",
+                required=True)
+            if (
+                combat_turn != turn
+                or not 0 <= request_source_seq
+                    < response_source_seq
+                    <= source_seq
+            ):
+                raise ContractError(
+                    "combat probability source revision is inconsistent")
+            if row.get(
+                    "request_kind") != (
+                    "background_refresh"):
+                raise ContractError(
+                    "combat probability request kind is invalid")
+            combat_probabilities.append(
+                CombatProbabilityState(
+                    player_id=combat_player_id,
+                    actor_unit_id=actor_id,
+                    target_tile_id=target_tile,
+                    target_unit_id=selected_target_id,
+                    target_city_id=_integer(
+                        row.get(
+                            "target_city_id"),
+                        "combat_probability.target_city_id",
+                        required=True),
+                    target_extra_id=_integer(
+                        row.get(
+                            "target_extra_id"),
+                        "combat_probability.target_extra_id",
+                        required=True),
+                    target_unit_ids=(
+                        target_unit_ids),
+                    action_probabilities=tuple(
+                        sorted(
+                            action_probabilities,
+                            key=lambda item:
+                                item.action_id)),
+                    actor_revision_digest=hashlib.sha256(
+                        canonical_json_bytes(
+                            actor_revision)
+                    ).hexdigest(),
+                    target_stack_revision_digest=hashlib.sha256(
+                        canonical_json_bytes(
+                            target_stack)
+                    ).hexdigest(),
+                    turn=combat_turn,
+                    request_source_seq=(
+                        request_source_seq),
+                    response_source_seq=(
+                        response_source_seq)))
         legal_json, legal_action_kinds = _canonical_actions(
             payload.get("legal_actions") if legal_actions is None else legal_actions,
             player_id=player_id)
@@ -964,6 +1207,15 @@ class ProxyStateDTO:
                         item.unit_id,
                         item.destination_tile))
             ]
+        if combat_probabilities:
+            body["combat_probabilities"] = [
+                result.to_dict()
+                for result in sorted(
+                    combat_probabilities,
+                    key=lambda item: (
+                        item.actor_unit_id,
+                        item.target_tile_id))
+            ]
         state_hash = hashlib.sha256(canonical_json_bytes(body)).hexdigest()
         identity = SnapshotIdentity(str(game_id), turn, source_seq, state_hash)
         return cls(AuthoritativeSnapshot(
@@ -996,6 +1248,12 @@ class ProxyStateDTO:
                 key=lambda item: (
                     item.unit_id,
                     item.destination_tile))),
+            combat_probabilities=tuple(
+                sorted(
+                    combat_probabilities,
+                    key=lambda item: (
+                        item.actor_unit_id,
+                        item.target_tile_id))),
             map_tiles=tuple(copy.deepcopy(tiles)), legal_action_json=legal_json,
             legal_actions_digest=legal_digest,
             legal_action_kinds=legal_action_kinds,

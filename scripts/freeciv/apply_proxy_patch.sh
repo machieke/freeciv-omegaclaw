@@ -18,6 +18,7 @@ city_ownership_reconciliation_patch="$repo_root/scripts/freeciv/upstream/0012-pl
 native_movement_routes_patch="$repo_root/scripts/freeciv/upstream/0013-pln-native-movement-routes.patch"
 known_terrain_semantics_patch="$repo_root/scripts/freeciv/upstream/0014-pln-known-terrain-semantics.patch"
 route_refresh_validity_patch="$repo_root/scripts/freeciv/upstream/0015-pln-route-refresh-validity.patch"
+native_combat_probabilities_patch="$repo_root/scripts/freeciv/upstream/0016-pln-native-combat-probabilities.patch"
 pinned_commit="26ba7124249f34fd3050ef29bf191bd4d8808018"
 pinned_authoritative_sha256="48e416000bf36c3c7ce13c8c59bb51bc682a1f17ee8568e432a82f673a10df55"
 pinned_spatial_sha256="a4eb88c827c7a2ea68db602aa2463c2aa53bb0c6156a71e1a5a5e7fc09908856"
@@ -34,6 +35,7 @@ pinned_city_ownership_reconciliation_sha256="db29d472e49bd8b24bb227142c3635a77d4
 pinned_native_movement_routes_sha256="e2d2681acdeb53a2b3ace5fb519273d83e5acb20dcadfb2cc590fa16da4c023e"
 pinned_known_terrain_semantics_sha256="c6b813be4dd6b7c2f2679f8aa2444f0fffb36597e23fb403ee1201d497ffdd81"
 pinned_route_refresh_validity_sha256="594fee9fd8cf07237cfc83036842aba1e0171d3ac1f01b99ea93b43618bea7e7"
+pinned_native_combat_probabilities_sha256="659627003f09f980692021bd27eff1620e805dbadd2e9b42faedc98329bcc59c"
 
 if [[ -z "$upstream_root" ]]; then
   echo "usage: $0 /path/to/freeciv-llm (or set FREECIV_LLM_ROOT)" >&2
@@ -58,7 +60,8 @@ for patch_spec in \
   "$city_ownership_reconciliation_patch:$pinned_city_ownership_reconciliation_sha256" \
   "$native_movement_routes_patch:$pinned_native_movement_routes_sha256" \
   "$known_terrain_semantics_patch:$pinned_known_terrain_semantics_sha256" \
-  "$route_refresh_validity_patch:$pinned_route_refresh_validity_sha256"; do
+  "$route_refresh_validity_patch:$pinned_route_refresh_validity_sha256" \
+  "$native_combat_probabilities_patch:$pinned_native_combat_probabilities_sha256"; do
   patch_file="${patch_spec%:*}"
   pinned_patch_sha256="${patch_spec##*:}"
   actual_patch_sha256="$(sha256sum "$patch_file" | cut -d' ' -f1)"
@@ -70,8 +73,8 @@ done
 
 # Each later patch depends on its predecessors. If the final reverse check
 # succeeds, the complete patch series is already present.
-if git -C "$upstream_root" apply --reverse --check "$route_refresh_validity_patch" >/dev/null 2>&1; then
-  echo "PLN authoritative-state through route-refresh-validity patches are already applied"
+if git -C "$upstream_root" apply --reverse --check "$native_combat_probabilities_patch" >/dev/null 2>&1; then
+  echo "PLN authoritative-state through native-combat-probabilities patches are already applied"
   exit 0
 fi
 actual_commit="$(git -C "$upstream_root" rev-parse HEAD)"
@@ -94,7 +97,8 @@ for patch_file in \
   "$city_ownership_reconciliation_patch" \
   "$native_movement_routes_patch" \
   "$known_terrain_semantics_patch" \
-  "$route_refresh_validity_patch"; do
+  "$route_refresh_validity_patch" \
+  "$native_combat_probabilities_patch"; do
   if git -C "$upstream_root" apply --reverse --check "$patch_file" >/dev/null 2>&1; then
     echo "$(basename "$patch_file") is already applied"
     continue

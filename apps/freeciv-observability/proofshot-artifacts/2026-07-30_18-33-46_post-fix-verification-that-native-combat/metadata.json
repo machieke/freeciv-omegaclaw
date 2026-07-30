@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure–bridge–fluid",
+  "commitSha": "bd1bbf9f29be41cdb84f59fb569de6206df9bf51",
+  "startedAt": "2026-07-30T18:33:46.405Z",
+  "description": "Post-fix verification that native combat intervals show visible defender identity instead of the zero sentinel"
+}
