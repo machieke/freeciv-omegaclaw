@@ -34,6 +34,7 @@ from freeciv_agent.state.snapshot import (  # noqa: E402
     CityState,
     EconomicState,
     GovernmentState,
+    MovementRouteState,
     PlayerScoreState,
     ResearchState,
     SnapshotIdentity,
@@ -217,6 +218,179 @@ def _city(row):
         buildings=buildings)
 
 
+def _movement_route(row):
+    if not isinstance(
+            row, dict):
+        raise ValueError(
+            "captured movement route must be an object")
+    if row.get(
+            "schema_version") != "1.0":
+        raise ValueError(
+            "captured movement route schema must be 1.0")
+    if row.get(
+            "authority") != (
+                "freeciv-server-pathfinder"):
+        raise ValueError(
+            "captured movement route must use native server authority")
+    integer_names = (
+        "unit_id",
+        "origin_tile",
+        "destination_tile",
+        "first_step_tile",
+        "first_step_movement_cost",
+        "path_length",
+        "estimated_turns",
+        "total_movement_cost",
+        "movement_points_remaining",
+        "moves_left_at_request",
+        "turn",
+        "source_seq",
+    )
+    if any(
+            isinstance(
+                row.get(name),
+                bool)
+            or not isinstance(
+                row.get(name),
+                int)
+            for name in
+            integer_names):
+        raise ValueError(
+            "captured movement route numeric fields must be integers")
+    boolean_names = (
+        "reachable",
+        "transported_at_request",
+        "initially_transported",
+    )
+    if any(
+            not isinstance(
+                row.get(name),
+                bool)
+            for name in
+            boolean_names):
+        raise ValueError(
+            "captured movement route boolean fields must be booleans")
+    directions = row.get(
+        "path_directions")
+    if (
+        not isinstance(
+            directions, list)
+        or any(
+            isinstance(
+                value, bool)
+            or not isinstance(
+                value, int)
+            or value < -1
+            or value > 7
+            for value in
+            directions)
+        or row[
+            "path_length"]
+        != len(
+            directions)
+    ):
+        raise ValueError(
+            "captured movement route directions are inconsistent")
+    if (
+        row[
+            "transported_at_request"]
+        is not row[
+            "initially_transported"]
+    ):
+        raise ValueError(
+            "captured movement route transport state is inconsistent")
+    if any(
+            row[name] < 0
+            for name in (
+                "unit_id",
+                "origin_tile",
+                "destination_tile",
+                "first_step_tile",
+                "first_step_movement_cost",
+                "path_length",
+                "estimated_turns",
+                "total_movement_cost",
+                "movement_points_remaining",
+                "moves_left_at_request",
+                "turn",
+                "source_seq",
+            )):
+        raise ValueError(
+            "captured movement route numeric fields must be non-negative")
+    if row[
+            "reachable"]:
+        if (
+            row[
+                "path_length"] < 1
+            or row[
+                "first_step_movement_cost"] < 1
+            or row[
+                "total_movement_cost"]
+            < row[
+                "first_step_movement_cost"]
+            or row[
+                "estimated_turns"] < 0
+        ):
+            raise ValueError(
+                "captured reachable movement route is inconsistent")
+    elif any((
+            row["path_length"],
+            row[
+                "first_step_movement_cost"],
+            row[
+                "estimated_turns"],
+            row[
+                "total_movement_cost"],
+            len(
+                directions))):
+        raise ValueError(
+            "captured unreachable movement route must have an empty path")
+    elif row[
+            "first_step_tile"] != row[
+                "origin_tile"]:
+        raise ValueError(
+            "captured unreachable route must remain at its origin")
+    return MovementRouteState(
+        unit_id=int(
+            row["unit_id"]),
+        origin_tile=int(
+            row["origin_tile"]),
+        destination_tile=int(
+            row["destination_tile"]),
+        reachable=bool(
+            row["reachable"]),
+        first_step_tile=int(
+            row["first_step_tile"]),
+        first_step_movement_cost=int(
+            row[
+                "first_step_movement_cost"]),
+        path_length=int(
+            row["path_length"]),
+        path_directions=tuple(
+            directions),
+        estimated_turns=int(
+            row["estimated_turns"]),
+        total_movement_cost=int(
+            row[
+                "total_movement_cost"]),
+        movement_points_remaining=int(
+            row[
+                "movement_points_remaining"]),
+        moves_left_at_request=int(
+            row[
+                "moves_left_at_request"]),
+        transported_at_request=bool(
+            row[
+                "transported_at_request"]),
+        initially_transported=bool(
+            row[
+                "initially_transported"]),
+        turn=int(
+            row["turn"]),
+        source_seq=int(
+            row["source_seq"]))
+
+
 def _snapshot(fixture, candidates):
     event = fixture[
         "snapshot_event"]
@@ -282,6 +456,13 @@ def _snapshot(fixture, candidates):
         if isinstance(
             topology, dict)
         else {})
+    movement_routes = grounded.get(
+        "movement_routes")
+    movement_routes = (
+        movement_routes
+        if isinstance(
+            movement_routes, list)
+        else ())
     identity = SnapshotIdentity(
         game_id=str(
             event["game_id"]),
@@ -291,6 +472,42 @@ def _snapshot(fixture, candidates):
             payload["source_seq"]),
         state_hash=str(
             payload["state_hash"]))
+    snapshot_units = tuple(
+        _unit(row)
+        for row in
+        grounded_own_units)
+    parsed_routes = tuple(
+        sorted(
+            (
+                _movement_route(row)
+                for row in
+                movement_routes
+            ),
+            key=lambda row: (
+                row.unit_id,
+                row.destination_tile)))
+    units_by_id = {
+        unit.unit_id: unit
+        for unit in
+        snapshot_units}
+    for route in parsed_routes:
+        unit = units_by_id.get(
+            route.unit_id)
+        if (
+            unit is None
+            or route.turn
+            != identity.turn
+            or route.source_seq
+            > identity.source_seq
+            or route.origin_tile
+            != unit.tile
+            or route.moves_left_at_request
+            != unit.moves_left
+            or route.transported_at_request
+            is not unit.transported
+        ):
+            raise ValueError(
+                "captured movement route does not match replay snapshot")
     return AuthoritativeSnapshot(
         identity=identity,
         player_id=int(
@@ -395,10 +612,7 @@ def _snapshot(fixture, candidates):
             _city(row)
             for row in own.get(
                 "cities", ())),
-        units=tuple(
-            _unit(row)
-            for row in
-            grounded_own_units),
+        units=snapshot_units,
         visible_enemy_units=tuple(
             _unit(row)
             for row in
@@ -451,7 +665,8 @@ def _snapshot(fixture, candidates):
         map_wrap_x=topology.get(
             "wrap_x"),
         map_wrap_y=topology.get(
-            "wrap_y"))
+            "wrap_y"),
+        movement_routes=parsed_routes)
 
 
 def _load_fixture(path, expected_hash):
@@ -1208,8 +1423,20 @@ def run(
                     "captured legal moves omit movement cost or transport metadata",
                 ),
                 (
+                    all(
+                        fixture[
+                            "authority"].get(
+                                "native_movement_routes_available",
+                                False)
+                        for fixture,
+                        _snapshot_value,
+                        _candidates
+                        in fixtures),
+                    "captured snapshots omit exact native movement routes",
+                ),
+                (
                     False,
-                    "movement and threat ETA lack native gameplay parity",
+                    "threat ETA lacks native gameplay parity",
                 ),
                 (
                     False,

@@ -201,6 +201,51 @@ def _authority(snapshot_event):
                     "transport_required"),
                 bool)
             for row in moves))
+    native_routes = grounded.get(
+        "movement_routes")
+    route_collection = (
+        isinstance(
+            native_routes, list)
+        and all(
+            isinstance(
+                row, dict)
+            for row in
+            native_routes))
+    native_routes_available = bool(
+        route_collection
+        and native_routes
+        and all(
+            row.get(
+                "schema_version")
+            == "1.0"
+            and row.get(
+                "authority")
+            == (
+                "freeciv-server-pathfinder")
+            and isinstance(
+                row.get(
+                    "reachable"),
+                bool)
+            and (
+                not row[
+                    "reachable"]
+                or (
+                    isinstance(
+                        row.get(
+                            "first_step_movement_cost"),
+                        int)
+                    and row[
+                        "first_step_movement_cost"]
+                    > 0
+                    and isinstance(
+                        row.get(
+                            "estimated_turns"),
+                        int)
+                    and row[
+                        "estimated_turns"]
+                    >= 0))
+            for row in
+            native_routes))
     return {
         "full_legal_action_set_available":
             full_legal,
@@ -213,6 +258,14 @@ def _authority(snapshot_event):
             map_wrap,
         "movement_action_metadata_available":
             movement_action_metadata,
+        "native_movement_route_collection_available":
+            route_collection,
+        "native_movement_route_count": (
+            len(native_routes)
+            if route_collection
+            else 0),
+        "native_movement_routes_available":
+            native_routes_available,
         "movement_runtime_fields_available":
             movement_runtime,
         "player_visible_only": True,
