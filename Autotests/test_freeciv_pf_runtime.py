@@ -236,3 +236,46 @@ def test_frozen_transition_model_declaration_is_explicit():
     assert policy[
         "pressure_transition_value_model_identity"] == (
             "frozen-training-v1")
+
+
+def test_grounded_domain_estimates_are_default_off_shadow_only():
+    default = build_controller_activation({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+    })
+    shadow = build_controller_activation({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+        "pressure_domain_estimates_enabled": True,
+    })
+
+    assert not default["layers"][
+        "grounded_domain_estimates"]["enabled"]
+    assert shadow["layers"][
+        "grounded_domain_estimates"]["enabled"]
+    assert shadow["controller_policy"][
+        "pressure_domain_estimates_enabled"]
+    assert not shadow["controller_policy"][
+        "pressure_domain_estimates_authority_enabled"]
+
+
+def test_grounded_domain_authority_fails_closed_during_shadow_stage():
+    base = {
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+        "pressure_domain_estimates_enabled": True,
+        "pressure_domain_estimates_authority_enabled": True,
+    }
+    with pytest.raises(
+            PFRuntimeConfigurationError,
+            match="commit revalidation"):
+        validate_controller_policy(base)
+    with pytest.raises(
+            PFRuntimeConfigurationError,
+            match="shadow-only GDO-1"):
+        validate_controller_policy(dict(
+            base,
+            pressure_commit_revalidation_enabled=True))

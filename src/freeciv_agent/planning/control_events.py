@@ -242,6 +242,27 @@ class ControlEventEmitter:
                     direct_ranker.get("bridge"),
                     dict))
             else None)
+        domain_estimates = (
+            pressure.get("domain_estimates")
+            if isinstance(pressure, dict)
+            else None)
+        if isinstance(domain_estimates, dict):
+            for row in domain_estimates.get(
+                    "estimates", ()):
+                if not isinstance(row, dict):
+                    continue
+                event_type = row.get("event_type")
+                payload = row.get("event_payload")
+                if (event_type not in (
+                        "domain_estimate_emitted",
+                        "domain_estimate_abstained")
+                        or not isinstance(payload, dict)):
+                    continue
+                event = writer.emit(
+                    event_type, turn, payload,
+                    caused_by=list(parents))
+                emitted.append(event)
+                parents = (event["event_id"],)
         teleology = (
             pressure.get("teleology", {})
             if isinstance(pressure, dict)

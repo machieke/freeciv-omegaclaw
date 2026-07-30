@@ -115,7 +115,6 @@ function Scrubber({ events, cursor, onChange }: {
   const minimum = Math.min(...turns, 0);
   const maximum = Math.max(...turns, 0);
   const density = densityByTurn(events);
-  const maxDensity = Math.max(1, ...density.values());
   const markers = new Map<number, Set<string>>();
   const mark = (turn: number, value: string): void => {
     const values = markers.get(turn) ?? new Set<string>();
@@ -133,16 +132,38 @@ function Scrubber({ events, cursor, onChange }: {
       "cities_founded", "settlement_completions", "score_gain", "game_win",
     ].includes(String(event.payload.name))) mark(event.turn, "outcome");
   }
+  const maximumTicks = 200;
+  const turnCount = maximum - minimum + 1;
+  const bucketSize = Math.max(1, Math.ceil(turnCount / maximumTicks));
+  const buckets = Array.from({ length: Math.ceil(turnCount / bucketSize) }, (_, index) => {
+    const start = minimum + index * bucketSize;
+    const end = Math.min(maximum, start + bucketSize - 1);
+    const bucketMarkers = new Set<string>();
+    let count = 0;
+    let densest = start;
+    let densestCount = -1;
+    for (let turn = start; turn <= end; turn += 1) {
+      const value = density.get(turn) ?? 0;
+      count += value;
+      if (value > densestCount) { densestCount = value; densest = turn; }
+      for (const mark of markers.get(turn) ?? []) bucketMarkers.add(mark);
+    }
+    return { start, end, count, densest, markers: bucketMarkers };
+  });
+  const maxBucketDensity = Math.max(1, ...buckets.map((bucket) => bucket.count));
   return <section className="scrubber" aria-label="Global replay cursor">
     <div className="scrubber-label"><span>global cursor</span><strong>Turn {cursor.turn}</strong></div>
     <div className="scrubber-track">
       <div className="density-strip" aria-label="Event density by turn">
-        {Array.from({ length: maximum - minimum + 1 }, (_, offset) => minimum + offset).map((turn) =>
-          <button key={turn} aria-label={`Turn ${turn}, ${density.get(turn) ?? 0} events`}
-            className={`density-tick ${[...markers.get(turn) ?? []].join(" ")} ${turn === cursor.turn ? "active" : ""}`}
-            title={[...markers.get(turn) ?? []].join(" · ") || "event activity"}
-            style={{ opacity: 0.2 + 0.8 * ((density.get(turn) ?? 0) / maxDensity) }}
-            onClick={() => onChange({ turn, seq: seqAtTurn(events, turn) })} />)}
+        {buckets.map((bucket) =>
+          <button key={bucket.start}
+            aria-label={bucket.start === bucket.end
+              ? `Turn ${bucket.start}, ${bucket.count} events`
+              : `Turns ${bucket.start}–${bucket.end}, ${bucket.count} events`}
+            className={`density-tick ${[...bucket.markers].join(" ")} ${cursor.turn >= bucket.start && cursor.turn <= bucket.end ? "active" : ""}`}
+            title={[...bucket.markers].join(" · ") || "event activity"}
+            style={{ opacity: 0.2 + 0.8 * (bucket.count / maxBucketDensity) }}
+            onClick={() => onChange({ turn: bucket.densest, seq: seqAtTurn(events, bucket.densest) })} />)}
       </div>
       <input aria-label="Turn" type="range" min={minimum} max={maximum} value={cursor.turn}
         onChange={(event) => {
@@ -906,80 +927,8 @@ function MapOverlay({ state, selection, onSelect }: {
     <div><span>tiles <b>{tileByCoordinate.size}</b></span>
       <span>visible <b>{visible.size}</b></span><span>markers <b>{markers.length}</b></span></div>
   </section>}
-  <section className="map-spatial-tools" aria-label="Map navigation controls">
-    <div className="map-focus-list" role="region" aria-label="Map entity and target navigator">
-      <span className="eyebrow">focus logged position</span>
-      <div>
-        {path.map(({ x, y, step }, index) => <button key={`target-${step.step_id}`}
-          className={`target ${activeKey === `${x},${y}` ? "active" : ""}`}
-          aria-label={`Focus action target ${index + 1} at ${x},${y}`}
-          aria-pressed={activeKey === `${x},${y}`}
-          onClick={() => {
-            focusMapPoint(x, y);
-            if (selectedPlan) onSelect({ kind: "step", value: step, plan: selectedPlan });
-          }}>
-          <b>◈</b> target {index + 1} <small>{x},{y}</small>
-        </button>)}
-        {markers.map((marker) => <button key={marker.key}
-          className={`${marker.kind} ${activeKey === `${marker.x},${marker.y}` ? "active" : ""}`}
-          aria-label={`Focus ${marker.label} at ${marker.x},${marker.y}`}
-          aria-pressed={activeKey === `${marker.x},${marker.y}`}
-          onClick={() => {
-            focusMapPoint(marker.x, marker.y);
-            onSelect(marker.atom
-              ? { kind: "atom", value: marker.atom }
-              : { kind: "event", value: snapshot });
-          }}>
-          <b>{marker.kind === "city" ? "◆" : marker.kind === "enemy" ? "×"
-            : marker.kind === "unit" ? "●" : "○"}</b>
-          {marker.label} <small>{marker.x},{marker.y}</small>
-        </button>)}
-      </div>
-    </div>
-    <div className="map-zoom" role="group" aria-label="Map zoom">
-      <span className="eyebrow">zoom</span>
-      <div>{[1, 1.5, 2, 3].map((zoom) => <button key={zoom}
-        aria-label={`Set map zoom to ${zoom}×`}
-        aria-pressed={mapZoom === zoom}
-        onClick={() => setMapZoom(zoom)}>{zoom}×</button>)}</div>
-    </div>
-  </section>
+  <div className="map-layout">
   <div className="map-viewport-shell">
-  {activePoint && <aside className="map-cursor-readout" aria-label="Selected map coordinate"
-    aria-live="polite">
-    <div><span className="eyebrow">map cursor</span>
-      <strong>{activePoint.x},{activePoint.y}</strong></div>
-    <dl>
-      <div><dt>terrain</dt><dd>{activeTile?.terrain === undefined
-        ? "not logged" : String(activeTile.terrain)}</dd></div>
-      <div><dt>evidence</dt><dd>{!terrainAvailable ? "position only"
-        : activeVisible ? "visible" : visibilityAvailable ? "not visible" : "visibility not logged"}</dd></div>
-      <div><dt>entities</dt><dd title={activeMarkers.map((marker) => marker.label).join(", ")}>
-        {activeMarkers.length || "none"}</dd></div>
-      <div><dt>target</dt><dd>{activeStep ? humanize(activeStep.kind) : "none"}</dd></div>
-      {activeHut && <div><dt>feature</dt><dd>known hut</dd></div>}
-    </dl>
-    <small>arrow keys move · enter opens evidence · esc clears</small>
-  </aside>}
-  <button className="map-overview" type="button" onClick={panFromOverview}
-    aria-label="Map viewport overview. Click to pan"
-    title="Logged positions and current viewport · click to pan"
-    style={{ "--map-overview-aspect": `${width} / ${height}` } as React.CSSProperties}>
-    <span>overview</span>
-    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true">
-      <rect className="map-overview-background" width={width} height={height} />
-      {path.map(({ x, y, step }) => <rect key={`overview-target-${step.step_id}`}
-        className="map-overview-target" x={x} y={y} width="1" height="1" />)}
-      {markers.map((marker) => <circle key={`overview-${marker.key}`}
-        className={`map-overview-marker ${marker.kind}`}
-        cx={marker.x + 0.5} cy={marker.y + 0.5} r=".38" />)}
-      {activePoint && <circle className="map-overview-selection"
-        cx={activePoint.x + 0.5} cy={activePoint.y + 0.5} r=".72" />}
-      <rect className="map-overview-window"
-        x={viewportFrame.x * width} y={viewportFrame.y * height}
-        width={viewportFrame.width * width} height={viewportFrame.height * height} />
-    </svg>
-  </button>
   <div className="map-viewport" ref={mapViewportRef} onScroll={syncViewportFrame}>
   <div className="map-canvas" style={{
     "--map-aspect": `${width} / ${height}`, width: `${mapZoom * 100}%`,
@@ -1039,12 +988,92 @@ function MapOverlay({ state, selection, onSelect }: {
       <circle r="15" /><text y="5" textAnchor="middle">{index + 1}</text>
     </g>)}
   </svg>}
-  </div></div></div><div className="map-legend">
+  </div></div>
+  <div className="map-legend">
     <span className="city">◆ city</span><span className="unit">● own unit</span>
     {enemies.length > 0 && <span className="enemy">× visible opponent</span>}
     {atomMarkers.length > 0 && <span>○ uncertain observation opacity = logged confidence</span>}
     <span>□ {visibilityAvailable ? "fog as logged" : "terrain unavailable"}</span>
-    <span>◈ selected action target</span></div></div>;
+    <span>◈ selected action target</span></div>
+  </div>
+  <aside className="map-side" aria-label="Map navigation and tile details">
+  <button className="map-overview" type="button" onClick={panFromOverview}
+    aria-label="Map viewport overview. Click to pan"
+    title="Logged positions and current viewport · click to pan"
+    style={{ "--map-overview-aspect": `${width} / ${height}` } as React.CSSProperties}>
+    <span>overview</span>
+    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true">
+      <rect className="map-overview-background" width={width} height={height} />
+      {path.map(({ x, y, step }) => <rect key={`overview-target-${step.step_id}`}
+        className="map-overview-target" x={x} y={y} width="1" height="1" />)}
+      {markers.map((marker) => <circle key={`overview-${marker.key}`}
+        className={`map-overview-marker ${marker.kind}`}
+        cx={marker.x + 0.5} cy={marker.y + 0.5} r=".38" />)}
+      {activePoint && <circle className="map-overview-selection"
+        cx={activePoint.x + 0.5} cy={activePoint.y + 0.5} r=".72" />}
+      <rect className="map-overview-window"
+        x={viewportFrame.x * width} y={viewportFrame.y * height}
+        width={viewportFrame.width * width} height={viewportFrame.height * height} />
+    </svg>
+  </button>
+  {activePoint ? <div className="map-cursor-readout" aria-label="Selected map coordinate"
+    aria-live="polite">
+    <div><span className="eyebrow">map cursor</span>
+      <strong>{activePoint.x},{activePoint.y}</strong></div>
+    <dl>
+      <div><dt>terrain</dt><dd>{activeTile?.terrain === undefined
+        ? "not logged" : String(activeTile.terrain)}</dd></div>
+      <div><dt>evidence</dt><dd>{!terrainAvailable ? "position only"
+        : activeVisible ? "visible" : visibilityAvailable ? "not visible" : "visibility not logged"}</dd></div>
+      <div><dt>entities</dt><dd>{activeMarkers.length
+        ? activeMarkers.map((marker) => marker.label).join(", ") : "none"}</dd></div>
+      <div><dt>target</dt><dd>{activeStep ? humanize(activeStep.kind) : "none"}</dd></div>
+      {activeHut && <div><dt>feature</dt><dd>known hut</dd></div>}
+    </dl>
+    <small>arrow keys move · enter opens evidence · esc clears</small>
+  </div> : <div className="map-cursor-readout empty" aria-label="Selected map coordinate">
+    <div><span className="eyebrow">map cursor</span><strong>—</strong></div>
+    <p>Click a map tile or focus an entity below; its logged evidence appears here
+      instead of covering the map.</p>
+  </div>}
+  <div className="map-zoom" role="group" aria-label="Map zoom">
+    <span className="eyebrow">zoom</span>
+    <div>{[1, 1.5, 2, 3].map((zoom) => <button key={zoom}
+      aria-label={`Set map zoom to ${zoom}×`}
+      aria-pressed={mapZoom === zoom}
+      onClick={() => setMapZoom(zoom)}>{zoom}×</button>)}</div>
+  </div>
+  <div className="map-focus-list" role="region" aria-label="Map entity and target navigator">
+    <span className="eyebrow">focus logged position</span>
+    <div>
+      {path.map(({ x, y, step }, index) => <button key={`target-${step.step_id}`}
+        className={`target ${activeKey === `${x},${y}` ? "active" : ""}`}
+        aria-label={`Focus action target ${index + 1} at ${x},${y}`}
+        aria-pressed={activeKey === `${x},${y}`}
+        onClick={() => {
+          focusMapPoint(x, y);
+          if (selectedPlan) onSelect({ kind: "step", value: step, plan: selectedPlan });
+        }}>
+        <b>◈</b> target {index + 1} <small>{x},{y}</small>
+      </button>)}
+      {markers.map((marker) => <button key={marker.key}
+        className={`${marker.kind} ${activeKey === `${marker.x},${marker.y}` ? "active" : ""}`}
+        aria-label={`Focus ${marker.label} at ${marker.x},${marker.y}`}
+        aria-pressed={activeKey === `${marker.x},${marker.y}`}
+        onClick={() => {
+          focusMapPoint(marker.x, marker.y);
+          onSelect(marker.atom
+            ? { kind: "atom", value: marker.atom }
+            : { kind: "event", value: snapshot });
+        }}>
+        <b>{marker.kind === "city" ? "◆" : marker.kind === "enemy" ? "×"
+          : marker.kind === "unit" ? "●" : "○"}</b>
+        {marker.label} <small>{marker.x},{marker.y}</small>
+      </button>)}
+    </div>
+  </div>
+  </aside>
+  </div></div>;
 }
 
 function EpistemicAudit({ state, onSelect }: {
@@ -1809,6 +1838,101 @@ function UnifiedFlowTelemetry({ state, onSelect }: {
   </section>;
 }
 
+function UnifiedRepresentationMap({ state, onSelect }: {
+  state: ReplayState; onSelect: (selection: Selection) => void;
+}) {
+  const latestProof = state.proofs.at(-1);
+  const pressure = state.pressurePropagations.at(-1);
+  const pressureGoals = rowsOf(pressure?.payload.goals);
+  const pressureTraces = rowsOf(pressure?.payload.traces);
+  const peakPressure = Math.max(0, ...pressureTraces.map((trace) =>
+    Math.abs(Number(trace.transported_pressure ?? 0))));
+  const bridge = state.bridgeEstimates.at(-1);
+  const bridgeGoals = rowsOf(recordOf(bridge?.payload.summary).goal_summaries);
+  const peakBridge = Math.max(0, ...bridgeGoals.map((goal) =>
+    Math.abs(Number(goal.bridge_factor_max ?? 0))));
+  const packet = state.packetReservations.at(-1);
+  const packetSchedule = recordOf(recordOf(packet?.payload.summary).packet_schedule);
+  const projection = state.flowProjections.at(-1);
+  const projections = rowsOf(recordOf(projection?.payload.summary).projections);
+  const healthyProjections = projections.filter((row) => row.health === "healthy").length;
+  const revalidation = state.candidateRevalidations.at(-1);
+  const revalidationDisposition = recordOf(revalidation?.payload.summary).disposition;
+  const calibratedSelections = state.flowSelections.filter((event) =>
+    recordOf(event.payload.summary).calibrated === true).length;
+  const facets = [
+    {
+      key: "pln", name: "PLN", role: "meaning of the route", color: CHART_COLORS[0],
+      value: latestProof ? humanize(latestProof.result.status) : "not logged",
+      detail: latestProof
+        ? `${latestProof.result.proof.nodes.length} proof nodes · depth ${latestProof.result.chain_depth} · ${state.proofs.length} proofs at cursor`
+        : "no pln_result at cursor",
+      event: latestProof?.event,
+    },
+    {
+      key: "pressure", name: "Bellman pressure", role: "goal value", color: CHART_COLORS[1],
+      value: pressure ? `${pressureGoals.length} goals` : "not logged",
+      detail: pressure
+        ? `${pressureTraces.length} transport routes · peak |pressure| ${numeric(peakPressure)}`
+        : "no pressure_propagated at cursor",
+      event: pressure,
+    },
+    {
+      key: "bridge", name: "Geodesic factors", role: "bridge geometry", color: CHART_COLORS[4],
+      value: bridge ? `${bridgeGoals.length} goal geometries` : "not logged",
+      detail: bridge
+        ? `max bridge factor ${numeric(peakBridge)} · ${state.bridgeEstimates.length} estimates at cursor`
+        : "no bridge_estimated at cursor",
+      event: bridge,
+    },
+    {
+      key: "fluidics", name: "Fluidics", role: "budget-feasible execution", color: CHART_COLORS[2],
+      value: packet ? (packetSchedule.conserved === true ? "conserved" : "not conserved")
+        : projection ? "projected" : "not logged",
+      detail: packet || projection
+        ? `${rowsOf(packetSchedule.reservations).length} reservations · ${healthyProjections}/${projections.length} healthy projections`
+        : "no packet_reserved or flow_projected at cursor",
+      event: packet ?? projection,
+    },
+    {
+      key: "provenance", name: "Provenance", role: "epistemic legitimacy", color: CHART_COLORS[3],
+      value: state.verifications.length || revalidation
+        ? `${state.verifications.length.toLocaleString()} checks` : "not logged",
+      detail: `${state.quarantines.length} quarantined · ${calibratedSelections} calibrated selections${
+        revalidationDisposition ? ` · revalidation ${humanize(revalidationDisposition)}` : ""}`,
+      event: revalidation ?? state.verifications.at(-1) ?? state.quarantines.at(-1),
+    },
+  ];
+  return <section className="pf-unified-map" aria-labelledby="pf-unified-map-title">
+    <header>
+      <div><span className="eyebrow">one route · five aligned readings</span>
+        <h3 id="pf-unified-map-title">Unified representation</h3></div>
+      <p>Each candidate route is read five ways. A route is actionable only when
+        every reading is logged and they agree; the decision ledger below records
+        where they diverge.</p>
+    </header>
+    <ol>
+      {facets.map((facet, index) => <li key={facet.key}
+        className={facet.event ? "logged" : "missing"}
+        style={{ "--facet-color": facet.color } as React.CSSProperties}>
+        <span>{String(index + 1).padStart(2, "0")}</span>
+        <strong>{facet.name}</strong>
+        <em>provides {facet.role}</em>
+        <b>{facet.value}</b>
+        <small>{facet.detail}</small>
+        {facet.event && <button onClick={() =>
+          onSelect({ kind: "event", value: facet.event! })}>evidence →</button>}
+      </li>)}
+    </ol>
+    <footer>
+      <span>unified route</span>
+      <p>meaning <i>×</i> goal value <i>×</i> bridge geometry <i>×</i> execution
+        budget <i>×</i> legitimacy — the same route key threads all five event
+        streams, so every reading above inspects to a concrete logged event.</p>
+    </footer>
+  </section>;
+}
+
 function PfPlnDashboard({ state, onSelect, decisionId, onDecision, comparisonState,
   comparisonSource, pairQuality }: {
   state: ReplayState; onSelect: (selection: Selection) => void;
@@ -1865,6 +1989,8 @@ function PfPlnDashboard({ state, onSelect, decisionId, onDecision, comparisonSta
       <p>Trace-only replay. Counts index logged events; goals, pressure, scores,
         selections, and learning values are rendered verbatim.</p>
     </div>
+
+    <UnifiedRepresentationMap state={state} onSelect={onSelect} />
 
     <UnifiedControllerStatus />
 
@@ -2640,8 +2766,9 @@ export function EconomyProductionDashboard({ state, onSelect }: {
   </div>;
 }
 
-export function UnitLifecycleDashboard({ state, onSelect }: {
+export function UnitLifecycleDashboard({ state, onSelect, onCursor }: {
   state: ReplayState; onSelect: (selection: Selection) => void;
+  onCursor?: (cursor: Cursor) => void;
 }) {
   const [quality, setQuality] = useState<"all" | UnitLifecycle["evidence_quality"]>("all");
   const [transition, setTransition] = useState<"all" | UnitLifecycle["transition"]>("all");
@@ -2670,6 +2797,20 @@ export function UnitLifecycleDashboard({ state, onSelect }: {
     unitCounts.set(event.turn, current);
   }
   const populationSeries = [...unitCounts].sort((a, b) => a[0] - b[0]).map(([, count]) => count);
+  const lifecycleTurns = [...new Set(rows.map(({ event }) => event.turn))].sort((a, b) => a - b);
+  const turnsWhere = (accept: (payload: UnitLifecycle) => boolean): Map<number, number> => {
+    const counts = new Map<number, number>();
+    for (const { event, payload } of rows) {
+      if (accept(payload)) counts.set(event.turn, (counts.get(event.turn) ?? 0) + 1);
+    }
+    return counts;
+  };
+  const typeCounts = rows.reduce((counts, { payload }) => {
+    const row = counts.get(payload.unit_type) ?? { appeared: 0, disappeared: 0 };
+    if (payload.transition === "appeared") row.appeared += 1; else row.disappeared += 1;
+    counts.set(payload.unit_type, row);
+    return counts;
+  }, new Map<string, { appeared: number; disappeared: number }>());
   return <div className="view-content forces-view">
     <div className="view-heading">
       <div><span className="eyebrow">asset provenance and attrition</span><h2>Unit lifecycle</h2></div>
@@ -2681,6 +2822,18 @@ export function UnitLifecycleDashboard({ state, onSelect }: {
       <div className="exact"><span>exact</span><strong>{qualityCounts.get("exact") ?? 0}</strong><small>packet/state evidence</small></div>
       <div className="inferred"><span>inferred</span><strong>{qualityCounts.get("inferred") ?? 0}</strong><small>explicit correlation</small></div>
       <div className="unattributed"><span>unattributed</span><strong>{qualityCounts.get("unattributed") ?? 0}</strong><small>cause not logged</small></div>
+    </section>
+    <section className="lifecycle-heatmap">
+      <header><div><span className="eyebrow">turn chronology</span>
+        <h3>Lifecycle activity by turn</h3></div>
+        <small>click a cell to move the global cursor to that turn</small></header>
+      <TurnHeatmap turns={lifecycleTurns} label="Unit appearances and disappearances by turn"
+        onTurn={(turn) => onCursor?.({ turn, seq: seqAtTurn(state.events, turn) })}
+        rows={[
+          { label: "Appeared", counts: turnsWhere((payload) => payload.transition === "appeared"), color: CHART_COLORS[2] },
+          { label: "Disappeared", counts: turnsWhere((payload) => payload.transition === "disappeared"), color: CHART_COLORS[3] },
+          { label: "Unattributed", counts: turnsWhere((payload) => payload.evidence_quality === "unattributed"), color: CHART_COLORS[1] },
+        ]} />
     </section>
     <div className="lifecycle-overview">
       <section><header><span className="eyebrow">observed force size</span>
@@ -2696,6 +2849,21 @@ export function UnitLifecycleDashboard({ state, onSelect }: {
             }}><span>{humanize(cause)}</span><ValueBar value={count}
               maximum={Math.max(1, ...causeCounts.values())} label={`${cause} count`} />
             <strong>{count}</strong></button>)}</div>
+      </section>
+      <section><header><span className="eyebrow">by unit type</span>
+        <strong>{typeCounts.size} types</strong></header>
+        <div className="cause-bars">{[...typeCounts]
+          .sort((a, b) => (b[1].appeared + b[1].disappeared) - (a[1].appeared + a[1].disappeared))
+          .slice(0, 12)
+          .map(([type, counts]) => <button key={type}
+            onClick={() => {
+              const match = [...rows].reverse().find(({ payload }) => payload.unit_type === type);
+              if (match) onSelect({ kind: "event", value: match.event });
+            }}><span>{type}</span>
+            <ValueBar value={counts.appeared + counts.disappeared}
+              maximum={Math.max(1, ...[...typeCounts.values()].map((row) => row.appeared + row.disappeared))}
+              label={`${type} lifecycle events`} />
+            <strong>+{counts.appeared} / −{counts.disappeared}</strong></button>)}</div>
       </section>
     </div>
     <section className="lifecycle-method">
@@ -3544,7 +3712,7 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
                     : view === "economy" ? <EconomyProductionDashboard state={state}
                       onSelect={setSelection} />
                       : view === "forces" ? <UnitLifecycleDashboard state={state}
-                        onSelect={setSelection} />
+                        onSelect={setSelection} onCursor={setCursor} />
                         : view === "about" ? <HowItWorks onNavigate={setView} />
                           : <LoggingGap title={`${NAV.find((item) => item.view === view)?.label} awaits its event milestone`}
                             detail="This surface never derives missing data from another event type." />;

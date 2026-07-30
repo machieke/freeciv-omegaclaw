@@ -101,6 +101,8 @@ impact_policy:
   pressure_distributional_risk_enabled: false
   pressure_requirement_sets_enabled: false
   pressure_packet_scheduler_enabled: false
+  pressure_domain_estimates_enabled: false
+  pressure_domain_estimates_authority_enabled: false
   pressure_transition_value_enabled: false
   pressure_transition_value_authority_enabled: false
   pressure_transition_value_minimum_samples: 30

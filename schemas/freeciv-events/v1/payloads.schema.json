@@ -36,6 +36,94 @@
       }
     },
     "teleology_estimated": {"$ref": "#/$defs/controlAggregate"},
+    "domainEstimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id", "candidate_action_id", "action_category",
+        "action_type", "actor_id", "target_id", "operation_id",
+        "context_key", "authority", "confidence", "validity",
+        "estimator_id", "estimator_version", "transition",
+        "expected_relief", "adverse_risk", "latency_ms", "provenance"
+      ],
+      "properties": {
+        "request_id": {"type": "string", "minLength": 1},
+        "candidate_action_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "action_category": {"type": "string", "minLength": 1},
+        "action_type": {"type": "string", "minLength": 1},
+        "actor_id": {"type": ["string", "null"]},
+        "target_id": {"type": ["string", "null"]},
+        "operation_id": {"type": "string", "minLength": 1},
+        "context_key": {"type": "object"},
+        "authority": {
+          "enum": [
+            "exact_authoritative", "deterministic_derived", "calibrated",
+            "heuristic", "legacy_proxy"
+          ]
+        },
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "validity": {"type": "object"},
+        "estimator_id": {"type": "string", "minLength": 1},
+        "estimator_version": {"type": "string", "minLength": 1},
+        "transition": {"type": "object"},
+        "expected_relief": {
+          "type": "object",
+          "additionalProperties": {"type": "number"}
+        },
+        "adverse_risk": {"type": "number", "minimum": 0},
+        "latency_ms": {"type": "number", "minimum": 0},
+        "provenance": {
+          "type": "array", "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "domainEstimateAbstention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id", "candidate_action_id", "action_category",
+        "action_type", "actor_id", "target_id", "operation_id",
+        "context_key", "authority", "confidence", "validity",
+        "estimator_id", "estimator_version", "transition",
+        "expected_relief", "adverse_risk", "latency_ms", "provenance",
+        "abstention_reason", "missing_fields"
+      ],
+      "properties": {
+        "request_id": {"type": "string", "minLength": 1},
+        "candidate_action_id": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "action_category": {"type": "string", "minLength": 1},
+        "action_type": {"type": "string", "minLength": 1},
+        "actor_id": {"type": ["string", "null"]},
+        "target_id": {"type": ["string", "null"]},
+        "operation_id": {"type": "string", "minLength": 1},
+        "context_key": {"type": "object"},
+        "authority": {"const": "abstain"},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "validity": {"type": "object"},
+        "estimator_id": {"type": "string", "minLength": 1},
+        "estimator_version": {"type": "string", "minLength": 1},
+        "transition": {"type": "object"},
+        "expected_relief": {
+          "type": "object",
+          "additionalProperties": {"type": "number"}
+        },
+        "adverse_risk": {"type": "number", "minimum": 0},
+        "latency_ms": {"type": "number", "minimum": 0},
+        "provenance": {
+          "type": "array", "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "abstention_reason": {"type": "string", "minLength": 1},
+        "missing_fields": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        }
+      }
+    },
+    "domain_estimate_emitted": {"$ref": "#/$defs/domainEstimate"},
+    "domain_estimate_abstained": {"$ref": "#/$defs/domainEstimateAbstention"},
     "transition_value_estimated": {"$ref": "#/$defs/controlAggregate"},
     "transition_value_updated": {"$ref": "#/$defs/controlAggregate"},
     "path_persistence_applied": {"$ref": "#/$defs/controlAggregate"},

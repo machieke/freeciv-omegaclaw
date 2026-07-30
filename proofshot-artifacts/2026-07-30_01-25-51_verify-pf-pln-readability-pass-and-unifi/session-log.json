@@ -1,0 +1,57 @@
+[
+  {
+    "action": "set viewport 1920 1080",
+    "relativeTimeSec": 0.2,
+    "timestamp": "2026-07-30T01:25:53.896Z"
+  },
+  {
+    "action": "upload input[type=file] /data/freeciv/pf-pln-480-turn-4543804-domain-observability-v4-20260727/games/main/e_full_loop/4543804-00/events.jsonl",
+    "relativeTimeSec": 0.8,
+    "timestamp": "2026-07-30T01:25:54.453Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('.side-nav > button')].find(b => b.textContent.includes('PF-PLN'))?.click(); 'ok'",
+    "relativeTimeSec": 7.1,
+    "timestamp": "2026-07-30T01:26:00.799Z"
+  },
+  {
+    "action": "eval ({view: new URLSearchParams(location.search).get('view'), facets: [...document.querySelectorAll('.pf-unified-map li')].map(li => ({name: li.querySelector('strong')?.textContent, value: li.querySelector('b')?.textContent, missing: li.classList.contains('missing')})), minFont: Math.min(...[...document.querySelectorAll('.pf-view span, .pf-view small, .pf-view b, .pf-view strong, .pf-view dd, .pf-view dt')].slice(0,400).map(el => parseFloat(getComputedStyle(el).fontSize)))})",
+    "relativeTimeSec": 16.3,
+    "timestamp": "2026-07-30T01:26:09.992Z"
+  },
+  {
+    "action": "screenshot pf-01-unified-map.png",
+    "relativeTimeSec": 27.4,
+    "timestamp": "2026-07-30T01:26:21.087Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('.pf-unified-map li button')].at(-1)?.click(); 'ok'",
+    "relativeTimeSec": 27.9,
+    "timestamp": "2026-07-30T01:26:21.609Z"
+  },
+  {
+    "action": "eval document.querySelector('.inspector h2')?.textContent",
+    "relativeTimeSec": 29.3,
+    "timestamp": "2026-07-30T01:26:23.001Z"
+  },
+  {
+    "action": "eval document.querySelector('.pf-decision-focus')?.scrollIntoView(); 'ok'",
+    "relativeTimeSec": 29.6,
+    "timestamp": "2026-07-30T01:26:23.343Z"
+  },
+  {
+    "action": "screenshot pf-02-decision.png",
+    "relativeTimeSec": 31,
+    "timestamp": "2026-07-30T01:26:24.702Z"
+  },
+  {
+    "action": "eval document.querySelector('.pf-pressure-panel')?.scrollIntoView(); 'ok'",
+    "relativeTimeSec": 58.7,
+    "timestamp": "2026-07-30T01:26:52.436Z"
+  },
+  {
+    "action": "screenshot pf-03-topology.png",
+    "relativeTimeSec": 60.1,
+    "timestamp": "2026-07-30T01:26:53.807Z"
+  }
+]

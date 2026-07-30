@@ -211,6 +211,7 @@ class ControlDecision:
                     if key not in (
                         "controller_telemetry",
                         "elapsed_ms",
+                        "latency_ms",
                         "microseconds_per_edge_update",
                         "wall_ms",
                     )

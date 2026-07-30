@@ -179,6 +179,8 @@ from .teleology import (
     LeverageEstimate,
     OneStepTransitionEstimator,
     TypedAdvantage,
+    typed_expected_relief,
+    typed_expected_reliefs,
 )
 from .structural_operations import (
     CloneSplitRequest,
@@ -363,6 +365,8 @@ __all__ = [
     "TransitionValueUpdate",
     "TransitionModelRegistry",
     "TypedAdvantage",
+    "typed_expected_relief",
+    "typed_expected_reliefs",
     "UnmetMinimum",
     "ValueOfInformationPlanner",
     "confidence_to_weight",

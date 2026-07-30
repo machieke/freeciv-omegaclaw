@@ -21,6 +21,70 @@ export type ControlAggregate = {
 
 export type TeleologyEstimated = ControlAggregate;
 
+export type DomainEstimate = {
+  "action_category": string;
+  "action_type": string;
+  "actor_id": string | null;
+  "adverse_risk": number;
+  "authority": "exact_authoritative" | "deterministic_derived" | "calibrated" | "heuristic" | "legacy_proxy";
+  "candidate_action_id": string;
+  "confidence": number;
+  "context_key": {
+    [key: string]: unknown;
+  };
+  "estimator_id": string;
+  "estimator_version": string;
+  "expected_relief": {
+    [key: string]: number;
+  };
+  "latency_ms": number;
+  "operation_id": string;
+  "provenance": Array<string>;
+  "request_id": string;
+  "target_id": string | null;
+  "transition": {
+    [key: string]: unknown;
+  };
+  "validity": {
+    [key: string]: unknown;
+  };
+};
+
+export type DomainEstimateAbstention = {
+  "abstention_reason": string;
+  "action_category": string;
+  "action_type": string;
+  "actor_id": string | null;
+  "adverse_risk": number;
+  "authority": "abstain";
+  "candidate_action_id": string;
+  "confidence": number;
+  "context_key": {
+    [key: string]: unknown;
+  };
+  "estimator_id": string;
+  "estimator_version": string;
+  "expected_relief": {
+    [key: string]: number;
+  };
+  "latency_ms": number;
+  "missing_fields": Array<string>;
+  "operation_id": string;
+  "provenance": Array<string>;
+  "request_id": string;
+  "target_id": string | null;
+  "transition": {
+    [key: string]: unknown;
+  };
+  "validity": {
+    [key: string]: unknown;
+  };
+};
+
+export type DomainEstimateEmitted = DomainEstimate;
+
+export type DomainEstimateAbstained = DomainEstimateAbstention;
+
 export type TransitionValueEstimated = ControlAggregate;
 
 export type TransitionValueUpdated = ControlAggregate;

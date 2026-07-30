@@ -517,7 +517,7 @@ describe("Decision Observatory", () => {
     }));
     expect(screen.getByRole("heading", { name: "state_snapshot" })).toBeInTheDocument();
     expect(screen.getByLabelText("Selected map coordinate")).toHaveTextContent(
-      "16,17terrainnot loggedevidenceposition onlyentities2targetnone");
+      "16,17terrainnot loggedevidenceposition onlyentitiesCity Roma, Unit Settlerstargetnone");
   });
 
   it("renders all 40 quarantines and makes nonzero write-through loud", async () => {

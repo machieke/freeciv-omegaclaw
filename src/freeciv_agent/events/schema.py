@@ -38,6 +38,8 @@ KNOWN_EVENT_TYPES = (
     "operation_scored",
     "conductance_updated",
     "teleology_estimated",
+    "domain_estimate_emitted",
+    "domain_estimate_abstained",
     "transition_value_estimated",
     "transition_value_updated",
     "path_persistence_applied",

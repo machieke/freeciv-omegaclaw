@@ -1,0 +1,57 @@
+[
+  {
+    "action": "set viewport 1920 1080",
+    "relativeTimeSec": 5,
+    "timestamp": "2026-07-30T03:14:59.354Z"
+  },
+  {
+    "action": "upload input[type=file] /data/freeciv/pf-pln-960-turn-4543804-unified-flow-observability-20260730/games/main/e_full_loop/4543804-00/events.jsonl",
+    "relativeTimeSec": 5.6,
+    "timestamp": "2026-07-30T03:14:59.917Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('.side-nav > button')].find(b => b.textContent.includes('PF-PLN'))?.click(); 'ok'",
+    "relativeTimeSec": 15.9,
+    "timestamp": "2026-07-30T03:15:10.258Z"
+  },
+  {
+    "action": "eval ({events: document.querySelector('.top-stat strong')?.textContent, ticks: document.querySelectorAll('.density-tick').length, hScroll: document.documentElement.scrollWidth > window.innerWidth, facets: [...document.querySelectorAll('.pf-unified-map li')].map(li => ({name: li.querySelector('strong')?.textContent, value: li.querySelector('b')?.textContent, missing: li.classList.contains('missing')}))})",
+    "relativeTimeSec": 18.3,
+    "timestamp": "2026-07-30T03:15:12.714Z"
+  },
+  {
+    "action": "screenshot unified-960-01-facets.png",
+    "relativeTimeSec": 30.1,
+    "timestamp": "2026-07-30T03:15:24.508Z"
+  },
+  {
+    "action": "eval document.querySelector('.pf-unified-telemetry')?.scrollIntoView(); 'ok'",
+    "relativeTimeSec": 30.7,
+    "timestamp": "2026-07-30T03:15:25.056Z"
+  },
+  {
+    "action": "screenshot unified-960-02-telemetry.png",
+    "relativeTimeSec": 32,
+    "timestamp": "2026-07-30T03:15:26.390Z"
+  },
+  {
+    "action": "eval ({pipeline: [...document.querySelectorAll('.pf-unified-pipeline button')].map(b => b.textContent), health: [...document.querySelectorAll('.pf-unified-health > div')].map(d => d.textContent), ledgerRows: document.querySelectorAll('.pf-flow-decision:not(.head)').length})",
+    "relativeTimeSec": 32.5,
+    "timestamp": "2026-07-30T03:15:26.867Z"
+  },
+  {
+    "action": "eval document.querySelector('.pf-flow-ledger')?.scrollIntoView(); 'ok'",
+    "relativeTimeSec": 66,
+    "timestamp": "2026-07-30T03:16:00.398Z"
+  },
+  {
+    "action": "screenshot unified-960-03-ledger.png",
+    "relativeTimeSec": 67.4,
+    "timestamp": "2026-07-30T03:16:01.745Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('.pf-flow-decision:not(.head)')].slice(0,2).map(r => r.textContent.slice(0,150))",
+    "relativeTimeSec": 67.9,
+    "timestamp": "2026-07-30T03:16:02.276Z"
+  }
+]

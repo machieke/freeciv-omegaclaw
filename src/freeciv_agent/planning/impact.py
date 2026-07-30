@@ -291,6 +291,23 @@ class GroundedImpactPlanner(object):
         controller_configuration = (
             controller_activation[
                 "configuration_groups"])
+        grounded_ruleset_digest = structural_hash({
+            "adapter": self.SOLVER_IDENTITY,
+            "ruleset_compiler": getattr(
+                ruleset_ir, "compiler_version", None),
+            "ruleset_ir_hash": getattr(
+                ruleset_ir, "ir_sha256", None),
+            "ruleset_source_hash": getattr(
+                ruleset_ir, "source_sha256", None),
+        })
+        domain_ruleset_digest = structural_hash({
+            "ruleset_ir": (
+                ruleset_ir.to_dict()
+                if callable(getattr(
+                    ruleset_ir, "to_dict", None))
+                else None),
+            "schema": "grounded-domain-ruleset/1.0",
+        })
         self.pressure_controller_mode = (
             controller_policy[
                 "pressure_controller_mode"])
@@ -1088,6 +1105,13 @@ class GroundedImpactPlanner(object):
                             self.pressure_exploration_information_enabled),
                         score_alignment_utility_tolerance=(
                             self.pressure_score_alignment_utility_tolerance),
+                        domain_estimates_enabled=bool(
+                            controller_policy[
+                                "pressure_domain_estimates_enabled"]),
+                        domain_estimates_authority_enabled=bool(
+                            controller_policy[
+                                "pressure_domain_estimates_authority_enabled"]),
+                        ruleset_digest=domain_ruleset_digest,
                         teleological_enabled=(
                             teleological_enabled),
                         transition_value_model=(
@@ -1118,6 +1142,13 @@ class GroundedImpactPlanner(object):
                             self.pressure_exploration_information_enabled),
                         score_alignment_utility_tolerance=(
                             self.pressure_score_alignment_utility_tolerance),
+                        domain_estimates_enabled=bool(
+                            controller_policy[
+                                "pressure_domain_estimates_enabled"]),
+                        domain_estimates_authority_enabled=bool(
+                            controller_policy[
+                                "pressure_domain_estimates_authority_enabled"]),
+                        ruleset_digest=domain_ruleset_digest,
                         teleological_enabled=True,
                         bridge_scalar_enabled=True,
                         bridge_scalar_config=(
@@ -1174,6 +1205,8 @@ class GroundedImpactPlanner(object):
         controller_layers = (
             controller_activation["layers"])
         for group, active in (
+                ("domain_estimates", controller_layers[
+                    "grounded_domain_estimates"]["enabled"]),
                 ("pressure_v2", controller_layers[
                     "scalar_pf_v2"]["enabled"]),
                 ("teleology", controller_layers[
@@ -1227,15 +1260,8 @@ class GroundedImpactPlanner(object):
                             "bridge"]["enabled"]
                         else "not-applicable"),
             }))
-        self._controller_ruleset_digest = structural_hash({
-            "adapter": self.SOLVER_IDENTITY,
-            "ruleset_compiler": getattr(
-                ruleset_ir, "compiler_version", None),
-            "ruleset_ir_hash": getattr(
-                ruleset_ir, "ir_sha256", None),
-            "ruleset_source_hash": getattr(
-                ruleset_ir, "source_sha256", None),
-        })
+        self._controller_ruleset_digest = (
+            grounded_ruleset_digest)
         self.founder_route_successes = 0
         self.founder_route_failures = 0
         self.founder_cardinal_corridor_attempts = 0

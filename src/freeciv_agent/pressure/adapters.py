@@ -1,5 +1,6 @@
 """Adapters from existing FreeCiv proof and impact artifacts into PF-PLN."""
 
+import hashlib
 import math
 import time
 from dataclasses import dataclass, replace
@@ -704,6 +705,15 @@ class ImpactPressureRanker(object):
             pressure_result, horizon_turn)
         return tuple(operations), None
 
+    def _grounded_transition_estimates(
+            self, snapshot, operations, candidate_by_operation,
+            pressure_result, horizon_turn, diagnostics=None):
+        """Compatibility hook; grounded estimates are opt-in and shadow-only."""
+        del (
+            snapshot, operations, candidate_by_operation,
+            pressure_result, horizon_turn, diagnostics)
+        return None
+
     def _bridge_scalar_scores(
             self, snapshot, operations,
             candidate_by_operation, scores,
@@ -1061,6 +1071,11 @@ class ImpactPressureRanker(object):
             diagnostics["pressure_operation_latency_ms"] = (
                 diagnostics.get("pressure_operation_latency_ms", 0.0)
                 + (time.perf_counter() - operation_started) * 1000.0)
+        domain_estimate_artifact = (
+            self._grounded_transition_estimates(
+                snapshot, tuple(operations),
+                candidate_by_operation, result,
+                horizon_turn, diagnostics=diagnostics))
         operations, teleological_artifact = (
             self._teleological_operations(
                 snapshot, tuple(operations),
@@ -1122,6 +1137,9 @@ class ImpactPressureRanker(object):
                 operations, result, scores=scores,
                 pressure_artifact=pressure_artifact),
         }
+        if domain_estimate_artifact is not None:
+            artifact["domain_estimates"] = (
+                domain_estimate_artifact)
         if teleological_artifact is not None:
             artifact["teleology"] = teleological_artifact
         if bridge_artifact is not None:
@@ -1174,6 +1192,10 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             exploration_information_enabled=True,
             score_alignment_utility_tolerance=0.0,
             policy=None, teleological_enabled=False,
+            domain_estimates_enabled=False,
+            domain_estimates_authority_enabled=False,
+            domain_model_registry=None,
+            ruleset_digest=None,
             bridge_scalar_enabled=False,
             bridge_scalar_config=None,
             transition_value_model=None,
@@ -1190,6 +1212,54 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             score_alignment_utility_tolerance=(
                 score_alignment_utility_tolerance))
         self.v2_policy = policy or PressureV2Policy()
+        if not isinstance(domain_estimates_enabled, bool):
+            raise TypeError(
+                "domain estimates setting must be boolean")
+        if not isinstance(
+                domain_estimates_authority_enabled, bool):
+            raise TypeError(
+                "domain estimate authority must be boolean")
+        if (domain_estimates_authority_enabled
+                and not domain_estimates_enabled):
+            raise ValueError(
+                "domain estimate authority requires estimates")
+        if domain_estimates_authority_enabled:
+            raise ValueError(
+                "domain estimate authority is unavailable in shadow-only GDO-1")
+        if (ruleset_digest is not None
+                and (not isinstance(ruleset_digest, str)
+                     or not ruleset_digest)):
+            raise ValueError(
+                "ruleset digest must be a non-empty string or absent")
+        if domain_model_registry is not None:
+            from ..planning.domain_models import (
+                DomainTransitionModelRegistry,
+            )
+            if not isinstance(
+                    domain_model_registry,
+                    DomainTransitionModelRegistry):
+                raise TypeError(
+                    "domain model registry has the wrong type")
+        if domain_estimates_enabled and domain_model_registry is None:
+            from ..planning.domain_models import (
+                DomainTransitionModelRegistry,
+                LegacyProjectionTransitionModel,
+            )
+            domain_model_registry = (
+                DomainTransitionModelRegistry(
+                    fallback_model=(
+                        LegacyProjectionTransitionModel())))
+        self.domain_estimates_enabled = (
+            domain_estimates_enabled)
+        self.domain_estimates_authority_enabled = (
+            domain_estimates_authority_enabled)
+        self.domain_model_registry = (
+            domain_model_registry)
+        self.ruleset_digest = (
+            ruleset_digest or structural_hash({
+                "ruleset": "not-supplied",
+                "scope": "shadow-only",
+            }))
         if not isinstance(teleological_enabled, bool):
             raise TypeError(
                 "teleological_enabled must be boolean")
@@ -1265,6 +1335,206 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
         self._pending_transition_predictions = {}
         self.engine = PressureEngineV2(
             self.config, policy=self.v2_policy)
+
+    @staticmethod
+    def _domain_actor_target(candidate):
+        action = candidate.action
+        actor_id = action.get(
+            "actor_id", action.get("unit_id"))
+        target = action.get("target")
+        target_id = action.get(
+            "target_id", action.get("city_id"))
+        if isinstance(target, dict):
+            target_id = target.get(
+                "target_unit_id",
+                target.get(
+                    "city_id",
+                    target.get("tile_id", target_id)))
+            if target_id is None and (
+                    target.get("x") is not None
+                    and target.get("y") is not None):
+                target_id = "tile:{}:{}".format(
+                    target["x"], target["y"])
+        return (
+            None if actor_id is None else str(actor_id),
+            None if target_id is None else str(target_id),
+        )
+
+    def _grounded_transition_estimates(
+            self, snapshot, operations, candidate_by_operation,
+            pressure_result, horizon_turn, diagnostics=None):
+        if not self.domain_estimates_enabled:
+            return None
+        from ..planning.domain_models import (
+            DomainEstimateRequest,
+            EstimateAuthority,
+            EstimateValidity,
+        )
+        from .teleology import typed_expected_reliefs
+        started = time.perf_counter()
+        snapshot_id = str(getattr(
+            snapshot, "snapshot_id", "") or structural_hash(
+                snapshot.event_payload()
+                if callable(getattr(
+                    snapshot, "event_payload", None))
+                else {"snapshot": str(snapshot)}))
+        legal_actions_digest = str(getattr(
+            snapshot, "legal_actions_digest", "") or structural_hash(
+                tuple(sorted(
+                    candidate.action_key
+                    for candidate in candidate_by_operation.values()))))
+        current_turn = int(getattr(snapshot, "turn", 0))
+        rows = []
+        for operation in sorted(
+                operations,
+                key=lambda row: row.operation_id):
+            candidate = candidate_by_operation[
+                operation.operation_id]
+            goal_id = "pf-impact:{}".format(
+                self.goal_for_category(
+                    candidate.category))
+            demand = pressure_result.demand(goal_id)
+            goal_losses = ((
+                goal_id, float(demand.total)),)
+            action_key = candidate.action_key
+            action_id = hashlib.sha256(
+                action_key.encode("utf-8")).hexdigest()
+            request_id = hashlib.sha256(
+                "\x1f".join((
+                    "grounded-domain-request/1",
+                    snapshot_id,
+                    legal_actions_digest,
+                    self.ruleset_digest,
+                    str(candidate.category),
+                    goal_id,
+                    repr(float(demand.total)),
+                    action_id,
+                )).encode("utf-8")).hexdigest()
+            request = DomainEstimateRequest(
+                request_id=request_id,
+                snapshot=snapshot,
+                ruleset_ir=None,
+                legal_action=dict(candidate.action),
+                candidate=candidate,
+                goal_losses=goal_losses,
+                operation_context=operation,
+                validity=EstimateValidity(
+                    snapshot_id=snapshot_id,
+                    legal_actions_digest=(
+                        legal_actions_digest),
+                    ruleset_digest=self.ruleset_digest,
+                    estimated_at_turn=current_turn,
+                    valid_through_turn=current_turn),
+                horizon_turn=int(horizon_turn))
+            estimate_started = time.perf_counter()
+            estimate = self.domain_model_registry.estimate(
+                request)
+            latency_ms = (
+                time.perf_counter() - estimate_started) * 1000.0
+            relief_rows = typed_expected_reliefs(
+                estimate.transition, goal_losses)
+            actor_id, target_id = (
+                self._domain_actor_target(candidate))
+            estimate_dict = estimate.to_dict()
+            event_payload = {
+                "action_category":
+                    candidate.category,
+                "action_type":
+                    request.action_type,
+                "actor_id": actor_id,
+                "adverse_risk": float(
+                    estimate.transition
+                    .expected_adverse_loss),
+                "authority":
+                    estimate.authority.value,
+                "candidate_action_id":
+                    action_id,
+                "confidence": float(
+                    estimate.confidence),
+                "context_key":
+                    estimate_dict["context_key"],
+                "estimator_id":
+                    estimate.estimator_id,
+                "estimator_version":
+                    estimate.estimator_version,
+                "expected_relief": dict(
+                    relief_rows),
+                "latency_ms": float(
+                    latency_ms),
+                "operation_id":
+                    estimate.transition.operation_id,
+                "provenance": list(
+                    estimate.provenance),
+                "request_id": request_id,
+                "target_id": target_id,
+                "transition":
+                    estimate_dict["transition"],
+                "validity":
+                    estimate_dict["validity"],
+            }
+            if estimate.authority == (
+                    EstimateAuthority.ABSTAIN):
+                event_payload.update({
+                    "abstention_reason":
+                        estimate.abstention_reason,
+                    "missing_fields": [],
+                })
+                event_type = (
+                    "domain_estimate_abstained")
+            else:
+                event_type = (
+                    "domain_estimate_emitted")
+            rows.append({
+                "candidate_action_id": action_id,
+                "estimate": estimate_dict,
+                "event_payload": event_payload,
+                "event_type": event_type,
+                "expected_relief": dict(
+                    relief_rows),
+                "latency_ms": float(
+                    latency_ms),
+                "operation_id":
+                    estimate.transition.operation_id,
+                "request_id": request_id,
+            })
+        artifact = {
+            "artifact_hash": "",
+            "authority_active": False,
+            "authority_requested": bool(
+                self.domain_estimates_authority_enabled),
+            "estimate_count": len(rows),
+            "estimates": rows,
+            "live_ordering_unchanged": True,
+            "schema_version": "1.0",
+            "shadow_only": True,
+        }
+        artifact["artifact_hash"] = structural_hash({
+            "authority_active": False,
+            "authority_requested": bool(
+                self.domain_estimates_authority_enabled),
+            "estimates": tuple({
+                "candidate_action_id":
+                    row["candidate_action_id"],
+                "estimate": row["estimate"],
+                "expected_relief":
+                    row["expected_relief"],
+                "operation_id":
+                    row["operation_id"],
+                "request_id": row["request_id"],
+            } for row in rows),
+            "live_ordering_unchanged": True,
+            "schema_version": "1.0",
+            "shadow_only": True,
+        })
+        if diagnostics is not None:
+            diagnostics[
+                "pressure_domain_estimate_latency_ms"] = (
+                    diagnostics.get(
+                        "pressure_domain_estimate_latency_ms",
+                        0.0)
+                    + (time.perf_counter() - started)
+                    * 1000.0)
+        return artifact
 
     @staticmethod
     def _expected_state_cost(transition, goal_id):

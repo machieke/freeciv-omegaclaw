@@ -1,0 +1,49 @@
+{
+  "baseline_status": "in_progress",
+  "branch": "experimental/pln-pressure–bridge–fluid",
+  "comparators": {
+    "B0": {
+      "description": "canonical Impact",
+      "frozen": true
+    },
+    "B1": {
+      "description": "scalar PF-v2 plus v1 packet scheduler",
+      "frozen": true,
+      "grounded_domain_authority": false
+    }
+  },
+  "dependency_locks": {
+    "requirements.txt": "32d1e7e3c6fd397f7dcab9cd92b7f4d1929077ff9ae23cca9b08b7185e6368b8"
+  },
+  "engine_baseline": {
+    "cohort_status": "pending",
+    "engine_identity": "pending",
+    "ruleset_identity": "pending"
+  },
+  "gates": {
+    "captured_snapshot_set": "pending",
+    "controller_latency_distribution": "pending",
+    "engine_live_repeatability": "pending",
+    "full_test_suite": "pending",
+    "freeciv_test_family": "passed",
+    "targeted_regression": "passed"
+  },
+  "python": {
+    "compatibility_target": "3.8+",
+    "observed": "3.8.10"
+  },
+  "schema_version": "1.0",
+  "source_commit": "87f3482e631b0713378e69b350e460d4c6a310b7",
+  "freeciv_regression": {
+    "command": "PYTHONPATH=.:src:benchmarks pytest -q Autotests/test_freeciv_*.py",
+    "duration_seconds": 324.81,
+    "failed": 0,
+    "passed": 816
+  },
+  "targeted_regression": {
+    "command": "PYTHONPATH=.:src:benchmarks pytest -q Autotests/test_freeciv_transitions.py Autotests/test_freeciv_teleology.py Autotests/test_freeciv_pf_runtime.py Autotests/test_freeciv_adapter.py",
+    "duration_seconds": 16.49,
+    "failed": 0,
+    "passed": 40
+  }
+}

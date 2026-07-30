@@ -1,0 +1,45 @@
+{
+  "baseline": {
+    "maximum_ms": 19.200206734240055,
+    "mean_ms": 10.279934559948742,
+    "p50_ms": 9.855142096057534,
+    "p95_ms": 10.45944169163704,
+    "p99_ms": 19.18146386742592,
+    "sample_count": 200
+  },
+  "candidate_count": 34,
+  "claim_status": "diagnostic-only",
+  "coverage": {
+    "mean_fraction": 1.0,
+    "minimum_fraction": 1.0,
+    "required_fraction": 0.95
+  },
+  "fixture": {
+    "path": "benchmarks/freeciv/samples/real_state_turn1.json",
+    "payload_hash": "7efd89dec897602aca8995c08b7866c3803ee34ee64bf37da706aad1bc3a5618",
+    "snapshot_id": "gdo1-shadow-replay:1:1:a7052a57624cd43b"
+  },
+  "gates": {
+    "action_trace_byte_identical": true,
+    "candidate_coverage": true,
+    "live_order_identical": true,
+    "p95_overhead_within_5_percent": false,
+    "schedule_identical": true,
+    "semantic_estimates_deterministic": true
+  },
+  "iterations": 200,
+  "p95_overhead_fraction": 0.3265888534504404,
+  "passed": false,
+  "policy_authority": false,
+  "report_hash": "74a1b562b89ede949d690c0c1f52ab74ab34f18bdc9a28f3d72399855625e7ea",
+  "schema_version": "1.0",
+  "shadow": {
+    "maximum_ms": 22.881594020873308,
+    "mean_ms": 13.544772278983146,
+    "p50_ms": 13.14964797347784,
+    "p95_ms": 13.875378761440516,
+    "p99_ms": 22.409044671803713,
+    "sample_count": 200
+  },
+  "warmup_iterations": 20
+}

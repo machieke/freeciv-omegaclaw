@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure–bridge–fluid",
+  "commitSha": "87f3482e631b0713378e69b350e460d4c6a310b7",
+  "startedAt": "2026-07-30T07:15:41.193Z",
+  "description": "Verify calibrated 960-turn run populates Calibration and Persistence stages"
+}

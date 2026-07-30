@@ -1,0 +1,47 @@
+[
+  {
+    "action": "set viewport 1920 1080",
+    "relativeTimeSec": 0.2,
+    "timestamp": "2026-07-30T07:15:43.784Z"
+  },
+  {
+    "action": "upload input[type=file] /data/freeciv/pf-pln-960-turn-4543804-unified-flow-calibrated-20260730/games/main/e_full_loop/4543804-00/events.jsonl",
+    "relativeTimeSec": 0.8,
+    "timestamp": "2026-07-30T07:15:44.366Z"
+  },
+  {
+    "action": "eval [...document.querySelectorAll('.side-nav > button')].find(b => b.textContent.includes('PF-PLN'))?.click(); 'ok'",
+    "relativeTimeSec": 17,
+    "timestamp": "2026-07-30T07:16:00.634Z"
+  },
+  {
+    "action": "eval ({facets: [...document.querySelectorAll('.pf-unified-map li')].map(li => li.querySelector('strong')?.textContent + ': ' + li.querySelector('b')?.textContent + (li.classList.contains('missing') ? ' [GAP]' : '')), pipeline: [...document.querySelectorAll('.pf-unified-pipeline button')].map(b => b.textContent), gates: [...document.querySelectorAll('.pf-research-gates > div')].map(d => d.textContent.slice(0,60))})",
+    "relativeTimeSec": 19.5,
+    "timestamp": "2026-07-30T07:16:03.105Z"
+  },
+  {
+    "action": "eval const s = document.querySelector('input[type=range]'); const set = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set; set.call(s, 246); s.dispatchEvent(new Event('input', {bubbles:true})); s.dispatchEvent(new Event('change', {bubbles:true})); 'cursor set'",
+    "relativeTimeSec": 50.2,
+    "timestamp": "2026-07-30T07:16:33.800Z"
+  },
+  {
+    "action": "eval ({cursor: document.querySelector('.scrubber-label strong')?.textContent, gates: [...document.querySelectorAll('.pf-research-gates > div')].map(d => d.textContent.slice(0,55)), calStats: document.querySelector('.pf-calibration-stats')?.textContent?.slice(0,220), persistence: document.querySelector('.pf-persistence-status')?.textContent?.slice(0,200)})",
+    "relativeTimeSec": 52.6,
+    "timestamp": "2026-07-30T07:16:36.216Z"
+  },
+  {
+    "action": "screenshot calibrated-960-01-gates-authority.png",
+    "relativeTimeSec": 62,
+    "timestamp": "2026-07-30T07:16:45.584Z"
+  },
+  {
+    "action": "eval document.querySelector('.pf-research-readout')?.scrollIntoView({block:'center'}); 'ok'",
+    "relativeTimeSec": 62.6,
+    "timestamp": "2026-07-30T07:16:46.166Z"
+  },
+  {
+    "action": "screenshot calibrated-960-02-calibration-readout.png",
+    "relativeTimeSec": 63.9,
+    "timestamp": "2026-07-30T07:16:47.520Z"
+  }
+]

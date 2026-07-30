@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure–bridge–fluid",
+  "commitSha": "87f3482e631b0713378e69b350e460d4c6a310b7",
+  "startedAt": "2026-07-30T01:04:11.753Z",
+  "description": "Verify observability UI improvements: turn scrubber binning, map sidebar layout, tech tree size, economy fonts, unit lifecycle"
+}

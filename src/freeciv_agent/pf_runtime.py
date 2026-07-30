@@ -105,6 +105,7 @@ CONTROLLER_MODES = (
 CONTROLLER_LAYER_SPECS = (
     {"layer": "scalar_pf_v1", "support": "engine-live"},
     {"layer": "scalar_pf_v2", "support": "experimental"},
+    {"layer": "grounded_domain_estimates", "support": "experimental"},
     {"layer": "packet_scheduler", "support": "experimental"},
     {"layer": "teleological_cost_to_go", "support": "experimental"},
     {"layer": "path_persistence", "support": "experimental"},
@@ -127,6 +128,8 @@ CONTROLLER_POLICY_DEFAULTS = {
     "pressure_bridge_readout_policy":
         "corrected-probe-overlap",
     "pressure_distributional_risk_enabled": False,
+    "pressure_domain_estimates_authority_enabled": False,
+    "pressure_domain_estimates_enabled": False,
     "pressure_enabled": True,
     "pressure_flow_enabled": False,
     "pressure_flow_protected_candidate_union_enabled": False,
@@ -151,6 +154,10 @@ CONTROLLER_POLICY_DEFAULTS = {
 }
 
 CONTROLLER_CONFIGURATION_DEFAULTS = {
+    "domain_estimates": {
+        "authority_enabled": False,
+        "enabled": False,
+    },
     "pressure_v2": {
         "achievement_uncertainty_split": False,
         "signed_channels": False,
@@ -235,6 +242,10 @@ CONTROLLER_CONFIGURATION_DEFAULTS = {
 }
 
 _GROUP_TO_POLICY = {
+    ("domain_estimates", "enabled"):
+        "pressure_domain_estimates_enabled",
+    ("domain_estimates", "authority_enabled"):
+        "pressure_domain_estimates_authority_enabled",
     ("pressure_v2", "achievement_uncertainty_split"):
         "pressure_achievement_uncertainty_split_enabled",
     ("pressure_v2", "signed_channels"):
@@ -357,6 +368,8 @@ def _policy_with_group_aliases(impact_policy, configuration):
 
 def _validate_controller_configuration(configuration):
     for group, names in (
+            ("domain_estimates", (
+                "enabled", "authority_enabled")),
             ("pressure_v2", (
                 "achievement_uncertainty_split",
                 "signed_channels",
@@ -605,6 +618,7 @@ def validate_controller_policy(impact_policy):
                 "pressure_signed_channels_enabled",
                 "pressure_packet_scheduler_enabled",
                 "pressure_requirement_sets_enabled",
+                "pressure_domain_estimates_enabled",
                 "pressure_bridge_enabled",
                 "pressure_flow_enabled",
                 "pressure_transition_value_enabled"))):
@@ -614,6 +628,19 @@ def validate_controller_policy(impact_policy):
             and not policy["pressure_transition_value_enabled"]):
         raise PFRuntimeConfigurationError(
             "transition-value authority requires transition-value learning")
+    if (policy["pressure_domain_estimates_authority_enabled"]
+            and not policy["pressure_domain_estimates_enabled"]):
+        raise PFRuntimeConfigurationError(
+            "domain-estimate authority requires domain estimates")
+    if policy["pressure_domain_estimates_authority_enabled"]:
+        if (policy["pressure_semantics_version"] != "v2"
+                or not policy[
+                    "pressure_commit_revalidation_enabled"]):
+            raise PFRuntimeConfigurationError(
+                "domain-estimate authority requires scalar-v2 semantics "
+                "and commit revalidation")
+        raise PFRuntimeConfigurationError(
+            "domain-estimate authority is unavailable in shadow-only GDO-1")
     if (policy["pressure_transition_value_enabled"]
             and not policy["pressure_packet_scheduler_enabled"]):
         raise PFRuntimeConfigurationError(
@@ -755,6 +782,7 @@ def validate_controller_policy(impact_policy):
                 "pressure_signed_channels_enabled",
                 "pressure_packet_scheduler_enabled",
                 "pressure_requirement_sets_enabled",
+                "pressure_domain_estimates_enabled",
                 "pressure_bridge_enabled",
                 "pressure_flow_enabled",
                 "pressure_flow_live_enabled"))):
@@ -777,6 +805,11 @@ def build_controller_activation(impact_policy):
         "scalar_pf_v2": (
             pressure_enabled and v2
             and mode != "canonical"),
+        "grounded_domain_estimates": (
+            pressure_enabled and v2
+            and mode != "canonical"
+            and policy[
+                "pressure_domain_estimates_enabled"]),
         "packet_scheduler": (
             pressure_enabled and v2
             and policy["pressure_packet_scheduler_enabled"]),

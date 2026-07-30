@@ -27,6 +27,64 @@ def _nonnegative(value, name):
     return value
 
 
+def typed_expected_relief(
+        transition, goal_id, current_goal_loss,
+        unknown_policy="neutral"):
+    """Integrate goal relief over one canonical transition exactly once.
+
+    Outcome probabilities already belong to ``ExpectedTransition``.  This
+    helper therefore never multiplies by ``Operation.success_probability``.
+    Unknown mass receives no invented positive relief.  A caller may choose
+    the conservative ``adverse`` policy to charge the declared residual loss.
+    """
+    from .transitions import ExpectedTransition
+    if not isinstance(transition, ExpectedTransition):
+        raise TypeError(
+            "typed expected relief requires ExpectedTransition")
+    if not isinstance(goal_id, str) or not goal_id:
+        raise ValueError("typed expected relief requires a goal ID")
+    current = _nonnegative(
+        current_goal_loss, "current goal loss")
+    if unknown_policy not in ("neutral", "adverse"):
+        raise ValueError(
+            "unknown policy must be neutral or adverse")
+    relief = 0.0
+    fallback = transition.residual_loss_for(goal_id)
+    for outcome in transition.outcomes:
+        next_loss = outcome.cost_to_go_for(goal_id)
+        if next_loss is None:
+            next_loss = fallback
+        relief += float(outcome.probability) * (
+            current - float(next_loss)
+            - float(outcome.adverse_loss))
+    if unknown_policy == "adverse":
+        relief -= (
+            float(transition.residual_probability)
+            * float(fallback))
+    return float(relief)
+
+
+def typed_expected_reliefs(
+        transition, current_goal_losses,
+        unknown_policy="neutral"):
+    """Return canonically ordered expected-relief rows for several goals."""
+    rows = tuple(current_goal_losses)
+    keys = [row[0] for row in rows]
+    if (any(not isinstance(row, tuple) or len(row) != 2
+            for row in rows)
+            or len(keys) != len(set(keys))):
+        raise ValueError(
+            "current goal losses must have unique (goal, loss) rows")
+    return tuple(sorted(
+        (
+            str(goal_id),
+            typed_expected_relief(
+                transition, str(goal_id), loss,
+                unknown_policy=unknown_policy),
+        )
+        for goal_id, loss in rows))
+
+
 @dataclass(frozen=True)
 class GoalLoss:
     goal_id: str

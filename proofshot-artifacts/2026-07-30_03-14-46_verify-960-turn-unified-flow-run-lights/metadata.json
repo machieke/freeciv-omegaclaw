@@ -1,0 +1,6 @@
+{
+  "branch": "experimental/pln-pressure–bridge–fluid",
+  "commitSha": "87f3482e631b0713378e69b350e460d4c6a310b7",
+  "startedAt": "2026-07-30T03:14:46.969Z",
+  "description": "Verify 960-turn unified-flow run lights up all five facets in the Decision Observatory"
+}
