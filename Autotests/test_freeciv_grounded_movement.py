@@ -164,6 +164,30 @@ def test_snapshot_retains_movement_topology_and_transport_state():
         "veteran"] == 0
 
 
+def test_optional_native_routes_preserve_legacy_empty_snapshot_identity():
+    absent_payload = copy.deepcopy(
+        _payload())
+    empty_payload = copy.deepcopy(
+        absent_payload)
+    empty_payload.setdefault(
+        "authoritative", {})[
+            "movement_routes"] = []
+
+    absent = ProxyStateDTO.parse(
+        "grounded-movement", 1,
+        absent_payload).to_snapshot()
+    empty = ProxyStateDTO.parse(
+        "grounded-movement", 1,
+        empty_payload).to_snapshot()
+    routed, _ = _snapshot(
+        native_route=True)
+
+    assert absent.identity.state_hash == (
+        empty.identity.state_hash)
+    assert routed.identity.state_hash != (
+        absent.identity.state_hash)
+
+
 def test_visible_explicit_cost_adjacent_move_is_parity_gated_heuristic():
     snapshot, action = _snapshot()
     estimate = GroundedMovementTransitionModel().estimate(

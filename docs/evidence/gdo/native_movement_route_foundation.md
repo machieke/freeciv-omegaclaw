@@ -64,12 +64,14 @@ the broader movement-rule supported subset remain open.
   9,699/9,825 reachable for seed 4543804.
 - Mean route-response wait per state request was 2.31--16.21 ms at turn
   boundaries and 0.58--1.18 ms during action refreshes across the two games.
-- Eight retained defence snapshots replayed deterministically with a 12.19 ms
-  p95 compute time. Supported requirement coverage rose from the earlier
-  5/12 diagnostic capture to 9/13 in the route-enabled capture.
+- Eight retained defence snapshots replayed deterministically with a 12.68 ms
+  p95 compute time. After correcting enemy speed and deadline semantics, 7/13
+  requirements have a timely action, while all 192 operation comparisons and
+  all 13 requirements have decision-grounded positive or negative results.
 
 The detailed cohort and replay evidence is in
 `docs/evidence/gdo/gdo4_native_route_160_replay.md`. This evidence establishes
 the route input and its measurable effect on candidate support. It is not a
 score claim: the two seeds are not a paired policy comparison, the operation
-readout is shadow-only, and the replay's 90% operation-edge gate remains open.
+readout is shadow-only, exact assignment still ties greedy, and counterfactual
+operation outcomes remain unavailable.

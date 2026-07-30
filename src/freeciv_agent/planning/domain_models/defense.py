@@ -195,6 +195,8 @@ class VisibleCityThreat:
     city_id: int
     distance_tiles: int
     earliest_attack_turn: int
+    movement_rate: object
+    eta_basis: str
     threat_priority: float
     confidence: float
     unknown_mass: float
@@ -229,6 +231,27 @@ class VisibleCityThreat:
                      or not self.enemy_unit_class)):
             raise ValueError(
                 "enemy unit class must be non-empty or absent")
+        if (self.movement_rate is not None
+                and (
+                    isinstance(
+                        self.movement_rate,
+                        bool)
+                    or not isinstance(
+                        self.movement_rate,
+                        (int, float))
+                    or not math.isfinite(
+                        float(
+                            self.movement_rate))
+                    or float(
+                        self.movement_rate)
+                    <= 0.0)):
+            raise ValueError(
+                "threat movement rate must be positive or absent")
+        if (not isinstance(
+                self.eta_basis, str)
+                or not self.eta_basis):
+            raise ValueError(
+                "threat ETA basis is required")
         for value, name in (
                 (self.threat_priority,
                  "threat priority"),
@@ -290,6 +313,8 @@ class VisibleCityThreat:
                 self.distance_tiles,
             "earliest_attack_turn":
                 self.earliest_attack_turn,
+            "eta_basis":
+                self.eta_basis,
             "enemy_unit_id":
                 self.enemy_unit_id,
             "enemy_unit_class":
@@ -298,6 +323,12 @@ class VisibleCityThreat:
                 self.enemy_unit_type,
             "interception_legal":
                 self.interception_legal,
+            "movement_rate": (
+                None
+                if self.movement_rate
+                is None
+                else float(
+                    self.movement_rate)),
             "path_corridor": [
                 list(row)
                 for row in
@@ -655,6 +686,29 @@ class CityDefenseOperation:
         }
 
 
+GROUNDED_OPERATION_RESULT_REASONS = frozenset({
+    "alternate-step-not-native-selected-route",
+    "arrival-after-threat-deadline",
+    "defender-native-route-unreachable",
+    "native-route-misses-threat-deadline",
+    "protected-sole-defender",
+})
+
+
+def grounded_operation_result(operation):
+    """Whether an operation has a decision-usable positive or negative result."""
+    if not isinstance(
+            operation,
+            CityDefenseOperation):
+        raise TypeError(
+            "grounded operation result requires a city-defence operation")
+    return bool(
+        operation.supported
+        or operation.support_reason
+        in
+        GROUNDED_OPERATION_RESULT_REASONS)
+
+
 @dataclass(frozen=True)
 class CityDefenseAnalysis:
     snapshot_id: str
@@ -805,7 +859,7 @@ class CityDefenseAnalyzer:
     """Build a conservative city-threat/defender operation graph."""
 
     ANALYZER_IDENTITY = (
-        "freeciv-city-defense-analyzer/1.1")
+        "freeciv-city-defense-analyzer/1.2")
 
     def __init__(
             self, threat_radius=6,
@@ -1025,6 +1079,26 @@ class CityDefenseAnalyzer:
                     "enemy-unit-class-unavailable")
             else:
                 support_reason = None
+            movement_rate = (
+                None if spec is None
+                else spec.get(
+                    "move_rate"))
+            movement_rate_supported = (
+                not isinstance(
+                    movement_rate, bool)
+                and isinstance(
+                    movement_rate,
+                    (int, float))
+                and math.isfinite(
+                    float(
+                        movement_rate))
+                and float(
+                    movement_rate) > 0.0)
+            if (support_reason is None
+                    and not
+                    movement_rate_supported):
+                support_reason = (
+                    "enemy-move-rate-unavailable")
             for city in sorted(
                     snapshot.cities,
                     key=lambda row:
@@ -1054,6 +1128,26 @@ class CityDefenseAnalyzer:
                     / max(
                         1,
                         distance))
+                approach_tiles = max(
+                    0,
+                    distance - 1)
+                if movement_rate_supported:
+                    eta_turns = int(
+                        math.ceil(
+                            float(
+                                approach_tiles)
+                            / float(
+                                movement_rate)))
+                    eta_basis = (
+                        "ruleset-move-rate-geometric-lower-bound")
+                else:
+                    # Retain an attributable diagnostic for unsupported
+                    # threats, but never form a requirement from this
+                    # fallback because support_reason is non-null.
+                    eta_turns = (
+                        approach_tiles)
+                    eta_basis = (
+                        "unsupported-unit-step-fallback")
                 threats.append(
                     VisibleCityThreat(
                         enemy_unit_id=(
@@ -1067,9 +1161,15 @@ class CityDefenseAnalyzer:
                             distance),
                         earliest_attack_turn=(
                             int(snapshot.turn)
-                            + max(
-                                0,
-                                distance - 1)),
+                            + eta_turns),
+                        movement_rate=(
+                            float(
+                                movement_rate)
+                            if
+                            movement_rate_supported
+                            else None),
+                        eta_basis=(
+                            eta_basis),
                         threat_priority=(
                             priority),
                         confidence=(
@@ -1436,6 +1536,10 @@ class CityDefenseAnalyzer:
             operation_type = None
             arrival_by_requirement = {}
             native_route_requirements = set()
+            native_route_alternates = set()
+            native_route_deadline_misses = set()
+            native_route_unreachable = set()
+            production_eta_unavailable = set()
             if (candidate.category
                     == "city_defense"
                     and action_type
@@ -1548,23 +1652,85 @@ class CityDefenseAnalyzer:
                                     .destination_tile
                                     == destination_tile)
                         ), None)
-                        if (
-                            route is not None
-                            and route.reachable
-                            and not route
-                                .initially_transported
-                            and route
-                                .first_step_tile
-                                == target_tile
-                        ):
-                            arrival = (
-                                int(snapshot.turn)
-                                + int(
-                                    route
-                                    .estimated_turns))
-                            native_route_requirements.add(
-                                requirement
-                                .requirement_id)
+                        if (route is not None
+                                and not route
+                                .initially_transported):
+                            if not route.reachable:
+                                native_route_unreachable.add(
+                                    requirement
+                                    .requirement_id)
+                            else:
+                                native_arrival = (
+                                    int(
+                                        snapshot.turn)
+                                    + int(
+                                        route
+                                        .estimated_turns))
+                                if (native_arrival
+                                        > requirement
+                                        .deadline_turn):
+                                    native_route_deadline_misses.add(
+                                        requirement
+                                        .requirement_id)
+                                    # The native pathfinder's selected route
+                                    # is the lower-cost route for this exact
+                                    # unit/city state. A different advertised
+                                    # first step cannot be credited with the
+                                    # older geometric ETA when that route
+                                    # already misses the deadline.
+                                    arrival = (
+                                        native_arrival)
+                                if (route
+                                        .first_step_tile
+                                        == target_tile):
+                                    arrival = (
+                                        native_arrival)
+                                    native_route_requirements.add(
+                                        requirement
+                                        .requirement_id)
+                                elif any(
+                                        str(
+                                            legal_action
+                                            .get(
+                                                "action_type",
+                                                ""))
+                                        == "unit_move"
+                                        and legal_action
+                                        .get(
+                                            "actor_id")
+                                        == actor_id
+                                        and isinstance(
+                                            legal_action
+                                            .get("target"),
+                                            dict)
+                                        and None not in (
+                                            legal_action[
+                                                "target"]
+                                            .get("x"),
+                                            legal_action[
+                                                "target"]
+                                            .get("y"))
+                                        and (
+                                            int(
+                                                legal_action[
+                                                    "target"][
+                                                        "x"])
+                                            + int(
+                                                legal_action[
+                                                    "target"][
+                                                        "y"])
+                                            * int(
+                                                snapshot
+                                                .map_width))
+                                        == route
+                                        .first_step_tile
+                                        for legal_action
+                                        in legal):
+                                    arrival = (
+                                        native_arrival)
+                                    native_route_alternates.add(
+                                        requirement
+                                        .requirement_id)
                     arrival_by_requirement[
                         requirement
                         .requirement_id] = (
@@ -1658,6 +1824,9 @@ class CityDefenseAnalyzer:
                             .requirement_id] = (
                                 requirement
                                 .deadline_turn + 1)
+                        production_eta_unavailable.add(
+                            requirement
+                            .requirement_id)
                     else:
                         arrival_by_requirement[
                             requirement
@@ -1695,6 +1864,12 @@ class CityDefenseAnalyzer:
                         .city_id):
                     support_reason = (
                         "protected-sole-defender")
+                elif (requirement
+                        .requirement_id
+                        in
+                        production_eta_unavailable):
+                    support_reason = (
+                        "production-completion-eta-unavailable")
                 arrival = (
                     arrival_by_requirement[
                         requirement
@@ -1703,14 +1878,47 @@ class CityDefenseAnalyzer:
                         and operation_type
                         == DefenseOperationType
                         .MOVE_DEFENDER_TO_CITY
-                        and arrival
-                        > int(snapshot.turn)
                         and requirement
                         .requirement_id
                         not in
-                        native_route_requirements):
-                    support_reason = (
-                        "defender-route-eta-unavailable")
+                        native_route_requirements
+                        and (
+                            arrival
+                            > int(
+                                snapshot.turn)
+                            or requirement
+                            .requirement_id
+                            in
+                            native_route_unreachable
+                            or requirement
+                            .requirement_id
+                            in
+                            native_route_deadline_misses
+                            or requirement
+                            .requirement_id
+                            in
+                            native_route_alternates)):
+                    if (requirement
+                            .requirement_id
+                            in
+                            native_route_unreachable):
+                        support_reason = (
+                            "defender-native-route-unreachable")
+                    elif (requirement
+                            .requirement_id
+                            in
+                            native_route_deadline_misses):
+                        support_reason = (
+                            "native-route-misses-threat-deadline")
+                    elif (requirement
+                            .requirement_id
+                            in
+                            native_route_alternates):
+                        support_reason = (
+                            "alternate-step-not-native-selected-route")
+                    else:
+                        support_reason = (
+                            "defender-route-eta-unavailable")
                 if (support_reason is None
                         and arrival
                         > requirement
@@ -1864,6 +2072,24 @@ class CityDefenseAnalyzer:
                         .requirement_id
                         in
                         native_route_requirements
+                        else
+                        "native-server-route-deadline-bound"
+                        if requirement
+                        .requirement_id
+                        in
+                        native_route_deadline_misses
+                        else
+                        "native-server-selected-route-dominates-alternate"
+                        if requirement
+                        .requirement_id
+                        in
+                        native_route_alternates
+                        else
+                        "native-server-route-unreachable"
+                        if requirement
+                        .requirement_id
+                        in
+                        native_route_unreachable
                         else
                         "route-eta-not-grounded",
                         "ruleset-unit-stat"

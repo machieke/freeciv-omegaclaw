@@ -147,6 +147,12 @@ def test_city_defense_slice_is_nested_in_deferred_resource_shadow():
         assert not defense[
             "decision_safe_candidate_readout"]
         assert defense[
+            "actionable_requirement_coverage"] == 1.0
+        assert defense[
+            "decision_resolved_requirement_coverage"] == 1.0
+        assert defense[
+            "typed_grounded_operation_coverage"] == 1.0
+        assert defense[
             "selected_action_key"] is None
     finally:
         ranker.close_resource_schedules()

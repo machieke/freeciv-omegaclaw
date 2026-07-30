@@ -4,6 +4,7 @@ import itertools
 import os
 import sys
 import tempfile
+from dataclasses import replace
 from types import SimpleNamespace
 
 
@@ -24,6 +25,7 @@ from freeciv_agent.planning.domain_models import (  # noqa: E402
     CityDefenseRequirement,
     DefenseOperationType,
     ExactCityDefenseAssignmentSolver,
+    grounded_operation_result,
 )
 from freeciv_agent.state import MovementRouteState  # noqa: E402
 from freeciv_agent.pressure.resource_claims import (  # noqa: E402
@@ -234,6 +236,43 @@ def _analysis(requirements, operations):
         analyzer_identity="assignment-test")
 
 
+def test_grounded_operation_result_separates_negative_facts_from_unknowns():
+    requirement = _requirement(
+        10)
+    supported = _operation(
+        "supported", requirement,
+        1, 10.0)
+    late = replace(
+        supported,
+        operation_id="late",
+        support_reason=(
+            "arrival-after-threat-deadline"),
+        claims=tuple(
+            replace(
+                claim,
+                source_operation_id="late")
+            for claim in
+            supported.claims))
+    unknown = replace(
+        supported,
+        operation_id="unknown",
+        support_reason=(
+            "defender-route-eta-unavailable"),
+        claims=tuple(
+            replace(
+                claim,
+                source_operation_id="unknown")
+            for claim in
+            supported.claims))
+
+    assert grounded_operation_result(
+        supported)
+    assert grounded_operation_result(
+        late)
+    assert not grounded_operation_result(
+        unknown)
+
+
 def _brute_force_optimum(requirements, operations):
     capacity = {
         row.requirement_id:
@@ -309,15 +348,47 @@ def test_visible_threats_have_explicit_unknown_mass_and_deadlines():
         row.confidence == 0.45
         and row.unknown_mass == 0.55
         and row.supported
+        and row.movement_rate == 3.0
+        and row.eta_basis
+        == "ruleset-move-rate-geometric-lower-bound"
         for row in analysis.threats)
     assert {
         row.city_id:
         row.deadline_turn
         for row in analysis.requirements
     } == {
-        10: 13,
-        20: 12,
+        10: 11,
+        20: 11,
     }
+
+
+def test_missing_enemy_move_rate_cannot_authorize_a_threat_deadline():
+    candidates = _candidates()
+    snapshot, ruleset = _scenario(
+        candidates)
+    enemy_rule = next(
+        row for row in ruleset.rules
+        if row.display_name
+        == "Raider")
+    enemy_rule.quantitative[
+        "move_rate"] = {
+            "value": None,
+        }
+
+    analysis = CityDefenseAnalyzer().analyze(
+        snapshot, ruleset,
+        candidates)
+
+    assert analysis.threats
+    assert all(
+        row.movement_rate is None
+        and row.eta_basis
+        == "unsupported-unit-step-fallback"
+        and row.support_reason
+        == "enemy-move-rate-unavailable"
+        and not row.supported
+        for row in analysis.threats)
+    assert analysis.requirements == ()
 
 
 def test_sole_defender_is_a_protected_constraint_not_a_movable_asset():
@@ -628,6 +699,166 @@ def test_native_route_eta_supports_multi_turn_defender_operation():
         operation.provenance)
 
 
+def test_native_late_route_bounds_an_alternate_first_step():
+    move = _candidate({
+        "action_type": "unit_move",
+        "actor_id": 2,
+        "target": {"x": 3, "y": 0},
+        "movement_cost": 1,
+        "transport_required": False,
+        "is_valid": True,
+    }, "tactical_move")
+    snapshot, ruleset = _scenario(
+        (move,))
+    snapshot.movement_routes = (
+        MovementRouteState(
+            unit_id=2,
+            origin_tile=2,
+            destination_tile=4,
+            reachable=True,
+            first_step_tile=14,
+            first_step_movement_cost=1,
+            path_length=3,
+            path_directions=(6, 1, 1),
+            estimated_turns=2,
+            total_movement_cost=7,
+            movement_points_remaining=2,
+            moves_left_at_request=3,
+            transported_at_request=False,
+            initially_transported=False,
+            turn=10,
+            source_seq=10),)
+
+    analysis = CityDefenseAnalyzer().analyze(
+        snapshot, ruleset,
+        (move,))
+    operation = next(
+        row for row
+        in analysis.operations
+        if row.actor_id == 2
+        and row.city_id == 20)
+
+    assert not operation.supported
+    assert operation.arrival_turn == 12
+    assert operation.support_reason == (
+        "native-route-misses-threat-deadline")
+    assert (
+        "native-server-route-deadline-bound"
+        in operation.provenance)
+
+
+def test_native_selected_route_excludes_an_early_alternate_step():
+    alternate = _candidate({
+        "action_type": "unit_move",
+        "actor_id": 2,
+        "target": {"x": 3, "y": 0},
+        "movement_cost": 1,
+        "transport_required": False,
+        "is_valid": True,
+    }, "tactical_move")
+    selected = _candidate({
+        "action_type": "unit_move",
+        "actor_id": 2,
+        "target": {"x": 3, "y": 1},
+        "movement_cost": 1,
+        "transport_required": False,
+        "is_valid": True,
+    }, "tactical_move")
+    snapshot, ruleset = _scenario(
+        (alternate, selected))
+    snapshot.movement_routes = (
+        MovementRouteState(
+            unit_id=2,
+            origin_tile=2,
+            destination_tile=4,
+            reachable=True,
+            first_step_tile=15,
+            first_step_movement_cost=1,
+            path_length=2,
+            path_directions=(6, 1),
+            estimated_turns=1,
+            total_movement_cost=3,
+            movement_points_remaining=0,
+            moves_left_at_request=3,
+            transported_at_request=False,
+            initially_transported=False,
+            turn=10,
+            source_seq=10),)
+
+    analysis = CityDefenseAnalyzer().analyze(
+        snapshot, ruleset,
+        (alternate, selected))
+    alternate_operation = next(
+        row for row
+        in analysis.operations
+        if row.actor_id == 2
+        and row.city_id == 20
+        and row.next_action
+        == alternate.action)
+    selected_operation = next(
+        row for row
+        in analysis.operations
+        if row.actor_id == 2
+        and row.city_id == 20
+        and row.next_action
+        == selected.action)
+
+    assert not alternate_operation.supported
+    assert alternate_operation.support_reason == (
+        "alternate-step-not-native-selected-route")
+    assert (
+        "native-server-selected-route-dominates-alternate"
+        in alternate_operation.provenance)
+    assert selected_operation.supported
+
+
+def test_native_unreachable_route_rejects_geometric_progress():
+    move = _candidate({
+        "action_type": "unit_move",
+        "actor_id": 2,
+        "target": {"x": 3, "y": 0},
+        "movement_cost": 1,
+        "transport_required": False,
+        "is_valid": True,
+    }, "tactical_move")
+    snapshot, ruleset = _scenario(
+        (move,))
+    snapshot.movement_routes = (
+        MovementRouteState(
+            unit_id=2,
+            origin_tile=2,
+            destination_tile=4,
+            reachable=False,
+            first_step_tile=None,
+            first_step_movement_cost=None,
+            path_length=0,
+            path_directions=(),
+            estimated_turns=None,
+            total_movement_cost=None,
+            movement_points_remaining=None,
+            moves_left_at_request=3,
+            transported_at_request=False,
+            initially_transported=False,
+            turn=10,
+            source_seq=10),)
+
+    analysis = CityDefenseAnalyzer().analyze(
+        snapshot, ruleset,
+        (move,))
+    operation = next(
+        row for row
+        in analysis.operations
+        if row.actor_id == 2
+        and row.city_id == 20)
+
+    assert not operation.supported
+    assert operation.support_reason == (
+        "defender-native-route-unreachable")
+    assert (
+        "native-server-route-unreachable"
+        in operation.provenance)
+
+
 def test_unadvertised_candidate_cannot_form_an_operation():
     candidates = _candidates()
     snapshot, ruleset = _scenario(
@@ -683,6 +914,33 @@ def test_late_emergency_build_is_not_counted_as_present_defense():
     assert production.operation_id not in (
         assignment
         .selected_operation_ids)
+
+
+def test_unknown_emergency_build_eta_remains_epistemically_unresolved():
+    build = _candidate({
+        "action_type": "city_production",
+        "city_id": 20,
+        "production_kind": 1,
+        "production_value": 5,
+        "is_valid": True,
+    }, "production_defense")
+    candidates = _candidates() + (
+        build,)
+    snapshot, ruleset = _scenario(
+        candidates)
+
+    analysis = CityDefenseAnalyzer().analyze(
+        snapshot, ruleset,
+        candidates)
+    production = next(
+        row for row in analysis.operations
+        if row.operation_type
+        == DefenseOperationType
+        .EMERGENCY_BUILD_DEFENDER)
+
+    assert not production.supported
+    assert production.support_reason == (
+        "production-completion-eta-unavailable")
 
 
 def test_analysis_and_assignment_are_input_permutation_invariant():

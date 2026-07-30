@@ -2883,6 +2883,7 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             from ..planning.domain_models import (
                 CityDefenseAnalyzer,
                 ExactCityDefenseAssignmentSolver,
+                grounded_operation_result,
             )
             defense_analysis = (
                 CityDefenseAnalyzer(
@@ -2965,6 +2966,54 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                 else float(
                     supported_requirements)
                 / requirement_count)
+            operation_count = len(
+                defense_analysis.operations)
+            grounded_operation_count = sum(
+                grounded_operation_result(
+                    operation)
+                for operation in
+                defense_analysis.operations)
+            grounded_operation_coverage = (
+                1.0
+                if operation_count == 0
+                else float(
+                    grounded_operation_count)
+                / operation_count)
+            decision_resolved_requirements = sum(
+                bool(
+                    requirement_operations)
+                and all(
+                    grounded_operation_result(
+                        operation)
+                    for operation in
+                    requirement_operations)
+                for requirement in
+                defense_analysis.requirements
+                for requirement_operations
+                in (tuple(
+                    operation
+                    for operation in
+                    defense_analysis.operations
+                    if operation
+                    .requirement_id
+                    == requirement
+                    .requirement_id),))
+            decision_resolution_coverage = (
+                1.0
+                if requirement_count == 0
+                else float(
+                    decision_resolved_requirements)
+                / requirement_count)
+            decision_safe_readout = bool(
+                readout is not None
+                and readout.supported
+                and defense_assignment.status
+                == "exact"
+                and coverage >= 0.90
+                and grounded_operation_coverage
+                >= 0.90
+                and decision_resolution_coverage
+                >= 0.90)
             defense_payload = {
                 "analysis":
                     defense_analysis.to_dict(),
@@ -2973,8 +3022,12 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                 "authority_active": False,
                 "b1_action_key":
                     packet_action_key,
+                "actionable_requirement_coverage":
+                    operation_edge_coverage,
+                "decision_resolved_requirement_coverage":
+                    decision_resolution_coverage,
                 "decision_safe_candidate_readout":
-                    False,
+                    decision_safe_readout,
                 "fallback_reason": (
                     "no-city-defense-requirement"
                     if not defense_analysis
@@ -2983,9 +3036,20 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                     "typed-defense-coverage-below-90-percent"
                     if coverage < 0.90
                     else
-                    "typed-defense-operation-edge-coverage-below-90-percent"
-                    if operation_edge_coverage
+                    "typed-defense-operation-evaluation-coverage-below-90-percent"
+                    if grounded_operation_coverage
                     < 0.90
+                    else
+                    "typed-defense-decision-resolution-below-90-percent"
+                    if decision_resolution_coverage
+                    < 0.90
+                    else
+                    "typed-defense-assignment-not-exact"
+                    if defense_assignment.status
+                    != "exact"
+                    else
+                    "no-supported-current-defense-action"
+                    if readout is None
                     else
                     "shadow-only-gdo4"),
                 "fallback_to_b1": True,
@@ -2998,6 +3062,8 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                 "schema_version": "1.0",
                 "ruleset_digest":
                     self.ruleset_digest,
+                "typed_grounded_operation_coverage":
+                    grounded_operation_coverage,
                 "selected_action_key": (
                     None
                     if readout is None

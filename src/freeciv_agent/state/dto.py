@@ -900,18 +900,22 @@ class ProxyStateDTO:
                 "own": own_score,
             },
             "ruleset_ready": ruleset_ready, "turn": turn,
-            "movement_routes": [
+            "units": [unit.to_dict() for unit in sorted(units, key=lambda item: item.unit_id)],
+            "visible_enemy_units": [unit.to_dict() for unit in sorted(
+                visible_enemy_units, key=lambda item: item.unit_id)],
+        }
+        # Preserve the frozen snapshot identity for every pre-route and
+        # route-disabled input. Exact route bytes join the identity only when
+        # the optional collection is actually present.
+        if movement_routes:
+            body["movement_routes"] = [
                 route.to_dict()
                 for route in sorted(
                     movement_routes,
                     key=lambda item: (
                         item.unit_id,
                         item.destination_tile))
-            ],
-            "units": [unit.to_dict() for unit in sorted(units, key=lambda item: item.unit_id)],
-            "visible_enemy_units": [unit.to_dict() for unit in sorted(
-                visible_enemy_units, key=lambda item: item.unit_id)],
-        }
+            ]
         state_hash = hashlib.sha256(canonical_json_bytes(body)).hexdigest()
         identity = SnapshotIdentity(str(game_id), turn, source_seq, state_hash)
         return cls(AuthoritativeSnapshot(

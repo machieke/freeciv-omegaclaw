@@ -27,6 +27,7 @@ from .defense import (
     DefenderProfile,
     DefenseOperationType,
     ExactCityDefenseAssignmentSolver,
+    grounded_operation_result,
     VisibleCityThreat,
 )
 from .legacy import LegacyProjectionTransitionModel
@@ -59,6 +60,7 @@ __all__ = [
     "GroundedTransitionEstimate",
     "GroundedMovementTransitionModel",
     "GroundedCombatTransitionModel",
+    "grounded_operation_result",
     "LegacyProjectionTransitionModel",
     "TransitionContextKey",
     "VisibleCityThreat",

@@ -76,9 +76,9 @@ scored candidate set were retained in
 - Diagnostic report:
   `benchmarks/gdo/gdo4_city_defense_native_160_diagnostic.json`
 - Report structural hash:
-  `ce1089ee00744696441fce4373cc53ce32365f542fbf4d52ba96c1295cacf949`
+  `28f04eba01282794c0805d4ecc61f29896246b64e18e20d6272b9d27cb3e00ee`
 - Report file SHA-256:
-  `5163a3a9d58b0a3ca0879b33c3bb0f913e189b23de5a27e34fe343ce7b38cd53`
+  `460224f6cba03bdcca48870e5c90ee92b0ba50357129bb69b97a7ac4c0f4f67a`
 
 The replay passed structural validation and produced:
 
@@ -87,14 +87,22 @@ The replay passed structural validation and produced:
 | Covered threat slots, current-action readout | 1 | 7 |
 | Uncovered threat slots, current-action readout | 19 | 13 |
 | Selected operations, current-action readout | 1 | 7 |
-| Covered threat slots, full intent assignment | not applicable | 12 |
-| Uncovered threat slots, full intent assignment | not applicable | 8 |
+| Covered threat slots, full intent assignment | not applicable | 8 |
+| Uncovered threat slots, full intent assignment | not applicable | 12 |
 
-All 32 observed threats had supported value estimates. Nine of 13 requirements
-had at least one supported operation edge, or 69.23%, compared with 5 of 12
-(41.67%) in the prior fresh grounded capture. All replay candidates were
-represented in the typed candidate edge set, no actor, production, late, or
-sole-defender safety violations occurred, and replay p95 was 12.19 ms.
+All 32 observed threats had supported value estimates. The original
+route-enabled diagnostic classified 9/13 requirements as actionable, but that
+used a speed-1 threat deadline and was optimistic. The corrected ruleset-rate
+lower bound advances 15/32 threat deadlines by one turn and leaves 7/13
+requirements with a timely action. It rejects 10 previously admitted late
+operations.
+
+This is not missing estimate coverage. All 192 operation comparisons and all
+13 requirements now have decision-grounded positive or negative results:
+feasible, late, native-route deadline miss, protected, or a non-native
+alternate dominated by the advertised native route. All replay candidates
+were represented in the typed candidate edge set, no actor, production, late,
+or sole-defender safety violations occurred, and replay p95 was 12.68 ms.
 
 ## Interpretation and remaining gate
 
@@ -103,10 +111,13 @@ movement can now use an exact current server ETA rather than assuming adjacency
 or abstaining. The improved edge coverage and B1-to-B4 readout difference show
 that the new input reaches the intended mechanism.
 
-GDO-4 is not closed. Supported operation-edge coverage is 69.23%, below the
-frozen 90% gate. The exact assignment ties the identity-aware greedy
-assignment, so it has not established an optimizer advantage. The replay still
-lacks authoritative enemy threat ETA and counterfactual operation outcomes,
+GDO-4 is not closed. The corrected readout now separates epistemic coverage
+(100%) from actionability (53.85%); genuinely impossible deadlines no longer
+masquerade as missing estimates. The exact assignment ties the identity-aware
+greedy assignment, so it has not established an optimizer advantage. The
+ruleset-rate ETA is a conservative geometric lower bound rather than native
+enemy path parity. The replay also lacks counterfactual operation outcomes,
 and intent assignment cannot be credited as executed gameplay. The next
-correctness target is deadline-safe threat reachability and a decision-safe
-current-action readout, followed by a paired engine-live policy ablation.
+correctness target is authoritative or probe-validated threat reachability and
+operation completion evidence, followed by a paired engine-live policy
+ablation.

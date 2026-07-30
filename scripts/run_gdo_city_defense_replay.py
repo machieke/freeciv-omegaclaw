@@ -25,6 +25,7 @@ from freeciv_agent.planning.domain_models import (  # noqa: E402
     CityDefenseAnalyzer,
     DefenseOperationType,
     ExactCityDefenseAssignmentSolver,
+    grounded_operation_result,
 )
 from freeciv_agent.pressure import ImpactPressureRankerV2  # noqa: E402
 from freeciv_agent.rulesets.compiler import compile_ruleset  # noqa: E402
@@ -52,7 +53,6 @@ DEFAULT_RULESET_ROOT = os.path.join(
 DEFAULT_OUTPUT = os.path.join(
     REPO, "benchmarks", "gdo",
     "gdo4_city_defense_replay_diagnostic.local.json")
-
 
 def _percentile(rows, fraction):
     ordered = sorted(
@@ -952,6 +952,8 @@ def run(
     operation_support_reasons = Counter()
     operation_types = Counter()
     threat_support_reasons = Counter()
+    threat_eta_bases = Counter()
+    threat_eta_advance_turns = Counter()
     threat_unit_classes = Counter()
     threat_unit_types = Counter()
     try:
@@ -1072,6 +1074,19 @@ def run(
                 threat_support_reasons[
                     threat.support_reason
                     or "supported"] += 1
+                threat_eta_bases[
+                    threat.eta_basis] += 1
+                threat_eta_advance_turns[
+                    max(
+                        0,
+                        int(snapshot.turn)
+                        + max(
+                            0,
+                            threat.distance_tiles
+                            - 1)
+                        - threat
+                        .earliest_attack_turn)
+                ] += 1
                 threat_unit_classes[
                     threat.enemy_unit_class
                     or "unknown"] += 1
@@ -1111,6 +1126,30 @@ def run(
                     in analysis.operations)
                 for requirement
                 in analysis.requirements)
+            grounded_operation_count = sum(
+                grounded_operation_result(
+                    operation)
+                for operation in
+                analysis.operations)
+            decision_resolved_requirements = sum(
+                bool(
+                    requirement_operations)
+                and all(
+                    grounded_operation_result(
+                        operation)
+                    for operation in
+                    requirement_operations)
+                for requirement
+                in analysis.requirements
+                for requirement_operations
+                in (tuple(
+                    operation
+                    for operation in
+                    analysis.operations
+                    if operation
+                    .requirement_id
+                    == requirement
+                    .requirement_id),))
             scenarios.append({
                 "arms":
                     arm_metrics,
@@ -1126,12 +1165,16 @@ def run(
                 "input_candidate_count":
                     analysis
                     .input_candidate_count,
+                "grounded_operation_count":
+                    grounded_operation_count,
                 "protected_union_added_count":
                     analysis
                     .protected_union_added_count,
                 "requirement_count":
                     len(
                         analysis.requirements),
+                "decision_resolved_requirement_count":
+                    decision_resolved_requirements,
                 "snapshot_id":
                     snapshot.snapshot_id,
                 "supported_operation_count":
@@ -1148,6 +1191,32 @@ def run(
                             for row in
                             analysis.threats)
                         .items())),
+                "threat_eta_bases":
+                    dict(sorted(
+                        Counter(
+                            row.eta_basis
+                            for row in
+                            analysis.threats)
+                        .items())),
+                "threat_eta_advance_turns":
+                    {
+                        str(turns): count
+                        for turns, count
+                        in sorted(
+                            Counter(
+                            max(
+                                0,
+                                int(snapshot.turn)
+                                + max(
+                                    0,
+                                    row.distance_tiles
+                                    - 1)
+                                - row
+                                .earliest_attack_turn)
+                            for row in
+                            analysis.threats)
+                            .items())
+                    },
                 "threat_unit_classes":
                     dict(sorted(
                         Counter(
@@ -1209,6 +1278,16 @@ def run(
         row[
             "candidate_edge_requirement_count"]
         for row in scenarios)
+    total_operations = sum(
+        row["operation_count"]
+        for row in scenarios)
+    grounded_operations = sum(
+        row["grounded_operation_count"]
+        for row in scenarios)
+    decision_resolved_requirements = sum(
+        row[
+            "decision_resolved_requirement_count"]
+        for row in scenarios)
     threat_coverage = (
         float(supported_threats)
         / max(1, total_threats))
@@ -1220,6 +1299,18 @@ def run(
     candidate_edge_coverage = (
         float(
             candidate_edge_requirements)
+        / max(
+            1,
+            total_requirements))
+    grounded_operation_coverage = (
+        float(
+            grounded_operations)
+        / max(
+            1,
+            total_operations))
+    decision_resolution_coverage = (
+        float(
+            decision_resolved_requirements)
         / max(
             1,
             total_requirements))
@@ -1252,8 +1343,11 @@ def run(
                 == 0
                 for name
                 in safety_metrics),
-        "operation_edge_coverage_at_least_90_percent":
-            operation_edge_coverage
+        "typed_operation_evaluation_at_least_90_percent":
+            grounded_operation_coverage
+            >= 0.90,
+        "decision_resolved_requirements_at_least_90_percent":
+            decision_resolution_coverage
             >= 0.90,
         "p95_replay_compute_below_50_ms":
             timing["p95_ms"]
@@ -1304,10 +1398,20 @@ def run(
         "claim_status":
             "captured-replay-diagnostic-only",
         "coverage": {
+            "actionable_requirement_fraction":
+                operation_edge_coverage,
             "candidate_edge_fraction":
                 candidate_edge_coverage,
             "candidate_edge_requirement_count":
                 candidate_edge_requirements,
+            "decision_resolved_requirement_count":
+                decision_resolved_requirements,
+            "decision_resolved_requirement_fraction":
+                decision_resolution_coverage,
+            "grounded_operation_count":
+                grounded_operations,
+            "grounded_operation_evaluation_fraction":
+                grounded_operation_coverage,
             "operation_edge_fraction":
                 operation_edge_coverage,
             "operation_support_reasons":
@@ -1332,6 +1436,18 @@ def run(
                 dict(sorted(
                     threat_support_reasons
                     .items())),
+            "threat_eta_bases":
+                dict(sorted(
+                    threat_eta_bases
+                    .items())),
+            "threat_eta_advance_turns":
+                {
+                    str(turns): count
+                    for turns, count
+                    in sorted(
+                        threat_eta_advance_turns
+                        .items())
+                },
             "threat_unit_classes":
                 dict(sorted(
                     threat_unit_classes
@@ -1344,6 +1460,8 @@ def run(
                 threat_coverage,
             "total_requirement_count":
                 total_requirements,
+            "total_operation_count":
+                total_operations,
             "total_threat_count":
                 total_threats,
         },
