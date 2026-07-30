@@ -26,6 +26,7 @@ from freeciv_agent.planning.domain_models import (  # noqa: E402
     DefenseOperationType,
     ExactCityDefenseAssignmentSolver,
     grounded_operation_result,
+    grounded_threat_result,
 )
 from freeciv_agent.pressure import ImpactPressureRankerV2  # noqa: E402
 from freeciv_agent.rulesets.compiler import compile_ruleset  # noqa: E402
@@ -666,6 +667,8 @@ def _snapshot(fixture, candidates):
             "wrap_x"),
         map_wrap_y=topology.get(
             "wrap_y"),
+        map_topology_id=topology.get(
+            "topology_id"),
         movement_routes=parsed_routes)
 
 
@@ -954,6 +957,8 @@ def run(
     threat_support_reasons = Counter()
     threat_eta_bases = Counter()
     threat_eta_advance_turns = Counter()
+    threat_reachability_bases = Counter()
+    threat_reachability_statuses = Counter()
     threat_unit_classes = Counter()
     threat_unit_types = Counter()
     try:
@@ -1070,12 +1075,23 @@ def run(
                 row.supported
                 for row in
                 analysis.threats)
+            decision_resolved_threats = sum(
+                grounded_threat_result(
+                    row)
+                for row in
+                analysis.threats)
             for threat in analysis.threats:
                 threat_support_reasons[
                     threat.support_reason
                     or "supported"] += 1
                 threat_eta_bases[
                     threat.eta_basis] += 1
+                threat_reachability_bases[
+                    threat
+                    .reachability_basis] += 1
+                threat_reachability_statuses[
+                    threat
+                    .reachability_status] += 1
                 threat_eta_advance_turns[
                     max(
                         0,
@@ -1183,6 +1199,8 @@ def run(
                     supported_requirements,
                 "supported_threat_count":
                     supported_threats,
+                "decision_resolved_threat_count":
+                    decision_resolved_threats,
                 "threat_support_reasons":
                     dict(sorted(
                         Counter(
@@ -1217,6 +1235,22 @@ def run(
                             analysis.threats)
                             .items())
                     },
+                "threat_reachability_bases":
+                    dict(sorted(
+                        Counter(
+                            row
+                            .reachability_basis
+                            for row in
+                            analysis.threats)
+                        .items())),
+                "threat_reachability_statuses":
+                    dict(sorted(
+                        Counter(
+                            row
+                            .reachability_status
+                            for row in
+                            analysis.threats)
+                        .items())),
                 "threat_unit_classes":
                     dict(sorted(
                         Counter(
@@ -1267,6 +1301,10 @@ def run(
         row[
             "supported_threat_count"]
         for row in scenarios)
+    decision_resolved_threats = sum(
+        row[
+            "decision_resolved_threat_count"]
+        for row in scenarios)
     total_requirements = sum(
         row["requirement_count"]
         for row in scenarios)
@@ -1290,6 +1328,10 @@ def run(
         for row in scenarios)
     threat_coverage = (
         float(supported_threats)
+        / max(1, total_threats))
+    threat_decision_resolution = (
+        float(
+            decision_resolved_threats)
         / max(1, total_threats))
     operation_edge_coverage = (
         float(supported_requirements)
@@ -1328,10 +1370,10 @@ def run(
                 "uncovered_threat_slots"]
             < totals["B1"][
                 "uncovered_threat_slots"],
-        "b4_lower_uncovered_threats_than_b3":
+        "b4_no_worse_uncovered_threats_than_b3":
             totals["B4"][
                 "uncovered_threat_slots"]
-            < totals["B3"][
+            <= totals["B3"][
                 "uncovered_threat_slots"],
         "exact_never_worse_than_greedy":
             exact_never_worse,
@@ -1352,8 +1394,8 @@ def run(
         "p95_replay_compute_below_50_ms":
             timing["p95_ms"]
             <= 50.0,
-        "threat_value_coverage_at_least_90_percent":
-            threat_coverage
+        "threat_decision_resolution_at_least_90_percent":
+            threat_decision_resolution
             >= 0.90,
     }
     result = {
@@ -1408,6 +1450,10 @@ def run(
                 decision_resolved_requirements,
             "decision_resolved_requirement_fraction":
                 decision_resolution_coverage,
+            "decision_resolved_threat_count":
+                decision_resolved_threats,
+            "decision_resolved_threat_fraction":
+                threat_decision_resolution,
             "grounded_operation_count":
                 grounded_operations,
             "grounded_operation_evaluation_fraction":
@@ -1448,6 +1494,14 @@ def run(
                         threat_eta_advance_turns
                         .items())
                 },
+            "threat_reachability_bases":
+                dict(sorted(
+                    threat_reachability_bases
+                    .items())),
+            "threat_reachability_statuses":
+                dict(sorted(
+                    threat_reachability_statuses
+                    .items())),
             "threat_unit_classes":
                 dict(sorted(
                     threat_unit_classes

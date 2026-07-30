@@ -1,0 +1,210 @@
+--- a/freeciv-proxy/civcom.py
++++ b/freeciv-proxy/civcom.py
+@@ -2319,12 +2319,37 @@
+ 
+             # Map info packet (contains xsize, ysize)
+             elif packet_type == PACKET_MAP_INFO:
++                topology_id = packet.get(
++                    'topology_id')
++                wrap_id = packet.get(
++                    'wrap_id')
+                 self.map_info = {
+                     'width': packet.get('xsize', 0),
+                     'height': packet.get('ysize', 0),
+                     'tiles': [],
+                     'visibility': {}
+                 }
++                if (
++                        isinstance(topology_id, int)
++                        and not isinstance(
++                            topology_id, bool)
++                        and topology_id >= 0):
++                    self.map_info[
++                        'topology_id'] = (
++                            topology_id)
++                if (
++                        isinstance(wrap_id, int)
++                        and not isinstance(
++                            wrap_id, bool)
++                        and wrap_id >= 0):
++                    self.map_info[
++                        'wrap_id'] = wrap_id
++                    self.map_info[
++                        'wrap_x'] = bool(
++                            wrap_id & 1)
++                    self.map_info[
++                        'wrap_y'] = bool(
++                            wrap_id & 2)
+                 logger.info(f"Stored map info: {self.map_info['width']}x{self.map_info['height']}")
+ 
+             # Game info packet (turn number, citymindist, timeout, etc)
+@@ -3472,6 +3497,59 @@
+                         'terrain', 'known', 'owner', 'resource', 'worked', 'extras'):
+                     if field in source:
+                         tile[field] = source[field]
++                terrain_id = source.get('terrain')
++                terrains = getattr(self, 'terrains', {})
++                terrain = (
++                    terrains.get(terrain_id)
++                    if isinstance(terrains, dict) else None)
++                if isinstance(terrain, dict):
++                    terrain_name = terrain.get('name')
++                    if isinstance(terrain_name, str) and terrain_name:
++                        tile['terrain_name'] = terrain_name
++                    terrain_class = terrain.get('tclass')
++                    if terrain_class == TC_LAND:
++                        tile['terrain_class'] = 'land'
++                    elif terrain_class == TC_OCEAN:
++                        tile['terrain_class'] = 'ocean'
++                    native_to = terrain.get('native_to')
++                    if (
++                        isinstance(native_to, int)
++                        or (
++                            isinstance(native_to, list)
++                            and all(
++                                isinstance(word, int)
++                                and not isinstance(word, bool)
++                                for word in native_to)
++                        )
++                    ):
++                        native_names = []
++                        unit_classes = getattr(
++                            self, 'unit_classes', {})
++                        if isinstance(unit_classes, dict):
++                            for raw_class_id, unit_class in unit_classes.items():
++                                if not isinstance(unit_class, dict):
++                                    continue
++                                try:
++                                    class_id = int(raw_class_id)
++                                except (TypeError, ValueError):
++                                    continue
++                                class_name = unit_class.get('name')
++                                if (
++                                    isinstance(class_name, str)
++                                    and class_name.startswith('?')
++                                    and ':' in class_name
++                                ):
++                                    class_name = class_name.split(
++                                        ':', 1)[1]
++                                if (
++                                    class_id >= 0
++                                    and isinstance(class_name, str)
++                                    and class_name
++                                    and bitvector_is_set(
++                                        native_to, class_id)
++                                ):
++                                    native_names.append(class_name)
++                        tile['native_unit_classes'] = sorted(set(native_names))
+                 projected_tiles.append(tile)
+                 if known == 2:  # TILE_KNOWN_SEEN
+                     visible_tiles.append(tile_index)
+--- a/freeciv-proxy/tests/test_pln_authoritative_state.py
++++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
+@@ -14,7 +14,7 @@
+ from message_validator import MessageValidator, ValidationError
+ from packet_constants import (
+     DS_ALLIANCE, DS_WAR, PACKET_CITY_SHORT_INFO, PACKET_UNIT_COMBAT_INFO,
+-    PACKET_UNIT_REMOVE, PACKET_UNIT_SHORT_INFO,
++    PACKET_MAP_INFO, PACKET_UNIT_REMOVE, PACKET_UNIT_SHORT_INFO,
+     PACKET_WEB_CITY_INFO_ADDITION, PACKET_WEB_GOTO_PATH_REQ,
+ )
+ from security import InputSanitizer, SecurityError
+@@ -426,6 +426,98 @@
+     assert state["visible_tiles"] == [12]
+ 
+ 
++def test_authoritative_spatial_projection_adds_public_terrain_semantics():
++    civcom = make_civcom()
++    civcom.map_info = {
++        "width": 10,
++        "height": 10,
++        "topology_id": 1,
++        "wrap_x": True,
++        "wrap_y": False,
++    }
++    civcom.tiles = {
++        12: {
++            "terrain": 5,
++            "known": 2,
++        },
++        13: {
++            "terrain": 99,
++            "known": 1,
++        },
++    }
++    civcom.terrains = {
++        5: {
++            "name": "Ocean",
++            "native_to": [
++                0,
++                1 << 1,
++            ],
++            "tclass": 1,
++        },
++    }
++    civcom.unit_classes = {
++        1: {
++            "name": "?unitclass:Land",
++        },
++        9: {
++            "name": "?unitclass:Sea",
++        },
++    }
++
++    projected, visible = (
++        CivCom._build_pln_spatial_projection(
++            civcom))
++
++    assert projected[
++        "topology_id"] == 1
++    assert visible == [12]
++    assert projected["tiles"] == [{
++        "index": 12,
++        "x": 2,
++        "y": 1,
++        "terrain": 5,
++        "known": 2,
++        "terrain_name": "Ocean",
++        "terrain_class": "ocean",
++        "native_unit_classes": [
++            "Sea",
++        ],
++    }, {
++        "index": 13,
++        "x": 3,
++        "y": 1,
++        "terrain": 99,
++        "known": 1,
++    }]
++
++
++def test_map_packet_preserves_public_topology_and_wrap_flags():
++    civcom = make_civcom()
++    civcom.username = "packet-observer"
++    civcom.source_update_event = asyncio.Event()
++    civcom.source_update_loop = None
++
++    CivCom.parse_and_store_packet(
++        civcom, json.dumps({
++            "pid": PACKET_MAP_INFO,
++            "xsize": 80,
++            "ysize": 50,
++            "topology_id": 3,
++            "wrap_id": 1,
++        }))
++
++    assert civcom.map_info == {
++        "height": 50,
++        "tiles": [],
++        "topology_id": 3,
++        "visibility": {},
++        "width": 80,
++        "wrap_id": 1,
++        "wrap_x": True,
++        "wrap_y": False,
++    }
++
++
+ def test_eliminated_player_status_suppresses_stale_assets_and_actions():
+     civcom = make_civcom()
+     civcom.player_packets[0]["is_alive"] = False

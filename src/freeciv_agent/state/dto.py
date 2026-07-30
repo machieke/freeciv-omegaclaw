@@ -386,6 +386,38 @@ def _map_tiles(value, width, height):
         row["index"] = index
         row["x"] = expected_x
         row["y"] = expected_y
+        terrain_name = row.get(
+            "terrain_name")
+        if (terrain_name is not None
+                and (
+                    not isinstance(
+                        terrain_name, str)
+                    or not terrain_name)):
+            raise ContractError(
+                "map.tiles[].terrain_name must be non-empty or absent")
+        terrain_class = row.get(
+            "terrain_class")
+        if (terrain_class is not None
+                and terrain_class
+                not in ("land", "ocean")):
+            raise ContractError(
+                "map.tiles[].terrain_class must be land, ocean, or absent")
+        native_classes = row.get(
+            "native_unit_classes")
+        if native_classes is not None:
+            if (not isinstance(
+                    native_classes, list)
+                    or any(
+                        not isinstance(
+                            value, str)
+                        or not value
+                        for value in
+                        native_classes)
+                    or native_classes
+                    != sorted(set(
+                        native_classes))):
+                raise ContractError(
+                    "map.tiles[].native_unit_classes must be unique sorted names")
         normalized.append(row)
     return tuple(sorted(normalized, key=lambda row: row["index"]))
 
@@ -689,6 +721,12 @@ class ProxyStateDTO:
             map_data.get("wrap_x"), "map.wrap_x")
         wrap_y = _boolean(
             map_data.get("wrap_y"), "map.wrap_y")
+        topology_id = _integer(
+            map_data.get("topology_id"),
+            "map.topology_id")
+        if topology_id is not None and topology_id < 0:
+            raise ContractError(
+                "map.topology_id must be non-negative")
         if width <= 0 or height <= 0:
             raise ContractError("map dimensions must be positive")
         tiles = _map_tiles(map_data.get("tiles", []), width, height)
@@ -904,6 +942,16 @@ class ProxyStateDTO:
             "visible_enemy_units": [unit.to_dict() for unit in sorted(
                 visible_enemy_units, key=lambda item: item.unit_id)],
         }
+        if wrap_x is not None:
+            body["map"][
+                "wrap_x"] = wrap_x
+        if wrap_y is not None:
+            body["map"][
+                "wrap_y"] = wrap_y
+        if topology_id is not None:
+            body["map"][
+                "topology_id"] = (
+                    topology_id)
         # Preserve the frozen snapshot identity for every pre-route and
         # route-disabled input. Exact route bytes join the identity only when
         # the optional collection is actually present.
@@ -942,6 +990,7 @@ class ProxyStateDTO:
             visible_tile_ids=visible, known_hut_tile_ids=known_hut_tiles,
             map_width=width, map_height=height, game_over=game_over,
             map_wrap_x=wrap_x, map_wrap_y=wrap_y,
+            map_topology_id=topology_id,
             movement_routes=tuple(sorted(
                 movement_routes,
                 key=lambda item: (

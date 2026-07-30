@@ -48,7 +48,9 @@ The patch series is tracked at
 `scripts/freeciv/upstream/0010-pln-ruleset-name-sanitization.patch`, and
 `scripts/freeciv/upstream/0011-pln-government-state-correction.patch`, and
 `scripts/freeciv/upstream/0012-pln-city-ownership-reconciliation.patch`, and
-`scripts/freeciv/upstream/0013-pln-native-movement-routes.patch`. The
+`scripts/freeciv/upstream/0013-pln-native-movement-routes.patch`, and
+`scripts/freeciv/upstream/0014-pln-known-terrain-semantics.patch`, and
+`scripts/freeciv/upstream/0015-pln-route-refresh-validity.patch`. The
 application script verifies every digest, is idempotent, rejects a different upstream
 commit, and supports normal checkouts and Git worktrees. It adds the
 `pln_authoritative` DTO, monotonic packet sequence, bounded and conditional
@@ -68,6 +70,14 @@ reachable/unreachable status, native ETA, total and first-edge movement cost,
 remaining movement, and first-step identity; the proxy exposes only routes
 that still match the exact unit origin, movement allowance, transport state,
 and turn.
+Patch 0014 enriches only packet-known tiles with public ruleset terrain name,
+land/ocean class, and native unit-class membership. This supports conservative
+player-information-safe reachability checks without querying hidden map state
+or enemy routes.
+Patch 0015 keeps a native route request pending until a response matches the
+unit's current origin, movement allowance, transport state, destination, and
+turn. A stale same-key cache entry therefore cannot masquerade as a completed
+fresh route query.
 The final sanitizer patch permits legitimate ruleset tokens such as
 `Labor Union` while retaining the compound `UNION SELECT` rejection and exact
 server-advertised technology validation.

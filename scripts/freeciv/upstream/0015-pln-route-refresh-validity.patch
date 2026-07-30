@@ -1,0 +1,108 @@
+--- a/freeciv-proxy/civcom.py
++++ b/freeciv-proxy/civcom.py
+@@ -1939,12 +1939,33 @@
+ 
+         loop = asyncio.get_running_loop()
+         deadline = loop.time() + timeout_seconds
+-        pending = {key for key, _, _ in requests}
+-        while pending:
+-            pending = {
+-                key for key in pending
+-                if key not in getattr(self, 'pln_movement_routes', {})
++        request_context = {
++            key: (
++                next(
++                    unit
++                    for unit in units
++                    if unit['id']
++                    == unit_id),
++                destination_tile)
++            for key, unit_id,
++            destination_tile in requests
++        }
++
++        def current_pending(keys):
++            current_routes = getattr(
++                self, 'pln_movement_routes', {})
++            return {
++                key
++                for key in keys
++                if not self._valid_pln_movement_route(
++                    current_routes.get(key),
++                    request_context[key][0],
++                    request_context[key][1])
+             }
++
++        pending = set(request_context)
++        while pending:
++            pending = current_pending(pending)
+             if not pending:
+                 break
+             remaining = deadline - loop.time()
+@@ -1952,10 +1973,7 @@
+                 break
+             event.clear()
+             # Close the response/cache race around Event.clear().
+-            pending = {
+-                key for key in pending
+-                if key not in getattr(self, 'pln_movement_routes', {})
+-            }
++            pending = current_pending(pending)
+             if not pending:
+                 break
+             try:
+--- a/freeciv-proxy/tests/test_pln_authoritative_state.py
++++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
+@@ -1033,6 +1033,52 @@
+     }
+ 
+ 
++@pytest.mark.asyncio
++async def test_stale_native_route_does_not_complete_fresh_request():
++    civcom = make_civcom()
++    civcom.player_units[7].update({
++        "tile": 11, "moves_left": 3, "transported": False,
++    })
++    civcom.player_cities[4]["tile"] = 44
++    civcom.game_turn = 12
++    civcom.pln_movement_routes = {
++        "7:44": {
++            "schema_version": "1.0",
++            "authority": "freeciv-server-pathfinder",
++            "unit_id": 7,
++            "origin_tile": 10,
++            "destination_tile": 44,
++            "reachable": False,
++            "first_step_tile": -1,
++            "first_step_movement_cost": -1,
++            "path_length": 0,
++            "estimated_turns": -1,
++            "total_movement_cost": -1,
++            "movement_points_remaining": 0,
++            "moves_left_at_request": 3,
++            "transported_at_request": False,
++            "initially_transported": False,
++            "turn": 12,
++            "source_seq": 44,
++        },
++    }
++    civcom.pln_movement_route_event = asyncio.Event()
++    queued = []
++    civcom.queue_to_civserver = queued.append
++    civcom.send_packets_to_civserver = lambda: None
++
++    completed = await CivCom.prepare_pln_movement_routes(
++        civcom, 0, maximum_routes=1, timeout_seconds=0.001)
++
++    assert completed == 0
++    assert len(queued) == 1
++    assert json.loads(queued[0]) == {
++        "pid": PACKET_WEB_GOTO_PATH_REQ,
++        "unit_id": 7,
++        "goal": 44,
++    }
++
++
+ def test_packet_visible_foreign_short_unit_is_preserved_as_observation_input():
+     civcom = object.__new__(CivCom)
+     civcom.source_seq = 0

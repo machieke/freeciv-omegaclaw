@@ -159,6 +159,47 @@ def _authority(snapshot_event):
             bool)
         for name in (
             "wrap_x", "wrap_y"))
+    topology_available = bool(
+        map_wrap
+        and isinstance(
+            topology.get(
+                "topology_id"),
+            int)
+        and not isinstance(
+            topology.get(
+                "topology_id"),
+            bool)
+        and topology[
+            "topology_id"] >= 0)
+    map_tiles = payload.get(
+        "map", {}).get(
+            "tiles")
+    terrain_semantics = (
+        isinstance(
+            map_tiles, list)
+        and bool(map_tiles)
+        and all(
+            isinstance(tile, dict)
+            and isinstance(
+                tile.get(
+                    "terrain_name"),
+                str)
+            and tile[
+                "terrain_name"]
+            and tile.get(
+                "terrain_class")
+            in ("land", "ocean")
+            and isinstance(
+                tile.get(
+                    "native_unit_classes"),
+                list)
+            and tile[
+                "native_unit_classes"]
+            == sorted(set(
+                tile[
+                    "native_unit_classes"]))
+            for tile in
+            map_tiles))
     units = grounded.get(
         "own_units")
     movement_runtime = (
@@ -256,6 +297,14 @@ def _authority(snapshot_event):
             "planner-candidate-trace-subset"),
         "map_wrap_metadata_available":
             map_wrap,
+        "map_topology_metadata_available":
+            topology_available,
+        "player_known_terrain_semantics_available":
+            terrain_semantics,
+        "player_known_terrain_semantic_tile_count":
+            len(map_tiles)
+            if terrain_semantics
+            else 0,
         "movement_action_metadata_available":
             movement_action_metadata,
         "native_movement_route_collection_available":
@@ -282,6 +331,7 @@ def _load_trace(path):
     scored = {}
     final_snapshot_by_turn = {}
     proposed_snapshot_ids = set()
+    scored_defense_snapshot_ids = set()
     with open(
             path,
             encoding="utf-8") as stream:
@@ -315,6 +365,15 @@ def _load_trace(path):
                     scored[
                         snapshot_id] = (
                             event)
+                if any(
+                        row.get(
+                            "category")
+                        == "city_defense"
+                        for row in
+                        _candidate_rows(
+                            event)):
+                    scored_defense_snapshot_ids.add(
+                        snapshot_id)
                 continue
             if event_type == (
                     "operation_proposed"):
@@ -332,7 +391,8 @@ def _load_trace(path):
         snapshots,
         scored,
         final_snapshot_by_turn,
-        proposed_snapshot_ids)
+        proposed_snapshot_ids,
+        scored_defense_snapshot_ids)
 
 
 def extract(
@@ -350,6 +410,7 @@ def extract(
         scored,
         final_snapshot_by_turn,
         _proposed_snapshot_ids,
+        _scored_defense_snapshot_ids,
     ) = _load_trace(
         event_path)
     os.makedirs(
@@ -450,8 +511,10 @@ def extract(
         # The large source trace checksum is computed once below. Excluding it
         # here avoids hashing a multi-megabyte file for every fixture.
         filename = (
-            "turn-{}-{}.json".format(
+            "turn-{}-{}-{}.json".format(
                 turn,
+                snapshot_id.split(":")[
+                    -2],
                 snapshot_id.split(":")[
                     -1]))
         path = os.path.join(
@@ -565,6 +628,9 @@ def main():
         "--all-proposed-defense-snapshots",
         action="store_true")
     parser.add_argument(
+        "--all-scored-defense-snapshots",
+        action="store_true")
+    parser.add_argument(
         "--snapshot-id",
         action="append",
         dest="snapshot_ids")
@@ -573,24 +639,39 @@ def main():
         tuple(arguments.snapshot_ids)
         if arguments.snapshot_ids
         else None)
-    if (arguments
-            .all_proposed_defense_snapshots):
+    if (
+            arguments
+            .all_proposed_defense_snapshots
+            or arguments
+            .all_scored_defense_snapshots):
         if snapshot_ids:
             parser.error(
-                "--all-proposed-defense-snapshots cannot be combined with --snapshot-id")
+                "automatic defence snapshot selection cannot be combined with --snapshot-id")
+        if (
+                arguments
+                .all_proposed_defense_snapshots
+                and arguments
+                .all_scored_defense_snapshots):
+            parser.error(
+                "select only one automatic defence snapshot mode")
         (
             snapshots,
             scored,
             _outcomes,
             proposed_snapshot_ids,
+            scored_defense_snapshot_ids,
         ) = _load_trace(
             os.path.abspath(
                 arguments.events))
         snapshot_ids = tuple(sorted(
             (
                 snapshot_id
-                for snapshot_id
-                in proposed_snapshot_ids
+                for snapshot_id in (
+                    proposed_snapshot_ids
+                    if arguments
+                    .all_proposed_defense_snapshots
+                    else
+                    scored_defense_snapshot_ids)
                 if snapshot_id
                 in snapshots
                 and snapshot_id
@@ -603,7 +684,7 @@ def main():
                 snapshot_id)))
         if not snapshot_ids:
             parser.error(
-                "source trace contains no replayable proposed defence snapshots")
+                "source trace contains no replayable defence snapshots")
     path, manifest = extract(
         os.path.abspath(
             arguments.events),

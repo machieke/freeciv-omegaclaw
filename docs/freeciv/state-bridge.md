@@ -46,8 +46,12 @@ The captured-city ownership-reconciliation patch is pinned at
 `db29d472e49bd8b24bb227142c3635a77d44932a697b1fe9eafc49517198cf0d`.
 The native-movement-route patch is pinned at
 `e2d2681acdeb53a2b3ace5fb519273d83e5acb20dcadfb2cc590fa16da4c023e`.
-The ordered thirteen-patch series identity is
-`8f4244e66b8260fc29d553ee0ed9d7018e26f2a232c544cff5859bc3fd5e51dd`.
+The player-known-terrain-semantics patch is pinned at
+`c6b813be4dd6b7c2f2679f8aa2444f0fffb36597e23fb403ee1201d497ffdd81`.
+The route-refresh-validity patch is pinned at
+`594fee9fd8cf07237cfc83036842aba1e0171d3ac1f01b99ea93b43618bea7e7`.
+The ordered fifteen-patch series identity is
+`5a8cf967816ac6e692c27fae0cce59755ce27ea23e184c452a2aae0da767974e`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 The v9 projection closes the stable-government initiation gap. The proxy now

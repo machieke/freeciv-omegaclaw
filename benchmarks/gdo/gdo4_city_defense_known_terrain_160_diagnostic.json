@@ -1,0 +1,1935 @@
+{
+  "arms": {
+    "B1": {
+      "actor_conflicts": 0,
+      "city_production_conflicts": 0,
+      "covered_threat_slots": 0,
+      "description": "frozen scalar PF-v2 plus packet readout over captured candidates",
+      "late_assignments": 0,
+      "objective_value": 0,
+      "prevented_loss_proxy": 0.0,
+      "remaining_loss_proxy": 6.0,
+      "selected_operation_count": 0,
+      "sole_defender_violations": 0,
+      "uncovered_threat_slots": 2
+    },
+    "B2": {
+      "actor_conflicts": 0,
+      "city_production_conflicts": 0,
+      "covered_threat_slots": 1,
+      "description": "best typed supported defence edge with one-action capacity",
+      "late_assignments": 0,
+      "objective_value": 10.8,
+      "prevented_loss_proxy": 3.0,
+      "remaining_loss_proxy": 3.0,
+      "selected_operation_count": 1,
+      "sole_defender_violations": 0,
+      "uncovered_threat_slots": 1
+    },
+    "B3": {
+      "actor_conflicts": 0,
+      "city_production_conflicts": 0,
+      "covered_threat_slots": 1,
+      "description": "typed identity-aware greedy assignment with one-action readout",
+      "late_assignments": 0,
+      "objective_value": 10.8,
+      "prevented_loss_proxy": 3.0,
+      "remaining_loss_proxy": 3.0,
+      "selected_operation_count": 1,
+      "sole_defender_violations": 0,
+      "uncovered_threat_slots": 1
+    },
+    "B4": {
+      "actor_conflicts": 0,
+      "city_production_conflicts": 0,
+      "covered_threat_slots": 1,
+      "description": "typed bounded-exact assignment with one-action readout",
+      "late_assignments": 0,
+      "objective_value": 10.8,
+      "prevented_loss_proxy": 3.0,
+      "remaining_loss_proxy": 3.0,
+      "selected_operation_count": 1,
+      "sole_defender_violations": 0,
+      "uncovered_threat_slots": 1
+    }
+  },
+  "assignment_arms": {
+    "B3": {
+      "actor_conflicts": 0,
+      "city_production_conflicts": 0,
+      "covered_threat_slots": 2,
+      "description": "typed identity-aware greedy intent assignment before one-action readout",
+      "late_assignments": 0,
+      "objective_value": 21.200000000000003,
+      "prevented_loss_proxy": 6.0,
+      "remaining_loss_proxy": 0.0,
+      "selected_operation_count": 2,
+      "sole_defender_violations": 0,
+      "uncovered_threat_slots": 0
+    },
+    "B4": {
+      "actor_conflicts": 0,
+      "city_production_conflicts": 0,
+      "covered_threat_slots": 2,
+      "description": "typed bounded-exact intent assignment before one-action readout",
+      "late_assignments": 0,
+      "objective_value": 21.200000000000003,
+      "prevented_loss_proxy": 6.0,
+      "remaining_loss_proxy": 0.0,
+      "selected_operation_count": 2,
+      "sole_defender_violations": 0,
+      "uncovered_threat_slots": 0
+    },
+    "warning": "Intent assignments are not credited as executed operations; headline arm metrics include only one current-action readout per fixture."
+  },
+  "claim_status": "captured-replay-diagnostic-only",
+  "coverage": {
+    "actionable_requirement_fraction": 1.0,
+    "candidate_edge_fraction": 1.0,
+    "candidate_edge_requirement_count": 1,
+    "decision_resolved_requirement_count": 1,
+    "decision_resolved_requirement_fraction": 1.0,
+    "decision_resolved_threat_count": 5,
+    "decision_resolved_threat_fraction": 1.0,
+    "grounded_operation_count": 14,
+    "grounded_operation_evaluation_fraction": 1.0,
+    "operation_edge_fraction": 1.0,
+    "operation_support_reasons": {
+      "alternate-step-not-native-selected-route": 2,
+      "arrival-after-threat-deadline": 5,
+      "native-route-misses-threat-deadline": 2,
+      "protected-sole-defender": 3,
+      "supported": 2
+    },
+    "operation_types": {
+      "move_defender_to_city": 14
+    },
+    "protected_union_added_count": 2973,
+    "supported_requirement_count": 1,
+    "supported_threat_count": 4,
+    "threat_eta_advance_turns": {
+      "0": 3,
+      "1": 2
+    },
+    "threat_eta_bases": {
+      "ruleset-move-rate-geometric-lower-bound": 5
+    },
+    "threat_reachability_bases": {
+      "known-native-city-approach-unreachable": 1,
+      "player-known-native-terrain-corridor": 2,
+      "visible-adjacent-threat": 2
+    },
+    "threat_reachability_statuses": {
+      "reachable": 4,
+      "unreachable": 1
+    },
+    "threat_support_reasons": {
+      "known-native-city-approach-unreachable": 1,
+      "supported": 4
+    },
+    "threat_unit_classes": {
+      "Sea": 5
+    },
+    "threat_unit_types": {
+      "Ironclad": 5
+    },
+    "threat_value_fraction": 0.8,
+    "total_operation_count": 14,
+    "total_requirement_count": 1,
+    "total_threat_count": 5
+  },
+  "factual_outcomes": {
+    "observed_city_losses_at_threat_deadline": 0,
+    "unresolved_city_outcomes": 0,
+    "warning": "Factual outcomes resolve source-run observations only; they are not counterfactual B2/B3/B4 outcomes."
+  },
+  "fixture_count": 17,
+  "fixture_manifest_hash": "676f72f66a91ec216271ede5ebbd3e680c41b6dc9f3f367402f28be53ae6b20b",
+  "gdo4_exit_gate_passed": false,
+  "mechanism_gates": {
+    "b4_lower_uncovered_threats_than_b1": true,
+    "b4_no_worse_uncovered_threats_than_b3": true,
+    "decision_resolved_requirements_at_least_90_percent": true,
+    "exact_never_worse_than_greedy": true,
+    "exact_status_for_all_fixtures": true,
+    "no_assignment_safety_violations": true,
+    "p95_replay_compute_below_50_ms": true,
+    "threat_decision_resolution_at_least_90_percent": true,
+    "typed_operation_evaluation_at_least_90_percent": true
+  },
+  "policy_authority": false,
+  "policy_authority_blockers": [
+    "captured legal moves omit movement cost or transport metadata",
+    "captured snapshots omit exact native movement routes",
+    "threat ETA lacks native gameplay parity",
+    "counterfactual operation outcomes are unavailable"
+  ],
+  "replay_compute": {
+    "maximum_ms": 27.534317690879107,
+    "mean_ms": 5.96296732124839,
+    "p50_ms": 4.984012804925442,
+    "p95_ms": 10.68156911060214,
+    "p99_ms": 10.886467061936855,
+    "sample_count": 527
+  },
+  "report_hash": "aae6e27a969eed223a92f12ce7bff037a6389602ef0aca7b046d3b2f362278a4",
+  "ruleset": {
+    "compiler_version": "freeciv-ruleset-compiler/1.3",
+    "ir_sha256": "6f2283982e2a3ee0a4fd1a50a74ac9af4a3d00bed1fad879931ce82000daa1ea",
+    "ruleset": "civ2civ3",
+    "source_sha256": "6c2ecb8454e71cfbf475e51542b0d04e24a3484b51af010c9c4ee2c3563dc5fc"
+  },
+  "scenarios": [
+    {
+      "arms": {
+        "B1": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B2": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "assignment_arms": {
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "candidate_count": 18,
+      "candidate_edge_requirement_count": 0,
+      "decision_resolved_requirement_count": 0,
+      "decision_resolved_threat_count": 0,
+      "grounded_operation_count": 0,
+      "input_candidate_count": 18,
+      "operation_count": 0,
+      "protected_union_added_count": 33,
+      "requirement_count": 0,
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:1:6870:9531d66bf53cf635",
+      "supported_operation_count": 0,
+      "supported_requirement_count": 0,
+      "supported_threat_count": 0,
+      "threat_count": 0,
+      "threat_eta_advance_turns": {},
+      "threat_eta_bases": {},
+      "threat_reachability_bases": {},
+      "threat_reachability_statuses": {},
+      "threat_support_reasons": {},
+      "threat_unit_classes": {},
+      "threat_unit_types": {},
+      "turn": 1
+    },
+    {
+      "arms": {
+        "B1": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B2": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "assignment_arms": {
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "candidate_count": 17,
+      "candidate_edge_requirement_count": 0,
+      "decision_resolved_requirement_count": 0,
+      "decision_resolved_threat_count": 0,
+      "grounded_operation_count": 0,
+      "input_candidate_count": 17,
+      "operation_count": 0,
+      "protected_union_added_count": 33,
+      "requirement_count": 0,
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:1:6878:0ba043e59e81330b",
+      "supported_operation_count": 0,
+      "supported_requirement_count": 0,
+      "supported_threat_count": 0,
+      "threat_count": 0,
+      "threat_eta_advance_turns": {},
+      "threat_eta_bases": {},
+      "threat_reachability_bases": {},
+      "threat_reachability_statuses": {},
+      "threat_support_reasons": {},
+      "threat_unit_classes": {},
+      "threat_unit_types": {},
+      "turn": 1
+    },
+    {
+      "arms": {
+        "B1": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B2": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "assignment_arms": {
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "candidate_count": 8,
+      "candidate_edge_requirement_count": 0,
+      "decision_resolved_requirement_count": 0,
+      "decision_resolved_threat_count": 0,
+      "grounded_operation_count": 0,
+      "input_candidate_count": 8,
+      "operation_count": 0,
+      "protected_union_added_count": 34,
+      "requirement_count": 0,
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:1:6889:ad01aee0dd0de1a0",
+      "supported_operation_count": 0,
+      "supported_requirement_count": 0,
+      "supported_threat_count": 0,
+      "threat_count": 0,
+      "threat_eta_advance_turns": {},
+      "threat_eta_bases": {},
+      "threat_reachability_bases": {},
+      "threat_reachability_statuses": {},
+      "threat_support_reasons": {},
+      "threat_unit_classes": {},
+      "threat_unit_types": {},
+      "turn": 1
+    },
+    {
+      "arms": {
+        "B1": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B2": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "assignment_arms": {
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "candidate_count": 7,
+      "candidate_edge_requirement_count": 0,
+      "decision_resolved_requirement_count": 0,
+      "decision_resolved_threat_count": 0,
+      "grounded_operation_count": 0,
+      "input_candidate_count": 7,
+      "operation_count": 0,
+      "protected_union_added_count": 69,
+      "requirement_count": 0,
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:12:7964:d2046321a6cfd875",
+      "supported_operation_count": 0,
+      "supported_requirement_count": 0,
+      "supported_threat_count": 0,
+      "threat_count": 0,
+      "threat_eta_advance_turns": {},
+      "threat_eta_bases": {},
+      "threat_reachability_bases": {},
+      "threat_reachability_statuses": {},
+      "threat_support_reasons": {},
+      "threat_unit_classes": {},
+      "threat_unit_types": {},
+      "turn": 12
+    },
+    {
+      "arms": {
+        "B1": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B2": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "assignment_arms": {
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "candidate_count": 5,
+      "candidate_edge_requirement_count": 0,
+      "decision_resolved_requirement_count": 0,
+      "decision_resolved_threat_count": 0,
+      "grounded_operation_count": 0,
+      "input_candidate_count": 5,
+      "operation_count": 0,
+      "protected_union_added_count": 69,
+      "requirement_count": 0,
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:12:7972:5748605bb9321ef8",
+      "supported_operation_count": 0,
+      "supported_requirement_count": 0,
+      "supported_threat_count": 0,
+      "threat_count": 0,
+      "threat_eta_advance_turns": {},
+      "threat_eta_bases": {},
+      "threat_reachability_bases": {},
+      "threat_reachability_statuses": {},
+      "threat_support_reasons": {},
+      "threat_unit_classes": {},
+      "threat_unit_types": {},
+      "turn": 12
+    },
+    {
+      "arms": {
+        "B1": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B2": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "assignment_arms": {
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "candidate_count": 4,
+      "candidate_edge_requirement_count": 0,
+      "decision_resolved_requirement_count": 0,
+      "decision_resolved_threat_count": 0,
+      "grounded_operation_count": 0,
+      "input_candidate_count": 4,
+      "operation_count": 0,
+      "protected_union_added_count": 102,
+      "requirement_count": 0,
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:20:8764:63a8328b34ff1b16",
+      "supported_operation_count": 0,
+      "supported_requirement_count": 0,
+      "supported_threat_count": 0,
+      "threat_count": 0,
+      "threat_eta_advance_turns": {},
+      "threat_eta_bases": {},
+      "threat_reachability_bases": {},
+      "threat_reachability_statuses": {},
+      "threat_support_reasons": {},
+      "threat_unit_classes": {},
+      "threat_unit_types": {},
+      "turn": 20
+    },
+    {
+      "arms": {
+        "B1": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B2": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "assignment_arms": {
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "candidate_count": 10,
+      "candidate_edge_requirement_count": 0,
+      "decision_resolved_requirement_count": 0,
+      "decision_resolved_threat_count": 0,
+      "grounded_operation_count": 0,
+      "input_candidate_count": 10,
+      "operation_count": 0,
+      "protected_union_added_count": 125,
+      "requirement_count": 0,
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:24:9179:825ca79757519911",
+      "supported_operation_count": 0,
+      "supported_requirement_count": 0,
+      "supported_threat_count": 0,
+      "threat_count": 0,
+      "threat_eta_advance_turns": {},
+      "threat_eta_bases": {},
+      "threat_reachability_bases": {},
+      "threat_reachability_statuses": {},
+      "threat_support_reasons": {},
+      "threat_unit_classes": {},
+      "threat_unit_types": {},
+      "turn": 24
+    },
+    {
+      "arms": {
+        "B1": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B2": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "assignment_arms": {
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "candidate_count": 8,
+      "candidate_edge_requirement_count": 0,
+      "decision_resolved_requirement_count": 0,
+      "decision_resolved_threat_count": 0,
+      "grounded_operation_count": 0,
+      "input_candidate_count": 8,
+      "operation_count": 0,
+      "protected_union_added_count": 125,
+      "requirement_count": 0,
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:24:9187:5c0048e213e1c34f",
+      "supported_operation_count": 0,
+      "supported_requirement_count": 0,
+      "supported_threat_count": 0,
+      "threat_count": 0,
+      "threat_eta_advance_turns": {},
+      "threat_eta_bases": {},
+      "threat_reachability_bases": {},
+      "threat_reachability_statuses": {},
+      "threat_support_reasons": {},
+      "threat_unit_classes": {},
+      "threat_unit_types": {},
+      "turn": 24
+    },
+    {
+      "arms": {
+        "B1": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B2": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "assignment_arms": {
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "candidate_count": 8,
+      "candidate_edge_requirement_count": 0,
+      "decision_resolved_requirement_count": 0,
+      "decision_resolved_threat_count": 0,
+      "grounded_operation_count": 0,
+      "input_candidate_count": 8,
+      "operation_count": 0,
+      "protected_union_added_count": 158,
+      "requirement_count": 0,
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:26:9437:9d538467e8bf7c8e",
+      "supported_operation_count": 0,
+      "supported_requirement_count": 0,
+      "supported_threat_count": 0,
+      "threat_count": 0,
+      "threat_eta_advance_turns": {},
+      "threat_eta_bases": {},
+      "threat_reachability_bases": {},
+      "threat_reachability_statuses": {},
+      "threat_support_reasons": {},
+      "threat_unit_classes": {},
+      "threat_unit_types": {},
+      "turn": 26
+    },
+    {
+      "arms": {
+        "B1": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B2": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "assignment_arms": {
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "candidate_count": 16,
+      "candidate_edge_requirement_count": 0,
+      "decision_resolved_requirement_count": 0,
+      "decision_resolved_threat_count": 0,
+      "grounded_operation_count": 0,
+      "input_candidate_count": 16,
+      "operation_count": 0,
+      "protected_union_added_count": 184,
+      "requirement_count": 0,
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:37:11130:a9cf247e1c1b9a63",
+      "supported_operation_count": 0,
+      "supported_requirement_count": 0,
+      "supported_threat_count": 0,
+      "threat_count": 0,
+      "threat_eta_advance_turns": {},
+      "threat_eta_bases": {},
+      "threat_reachability_bases": {},
+      "threat_reachability_statuses": {},
+      "threat_support_reasons": {},
+      "threat_unit_classes": {},
+      "threat_unit_types": {},
+      "turn": 37
+    },
+    {
+      "arms": {
+        "B1": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B2": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "assignment_arms": {
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "candidate_count": 1,
+      "candidate_edge_requirement_count": 0,
+      "decision_resolved_requirement_count": 0,
+      "decision_resolved_threat_count": 0,
+      "grounded_operation_count": 0,
+      "input_candidate_count": 1,
+      "operation_count": 0,
+      "protected_union_added_count": 182,
+      "requirement_count": 0,
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:40:11774:687e6c950a3ec8d6",
+      "supported_operation_count": 0,
+      "supported_requirement_count": 0,
+      "supported_threat_count": 0,
+      "threat_count": 0,
+      "threat_eta_advance_turns": {},
+      "threat_eta_bases": {},
+      "threat_reachability_bases": {},
+      "threat_reachability_statuses": {},
+      "threat_support_reasons": {},
+      "threat_unit_classes": {},
+      "threat_unit_types": {},
+      "turn": 40
+    },
+    {
+      "arms": {
+        "B1": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 6.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 2
+        },
+        "B2": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 1,
+          "late_assignments": 0,
+          "objective_value": 10.8,
+          "prevented_loss_proxy": 3.0,
+          "remaining_loss_proxy": 3.0,
+          "selected_operation_count": 1,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 1
+        },
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 1,
+          "late_assignments": 0,
+          "objective_value": 10.8,
+          "prevented_loss_proxy": 3.0,
+          "remaining_loss_proxy": 3.0,
+          "selected_operation_count": 1,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 1
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 1,
+          "late_assignments": 0,
+          "objective_value": 10.8,
+          "prevented_loss_proxy": 3.0,
+          "remaining_loss_proxy": 3.0,
+          "selected_operation_count": 1,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 1
+        }
+      },
+      "assignment_arms": {
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 2,
+          "late_assignments": 0,
+          "objective_value": 21.200000000000003,
+          "prevented_loss_proxy": 6.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 2,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 2,
+          "late_assignments": 0,
+          "objective_value": 21.200000000000003,
+          "prevented_loss_proxy": 6.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 2,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "candidate_count": 1,
+      "candidate_edge_requirement_count": 1,
+      "decision_resolved_requirement_count": 1,
+      "decision_resolved_threat_count": 2,
+      "grounded_operation_count": 14,
+      "input_candidate_count": 1,
+      "operation_count": 14,
+      "protected_union_added_count": 243,
+      "requirement_count": 1,
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:46:13107:3d648a9a23914ba4",
+      "supported_operation_count": 2,
+      "supported_requirement_count": 1,
+      "supported_threat_count": 1,
+      "threat_count": 2,
+      "threat_eta_advance_turns": {
+        "0": 1,
+        "1": 1
+      },
+      "threat_eta_bases": {
+        "ruleset-move-rate-geometric-lower-bound": 2
+      },
+      "threat_reachability_bases": {
+        "known-native-city-approach-unreachable": 1,
+        "player-known-native-terrain-corridor": 1
+      },
+      "threat_reachability_statuses": {
+        "reachable": 1,
+        "unreachable": 1
+      },
+      "threat_support_reasons": {
+        "known-native-city-approach-unreachable": 1,
+        "supported": 1
+      },
+      "threat_unit_classes": {
+        "Sea": 2
+      },
+      "threat_unit_types": {
+        "Ironclad": 2
+      },
+      "turn": 46
+    },
+    {
+      "arms": {
+        "B1": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B2": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "assignment_arms": {
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "candidate_count": 26,
+      "candidate_edge_requirement_count": 0,
+      "decision_resolved_requirement_count": 0,
+      "decision_resolved_threat_count": 0,
+      "grounded_operation_count": 0,
+      "input_candidate_count": 26,
+      "operation_count": 0,
+      "protected_union_added_count": 275,
+      "requirement_count": 0,
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:51:14406:76bb82d9fb15dce2",
+      "supported_operation_count": 0,
+      "supported_requirement_count": 0,
+      "supported_threat_count": 0,
+      "threat_count": 0,
+      "threat_eta_advance_turns": {},
+      "threat_eta_bases": {},
+      "threat_reachability_bases": {},
+      "threat_reachability_statuses": {},
+      "threat_support_reasons": {},
+      "threat_unit_classes": {},
+      "threat_unit_types": {},
+      "turn": 51
+    },
+    {
+      "arms": {
+        "B1": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B2": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "assignment_arms": {
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "candidate_count": 1,
+      "candidate_edge_requirement_count": 0,
+      "decision_resolved_requirement_count": 0,
+      "decision_resolved_threat_count": 2,
+      "grounded_operation_count": 0,
+      "input_candidate_count": 1,
+      "operation_count": 0,
+      "protected_union_added_count": 299,
+      "requirement_count": 0,
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:55:15445:dcc706c6aa8b83c3",
+      "supported_operation_count": 0,
+      "supported_requirement_count": 0,
+      "supported_threat_count": 2,
+      "threat_count": 2,
+      "threat_eta_advance_turns": {
+        "0": 1,
+        "1": 1
+      },
+      "threat_eta_bases": {
+        "ruleset-move-rate-geometric-lower-bound": 2
+      },
+      "threat_reachability_bases": {
+        "player-known-native-terrain-corridor": 1,
+        "visible-adjacent-threat": 1
+      },
+      "threat_reachability_statuses": {
+        "reachable": 2
+      },
+      "threat_support_reasons": {
+        "supported": 2
+      },
+      "threat_unit_classes": {
+        "Sea": 2
+      },
+      "threat_unit_types": {
+        "Ironclad": 2
+      },
+      "turn": 55
+    },
+    {
+      "arms": {
+        "B1": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B2": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "assignment_arms": {
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "candidate_count": 11,
+      "candidate_edge_requirement_count": 0,
+      "decision_resolved_requirement_count": 0,
+      "decision_resolved_threat_count": 1,
+      "grounded_operation_count": 0,
+      "input_candidate_count": 11,
+      "operation_count": 0,
+      "protected_union_added_count": 327,
+      "requirement_count": 0,
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:64:17510:1a50d7b695be9399",
+      "supported_operation_count": 0,
+      "supported_requirement_count": 0,
+      "supported_threat_count": 1,
+      "threat_count": 1,
+      "threat_eta_advance_turns": {
+        "0": 1
+      },
+      "threat_eta_bases": {
+        "ruleset-move-rate-geometric-lower-bound": 1
+      },
+      "threat_reachability_bases": {
+        "visible-adjacent-threat": 1
+      },
+      "threat_reachability_statuses": {
+        "reachable": 1
+      },
+      "threat_support_reasons": {
+        "supported": 1
+      },
+      "threat_unit_classes": {
+        "Sea": 1
+      },
+      "threat_unit_types": {
+        "Ironclad": 1
+      },
+      "turn": 64
+    },
+    {
+      "arms": {
+        "B1": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B2": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "assignment_arms": {
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "candidate_count": 1,
+      "candidate_edge_requirement_count": 0,
+      "decision_resolved_requirement_count": 0,
+      "decision_resolved_threat_count": 0,
+      "grounded_operation_count": 0,
+      "input_candidate_count": 1,
+      "operation_count": 0,
+      "protected_union_added_count": 358,
+      "requirement_count": 0,
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:75:20079:80fff8ca8add1161",
+      "supported_operation_count": 0,
+      "supported_requirement_count": 0,
+      "supported_threat_count": 0,
+      "threat_count": 0,
+      "threat_eta_advance_turns": {},
+      "threat_eta_bases": {},
+      "threat_reachability_bases": {},
+      "threat_reachability_statuses": {},
+      "threat_support_reasons": {},
+      "threat_unit_classes": {},
+      "threat_unit_types": {},
+      "turn": 75
+    },
+    {
+      "arms": {
+        "B1": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B2": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "assignment_arms": {
+        "B3": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        },
+        "B4": {
+          "actor_conflicts": 0,
+          "city_production_conflicts": 0,
+          "covered_threat_slots": 0,
+          "late_assignments": 0,
+          "objective_value": 0,
+          "prevented_loss_proxy": 0.0,
+          "remaining_loss_proxy": 0.0,
+          "selected_operation_count": 0,
+          "sole_defender_violations": 0,
+          "uncovered_threat_slots": 0
+        }
+      },
+      "candidate_count": 1,
+      "candidate_edge_requirement_count": 0,
+      "decision_resolved_requirement_count": 0,
+      "decision_resolved_threat_count": 0,
+      "grounded_operation_count": 0,
+      "input_candidate_count": 1,
+      "operation_count": 0,
+      "protected_union_added_count": 357,
+      "requirement_count": 0,
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:87:23158:1a197d9de0b58cc6",
+      "supported_operation_count": 0,
+      "supported_requirement_count": 0,
+      "supported_threat_count": 0,
+      "threat_count": 0,
+      "threat_eta_advance_turns": {},
+      "threat_eta_bases": {},
+      "threat_reachability_bases": {},
+      "threat_reachability_statuses": {},
+      "threat_support_reasons": {},
+      "threat_unit_classes": {},
+      "threat_unit_types": {},
+      "turn": 87
+    }
+  ],
+  "schema_version": "1.0",
+  "timing_iterations": 31,
+  "validation_passed": true
+}

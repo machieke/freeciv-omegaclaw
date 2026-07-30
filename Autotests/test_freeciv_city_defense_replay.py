@@ -45,7 +45,9 @@ def _runner_module():
     return module
 
 
-def _event(grounded_context=None):
+def _event(
+        grounded_context=None,
+        map_tiles=None):
     payload = {
         "snapshot_id": "replay",
     }
@@ -53,6 +55,10 @@ def _event(grounded_context=None):
         payload[
             "grounded_context"] = (
                 grounded_context)
+    if map_tiles is not None:
+        payload["map"] = {
+            "tiles": map_tiles,
+        }
     return {
         "payload": payload,
     }
@@ -68,6 +74,10 @@ def test_legacy_snapshot_is_explicitly_incomplete_for_grounded_replay():
         "full_legal_action_set_available"]
     assert not authority[
         "map_wrap_metadata_available"]
+    assert not authority[
+        "map_topology_metadata_available"]
+    assert not authority[
+        "player_known_terrain_semantics_available"]
     assert not authority[
         "movement_runtime_fields_available"]
     assert not authority[
@@ -100,6 +110,7 @@ def test_grounded_snapshot_completeness_is_measured_per_input_family():
                         False,
                 }],
                 "map_topology": {
+                    "topology_id": 0,
                     "wrap_x": True,
                     "wrap_y": False,
                 },
@@ -129,12 +140,25 @@ def test_grounded_snapshot_completeness_is_measured_per_input_family():
                     "turn": 7,
                     "unit_id": 7,
                 }],
-            })))
+            }, map_tiles=[{
+                "index": 33,
+                "native_unit_classes": [
+                    "Land",
+                ],
+                "terrain_class": "land",
+                "terrain_name": "Grassland",
+            }])))
 
     assert authority[
         "full_legal_action_set_available"]
     assert authority[
         "map_wrap_metadata_available"]
+    assert authority[
+        "map_topology_metadata_available"]
+    assert authority[
+        "player_known_terrain_semantics_available"]
+    assert authority[
+        "player_known_terrain_semantic_tile_count"] == 1
     assert authority[
         "movement_runtime_fields_available"]
     assert authority[
@@ -232,6 +256,7 @@ def test_trace_loader_retains_only_explicit_operation_proposal_snapshot_ids():
             scored,
             final_snapshot_by_turn,
             proposed_snapshot_ids,
+            scored_defense_snapshot_ids,
         ) = (
             _extractor_module()
             ._load_trace(path))
@@ -249,4 +274,60 @@ def test_trace_loader_retains_only_explicit_operation_proposal_snapshot_ids():
         }
     assert proposed_snapshot_ids == {
         "snapshot-4",
+    }
+    assert scored_defense_snapshot_ids == set()
+
+
+def test_trace_loader_indexes_scored_city_defense_candidates():
+    events = [{
+        "type": "state_snapshot",
+        "turn": 4,
+        "payload": {
+            "snapshot_id":
+                "snapshot-defense",
+        },
+    }, {
+        "type": "operation_scored",
+        "turn": 4,
+        "payload": {
+            "scores": [{
+                "operation": {
+                    "operation_id":
+                        "operation-defense",
+                    "payload": {
+                        "action": {
+                            "action_type":
+                                "unit_fortify",
+                            "actor_id": 7,
+                        },
+                        "category":
+                            "city_defense",
+                    },
+                },
+            }],
+        },
+    }]
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(
+            directory,
+            "events.jsonl")
+        with open(
+                path, "w",
+                encoding="utf-8") as stream:
+            for event in events:
+                stream.write(
+                    json.dumps(event))
+                stream.write("\n")
+        (
+            _snapshots,
+            _scored,
+            _outcomes,
+            _proposed,
+            scored_defense,
+        ) = (
+            _extractor_module()
+            ._load_trace(path))
+
+    assert scored_defense == {
+        "snapshot-defense",
     }

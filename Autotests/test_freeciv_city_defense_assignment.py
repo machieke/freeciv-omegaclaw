@@ -26,6 +26,7 @@ from freeciv_agent.planning.domain_models import (  # noqa: E402
     DefenseOperationType,
     ExactCityDefenseAssignmentSolver,
     grounded_operation_result,
+    grounded_threat_result,
 )
 from freeciv_agent.state import MovementRouteState  # noqa: E402
 from freeciv_agent.pressure.resource_claims import (  # noqa: E402
@@ -119,6 +120,23 @@ def _scenario(
         map_height=12,
         map_wrap_x=False,
         map_wrap_y=False,
+        map_topology_id=0,
+        map_tiles=tuple(
+            {
+                "index":
+                    x + y * 12,
+                "x": x,
+                "y": y,
+                "terrain_class":
+                    "land",
+                "terrain_name":
+                    "Test land",
+                "native_unit_classes": [
+                    "Land",
+                ],
+            }
+            for y in range(12)
+            for x in range(12)),
         cities=(
             _city(10, 0, 0),
             _city(20, 4, 0)),
@@ -351,6 +369,10 @@ def test_visible_threats_have_explicit_unknown_mass_and_deadlines():
         and row.movement_rate == 3.0
         and row.eta_basis
         == "ruleset-move-rate-geometric-lower-bound"
+        and row.reachability_status
+        == "reachable"
+        and row.reachability_basis
+        == "player-known-native-terrain-corridor"
         for row in analysis.threats)
     assert {
         row.city_id:
@@ -389,6 +411,184 @@ def test_missing_enemy_move_rate_cannot_authorize_a_threat_deadline():
         and not row.supported
         for row in analysis.threats)
     assert analysis.requirements == ()
+
+
+def test_unknown_native_terrain_corridor_abstains_from_threat_reachability():
+    candidates = _candidates()
+    snapshot, ruleset = _scenario(
+        candidates)
+    snapshot.map_tiles = ()
+
+    analysis = CityDefenseAnalyzer().analyze(
+        snapshot, ruleset,
+        candidates)
+
+    assert analysis.threats
+    assert all(
+        row.reachability_status
+        == "unknown"
+        and row.support_reason
+        == "source-terrain-semantics-unavailable"
+        and not row.supported
+        for row in analysis.threats)
+    assert analysis.requirements == ()
+
+
+def test_complete_native_terrain_barrier_proves_threat_unreachable():
+    candidates = _candidates()
+    snapshot, ruleset = _scenario(
+        candidates)
+    blocked = {
+        (3, 2), (4, 2), (5, 2),
+        (3, 3), (5, 3),
+        (3, 4), (4, 4), (5, 4),
+    }
+    snapshot.map_tiles = tuple(
+        {
+            **tile,
+            "native_unit_classes": (
+                []
+                if (
+                    tile["x"],
+                    tile["y"])
+                in blocked
+                else ["Land"]),
+        }
+        for tile in
+        snapshot.map_tiles)
+
+    analysis = CityDefenseAnalyzer().analyze(
+        snapshot, ruleset,
+        candidates)
+
+    assert analysis.threats
+    assert all(
+        row.reachability_status
+        == "unreachable"
+        and row.support_reason
+        == "known-native-corridor-unreachable"
+        and not row.supported
+        for row in analysis.threats)
+    assert analysis.requirements == ()
+
+
+def test_locally_known_non_native_city_approach_proves_unreachable():
+    candidates = _candidates()
+    snapshot, ruleset = _scenario(
+        candidates)
+    snapshot.cities = (
+        _city(20, 4, 0),)
+    snapshot.visible_enemy_units = (
+        _unit(
+            90, "Raider", 4, 3,
+            owner=2),)
+    approaches = {
+        (3, 0), (3, 1),
+        (4, 1), (5, 0), (5, 1),
+    }
+    snapshot.map_tiles = tuple(
+        {
+            "index": x + y * 12,
+            "x": x,
+            "y": y,
+            "terrain_class":
+                "ocean"
+                if (x, y) in approaches
+                else "land",
+            "terrain_name":
+                "Test terrain",
+            "native_unit_classes": (
+                []
+                if (x, y) in approaches
+                else ["Land"]),
+        }
+        for x, y in (
+            {(4, 3)}
+            | approaches))
+
+    analysis = CityDefenseAnalyzer().analyze(
+        snapshot, ruleset,
+        candidates)
+
+    assert len(analysis.threats) == 1
+    threat = analysis.threats[0]
+    assert threat.reachability_status == (
+        "unreachable")
+    assert threat.reachability_basis == (
+        "known-native-city-approach-unreachable")
+    assert grounded_threat_result(
+        threat)
+    assert analysis.requirements == ()
+
+
+def test_unknown_city_approach_keeps_reachability_unknown():
+    candidates = _candidates()
+    snapshot, ruleset = _scenario(
+        candidates)
+    snapshot.cities = (
+        _city(20, 4, 0),)
+    snapshot.visible_enemy_units = (
+        _unit(
+            90, "Raider", 4, 3,
+            owner=2),)
+    snapshot.map_tiles = ({
+        "index": 4 + 3 * 12,
+        "x": 4,
+        "y": 3,
+        "terrain_class": "land",
+        "terrain_name": "Test land",
+        "native_unit_classes": [
+            "Land",
+        ],
+    },)
+
+    analysis = CityDefenseAnalyzer().analyze(
+        snapshot, ruleset,
+        candidates)
+
+    assert len(analysis.threats) == 1
+    threat = analysis.threats[0]
+    assert threat.reachability_status == (
+        "unknown")
+    assert threat.reachability_basis == (
+        "city-approach-semantics-unavailable")
+    assert not grounded_threat_result(
+        threat)
+    assert analysis.requirements == ()
+
+
+def test_hex_topology_uses_freeciv_native_coordinate_adjacency():
+    candidates = _candidates()
+    snapshot, ruleset = _scenario(
+        candidates)
+    snapshot.map_topology_id = 3
+    snapshot.cities = (
+        _city(10, 0, 0),)
+    snapshot.visible_enemy_units = (
+        _unit(
+            500, "Raider",
+            0, 2, owner=2),)
+    snapshot.map_tiles = tuple(
+        {
+            **tile,
+            "native_unit_classes": [
+                "Land",
+            ],
+        }
+        for tile in
+        snapshot.map_tiles)
+
+    analysis = CityDefenseAnalyzer().analyze(
+        snapshot, ruleset,
+        candidates)
+
+    assert len(analysis.threats) == 1
+    assert analysis.threats[
+        0].reachability_status == (
+            "reachable")
+    assert analysis.threats[
+        0].reachability_basis == (
+            "visible-adjacent-threat")
 
 
 def test_sole_defender_is_a_protected_constraint_not_a_movable_asset():

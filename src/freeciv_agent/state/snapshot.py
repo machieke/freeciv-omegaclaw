@@ -336,6 +336,7 @@ class AuthoritativeSnapshot:
     opponent_scores: Tuple[PlayerScoreState, ...] = field(default_factory=tuple)
     map_wrap_x: Optional[bool] = None
     map_wrap_y: Optional[bool] = None
+    map_topology_id: Optional[int] = None
     movement_routes: Tuple[MovementRouteState, ...] = field(
         default_factory=tuple)
 
@@ -395,7 +396,7 @@ class AuthoritativeSnapshot:
             "complete" if tile_count and len(self.map_tiles) == tile_count
             else "partial" if self.map_tiles or self.visible_tile_ids
             else "dimensions_only")
-        return {
+        value = {
             "coverage": {
                 "status": coverage,
                 "tile_records": len(self.map_tiles),
@@ -414,8 +415,44 @@ class AuthoritativeSnapshot:
             "visible_tile_ids": list(self.visible_tile_ids),
             "width": self.map_width,
         }
+        if self.map_wrap_x is not None:
+            value["wrap_x"] = (
+                self.map_wrap_x)
+        if self.map_wrap_y is not None:
+            value["wrap_y"] = (
+                self.map_wrap_y)
+        if self.map_topology_id is not None:
+            value["topology_id"] = (
+                self.map_topology_id)
+        return value
 
     def event_payload(self):
+        map_topology = {
+            "wrap_x":
+                self.map_wrap_x,
+            "wrap_y":
+                self.map_wrap_y,
+        }
+        if self.map_topology_id is not None:
+            map_topology[
+                "topology_id"] = (
+                    self.map_topology_id)
+        grounded_schema_version = (
+            "1.2"
+            if (
+                self.map_topology_id
+                is not None
+                or any(
+                    isinstance(tile, dict)
+                    and (
+                        "terrain_class"
+                        in tile
+                        or
+                        "native_unit_classes"
+                        in tile)
+                    for tile in
+                    self.map_tiles))
+            else "1.1")
         return {
             "grounded_context": {
                 "legal_actions": [
@@ -423,12 +460,8 @@ class AuthoritativeSnapshot:
                     for value
                     in self.legal_action_json
                 ],
-                "map_topology": {
-                    "wrap_x":
-                        self.map_wrap_x,
-                    "wrap_y":
-                        self.map_wrap_y,
-                },
+                "map_topology":
+                    map_topology,
                 "own_units": [
                     unit.grounded_dict()
                     for unit in
@@ -440,7 +473,7 @@ class AuthoritativeSnapshot:
                     self.movement_routes
                 ],
                 "schema_version":
-                    "1.1",
+                    grounded_schema_version,
                 "visible_enemy_units": [
                     unit.grounded_dict()
                     for unit in

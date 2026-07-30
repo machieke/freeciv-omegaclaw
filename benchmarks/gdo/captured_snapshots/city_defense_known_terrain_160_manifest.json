@@ -1,0 +1,133 @@
+{
+  "authority": {
+    "claim_status": "diagnostic-replay-only",
+    "policy_authority_eligible": false
+  },
+  "fixture_count": 17,
+  "fixtures": [
+    {
+      "candidate_count": 18,
+      "fixture_sha256": "124a042d4199c23fb75c8711ced6559f626817035b6f9adf1517fd0ccb62024e",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-1-6870-9531d66bf53cf635.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:1:6870:9531d66bf53cf635",
+      "turn": 1
+    },
+    {
+      "candidate_count": 17,
+      "fixture_sha256": "1a3ce744c4e3682bd2e1811f19f0eb85c1979ba58444627371e987d2a401f9f6",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-1-6878-0ba043e59e81330b.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:1:6878:0ba043e59e81330b",
+      "turn": 1
+    },
+    {
+      "candidate_count": 8,
+      "fixture_sha256": "08fe7d92c8c57d70d98336fdb8dd59a9c13c32445d6893bc9042f81cf60f2361",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-1-6889-ad01aee0dd0de1a0.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:1:6889:ad01aee0dd0de1a0",
+      "turn": 1
+    },
+    {
+      "candidate_count": 7,
+      "fixture_sha256": "1ad1e2dee8c7a5b74c3174de527e7e817f73d96457695f9b8bb0b983cf3197af",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-12-7964-d2046321a6cfd875.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:12:7964:d2046321a6cfd875",
+      "turn": 12
+    },
+    {
+      "candidate_count": 5,
+      "fixture_sha256": "b91ba9554f7fd384583dcf3ee7548e078df73396f03521249c906f3c90709290",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-12-7972-5748605bb9321ef8.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:12:7972:5748605bb9321ef8",
+      "turn": 12
+    },
+    {
+      "candidate_count": 4,
+      "fixture_sha256": "7bdb3d3b4012a8ee5262aa9c391c86d30c8507c67486996f3bcf9dd582661a54",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-20-8764-63a8328b34ff1b16.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:20:8764:63a8328b34ff1b16",
+      "turn": 20
+    },
+    {
+      "candidate_count": 10,
+      "fixture_sha256": "bccab892370d858487009a34947e4a98490502975c32e6dd50a7609b5aae1dc9",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-24-9179-825ca79757519911.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:24:9179:825ca79757519911",
+      "turn": 24
+    },
+    {
+      "candidate_count": 8,
+      "fixture_sha256": "81961f90865fc69ac0974b6a3246edbe80e135655cdd309bb6db5b96b2e6af5d",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-24-9187-5c0048e213e1c34f.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:24:9187:5c0048e213e1c34f",
+      "turn": 24
+    },
+    {
+      "candidate_count": 8,
+      "fixture_sha256": "c1bc22de4bf172d52022e761b935d95537e2a36a84e9fff7f295aeb0ff1cc919",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-26-9437-9d538467e8bf7c8e.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:26:9437:9d538467e8bf7c8e",
+      "turn": 26
+    },
+    {
+      "candidate_count": 16,
+      "fixture_sha256": "d4ffe33864d240c58f15e0cd9f84949b3f92e7f5b2a7b056ee88277ae68d19ea",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-37-11130-a9cf247e1c1b9a63.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:37:11130:a9cf247e1c1b9a63",
+      "turn": 37
+    },
+    {
+      "candidate_count": 1,
+      "fixture_sha256": "e297f48204498afcd548cbb6ed571aeefe0e8c7594faeab040812675f32122cb",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-40-11774-687e6c950a3ec8d6.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:40:11774:687e6c950a3ec8d6",
+      "turn": 40
+    },
+    {
+      "candidate_count": 1,
+      "fixture_sha256": "6c4bebb2d7e557d3e800a51e1a97548dbf9390c851a450ee220374964dd3b01e",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-46-13107-3d648a9a23914ba4.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:46:13107:3d648a9a23914ba4",
+      "turn": 46
+    },
+    {
+      "candidate_count": 26,
+      "fixture_sha256": "1be64aabf3df03a01569c337d6adcb0fe2f8d27ff0a5698d60b0d827e42cab53",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-51-14406-76bb82d9fb15dce2.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:51:14406:76bb82d9fb15dce2",
+      "turn": 51
+    },
+    {
+      "candidate_count": 1,
+      "fixture_sha256": "cc431e90fc47d1b5d0423414af846a97d4cd3f02cfc2bb887c43c818a4586540",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-55-15445-dcc706c6aa8b83c3.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:55:15445:dcc706c6aa8b83c3",
+      "turn": 55
+    },
+    {
+      "candidate_count": 11,
+      "fixture_sha256": "4b17897b5b774672b07f5172864e987f1a9c2415075196e4ecaac5072da98a08",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-64-17510-1a50d7b695be9399.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:64:17510:1a50d7b695be9399",
+      "turn": 64
+    },
+    {
+      "candidate_count": 1,
+      "fixture_sha256": "0b8b3d90a4eed882c3636bfe2125bb2133b26d72ff568ef0eecb9fcf2d69bbdc",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-75-20079-80fff8ca8add1161.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:75:20079:80fff8ca8add1161",
+      "turn": 75
+    },
+    {
+      "candidate_count": 1,
+      "fixture_sha256": "418f9869469f3b373abe72e26fbe18c29475d1d4eccbcdedba0922562652853f",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-87-23158-1a197d9de0b58cc6.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:87:23158:1a197d9de0b58cc6",
+      "turn": 87
+    }
+  ],
+  "manifest_hash": "676f72f66a91ec216271ede5ebbd3e680c41b6dc9f3f367402f28be53ae6b20b",
+  "ruleset": "civ2civ3",
+  "schema_version": "1.0",
+  "source_event_trace_sha256": "29c35c7f04a1dd69c8e1b9f871c212f57ec29a6f060ed6135680f007af487dfb",
+  "source_manifest_identity": "e85e45323a7c65f14ded142e5e22ac7c11d7917895621eed80553e6ffda400f5"
+}

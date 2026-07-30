@@ -1,0 +1,6011 @@
+{
+  "authority": {
+    "full_legal_action_set_available": true,
+    "legal_action_source": "snapshot-grounded-context",
+    "map_topology_metadata_available": true,
+    "map_wrap_metadata_available": true,
+    "movement_action_metadata_available": false,
+    "movement_runtime_fields_available": true,
+    "native_movement_route_collection_available": true,
+    "native_movement_route_count": 4,
+    "native_movement_routes_available": true,
+    "player_known_terrain_semantic_tile_count": 73,
+    "player_known_terrain_semantics_available": true,
+    "player_visible_only": true,
+    "policy_authority_eligible": false
+  },
+  "candidates": [
+    {
+      "action": {
+        "action_type": "unit_fortify",
+        "actor_id": 111
+      },
+      "category": "city_defense",
+      "operation_id": "pf-impact-op:00000000:d3a8f145dbf810d5166e",
+      "projection": null,
+      "rationale": "fortify the sole grounded city defender",
+      "utility": 680.0
+    },
+    {
+      "action": {
+        "action_type": "unit_move",
+        "actor_id": 105,
+        "target": {
+          "x": 11,
+          "y": 8
+        }
+      },
+      "category": "exploration_move",
+      "operation_id": "pf-impact-op:00000001:3356627983f0fdc15068",
+      "projection": null,
+      "rationale": "reveal a new position with an exploration-capable unit",
+      "utility": 645.0
+    },
+    {
+      "action": {
+        "action_type": "unit_move",
+        "actor_id": 105,
+        "target": {
+          "x": 12,
+          "y": 8
+        }
+      },
+      "category": "exploration_move",
+      "operation_id": "pf-impact-op:00000002:83835fe86507e671c086",
+      "projection": null,
+      "rationale": "reveal a new position with an exploration-capable unit",
+      "utility": 645.0
+    },
+    {
+      "action": {
+        "action_type": "unit_move",
+        "actor_id": 105,
+        "target": {
+          "x": 13,
+          "y": 7
+        }
+      },
+      "category": "exploration_move",
+      "operation_id": "pf-impact-op:00000004:607e0175b58fb25880aa",
+      "projection": null,
+      "rationale": "reveal a new position with an exploration-capable unit",
+      "utility": 640.0
+    },
+    {
+      "action": {
+        "action_type": "unit_move",
+        "actor_id": 105,
+        "target": {
+          "x": 13,
+          "y": 8
+        }
+      },
+      "category": "exploration_move",
+      "operation_id": "pf-impact-op:00000003:9776237b5d2639977cd5",
+      "projection": null,
+      "rationale": "reveal a new position with an exploration-capable unit",
+      "utility": 645.0
+    }
+  ],
+  "outcome_observations": [
+    {
+      "city_ids": [
+        101,
+        109
+      ],
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:13:8085:5f82ef9ad8ea8bd1",
+      "turn": 13,
+      "units": [
+        {
+          "hp": 10,
+          "unit_id": 105,
+          "x": 12,
+          "y": 9
+        },
+        {
+          "hp": 20,
+          "unit_id": 106,
+          "x": 13,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 111,
+          "x": 13,
+          "y": 6
+        }
+      ],
+      "visible_enemy_unit_ids": []
+    },
+    {
+      "city_ids": [
+        101,
+        109
+      ],
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:14:8182:8fa4fbd3fbc0ddf0",
+      "turn": 14,
+      "units": [
+        {
+          "hp": 10,
+          "unit_id": 105,
+          "x": 12,
+          "y": 10
+        },
+        {
+          "hp": 20,
+          "unit_id": 106,
+          "x": 13,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 111,
+          "x": 13,
+          "y": 6
+        }
+      ],
+      "visible_enemy_unit_ids": []
+    },
+    {
+      "city_ids": [
+        101,
+        109
+      ],
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:15:8282:701c7cf666b009a7",
+      "turn": 15,
+      "units": [
+        {
+          "hp": 10,
+          "unit_id": 105,
+          "x": 13,
+          "y": 9
+        },
+        {
+          "hp": 20,
+          "unit_id": 106,
+          "x": 13,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 111,
+          "x": 13,
+          "y": 6
+        }
+      ],
+      "visible_enemy_unit_ids": []
+    },
+    {
+      "city_ids": [
+        101,
+        109
+      ],
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:16:8375:e2388494900bb6c1",
+      "turn": 16,
+      "units": [
+        {
+          "hp": 10,
+          "unit_id": 105,
+          "x": 14,
+          "y": 9
+        },
+        {
+          "hp": 20,
+          "unit_id": 106,
+          "x": 13,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 111,
+          "x": 13,
+          "y": 6
+        }
+      ],
+      "visible_enemy_unit_ids": []
+    },
+    {
+      "city_ids": [
+        101,
+        109
+      ],
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:17:8469:3970132e2b9dced9",
+      "turn": 17,
+      "units": [
+        {
+          "hp": 10,
+          "unit_id": 105,
+          "x": 13,
+          "y": 8
+        },
+        {
+          "hp": 20,
+          "unit_id": 106,
+          "x": 13,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 111,
+          "x": 13,
+          "y": 6
+        }
+      ],
+      "visible_enemy_unit_ids": []
+    },
+    {
+      "city_ids": [
+        101,
+        109
+      ],
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:18:8563:9a1d0328362d2d83",
+      "turn": 18,
+      "units": [
+        {
+          "hp": 10,
+          "unit_id": 105,
+          "x": 12,
+          "y": 8
+        },
+        {
+          "hp": 20,
+          "unit_id": 106,
+          "x": 13,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 111,
+          "x": 13,
+          "y": 6
+        }
+      ],
+      "visible_enemy_unit_ids": []
+    }
+  ],
+  "schema_version": "1.0",
+  "snapshot_event": {
+    "event_id": "bbf34373e97d4c598927ed90b3445967",
+    "game_id": "m7-main-e_full_loop-4543804-00",
+    "payload": {
+      "grounded_context": {
+        "legal_actions": [
+          {
+            "action_type": "city_governor",
+            "city_id": 101,
+            "target": {
+              "food_surplus_reserve": 0
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 101,
+            "target": {
+              "food_surplus_reserve": 10
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 101,
+            "target": {
+              "food_surplus_reserve": 1
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 101,
+            "target": {
+              "food_surplus_reserve": 2
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 101,
+            "target": {
+              "food_surplus_reserve": 3
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 101,
+            "target": {
+              "food_surplus_reserve": 4
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 101,
+            "target": {
+              "food_surplus_reserve": 5
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 101,
+            "target": {
+              "food_surplus_reserve": 6
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 101,
+            "target": {
+              "food_surplus_reserve": 7
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 101,
+            "target": {
+              "food_surplus_reserve": 8
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 101,
+            "target": {
+              "food_surplus_reserve": 9
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 109,
+            "target": {
+              "food_surplus_reserve": 0
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 109,
+            "target": {
+              "food_surplus_reserve": 10
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 109,
+            "target": {
+              "food_surplus_reserve": 1
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 109,
+            "target": {
+              "food_surplus_reserve": 2
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 109,
+            "target": {
+              "food_surplus_reserve": 3
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 109,
+            "target": {
+              "food_surplus_reserve": 4
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 109,
+            "target": {
+              "food_surplus_reserve": 5
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 109,
+            "target": {
+              "food_surplus_reserve": 6
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 109,
+            "target": {
+              "food_surplus_reserve": 7
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 109,
+            "target": {
+              "food_surplus_reserve": 8
+            }
+          },
+          {
+            "action_type": "city_governor",
+            "city_id": 109,
+            "target": {
+              "food_surplus_reserve": 9
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 11,
+            "target": {
+              "production_type": "Amphitheater"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 12,
+            "target": {
+              "production_type": "Courthouse"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 14,
+            "target": {
+              "production_type": "Granary"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 17,
+            "target": {
+              "production_type": "Library"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 18,
+            "target": {
+              "production_type": "Marketplace"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 24,
+            "target": {
+              "production_type": "Ecclesiastical Palace"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 3,
+            "target": {
+              "production_type": "Aqueduct, River"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 39,
+            "target": {
+              "production_type": "Supermarket"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 40,
+            "target": {
+              "production_type": "Temple"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 44,
+            "target": {
+              "production_type": "Colossus"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 45,
+            "target": {
+              "production_type": "Copernicus' Observatory"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 47,
+            "target": {
+              "production_type": "Darwin's Voyage"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 48,
+            "target": {
+              "production_type": "Eiffel Tower"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 50,
+            "target": {
+              "production_type": "Great Wall"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 54,
+            "target": {
+              "production_type": "J.S. Bach's Cathedral"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 55,
+            "target": {
+              "production_type": "King Richard's Crusade"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 56,
+            "target": {
+              "production_type": "Leonardo's Workshop"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 6,
+            "target": {
+              "production_type": "Barracks II"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 67,
+            "target": {
+              "production_type": "Shakespeare's Theater"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 68,
+            "target": {
+              "production_type": "Statue of Liberty"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 69,
+            "target": {
+              "production_type": "Sun Tzu's War Academy"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 71,
+            "target": {
+              "production_type": "Women's Suffrage"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 72,
+            "target": {
+              "production_type": "Coinage"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 3,
+            "production_value": 9,
+            "target": {
+              "production_type": "City Walls"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 6,
+            "production_value": 0,
+            "target": {
+              "production_type": "Settlers"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 6,
+            "production_value": 1,
+            "target": {
+              "production_type": "Migrants"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 6,
+            "production_value": 10,
+            "target": {
+              "production_type": "Riflemen"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 6,
+            "production_value": 11,
+            "target": {
+              "production_type": "Alpine Troops"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 6,
+            "production_value": 23,
+            "target": {
+              "production_type": "Cavalry"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 6,
+            "production_value": 26,
+            "target": {
+              "production_type": "Cannon"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 6,
+            "production_value": 3,
+            "target": {
+              "production_type": "Engineers"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 6,
+            "production_value": 34,
+            "target": {
+              "production_type": "Trireme"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 6,
+            "production_value": 48,
+            "target": {
+              "production_type": "Diplomat"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 6,
+            "production_value": 50,
+            "target": {
+              "production_type": "Caravan"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 101,
+            "production_kind": 6,
+            "production_value": 52,
+            "target": {
+              "production_type": "Explorer"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 10,
+            "target": {
+              "production_type": "Coastal Defense"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 11,
+            "target": {
+              "production_type": "Amphitheater"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 12,
+            "target": {
+              "production_type": "Courthouse"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 14,
+            "target": {
+              "production_type": "Granary"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 15,
+            "target": {
+              "production_type": "Harbor"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 17,
+            "target": {
+              "production_type": "Library"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 18,
+            "target": {
+              "production_type": "Marketplace"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 23,
+            "target": {
+              "production_type": "Palace"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 24,
+            "target": {
+              "production_type": "Ecclesiastical Palace"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 3,
+            "target": {
+              "production_type": "Aqueduct, River"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 39,
+            "target": {
+              "production_type": "Supermarket"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 40,
+            "target": {
+              "production_type": "Temple"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 44,
+            "target": {
+              "production_type": "Colossus"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 45,
+            "target": {
+              "production_type": "Copernicus' Observatory"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 47,
+            "target": {
+              "production_type": "Darwin's Voyage"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 48,
+            "target": {
+              "production_type": "Eiffel Tower"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 50,
+            "target": {
+              "production_type": "Great Wall"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 54,
+            "target": {
+              "production_type": "J.S. Bach's Cathedral"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 55,
+            "target": {
+              "production_type": "King Richard's Crusade"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 56,
+            "target": {
+              "production_type": "Leonardo's Workshop"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 57,
+            "target": {
+              "production_type": "Lighthouse"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 58,
+            "target": {
+              "production_type": "Magellan's Expedition"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 6,
+            "target": {
+              "production_type": "Barracks II"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 67,
+            "target": {
+              "production_type": "Shakespeare's Theater"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 68,
+            "target": {
+              "production_type": "Statue of Liberty"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 69,
+            "target": {
+              "production_type": "Sun Tzu's War Academy"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 71,
+            "target": {
+              "production_type": "Women's Suffrage"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 72,
+            "target": {
+              "production_type": "Coinage"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 3,
+            "production_value": 9,
+            "target": {
+              "production_type": "City Walls"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 6,
+            "production_value": 0,
+            "target": {
+              "production_type": "Settlers"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 6,
+            "production_value": 1,
+            "target": {
+              "production_type": "Migrants"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 6,
+            "production_value": 10,
+            "target": {
+              "production_type": "Riflemen"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 6,
+            "production_value": 11,
+            "target": {
+              "production_type": "Alpine Troops"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 6,
+            "production_value": 23,
+            "target": {
+              "production_type": "Cavalry"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 6,
+            "production_value": 26,
+            "target": {
+              "production_type": "Cannon"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 6,
+            "production_value": 3,
+            "target": {
+              "production_type": "Engineers"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 6,
+            "production_value": 34,
+            "target": {
+              "production_type": "Trireme"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 6,
+            "production_value": 36,
+            "target": {
+              "production_type": "Galleon"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 6,
+            "production_value": 38,
+            "target": {
+              "production_type": "Ironclad"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 6,
+            "production_value": 48,
+            "target": {
+              "production_type": "Diplomat"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 6,
+            "production_value": 50,
+            "target": {
+              "production_type": "Caravan"
+            }
+          },
+          {
+            "action_type": "city_production",
+            "city_id": 109,
+            "production_kind": 6,
+            "production_value": 52,
+            "target": {
+              "production_type": "Explorer"
+            }
+          },
+          {
+            "action_type": "diplomacy"
+          },
+          {
+            "action_type": "end_turn"
+          },
+          {
+            "action_type": "government_change",
+            "actor_id": 0,
+            "target": {
+              "government_id": 1,
+              "government_name": "Tribal"
+            }
+          },
+          {
+            "action_type": "government_change",
+            "actor_id": 0,
+            "target": {
+              "government_id": 3,
+              "government_name": "Monarchy"
+            }
+          },
+          {
+            "action_type": "government_change",
+            "actor_id": 0,
+            "target": {
+              "government_id": 5,
+              "government_name": "Fundamentalism"
+            }
+          },
+          {
+            "action_type": "government_change",
+            "actor_id": 0,
+            "target": {
+              "government_id": 6,
+              "government_name": "Federation"
+            }
+          },
+          {
+            "action_type": "government_change",
+            "actor_id": 0,
+            "target": {
+              "government_id": 7,
+              "government_name": "Republic"
+            }
+          },
+          {
+            "action_type": "government_change",
+            "actor_id": 0,
+            "target": {
+              "government_id": 8,
+              "government_name": "Democracy"
+            }
+          },
+          {
+            "action_type": "player_rates",
+            "actor_id": 0,
+            "target": {
+              "luxury_rate": 0,
+              "science_rate": 50,
+              "tax_rate": 50
+            }
+          },
+          {
+            "action_type": "player_rates",
+            "actor_id": 0,
+            "target": {
+              "luxury_rate": 10,
+              "science_rate": 50,
+              "tax_rate": 40
+            }
+          },
+          {
+            "action_type": "player_rates",
+            "actor_id": 0,
+            "target": {
+              "luxury_rate": 10,
+              "science_rate": 60,
+              "tax_rate": 30
+            }
+          },
+          {
+            "action_type": "unit_attack",
+            "actor_id": 106,
+            "target": {
+              "x": 12,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_attack",
+            "actor_id": 106,
+            "target": {
+              "x": 12,
+              "y": 6
+            }
+          },
+          {
+            "action_type": "unit_attack",
+            "actor_id": 106,
+            "target": {
+              "x": 12,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_attack",
+            "actor_id": 106,
+            "target": {
+              "x": 13,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_attack",
+            "actor_id": 106,
+            "target": {
+              "x": 13,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_attack",
+            "actor_id": 106,
+            "target": {
+              "x": 14,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_attack",
+            "actor_id": 106,
+            "target": {
+              "x": 14,
+              "y": 6
+            }
+          },
+          {
+            "action_type": "unit_attack",
+            "actor_id": 106,
+            "target": {
+              "x": 14,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_attack",
+            "actor_id": 111,
+            "target": {
+              "x": 12,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_attack",
+            "actor_id": 111,
+            "target": {
+              "x": 12,
+              "y": 6
+            }
+          },
+          {
+            "action_type": "unit_attack",
+            "actor_id": 111,
+            "target": {
+              "x": 12,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_attack",
+            "actor_id": 111,
+            "target": {
+              "x": 13,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_attack",
+            "actor_id": 111,
+            "target": {
+              "x": 13,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_attack",
+            "actor_id": 111,
+            "target": {
+              "x": 14,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_attack",
+            "actor_id": 111,
+            "target": {
+              "x": 14,
+              "y": 6
+            }
+          },
+          {
+            "action_type": "unit_attack",
+            "actor_id": 111,
+            "target": {
+              "x": 14,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_capture",
+            "actor_id": 106,
+            "target": {
+              "x": 12,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_capture",
+            "actor_id": 106,
+            "target": {
+              "x": 12,
+              "y": 6
+            }
+          },
+          {
+            "action_type": "unit_capture",
+            "actor_id": 106,
+            "target": {
+              "x": 12,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_capture",
+            "actor_id": 106,
+            "target": {
+              "x": 13,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_capture",
+            "actor_id": 106,
+            "target": {
+              "x": 13,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_capture",
+            "actor_id": 106,
+            "target": {
+              "x": 14,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_capture",
+            "actor_id": 106,
+            "target": {
+              "x": 14,
+              "y": 6
+            }
+          },
+          {
+            "action_type": "unit_capture",
+            "actor_id": 106,
+            "target": {
+              "x": 14,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_capture",
+            "actor_id": 111,
+            "target": {
+              "x": 12,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_capture",
+            "actor_id": 111,
+            "target": {
+              "x": 12,
+              "y": 6
+            }
+          },
+          {
+            "action_type": "unit_capture",
+            "actor_id": 111,
+            "target": {
+              "x": 12,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_capture",
+            "actor_id": 111,
+            "target": {
+              "x": 13,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_capture",
+            "actor_id": 111,
+            "target": {
+              "x": 13,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_capture",
+            "actor_id": 111,
+            "target": {
+              "x": 14,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_capture",
+            "actor_id": 111,
+            "target": {
+              "x": 14,
+              "y": 6
+            }
+          },
+          {
+            "action_type": "unit_capture",
+            "actor_id": 111,
+            "target": {
+              "x": 14,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_conquer_city",
+            "actor_id": 106,
+            "target": {
+              "x": 12,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_conquer_city",
+            "actor_id": 106,
+            "target": {
+              "x": 12,
+              "y": 6
+            }
+          },
+          {
+            "action_type": "unit_conquer_city",
+            "actor_id": 106,
+            "target": {
+              "x": 12,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_conquer_city",
+            "actor_id": 106,
+            "target": {
+              "x": 13,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_conquer_city",
+            "actor_id": 106,
+            "target": {
+              "x": 13,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_conquer_city",
+            "actor_id": 106,
+            "target": {
+              "x": 14,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_conquer_city",
+            "actor_id": 106,
+            "target": {
+              "x": 14,
+              "y": 6
+            }
+          },
+          {
+            "action_type": "unit_conquer_city",
+            "actor_id": 106,
+            "target": {
+              "x": 14,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_conquer_city",
+            "actor_id": 111,
+            "target": {
+              "x": 12,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_conquer_city",
+            "actor_id": 111,
+            "target": {
+              "x": 12,
+              "y": 6
+            }
+          },
+          {
+            "action_type": "unit_conquer_city",
+            "actor_id": 111,
+            "target": {
+              "x": 12,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_conquer_city",
+            "actor_id": 111,
+            "target": {
+              "x": 13,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_conquer_city",
+            "actor_id": 111,
+            "target": {
+              "x": 13,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_conquer_city",
+            "actor_id": 111,
+            "target": {
+              "x": 14,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_conquer_city",
+            "actor_id": 111,
+            "target": {
+              "x": 14,
+              "y": 6
+            }
+          },
+          {
+            "action_type": "unit_conquer_city",
+            "actor_id": 111,
+            "target": {
+              "x": 14,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_disband",
+            "actor_id": 105
+          },
+          {
+            "action_type": "unit_disband",
+            "actor_id": 106
+          },
+          {
+            "action_type": "unit_disband",
+            "actor_id": 111
+          },
+          {
+            "action_type": "unit_fortify",
+            "actor_id": 105
+          },
+          {
+            "action_type": "unit_fortify",
+            "actor_id": 111
+          },
+          {
+            "action_type": "unit_home_city",
+            "actor_id": 106,
+            "target": {
+              "city": "Roma",
+              "city_id": 101
+            }
+          },
+          {
+            "action_type": "unit_home_city",
+            "actor_id": 111,
+            "target": {
+              "city": "Roma",
+              "city_id": 101
+            }
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 105,
+            "movement_cost": 12,
+            "target": {
+              "x": 13,
+              "y": 6
+            },
+            "transport_required": false
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 105,
+            "movement_cost": 2,
+            "target": {
+              "x": 11,
+              "y": 7
+            },
+            "transport_required": false
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 105,
+            "target": {
+              "x": 11,
+              "y": 6
+            }
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 105,
+            "target": {
+              "x": 11,
+              "y": 8
+            }
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 105,
+            "target": {
+              "x": 12,
+              "y": 6
+            }
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 105,
+            "target": {
+              "x": 12,
+              "y": 8
+            }
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 105,
+            "target": {
+              "x": 13,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 105,
+            "target": {
+              "x": 13,
+              "y": 8
+            }
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 106,
+            "movement_cost": 2,
+            "target": {
+              "x": 12,
+              "y": 5
+            },
+            "transport_required": false
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 106,
+            "target": {
+              "x": 12,
+              "y": 6
+            }
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 106,
+            "target": {
+              "x": 12,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 106,
+            "target": {
+              "x": 13,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 106,
+            "target": {
+              "x": 13,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 106,
+            "target": {
+              "x": 14,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 106,
+            "target": {
+              "x": 14,
+              "y": 6
+            }
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 106,
+            "target": {
+              "x": 14,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 111,
+            "movement_cost": 6,
+            "target": {
+              "x": 12,
+              "y": 5
+            },
+            "transport_required": false
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 111,
+            "target": {
+              "x": 12,
+              "y": 6
+            }
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 111,
+            "target": {
+              "x": 12,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 111,
+            "target": {
+              "x": 13,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 111,
+            "target": {
+              "x": 13,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 111,
+            "target": {
+              "x": 14,
+              "y": 5
+            }
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 111,
+            "target": {
+              "x": 14,
+              "y": 6
+            }
+          },
+          {
+            "action_type": "unit_move",
+            "actor_id": 111,
+            "target": {
+              "x": 14,
+              "y": 7
+            }
+          },
+          {
+            "action_type": "unit_pillage",
+            "actor_id": 106
+          },
+          {
+            "action_type": "unit_pillage",
+            "actor_id": 111
+          },
+          {
+            "action_type": "unit_upgrade",
+            "actor_id": 111
+          }
+        ],
+        "map_topology": {
+          "topology_id": 0,
+          "wrap_x": false,
+          "wrap_y": false
+        },
+        "movement_routes": [
+          {
+            "authority": "freeciv-server-pathfinder",
+            "destination_tile": 88,
+            "estimated_turns": 2,
+            "first_step_movement_cost": 2,
+            "first_step_tile": 193,
+            "initially_transported": false,
+            "movement_points_remaining": 0,
+            "moves_left_at_request": 12,
+            "origin_tile": 194,
+            "path_directions": [
+              3,
+              1,
+              2,
+              0,
+              0
+            ],
+            "path_length": 5,
+            "reachable": true,
+            "schema_version": "1.0",
+            "source_seq": 7954,
+            "total_movement_cost": 24,
+            "transported_at_request": false,
+            "turn": 12,
+            "unit_id": 105
+          },
+          {
+            "authority": "freeciv-server-pathfinder",
+            "destination_tile": 169,
+            "estimated_turns": 1,
+            "first_step_movement_cost": 12,
+            "first_step_tile": 169,
+            "initially_transported": false,
+            "movement_points_remaining": 0,
+            "moves_left_at_request": 12,
+            "origin_tile": 194,
+            "path_directions": [
+              2
+            ],
+            "path_length": 1,
+            "reachable": true,
+            "schema_version": "1.0",
+            "source_seq": 7957,
+            "total_movement_cost": 12,
+            "transported_at_request": false,
+            "turn": 12,
+            "unit_id": 105
+          },
+          {
+            "authority": "freeciv-server-pathfinder",
+            "destination_tile": 88,
+            "estimated_turns": 1,
+            "first_step_movement_cost": 2,
+            "first_step_tile": 142,
+            "initially_transported": false,
+            "movement_points_remaining": 0,
+            "moves_left_at_request": 6,
+            "origin_tile": 169,
+            "path_directions": [
+              0,
+              0,
+              0
+            ],
+            "path_length": 3,
+            "reachable": true,
+            "schema_version": "1.0",
+            "source_seq": 7960,
+            "total_movement_cost": 6,
+            "transported_at_request": false,
+            "turn": 12,
+            "unit_id": 106
+          },
+          {
+            "authority": "freeciv-server-pathfinder",
+            "destination_tile": 88,
+            "estimated_turns": 3,
+            "first_step_movement_cost": 6,
+            "first_step_tile": 142,
+            "initially_transported": false,
+            "movement_points_remaining": 0,
+            "moves_left_at_request": 6,
+            "origin_tile": 169,
+            "path_directions": [
+              0,
+              0,
+              0
+            ],
+            "path_length": 3,
+            "reachable": true,
+            "schema_version": "1.0",
+            "source_seq": 7963,
+            "total_movement_cost": 18,
+            "transported_at_request": false,
+            "turn": 12,
+            "unit_id": 111
+          }
+        ],
+        "own_units": [
+          {
+            "activity": "idle",
+            "carrying": -1,
+            "done_moving": false,
+            "homecity": 0,
+            "hp": 10,
+            "moves_left": 12,
+            "owner": 0,
+            "tile": 194,
+            "transported": false,
+            "transported_by": 0,
+            "type": "Diplomat",
+            "type_id": 48,
+            "unit_id": 105,
+            "upkeep": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "veteran": 0,
+            "x": 12,
+            "y": 7
+          },
+          {
+            "activity": "fortified",
+            "carrying": -1,
+            "done_moving": false,
+            "homecity": 0,
+            "hp": 20,
+            "moves_left": 6,
+            "owner": 0,
+            "tile": 169,
+            "transported": false,
+            "transported_by": 0,
+            "type": "Alpine Troops",
+            "type_id": 11,
+            "unit_id": 106,
+            "upkeep": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "veteran": 0,
+            "x": 13,
+            "y": 6
+          },
+          {
+            "activity": "idle",
+            "carrying": 0,
+            "done_moving": false,
+            "homecity": 101,
+            "hp": 20,
+            "moves_left": 6,
+            "owner": 0,
+            "tile": 169,
+            "transported": false,
+            "transported_by": 0,
+            "type": "Riflemen",
+            "type_id": 10,
+            "unit_id": 111,
+            "upkeep": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "veteran": 0,
+            "x": 13,
+            "y": 6
+          }
+        ],
+        "schema_version": "1.2",
+        "visible_enemy_units": []
+      },
+      "legal_actions_digest": "5bb064622d5ace3d866806dc44a35de3a568416eef7877005701cae30b162bd8",
+      "map": {
+        "coverage": {
+          "status": "partial",
+          "tile_records": 73,
+          "visible_tiles": 73
+        },
+        "height": 26,
+        "known_hut_tile_ids": [],
+        "tiles": [
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 9,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "terrain_class": "ocean",
+            "terrain_name": "Deep Ocean",
+            "worked": 0,
+            "x": 9,
+            "y": 0
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 10,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "terrain_class": "ocean",
+            "terrain_name": "Deep Ocean",
+            "worked": 0,
+            "x": 10,
+            "y": 0
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 11,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "terrain_class": "ocean",
+            "terrain_name": "Deep Ocean",
+            "worked": 0,
+            "x": 11,
+            "y": 0
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 34,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "terrain_class": "ocean",
+            "terrain_name": "Deep Ocean",
+            "worked": 0,
+            "x": 8,
+            "y": 1
+          },
+          {
+            "extras": [
+              0,
+              0,
+              128,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 35,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 23,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 109,
+            "x": 9,
+            "y": 1
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 36,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 10,
+            "y": 1
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 37,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 11,
+            "y": 1
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 38,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "terrain_class": "ocean",
+            "terrain_name": "Deep Ocean",
+            "worked": 0,
+            "x": 12,
+            "y": 1
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 59,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "terrain_class": "ocean",
+            "terrain_name": "Deep Ocean",
+            "worked": 0,
+            "x": 7,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 60,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 8,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 61,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 9,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 62,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 7,
+            "terrain_class": "land",
+            "terrain_name": "Grassland",
+            "worked": 0,
+            "x": 10,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 63,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 11,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 64,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 12,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 65,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 13,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 85,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "terrain_class": "ocean",
+            "terrain_name": "Deep Ocean",
+            "worked": 0,
+            "x": 7,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 86,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 8,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              128,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 87,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 0,
+            "resource": 23,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 109,
+            "x": 9,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              192,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 88,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 12,
+            "terrain_class": "land",
+            "terrain_name": "Swamp",
+            "worked": 109,
+            "x": 10,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 89,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 11,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 90,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 12,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 91,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 13,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 92,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 14,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 111,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "terrain_class": "ocean",
+            "terrain_name": "Deep Ocean",
+            "worked": 0,
+            "x": 7,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 112,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 8,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 113,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 9,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 114,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 6,
+            "terrain_class": "land",
+            "terrain_name": "Forest",
+            "worked": 0,
+            "x": 10,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 115,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 11,
+            "terrain_class": "land",
+            "terrain_name": "Plains",
+            "worked": 0,
+            "x": 11,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 116,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "terrain_class": "land",
+            "terrain_name": "Hills",
+            "worked": 0,
+            "x": 12,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              64,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 117,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 30,
+            "terrain": 6,
+            "terrain_class": "land",
+            "terrain_name": "Forest",
+            "worked": 101,
+            "x": 13,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 118,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 6,
+            "terrain_class": "land",
+            "terrain_name": "Forest",
+            "worked": 0,
+            "x": 14,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              64,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 119,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 22,
+            "terrain": 8,
+            "terrain_class": "land",
+            "terrain_name": "Hills",
+            "worked": 0,
+            "x": 15,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 138,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 8,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              4,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 139,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 26,
+            "terrain": 11,
+            "terrain_class": "land",
+            "terrain_name": "Plains",
+            "worked": 0,
+            "x": 9,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 140,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "terrain_class": "land",
+            "terrain_name": "Hills",
+            "worked": 0,
+            "x": 10,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 141,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 10,
+            "terrain_class": "land",
+            "terrain_name": "Mountains",
+            "worked": 0,
+            "x": 11,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 142,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "terrain_class": "land",
+            "terrain_name": "Hills",
+            "worked": 0,
+            "x": 12,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 143,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 6,
+            "terrain_class": "land",
+            "terrain_name": "Forest",
+            "worked": 101,
+            "x": 13,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 144,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 7,
+            "terrain_class": "land",
+            "terrain_name": "Grassland",
+            "worked": 0,
+            "x": 14,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 145,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "terrain_class": "land",
+            "terrain_name": "Hills",
+            "worked": 0,
+            "x": 15,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 146,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 8,
+            "terrain_class": "land",
+            "terrain_name": "Hills",
+            "worked": 0,
+            "x": 16,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 164,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 8,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 165,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 9,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 166,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 7,
+            "terrain_class": "land",
+            "terrain_name": "Grassland",
+            "worked": 0,
+            "x": 10,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 167,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 11,
+            "terrain_class": "land",
+            "terrain_name": "Plains",
+            "worked": 0,
+            "x": 11,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 168,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 19,
+            "terrain": 10,
+            "terrain_class": "land",
+            "terrain_name": "Mountains",
+            "worked": 0,
+            "x": 12,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              192,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 169,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "terrain_class": "land",
+            "terrain_name": "Hills",
+            "worked": 101,
+            "x": 13,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 170,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "terrain_class": "land",
+            "terrain_name": "Hills",
+            "worked": 0,
+            "x": 14,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 171,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "terrain_class": "land",
+            "terrain_name": "Hills",
+            "worked": 0,
+            "x": 15,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 172,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 8,
+            "terrain_class": "land",
+            "terrain_name": "Hills",
+            "worked": 0,
+            "x": 16,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 190,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 8,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 191,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 12,
+            "terrain_class": "land",
+            "terrain_name": "Swamp",
+            "worked": 0,
+            "x": 9,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              4,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 192,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 255,
+            "resource": 26,
+            "terrain": 11,
+            "terrain_class": "land",
+            "terrain_name": "Plains",
+            "worked": 0,
+            "x": 10,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 193,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 5,
+            "terrain_class": "land",
+            "terrain_name": "Desert",
+            "worked": 0,
+            "x": 11,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 194,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 6,
+            "terrain_class": "land",
+            "terrain_name": "Forest",
+            "worked": 0,
+            "x": 12,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 195,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 11,
+            "terrain_class": "land",
+            "terrain_name": "Plains",
+            "worked": 0,
+            "x": 13,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 196,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 27,
+            "terrain": 11,
+            "terrain_class": "land",
+            "terrain_name": "Plains",
+            "worked": 101,
+            "x": 14,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 197,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 10,
+            "terrain_class": "land",
+            "terrain_name": "Mountains",
+            "worked": 0,
+            "x": 15,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 198,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 16,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 216,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 8,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 217,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 9,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 218,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 9,
+            "terrain_class": "land",
+            "terrain_name": "Jungle",
+            "worked": 0,
+            "x": 10,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 219,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 5,
+            "terrain_class": "land",
+            "terrain_name": "Desert",
+            "worked": 0,
+            "x": 11,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 220,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "terrain_class": "land",
+            "terrain_name": "Hills",
+            "worked": 0,
+            "x": 12,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 221,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "terrain_class": "land",
+            "terrain_name": "Hills",
+            "worked": 0,
+            "x": 13,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 222,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "terrain_class": "land",
+            "terrain_name": "Hills",
+            "worked": 0,
+            "x": 14,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 223,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "terrain_class": "land",
+            "terrain_name": "Hills",
+            "worked": 0,
+            "x": 15,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 243,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 9,
+            "y": 9
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 244,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 10,
+            "y": 9
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 245,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Helicopter",
+              "Missile",
+              "Sea",
+              "Trireme"
+            ],
+            "owner": 255,
+            "resource": 35,
+            "terrain": 2,
+            "terrain_class": "ocean",
+            "terrain_name": "Ocean",
+            "worked": 0,
+            "x": 11,
+            "y": 9
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 246,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 8,
+            "terrain_class": "land",
+            "terrain_name": "Hills",
+            "worked": 0,
+            "x": 12,
+            "y": 9
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 247,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 8,
+            "terrain_class": "land",
+            "terrain_name": "Hills",
+            "worked": 0,
+            "x": 13,
+            "y": 9
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 248,
+            "known": 2,
+            "native_unit_classes": [
+              "Air",
+              "Big Land",
+              "Helicopter",
+              "Land",
+              "Merchant",
+              "Missile",
+              "Small Land"
+            ],
+            "owner": 255,
+            "resource": 128,
+            "terrain": 8,
+            "terrain_class": "land",
+            "terrain_name": "Hills",
+            "worked": 0,
+            "x": 14,
+            "y": 9
+          }
+        ],
+        "topology_id": 0,
+        "visible": [
+          [
+            9,
+            0
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            11,
+            0
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            12,
+            1
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            10,
+            2
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            12,
+            2
+          ],
+          [
+            13,
+            2
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            8,
+            3
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            12,
+            3
+          ],
+          [
+            13,
+            3
+          ],
+          [
+            14,
+            3
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            12,
+            4
+          ],
+          [
+            13,
+            4
+          ],
+          [
+            14,
+            4
+          ],
+          [
+            15,
+            4
+          ],
+          [
+            8,
+            5
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            12,
+            5
+          ],
+          [
+            13,
+            5
+          ],
+          [
+            14,
+            5
+          ],
+          [
+            15,
+            5
+          ],
+          [
+            16,
+            5
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            12,
+            6
+          ],
+          [
+            13,
+            6
+          ],
+          [
+            14,
+            6
+          ],
+          [
+            15,
+            6
+          ],
+          [
+            16,
+            6
+          ],
+          [
+            8,
+            7
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            10,
+            7
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            12,
+            7
+          ],
+          [
+            13,
+            7
+          ],
+          [
+            14,
+            7
+          ],
+          [
+            15,
+            7
+          ],
+          [
+            16,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            10,
+            8
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            12,
+            8
+          ],
+          [
+            13,
+            8
+          ],
+          [
+            14,
+            8
+          ],
+          [
+            15,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            9
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            12,
+            9
+          ],
+          [
+            13,
+            9
+          ],
+          [
+            14,
+            9
+          ]
+        ],
+        "visible_enemy_units": [],
+        "visible_tile_ids": [
+          9,
+          10,
+          11,
+          34,
+          35,
+          36,
+          37,
+          38,
+          59,
+          60,
+          61,
+          62,
+          63,
+          64,
+          65,
+          85,
+          86,
+          87,
+          88,
+          89,
+          90,
+          91,
+          92,
+          111,
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119,
+          138,
+          139,
+          140,
+          141,
+          142,
+          143,
+          144,
+          145,
+          146,
+          164,
+          165,
+          166,
+          167,
+          168,
+          169,
+          170,
+          171,
+          172,
+          190,
+          191,
+          192,
+          193,
+          194,
+          195,
+          196,
+          197,
+          198,
+          216,
+          217,
+          218,
+          219,
+          220,
+          221,
+          222,
+          223,
+          243,
+          244,
+          245,
+          246,
+          247,
+          248
+        ],
+        "width": 26,
+        "wrap_x": false,
+        "wrap_y": false
+      },
+      "own_state": {
+        "cities": [
+          {
+            "buildability_available": true,
+            "buildability_diagnostic": null,
+            "buildable": [
+              [
+                "improvement",
+                3,
+                "Aqueduct, River"
+              ],
+              [
+                "improvement",
+                6,
+                "Barracks II"
+              ],
+              [
+                "improvement",
+                9,
+                "City Walls"
+              ],
+              [
+                "improvement",
+                11,
+                "Amphitheater"
+              ],
+              [
+                "improvement",
+                12,
+                "Courthouse"
+              ],
+              [
+                "improvement",
+                14,
+                "Granary"
+              ],
+              [
+                "improvement",
+                17,
+                "Library"
+              ],
+              [
+                "improvement",
+                18,
+                "Marketplace"
+              ],
+              [
+                "improvement",
+                24,
+                "Ecclesiastical Palace"
+              ],
+              [
+                "improvement",
+                39,
+                "Supermarket"
+              ],
+              [
+                "improvement",
+                40,
+                "Temple"
+              ],
+              [
+                "improvement",
+                44,
+                "Colossus"
+              ],
+              [
+                "improvement",
+                45,
+                "Copernicus' Observatory"
+              ],
+              [
+                "improvement",
+                47,
+                "Darwin's Voyage"
+              ],
+              [
+                "improvement",
+                48,
+                "Eiffel Tower"
+              ],
+              [
+                "improvement",
+                50,
+                "Great Wall"
+              ],
+              [
+                "improvement",
+                54,
+                "J.S. Bach's Cathedral"
+              ],
+              [
+                "improvement",
+                55,
+                "King Richard's Crusade"
+              ],
+              [
+                "improvement",
+                56,
+                "Leonardo's Workshop"
+              ],
+              [
+                "improvement",
+                67,
+                "Shakespeare's Theater"
+              ],
+              [
+                "improvement",
+                68,
+                "Statue of Liberty"
+              ],
+              [
+                "improvement",
+                69,
+                "Sun Tzu's War Academy"
+              ],
+              [
+                "improvement",
+                71,
+                "Women's Suffrage"
+              ],
+              [
+                "improvement",
+                72,
+                "Coinage"
+              ],
+              [
+                "unit",
+                0,
+                "Settlers"
+              ],
+              [
+                "unit",
+                1,
+                "Migrants"
+              ],
+              [
+                "unit",
+                3,
+                "Engineers"
+              ],
+              [
+                "unit",
+                10,
+                "Riflemen"
+              ],
+              [
+                "unit",
+                11,
+                "Alpine Troops"
+              ],
+              [
+                "unit",
+                23,
+                "Cavalry"
+              ],
+              [
+                "unit",
+                26,
+                "Cannon"
+              ],
+              [
+                "unit",
+                34,
+                "Trireme"
+              ],
+              [
+                "unit",
+                48,
+                "Diplomat"
+              ],
+              [
+                "unit",
+                50,
+                "Caravan"
+              ],
+              [
+                "unit",
+                52,
+                "Explorer"
+              ]
+            ],
+            "buildings": [
+              {
+                "improvement_id": 23,
+                "name": "Palace",
+                "upkeep": 0
+              }
+            ],
+            "citizen_mood": {
+              "angry": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "content": [
+                3,
+                3,
+                3,
+                3,
+                3,
+                3
+              ],
+              "happy": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "unhappy": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            "city_id": 101,
+            "disorder": false,
+            "food_stock": 13,
+            "governor": {
+              "allow_disorder": false,
+              "allow_specialists": false,
+              "available": true,
+              "enabled": false,
+              "factor": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "happy_factor": 0,
+              "max_growth": false,
+              "minimal_surplus": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "require_happy": false
+            },
+            "had_famine": false,
+            "name": "Roma",
+            "owner": 0,
+            "production": [
+              9,
+              7,
+              3,
+              1,
+              0,
+              2
+            ],
+            "production_kind": 6,
+            "production_value": 11,
+            "shield_stock": 0,
+            "size": 3,
+            "surplus": [
+              3,
+              7,
+              3,
+              1,
+              0,
+              2
+            ],
+            "tile": 169,
+            "unhappy_penalty": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "usage": [
+              6,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "was_happy": false,
+            "x": 13,
+            "y": 6
+          },
+          {
+            "buildability_available": true,
+            "buildability_diagnostic": null,
+            "buildable": [
+              [
+                "improvement",
+                3,
+                "Aqueduct, River"
+              ],
+              [
+                "improvement",
+                6,
+                "Barracks II"
+              ],
+              [
+                "improvement",
+                9,
+                "City Walls"
+              ],
+              [
+                "improvement",
+                10,
+                "Coastal Defense"
+              ],
+              [
+                "improvement",
+                11,
+                "Amphitheater"
+              ],
+              [
+                "improvement",
+                12,
+                "Courthouse"
+              ],
+              [
+                "improvement",
+                14,
+                "Granary"
+              ],
+              [
+                "improvement",
+                15,
+                "Harbor"
+              ],
+              [
+                "improvement",
+                17,
+                "Library"
+              ],
+              [
+                "improvement",
+                18,
+                "Marketplace"
+              ],
+              [
+                "improvement",
+                23,
+                "Palace"
+              ],
+              [
+                "improvement",
+                24,
+                "Ecclesiastical Palace"
+              ],
+              [
+                "improvement",
+                39,
+                "Supermarket"
+              ],
+              [
+                "improvement",
+                40,
+                "Temple"
+              ],
+              [
+                "improvement",
+                44,
+                "Colossus"
+              ],
+              [
+                "improvement",
+                45,
+                "Copernicus' Observatory"
+              ],
+              [
+                "improvement",
+                47,
+                "Darwin's Voyage"
+              ],
+              [
+                "improvement",
+                48,
+                "Eiffel Tower"
+              ],
+              [
+                "improvement",
+                50,
+                "Great Wall"
+              ],
+              [
+                "improvement",
+                54,
+                "J.S. Bach's Cathedral"
+              ],
+              [
+                "improvement",
+                55,
+                "King Richard's Crusade"
+              ],
+              [
+                "improvement",
+                56,
+                "Leonardo's Workshop"
+              ],
+              [
+                "improvement",
+                57,
+                "Lighthouse"
+              ],
+              [
+                "improvement",
+                58,
+                "Magellan's Expedition"
+              ],
+              [
+                "improvement",
+                67,
+                "Shakespeare's Theater"
+              ],
+              [
+                "improvement",
+                68,
+                "Statue of Liberty"
+              ],
+              [
+                "improvement",
+                69,
+                "Sun Tzu's War Academy"
+              ],
+              [
+                "improvement",
+                71,
+                "Women's Suffrage"
+              ],
+              [
+                "improvement",
+                72,
+                "Coinage"
+              ],
+              [
+                "unit",
+                0,
+                "Settlers"
+              ],
+              [
+                "unit",
+                1,
+                "Migrants"
+              ],
+              [
+                "unit",
+                3,
+                "Engineers"
+              ],
+              [
+                "unit",
+                10,
+                "Riflemen"
+              ],
+              [
+                "unit",
+                11,
+                "Alpine Troops"
+              ],
+              [
+                "unit",
+                23,
+                "Cavalry"
+              ],
+              [
+                "unit",
+                26,
+                "Cannon"
+              ],
+              [
+                "unit",
+                34,
+                "Trireme"
+              ],
+              [
+                "unit",
+                36,
+                "Galleon"
+              ],
+              [
+                "unit",
+                38,
+                "Ironclad"
+              ],
+              [
+                "unit",
+                48,
+                "Diplomat"
+              ],
+              [
+                "unit",
+                50,
+                "Caravan"
+              ],
+              [
+                "unit",
+                52,
+                "Explorer"
+              ]
+            ],
+            "buildings": [],
+            "citizen_mood": {
+              "angry": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "content": [
+                2,
+                2,
+                2,
+                2,
+                2,
+                2
+              ],
+              "happy": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "unhappy": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            "city_id": 109,
+            "disorder": false,
+            "food_stock": 14,
+            "governor": {
+              "allow_disorder": false,
+              "allow_specialists": false,
+              "available": true,
+              "enabled": false,
+              "factor": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "happy_factor": 0,
+              "max_growth": false,
+              "minimal_surplus": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "require_happy": false
+            },
+            "had_famine": false,
+            "name": "City102",
+            "owner": 0,
+            "production": [
+              8,
+              1,
+              3,
+              1,
+              0,
+              2
+            ],
+            "production_kind": 6,
+            "production_value": 11,
+            "shield_stock": 8,
+            "size": 2,
+            "surplus": [
+              4,
+              1,
+              3,
+              1,
+              0,
+              2
+            ],
+            "tile": 88,
+            "unhappy_penalty": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "usage": [
+              4,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "was_happy": false,
+            "x": 10,
+            "y": 3
+          }
+        ],
+        "economy": {
+          "available": true,
+          "capitalization_gold_per_turn": 0,
+          "city_gold_surplus_per_turn": 2,
+          "diagnostic": null,
+          "gold": 63,
+          "gold_per_turn": 2,
+          "gold_upkeep_reserve": 0,
+          "gold_upkeep_style": "Mixed",
+          "luxury_rate": 0,
+          "operating_gold_per_turn": 2,
+          "science_rate": 60,
+          "tax_rate": 40,
+          "unit_gold_upkeep": 0
+        },
+        "game_over": false,
+        "government": {
+          "available": true,
+          "current_id": 2,
+          "current_name": "Despotism",
+          "diagnostic": null,
+          "in_revolution": false,
+          "revolution_finishes": -1,
+          "selection_required": false,
+          "target_id": 9,
+          "target_name": null
+        },
+        "legal_actions_digest": "5bb064622d5ace3d866806dc44a35de3a568416eef7877005701cae30b162bd8",
+        "player_alive": true,
+        "research": {
+          "available": true,
+          "beakers_per_turn": 3,
+          "cost": 1110,
+          "diagnostic": null,
+          "gross_beakers_per_turn": 4,
+          "known_techs": [
+            "Alphabet",
+            "Astronomy",
+            "Banking",
+            "Bridge Building",
+            "Bronze Working",
+            "Ceremonial Burial",
+            "Chemistry",
+            "Chivalry",
+            "Code of Laws",
+            "Conscription",
+            "Construction",
+            "Currency",
+            "Democracy",
+            "Economics",
+            "Electricity",
+            "Explosives",
+            "Feudalism",
+            "Gunpowder",
+            "Horseback Riding",
+            "Invention",
+            "Iron Working",
+            "Leadership",
+            "Literacy",
+            "Magnetism",
+            "Map Making",
+            "Masonry",
+            "Mathematics",
+            "Medicine",
+            "Metallurgy",
+            "Monarchy",
+            "Monotheism",
+            "Mysticism",
+            "Navigation",
+            "Philosophy",
+            "Physics",
+            "Polytheism",
+            "Pottery",
+            "Railroad",
+            "Refrigeration",
+            "Sanitation",
+            "Seafaring",
+            "Steam Engine",
+            "Tactics",
+            "The Republic",
+            "The Wheel",
+            "Theology",
+            "Theory of Gravity",
+            "Trade",
+            "University",
+            "Warrior Code",
+            "Writing"
+          ],
+          "progress": 15,
+          "target_id": 25,
+          "target_name": "Engineering",
+          "tech_upkeep": 1
+        },
+        "ruleset_diagnostic": null,
+        "ruleset_ready": true,
+        "score": {
+          "opponents": [
+            {
+              "is_alive": true,
+              "name": "Kwanggaet'o",
+              "player_id": 1,
+              "score": null
+            },
+            {
+              "is_alive": true,
+              "name": "AI*1",
+              "player_id": 2,
+              "score": null
+            },
+            {
+              "is_alive": true,
+              "name": "AI*3",
+              "player_id": 3,
+              "score": null
+            },
+            {
+              "is_alive": true,
+              "name": "AI*4",
+              "player_id": 4,
+              "score": null
+            },
+            {
+              "is_alive": true,
+              "name": "AI*5",
+              "player_id": 5,
+              "score": null
+            }
+          ],
+          "own": 107
+        },
+        "units": [
+          {
+            "activity": "idle",
+            "homecity": 0,
+            "hp": 10,
+            "moves_left": 12,
+            "owner": 0,
+            "tile": 194,
+            "type": "Diplomat",
+            "type_id": 48,
+            "unit_id": 105,
+            "upkeep": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "x": 12,
+            "y": 7
+          },
+          {
+            "activity": "fortified",
+            "homecity": 0,
+            "hp": 20,
+            "moves_left": 6,
+            "owner": 0,
+            "tile": 169,
+            "type": "Alpine Troops",
+            "type_id": 11,
+            "unit_id": 106,
+            "upkeep": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "x": 13,
+            "y": 6
+          },
+          {
+            "activity": "idle",
+            "homecity": 101,
+            "hp": 20,
+            "moves_left": 6,
+            "owner": 0,
+            "tile": 169,
+            "type": "Riflemen",
+            "type_id": 10,
+            "unit_id": 111,
+            "upkeep": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "x": 13,
+            "y": 6
+          }
+        ]
+      },
+      "player_id": 0,
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:12:7972:5748605bb9321ef8",
+      "source_seq": 7972,
+      "state_hash": "5748605bb9321ef8f4e342b0a56943f6fc25c31cbfcf71e852f23e7812dbe866",
+      "uncertain_atoms": []
+    },
+    "turn": 12
+  },
+  "source": {
+    "condition_id": "e_full_loop",
+    "engine": {
+      "freeciv_commit": "26ba7124249f34fd3050ef29bf191bd4d8808018",
+      "proxy_commit": "26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:5a8cf967816ac6e692c27fae0cce59755ce27ea23e184c452a2aae0da767974e"
+    },
+    "event_path": "artifacts/freeciv/gdo4-known-terrain-160-20260730/games/main/e_full_loop/4543804-00/events.jsonl",
+    "event_trace_sha256": "29c35c7f04a1dd69c8e1b9f871c212f57ec29a6f060ed6135680f007af487dfb",
+    "manifest_identity": "e85e45323a7c65f14ded142e5e22ac7c11d7917895621eed80553e6ffda400f5",
+    "operation_scored_event_id": "c5dac585349f47df8d12c3c514ddc368",
+    "ruleset": "civ2civ3",
+    "seed": 4543804
+  },
+  "source_control": {
+    "decision_id": "pressure-decision-3eff3dafd3573e1077cc",
+    "selected_operation_id": "pf-impact-op:00000000:d3a8f145dbf810d5166e",
+    "solver_identity": "pf-pln-pressure-scheduler/1.0"
+  }
+}

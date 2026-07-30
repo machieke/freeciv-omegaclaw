@@ -366,6 +366,82 @@ def test_map_tiles_are_normalized_and_invalid_spatial_evidence_fails_closed():
         _snapshot(payload=invalid_visibility_type)
 
 
+def test_public_terrain_semantics_and_topology_are_typed_and_hashed():
+    payload = _payload()
+    payload["map"].update({
+        "topology_id": 3,
+        "wrap_x": True,
+        "wrap_y": False,
+        "tiles": [{
+            "index": 82,
+            "terrain": 1,
+            "known": 2,
+            "terrain_name": "Ocean",
+            "terrain_class": "ocean",
+            "native_unit_classes": [
+                "Sea",
+            ],
+        }],
+    })
+
+    enriched = _snapshot(
+        payload=payload)
+    legacy = _snapshot()
+    grounded = enriched.event_payload()[
+        "grounded_context"]
+
+    assert enriched.map_topology_id == 3
+    assert enriched.map_dict()[
+        "topology_id"] == 3
+    assert enriched.map_tiles[0][
+        "native_unit_classes"] == [
+            "Sea",
+        ]
+    assert grounded[
+        "schema_version"] == "1.2"
+    assert grounded["map_topology"] == {
+        "topology_id": 3,
+        "wrap_x": True,
+        "wrap_y": False,
+    }
+    assert enriched.identity.state_hash != (
+        legacy.identity.state_hash)
+
+
+@pytest.mark.parametrize(
+    "field,value,diagnostic",
+    (
+        (
+            "terrain_name",
+            "",
+            "terrain_name"),
+        (
+            "terrain_class",
+            "unknown",
+            "terrain_class"),
+        (
+            "native_unit_classes",
+            ["Sea", "Sea"],
+            "native_unit_classes"),
+        (
+            "native_unit_classes",
+            ["Sea", "Land"],
+            "native_unit_classes"),
+    ))
+def test_invalid_public_terrain_semantics_fail_closed(
+        field, value, diagnostic):
+    payload = _payload()
+    payload["map"]["tiles"] = [{
+        "index": 82,
+        field: value,
+    }]
+
+    with pytest.raises(
+            ContractError,
+            match=diagnostic):
+        _snapshot(payload=payload)
+
+
 def test_transactional_replace_removes_disappearing_entities_and_quantities_are_not_atoms():
     store = SnapshotStore()
     first = _snapshot()

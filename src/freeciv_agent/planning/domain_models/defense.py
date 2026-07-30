@@ -3,6 +3,7 @@
 import math
 import json
 import re
+from collections import deque
 from dataclasses import dataclass
 from enum import Enum
 from functools import cached_property
@@ -156,6 +157,268 @@ def _distance(snapshot, source, target):
             is True))
 
 
+def _neighbor_positions(
+        snapshot, position):
+    width = int(
+        getattr(
+            snapshot,
+            "map_width", 0))
+    height = int(
+        getattr(
+            snapshot,
+            "map_height", 0))
+    if width <= 0 or height <= 0:
+        return ()
+    x, y = position
+    topology_id = int(
+        getattr(
+            snapshot,
+            "map_topology_id", 0)
+        or 0)
+    is_isometric = bool(
+        topology_id & 3)
+    is_hex = bool(
+        topology_id & 2)
+    iso_hex = bool(
+        is_hex
+        and topology_id & 1)
+    rows = set()
+    for dx in (-1, 0, 1):
+        for dy in (-1, 0, 1):
+            if dx == 0 and dy == 0:
+                continue
+            # These exclusions reproduce Freeciv's
+            # is_valid_dir_calculate(): ordinary hex maps exclude NW/SE,
+            # while iso-hex maps exclude NE/SW.
+            if (
+                    is_hex
+                    and (
+                        (
+                            not iso_hex
+                            and (
+                                (dx, dy)
+                                in (
+                                    (-1, -1),
+                                    (1, 1))))
+                        or (
+                            iso_hex
+                            and (
+                                (dx, dy)
+                                in (
+                                    (1, -1),
+                                    (-1, 1)))))):
+                continue
+            if is_isometric:
+                # Snapshot tile x/y values are Freeciv native coordinates
+                # (tile index modulo/divided by native width). mapstep()
+                # applies directions in map coordinates, so reproduce the
+                # public NATIVE_TO_MAP_POS/MAP_TO_NATIVE_POS transforms.
+                map_x = (
+                    (y + (y & 1))
+                    // 2 + x)
+                map_y = (
+                    y - map_x
+                    + width)
+                target_map_x = (
+                    map_x + dx)
+                target_map_y = (
+                    map_y + dy)
+                target_y = (
+                    target_map_x
+                    + target_map_y
+                    - width)
+                target_x = (
+                    2 * target_map_x
+                    - target_y
+                    - (target_y & 1)
+                ) // 2
+            else:
+                target_x = x + dx
+                target_y = y + dy
+            if getattr(
+                    snapshot,
+                    "map_wrap_x",
+                    None) is True:
+                target_x %= width
+            if getattr(
+                    snapshot,
+                    "map_wrap_y",
+                    None) is True:
+                target_y %= height
+            if (0 <= target_x < width
+                    and 0 <= target_y
+                    < height):
+                rows.add((
+                    target_x,
+                    target_y))
+    return tuple(sorted(
+        rows))
+
+
+def _known_native_corridor(
+        snapshot, source, city_position,
+        unit_class):
+    """Find a path using only player-known native terrain semantics."""
+    distance = _distance(
+        snapshot, source,
+        city_position)
+    if distance is None:
+        return (
+            "unknown",
+            "threat-position-unavailable",
+            (),
+            None)
+    topology_id = getattr(
+        snapshot,
+        "map_topology_id", None)
+    if topology_id is None:
+        return (
+            "unknown",
+            "map-topology-unavailable",
+            (),
+            None)
+    if source in _neighbor_positions(
+            snapshot,
+            city_position):
+        return (
+            "reachable",
+            "visible-adjacent-threat",
+            (source,),
+            0)
+    known_positions = set()
+    native_tiles = set()
+    complete_semantics = True
+    tile_count = (
+        int(getattr(
+            snapshot,
+            "map_width", 0))
+        * int(getattr(
+            snapshot,
+            "map_height", 0)))
+    map_tiles = tuple(
+        getattr(
+            snapshot,
+            "map_tiles", ()))
+    for tile in map_tiles:
+        if not isinstance(
+                tile, dict):
+            complete_semantics = False
+            continue
+        x = tile.get("x")
+        y = tile.get("y")
+        classes = tile.get(
+            "native_unit_classes")
+        if (isinstance(x, bool)
+                or not isinstance(x, int)
+                or isinstance(y, bool)
+                or not isinstance(y, int)
+                or not isinstance(
+                    classes, list)):
+            complete_semantics = False
+            continue
+        known_positions.add((
+            x, y))
+        if unit_class in classes:
+            native_tiles.add((
+                x, y))
+    complete_semantics = bool(
+        complete_semantics
+        and tile_count > 0
+        and len(known_positions)
+        == tile_count)
+    if source not in native_tiles:
+        return (
+            "unreachable"
+            if source
+            in known_positions
+            else "unknown",
+            "known-native-source-unreachable"
+            if source
+            in known_positions
+            else
+            "source-terrain-semantics-unavailable",
+            (),
+            None)
+    city_approaches = frozenset(
+        _neighbor_positions(
+            snapshot,
+            city_position))
+    targets = frozenset(
+        position
+        for position in city_approaches
+        if position in native_tiles)
+    if not targets:
+        approaches_known = bool(
+            city_approaches
+            and city_approaches
+            <= known_positions)
+        return (
+            "unreachable"
+            if approaches_known
+            else "unknown",
+            "known-native-city-approach-unreachable"
+            if approaches_known
+            else
+            "city-approach-semantics-unavailable",
+            (),
+            None)
+    queue = deque((source,))
+    parent = {
+        source: None,
+    }
+    selected = None
+    while queue:
+        current = queue.popleft()
+        if current in targets:
+            selected = current
+            break
+        for neighbor in _neighbor_positions(
+                snapshot, current):
+            if (neighbor
+                    not in native_tiles
+                    or neighbor in parent):
+                continue
+            parent[neighbor] = (
+                current)
+            queue.append(neighbor)
+    if selected is None:
+        closed_known_component = all(
+            neighbor
+            in known_positions
+            for current in parent
+            for neighbor in
+            _neighbor_positions(
+                snapshot, current))
+        return (
+            "unreachable"
+            if (
+                complete_semantics
+                or closed_known_component)
+            else "unknown",
+            "known-native-corridor-unreachable"
+            if (
+                complete_semantics
+                or closed_known_component)
+            else
+            "known-native-corridor-not-proven",
+            (),
+            None)
+    reversed_path = []
+    current = selected
+    while current is not None:
+        reversed_path.append(
+            current)
+        current = parent[
+            current]
+    corridor = tuple(reversed(
+        reversed_path))
+    return (
+        "reachable",
+        "player-known-native-terrain-corridor",
+        corridor,
+        len(corridor) - 1)
+
+
 class DefenseOperationType(str, Enum):
     FORTIFY_EXISTING_DEFENDER = (
         "fortify_existing_defender")
@@ -197,6 +460,8 @@ class VisibleCityThreat:
     earliest_attack_turn: int
     movement_rate: object
     eta_basis: str
+    reachability_status: str
+    reachability_basis: str
     threat_priority: float
     confidence: float
     unknown_mass: float
@@ -252,6 +517,19 @@ class VisibleCityThreat:
                 or not self.eta_basis):
             raise ValueError(
                 "threat ETA basis is required")
+        if self.reachability_status not in (
+                "reachable",
+                "unreachable",
+                "unknown"):
+            raise ValueError(
+                "threat reachability status is invalid")
+        if (not isinstance(
+                self.reachability_basis,
+                str)
+                or not
+                self.reachability_basis):
+            raise ValueError(
+                "threat reachability basis is required")
         for value, name in (
                 (self.threat_priority,
                  "threat priority"),
@@ -333,6 +611,10 @@ class VisibleCityThreat:
                 list(row)
                 for row in
                 self.path_corridor],
+            "reachability_basis":
+                self.reachability_basis,
+            "reachability_status":
+                self.reachability_status,
             "ruleset_rule_id":
                 self.ruleset_rule_id,
             "support_reason":
@@ -694,6 +976,29 @@ GROUNDED_OPERATION_RESULT_REASONS = frozenset({
     "protected-sole-defender",
 })
 
+GROUNDED_THREAT_RESULT_BASES = frozenset({
+    "known-native-city-approach-unreachable",
+    "known-native-corridor-unreachable",
+    "known-native-source-unreachable",
+})
+
+
+def grounded_threat_result(threat):
+    """Whether a threat has a decision-usable positive or negative result."""
+    if not isinstance(
+            threat,
+            VisibleCityThreat):
+        raise TypeError(
+            "grounded threat result requires a visible city threat")
+    return bool(
+        threat.supported
+        or (
+            threat.reachability_status
+            == "unreachable"
+            and threat.reachability_basis
+            in
+            GROUNDED_THREAT_RESULT_BASES))
+
 
 def grounded_operation_result(operation):
     """Whether an operation has a decision-usable positive or negative result."""
@@ -859,7 +1164,7 @@ class CityDefenseAnalyzer:
     """Build a conservative city-threat/defender operation graph."""
 
     ANALYZER_IDENTITY = (
-        "freeciv-city-defense-analyzer/1.2")
+        "freeciv-city-defense-analyzer/1.3")
 
     def __init__(
             self, threat_radius=6,
@@ -1128,9 +1433,36 @@ class CityDefenseAnalyzer:
                     / max(
                         1,
                         distance))
-                approach_tiles = max(
-                    0,
-                    distance - 1)
+                (
+                    reachability_status,
+                    reachability_basis,
+                    known_corridor,
+                    known_approach_tiles,
+                ) = _known_native_corridor(
+                    snapshot,
+                    (
+                        int(enemy.x),
+                        int(enemy.y)),
+                    (
+                        int(city.x),
+                        int(city.y)),
+                    unit_class)
+                threat_support_reason = (
+                    support_reason)
+                if (threat_support_reason
+                        is None
+                        and reachability_status
+                        != "reachable"):
+                    threat_support_reason = (
+                        reachability_basis)
+                approach_tiles = (
+                    int(
+                        known_approach_tiles)
+                    if known_approach_tiles
+                    is not None
+                    else max(
+                        0,
+                        distance - 1))
                 if movement_rate_supported:
                     eta_turns = int(
                         math.ceil(
@@ -1174,21 +1506,32 @@ class CityDefenseAnalyzer:
                             priority),
                         confidence=(
                             0.45
-                            if support_reason
+                            if threat_support_reason
                             is None
                             else 0.0),
                         unknown_mass=(
                             0.55
-                            if support_reason
+                            if threat_support_reason
                             is None
                             else 1.0),
                         path_corridor=(
-                            (
-                                int(enemy.x),
-                                int(enemy.y)),
-                            (
-                                int(city.x),
-                                int(city.y))),
+                            known_corridor
+                            if known_corridor
+                            else (
+                                (
+                                    int(
+                                        enemy.x),
+                                    int(
+                                        enemy.y)),
+                                (
+                                    int(
+                                        city.x),
+                                    int(
+                                        city.y)))),
+                        reachability_status=(
+                            reachability_status),
+                        reachability_basis=(
+                            reachability_basis),
                         interception_legal=bool(
                             enemy.unit_id
                             in attack_target_ids
@@ -1197,7 +1540,7 @@ class CityDefenseAnalyzer:
                                 int(enemy.y))
                             in attack_target_positions),
                         support_reason=(
-                            support_reason),
+                            threat_support_reason),
                         ruleset_rule_id=(
                             None
                             if spec is None

@@ -16,6 +16,8 @@ ruleset_name_sanitization_patch="$repo_root/scripts/freeciv/upstream/0010-pln-ru
 government_state_correction_patch="$repo_root/scripts/freeciv/upstream/0011-pln-government-state-correction.patch"
 city_ownership_reconciliation_patch="$repo_root/scripts/freeciv/upstream/0012-pln-city-ownership-reconciliation.patch"
 native_movement_routes_patch="$repo_root/scripts/freeciv/upstream/0013-pln-native-movement-routes.patch"
+known_terrain_semantics_patch="$repo_root/scripts/freeciv/upstream/0014-pln-known-terrain-semantics.patch"
+route_refresh_validity_patch="$repo_root/scripts/freeciv/upstream/0015-pln-route-refresh-validity.patch"
 pinned_commit="26ba7124249f34fd3050ef29bf191bd4d8808018"
 pinned_authoritative_sha256="48e416000bf36c3c7ce13c8c59bb51bc682a1f17ee8568e432a82f673a10df55"
 pinned_spatial_sha256="a4eb88c827c7a2ea68db602aa2463c2aa53bb0c6156a71e1a5a5e7fc09908856"
@@ -30,6 +32,8 @@ pinned_ruleset_name_sanitization_sha256="09480dc463d3347d26db27e387a5a528c6b525f
 pinned_government_state_correction_sha256="dee93c53c8f0dcc06c0a0ea98ee278e19cc360fbf36ef554f096cebe11f5d4b3"
 pinned_city_ownership_reconciliation_sha256="db29d472e49bd8b24bb227142c3635a77d44932a697b1fe9eafc49517198cf0d"
 pinned_native_movement_routes_sha256="e2d2681acdeb53a2b3ace5fb519273d83e5acb20dcadfb2cc590fa16da4c023e"
+pinned_known_terrain_semantics_sha256="c6b813be4dd6b7c2f2679f8aa2444f0fffb36597e23fb403ee1201d497ffdd81"
+pinned_route_refresh_validity_sha256="594fee9fd8cf07237cfc83036842aba1e0171d3ac1f01b99ea93b43618bea7e7"
 
 if [[ -z "$upstream_root" ]]; then
   echo "usage: $0 /path/to/freeciv-llm (or set FREECIV_LLM_ROOT)" >&2
@@ -52,7 +56,9 @@ for patch_spec in \
   "$ruleset_name_sanitization_patch:$pinned_ruleset_name_sanitization_sha256" \
   "$government_state_correction_patch:$pinned_government_state_correction_sha256" \
   "$city_ownership_reconciliation_patch:$pinned_city_ownership_reconciliation_sha256" \
-  "$native_movement_routes_patch:$pinned_native_movement_routes_sha256"; do
+  "$native_movement_routes_patch:$pinned_native_movement_routes_sha256" \
+  "$known_terrain_semantics_patch:$pinned_known_terrain_semantics_sha256" \
+  "$route_refresh_validity_patch:$pinned_route_refresh_validity_sha256"; do
   patch_file="${patch_spec%:*}"
   pinned_patch_sha256="${patch_spec##*:}"
   actual_patch_sha256="$(sha256sum "$patch_file" | cut -d' ' -f1)"
@@ -64,8 +70,8 @@ done
 
 # Each later patch depends on its predecessors. If the final reverse check
 # succeeds, the complete patch series is already present.
-if git -C "$upstream_root" apply --reverse --check "$native_movement_routes_patch" >/dev/null 2>&1; then
-  echo "PLN authoritative-state through native-movement-route patches are already applied"
+if git -C "$upstream_root" apply --reverse --check "$route_refresh_validity_patch" >/dev/null 2>&1; then
+  echo "PLN authoritative-state through route-refresh-validity patches are already applied"
   exit 0
 fi
 actual_commit="$(git -C "$upstream_root" rev-parse HEAD)"
@@ -86,7 +92,9 @@ for patch_file in \
   "$ruleset_name_sanitization_patch" \
   "$government_state_correction_patch" \
   "$city_ownership_reconciliation_patch" \
-  "$native_movement_routes_patch"; do
+  "$native_movement_routes_patch" \
+  "$known_terrain_semantics_patch" \
+  "$route_refresh_validity_patch"; do
   if git -C "$upstream_root" apply --reverse --check "$patch_file" >/dev/null 2>&1; then
     echo "$(basename "$patch_file") is already applied"
     continue
