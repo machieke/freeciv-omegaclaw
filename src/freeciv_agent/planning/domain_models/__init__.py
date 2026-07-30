@@ -11,6 +11,11 @@ from .combat_rules import (
     DuelTerminalOutcome,
     finite_duel_distribution,
 )
+from .city_workers import (
+    CITY_OUTPUT_NAMES,
+    GroundedCityWorkerTransitionModel,
+    city_output_vector,
+)
 from .context import (
     EstimateAuthority,
     EstimateValidity,
@@ -62,6 +67,7 @@ __all__ = [
     "CityDefenseAssignment",
     "CityDefenseOperation",
     "CityDefenseRequirement",
+    "CITY_OUTPUT_NAMES",
     "DomainEstimateRequest",
     "DomainTransitionModel",
     "DomainTransitionModelRegistry",
@@ -74,6 +80,7 @@ __all__ = [
     "EstimateValidity",
     "ExactCityDefenseAssignmentSolver",
     "GroundedTransitionEstimate",
+    "GroundedCityWorkerTransitionModel",
     "GroundedMovementTransitionModel",
     "GroundedProductionTransitionModel",
     "GroundedResearchTransitionModel",
@@ -88,6 +95,7 @@ __all__ = [
     "TransportUnitProfile",
     "VisibleCityThreat",
     "canonical_model_artifact",
+    "city_output_vector",
     "finite_duel_distribution",
     "production_target_profile",
     "research_dependency_profile",

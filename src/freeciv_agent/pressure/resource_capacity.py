@@ -266,6 +266,15 @@ class ResourceCapacityExtractor:
                     city.city_id),
                 "production", 1,
                 "authoritative-own-city")
+            if getattr(
+                    city,
+                    "governor_available",
+                    False) is True:
+                add(
+                    GameResourceKind.CITY_WORKER_ASSIGNMENT,
+                    "city:{}".format(city.city_id),
+                    "citizen_manager", 1,
+                    "authoritative-city-governor-capability")
 
         economy = getattr(
             snapshot, "economy", None)

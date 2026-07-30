@@ -1282,6 +1282,7 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             from ..planning.domain_models import (
                 DomainTransitionModelRegistry,
                 GroundedCombatTransitionModel,
+                GroundedCityWorkerTransitionModel,
                 GroundedMovementTransitionModel,
                 GroundedProductionTransitionModel,
                 GroundedResearchTransitionModel,
@@ -1297,6 +1298,9 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             domain_model_registry.register(
                 "city_production",
                 GroundedProductionTransitionModel())
+            domain_model_registry.register(
+                "city_governor",
+                GroundedCityWorkerTransitionModel())
             domain_model_registry.register(
                 "tech_research",
                 GroundedResearchTransitionModel())
@@ -2796,6 +2800,33 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                                 "city:{}".format(
                                     city_id),
                                 "production",
+                                player_scope),
+                            quantity=1,
+                            window=TurnWindow(
+                                turn,
+                                turn + 1),
+                            hardness=(
+                                ClaimHardness
+                                .HARD_CURRENT),
+                            exclusive=True,
+                            source_operation_id=(
+                                operation
+                                .operation_id),
+                            source_step_id=(
+                                "current-action")))
+            if action_type == (
+                    "city_governor"):
+                city_id = action.get(
+                    "city_id")
+                if city_id is not None:
+                    claims.append(
+                        ResourceClaim(
+                            resource=ResourceRef(
+                                GameResourceKind
+                                .CITY_WORKER_ASSIGNMENT,
+                                "city:{}".format(
+                                    city_id),
+                                "citizen_manager",
                                 player_scope),
                             quantity=1,
                             window=TurnWindow(

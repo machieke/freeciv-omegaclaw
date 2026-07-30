@@ -92,6 +92,12 @@ from .research_lifecycle import (
     ResearchLifecycleUpdate,
     ResearchOperationLifecycle,
 )
+from .city_worker_macro import (
+    CityWorkerMacroAssembler,
+    CityWorkerMacroAssembly,
+    CityWorkerMacroIntent,
+    CityWorkerMacroResult,
+)
 from .operation_store import (
     OPERATION_STORE_SCHEMA_VERSION,
     OperationRecord,
@@ -149,6 +155,8 @@ __all__ = [
     "assemble_city_defense_operation",
     "CombatOperationAssembler", "CombatOperationAssembly",
     "CombatOperationReadout", "ConditionalProbabilityInterval",
+    "CityWorkerMacroAssembler", "CityWorkerMacroAssembly",
+    "CityWorkerMacroIntent", "CityWorkerMacroResult",
     "CombatLifecycleUpdate", "CombatOperationLifecycle",
     "combat_target_capacities", "conditional_success_interval",
     "FounderTransportIntent",

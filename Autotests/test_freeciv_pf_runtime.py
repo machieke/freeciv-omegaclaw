@@ -552,3 +552,40 @@ def test_research_operations_are_default_off_and_grounded_stack_gated():
         "research_operations"]["enabled"]
     assert enabled["controller_policy"][
         "pressure_research_operations_enabled"]
+
+
+def test_city_worker_macros_are_default_off_and_grounded_stack_gated():
+    default = build_controller_activation({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+    })
+    assert not default["layers"][
+        "city_worker_macro_actions"]["enabled"]
+
+    with pytest.raises(
+            PFRuntimeConfigurationError,
+            match="city-worker macro actions require"):
+        validate_controller_policy({
+            "pressure_enabled": True,
+            "pressure_semantics_version": "v2",
+            "pressure_controller_mode": "scalar_v2",
+            "pressure_city_worker_macro_actions_enabled": True,
+        })
+
+    enabled = build_controller_activation({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+        "pressure_packet_scheduler_enabled": True,
+        "pressure_resource_scheduler_enabled": True,
+        "pressure_requirement_sets_enabled": True,
+        "pressure_domain_estimates_enabled": True,
+        "pressure_commit_revalidation_enabled": True,
+        "pressure_operation_lifecycle_enabled": True,
+        "pressure_city_worker_macro_actions_enabled": True,
+    })
+    assert enabled["layers"][
+        "city_worker_macro_actions"]["enabled"]
+    assert enabled["controller_policy"][
+        "pressure_city_worker_macro_actions_enabled"]

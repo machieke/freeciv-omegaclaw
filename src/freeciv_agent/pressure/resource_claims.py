@@ -12,6 +12,7 @@ class GameResourceKind(str, Enum):
     ACTOR = "actor"
     MOVE_POINTS = "move_points"
     CITY_PRODUCTION_SLOT = "city_production_slot"
+    CITY_WORKER_ASSIGNMENT = "city_worker_assignment"
     TILE_OCCUPANCY = "tile_occupancy"
     TRANSPORT_SEAT = "transport_seat"
     TREASURY = "treasury"
