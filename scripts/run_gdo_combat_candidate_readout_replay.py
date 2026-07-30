@@ -25,6 +25,7 @@ from freeciv_agent.events.schema import (  # noqa: E402
     structural_hash,
 )
 from freeciv_agent.planning import (  # noqa: E402
+    CombatOperationAssembler,
     GroundedImpactPlanner,
 )
 from freeciv_agent.state.snapshot import (  # noqa: E402
@@ -367,6 +368,23 @@ def _evaluate(fixture):
     started = time.perf_counter()
     candidates = planner.candidates(
         snapshot)
+    decision = planner.plan(
+        snapshot)
+    atomic = (
+        captured.mechanism
+        ._atomic_readout(
+            snapshot, {
+                "action_budget": 8,
+            },
+            ruleset_digest=(
+                fixture[
+                    "ruleset_digest"])))
+    assemblies = (
+        CombatOperationAssembler()
+        .assemble(
+            snapshot,
+            fixture[
+                "ruleset_digest"]))
     latency_ms = (
         time.perf_counter()
         - started) * 1000.0
@@ -395,7 +413,40 @@ def _evaluate(fixture):
                 "actor_id")
                 in actor_ids)
     }))
+    assembly_by_id = {
+        assembly.spec.operation_id:
+            assembly
+        for assembly in assemblies
+    }
+    selected_operation_first_actions = tuple(
+        (
+            operation_id,
+            assembly_by_id[
+                operation_id]
+            .action_for_step(0),
+        )
+        for operation_id in
+        atomic[
+            "selected_operation_ids"])
+    scalar_action = (
+        None
+        if decision is None
+        else decision.candidate.action)
+    matching_operation_ids = tuple(
+        operation_id
+        for operation_id, action in
+        selected_operation_first_actions
+        if action == scalar_action)
     readout = {
+        "atomic_selected_operation_first_actions": [
+            {
+                "action": action,
+                "operation_id":
+                    operation_id,
+            }
+            for operation_id, action in
+            selected_operation_first_actions
+        ],
         "city_id": city.city_id,
         "current_required_garrison":
             current_required,
@@ -414,6 +465,19 @@ def _evaluate(fixture):
                 city),
         "recalled_attack_actor_ids":
             list(recalled_actor_ids),
+        "scalar_matching_operation_ids":
+            list(matching_operation_ids),
+        "scalar_selected_action":
+            scalar_action,
+        "scalar_selected_category":
+            (
+                None
+                if decision is None
+                else decision.candidate
+                .category),
+        "scalar_selected_action_matches_atomic_operation":
+            bool(
+                matching_operation_ids),
         "single_step_preserves_required_garrison":
             local_defender_count - 1
             >= current_required,
@@ -510,6 +574,20 @@ def run(manifest_path, iterations):
                     "current_required_garrison"]
                 <= row["readout"][
                     "legacy_required_garrison"]
+                for row in first),
+        "at_least_one_scalar_aligned_atomic_state":
+            any(
+                row["readout"][
+                    "scalar_selected_action_matches_atomic_operation"]
+                for row in first),
+        "scalar_aligned_states_preserve_required_garrison":
+            all(
+                (
+                    not row["readout"][
+                        "scalar_selected_action_matches_atomic_operation"]
+                    or row["readout"][
+                        "single_step_preserves_required_garrison"]
+                )
                 for row in first),
         "p95_candidate_readout_below_20_ms":
             _percentile(

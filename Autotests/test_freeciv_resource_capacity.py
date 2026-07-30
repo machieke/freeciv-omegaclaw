@@ -6,6 +6,8 @@ import os
 import sys
 from types import SimpleNamespace
 
+import pytest
+
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(REPO, "src")
@@ -16,6 +18,7 @@ from freeciv_agent.pressure import (  # noqa: E402
     GameResourceKind,
     ResourceCapacityExtractor,
 )
+from freeciv_agent.rulesets.compiler import compile_ruleset  # noqa: E402
 from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 
 
@@ -33,7 +36,7 @@ def _transport_rule(name, capacity):
         display_name=name,
         rule_name=name,
         quantitative={
-            "transport_capacity": {
+            "transport_cap": {
                 "value": capacity,
             },
         })
@@ -43,6 +46,28 @@ def _by_kind(result, kind):
     return tuple(
         row for row in result.capacities
         if row.resource.kind == kind)
+
+
+def _external_ruleset_root():
+    configured = os.environ.get(
+        "FREECIV_RULESET_ROOT")
+    candidates = (
+        configured,
+        os.path.abspath(os.path.join(
+            REPO, "..", "..", "..",
+            "Repos", "freeciv-llm",
+            "freeciv", "freeciv", "data")),
+    )
+    for candidate in candidates:
+        if (
+                candidate
+                and os.path.isfile(os.path.join(
+                    candidate,
+                    "civ2civ3",
+                    "units.ruleset"))):
+            return candidate
+    pytest.skip(
+        "set FREECIV_RULESET_ROOT for compiled transport-capacity parity")
 
 
 def test_capacity_extractor_preserves_identity_and_current_window():
@@ -118,6 +143,36 @@ def test_transport_seats_require_ruleset_capacity_and_visible_load():
     assert seats[0].quantity == 2
     assert seats[0].authority == (
         "derived-ruleset-and-unit-state")
+
+
+def test_compiled_trireme_transport_cap_exposes_exact_free_seat_count():
+    payload = copy.deepcopy(
+        _payload())
+    payload["units"]["102"].update({
+        "carrying": 1,
+        "type": "Trireme",
+    })
+    snapshot = ProxyStateDTO.parse(
+        "compiled-transport-capacity",
+        1, payload).to_snapshot()
+    ruleset = compile_ruleset(
+        _external_ruleset_root(),
+        "civ2civ3")
+
+    result = ResourceCapacityExtractor().extract(
+        snapshot, ruleset_ir=ruleset)
+    seats = _by_kind(
+        result,
+        GameResourceKind.TRANSPORT_SEAT)
+
+    assert len(seats) == 1
+    assert seats[0].resource.owner_id == (
+        "unit:102")
+    assert seats[0].quantity == 1
+    assert not any(
+        value.startswith(
+            "transport-rules-missing:unit:102")
+        for value in result.omissions)
 
 
 def test_missing_research_or_treasury_is_an_omission_not_capacity():

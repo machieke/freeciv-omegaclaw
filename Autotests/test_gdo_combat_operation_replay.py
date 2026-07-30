@@ -297,6 +297,26 @@ def test_captured_combat_candidate_readout_recovers_safe_spare_attackers():
         for row in report[
             "replays"]
     } == {3}
+    aligned = [
+        row for row in report[
+            "replays"]
+        if row["readout"][
+            "scalar_selected_action_matches_atomic_operation"]
+    ]
+    assert [
+        row["turn"]
+        for row in aligned
+    ] == [72, 72]
+    assert all(
+        row["readout"][
+            "scalar_selected_category"]
+        == "tactical_attack"
+        and row["readout"][
+            "single_step_preserves_required_garrison"]
+        and len(row["readout"][
+            "scalar_matching_operation_ids"])
+        == 1
+        for row in aligned)
     hashable = copy.deepcopy(
         report)
     expected = hashable.pop(

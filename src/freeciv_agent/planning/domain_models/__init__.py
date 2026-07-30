@@ -38,6 +38,11 @@ from .registry import (
     DomainTransitionModelRegistry,
 )
 from .shadow import DomainEstimateShadowExecutor
+from .transport import (
+    GroundedTransportTransitionModel,
+    TransportUnitProfile,
+    transport_unit_profile,
+)
 
 __all__ = [
     "AbstainingTransitionModel",
@@ -60,12 +65,15 @@ __all__ = [
     "ExactCityDefenseAssignmentSolver",
     "GroundedTransitionEstimate",
     "GroundedMovementTransitionModel",
+    "GroundedTransportTransitionModel",
     "GroundedCombatTransitionModel",
     "grounded_operation_result",
     "grounded_threat_result",
     "LegacyProjectionTransitionModel",
     "TransitionContextKey",
+    "TransportUnitProfile",
     "VisibleCityThreat",
     "canonical_model_artifact",
     "finite_duel_distribution",
+    "transport_unit_profile",
 ]

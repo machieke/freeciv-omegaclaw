@@ -39,8 +39,14 @@ def _transport_capacity(ruleset_ir, unit_type):
             continue
         quantitative = getattr(
             rule, "quantitative", {})
+        # ``transport_cap`` is the canonical compiler projection of the
+        # Freeciv ruleset field.  Retain the longer legacy spelling only for
+        # compatibility with pre-compiler synthetic fixtures.
         value = quantitative.get(
-            "transport_capacity")
+            "transport_cap")
+        if value is None:
+            value = quantitative.get(
+                "transport_capacity")
         if isinstance(value, dict):
             value = value.get("value")
         if (isinstance(value, bool)
