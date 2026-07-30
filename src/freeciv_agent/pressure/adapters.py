@@ -1283,6 +1283,7 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                 DomainTransitionModelRegistry,
                 GroundedCombatTransitionModel,
                 GroundedMovementTransitionModel,
+                GroundedProductionTransitionModel,
                 LegacyProjectionTransitionModel,
             )
             domain_model_registry = (
@@ -1292,6 +1293,9 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             domain_model_registry.register(
                 "unit_move",
                 GroundedMovementTransitionModel())
+            domain_model_registry.register(
+                "city_production",
+                GroundedProductionTransitionModel())
             combat_model = (
                 GroundedCombatTransitionModel())
             for action_type in (

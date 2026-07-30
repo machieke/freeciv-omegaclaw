@@ -72,6 +72,16 @@ from .transport_lifecycle import (
     TransportLifecycleUpdate,
     TransportRepairDecision,
 )
+from .production_operations import (
+    ProductionEnablingIntent,
+    ProductionEnablingOperationAssembler,
+    ProductionOperationAssembly,
+    ProductionOperationReadout,
+)
+from .production_lifecycle import (
+    ProductionLifecycleUpdate,
+    ProductionOperationLifecycle,
+)
 from .operation_store import (
     OPERATION_STORE_SCHEMA_VERSION,
     OperationRecord,
@@ -141,6 +151,12 @@ __all__ = [
     "SettlementRetentionTracker",
     "TransportLifecycleUpdate",
     "TransportRepairDecision",
+    "ProductionEnablingIntent",
+    "ProductionEnablingOperationAssembler",
+    "ProductionOperationAssembly",
+    "ProductionOperationReadout",
+    "ProductionLifecycleUpdate",
+    "ProductionOperationLifecycle",
     "operation_id_from_components",
     "operation_transition_allowed",
     "UnifiedImpactFlowConfig",

@@ -309,6 +309,49 @@ class OperationStore:
             operation_id] = result
         return result
 
+    def record_observation(
+            self, operation_id,
+            snapshot_id, turn):
+        """Refresh exact-snapshot provenance without changing lifecycle state."""
+        self._writable()
+        record = self._records.get(
+            operation_id)
+        if record is None:
+            raise OperationStoreError(
+                "unknown operation")
+        progress = record.progress
+        if progress.state in (
+                TERMINAL_OPERATION_STATES):
+            raise OperationTransitionError(
+                "terminal operation cannot record an observation")
+        if (
+                progress.last_snapshot_id
+                    == snapshot_id
+                and progress
+                    .last_updated_turn
+                    == int(turn)
+        ):
+            return record
+        updated = OperationProgress(
+            operation_id=operation_id,
+            state=progress.state,
+            current_step_index=(
+                progress
+                .current_step_index),
+            attempt_count=(
+                progress.attempt_count),
+            blocked_reason=(
+                progress.blocked_reason),
+            last_snapshot_id=(
+                snapshot_id),
+            last_updated_turn=int(
+                turn))
+        result = OperationRecord(
+            record.spec, updated)
+        self._records[
+            operation_id] = result
+        return result
+
     def initialize_step(
             self, operation_id,
             step_index,

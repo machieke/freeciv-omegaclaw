@@ -33,6 +33,11 @@ from .defense import (
 )
 from .legacy import LegacyProjectionTransitionModel
 from .movement import GroundedMovementTransitionModel
+from .production import (
+    GroundedProductionTransitionModel,
+    ProductionTargetProfile,
+    production_target_profile,
+)
 from .registry import (
     AbstainingTransitionModel,
     DomainTransitionModelRegistry,
@@ -65,15 +70,18 @@ __all__ = [
     "ExactCityDefenseAssignmentSolver",
     "GroundedTransitionEstimate",
     "GroundedMovementTransitionModel",
+    "GroundedProductionTransitionModel",
     "GroundedTransportTransitionModel",
     "GroundedCombatTransitionModel",
     "grounded_operation_result",
     "grounded_threat_result",
     "LegacyProjectionTransitionModel",
     "TransitionContextKey",
+    "ProductionTargetProfile",
     "TransportUnitProfile",
     "VisibleCityThreat",
     "canonical_model_artifact",
     "finite_duel_distribution",
+    "production_target_profile",
     "transport_unit_profile",
 ]

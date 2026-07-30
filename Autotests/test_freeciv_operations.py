@@ -187,6 +187,33 @@ def test_store_initializes_and_advances_already_satisfied_prefix():
             "snapshot-11", 11)
 
 
+def test_store_records_new_observation_without_consuming_an_attempt():
+    store = OperationStore(
+        "game:proof")
+    spec = _spec()
+    store.propose(
+        spec, "snapshot-10", 10)
+    active = _activate(
+        store, spec.operation_id)
+
+    observed = store.record_observation(
+        spec.operation_id,
+        "snapshot-11", 11)
+    identical = store.record_observation(
+        spec.operation_id,
+        "snapshot-11", 11)
+
+    assert active.progress.state == (
+        OperationState.ACTIVE)
+    assert observed.progress.state == (
+        OperationState.ACTIVE)
+    assert observed.progress.current_step_index == 0
+    assert observed.progress.attempt_count == 0
+    assert observed.progress.last_snapshot_id == (
+        "snapshot-11")
+    assert identical is observed
+
+
 def test_store_rejects_identity_collision_and_stale_progress():
     store = OperationStore(
         "game:proof")
