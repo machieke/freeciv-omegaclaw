@@ -1582,6 +1582,11 @@ async def _play(run_dir, manifest, context):
         manifest["impact_policy"].get(
             "pressure_combat_operations_enabled",
             False))
+    combat_operation_action_budget = (
+        int(manifest["impact_policy"][
+            "max_actions_per_turn"])
+        if combat_operations_enabled
+        else None)
     if _needs_cognitive_stack(context):
         ir, catalog, proposal_parser, oracle, scheduler = _cognitive_stack()
     else:
@@ -1837,7 +1842,9 @@ async def _play(run_dir, manifest, context):
                     writer,
                     snapshot,
                     combat_ruleset_digest,
-                    caused_by=(parent,)))
+                    caused_by=(parent,),
+                    action_budget=(
+                        combat_operation_action_budget)))
             if combat_events:
                 parent = combat_events[
                     -1]["event_id"]
@@ -2044,7 +2051,9 @@ async def _play(run_dir, manifest, context):
                         next_snapshot,
                         combat_ruleset_digest,
                         caused_by=(
-                            combat_parent,))
+                            combat_parent,),
+                        action_budget=(
+                            combat_operation_action_budget))
                     if combat_operations_enabled
                     else ())
                 action_refresh_event_latency_ms += (
@@ -2101,7 +2110,9 @@ async def _play(run_dir, manifest, context):
                         snapshot,
                         combat_ruleset_digest,
                         caused_by=(
-                            operation_parent,))
+                            operation_parent,),
+                        action_budget=(
+                            combat_operation_action_budget))
                     if combat_operations_enabled
                     else ())
                 parent = (

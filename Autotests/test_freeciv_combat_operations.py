@@ -259,7 +259,14 @@ def test_assembler_retains_both_participants_and_deterministic_identity():
             .initial_premise_packets))
     assert len(
         assembly.resource_request.claims
-    ) == 5
+    ) == 6
+    action_budget_claim = next(
+        claim
+        for claim in
+        assembly.resource_request.claims
+        if claim.resource.kind.value
+        == "action_budget")
+    assert action_budget_claim.quantity == 2
     assert assembly.shadow_only
     assert not assembly.policy_authority
 
@@ -285,6 +292,14 @@ def test_assembler_resolves_only_an_unambiguous_visible_stack_target():
 
     assert len(supported) == 1
     assert supported[0].target_unit_id == 999
+    readout = (
+        CombatOperationAssembler
+        .readout(
+            supported[0],
+            sentinel_snapshot,
+            0))
+    assert readout.disposition == (
+        "reservable")
 
     ambiguous_snapshot = replace(
         sentinel_snapshot,
@@ -330,7 +345,9 @@ def test_atomic_resource_schedule_prevents_duplicate_targeting():
     assert len(assemblies) == 3
     capacities = (
         ResourceCapacityExtractor()
-        .extract(snapshot)
+        .extract(
+            snapshot,
+            action_budget=8)
         .capacities
         + combat_target_capacities(
             assemblies, snapshot))
@@ -374,6 +391,45 @@ def test_atomic_resource_schedule_prevents_duplicate_targeting():
         for row in rejected)
 
 
+def test_atomic_operation_does_not_partially_activate_under_action_budget():
+    snapshot = _snapshot()
+    assemblies = (
+        CombatOperationAssembler()
+        .assemble(
+            snapshot,
+            "ruleset-proof"))
+    assert len(assemblies) == 1
+    capacities = (
+        ResourceCapacityExtractor()
+        .extract(
+            snapshot,
+            action_budget=1)
+        .capacities
+        + combat_target_capacities(
+            assemblies, snapshot))
+    assembly = assemblies[0]
+
+    schedule = (
+        GreedyIdentityScheduler()
+        .schedule(
+            (assembly.resource_request,),
+            capacities,
+            requirement_sets=(
+                assembly
+                .requirement_set,),
+            premise_packets=dict(
+                assembly
+                .initial_premise_packets)))
+
+    assert (
+        schedule
+        .selected_operation_ids
+    ) == ()
+    assert schedule.entries[
+        0].reason == (
+            "resource-capacity-exceeded")
+
+
 def test_snapshot_exposes_exact_revision_native_combat_evidence():
     snapshot = _snapshot(
         actor_count=2)
@@ -410,13 +466,15 @@ def test_shadow_emitter_records_atomic_schedule_and_native_intervals():
             .emit_combat_operation_shadow(
                 writer,
                 snapshot,
-                "ruleset-proof"))
+                "ruleset-proof",
+                action_budget=8))
         duplicate = (
             emitter
             .emit_combat_operation_shadow(
                 writer,
                 snapshot,
-                "ruleset-proof"))
+                "ruleset-proof",
+                action_budget=8))
         report = validate_file(path)
 
     proposals = [

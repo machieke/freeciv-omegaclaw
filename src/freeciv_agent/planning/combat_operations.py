@@ -381,10 +381,11 @@ class CombatOperationAssembler:
     def _claim(
             operation_id, step_id,
             resource, hardness,
-            turn, exclusive=False):
+            turn, exclusive=False,
+            quantity=1):
         return ResourceClaim(
             resource=resource,
-            quantity=1,
+            quantity=quantity,
             window=TurnWindow(
                 turn, turn + 1),
             hardness=hardness,
@@ -619,6 +620,20 @@ class CombatOperationAssembler:
                         .HARD_CURRENT,
                         snapshot.turn,
                         exclusive=True))
+                claims.append(
+                    self._claim(
+                        operation_id,
+                        "operation-action-budget",
+                        ResourceRef(
+                            GameResourceKind
+                            .ACTION_BUDGET,
+                            player_scope,
+                            "controller",
+                            player_scope),
+                        ClaimHardness
+                        .HARD_CURRENT,
+                        snapshot.turn,
+                        quantity=len(steps)))
                 request = OperationResourceRequest(
                     operation_id=(
                         operation_id),
@@ -732,9 +747,22 @@ class CombatOperationAssembler:
             None if result is None
             else result.action_probability(
                 "attack"))
+        current_target_unit_id = (
+            None
+            if result is None
+            else result.target_unit_id)
+        if (
+            result is not None
+            and current_target_unit_id == 0
+            and len(
+                result.target_unit_ids) == 1
+        ):
+            current_target_unit_id = (
+                result.target_unit_ids[
+                    0])
         if (
             result is None
-            or result.target_unit_id
+            or current_target_unit_id
                 != assembly.target_unit_id
             or probability is None
             or probability.status

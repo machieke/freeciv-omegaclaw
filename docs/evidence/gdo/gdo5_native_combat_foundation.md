@@ -1,7 +1,7 @@
 # GDO-5 native combat and atomic-operation foundation
 
-Status: first vertical subset verified in shadow mode; GDO-5 exit gate remains
-closed
+Status: first vertical subset and captured atomic replay verified in shadow
+mode; GDO-5 exit gate remains closed
 
 Date: 2026-07-30
 
@@ -154,10 +154,13 @@ GDO-5 is not complete and receives no live authority. Remaining work includes:
 3. sacrificial interception for a terminal goal;
 4. live step execution with re-estimation after every outcome;
 5. abandonment, repair, completion, and claim-release lifecycle rules;
-6. atomic-versus-independent captured replay;
-7. a fresh disjoint pilot with actual joint opportunities and directional
+6. a fresh disjoint pilot with actual execution and directional
    mechanism benefit.
 
-The next implementation slice should add a captured, deterministic joint
-combat corpus before expanding live authority. This avoids selecting a policy
-based on a seed that exposed no eligible two-actor target.
+The captured deterministic joint-combat corpus and its atomic-versus-
+independent diagnostic are now complete; see
+`docs/evidence/gdo/gdo5_atomic_combat_replay.md`. On five exact engine-backed
+snapshots, uncoordinated readout duplicated a target in 5/5 cases and atomic
+scheduling did so in 0/5 cases. This is a shadow mechanism result, not a score
+claim. The next implementation slice is step-by-step operation re-estimation
+and terminal lifecycle accounting before any live authority is considered.

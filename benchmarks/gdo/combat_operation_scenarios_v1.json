@@ -1,0 +1,346 @@
+{
+  "authority": "synthetic-mechanism-only",
+  "description": "Frozen player-visible combat interval scenarios for comparing independent action ranking with atomic GDO-5 assembly. These are not engine outcomes.",
+  "scenarios": [
+    {
+      "action_budget": 2,
+      "attackers": [
+        {
+          "attacks": [
+            {
+              "maximum": 150,
+              "minimum": 140,
+              "target_unit_id": 901
+            }
+          ],
+          "unit_id": 101
+        },
+        {
+          "attacks": [
+            {
+              "maximum": 110,
+              "minimum": 90,
+              "target_unit_id": 901
+            }
+          ],
+          "unit_id": 102
+        }
+      ],
+      "expect_atomic_candidates": true,
+      "id": "two-attackers-one-target",
+      "targets": [
+        {
+          "tile": 68,
+          "unit_id": 901
+        }
+      ]
+    },
+    {
+      "action_budget": 2,
+      "attackers": [
+        {
+          "attacks": [
+            {
+              "maximum": 170,
+              "minimum": 160,
+              "target_unit_id": 902
+            }
+          ],
+          "unit_id": 103
+        },
+        {
+          "attacks": [
+            {
+              "maximum": 140,
+              "minimum": 120,
+              "target_unit_id": 902
+            }
+          ],
+          "unit_id": 104
+        },
+        {
+          "attacks": [
+            {
+              "maximum": 100,
+              "minimum": 80,
+              "target_unit_id": 902
+            }
+          ],
+          "unit_id": 105
+        }
+      ],
+      "expect_atomic_candidates": true,
+      "id": "three-attackers-one-target",
+      "targets": [
+        {
+          "tile": 69,
+          "unit_id": 902
+        }
+      ]
+    },
+    {
+      "action_budget": 4,
+      "attackers": [
+        {
+          "attacks": [
+            {
+              "maximum": 160,
+              "minimum": 150,
+              "target_unit_id": 903
+            }
+          ],
+          "unit_id": 106
+        },
+        {
+          "attacks": [
+            {
+              "maximum": 120,
+              "minimum": 100,
+              "target_unit_id": 903
+            }
+          ],
+          "unit_id": 107
+        },
+        {
+          "attacks": [
+            {
+              "maximum": 150,
+              "minimum": 130,
+              "target_unit_id": 904
+            }
+          ],
+          "unit_id": 108
+        },
+        {
+          "attacks": [
+            {
+              "maximum": 110,
+              "minimum": 90,
+              "target_unit_id": 904
+            }
+          ],
+          "unit_id": 109
+        }
+      ],
+      "expect_atomic_candidates": true,
+      "id": "two-disjoint-targets",
+      "targets": [
+        {
+          "tile": 70,
+          "unit_id": 903
+        },
+        {
+          "tile": 71,
+          "unit_id": 904
+        }
+      ]
+    },
+    {
+      "action_budget": 4,
+      "attackers": [
+        {
+          "attacks": [
+            {
+              "maximum": 170,
+              "minimum": 150,
+              "target_unit_id": 905
+            },
+            {
+              "maximum": 150,
+              "minimum": 130,
+              "target_unit_id": 906
+            }
+          ],
+          "unit_id": 110
+        },
+        {
+          "attacks": [
+            {
+              "maximum": 130,
+              "minimum": 110,
+              "target_unit_id": 905
+            }
+          ],
+          "unit_id": 111
+        },
+        {
+          "attacks": [
+            {
+              "maximum": 120,
+              "minimum": 100,
+              "target_unit_id": 906
+            }
+          ],
+          "unit_id": 112
+        }
+      ],
+      "expect_atomic_candidates": true,
+      "id": "shared-actor-across-targets",
+      "targets": [
+        {
+          "tile": 72,
+          "unit_id": 905
+        },
+        {
+          "tile": 73,
+          "unit_id": 906
+        }
+      ]
+    },
+    {
+      "action_budget": 1,
+      "attackers": [
+        {
+          "attacks": [
+            {
+              "maximum": 160,
+              "minimum": 140,
+              "target_unit_id": 907
+            }
+          ],
+          "unit_id": 113
+        },
+        {
+          "attacks": [
+            {
+              "maximum": 120,
+              "minimum": 100,
+              "target_unit_id": 907
+            }
+          ],
+          "unit_id": 114
+        }
+      ],
+      "expect_atomic_candidates": true,
+      "id": "insufficient-action-budget",
+      "targets": [
+        {
+          "tile": 74,
+          "unit_id": 907
+        }
+      ]
+    },
+    {
+      "action_budget": 2,
+      "attackers": [
+        {
+          "attacks": [
+            {
+              "maximum": 160,
+              "minimum": 140,
+              "selected_target_unit_id": 0,
+              "target_unit_id": 908,
+              "visible_stack_ids": [
+                908,
+                909
+              ]
+            }
+          ],
+          "unit_id": 115
+        },
+        {
+          "attacks": [
+            {
+              "maximum": 140,
+              "minimum": 120,
+              "selected_target_unit_id": 0,
+              "target_unit_id": 908,
+              "visible_stack_ids": [
+                908,
+                909
+              ]
+            }
+          ],
+          "unit_id": 116
+        }
+      ],
+      "expect_atomic_candidates": false,
+      "id": "ambiguous-target-sentinel",
+      "targets": [
+        {
+          "tile": 75,
+          "unit_id": 908
+        },
+        {
+          "tile": 75,
+          "unit_id": 909
+        }
+      ]
+    },
+    {
+      "action_budget": 2,
+      "attackers": [
+        {
+          "attacks": [
+            {
+              "maximum": 160,
+              "minimum": 140,
+              "selected_target_unit_id": 0,
+              "target_unit_id": 910,
+              "visible_stack_ids": [
+                910
+              ]
+            }
+          ],
+          "unit_id": 117
+        },
+        {
+          "attacks": [
+            {
+              "maximum": 100,
+              "minimum": 80,
+              "selected_target_unit_id": 0,
+              "target_unit_id": 910,
+              "visible_stack_ids": [
+                910
+              ]
+            }
+          ],
+          "unit_id": 118
+        }
+      ],
+      "expect_atomic_candidates": true,
+      "id": "unambiguous-target-sentinel",
+      "targets": [
+        {
+          "tile": 76,
+          "unit_id": 910
+        }
+      ]
+    },
+    {
+      "action_budget": 2,
+      "attackers": [
+        {
+          "attacks": [
+            {
+              "maximum": 180,
+              "minimum": 160,
+              "target_unit_id": 911
+            }
+          ],
+          "unit_id": 119
+        },
+        {
+          "attacks": [
+            {
+              "maximum": 0,
+              "minimum": 0,
+              "target_unit_id": 911
+            }
+          ],
+          "unit_id": 120
+        }
+      ],
+      "expect_atomic_candidates": false,
+      "id": "zero-interval-is-not-support",
+      "targets": [
+        {
+          "tile": 77,
+          "unit_id": 911
+        }
+      ]
+    }
+  ],
+  "schema_version": "1.0"
+}

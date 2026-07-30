@@ -1200,7 +1200,8 @@ class ControlEventEmitter:
     def emit_combat_operation_shadow(
             self, writer, snapshot,
             ruleset_digest, caused_by=(),
-            maximum_operations=32):
+            maximum_operations=32,
+            action_budget=None):
         """Emit one exact, shadow-only GDO-5 readout per snapshot."""
         from ..pressure.resource_capacity import (
             ResourceCapacityExtractor,
@@ -1236,7 +1237,10 @@ class ControlEventEmitter:
         if assemblies:
             capacity_snapshot = (
                 ResourceCapacityExtractor()
-                .extract(snapshot))
+                .extract(
+                    snapshot,
+                    action_budget=(
+                        action_budget)))
             capacities = (
                 capacity_snapshot.capacities
                 + combat_target_capacities(
