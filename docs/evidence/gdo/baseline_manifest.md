@@ -27,11 +27,11 @@ close GDO-0. The following baseline gates remain open:
 - captured snapshots for defence, attack, transport, production, and research;
 - engine and ruleset binary identities.
 
-After the GDO-1 additions and generated event-type refresh, the complete
-FreeCiv test family passed:
+After the GDO-1 asynchronous readout, final-drain, and generated event-type
+changes, the complete FreeCiv test family passed:
 
 ```text
-816 passed in 324.81s
+820 passed in 327.98s
 ```
 
 ## Frozen comparator identities

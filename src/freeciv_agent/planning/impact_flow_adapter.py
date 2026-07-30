@@ -210,6 +210,7 @@ class ControlDecision:
                     # inside advisory/live artifacts.
                     if key not in (
                         "controller_telemetry",
+                        "domain_estimates",
                         "elapsed_ms",
                         "latency_ms",
                         "microseconds_per_edge_update",

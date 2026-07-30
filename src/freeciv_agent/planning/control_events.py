@@ -169,6 +169,51 @@ class ControlEventEmitter:
 
     EMITTER_IDENTITY = "unified-control-events/1.0"
 
+    def __init__(self):
+        # Completed asynchronous shadow batches may remain cached and be
+        # surfaced by more than one decision.  A request is one observation,
+        # so emit it once per run-scoped emitter.
+        self._emitted_domain_request_ids = set()
+
+    def emit_domain_estimate_artifacts(
+            self, writer, turn, artifacts,
+            caused_by=()):
+        """Emit completed shadow rows once, including final drained batches."""
+        parents = tuple(caused_by)
+        emitted = []
+        for artifact in artifacts:
+            if not isinstance(artifact, dict):
+                continue
+            for row in artifact.get(
+                    "estimates", ()):
+                if not isinstance(row, dict):
+                    continue
+                event_type = row.get(
+                    "event_type")
+                payload = row.get(
+                    "event_payload")
+                if (event_type not in (
+                        "domain_estimate_emitted",
+                        "domain_estimate_abstained")
+                        or not isinstance(payload, dict)):
+                    continue
+                request_id = payload.get(
+                    "request_id",
+                    row.get("request_id"))
+                if (not isinstance(request_id, str)
+                        or not request_id
+                        or request_id in
+                        self._emitted_domain_request_ids):
+                    continue
+                event = writer.emit(
+                    event_type, turn, payload,
+                    caused_by=list(parents))
+                self._emitted_domain_request_ids.add(
+                    request_id)
+                emitted.append(event)
+                parents = (event["event_id"],)
+        return tuple(emitted)
+
     @staticmethod
     def _emit(
             writer, event_type, turn, query,
@@ -247,22 +292,16 @@ class ControlEventEmitter:
             if isinstance(pressure, dict)
             else None)
         if isinstance(domain_estimates, dict):
-            for row in domain_estimates.get(
-                    "estimates", ()):
-                if not isinstance(row, dict):
-                    continue
-                event_type = row.get("event_type")
-                payload = row.get("event_payload")
-                if (event_type not in (
-                        "domain_estimate_emitted",
-                        "domain_estimate_abstained")
-                        or not isinstance(payload, dict)):
-                    continue
-                event = writer.emit(
-                    event_type, turn, payload,
-                    caused_by=list(parents))
-                emitted.append(event)
-                parents = (event["event_id"],)
+            domain_events = (
+                self.emit_domain_estimate_artifacts(
+                    writer, turn,
+                    (domain_estimates,),
+                    caused_by=parents))
+            emitted.extend(domain_events)
+            if domain_events:
+                parents = (
+                    domain_events[-1][
+                        "event_id"],)
         teleology = (
             pressure.get("teleology", {})
             if isinstance(pressure, dict)

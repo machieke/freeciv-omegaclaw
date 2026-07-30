@@ -16,6 +16,7 @@ from .registry import (
     AbstainingTransitionModel,
     DomainTransitionModelRegistry,
 )
+from .shadow import DomainEstimateShadowExecutor
 
 __all__ = [
     "AbstainingTransitionModel",
@@ -23,6 +24,7 @@ __all__ = [
     "DomainEstimateRequest",
     "DomainTransitionModel",
     "DomainTransitionModelRegistry",
+    "DomainEstimateShadowExecutor",
     "EstimateAuthority",
     "EstimateValidity",
     "GroundedTransitionEstimate",

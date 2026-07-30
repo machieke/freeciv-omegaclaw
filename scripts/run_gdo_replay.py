@@ -2,11 +2,13 @@
 """Run the GDO-1 paired shadow replay and latency diagnostic."""
 
 import argparse
+import gc
 import json
 import os
 import statistics
 import sys
 import time
+from dataclasses import replace
 
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -65,6 +67,20 @@ def _load_fixture(path):
     return payload, snapshot, candidates
 
 
+def _replay_snapshot(snapshot, sample_index):
+    identity = replace(
+        snapshot.identity,
+        source_seq=int(sample_index),
+        state_hash=structural_hash({
+            "base_state_hash":
+                snapshot.identity.state_hash,
+            "gdo_replay_sample":
+                int(sample_index),
+        }))
+    return replace(
+        snapshot, identity=identity)
+
+
 def run(fixture_path, iterations, warmup):
     payload, snapshot, candidates = _load_fixture(
         fixture_path)
@@ -78,67 +94,156 @@ def run(fixture_path, iterations, warmup):
     shadow = ImpactPressureRankerV2(
         domain_estimates_enabled=True,
         ruleset_digest=ruleset_digest)
-    arguments = (
-        snapshot, candidates, 5,
-        int(snapshot.turn) + 200)
-    for _ in range(int(warmup)):
-        baseline.rank(*arguments)
-        shadow.rank(*arguments)
-
     baseline_ms = []
-    shadow_ms = []
+    shadow_dispatch_ms = []
+    shadow_full_loop_ms = []
+    worker_ms = []
+    queue_delay_ms = []
+    worker_end_to_end_ms = []
     order_equal = True
     action_trace_equal = True
     schedule_equal = True
-    semantic_estimates = []
     coverage = []
-    # Alternate execution order to reduce systematic cache/thermal bias.
-    for index in range(int(iterations)):
-        rankers = (
-            (("baseline", baseline), ("shadow", shadow))
-            if index % 2 == 0 else
-            (("shadow", shadow), ("baseline", baseline)))
-        decisions = {}
-        for name, ranker in rankers:
-            started = time.perf_counter()
-            decisions[name] = ranker.rank(
+    completions = []
+    last_snapshot = None
+    last_completion = None
+    determinism_shadow = None
+    try:
+        for index in range(int(warmup)):
+            warm_snapshot = _replay_snapshot(
+                snapshot, 100000 + index)
+            arguments = (
+                warm_snapshot, candidates, 5,
+                int(warm_snapshot.turn) + 200)
+            baseline.rank(*arguments)
+            _, artifact = shadow.rank(
                 *arguments)
-            elapsed = (
-                time.perf_counter() - started) * 1000.0
-            (baseline_ms if name == "baseline"
-             else shadow_ms).append(elapsed)
-        baseline_order, baseline_artifact = (
-            decisions["baseline"])
-        shadow_order, shadow_artifact = (
-            decisions["shadow"])
-        order_equal = bool(
-            order_equal
-            and baseline_order == shadow_order)
-        action_trace_equal = bool(
-            action_trace_equal
-            and canonical_json_bytes([
-                row.action for row
-                in baseline_order])
-            == canonical_json_bytes([
-                row.action for row
-                in shadow_order]))
-        schedule_equal = bool(
-            schedule_equal
-            and baseline_artifact["schedule"]
-            == shadow_artifact["schedule"])
-        domain = shadow_artifact[
-            "domain_estimates"]
-        coverage.append(
-            float(domain["estimate_count"])
-            / float(max(1, len(candidates))))
-        semantic_estimates.append(
-            domain["artifact_hash"])
+            shadow.wait_for_domain_estimates(
+                artifact["domain_estimates"][
+                    "dispatch_batch_id"],
+                timeout=5.0)
+
+        # Every measured iteration uses a distinct snapshot identity.  The
+        # shadow path must therefore dispatch and complete fresh work rather
+        # than receiving a warmed same-snapshot cache hit.
+        for index in range(int(iterations)):
+            sample_snapshot = _replay_snapshot(
+                snapshot, 200000 + index)
+            last_snapshot = sample_snapshot
+            arguments = (
+                sample_snapshot, candidates, 5,
+                int(sample_snapshot.turn) + 200)
+            rankers = (
+                (("baseline", baseline), ("shadow", shadow))
+                if index % 2 == 0 else
+                (("shadow", shadow), ("baseline", baseline)))
+            decisions = {}
+            for name, ranker in rankers:
+                # Worker allocations from one arm must not make the paired
+                # comparator pay that arm's deferred cyclic-GC bill.  Run the
+                # same untimed stabilization before both measurements; worker
+                # compute and full-loop wall time remain reported separately.
+                gc.collect()
+                started = time.perf_counter()
+                decisions[name] = ranker.rank(
+                    *arguments)
+                decision_elapsed = (
+                    time.perf_counter()
+                    - started) * 1000.0
+                if name == "baseline":
+                    baseline_ms.append(
+                        decision_elapsed)
+                    continue
+                shadow_dispatch_ms.append(
+                    decision_elapsed)
+                domain = decisions[name][1][
+                    "domain_estimates"]
+                completion = (
+                    shadow.wait_for_domain_estimates(
+                        domain["dispatch_batch_id"],
+                        timeout=5.0))
+                shadow_full_loop_ms.append(
+                    (
+                        time.perf_counter()
+                        - started) * 1000.0)
+                completions.append(completion)
+                last_completion = completion
+                worker_ms.append(
+                    completion[
+                        "worker_latency_ms"])
+                queue_delay_ms.append(
+                    completion[
+                        "queue_delay_ms"])
+                worker_end_to_end_ms.append(
+                    completion[
+                        "end_to_end_latency_ms"])
+                coverage.append(
+                    float(
+                        completion[
+                            "estimate_count"])
+                    / float(max(
+                        1, len(candidates))))
+            baseline_order, baseline_artifact = (
+                decisions["baseline"])
+            shadow_order, shadow_artifact = (
+                decisions["shadow"])
+            order_equal = bool(
+                order_equal
+                and baseline_order == shadow_order)
+            action_trace_equal = bool(
+                action_trace_equal
+                and canonical_json_bytes([
+                    row.action for row
+                    in baseline_order])
+                == canonical_json_bytes([
+                    row.action for row
+                    in shadow_order]))
+            schedule_equal = bool(
+                schedule_equal
+                and baseline_artifact["schedule"]
+                == shadow_artifact["schedule"])
+
+        # Recompute the final batch through an independent registry/executor;
+        # this checks semantic determinism rather than cache stability.
+        determinism_shadow = ImpactPressureRankerV2(
+            domain_estimates_enabled=True,
+            ruleset_digest=ruleset_digest)
+        _, repeat_artifact = determinism_shadow.rank(
+            last_snapshot, candidates, 5,
+            int(last_snapshot.turn) + 200)
+        repeated_completion = (
+            determinism_shadow
+            .wait_for_domain_estimates(
+                repeat_artifact[
+                    "domain_estimates"][
+                        "dispatch_batch_id"],
+                timeout=5.0))
+        semantic_determinism = bool(
+            last_completion["artifact_hash"]
+            == repeated_completion[
+                "artifact_hash"])
+        shadow_statistics = (
+            shadow.domain_estimate_statistics())
+    finally:
+        shadow.close_domain_estimates()
+        if determinism_shadow is not None:
+            determinism_shadow.close_domain_estimates()
 
     baseline_summary = _summary(baseline_ms)
-    shadow_summary = _summary(shadow_ms)
+    shadow_summary = _summary(
+        shadow_dispatch_ms)
+    shadow_full_loop_summary = _summary(
+        shadow_full_loop_ms)
     overhead = (
         shadow_summary["p95_ms"]
         / baseline_summary["p95_ms"] - 1.0)
+    full_loop_overhead = (
+        shadow_full_loop_summary["p95_ms"]
+        / baseline_summary["p95_ms"] - 1.0)
+    all_completed = all(
+        row is not None
+        and row.get("status") == "completed"
+        for row in completions)
     result = {
         "baseline": baseline_summary,
         "candidate_count": len(candidates),
@@ -158,18 +263,43 @@ def run(fixture_path, iterations, warmup):
             "action_trace_byte_identical":
                 action_trace_equal,
             "candidate_coverage": min(coverage) >= 0.95,
+            "fresh_batches_completed":
+                all_completed,
             "live_order_identical": order_equal,
             "p95_overhead_within_5_percent":
                 overhead <= 0.05,
+            "queue_capacity_not_exceeded":
+                shadow_statistics[
+                    "capacity_rejection_count"] == 0,
             "schedule_identical": schedule_equal,
             "semantic_estimates_deterministic":
-                len(set(semantic_estimates)) == 1,
+                semantic_determinism,
+            "worker_failures_absent":
+                shadow_statistics[
+                    "failed_batch_count"] == 0,
         },
         "iterations": int(iterations),
+        "measurement_protocol": {
+            "fresh_snapshot_per_pair": True,
+            "paired_gc_stabilization": True,
+            "worker_cost_reported_separately": True,
+        },
+        "full_loop_p95_overhead_fraction":
+            full_loop_overhead,
         "p95_overhead_fraction": overhead,
         "policy_authority": False,
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "shadow": shadow_summary,
+        "shadow_full_loop": (
+            shadow_full_loop_summary),
+        "shadow_worker": {
+            "compute": _summary(worker_ms),
+            "end_to_end": _summary(
+                worker_end_to_end_ms),
+            "executor": shadow_statistics,
+            "queue_delay": _summary(
+                queue_delay_ms),
+        },
         "warmup_iterations": int(warmup),
     }
     result["passed"] = all(

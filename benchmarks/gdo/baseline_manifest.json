@@ -36,9 +36,9 @@
   "source_commit": "87f3482e631b0713378e69b350e460d4c6a310b7",
   "freeciv_regression": {
     "command": "PYTHONPATH=.:src:benchmarks pytest -q Autotests/test_freeciv_*.py",
-    "duration_seconds": 324.81,
+    "duration_seconds": 327.98,
     "failed": 0,
-    "passed": 816
+    "passed": 820
   },
   "targeted_regression": {
     "command": "PYTHONPATH=.:src:benchmarks pytest -q Autotests/test_freeciv_transitions.py Autotests/test_freeciv_teleology.py Autotests/test_freeciv_pf_runtime.py Autotests/test_freeciv_adapter.py",

@@ -714,6 +714,10 @@ class ImpactPressureRanker(object):
             pressure_result, horizon_turn, diagnostics)
         return None
 
+    def _dispatch_grounded_transition_estimates(self):
+        """Compatibility hook; scalar-v1 has no deferred shadow work."""
+        return None
+
     def _bridge_scalar_scores(
             self, snapshot, operations,
             candidate_by_operation, scores,
@@ -1156,6 +1160,10 @@ class ImpactPressureRanker(object):
             diagnostics["pressure_artifact_latency_ms"] = (
                 diagnostics.get("pressure_artifact_latency_ms", 0.0)
                 + (time.perf_counter() - artifact_started) * 1000.0)
+        # Non-authoritative domain work starts only after the live ordering,
+        # schedule, and artifact have been fully materialized.  This keeps the
+        # worker outside the decision-critical computation it is observing.
+        self._dispatch_grounded_transition_estimates()
         return ordered, artifact
 
     def record_category_outcome(
@@ -1255,6 +1263,13 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             domain_estimates_authority_enabled)
         self.domain_model_registry = (
             domain_model_registry)
+        self._domain_estimate_executor = None
+        if domain_estimates_enabled:
+            from ..planning.domain_models import (
+                DomainEstimateShadowExecutor,
+            )
+            self._domain_estimate_executor = (
+                DomainEstimateShadowExecutor())
         self.ruleset_digest = (
             ruleset_digest or structural_hash({
                 "ruleset": "not-supplied",
@@ -1333,6 +1348,7 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                 SmoothedScalarController(
                     path_persistence_config))
         self._pending_transition_predictions = {}
+        self._staged_domain_estimate_submission = None
         self.engine = PressureEngineV2(
             self.config, policy=self.v2_policy)
 
@@ -1360,18 +1376,15 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             None if target_id is None else str(target_id),
         )
 
-    def _grounded_transition_estimates(
+    def _compute_grounded_transition_estimates(
             self, snapshot, operations, candidate_by_operation,
-            pressure_result, horizon_turn, diagnostics=None):
-        if not self.domain_estimates_enabled:
-            return None
+            pressure_result, horizon_turn, batch_id):
         from ..planning.domain_models import (
             DomainEstimateRequest,
             EstimateAuthority,
             EstimateValidity,
         )
         from .teleology import typed_expected_reliefs
-        started = time.perf_counter()
         snapshot_id = str(getattr(
             snapshot, "snapshot_id", "") or structural_hash(
                 snapshot.event_payload()
@@ -1502,8 +1515,10 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             "authority_active": False,
             "authority_requested": bool(
                 self.domain_estimates_authority_enabled),
+            "batch_id": batch_id,
             "estimate_count": len(rows),
             "estimates": rows,
+            "expected_estimate_count": len(operations),
             "live_ordering_unchanged": True,
             "schema_version": "1.0",
             "shadow_only": True,
@@ -1512,6 +1527,7 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             "authority_active": False,
             "authority_requested": bool(
                 self.domain_estimates_authority_enabled),
+            "batch_id": batch_id,
             "estimates": tuple({
                 "candidate_action_id":
                     row["candidate_action_id"],
@@ -1526,15 +1542,176 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             "schema_version": "1.0",
             "shadow_only": True,
         })
+        return artifact
+
+    def _domain_estimate_batch_id(
+            self, snapshot, operations,
+            candidate_by_operation, pressure_result,
+            horizon_turn):
+        snapshot_id = str(getattr(
+            snapshot, "snapshot_id", "") or "snapshot-unavailable")
+        legal_actions_digest = str(getattr(
+            snapshot, "legal_actions_digest", "")
+            or "legal-actions-unavailable")
+        fields = [
+            "grounded-domain-shadow-batch/1",
+            snapshot_id,
+            legal_actions_digest,
+            self.ruleset_digest,
+            str(int(horizon_turn)),
+        ]
+        for operation in sorted(
+                operations,
+                key=lambda row: row.operation_id):
+            candidate = candidate_by_operation[
+                operation.operation_id]
+            goal_id = "pf-impact:{}".format(
+                self.goal_for_category(
+                    candidate.category))
+            fields.extend((
+                operation.operation_id,
+                candidate.action_key,
+                candidate.category,
+                goal_id,
+                repr(float(
+                    pressure_result.demand(
+                        goal_id).total)),
+            ))
+        return hashlib.sha256(
+            "\x1f".join(fields).encode(
+                "utf-8")).hexdigest()
+
+    def _grounded_transition_estimates(
+            self, snapshot, operations, candidate_by_operation,
+            pressure_result, horizon_turn, diagnostics=None):
+        if not self.domain_estimates_enabled:
+            return None
+        started = time.perf_counter()
+        operations = tuple(operations)
+        batch_id = self._domain_estimate_batch_id(
+            snapshot, operations,
+            candidate_by_operation, pressure_result,
+            horizon_turn)
+        empty_artifact = {
+            "artifact_hash": structural_hash({
+                "batch_id": batch_id,
+                "schema_version": "1.0",
+                "shadow_only": True,
+                "status": "pending",
+            }),
+            "authority_active": False,
+            "authority_requested": False,
+            "batch_id": batch_id,
+            "dispatch_batch_id": batch_id,
+            "estimate_count": 0,
+            "estimates": [],
+            "expected_estimate_count": len(operations),
+            "live_ordering_unchanged": True,
+            "schema_version": "1.0",
+            "shadow_only": True,
+            "status": "pending",
+        }
+        failure_artifact = {
+            **empty_artifact,
+            "artifact_hash": structural_hash({
+                "batch_id": batch_id,
+                "schema_version": "1.0",
+                "shadow_only": True,
+                "status": "failed",
+            }),
+        }
+        arguments = (
+                snapshot,
+                operations,
+                dict(candidate_by_operation),
+                pressure_result,
+                int(horizon_turn),
+                batch_id,
+            )
+        artifact = (
+            self._domain_estimate_executor.poll(
+                preferred_batch_id=batch_id))
+        if artifact is not None:
+            # The readout may carry the preceding completed observation while
+            # this decision dispatches a fresh batch.  Keep both identities
+            # explicit so drains and coverage never mistake the two.
+            artifact = dict(artifact)
+            artifact["dispatch_batch_id"] = (
+                batch_id)
+        self._staged_domain_estimate_submission = {
+            "arguments": arguments,
+            "batch_id": batch_id,
+            "diagnostics": diagnostics,
+            "failure_artifact": failure_artifact,
+            "pending_artifact": (
+                empty_artifact
+                if artifact is None else None),
+            "started": started,
+        }
+        if artifact is None:
+            artifact = empty_artifact
+            artifact["submission"] = "staged"
+            artifact["executor"] = (
+                self._domain_estimate_executor
+                .statistics())
+        return artifact
+
+    def _dispatch_grounded_transition_estimates(self):
+        staged = self._staged_domain_estimate_submission
+        self._staged_domain_estimate_submission = None
+        if staged is None:
+            return None
+        submission = self._domain_estimate_executor.submit(
+            staged["batch_id"],
+            self._compute_grounded_transition_estimates,
+            arguments=staged["arguments"],
+            failure_artifact=(
+                staged["failure_artifact"]))
+        pending_artifact = staged[
+            "pending_artifact"]
+        if pending_artifact is not None:
+            pending_artifact[
+                "submission"] = submission
+        diagnostics = staged["diagnostics"]
         if diagnostics is not None:
             diagnostics[
                 "pressure_domain_estimate_latency_ms"] = (
                     diagnostics.get(
                         "pressure_domain_estimate_latency_ms",
                         0.0)
-                    + (time.perf_counter() - started)
+                    + (
+                        time.perf_counter()
+                        - staged["started"])
                     * 1000.0)
-        return artifact
+        return submission
+
+    def wait_for_domain_estimates(
+            self, batch_id, timeout=None):
+        if self._domain_estimate_executor is None:
+            return None
+        return self._domain_estimate_executor.wait(
+            batch_id, timeout=timeout)
+
+    def flush_domain_estimates(self, timeout=None):
+        if self._domain_estimate_executor is None:
+            return ()
+        return self._domain_estimate_executor.flush(
+            timeout=timeout)
+
+    def domain_estimate_statistics(self):
+        if self._domain_estimate_executor is None:
+            return {
+                "enabled": False,
+            }
+        return {
+            "enabled": True,
+            **self._domain_estimate_executor.statistics(),
+        }
+
+    def close_domain_estimates(self, wait=True):
+        if self._domain_estimate_executor is not None:
+            self._domain_estimate_executor.close(
+                wait=wait)
 
     @staticmethod
     def _expected_state_cost(transition, goal_id):

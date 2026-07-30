@@ -3212,6 +3212,28 @@ async def _play(run_dir, manifest, context):
                         int(induction_prediction == actual)))
         metrics.append(("induction_prior_samples",
                         induction_estimate["samples"]))
+    drained_domain_estimates = ()
+    final_domain_estimate_events = ()
+    if impact_planner is not None:
+        drained_domain_estimates = (
+            impact_planner.flush_domain_estimates(
+                timeout=5.0))
+        final_domain_estimate_events = (
+            control_event_emitter
+            .emit_domain_estimate_artifacts(
+                writer, final_turn,
+                drained_domain_estimates,
+                caused_by=(parent,)))
+        if final_domain_estimate_events:
+            parent = final_domain_estimate_events[
+                -1]["event_id"]
+        impact_planner.close_domain_estimates()
+        metrics.extend((
+            ("domain_estimate_final_drain_batches",
+             len(drained_domain_estimates)),
+            ("domain_estimate_final_drain_events",
+             len(final_domain_estimate_events)),
+        ))
     for name, value in metrics:
         parent = _metric(writer, final_turn, parent, name, value, manifest,
                          seed=manifest["seed"], sequence=manifest.get("sequence", 0))
@@ -3238,6 +3260,10 @@ async def _play(run_dir, manifest, context):
             "decision_effect_confirmation_expired": (
                 decision_stats["effect_confirmation_expired"]),
             "decision_effect_confirmation_pending": len(pending_impact_outcomes),
+            "domain_estimate_final_drain_batches":
+                len(drained_domain_estimates),
+            "domain_estimate_final_drain_events":
+                len(final_domain_estimate_events),
             "decision_stale_terminal_followups_blocked": (
                 decision_stats["stale_terminal_followups_blocked"]),
             "meaningful_actions": decision_stats["meaningful_actions"],

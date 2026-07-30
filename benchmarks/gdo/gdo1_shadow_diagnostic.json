@@ -1,10 +1,10 @@
 {
   "baseline": {
-    "maximum_ms": 19.200206734240055,
-    "mean_ms": 10.279934559948742,
-    "p50_ms": 9.855142096057534,
-    "p95_ms": 10.45944169163704,
-    "p99_ms": 19.18146386742592,
+    "maximum_ms": 13.283001258969307,
+    "mean_ms": 10.58076451299712,
+    "p50_ms": 10.38711704313755,
+    "p95_ms": 11.980051174759865,
+    "p99_ms": 12.906251940876245,
     "sample_count": 200
   },
   "candidate_count": 34,
@@ -19,27 +19,82 @@
     "payload_hash": "7efd89dec897602aca8995c08b7866c3803ee34ee64bf37da706aad1bc3a5618",
     "snapshot_id": "gdo1-shadow-replay:1:1:a7052a57624cd43b"
   },
+  "full_loop_p95_overhead_fraction": 1.0476158010715917,
   "gates": {
     "action_trace_byte_identical": true,
     "candidate_coverage": true,
+    "fresh_batches_completed": true,
     "live_order_identical": true,
-    "p95_overhead_within_5_percent": false,
+    "p95_overhead_within_5_percent": true,
+    "queue_capacity_not_exceeded": true,
     "schedule_identical": true,
-    "semantic_estimates_deterministic": true
+    "semantic_estimates_deterministic": true,
+    "worker_failures_absent": true
   },
   "iterations": 200,
-  "p95_overhead_fraction": 0.3265888534504404,
-  "passed": false,
+  "measurement_protocol": {
+    "fresh_snapshot_per_pair": true,
+    "paired_gc_stabilization": true,
+    "worker_cost_reported_separately": true
+  },
+  "p95_overhead_fraction": -0.006576951714939994,
+  "passed": true,
   "policy_authority": false,
-  "report_hash": "74a1b562b89ede949d690c0c1f52ab74ab34f18bdc9a28f3d72399855625e7ea",
-  "schema_version": "1.0",
+  "report_hash": "92fc146ce3a7389219757818879724be02e8b209c0fb0303d949528c5311cdec",
+  "schema_version": "1.1",
   "shadow": {
-    "maximum_ms": 22.881594020873308,
-    "mean_ms": 13.544772278983146,
-    "p50_ms": 13.14964797347784,
-    "p95_ms": 13.875378761440516,
-    "p99_ms": 22.409044671803713,
+    "maximum_ms": 16.643561888486147,
+    "mean_ms": 10.779638353269547,
+    "p50_ms": 10.6215407140553,
+    "p95_ms": 11.901258956640959,
+    "p99_ms": 13.568812981247902,
     "sample_count": 200
+  },
+  "shadow_full_loop": {
+    "maximum_ms": 27.444692328572273,
+    "mean_ms": 20.54663218325004,
+    "p50_ms": 22.95236219651997,
+    "p95_ms": 24.530542083084583,
+    "p99_ms": 26.81303722783923,
+    "sample_count": 200
+  },
+  "shadow_worker": {
+    "compute": {
+      "maximum_ms": 16.493139788508415,
+      "mean_ms": 9.51816484797746,
+      "p50_ms": 11.930102715268731,
+      "p95_ms": 12.55795918405056,
+      "p99_ms": 15.609001740813255,
+      "sample_count": 200
+    },
+    "end_to_end": {
+      "maximum_ms": 16.645031049847603,
+      "mean_ms": 9.663462187163532,
+      "p50_ms": 12.082538334652781,
+      "p95_ms": 12.700219172984362,
+      "p99_ms": 15.759747941046953,
+      "sample_count": 200
+    },
+    "executor": {
+      "cache_size": 8,
+      "capacity_rejection_count": 0,
+      "completed_batch_count": 220,
+      "completed_estimate_count": 7480,
+      "enabled": true,
+      "failed_batch_count": 0,
+      "maximum_cached": 8,
+      "maximum_pending": 2,
+      "pending_batch_count": 0,
+      "submitted_batch_count": 220
+    },
+    "queue_delay": {
+      "maximum_ms": 0.22823410108685493,
+      "mean_ms": 0.14529733918607235,
+      "p50_ms": 0.14700507745146751,
+      "p95_ms": 0.16706716269254684,
+      "p99_ms": 0.19503990188241005,
+      "sample_count": 200
+    }
   },
   "warmup_iterations": 20
 }

@@ -1,6 +1,6 @@
 # GDO-1 Grounded Transition Shadow
 
-Status: implementation complete; exit evidence in progress
+Status: shadow exit gate passed
 Policy effect: none
 Live authority: unavailable and rejected at configuration time
 
@@ -35,9 +35,16 @@ not multiply by `Operation.success_probability` again. Unknown probability
 mass receives zero positive relief in neutral mode. Conservative callers may
 charge the declared residual loss in adverse mode.
 
-The existing scalar and teleological ordering remain unchanged. The new result
-is attached as a shadow artifact after operation construction and before the
-existing scheduler.
+The existing scalar and teleological ordering remain unchanged. Requests are
+formed after operation construction, but estimate computation starts only
+after the live ordering, schedule, and decision artifact are complete. One
+bounded single-worker queue computes immutable, snapshot-pinned batches.
+
+Completed observations are read without waiting on a later decision. A
+run-scoped emitter deduplicates request identities, and the engine harness
+drains the retained final batches before `run_completed`. Queue saturation,
+worker failure, and completion timing remain observational and cannot change
+the selected action.
 
 ## Candidate invariance
 
@@ -76,29 +83,48 @@ The event contract adds:
 
 Events include transition/context/validity data, expected relief, adverse risk,
 provenance, and observed estimator latency. Wall timing is excluded from
-semantic decision and artifact hashes.
+semantic decision and artifact hashes. The entire asynchronous
+`domain_estimates` readout is excluded from the decision hash because a
+pending-versus-completed observation is not decision semantics.
 
 ## Current verification
 
-- New grounded-domain and focused controller tests: 63 passing.
-- Complete post-generation FreeCiv test-family run: 816 passing in 324.81s.
+- Grounded-domain, controller, runtime, and harness tests after the asynchronous
+  readout change: 165 passing in 287.69s.
+- Complete post-change FreeCiv test-family run: 820 passing in 327.98s.
 - Shadow candidate order: identical to the comparator.
 - Canonical action trace bytes: identical to the comparator.
 - Shadow scheduler artifact: identical to the comparator.
 - Versioned event payload validation: passing.
-- Paired 200-iteration replay on the 34-candidate captured snapshot:
+- Paired 200-iteration replay on the 34-candidate captured state, with a fresh
+  snapshot identity and fresh estimate batch for every pair:
   - candidate coverage: 100%;
+  - completed measured batches: 200/200;
+  - worker failures and queue-capacity rejections: zero;
   - deterministic semantic estimates: pass;
-  - baseline p95: 10.46 ms;
-  - shadow p95: 13.88 ms;
-  - p95 overhead: 32.7%;
-  - required overhead gate: at most 5%, therefore **failed**.
+  - baseline decision-path p95: 11.98 ms;
+  - shadow decision-path p95: 11.90 ms;
+  - measured p95 overhead: -0.66%, treated as parity/no regression;
+  - required decision-path overhead: at most 5%, therefore **passed**;
+  - worker-compute p95: 12.56 ms;
+  - shadow rank-plus-drain p95: 24.53 ms;
+  - full shadow-loop p95 overhead: 104.76%.
 
-Open GDO-1 exit evidence:
+The worker result is deliberately not awaited by live action selection, which
+closes the stated planning-latency gate. The extra computation has not
+disappeared: the diagnostic separately reports its queue, worker, and
+rank-plus-drain distributions. GDO-2 engine evaluation must continue to report
+full-turn latency and queue saturation so that background contention cannot be
+misrepresented as free.
 
-- reduction of measured controller-inclusive p95 overhead from 32.7% to the
-  required maximum of 5%.
+## Exit decision
+
+All explicit GDO-1 shadow gates now pass. This permits GDO-2 implementation in
+default-off shadow mode. It does not authorize grounded estimates, establish
+gameplay value, or close the still-open GDO-0 engine cohort and repository-wide
+baseline gates.
 
 The checked diagnostic is
 [`benchmarks/gdo/gdo1_shadow_diagnostic.json`](../../../benchmarks/gdo/gdo1_shadow_diagnostic.json).
-No live authority may be enabled while the latency gate remains open.
+No live authority may be enabled until a later grounded model passes its own
+parity, support, calibration, safety, and engine-evaluation gates.

@@ -6990,3 +6990,48 @@ class GroundedImpactPlanner(object):
                     next(iter(
                         self._pending_control_decisions)))
         return ImpactDecision(candidate, plan, pressure_artifact)
+
+    def flush_domain_estimates(self, timeout=None):
+        """Drain retained non-authoritative domain artifacts for observability."""
+        artifacts = []
+        seen = set()
+        for ranker in (
+                self._pressure_ranker_v2,
+                self._bridge_pressure_ranker):
+            if (ranker is None
+                    or not callable(getattr(
+                        ranker,
+                        "flush_domain_estimates",
+                        None))):
+                continue
+            for artifact in (
+                    ranker.flush_domain_estimates(
+                        timeout=timeout)):
+                batch_id = artifact.get(
+                    "batch_id")
+                identity = (
+                    batch_id
+                    if isinstance(batch_id, str)
+                    and batch_id else
+                    artifact.get("artifact_hash"))
+                if identity in seen:
+                    continue
+                seen.add(identity)
+                artifacts.append(artifact)
+        return tuple(artifacts)
+
+    def close_domain_estimates(self, wait=True):
+        """Release any optional shadow workers owned by this planner."""
+        seen = set()
+        for ranker in (
+                self._pressure_ranker_v2,
+                self._bridge_pressure_ranker):
+            if ranker is None or id(ranker) in seen:
+                continue
+            seen.add(id(ranker))
+            close = getattr(
+                ranker,
+                "close_domain_estimates",
+                None)
+            if callable(close):
+                close(wait=wait)
