@@ -1,6 +1,6 @@
 # Native Movement Route Foundation
 
-Status: implementation verified; live engine cohort pending
+Status: implementation and live engine cohort verified; policy gate remains closed
 Scope: GDO-2A input foundation and GDO-4 multi-turn defender routes
 Policy: opt-in experimental; default off
 
@@ -51,14 +51,25 @@ the broader movement-rule supported subset remain open.
 
 ## Verification
 
-- Clean pinned upstream proxy suite: 49 passed.
+- Clean pinned upstream proxy suites: 160 passed, 4 skipped.
 - Freeciv packet generator: completed successfully for the modified packet
   schema and generated the new route response fields.
-- Focused repository integration suite: 51 passed.
+- Full Freeciv C container build and link: passed.
+- Focused repository integration suites: passed.
 - Python syntax compilation: passed for the modified harness, turn-cycle,
   runtime, state, and domain-model modules.
+- Two fresh 160-turn engine-live games: completed at the fixed horizon with
+  zero event-schema warnings or errors and zero rejected engine actions.
+- Native route observations: 1,263/1,263 reachable for seed 104743 and
+  9,699/9,825 reachable for seed 4543804.
+- Mean route-response wait per state request was 2.31--16.21 ms at turn
+  boundaries and 0.58--1.18 ms during action refreshes across the two games.
+- Eight retained defence snapshots replayed deterministically with a 12.19 ms
+  p95 compute time. Supported requirement coverage rose from the earlier
+  5/12 diagnostic capture to 9/13 in the route-enabled capture.
 
-A host-native Freeciv C build was not available because the host lacks the ICU
-development dependency. The next verification step is to apply the pinned
-series to the configured engine checkout, rebuild its container image, capture
-a fresh route-enabled GDO-4 cohort, and replay the resulting exact routes.
+The detailed cohort and replay evidence is in
+`docs/evidence/gdo/gdo4_native_route_160_replay.md`. This evidence establishes
+the route input and its measurable effect on candidate support. It is not a
+score claim: the two seeds are not a paired policy comparison, the operation
+readout is shadow-only, and the replay's 90% operation-edge gate remains open.

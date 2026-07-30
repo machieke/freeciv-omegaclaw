@@ -2,7 +2,8 @@
 
 Status: native route foundation implemented; clean-room parity gate open
 Policy effect: opt-in experimental diagnostics and city-defence operation input
-Audited repository commit: pending this evidence commit
+Audited repository commits: `bcfd8a6` (native route boundary) and `08f0900`
+(replay retention)
 
 ## Decision
 
@@ -160,16 +161,18 @@ heuristic until the clean-room parity corpus passes.
    implementation code: process boundary and runner complete; native
    executable/corpus pending.
 7. Capture generated visible movement fixtures with engine/ruleset identities:
-   pending.
+   complete for eight route-enabled city-defence snapshots; the randomized
+   clean-room parity corpus remains pending.
 8. Retain full legal actions, wrap topology, runtime unit fields, and exact
    native routes in fresh event replay artifacts: implementation complete;
-   fresh engine replay capture pending.
+   fresh engine replay capture complete.
 
 ## Exit status
 
-The audit, conservative one-edge model, and direct native route foundation are
-complete. Focused packet/proxy and repository tests pass. The GDO-2A clean-room
-parity gate remains open: the required randomized roads, rails, zone-of-control,
-impassable-terrain, transport, and tie-breaking corpus has not been captured.
-Synthetic explicit-cost results therefore remain `HEURISTIC`; only an exact,
-current server route match is labelled `EXACT_AUTHORITATIVE`.
+The audit, conservative one-edge model, direct native route foundation, and
+fresh engine replay capture are complete. Focused packet/proxy and repository
+tests pass. The GDO-2A clean-room parity gate remains open: the required
+randomized roads, rails, zone-of-control, impassable-terrain, transport, and
+tie-breaking corpus has not been captured. Synthetic explicit-cost results
+therefore remain `HEURISTIC`; only an exact, current server route match is
+labelled `EXACT_AUTHORITATIVE`.

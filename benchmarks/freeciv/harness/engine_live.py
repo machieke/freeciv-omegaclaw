@@ -632,13 +632,15 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
         query_started = time.perf_counter()
         query_diagnostics = {}
         state_query_options = dict(query_options)
+        if include_movement_routes:
+            state_query_options[
+                "include_movement_routes"] = True
         if diagnostics is not None:
             state_query_options["diagnostics"] = query_diagnostics
         try:
             raw = await asyncio.wait_for(
                 turncycle.get_state(
                     ws, "pln_authoritative",
-                    include_movement_routes=include_movement_routes,
                     **state_query_options),
                 timeout=max(0.05, remaining))
         except asyncio.TimeoutError:
@@ -772,8 +774,10 @@ async def _next_turn_state(ws, game_id, api_token, agent_id, minimum_turn,
         "stable_samples": 2,
         "diagnostics": diagnostics,
         "timeout": timeout,
-        "include_movement_routes": include_movement_routes,
     }
+    if include_movement_routes:
+        state_options[
+            "include_movement_routes"] = True
     try:
         return await _state(ws, game_id, **state_options)
     except TimeoutError:
@@ -2847,6 +2851,14 @@ async def _play(run_dir, manifest, context):
          mean_state_diagnostic(
              transition_state_diagnostics, "server_quiet_wait_ms",
              transition_calls)),
+        ("turn_boundary_state_server_movement_route_wait_ms",
+         mean_state_diagnostic(
+             transition_state_diagnostics,
+             "server_movement_route_wait_ms", transition_calls)),
+        ("turn_boundary_state_server_movement_route_responses",
+         mean_state_diagnostic(
+             transition_state_diagnostics,
+             "server_movement_route_responses", transition_calls)),
         ("turn_boundary_state_server_prepare_ms",
          mean_state_diagnostic(
              transition_state_diagnostics,
@@ -2903,6 +2915,14 @@ async def _play(run_dir, manifest, context):
          mean_state_diagnostic(
              action_state_diagnostics, "server_quiet_wait_ms",
              action_state_calls)),
+        ("action_refresh_state_server_movement_route_wait_ms",
+         mean_state_diagnostic(
+             action_state_diagnostics,
+             "server_movement_route_wait_ms", action_state_calls)),
+        ("action_refresh_state_server_movement_route_responses",
+         mean_state_diagnostic(
+             action_state_diagnostics,
+             "server_movement_route_responses", action_state_calls)),
         ("action_refresh_state_server_prepare_ms",
          mean_state_diagnostic(
              action_state_diagnostics,

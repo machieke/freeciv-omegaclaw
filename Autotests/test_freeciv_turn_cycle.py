@@ -90,6 +90,8 @@ def test_state_query_collects_server_timing_without_changing_state_body():
                     "source_wait_ms": 12.5,
                     "projection_ms": 4,
                     "quiet_wait_ms": 50.25,
+                    "movement_route_wait_ms": 7.5,
+                    "movement_route_responses": 12,
                     "elapsed_before_serialize_ms": 68.0,
                     "projection_attempts": 1,
                     "ignored": 99,
@@ -107,6 +109,8 @@ def test_state_query_collects_server_timing_without_changing_state_body():
         "source_wait_ms": 12.5,
         "projection_ms": 4.0,
         "quiet_wait_ms": 50.25,
+        "movement_route_wait_ms": 7.5,
+        "movement_route_responses": 12.0,
         "elapsed_before_serialize_ms": 68.0,
         "projection_attempts": 1.0,
     }
