@@ -1,0 +1,77 @@
+{
+  "authority": {
+    "claim_status": "diagnostic-replay-only",
+    "policy_authority_eligible": false
+  },
+  "fixture_count": 9,
+  "fixtures": [
+    {
+      "candidate_count": 20,
+      "fixture_sha256": "401b0206d33e9ae20408f05d2a1d2517a10ffb508cb03c2cf6893693ea9e1a4e",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense/turn-46-bf9fb77e2ccae3ba.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:46:11649:bf9fb77e2ccae3ba",
+      "turn": 46
+    },
+    {
+      "candidate_count": 3,
+      "fixture_sha256": "19fc2591a499868238f5fb87ed1684525a091d9bae70835b46eb51dcbb52505e",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense/turn-48-c091728e59add329.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:48:12071:c091728e59add329",
+      "turn": 48
+    },
+    {
+      "candidate_count": 8,
+      "fixture_sha256": "5e963202d3550f27df36288d46ebee9059d185efd83d623e20dd20bc5c4e7cb9",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense/turn-105-dd4dc4a9b7576127.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:105:20389:dd4dc4a9b7576127",
+      "turn": 105
+    },
+    {
+      "candidate_count": 9,
+      "fixture_sha256": "fa6f128458340ca92d46d52012ddb845b69f850bf4225b38fdac5a2f6cdfb735",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense/turn-107-7c65d3b5807277fd.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:107:20931:7c65d3b5807277fd",
+      "turn": 107
+    },
+    {
+      "candidate_count": 4,
+      "fixture_sha256": "74ae25be0757243ced41ce7648f030c0c328f19a989785838b833e1231189aed",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense/turn-115-33cec663f917e714.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:115:22398:33cec663f917e714",
+      "turn": 115
+    },
+    {
+      "candidate_count": 17,
+      "fixture_sha256": "da401060236ccf45c293bb6fb31965cbc9e1b9c5473b53f9bfad5602b8512e2a",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense/turn-126-b1b76772023a5e91.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:126:24355:b1b76772023a5e91",
+      "turn": 126
+    },
+    {
+      "candidate_count": 13,
+      "fixture_sha256": "4ec66cb8fa4d4fbf221d4edeca0d3f82692c72b2b272c6254caa4cdb73e44110",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense/turn-132-ddd08d621970ccb3.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:132:25512:ddd08d621970ccb3",
+      "turn": 132
+    },
+    {
+      "candidate_count": 7,
+      "fixture_sha256": "813de57f2a37633c86bde39f15ffca6962cc6b815c09690811774372cc1d50a7",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense/turn-133-2b58af7c8f8344af.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:133:25949:2b58af7c8f8344af",
+      "turn": 133
+    },
+    {
+      "candidate_count": 14,
+      "fixture_sha256": "07291dfd2752dc1fc2129aee24e35343e8a9b27a729aaee4869c62bd77d870ea",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense/turn-134-d32bd3350c7dd596.json",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:134:26440:d32bd3350c7dd596",
+      "turn": 134
+    }
+  ],
+  "manifest_hash": "cb48cbc75cd99a76d0d90d807bfa17504de28e4c6cd57e66bfb0759345611df9",
+  "ruleset": "civ2civ3",
+  "schema_version": "1.0",
+  "source_event_trace_sha256": "7af1e567368e2632dbd72abd3336b6bff48052971492cf0abd768428b4116caa",
+  "source_manifest_identity": "0a03b1abb6fcc0c42fc86016ec88a5e508fe683cdf54f643753eeea75395b5be"
+}

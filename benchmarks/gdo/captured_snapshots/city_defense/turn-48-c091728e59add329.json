@@ -1,0 +1,6859 @@
+{
+  "authority": {
+    "full_legal_action_set_available": false,
+    "legal_action_source": "planner-candidate-trace-subset",
+    "map_wrap_metadata_available": false,
+    "movement_runtime_fields_available": false,
+    "player_visible_only": true,
+    "policy_authority_eligible": false
+  },
+  "candidates": [
+    {
+      "action": {
+        "action_type": "unit_move",
+        "actor_id": 119,
+        "target": {
+          "x": 10,
+          "y": 4
+        }
+      },
+      "category": "tactical_move",
+      "operation_id": "pf-impact-op:00000001:b8e2485c10cc880b1bd5",
+      "projection": null,
+      "rationale": "strictly reduce distance to a packet-visible opponent",
+      "utility": 688.0
+    },
+    {
+      "action": {
+        "action_type": "unit_move",
+        "actor_id": 119,
+        "target": {
+          "x": 10,
+          "y": 5
+        }
+      },
+      "category": "tactical_move",
+      "operation_id": "pf-impact-op:00000002:ba4fa39efd3784aef198",
+      "projection": null,
+      "rationale": "strictly reduce distance to a packet-visible opponent",
+      "utility": 688.0
+    },
+    {
+      "action": {
+        "action_type": "unit_move",
+        "actor_id": 119,
+        "target": {
+          "x": 10,
+          "y": 6
+        }
+      },
+      "category": "city_garrison_move",
+      "operation_id": "pf-impact-op:00000000:3dd853ce990cb8f07c65",
+      "projection": {
+        "current_garrison_distance": 1,
+        "target_city_ids": [
+          127
+        ],
+        "target_garrison_distance": 0
+      },
+      "rationale": "strictly reduce a spare combat unit's distance to an exact city-local garrison deficit",
+      "utility": 965.0
+    }
+  ],
+  "outcome_observations": [
+    {
+      "city_ids": [
+        101,
+        109,
+        127,
+        131
+      ],
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:49:12253:bad10ad6cbe3644c",
+      "turn": 49,
+      "units": [
+        {
+          "hp": 20,
+          "unit_id": 106,
+          "x": 13,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 111,
+          "x": 10,
+          "y": 3
+        },
+        {
+          "hp": 20,
+          "unit_id": 115,
+          "x": 13,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 117,
+          "x": 10,
+          "y": 3
+        },
+        {
+          "hp": 20,
+          "unit_id": 119,
+          "x": 10,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 129,
+          "x": 10,
+          "y": 3
+        },
+        {
+          "hp": 20,
+          "unit_id": 133,
+          "x": 10,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 140,
+          "x": 13,
+          "y": 6
+        }
+      ],
+      "visible_enemy_unit_ids": [
+        123
+      ]
+    },
+    {
+      "city_ids": [
+        101,
+        109,
+        127,
+        131
+      ],
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:50:12367:d8afe16052e5bc16",
+      "turn": 50,
+      "units": [
+        {
+          "hp": 20,
+          "unit_id": 106,
+          "x": 13,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 111,
+          "x": 10,
+          "y": 3
+        },
+        {
+          "hp": 20,
+          "unit_id": 115,
+          "x": 13,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 117,
+          "x": 10,
+          "y": 3
+        },
+        {
+          "hp": 20,
+          "unit_id": 119,
+          "x": 10,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 129,
+          "x": 10,
+          "y": 3
+        },
+        {
+          "hp": 20,
+          "unit_id": 133,
+          "x": 10,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 140,
+          "x": 13,
+          "y": 6
+        }
+      ],
+      "visible_enemy_unit_ids": []
+    },
+    {
+      "city_ids": [
+        101,
+        109,
+        127,
+        131
+      ],
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:51:12542:486bab4034938116",
+      "turn": 51,
+      "units": [
+        {
+          "hp": 20,
+          "unit_id": 106,
+          "x": 13,
+          "y": 5
+        },
+        {
+          "hp": 20,
+          "unit_id": 111,
+          "x": 10,
+          "y": 3
+        },
+        {
+          "hp": 20,
+          "unit_id": 115,
+          "x": 13,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 117,
+          "x": 10,
+          "y": 3
+        },
+        {
+          "hp": 20,
+          "unit_id": 119,
+          "x": 10,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 129,
+          "x": 10,
+          "y": 3
+        },
+        {
+          "hp": 20,
+          "unit_id": 133,
+          "x": 10,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 140,
+          "x": 13,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 146,
+          "x": 10,
+          "y": 2
+        },
+        {
+          "hp": 20,
+          "unit_id": 147,
+          "x": 13,
+          "y": 6
+        }
+      ],
+      "visible_enemy_unit_ids": []
+    },
+    {
+      "city_ids": [
+        101,
+        109,
+        127,
+        131
+      ],
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:52:12672:29e07fbfab77c81f",
+      "turn": 52,
+      "units": [
+        {
+          "hp": 20,
+          "unit_id": 106,
+          "x": 14,
+          "y": 4
+        },
+        {
+          "hp": 20,
+          "unit_id": 111,
+          "x": 10,
+          "y": 3
+        },
+        {
+          "hp": 20,
+          "unit_id": 115,
+          "x": 13,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 117,
+          "x": 10,
+          "y": 3
+        },
+        {
+          "hp": 20,
+          "unit_id": 119,
+          "x": 10,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 129,
+          "x": 10,
+          "y": 3
+        },
+        {
+          "hp": 20,
+          "unit_id": 133,
+          "x": 10,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 140,
+          "x": 13,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 146,
+          "x": 10,
+          "y": 3
+        },
+        {
+          "hp": 20,
+          "unit_id": 147,
+          "x": 13,
+          "y": 6
+        }
+      ],
+      "visible_enemy_unit_ids": []
+    },
+    {
+      "city_ids": [
+        101,
+        109,
+        127,
+        131
+      ],
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:53:12819:a0f82467d509b20e",
+      "turn": 53,
+      "units": [
+        {
+          "hp": 20,
+          "unit_id": 106,
+          "x": 15,
+          "y": 3
+        },
+        {
+          "hp": 20,
+          "unit_id": 111,
+          "x": 10,
+          "y": 3
+        },
+        {
+          "hp": 20,
+          "unit_id": 115,
+          "x": 13,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 117,
+          "x": 10,
+          "y": 3
+        },
+        {
+          "hp": 20,
+          "unit_id": 119,
+          "x": 10,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 129,
+          "x": 10,
+          "y": 3
+        },
+        {
+          "hp": 20,
+          "unit_id": 133,
+          "x": 10,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 140,
+          "x": 13,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 146,
+          "x": 10,
+          "y": 4
+        },
+        {
+          "hp": 20,
+          "unit_id": 147,
+          "x": 13,
+          "y": 6
+        }
+      ],
+      "visible_enemy_unit_ids": [
+        123
+      ]
+    },
+    {
+      "city_ids": [
+        101,
+        109,
+        127,
+        131
+      ],
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:54:13024:9393f3c95f1b75c1",
+      "turn": 54,
+      "units": [
+        {
+          "hp": 20,
+          "unit_id": 106,
+          "x": 16,
+          "y": 2
+        },
+        {
+          "hp": 20,
+          "unit_id": 111,
+          "x": 10,
+          "y": 3
+        },
+        {
+          "hp": 20,
+          "unit_id": 115,
+          "x": 13,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 117,
+          "x": 10,
+          "y": 3
+        },
+        {
+          "hp": 20,
+          "unit_id": 119,
+          "x": 10,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 129,
+          "x": 10,
+          "y": 3
+        },
+        {
+          "hp": 20,
+          "unit_id": 133,
+          "x": 10,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 140,
+          "x": 13,
+          "y": 6
+        },
+        {
+          "hp": 20,
+          "unit_id": 147,
+          "x": 13,
+          "y": 6
+        }
+      ],
+      "visible_enemy_unit_ids": [
+        123
+      ]
+    }
+  ],
+  "schema_version": "1.0",
+  "snapshot_event": {
+    "event_id": "b9b2a6af72d24da59a5e77ea2ad01d73",
+    "game_id": "m7-main-e_full_loop-4543804-00",
+    "payload": {
+      "legal_actions_digest": "9a9af0c6d6895a42fcfa89183505d96ef3de1a118132e490a5ebd63cc48273dd",
+      "map": {
+        "coverage": {
+          "status": "partial",
+          "tile_records": 144,
+          "visible_tiles": 144
+        },
+        "height": 26,
+        "known_hut_tile_ids": [],
+        "tiles": [
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 9,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "worked": 0,
+            "x": 9,
+            "y": 0
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 10,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "worked": 0,
+            "x": 10,
+            "y": 0
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 11,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "worked": 0,
+            "x": 11,
+            "y": 0
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 14,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 14,
+            "y": 0
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 15,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "worked": 0,
+            "x": 15,
+            "y": 0
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 16,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "worked": 0,
+            "x": 16,
+            "y": 0
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 17,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 17,
+            "y": 0
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 18,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "worked": 0,
+            "x": 18,
+            "y": 0
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 34,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "worked": 0,
+            "x": 8,
+            "y": 1
+          },
+          {
+            "extras": [
+              0,
+              0,
+              128,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 35,
+            "known": 2,
+            "owner": 255,
+            "resource": 23,
+            "terrain": 2,
+            "worked": 109,
+            "x": 9,
+            "y": 1
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 36,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 10,
+            "y": 1
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 37,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 11,
+            "y": 1
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 38,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "worked": 0,
+            "x": 12,
+            "y": 1
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 39,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "worked": 0,
+            "x": 13,
+            "y": 1
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 40,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "worked": 0,
+            "x": 14,
+            "y": 1
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 41,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 15,
+            "y": 1
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 42,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 16,
+            "y": 1
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 43,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 17,
+            "y": 1
+          },
+          {
+            "extras": [
+              0,
+              0,
+              128,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 44,
+            "known": 2,
+            "owner": 255,
+            "resource": 23,
+            "terrain": 2,
+            "worked": 131,
+            "x": 18,
+            "y": 1
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 45,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 19,
+            "y": 1
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 59,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "worked": 0,
+            "x": 7,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 60,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 8,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 61,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 109,
+            "x": 9,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 62,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 7,
+            "worked": 0,
+            "x": 10,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 63,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 109,
+            "x": 11,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 64,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 12,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 65,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 13,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              128,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 66,
+            "known": 2,
+            "owner": 255,
+            "resource": 23,
+            "terrain": 2,
+            "worked": 131,
+            "x": 14,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 67,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 15,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              192,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 68,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 11,
+            "worked": 131,
+            "x": 16,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 69,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 12,
+            "worked": 0,
+            "x": 17,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 70,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 18,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 71,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 19,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 72,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 20,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 73,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 21,
+            "y": 2
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 85,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "worked": 0,
+            "x": 7,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 86,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 8,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              128,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 87,
+            "known": 2,
+            "owner": 0,
+            "resource": 23,
+            "terrain": 2,
+            "worked": 109,
+            "x": 9,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              192,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 88,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 12,
+            "worked": 109,
+            "x": 10,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 89,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 109,
+            "x": 11,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 90,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 12,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 91,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 13,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 92,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 14,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 93,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 10,
+            "worked": 0,
+            "x": 15,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 94,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 16,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 95,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 6,
+            "worked": 0,
+            "x": 17,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 96,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 5,
+            "worked": 0,
+            "x": 18,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 97,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 19,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              16,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 98,
+            "known": 2,
+            "owner": 255,
+            "resource": 36,
+            "terrain": 8,
+            "worked": 0,
+            "x": 20,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 99,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 21,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 100,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 22,
+            "y": 3
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 111,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "worked": 0,
+            "x": 7,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 112,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 8,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 113,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 9,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 114,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 6,
+            "worked": 0,
+            "x": 10,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 115,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 11,
+            "worked": 0,
+            "x": 11,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 116,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 12,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              64,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 117,
+            "known": 2,
+            "owner": 0,
+            "resource": 30,
+            "terrain": 6,
+            "worked": 101,
+            "x": 13,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 118,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 6,
+            "worked": 0,
+            "x": 14,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              64,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 119,
+            "known": 2,
+            "owner": 0,
+            "resource": 22,
+            "terrain": 8,
+            "worked": 131,
+            "x": 15,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 120,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 16,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 121,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 11,
+            "worked": 0,
+            "x": 17,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 122,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 11,
+            "worked": 0,
+            "x": 18,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 123,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 7,
+            "worked": 0,
+            "x": 19,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 124,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 20,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 125,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 21,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 126,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 22,
+            "y": 4
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 137,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "worked": 0,
+            "x": 7,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 138,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 8,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              4,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 139,
+            "known": 2,
+            "owner": 0,
+            "resource": 26,
+            "terrain": 11,
+            "worked": 109,
+            "x": 9,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 140,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 10,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 141,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 10,
+            "worked": 0,
+            "x": 11,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 142,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 12,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 143,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 6,
+            "worked": 101,
+            "x": 13,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 144,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 7,
+            "worked": 101,
+            "x": 14,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 145,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 15,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 146,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 16,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 147,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 11,
+            "worked": 0,
+            "x": 17,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 148,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 18,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 149,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 19,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              128,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 150,
+            "known": 2,
+            "owner": 255,
+            "resource": 31,
+            "terrain": 7,
+            "worked": 0,
+            "x": 20,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 151,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 11,
+            "worked": 0,
+            "x": 21,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 152,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 22,
+            "y": 5
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 163,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 3,
+            "worked": 0,
+            "x": 7,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 164,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 8,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 165,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 9,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              192,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 166,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 7,
+            "worked": 127,
+            "x": 10,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 167,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 11,
+            "worked": 127,
+            "x": 11,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 168,
+            "known": 2,
+            "owner": 0,
+            "resource": 19,
+            "terrain": 10,
+            "worked": 0,
+            "x": 12,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              192,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 169,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 101,
+            "x": 13,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 170,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 14,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 171,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 15,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 172,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 16,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 173,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 12,
+            "worked": 0,
+            "x": 17,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 174,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 11,
+            "worked": 0,
+            "x": 18,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 175,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 19,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 176,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 20,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 177,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 7,
+            "worked": 0,
+            "x": 21,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 178,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 22,
+            "y": 6
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 189,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 7,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 190,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 8,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 191,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 12,
+            "worked": 0,
+            "x": 9,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              4,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 192,
+            "known": 2,
+            "owner": 0,
+            "resource": 26,
+            "terrain": 11,
+            "worked": 127,
+            "x": 10,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 193,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 5,
+            "worked": 0,
+            "x": 11,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 194,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 6,
+            "worked": 101,
+            "x": 12,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 195,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 11,
+            "worked": 0,
+            "x": 13,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 196,
+            "known": 2,
+            "owner": 0,
+            "resource": 27,
+            "terrain": 11,
+            "worked": 101,
+            "x": 14,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 197,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 10,
+            "worked": 0,
+            "x": 15,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 198,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 16,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 199,
+            "known": 2,
+            "owner": 255,
+            "resource": 35,
+            "terrain": 2,
+            "worked": 0,
+            "x": 17,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 200,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 12,
+            "worked": 0,
+            "x": 18,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 201,
+            "known": 2,
+            "owner": 255,
+            "resource": 35,
+            "terrain": 2,
+            "worked": 0,
+            "x": 19,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 202,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 7,
+            "worked": 0,
+            "x": 20,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 203,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 21,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 204,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 22,
+            "y": 7
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 216,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 8,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 217,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 9,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 218,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 9,
+            "worked": 0,
+            "x": 10,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              2,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 219,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 5,
+            "worked": 0,
+            "x": 11,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 220,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 12,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 221,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 13,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 222,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 14,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 223,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 15,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 224,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 16,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 225,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 17,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 227,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 19,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 228,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 20,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 229,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 21,
+            "y": 8
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 243,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 9,
+            "y": 9
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 244,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 10,
+            "y": 9
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 245,
+            "known": 2,
+            "owner": 255,
+            "resource": 35,
+            "terrain": 2,
+            "worked": 0,
+            "x": 11,
+            "y": 9
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 246,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 12,
+            "y": 9
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 247,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 13,
+            "y": 9
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 248,
+            "known": 2,
+            "owner": 0,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 14,
+            "y": 9
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 249,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 15,
+            "y": 9
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 250,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 16,
+            "y": 9
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 271,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 11,
+            "y": 10
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 272,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 8,
+            "worked": 0,
+            "x": 12,
+            "y": 10
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 273,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 13,
+            "y": 10
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 274,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 14,
+            "y": 10
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 275,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 15,
+            "y": 10
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 297,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 11,
+            "y": 11
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 298,
+            "known": 2,
+            "owner": 255,
+            "resource": 128,
+            "terrain": 2,
+            "worked": 0,
+            "x": 12,
+            "y": 11
+          },
+          {
+            "extras": [
+              0,
+              0,
+              0,
+              0,
+              8,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "index": 299,
+            "known": 2,
+            "owner": 255,
+            "resource": 35,
+            "terrain": 2,
+            "worked": 0,
+            "x": 13,
+            "y": 11
+          }
+        ],
+        "visible": [
+          [
+            9,
+            0
+          ],
+          [
+            10,
+            0
+          ],
+          [
+            11,
+            0
+          ],
+          [
+            14,
+            0
+          ],
+          [
+            15,
+            0
+          ],
+          [
+            16,
+            0
+          ],
+          [
+            17,
+            0
+          ],
+          [
+            18,
+            0
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            10,
+            1
+          ],
+          [
+            11,
+            1
+          ],
+          [
+            12,
+            1
+          ],
+          [
+            13,
+            1
+          ],
+          [
+            14,
+            1
+          ],
+          [
+            15,
+            1
+          ],
+          [
+            16,
+            1
+          ],
+          [
+            17,
+            1
+          ],
+          [
+            18,
+            1
+          ],
+          [
+            19,
+            1
+          ],
+          [
+            7,
+            2
+          ],
+          [
+            8,
+            2
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            10,
+            2
+          ],
+          [
+            11,
+            2
+          ],
+          [
+            12,
+            2
+          ],
+          [
+            13,
+            2
+          ],
+          [
+            14,
+            2
+          ],
+          [
+            15,
+            2
+          ],
+          [
+            16,
+            2
+          ],
+          [
+            17,
+            2
+          ],
+          [
+            18,
+            2
+          ],
+          [
+            19,
+            2
+          ],
+          [
+            20,
+            2
+          ],
+          [
+            21,
+            2
+          ],
+          [
+            7,
+            3
+          ],
+          [
+            8,
+            3
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            10,
+            3
+          ],
+          [
+            11,
+            3
+          ],
+          [
+            12,
+            3
+          ],
+          [
+            13,
+            3
+          ],
+          [
+            14,
+            3
+          ],
+          [
+            15,
+            3
+          ],
+          [
+            16,
+            3
+          ],
+          [
+            17,
+            3
+          ],
+          [
+            18,
+            3
+          ],
+          [
+            19,
+            3
+          ],
+          [
+            20,
+            3
+          ],
+          [
+            21,
+            3
+          ],
+          [
+            22,
+            3
+          ],
+          [
+            7,
+            4
+          ],
+          [
+            8,
+            4
+          ],
+          [
+            9,
+            4
+          ],
+          [
+            10,
+            4
+          ],
+          [
+            11,
+            4
+          ],
+          [
+            12,
+            4
+          ],
+          [
+            13,
+            4
+          ],
+          [
+            14,
+            4
+          ],
+          [
+            15,
+            4
+          ],
+          [
+            16,
+            4
+          ],
+          [
+            17,
+            4
+          ],
+          [
+            18,
+            4
+          ],
+          [
+            19,
+            4
+          ],
+          [
+            20,
+            4
+          ],
+          [
+            21,
+            4
+          ],
+          [
+            22,
+            4
+          ],
+          [
+            7,
+            5
+          ],
+          [
+            8,
+            5
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            10,
+            5
+          ],
+          [
+            11,
+            5
+          ],
+          [
+            12,
+            5
+          ],
+          [
+            13,
+            5
+          ],
+          [
+            14,
+            5
+          ],
+          [
+            15,
+            5
+          ],
+          [
+            16,
+            5
+          ],
+          [
+            17,
+            5
+          ],
+          [
+            18,
+            5
+          ],
+          [
+            19,
+            5
+          ],
+          [
+            20,
+            5
+          ],
+          [
+            21,
+            5
+          ],
+          [
+            22,
+            5
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            9,
+            6
+          ],
+          [
+            10,
+            6
+          ],
+          [
+            11,
+            6
+          ],
+          [
+            12,
+            6
+          ],
+          [
+            13,
+            6
+          ],
+          [
+            14,
+            6
+          ],
+          [
+            15,
+            6
+          ],
+          [
+            16,
+            6
+          ],
+          [
+            17,
+            6
+          ],
+          [
+            18,
+            6
+          ],
+          [
+            19,
+            6
+          ],
+          [
+            20,
+            6
+          ],
+          [
+            21,
+            6
+          ],
+          [
+            22,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            8,
+            7
+          ],
+          [
+            9,
+            7
+          ],
+          [
+            10,
+            7
+          ],
+          [
+            11,
+            7
+          ],
+          [
+            12,
+            7
+          ],
+          [
+            13,
+            7
+          ],
+          [
+            14,
+            7
+          ],
+          [
+            15,
+            7
+          ],
+          [
+            16,
+            7
+          ],
+          [
+            17,
+            7
+          ],
+          [
+            18,
+            7
+          ],
+          [
+            19,
+            7
+          ],
+          [
+            20,
+            7
+          ],
+          [
+            21,
+            7
+          ],
+          [
+            22,
+            7
+          ],
+          [
+            8,
+            8
+          ],
+          [
+            9,
+            8
+          ],
+          [
+            10,
+            8
+          ],
+          [
+            11,
+            8
+          ],
+          [
+            12,
+            8
+          ],
+          [
+            13,
+            8
+          ],
+          [
+            14,
+            8
+          ],
+          [
+            15,
+            8
+          ],
+          [
+            16,
+            8
+          ],
+          [
+            17,
+            8
+          ],
+          [
+            19,
+            8
+          ],
+          [
+            20,
+            8
+          ],
+          [
+            21,
+            8
+          ],
+          [
+            9,
+            9
+          ],
+          [
+            10,
+            9
+          ],
+          [
+            11,
+            9
+          ],
+          [
+            12,
+            9
+          ],
+          [
+            13,
+            9
+          ],
+          [
+            14,
+            9
+          ],
+          [
+            15,
+            9
+          ],
+          [
+            16,
+            9
+          ],
+          [
+            11,
+            10
+          ],
+          [
+            12,
+            10
+          ],
+          [
+            13,
+            10
+          ],
+          [
+            14,
+            10
+          ],
+          [
+            15,
+            10
+          ],
+          [
+            11,
+            11
+          ],
+          [
+            12,
+            11
+          ],
+          [
+            13,
+            11
+          ]
+        ],
+        "visible_enemy_units": [
+          {
+            "activity": "idle",
+            "homecity": null,
+            "hp": 20,
+            "moves_left": null,
+            "owner": 1,
+            "tile": 113,
+            "type": "Ironclad",
+            "type_id": 38,
+            "unit_id": 123,
+            "upkeep": [],
+            "x": 9,
+            "y": 4
+          }
+        ],
+        "visible_tile_ids": [
+          9,
+          10,
+          11,
+          14,
+          15,
+          16,
+          17,
+          18,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          59,
+          60,
+          61,
+          62,
+          63,
+          64,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70,
+          71,
+          72,
+          73,
+          85,
+          86,
+          87,
+          88,
+          89,
+          90,
+          91,
+          92,
+          93,
+          94,
+          95,
+          96,
+          97,
+          98,
+          99,
+          100,
+          111,
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119,
+          120,
+          121,
+          122,
+          123,
+          124,
+          125,
+          126,
+          137,
+          138,
+          139,
+          140,
+          141,
+          142,
+          143,
+          144,
+          145,
+          146,
+          147,
+          148,
+          149,
+          150,
+          151,
+          152,
+          163,
+          164,
+          165,
+          166,
+          167,
+          168,
+          169,
+          170,
+          171,
+          172,
+          173,
+          174,
+          175,
+          176,
+          177,
+          178,
+          189,
+          190,
+          191,
+          192,
+          193,
+          194,
+          195,
+          196,
+          197,
+          198,
+          199,
+          200,
+          201,
+          202,
+          203,
+          204,
+          216,
+          217,
+          218,
+          219,
+          220,
+          221,
+          222,
+          223,
+          224,
+          225,
+          227,
+          228,
+          229,
+          243,
+          244,
+          245,
+          246,
+          247,
+          248,
+          249,
+          250,
+          271,
+          272,
+          273,
+          274,
+          275,
+          297,
+          298,
+          299
+        ],
+        "width": 26
+      },
+      "own_state": {
+        "cities": [
+          {
+            "buildability_available": true,
+            "buildability_diagnostic": null,
+            "buildable": [
+              [
+                "improvement",
+                3,
+                "Aqueduct, River"
+              ],
+              [
+                "improvement",
+                6,
+                "Barracks II"
+              ],
+              [
+                "improvement",
+                9,
+                "City Walls"
+              ],
+              [
+                "improvement",
+                11,
+                "Amphitheater"
+              ],
+              [
+                "improvement",
+                12,
+                "Courthouse"
+              ],
+              [
+                "improvement",
+                14,
+                "Granary"
+              ],
+              [
+                "improvement",
+                17,
+                "Library"
+              ],
+              [
+                "improvement",
+                18,
+                "Marketplace"
+              ],
+              [
+                "improvement",
+                24,
+                "Ecclesiastical Palace"
+              ],
+              [
+                "improvement",
+                39,
+                "Supermarket"
+              ],
+              [
+                "improvement",
+                40,
+                "Temple"
+              ],
+              [
+                "improvement",
+                44,
+                "Colossus"
+              ],
+              [
+                "improvement",
+                45,
+                "Copernicus' Observatory"
+              ],
+              [
+                "improvement",
+                47,
+                "Darwin's Voyage"
+              ],
+              [
+                "improvement",
+                48,
+                "Eiffel Tower"
+              ],
+              [
+                "improvement",
+                50,
+                "Great Wall"
+              ],
+              [
+                "improvement",
+                54,
+                "J.S. Bach's Cathedral"
+              ],
+              [
+                "improvement",
+                55,
+                "King Richard's Crusade"
+              ],
+              [
+                "improvement",
+                56,
+                "Leonardo's Workshop"
+              ],
+              [
+                "improvement",
+                67,
+                "Shakespeare's Theater"
+              ],
+              [
+                "improvement",
+                68,
+                "Statue of Liberty"
+              ],
+              [
+                "improvement",
+                69,
+                "Sun Tzu's War Academy"
+              ],
+              [
+                "improvement",
+                71,
+                "Women's Suffrage"
+              ],
+              [
+                "improvement",
+                72,
+                "Coinage"
+              ],
+              [
+                "unit",
+                0,
+                "Settlers"
+              ],
+              [
+                "unit",
+                1,
+                "Migrants"
+              ],
+              [
+                "unit",
+                3,
+                "Engineers"
+              ],
+              [
+                "unit",
+                10,
+                "Riflemen"
+              ],
+              [
+                "unit",
+                11,
+                "Alpine Troops"
+              ],
+              [
+                "unit",
+                23,
+                "Cavalry"
+              ],
+              [
+                "unit",
+                26,
+                "Cannon"
+              ],
+              [
+                "unit",
+                34,
+                "Trireme"
+              ],
+              [
+                "unit",
+                48,
+                "Diplomat"
+              ],
+              [
+                "unit",
+                50,
+                "Caravan"
+              ],
+              [
+                "unit",
+                52,
+                "Explorer"
+              ]
+            ],
+            "buildings": [
+              {
+                "improvement_id": 23,
+                "name": "Palace",
+                "upkeep": 0
+              }
+            ],
+            "citizen_mood": {
+              "angry": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "content": [
+                4,
+                4,
+                4,
+                4,
+                5,
+                5
+              ],
+              "happy": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "unhappy": [
+                1,
+                1,
+                1,
+                1,
+                0,
+                0
+              ]
+            },
+            "city_id": 101,
+            "disorder": false,
+            "food_stock": 10,
+            "governor": {
+              "allow_disorder": false,
+              "allow_specialists": false,
+              "available": true,
+              "enabled": false,
+              "factor": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "happy_factor": 0,
+              "max_growth": false,
+              "minimal_surplus": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "require_happy": false
+            },
+            "had_famine": false,
+            "name": "Roma",
+            "owner": 0,
+            "production": [
+              12,
+              9,
+              4,
+              3,
+              0,
+              2
+            ],
+            "production_kind": 6,
+            "production_value": 10,
+            "shield_stock": 26,
+            "size": 5,
+            "surplus": [
+              2,
+              9,
+              4,
+              3,
+              0,
+              2
+            ],
+            "tile": 169,
+            "unhappy_penalty": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "usage": [
+              10,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "was_happy": false,
+            "x": 13,
+            "y": 6
+          },
+          {
+            "buildability_available": true,
+            "buildability_diagnostic": null,
+            "buildable": [
+              [
+                "improvement",
+                3,
+                "Aqueduct, River"
+              ],
+              [
+                "improvement",
+                6,
+                "Barracks II"
+              ],
+              [
+                "improvement",
+                9,
+                "City Walls"
+              ],
+              [
+                "improvement",
+                10,
+                "Coastal Defense"
+              ],
+              [
+                "improvement",
+                11,
+                "Amphitheater"
+              ],
+              [
+                "improvement",
+                12,
+                "Courthouse"
+              ],
+              [
+                "improvement",
+                14,
+                "Granary"
+              ],
+              [
+                "improvement",
+                17,
+                "Library"
+              ],
+              [
+                "improvement",
+                18,
+                "Marketplace"
+              ],
+              [
+                "improvement",
+                23,
+                "Palace"
+              ],
+              [
+                "improvement",
+                24,
+                "Ecclesiastical Palace"
+              ],
+              [
+                "improvement",
+                39,
+                "Supermarket"
+              ],
+              [
+                "improvement",
+                40,
+                "Temple"
+              ],
+              [
+                "improvement",
+                44,
+                "Colossus"
+              ],
+              [
+                "improvement",
+                45,
+                "Copernicus' Observatory"
+              ],
+              [
+                "improvement",
+                47,
+                "Darwin's Voyage"
+              ],
+              [
+                "improvement",
+                48,
+                "Eiffel Tower"
+              ],
+              [
+                "improvement",
+                50,
+                "Great Wall"
+              ],
+              [
+                "improvement",
+                54,
+                "J.S. Bach's Cathedral"
+              ],
+              [
+                "improvement",
+                55,
+                "King Richard's Crusade"
+              ],
+              [
+                "improvement",
+                56,
+                "Leonardo's Workshop"
+              ],
+              [
+                "improvement",
+                57,
+                "Lighthouse"
+              ],
+              [
+                "improvement",
+                58,
+                "Magellan's Expedition"
+              ],
+              [
+                "improvement",
+                67,
+                "Shakespeare's Theater"
+              ],
+              [
+                "improvement",
+                68,
+                "Statue of Liberty"
+              ],
+              [
+                "improvement",
+                69,
+                "Sun Tzu's War Academy"
+              ],
+              [
+                "improvement",
+                71,
+                "Women's Suffrage"
+              ],
+              [
+                "improvement",
+                72,
+                "Coinage"
+              ],
+              [
+                "unit",
+                0,
+                "Settlers"
+              ],
+              [
+                "unit",
+                1,
+                "Migrants"
+              ],
+              [
+                "unit",
+                3,
+                "Engineers"
+              ],
+              [
+                "unit",
+                10,
+                "Riflemen"
+              ],
+              [
+                "unit",
+                11,
+                "Alpine Troops"
+              ],
+              [
+                "unit",
+                23,
+                "Cavalry"
+              ],
+              [
+                "unit",
+                26,
+                "Cannon"
+              ],
+              [
+                "unit",
+                34,
+                "Trireme"
+              ],
+              [
+                "unit",
+                36,
+                "Galleon"
+              ],
+              [
+                "unit",
+                38,
+                "Ironclad"
+              ],
+              [
+                "unit",
+                48,
+                "Diplomat"
+              ],
+              [
+                "unit",
+                50,
+                "Caravan"
+              ],
+              [
+                "unit",
+                52,
+                "Explorer"
+              ]
+            ],
+            "buildings": [
+              {
+                "improvement_id": 15,
+                "name": "Harbor",
+                "upkeep": 1
+              }
+            ],
+            "citizen_mood": {
+              "angry": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "content": [
+                4,
+                4,
+                4,
+                4,
+                6,
+                6
+              ],
+              "happy": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "unhappy": [
+                2,
+                2,
+                2,
+                2,
+                0,
+                0
+              ]
+            },
+            "city_id": 109,
+            "disorder": false,
+            "food_stock": 13,
+            "governor": {
+              "allow_disorder": false,
+              "allow_specialists": false,
+              "available": true,
+              "enabled": false,
+              "factor": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "happy_factor": 0,
+              "max_growth": false,
+              "minimal_surplus": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "require_happy": false
+            },
+            "had_famine": false,
+            "name": "City102",
+            "owner": 0,
+            "production": [
+              17,
+              4,
+              8,
+              3,
+              0,
+              5
+            ],
+            "production_kind": 6,
+            "production_value": 0,
+            "shield_stock": 21,
+            "size": 6,
+            "surplus": [
+              5,
+              4,
+              8,
+              2,
+              0,
+              5
+            ],
+            "tile": 88,
+            "unhappy_penalty": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "usage": [
+              12,
+              0,
+              0,
+              1,
+              0,
+              0
+            ],
+            "was_happy": false,
+            "x": 10,
+            "y": 3
+          },
+          {
+            "buildability_available": true,
+            "buildability_diagnostic": null,
+            "buildable": [
+              [
+                "improvement",
+                3,
+                "Aqueduct, River"
+              ],
+              [
+                "improvement",
+                6,
+                "Barracks II"
+              ],
+              [
+                "improvement",
+                9,
+                "City Walls"
+              ],
+              [
+                "improvement",
+                10,
+                "Coastal Defense"
+              ],
+              [
+                "improvement",
+                11,
+                "Amphitheater"
+              ],
+              [
+                "improvement",
+                12,
+                "Courthouse"
+              ],
+              [
+                "improvement",
+                14,
+                "Granary"
+              ],
+              [
+                "improvement",
+                15,
+                "Harbor"
+              ],
+              [
+                "improvement",
+                17,
+                "Library"
+              ],
+              [
+                "improvement",
+                18,
+                "Marketplace"
+              ],
+              [
+                "improvement",
+                23,
+                "Palace"
+              ],
+              [
+                "improvement",
+                24,
+                "Ecclesiastical Palace"
+              ],
+              [
+                "improvement",
+                39,
+                "Supermarket"
+              ],
+              [
+                "improvement",
+                40,
+                "Temple"
+              ],
+              [
+                "improvement",
+                44,
+                "Colossus"
+              ],
+              [
+                "improvement",
+                45,
+                "Copernicus' Observatory"
+              ],
+              [
+                "improvement",
+                47,
+                "Darwin's Voyage"
+              ],
+              [
+                "improvement",
+                48,
+                "Eiffel Tower"
+              ],
+              [
+                "improvement",
+                50,
+                "Great Wall"
+              ],
+              [
+                "improvement",
+                54,
+                "J.S. Bach's Cathedral"
+              ],
+              [
+                "improvement",
+                55,
+                "King Richard's Crusade"
+              ],
+              [
+                "improvement",
+                56,
+                "Leonardo's Workshop"
+              ],
+              [
+                "improvement",
+                57,
+                "Lighthouse"
+              ],
+              [
+                "improvement",
+                58,
+                "Magellan's Expedition"
+              ],
+              [
+                "improvement",
+                67,
+                "Shakespeare's Theater"
+              ],
+              [
+                "improvement",
+                68,
+                "Statue of Liberty"
+              ],
+              [
+                "improvement",
+                69,
+                "Sun Tzu's War Academy"
+              ],
+              [
+                "improvement",
+                71,
+                "Women's Suffrage"
+              ],
+              [
+                "improvement",
+                72,
+                "Coinage"
+              ],
+              [
+                "unit",
+                0,
+                "Settlers"
+              ],
+              [
+                "unit",
+                1,
+                "Migrants"
+              ],
+              [
+                "unit",
+                3,
+                "Engineers"
+              ],
+              [
+                "unit",
+                10,
+                "Riflemen"
+              ],
+              [
+                "unit",
+                11,
+                "Alpine Troops"
+              ],
+              [
+                "unit",
+                23,
+                "Cavalry"
+              ],
+              [
+                "unit",
+                26,
+                "Cannon"
+              ],
+              [
+                "unit",
+                34,
+                "Trireme"
+              ],
+              [
+                "unit",
+                36,
+                "Galleon"
+              ],
+              [
+                "unit",
+                38,
+                "Ironclad"
+              ],
+              [
+                "unit",
+                48,
+                "Diplomat"
+              ],
+              [
+                "unit",
+                50,
+                "Caravan"
+              ],
+              [
+                "unit",
+                52,
+                "Explorer"
+              ]
+            ],
+            "buildings": [],
+            "citizen_mood": {
+              "angry": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "content": [
+                2,
+                2,
+                2,
+                2,
+                2,
+                2
+              ],
+              "happy": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "unhappy": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            "city_id": 127,
+            "disorder": false,
+            "food_stock": 13,
+            "governor": {
+              "allow_disorder": false,
+              "allow_specialists": false,
+              "available": true,
+              "enabled": false,
+              "factor": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "happy_factor": 0,
+              "max_growth": false,
+              "minimal_surplus": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "require_happy": false
+            },
+            "had_famine": false,
+            "name": "City121",
+            "owner": 0,
+            "production": [
+              5,
+              5,
+              2,
+              1,
+              0,
+              1
+            ],
+            "production_kind": 6,
+            "production_value": 11,
+            "shield_stock": 55,
+            "size": 2,
+            "surplus": [
+              1,
+              5,
+              2,
+              1,
+              0,
+              1
+            ],
+            "tile": 166,
+            "unhappy_penalty": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "usage": [
+              4,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "was_happy": false,
+            "x": 10,
+            "y": 6
+          },
+          {
+            "buildability_available": true,
+            "buildability_diagnostic": null,
+            "buildable": [
+              [
+                "improvement",
+                1,
+                "Aqueduct"
+              ],
+              [
+                "improvement",
+                6,
+                "Barracks II"
+              ],
+              [
+                "improvement",
+                9,
+                "City Walls"
+              ],
+              [
+                "improvement",
+                10,
+                "Coastal Defense"
+              ],
+              [
+                "improvement",
+                11,
+                "Amphitheater"
+              ],
+              [
+                "improvement",
+                12,
+                "Courthouse"
+              ],
+              [
+                "improvement",
+                14,
+                "Granary"
+              ],
+              [
+                "improvement",
+                15,
+                "Harbor"
+              ],
+              [
+                "improvement",
+                17,
+                "Library"
+              ],
+              [
+                "improvement",
+                18,
+                "Marketplace"
+              ],
+              [
+                "improvement",
+                23,
+                "Palace"
+              ],
+              [
+                "improvement",
+                24,
+                "Ecclesiastical Palace"
+              ],
+              [
+                "improvement",
+                39,
+                "Supermarket"
+              ],
+              [
+                "improvement",
+                40,
+                "Temple"
+              ],
+              [
+                "improvement",
+                44,
+                "Colossus"
+              ],
+              [
+                "improvement",
+                45,
+                "Copernicus' Observatory"
+              ],
+              [
+                "improvement",
+                47,
+                "Darwin's Voyage"
+              ],
+              [
+                "improvement",
+                48,
+                "Eiffel Tower"
+              ],
+              [
+                "improvement",
+                50,
+                "Great Wall"
+              ],
+              [
+                "improvement",
+                54,
+                "J.S. Bach's Cathedral"
+              ],
+              [
+                "improvement",
+                55,
+                "King Richard's Crusade"
+              ],
+              [
+                "improvement",
+                56,
+                "Leonardo's Workshop"
+              ],
+              [
+                "improvement",
+                57,
+                "Lighthouse"
+              ],
+              [
+                "improvement",
+                58,
+                "Magellan's Expedition"
+              ],
+              [
+                "improvement",
+                67,
+                "Shakespeare's Theater"
+              ],
+              [
+                "improvement",
+                68,
+                "Statue of Liberty"
+              ],
+              [
+                "improvement",
+                69,
+                "Sun Tzu's War Academy"
+              ],
+              [
+                "improvement",
+                71,
+                "Women's Suffrage"
+              ],
+              [
+                "improvement",
+                72,
+                "Coinage"
+              ],
+              [
+                "unit",
+                0,
+                "Settlers"
+              ],
+              [
+                "unit",
+                1,
+                "Migrants"
+              ],
+              [
+                "unit",
+                3,
+                "Engineers"
+              ],
+              [
+                "unit",
+                10,
+                "Riflemen"
+              ],
+              [
+                "unit",
+                11,
+                "Alpine Troops"
+              ],
+              [
+                "unit",
+                23,
+                "Cavalry"
+              ],
+              [
+                "unit",
+                26,
+                "Cannon"
+              ],
+              [
+                "unit",
+                34,
+                "Trireme"
+              ],
+              [
+                "unit",
+                36,
+                "Galleon"
+              ],
+              [
+                "unit",
+                38,
+                "Ironclad"
+              ],
+              [
+                "unit",
+                48,
+                "Diplomat"
+              ],
+              [
+                "unit",
+                50,
+                "Caravan"
+              ],
+              [
+                "unit",
+                52,
+                "Explorer"
+              ]
+            ],
+            "buildings": [],
+            "citizen_mood": {
+              "angry": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "content": [
+                3,
+                3,
+                3,
+                3,
+                3,
+                3
+              ],
+              "happy": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "unhappy": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            "city_id": 131,
+            "disorder": false,
+            "food_stock": 10,
+            "governor": {
+              "allow_disorder": false,
+              "allow_specialists": false,
+              "available": true,
+              "enabled": false,
+              "factor": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "happy_factor": 0,
+              "max_growth": false,
+              "minimal_surplus": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "require_happy": false
+            },
+            "had_famine": false,
+            "name": "City125",
+            "owner": 0,
+            "production": [
+              9,
+              5,
+              4,
+              2,
+              0,
+              2
+            ],
+            "production_kind": 6,
+            "production_value": 11,
+            "shield_stock": 20,
+            "size": 3,
+            "surplus": [
+              3,
+              5,
+              4,
+              2,
+              0,
+              2
+            ],
+            "tile": 68,
+            "unhappy_penalty": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "usage": [
+              6,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "was_happy": false,
+            "x": 16,
+            "y": 2
+          }
+        ],
+        "economy": {
+          "available": true,
+          "capitalization_gold_per_turn": 0,
+          "city_gold_surplus_per_turn": 8,
+          "diagnostic": null,
+          "gold": 233,
+          "gold_per_turn": 5,
+          "gold_upkeep_reserve": 3,
+          "gold_upkeep_style": "Mixed",
+          "luxury_rate": 0,
+          "operating_gold_per_turn": 5,
+          "science_rate": 60,
+          "tax_rate": 40,
+          "unit_gold_upkeep": 3
+        },
+        "game_over": false,
+        "government": {
+          "available": true,
+          "current_id": 2,
+          "current_name": "Despotism",
+          "diagnostic": null,
+          "in_revolution": false,
+          "revolution_finishes": -1,
+          "selection_required": false,
+          "target_id": 9,
+          "target_name": null
+        },
+        "legal_actions_digest": "9a9af0c6d6895a42fcfa89183505d96ef3de1a118132e490a5ebd63cc48273dd",
+        "player_alive": true,
+        "research": {
+          "available": true,
+          "beakers_per_turn": 7,
+          "cost": 1110,
+          "diagnostic": null,
+          "gross_beakers_per_turn": 10,
+          "known_techs": [
+            "Alphabet",
+            "Astronomy",
+            "Banking",
+            "Bridge Building",
+            "Bronze Working",
+            "Ceremonial Burial",
+            "Chemistry",
+            "Chivalry",
+            "Code of Laws",
+            "Conscription",
+            "Construction",
+            "Currency",
+            "Democracy",
+            "Economics",
+            "Electricity",
+            "Explosives",
+            "Feudalism",
+            "Gunpowder",
+            "Horseback Riding",
+            "Invention",
+            "Iron Working",
+            "Leadership",
+            "Literacy",
+            "Magnetism",
+            "Map Making",
+            "Masonry",
+            "Mathematics",
+            "Medicine",
+            "Metallurgy",
+            "Monarchy",
+            "Monotheism",
+            "Mysticism",
+            "Navigation",
+            "Philosophy",
+            "Physics",
+            "Polytheism",
+            "Pottery",
+            "Railroad",
+            "Refrigeration",
+            "Sanitation",
+            "Seafaring",
+            "Steam Engine",
+            "Tactics",
+            "The Republic",
+            "The Wheel",
+            "Theology",
+            "Theory of Gravity",
+            "Trade",
+            "University",
+            "Warrior Code",
+            "Writing"
+          ],
+          "progress": 132,
+          "target_id": 25,
+          "target_name": "Engineering",
+          "tech_upkeep": 3
+        },
+        "ruleset_diagnostic": null,
+        "ruleset_ready": true,
+        "score": {
+          "opponents": [
+            {
+              "is_alive": true,
+              "name": "Kwanggaet'o",
+              "player_id": 1,
+              "score": 121
+            },
+            {
+              "is_alive": true,
+              "name": "AI*1",
+              "player_id": 2,
+              "score": null
+            },
+            {
+              "is_alive": true,
+              "name": "AI*3",
+              "player_id": 3,
+              "score": null
+            },
+            {
+              "is_alive": true,
+              "name": "AI*4",
+              "player_id": 4,
+              "score": null
+            },
+            {
+              "is_alive": true,
+              "name": "AI*5",
+              "player_id": 5,
+              "score": null
+            }
+          ],
+          "own": 118
+        },
+        "units": [
+          {
+            "activity": "fortified",
+            "homecity": 0,
+            "hp": 20,
+            "moves_left": 6,
+            "owner": 0,
+            "tile": 169,
+            "type": "Alpine Troops",
+            "type_id": 11,
+            "unit_id": 106,
+            "upkeep": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "x": 13,
+            "y": 6
+          },
+          {
+            "activity": "idle",
+            "homecity": 101,
+            "hp": 20,
+            "moves_left": 6,
+            "owner": 0,
+            "tile": 88,
+            "type": "Riflemen",
+            "type_id": 10,
+            "unit_id": 111,
+            "upkeep": [
+              0,
+              0,
+              0,
+              1,
+              0,
+              0
+            ],
+            "x": 10,
+            "y": 3
+          },
+          {
+            "activity": "fortified",
+            "homecity": 101,
+            "hp": 20,
+            "moves_left": 6,
+            "owner": 0,
+            "tile": 169,
+            "type": "Alpine Troops",
+            "type_id": 11,
+            "unit_id": 115,
+            "upkeep": [
+              0,
+              0,
+              0,
+              1,
+              0,
+              0
+            ],
+            "x": 13,
+            "y": 6
+          },
+          {
+            "activity": "fortified",
+            "homecity": 109,
+            "hp": 20,
+            "moves_left": 6,
+            "owner": 0,
+            "tile": 88,
+            "type": "Alpine Troops",
+            "type_id": 11,
+            "unit_id": 117,
+            "upkeep": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "x": 10,
+            "y": 3
+          },
+          {
+            "activity": "idle",
+            "homecity": 101,
+            "hp": 20,
+            "moves_left": 6,
+            "owner": 0,
+            "tile": 141,
+            "type": "Alpine Troops",
+            "type_id": 11,
+            "unit_id": 119,
+            "upkeep": [
+              0,
+              0,
+              0,
+              1,
+              0,
+              0
+            ],
+            "x": 11,
+            "y": 5
+          },
+          {
+            "activity": "fortified",
+            "homecity": 109,
+            "hp": 20,
+            "moves_left": 6,
+            "owner": 0,
+            "tile": 88,
+            "type": "Riflemen",
+            "type_id": 10,
+            "unit_id": 129,
+            "upkeep": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "x": 10,
+            "y": 3
+          },
+          {
+            "activity": "fortified",
+            "homecity": 101,
+            "hp": 20,
+            "moves_left": 6,
+            "owner": 0,
+            "tile": 166,
+            "type": "Riflemen",
+            "type_id": 10,
+            "unit_id": 133,
+            "upkeep": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "x": 10,
+            "y": 6
+          },
+          {
+            "activity": "fortified",
+            "homecity": 101,
+            "hp": 20,
+            "moves_left": 6,
+            "owner": 0,
+            "tile": 169,
+            "type": "Riflemen",
+            "type_id": 10,
+            "unit_id": 140,
+            "upkeep": [
+              0,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            "x": 13,
+            "y": 6
+          }
+        ]
+      },
+      "player_id": 0,
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:48:12071:c091728e59add329",
+      "source_seq": 12071,
+      "state_hash": "c091728e59add3291e1dc33886517aee6d66b237991af632086ca59ff94de796",
+      "uncertain_atoms": []
+    },
+    "turn": 48
+  },
+  "source": {
+    "condition_id": "e_full_loop",
+    "engine": {
+      "freeciv_commit": "26ba7124249f34fd3050ef29bf191bd4d8808018",
+      "proxy_commit": "26ba7124249f34fd3050ef29bf191bd4d8808018+patch-sha256:cbc47dc57bd8457ee12a76e3bb60d187dd485c4d7bf4534bed6fd2add401cc57"
+    },
+    "event_path": "artifacts/freeciv/pf-pln-960-turn-4543804-unified-flow-calibrated-20260730/games/main/e_full_loop/4543804-00/events.jsonl",
+    "event_trace_sha256": "7af1e567368e2632dbd72abd3336b6bff48052971492cf0abd768428b4116caa",
+    "manifest_identity": "0a03b1abb6fcc0c42fc86016ec88a5e508fe683cdf54f643753eeea75395b5be",
+    "operation_scored_event_id": "3b4188fbe8784295bf34e02258710852",
+    "ruleset": "civ2civ3",
+    "seed": 4543804
+  },
+  "source_control": {
+    "decision_id": "pressure-decision-b613f899f5d52b0eed70",
+    "selected_operation_id": "pf-impact-op:00000000:3dd853ce990cb8f07c65",
+    "solver_identity": "pf-pln-pressure-scheduler/1.0"
+  }
+}
