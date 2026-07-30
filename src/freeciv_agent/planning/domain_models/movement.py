@@ -212,6 +212,24 @@ class GroundedMovementTransitionModel:
             - movement_cost)
         current_turn = int(getattr(
             snapshot, "turn", 0))
+        native_routes = tuple(
+            route for route in getattr(
+                snapshot,
+                "movement_routes", ())
+            if (
+                route.unit_id == actor_id
+                and route.reachable
+                and route.first_step_tile
+                    == target_tile
+                and not route
+                    .initially_transported
+                and float(
+                    route
+                    .first_step_movement_cost)
+                    == movement_cost
+            ))
+        native_edge_verified = bool(
+            native_routes)
         goal_features = tuple(sorted(
             (goal_id, float(loss))
             for goal_id, loss
@@ -237,7 +255,14 @@ class GroundedMovementTransitionModel:
                     "currently-visible-clear",
                 "visible_enemy_unit_ids": [],
             },
-            "parity_status": "unverified",
+            "native_route_destination_tiles": [
+                route.destination_tile
+                for route in native_routes
+            ],
+            "parity_status": (
+                "native-server-direct"
+                if native_edge_verified
+                else "unverified"),
             "reachable": True,
             "reason_code": None,
             "schema_version": "1.0",
@@ -280,16 +305,25 @@ class GroundedMovementTransitionModel:
                     residual_losses(request))),
             context_key=context_key_for_request(
                 request),
-            # The explicit edge facts are deterministic, but the mapping to
-            # Freeciv movement semantics is not live-approved before native
-            # parity covers this declared subset.
-            authority=EstimateAuthority.HEURISTIC,
-            confidence=0.5,
+            authority=(
+                EstimateAuthority
+                .EXACT_AUTHORITATIVE
+                if native_edge_verified
+                else EstimateAuthority
+                .HEURISTIC),
+            confidence=(
+                1.0
+                if native_edge_verified
+                else 0.5),
             validity=request.validity,
             estimator_id=self.model_id,
             estimator_version=(
                 self.model_version),
             provenance=(
+                "server-advertised-action",
+                "native-server-pathfinder-first-edge",
+                "exact-unit-revision",
+            ) if native_edge_verified else (
                 "server-advertised-action",
                 "clean-room-adjacent-corridor",
                 "explicit-action-movement-cost",

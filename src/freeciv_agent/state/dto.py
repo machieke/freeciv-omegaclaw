@@ -6,8 +6,9 @@ from dataclasses import dataclass
 
 from ..events.schema import canonical_json_bytes
 from .snapshot import (AuthoritativeSnapshot, BuildingState, CityState,
-                       EconomicState, GovernmentState, PlayerScoreState,
-                       ResearchState, SnapshotIdentity, UnitState)
+                       EconomicState, GovernmentState, MovementRouteState,
+                       PlayerScoreState, ResearchState, SnapshotIdentity,
+                       UnitState)
 
 
 class ContractError(ValueError):
@@ -241,6 +242,22 @@ def _executable_action(row, player_id=None):
             normalized["settlement_site_eligible"] = _boolean(
                 site_eligible,
                 "legal_actions.unit_move.settlement_site_eligible",
+                required=True)
+        movement_cost = row.get("movement_cost")
+        if movement_cost is not None:
+            normalized["movement_cost"] = _integer(
+                movement_cost,
+                "legal_actions.unit_move.movement_cost",
+                required=True)
+            if normalized["movement_cost"] <= 0:
+                raise ContractError(
+                    "unit_move movement_cost must be positive")
+        transport_required = row.get(
+            "transport_required")
+        if transport_required is not None:
+            normalized["transport_required"] = _boolean(
+                transport_required,
+                "legal_actions.unit_move.transport_required",
                 required=True)
         return normalized
     if kind == "unit_build_city":
@@ -686,6 +703,158 @@ class ProxyStateDTO:
         if any(tile < 0 or tile >= tile_count for tile in known_hut_tiles):
             raise ContractError(
                 "authoritative.known_hut_tiles entries must be within the map")
+        own_units_by_id = {
+            unit.unit_id: unit for unit in units}
+        movement_routes = []
+        for row in _collection(
+                authoritative.get("movement_routes"),
+                "authoritative.movement_routes"):
+            if row.get("schema_version") != "1.0":
+                raise ContractError(
+                    "movement route schema_version must be 1.0")
+            if row.get("authority") != (
+                    "freeciv-server-pathfinder"):
+                raise ContractError(
+                    "movement route authority must be the native server pathfinder")
+            unit_id = _integer(
+                row.get("unit_id"),
+                "movement_route.unit_id",
+                required=True)
+            unit = own_units_by_id.get(unit_id)
+            if unit is None:
+                raise ContractError(
+                    "movement route unit must be a current own unit")
+            origin_tile = _integer(
+                row.get("origin_tile"),
+                "movement_route.origin_tile",
+                required=True)
+            destination_tile = _integer(
+                row.get("destination_tile"),
+                "movement_route.destination_tile",
+                required=True)
+            first_step_tile = _integer(
+                row.get("first_step_tile"),
+                "movement_route.first_step_tile",
+                required=True)
+            if any(
+                    tile < 0 or tile >= tile_count
+                    for tile in (
+                        origin_tile,
+                        destination_tile,
+                        first_step_tile)):
+                raise ContractError(
+                    "movement route tiles must be within the map")
+            route_turn = _integer(
+                row.get("turn"),
+                "movement_route.turn",
+                required=True)
+            route_source_seq = _integer(
+                row.get("source_seq"),
+                "movement_route.source_seq",
+                required=True)
+            moves_left_at_request = _integer(
+                row.get("moves_left_at_request"),
+                "movement_route.moves_left_at_request",
+                required=True)
+            transported_at_request = _boolean(
+                row.get("transported_at_request"),
+                "movement_route.transported_at_request",
+                required=True)
+            initially_transported = _boolean(
+                row.get("initially_transported"),
+                "movement_route.initially_transported",
+                required=True)
+            if (
+                route_turn != turn
+                or route_source_seq > source_seq
+                or unit.tile != origin_tile
+                or unit.moves_left != moves_left_at_request
+                or unit.transported
+                    is not transported_at_request
+                or initially_transported
+                    is not transported_at_request
+            ):
+                raise ContractError(
+                    "movement route does not match the current unit revision")
+            reachable = _boolean(
+                row.get("reachable"),
+                "movement_route.reachable",
+                required=True)
+            path_length = _integer(
+                row.get("path_length"),
+                "movement_route.path_length",
+                required=True)
+            path_directions = _numbers(
+                row.get("path_directions"),
+                "movement_route.path_directions")
+            first_step_cost = _integer(
+                row.get("first_step_movement_cost"),
+                "movement_route.first_step_movement_cost",
+                required=True)
+            estimated_turns = _integer(
+                row.get("estimated_turns"),
+                "movement_route.estimated_turns",
+                required=True)
+            total_cost = _integer(
+                row.get("total_movement_cost"),
+                "movement_route.total_movement_cost",
+                required=True)
+            remaining = _integer(
+                row.get("movement_points_remaining"),
+                "movement_route.movement_points_remaining",
+                required=True)
+            if (
+                path_length < 0
+                or path_length != len(path_directions)
+                or any(direction < -1 or direction > 7
+                       for direction in path_directions)
+                or min(
+                    first_step_cost,
+                    estimated_turns,
+                    total_cost,
+                    remaining,
+                    moves_left_at_request) < 0
+            ):
+                raise ContractError(
+                    "movement route numeric fields are inconsistent")
+            if reachable:
+                if (
+                    path_length < 1
+                    or first_step_cost < 1
+                    or total_cost < first_step_cost
+                ):
+                    raise ContractError(
+                        "reachable movement route requires a positive path and cost")
+            elif (
+                path_length != 0
+                or path_directions
+                or first_step_tile != origin_tile
+                or first_step_cost != 0
+                or estimated_turns != 0
+                or total_cost != 0
+            ):
+                raise ContractError(
+                    "unreachable movement route must carry an empty path")
+            movement_routes.append(
+                MovementRouteState(
+                    unit_id=unit_id,
+                    origin_tile=origin_tile,
+                    destination_tile=destination_tile,
+                    reachable=bool(reachable),
+                    first_step_tile=first_step_tile,
+                    first_step_movement_cost=first_step_cost,
+                    path_length=path_length,
+                    path_directions=path_directions,
+                    estimated_turns=estimated_turns,
+                    total_movement_cost=total_cost,
+                    movement_points_remaining=remaining,
+                    moves_left_at_request=moves_left_at_request,
+                    transported_at_request=bool(
+                        transported_at_request),
+                    initially_transported=bool(
+                        initially_transported),
+                    turn=route_turn,
+                    source_seq=route_source_seq))
         legal_json, legal_action_kinds = _canonical_actions(
             payload.get("legal_actions") if legal_actions is None else legal_actions,
             player_id=player_id)
@@ -731,6 +900,14 @@ class ProxyStateDTO:
                 "own": own_score,
             },
             "ruleset_ready": ruleset_ready, "turn": turn,
+            "movement_routes": [
+                route.to_dict()
+                for route in sorted(
+                    movement_routes,
+                    key=lambda item: (
+                        item.unit_id,
+                        item.destination_tile))
+            ],
             "units": [unit.to_dict() for unit in sorted(units, key=lambda item: item.unit_id)],
             "visible_enemy_units": [unit.to_dict() for unit in sorted(
                 visible_enemy_units, key=lambda item: item.unit_id)],
@@ -761,6 +938,11 @@ class ProxyStateDTO:
             visible_tile_ids=visible, known_hut_tile_ids=known_hut_tiles,
             map_width=width, map_height=height, game_over=game_over,
             map_wrap_x=wrap_x, map_wrap_y=wrap_y,
+            movement_routes=tuple(sorted(
+                movement_routes,
+                key=lambda item: (
+                    item.unit_id,
+                    item.destination_tile))),
             map_tiles=tuple(copy.deepcopy(tiles)), legal_action_json=legal_json,
             legal_actions_digest=legal_digest,
             legal_action_kinds=legal_action_kinds,

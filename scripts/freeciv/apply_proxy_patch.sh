@@ -15,6 +15,7 @@ strategic_observability_patch="$repo_root/scripts/freeciv/upstream/0009-pln-stra
 ruleset_name_sanitization_patch="$repo_root/scripts/freeciv/upstream/0010-pln-ruleset-name-sanitization.patch"
 government_state_correction_patch="$repo_root/scripts/freeciv/upstream/0011-pln-government-state-correction.patch"
 city_ownership_reconciliation_patch="$repo_root/scripts/freeciv/upstream/0012-pln-city-ownership-reconciliation.patch"
+native_movement_routes_patch="$repo_root/scripts/freeciv/upstream/0013-pln-native-movement-routes.patch"
 pinned_commit="26ba7124249f34fd3050ef29bf191bd4d8808018"
 pinned_authoritative_sha256="48e416000bf36c3c7ce13c8c59bb51bc682a1f17ee8568e432a82f673a10df55"
 pinned_spatial_sha256="a4eb88c827c7a2ea68db602aa2463c2aa53bb0c6156a71e1a5a5e7fc09908856"
@@ -28,6 +29,7 @@ pinned_strategic_observability_sha256="9a768dda13455760f5d02a3e66ebc3eae564c3b37
 pinned_ruleset_name_sanitization_sha256="09480dc463d3347d26db27e387a5a528c6b525fb65089aa1f6f5cd1fb999ce67"
 pinned_government_state_correction_sha256="dee93c53c8f0dcc06c0a0ea98ee278e19cc360fbf36ef554f096cebe11f5d4b3"
 pinned_city_ownership_reconciliation_sha256="db29d472e49bd8b24bb227142c3635a77d44932a697b1fe9eafc49517198cf0d"
+pinned_native_movement_routes_sha256="e2d2681acdeb53a2b3ace5fb519273d83e5acb20dcadfb2cc590fa16da4c023e"
 
 if [[ -z "$upstream_root" ]]; then
   echo "usage: $0 /path/to/freeciv-llm (or set FREECIV_LLM_ROOT)" >&2
@@ -49,7 +51,8 @@ for patch_spec in \
   "$strategic_observability_patch:$pinned_strategic_observability_sha256" \
   "$ruleset_name_sanitization_patch:$pinned_ruleset_name_sanitization_sha256" \
   "$government_state_correction_patch:$pinned_government_state_correction_sha256" \
-  "$city_ownership_reconciliation_patch:$pinned_city_ownership_reconciliation_sha256"; do
+  "$city_ownership_reconciliation_patch:$pinned_city_ownership_reconciliation_sha256" \
+  "$native_movement_routes_patch:$pinned_native_movement_routes_sha256"; do
   patch_file="${patch_spec%:*}"
   pinned_patch_sha256="${patch_spec##*:}"
   actual_patch_sha256="$(sha256sum "$patch_file" | cut -d' ' -f1)"
@@ -61,8 +64,8 @@ done
 
 # Each later patch depends on its predecessors. If the final reverse check
 # succeeds, the complete patch series is already present.
-if git -C "$upstream_root" apply --reverse --check "$city_ownership_reconciliation_patch" >/dev/null 2>&1; then
-  echo "PLN authoritative-state through city-ownership-reconciliation patches are already applied"
+if git -C "$upstream_root" apply --reverse --check "$native_movement_routes_patch" >/dev/null 2>&1; then
+  echo "PLN authoritative-state through native-movement-route patches are already applied"
   exit 0
 fi
 actual_commit="$(git -C "$upstream_root" rev-parse HEAD)"
@@ -82,7 +85,8 @@ for patch_file in \
   "$strategic_observability_patch" \
   "$ruleset_name_sanitization_patch" \
   "$government_state_correction_patch" \
-  "$city_ownership_reconciliation_patch"; do
+  "$city_ownership_reconciliation_patch" \
+  "$native_movement_routes_patch"; do
   if git -C "$upstream_root" apply --reverse --check "$patch_file" >/dev/null 2>&1; then
     echo "$(basename "$patch_file") is already applied"
     continue

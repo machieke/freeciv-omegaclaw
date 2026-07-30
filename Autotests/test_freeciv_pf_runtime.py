@@ -350,3 +350,40 @@ def test_city_defense_operations_are_default_off_and_lifecycle_gated():
         "city_defense_operations"]["enabled"]
     assert shadow["controller_policy"][
         "pressure_city_defense_operations_enabled"]
+
+
+def test_native_movement_routes_are_default_off_and_grounded_defense_gated():
+    default = build_controller_activation({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+    })
+    assert not default["layers"][
+        "native_movement_routes"]["enabled"]
+
+    with pytest.raises(
+            PFRuntimeConfigurationError,
+            match="require grounded domain estimates"):
+        validate_controller_policy({
+            "pressure_enabled": True,
+            "pressure_semantics_version": "v2",
+            "pressure_controller_mode": "scalar_v2",
+            "pressure_native_movement_routes_enabled": True,
+        })
+
+    enabled = build_controller_activation({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+        "pressure_packet_scheduler_enabled": True,
+        "pressure_resource_scheduler_enabled": True,
+        "pressure_domain_estimates_enabled": True,
+        "pressure_commit_revalidation_enabled": True,
+        "pressure_operation_lifecycle_enabled": True,
+        "pressure_city_defense_operations_enabled": True,
+        "pressure_native_movement_routes_enabled": True,
+    })
+    assert enabled["layers"][
+        "native_movement_routes"]["enabled"]
+    assert enabled["controller_policy"][
+        "pressure_native_movement_routes_enabled"]

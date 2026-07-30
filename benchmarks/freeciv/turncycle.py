@@ -64,7 +64,8 @@ def state_body(m):
 
 async def get_state(ws, fmt="llm_optimized", after_source_seq=None,
                     wait_timeout_ms=None, accept_unchanged=False,
-                    settle_quiet_ms=None, diagnostics=None):
+                    settle_quiet_ms=None, diagnostics=None,
+                    include_movement_routes=False):
     """Query current state, optionally waiting for a newer packet revision.
 
     ``after_source_seq`` and ``wait_timeout_ms`` are a bounded long-poll hint
@@ -73,6 +74,13 @@ async def get_state(ws, fmt="llm_optimized", after_source_seq=None,
     still returns the current state, so callers retain normal query semantics.
     """
     query = {"type": "state_query", "format": fmt}
+    if not isinstance(include_movement_routes, bool):
+        raise ValueError("include_movement_routes must be boolean")
+    if include_movement_routes:
+        if fmt != "pln_authoritative":
+            raise ValueError(
+                "include_movement_routes requires pln_authoritative format")
+        query["include_movement_routes"] = True
     if after_source_seq is not None:
         if (isinstance(after_source_seq, bool)
                 or not isinstance(after_source_seq, int)
@@ -116,6 +124,7 @@ async def get_state(ws, fmt="llm_optimized", after_source_seq=None,
     if diagnostics is not None and isinstance(timing, dict):
         for name in (
                 "source_wait_ms", "projection_ms", "quiet_wait_ms",
+                "movement_route_wait_ms", "movement_route_responses",
                 "elapsed_before_serialize_ms", "projection_attempts"):
             value = timing.get(name)
             if (isinstance(value, (int, float))

@@ -191,6 +191,52 @@ class PlayerScoreState:
 
 
 @dataclass(frozen=True)
+class MovementRouteState:
+    """One exact-turn path result returned by the native FreeCiv server."""
+
+    unit_id: int
+    origin_tile: int
+    destination_tile: int
+    reachable: bool
+    first_step_tile: int
+    first_step_movement_cost: int
+    path_length: int
+    path_directions: Tuple[int, ...]
+    estimated_turns: int
+    total_movement_cost: int
+    movement_points_remaining: int
+    moves_left_at_request: int
+    transported_at_request: bool
+    initially_transported: bool
+    turn: int
+    source_seq: int
+    authority: str = "freeciv-server-pathfinder"
+    schema_version: str = "1.0"
+
+    def to_dict(self):
+        return {
+            "authority": self.authority,
+            "destination_tile": self.destination_tile,
+            "estimated_turns": self.estimated_turns,
+            "first_step_movement_cost": self.first_step_movement_cost,
+            "first_step_tile": self.first_step_tile,
+            "initially_transported": self.initially_transported,
+            "movement_points_remaining": self.movement_points_remaining,
+            "moves_left_at_request": self.moves_left_at_request,
+            "origin_tile": self.origin_tile,
+            "path_directions": list(self.path_directions),
+            "path_length": self.path_length,
+            "reachable": self.reachable,
+            "schema_version": self.schema_version,
+            "source_seq": self.source_seq,
+            "total_movement_cost": self.total_movement_cost,
+            "transported_at_request": self.transported_at_request,
+            "turn": self.turn,
+            "unit_id": self.unit_id,
+        }
+
+
+@dataclass(frozen=True)
 class CityState:
     city_id: int
     owner: int
@@ -290,6 +336,8 @@ class AuthoritativeSnapshot:
     opponent_scores: Tuple[PlayerScoreState, ...] = field(default_factory=tuple)
     map_wrap_x: Optional[bool] = None
     map_wrap_y: Optional[bool] = None
+    movement_routes: Tuple[MovementRouteState, ...] = field(
+        default_factory=tuple)
 
     @property
     def snapshot_id(self):
@@ -311,6 +359,17 @@ class AuthoritativeSnapshot:
         unit_id = int(unit_id)
         return next((unit for unit in self.visible_enemy_units
                      if unit.unit_id == unit_id), None)
+
+    def movement_route(self, unit_id, destination_tile):
+        unit_id = int(unit_id)
+        destination_tile = int(destination_tile)
+        return next((
+            route for route in self.movement_routes
+            if (
+                route.unit_id == unit_id
+                and route.destination_tile
+                    == destination_tile)
+        ), None)
 
     def own_state_dict(self):
         return {
@@ -375,8 +434,13 @@ class AuthoritativeSnapshot:
                     for unit in
                     self.units
                 ],
+                "movement_routes": [
+                    route.to_dict()
+                    for route in
+                    self.movement_routes
+                ],
                 "schema_version":
-                    "1.0",
+                    "1.1",
                 "visible_enemy_units": [
                     unit.grounded_dict()
                     for unit in

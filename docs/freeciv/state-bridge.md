@@ -44,8 +44,10 @@ The government-state correction patch is pinned at
 `dee93c53c8f0dcc06c0a0ea98ee278e19cc360fbf36ef554f096cebe11f5d4b3`.
 The captured-city ownership-reconciliation patch is pinned at
 `db29d472e49bd8b24bb227142c3635a77d44932a697b1fe9eafc49517198cf0d`.
-The ordered twelve-patch series identity is
-`cbc47dc57bd8457ee12a76e3bb60d187dd485c4d7bf4534bed6fd2add401cc57`.
+The native-movement-route patch is pinned at
+`e2d2681acdeb53a2b3ace5fb519273d83e5acb20dcadfb2cc590fa16da4c023e`.
+The ordered thirteen-patch series identity is
+`8f4244e66b8260fc29d553ee0ed9d7018e26f2a232c544cff5859bc3fd5e51dd`.
 Reapplying the script is idempotent; it refuses an unpatched checkout at another commit.
 
 The v9 projection closes the stable-government initiation gap. The proxy now

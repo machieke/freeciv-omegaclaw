@@ -36,9 +36,10 @@ PINNED_PROXY_PATCH_SHA256S = (
     "09480dc463d3347d26db27e387a5a528c6b525fb65089aa1f6f5cd1fb999ce67",
     "dee93c53c8f0dcc06c0a0ea98ee278e19cc360fbf36ef554f096cebe11f5d4b3",
     "db29d472e49bd8b24bb227142c3635a77d44932a697b1fe9eafc49517198cf0d",
+    "e2d2681acdeb53a2b3ace5fb519273d83e5acb20dcadfb2cc590fa16da4c023e",
 )
 PINNED_PROXY_PATCH_SERIES_SHA256 = (
-    "cbc47dc57bd8457ee12a76e3bb60d187dd485c4d7bf4534bed6fd2add401cc57")
+    "8f4244e66b8260fc29d553ee0ed9d7018e26f2a232c544cff5859bc3fd5e51dd")
 REQUIRED_CONFIDENCE_PARAMETERS = frozenset({
     "actionable_threshold", "minimum_logged_confidence", "dampening_lambda",
     "observation_strength", "observation_confidence", "abduction_strength",
@@ -256,6 +257,7 @@ def run(args):
             "0010-pln-ruleset-name-sanitization.patch",
             "0011-pln-government-state-correction.patch",
             "0012-pln-city-ownership-reconciliation.patch",
+            "0013-pln-native-movement-routes.patch",
         )
     ]
     series_digest = hashlib.sha256()

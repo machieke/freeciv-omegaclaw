@@ -25,6 +25,7 @@ from freeciv_agent.planning.domain_models import (  # noqa: E402
     DefenseOperationType,
     ExactCityDefenseAssignmentSolver,
 )
+from freeciv_agent.state import MovementRouteState  # noqa: E402
 from freeciv_agent.pressure.resource_claims import (  # noqa: E402
     ClaimHardness,
     GameResourceKind,
@@ -74,7 +75,7 @@ def _unit(
 
 def _city(city_id, x, y, size=3):
     return SimpleNamespace(
-        city_id=city_id,
+        city_id=city_id, tile=x + y * 12,
         x=x, y=y, size=size)
 
 
@@ -121,6 +122,7 @@ def _scenario(
             _city(20, 4, 0)),
         units=own,
         visible_enemy_units=enemy,
+        movement_routes=(),
         legal_action_json=legal,
         legal_actions_digest="legal")
     ruleset = SimpleNamespace(
@@ -579,6 +581,51 @@ def test_multi_turn_defender_route_abstains_without_grounded_eta():
     assert not operation.supported
     assert operation.support_reason == (
         "defender-route-eta-unavailable")
+
+
+def test_native_route_eta_supports_multi_turn_defender_operation():
+    move = _candidate({
+        "action_type": "unit_move",
+        "actor_id": 2,
+        "target": {"x": 3, "y": 0},
+        "movement_cost": 1,
+        "transport_required": False,
+        "is_valid": True,
+    }, "tactical_move")
+    snapshot, ruleset = _scenario(
+        (move,))
+    snapshot.movement_routes = (
+        MovementRouteState(
+            unit_id=2,
+            origin_tile=2,
+            destination_tile=4,
+            reachable=True,
+            first_step_tile=3,
+            first_step_movement_cost=1,
+            path_length=2,
+            path_directions=(4, 4),
+            estimated_turns=1,
+            total_movement_cost=4,
+            movement_points_remaining=2,
+            moves_left_at_request=3,
+            transported_at_request=False,
+            initially_transported=False,
+            turn=10,
+            source_seq=10),)
+
+    analysis = CityDefenseAnalyzer().analyze(
+        snapshot, ruleset,
+        (move,))
+    operation = next(
+        row for row
+        in analysis.operations
+        if row.actor_id == 2
+        and row.city_id == 20)
+
+    assert operation.supported
+    assert operation.arrival_turn == 11
+    assert "native-server-route-eta" in (
+        operation.provenance)
 
 
 def test_unadvertised_candidate_cannot_form_an_operation():

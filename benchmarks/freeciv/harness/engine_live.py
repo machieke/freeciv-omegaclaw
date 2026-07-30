@@ -558,7 +558,8 @@ def _game_terminal(snapshot):
 async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=20.0,
                  require_decision_ready=False, require_own_units=False,
                  stable_samples=1, poll_interval=0.05, diagnostics=None,
-                 settle_first_projection=False):
+                 settle_first_projection=False,
+                 include_movement_routes=False):
     if (isinstance(stable_samples, bool) or not isinstance(stable_samples, int)
             or not 1 <= stable_samples <= 5):
         raise ValueError("stable_samples must be in 1..5")
@@ -636,7 +637,9 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
         try:
             raw = await asyncio.wait_for(
                 turncycle.get_state(
-                    ws, "pln_authoritative", **state_query_options),
+                    ws, "pln_authoritative",
+                    include_movement_routes=include_movement_routes,
+                    **state_query_options),
                 timeout=max(0.05, remaining))
         except asyncio.TimeoutError:
             record("queries", 1)
@@ -747,7 +750,7 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
 
 async def _next_turn_state(ws, game_id, api_token, agent_id, minimum_turn,
                            minimum_source_seq, diagnostics=None,
-                           timeout=20.0):
+                           timeout=20.0, include_movement_routes=False):
     """Wait for one turn boundary, recovering one lost phase-done signal.
 
     A submitted ``end_turn`` can be acknowledged before the civserver consumes
@@ -769,6 +772,7 @@ async def _next_turn_state(ws, game_id, api_token, agent_id, minimum_turn,
         "stable_samples": 2,
         "diagnostics": diagnostics,
         "timeout": timeout,
+        "include_movement_routes": include_movement_routes,
     }
     try:
         return await _state(ws, game_id, **state_options)
@@ -1555,6 +1559,9 @@ async def _play(run_dir, manifest, context):
         context.capabilities,
         manifest["impact_policy"],
     )
+    movement_routes_enabled = bool(
+        manifest["impact_policy"].get(
+            "pressure_native_movement_routes_enabled", False))
     if _needs_cognitive_stack(context):
         ir, catalog, proposal_parser, oracle, scheduler = _cognitive_stack()
     else:
@@ -1788,7 +1795,8 @@ async def _play(run_dir, manifest, context):
         await asyncio.sleep(0.5)
         raw, snapshot = await _state(
             ws, manifest["game_id"], require_decision_ready=True,
-            require_own_units=True, stable_samples=5)
+            require_own_units=True, stable_samples=5,
+            include_movement_routes=movement_routes_enabled)
         store.replace(snapshot)
         state_event = writer.emit("state_snapshot", snapshot.turn, snapshot.event_payload(),
                                   caused_by=[parent])
@@ -1959,7 +1967,8 @@ async def _play(run_dir, manifest, context):
                     poll_interval=(
                         impact_planner.refresh_stability_interval_seconds
                         if impact_planner is not None else 0.2),
-                    diagnostics=action_state_diagnostics)
+                    diagnostics=action_state_diagnostics,
+                    include_movement_routes=movement_routes_enabled)
                 if predicate is not None and not predicate(next_snapshot):
                     minimum_seq = next_snapshot.identity.source_seq + 1
                     await asyncio.sleep(0.05)
@@ -2008,7 +2017,8 @@ async def _play(run_dir, manifest, context):
                     ws, manifest["game_id"], api_token, agent_id,
                     minimum_turn=snapshot.turn + 1,
                     minimum_source_seq=snapshot.identity.source_seq + 1,
-                    diagnostics=transition_state_diagnostics)
+                    diagnostics=transition_state_diagnostics,
+                    include_movement_routes=movement_routes_enabled)
                 store.replace(snapshot)
                 state_event = writer.emit(
                     "state_snapshot", snapshot.turn, snapshot.event_payload(),

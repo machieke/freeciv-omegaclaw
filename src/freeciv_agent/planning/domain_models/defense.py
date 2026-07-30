@@ -1435,6 +1435,7 @@ class CityDefenseAnalyzer:
             target_requirements = []
             operation_type = None
             arrival_by_requirement = {}
+            native_route_requirements = set()
             if (candidate.category
                     == "city_defense"
                     and action_type
@@ -1503,15 +1504,71 @@ class CityDefenseAnalyzer:
                         continue
                     target_requirements.append(
                         requirement)
+                    arrival = (
+                        int(snapshot.turn)
+                        if target_distance == 0
+                        else int(snapshot.turn)
+                        + target_distance)
+                    if target_distance > 0:
+                        city = city_by_id.get(
+                            requirement.city_id)
+                        destination_tile = (
+                            getattr(
+                                city, "tile", None)
+                            if city is not None
+                            else None)
+                        if (
+                            destination_tile
+                                is None
+                            and city is not None
+                            and None not in (
+                                city.x, city.y)
+                        ):
+                            destination_tile = (
+                                int(city.x)
+                                + int(city.y)
+                                * int(
+                                    snapshot
+                                    .map_width))
+                        target_tile = (
+                            int(target_position[0])
+                            + int(target_position[1])
+                            * int(
+                                snapshot
+                                .map_width))
+                        route = next((
+                            row for row in getattr(
+                                snapshot,
+                                "movement_routes",
+                                ())
+                            if (
+                                row.unit_id
+                                    == actor_id
+                                and row
+                                    .destination_tile
+                                    == destination_tile)
+                        ), None)
+                        if (
+                            route is not None
+                            and route.reachable
+                            and not route
+                                .initially_transported
+                            and route
+                                .first_step_tile
+                                == target_tile
+                        ):
+                            arrival = (
+                                int(snapshot.turn)
+                                + int(
+                                    route
+                                    .estimated_turns))
+                            native_route_requirements.add(
+                                requirement
+                                .requirement_id)
                     arrival_by_requirement[
                         requirement
                         .requirement_id] = (
-                            int(snapshot.turn)
-                            if target_distance
-                            == 0
-                            else int(
-                                snapshot.turn)
-                            + target_distance)
+                            arrival)
             elif (candidate.category
                     == "tactical_attack"
                     and action_type
@@ -1647,7 +1704,11 @@ class CityDefenseAnalyzer:
                         == DefenseOperationType
                         .MOVE_DEFENDER_TO_CITY
                         and arrival
-                        > int(snapshot.turn)):
+                        > int(snapshot.turn)
+                        and requirement
+                        .requirement_id
+                        not in
+                        native_route_requirements):
                     support_reason = (
                         "defender-route-eta-unavailable")
                 if (support_reason is None
@@ -1798,6 +1859,13 @@ class CityDefenseAnalyzer:
                             "readout_source",
                             "legacy-candidate-readout"),
                         "visible-city-threat",
+                        "native-server-route-eta"
+                        if requirement
+                        .requirement_id
+                        in
+                        native_route_requirements
+                        else
+                        "route-eta-not-grounded",
                         "ruleset-unit-stat"
                         if support_reason
                         not in (

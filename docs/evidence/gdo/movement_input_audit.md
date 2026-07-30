@@ -1,18 +1,24 @@
 # GDO-2A Movement Input Audit
 
-Status: blocking audit complete; model support not yet approved
-Policy effect: none
-Audited repository commit: `97ff07b`
+Status: native route foundation implemented; clean-room parity gate open
+Policy effect: opt-in experimental diagnostics and city-defence operation input
+Audited repository commit: pending this evidence commit
 
 ## Decision
 
-The current boundary can identify an advertised one-step `unit_move`, its
-actor, source, target, and current snapshot validity. It cannot yet reconstruct
-Freeciv movement cost, multi-step reachability, ETA, native-terrain rules,
-roads/rails, zones of control, or transport transitions safely.
+The pinned Freeciv boundary now exposes an opt-in, player-scoped native route
+query from an exact own-unit state to each own-city tile. It reports explicit
+reachability, first step and first-edge cost, total movement fragments, ETA,
+remaining movement points, directions, and initial transport state. The proxy
+caches results only for the exact turn, source revision, origin, movement
+points, and transport state that produced them.
 
-The first movement model must therefore abstain outside a deliberately small
-declared subset. No movement authority is permitted by this audit.
+This closes the consequential live-input gap for city-defence routes without
+claiming that the repository-owned clean-room movement model has achieved
+parity. A matching native first edge is `EXACT_AUTHORITATIVE` because it is a
+direct server result. The older explicit-cost one-edge inference remains
+`HEURISTIC`, and unsupported or stale cases still abstain. No native route
+result enables general movement-policy authority.
 
 ## Available authoritative inputs
 
@@ -20,12 +26,12 @@ declared subset. No movement authority is permitted by this audit.
 |---|---:|---:|---|
 | Snapshot/turn/source identity | yes | yes | Estimate is valid only for that exact revision and turn |
 | Legal-action digest and canonical action bytes | yes | yes | Establishes that the exact first action was advertised |
-| `unit_move` actor, direction, target x/y | yes | yes | Describes only one adjacent advertised step |
+| `unit_move` actor, direction, target x/y | yes | yes | The exact advertised first step can be matched to a native route |
 | Own unit ID/type/type ID/tile/x/y | yes | yes | Type-to-class rules are not in the snapshot |
-| Own `moves_left` | yes | yes | Protocol movement fragments are present, but edge cost is not |
+| Own `moves_left` | yes | yes | Included in the native-route cache key and response |
 | Unit HP/activity | yes | partly | HP can affect movement in some rulesets; the applicable rule is absent |
 | Map width/height/wrap flags | yes | yes | Retained after the audit correction |
-| Known tile records | optional | partly | Captured GDO fixture currently has zero tile records |
+| Native own-unit-to-own-city route | opt-in | yes | Direct server result; bounded to 64 requests and current exact unit state |
 | Tile terrain/extras/owner/known | optional raw fields | partly | Terrain/extra IDs lack a snapshot-carried ruleset mapping |
 | Exact current visibility | yes | yes | It must gate risk/blocker claims; absence is not evidence of emptiness |
 | Packet-visible foreign units | yes | yes | Hidden occupancy must remain unknown |
@@ -56,8 +62,9 @@ readable and are explicitly marked incomplete.
 
 The packet-side process also has ruleset
 terrain, extra, and unit-class packets, but the authoritative response exposes
-only a ruleset-ready marker. This repository must not assume those omitted
-packet values.
+only a ruleset-ready marker. Those omitted values still cannot be assumed by
+the clean-room model. The native route endpoint is an explicit server-derived
+result, not a reconstruction from omitted packets.
 
 ## Ruleset IR availability
 
@@ -101,7 +108,25 @@ not absent. A path may use known terrain outside current vision for geometric
 analysis, but it may not claim current occupancy safety there. Future
 occupancy, diplomacy, and enemy zones of control retain residual unknown mass.
 
-## Initially supportable subset
+## Supported native subset
+
+When `pressure_native_movement_routes_enabled` is true, the live harness asks
+for native routes only in `pln_authoritative` snapshots. The route result is
+usable only when:
+
+- its actor is a current own unit;
+- its origin, movement points, transport state, turn, and source revision match
+  the snapshot exactly;
+- its destination is an own-city tile;
+- its reachable/unreachable shape is internally valid;
+- a reachable first step is also present in the current legal-action set.
+
+For a non-transported matching route, the movement model emits an exact
+first-edge transition and the city-defence analyzer may construct a multi-turn
+defender operation using the server ETA. Transported routes are retained for
+diagnostics but do not authorize defender movement.
+
+## Clean-room subset
 
 The following facts can be emitted as deterministic diagnostics for an exact
 advertised adjacent move:
@@ -113,11 +138,11 @@ advertised adjacent move:
 - whether the target is currently visible;
 - packet-visible occupancy and threat features.
 
-Movement cost, moves remaining, ETA, and deterministic completion are supported
-only when an authoritative action or tile record explicitly supplies the edge
-cost and every required topology/transport modifier is present. No current
-captured fixture meets that stricter subset, so current live candidates must
-abstain rather than receive fabricated precision.
+Without a matching native result, movement cost, moves remaining, ETA, and
+deterministic completion are supported only when an authoritative action or
+tile record explicitly supplies the edge cost and every required
+topology/transport modifier is present. Such explicit-cost inference remains
+heuristic until the clean-room parity corpus passes.
 
 ## Correction status before parity work
 
@@ -129,19 +154,22 @@ abstain rather than receive fabricated precision.
 4. Add a movement model with explicit missing-field reason codes: complete in
    shadow mode.
 5. Add ruleset terrain/class/extra accessors or require authoritative
-   precomputed edge cost: explicit edge cost is supported; broader rule access
-   remains open.
+   precomputed edge cost: native route and first-edge values are now available;
+   broader clean-room rule access remains open.
 6. Add a separately installed native parity adapter; do not copy GPL
    implementation code: process boundary and runner complete; native
    executable/corpus pending.
-7. Capture generated visible movement fixtures with engine/ruleset identities.
-8. Retain full legal actions, wrap topology, and runtime unit fields in fresh
-   event replay artifacts: complete; authoritative movement cost and native
-   parity remain open.
+7. Capture generated visible movement fixtures with engine/ruleset identities:
+   pending.
+8. Retain full legal actions, wrap topology, runtime unit fields, and exact
+   native routes in fresh event replay artifacts: implementation complete;
+   fresh engine replay capture pending.
 
 ## Exit status
 
-The audit and conservative one-edge shadow implementation are complete. The
-GDO-2A parity gate remains open. Even a synthetic explicit-cost result is
-labelled `HEURISTIC` and is not live-eligible until a native corpus passes.
-Current captured moves lack authoritative edge cost and therefore abstain.
+The audit, conservative one-edge model, and direct native route foundation are
+complete. Focused packet/proxy and repository tests pass. The GDO-2A clean-room
+parity gate remains open: the required randomized roads, rails, zone-of-control,
+impassable-terrain, transport, and tie-breaking corpus has not been captured.
+Synthetic explicit-cost results therefore remain `HEURISTIC`; only an exact,
+current server route match is labelled `EXACT_AUTHORITATIVE`.

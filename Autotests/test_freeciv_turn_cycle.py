@@ -20,6 +20,8 @@ import json
 import os
 import sys
 
+import pytest
+
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _BENCH = os.path.join(_REPO_ROOT, "benchmarks")
 for _p in (_BENCH, _REPO_ROOT):
@@ -58,7 +60,7 @@ def test_state_query_carries_bounded_source_wait_hint():
         state = await turncycle.get_state(
             ws, "pln_authoritative", after_source_seq=44,
             wait_timeout_ms=5000, accept_unchanged=True,
-            settle_quiet_ms=50)
+            settle_quiet_ms=50, include_movement_routes=True)
         return state, ws.received[-1]
 
     state, query = _run(go())
@@ -70,6 +72,7 @@ def test_state_query_carries_bounded_source_wait_hint():
         "wait_timeout_ms": 5000,
         "accept_unchanged": True,
         "settle_quiet_ms": 50,
+        "include_movement_routes": True,
     }
 
 
@@ -146,6 +149,17 @@ def test_state_query_rejects_invalid_source_wait_hint():
         pass
     else:
         raise AssertionError("non-dictionary diagnostics accepted")
+
+    for value in (None, 1, "true"):
+        with pytest.raises(ValueError, match="include_movement_routes"):
+            _run(turncycle.get_state(
+                MockProxyWS(), include_movement_routes=value))
+    with pytest.raises(
+            ValueError,
+            match="requires pln_authoritative"):
+        _run(turncycle.get_state(
+            MockProxyWS(), "full",
+            include_movement_routes=True))
 
 
 def test_v4_contract_declares_conditional_stability_response():

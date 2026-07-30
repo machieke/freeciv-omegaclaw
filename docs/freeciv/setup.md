@@ -47,7 +47,8 @@ The patch series is tracked at
 `scripts/freeciv/upstream/0009-pln-strategic-observability.patch`, and
 `scripts/freeciv/upstream/0010-pln-ruleset-name-sanitization.patch`, and
 `scripts/freeciv/upstream/0011-pln-government-state-correction.patch`, and
-`scripts/freeciv/upstream/0012-pln-city-ownership-reconciliation.patch`. The
+`scripts/freeciv/upstream/0012-pln-city-ownership-reconciliation.patch`, and
+`scripts/freeciv/upstream/0013-pln-native-movement-routes.patch`. The
 application script verifies every digest, is idempotent, rejects a different upstream
 commit, and supports normal checkouts and Git worktrees. It adds the
 `pln_authoritative` DTO, monotonic packet sequence, bounded and conditional
@@ -61,7 +62,12 @@ food-surplus governance, stable-government revolution initiation, exact
 post-revolution recovery, bounded packet-exact tax/luxury/science transitions,
 optional city-local `require_happy` governance, captured-city ownership
 reconciliation from `PACKET_CITY_SHORT_INFO`, stale city-internal eviction, and
-proxy contract tests.
+proxy contract tests. Patch 0013 adds bounded, opt-in server-pathfinder route
+requests for own units to own cities. Responses include explicit
+reachable/unreachable status, native ETA, total and first-edge movement cost,
+remaining movement, and first-step identity; the proxy exposes only routes
+that still match the exact unit origin, movement allowance, transport state,
+and turn.
 The final sanitizer patch permits legitimate ruleset tokens such as
 `Labor Union` while retaining the compound `UNION SELECT` rejection and exact
 server-advertised technology validation.

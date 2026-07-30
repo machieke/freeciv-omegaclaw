@@ -35,7 +35,9 @@ def _payload():
         return json.load(stream)
 
 
-def _snapshot(explicit_cost=True, visible=True):
+def _snapshot(
+        explicit_cost=True, visible=True,
+        native_route=False):
     payload = copy.deepcopy(_payload())
     action = next(
         row for row in payload[
@@ -66,6 +68,30 @@ def _snapshot(explicit_cost=True, visible=True):
         "wrap_x": True,
         "wrap_y": False,
     })
+    if native_route:
+        payload.setdefault(
+            "authoritative", {})[
+                "movement_routes"] = [{
+                    "authority":
+                        "freeciv-server-pathfinder",
+                    "destination_tile": 1800,
+                    "estimated_turns": 2,
+                    "first_step_movement_cost": 3,
+                    "first_step_tile": 1982,
+                    "initially_transported": False,
+                    "movement_points_remaining": 0,
+                    "moves_left_at_request": 3,
+                    "origin_tile": 2030,
+                    "path_directions": [1, 1, 1],
+                    "path_length": 3,
+                    "reachable": True,
+                    "schema_version": "1.0",
+                    "source_seq": 1,
+                    "total_movement_cost": 9,
+                    "transported_at_request": False,
+                    "turn": 1,
+                    "unit_id": 102,
+                }]
     snapshot = ProxyStateDTO.parse(
         "grounded-movement", 1,
         payload).to_snapshot()
@@ -162,6 +188,36 @@ def test_visible_explicit_cost_adjacent_move_is_parity_gated_heuristic():
     assert artifact["corridor"][
         "visibility"] == "visible"
     assert artifact["parity_status"] == "unverified"
+
+
+def test_native_server_first_edge_is_exact_but_policy_remains_shadow():
+    snapshot, action = _snapshot(
+        native_route=True)
+    estimate = (
+        GroundedMovementTransitionModel()
+        .estimate(
+            _request(snapshot, action)))
+    artifact = estimate.to_dict()[
+        "model_artifact"]
+
+    assert snapshot.movement_route(
+        102, 1800).estimated_turns == 2
+    assert snapshot.event_payload()[
+        "grounded_context"][
+            "schema_version"] == "1.1"
+    assert estimate.authority == (
+        EstimateAuthority
+        .EXACT_AUTHORITATIVE)
+    assert estimate.live_eligible(
+        snapshot.snapshot_id,
+        snapshot.legal_actions_digest,
+        "ruleset", snapshot.turn)
+    assert artifact[
+        "parity_status"] == (
+            "native-server-direct")
+    assert artifact[
+        "native_route_destination_tiles"] == [
+            1800]
 
 
 def test_movement_abstains_when_cost_or_visibility_is_missing():
