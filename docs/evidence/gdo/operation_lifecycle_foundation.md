@@ -111,6 +111,51 @@ This is a lifecycle foundation, not the GDO-4 exit gate:
 - no replay or engine completion-rate delta has been measured with the new
   events.
 
-The next checkpoint is a fresh engine capture with lifecycle enabled, followed
-by a resolver report that counts selected, committed, completed, failed,
-expired, and unresolved operations without causal overclaim.
+## Fresh engine lifecycle diagnostic
+
+The fresh seed-`4543804`, 160-turn engine trace completed without
+infrastructure failure. Its raw 14,647-event trace validates with zero errors
+and zero warnings. The retained diagnostic is
+`benchmarks/gdo/gdo4_operation_lifecycle_160_diagnostic.json`, report hash:
+
+```text
+1bef9f80e60a417104aadda97369b06b5ce4a497211988f88e261a1e33abbc75
+```
+
+The lifecycle funnel is:
+
+| Stage | Events | Unique operations |
+| --- | ---: | ---: |
+| Proposed | 552 | 445 |
+| Reserved | 16 | 12 |
+| Selected current step | 16 | 12 |
+| Activated/revalidated/committed | 0 | 0 |
+| Completed/failed | 0 | 0 |
+| Expired | 12 | 12 |
+
+All 12 unique selected operations received a terminal observation. Every one
+expired as `censored_operation_abort`: it was selected by the asynchronous
+shadow analyzer, but the frozen B1 controller did not subsequently execute
+that byte-identical action before the operation deadline. One byte-identical
+action had executed earlier in the same turn, before the shadow result was
+emitted; the report records this as late diagnostic overlap and does not
+retroactively call it a commit.
+
+This is the correct null result for a non-authoritative shadow controller. It
+does not prove a positive completion delta, and it also does not imply that an
+accepted selected step failed. No selected step entered the committed
+denominator.
+
+The analyzer is
+`scripts/analyze_gdo_operation_lifecycle.py`. Its tests enforce the ordering
+boundary: an action before selection cannot be credited as a commit, while an
+exact action after selection can enter the causal funnel.
+
+## Next scientific step
+
+Do not weaken action matching and do not count B1 coincidences as B4
+completion. GDO-4 still needs authoritative movement ETA and at least 90%
+supported winner-changing operation edges. After that gate, use bounded
+engine-fork replays from retained snapshots to execute B1 and B4 current steps
+in isolated copies and resolve both at the same deadline. This can measure an
+operation-completion delta before granting persistent live policy authority.

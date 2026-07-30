@@ -1,0 +1,292 @@
+{
+  "authority": {
+    "claim_status": "engine-lifecycle-diagnostic-only",
+    "policy_authority_eligible": false,
+    "score_claim_eligible": false
+  },
+  "configuration_hash": "cc9fb1f5f3e7e36d967bd9b25861af5df212e4e1f91d493f2adc28b18811a4d0",
+  "diagnostic": {
+    "action_overlap": {
+      "selection_instances_with_exact_action_after_selection": 0,
+      "selection_instances_with_exact_action_before_selection": 1,
+      "warning": "An action before selection is diagnostic late overlap, not an operation commit."
+    },
+    "by_operation_type": [
+      {
+        "count": 6,
+        "event_type": "operation_expired",
+        "operation_type": "fortify_existing_defender"
+      },
+      {
+        "count": 4,
+        "event_type": "operation_expired",
+        "operation_type": "intercept_immediate_threat"
+      },
+      {
+        "count": 2,
+        "event_type": "operation_expired",
+        "operation_type": "move_defender_to_city"
+      },
+      {
+        "count": 8,
+        "event_type": "operation_proposed",
+        "operation_type": "fortify_existing_defender"
+      },
+      {
+        "count": 13,
+        "event_type": "operation_proposed",
+        "operation_type": "hold_sole_defender"
+      },
+      {
+        "count": 60,
+        "event_type": "operation_proposed",
+        "operation_type": "intercept_immediate_threat"
+      },
+      {
+        "count": 471,
+        "event_type": "operation_proposed",
+        "operation_type": "move_defender_to_city"
+      },
+      {
+        "count": 7,
+        "event_type": "operation_reserved",
+        "operation_type": "fortify_existing_defender"
+      },
+      {
+        "count": 5,
+        "event_type": "operation_reserved",
+        "operation_type": "intercept_immediate_threat"
+      },
+      {
+        "count": 4,
+        "event_type": "operation_reserved",
+        "operation_type": "move_defender_to_city"
+      },
+      {
+        "count": 7,
+        "event_type": "operation_step_selected",
+        "operation_type": "fortify_existing_defender"
+      },
+      {
+        "count": 5,
+        "event_type": "operation_step_selected",
+        "operation_type": "intercept_immediate_threat"
+      },
+      {
+        "count": 4,
+        "event_type": "operation_step_selected",
+        "operation_type": "move_defender_to_city"
+      }
+    ],
+    "event_counts": {
+      "operation_abandoned": 0,
+      "operation_activated": 0,
+      "operation_blocked": 0,
+      "operation_completed": 0,
+      "operation_expired": 12,
+      "operation_failed": 0,
+      "operation_proposed": 552,
+      "operation_reserved": 16,
+      "operation_step_committed": 0,
+      "operation_step_revalidated": 0,
+      "operation_step_selected": 16
+    },
+    "funnel": {
+      "commit_rate_per_unique_selection": 0.0,
+      "completion_rate_per_commit": null,
+      "completion_rate_per_unique_selection": 0.0,
+      "terminal_observation_rate_per_unique_selection": 1.0
+    },
+    "resolution_status_counts": {
+      "censored_operation_abort": 12
+    },
+    "selected_instances": [
+      {
+        "action_matches_after_selection": 0,
+        "action_matches_before_selection": 0,
+        "deadline_turn": 49,
+        "operation_id": "5a0e0772999d306a696e3ad9d024631c69aea2e16c13b10ee9e5c065b1550abe",
+        "operation_type": "fortify_existing_defender",
+        "selection_event_id": "7a3b6d49fa054461afda03c1ec004d72",
+        "selection_turn": 46
+      },
+      {
+        "action_matches_after_selection": 0,
+        "action_matches_before_selection": 0,
+        "deadline_turn": 49,
+        "operation_id": "5a0e0772999d306a696e3ad9d024631c69aea2e16c13b10ee9e5c065b1550abe",
+        "operation_type": "fortify_existing_defender",
+        "selection_event_id": "42d9079e787644fe92a93256783aacd7",
+        "selection_turn": 47
+      },
+      {
+        "action_matches_after_selection": 0,
+        "action_matches_before_selection": 0,
+        "deadline_turn": 50,
+        "operation_id": "8781f14f9a4f55c838d1fb0ef4352df5e0019ac6c2f5db49294a42882a54e7f5",
+        "operation_type": "fortify_existing_defender",
+        "selection_event_id": "64176d6836ad4c3a92dda85525b3d992",
+        "selection_turn": 48
+      },
+      {
+        "action_matches_after_selection": 0,
+        "action_matches_before_selection": 1,
+        "deadline_turn": 49,
+        "operation_id": "5a62af7da1fdaaed725e8670dd1dff13102c8c69c39daa44c80a0d013b3435a6",
+        "operation_type": "move_defender_to_city",
+        "selection_event_id": "f3055f8e1cc44d8f962bdaa564294840",
+        "selection_turn": 48
+      },
+      {
+        "action_matches_after_selection": 0,
+        "action_matches_before_selection": 0,
+        "deadline_turn": 98,
+        "operation_id": "92639256c88e4ad6de786d38be9cf873dab20a8957522a3b35c385bf0dc941ea",
+        "operation_type": "intercept_immediate_threat",
+        "selection_event_id": "b646f932bbac4956aafc4d52f1f57629",
+        "selection_turn": 98
+      },
+      {
+        "action_matches_after_selection": 0,
+        "action_matches_before_selection": 0,
+        "deadline_turn": 100,
+        "operation_id": "640b292d1af35a9c8e29606a0edf0e82649026350275c7f7221e18df0b18f722",
+        "operation_type": "move_defender_to_city",
+        "selection_event_id": "da6b8ee01cca417695e85bb394592d85",
+        "selection_turn": 98
+      },
+      {
+        "action_matches_after_selection": 0,
+        "action_matches_before_selection": 0,
+        "deadline_turn": 100,
+        "operation_id": "640b292d1af35a9c8e29606a0edf0e82649026350275c7f7221e18df0b18f722",
+        "operation_type": "move_defender_to_city",
+        "selection_event_id": "48a27e9a8f3148b1a0a8d450dcdac0ae",
+        "selection_turn": 98
+      },
+      {
+        "action_matches_after_selection": 0,
+        "action_matches_before_selection": 0,
+        "deadline_turn": 100,
+        "operation_id": "640b292d1af35a9c8e29606a0edf0e82649026350275c7f7221e18df0b18f722",
+        "operation_type": "move_defender_to_city",
+        "selection_event_id": "1beef7c2e92547afa0f934ca8fe7aded",
+        "selection_turn": 98
+      },
+      {
+        "action_matches_after_selection": 0,
+        "action_matches_before_selection": 0,
+        "deadline_turn": 105,
+        "operation_id": "03ecd2b0b6865fae3acec35fffc1a7bb609cc8a8ca7a4f7a84b9c14f4d5dca60",
+        "operation_type": "intercept_immediate_threat",
+        "selection_event_id": "09ae65f6b40641a287714acf11e4f775",
+        "selection_turn": 105
+      },
+      {
+        "action_matches_after_selection": 0,
+        "action_matches_before_selection": 0,
+        "deadline_turn": 110,
+        "operation_id": "dbd1ab46a1f07f4722c5007029d0bba4db4974d22109cc2fc87c4017e4169eab",
+        "operation_type": "fortify_existing_defender",
+        "selection_event_id": "17fe19852cb94e598c86e215e9757be4",
+        "selection_turn": 107
+      },
+      {
+        "action_matches_after_selection": 0,
+        "action_matches_before_selection": 0,
+        "deadline_turn": 117,
+        "operation_id": "f8f52b6690ff68e5258edc1d7f6c4843f0e2e1eb27397d1a60a19fb05c1c59c5",
+        "operation_type": "fortify_existing_defender",
+        "selection_event_id": "09eed5be6ea04bc4aa0c2199b83b1023",
+        "selection_turn": 114
+      },
+      {
+        "action_matches_after_selection": 0,
+        "action_matches_before_selection": 0,
+        "deadline_turn": 118,
+        "operation_id": "d6bf644aeca098480771622dd3df155bbbf71a63c3acd0aef270a1af55a38413",
+        "operation_type": "fortify_existing_defender",
+        "selection_event_id": "d21fd200013e46779afdfefb75162769",
+        "selection_turn": 116
+      },
+      {
+        "action_matches_after_selection": 0,
+        "action_matches_before_selection": 0,
+        "deadline_turn": 121,
+        "operation_id": "2be07b94bb89e6e720839832db51520df37a199fc093721a98ddc9a8efc8b7e5",
+        "operation_type": "fortify_existing_defender",
+        "selection_event_id": "c0e73302b60d49d78a5171cba78a76a6",
+        "selection_turn": 116
+      },
+      {
+        "action_matches_after_selection": 0,
+        "action_matches_before_selection": 0,
+        "deadline_turn": 127,
+        "operation_id": "06c1f375727b6f2defb932a972b7354204af221135ad29fa2b1b64e7f39c87c7",
+        "operation_type": "intercept_immediate_threat",
+        "selection_event_id": "905f17b34dad45dc9cf5d5a1abeb612b",
+        "selection_turn": 124
+      },
+      {
+        "action_matches_after_selection": 0,
+        "action_matches_before_selection": 0,
+        "deadline_turn": 127,
+        "operation_id": "06c1f375727b6f2defb932a972b7354204af221135ad29fa2b1b64e7f39c87c7",
+        "operation_type": "intercept_immediate_threat",
+        "selection_event_id": "1262214207c348218466920c6118c55f",
+        "selection_turn": 124
+      },
+      {
+        "action_matches_after_selection": 0,
+        "action_matches_before_selection": 0,
+        "deadline_turn": 156,
+        "operation_id": "0add290d76cf34684efba60200b715520abb8aae280138f8a926f209258a9672",
+        "operation_type": "intercept_immediate_threat",
+        "selection_event_id": "bcbc170cbca14de6bdf6d31034a63cda",
+        "selection_turn": 156
+      }
+    ],
+    "terminal_reason_counts": [
+      {
+        "count": 12,
+        "event_type": "operation_expired",
+        "reason_code": "operation-deadline-passed"
+      }
+    ],
+    "unique_operation_counts": {
+      "operation_abandoned": 0,
+      "operation_activated": 0,
+      "operation_blocked": 0,
+      "operation_completed": 0,
+      "operation_expired": 12,
+      "operation_failed": 0,
+      "operation_proposed": 445,
+      "operation_reserved": 12,
+      "operation_step_committed": 0,
+      "operation_step_revalidated": 0,
+      "operation_step_selected": 12
+    }
+  },
+  "engine": {
+    "attempt_id": "4346bddfc4f77b24",
+    "condition_id": "e_full_loop",
+    "manifest_identity": "a485a4f8c1c5ecb0830f198dc61ffc2a7ed172ffbb98468ff74dbb2ada201464",
+    "seed": 4543804,
+    "turn_limit": 160
+  },
+  "event_validation": {
+    "error_count": 0,
+    "event_count": 14647,
+    "valid": true,
+    "warning_count": 0
+  },
+  "gates": {
+    "at_least_one_committed_operation": false,
+    "at_least_one_completed_operation": false,
+    "positive_completion_delta_proven": false,
+    "selected_operations_receive_terminal_observation": true
+  },
+  "report_hash": "1bef9f80e60a417104aadda97369b06b5ce4a497211988f88e261a1e33abbc75",
+  "report_schema_version": "1.0",
+  "source_event_trace_sha256": "a7900d7deef9447f25e15ace7ba0bc3c6260f1989a712518efdc5ec04de36e17"
+}

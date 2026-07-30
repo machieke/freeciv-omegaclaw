@@ -124,4 +124,7 @@ authoritative operation lifecycle resolution:
 
 The default-off operation-contract, restart-store, and current-step resolution
 foundation for this target is documented in
-`docs/evidence/gdo/operation_lifecycle_foundation.md`.
+`docs/evidence/gdo/operation_lifecycle_foundation.md`. Its fresh engine
+diagnostic closes terminal accounting for every selected shadow operation but
+correctly reports zero committed operations: frozen B1 never executed a
+selected B4 action after selection in that run.

@@ -2122,21 +2122,6 @@ async def _play(run_dir, manifest, context):
                     attempted_count += 1
                     action_count += int(outcome.submitted)
                     rejected += int(outcome.submitted and outcome.status != "accepted")
-                    operation_events = (
-                        control_event_emitter
-                        .emit_city_defense_action_outcome(
-                            writer,
-                            snapshot.turn,
-                            action_snapshot,
-                            impact_action,
-                            outcome,
-                            caused_by=(
-                                parent,)))
-                    if operation_events:
-                        parent = (
-                            operation_events[
-                                -1][
-                                    "event_id"])
                     if outcome.status != "accepted":
                         raise RuntimeError(
                             "model-selected action failed: {}".format(outcome.reason))
@@ -2283,6 +2268,21 @@ async def _play(run_dir, manifest, context):
                     attempted_count += 1
                     action_count += int(outcome.submitted)
                     rejected += int(outcome.submitted and outcome.status != "accepted")
+                    operation_events = (
+                        control_event_emitter
+                        .emit_city_defense_action_outcome(
+                            writer,
+                            action_snapshot.turn,
+                            action_snapshot,
+                            impact_action,
+                            outcome,
+                            caused_by=(
+                                parent,)))
+                    if operation_events:
+                        parent = (
+                            operation_events[
+                                -1][
+                                    "event_id"])
                     if outcome.status != "accepted":
                         raise RuntimeError(
                             "impact plan action failed: {}".format(outcome.reason))
