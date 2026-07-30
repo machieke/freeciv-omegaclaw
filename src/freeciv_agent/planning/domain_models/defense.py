@@ -79,7 +79,40 @@ def _unit_spec(ruleset_ir, unit_type):
         getattr(
             rule, "rule_id",
             "unknown"))
+    traits = getattr(
+        rule, "traits", {})
+    for name in (
+            "class", "flags", "roles"):
+        value = traits.get(
+            name, {})
+        if isinstance(value, dict):
+            value = value.get(
+                "values", ())
+        if not isinstance(
+                value, (list, tuple)):
+            value = ()
+        values[name] = tuple(sorted(
+            str(row)
+            for row in value
+            if isinstance(row, str)
+            and row))
     return values
+
+
+def _combat_capable(spec):
+    return bool(
+        spec is not None
+        and float(spec["attack"]) > 0.0
+        and "NonMil" not in set(
+            spec.get("flags", ())))
+
+
+def _defense_capable(spec):
+    return bool(
+        spec is not None
+        and float(spec["defense"]) > 0.0
+        and "NonMil" not in set(
+            spec.get("flags", ())))
 
 
 def _axis_distance(
@@ -144,6 +177,7 @@ class DefenseOperationType(str, Enum):
 class VisibleCityThreat:
     enemy_unit_id: int
     enemy_unit_type: str
+    enemy_unit_class: object
     city_id: int
     distance_tiles: int
     earliest_attack_turn: int
@@ -175,6 +209,12 @@ class VisibleCityThreat:
                 or not self.enemy_unit_type):
             raise ValueError(
                 "enemy unit type is required")
+        if (self.enemy_unit_class is not None
+                and (not isinstance(
+                    self.enemy_unit_class, str)
+                     or not self.enemy_unit_class)):
+            raise ValueError(
+                "enemy unit class must be non-empty or absent")
         for value, name in (
                 (self.threat_priority,
                  "threat priority"),
@@ -238,6 +278,8 @@ class VisibleCityThreat:
                 self.earliest_attack_turn,
             "enemy_unit_id":
                 self.enemy_unit_id,
+            "enemy_unit_class":
+                self.enemy_unit_class,
             "enemy_unit_type":
                 self.enemy_unit_type,
             "interception_legal":
@@ -732,7 +774,7 @@ class CityDefenseAnalyzer:
     """Build a conservative city-threat/defender operation graph."""
 
     ANALYZER_IDENTITY = (
-        "freeciv-city-defense-analyzer/1.0")
+        "freeciv-city-defense-analyzer/1.1")
 
     def __init__(
             self, threat_radius=6,
@@ -813,10 +855,8 @@ class CityDefenseAnalyzer:
                 ruleset_ir,
                 unit.unit_type)
             if (spec is not None
-                    and max(
-                        spec["attack"],
-                        spec["defense"])
-                    <= 0.0):
+                    and not _defense_capable(
+                        spec)):
                 continue
             city = cities_by_position.get(
                 (unit.x, unit.y))
@@ -930,6 +970,28 @@ class CityDefenseAnalyzer:
             spec = _unit_spec(
                 ruleset_ir,
                 enemy.unit_type)
+            attack_supported = (
+                _combat_capable(spec))
+            unit_classes = (
+                ()
+                if spec is None
+                else spec.get(
+                    "class", ()))
+            unit_class = (
+                unit_classes[0]
+                if len(unit_classes) == 1
+                else None)
+            if spec is None:
+                support_reason = (
+                    "enemy-ruleset-spec-unavailable")
+            elif not attack_supported:
+                support_reason = (
+                    "enemy-unit-not-combat-capable")
+            elif unit_class is None:
+                support_reason = (
+                    "enemy-unit-class-unavailable")
+            else:
+                support_reason = None
             for city in sorted(
                     snapshot.cities,
                     key=lambda row:
@@ -942,7 +1004,6 @@ class CityDefenseAnalyzer:
                         or distance
                         > self.threat_radius):
                     continue
-                supported = spec is not None
                 attack_power = (
                     0.0
                     if spec is None
@@ -966,6 +1027,8 @@ class CityDefenseAnalyzer:
                             enemy.unit_id),
                         enemy_unit_type=(
                             enemy.unit_type),
+                        enemy_unit_class=(
+                            unit_class),
                         city_id=city.city_id,
                         distance_tiles=(
                             distance),
@@ -978,11 +1041,13 @@ class CityDefenseAnalyzer:
                             priority),
                         confidence=(
                             0.45
-                            if supported
+                            if support_reason
+                            is None
                             else 0.0),
                         unknown_mass=(
                             0.55
-                            if supported
+                            if support_reason
+                            is None
                             else 1.0),
                         path_corridor=(
                             (
@@ -999,10 +1064,7 @@ class CityDefenseAnalyzer:
                                 int(enemy.y))
                             in attack_target_positions),
                         support_reason=(
-                            None
-                            if supported
-                            else
-                            "enemy-ruleset-spec-unavailable"),
+                            support_reason),
                         ruleset_rule_id=(
                             None
                             if spec is None
@@ -1072,14 +1134,9 @@ class CityDefenseAnalyzer:
                 and provisional_specs.get(
                     unit.unit_id)
                 is not None
-                and max(
+                and _defense_capable(
                     provisional_specs[
-                        unit.unit_id][
-                            "attack"],
-                    provisional_specs[
-                        unit.unit_id][
-                            "defense"])
-                > 0.0
+                        unit.unit_id])
                 for unit in
                 snapshot.units)
         defenders = self._defenders(
@@ -1101,14 +1158,26 @@ class CityDefenseAnalyzer:
             supported = [
                 row for row in rows
                 if row.supported]
+            if not supported:
+                continue
             # One visible threat raises the local response requirement by one
             # bounded slot. Additional visible units increase priority and
             # uncertainty, but do not create an unbounded defender fiction.
             required = (
                 self.required_garrison
-                + min(1, len(rows)))
+                + min(
+                    1,
+                    len(supported)))
             current = city_counts.get(
                 city_id, 0)
+            deficit = max(
+                0,
+                required - current)
+            # A requirement represents missing defence capacity. Existing
+            # surplus garrison is not an uncovered operation merely because
+            # no redundant fortify action happened to be advertised.
+            if deficit == 0:
+                continue
             requirements.append(
                 CityDefenseRequirement(
                     city_id=city_id,
@@ -1119,29 +1188,26 @@ class CityDefenseAnalyzer:
                         current),
                     required_defenders=(
                         required),
-                    # Even a nominally occupied threatened city needs one
-                    # explicit supported response such as fortification.
-                    response_slots=max(
-                        1,
-                        required - current),
+                    response_slots=(
+                        deficit),
                     deadline_turn=min(
                         row
                         .earliest_attack_turn
-                        for row in rows),
+                        for row in
+                        supported),
                     threat_ids=tuple(sorted(
                         row.threat_id
-                        for row in rows)),
+                        for row in
+                        supported)),
                     threat_priority=sum(
                         row.threat_priority
-                        for row in rows),
+                        for row in
+                        supported),
                     confidence=(
                         min(
                             row.confidence
                             for row
-                            in supported)
-                        if len(supported)
-                        == len(rows)
-                        else 0.0)))
+                            in supported))))
         requirements = tuple(
             requirements)
         requirements_by_city = {
@@ -1299,9 +1365,7 @@ class CityDefenseAnalyzer:
                     requirement
                     .requirement_id] = int(
                         snapshot.turn)
-            elif (candidate.category
-                    == "city_garrison_move"
-                    and action_type
+            elif (action_type
                     == "unit_move"
                     and defender is not None):
                 operation_type = (
@@ -1352,6 +1416,10 @@ class CityDefenseAnalyzer:
                         requirement
                         .requirement_id] = (
                             int(snapshot.turn)
+                            if target_distance
+                            == 0
+                            else int(
+                                snapshot.turn)
                             + target_distance)
             elif (candidate.category
                     == "tactical_attack"
@@ -1480,6 +1548,14 @@ class CityDefenseAnalyzer:
                     arrival_by_requirement[
                         requirement
                         .requirement_id])
+                if (support_reason is None
+                        and operation_type
+                        == DefenseOperationType
+                        .MOVE_DEFENDER_TO_CITY
+                        and arrival
+                        > int(snapshot.turn)):
+                    support_reason = (
+                        "defender-route-eta-unavailable")
                 if (support_reason is None
                         and arrival
                         > requirement

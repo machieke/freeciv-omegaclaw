@@ -2,6 +2,7 @@
 """Replay captured GDO-4 city-defence states through B1/B2/B3/B4."""
 
 import argparse
+from collections import Counter
 import json
 import os
 import statistics
@@ -640,6 +641,11 @@ def run(
     factual_city_losses = 0
     unresolved_city_outcomes = 0
     replay_latency = []
+    operation_support_reasons = Counter()
+    operation_types = Counter()
+    threat_support_reasons = Counter()
+    threat_unit_classes = Counter()
+    threat_unit_types = Counter()
     try:
         for (
                 fixture,
@@ -728,6 +734,34 @@ def run(
                 row.supported
                 for row in
                 analysis.threats)
+            for threat in analysis.threats:
+                threat_support_reasons[
+                    threat.support_reason
+                    or "supported"] += 1
+                threat_unit_classes[
+                    threat.enemy_unit_class
+                    or "unknown"] += 1
+                threat_unit_types[
+                    threat.enemy_unit_type] += 1
+            for operation in analysis.operations:
+                operation_support_reasons[
+                    operation.support_reason
+                    or "supported"] += 1
+                operation_types[
+                    operation.operation_type
+                    .value] += 1
+            candidate_edge_requirements = sum(
+                any(
+                    operation.next_action
+                    is not None
+                    and operation
+                    .requirement_id
+                    == requirement
+                    .requirement_id
+                    for operation
+                    in analysis.operations)
+                for requirement
+                in analysis.requirements)
             supported_requirements = sum(
                 any(
                     operation.supported
@@ -748,6 +782,8 @@ def run(
                     arm_metrics,
                 "candidate_count":
                     len(candidates),
+                "candidate_edge_requirement_count":
+                    candidate_edge_requirements,
                 "operation_count":
                     len(
                         analysis.operations),
@@ -762,6 +798,29 @@ def run(
                     supported_requirements,
                 "supported_threat_count":
                     supported_threats,
+                "threat_support_reasons":
+                    dict(sorted(
+                        Counter(
+                            row.support_reason
+                            or "supported"
+                            for row in
+                            analysis.threats)
+                        .items())),
+                "threat_unit_classes":
+                    dict(sorted(
+                        Counter(
+                            row.enemy_unit_class
+                            or "unknown"
+                            for row in
+                            analysis.threats)
+                        .items())),
+                "threat_unit_types":
+                    dict(sorted(
+                        Counter(
+                            row.enemy_unit_type
+                            for row in
+                            analysis.threats)
+                        .items())),
                 "threat_count":
                     len(
                         analysis.threats),
@@ -804,11 +863,21 @@ def run(
         row[
             "supported_requirement_count"]
         for row in scenarios)
+    candidate_edge_requirements = sum(
+        row[
+            "candidate_edge_requirement_count"]
+        for row in scenarios)
     threat_coverage = (
         float(supported_threats)
         / max(1, total_threats))
     operation_edge_coverage = (
         float(supported_requirements)
+        / max(
+            1,
+            total_requirements))
+    candidate_edge_coverage = (
+        float(
+            candidate_edge_requirements)
         / max(
             1,
             total_requirements))
@@ -877,12 +946,36 @@ def run(
         "claim_status":
             "captured-replay-diagnostic-only",
         "coverage": {
+            "candidate_edge_fraction":
+                candidate_edge_coverage,
+            "candidate_edge_requirement_count":
+                candidate_edge_requirements,
             "operation_edge_fraction":
                 operation_edge_coverage,
+            "operation_support_reasons":
+                dict(sorted(
+                    operation_support_reasons
+                    .items())),
+            "operation_types":
+                dict(sorted(
+                    operation_types
+                    .items())),
             "supported_requirement_count":
                 supported_requirements,
             "supported_threat_count":
                 supported_threats,
+            "threat_support_reasons":
+                dict(sorted(
+                    threat_support_reasons
+                    .items())),
+            "threat_unit_classes":
+                dict(sorted(
+                    threat_unit_classes
+                    .items())),
+            "threat_unit_types":
+                dict(sorted(
+                    threat_unit_types
+                    .items())),
             "threat_value_fraction":
                 threat_coverage,
             "total_requirement_count":

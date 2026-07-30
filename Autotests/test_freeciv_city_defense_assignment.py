@@ -33,7 +33,9 @@ from freeciv_agent.pressure.resource_claims import (  # noqa: E402
 )
 
 
-def _rule(name, attack, defense, hp=10):
+def _rule(
+        name, attack, defense, hp=10,
+        unit_class="Land", flags=()):
     return SimpleNamespace(
         target_kind="unit",
         display_name=name,
@@ -45,6 +47,17 @@ def _rule(name, attack, defense, hp=10):
             "hitpoints": {"value": hp},
             "build_cost": {"value": 10},
             "move_rate": {"value": 3},
+        },
+        traits={
+            "class": {
+                "values": [unit_class],
+            },
+            "flags": {
+                "values": list(flags),
+            },
+            "roles": {
+                "values": [],
+            },
         })
 
 
@@ -135,7 +148,7 @@ def _candidates():
         _candidate({
             "action_type": "unit_move",
             "actor_id": 2,
-            "target": {"x": 3, "y": 0},
+            "target": {"x": 4, "y": 0},
             "movement_cost": 1,
             "is_valid": True,
         }, "city_garrison_move", {
@@ -144,7 +157,7 @@ def _candidates():
         _candidate({
             "action_type": "unit_move",
             "actor_id": 3,
-            "target": {"x": 3, "y": 1},
+            "target": {"x": 4, "y": 0},
             "movement_cost": 1,
             "is_valid": True,
         }, "city_garrison_move", {
@@ -417,8 +430,114 @@ def test_unknown_ruleset_support_abstains_from_assignment():
         not row.supported
         and row.unknown_mass == 1.0
         for row in analysis.threats)
+    assert analysis.requirements == ()
     assert assignment.selected_operation_ids == ()
-    assert assignment.uncovered_slots == 4
+    assert assignment.uncovered_slots == 0
+
+
+def test_non_military_visible_unit_does_not_create_defense_requirement():
+    candidates = _candidates()
+    snapshot, _ = _scenario(
+        candidates)
+    snapshot.visible_enemy_units = (
+        _unit(
+            90, "Ferry", 4, 3,
+            owner=2),)
+    ruleset = SimpleNamespace(
+        rules=(
+            _rule("Guard", 4, 6),
+            _rule(
+                "Ferry", 0, 1,
+                unit_class="Sea",
+                flags=("NonMil",)),
+        ))
+
+    analysis = CityDefenseAnalyzer().analyze(
+        snapshot, ruleset,
+        candidates)
+
+    assert analysis.threats
+    assert all(
+        row.support_reason
+        == "enemy-unit-not-combat-capable"
+        for row in analysis.threats)
+    assert analysis.requirements == ()
+
+
+def test_existing_garrison_surplus_is_not_an_uncovered_response_slot():
+    candidates = _candidates()
+    snapshot, ruleset = _scenario(
+        candidates)
+    snapshot.units = (
+        snapshot.units
+        + (
+            _unit(
+                4, "Guard", 0, 0),
+            _unit(
+                5, "Guard", 4, 0),
+            _unit(
+                6, "Guard", 4, 0),
+        ))
+
+    analysis = CityDefenseAnalyzer().analyze(
+        snapshot, ruleset,
+        candidates)
+
+    assert analysis.threats
+    assert analysis.requirements == ()
+    assert analysis.operations == ()
+
+
+def test_category_independent_direct_city_move_forms_supported_edge():
+    move = _candidate({
+        "action_type": "unit_move",
+        "actor_id": 2,
+        "target": {"x": 4, "y": 0},
+        "movement_cost": 1,
+        "is_valid": True,
+    }, "tactical_move")
+    snapshot, ruleset = _scenario(
+        (move,))
+
+    analysis = CityDefenseAnalyzer().analyze(
+        snapshot, ruleset,
+        (move,))
+    operation = next(
+        row for row
+        in analysis.operations
+        if row.actor_id == 2)
+
+    assert operation.supported
+    assert operation.operation_type == (
+        DefenseOperationType
+        .MOVE_DEFENDER_TO_CITY)
+    assert operation.arrival_turn == (
+        snapshot.turn)
+
+
+def test_multi_turn_defender_route_abstains_without_grounded_eta():
+    move = _candidate({
+        "action_type": "unit_move",
+        "actor_id": 2,
+        "target": {"x": 3, "y": 0},
+        "movement_cost": 1,
+        "is_valid": True,
+    }, "tactical_move")
+    snapshot, ruleset = _scenario(
+        (move,))
+
+    analysis = CityDefenseAnalyzer().analyze(
+        snapshot, ruleset,
+        (move,))
+    operation = next(
+        row for row
+        in analysis.operations
+        if row.actor_id == 2
+        and row.city_id == 20)
+
+    assert not operation.supported
+    assert operation.support_reason == (
+        "defender-route-eta-unavailable")
 
 
 def test_unadvertised_candidate_cannot_form_an_operation():

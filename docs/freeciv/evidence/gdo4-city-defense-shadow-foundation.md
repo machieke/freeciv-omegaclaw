@@ -117,3 +117,8 @@ The next implementation step is to capture or construct engine-derived defence
 replays, add grounded movement ETA/parity to assignment edges, resolve selected
 operations at their threat deadline, and compute replay B1/B2/B3/B4 mechanism
 metrics before considering any authority.
+
+The first captured replay and its semantic hardening are documented in
+`docs/evidence/gdo/gdo4_captured_replay_hardening.md`. That replay localized the
+remaining blocker to grounded threat/defender ETA and representative earlier
+warning states; it did not establish a B4 improvement over B1.
