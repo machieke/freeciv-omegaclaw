@@ -36,7 +36,7 @@ declared subset. No movement authority is permitted by this audit.
 grounded subset uses those flags only to validate one-edge adjacency; it does
 not infer a complete Freeciv topology from them.
 
-## Inputs present upstream but lost at this boundary
+## Inputs present upstream and retained for fresh replays
 
 The packet projection supplied to this repository can contain:
 
@@ -46,8 +46,15 @@ The packet projection supplied to this repository can contain:
 - `carrying`;
 - `done_moving`.
 
-The audit correction now retains all five fields in `UnitState`. Missing
-packet values remain explicit `None`. The packet-side process also has ruleset
+The audit correction retains all five fields in `UnitState`. Fresh
+`state_snapshot` events now also carry a versioned `grounded_context` containing
+the complete normalized legal-action set, map-wrap flags, and lossless own and
+visible-enemy unit movement/transport fields. Missing packet values remain
+explicit `None`; the extraction report measures each input family separately
+and never treats key presence as a grounded value. Historical v1 events remain
+readable and are explicitly marked incomplete.
+
+The packet-side process also has ruleset
 terrain, extra, and unit-class packets, but the authoritative response exposes
 only a ruleset-ready marker. This repository must not assume those omitted
 packet values.
@@ -128,6 +135,9 @@ abstain rather than receive fabricated precision.
    implementation code: process boundary and runner complete; native
    executable/corpus pending.
 7. Capture generated visible movement fixtures with engine/ruleset identities.
+8. Retain full legal actions, wrap topology, and runtime unit fields in fresh
+   event replay artifacts: complete; authoritative movement cost and native
+   parity remain open.
 
 ## Exit status
 

@@ -128,6 +128,101 @@ def _outcome_row(event):
     }
 
 
+def _authority(snapshot_event):
+    payload = snapshot_event[
+        "payload"]
+    grounded = payload.get(
+        "grounded_context")
+    grounded = (
+        grounded
+        if isinstance(
+            grounded, dict)
+        else {})
+    legal = grounded.get(
+        "legal_actions")
+    full_legal = (
+        isinstance(legal, list)
+        and all(
+            isinstance(
+                row, dict)
+            for row in legal))
+    topology = grounded.get(
+        "map_topology")
+    topology = (
+        topology
+        if isinstance(
+            topology, dict)
+        else {})
+    map_wrap = all(
+        isinstance(
+            topology.get(name),
+            bool)
+        for name in (
+            "wrap_x", "wrap_y"))
+    units = grounded.get(
+        "own_units")
+    movement_runtime = (
+        isinstance(units, list)
+        and all(
+            isinstance(row, dict)
+            and isinstance(
+                row.get(
+                    "transported"),
+                bool)
+            and isinstance(
+                row.get(
+                    "done_moving"),
+                bool)
+            for row in units))
+    moves = (
+        [
+            row for row in legal
+            if row.get(
+                "action_type")
+            == "unit_move"
+        ]
+        if full_legal
+        else [])
+    movement_action_metadata = bool(
+        full_legal
+        and all(
+            not isinstance(
+                row.get(
+                    "movement_cost"),
+                bool)
+            and isinstance(
+                row.get(
+                    "movement_cost"),
+                (int, float))
+            and row[
+                "movement_cost"] > 0
+            and isinstance(
+                row.get(
+                    "transport_required"),
+                bool)
+            for row in moves))
+    return {
+        "full_legal_action_set_available":
+            full_legal,
+        "legal_action_source": (
+            "snapshot-grounded-context"
+            if full_legal
+            else
+            "planner-candidate-trace-subset"),
+        "map_wrap_metadata_available":
+            map_wrap,
+        "movement_action_metadata_available":
+            movement_action_metadata,
+        "movement_runtime_fields_available":
+            movement_runtime,
+        "player_visible_only": True,
+        # Completeness alone does not establish native parity,
+        # counterfactual outcomes, or permission for live policy use.
+        "policy_authority_eligible":
+            False,
+    }
+
+
 def _load_trace(path):
     snapshots = {}
     last_snapshot = None
@@ -223,19 +318,8 @@ def extract(
             in final_snapshot_by_turn
         ]
         payload = {
-            "authority": {
-                "full_legal_action_set_available":
-                    False,
-                "legal_action_source":
-                    "planner-candidate-trace-subset",
-                "map_wrap_metadata_available":
-                    False,
-                "movement_runtime_fields_available":
-                    False,
-                "player_visible_only": True,
-                "policy_authority_eligible":
-                    False,
-            },
+            "authority": _authority(
+                snapshot_event),
             "candidates": candidates,
             "outcome_observations":
                 outcomes,

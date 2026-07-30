@@ -465,7 +465,17 @@ def test_non_military_visible_unit_does_not_create_defense_requirement():
 
 
 def test_existing_garrison_surplus_is_not_an_uncovered_response_slot():
-    candidates = _candidates()
+    candidates = _candidates() + (
+        _candidate({
+            "action_type":
+                "unit_attack",
+            "actor_id": 1,
+            "target": {
+                "x": 4,
+                "y": 3,
+            },
+            "is_valid": True,
+        }, "tactical_attack"),)
     snapshot, ruleset = _scenario(
         candidates)
     snapshot.units = (
@@ -513,6 +523,38 @@ def test_category_independent_direct_city_move_forms_supported_edge():
         .MOVE_DEFENDER_TO_CITY)
     assert operation.arrival_turn == (
         snapshot.turn)
+
+
+def test_complete_legal_set_forms_protected_defense_candidate_union():
+    move = _candidate({
+        "action_type": "unit_move",
+        "actor_id": 2,
+        "target": {"x": 4, "y": 0},
+        "movement_cost": 1,
+        "is_valid": True,
+    }, "tactical_move")
+    snapshot, ruleset = _scenario(
+        ())
+    snapshot.legal_action_json = (
+        move.action_key,)
+
+    analysis = CityDefenseAnalyzer().analyze(
+        snapshot, ruleset,
+        ())
+    operation = next(
+        row for row
+        in analysis.operations
+        if row.actor_id == 2)
+
+    assert analysis.input_candidate_count == 0
+    assert (
+        analysis
+        .protected_union_added_count
+    ) == 1
+    assert operation.supported
+    assert (
+        "protected-legal-action-union"
+        in operation.provenance)
 
 
 def test_multi_turn_defender_route_abstains_without_grounded_eta():

@@ -1,6 +1,7 @@
 """Immutable domain snapshot types derived from proxy packet state."""
 
 from dataclasses import dataclass, field
+import json
 from typing import Optional, Tuple
 
 
@@ -144,6 +145,18 @@ class UnitState:
             "owner": self.owner, "tile": self.tile, "type": self.unit_type,
             "type_id": self.type_id, "unit_id": self.unit_id,
             "upkeep": list(self.upkeep), "x": self.x, "y": self.y,
+        }
+
+    def grounded_dict(self):
+        """Lossless domain-state extension for replay and parity artifacts."""
+        return {
+            **self.to_dict(),
+            "carrying": self.carrying,
+            "done_moving": self.done_moving,
+            "transported": self.transported,
+            "transported_by":
+                self.transported_by,
+            "veteran": self.veteran,
         }
 
 
@@ -345,6 +358,31 @@ class AuthoritativeSnapshot:
 
     def event_payload(self):
         return {
+            "grounded_context": {
+                "legal_actions": [
+                    json.loads(value)
+                    for value
+                    in self.legal_action_json
+                ],
+                "map_topology": {
+                    "wrap_x":
+                        self.map_wrap_x,
+                    "wrap_y":
+                        self.map_wrap_y,
+                },
+                "own_units": [
+                    unit.grounded_dict()
+                    for unit in
+                    self.units
+                ],
+                "schema_version":
+                    "1.0",
+                "visible_enemy_units": [
+                    unit.grounded_dict()
+                    for unit in
+                    self.visible_enemy_units
+                ],
+            },
             "legal_actions_digest": self.legal_actions_digest,
             "map": self.map_dict(), "own_state": self.own_state_dict(),
             "player_id": self.player_id, "snapshot_id": self.snapshot_id,

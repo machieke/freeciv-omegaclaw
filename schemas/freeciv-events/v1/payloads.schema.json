@@ -540,6 +540,7 @@
         "snapshot_id": {"type": "string"}, "player_id": {"type": "integer"},
         "state_hash": {"type": "string"}, "source_seq": {"type": "integer", "minimum": 0},
         "legal_actions_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "grounded_context": {"type": "object"},
         "own_state": {"type": "object"},
         "uncertain_atoms": {"type": "array", "items": {"$ref": "#/$defs/atom"}},
         "map": {"type": "object"}

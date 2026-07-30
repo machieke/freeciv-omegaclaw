@@ -38,7 +38,7 @@ unknown mass one. They do not silently become assignment demand.
 
 The retained report is
 `benchmarks/gdo/gdo4_city_defense_replay_diagnostic.json`, with report hash
-`afd7f0fef8bd09e92e79f161d28f53c77432fb232b8f20eb6874f23be8ef283b`.
+`a08ecc1bb80e4119d80319ba0227419ac0f0b2d5a1aa1d93770d555c27eaec08`.
 
 | Metric | Initial replay | Hardened replay |
 | --- | ---: | ---: |
@@ -73,8 +73,10 @@ assignment cohort: B1, B2, B3, and B4 all cover the same single actionable
 slot.
 
 The next blocking input is therefore grounded threat/defender ETA plus earlier
-warning snapshots, not a more sophisticated exact solver or broader
-category-based readout.
+warning snapshots, not a more sophisticated exact solver. The follow-on input
+contract retains full legal actions, topology, and runtime unit state in fresh
+events and forms a shadow-only protected union from legal defence actions. It
+still abstains when movement cost or multi-turn ETA is unavailable.
 
 ## Verification
 
@@ -89,7 +91,7 @@ Focused city-defence tests now cover:
 
 The focused result is `16 passed`. Replay validation passes, B4 has zero actor,
 city-production, late-arrival, and sole-defender violations, and replay
-analyzer-plus-solver p95 is approximately 4.20 ms over 900 samples.
+analyzer-plus-solver p95 is approximately 4.27 ms over 900 samples.
 
 ## Claim boundary
 

@@ -110,12 +110,32 @@ def _request(snapshot, action, utility=100.0):
 def test_snapshot_retains_movement_topology_and_transport_state():
     snapshot, _ = _snapshot()
     unit = snapshot.unit(102)
+    grounded = snapshot.event_payload()[
+        "grounded_context"]
 
     assert snapshot.map_wrap_x is True
     assert snapshot.map_wrap_y is False
     assert unit.veteran == 0
     assert unit.transported is False
     assert unit.done_moving is False
+    assert grounded["map_topology"] == {
+        "wrap_x": True,
+        "wrap_y": False,
+    }
+    assert len(
+        grounded["legal_actions"]
+    ) == len(
+        snapshot.legal_action_json)
+    grounded_unit = next(
+        row for row
+        in grounded["own_units"]
+        if row["unit_id"] == 102)
+    assert grounded_unit[
+        "transported"] is False
+    assert grounded_unit[
+        "done_moving"] is False
+    assert grounded_unit[
+        "veteran"] == 0
 
 
 def test_visible_explicit_cost_adjacent_move_is_parity_gated_heuristic():

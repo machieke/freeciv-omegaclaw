@@ -174,6 +174,20 @@ class DefenseOperationType(str, Enum):
 
 
 @dataclass(frozen=True)
+class _DefenseActionView:
+    action: dict
+    category: str
+    projection: object
+    readout_source: str
+
+    @cached_property
+    def action_key(self):
+        return canonical_json_bytes(
+            self.action).decode(
+                "utf-8")
+
+
+@dataclass(frozen=True)
 class VisibleCityThreat:
     enemy_unit_id: int
     enemy_unit_type: str
@@ -650,6 +664,8 @@ class CityDefenseAnalysis:
     operations: tuple
     omissions: tuple
     analyzer_identity: str
+    input_candidate_count: int = 0
+    protected_union_added_count: int = 0
 
     def __post_init__(self):
         if (not isinstance(
@@ -723,6 +739,17 @@ class CityDefenseAnalysis:
                 or not self.analyzer_identity):
             raise ValueError(
                 "defence analyzer identity is required")
+        for value, name in (
+                (self.input_candidate_count,
+                 "input candidate count"),
+                (self.protected_union_added_count,
+                 "protected-union added count")):
+            if (isinstance(value, bool)
+                    or not isinstance(
+                        value, int)
+                    or value < 0):
+                raise ValueError(
+                    "{} must be non-negative".format(name))
 
     @cached_property
     def analysis_digest(self):
@@ -735,6 +762,8 @@ class CityDefenseAnalysis:
         payload = {
             "analyzer_identity":
                 self.analyzer_identity,
+            "input_candidate_count":
+                self.input_candidate_count,
             "defenders": [
                 row.to_dict()
                 for row in self.defenders],
@@ -754,6 +783,8 @@ class CityDefenseAnalysis:
                     **row.to_dict(),
                 }
                 for row in self.requirements],
+            "protected_union_added_count":
+                self.protected_union_added_count,
             "snapshot_id":
                 self.snapshot_id,
             "threats": [
@@ -1085,6 +1116,8 @@ class CityDefenseAnalyzer:
             candidates):
         candidates = tuple(
             candidates)
+        input_candidate_count = len(
+            candidates)
         declared_legal = getattr(
             snapshot,
             "legal_action_json", None)
@@ -1115,6 +1148,62 @@ class CityDefenseAnalyzer:
                 if isinstance(action, dict):
                     legal.append(action)
             legal = tuple(legal)
+        candidate_keys = {
+            candidate.action_key
+            for candidate in
+            candidates}
+        protected_union = []
+        protected_types = {
+            "unit_attack",
+            "unit_bombard",
+            "unit_capture",
+            "unit_conquer_city",
+            "unit_fortify",
+            "unit_move",
+            "unit_suicide_attack",
+            "unit_wipe",
+        }
+        for action in legal:
+            action_type = str(
+                action.get(
+                    "action_type", ""))
+            action_key = (
+                canonical_json_bytes(
+                    action).decode(
+                        "utf-8"))
+            if (action_type
+                    not in protected_types
+                    or action_key
+                    in candidate_keys):
+                continue
+            category = (
+                "city_defense"
+                if action_type
+                == "unit_fortify"
+                else
+                "tactical_attack"
+                if action_type
+                in (
+                    protected_types
+                    - {
+                        "unit_fortify",
+                        "unit_move",
+                    })
+                else
+                "grounded_defense_move")
+            protected_union.append(
+                _DefenseActionView(
+                    action=dict(action),
+                    category=category,
+                    projection=None,
+                    readout_source=(
+                        "protected-legal-action-union")))
+            candidate_keys.add(
+                action_key)
+        candidates = (
+            candidates
+            + tuple(
+                protected_union))
         threats, threat_omissions = (
             self._threats(
                 snapshot, ruleset_ir,
@@ -1464,8 +1553,11 @@ class CityDefenseAnalyzer:
                             threat_by_enemy.get(
                                 enemy_id, ())):
                         requirement = (
-                            requirements_by_city[
-                                threat.city_id])
+                            requirements_by_city
+                            .get(
+                                threat.city_id))
+                        if requirement is None:
+                            continue
                         if requirement not in (
                                 target_requirements):
                             target_requirements.append(
@@ -1699,6 +1791,10 @@ class CityDefenseAnalyzer:
                     claims,
                     (
                         "server-advertised-legal-action",
+                        getattr(
+                            candidate,
+                            "readout_source",
+                            "legacy-candidate-readout"),
                         "visible-city-threat",
                         "ruleset-unit-stat"
                         if support_reason
@@ -1721,7 +1817,11 @@ class CityDefenseAnalyzer:
             omissions=tuple(sorted(set(
                 omissions))),
             analyzer_identity=(
-                self.ANALYZER_IDENTITY))
+                self.ANALYZER_IDENTITY),
+            input_candidate_count=(
+                input_candidate_count),
+            protected_union_added_count=(
+                len(protected_union)))
 
 
 @dataclass(frozen=True)

@@ -3,6 +3,7 @@
 
 import argparse
 from collections import Counter
+import hashlib
 import json
 import os
 import statistics
@@ -15,7 +16,10 @@ SRC = os.path.join(REPO, "src")
 if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
-from freeciv_agent.events.schema import structural_hash  # noqa: E402
+from freeciv_agent.events.schema import (  # noqa: E402
+    canonical_json_bytes,
+    structural_hash,
+)
 from freeciv_agent.planning import ImpactCandidate  # noqa: E402
 from freeciv_agent.planning.domain_models import (  # noqa: E402
     CityDefenseAnalyzer,
@@ -101,7 +105,17 @@ def _unit(row):
         upkeep=_numbers(
             row.get("upkeep")),
         homecity=row.get(
-            "homecity"))
+            "homecity"),
+        veteran=row.get(
+            "veteran"),
+        transported=row.get(
+            "transported"),
+        transported_by=row.get(
+            "transported_by"),
+        carrying=row.get(
+            "carrying"),
+        done_moving=row.get(
+            "done_moving"))
 
 
 def _city(row):
@@ -220,9 +234,54 @@ def _snapshot(fixture, candidates):
         "government"]
     score = own.get(
         "score", {})
+    grounded = payload.get(
+        "grounded_context")
+    grounded = (
+        grounded
+        if isinstance(
+            grounded, dict)
+        else {})
+    legal_actions = grounded.get(
+        "legal_actions")
+    if (not isinstance(
+            legal_actions, list)
+            or not all(
+                isinstance(
+                    row, dict)
+                for row in
+                legal_actions)):
+        legal_actions = [
+            candidate.action
+            for candidate
+            in candidates]
     legal_json = tuple(sorted(
-        candidate.action_key
-        for candidate in candidates))
+        canonical_json_bytes(
+            action).decode(
+                "utf-8")
+        for action in
+        legal_actions))
+    grounded_own_units = grounded.get(
+        "own_units")
+    if not isinstance(
+            grounded_own_units, list):
+        grounded_own_units = own.get(
+            "units", ())
+    grounded_enemy_units = (
+        grounded.get(
+            "visible_enemy_units"))
+    if not isinstance(
+            grounded_enemy_units, list):
+        grounded_enemy_units = (
+            map_payload.get(
+                "visible_enemy_units",
+                ()))
+    topology = grounded.get(
+        "map_topology")
+    topology = (
+        topology
+        if isinstance(
+            topology, dict)
+        else {})
     identity = SnapshotIdentity(
         game_id=str(
             event["game_id"]),
@@ -338,13 +397,12 @@ def _snapshot(fixture, candidates):
                 "cities", ())),
         units=tuple(
             _unit(row)
-            for row in own.get(
-                "units", ())),
+            for row in
+            grounded_own_units),
         visible_enemy_units=tuple(
             _unit(row)
-            for row in map_payload.get(
-                "visible_enemy_units",
-                ())),
+            for row in
+            grounded_enemy_units),
         visible_tile_ids=tuple(
             int(value)
             for value in map_payload.get(
@@ -390,8 +448,10 @@ def _snapshot(fixture, candidates):
                     "is_alive"))
             for row in score.get(
                 "opponents", ())),
-        map_wrap_x=None,
-        map_wrap_y=None)
+        map_wrap_x=topology.get(
+            "wrap_x"),
+        map_wrap_y=topology.get(
+            "wrap_y"))
 
 
 def _load_fixture(path, expected_hash):
@@ -624,6 +684,23 @@ def run(
                 path,
                 row[
                     "fixture_sha256"]))
+    for fixture, snapshot, _candidates in fixtures:
+        if fixture[
+                "authority"].get(
+                    "full_legal_action_set_available"):
+            digest = hashlib.sha256(
+                "\n".join(
+                    snapshot
+                    .legal_action_json)
+                .encode("utf-8")
+            ).hexdigest()
+            if digest != (
+                    snapshot
+                    .legal_actions_digest):
+                raise ValueError(
+                    "grounded legal-action digest mismatch: {}".format(
+                        snapshot
+                        .snapshot_id))
     analyzer = CityDefenseAnalyzer(
         threat_radius=3)
     solver = (
@@ -787,6 +864,12 @@ def run(
                 "operation_count":
                     len(
                         analysis.operations),
+                "input_candidate_count":
+                    analysis
+                    .input_candidate_count,
+                "protected_union_added_count":
+                    analysis
+                    .protected_union_added_count,
                 "requirement_count":
                     len(
                         analysis.requirements),
@@ -960,6 +1043,12 @@ def run(
                 dict(sorted(
                     operation_types
                     .items())),
+            "protected_union_added_count":
+                sum(
+                    row[
+                        "protected_union_added_count"]
+                    for row in
+                    scenarios),
             "supported_requirement_count":
                 supported_requirements,
             "supported_threat_count":
@@ -1008,11 +1097,66 @@ def run(
             mechanism_gates,
         "policy_authority": False,
         "policy_authority_blockers": [
-            "captured event snapshots omit the complete legal-action set",
-            "captured event snapshots omit map-wrap metadata",
-            "captured event units omit movement transport/done state",
-            "movement and threat ETA lack native gameplay parity",
-            "counterfactual operation outcomes are unavailable",
+            message
+            for available, message in (
+                (
+                    all(
+                        fixture[
+                            "authority"].get(
+                                "full_legal_action_set_available",
+                                False)
+                        for fixture,
+                        _snapshot_value,
+                        _candidates
+                        in fixtures),
+                    "captured event snapshots omit the complete legal-action set",
+                ),
+                (
+                    all(
+                        fixture[
+                            "authority"].get(
+                                "map_wrap_metadata_available",
+                                False)
+                        for fixture,
+                        _snapshot_value,
+                        _candidates
+                        in fixtures),
+                    "captured event snapshots omit map-wrap metadata",
+                ),
+                (
+                    all(
+                        fixture[
+                            "authority"].get(
+                                "movement_runtime_fields_available",
+                                False)
+                        for fixture,
+                        _snapshot_value,
+                        _candidates
+                        in fixtures),
+                    "captured event units omit movement transport/done state",
+                ),
+                (
+                    all(
+                        fixture[
+                            "authority"].get(
+                                "movement_action_metadata_available",
+                                False)
+                        for fixture,
+                        _snapshot_value,
+                        _candidates
+                        in fixtures),
+                    "captured legal moves omit movement cost or transport metadata",
+                ),
+                (
+                    False,
+                    "movement and threat ETA lack native gameplay parity",
+                ),
+                (
+                    False,
+                    "counterfactual operation outcomes are unavailable",
+                ),
+            )
+            if not available
         ],
         "replay_compute":
             timing,

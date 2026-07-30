@@ -2941,6 +2941,30 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                 else float(
                     supported_threats)
                 / threat_count)
+            requirement_count = len(
+                defense_analysis
+                .requirements)
+            supported_requirements = sum(
+                any(
+                    operation.supported
+                    and operation.next_action
+                    is not None
+                    and operation
+                    .requirement_id
+                    == requirement
+                    .requirement_id
+                    for operation in
+                    defense_analysis
+                    .operations)
+                for requirement in
+                defense_analysis
+                .requirements)
+            operation_edge_coverage = (
+                1.0
+                if requirement_count == 0
+                else float(
+                    supported_requirements)
+                / requirement_count)
             defense_payload = {
                 "analysis":
                     defense_analysis.to_dict(),
@@ -2959,11 +2983,18 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                     "typed-defense-coverage-below-90-percent"
                     if coverage < 0.90
                     else
+                    "typed-defense-operation-edge-coverage-below-90-percent"
+                    if operation_edge_coverage
+                    < 0.90
+                    else
                     "shadow-only-gdo4"),
                 "fallback_to_b1": True,
                 "live_ordering_unchanged":
                     True,
                 "policy_authority": False,
+                "protected_union_added_count":
+                    defense_analysis
+                    .protected_union_added_count,
                 "schema_version": "1.0",
                 "selected_action_key": (
                     None
@@ -2975,6 +3006,8 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                 "shadow_only": True,
                 "typed_threat_coverage":
                     coverage,
+                "typed_operation_edge_coverage":
+                    operation_edge_coverage,
             }
             defense_payload[
                 "artifact_hash"] = (
