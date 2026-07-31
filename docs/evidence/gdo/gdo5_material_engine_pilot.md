@@ -83,6 +83,17 @@ The correction was developed after observing the pilot and therefore cannot
 retroactively change its result. Any confirmation must use fresh, disjoint
 seeds and a newly frozen source commit.
 
+`combat_operation_material_atomic_repair_pilot_v1` is that fresh checkpoint:
+
+- 30 paired seeds in the disjoint 6.5M range;
+- the same isolated 160-turn scenario and authority flag;
+- the original predeclared 1.0 shield-equivalent adverse residual tolerance;
+- zero partial activation remains a conjunctive release gate;
+- no post-run score eligibility.
+
+It is labeled a new pilot, rather than a confirmation, because its lifecycle
+implementation differs from the failed pilot.
+
 ## Gameplay outcome boundary
 
 The pilot was designed and labeled for mechanism evidence, not a gameplay

@@ -1,0 +1,225 @@
+{
+  "arms": {
+    "baseline": {
+      "authority": {
+        "action_types": {},
+        "operation_types": {},
+        "policy_authority_values": {},
+        "row_count": 0
+      },
+      "city_loss": {
+        "count": 0,
+        "observations": [],
+        "scope": "own-city-identity-disappearance-between-authoritative-snapshots"
+      },
+      "event_counts": {
+        "operation_expired": 38,
+        "operation_proposed": 3354,
+        "operation_reserved": 97,
+        "operation_step_selected": 97
+      },
+      "full_loop_latency_ms": {
+        "maximum": 18186.96337984875,
+        "p50": 210.09763004258275,
+        "p95": 11659.06939888373,
+        "sample_count": 480
+      },
+      "hard_current_reservation_conflicts": [],
+      "lifecycle": {
+        "activated_adverse": 0,
+        "activated_completed": 0,
+        "activated_response_turns": 0,
+        "activated_unique": 0,
+        "activation_rate_per_selection": 0.0,
+        "adverse_terminal_rate_per_selection": 1.0,
+        "completion_rate_per_selection": 0.0,
+        "selected_adverse": 38,
+        "selected_completed": 0,
+        "selected_response_turns": 97,
+        "selected_unique": 38,
+        "uncovered_threat_turns": 97
+      },
+      "preparation_latency_ms": {
+        "maximum": null,
+        "p50": null,
+        "p95": null,
+        "sample_count": 0
+      },
+      "sole_defender_violations": [],
+      "typed_winner_changing_coverage": {
+        "coverage": null,
+        "row_count": 0,
+        "typed_row_count": 0
+      },
+      "unsupported_authority": []
+    },
+    "treatment": {
+      "authority": {
+        "action_types": {
+          "unit_fortify": 8,
+          "unit_move": 33
+        },
+        "operation_types": {
+          "fortify_existing_defender": 8,
+          "move_defender_to_city": 33
+        },
+        "policy_authority_values": {
+          "True": 41
+        },
+        "row_count": 41
+      },
+      "city_loss": {
+        "count": 0,
+        "observations": [],
+        "scope": "own-city-identity-disappearance-between-authoritative-snapshots"
+      },
+      "event_counts": {
+        "operation_abandoned": 62,
+        "operation_activated": 41,
+        "operation_completed": 8,
+        "operation_proposed": 3137,
+        "operation_reserved": 70,
+        "operation_step_committed": 41,
+        "operation_step_revalidated": 41,
+        "operation_step_selected": 128
+      },
+      "full_loop_latency_ms": {
+        "maximum": 28056.245369371027,
+        "p50": 451.99965639039874,
+        "p95": 12390.781523194164,
+        "sample_count": 480
+      },
+      "hard_current_reservation_conflicts": [],
+      "lifecycle": {
+        "activated_adverse": 33,
+        "activated_completed": 8,
+        "activated_response_turns": 41,
+        "activated_unique": 41,
+        "activation_rate_per_selection": 0.5857142857142857,
+        "adverse_terminal_rate_per_selection": 0.8857142857142857,
+        "completion_rate_per_selection": 0.11428571428571428,
+        "selected_adverse": 62,
+        "selected_completed": 8,
+        "selected_response_turns": 128,
+        "selected_unique": 70,
+        "uncovered_threat_turns": 87
+      },
+      "preparation_latency_ms": {
+        "maximum": null,
+        "p50": null,
+        "p95": null,
+        "sample_count": 0
+      },
+      "sole_defender_violations": [],
+      "typed_winner_changing_coverage": {
+        "coverage": 1.0,
+        "row_count": 15,
+        "typed_row_count": 15
+      },
+      "unsupported_authority": []
+    }
+  },
+  "authority": {
+    "claim_status": "diagnostic-only",
+    "policy_authority_eligible": false,
+    "score_claim_eligible": false
+  },
+  "cohort": {
+    "aggregate_path": "impact-aggregate.json",
+    "aggregate_sha256": "50bfa1e5c8abc509e653de456fcd500f5cba0e09d0f37342c9d3562070af7051",
+    "complete_pairs": 3,
+    "configuration_hash": "e6ace2dd4a5271408fb3fe5fd0c57e970a1284e50db9fa2b79dfe7c0f272c558",
+    "id": "city_defense_operation_authority_scenario_diagnostic_v2",
+    "primary_score_delta": {
+      "estimate": 0.0,
+      "lower": -1.0,
+      "method": "paired_bootstrap_delta",
+      "n": 3,
+      "paired_seeds": [
+        6445639,
+        6459975,
+        6488042
+      ],
+      "upper": 1.0
+    },
+    "purpose": "diagnostic",
+    "source_freeze": {
+      "commits": [
+        "1a27d9cb73418fa5dfb5157b1c4e0ed2d372b394"
+      ],
+      "dirty_games": [],
+      "implementation_sha256s": [
+        "f405307e368c10efc8dcb5f1627c5df448888143128f3c101cb73327e0c561b2"
+      ],
+      "passed": true,
+      "required": true,
+      "run_source_stable": true,
+      "unavailable_games": []
+    }
+  },
+  "deltas": {
+    "city_loss_count": 0,
+    "completion_rate_per_selection": 0.11428571428571428,
+    "full_loop_p95_ratio": 1.0627590504247697,
+    "uncovered_threat_turns": -10
+  },
+  "gates": {
+    "city_loss_not_increased": true,
+    "hard_current_reservation_conflicts_zero": true,
+    "legality_violations_zero": true,
+    "lower_uncovered_threat_turns_than_b1": true,
+    "planning_latency_within_predeclared_bounds": false,
+    "policy_authority_limited_to_declared_operation_types": true,
+    "positive_operation_completion_delta": true,
+    "sole_defender_violations_zero": true,
+    "source_freeze_passed": true,
+    "trace_validation_passed": true,
+    "typed_winner_changing_coverage_at_least_predeclared_minimum": false,
+    "unsupported_states_have_zero_policy_authority": true
+  },
+  "pilot_gate_passed": false,
+  "predeclared_mechanism_design": {
+    "design": null,
+    "present": false
+  },
+  "report_hash": "f3878194bb4382343b31e6159683785575bd5cf6f13b788f15c448721916b431",
+  "report_schema_version": "1.0",
+  "trace_sources": [
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_operation_authority_scenario_diagnostic_v2/baseline/e_full_loop/6445639-00/events.jsonl",
+      "sha256": "5dfb9be0fcb51f28cb032e81984141895664fd003a5fb480a4006c80cfe2b9eb"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_operation_authority_scenario_diagnostic_v2/baseline/e_full_loop/6459975-00/events.jsonl",
+      "sha256": "7035ae1ad1a75e5839812fcda12ac02d2d22ccd9fdca2883990cba98bac374a2"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_operation_authority_scenario_diagnostic_v2/baseline/e_full_loop/6488042-00/events.jsonl",
+      "sha256": "94abc637d96dbad27ae77edc5e53bf920d77a5d08ea1af857699523b7a3cf7bf"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_operation_authority_scenario_diagnostic_v2/treatment/e_full_loop/6445639-00/events.jsonl",
+      "sha256": "317721b89128b4c8d47c89ce593a35e40545232d36ad1ba2945449eb96b8cdaf"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_operation_authority_scenario_diagnostic_v2/treatment/e_full_loop/6459975-00/events.jsonl",
+      "sha256": "a2288686719628f5b651a007e707ee9ac419d40071d44620b2498928e0a25e6f"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_operation_authority_scenario_diagnostic_v2/treatment/e_full_loop/6488042-00/events.jsonl",
+      "sha256": "c1569a3f39012fdd43242917bb6d2d4f929e83ad898ef37d2d92fb43bf7111f8"
+    }
+  ],
+  "trace_validation": {
+    "error_count": 0,
+    "event_count": 296016,
+    "valid": true,
+    "warning_count": 0
+  }
+}

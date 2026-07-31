@@ -1,6 +1,7 @@
 """Aggregate, versioned event emission for the unified control boundary."""
 
 import json
+import time
 
 from ..events.schema import (
     canonical_json_bytes,
@@ -520,6 +521,8 @@ class ControlEventEmitter:
             from .domain_models import (
                 build_city_defense_assignment_artifact,
             )
+            preparation_started = (
+                time.perf_counter())
             artifact = (
                 build_city_defense_assignment_artifact(
                     snapshot,
@@ -550,6 +553,29 @@ class ControlEventEmitter:
                     artifact,
                     caused_by=(
                         caused_by)))
+            latency = writer.emit(
+                "metric_sample",
+                int(snapshot.turn), {
+                    "labels": {
+                        "authority_kind":
+                            "city_defense",
+                        "component":
+                            "bounded-operation-authority",
+                    },
+                    "name":
+                        "city_defense_authority_preparation_latency_ms",
+                    "unit": "ms",
+                    "value": (
+                        time.perf_counter()
+                        - preparation_started)
+                    * 1000.0,
+                },
+                caused_by=(
+                    [emitted[-1]["event_id"]]
+                    if emitted
+                    else list(caused_by)))
+            emitted = emitted + (
+                latency,)
             self._emitted_city_defense_snapshot_ids.add(
                 snapshot_id)
         readout = (

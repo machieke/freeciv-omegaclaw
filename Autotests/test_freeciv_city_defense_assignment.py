@@ -1467,6 +1467,19 @@ def test_current_snapshot_city_defense_authority_is_prepared_once():
         row["type"]
         == "operation_reserved"
         for row in events)
+    preparation_latency = [
+        row for row in events
+        if (
+            row["type"]
+            == "metric_sample"
+            and row["payload"][
+                "name"]
+            == "city_defense_authority_preparation_latency_ms")
+    ]
+    assert len(
+        preparation_latency) == 1
+    assert preparation_latency[0][
+        "payload"]["value"] >= 0.0
     assert repeated_artifact is None
     assert repeated_events == ()
     assert repeated_readout == readout

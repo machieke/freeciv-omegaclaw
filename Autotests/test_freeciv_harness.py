@@ -188,8 +188,10 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "combat_operation_authority_scenario_diagnostic_v2": 10,
             "combat_operation_material_authority_scenario_diagnostic_v1": 10,
             "combat_operation_material_authority_pilot_v1": 30,
+            "combat_operation_material_atomic_repair_pilot_v1": 30,
             "city_defense_operation_authority_scenario_diagnostic_v1": 10,
             "city_defense_operation_authority_scenario_diagnostic_v2": 10,
+            "city_defense_operation_authority_pilot_v1": 30,
             "calibrated_scalar_diagnostic_v1": 10,
             "protected_bridge_readout_diagnostic_v1": 10,
             "corrected_probe_readout_diagnostic_v1": 10,
@@ -253,6 +255,54 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         },
         "schema_version": "1.0",
     }
+    atomic_repair_pilot = paired["cohorts"][
+        "combat_operation_material_atomic_repair_pilot_v1"]
+    assert atomic_repair_pilot[
+        "seed_derivation"] == {
+            "algorithm": "sha256-counter-v1",
+            "namespace": (
+                "pf-pln-combat-operation-material-atomic-repair-pilot-v1"),
+            "count": 30,
+            "minimum": 6500000,
+            "maximum": 6599999,
+        }
+    city_defense_pilot = paired["cohorts"][
+        "city_defense_operation_authority_pilot_v1"]
+    assert city_defense_pilot[
+        "city_defense_mechanism_design"] == {
+            "city_loss_metric": (
+                "own_city_identity_disappearance_between_authoritative_"
+                "snapshots"),
+            "declared_operation_types": [
+                "fortify_existing_defender",
+                "move_defender_to_city",
+            ],
+            "latency": {
+                "full_loop_p95_ratio_ceiling":
+                    1.15,
+                "preparation_p95_ceiling_ms":
+                    50.0,
+            },
+            "schema_version": "1.0",
+            "sole_defender_metric": (
+                "authority_unit_move_while_actor_protected_in_same_snapshot"),
+            "typed_winner_change": {
+                "minimum_coverage": 0.90,
+            },
+            "uncovered_threat_turn_metric": (
+                "selected_operation_step_observations_minus_activations"),
+            "unsupported_fallback":
+                "exact_b1_ordering",
+        }
+    assert city_defense_pilot[
+        "seed_derivation"] == {
+            "algorithm": "sha256-counter-v1",
+            "namespace": (
+                "pf-pln-city-defense-operation-authority-pilot-v1"),
+            "count": 30,
+            "minimum": 6600000,
+            "maximum": 6699999,
+        }
     score_derivation = paired["cohorts"]["confirmatory_score"]["seed_derivation"]
     assert score_derivation == {
         "algorithm": "sha256-counter-v1",

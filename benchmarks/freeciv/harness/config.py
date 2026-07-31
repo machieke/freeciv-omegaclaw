@@ -570,6 +570,128 @@ def _validate_paired_impact(value):
                 raise ValueError(
                     "{}.mechanism_design adverse loss tolerance must be in "
                     "0..100".format(prefix))
+        city_defense_design = cohort.get(
+            "city_defense_mechanism_design")
+        if city_defense_design is not None:
+            if (
+                    not isinstance(
+                        city_defense_design, dict)
+                    or set(
+                        city_defense_design) != {
+                        "city_loss_metric",
+                        "declared_operation_types",
+                        "latency",
+                        "schema_version",
+                        "sole_defender_metric",
+                        "typed_winner_change",
+                        "uncovered_threat_turn_metric",
+                        "unsupported_fallback",
+                    }
+                    or city_defense_design.get(
+                        "schema_version")
+                    != "1.0"
+                    or city_defense_design.get(
+                        "city_loss_metric")
+                    != (
+                        "own_city_identity_disappearance_between_"
+                        "authoritative_snapshots")
+                    or city_defense_design.get(
+                        "sole_defender_metric")
+                    != (
+                        "authority_unit_move_while_actor_protected_"
+                        "in_same_snapshot")
+                    or city_defense_design.get(
+                        "uncovered_threat_turn_metric")
+                    != (
+                        "selected_operation_step_observations_minus_"
+                        "activations")
+                    or city_defense_design.get(
+                        "unsupported_fallback")
+                    != "exact_b1_ordering"):
+                raise ValueError(
+                    "{}.city_defense_mechanism_design must use the exact "
+                    "1.0 schema".format(prefix))
+            operation_types = (
+                city_defense_design.get(
+                    "declared_operation_types"))
+            if (
+                    not isinstance(
+                        operation_types, list)
+                    or not operation_types
+                    or len(operation_types)
+                    != len(set(
+                        operation_types))
+                    or any(
+                        operation_type not in {
+                            "fortify_existing_defender",
+                            "move_defender_to_city",
+                        }
+                        for operation_type in
+                        operation_types)):
+                raise ValueError(
+                    "{}.city_defense_mechanism_design declared operation "
+                    "types are invalid".format(prefix))
+            latency = city_defense_design.get(
+                "latency")
+            if (
+                    not isinstance(latency, dict)
+                    or set(latency) != {
+                        "full_loop_p95_ratio_ceiling",
+                        "preparation_p95_ceiling_ms",
+                    }):
+                raise ValueError(
+                    "{}.city_defense_mechanism_design latency is invalid"
+                    .format(prefix))
+            preparation_ceiling = latency.get(
+                "preparation_p95_ceiling_ms")
+            full_loop_ceiling = latency.get(
+                "full_loop_p95_ratio_ceiling")
+            if (
+                    isinstance(
+                        preparation_ceiling, bool)
+                    or not isinstance(
+                        preparation_ceiling,
+                        (int, float))
+                    or not 0.0
+                    < float(
+                        preparation_ceiling)
+                    <= 100.0
+                    or isinstance(
+                        full_loop_ceiling, bool)
+                    or not isinstance(
+                        full_loop_ceiling,
+                        (int, float))
+                    or not 1.0
+                    <= float(
+                        full_loop_ceiling)
+                    <= 2.0):
+                raise ValueError(
+                    "{}.city_defense_mechanism_design latency bounds are "
+                    "invalid".format(prefix))
+            typed = city_defense_design.get(
+                "typed_winner_change")
+            minimum_coverage = (
+                typed.get(
+                    "minimum_coverage")
+                if isinstance(
+                    typed, dict)
+                else None)
+            if (
+                    not isinstance(typed, dict)
+                    or set(typed)
+                    != {"minimum_coverage"}
+                    or isinstance(
+                        minimum_coverage, bool)
+                    or not isinstance(
+                        minimum_coverage,
+                        (int, float))
+                    or not 0.0
+                    <= float(
+                        minimum_coverage)
+                    <= 1.0):
+                raise ValueError(
+                    "{}.city_defense_mechanism_design typed coverage is "
+                    "invalid".format(prefix))
         if purpose in ("diagnostic", "pilot", "confirmatory") and not cohort[
                 "require_clean_source"]:
             raise ValueError("{} must require a clean source tree".format(prefix))
