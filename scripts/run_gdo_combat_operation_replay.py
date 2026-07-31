@@ -8,6 +8,7 @@ import os
 import statistics
 import sys
 import time
+from types import SimpleNamespace
 
 
 REPO = os.path.dirname(
@@ -49,6 +50,32 @@ DEFAULT_CORPUS = os.path.join(
 DEFAULT_OUTPUT = os.path.join(
     REPO, "benchmarks", "gdo",
     "gdo5_combat_operation_synthetic_diagnostic.json")
+
+
+def _unit_rule(
+        name, attack, defense, hp,
+        firepower, cost):
+    return SimpleNamespace(
+        target_kind="unit",
+        display_name=name,
+        rule_name=name,
+        rule_id="unit:{}".format(name),
+        quantitative={
+            "attack": {"value": attack},
+            "defense": {"value": defense},
+            "hitpoints": {"value": hp},
+            "firepower": {"value": firepower},
+            "build_cost": {"value": cost},
+        })
+
+
+def _synthetic_ruleset():
+    return SimpleNamespace(rules=(
+        _unit_rule(
+            "Attacker", 1, 1, 10, 1, 10),
+        _unit_rule(
+            "Defender", 1, 1, 10, 1, 20),
+    ))
 
 
 def _unit(unit_id, owner, tile, unit_type):
@@ -340,12 +367,17 @@ def _independent_readout(snapshot, action_budget):
 def _atomic_readout(
         snapshot, scenario,
         ruleset_digest=(
-            "synthetic-ruleset-digest")):
+            "synthetic-ruleset-digest"),
+        ruleset_ir=None):
+    if ruleset_ir is None:
+        ruleset_ir = (
+            _synthetic_ruleset())
     assemblies = (
         CombatOperationAssembler()
         .assemble(
             snapshot,
-            str(ruleset_digest)))
+            str(ruleset_digest),
+            ruleset_ir=ruleset_ir))
     capacity_snapshot = (
         ResourceCapacityExtractor()
         .extract(
@@ -460,6 +492,29 @@ def _atomic_readout(
                 assembly.spec.operation_id
                 for assembly in
                 assemblies),
+        "candidate_material_by_operation_id": {
+            assembly.spec.operation_id: {
+                "bid": float(
+                    assembly
+                    .resource_request.bid),
+                "expected_enemy_terminal_loss":
+                    assembly
+                    .step_material_estimates[0]
+                    .expected_enemy_terminal_loss
+                    .to_dict(),
+                "expected_friendly_terminal_loss":
+                    assembly
+                    .step_material_estimates[0]
+                    .expected_friendly_terminal_loss
+                    .to_dict(),
+                "expected_terminal_material_advantage":
+                    assembly
+                    .step_material_estimates[0]
+                    .expected_terminal_material_advantage
+                    .to_dict(),
+            }
+            for assembly in assemblies
+        },
         "decision_digest":
             schedule
             .decision_digest,

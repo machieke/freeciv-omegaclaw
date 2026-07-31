@@ -123,7 +123,10 @@ def _assembly_schedule(snapshot):
         CombatOperationAssembler()
         .assemble(
             snapshot,
-            "ruleset-proof")[0])
+            "ruleset-proof",
+            ruleset_ir=(
+                mechanism
+                ._synthetic_ruleset()))[0])
     capacities = (
         ResourceCapacityExtractor()
         .extract(

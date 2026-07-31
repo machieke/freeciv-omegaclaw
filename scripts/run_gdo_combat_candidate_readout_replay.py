@@ -314,11 +314,13 @@ def _target_position(
         int(target.y))
 
 
-def _evaluate(fixture):
+def _evaluate(
+        fixture, ruleset_ir):
     snapshot = _snapshot(
         fixture)
     planner = (
-        GroundedImpactPlanner())
+        GroundedImpactPlanner(
+            ruleset_ir=ruleset_ir))
     group = fixture[
         "joint_groups"][0]
     actor_ids = tuple(
@@ -378,13 +380,15 @@ def _evaluate(fixture):
             },
             ruleset_digest=(
                 fixture[
-                    "ruleset_digest"])))
+                    "ruleset_digest"]),
+            ruleset_ir=ruleset_ir))
     assemblies = (
         CombatOperationAssembler()
         .assemble(
             snapshot,
             fixture[
-                "ruleset_digest"]))
+                "ruleset_digest"],
+            ruleset_ir=ruleset_ir))
     latency_ms = (
         time.perf_counter()
         - started) * 1000.0
@@ -515,16 +519,26 @@ def _latency_summary(values):
     }
 
 
-def run(manifest_path, iterations):
+def run(
+        manifest_path, iterations,
+        ruleset_root=(
+            captured
+            .DEFAULT_RULESET_ROOT)):
     manifest, fixtures = (
         captured._load_manifest(
             manifest_path))
+    ruleset_ir = (
+        captured.compile_ruleset(
+            ruleset_root,
+            "civ2civ3"))
     first = []
     latencies = []
     digests = {}
     for entry, fixture in fixtures:
         readout, latency = (
-            _evaluate(fixture))
+            _evaluate(
+                fixture,
+                ruleset_ir))
         first.append({
             "fixture_path":
                 entry["path"],
@@ -542,7 +556,9 @@ def run(manifest_path, iterations):
             iterations - 1):
         for entry, fixture in fixtures:
             readout, latency = (
-                _evaluate(fixture))
+                _evaluate(
+                    fixture,
+                    ruleset_ir))
             latencies.append(
                 latency)
             digests[
@@ -641,13 +657,19 @@ def main():
     parser.add_argument(
         "--output",
         default=DEFAULT_OUTPUT)
+    parser.add_argument(
+        "--ruleset-root",
+        default=(
+            captured
+            .DEFAULT_RULESET_ROOT))
     args = parser.parse_args()
     if not 1 <= args.iterations <= 10000:
         parser.error(
             "--iterations must be in 1..10000")
     report = run(
         args.manifest,
-        args.iterations)
+        args.iterations,
+        args.ruleset_root)
     with open(
             args.output, "wb") as stream:
         stream.write(

@@ -25,6 +25,7 @@ from freeciv_agent.events.schema import (  # noqa: E402
     canonical_json_bytes,
     structural_hash,
 )
+from freeciv_agent.rulesets.compiler import compile_ruleset  # noqa: E402
 from freeciv_agent.state.snapshot import (  # noqa: E402
     AuthoritativeSnapshot,
     CombatActionProbabilityState,
@@ -44,6 +45,9 @@ DEFAULT_MANIFEST = os.path.join(
 DEFAULT_OUTPUT = os.path.join(
     REPO, "benchmarks", "gdo",
     "gdo5_combat_operation_captured_diagnostic.json")
+DEFAULT_RULESET_ROOT = os.path.join(
+    REPO, "build", "freeciv",
+    "ruleset-source")
 
 
 def _sha256(path):
@@ -302,7 +306,9 @@ def _load_manifest(path):
     return manifest, fixtures
 
 
-def _evaluate(fixture, action_budget):
+def _evaluate(
+        fixture, action_budget,
+        ruleset_ir):
     started = time.perf_counter()
     snapshot = _snapshot(
         fixture)
@@ -317,7 +323,8 @@ def _evaluate(fixture, action_budget):
             scenario,
             ruleset_digest=(
                 fixture[
-                    "ruleset_digest"])))
+                    "ruleset_digest"]),
+            ruleset_ir=ruleset_ir))
     independent = (
         mechanism
         ._independent_readout(
@@ -333,6 +340,11 @@ def _evaluate(fixture, action_budget):
             == sorted(
                 expected[
                     "candidate_operation_ids"]),
+        "candidate_count_matches_source":
+            atomic[
+                "candidate_count"]
+            == len(expected[
+                "candidate_operation_ids"]),
         "independent":
             independent,
         "latency_ms": (
@@ -354,15 +366,22 @@ def _evaluate(fixture, action_budget):
     }
 
 
-def run(manifest_path, iterations, action_budget):
+def run(
+        manifest_path, iterations,
+        action_budget,
+        ruleset_root=DEFAULT_RULESET_ROOT):
     manifest, fixtures = (
         _load_manifest(
             manifest_path))
+    ruleset_ir = compile_ruleset(
+        ruleset_root,
+        "civ2civ3")
     first = [
         {
             **_evaluate(
                 fixture,
-                action_budget),
+                action_budget,
+                ruleset_ir),
             "fixture_path":
                 entry["path"],
             "turn": entry["turn"],
@@ -386,7 +405,8 @@ def run(manifest_path, iterations, action_budget):
         for entry, fixture in fixtures:
             row = _evaluate(
                 fixture,
-                action_budget)
+                action_budget,
+                ruleset_ir)
             latency.append(
                 row["latency_ms"])
             decisions[
@@ -401,6 +421,14 @@ def run(manifest_path, iterations, action_budget):
         row["atomic"][
             "duplicated_target_count"]
         for row in first)
+    material_policy_changed = [
+        row for row in first
+        if (
+            not row[
+                "selected_ids_match_source"]
+            or not row[
+                "reason_map_matches_source"])
+    ]
     gates = {
         "action_budget_never_exceeded":
             all(
@@ -418,10 +446,10 @@ def run(manifest_path, iterations, action_budget):
                 row["atomic"][
                     "reservations_complete"]
                 for row in first),
-        "candidate_ids_match_source":
+        "candidate_cardinality_matches_captured_source":
             all(
                 row[
-                    "candidate_ids_match_source"]
+                    "candidate_count_matches_source"]
                 for row in first),
         "captured_authority_only":
             manifest[
@@ -432,21 +460,40 @@ def run(manifest_path, iterations, action_budget):
             _percentile(
                 latency, 0.95)
             < 20.0,
-        "reason_maps_match_source":
+        "material_policy_changes_at_least_one_captured_decision":
+            bool(material_policy_changed),
+        "nonpositive_material_operations_never_selected":
             all(
-                row[
-                    "reason_map_matches_source"]
+                all(
+                    operation_id
+                    not in row["atomic"][
+                        "selected_operation_ids"]
+                    for operation_id, value
+                    in row["atomic"][
+                        "candidate_material_by_operation_id"]
+                    .items()
+                    if value["bid"] <= 0.0
+                )
+                for row in first),
+        "positive_material_operation_selected_when_available":
+            all(
+                (
+                    not any(
+                        value["bid"] > 0.0
+                        for value in
+                        row["atomic"][
+                            "candidate_material_by_operation_id"]
+                        .values())
+                    or bool(
+                        row["atomic"][
+                            "selected_operation_ids"])
+                )
                 for row in first),
         "schedule_decisions_deterministic":
             all(
                 len(values) == 1
                 for values in
                 decisions.values()),
-        "selected_ids_match_source":
-            all(
-                row[
-                    "selected_ids_match_source"]
-                for row in first),
         "shadow_only_no_policy_authority":
             all(
                 row["atomic"][
@@ -461,7 +508,7 @@ def run(manifest_path, iterations, action_budget):
         "authority":
             "captured-player-visible-engine-events",
         "claim_status":
-            "mechanism-replay-no-outcome-or-score-claim",
+            "material-aware-mechanism-replay-no-outcome-or-score-claim",
         "fixture_count":
             len(first),
         "gates": gates,
@@ -471,6 +518,27 @@ def run(manifest_path, iterations, action_budget):
             atomic_duplicates,
         "iterations": int(
             iterations),
+        "legacy_source_comparison": {
+            "candidate_ids_match_count":
+                sum(
+                    row[
+                        "candidate_ids_match_source"]
+                    for row in first),
+            "reason_maps_match_count":
+                sum(
+                    row[
+                        "reason_map_matches_source"]
+                    for row in first),
+            "selected_ids_match_count":
+                sum(
+                    row[
+                        "selected_ids_match_source"]
+                    for row in first),
+            "snapshot_count":
+                len(first),
+        },
+        "material_policy_changed_snapshot_count":
+            len(material_policy_changed),
         "latency": _summary(
             latency),
         "manifest_hash":
@@ -480,7 +548,7 @@ def run(manifest_path, iterations, action_budget):
             gates.values()),
         "policy_authority": False,
         "replays": first,
-        "schema_version": "1.0",
+        "schema_version": "2.0",
         "source_events_sha256":
             manifest[
                 "source_events_sha256"],
@@ -507,6 +575,9 @@ def main():
     parser.add_argument(
         "--output",
         default=DEFAULT_OUTPUT)
+    parser.add_argument(
+        "--ruleset-root",
+        default=DEFAULT_RULESET_ROOT)
     args = parser.parse_args()
     if not 1 <= args.action_budget <= 32:
         parser.error(
@@ -517,7 +588,8 @@ def main():
     report = run(
         args.manifest,
         args.iterations,
-        args.action_budget)
+        args.action_budget,
+        args.ruleset_root)
     with open(
             args.output, "wb") as stream:
         stream.write(

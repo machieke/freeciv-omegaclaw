@@ -189,7 +189,7 @@ def test_combat_replay_corpus_is_frozen_and_synthetic():
             "synthetic-mechanism-only")
 
 
-def test_captured_native_replay_matches_logged_atomic_readout():
+def test_captured_native_replay_applies_material_safe_readout():
     module = _captured_module()
 
     report = module.run(
@@ -204,15 +204,30 @@ def test_captured_native_replay_matches_logged_atomic_readout():
         "atomic_duplicate_target_count"] == 0
     assert report[
         "independent_duplicate_target_count"] == 5
+    assert report[
+        "material_policy_changed_snapshot_count"] == 5
+    assert report[
+        "legacy_source_comparison"] == {
+            "candidate_ids_match_count": 4,
+            "reason_maps_match_count": 0,
+            "selected_ids_match_count": 2,
+            "snapshot_count": 5,
+        }
     assert all(
         row[
-            "candidate_ids_match_source"]
-        and row[
-            "selected_ids_match_source"]
-        and row[
-            "reason_map_matches_source"]
+            "candidate_count_matches_source"]
         for row in report[
             "replays"])
+    assert all(
+        value["bid"] > 0.0
+        for row in report["replays"]
+        for operation_id, value in
+        row["atomic"][
+            "candidate_material_by_operation_id"]
+        .items()
+        if operation_id in row[
+            "atomic"][
+                "selected_operation_ids"])
     hashable = copy.deepcopy(
         report)
     expected = hashable.pop(
