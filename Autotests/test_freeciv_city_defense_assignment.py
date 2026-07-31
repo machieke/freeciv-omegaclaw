@@ -2019,3 +2019,69 @@ def test_city_defense_move_rebinds_current_steps_until_city_occupancy():
     assert report.valid, [
         row.to_dict()
         for row in report.errors]
+
+
+def test_city_defense_outcome_cannot_match_a_stale_snapshot_action():
+    candidates = _candidates()
+    snapshot, ruleset = _scenario(
+        candidates)
+
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(
+            directory,
+            "events.jsonl")
+        writer = EventWriter(
+            path,
+            "city-defense-stale-attribution",
+            durable=False)
+        emitter = ControlEventEmitter()
+        _, _, readout = (
+            emitter
+            .prepare_city_defense_authority(
+                writer,
+                snapshot,
+                ruleset,
+                candidates,
+                threat_radius=6,
+                node_budget=5000,
+                ruleset_digest=(
+                    "ruleset-proof")))
+        assert readout is not None
+        accepted = (
+            emitter
+            .emit_city_defense_action_outcome(
+                writer,
+                snapshot.turn,
+                snapshot,
+                readout.action,
+                ActionOutcome(
+                    action_id="initial-action",
+                    status="accepted",
+                    reason=None,
+                    submitted=True)))
+        stale_snapshot = (
+            SimpleNamespace(
+                snapshot_id=(
+                    "different-snapshot"),
+                turn=snapshot.turn,
+                city=lambda city_id: None,
+                unit=lambda unit_id: None))
+        stale = (
+            emitter
+            .emit_city_defense_action_outcome(
+                writer,
+                snapshot.turn,
+                stale_snapshot,
+                readout.action,
+                ActionOutcome(
+                    action_id="unrelated-action",
+                    status="accepted",
+                    reason=None,
+                    submitted=True)))
+        report = validate_file(path)
+
+    assert accepted
+    assert stale == ()
+    assert report.valid, [
+        row.to_dict()
+        for row in report.errors]

@@ -339,6 +339,18 @@ class ControlEventEmitter:
                         dict)
                 ):
                     continue
+                step = record.spec.steps[
+                    record.progress
+                    .current_step_index]
+                if (
+                        record.progress.state
+                        == OperationState.ACTIVE
+                        and record.progress
+                        .attempt_count
+                        >= step
+                        .maximum_attempts
+                ):
+                    continue
                 readout = OperationAuthorityReadout(
                     authority_kind=(
                         OperationAuthorityKind
@@ -1214,6 +1226,49 @@ class ControlEventEmitter:
                     for claim in payload.get(
                         "claims", ())
                 ]
+                active_step = (
+                    active_record.spec.steps[
+                        active_record.progress
+                        .current_step_index])
+                if (
+                        active_record.progress
+                        .attempt_count
+                        >= active_step
+                        .maximum_attempts
+                ):
+                    reason = (
+                        "operation-step-attempt-limit-exceeded")
+                    store.transition(
+                        lifecycle_operation_id,
+                        OperationState.ABANDONED,
+                        snapshot_id,
+                        int(
+                            artifact.get(
+                                "source_turn",
+                                turn)),
+                        reason=reason)
+                    event = (
+                        self._emit_operation_state(
+                            writer,
+                            int(
+                                artifact.get(
+                                    "source_turn",
+                                    turn)),
+                            lifecycle_operation_id,
+                            "operation_abandoned",
+                            "abandoned",
+                            reason,
+                            snapshot_id,
+                            tuple(parents),
+                            resolution_status=(
+                                "censored_operation_abort")))
+                    emitted.append(event)
+                    parents = (
+                        event["event_id"],)
+                    self._operation_action_keys.pop(
+                        lifecycle_operation_id,
+                        None)
+                    continue
             try:
                 record = store.get(
                     lifecycle_operation_id)
@@ -1427,7 +1482,10 @@ class ControlEventEmitter:
                     and record.progress.state
                     in (
                         OperationState.RESERVED,
-                        OperationState.ACTIVE)):
+                        OperationState.ACTIVE)
+                    and record.progress
+                    .last_snapshot_id
+                    == snapshot.snapshot_id):
                 matches.append(
                     record)
         if not matches:
@@ -1519,10 +1577,33 @@ class ControlEventEmitter:
                 OperationState.ACTIVE,
                 snapshot.snapshot_id,
                 int(turn))
-        store.record_attempt(
-            operation_id,
-            snapshot.snapshot_id,
-            int(turn))
+        try:
+            store.record_attempt(
+                operation_id,
+                snapshot.snapshot_id,
+                int(turn))
+        except OperationTransitionError:
+            reason = (
+                "operation-step-attempt-limit-exceeded")
+            store.transition(
+                operation_id,
+                OperationState.ABANDONED,
+                snapshot.snapshot_id,
+                int(turn),
+                reason=reason)
+            event = self._emit_operation_state(
+                writer, turn,
+                operation_id,
+                "operation_abandoned",
+                "abandoned", reason,
+                snapshot.snapshot_id,
+                parent_ids,
+                action_id=action_id,
+                resolution_status=(
+                    "censored_operation_abort"))
+            self._operation_action_keys.pop(
+                operation_id, None)
+            return (event,)
         activated = None
         if newly_active:
             activated = (
