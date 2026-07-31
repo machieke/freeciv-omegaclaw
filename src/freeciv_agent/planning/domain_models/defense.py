@@ -21,6 +21,10 @@ from ...pressure.resource_claims import (
 )
 
 
+_ACTION_TYPE_JSON_PATTERN = re.compile(
+    r'"action_type"\s*:\s*"([^"]+)"')
+
+
 def _normalized(value):
     return re.sub(
         r"[^a-z0-9]+", "",
@@ -1632,41 +1636,6 @@ class CityDefenseAnalyzer:
             })
         input_candidate_count = len(
             candidates)
-        declared_legal = getattr(
-            snapshot,
-            "legal_action_json", None)
-        if declared_legal is None:
-            legal_keys = frozenset(
-                canonical_json_bytes(
-                    candidate.action)
-                .decode("utf-8")
-                for candidate in
-                candidates)
-            legal = tuple(
-                candidate.action
-                for candidate
-                in candidates)
-        else:
-            legal_keys = frozenset(
-                declared_legal)
-            legal = []
-            for value in sorted(
-                    legal_keys):
-                try:
-                    action = json.loads(
-                        value)
-                except (
-                        TypeError,
-                        ValueError):
-                    continue
-                if isinstance(action, dict):
-                    legal.append(action)
-            legal = tuple(legal)
-        candidate_keys = {
-            candidate.action_key
-            for candidate in
-            candidates}
-        protected_union = []
         protected_types = set()
         if (
                 DefenseOperationType
@@ -1698,6 +1667,81 @@ class CityDefenseAnalyzer:
                 "unit_suicide_attack",
                 "unit_wipe",
             })
+        relevant_action_types = set(
+            protected_types)
+        if (
+                DefenseOperationType
+                .EMERGENCY_BUILD_DEFENDER
+                in allowed_operation_types):
+            relevant_action_types.add(
+                "city_production")
+        if operation_types is not None:
+            candidates = tuple(
+                candidate
+                for candidate in
+                candidates
+                if str(
+                    candidate.action.get(
+                        "action_type", ""))
+                in relevant_action_types)
+        declared_legal = getattr(
+            snapshot,
+            "legal_action_json", None)
+        if declared_legal is None:
+            legal_keys = frozenset(
+                canonical_json_bytes(
+                    candidate.action)
+                .decode("utf-8")
+                for candidate in
+                candidates)
+            legal = tuple(
+                candidate.action
+                for candidate
+                in candidates)
+        else:
+            legal_keys = frozenset(
+                declared_legal)
+            legal = []
+            for value in sorted(
+                    legal_keys):
+                if operation_types is not None:
+                    match = (
+                        _ACTION_TYPE_JSON_PATTERN
+                        .search(value)
+                        if isinstance(
+                            value, str)
+                        else None)
+                    if (
+                            match is not None
+                            and match.group(1)
+                            not in
+                            relevant_action_types):
+                        continue
+                try:
+                    action = json.loads(
+                        value)
+                except (
+                        TypeError,
+                        ValueError):
+                    continue
+                if (
+                        isinstance(action, dict)
+                        and (
+                            operation_types
+                            is None
+                            or str(
+                                action.get(
+                                    "action_type",
+                                    ""))
+                            in
+                            relevant_action_types)):
+                    legal.append(action)
+            legal = tuple(legal)
+        candidate_keys = {
+            candidate.action_key
+            for candidate in
+            candidates}
+        protected_union = []
         for action in legal:
             action_type = str(
                 action.get(
