@@ -12,6 +12,7 @@ from ..pressure.resource_ledger import (
 from ..pressure.resource_scheduler import (
     BoundedExactScheduler,
     OperationResourceRequest,
+    _feasible,
 )
 from .combat_operations import (
     CombatOperationAssembler,
@@ -160,6 +161,34 @@ class CombatOperationLifecycle:
                 operation_id in by_id
                 and self.store.get(
                     operation_id) is None))
+        if not selected:
+            return ()
+        # The per-snapshot combat scheduler cannot see reservations retained
+        # by operations from an earlier snapshot.  Admit only new requests
+        # that remain feasible beside those identity-bearing claims.  This
+        # preserves the existing operation and fails the newcomer closed
+        # instead of asking the ledger to discover the conflict by raising.
+        active_claims = list(
+            self.ledger.active_claims())
+        reservable = []
+        for operation_id in selected:
+            claims = tuple(
+                by_id[operation_id]
+                .resource_request
+                .claims)
+            feasible, _, _, _ = (
+                _feasible(
+                    tuple(active_claims)
+                    + claims,
+                    schedule.capacities))
+            if not feasible:
+                continue
+            reservable.append(
+                operation_id)
+            active_claims.extend(
+                claims)
+        selected = tuple(
+            reservable)
         if not selected:
             return ()
         requests = tuple(

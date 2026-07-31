@@ -1837,6 +1837,36 @@ class ControlEventEmitter:
                 parents = (
                     selected[
                         "event_id"],)
+            registered_ids = {
+                update.operation_id
+                for update in
+                lifecycle_updates}
+            for operation_id in sorted(
+                    lifecycle_eligible_ids
+                    & set(
+                        schedule
+                        .selected_operation_ids)
+                    - registered_ids):
+                if lifecycle.store.get(
+                        operation_id
+                ) is not None:
+                    continue
+                blocked = (
+                    self
+                    ._emit_operation_state(
+                        writer,
+                        int(snapshot.turn),
+                        operation_id,
+                        "operation_blocked",
+                        "blocked",
+                        "active-reservation-conflict",
+                        snapshot_id,
+                        parents))
+                emitted.append(
+                    blocked)
+                parents = (
+                    blocked[
+                        "event_id"],)
 
         metrics = (
             (

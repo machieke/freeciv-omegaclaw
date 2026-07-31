@@ -716,6 +716,107 @@ def test_reserved_combat_operation_completes_if_target_is_removed_externally():
     assert lifecycle.ledger.active_claims() == ()
 
 
+def test_new_combat_schedule_fails_closed_beside_active_reservation():
+    snapshot = _snapshot(
+        actor_count=3)
+    assemblies = (
+        CombatOperationAssembler()
+        .assemble(
+            snapshot,
+            "ruleset-proof"))
+    assert len(assemblies) >= 2
+    capacities = (
+        ResourceCapacityExtractor()
+        .extract(
+            snapshot,
+            action_budget=8)
+        .capacities
+        + combat_target_capacities(
+            assemblies, snapshot))
+
+    def single_schedule(assembly):
+        return (
+            GreedyIdentityScheduler()
+            .schedule(
+                (assembly.resource_request,),
+                capacities,
+                requirement_sets=(
+                    assembly
+                    .requirement_set,),
+                premise_packets=dict(
+                    assembly
+                    .initial_premise_packets)))
+
+    lifecycle = (
+        CombatOperationLifecycle(
+            "active-conflict-proof"))
+    first = lifecycle.register_schedule(
+        (assemblies[0],),
+        single_schedule(
+            assemblies[0]),
+        snapshot)
+    second = lifecycle.register_schedule(
+        (assemblies[1],),
+        single_schedule(
+            assemblies[1]),
+        snapshot)
+
+    assert len(first) == 1
+    assert second == ()
+    assert lifecycle.ledger.reservation(
+        assemblies[0].spec.operation_id
+    ).active
+    assert lifecycle.ledger.reservation(
+        assemblies[1].spec.operation_id
+    ) is None
+
+
+def test_shadow_emitter_attributes_cross_snapshot_reservation_conflict():
+    snapshot = _snapshot(
+        actor_count=3)
+    next_snapshot = replace(
+        _next_snapshot(
+            snapshot, 31),
+        identity=replace(
+            snapshot.identity,
+            turn=snapshot.turn + 1,
+            source_seq=31,
+            state_hash=structural_hash(
+                "cross-snapshot-conflict")))
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(
+            directory,
+            "events.jsonl")
+        writer = EventWriter(
+            path,
+            "combat-active-conflict",
+            durable=False)
+        emitter = ControlEventEmitter()
+        emitter.emit_combat_operation_shadow(
+            writer, snapshot,
+            "ruleset-proof",
+            action_budget=8)
+        events = (
+            emitter
+            .emit_combat_operation_shadow(
+                writer, next_snapshot,
+                "ruleset-proof",
+                action_budget=8))
+        report = validate_file(path)
+
+    conflicts = [
+        row for row in events
+        if row["type"]
+        == "operation_blocked"
+        and row["payload"][
+            "reason_code"]
+        == "active-reservation-conflict"]
+    assert conflicts
+    assert report.valid, [
+        row.to_dict()
+        for row in report.errors]
+
+
 def test_combat_lifecycle_reestimates_and_reserves_only_the_next_step():
     snapshot = _snapshot()
     assembly, schedule = (
