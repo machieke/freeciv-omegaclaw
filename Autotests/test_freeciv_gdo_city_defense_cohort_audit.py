@@ -55,6 +55,7 @@ def _payload(
                 "y": 5,
             },
         },
+        "deadline_turn": 8,
         "operation_id":
             operation_id,
         "operation_type":
@@ -65,6 +66,7 @@ def _payload(
         "selected": True,
         "snapshot_id":
             snapshot_id,
+        "target_id": "city:101",
     }
 
 
@@ -170,6 +172,12 @@ def test_trace_audit_resolves_covered_safe_defense_response():
         "activated_response_turns"] == 1
     assert result["lifecycle"][
         "uncovered_threat_turns"] == 1
+    assert result["lifecycle"][
+        "selected_response_observations"] == 1
+    assert result["lifecycle"][
+        "activated_response_observations"] == 1
+    assert result["lifecycle"][
+        "uncovered_unique_city_snapshot_observations"] == 0
     assert result[
         "winner_changing_rows"] == [{
             "authority_kind":
@@ -233,6 +241,36 @@ def test_trace_audit_detects_city_loss_conflict_and_sole_defender_move():
     assert len(
         result[
             "sole_defender_violations"]) == 1
+    assert result[
+        "selected_at_risk_city_losses"] == []
+
+
+def test_trace_audit_attributes_selected_at_risk_city_loss_by_deadline():
+    payload = _payload()
+    events = [
+        _snapshot(
+            "snapshot-0",
+            (101,), 6),
+        _event(
+            "operation_step_selected",
+            payload,
+            turn=7),
+        _snapshot(
+            "snapshot-1",
+            (), 8),
+    ]
+
+    result = analyze_trace(
+        events)
+
+    assert [
+        row["city_id"]
+        for row in result[
+            "selected_at_risk_city_losses"]
+    ] == [101]
+    assert result[
+        "selected_at_risk_city_losses"][0][
+            "deadline_turn"] == 8
 
 
 def test_arm_combination_computes_completion_coverage_and_latency():

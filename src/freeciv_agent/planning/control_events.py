@@ -530,7 +530,17 @@ class ControlEventEmitter:
                     tuple(candidates),
                     threat_radius,
                     node_budget,
-                    ruleset_digest))
+                    ruleset_digest,
+                    analysis_operation_types=(
+                        "fortify_existing_defender",
+                        "hold_sole_defender",
+                    ),
+                    live_operation_types=(
+                        "fortify_existing_defender",
+                    ),
+                    maximum_authority_lead_turns=1))
+            build_finished = (
+                time.perf_counter())
             artifact = dict(
                 artifact)
             artifact[
@@ -552,7 +562,51 @@ class ControlEventEmitter:
                     int(snapshot.turn),
                     artifact,
                     caused_by=(
-                        caused_by)))
+                        caused_by),
+                    selected_only=True))
+            emission_finished = (
+                time.perf_counter())
+            build_latency = writer.emit(
+                "metric_sample",
+                int(snapshot.turn), {
+                    "labels": {
+                        "authority_kind":
+                            "city_defense",
+                        "component":
+                            "bounded-operation-authority",
+                    },
+                    "name":
+                        "city_defense_authority_build_latency_ms",
+                    "unit": "ms",
+                    "value": (
+                        build_finished
+                        - preparation_started)
+                    * 1000.0,
+                },
+                caused_by=(
+                    [emitted[-1]["event_id"]]
+                    if emitted
+                    else list(caused_by)))
+            event_latency = writer.emit(
+                "metric_sample",
+                int(snapshot.turn), {
+                    "labels": {
+                        "authority_kind":
+                            "city_defense",
+                        "component":
+                            "bounded-operation-authority",
+                    },
+                    "name":
+                        "city_defense_authority_event_latency_ms",
+                    "unit": "ms",
+                    "value": (
+                        emission_finished
+                        - build_finished)
+                    * 1000.0,
+                },
+                caused_by=[
+                    build_latency[
+                        "event_id"]])
             latency = writer.emit(
                 "metric_sample",
                 int(snapshot.turn), {
@@ -570,12 +624,13 @@ class ControlEventEmitter:
                         - preparation_started)
                     * 1000.0,
                 },
-                caused_by=(
-                    [emitted[-1]["event_id"]]
-                    if emitted
-                    else list(caused_by)))
+                caused_by=[
+                    event_latency[
+                        "event_id"]])
             emitted = emitted + (
-                latency,)
+                build_latency,
+                event_latency,
+                latency)
             self._emitted_city_defense_snapshot_ids.add(
                 snapshot_id)
         readout = (
@@ -1034,7 +1089,8 @@ class ControlEventEmitter:
 
     def emit_city_defense_operations(
             self, writer, turn, artifact,
-            caused_by=()):
+            caused_by=(),
+            selected_only=False):
         """Emit the shadow proposal graph and exact assignment readout."""
         if not isinstance(artifact, dict):
             return ()
@@ -1089,6 +1145,32 @@ class ControlEventEmitter:
             ),
             key=lambda row:
             row["operation_id"])
+        if selected_only:
+            operations = [
+                row for row in operations
+                if (
+                    row.get(
+                        "operation_type")
+                    == "hold_sole_defender"
+                    or (
+                        entries.get(
+                            row[
+                                "operation_id"],
+                            {}).get(
+                                "selected")
+                        is True
+                        and selected_action_key
+                        is not None
+                        and isinstance(
+                            row.get(
+                                "next_action"),
+                            dict)
+                        and canonical_json_bytes(
+                            row[
+                                "next_action"])
+                        .decode("utf-8")
+                        == selected_action_key))
+            ]
         for operation in operations:
             operation_id = (
                 operation[

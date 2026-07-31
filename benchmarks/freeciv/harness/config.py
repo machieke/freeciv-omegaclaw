@@ -573,6 +573,36 @@ def _validate_paired_impact(value):
         city_defense_design = cohort.get(
             "city_defense_mechanism_design")
         if city_defense_design is not None:
+            city_defense_schema = (
+                city_defense_design.get(
+                    "schema_version")
+                if isinstance(
+                    city_defense_design, dict)
+                else None)
+            city_defense_v1 = (
+                city_defense_schema == "1.0"
+                and city_defense_design.get(
+                    "city_loss_metric")
+                == (
+                    "own_city_identity_disappearance_between_"
+                    "authoritative_snapshots")
+                and city_defense_design.get(
+                    "uncovered_threat_turn_metric")
+                == (
+                    "selected_operation_step_observations_minus_"
+                    "activations"))
+            city_defense_v2 = (
+                city_defense_schema == "1.1"
+                and city_defense_design.get(
+                    "city_loss_metric")
+                == (
+                    "selected_at_risk_city_identity_disappearance_"
+                    "by_deadline")
+                and city_defense_design.get(
+                    "uncovered_threat_turn_metric")
+                == (
+                    "unique_selected_city_snapshot_observations_"
+                    "minus_unique_activations"))
             if (
                     not isinstance(
                         city_defense_design, dict)
@@ -588,29 +618,19 @@ def _validate_paired_impact(value):
                         "unsupported_fallback",
                     }
                     or city_defense_design.get(
-                        "schema_version")
-                    != "1.0"
-                    or city_defense_design.get(
-                        "city_loss_metric")
-                    != (
-                        "own_city_identity_disappearance_between_"
-                        "authoritative_snapshots")
-                    or city_defense_design.get(
                         "sole_defender_metric")
                     != (
                         "authority_unit_move_while_actor_protected_"
                         "in_same_snapshot")
                     or city_defense_design.get(
-                        "uncovered_threat_turn_metric")
-                    != (
-                        "selected_operation_step_observations_minus_"
-                        "activations")
-                    or city_defense_design.get(
                         "unsupported_fallback")
-                    != "exact_b1_ordering"):
+                    != "exact_b1_ordering"
+                    or not (
+                        city_defense_v1
+                        or city_defense_v2)):
                 raise ValueError(
                     "{}.city_defense_mechanism_design must use the exact "
-                    "1.0 schema".format(prefix))
+                    "1.0 or 1.1 schema".format(prefix))
             operation_types = (
                 city_defense_design.get(
                     "declared_operation_types"))
@@ -631,6 +651,15 @@ def _validate_paired_impact(value):
                 raise ValueError(
                     "{}.city_defense_mechanism_design declared operation "
                     "types are invalid".format(prefix))
+            if (
+                    city_defense_v2
+                    and operation_types
+                    != [
+                        "fortify_existing_defender",
+                    ]):
+                raise ValueError(
+                    "{}.city_defense_mechanism_design 1.1 authority must be "
+                    "limited to fortify_existing_defender".format(prefix))
             latency = city_defense_design.get(
                 "latency")
             if (

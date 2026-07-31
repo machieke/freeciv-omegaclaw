@@ -111,3 +111,77 @@ claim.
 - unsupported states retain exact B1 ordering.
 
 The cohort remains ineligible for a score claim regardless of score direction.
+
+## Pilot v1 result
+
+The complete frozen pilot
+`/data/freeciv/gdo4-city-defense-operation-authority-pilot-v1` did **not**
+pass its mechanism gate:
+
+- 60/60 games and 30/30 pairs completed with zero infrastructure failures;
+- source commit `eb848707cbe1df44600e15fae2dfb3d68b994710` remained clean;
+- 1,696,020 events validated with zero errors and zero warnings;
+- treatment activated 260 operations: 206 defender moves and 54 in-place
+  fortifications;
+- completion per selected unique operation improved by 12.48 percentage
+  points;
+- raw own-city identity losses increased from 20 to 27;
+- preparation p95 was 149.02 ms, above the frozen 50 ms ceiling;
+- full-loop p95 ratio was 1.1129 and remained below the 1.15 ceiling;
+- the paired score delta was -4.9 with interval `[-10.0333, 0.3]`.
+
+The self-hashed pilot audit is
+`benchmarks/gdo/gdo4_city_defense_engine_pilot.json`, report hash
+`e56a3a43e43322139a87eb24f8b676553ed0f87992981df9bf3fd8a279889d86`.
+
+The original observation counter also counted two
+`operation_step_selected` events for some one-snapshot selections: one from
+synchronous preparation and one from the policy-selection event. On unique
+`(snapshot_id, target_city_id)` observations, uncovered responses were 567
+for baseline and 330 for treatment. This correction is diagnostic only and
+does not retroactively pass pilot v1.
+
+The new selected-at-risk loss diagnostic identified 4 baseline and 6
+treatment city disappearances by the applicable response deadline. It agrees
+with the adverse direction of the original conservative 20-versus-27 raw
+city-loss gate.
+
+The two `operation_failed` events were accepted legal actions whose later
+participants or city targets disappeared. They are adverse lifecycle
+outcomes, not engine legality rejections. The engine rejection gate itself
+passed with zero rejected actions in both arms.
+
+The substantive failure remains. The move readout used threat priority times
+defensive strength while charging only ten percent of a defender's local
+strength as opportunity cost. It therefore granted 206 move activations
+without calibrated transition value for the source city's economy, attack
+role, or later defensive exposure. Faster routing would amplify that error.
+
+## Frozen corrective pilot v2
+
+`city_defense_immediate_fortify_authority_pilot_v2` is predeclared on 30
+unused paired seeds in the disjoint 6.8M range. It makes one narrow,
+decision-safe change:
+
+- live authority is limited to `fortify_existing_defender`;
+- defender moves remain fully observable in asynchronous shadow analysis but
+  cannot alter the live winner;
+- only a deadline at most one turn away is eligible;
+- a defender with a currently legal interception against the supported city
+  threat falls back to exact B1 instead of being forced to fortify;
+- synchronous analysis builds only fortify and protected-hold operations and
+  emits only the selected proposal plus hold constraints;
+- build, event-emission, total preparation, and full-loop latency remain
+  separately observable.
+
+Schema 1.1 freezes two measurement corrections before execution:
+
+- uncovered response opportunities are unique selected
+  `(snapshot_id, target_city_id)` observations minus unique activations;
+- the primary safety loss is disappearance, by the response deadline, of a
+  city identified by a supported selected at-risk response. Raw city identity
+  loss remains a diagnostic.
+
+Lifecycle failure is reported separately from actual engine action rejection.
+The v2 pilot still requires every GDO-4 exit gate and remains ineligible for a
+score or win-rate claim.

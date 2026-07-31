@@ -192,6 +192,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "city_defense_operation_authority_scenario_diagnostic_v1": 10,
             "city_defense_operation_authority_scenario_diagnostic_v2": 10,
             "city_defense_operation_authority_pilot_v1": 30,
+            "city_defense_immediate_fortify_authority_pilot_v2": 30,
             "calibrated_scalar_diagnostic_v1": 10,
             "protected_bridge_readout_diagnostic_v1": 10,
             "corrected_probe_readout_diagnostic_v1": 10,
@@ -302,6 +303,42 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "count": 30,
             "minimum": 6600000,
             "maximum": 6699999,
+        }
+    immediate_fortify_pilot = paired["cohorts"][
+        "city_defense_immediate_fortify_authority_pilot_v2"]
+    assert immediate_fortify_pilot[
+        "city_defense_mechanism_design"] == {
+            "city_loss_metric": (
+                "selected_at_risk_city_identity_disappearance_by_deadline"),
+            "declared_operation_types": [
+                "fortify_existing_defender",
+            ],
+            "latency": {
+                "full_loop_p95_ratio_ceiling":
+                    1.15,
+                "preparation_p95_ceiling_ms":
+                    50.0,
+            },
+            "schema_version": "1.1",
+            "sole_defender_metric": (
+                "authority_unit_move_while_actor_protected_in_same_snapshot"),
+            "typed_winner_change": {
+                "minimum_coverage": 0.90,
+            },
+            "uncovered_threat_turn_metric": (
+                "unique_selected_city_snapshot_observations_minus_unique_"
+                "activations"),
+            "unsupported_fallback":
+                "exact_b1_ordering",
+        }
+    assert immediate_fortify_pilot[
+        "seed_derivation"] == {
+            "algorithm": "sha256-counter-v1",
+            "namespace": (
+                "pf-pln-city-defense-immediate-fortify-authority-pilot-v2"),
+            "count": 30,
+            "minimum": 6800000,
+            "maximum": 6899999,
         }
     score_derivation = paired["cohorts"]["confirmatory_score"]["seed_derivation"]
     assert score_derivation == {
@@ -929,6 +966,32 @@ def test_config_rejects_pressure_cohort_with_an_undeclared_arm_difference():
             stream.write(source)
         with pytest.raises(
                 ValueError, match="exactly match isolated_policy_keys"):
+            load(path)
+
+
+def test_config_rejects_displacing_authority_in_city_defense_schema_1_1():
+    source = open(os.path.join(
+        REPO, "profile", "freeciv_harness.yaml"), encoding="utf-8").read()
+    source = source.replace(
+        '        schema_version: "1.1"\n'
+        "        declared_operation_types:\n"
+        "          - fortify_existing_defender\n",
+        '        schema_version: "1.1"\n'
+        "        declared_operation_types:\n"
+        "          - fortify_existing_defender\n"
+        "          - move_defender_to_city\n",
+        1)
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(
+            directory,
+            "invalid-city-defense-v1-1.yaml")
+        with open(
+                path, "w",
+                encoding="utf-8") as stream:
+            stream.write(source)
+        with pytest.raises(
+                ValueError,
+                match="1.1 authority must be limited"):
             load(path)
 
 

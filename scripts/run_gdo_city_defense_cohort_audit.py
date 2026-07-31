@@ -164,6 +164,10 @@ def analyze_trace(events):
     }
     selected_response_turns = 0
     activated_response_turns = 0
+    selected_response_observations = set()
+    activated_response_observations = set()
+    selected_at_risk_cities = defaultdict(
+        list)
     reservations = defaultdict(list)
     protected_actors = defaultdict(set)
     movement_activations = []
@@ -176,6 +180,7 @@ def analyze_trace(events):
     previous_snapshot_id = None
     lost_city_ids = set()
     city_losses = []
+    selected_at_risk_city_losses = []
     for event in events:
         event_type = str(
             event.get("type", ""))
@@ -206,6 +211,44 @@ def analyze_trace(events):
                                 event.get(
                                     "turn", 0)),
                         })
+                        loss_turn = int(
+                            event.get(
+                                "turn", 0))
+                        matching = [
+                            row for row in
+                            selected_at_risk_cities.get(
+                                city_id, ())
+                            if (
+                                row[
+                                    "selected_turn"]
+                                <= loss_turn
+                                <= row[
+                                    "deadline_turn"]
+                                + 1)
+                        ]
+                        if matching:
+                            selected_at_risk_city_losses.append({
+                                "city_id":
+                                    city_id,
+                                "deadline_turn":
+                                    min(
+                                        row[
+                                            "deadline_turn"]
+                                        for row in
+                                        matching),
+                                "from_snapshot_id":
+                                    previous_snapshot_id,
+                                "selected_snapshot_ids":
+                                    sorted(set(
+                                        row[
+                                            "snapshot_id"]
+                                        for row in
+                                        matching)),
+                                "to_snapshot_id":
+                                    snapshot_id,
+                                "turn":
+                                    loss_turn,
+                            })
                 previous_cities = (
                     current_cities)
                 previous_snapshot_id = (
@@ -309,11 +352,65 @@ def analyze_trace(events):
             selected.add(
                 operation_id)
             selected_response_turns += 1
+            target_id = payload.get(
+                "target_id")
+            observation = (
+                snapshot_id,
+                target_id)
+            if (
+                    isinstance(
+                        snapshot_id, str)
+                    and snapshot_id
+                    and isinstance(
+                        target_id, str)
+                    and target_id):
+                selected_response_observations.add(
+                    observation)
+            if (
+                    isinstance(
+                        target_id, str)
+                    and target_id.startswith(
+                        "city:")):
+                try:
+                    city_id = int(
+                        target_id.split(
+                            ":", 1)[1])
+                    deadline_turn = int(
+                        payload.get(
+                            "deadline_turn"))
+                except (TypeError, ValueError):
+                    pass
+                else:
+                    selected_at_risk_cities[
+                        city_id].append({
+                            "deadline_turn":
+                                deadline_turn,
+                            "selected_turn":
+                                int(
+                                    event.get(
+                                        "turn", 0)),
+                            "snapshot_id":
+                                snapshot_id,
+                        })
         elif event_type == (
                 "operation_activated"):
             activated.add(
                 operation_id)
             activated_response_turns += 1
+            target_id = payload.get(
+                "target_id")
+            observation = (
+                snapshot_id,
+                target_id)
+            if (
+                    isinstance(
+                        snapshot_id, str)
+                    and snapshot_id
+                    and isinstance(
+                        target_id, str)
+                    and target_id):
+                activated_response_observations.add(
+                    observation)
             action = payload.get(
                 "next_action", {})
             action_type = (
@@ -398,6 +495,8 @@ def analyze_trace(events):
             authority_rows,
         "city_losses":
             city_losses,
+        "selected_at_risk_city_losses":
+            selected_at_risk_city_losses,
         "event_counts":
             dict(counts),
         "full_loop_latency_ms":
@@ -413,6 +512,9 @@ def analyze_trace(events):
                 len(activated),
             "activated_response_turns":
                 activated_response_turns,
+            "activated_response_observations":
+                len(
+                    activated_response_observations),
             "selected_adverse":
                 len(selected & adverse),
             "selected_completed":
@@ -421,11 +523,18 @@ def analyze_trace(events):
                 len(selected),
             "selected_response_turns":
                 selected_response_turns,
+            "selected_response_observations":
+                len(
+                    selected_response_observations),
             "uncovered_threat_turns":
                 max(
                     0,
                     selected_response_turns
                     - activated_response_turns),
+            "uncovered_unique_city_snapshot_observations":
+                len(
+                    selected_response_observations
+                    - activated_response_observations),
         },
         "preparation_latency_ms":
             preparation_latency_ms,
@@ -442,6 +551,7 @@ def _combine_arm(rows):
     lifecycle = Counter()
     event_counts = Counter()
     city_losses = []
+    selected_at_risk_city_losses = []
     authority_rows = []
     winner_rows = []
     preparation_latency = []
@@ -458,6 +568,9 @@ def _combine_arm(rows):
             row["event_counts"])
         city_losses.extend(
             row["city_losses"])
+        selected_at_risk_city_losses.extend(
+            row[
+                "selected_at_risk_city_losses"])
         authority_rows.extend(
             row["authority_rows"])
         winner_rows.extend(
@@ -506,6 +619,14 @@ def _combine_arm(rows):
                 city_losses,
             "scope":
                 "own-city-identity-disappearance-between-authoritative-snapshots",
+        },
+        "selected_at_risk_city_loss": {
+            "count": len(
+                selected_at_risk_city_losses),
+            "observations":
+                selected_at_risk_city_losses,
+            "scope":
+                "selected-at-risk-city-identity-disappearance-by-deadline-plus-one",
         },
         "event_counts":
             dict(sorted(
@@ -648,6 +769,11 @@ def run(cohort_root, profile):
             "impact aggregate has no cohort identity")
     design = _predeclared_design(
         profile, cohort)
+    corrected_observation_metrics = bool(
+        design is not None
+        and design.get(
+            "schema_version")
+        == "1.1")
     declared_types = tuple(
         design.get(
             "declared_operation_types",
@@ -734,12 +860,25 @@ def run(cohort_root, profile):
             "completion_rate_per_selection"],
         baseline["lifecycle"][
             "completion_rate_per_selection"])
+    uncovered_metric = (
+        "uncovered_unique_city_snapshot_observations"
+        if corrected_observation_metrics
+        else "uncovered_threat_turns")
+    city_loss_key = (
+        "selected_at_risk_city_loss"
+        if corrected_observation_metrics
+        else "city_loss")
     uncovered_delta = (
         treatment["lifecycle"][
-            "uncovered_threat_turns"]
+            uncovered_metric]
         - baseline["lifecycle"][
-            "uncovered_threat_turns"])
+            uncovered_metric])
     city_loss_delta = (
+        treatment[
+            city_loss_key]["count"]
+        - baseline[
+            city_loss_key]["count"])
+    raw_city_loss_delta = (
         treatment[
             "city_loss"]["count"]
         - baseline[
@@ -778,10 +917,13 @@ def run(cohort_root, profile):
         and set(
             treatment["authority"][
                 "action_types"])
-        <= {
-            "unit_fortify",
-            "unit_move",
-        }
+        <= set(
+            "unit_fortify"
+            if operation_type
+            == "fortify_existing_defender"
+            else "unit_move"
+            for operation_type in
+            declared_types)
         and set(
             treatment["authority"][
                 "policy_authority_values"])
@@ -833,10 +975,12 @@ def run(cohort_root, profile):
         "legality_violations_zero":
             (
                 engine_rejection_gate
-                and treatment[
-                    "event_counts"].get(
-                        "operation_failed", 0)
-                == 0),
+                and (
+                    corrected_observation_metrics
+                    or treatment[
+                        "event_counts"].get(
+                            "operation_failed", 0)
+                    == 0)),
         "lower_uncovered_threat_turns_than_b1":
             uncovered_delta < 0,
         "planning_latency_within_predeclared_bounds":
@@ -908,6 +1052,8 @@ def run(cohort_root, profile):
         "deltas": {
             "city_loss_count":
                 city_loss_delta,
+            "raw_city_loss_count":
+                raw_city_loss_delta,
             "completion_rate_per_selection":
                 completion_delta,
             "full_loop_p95_ratio":
@@ -923,7 +1069,10 @@ def run(cohort_root, profile):
             "present":
                 design is not None,
         },
-        "report_schema_version": "1.0",
+        "report_schema_version": (
+            "1.1"
+            if corrected_observation_metrics
+            else "1.0"),
         "trace_sources": trace_sources,
         "trace_validation": {
             "error_count":

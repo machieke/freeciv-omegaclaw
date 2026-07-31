@@ -191,6 +191,18 @@ def _candidates():
     )
 
 
+def _immediate_fortify_scenario():
+    candidates = (
+        _candidates()[0],)
+    snapshot, ruleset = _scenario(
+        candidates)
+    snapshot.visible_enemy_units = (
+        _unit(
+            90, "Raider", 1, 0,
+            owner=2),)
+    return candidates, snapshot, ruleset
+
+
 def _requirement(city_id):
     return CityDefenseRequirement(
         city_id=city_id,
@@ -1410,9 +1422,11 @@ def test_city_defense_authority_allows_grounded_approach_before_deadline():
 
 
 def test_current_snapshot_city_defense_authority_is_prepared_once():
-    candidates = _candidates()
-    snapshot, ruleset = _scenario(
-        candidates)
+    (
+        candidates,
+        snapshot,
+        ruleset,
+    ) = _immediate_fortify_scenario()
 
     with tempfile.TemporaryDirectory() as directory:
         path = os.path.join(
@@ -1455,6 +1469,16 @@ def test_current_snapshot_city_defense_authority_is_prepared_once():
     assert artifact[
         "decision_safe_candidate_readout"]
     assert readout is not None
+    assert readout.operation_type == (
+        "fortify_existing_defender")
+    assert {
+        row["operation_type"]
+        for row in artifact[
+            "analysis"]["operations"]
+    } <= {
+        "fortify_existing_defender",
+        "hold_sole_defender",
+    }
     assert readout.authority_kind.value == (
         "city_defense")
     assert readout.snapshot_id == (
@@ -1467,6 +1491,16 @@ def test_current_snapshot_city_defense_authority_is_prepared_once():
         row["type"]
         == "operation_reserved"
         for row in events)
+    assert {
+        row["payload"][
+            "operation_type"]
+        for row in events
+        if row["type"]
+        == "operation_proposed"
+    } <= {
+        "fortify_existing_defender",
+        "hold_sole_defender",
+    }
     preparation_latency = [
         row for row in events
         if (
@@ -1480,6 +1514,16 @@ def test_current_snapshot_city_defense_authority_is_prepared_once():
         preparation_latency) == 1
     assert preparation_latency[0][
         "payload"]["value"] >= 0.0
+    assert {
+        row["payload"]["name"]
+        for row in events
+        if row["type"]
+        == "metric_sample"
+    } >= {
+        "city_defense_authority_build_latency_ms",
+        "city_defense_authority_event_latency_ms",
+        "city_defense_authority_preparation_latency_ms",
+    }
     assert repeated_artifact is None
     assert repeated_events == ()
     assert repeated_readout == readout
@@ -1488,10 +1532,67 @@ def test_current_snapshot_city_defense_authority_is_prepared_once():
         for row in report.errors]
 
 
+def test_immediate_interception_keeps_fortification_out_of_authority():
+    fortify, snapshot, ruleset = (
+        _immediate_fortify_scenario())
+    attack = _candidate({
+        "action_type": "unit_attack",
+        "actor_id": 1,
+        "target": {
+            "target_unit_id": 90,
+            "x": 1,
+            "y": 0,
+        },
+        "is_valid": True,
+    }, "tactical_attack")
+    candidates = fortify + (
+        attack,)
+    snapshot.legal_action_json = tuple(
+        row.action_key
+        for row in candidates)
+
+    artifact = (
+        build_city_defense_assignment_artifact(
+            snapshot, ruleset,
+            candidates,
+            threat_radius=6,
+            node_budget=5000,
+            ruleset_digest=(
+                "ruleset-proof"),
+            analysis_operation_types=(
+                "fortify_existing_defender",
+                "hold_sole_defender",
+            ),
+            live_operation_types=(
+                "fortify_existing_defender",
+            ),
+            maximum_authority_lead_turns=1))
+
+    fortify_operations = [
+        row for row in artifact[
+            "analysis"]["operations"]
+        if row["operation_type"]
+        == "fortify_existing_defender"
+    ]
+    assert fortify_operations
+    assert {
+        row["support_reason"]
+        for row in fortify_operations
+    } == {
+        "immediate-interception-available",
+    }
+    assert not artifact[
+        "decision_safe_candidate_readout"]
+    assert artifact[
+        "selected_action_key"] is None
+
+
 def test_unused_city_defense_authority_is_abandoned_immediately():
-    candidates = _candidates()
-    snapshot, ruleset = _scenario(
-        candidates)
+    (
+        candidates,
+        snapshot,
+        ruleset,
+    ) = _immediate_fortify_scenario()
 
     with tempfile.TemporaryDirectory() as directory:
         path = os.path.join(
@@ -1577,9 +1678,11 @@ def test_unused_city_defense_authority_is_abandoned_immediately():
 
 
 def test_async_city_defense_shadow_cannot_reregister_live_reservation():
-    candidates = _candidates()
-    snapshot, ruleset = _scenario(
-        candidates)
+    (
+        candidates,
+        snapshot,
+        ruleset,
+    ) = _immediate_fortify_scenario()
 
     with tempfile.TemporaryDirectory() as directory:
         path = os.path.join(
@@ -2063,9 +2166,11 @@ def test_city_defense_move_rebinds_current_steps_until_city_occupancy():
 
 
 def test_city_defense_outcome_cannot_match_a_stale_snapshot_action():
-    candidates = _candidates()
-    snapshot, ruleset = _scenario(
-        candidates)
+    (
+        candidates,
+        snapshot,
+        ruleset,
+    ) = _immediate_fortify_scenario()
 
     with tempfile.TemporaryDirectory() as directory:
         path = os.path.join(

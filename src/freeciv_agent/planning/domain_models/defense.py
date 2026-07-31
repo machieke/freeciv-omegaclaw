@@ -980,6 +980,7 @@ GROUNDED_OPERATION_RESULT_REASONS = frozenset({
     "alternate-step-not-native-selected-route",
     "arrival-after-threat-deadline",
     "defender-native-route-unreachable",
+    "immediate-interception-available",
     "native-route-misses-threat-deadline",
     "protected-sole-defender",
 })
@@ -1566,9 +1567,34 @@ class CityDefenseAnalyzer:
 
     def analyze(
             self, snapshot, ruleset_ir,
-            candidates):
+            candidates,
+            operation_types=None):
         candidates = tuple(
             candidates)
+        if operation_types is None:
+            allowed_operation_types = (
+                frozenset(
+                    DefenseOperationType))
+        else:
+            try:
+                allowed_operation_types = (
+                    frozenset(
+                        DefenseOperationType(
+                            value)
+                        for value in
+                        operation_types))
+            except (TypeError, ValueError):
+                raise ValueError(
+                    "city defence operation types are invalid")
+        # Protected holds are constraints, not policy candidates.  Keep them
+        # visible in every narrowed analysis so a low-latency live slice
+        # cannot accidentally remove the sole-defender invariant.
+        allowed_operation_types = (
+            allowed_operation_types
+            | {
+                DefenseOperationType
+                .HOLD_SOLE_DEFENDER,
+            })
         input_candidate_count = len(
             candidates)
         declared_legal = getattr(
@@ -1606,16 +1632,37 @@ class CityDefenseAnalyzer:
             for candidate in
             candidates}
         protected_union = []
-        protected_types = {
-            "unit_attack",
-            "unit_bombard",
-            "unit_capture",
-            "unit_conquer_city",
-            "unit_fortify",
-            "unit_move",
-            "unit_suicide_attack",
-            "unit_wipe",
-        }
+        protected_types = set()
+        if (
+                DefenseOperationType
+                .FORTIFY_EXISTING_DEFENDER
+                in allowed_operation_types):
+            protected_types.add(
+                "unit_fortify")
+        if (
+                DefenseOperationType
+                .MOVE_DEFENDER_TO_CITY
+                in allowed_operation_types):
+            protected_types.add(
+                "unit_move")
+        # Legal immediate attacks are also needed by the conservative
+        # fortification readout: when one can intercept a supported threat,
+        # fortification must yield to the unchanged B1 ordering.
+        if (
+                DefenseOperationType
+                .FORTIFY_EXISTING_DEFENDER
+                in allowed_operation_types
+                or DefenseOperationType
+                .INTERCEPT_IMMEDIATE_THREAT
+                in allowed_operation_types):
+            protected_types.update({
+                "unit_attack",
+                "unit_bombard",
+                "unit_capture",
+                "unit_conquer_city",
+                "unit_suicide_attack",
+                "unit_wipe",
+            })
         for action in legal:
             action_type = str(
                 action.get(
@@ -1763,6 +1810,58 @@ class CityDefenseAnalyzer:
             threat_by_enemy.setdefault(
                 threat.enemy_unit_id,
                 []).append(threat)
+        immediate_interceptions = set()
+        for candidate in candidates:
+            action = candidate.action
+            action_type = str(
+                action.get(
+                    "action_type", ""))
+            if action_type not in (
+                    "unit_attack",
+                    "unit_bombard",
+                    "unit_capture",
+                    "unit_conquer_city",
+                    "unit_suicide_attack",
+                    "unit_wipe"):
+                continue
+            actor_id = action.get(
+                "actor_id")
+            if actor_id not in defender_by_id:
+                continue
+            target = action.get(
+                "target", {})
+            if not isinstance(target, dict):
+                target = {}
+            enemy_ids = set()
+            target_id = target.get(
+                "target_unit_id")
+            if target_id is not None:
+                try:
+                    enemy_ids.add(
+                        int(target_id))
+                except (TypeError, ValueError):
+                    pass
+            if None not in (
+                    target.get("x"),
+                    target.get("y")):
+                enemy_ids.update(
+                    enemy.unit_id
+                    for enemy in
+                    snapshot.visible_enemy_units
+                    if (
+                        enemy.x,
+                        enemy.y)
+                    == (
+                        target.get("x"),
+                        target.get("y")))
+            for enemy_id in enemy_ids:
+                for threat in (
+                        threat_by_enemy.get(
+                            enemy_id, ())):
+                    if threat.supported:
+                        immediate_interceptions.add((
+                            actor_id,
+                            threat.city_id))
         operations = []
         omissions = list(
             threat_omissions)
@@ -1895,6 +1994,9 @@ class CityDefenseAnalyzer:
                     == "city_defense"
                     and action_type
                     == "unit_fortify"
+                    and DefenseOperationType
+                    .FORTIFY_EXISTING_DEFENDER
+                    in allowed_operation_types
                     and defender is not None
                     and defender
                     .current_city_id
@@ -1914,6 +2016,9 @@ class CityDefenseAnalyzer:
                         snapshot.turn)
             elif (action_type
                     == "unit_move"
+                    and DefenseOperationType
+                    .MOVE_DEFENDER_TO_CITY
+                    in allowed_operation_types
                     and defender is not None):
                 operation_type = (
                     DefenseOperationType
@@ -2088,6 +2193,9 @@ class CityDefenseAnalyzer:
                             arrival)
             elif (candidate.category
                     == "tactical_attack"
+                    and DefenseOperationType
+                    .INTERCEPT_IMMEDIATE_THREAT
+                    in allowed_operation_types
                     and action_type
                     in (
                         "unit_attack",
@@ -2146,7 +2254,10 @@ class CityDefenseAnalyzer:
             elif (candidate.category
                     == "production_defense"
                     and action_type
-                    == "city_production"):
+                    == "city_production"
+                    and DefenseOperationType
+                    .EMERGENCY_BUILD_DEFENDER
+                    in allowed_operation_types):
                 city_id = action.get(
                     "city_id")
                 if city_id in (
@@ -2202,6 +2313,16 @@ class CityDefenseAnalyzer:
                 if requirement.confidence <= 0.0:
                     support_reason = (
                         "threat-value-support-incomplete")
+                elif (
+                        operation_type
+                        == DefenseOperationType
+                        .FORTIFY_EXISTING_DEFENDER
+                        and (
+                            actor_id,
+                            requirement.city_id)
+                        in immediate_interceptions):
+                    support_reason = (
+                        "immediate-interception-available")
                 elif (defender is not None
                         and not defender.supported):
                     support_reason = (
@@ -2911,7 +3032,10 @@ def build_city_defense_assignment_artifact(
         snapshot, ruleset_ir, candidates,
         threat_radius, node_budget,
         ruleset_digest,
-        baseline_action_key=None):
+        baseline_action_key=None,
+        analysis_operation_types=None,
+        live_operation_types=None,
+        maximum_authority_lead_turns=None):
     """Build one decision-safe exact-assignment readout for a snapshot.
 
     This shared boundary keeps the asynchronous GDO-4 shadow path and the
@@ -2921,12 +3045,28 @@ def build_city_defense_assignment_artifact(
     analysis = CityDefenseAnalyzer(
         threat_radius=threat_radius).analyze(
             snapshot, ruleset_ir,
-            tuple(candidates))
+            tuple(candidates),
+            operation_types=(
+                analysis_operation_types))
     assignment = ExactCityDefenseAssignmentSolver(
         node_budget=node_budget).schedule(
             analysis)
     selected_ids = frozenset(
         assignment.selected_operation_ids)
+    live_types = (
+        CITY_DEFENSE_LIVE_OPERATION_TYPES
+        if live_operation_types is None
+        else frozenset(
+            DefenseOperationType(
+                value)
+            for value in
+            live_operation_types))
+    non_displacing_local_readout = bool(
+        live_types
+        and live_types <= {
+            DefenseOperationType
+            .FORTIFY_EXISTING_DEFENDER,
+        })
     selected_operations = tuple(
         row for row in analysis.operations
         if row.operation_id in selected_ids
@@ -2934,7 +3074,15 @@ def build_city_defense_assignment_artifact(
     authority_operations = tuple(
         row for row in selected_operations
         if row.operation_type
-        in CITY_DEFENSE_LIVE_OPERATION_TYPES
+        in live_types
+        and (
+            maximum_authority_lead_turns
+            is None
+            or row.deadline_turn
+            <= (
+                int(snapshot.turn)
+                + int(
+                    maximum_authority_lead_turns)))
         and (
             row.operation_type
             != DefenseOperationType
@@ -3019,7 +3167,10 @@ def build_city_defense_assignment_artifact(
         and assignment.status == "exact"
         and threat_coverage >= 0.90
         and grounded_operation_coverage >= 0.90
-        and decision_resolution_coverage >= 0.90)
+        and (
+            non_displacing_local_readout
+            or decision_resolution_coverage
+            >= 0.90))
     payload = {
         "analysis": analysis.to_dict(),
         "assignment":
@@ -3044,7 +3195,11 @@ def build_city_defense_assignment_artifact(
             if grounded_operation_coverage < 0.90
             else
             "typed-defense-decision-resolution-below-90-percent"
-            if decision_resolution_coverage < 0.90
+            if (
+                decision_resolution_coverage
+                < 0.90
+                and not
+                non_displacing_local_readout)
             else
             "typed-defense-assignment-not-exact"
             if assignment.status != "exact"
@@ -3055,6 +3210,10 @@ def build_city_defense_assignment_artifact(
             "shadow-only-gdo4"),
         "fallback_to_b1": True,
         "live_ordering_unchanged": True,
+        "live_readout_scope": (
+            "non-displacing-local"
+            if non_displacing_local_readout
+            else "globally-resolved"),
         "policy_authority": False,
         "protected_union_added_count":
             analysis.protected_union_added_count,
