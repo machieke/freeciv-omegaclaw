@@ -1,5 +1,6 @@
 """Identity, time-window, and legacy packet resource contracts."""
 
+import json
 import os
 import sys
 
@@ -23,6 +24,18 @@ from freeciv_agent.pressure import (  # noqa: E402
     capacities_from_packet_budgets,
     claims_from_packet_costs,
 )
+from freeciv_agent.events.schema import PAYLOADS_PATH  # noqa: E402
+
+
+def test_published_event_schema_covers_every_game_resource_kind():
+    with open(PAYLOADS_PATH, encoding="utf-8") as stream:
+        schema = json.load(stream)
+    published = set(
+        schema["$defs"]["resourceRef"][
+            "properties"]["kind"]["enum"])
+
+    assert published == {
+        kind.value for kind in GameResourceKind}
 
 
 def test_half_open_turn_windows_overlap_and_cover_exactly():

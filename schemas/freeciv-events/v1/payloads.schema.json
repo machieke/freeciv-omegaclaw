@@ -134,7 +134,8 @@
         "kind": {
           "enum": [
             "actor", "move_points", "city_production_slot",
-            "tile_occupancy", "transport_seat", "treasury",
+            "city_worker_assignment", "tile_occupancy",
+            "transport_seat", "treasury",
             "research_slot", "diplomatic_commitment",
             "action_budget", "cpu"
           ]
