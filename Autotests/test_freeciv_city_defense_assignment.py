@@ -1354,6 +1354,59 @@ def test_city_defense_authority_keeps_interception_shadow_only():
         "selected_action_key"] is None
 
 
+def test_city_defense_authority_keeps_multi_turn_approach_shadow_only():
+    move = _candidate({
+        "action_type": "unit_move",
+        "actor_id": 2,
+        "target": {"x": 3, "y": 0},
+        "movement_cost": 1,
+        "transport_required": False,
+        "is_valid": True,
+    }, "tactical_move")
+    snapshot, ruleset = _scenario(
+        (move,))
+    snapshot.cities = (
+        _city(20, 4, 0),)
+    snapshot.movement_routes = (
+        MovementRouteState(
+            unit_id=2,
+            origin_tile=2,
+            destination_tile=4,
+            reachable=True,
+            first_step_tile=3,
+            first_step_movement_cost=1,
+            path_length=2,
+            path_directions=(4, 4),
+            estimated_turns=1,
+            total_movement_cost=4,
+            movement_points_remaining=2,
+            moves_left_at_request=3,
+            transported_at_request=False,
+            initially_transported=False,
+            turn=10,
+            source_seq=10),)
+
+    artifact = (
+        build_city_defense_assignment_artifact(
+            snapshot, ruleset,
+            (move,),
+            threat_radius=6,
+            node_budget=5000,
+            ruleset_digest=(
+                "ruleset-proof")))
+
+    assert any(
+        row["selected"]
+        and row["operation_type"]
+        == "move_defender_to_city"
+        for row in artifact[
+            "assignment"]["entries"])
+    assert not artifact[
+        "decision_safe_candidate_readout"]
+    assert artifact[
+        "selected_action_key"] is None
+
+
 def test_current_snapshot_city_defense_authority_is_prepared_once():
     candidates = _candidates()
     snapshot, ruleset = _scenario(

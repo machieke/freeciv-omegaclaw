@@ -441,8 +441,6 @@ CITY_DEFENSE_LIVE_OPERATION_TYPES = frozenset({
     .FORTIFY_EXISTING_DEFENDER,
     DefenseOperationType
     .MOVE_DEFENDER_TO_CITY,
-    DefenseOperationType
-    .EMERGENCY_BUILD_DEFENDER,
 })
 
 
@@ -2936,7 +2934,13 @@ def build_city_defense_assignment_artifact(
     authority_operations = tuple(
         row for row in selected_operations
         if row.operation_type
-        in CITY_DEFENSE_LIVE_OPERATION_TYPES)
+        in CITY_DEFENSE_LIVE_OPERATION_TYPES
+        and (
+            row.operation_type
+            != DefenseOperationType
+            .MOVE_DEFENDER_TO_CITY
+            or row.arrival_turn
+            <= int(snapshot.turn)))
     readout = (
         sorted(
             authority_operations,
