@@ -1319,6 +1319,41 @@ def test_city_defense_artifact_exposes_only_an_exact_decision_safe_readout():
         "selected_action_key"] is None
 
 
+def test_city_defense_authority_keeps_interception_shadow_only():
+    intercept = _candidate({
+        "action_type": "unit_attack",
+        "actor_id": 2,
+        "target": {
+            "target_unit_id": 90,
+            "x": 4,
+            "y": 3,
+        },
+        "is_valid": True,
+    }, "tactical_attack")
+    snapshot, ruleset = _scenario(
+        (intercept,))
+
+    artifact = (
+        build_city_defense_assignment_artifact(
+            snapshot, ruleset,
+            (intercept,),
+            threat_radius=6,
+            node_budget=5000,
+            ruleset_digest=(
+                "ruleset-proof")))
+
+    assert any(
+        row["selected"]
+        and row["operation_type"]
+        == "intercept_immediate_threat"
+        for row in artifact[
+            "assignment"]["entries"])
+    assert not artifact[
+        "decision_safe_candidate_readout"]
+    assert artifact[
+        "selected_action_key"] is None
+
+
 def test_current_snapshot_city_defense_authority_is_prepared_once():
     candidates = _candidates()
     snapshot, ruleset = _scenario(
@@ -1380,6 +1415,124 @@ def test_current_snapshot_city_defense_authority_is_prepared_once():
     assert repeated_artifact is None
     assert repeated_events == ()
     assert repeated_readout == readout
+    assert report.valid, [
+        row.to_dict()
+        for row in report.errors]
+
+
+def test_unused_city_defense_authority_is_abandoned_immediately():
+    candidates = _candidates()
+    snapshot, ruleset = _scenario(
+        candidates)
+
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(
+            directory,
+            "events.jsonl")
+        writer = EventWriter(
+            path,
+            "city-defense-abandonment",
+            durable=False)
+        emitter = ControlEventEmitter()
+        _, events, readout = (
+            emitter
+            .prepare_city_defense_authority(
+                writer,
+                snapshot,
+                ruleset,
+                candidates,
+                threat_radius=6,
+                node_budget=5000,
+                ruleset_digest=(
+                    "ruleset-proof")))
+        abandoned = (
+            emitter
+            .abandon_city_defense_authority(
+                writer,
+                snapshot.turn,
+                readout,
+                snapshot.snapshot_id,
+                "current-planner-produced-no-decision",
+                caused_by=(
+                    events[-1][
+                        "event_id"],)))
+        remaining = (
+            emitter
+            .operation_authority_readout(
+                writer,
+                snapshot,
+                city_defense_enabled=True))
+        report = validate_file(
+            path)
+
+    assert [
+        row["type"]
+        for row in abandoned
+    ] == [
+        "operation_abandoned",
+    ]
+    assert abandoned[0]["payload"][
+        "reason_code"] == (
+            "current-planner-produced-no-decision")
+    assert remaining is None
+    assert report.valid, [
+        row.to_dict()
+        for row in report.errors]
+
+
+def test_async_city_defense_shadow_cannot_reregister_live_reservation():
+    candidates = _candidates()
+    snapshot, ruleset = _scenario(
+        candidates)
+
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(
+            directory,
+            "events.jsonl")
+        writer = EventWriter(
+            path,
+            "city-defense-shadow-suppression",
+            durable=False)
+        emitter = ControlEventEmitter()
+        artifact, _, _ = (
+            emitter
+            .prepare_city_defense_authority(
+                writer,
+                snapshot,
+                ruleset,
+                candidates,
+                threat_radius=6,
+                node_budget=5000,
+                ruleset_digest=(
+                    "ruleset-proof")))
+        delayed = dict(
+            artifact)
+        delayed.pop(
+            "synchronous_authority_preparation")
+        events = (
+            emitter
+            .emit_city_defense_operations(
+                writer,
+                snapshot.turn,
+                delayed))
+        report = validate_file(
+            path)
+
+    assert not any(
+        row["type"]
+        in (
+            "operation_reserved",
+            "operation_step_selected",
+            "operation_blocked",
+        )
+        for row in events)
+    assert any(
+        row["payload"][
+            "reason_code"]
+        == "asynchronous-shadow-superseded-by-current-authority"
+        for row in events
+        if row["type"]
+        == "operation_proposed")
     assert report.valid, [
         row.to_dict()
         for row in report.errors]

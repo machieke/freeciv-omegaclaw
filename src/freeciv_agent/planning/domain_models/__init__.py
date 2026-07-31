@@ -24,6 +24,7 @@ from .context import (
     canonical_model_artifact,
 )
 from .defense import (
+    CITY_DEFENSE_LIVE_OPERATION_TYPES,
     CityDefenseAnalysis,
     CityDefenseAnalyzer,
     CityDefenseAssignment,
@@ -63,6 +64,7 @@ from .transport import (
 __all__ = [
     "AbstainingTransitionModel",
     "CandidateDomainFeatures",
+    "CITY_DEFENSE_LIVE_OPERATION_TYPES",
     "CityDefenseAnalysis",
     "CityDefenseAnalyzer",
     "CityDefenseAssignment",

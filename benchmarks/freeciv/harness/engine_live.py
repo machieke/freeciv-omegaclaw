@@ -2376,6 +2376,20 @@ async def _play(run_dir, manifest, context):
                     # boundary has stopped its latency clock.
                     impact_planner.dispatch_resource_schedules()
                     if decision is None:
+                        abandoned_events = (
+                            control_event_emitter
+                            .abandon_city_defense_authority(
+                                writer,
+                                snapshot.turn,
+                                operation_authority,
+                                snapshot.snapshot_id,
+                                "current-planner-produced-no-decision",
+                                caused_by=(
+                                    parent,)))
+                        if abandoned_events:
+                            parent = (
+                                abandoned_events[
+                                    -1]["event_id"])
                         stranded = (
                             impact_planner.last_stranded_pressure_artifact)
                         if stranded is not None:
@@ -2409,6 +2423,32 @@ async def _play(run_dir, manifest, context):
                         break
                     impact_action = decision.candidate.action
                     action_snapshot = snapshot
+                    if (
+                            operation_authority
+                            is not None
+                            and not (
+                                isinstance(
+                                    decision
+                                    .operation_authority,
+                                    dict)
+                                and decision
+                                .operation_authority
+                                .get("applied"))
+                    ):
+                        abandoned_events = (
+                            control_event_emitter
+                            .abandon_city_defense_authority(
+                                writer,
+                                snapshot.turn,
+                                operation_authority,
+                                snapshot.snapshot_id,
+                                "current-planner-did-not-select-operation-step",
+                                caused_by=(
+                                    parent,)))
+                        if abandoned_events:
+                            parent = (
+                                abandoned_events[
+                                    -1]["event_id"])
                     decision_event_started = time.perf_counter()
                     if decision.pressure_artifact is not None:
                         pressure_value = decision.pressure_artifact["pressure"]

@@ -436,6 +436,16 @@ class DefenseOperationType(str, Enum):
         "hold_sole_defender")
 
 
+CITY_DEFENSE_LIVE_OPERATION_TYPES = frozenset({
+    DefenseOperationType
+    .FORTIFY_EXISTING_DEFENDER,
+    DefenseOperationType
+    .MOVE_DEFENDER_TO_CITY,
+    DefenseOperationType
+    .EMERGENCY_BUILD_DEFENDER,
+})
+
+
 @dataclass(frozen=True)
 class _DefenseActionView:
     action: dict
@@ -2923,13 +2933,17 @@ def build_city_defense_assignment_artifact(
         row for row in analysis.operations
         if row.operation_id in selected_ids
         and row.next_action is not None)
+    authority_operations = tuple(
+        row for row in selected_operations
+        if row.operation_type
+        in CITY_DEFENSE_LIVE_OPERATION_TYPES)
     readout = (
         sorted(
-            selected_operations,
+            authority_operations,
             key=lambda row: (
                 -float(row.bid),
                 row.operation_id))[0]
-        if selected_operations
+        if authority_operations
         else None)
     supported_threats = sum(
         row.supported

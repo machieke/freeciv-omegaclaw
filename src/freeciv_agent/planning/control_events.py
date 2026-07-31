@@ -193,6 +193,7 @@ class ControlEventEmitter:
         self._emitted_resource_batch_ids = set()
         self._emitted_combat_snapshot_ids = set()
         self._emitted_city_defense_snapshot_ids = set()
+        self._city_defense_authority_games = set()
         # Capacity events describe changes across decisions.  Index by the
         # stable resource identity rather than snapshot-scoped capacity ID.
         self._last_resource_capacity = {}
@@ -469,6 +470,20 @@ class ControlEventEmitter:
                     threat_radius,
                     node_budget,
                     ruleset_digest))
+            artifact = dict(
+                artifact)
+            artifact[
+                "synchronous_authority_preparation"
+            ] = True
+            artifact["artifact_hash"] = (
+                structural_hash({
+                    key: value
+                    for key, value
+                    in artifact.items()
+                    if key != "artifact_hash"
+                }))
+            self._city_defense_authority_games.add(
+                str(writer.game_id))
             emitted = (
                 self
                 .emit_city_defense_operations(
@@ -485,6 +500,56 @@ class ControlEventEmitter:
                 city_defense_enabled=True,
                 combat_enabled=False))
         return artifact, emitted, readout
+
+    def abandon_city_defense_authority(
+            self, writer, turn,
+            readout, snapshot_id,
+            reason_code,
+            caused_by=()):
+        """Release an exact assignment that the current planner did not use."""
+        if (
+                not isinstance(
+                    readout,
+                    OperationAuthorityReadout)
+                or readout.authority_kind
+                != OperationAuthorityKind
+                .CITY_DEFENSE
+        ):
+            return ()
+        if (not isinstance(
+                reason_code, str)
+                or not reason_code):
+            raise ValueError(
+                "authority abandonment requires a reason")
+        store = self._operation_store_for(
+            writer)
+        record = store.get(
+            readout.operation_id)
+        if (
+                record is None
+                or record.progress.state
+                != OperationState.RESERVED
+        ):
+            return ()
+        record = store.transition(
+            readout.operation_id,
+            OperationState.ABANDONED,
+            str(snapshot_id),
+            int(turn),
+            reason=reason_code)
+        event = self._emit_operation_state(
+            writer, int(turn),
+            readout.operation_id,
+            "operation_abandoned",
+            "abandoned",
+            reason_code,
+            str(snapshot_id),
+            tuple(caused_by),
+            resolution_status=(
+                "censored_operation_abort"))
+        self._operation_action_keys.pop(
+            readout.operation_id, None)
+        return (event,)
 
     def emit_operation_authority_selection(
             self, writer, turn,
@@ -910,6 +975,14 @@ class ControlEventEmitter:
         selected_action_key = (
             artifact.get(
                 "selected_action_key"))
+        synchronous_authority = bool(
+            artifact.get(
+                "synchronous_authority_preparation",
+                False))
+        authority_game = (
+            str(writer.game_id)
+            in self
+            ._city_defense_authority_games)
         snapshot_id = str(
             analysis.get(
                 "snapshot_id")
@@ -956,9 +1029,20 @@ class ControlEventEmitter:
                 == selected_action_key)
             reason = entry.get(
                 "reason")
+            if (
+                    selected
+                    and authority_game
+                    and not
+                    synchronous_authority
+            ):
+                selected = False
+                reason = (
+                    "asynchronous-shadow-superseded-by-current-authority")
             if (assigned
                     and not selected):
                 reason = (
+                    reason
+                    or
                     "assignment-selected-awaiting-readout")
             if reason is None:
                 reason = operation.get(
