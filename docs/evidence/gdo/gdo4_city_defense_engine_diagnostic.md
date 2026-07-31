@@ -247,3 +247,71 @@ identical 30-pair pilot on unused seeds in the disjoint 6.9M range. It must
 pass the same complete gate conjunction, including 50 ms synchronous
 preparation p95 and 1.15 full-loop p95 ratio. It remains ineligible for a score
 claim regardless of outcome direction.
+
+## Latency confirmation v3 result
+
+The frozen v3 cohort
+`/data/freeciv/gdo4-city-defense-immediate-fortify-authority-pilot-v3`
+completed 60/60 games and 30/30 pairs from clean source commit
+`330f346417ae0bef529a0a8461b5770e9507e83f`, with zero game or
+infrastructure failures. The audit validated 1,820,989 events with zero errors
+and zero warnings.
+
+The self-hashed report is
+`benchmarks/gdo/gdo4_city_defense_immediate_fortify_latency_confirmation.json`,
+report hash
+`35b410b028c533a91a268bb324a446e347853a4f5a398e09e7c210c6b3c697c6`.
+
+The cohort again failed the complete conjunction:
+
+| Metric | B1 baseline | Fortify authority | Delta |
+| --- | ---: | ---: | ---: |
+| Unique selected city/snapshot observations | 485 | 66 | — |
+| Unique activations | 0 | 39 | — |
+| Uncovered unique observations | 485 | 27 | −458 |
+| Completion / selected unique operation | 0% | 0% | 0 pp |
+| Selected-at-risk city losses | 2 | 0 | −2 |
+| Raw own-city identity losses | 30 | 25 | −5 |
+| Hard-current conflicts | 0 | 0 | 0 |
+| Sole-defender violations | 0 | 0 | 0 |
+| Engine-rejected actions | 0 | 0 | 0 |
+
+All authority actions remained fortifications, typed winner-changing coverage
+was 100%, and full-loop p95 ratio was 1.0319. Preparation p95 was still
+137.63 ms: build p95 was 103.50 ms and event-emission p95 was 12.82 ms.
+The terrain cache therefore improved a synthetic dense graph but did not
+remove the production bottleneck. The paired score delta was -0.23 with
+interval `[-4.43, 3.67]`; no score or win-rate claim is made.
+
+Production traces exposed two independent measurement and performance
+defects:
+
+- high-latency snapshots had up to 551 advertised legal actions, while the
+  synchronous policy slice needed only fortification plus immediate
+  interception actions; irrelevant candidates and JSON actions were still
+  analyzed;
+- accepted Freeciv fortify commands appeared in authoritative state as
+  `fortifying`, while lifecycle resolution recognized only `fortify` and
+  `fortified`, making successful command effects look incomplete.
+
+## Frozen action-scope and lifecycle confirmation v4
+
+`city_defense_immediate_fortify_authority_pilot_v4` is predeclared on 30
+unused paired seeds in the disjoint 7.0M range. The policy and all original
+gate thresholds remain unchanged. The implementation only:
+
+- filters synchronous candidates and legal-action decoding to declared
+  fortification actions plus the attack actions required by the conservative
+  immediate-interception fallback;
+- retains the complete advertised legal-action digest and membership set for
+  exact commit validation;
+- reports both input and actually analyzed candidate counts;
+- recognizes the authoritative `fortifying` activity as the observed effect
+  of an accepted fortify step.
+
+On a deterministic 501-action diagnostic, narrowed analyzer p95 changed from
+9.18 ms to 0.85 ms, a 10.81× speedup, while reducing analyzed candidates from
+501 to one. This is synthetic performance evidence only. V4 must still pass
+the complete 50 ms preparation, 1.15 full-loop, completion, safety, coverage,
+and fallback conjunction. It remains claim-ineligible regardless of gameplay
+score direction.

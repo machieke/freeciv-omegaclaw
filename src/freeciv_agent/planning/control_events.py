@@ -1923,6 +1923,7 @@ class ControlEventEmitter:
                             or "").lower()
                         in (
                             "fortify",
+                            "fortifying",
                             "fortified")):
                     terminal_state = (
                         OperationState.COMPLETED)

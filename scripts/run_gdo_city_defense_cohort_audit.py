@@ -773,7 +773,10 @@ def run(cohort_root, profile):
         design is not None
         and design.get(
             "schema_version")
-        == "1.1")
+        in (
+            "1.1",
+            "1.2",
+        ))
     declared_types = tuple(
         design.get(
             "declared_operation_types",

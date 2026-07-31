@@ -1588,6 +1588,64 @@ def test_immediate_interception_keeps_fortification_out_of_authority():
         "selected_action_key"] is None
 
 
+def test_narrow_city_defense_analysis_skips_irrelevant_legal_actions(
+        monkeypatch):
+    fortify, snapshot, ruleset = (
+        _immediate_fortify_scenario())
+    irrelevant = tuple(
+        _candidate({
+            "action_type":
+                "city_governor",
+            "city_id": 10,
+            "target": {
+                "food_surplus_reserve":
+                    index,
+            },
+        }, "city_food_governor")
+        for index in range(500))
+    candidates = fortify + irrelevant
+    snapshot.legal_action_json = tuple(
+        row.action_key
+        for row in candidates)
+    decoded = []
+    original_loads = (
+        defense_module.json.loads)
+
+    def observed_loads(value):
+        decoded.append(value)
+        return original_loads(value)
+
+    monkeypatch.setattr(
+        defense_module.json,
+        "loads",
+        observed_loads)
+
+    analysis = CityDefenseAnalyzer(
+        threat_radius=6).analyze(
+            snapshot,
+            ruleset,
+            candidates,
+            operation_types=(
+                "fortify_existing_defender",
+                "hold_sole_defender",
+            ))
+
+    assert (
+        analysis.input_candidate_count
+        == len(candidates))
+    assert (
+        analysis.analyzed_candidate_count
+        == 1)
+    assert (
+        analysis.protected_union_added_count
+        == 0)
+    assert len(decoded) == 1
+    assert all(
+        '"action_type":"unit_fortify"'
+        in value
+        for value in decoded)
+
+
 def test_city_threat_analysis_projects_native_terrain_once_per_unit_class(
         monkeypatch):
     candidates = _candidates()
@@ -1777,6 +1835,98 @@ def test_async_city_defense_shadow_cannot_reregister_live_reservation():
         for row in events
         if row["type"]
         == "operation_proposed")
+    assert report.valid, [
+        row.to_dict()
+        for row in report.errors]
+
+
+def test_fortifying_unit_completes_city_defense_operation():
+    (
+        candidates,
+        snapshot,
+        ruleset,
+    ) = _immediate_fortify_scenario()
+
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(
+            directory,
+            "events.jsonl")
+        writer = EventWriter(
+            path,
+            "city-defense-fortifying-completion",
+            durable=False)
+        emitter = ControlEventEmitter()
+        _, _, readout = (
+            emitter
+            .prepare_city_defense_authority(
+                writer,
+                snapshot,
+                ruleset,
+                candidates,
+                threat_radius=6,
+                node_budget=5000,
+                ruleset_digest=(
+                    "ruleset-proof")))
+        accepted = (
+            emitter
+            .emit_city_defense_action_outcome(
+                writer,
+                snapshot.turn,
+                snapshot,
+                readout.action,
+                ActionOutcome(
+                    action_id=(
+                        "fortify-action"),
+                    status="accepted",
+                    reason=None,
+                    submitted=True)))
+        actor = snapshot.units[0]
+        fortifying_actor = (
+            SimpleNamespace(
+                **{
+                    **actor.__dict__,
+                    "activity":
+                        "fortifying",
+                }))
+        next_snapshot = (
+            SimpleNamespace(
+                snapshot_id=(
+                    "defence-snapshot-fortifying"),
+                turn=snapshot.turn,
+                city=lambda city_id: next(
+                    (
+                        city for city
+                        in snapshot.cities
+                        if city.city_id
+                        == city_id),
+                    None),
+                unit=lambda unit_id: (
+                    fortifying_actor
+                    if unit_id
+                    == fortifying_actor.unit_id
+                    else None)))
+        completed = (
+            emitter
+            .resolve_city_defense_operations(
+                writer,
+                next_snapshot,
+                caused_by=(
+                    accepted[
+                        -1]["event_id"],)))
+        report = validate_file(path)
+
+    assert [
+        row["type"]
+        for row in completed
+    ] == [
+        "operation_completed",
+    ]
+    assert completed[0]["payload"][
+        "resolution_status"
+    ] == "resolved_success"
+    assert completed[0]["payload"][
+        "reason_code"
+    ] == "completion-predicate-satisfied"
     assert report.valid, [
         row.to_dict()
         for row in report.errors]

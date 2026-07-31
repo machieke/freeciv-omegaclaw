@@ -1059,6 +1059,7 @@ class CityDefenseAnalysis:
     omissions: tuple
     analyzer_identity: str
     input_candidate_count: int = 0
+    analyzed_candidate_count: int = 0
     protected_union_added_count: int = 0
 
     def __post_init__(self):
@@ -1136,6 +1137,8 @@ class CityDefenseAnalysis:
         for value, name in (
                 (self.input_candidate_count,
                  "input candidate count"),
+                (self.analyzed_candidate_count,
+                 "analyzed candidate count"),
                 (self.protected_union_added_count,
                  "protected-union added count")):
             if (isinstance(value, bool)
@@ -1154,6 +1157,8 @@ class CityDefenseAnalysis:
     def to_dict(
             self, include_digest=True):
         payload = {
+            "analyzed_candidate_count":
+                self.analyzed_candidate_count,
             "analyzer_identity":
                 self.analyzer_identity,
             "input_candidate_count":
@@ -1783,6 +1788,8 @@ class CityDefenseAnalyzer:
             candidates
             + tuple(
                 protected_union))
+        analyzed_candidate_count = len(
+            candidates)
         threats, threat_omissions = (
             self._threats(
                 snapshot, ruleset_ir,
@@ -2667,6 +2674,8 @@ class CityDefenseAnalyzer:
                 self.ANALYZER_IDENTITY),
             input_candidate_count=(
                 input_candidate_count),
+            analyzed_candidate_count=(
+                analyzed_candidate_count),
             protected_union_added_count=(
                 len(protected_union)))
 

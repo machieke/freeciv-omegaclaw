@@ -194,6 +194,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "city_defense_operation_authority_pilot_v1": 30,
             "city_defense_immediate_fortify_authority_pilot_v2": 30,
             "city_defense_immediate_fortify_authority_pilot_v3": 30,
+            "city_defense_immediate_fortify_authority_pilot_v4": 30,
             "calibrated_scalar_diagnostic_v1": 10,
             "protected_bridge_readout_diagnostic_v1": 10,
             "corrected_probe_readout_diagnostic_v1": 10,
@@ -355,6 +356,49 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "count": 30,
             "minimum": 6900000,
             "maximum": 6999999,
+        }
+    action_scope_confirmation = paired["cohorts"][
+        "city_defense_immediate_fortify_authority_pilot_v4"]
+    assert action_scope_confirmation[
+        "city_defense_mechanism_design"] == {
+            "analyzed_action_scope": (
+                "declared_operation_types_plus_immediate_interception_guard"),
+            "city_loss_metric": (
+                "selected_at_risk_city_identity_disappearance_by_deadline"),
+            "declared_operation_types": [
+                "fortify_existing_defender",
+            ],
+            "fortify_completion_states": [
+                "fortify",
+                "fortifying",
+                "fortified",
+            ],
+            "latency": {
+                "full_loop_p95_ratio_ceiling":
+                    1.15,
+                "preparation_p95_ceiling_ms":
+                    50.0,
+            },
+            "schema_version": "1.2",
+            "sole_defender_metric": (
+                "authority_unit_move_while_actor_protected_in_same_snapshot"),
+            "typed_winner_change": {
+                "minimum_coverage": 0.90,
+            },
+            "uncovered_threat_turn_metric": (
+                "unique_selected_city_snapshot_observations_minus_unique_"
+                "activations"),
+            "unsupported_fallback":
+                "exact_b1_ordering",
+        }
+    assert action_scope_confirmation[
+        "seed_derivation"] == {
+            "algorithm": "sha256-counter-v1",
+            "namespace": (
+                "pf-pln-city-defense-immediate-fortify-authority-pilot-v4"),
+            "count": 30,
+            "minimum": 7000000,
+            "maximum": 7099999,
         }
     score_derivation = paired["cohorts"]["confirmatory_score"]["seed_derivation"]
     assert score_derivation == {
@@ -1007,7 +1051,29 @@ def test_config_rejects_displacing_authority_in_city_defense_schema_1_1():
             stream.write(source)
         with pytest.raises(
                 ValueError,
-                match="1.1 authority must be limited"):
+                match="authority must be limited"):
+            load(path)
+
+
+def test_config_rejects_unfrozen_city_defense_schema_1_2_scope():
+    source = open(os.path.join(
+        REPO, "profile", "freeciv_harness.yaml"), encoding="utf-8").read()
+    source = source.replace(
+        "        analyzed_action_scope: "
+        "declared_operation_types_plus_immediate_interception_guard\n",
+        "        analyzed_action_scope: all_advertised_actions\n",
+        1)
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(
+            directory,
+            "invalid-city-defense-v1-2.yaml")
+        with open(
+                path, "w",
+                encoding="utf-8") as stream:
+            stream.write(source)
+        with pytest.raises(
+                ValueError,
+                match="exact 1.0, 1.1, or 1.2 schema"):
             load(path)
 
 
