@@ -255,36 +255,9 @@ def _neighbor_positions(
         rows))
 
 
-def _known_native_corridor(
-        snapshot, source, city_position,
-        unit_class):
-    """Find a path using only player-known native terrain semantics."""
-    distance = _distance(
-        snapshot, source,
-        city_position)
-    if distance is None:
-        return (
-            "unknown",
-            "threat-position-unavailable",
-            (),
-            None)
-    topology_id = getattr(
-        snapshot,
-        "map_topology_id", None)
-    if topology_id is None:
-        return (
-            "unknown",
-            "map-topology-unavailable",
-            (),
-            None)
-    if source in _neighbor_positions(
-            snapshot,
-            city_position):
-        return (
-            "reachable",
-            "visible-adjacent-threat",
-            (source,),
-            0)
+def _known_native_terrain_context(
+        snapshot, unit_class):
+    """Project immutable known/native tile sets once per snapshot/class."""
     known_positions = set()
     native_tiles = set()
     complete_semantics = True
@@ -326,6 +299,55 @@ def _known_native_corridor(
         and tile_count > 0
         and len(known_positions)
         == tile_count)
+    return (
+        frozenset(
+            known_positions),
+        frozenset(
+            native_tiles),
+        complete_semantics)
+
+
+def _known_native_corridor(
+        snapshot, source, city_position,
+        unit_class,
+        terrain_context=None):
+    """Find a path using only player-known native terrain semantics."""
+    distance = _distance(
+        snapshot, source,
+        city_position)
+    if distance is None:
+        return (
+            "unknown",
+            "threat-position-unavailable",
+            (),
+            None)
+    topology_id = getattr(
+        snapshot,
+        "map_topology_id", None)
+    if topology_id is None:
+        return (
+            "unknown",
+            "map-topology-unavailable",
+            (),
+            None)
+    if source in _neighbor_positions(
+            snapshot,
+            city_position):
+        return (
+            "reachable",
+            "visible-adjacent-threat",
+            (source,),
+            0)
+    if terrain_context is None:
+        terrain_context = (
+            _known_native_terrain_context(
+                snapshot,
+                unit_class))
+    (
+        known_positions,
+        native_tiles,
+        complete_semantics,
+    ) = terrain_context
     if source not in native_tiles:
         return (
             "unreachable"
@@ -1356,6 +1378,7 @@ class CityDefenseAnalyzer:
                         int(target["y"])))
         threats = []
         omissions = []
+        terrain_contexts = {}
         for enemy in sorted(
                 snapshot.visible_enemy_units,
                 key=lambda row:
@@ -1380,6 +1403,15 @@ class CityDefenseAnalyzer:
                 unit_classes[0]
                 if len(unit_classes) == 1
                 else None)
+            if (
+                    unit_class is not None
+                    and unit_class
+                    not in terrain_contexts):
+                terrain_contexts[
+                    unit_class] = (
+                        _known_native_terrain_context(
+                            snapshot,
+                            unit_class))
             if spec is None:
                 support_reason = (
                     "enemy-ruleset-spec-unavailable")
@@ -1455,7 +1487,10 @@ class CityDefenseAnalyzer:
                     (
                         int(city.x),
                         int(city.y)),
-                    unit_class)
+                    unit_class,
+                    terrain_context=(
+                        terrain_contexts.get(
+                            unit_class)))
                 threat_support_reason = (
                     support_reason)
                 if (threat_support_reason

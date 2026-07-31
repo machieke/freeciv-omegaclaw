@@ -193,6 +193,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "city_defense_operation_authority_scenario_diagnostic_v2": 10,
             "city_defense_operation_authority_pilot_v1": 30,
             "city_defense_immediate_fortify_authority_pilot_v2": 30,
+            "city_defense_immediate_fortify_authority_pilot_v3": 30,
             "calibrated_scalar_diagnostic_v1": 10,
             "protected_bridge_readout_diagnostic_v1": 10,
             "corrected_probe_readout_diagnostic_v1": 10,
@@ -339,6 +340,21 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "count": 30,
             "minimum": 6800000,
             "maximum": 6899999,
+        }
+    latency_confirmation = paired["cohorts"][
+        "city_defense_immediate_fortify_authority_pilot_v3"]
+    assert latency_confirmation[
+        "city_defense_mechanism_design"] == (
+            immediate_fortify_pilot[
+                "city_defense_mechanism_design"])
+    assert latency_confirmation[
+        "seed_derivation"] == {
+            "algorithm": "sha256-counter-v1",
+            "namespace": (
+                "pf-pln-city-defense-immediate-fortify-authority-pilot-v3"),
+            "count": 30,
+            "minimum": 6900000,
+            "maximum": 6999999,
         }
     score_derivation = paired["cohorts"]["confirmatory_score"]["seed_derivation"]
     assert score_derivation == {

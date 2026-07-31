@@ -19,6 +19,7 @@ from freeciv_agent.events.writer import EventWriter  # noqa: E402
 from freeciv_agent.events.schema import structural_hash  # noqa: E402
 from freeciv_agent.execution import ActionOutcome  # noqa: E402
 from freeciv_agent.planning import ControlEventEmitter  # noqa: E402
+from freeciv_agent.planning.domain_models import defense as defense_module  # noqa: E402
 from freeciv_agent.planning.domain_models import (  # noqa: E402
     CityDefenseAnalysis,
     CityDefenseAnalyzer,
@@ -1585,6 +1586,50 @@ def test_immediate_interception_keeps_fortification_out_of_authority():
         "decision_safe_candidate_readout"]
     assert artifact[
         "selected_action_key"] is None
+
+
+def test_city_threat_analysis_projects_native_terrain_once_per_unit_class(
+        monkeypatch):
+    candidates = _candidates()
+    snapshot, ruleset = _scenario(
+        candidates)
+    snapshot.visible_enemy_units = (
+        _unit(
+            90, "Raider", 4, 3,
+            owner=2),
+        _unit(
+            91, "Raider", 5, 3,
+            owner=2),
+    )
+    calls = []
+    original = (
+        defense_module
+        ._known_native_terrain_context)
+
+    def observed(
+            current_snapshot,
+            unit_class):
+        calls.append(
+            unit_class)
+        return original(
+            current_snapshot,
+            unit_class)
+
+    monkeypatch.setattr(
+        defense_module,
+        "_known_native_terrain_context",
+        observed)
+
+    analysis = CityDefenseAnalyzer(
+        threat_radius=6).analyze(
+            snapshot,
+            ruleset,
+            candidates)
+
+    assert analysis.threats
+    assert calls == [
+        "Land",
+    ]
 
 
 def test_unused_city_defense_authority_is_abandoned_immediately():

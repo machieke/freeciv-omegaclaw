@@ -185,3 +185,65 @@ Schema 1.1 freezes two measurement corrections before execution:
 Lifecycle failure is reported separately from actual engine action rejection.
 The v2 pilot still requires every GDO-4 exit gate and remains ineligible for a
 score or win-rate claim.
+
+## Corrective pilot v2 result
+
+The frozen v2 cohort
+`/data/freeciv/gdo4-city-defense-immediate-fortify-authority-pilot-v2`
+completed 60/60 games and 30/30 pairs from clean source commit
+`de4a1da92bf665f1369b7f3c9dc7447292cfd6a2`, with zero game or
+infrastructure failures. The audit validated 1,819,644 events with zero errors
+and zero warnings.
+
+The self-hashed report is
+`benchmarks/gdo/gdo4_city_defense_immediate_fortify_engine_pilot.json`,
+report hash
+`2268b6c03b5f41680eca0a9e5275fbcd7e0f31727298a7e51c0baec16bcc6add`.
+
+The conservative policy passed every non-latency mechanism gate:
+
+| Metric | B1 baseline | Fortify authority | Delta |
+| --- | ---: | ---: | ---: |
+| Unique selected city/snapshot observations | 471 | 34 | — |
+| Unique activations | 0 | 23 | — |
+| Uncovered unique observations | 471 | 11 | −460 |
+| Completion / selected unique operation | 0% | 2.94% | +2.94 pp |
+| Selected-at-risk city losses | 4 | 0 | −4 |
+| Raw own-city identity losses | 42 | 39 | −3 |
+| Hard-current conflicts | 0 | 0 | 0 |
+| Sole-defender violations | 0 | 0 | 0 |
+| Engine-rejected actions | 0 | 0 | 0 |
+
+All 23 authority activations were declared
+`fortify_existing_defender` operations issuing `unit_fortify`. Typed coverage
+for winner-changing selections was 100%; unsupported states retained B1.
+Controller-inclusive full-loop p95 ratio was 1.0688, below 1.15.
+
+The pilot nevertheless failed its conjunction because synchronous preparation
+p95 was 132.69 ms, above the frozen 50 ms ceiling. Phase metrics localize the
+cost:
+
+- terrain/operation build p95: 99.16 ms;
+- selected/hold event emission p95: 12.08 ms;
+- total preparation p95: 132.69 ms.
+
+The paired score delta was -2.1 with interval `[-7.4, 3.4]`. The cohort was
+predeclared claim-ineligible, and no score or win-rate claim is made.
+
+## Frozen latency confirmation v3
+
+RCA found that `_known_native_corridor` rebuilt the complete known/native
+terrain index for every visible enemy–city edge even though the projection is
+invariant within a snapshot and unit class. The correction caches that
+projection once per snapshot/class and leaves corridor search, threat support,
+assignment, authority scope, and all gate thresholds unchanged.
+
+On a dense deterministic 400-edge synthetic graph, mean analyzer time changed
+from 961.16 ms to 78.00 ms, a 12.32× speedup. This is a performance diagnostic,
+not engine evidence.
+
+`city_defense_immediate_fortify_authority_pilot_v3` freezes an otherwise
+identical 30-pair pilot on unused seeds in the disjoint 6.9M range. It must
+pass the same complete gate conjunction, including 50 ms synchronous
+preparation p95 and 1.15 full-loop p95 ratio. It remains ineligible for a score
+claim regardless of outcome direction.
