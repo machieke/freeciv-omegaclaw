@@ -315,3 +315,76 @@ On a deterministic 501-action diagnostic, narrowed analyzer p95 changed from
 the complete 50 ms preparation, 1.15 full-loop, completion, safety, coverage,
 and fallback conjunction. It remains claim-ineligible regardless of gameplay
 score direction.
+
+## Action-scope and lifecycle confirmation v4 result
+
+The frozen v4 cohort
+`/data/freeciv/gdo4-city-defense-immediate-fortify-authority-pilot-v4`
+completed 60/60 games and 30/30 pairs from clean source commit
+`b63e9a25474c9b6a6eea52638c61d282c96f10cd`, with zero failures,
+zero resumes, and stable implementation hash
+`9ded4f533e32d3e0e3b997df205effdb5b7a3c8ce0b4a727f9c9a67bc3c15153`.
+The audit validated 1,646,250 events with zero errors and zero warnings.
+
+The self-hashed report is
+`benchmarks/gdo/gdo4_city_defense_immediate_fortify_action_scope_confirmation.json`,
+report hash
+`d75dfb9174be76e2f4dd0ff33dc348cc49e185ec7880d1bca6b26fbcd1769443`.
+
+V4 corrected the lifecycle defect and passed every gate except the absolute
+preparation-latency ceiling:
+
+| Metric | B1 baseline | Fortify authority | Delta |
+| --- | ---: | ---: | ---: |
+| Unique selected city/snapshot observations | 502 | 46 | — |
+| Unique activations | 0 | 33 | — |
+| Uncovered unique observations | 502 | 13 | −489 |
+| Completion / selected unique operation | 0% | 71.74% | +71.74 pp |
+| Selected-at-risk city losses | 2 | 0 | −2 |
+| Raw own-city identity losses | 45 | 40 | −5 |
+| Hard-current conflicts | 0 | 0 | 0 |
+| Sole-defender violations | 0 | 0 | 0 |
+| Engine-rejected actions | 0 | 0 | 0 |
+
+All 33 activated operations completed from the authoritative fortifying
+effect, with zero adverse activated outcomes. Typed winner-changing coverage
+was 100%; unsupported states had zero authority. Full-loop p95 ratio was
+1.0456, below 1.15.
+
+Preparation p95 remained 120.90 ms, with build p95 85.74 ms and event p95
+12.04 ms. The generic, claim-ineligible score delta was directionally positive
+at +1.97 with interval `[-1.37, 5.73]`, with one treatment-only win, but no
+score or win-rate claim is made. Because the 50 ms gate failed, live policy
+authority remains ineligible.
+
+Production RCA linked the remaining build tail to snapshots with more than
+500 advertised legal actions. The bounded fortify slice still retained every
+attack, capture, and conquer variant as an operation candidate solely to
+derive a boolean immediate-interception guard. An exact retained 577-action
+snapshot with no visible enemy analyzed 298 such candidates even though no
+city-defence requirement or authority was possible. Across v4, 2,689 of 9,741
+treatment preparations had no visible enemy; their build p95 was 92.25 ms.
+
+## Frozen visible-threat and legal-context confirmation v5
+
+`city_defense_immediate_fortify_authority_pilot_v5` is predeclared on 30
+unused paired seeds in the disjoint 7.1M range. Policy scope, lifecycle
+semantics, start state, worker count, and every gate threshold remain
+unchanged. The correction only:
+
+- returns the exact no-authority artifact before legal-action decoding when
+  the fortify-only slice has no player-visible enemy;
+- keeps attack actions as legal context for the immediate-interception guard,
+  but does not canonicalize or assemble them as fortification candidates;
+- derives interception legality directly from the advertised legal-action
+  context;
+- reuses already resolved own-unit ruleset specifications when building
+  defender profiles.
+
+On exact retained production snapshots, end-to-end assignment-artifact p95
+was 0.08 ms for the 577-action/no-enemy state and 4.57 ms for a
+478-action/one-enemy state; the latter retained the exact B1 interception
+fallback. This is replay performance evidence only. V5 must pass the same
+complete mechanism, safety, coverage, fallback, 50 ms preparation, and 1.15
+full-loop conjunction. It remains claim-ineligible regardless of score
+direction.

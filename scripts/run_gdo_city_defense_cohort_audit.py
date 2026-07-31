@@ -776,6 +776,7 @@ def run(cohort_root, profile):
         in (
             "1.1",
             "1.2",
+            "1.3",
         ))
     declared_types = tuple(
         design.get(

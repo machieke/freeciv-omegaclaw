@@ -23,6 +23,14 @@ from ...pressure.resource_claims import (
 
 _ACTION_TYPE_JSON_PATTERN = re.compile(
     r'"action_type"\s*:\s*"([^"]+)"')
+_ATTACK_ACTION_TYPES = frozenset((
+    "unit_attack",
+    "unit_bombard",
+    "unit_capture",
+    "unit_conquer_city",
+    "unit_suicide_attack",
+    "unit_wipe",
+))
 
 
 def _normalized(value):
@@ -1267,7 +1275,8 @@ class CityDefenseAnalyzer:
 
     def _defenders(
             self, snapshot, ruleset_ir,
-            city_counts):
+            city_counts,
+            unit_specs=None):
         cities_by_position = {
             (city.x, city.y): city
             for city in snapshot.cities
@@ -1281,9 +1290,13 @@ class CityDefenseAnalyzer:
             if None in (
                     unit.x, unit.y):
                 continue
-            spec = _unit_spec(
-                ruleset_ir,
-                unit.unit_type)
+            spec = (
+                unit_specs.get(
+                    unit.unit_id)
+                if unit_specs is not None
+                else _unit_spec(
+                    ruleset_ir,
+                    unit.unit_type))
             if (spec is not None
                     and not _defense_capable(
                         spec)):
@@ -1641,6 +1654,38 @@ class CityDefenseAnalyzer:
             })
         input_candidate_count = len(
             candidates)
+        narrow_fortify_only = bool(
+            operation_types is not None
+            and allowed_operation_types
+            == {
+                DefenseOperationType
+                .FORTIFY_EXISTING_DEFENDER,
+                DefenseOperationType
+                .HOLD_SOLE_DEFENDER,
+            })
+        # The bounded live slice reacts only to player-visible city threats.
+        # With no visible enemy there can be no requirement, fortification
+        # operation, protected hold, or winner-changing authority. Avoid
+        # decoding and canonicalizing the otherwise very large legal-action
+        # set in this exact no-authority state.
+        if (
+                narrow_fortify_only
+                and not snapshot
+                .visible_enemy_units):
+            return CityDefenseAnalysis(
+                snapshot_id=str(
+                    snapshot.snapshot_id),
+                threats=(),
+                requirements=(),
+                defenders=(),
+                operations=(),
+                omissions=(),
+                analyzer_identity=(
+                    self.ANALYZER_IDENTITY),
+                input_candidate_count=(
+                    input_candidate_count),
+                analyzed_candidate_count=0,
+                protected_union_added_count=0)
         protected_types = set()
         if (
                 DefenseOperationType
@@ -1654,24 +1699,12 @@ class CityDefenseAnalyzer:
                 in allowed_operation_types):
             protected_types.add(
                 "unit_move")
-        # Legal immediate attacks are also needed by the conservative
-        # fortification readout: when one can intercept a supported threat,
-        # fortification must yield to the unchanged B1 ordering.
         if (
                 DefenseOperationType
-                .FORTIFY_EXISTING_DEFENDER
-                in allowed_operation_types
-                or DefenseOperationType
                 .INTERCEPT_IMMEDIATE_THREAT
                 in allowed_operation_types):
-            protected_types.update({
-                "unit_attack",
-                "unit_bombard",
-                "unit_capture",
-                "unit_conquer_city",
-                "unit_suicide_attack",
-                "unit_wipe",
-            })
+            protected_types.update(
+                _ATTACK_ACTION_TYPES)
         relevant_action_types = set(
             protected_types)
         if (
@@ -1680,6 +1713,19 @@ class CityDefenseAnalyzer:
                 in allowed_operation_types):
             relevant_action_types.add(
                 "city_production")
+        legal_relevant_action_types = set(
+            relevant_action_types)
+        # Legal immediate attacks are context for the conservative
+        # fortification guard: if a supported threat can be intercepted,
+        # fortification yields to exact B1. They are not fortification
+        # operation candidates and must not enter candidate canonicalization
+        # or assembly unless interception operations are explicitly enabled.
+        if (
+                DefenseOperationType
+                .FORTIFY_EXISTING_DEFENDER
+                in allowed_operation_types):
+            legal_relevant_action_types.update(
+                _ATTACK_ACTION_TYPES)
         if operation_types is not None:
             candidates = tuple(
                 candidate
@@ -1720,7 +1766,7 @@ class CityDefenseAnalyzer:
                             match is not None
                             and match.group(1)
                             not in
-                            relevant_action_types):
+                            legal_relevant_action_types):
                         continue
                 try:
                     action = json.loads(
@@ -1739,7 +1785,7 @@ class CityDefenseAnalyzer:
                                     "action_type",
                                     ""))
                             in
-                            relevant_action_types)):
+                            legal_relevant_action_types)):
                     legal.append(action)
             legal = tuple(legal)
         candidate_keys = {
@@ -1816,7 +1862,9 @@ class CityDefenseAnalyzer:
                 snapshot.units)
         defenders = self._defenders(
             snapshot, ruleset_ir,
-            city_counts)
+            city_counts,
+            unit_specs=(
+                provisional_specs))
         by_city = {}
         for threat in threats:
             by_city.setdefault(
@@ -1897,18 +1945,14 @@ class CityDefenseAnalyzer:
                 threat.enemy_unit_id,
                 []).append(threat)
         immediate_interceptions = set()
-        for candidate in candidates:
-            action = candidate.action
+        for action in legal:
             action_type = str(
                 action.get(
                     "action_type", ""))
-            if action_type not in (
-                    "unit_attack",
-                    "unit_bombard",
-                    "unit_capture",
-                    "unit_conquer_city",
-                    "unit_suicide_attack",
-                    "unit_wipe"):
+            if (
+                    action_type
+                    not in
+                    _ATTACK_ACTION_TYPES):
                 continue
             actor_id = action.get(
                 "actor_id")
@@ -2283,13 +2327,7 @@ class CityDefenseAnalyzer:
                     .INTERCEPT_IMMEDIATE_THREAT
                     in allowed_operation_types
                     and action_type
-                    in (
-                        "unit_attack",
-                        "unit_bombard",
-                        "unit_capture",
-                        "unit_conquer_city",
-                        "unit_suicide_attack",
-                        "unit_wipe")
+                    in _ATTACK_ACTION_TYPES
                     and defender is not None):
                 operation_type = (
                     DefenseOperationType

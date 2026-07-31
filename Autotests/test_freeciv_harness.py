@@ -195,6 +195,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "city_defense_immediate_fortify_authority_pilot_v2": 30,
             "city_defense_immediate_fortify_authority_pilot_v3": 30,
             "city_defense_immediate_fortify_authority_pilot_v4": 30,
+            "city_defense_immediate_fortify_authority_pilot_v5": 30,
             "calibrated_scalar_diagnostic_v1": 10,
             "protected_bridge_readout_diagnostic_v1": 10,
             "corrected_probe_readout_diagnostic_v1": 10,
@@ -399,6 +400,52 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "count": 30,
             "minimum": 7000000,
             "maximum": 7099999,
+        }
+    threat_scope_confirmation = paired["cohorts"][
+        "city_defense_immediate_fortify_authority_pilot_v5"]
+    assert threat_scope_confirmation[
+        "city_defense_mechanism_design"] == {
+            "analyzed_action_scope": (
+                "declared_operation_types_plus_immediate_interception_"
+                "legal_context"),
+            "city_loss_metric": (
+                "selected_at_risk_city_identity_disappearance_by_deadline"),
+            "declared_operation_types": [
+                "fortify_existing_defender",
+            ],
+            "fortify_completion_states": [
+                "fortify",
+                "fortifying",
+                "fortified",
+            ],
+            "latency": {
+                "full_loop_p95_ratio_ceiling":
+                    1.15,
+                "preparation_p95_ceiling_ms":
+                    50.0,
+            },
+            "no_visible_threat_fast_path": (
+                "no_authority_without_visible_enemy"),
+            "schema_version": "1.3",
+            "sole_defender_metric": (
+                "authority_unit_move_while_actor_protected_in_same_snapshot"),
+            "typed_winner_change": {
+                "minimum_coverage": 0.90,
+            },
+            "uncovered_threat_turn_metric": (
+                "unique_selected_city_snapshot_observations_minus_unique_"
+                "activations"),
+            "unsupported_fallback":
+                "exact_b1_ordering",
+        }
+    assert threat_scope_confirmation[
+        "seed_derivation"] == {
+            "algorithm": "sha256-counter-v1",
+            "namespace": (
+                "pf-pln-city-defense-immediate-fortify-authority-pilot-v5"),
+            "count": 30,
+            "minimum": 7100000,
+            "maximum": 7199999,
         }
     score_derivation = paired["cohorts"]["confirmatory_score"]["seed_derivation"]
     assert score_derivation == {
@@ -1071,10 +1118,10 @@ def test_config_rejects_unfrozen_city_defense_schema_1_2_scope():
                 path, "w",
                 encoding="utf-8") as stream:
             stream.write(source)
-        with pytest.raises(
-                ValueError,
-                match="exact 1.0, 1.1, or 1.2 schema"):
-            load(path)
+            with pytest.raises(
+                    ValueError,
+                    match="exact 1.0, 1.1, 1.2, or 1.3 schema"):
+                load(path)
 
 
 def test_combat_scenario_override_is_manifested_and_rejects_seed_drift():

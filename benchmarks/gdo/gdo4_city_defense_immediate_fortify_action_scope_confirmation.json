@@ -1,0 +1,1099 @@
+{
+  "arms": {
+    "baseline": {
+      "authority": {
+        "action_types": {},
+        "operation_types": {},
+        "policy_authority_values": {},
+        "row_count": 0
+      },
+      "city_loss": {
+        "count": 45,
+        "observations": [
+          {
+            "city_id": 146,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7003282-00-aa17a468:5:8934:bdd4de6cee71f32d",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7003282-00-aa17a468:6:9963:845dad6f60db6b1a",
+            "turn": 6
+          },
+          {
+            "city_id": 147,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7003282-00-aa17a468:8:10814:71c43884fec1387f",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7003282-00-aa17a468:9:11036:4f00c2cd8beab12f",
+            "turn": 9
+          },
+          {
+            "city_id": 152,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7003282-00-aa17a468:32:13379:4fa27a09ec2efbf3",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7003282-00-aa17a468:33:13528:f879f07a1746a5bf",
+            "turn": 33
+          },
+          {
+            "city_id": 103,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7003282-00-aa17a468:110:21629:b26d4a9785c4086e",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7003282-00-aa17a468:111:21876:047a45b7efacc4f0",
+            "turn": 111
+          },
+          {
+            "city_id": 153,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7003282-00-aa17a468:124:23439:ae584573ec0c2958",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7003282-00-aa17a468:125:23575:525b6dc39b92535c",
+            "turn": 125
+          },
+          {
+            "city_id": 146,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7009359-00-aa17a468:11:11910:db3034f279e6d75f",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7009359-00-aa17a468:12:12202:207b0cbd3cd7030c",
+            "turn": 12
+          },
+          {
+            "city_id": 160,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7009359-00-aa17a468:38:16214:2bfe6d31927b06ec",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7009359-00-aa17a468:39:16365:3013e37e963af74c",
+            "turn": 39
+          },
+          {
+            "city_id": 144,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7009359-00-aa17a468:84:22039:060388c884fea604",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7009359-00-aa17a468:85:22302:b4d39b207ac297df",
+            "turn": 85
+          },
+          {
+            "city_id": 103,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7009359-00-aa17a468:87:22537:228637761bbb5f28",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7009359-00-aa17a468:88:22802:23be5372bdf8494a",
+            "turn": 88
+          },
+          {
+            "city_id": 159,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7015372-00-aa17a468:119:25444:b4627421c2b3390f",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7015372-00-aa17a468:120:25739:3482dc7b80bcad47",
+            "turn": 120
+          },
+          {
+            "city_id": 101,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7015372-00-aa17a468:124:26274:5dcbb7c16fbd647f",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7015372-00-aa17a468:125:26427:4770f82bb1e06962",
+            "turn": 125
+          },
+          {
+            "city_id": 151,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7019977-00-aa17a468:19:14585:51fdf68d678402f7",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7019977-00-aa17a468:20:14768:d43ebb9459f8918c",
+            "turn": 20
+          },
+          {
+            "city_id": 184,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7019977-00-aa17a468:51:18835:b046e4f15762432b",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7019977-00-aa17a468:52:18959:cb7a6781452e9c2a",
+            "turn": 52
+          },
+          {
+            "city_id": 144,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7019977-00-aa17a468:56:19502:11d5961dfc214e8a",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7019977-00-aa17a468:57:19685:6688985e4998c4df",
+            "turn": 57
+          },
+          {
+            "city_id": 145,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7032421-00-aa17a468:157:49797:23b8c54e417e3240",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7032421-00-aa17a468:158:50100:4b37ff77b3b0cf89",
+            "turn": 158
+          },
+          {
+            "city_id": 146,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7035740-00-aa17a468:10:10830:5e993eafb729dea8",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7035740-00-aa17a468:11:11142:7f62f93216cea886",
+            "turn": 11
+          },
+          {
+            "city_id": 144,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7040839-00-aa17a468:5:9424:e97500418be61a68",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7040839-00-aa17a468:6:9732:2d3071a2b832a01a",
+            "turn": 6
+          },
+          {
+            "city_id": 178,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7040839-00-aa17a468:87:21662:3a1ef9738e0991d1",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7040839-00-aa17a468:88:21843:35479d58f4536471",
+            "turn": 88
+          },
+          {
+            "city_id": 101,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7040839-00-aa17a468:125:29258:3d61ae2ecc7cd3f7",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7040839-00-aa17a468:126:29586:ccfe4acdc95bf039",
+            "turn": 126
+          },
+          {
+            "city_id": 101,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7041753-00-aa17a468:151:46563:a80ad9d60947e030",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7041753-00-aa17a468:152:47132:fb9e9315409c8b77",
+            "turn": 152
+          },
+          {
+            "city_id": 146,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7041753-00-aa17a468:153:47533:962a6eec366b58ad",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7041753-00-aa17a468:154:48002:d67902ee51721207",
+            "turn": 154
+          },
+          {
+            "city_id": 143,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7041753-00-aa17a468:154:48010:d67902ee51721207",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7041753-00-aa17a468:155:48667:48d52a20297e9df6",
+            "turn": 155
+          },
+          {
+            "city_id": 101,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7042680-00-aa17a468:3:8197:a37c7450e46cd23c",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7042680-00-aa17a468:4:8657:fa894a3b7ceaaf00",
+            "turn": 4
+          },
+          {
+            "city_id": 143,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7044796-00-aa17a468:4:8024:c870173b18c0e5c3",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7044796-00-aa17a468:5:8536:813d8e97b20e3c3c",
+            "turn": 5
+          },
+          {
+            "city_id": 145,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7044796-00-aa17a468:5:8755:fed23cd6f7a49c37",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7044796-00-aa17a468:6:9015:53622cb4ded7eae9",
+            "turn": 6
+          },
+          {
+            "city_id": 143,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7052861-00-aa17a468:56:23141:0e3b942f82669c98",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7052861-00-aa17a468:57:23455:0e981471d77a1ff8",
+            "turn": 57
+          },
+          {
+            "city_id": 146,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7052861-00-aa17a468:111:29951:c833540bde8a2fd7",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7052861-00-aa17a468:112:30215:aa6d8fa40678489c",
+            "turn": 112
+          },
+          {
+            "city_id": 147,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7055664-00-aa17a468:48:17432:68dd13727ffe1331",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7055664-00-aa17a468:49:17769:dd5c09af9df1c302",
+            "turn": 49
+          },
+          {
+            "city_id": 145,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7055664-00-aa17a468:51:18060:b3a428a433f792cf",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7055664-00-aa17a468:52:18243:e2c818ee66b8e357",
+            "turn": 52
+          },
+          {
+            "city_id": 146,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7060153-00-aa17a468:150:33557:c675c1b02bcec083",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7060153-00-aa17a468:151:33896:8b45f756f5e37563",
+            "turn": 151
+          },
+          {
+            "city_id": 147,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7060465-00-aa17a468:7:8799:7144da0a75188931",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7060465-00-aa17a468:8:9256:63e959c485e4be8e",
+            "turn": 8
+          },
+          {
+            "city_id": 103,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7060465-00-aa17a468:8:9276:5186669fe768ff36",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7060465-00-aa17a468:9:9659:84b61d48012e3b59",
+            "turn": 9
+          },
+          {
+            "city_id": 101,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7062013-00-aa17a468:4:8189:723f138e2f20d1d9",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7062013-00-aa17a468:5:8631:f9434d07f156d416",
+            "turn": 5
+          },
+          {
+            "city_id": 144,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7062715-00-aa17a468:5:8436:406474cb48980a58",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7062715-00-aa17a468:6:8941:46445a7868ca2387",
+            "turn": 6
+          },
+          {
+            "city_id": 194,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7062715-00-aa17a468:129:24524:027f4baadda43af3",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7062715-00-aa17a468:130:24794:c0886efb3e4f0006",
+            "turn": 130
+          },
+          {
+            "city_id": 101,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7062715-00-aa17a468:136:25813:92fcc945c6e4cec7",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7062715-00-aa17a468:137:26000:ba4f2974d0ac8880",
+            "turn": 137
+          },
+          {
+            "city_id": 148,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7064787-00-aa17a468:75:21022:d0397f19cc665de4",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7064787-00-aa17a468:76:21193:a2cfba34c055e50e",
+            "turn": 76
+          },
+          {
+            "city_id": 147,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7071923-00-aa17a468:92:24488:909138e68710f32f",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7071923-00-aa17a468:93:24674:7c78983aec3117d6",
+            "turn": 93
+          },
+          {
+            "city_id": 146,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7073307-00-aa17a468:58:22021:621e8fcdc0b4b7b7",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7073307-00-aa17a468:59:22263:3a0ec8c7bb486ad8",
+            "turn": 59
+          },
+          {
+            "city_id": 147,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7081424-00-aa17a468:112:26726:f984e85080258b58",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7081424-00-aa17a468:113:26890:87f98318d0a3db74",
+            "turn": 113
+          },
+          {
+            "city_id": 225,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7081424-00-aa17a468:136:29668:49dd0cafcf998084",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7081424-00-aa17a468:137:29845:87ad95cffdd50750",
+            "turn": 137
+          },
+          {
+            "city_id": 143,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7081424-00-aa17a468:155:32421:21fc0fb7ce7f5960",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7081424-00-aa17a468:156:32693:c70247b47b8eabfd",
+            "turn": 156
+          },
+          {
+            "city_id": 151,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7090643-00-aa17a468:35:17595:fc605795edfcc6dc",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7090643-00-aa17a468:36:17810:081ade358d826f1b",
+            "turn": 36
+          },
+          {
+            "city_id": 101,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7090643-00-aa17a468:42:18668:2533686d874c02ae",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7090643-00-aa17a468:43:18886:5de0bbb3efd2cb90",
+            "turn": 43
+          },
+          {
+            "city_id": 146,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7093288-00-aa17a468:75:21851:b6893b7234a30509",
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7093288-00-aa17a468:76:22035:2b7d5793672658bf",
+            "turn": 76
+          }
+        ],
+        "scope": "own-city-identity-disappearance-between-authoritative-snapshots"
+      },
+      "event_counts": {
+        "operation_expired": 261,
+        "operation_proposed": 17778,
+        "operation_reserved": 507,
+        "operation_step_selected": 507
+      },
+      "full_loop_latency_ms": {
+        "maximum": 30894.927793182433,
+        "p50": 170.14926113188267,
+        "p95": 8284.39058875665,
+        "sample_count": 4256
+      },
+      "hard_current_reservation_conflicts": [],
+      "lifecycle": {
+        "activated_adverse": 0,
+        "activated_completed": 0,
+        "activated_response_observations": 0,
+        "activated_response_turns": 0,
+        "activated_unique": 0,
+        "activation_rate_per_selection": 0.0,
+        "adverse_terminal_rate_per_selection": 0.9775280898876404,
+        "completion_rate_per_selection": 0.0,
+        "selected_adverse": 261,
+        "selected_completed": 0,
+        "selected_response_observations": 502,
+        "selected_response_turns": 507,
+        "selected_unique": 267,
+        "uncovered_threat_turns": 507,
+        "uncovered_unique_city_snapshot_observations": 502
+      },
+      "preparation_latency_ms": {
+        "maximum": null,
+        "p50": null,
+        "p95": null,
+        "sample_count": 0
+      },
+      "selected_at_risk_city_loss": {
+        "count": 2,
+        "observations": [
+          {
+            "city_id": 143,
+            "deadline_turn": 6,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7044796-00-aa17a468:4:8024:c870173b18c0e5c3",
+            "selected_snapshot_ids": [
+              "m7-ip-x59feb31b17-b-7044796-00-aa17a468:4:7988:6af500f7fd4fd2cd",
+              "m7-ip-x59feb31b17-b-7044796-00-aa17a468:4:8005:9f7fa84c4bc4fd66"
+            ],
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7044796-00-aa17a468:5:8536:813d8e97b20e3c3c",
+            "turn": 5
+          },
+          {
+            "city_id": 144,
+            "deadline_turn": 5,
+            "from_snapshot_id": "m7-ip-x59feb31b17-b-7062715-00-aa17a468:5:8436:406474cb48980a58",
+            "selected_snapshot_ids": [
+              "m7-ip-x59feb31b17-b-7062715-00-aa17a468:4:7638:7c1199ee3ebfcf5d",
+              "m7-ip-x59feb31b17-b-7062715-00-aa17a468:4:7655:14b7b69eaa4ba88e",
+              "m7-ip-x59feb31b17-b-7062715-00-aa17a468:4:7672:6c9240bcfc4c92ac",
+              "m7-ip-x59feb31b17-b-7062715-00-aa17a468:4:7680:b7171a8fed791d73",
+              "m7-ip-x59feb31b17-b-7062715-00-aa17a468:4:7699:40a085f7d653c4cd",
+              "m7-ip-x59feb31b17-b-7062715-00-aa17a468:4:7717:c72d8c89d5611b69",
+              "m7-ip-x59feb31b17-b-7062715-00-aa17a468:4:7734:03eef0a5f40e788d"
+            ],
+            "to_snapshot_id": "m7-ip-x59feb31b17-b-7062715-00-aa17a468:6:8941:46445a7868ca2387",
+            "turn": 6
+          }
+        ],
+        "scope": "selected-at-risk-city-identity-disappearance-by-deadline-plus-one"
+      },
+      "sole_defender_violations": [],
+      "typed_winner_changing_coverage": {
+        "coverage": null,
+        "row_count": 0,
+        "typed_row_count": 0
+      },
+      "unsupported_authority": []
+    },
+    "treatment": {
+      "authority": {
+        "action_types": {
+          "unit_fortify": 33
+        },
+        "operation_types": {
+          "fortify_existing_defender": 33
+        },
+        "policy_authority_values": {
+          "True": 33
+        },
+        "row_count": 33
+      },
+      "city_loss": {
+        "count": 40,
+        "observations": [
+          {
+            "city_id": 146,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7003282-00-6a218923:5:9074:2d5b77bd2c8e12f5",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7003282-00-6a218923:6:10103:c8727973102e672c",
+            "turn": 6
+          },
+          {
+            "city_id": 147,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7003282-00-6a218923:9:11138:dff7a222cada3a7d",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7003282-00-6a218923:10:11351:f82d6b890ea50926",
+            "turn": 10
+          },
+          {
+            "city_id": 154,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7003282-00-6a218923:47:16381:f31ea89d68642337",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7003282-00-6a218923:48:16625:bb5bc52a1ac71ded",
+            "turn": 48
+          },
+          {
+            "city_id": 103,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7003282-00-6a218923:48:16625:bb5bc52a1ac71ded",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7003282-00-6a218923:49:16861:48bf0662bb1da78c",
+            "turn": 49
+          },
+          {
+            "city_id": 146,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7009359-00-6a218923:9:11023:90261bda8b0758d1",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7009359-00-6a218923:10:11438:ce4c0669b14a2b4d",
+            "turn": 10
+          },
+          {
+            "city_id": 144,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7009359-00-6a218923:75:26130:a723a29da8a416ca",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7009359-00-6a218923:76:26528:c650cff9266bef0a",
+            "turn": 76
+          },
+          {
+            "city_id": 159,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7009359-00-6a218923:134:41162:cb25a1fc677e9f7e",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7009359-00-6a218923:135:41568:99511833b7002120",
+            "turn": 135
+          },
+          {
+            "city_id": 159,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7015372-00-6a218923:119:25372:71717d87d53763c6",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7015372-00-6a218923:120:25667:9ba8fa2d8242fbf8",
+            "turn": 120
+          },
+          {
+            "city_id": 101,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7015372-00-6a218923:124:26202:920265d495846d02",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7015372-00-6a218923:125:26355:9806d53eb29d6972",
+            "turn": 125
+          },
+          {
+            "city_id": 146,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7018866-00-6a218923:136:42787:311569690d7e27d5",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7018866-00-6a218923:137:42979:795063049dea1a96",
+            "turn": 137
+          },
+          {
+            "city_id": 143,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7018866-00-6a218923:144:44010:282690ed8483d675",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7018866-00-6a218923:145:44218:164bceb67873fe44",
+            "turn": 145
+          },
+          {
+            "city_id": 150,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7019977-00-6a218923:16:13936:391e65cb1ea1ebd4",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7019977-00-6a218923:17:14146:201c8b3252c703aa",
+            "turn": 17
+          },
+          {
+            "city_id": 144,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7019977-00-6a218923:37:17635:5d8297b02349797d",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7019977-00-6a218923:38:17811:fc449c29235746f9",
+            "turn": 38
+          },
+          {
+            "city_id": 146,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7032421-00-6a218923:140:43026:e3550d2c6e83d443",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7032421-00-6a218923:141:43374:9579d92da3da57e7",
+            "turn": 141
+          },
+          {
+            "city_id": 146,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7035740-00-6a218923:10:10616:e03a38e6c4d979d1",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7035740-00-6a218923:11:10928:df9eb1df18dc16c2",
+            "turn": 11
+          },
+          {
+            "city_id": 144,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7040839-00-6a218923:5:9301:289b42b096ea86dd",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7040839-00-6a218923:6:9612:e122b681a7c807e3",
+            "turn": 6
+          },
+          {
+            "city_id": 187,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7040839-00-6a218923:62:16895:8a319b171ea67ae1",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7040839-00-6a218923:63:17021:50ef52593c5b9280",
+            "turn": 63
+          },
+          {
+            "city_id": 101,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7041753-00-6a218923:148:42057:038385ceb44c0d6b",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7041753-00-6a218923:149:42388:8b74b8413ba22882",
+            "turn": 149
+          },
+          {
+            "city_id": 146,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7041753-00-6a218923:150:42559:4f0c84c5832145da",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7041753-00-6a218923:151:42768:53dcd86d1ce2828b",
+            "turn": 151
+          },
+          {
+            "city_id": 143,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7041753-00-6a218923:151:42777:c2278ece0861e0fe",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7041753-00-6a218923:152:42991:ff0e32cd641f40ee",
+            "turn": 152
+          },
+          {
+            "city_id": 101,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7042680-00-6a218923:3:8193:5ea7fa251df10669",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7042680-00-6a218923:4:8653:a081809c0cea3d36",
+            "turn": 4
+          },
+          {
+            "city_id": 143,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7044796-00-6a218923:4:8018:10d790b2c6d896f3",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7044796-00-6a218923:5:8530:6ad98d79115ff330",
+            "turn": 5
+          },
+          {
+            "city_id": 145,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7044796-00-6a218923:5:8744:df582c8088e01732",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7044796-00-6a218923:6:9004:cec264d3cd48bd76",
+            "turn": 6
+          },
+          {
+            "city_id": 143,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7052861-00-6a218923:56:23203:61cb5867c43ba009",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7052861-00-6a218923:57:23517:718115ed0501bb48",
+            "turn": 57
+          },
+          {
+            "city_id": 146,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7052861-00-6a218923:111:30017:dc7c8353b1cdbd80",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7052861-00-6a218923:112:30281:f4c01d74cb40ae87",
+            "turn": 112
+          },
+          {
+            "city_id": 147,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7055664-00-6a218923:48:17383:80e0eaabde31eadb",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7055664-00-6a218923:49:17720:08bbfca1cb67dc25",
+            "turn": 49
+          },
+          {
+            "city_id": 145,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7055664-00-6a218923:51:18011:ca7cd4396ab0c508",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7055664-00-6a218923:52:18194:53ee0d0ec54dc3d7",
+            "turn": 52
+          },
+          {
+            "city_id": 147,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7060465-00-6a218923:7:8801:bfb3085a7170e18a",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7060465-00-6a218923:8:9258:ef40068d825d38b6",
+            "turn": 8
+          },
+          {
+            "city_id": 103,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7060465-00-6a218923:8:9278:3635e7c61013087a",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7060465-00-6a218923:9:9661:4684fd7fa18eddbe",
+            "turn": 9
+          },
+          {
+            "city_id": 101,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7062013-00-6a218923:4:8193:a9d12a00990ece54",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7062013-00-6a218923:5:8639:cfb8351611d2c3c4",
+            "turn": 5
+          },
+          {
+            "city_id": 144,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7062715-00-6a218923:5:8443:2d99826a4b7125dd",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7062715-00-6a218923:6:8939:354133270cb20a24",
+            "turn": 6
+          },
+          {
+            "city_id": 197,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7062715-00-6a218923:121:23375:cddbe9177968379f",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7062715-00-6a218923:122:23600:57214fd255df93f1",
+            "turn": 122
+          },
+          {
+            "city_id": 101,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7062715-00-6a218923:137:25849:5eecb4194c49ec1a",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7062715-00-6a218923:138:26108:e142c546731b46ef",
+            "turn": 138
+          },
+          {
+            "city_id": 147,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7071923-00-6a218923:54:19731:49009794958b7aea",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7071923-00-6a218923:55:19889:b4855c3621a82f44",
+            "turn": 55
+          },
+          {
+            "city_id": 145,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7071923-00-6a218923:74:22064:d3f71cff1b2bfdc6",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7071923-00-6a218923:75:22250:a61c19b37dc5ba92",
+            "turn": 75
+          },
+          {
+            "city_id": 146,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7073307-00-6a218923:58:21993:b3c3c49065f21184",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7073307-00-6a218923:59:22235:259a3b89abc8ec74",
+            "turn": 59
+          },
+          {
+            "city_id": 151,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7090643-00-6a218923:62:20510:de8a1f8024156b7a",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7090643-00-6a218923:63:20728:da91c0a05fab2ab2",
+            "turn": 63
+          },
+          {
+            "city_id": 101,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7090643-00-6a218923:69:21659:3b393a928854021b",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7090643-00-6a218923:70:21893:fce0b20d7fc23fab",
+            "turn": 70
+          },
+          {
+            "city_id": 103,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7091520-00-6a218923:135:26567:83935981db703bd9",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7091520-00-6a218923:136:26838:d591d15b4ed3bfae",
+            "turn": 136
+          },
+          {
+            "city_id": 145,
+            "from_snapshot_id": "m7-ip-x59feb31b17-t-7093288-00-6a218923:78:22471:59a8558d875dde22",
+            "to_snapshot_id": "m7-ip-x59feb31b17-t-7093288-00-6a218923:79:22732:f4fd3a04446ce36f",
+            "turn": 79
+          }
+        ],
+        "scope": "own-city-identity-disappearance-between-authoritative-snapshots"
+      },
+      "event_counts": {
+        "operation_abandoned": 13,
+        "operation_activated": 33,
+        "operation_completed": 33,
+        "operation_proposed": 18846,
+        "operation_reserved": 46,
+        "operation_step_committed": 33,
+        "operation_step_revalidated": 33,
+        "operation_step_selected": 79
+      },
+      "full_loop_latency_ms": {
+        "maximum": 24133.48200172186,
+        "p50": 257.1509936824441,
+        "p95": 8661.805234849453,
+        "sample_count": 4326
+      },
+      "hard_current_reservation_conflicts": [],
+      "lifecycle": {
+        "activated_adverse": 0,
+        "activated_completed": 33,
+        "activated_response_observations": 33,
+        "activated_response_turns": 33,
+        "activated_unique": 33,
+        "activation_rate_per_selection": 0.717391304347826,
+        "adverse_terminal_rate_per_selection": 0.2826086956521739,
+        "completion_rate_per_selection": 0.717391304347826,
+        "selected_adverse": 13,
+        "selected_completed": 33,
+        "selected_response_observations": 46,
+        "selected_response_turns": 79,
+        "selected_unique": 46,
+        "uncovered_threat_turns": 46,
+        "uncovered_unique_city_snapshot_observations": 13
+      },
+      "preparation_latency_ms": {
+        "maximum": 367.7966841496527,
+        "p50": 22.231254260987043,
+        "p95": 120.9024740383029,
+        "sample_count": 9741
+      },
+      "selected_at_risk_city_loss": {
+        "count": 0,
+        "observations": [],
+        "scope": "selected-at-risk-city-identity-disappearance-by-deadline-plus-one"
+      },
+      "sole_defender_violations": [],
+      "typed_winner_changing_coverage": {
+        "coverage": 1.0,
+        "row_count": 6,
+        "typed_row_count": 6
+      },
+      "unsupported_authority": []
+    }
+  },
+  "authority": {
+    "claim_status": "bounded-mechanism-pilot",
+    "policy_authority_eligible": false,
+    "score_claim_eligible": false
+  },
+  "cohort": {
+    "aggregate_path": "impact-aggregate.json",
+    "aggregate_sha256": "05e8fed4c6bde4c78e637c9f7f7de2cdc5da90832396aaa1d22e1715f6bb6de5",
+    "complete_pairs": 30,
+    "configuration_hash": "c2bcc305610168881d2c8647650a17ce1601c59dcbab67b9af3c5c2f63a52b52",
+    "id": "city_defense_immediate_fortify_authority_pilot_v4",
+    "primary_score_delta": {
+      "estimate": 1.9666666666666666,
+      "lower": -1.3666666666666667,
+      "method": "paired_bootstrap_delta",
+      "n": 30,
+      "paired_seeds": [
+        7003282,
+        7004484,
+        7009359,
+        7015372,
+        7018866,
+        7019977,
+        7029569,
+        7032421,
+        7035238,
+        7035740,
+        7040839,
+        7041753,
+        7042680,
+        7044796,
+        7052861,
+        7055664,
+        7060153,
+        7060465,
+        7062013,
+        7062715,
+        7064787,
+        7071923,
+        7073307,
+        7073910,
+        7076328,
+        7081424,
+        7090643,
+        7091520,
+        7092109,
+        7093288
+      ],
+      "upper": 5.733333333333333
+    },
+    "purpose": "pilot",
+    "source_freeze": {
+      "commits": [
+        "b63e9a25474c9b6a6eea52638c61d282c96f10cd"
+      ],
+      "dirty_games": [],
+      "implementation_sha256s": [
+        "9ded4f533e32d3e0e3b997df205effdb5b7a3c8ce0b4a727f9c9a67bc3c15153"
+      ],
+      "passed": true,
+      "required": true,
+      "run_source_stable": true,
+      "unavailable_games": []
+    }
+  },
+  "deltas": {
+    "city_loss_count": -2,
+    "completion_rate_per_selection": 0.717391304347826,
+    "full_loop_p95_ratio": 1.045557321573541,
+    "raw_city_loss_count": -5,
+    "uncovered_threat_turns": -489
+  },
+  "gates": {
+    "city_loss_not_increased": true,
+    "hard_current_reservation_conflicts_zero": true,
+    "legality_violations_zero": true,
+    "lower_uncovered_threat_turns_than_b1": true,
+    "planning_latency_within_predeclared_bounds": false,
+    "policy_authority_limited_to_declared_operation_types": true,
+    "positive_operation_completion_delta": true,
+    "sole_defender_violations_zero": true,
+    "source_freeze_passed": true,
+    "trace_validation_passed": true,
+    "typed_winner_changing_coverage_at_least_predeclared_minimum": true,
+    "unsupported_states_have_zero_policy_authority": true
+  },
+  "pilot_gate_passed": false,
+  "predeclared_mechanism_design": {
+    "design": {
+      "analyzed_action_scope": "declared_operation_types_plus_immediate_interception_guard",
+      "city_loss_metric": "selected_at_risk_city_identity_disappearance_by_deadline",
+      "declared_operation_types": [
+        "fortify_existing_defender"
+      ],
+      "fortify_completion_states": [
+        "fortify",
+        "fortifying",
+        "fortified"
+      ],
+      "latency": {
+        "full_loop_p95_ratio_ceiling": 1.15,
+        "preparation_p95_ceiling_ms": 50.0
+      },
+      "schema_version": "1.2",
+      "sole_defender_metric": "authority_unit_move_while_actor_protected_in_same_snapshot",
+      "typed_winner_change": {
+        "minimum_coverage": 0.9
+      },
+      "uncovered_threat_turn_metric": "unique_selected_city_snapshot_observations_minus_unique_activations",
+      "unsupported_fallback": "exact_b1_ordering"
+    },
+    "present": true
+  },
+  "report_hash": "d75dfb9174be76e2f4dd0ff33dc348cc49e185ec7880d1bca6b26fbcd1769443",
+  "report_schema_version": "1.1",
+  "trace_sources": [
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7003282-00/events.jsonl",
+      "sha256": "a03c5839b1f981da7d277208e327f4feefb85f7d81849c38f36a77b51c31f548"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7004484-00/events.jsonl",
+      "sha256": "4783cabe797e773ad6c0181731fb8daf592cce66c199aa89de0906d997e16329"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7009359-00/events.jsonl",
+      "sha256": "a397a98102730f4672b8e13fd3466e51c0e1076f7e25e225e9919b130c437409"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7015372-00/events.jsonl",
+      "sha256": "8ab39bcee32a216bd0b7c77fdf3e86da8b7afedaf51a4974d30820a6277910d3"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7018866-00/events.jsonl",
+      "sha256": "4ac498f2982bac37efc19fb3ce5ffc231a6324b638ae2604093cf4a01952e273"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7019977-00/events.jsonl",
+      "sha256": "e669545221b560574edfb6d694737f0152f27991fd64d974552f76cd6ac63b6e"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7029569-00/events.jsonl",
+      "sha256": "cb4393a9be3312f35e09686e36233de185056a34da5f9408e5780fe333ad8300"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7032421-00/events.jsonl",
+      "sha256": "5c65f3b32ebcafb90bcfa7fdf68993e2f5f9521673f13cca22927e5f040161fb"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7035238-00/events.jsonl",
+      "sha256": "ad96ff9abbeeb8ca332ee3b1fafecd96348bdf7396c690392f8bc282d641358a"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7035740-00/events.jsonl",
+      "sha256": "f6d478f76c89bde6b32868b2a5e874196ee26d338899cd521080ba5c447dbf92"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7040839-00/events.jsonl",
+      "sha256": "596028aa1dfb12ad02bb9e7e0efbc9896f2aa8bb095a0a6a66c595aa62b2b447"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7041753-00/events.jsonl",
+      "sha256": "c8d006b1adc13587d907008abc3de147de58977595566f7fadce9dae0ed93e22"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7042680-00/events.jsonl",
+      "sha256": "215f702dc99134bacae966d2fc1ea9bbea2f70c97fece353fee775de7fe70f3d"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7044796-00/events.jsonl",
+      "sha256": "784e0b3b49a1919b4c1bb5e48f80a5f5edb5d26519ed13a20eb6c8406497db1e"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7052861-00/events.jsonl",
+      "sha256": "dad55ea1dd50af6f7ef783ebe33ca1b215cb33e4d69270d4a85173cee5d81c3d"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7055664-00/events.jsonl",
+      "sha256": "24d9aa8e767ffcd3dcacf938d7836d3847a9aa7738220a9ce9da2d5e38f1dbb4"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7060153-00/events.jsonl",
+      "sha256": "96d67aaecfa8c0ffca5786f620d0a13b5ea0680da13dc08267419da18f3f923c"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7060465-00/events.jsonl",
+      "sha256": "6373269582d40845ba4f0237eedce8c54f3bd6b9e9580accf3a44ebb8032f1fa"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7062013-00/events.jsonl",
+      "sha256": "5139dc728d79c44b9e769d4d176d253e4b886ff4a3e43e194d8d088f8f539dac"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7062715-00/events.jsonl",
+      "sha256": "dd0a7be2848db15a4ce776346cccffca9dbf74c18f9bb5a43f2c00d07d0338d4"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7064787-00/events.jsonl",
+      "sha256": "811288c48c3d3132a4b34bf9ff302b4f3aa82a8cdeda7de0fadb59d44beaf7ec"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7071923-00/events.jsonl",
+      "sha256": "00b1c1bb2cec9d55387f1fd954ed3fd51b687a626685a297b43cd14464d3b34d"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7073307-00/events.jsonl",
+      "sha256": "33510ebbb3df7e735a173f239b01c299c5781e35811b29a8998c545f599bf6b4"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7073910-00/events.jsonl",
+      "sha256": "d1b477de87299fcb5ef71b68290e7f4b2cfcd78178d7b01a6866ab7d8a506bf1"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7076328-00/events.jsonl",
+      "sha256": "6aba284d3a3a9385728585df3c53d98fa9c6e62c8b631d5304890e5ac5cd8728"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7081424-00/events.jsonl",
+      "sha256": "3d103ad1348ae01290706c21d2fa29afafb239b7a2cbe27e74f0ab22a26aaee2"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7090643-00/events.jsonl",
+      "sha256": "fc11ebd86c10910bbd3a8a92db80aeb40ae9a5e639722d8209aec953c5666ae8"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7091520-00/events.jsonl",
+      "sha256": "b88e977e8f810823a71dbd1ded8763b664f548b93dd02c493bd451bb9677358a"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7092109-00/events.jsonl",
+      "sha256": "ada05bd31904323ef37b043c4656c70583257f0b072fa63bd48658faa922bc16"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/baseline/e_full_loop/7093288-00/events.jsonl",
+      "sha256": "4cc6fea4a8fc7bbcb66f899541f53a79e0fa500a546e5a40518f0220840f2694"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7003282-00/events.jsonl",
+      "sha256": "b9a57e35a7dda9126cc295e01a7eaddbb03ccb8c1a9e235b9797ba049914e398"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7004484-00/events.jsonl",
+      "sha256": "e091d54a3e13078b8e4003c6df6570be2725252c9b131c419c6605063ca5d854"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7009359-00/events.jsonl",
+      "sha256": "d32e051ed9a0acc75b26b36488babf79674d6dc2b129dd7dbbe149edab817b8c"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7015372-00/events.jsonl",
+      "sha256": "cd0875aa74bef6bfbc0f94d2eb114e53dba7422c52673ac669005c43cc165253"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7018866-00/events.jsonl",
+      "sha256": "33db3051c8631a9903cdf397bcdefa8209f2a045d37a541a021b2fbe318b7520"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7019977-00/events.jsonl",
+      "sha256": "fa671d1f73900da67a27aee57c2859b35663e980baf7493e0351ae1c6ceaa11c"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7029569-00/events.jsonl",
+      "sha256": "f395245b8ca1c6c43ddb8472793701e1daa66eb45853d1c4cf628818dfde783c"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7032421-00/events.jsonl",
+      "sha256": "51fc6ec517ad89139f90456f00a2d5f4a32d70bfabc5ca5182ab72ba6314bcc5"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7035238-00/events.jsonl",
+      "sha256": "75aa72d525180cf2d5377aa898ebce41d4d949404552059f74e9f7effca2ab59"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7035740-00/events.jsonl",
+      "sha256": "08070ca01c98c7b488171a6dbd79fd3e1366e27067adb78dee1292c49420a095"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7040839-00/events.jsonl",
+      "sha256": "b325962a39d6b59a6d1faff940c0ffade30746172c90fb94b7069b5db81f78ea"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7041753-00/events.jsonl",
+      "sha256": "021be6dbbdaafe99ca91c0a8a9927a4a53f1a50179d1b6265d23b84c208eb344"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7042680-00/events.jsonl",
+      "sha256": "94641c4fb1778731eb41031b379398378233ddee8614a0999436a1ac70862977"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7044796-00/events.jsonl",
+      "sha256": "74b5da0e6767857eea584e1827c2272f86889e190c87241b34e78db1ca8b03f8"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7052861-00/events.jsonl",
+      "sha256": "573bbb76300948ae83987c963c005868989300630fd3ae8c26964c7fe089b7fb"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7055664-00/events.jsonl",
+      "sha256": "8903b44ce9fdcbc7844d56d3d4a7f549ec26048af75d6b1734bc9ef0364cc85b"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7060153-00/events.jsonl",
+      "sha256": "590c2ab5674ac3ee6be4ab0bbc2646dc65e849504cdc4b8726187079f96cfe28"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7060465-00/events.jsonl",
+      "sha256": "143b66201cadee455893058c57e2ab3886f2f053499deb77c313386c1644d9cd"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7062013-00/events.jsonl",
+      "sha256": "da3c1549032886c90a0f761cc7812e8f0b1ef31dabff71f4912beb574a388a54"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7062715-00/events.jsonl",
+      "sha256": "d8e5b23755c0066b674aca90c31b5385e0d40be096ce13036daca65ffd230946"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7064787-00/events.jsonl",
+      "sha256": "3da462f77e23513e766628dfd990e5869abc2c40500b9e93c6d3678ff8e6fa56"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7071923-00/events.jsonl",
+      "sha256": "b2dce211bb7db65ab3a0df47f8d56e297d4209a39123c7360bae01d046eee642"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7073307-00/events.jsonl",
+      "sha256": "8634f6dd9cd65d4dcb5fcafe314a5405964a2c67b01a616a7c075732e147bd5c"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7073910-00/events.jsonl",
+      "sha256": "aae5a9c0e967e62be896c6f4b9fc883ea3027a530cd92eb95ff94df789cbcd5b"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7076328-00/events.jsonl",
+      "sha256": "f78810a0d74866b30334d433c713c74d79751a89813888daf99b28632c6133cd"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7081424-00/events.jsonl",
+      "sha256": "63f20ba994601e282038cbe82c0ecf6b4a17ebf7dc672cf4391acc5ae86f9063"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7090643-00/events.jsonl",
+      "sha256": "a7401d54bf2205d4550f27b4be3bbc5c739e45b39f4f7062daf9893d42ca7b4c"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7091520-00/events.jsonl",
+      "sha256": "db0ebc5d2976bf21406971c8769edac647672dc4383528311853783e67ac3996"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7092109-00/events.jsonl",
+      "sha256": "fe2e674486a4b10b34a7f3b74afe6d5bc1df28cd9f0a05d6edc34087d8620931"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/city_defense_immediate_fortify_authority_pilot_v4/treatment/e_full_loop/7093288-00/events.jsonl",
+      "sha256": "8a2500cedad953bc91abc9e57f2cf64f903880dd2b30e947b705d75e670392d1"
+    }
+  ],
+  "trace_validation": {
+    "error_count": 0,
+    "event_count": 1646250,
+    "valid": true,
+    "warning_count": 0
+  }
+}

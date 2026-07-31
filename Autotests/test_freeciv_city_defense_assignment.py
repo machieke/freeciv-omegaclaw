@@ -1576,6 +1576,14 @@ def test_immediate_interception_keeps_fortification_out_of_authority():
         == "fortify_existing_defender"
     ]
     assert fortify_operations
+    assert artifact[
+        "analysis"][
+            "input_candidate_count"
+    ] == 2
+    assert artifact[
+        "analysis"][
+            "analyzed_candidate_count"
+    ] == 1
     assert {
         row["support_reason"]
         for row in fortify_operations
@@ -1586,6 +1594,65 @@ def test_immediate_interception_keeps_fortification_out_of_authority():
         "decision_safe_candidate_readout"]
     assert artifact[
         "selected_action_key"] is None
+
+
+def test_narrow_city_defense_analysis_short_circuits_without_visible_threat(
+        monkeypatch):
+    fortify, snapshot, ruleset = (
+        _immediate_fortify_scenario())
+    attacks = tuple(
+        _candidate({
+            "action_type":
+                "unit_attack",
+            "actor_id": 1,
+            "target": {
+                "target_unit_id":
+                    900 + index,
+                "x": index % 12,
+                "y": (
+                    index // 12)
+                    % 12,
+            },
+        }, "tactical_attack")
+        for index in range(500))
+    candidates = fortify + attacks
+    snapshot.visible_enemy_units = ()
+    snapshot.legal_action_json = tuple(
+        row.action_key
+        for row in candidates)
+    decoded = []
+    original_loads = (
+        defense_module.json.loads)
+
+    def observed_loads(value):
+        decoded.append(value)
+        return original_loads(value)
+
+    monkeypatch.setattr(
+        defense_module.json,
+        "loads",
+        observed_loads)
+
+    analysis = CityDefenseAnalyzer(
+        threat_radius=6).analyze(
+            snapshot,
+            ruleset,
+            candidates,
+            operation_types=(
+                "fortify_existing_defender",
+                "hold_sole_defender",
+            ))
+
+    assert (
+        analysis.input_candidate_count
+        == len(candidates))
+    assert (
+        analysis.analyzed_candidate_count
+        == 0)
+    assert analysis.threats == ()
+    assert analysis.requirements == ()
+    assert analysis.operations == ()
+    assert decoded == []
 
 
 def test_narrow_city_defense_analysis_skips_irrelevant_legal_actions(
