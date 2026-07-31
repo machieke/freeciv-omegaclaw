@@ -1743,6 +1743,34 @@ def test_global_state_polls_at_50ms_until_observer_reaches_required_turn(monkeyp
     assert sleeps == [pytest.approx(0.05)]
 
 
+def test_final_global_state_retries_one_bounded_observer_timeout(monkeypatch):
+    calls = []
+    final_state = {"turn": 160, "players": {}}
+
+    async def global_state(_ws, **options):
+        calls.append(options)
+        if len(calls) == 1:
+            raise TimeoutError("observer global state was not populated")
+        return final_state
+
+    monkeypatch.setattr(engine_live, "_global_state", global_state)
+
+    returned = asyncio.run(engine_live._final_global_state(
+        object(), player_id=0, minimum_turn=160))
+
+    assert returned is final_state
+    assert calls == [
+        {"timeout": 15.0, "player_id": 0, "minimum_turn": 160},
+        {"timeout": 15.0, "player_id": 0, "minimum_turn": 160},
+    ]
+
+
+def test_final_global_state_rejects_unbounded_attempt_contract():
+    with pytest.raises(ValueError, match="positive integer"):
+        asyncio.run(engine_live._final_global_state(
+            object(), player_id=0, minimum_turn=160, attempts=0))
+
+
 def test_scheduler_impact_path_does_not_need_per_turn_observer_state():
     assert engine_live._needs_turn_global_state(None)
     assert not engine_live._needs_turn_global_state(object())

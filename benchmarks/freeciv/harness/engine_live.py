@@ -850,6 +850,31 @@ async def _global_state(ws, timeout=15.0, player_id=None, minimum_turn=None,
     raise TimeoutError("observer global state was not populated")
 
 
+async def _final_global_state(ws, player_id, minimum_turn, timeout=15.0,
+                              attempts=2):
+    """Read post-horizon scores without replaying a completed engine arm.
+
+    Combat-rich scenarios produce substantially larger observer payloads than
+    the ordinary release cohorts.  A single short deadline used to discard an
+    otherwise complete 160-turn arm while its final payload was still being
+    assembled.  Keep each attempt bounded, but allow one fresh query after a
+    timeout so a late response or a temporarily busy observer cannot invalidate
+    the gameplay evidence.
+    """
+    if (isinstance(attempts, bool) or not isinstance(attempts, int)
+            or attempts < 1):
+        raise ValueError("attempts must be a positive integer")
+    last_error = None
+    for _ in range(attempts):
+        try:
+            return await _global_state(
+                ws, timeout=timeout, player_id=player_id,
+                minimum_turn=minimum_turn)
+        except TimeoutError as error:
+            last_error = error
+    raise last_error
+
+
 def _needs_turn_global_state(impact_planner):
     # Plain conditions navigate with the observer-backed scout driver.
     # Scheduler conditions route through packet-visible GroundedImpactPlanner
@@ -2726,8 +2751,8 @@ async def _play(run_dir, manifest, context):
         # assuming a fixed sleep is long enough for endgame packets to settle.
         final_global_started = time.perf_counter()
         observer_global_state_queries += 1
-        final_global = await _global_state(
-            ws, timeout=5, player_id=player_id,
+        final_global = await _final_global_state(
+            ws, player_id=player_id,
             minimum_turn=(
                 final_turn
                 if terminal_game_over or terminal_player_elimination
