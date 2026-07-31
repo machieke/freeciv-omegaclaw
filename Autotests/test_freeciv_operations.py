@@ -381,3 +381,4 @@ def test_city_defense_assembler_retains_roles_steps_and_completion_semantics():
         "defense:city:3")
     assert step.completion_predicate_id == (
         "city-defense:defender-at-city-before-deadline")
+    assert step.maximum_attempts == 3

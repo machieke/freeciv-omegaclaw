@@ -1517,6 +1517,23 @@ def test_unused_city_defense_authority_is_abandoned_immediately():
                 writer,
                 snapshot,
                 city_defense_enabled=True))
+        snapshot.snapshot_id = (
+            "defence-snapshot-after-abandonment")
+        (
+            _retry_artifact,
+            retry_events,
+            retry_readout,
+        ) = (
+            emitter
+            .prepare_city_defense_authority(
+                writer,
+                snapshot,
+                ruleset,
+                candidates,
+                threat_radius=6,
+                node_budget=5000,
+                ruleset_digest=(
+                    "ruleset-proof")))
         report = validate_file(
             path)
 
@@ -1530,6 +1547,17 @@ def test_unused_city_defense_authority_is_abandoned_immediately():
         "reason_code"] == (
             "current-planner-produced-no-decision")
     assert remaining is None
+    assert retry_readout is not None
+    assert (
+        retry_readout.operation_id
+        != readout.operation_id)
+    assert any(
+        row["type"]
+        == "operation_reserved"
+        and row["payload"][
+            "operation_id"]
+        == retry_readout.operation_id
+        for row in retry_events)
     assert report.valid, [
         row.to_dict()
         for row in report.errors]

@@ -1269,13 +1269,59 @@ class ControlEventEmitter:
                         lifecycle_operation_id,
                         None)
                     continue
+            elif (
+                    store.get(
+                        lifecycle_operation_id)
+                    is not None
+                    and store.get(
+                        lifecycle_operation_id)
+                    .progress.state
+                    in (
+                        OperationState.COMPLETED,
+                        OperationState.FAILED,
+                        OperationState.ABANDONED,
+                        OperationState.EXPIRED)
+            ):
+                # Domain graph edges intentionally have stable content IDs.
+                # A later exact snapshot may validly select the same edge
+                # after an earlier lifecycle was terminally abandoned or
+                # completed. Give that new reservation its own creation
+                # epoch while retaining the graph edge in the proposal event.
+                lifecycle_operation_id = (
+                    structural_hash({
+                        "domain_operation_id":
+                            operation_id,
+                        "schema_version":
+                            "city-defense-lifecycle/1.0",
+                        "snapshot_id":
+                            snapshot_id,
+                    }))
+                payload = dict(payload)
+                payload["operation_id"] = (
+                    lifecycle_operation_id)
+                payload["claims"] = [
+                    {
+                        **claim,
+                        "source_operation_id":
+                            lifecycle_operation_id,
+                    }
+                    if isinstance(claim, dict)
+                    else claim
+                    for claim in payload.get(
+                        "claims", ())
+                ]
             try:
                 record = store.get(
                     lifecycle_operation_id)
                 if record is None:
+                    lifecycle_operation = dict(
+                        operation)
+                    lifecycle_operation[
+                        "operation_id"] = (
+                            lifecycle_operation_id)
                     spec = (
                         assemble_city_defense_operation(
-                            operation,
+                            lifecycle_operation,
                             int(
                                 artifact.get(
                                     "source_turn",

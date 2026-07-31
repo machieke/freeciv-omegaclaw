@@ -137,7 +137,8 @@ def assemble_city_defense_operation(
         maximum_attempts = max(
             1,
             int(deadline_turn)
-            - int(created_turn))
+            - int(created_turn)
+            + 1)
     return OperationSpec(
         schema_version=(
             OPERATION_SCHEMA_VERSION),
