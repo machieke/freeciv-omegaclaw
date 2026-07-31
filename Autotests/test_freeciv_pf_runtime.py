@@ -490,6 +490,45 @@ def test_bounded_combat_operation_authority_is_default_off_and_fail_closed():
         })
 
 
+def test_bounded_city_defense_authority_requires_the_grounded_stack():
+    with pytest.raises(
+            PFRuntimeConfigurationError,
+            match="city-defence operation authority requires"):
+        validate_controller_policy({
+            "pressure_enabled": True,
+            "pressure_semantics_version": "v2",
+            "pressure_controller_mode": "scalar_v2",
+            "pressure_packet_scheduler_enabled": True,
+            "pressure_resource_scheduler_enabled": True,
+            "pressure_domain_estimates_enabled": True,
+            "pressure_commit_revalidation_enabled": True,
+            "pressure_operation_lifecycle_enabled": True,
+            "pressure_city_defense_operations_enabled": True,
+            "pressure_native_movement_routes_enabled": True,
+            "pressure_city_defense_operation_authority_enabled": True,
+        })
+
+    enabled = build_controller_activation({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+        "pressure_packet_scheduler_enabled": True,
+        "pressure_resource_scheduler_enabled": True,
+        "pressure_requirement_sets_enabled": True,
+        "pressure_domain_estimates_enabled": True,
+        "pressure_commit_revalidation_enabled": True,
+        "pressure_operation_lifecycle_enabled": True,
+        "pressure_city_defense_operations_enabled": True,
+        "pressure_native_movement_routes_enabled": True,
+        "pressure_city_defense_operation_authority_enabled": True,
+    })
+
+    assert enabled["layers"][
+        "bounded_operation_authority"]["enabled"]
+    assert enabled["controller_policy"][
+        "pressure_city_defense_operation_authority_enabled"]
+
+
 def test_transport_operations_are_default_off_and_grounded_stack_gated():
     default = build_controller_activation({
         "pressure_enabled": True,

@@ -2897,3 +2897,168 @@ class ExactCityDefenseAssignmentSolver:
                 fallback_reason),
             solver_identity=(
                 self.SOLVER_IDENTITY))
+
+
+def build_city_defense_assignment_artifact(
+        snapshot, ruleset_ir, candidates,
+        threat_radius, node_budget,
+        ruleset_digest,
+        baseline_action_key=None):
+    """Build one decision-safe exact-assignment readout for a snapshot.
+
+    This shared boundary keeps the asynchronous GDO-4 shadow path and the
+    default-off synchronous pilot path on byte-identical threat, coverage, and
+    fallback semantics.  The artifact itself never grants policy authority.
+    """
+    analysis = CityDefenseAnalyzer(
+        threat_radius=threat_radius).analyze(
+            snapshot, ruleset_ir,
+            tuple(candidates))
+    assignment = ExactCityDefenseAssignmentSolver(
+        node_budget=node_budget).schedule(
+            analysis)
+    selected_ids = frozenset(
+        assignment.selected_operation_ids)
+    selected_operations = tuple(
+        row for row in analysis.operations
+        if row.operation_id in selected_ids
+        and row.next_action is not None)
+    readout = (
+        sorted(
+            selected_operations,
+            key=lambda row: (
+                -float(row.bid),
+                row.operation_id))[0]
+        if selected_operations
+        else None)
+    supported_threats = sum(
+        row.supported
+        for row in analysis.threats)
+    threat_count = len(
+        analysis.threats)
+    threat_coverage = (
+        1.0
+        if threat_count == 0
+        else float(supported_threats)
+        / threat_count)
+    requirement_count = len(
+        analysis.requirements)
+    supported_requirements = sum(
+        any(
+            operation.supported
+            and operation.next_action
+            is not None
+            and operation.requirement_id
+            == requirement.requirement_id
+            for operation in
+            analysis.operations)
+        for requirement in
+        analysis.requirements)
+    operation_edge_coverage = (
+        1.0
+        if requirement_count == 0
+        else float(supported_requirements)
+        / requirement_count)
+    operation_count = len(
+        analysis.operations)
+    grounded_operation_count = sum(
+        grounded_operation_result(operation)
+        for operation in
+        analysis.operations)
+    grounded_operation_coverage = (
+        1.0
+        if operation_count == 0
+        else float(grounded_operation_count)
+        / operation_count)
+    decision_resolved_requirements = sum(
+        bool(requirement_operations)
+        and all(
+            grounded_operation_result(
+                operation)
+            for operation in
+            requirement_operations)
+        for requirement in
+        analysis.requirements
+        for requirement_operations
+        in (tuple(
+            operation
+            for operation in
+            analysis.operations
+            if operation.requirement_id
+            == requirement.requirement_id),))
+    decision_resolution_coverage = (
+        1.0
+        if requirement_count == 0
+        else float(
+            decision_resolved_requirements)
+        / requirement_count)
+    decision_safe_readout = bool(
+        readout is not None
+        and readout.supported
+        and assignment.status == "exact"
+        and threat_coverage >= 0.90
+        and grounded_operation_coverage >= 0.90
+        and decision_resolution_coverage >= 0.90)
+    payload = {
+        "analysis": analysis.to_dict(),
+        "assignment":
+            assignment.to_dict(),
+        "authority_active": False,
+        "b1_action_key":
+            baseline_action_key,
+        "actionable_requirement_coverage":
+            operation_edge_coverage,
+        "decision_resolved_requirement_coverage":
+            decision_resolution_coverage,
+        "decision_safe_candidate_readout":
+            decision_safe_readout,
+        "fallback_reason": (
+            "no-city-defense-requirement"
+            if not analysis.requirements
+            else
+            "typed-defense-coverage-below-90-percent"
+            if threat_coverage < 0.90
+            else
+            "typed-defense-operation-evaluation-coverage-below-90-percent"
+            if grounded_operation_coverage < 0.90
+            else
+            "typed-defense-decision-resolution-below-90-percent"
+            if decision_resolution_coverage < 0.90
+            else
+            "typed-defense-assignment-not-exact"
+            if assignment.status != "exact"
+            else
+            "no-supported-current-defense-action"
+            if readout is None
+            else
+            "shadow-only-gdo4"),
+        "fallback_to_b1": True,
+        "live_ordering_unchanged": True,
+        "policy_authority": False,
+        "protected_union_added_count":
+            analysis.protected_union_added_count,
+        "schema_version": "1.0",
+        "ruleset_digest":
+            str(ruleset_digest),
+        "typed_grounded_operation_coverage":
+            grounded_operation_coverage,
+        "selected_action_key": (
+            None
+            if (
+                readout is None
+                or not
+                decision_safe_readout)
+            else canonical_json_bytes(
+                readout.next_action)
+            .decode("utf-8")),
+        "shadow_only": True,
+        "source_turn": int(
+            snapshot.turn),
+        "typed_threat_coverage":
+            threat_coverage,
+        "typed_operation_edge_coverage":
+            operation_edge_coverage,
+    }
+    payload["artifact_hash"] = (
+        structural_hash(payload))
+    return payload

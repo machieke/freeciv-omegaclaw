@@ -889,11 +889,14 @@ def validate_controller_policy(impact_policy):
                 and policy[
                     "pressure_native_movement_routes_enabled"]
                 and policy[
+                    "pressure_requirement_sets_enabled"]
+                and policy[
                     "pressure_commit_revalidation_enabled"])
     ):
         raise PFRuntimeConfigurationError(
             "city-defence operation authority requires city-defence "
-            "operations, native movement routes, and commit revalidation")
+            "operations, native movement routes, RequirementSets, and "
+            "commit revalidation")
     if (
             (
                 policy[

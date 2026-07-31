@@ -192,6 +192,7 @@ class ControlEventEmitter:
         self._emitted_domain_request_ids = set()
         self._emitted_resource_batch_ids = set()
         self._emitted_combat_snapshot_ids = set()
+        self._emitted_city_defense_snapshot_ids = set()
         # Capacity events describe changes across decisions.  Index by the
         # stable resource identity rather than snapshot-scoped capacity ID.
         self._last_resource_capacity = {}
@@ -429,6 +430,61 @@ class ControlEventEmitter:
             key=lambda row: (
                 row[0], row[1],
                 row[2]))[0][3]
+
+    def prepare_city_defense_authority(
+            self, writer, snapshot,
+            ruleset_ir, candidates,
+            threat_radius, node_budget,
+            ruleset_digest,
+            caused_by=()):
+        """Prepare one current-snapshot exact city-defence reservation.
+
+        The ordinary GDO-4 resource schedule remains asynchronous shadow work.
+        A bounded live pilot cannot consume that result because it is stale by
+        the time it is polled.  This default-off boundary computes only the
+        city-defence subproblem synchronously, emits the same artifact and
+        lifecycle events, then exposes an exact current legal step through the
+        existing authority readout.
+        """
+        if snapshot is None:
+            return None, (), None
+        snapshot_id = str(
+            getattr(
+                snapshot, "snapshot_id", ""))
+        if not snapshot_id:
+            return None, (), None
+        artifact = None
+        emitted = ()
+        if snapshot_id not in (
+                self
+                ._emitted_city_defense_snapshot_ids):
+            from .domain_models import (
+                build_city_defense_assignment_artifact,
+            )
+            artifact = (
+                build_city_defense_assignment_artifact(
+                    snapshot,
+                    ruleset_ir,
+                    tuple(candidates),
+                    threat_radius,
+                    node_budget,
+                    ruleset_digest))
+            emitted = (
+                self
+                .emit_city_defense_operations(
+                    writer,
+                    int(snapshot.turn),
+                    artifact,
+                    caused_by=(
+                        caused_by)))
+            self._emitted_city_defense_snapshot_ids.add(
+                snapshot_id)
+        readout = (
+            self.operation_authority_readout(
+                writer, snapshot,
+                city_defense_enabled=True,
+                combat_enabled=False))
+        return artifact, emitted, readout
 
     def emit_operation_authority_selection(
             self, writer, turn,
@@ -1033,6 +1089,21 @@ class ControlEventEmitter:
                             artifact.get(
                                 "source_turn",
                                 turn)))
+                elif (
+                    record.progress.state
+                    == OperationState.RESERVED
+                    and record.progress
+                    .last_snapshot_id
+                    != snapshot_id
+                ):
+                    record = (
+                        store.record_observation(
+                            operation_id,
+                            snapshot_id,
+                            int(
+                                artifact.get(
+                                    "source_turn",
+                                    turn))))
                 if record.progress.state != (
                         OperationState
                         .RESERVED):

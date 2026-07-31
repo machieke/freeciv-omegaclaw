@@ -3191,46 +3191,8 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
         }
         if self.city_defense_operations_enabled:
             from ..planning.domain_models import (
-                CityDefenseAnalyzer,
-                ExactCityDefenseAssignmentSolver,
-                grounded_operation_result,
+                build_city_defense_assignment_artifact,
             )
-            defense_analysis = (
-                CityDefenseAnalyzer(
-                    threat_radius=(
-                        survival_threat_radius))
-                .analyze(
-                    snapshot,
-                    self.domain_ruleset_ir,
-                    tuple(
-                        candidate_by_operation
-                        .values())))
-            defense_assignment = (
-                ExactCityDefenseAssignmentSolver(
-                    node_budget=(
-                        self
-                        .resource_scheduler_node_budget))
-                .schedule(
-                    defense_analysis))
-            selected_ids = frozenset(
-                defense_assignment
-                .selected_operation_ids)
-            selected_operations = tuple(
-                row
-                for row in
-                defense_analysis.operations
-                if row.operation_id
-                in selected_ids
-                and row.next_action
-                is not None)
-            readout = (
-                sorted(
-                    selected_operations,
-                    key=lambda row: (
-                        -float(row.bid),
-                        row.operation_id))[0]
-                if selected_operations
-                else None)
             packet_action_key = None
             if packet_ids:
                 packet_candidate = (
@@ -3240,161 +3202,19 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                     packet_action_key = (
                         packet_candidate
                         .action_key)
-            supported_threats = sum(
-                row.supported
-                for row in
-                defense_analysis.threats)
-            threat_count = len(
-                defense_analysis.threats)
-            coverage = (
-                1.0
-                if threat_count == 0
-                else float(
-                    supported_threats)
-                / threat_count)
-            requirement_count = len(
-                defense_analysis
-                .requirements)
-            supported_requirements = sum(
-                any(
-                    operation.supported
-                    and operation.next_action
-                    is not None
-                    and operation
-                    .requirement_id
-                    == requirement
-                    .requirement_id
-                    for operation in
-                    defense_analysis
-                    .operations)
-                for requirement in
-                defense_analysis
-                .requirements)
-            operation_edge_coverage = (
-                1.0
-                if requirement_count == 0
-                else float(
-                    supported_requirements)
-                / requirement_count)
-            operation_count = len(
-                defense_analysis.operations)
-            grounded_operation_count = sum(
-                grounded_operation_result(
-                    operation)
-                for operation in
-                defense_analysis.operations)
-            grounded_operation_coverage = (
-                1.0
-                if operation_count == 0
-                else float(
-                    grounded_operation_count)
-                / operation_count)
-            decision_resolved_requirements = sum(
-                bool(
-                    requirement_operations)
-                and all(
-                    grounded_operation_result(
-                        operation)
-                    for operation in
-                    requirement_operations)
-                for requirement in
-                defense_analysis.requirements
-                for requirement_operations
-                in (tuple(
-                    operation
-                    for operation in
-                    defense_analysis.operations
-                    if operation
-                    .requirement_id
-                    == requirement
-                    .requirement_id),))
-            decision_resolution_coverage = (
-                1.0
-                if requirement_count == 0
-                else float(
-                    decision_resolved_requirements)
-                / requirement_count)
-            decision_safe_readout = bool(
-                readout is not None
-                and readout.supported
-                and defense_assignment.status
-                == "exact"
-                and coverage >= 0.90
-                and grounded_operation_coverage
-                >= 0.90
-                and decision_resolution_coverage
-                >= 0.90)
-            defense_payload = {
-                "analysis":
-                    defense_analysis.to_dict(),
-                "assignment":
-                    defense_assignment.to_dict(),
-                "authority_active": False,
-                "b1_action_key":
-                    packet_action_key,
-                "actionable_requirement_coverage":
-                    operation_edge_coverage,
-                "decision_resolved_requirement_coverage":
-                    decision_resolution_coverage,
-                "decision_safe_candidate_readout":
-                    decision_safe_readout,
-                "fallback_reason": (
-                    "no-city-defense-requirement"
-                    if not defense_analysis
-                    .requirements
-                    else
-                    "typed-defense-coverage-below-90-percent"
-                    if coverage < 0.90
-                    else
-                    "typed-defense-operation-evaluation-coverage-below-90-percent"
-                    if grounded_operation_coverage
-                    < 0.90
-                    else
-                    "typed-defense-decision-resolution-below-90-percent"
-                    if decision_resolution_coverage
-                    < 0.90
-                    else
-                    "typed-defense-assignment-not-exact"
-                    if defense_assignment.status
-                    != "exact"
-                    else
-                    "no-supported-current-defense-action"
-                    if readout is None
-                    else
-                    "shadow-only-gdo4"),
-                "fallback_to_b1": True,
-                "live_ordering_unchanged":
-                    True,
-                "policy_authority": False,
-                "protected_union_added_count":
-                    defense_analysis
-                    .protected_union_added_count,
-                "schema_version": "1.0",
-                "ruleset_digest":
-                    self.ruleset_digest,
-                "typed_grounded_operation_coverage":
-                    grounded_operation_coverage,
-                "selected_action_key": (
-                    None
-                    if readout is None
-                    else canonical_json_bytes(
-                        readout
-                        .next_action)
-                    .decode("utf-8")),
-                "shadow_only": True,
-                "source_turn": int(
-                    snapshot.turn),
-                "typed_threat_coverage":
-                    coverage,
-                "typed_operation_edge_coverage":
-                    operation_edge_coverage,
-            }
-            defense_payload[
-                "artifact_hash"] = (
-                    structural_hash(
-                        defense_payload))
             result["city_defense"] = (
-                defense_payload)
+                build_city_defense_assignment_artifact(
+                    snapshot,
+                    self.domain_ruleset_ir,
+                    tuple(
+                        candidate_by_operation
+                        .values()),
+                    survival_threat_radius,
+                    self
+                    .resource_scheduler_node_budget,
+                    self.ruleset_digest,
+                    baseline_action_key=(
+                        packet_action_key)))
         hash_material = {
             key: value
             for key, value

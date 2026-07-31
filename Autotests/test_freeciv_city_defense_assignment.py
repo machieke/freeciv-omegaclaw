@@ -25,6 +25,7 @@ from freeciv_agent.planning.domain_models import (  # noqa: E402
     CityDefenseRequirement,
     DefenseOperationType,
     ExactCityDefenseAssignmentSolver,
+    build_city_defense_assignment_artifact,
     grounded_operation_result,
     grounded_threat_result,
 )
@@ -1279,6 +1280,109 @@ def test_exact_assignment_matches_brute_force_on_every_small_graph():
             actual.objective_value,
             actual.selected_operation_ids,
         ) == expected
+
+
+def test_city_defense_artifact_exposes_only_an_exact_decision_safe_readout():
+    candidates = _candidates()
+    snapshot, ruleset = _scenario(
+        candidates)
+
+    exact = (
+        build_city_defense_assignment_artifact(
+            snapshot, ruleset,
+            candidates,
+            threat_radius=6,
+            node_budget=5000,
+            ruleset_digest=(
+                "ruleset-proof")))
+    bounded_out = (
+        build_city_defense_assignment_artifact(
+            snapshot, ruleset,
+            candidates,
+            threat_radius=6,
+            node_budget=1,
+            ruleset_digest=(
+                "ruleset-proof")))
+
+    assert exact[
+        "decision_safe_candidate_readout"]
+    assert exact[
+        "selected_action_key"] in (
+            snapshot.legal_action_json)
+    assert exact["assignment"][
+        "status"] == "exact"
+    assert bounded_out["assignment"][
+        "status"] == "greedy_fallback"
+    assert not bounded_out[
+        "decision_safe_candidate_readout"]
+    assert bounded_out[
+        "selected_action_key"] is None
+
+
+def test_current_snapshot_city_defense_authority_is_prepared_once():
+    candidates = _candidates()
+    snapshot, ruleset = _scenario(
+        candidates)
+
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(
+            directory,
+            "events.jsonl")
+        writer = EventWriter(
+            path,
+            "city-defense-authority",
+            durable=False)
+        emitter = ControlEventEmitter()
+        artifact, events, readout = (
+            emitter
+            .prepare_city_defense_authority(
+                writer,
+                snapshot,
+                ruleset,
+                candidates,
+                threat_radius=6,
+                node_budget=5000,
+                ruleset_digest=(
+                    "ruleset-proof")))
+        (
+            repeated_artifact,
+            repeated_events,
+            repeated_readout,
+        ) = (
+            emitter
+            .prepare_city_defense_authority(
+                writer,
+                snapshot,
+                ruleset,
+                candidates,
+                threat_radius=6,
+                node_budget=5000,
+                ruleset_digest=(
+                    "ruleset-proof")))
+        report = validate_file(
+            path)
+
+    assert artifact[
+        "decision_safe_candidate_readout"]
+    assert readout is not None
+    assert readout.authority_kind.value == (
+        "city_defense")
+    assert readout.snapshot_id == (
+        snapshot.snapshot_id)
+    assert readout.legal_actions_digest == (
+        snapshot.legal_actions_digest)
+    assert readout.action_key in (
+        snapshot.legal_action_json)
+    assert any(
+        row["type"]
+        == "operation_reserved"
+        for row in events)
+    assert repeated_artifact is None
+    assert repeated_events == ()
+    assert repeated_readout == readout
+    assert report.valid, [
+        row.to_dict()
+        for row in report.errors]
 
 
 def test_city_defense_shadow_operations_emit_valid_attributable_events():

@@ -1623,9 +1623,15 @@ async def _play(run_dir, manifest, context):
     else:
         ir = catalog = proposal_parser = oracle = scheduler = None
     observability_ir = ir or compile_ruleset(_ruleset_root(), "civ2civ3")
-    combat_ruleset_digest = (
+    operation_ruleset_digest = (
         structural_hash(
             observability_ir.to_dict())
+        if (
+            combat_operations_enabled
+            or city_defense_operation_authority_enabled)
+        else None)
+    combat_ruleset_digest = (
+        operation_ruleset_digest
         if combat_operations_enabled
         else None)
     events_path = manifest["events_path"]
@@ -2303,19 +2309,54 @@ async def _play(run_dir, manifest, context):
                             >= turn_timeout - impact_planner.refresh_timeout_seconds - 0.5):
                         break
                     impact_planning_started = time.perf_counter()
-                    operation_authority = (
-                        control_event_emitter
-                        .operation_authority_readout(
-                            writer,
-                            snapshot,
-                            city_defense_enabled=(
-                                city_defense_operation_authority_enabled),
-                            combat_enabled=(
-                                combat_operation_authority_enabled))
-                        if (
-                            city_defense_operation_authority_enabled
-                            or combat_operation_authority_enabled)
-                        else None)
+                    operation_authority = None
+                    if city_defense_operation_authority_enabled:
+                        city_defense_candidates = (
+                            impact_planner.candidates(
+                                snapshot,
+                                excluded=(
+                                    excluded_impact_actions),
+                                excluded_scopes=(
+                                    impact_budget
+                                    .excluded_scopes)))
+                        (
+                            _city_defense_artifact,
+                            city_defense_events,
+                            operation_authority,
+                        ) = (
+                            control_event_emitter
+                            .prepare_city_defense_authority(
+                                writer,
+                                snapshot,
+                                observability_ir,
+                                city_defense_candidates,
+                                impact_planner
+                                .pressure_survival_threat_radius,
+                                int(
+                                    manifest[
+                                        "impact_policy"]
+                                    .get(
+                                        "pressure_resource_scheduler_node_budget",
+                                        5000)),
+                                operation_ruleset_digest,
+                                caused_by=(
+                                    parent,)))
+                        if city_defense_events:
+                            parent = (
+                                city_defense_events[
+                                    -1]["event_id"])
+                    if (
+                            operation_authority is None
+                            and
+                            combat_operation_authority_enabled
+                    ):
+                        operation_authority = (
+                            control_event_emitter
+                            .operation_authority_readout(
+                                writer,
+                                snapshot,
+                                city_defense_enabled=False,
+                                combat_enabled=True))
                     decision_stats[
                         "operation_authority_opportunities"
                     ] += int(
