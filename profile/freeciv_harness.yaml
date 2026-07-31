@@ -2527,6 +2527,9 @@ paired_impact:
         count: 10
         minimum: 6100000
         maximum: 6199999
+    # Retained zero-exposure diagnostic: 156 treatment proposals were all
+    # protected holds or unsafe sole-defender moves, so the exact gate
+    # correctly exposed no authority opportunity.
     city_defense_operation_authority_scenario_diagnostic_v1:
       claim_eligible: false
       purpose: diagnostic
@@ -2579,6 +2582,57 @@ paired_impact:
         count: 10
         minimum: 6300000
         maximum: 6399999
+    city_defense_operation_authority_scenario_diagnostic_v2:
+      claim_eligible: false
+      purpose: diagnostic
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 160
+      planned_pairs: 10
+      controller_workers: 3
+      release_game_config:
+        # Preserve symmetric contact pressure while reducing defence sites and
+        # increasing spare defender identities relative to diagnostic v1.
+        startunits: ccxxxxxxdddddddddddd
+      isolated_policy_keys:
+        - pressure_city_defense_operation_authority_enabled
+      arms:
+        baseline:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_city_defense_operation_authority_enabled: false
+          pressure_city_defense_operations_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_native_movement_routes_enabled: true
+          pressure_operation_lifecycle_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_resource_scheduler_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+        treatment:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_city_defense_operation_authority_enabled: true
+          pressure_city_defense_operations_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_native_movement_routes_enabled: true
+          pressure_operation_lifecycle_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_resource_scheduler_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-city-defense-operation-authority-scenario-diagnostic-v2
+        count: 10
+        minimum: 6400000
+        maximum: 6499999
     calibrated_scalar_diagnostic_v1:
       claim_eligible: false
       purpose: diagnostic
