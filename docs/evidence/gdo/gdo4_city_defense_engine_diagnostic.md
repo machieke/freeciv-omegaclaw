@@ -388,3 +388,73 @@ fallback. This is replay performance evidence only. V5 must pass the same
 complete mechanism, safety, coverage, fallback, 50 ms preparation, and 1.15
 full-loop conjunction. It remains claim-ineligible regardless of score
 direction.
+
+## Visible-threat and legal-context confirmation v5 result
+
+The frozen v5 cohort
+`/data/freeciv/gdo4-city-defense-immediate-fortify-authority-pilot-v5`
+completed 60/60 games and 30/30 pairs from clean source commit
+`19e29426eec549df7ec811291c80540164a4160e`, with zero failures,
+zero resumes, stable implementation hash
+`a2d4a05adb0a260a99a4e8350adc589be5970d666d1d75b2089e9c6b41157a2e`,
+and configuration hash
+`e8c108760c628bd768e4965323a9e95378a0a7909f867fec456dec9a7e5a2981`.
+The independent audit validated 1,871,906 events with zero errors and zero
+warnings.
+
+The self-hashed report is
+`benchmarks/gdo/gdo4_city_defense_immediate_fortify_visible_threat_confirmation.json`,
+report hash
+`d93b852125277d7c6224b1231a958d810f245e1b4e4b8c43109ee07d1012f922`.
+
+V5 passed every mechanism, authority, safety, coverage, source-freeze, trace,
+and full-loop-ratio requirement, but again failed the absolute 50 ms
+preparation ceiling:
+
+| Metric | B1 baseline | Fortify authority | Delta |
+| --- | ---: | ---: | ---: |
+| Selected unique operations | 269 | 47 | — |
+| Unique activations | 2 | 28 | +26 |
+| Uncovered unique observations | 472 | 19 | −453 |
+| Completion / selected unique operation | 0% | 59.57% | +59.57 pp |
+| Selected-at-risk city losses | 4 | 1 | −3 |
+| Raw own-city identity losses | 31 | 26 | −5 |
+| Hard-current conflicts | 0 | 0 | 0 |
+| Sole-defender violations | 0 | 0 | 0 |
+| Engine-rejected actions | 0 | 0 | 0 |
+
+All 28 activated authority operations completed, with zero adverse activated
+outcomes. Typed winner-changing coverage was 100%; unsupported states had
+zero authority. Treatment full-loop p95 was 10,158.11 ms versus 10,185.75 ms
+for baseline, a ratio of 0.9973.
+
+Preparation p95 improved from v4's 120.90 ms to 83.30 ms but remained above
+50 ms. Across all 9,356 treatment preparations:
+
+| Phase | p50 | p95 | p99 |
+| --- | ---: | ---: | ---: |
+| Assignment-artifact build | 5.76 ms | 45.48 ms | 79.75 ms |
+| Lifecycle event emission | 0.18 ms | 10.39 ms | 30.41 ms |
+| Post-phase preparation overhead | 3.99 ms | 39.53 ms | 73.12 ms |
+| Total preparation | 13.41 ms | 83.20 ms | 144.49 ms |
+
+Of 1,289 preparations above 50 ms, 854 had more than 20 ms of post-phase
+overhead. The high-latency rows had median build, event, and post-phase costs
+of 35.16, 5.43, and 27.34 ms respectively. The controller workers execute as
+Python threads in one process, so unrelated planner and telemetry work can
+hold the GIL while the wall-clock preparation timer continues.
+
+The cohort's natural worker-bucket exhaustion supplied an attributable
+concurrency diagnostic. The final treatment game ran after the other two
+worker buckets had ended and recorded preparation p95 9.23 ms, build p95
+8.67 ms, post-phase p95 0.48 ms, and zero samples above 50 ms. The immediately
+preceding treatment game, partly overlapping other workers, recorded
+preparation p95 34.94 ms. This agrees with exact replay timings and isolates
+the remaining production tail to controller-process contention rather than
+city-defence semantics.
+
+The generic, claim-ineligible paired score delta was again directionally
+positive at +1.93 with interval `[-1.33, 5.93]`; fixed-horizon win-rate
+difference was 0.00 with interval `[-0.10, 0.10]`. No score or win-rate claim
+is made. Because the complete GDO-4 conjunction still failed, live authority
+remains ineligible.
