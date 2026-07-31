@@ -556,8 +556,8 @@ class CombatOperationLifecycle:
                 .operation_id),
             bid=float(
                 readouts[0]
-                .probability_interval
-                .lower),
+                .material_estimate
+                .conservative_bid),
             claims=(
                 assembly
                 .resource_request

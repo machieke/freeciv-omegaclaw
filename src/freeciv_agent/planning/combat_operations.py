@@ -23,6 +23,10 @@ from .operations import (
     OperationStep,
     operation_id_from_components,
 )
+from .domain_models.combat import (
+    GroundedCombatMaterialEstimate,
+    grounded_combat_material_estimate,
+)
 
 
 @dataclass(frozen=True)
@@ -90,6 +94,7 @@ class CombatOperationAssembly:
     resource_request: OperationResourceRequest
     action_json_by_step: tuple
     step_probability_intervals: tuple
+    step_material_estimates: tuple
     operation_probability_interval: ConditionalProbabilityInterval
     target_unit_id: int
     target_tile_id: int
@@ -124,6 +129,8 @@ class CombatOperationAssembly:
                 != len(self.spec.steps)
             or len(self.step_probability_intervals)
                 != len(self.spec.steps)
+            or len(self.step_material_estimates)
+                != len(self.spec.steps)
         ):
             raise ValueError(
                 "combat assembly actions and intervals must match its steps")
@@ -145,6 +152,14 @@ class CombatOperationAssembly:
                 self.step_probability_intervals):
             raise TypeError(
                 "combat step probabilities must be intervals")
+        if any(
+                not isinstance(
+                    estimate,
+                    GroundedCombatMaterialEstimate)
+                for estimate in
+                self.step_material_estimates):
+            raise TypeError(
+                "combat step material estimates must be grounded")
         if not isinstance(
                 self.operation_probability_interval,
                 ConditionalProbabilityInterval):
@@ -218,6 +233,10 @@ class CombatOperationAssembly:
                 value.to_dict()
                 for value in
                 self.step_probability_intervals],
+            "step_material_estimates": [
+                value.to_dict()
+                for value in
+                self.step_material_estimates],
             "target_tile_id":
                 self.target_tile_id,
             "target_unit_id":
@@ -232,6 +251,7 @@ class CombatOperationReadout:
     reason: str
     step_index: int
     probability_interval: object = None
+    material_estimate: object = None
 
     def __post_init__(self):
         if self.disposition not in (
@@ -266,6 +286,14 @@ class CombatOperationReadout:
         ):
             raise TypeError(
                 "combat readout probability must be an interval or absent")
+        if (
+            self.material_estimate is not None
+            and not isinstance(
+                self.material_estimate,
+                GroundedCombatMaterialEstimate)
+        ):
+            raise TypeError(
+                "combat readout material estimate must be grounded or absent")
 
 
 class CombatOperationAssembler:
@@ -320,7 +348,7 @@ class CombatOperationAssembler:
         return result
 
     @staticmethod
-    def _candidates(snapshot):
+    def _candidates(snapshot, ruleset_ir):
         legal = (
             CombatOperationAssembler
             ._legal_attacks(snapshot))
@@ -361,6 +389,14 @@ class CombatOperationAssembler:
                     <= 0.0
             ):
                 continue
+            material = grounded_combat_material_estimate(
+                ruleset_ir,
+                actor,
+                target,
+                probability.lower_probability,
+                probability.upper_probability)
+            if material is None:
+                continue
             candidates.append({
                 "action_json":
                     action_json,
@@ -372,7 +408,8 @@ class CombatOperationAssembler:
                         .lower_probability,
                         probability
                         .upper_probability,
-                        "freeciv-server-action-probability"),
+                        "freeciv-server-attacker-win-probability"),
+                "material": material,
                 "target_tile_id":
                     result.target_tile_id,
                 "target_unit_id":
@@ -383,6 +420,9 @@ class CombatOperationAssembler:
             key=lambda row: (
                 row["target_tile_id"],
                 row["target_unit_id"],
+                -row["material"]
+                .expected_terminal_material_advantage
+                .lower,
                 -row["interval"].lower,
                 -row["interval"].upper,
                 row["actor_id"])))
@@ -407,6 +447,7 @@ class CombatOperationAssembler:
     def assemble(
             self, snapshot,
             ruleset_digest,
+            ruleset_ir=None,
             goal_ids=(
                 "pf-impact:survival",),
             maximum_operations=32):
@@ -420,7 +461,7 @@ class CombatOperationAssembler:
                 "maximum_operations must be in 1..128")
         grouped = {}
         for candidate in self._candidates(
-                snapshot):
+                snapshot, ruleset_ir):
             grouped.setdefault((
                 candidate[
                     "target_unit_id"],
@@ -436,6 +477,9 @@ class CombatOperationAssembler:
                 ordered = tuple(sorted(
                     pair,
                     key=lambda row: (
+                        -row["material"]
+                        .expected_terminal_material_advantage
+                        .lower,
                         -row["interval"].lower,
                         -row["interval"].upper,
                         row["actor_id"])))
@@ -571,7 +615,9 @@ class CombatOperationAssembler:
                     replacement_margin=0.0,
                     provenance=(
                         "server-advertised-legal-actions",
-                        "freeciv-server-action-probability",
+                        "freeciv-server-attacker-win-probability",
+                        "ruleset-terminal-unit-value",
+                        "survivor-damage-unmodeled",
                         "explicit-conditional-follow-up",
                         "shadow-only-gdo5",
                     ),
@@ -649,7 +695,8 @@ class CombatOperationAssembler:
                         operation_id),
                     bid=float(
                         ordered[0][
-                            "interval"].lower),
+                            "material"]
+                        .conservative_bid),
                     claims=tuple(claims),
                     requirement_set_id=(
                         requirement_set
@@ -678,6 +725,11 @@ class CombatOperationAssembler:
                         step_probability_intervals=tuple(
                             candidate[
                                 "interval"]
+                            for candidate
+                            in ordered),
+                        step_material_estimates=tuple(
+                            candidate[
+                                "material"]
                             for candidate
                             in ordered),
                         operation_probability_interval=(
@@ -782,16 +834,46 @@ class CombatOperationAssembler:
                 "blocked", None,
                 "conditional-combat-support-incomplete",
                 step_index)
+        attacker = snapshot.unit(
+            actor_id)
+        defender = snapshot.visible_enemy_unit(
+            assembly.target_unit_id)
+        material = (
+            None
+            if attacker is None or defender is None
+            else assembly
+            .step_material_estimates[
+                step_index]
+            .revalue(
+                attacker.hp,
+                defender.hp,
+                probability.lower_probability,
+                probability.upper_probability))
+        interval = ConditionalProbabilityInterval(
+            probability
+            .lower_probability,
+            probability
+            .upper_probability,
+            "freeciv-server-attacker-win-probability:current-snapshot")
+        if material is None:
+            return CombatOperationReadout(
+                "blocked", None,
+                "current-step-material-value-ungrounded",
+                step_index,
+                interval)
+        if material.conservative_bid <= 0.0:
+            return CombatOperationReadout(
+                "blocked", None,
+                "current-step-material-value-nonpositive",
+                step_index,
+                interval,
+                material)
         return CombatOperationReadout(
             "reservable", action,
             "current-step-grounded-and-legal",
             step_index,
-            ConditionalProbabilityInterval(
-                probability
-                .lower_probability,
-                probability
-                .upper_probability,
-                "freeciv-server-action-probability:current-snapshot"))
+            interval,
+            material)
 
     @staticmethod
     def step_resource_request(
@@ -854,8 +936,8 @@ class CombatOperationAssembler:
                 .operation_id),
             bid=float(
                 readout
-                .probability_interval
-                .lower),
+                .material_estimate
+                .conservative_bid),
             claims=tuple(claims),
             requirement_set_id=None)
 

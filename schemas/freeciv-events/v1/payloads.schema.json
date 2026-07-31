@@ -301,7 +301,12 @@
         },
         "requirement_set": {"$ref": "#/$defs/jsonValue"},
         "probability_interval": {"$ref": "#/$defs/jsonValue"},
+        "material_estimate": {"$ref": "#/$defs/jsonValue"},
         "step_probability_intervals": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/jsonValue"}
+        },
+        "step_material_estimates": {
           "type": "array",
           "items": {"$ref": "#/$defs/jsonValue"}
         },

@@ -452,8 +452,10 @@ class ControlEventEmitter:
                     continue
                 bid = float(
                     domain_readout
-                    .probability_interval
-                    .lower)
+                    .material_estimate
+                    .conservative_bid)
+                if bid <= 0.0:
+                    continue
                 readout = OperationAuthorityReadout(
                     authority_kind=(
                         OperationAuthorityKind
@@ -1966,7 +1968,8 @@ class ControlEventEmitter:
 
     def emit_combat_operation_shadow(
             self, writer, snapshot,
-            ruleset_digest, caused_by=(),
+            ruleset_digest, ruleset_ir=None,
+            caused_by=(),
             maximum_operations=32,
             action_budget=None):
         """Emit one exact, shadow-only GDO-5 readout per snapshot."""
@@ -1997,6 +2000,7 @@ class ControlEventEmitter:
         assemblies = assembler.assemble(
             snapshot,
             str(ruleset_digest),
+            ruleset_ir=ruleset_ir,
             maximum_operations=(
                 maximum_operations))
         schedule = None
@@ -2084,7 +2088,11 @@ class ControlEventEmitter:
                 "event_schema_version":
                     CONTROL_EVENT_SCHEMA_VERSION,
                 "expected_prevented_loss":
-                    0.0,
+                    float(
+                        assembly
+                        .step_material_estimates[0]
+                        .expected_enemy_terminal_loss
+                        .lower),
                 "next_action":
                     readout.next_action,
                 "operation_digest":
@@ -2094,7 +2102,15 @@ class ControlEventEmitter:
                     operation_id,
                 "operation_type":
                     assembly.spec.operation_type,
-                "opportunity_cost": 0.0,
+                "opportunity_cost": float(
+                    assembly
+                    .step_material_estimates[0]
+                    .expected_friendly_terminal_loss
+                    .upper),
+                "material_estimate": (
+                    assembly
+                    .step_material_estimates[0]
+                    .to_dict()),
                 "participants": [
                     participant.to_dict()
                     for participant in
@@ -2122,6 +2138,11 @@ class ControlEventEmitter:
                     for interval in
                     assembly
                     .step_probability_intervals],
+                "step_material_estimates": [
+                    estimate.to_dict()
+                    for estimate in
+                    assembly
+                    .step_material_estimates],
                 "target_id":
                     assembly.spec.target_ref,
             }

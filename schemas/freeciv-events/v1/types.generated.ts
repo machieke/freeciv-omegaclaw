@@ -92,7 +92,7 @@ export type DomainEstimateEmitted = DomainEstimate;
 export type DomainEstimateAbstained = DomainEstimateAbstention;
 
 export type ResourceRef = {
-  "kind": "actor" | "move_points" | "city_production_slot" | "tile_occupancy" | "transport_seat" | "treasury" | "research_slot" | "diplomatic_commitment" | "action_budget" | "cpu";
+  "kind": "actor" | "move_points" | "city_production_slot" | "city_worker_assignment" | "tile_occupancy" | "transport_seat" | "treasury" | "research_slot" | "diplomatic_commitment" | "action_budget" | "cpu";
   "owner_id": string;
   "scope": string;
   "subresource": string | null;
@@ -175,6 +175,7 @@ export type OperationEvent = {
   "deadline_turn": number | null;
   "event_schema_version": "1.0";
   "expected_prevented_loss": number;
+  "material_estimate"?: JsonValue;
   "next_action": JsonValue;
   "operation_digest": string;
   "operation_id": string;
@@ -193,6 +194,7 @@ export type OperationEvent = {
   "shadow_only": boolean;
   "snapshot_id": string;
   "state": "proposed" | "reserved" | "activated" | "step_selected" | "step_revalidated" | "step_committed" | "blocked" | "repaired" | "suspended" | "completed" | "failed" | "abandoned" | "expired";
+  "step_material_estimates"?: Array<JsonValue>;
   "step_probability_intervals"?: Array<JsonValue>;
   "target_id": string | null;
 };

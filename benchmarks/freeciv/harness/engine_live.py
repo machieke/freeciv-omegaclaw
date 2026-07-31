@@ -1886,6 +1886,8 @@ async def _play(run_dir, manifest, context):
                     writer,
                     snapshot,
                     combat_ruleset_digest,
+                    ruleset_ir=(
+                        observability_ir),
                     caused_by=(parent,),
                     action_budget=(
                         combat_operation_action_budget)))
@@ -2108,6 +2110,8 @@ async def _play(run_dir, manifest, context):
                         writer,
                         next_snapshot,
                         combat_ruleset_digest,
+                        ruleset_ir=(
+                            observability_ir),
                         caused_by=(
                             combat_parent,),
                         action_budget=(
@@ -2180,6 +2184,8 @@ async def _play(run_dir, manifest, context):
                         writer,
                         snapshot,
                         combat_ruleset_digest,
+                        ruleset_ir=(
+                            observability_ir),
                         caused_by=(
                             operation_parent,),
                         action_budget=(

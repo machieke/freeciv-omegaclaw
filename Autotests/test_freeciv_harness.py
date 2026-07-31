@@ -186,6 +186,8 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "contextual_transition_authority_diagnostic_v1": 10,
             "combat_operation_authority_diagnostic_v1": 10,
             "combat_operation_authority_scenario_diagnostic_v2": 10,
+            "city_defense_operation_authority_scenario_diagnostic_v1": 10,
+            "city_defense_operation_authority_scenario_diagnostic_v2": 10,
             "calibrated_scalar_diagnostic_v1": 10,
             "protected_bridge_readout_diagnostic_v1": 10,
             "corrected_probe_readout_diagnostic_v1": 10,

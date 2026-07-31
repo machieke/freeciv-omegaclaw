@@ -2,6 +2,7 @@
 
 import math
 import re
+from dataclasses import dataclass
 
 from ...events.schema import canonical_json_bytes
 from ...pressure.transitions import ExpectedTransition, PredictedOutcome
@@ -44,7 +45,7 @@ def _quantity(rule, name):
         value) else None
 
 
-def _unit_spec(ruleset_ir, unit_type):
+def unit_combat_spec(ruleset_ir, unit_type):
     target = _normalized_type(
         unit_type)
     matches = []
@@ -77,11 +78,207 @@ def _unit_spec(ruleset_ir, unit_type):
     return values
 
 
+@dataclass(frozen=True)
+class CombatMaterialInterval:
+    """A finite closed interval measured in shield-equivalent value."""
+
+    lower: float
+    upper: float
+
+    def __post_init__(self):
+        lower = float(self.lower)
+        upper = float(self.upper)
+        if (
+            not math.isfinite(lower)
+            or not math.isfinite(upper)
+            or lower > upper
+        ):
+            raise ValueError(
+                "combat material interval must be finite and ordered")
+
+    def to_dict(self):
+        return {
+            "lower": float(self.lower),
+            "upper": float(self.upper),
+        }
+
+
+@dataclass(frozen=True)
+class GroundedCombatMaterialEstimate:
+    """Terminal-destruction value implied by native attacker-win odds."""
+
+    attacker_build_cost: float
+    attacker_max_hp: float
+    attacker_remaining_value: float
+    defender_build_cost: float
+    defender_max_hp: float
+    defender_remaining_value: float
+    expected_friendly_terminal_loss: CombatMaterialInterval
+    expected_enemy_terminal_loss: CombatMaterialInterval
+    expected_terminal_material_advantage: CombatMaterialInterval
+    source: str = (
+        "native-attacker-win-interval-plus-ruleset-terminal-unit-value")
+
+    @property
+    def conservative_bid(self):
+        return max(
+            0.0,
+            float(
+                self.expected_terminal_material_advantage.lower))
+
+    def revalue(
+            self, attacker_hp, defender_hp,
+            probability_lower, probability_upper):
+        return combat_terminal_material_estimate_from_values(
+            self.attacker_build_cost,
+            self.attacker_max_hp,
+            attacker_hp,
+            self.defender_build_cost,
+            self.defender_max_hp,
+            defender_hp,
+            probability_lower,
+            probability_upper)
+
+    def to_dict(self):
+        return {
+            "attacker_build_cost":
+                float(self.attacker_build_cost),
+            "attacker_max_hp":
+                float(self.attacker_max_hp),
+            "attacker_remaining_value":
+                float(self.attacker_remaining_value),
+            "defender_build_cost":
+                float(self.defender_build_cost),
+            "defender_max_hp":
+                float(self.defender_max_hp),
+            "defender_remaining_value":
+                float(self.defender_remaining_value),
+            "expected_enemy_terminal_loss":
+                self.expected_enemy_terminal_loss.to_dict(),
+            "expected_friendly_terminal_loss":
+                self.expected_friendly_terminal_loss.to_dict(),
+            "expected_terminal_material_advantage":
+                self.expected_terminal_material_advantage.to_dict(),
+            "scope": "terminal-destruction-only",
+            "source": self.source,
+            "survivor_damage": "unmodeled",
+        }
+
+
+def combat_terminal_material_estimate_from_values(
+        attacker_build_cost, attacker_max_hp, attacker_hp,
+        defender_build_cost, defender_max_hp, defender_hp,
+        probability_lower, probability_upper):
+    """Return conservative terminal material intervals for one native duel."""
+    values = (
+        attacker_build_cost,
+        attacker_max_hp,
+        attacker_hp,
+        defender_build_cost,
+        defender_max_hp,
+        defender_hp,
+        probability_lower,
+        probability_upper,
+    )
+    if any(
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            for value in values):
+        return None
+    (
+        attacker_build_cost,
+        attacker_max_hp,
+        attacker_hp,
+        defender_build_cost,
+        defender_max_hp,
+        defender_hp,
+        probability_lower,
+        probability_upper,
+    ) = tuple(float(value) for value in values)
+    if (
+        attacker_build_cost <= 0.0
+        or attacker_max_hp <= 0.0
+        or not 0.0 < attacker_hp <= attacker_max_hp
+        or defender_build_cost <= 0.0
+        or defender_max_hp <= 0.0
+        or not 0.0 < defender_hp <= defender_max_hp
+        or not 0.0 <= probability_lower
+            <= probability_upper <= 1.0
+    ):
+        return None
+    attacker_remaining = (
+        attacker_build_cost
+        * attacker_hp
+        / attacker_max_hp)
+    defender_remaining = (
+        defender_build_cost
+        * defender_hp
+        / defender_max_hp)
+    enemy_loss = CombatMaterialInterval(
+        probability_lower
+        * defender_remaining,
+        probability_upper
+        * defender_remaining)
+    friendly_loss = CombatMaterialInterval(
+        (1.0 - probability_upper)
+        * attacker_remaining,
+        (1.0 - probability_lower)
+        * attacker_remaining)
+    advantage = CombatMaterialInterval(
+        enemy_loss.lower
+        - friendly_loss.upper,
+        enemy_loss.upper
+        - friendly_loss.lower)
+    return GroundedCombatMaterialEstimate(
+        attacker_build_cost=(
+            attacker_build_cost),
+        attacker_max_hp=attacker_max_hp,
+        attacker_remaining_value=(
+            attacker_remaining),
+        defender_build_cost=(
+            defender_build_cost),
+        defender_max_hp=defender_max_hp,
+        defender_remaining_value=(
+            defender_remaining),
+        expected_friendly_terminal_loss=(
+            friendly_loss),
+        expected_enemy_terminal_loss=(
+            enemy_loss),
+        expected_terminal_material_advantage=(
+            advantage))
+
+
+def grounded_combat_material_estimate(
+        ruleset_ir, attacker, defender,
+        probability_lower, probability_upper):
+    """Bind native duel odds to exact ruleset cost and current unit HP."""
+    if attacker is None or defender is None or ruleset_ir is None:
+        return None
+    attacker_spec = unit_combat_spec(
+        ruleset_ir,
+        getattr(attacker, "unit_type", None))
+    defender_spec = unit_combat_spec(
+        ruleset_ir,
+        getattr(defender, "unit_type", None))
+    if attacker_spec is None or defender_spec is None:
+        return None
+    return combat_terminal_material_estimate_from_values(
+        attacker_spec["build_cost"],
+        attacker_spec["hitpoints"],
+        getattr(attacker, "hp", None),
+        defender_spec["build_cost"],
+        defender_spec["hitpoints"],
+        getattr(defender, "hp", None),
+        probability_lower,
+        probability_upper)
+
+
 class GroundedCombatTransitionModel:
     """Prefer native odds, with a clean-room duel as a narrow fallback."""
 
     model_id = "grounded_combat_transition"
-    model_version = "2.0"
+    model_version = "2.1"
     immutable_request_safe = True
 
     def supports(self, request):
@@ -244,6 +441,12 @@ class GroundedCombatTransitionModel:
             return None
         definite_loss = 1.0 - upper
         residual = upper - lower
+        material = grounded_combat_material_estimate(
+            request.ruleset_ir,
+            attacker,
+            defender,
+            lower,
+            upper)
         current_turn = int(getattr(
             snapshot, "turn", 0))
         goal_features = tuple(sorted(
@@ -263,7 +466,17 @@ class GroundedCombatTransitionModel:
                     next_truth_summaries=(),
                     next_goal_features=(
                         goal_features),
-                    resource_delta=(),
+                    resource_delta=(
+                        () if material is None
+                        else (
+                            (
+                                "enemy_shield_equivalent",
+                                -material
+                                .defender_remaining_value),
+                            (
+                                "friendly_shield_equivalent",
+                                0.0),
+                        )),
                     completion_turn=float(
                         current_turn),
                     adverse_loss=0.0,
@@ -284,12 +497,23 @@ class GroundedCombatTransitionModel:
                     next_truth_summaries=(),
                     next_goal_features=(
                         goal_features),
-                    resource_delta=(),
+                    resource_delta=(
+                        () if material is None
+                        else (
+                            (
+                                "enemy_shield_equivalent",
+                                0.0),
+                            (
+                                "friendly_shield_equivalent",
+                                -material
+                                .attacker_remaining_value),
+                        )),
                     completion_turn=float(
                         current_turn),
-                    # The protocol proves terminal loss probability but does
-                    # not expose damage-conditioned material value.
-                    adverse_loss=0.0,
+                    adverse_loss=(
+                        0.0 if material is None
+                        else material
+                        .attacker_remaining_value),
                     provenance=(
                         "freeciv-server-action-probability-upper-complement",
                         "server-selected-defender",
@@ -301,18 +525,60 @@ class GroundedCombatTransitionModel:
                 "minimum":
                     probability.minimum,
             },
-            "adverse_loss_distribution": [],
+            "adverse_loss_distribution": [
+                {
+                    "adverse_loss":
+                        outcome.adverse_loss,
+                    "outcome_id":
+                        outcome.outcome_id,
+                    "probability":
+                        outcome.probability,
+                }
+                for outcome in outcomes],
             "city_capture_probability": None,
             "expected_enemy_shield_equivalent_loss":
-                None,
+                (
+                    None if material is None
+                    else material
+                    .expected_enemy_terminal_loss
+                    .lower),
+            "expected_enemy_shield_equivalent_loss_upper":
+                (
+                    None if material is None
+                    else material
+                    .expected_enemy_terminal_loss
+                    .upper),
             "expected_friendly_shield_equivalent_loss":
-                None,
+                (
+                    None if material is None
+                    else material
+                    .expected_friendly_terminal_loss
+                    .lower),
+            "expected_friendly_shield_equivalent_loss_upper":
+                (
+                    None if material is None
+                    else material
+                    .expected_friendly_terminal_loss
+                    .upper),
+            "expected_terminal_material_advantage":
+                (
+                    None if material is None
+                    else material
+                    .expected_terminal_material_advantage
+                    .to_dict()),
             "immediate_goal_feature_deltas": {},
             "missing_fields": [
                 "damage_conditioned_survivor_hp",
-                "material_loss_distribution",
                 "post_action_exposure",
-            ],
+            ] + (
+                []
+                if material is not None
+                else [
+                    "ruleset_terminal_unit_value",
+                ]),
+            "material_estimate": (
+                None if material is None
+                else material.to_dict()),
             "parity_status":
                 "native-authoritative",
             "post_action_exposure": {
@@ -329,7 +595,7 @@ class GroundedCombatTransitionModel:
             "reason_code": None,
             "residual_unknown_mass":
                 residual,
-            "schema_version": "2.0",
+            "schema_version": "2.1",
             "selected_target_unit_id":
                 selected_target_id,
             "supported_subset":
@@ -363,11 +629,20 @@ class GroundedCombatTransitionModel:
             estimator_version=(
                 self.model_version),
             provenance=(
-                "server-advertised-action",
-                "freeciv-server-action-probability",
-                "server-selected-defender",
-                "interval-residual-preserved",
-            ),
+                (
+                    "server-advertised-action",
+                    "freeciv-server-attacker-win-probability",
+                )
+                + (
+                    ("ruleset-terminal-unit-value",)
+                    if material is not None
+                    else (
+                        "terminal-material-value-ungrounded",
+                    ))
+                + (
+                    "server-selected-defender",
+                    "interval-residual-preserved",
+                )),
             model_artifact_json=(
                 canonical_model_artifact(
                     artifact)))
@@ -458,12 +733,12 @@ class GroundedCombatTransitionModel:
             missing.append("ruleset_ir")
         attacker_spec = (
             None if attacker is None
-            else _unit_spec(
+            else unit_combat_spec(
                 ruleset_ir,
                 attacker.unit_type))
         defender_spec = (
             None if defender is None
-            else _unit_spec(
+            else unit_combat_spec(
                 ruleset_ir,
                 defender.unit_type))
         if attacker_spec is None:

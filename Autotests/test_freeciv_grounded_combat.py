@@ -348,7 +348,25 @@ def test_native_combat_interval_is_authoritative_and_preserves_residual():
     assert artifact["parity_status"] == (
         "native-authoritative")
     assert artifact[
-        "expected_friendly_shield_equivalent_loss"] is None
+        "expected_friendly_shield_equivalent_loss"] == (
+            pytest.approx(3.95))
+    assert artifact[
+        "expected_friendly_shield_equivalent_loss_upper"] == (
+            pytest.approx(4.05))
+    assert artifact[
+        "expected_enemy_shield_equivalent_loss"] == (
+            pytest.approx(11.9))
+    assert artifact[
+        "expected_enemy_shield_equivalent_loss_upper"] == (
+            pytest.approx(12.1))
+    assert artifact[
+        "expected_terminal_material_advantage"] == {
+            "lower": pytest.approx(7.85),
+            "upper": pytest.approx(8.15),
+        }
+    assert artifact[
+        "material_estimate"]["survivor_damage"] == (
+            "unmodeled")
 
 
 def test_native_combat_snapshot_rejects_stale_target_revision():

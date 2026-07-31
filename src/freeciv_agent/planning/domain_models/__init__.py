@@ -5,7 +5,14 @@ from .base import (
     DomainEstimateRequest,
     DomainTransitionModel,
 )
-from .combat import GroundedCombatTransitionModel
+from .combat import (
+    CombatMaterialInterval,
+    GroundedCombatMaterialEstimate,
+    GroundedCombatTransitionModel,
+    combat_terminal_material_estimate_from_values,
+    grounded_combat_material_estimate,
+    unit_combat_spec,
+)
 from .combat_rules import (
     DuelDistribution,
     DuelTerminalOutcome,
@@ -71,6 +78,7 @@ __all__ = [
     "CityDefenseOperation",
     "CityDefenseRequirement",
     "CITY_OUTPUT_NAMES",
+    "CombatMaterialInterval",
     "DomainEstimateRequest",
     "DomainTransitionModel",
     "DomainTransitionModelRegistry",
@@ -90,6 +98,7 @@ __all__ = [
     "GroundedResearchTransitionModel",
     "GroundedTransportTransitionModel",
     "GroundedCombatTransitionModel",
+    "GroundedCombatMaterialEstimate",
     "grounded_operation_result",
     "grounded_threat_result",
     "LegacyProjectionTransitionModel",
@@ -100,8 +109,11 @@ __all__ = [
     "VisibleCityThreat",
     "canonical_model_artifact",
     "city_output_vector",
+    "combat_terminal_material_estimate_from_values",
     "finite_duel_distribution",
+    "grounded_combat_material_estimate",
     "production_target_profile",
     "research_dependency_profile",
     "transport_unit_profile",
+    "unit_combat_spec",
 ]

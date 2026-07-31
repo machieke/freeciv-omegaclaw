@@ -37,6 +37,34 @@ from freeciv_agent.events.writer import EventWriter
 from freeciv_agent.events.schema import structural_hash
 
 
+def _unit_rule(
+        name, attack, defense, hp,
+        firepower, cost):
+    return SimpleNamespace(
+        target_kind="unit",
+        display_name=name,
+        rule_name=name,
+        rule_id="unit:{}".format(name),
+        quantitative={
+            "attack": {"value": attack},
+            "defense": {"value": defense},
+            "hitpoints": {"value": hp},
+            "firepower": {"value": firepower},
+            "build_cost": {"value": cost},
+        })
+
+
+def _ruleset():
+    return SimpleNamespace(rules=(
+        _unit_rule(
+            "Warriors", 1, 1, 10, 1, 10),
+        _unit_rule(
+            "Phalanx", 1, 2, 10, 1, 20),
+        _unit_rule(
+            "Catapult", 6, 1, 10, 1, 60),
+    ))
+
+
 def _revision(unit):
     return {
         "activity": unit.get("activity"),
@@ -222,7 +250,8 @@ def _assembly_schedule(snapshot):
         CombatOperationAssembler()
         .assemble(
             snapshot,
-            "ruleset-proof")[0])
+            "ruleset-proof",
+            ruleset_ir=_ruleset())[0])
     capacities = (
         ResourceCapacityExtractor()
         .extract(
@@ -272,9 +301,11 @@ def test_assembler_retains_both_participants_and_deterministic_identity():
     assembler = CombatOperationAssembler()
 
     first = assembler.assemble(
-        snapshot, "ruleset-proof")
+        snapshot, "ruleset-proof",
+        ruleset_ir=_ruleset())
     second = assembler.assemble(
-        snapshot, "ruleset-proof")
+        snapshot, "ruleset-proof",
+        ruleset_ir=_ruleset())
 
     assert first == second
     assert len(first) == 1
@@ -321,6 +352,61 @@ def test_assembler_retains_both_participants_and_deterministic_identity():
     assert not assembly.policy_authority
 
 
+def test_assembler_prefers_conservative_material_value_over_raw_win_odds():
+    snapshot = _snapshot(
+        intervals=(
+            (140, 140),
+            (80, 100),
+        ))
+    snapshot = replace(
+        snapshot,
+        units=tuple(
+            replace(
+                unit,
+                unit_type="Catapult")
+            if unit.unit_id == 102
+            else unit
+            for unit in snapshot.units))
+
+    assembly = (
+        CombatOperationAssembler()
+        .assemble(
+            snapshot,
+            "ruleset-proof",
+            ruleset_ir=_ruleset())[0])
+
+    assert [
+        participant.actor_id
+        for participant in
+        assembly.spec.participants
+    ] == ["unit:103", "unit:102"]
+    assert (
+        assembly
+        .step_probability_intervals[0]
+        .lower
+    ) == pytest.approx(0.4)
+    assert (
+        assembly.resource_request.bid
+    ) == pytest.approx(2.0)
+    assert (
+        assembly
+        .step_material_estimates[1]
+        .expected_terminal_material_advantage
+        .lower
+    ) == pytest.approx(-4.0)
+
+
+def test_assembler_abstains_without_grounded_ruleset_unit_value():
+    snapshot = _snapshot()
+
+    assert (
+        CombatOperationAssembler()
+        .assemble(
+            snapshot,
+            "ruleset-proof")
+    ) == ()
+
+
 def test_assembler_resolves_only_an_unambiguous_visible_stack_target():
     snapshot = _snapshot()
     sentinel_rows = tuple(
@@ -338,7 +424,8 @@ def test_assembler_resolves_only_an_unambiguous_visible_stack_target():
         CombatOperationAssembler()
         .assemble(
             sentinel_snapshot,
-            "ruleset-proof"))
+            "ruleset-proof",
+            ruleset_ir=_ruleset()))
 
     assert len(supported) == 1
     assert supported[0].target_unit_id == 999
@@ -364,7 +451,8 @@ def test_assembler_resolves_only_an_unambiguous_visible_stack_target():
         CombatOperationAssembler()
         .assemble(
             ambiguous_snapshot,
-            "ruleset-proof")
+            "ruleset-proof",
+            ruleset_ir=_ruleset())
     ) == ()
 
 
@@ -380,7 +468,8 @@ def test_assembler_does_not_treat_a_zero_interval_as_attack_support():
         CombatOperationAssembler()
         .assemble(
             snapshot,
-            "ruleset-proof")
+            "ruleset-proof",
+            ruleset_ir=_ruleset())
     ) == ()
 
 
@@ -391,7 +480,8 @@ def test_atomic_resource_schedule_prevents_duplicate_targeting():
         CombatOperationAssembler()
         .assemble(
             snapshot,
-            "ruleset-proof"))
+            "ruleset-proof",
+            ruleset_ir=_ruleset()))
     assert len(assemblies) == 3
     capacities = (
         ResourceCapacityExtractor()
@@ -447,7 +537,8 @@ def test_atomic_operation_does_not_partially_activate_under_action_budget():
         CombatOperationAssembler()
         .assemble(
             snapshot,
-            "ruleset-proof"))
+            "ruleset-proof",
+            ruleset_ir=_ruleset()))
     assert len(assemblies) == 1
     capacities = (
         ResourceCapacityExtractor()
@@ -517,6 +608,7 @@ def test_shadow_emitter_records_atomic_schedule_and_native_intervals():
                 writer,
                 snapshot,
                 "ruleset-proof",
+                ruleset_ir=_ruleset(),
                 action_budget=8))
         duplicate = (
             emitter
@@ -524,6 +616,7 @@ def test_shadow_emitter_records_atomic_schedule_and_native_intervals():
                 writer,
                 snapshot,
                 "ruleset-proof",
+                ruleset_ir=_ruleset(),
                 action_budget=8))
         report = validate_file(path)
 
@@ -546,6 +639,22 @@ def test_shadow_emitter_records_atomic_schedule_and_native_intervals():
         and row["payload"][
             "probability_interval"][
                 "upper"] == 1.0
+        for row in proposals)
+    assert all(
+        row["payload"][
+            "bid"]
+        == pytest.approx(
+            row["payload"][
+                "expected_prevented_loss"]
+            - row["payload"][
+                "opportunity_cost"])
+        and row["payload"][
+            "material_estimate"][
+                "scope"]
+            == "terminal-destruction-only"
+        and len(row["payload"][
+            "step_material_estimates"])
+            == 2
         for row in proposals)
     schedule = next(
         row for row in events
@@ -570,7 +679,8 @@ def test_readout_reestimates_each_step_and_handles_target_or_actor_removal():
         CombatOperationAssembler()
         .assemble(
             snapshot,
-            "ruleset-proof")[0])
+            "ruleset-proof",
+            ruleset_ir=_ruleset())[0])
 
     first = CombatOperationAssembler.readout(
         assembly, snapshot, 0)
@@ -613,12 +723,64 @@ def test_readout_reestimates_each_step_and_handles_target_or_actor_removal():
         "required-participant-removed")
 
 
+def test_readout_blocks_a_trade_that_becomes_materially_nonpositive():
+    snapshot = _snapshot()
+    assembly = (
+        CombatOperationAssembler()
+        .assemble(
+            snapshot,
+            "ruleset-proof",
+            ruleset_ir=_ruleset())[0])
+    primary_actor = int(
+        assembly.spec.participants[
+            0].actor_id.split(":")[1])
+    probabilities = tuple(
+        replace(
+            row,
+            action_probabilities=tuple(
+                replace(
+                    action_probability,
+                    minimum=10,
+                    maximum=10)
+                if (
+                    action_probability
+                    .action_name == "attack")
+                else action_probability
+                for action_probability in
+                row.action_probabilities))
+        if row.actor_unit_id
+        == primary_actor
+        else row
+        for row in
+        snapshot.combat_probabilities)
+    changed = replace(
+        snapshot,
+        combat_probabilities=(
+            probabilities))
+
+    readout = (
+        CombatOperationAssembler
+        .readout(
+            assembly, changed, 0))
+
+    assert readout.disposition == (
+        "blocked")
+    assert readout.reason == (
+        "current-step-material-value-nonpositive")
+    assert (
+        readout.material_estimate
+        .expected_terminal_material_advantage
+        .lower
+    ) < 0.0
+
+
 def test_missing_joint_support_or_illegal_step_falls_back_closed():
     snapshot = _snapshot()
     assembler = (
         CombatOperationAssembler())
     assembly = assembler.assemble(
-        snapshot, "ruleset-proof")[0]
+        snapshot, "ruleset-proof",
+        ruleset_ir=_ruleset())[0]
 
     incomplete = replace(
         snapshot,
@@ -635,7 +797,8 @@ def test_missing_joint_support_or_illegal_step_falls_back_closed():
 
     assert assembler.assemble(
         incomplete,
-        "ruleset-proof") == ()
+        "ruleset-proof",
+        ruleset_ir=_ruleset()) == ()
     blocked = assembler.readout(
         assembly, illegal, 1)
     assert blocked.disposition == (
@@ -726,7 +889,8 @@ def test_new_combat_schedule_fails_closed_beside_active_reservation():
         CombatOperationAssembler()
         .assemble(
             snapshot,
-            "ruleset-proof"))
+            "ruleset-proof",
+            ruleset_ir=_ruleset()))
     assert len(assemblies) >= 2
     capacities = (
         ResourceCapacityExtractor()
@@ -798,12 +962,14 @@ def test_shadow_emitter_attributes_cross_snapshot_reservation_conflict():
         emitter.emit_combat_operation_shadow(
             writer, snapshot,
             "ruleset-proof",
+            ruleset_ir=_ruleset(),
             action_budget=8)
         events = (
             emitter
             .emit_combat_operation_shadow(
                 writer, next_snapshot,
                 "ruleset-proof",
+                ruleset_ir=_ruleset(),
                 action_budget=8))
         report = validate_file(path)
 
@@ -960,6 +1126,7 @@ def test_combat_lifecycle_events_are_causal_valid_and_release_every_claim():
             .emit_combat_operation_shadow(
                 writer, snapshot,
                 "ruleset-proof",
+                ruleset_ir=_ruleset(),
                 action_budget=8))
         committed = (
             emitter
@@ -1041,6 +1208,7 @@ def test_bounded_combat_authority_reads_out_and_commits_exact_reserved_step():
             .emit_combat_operation_shadow(
                 writer, snapshot,
                 "ruleset-proof",
+                ruleset_ir=_ruleset(),
                 action_budget=8))
         readout = (
             emitter
