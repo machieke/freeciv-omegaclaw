@@ -187,6 +187,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "combat_operation_authority_diagnostic_v1": 10,
             "combat_operation_authority_scenario_diagnostic_v2": 10,
             "combat_operation_material_authority_scenario_diagnostic_v1": 10,
+            "combat_operation_material_authority_pilot_v1": 30,
             "city_defense_operation_authority_scenario_diagnostic_v1": 10,
             "city_defense_operation_authority_scenario_diagnostic_v2": 10,
             "calibrated_scalar_diagnostic_v1": 10,
@@ -233,6 +234,25 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert material_combat_scenario[
         "isolated_policy_keys"] == [
             "pressure_combat_operation_authority_enabled"]
+    material_combat_pilot = paired["cohorts"][
+        "combat_operation_material_authority_pilot_v1"]
+    assert material_combat_pilot["purpose"] == "pilot"
+    assert material_combat_pilot[
+        "isolated_policy_keys"] == [
+            "pressure_combat_operation_authority_enabled"]
+    assert material_combat_pilot["mechanism_design"] == {
+        "declared_operation_types": [
+            "attack_then_conditional_attack"],
+        "friendly_terminal_loss": {
+            "adverse_shift_tolerance": 1.0,
+            "censoring": "no_same-turn-authoritative-snapshot",
+            "metric": (
+                "shield_equivalent_terminal_destruction_per_committed_step"),
+            "observation_window": (
+                "first_authoritative_same-turn_snapshot_after_commit"),
+        },
+        "schema_version": "1.0",
+    }
     score_derivation = paired["cohorts"]["confirmatory_score"]["seed_derivation"]
     assert score_derivation == {
         "algorithm": "sha256-counter-v1",

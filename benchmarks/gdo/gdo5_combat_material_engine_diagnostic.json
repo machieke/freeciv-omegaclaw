@@ -1,0 +1,319 @@
+{
+  "arms": {
+    "baseline": {
+      "authority": {
+        "action_types": {
+          "unit_attack": 16
+        },
+        "operation_types": {
+          "attack_then_conditional_attack": 16
+        },
+        "policy_authority_values": {
+          "False": 16
+        },
+        "row_count": 16
+      },
+      "duplicate_selected_targets": [],
+      "event_counts": {
+        "operation_abandoned": 2,
+        "operation_activated": 16,
+        "operation_blocked": 16,
+        "operation_completed": 28,
+        "operation_expired": 2,
+        "operation_failed": 0,
+        "operation_proposed": 377,
+        "operation_reserved": 32,
+        "operation_step_committed": 16,
+        "operation_step_revalidated": 37,
+        "operation_step_selected": 32
+      },
+      "hard_current_reservation_conflicts": [],
+      "immediate_terminal_loss": {
+        "calibration_residual_vs_expected_upper": -1.8412500000000003,
+        "censored_commits": 0,
+        "expected_mean": {
+          "lower": 1.5749999999999997,
+          "upper": 1.8412500000000003
+        },
+        "observation_count": 16,
+        "realized_mean": 0.0,
+        "scope": "immediate-terminal-destruction-only"
+      },
+      "lifecycle": {
+        "activated_adverse": 0,
+        "activated_completed": 16,
+        "activated_unique": 16,
+        "activation_rate_per_selection": 0.5,
+        "adverse_terminal_rate_per_activation": 0.0,
+        "adverse_terminal_rate_per_selection": 0.125,
+        "committed_unique": 16,
+        "completion_rate_per_activation": 1.0,
+        "completion_rate_per_selection": 0.875,
+        "selected_adverse": 4,
+        "selected_completed": 28,
+        "selected_unique": 32
+      },
+      "nonpositive_activations": [],
+      "partial_activations": [],
+      "scheduler_latency_ms": {
+        "maximum": 34.026680048555136,
+        "p50": 0.0,
+        "p95": 0.0,
+        "positive_p95": 25.334773119539022,
+        "positive_sample_count": 50,
+        "sample_count": 3082
+      }
+    },
+    "treatment": {
+      "authority": {
+        "action_types": {
+          "unit_attack": 22
+        },
+        "operation_types": {
+          "attack_then_conditional_attack": 22
+        },
+        "policy_authority_values": {
+          "True": 22
+        },
+        "row_count": 22
+      },
+      "duplicate_selected_targets": [],
+      "event_counts": {
+        "operation_abandoned": 0,
+        "operation_activated": 22,
+        "operation_blocked": 2,
+        "operation_completed": 22,
+        "operation_expired": 2,
+        "operation_failed": 0,
+        "operation_proposed": 289,
+        "operation_reserved": 24,
+        "operation_step_committed": 22,
+        "operation_step_revalidated": 32,
+        "operation_step_selected": 46
+      },
+      "hard_current_reservation_conflicts": [],
+      "immediate_terminal_loss": {
+        "calibration_residual_vs_expected_upper": -2.2175,
+        "censored_commits": 0,
+        "expected_mean": {
+          "lower": 1.9584090909090912,
+          "upper": 2.2175
+        },
+        "observation_count": 22,
+        "realized_mean": 0.0,
+        "scope": "immediate-terminal-destruction-only"
+      },
+      "lifecycle": {
+        "activated_adverse": 0,
+        "activated_completed": 22,
+        "activated_unique": 22,
+        "activation_rate_per_selection": 0.9166666666666666,
+        "adverse_terminal_rate_per_activation": 0.0,
+        "adverse_terminal_rate_per_selection": 0.08333333333333333,
+        "committed_unique": 22,
+        "completion_rate_per_activation": 1.0,
+        "completion_rate_per_selection": 0.9166666666666666,
+        "selected_adverse": 2,
+        "selected_completed": 22,
+        "selected_unique": 24
+      },
+      "nonpositive_activations": [],
+      "partial_activations": [],
+      "scheduler_latency_ms": {
+        "maximum": 24.30038806051016,
+        "p50": 0.0,
+        "p95": 0.0,
+        "positive_p95": 22.392995189875364,
+        "positive_sample_count": 37,
+        "sample_count": 3228
+      }
+    }
+  },
+  "authority": {
+    "claim_status": "diagnostic-only",
+    "policy_authority_eligible": false,
+    "score_claim_eligible": false
+  },
+  "captured_replay": {
+    "path": "benchmarks/gdo/gdo5_combat_operation_captured_diagnostic.json",
+    "report_hash": "da172ebe3292822ffb89618e95a9dfb680879a487d2b761064fc8ceed43c7502",
+    "sha256": "ae48c141cf38a6883a298d46d805a6fb28c3a7c518b4bb8ee2440d19b852a70e"
+  },
+  "cohort": {
+    "aggregate_path": "impact-aggregate.json",
+    "aggregate_sha256": "601868fb4e1a4168384066808b66784a62a2566d0c04f206e1f850760e25cf97",
+    "complete_pairs": 10,
+    "configuration_hash": "75afd7251fd4f9c7146aa372b31e09c5019b48004ab7e46a61e32038b5d8ef90",
+    "id": "combat_operation_material_authority_scenario_diagnostic_v1",
+    "primary_score_delta": {
+      "estimate": 2.9,
+      "lower": -1.9,
+      "method": "paired_bootstrap_delta",
+      "n": 10,
+      "paired_seeds": [
+        6200234,
+        6204573,
+        6206386,
+        6217731,
+        6219079,
+        6230451,
+        6240874,
+        6262359,
+        6270283,
+        6286583
+      ],
+      "upper": 9.9
+    },
+    "purpose": "diagnostic",
+    "source_freeze": {
+      "commits": [
+        "3fbe0a64b7876f747c4148cf2cd45eab2efb763a"
+      ],
+      "dirty_games": [],
+      "implementation_sha256s": [
+        "3ed44456767667f0db603c6879c4cba6040a62b30ccfc9e4cb04764fb8d54df3"
+      ],
+      "passed": true,
+      "required": true,
+      "run_source_stable": true,
+      "unavailable_games": []
+    }
+  },
+  "deltas": {
+    "adverse_terminal_rate_per_selection": -0.04166666666666667,
+    "completion_rate_per_selection": 0.04166666666666663,
+    "friendly_terminal_loss_calibration_residual": -0.37624999999999953
+  },
+  "gates": {
+    "captured_atomic_lower_duplicate_targeting_than_b1": true,
+    "fresh_directional_mechanism_benefit": true,
+    "hard_current_reservation_conflicts_zero": true,
+    "no_adverse_friendly_terminal_loss_shift_beyond_predeclared_tolerance": false,
+    "nonpositive_material_activations_zero": true,
+    "partial_current_activation_zero": true,
+    "policy_authority_limited_to_declared_operation_types": true,
+    "scheduler_p95_below_50_ms": true,
+    "selected_target_conflicts_zero": true,
+    "source_freeze_passed": true,
+    "trace_validation_passed": true
+  },
+  "pilot_gate_passed": false,
+  "predeclared_mechanism_design": {
+    "declared_operation_types": [
+      "attack_then_conditional_attack"
+    ],
+    "friendly_terminal_loss": {},
+    "present": false,
+    "tolerance_predeclared": false
+  },
+  "report_hash": "44ae316fbfef1ae0284ce170ad0f59ff2a3e6aff9c055eff743d9a35e72d1055",
+  "report_schema_version": "1.0",
+  "trace_sources": [
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_scenario_diagnostic_v1/baseline/e_full_loop/6200234-00/events.jsonl",
+      "sha256": "567559abb52580725d680ae3ae4eb9eee7ba6dab8a81e2507844fefc25f127ab"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_scenario_diagnostic_v1/baseline/e_full_loop/6204573-00/events.jsonl",
+      "sha256": "19df68e9a9724f6e6fec36d4d3006ef76969aa1c8576598498eec69b5d2bfae8"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_scenario_diagnostic_v1/baseline/e_full_loop/6206386-00/events.jsonl",
+      "sha256": "1dc2789766362ece2a8b1f4faf2bf774279e62fcb9598defdd31f323b9cfa4ff"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_scenario_diagnostic_v1/baseline/e_full_loop/6217731-00/events.jsonl",
+      "sha256": "c3d2ef349cbf690bf054bc923bb2e21fcd183284c9304b51ed83c22dae930abe"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_scenario_diagnostic_v1/baseline/e_full_loop/6219079-00/events.jsonl",
+      "sha256": "5f82b7a7175f424aa7d90668182ffe91ce2e87c0ce818cc3cd5dc801561861ca"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_scenario_diagnostic_v1/baseline/e_full_loop/6230451-00/events.jsonl",
+      "sha256": "d58122698405c27b210ecde42ed71a6b9450dc2a6665c01e7558302c508074d9"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_scenario_diagnostic_v1/baseline/e_full_loop/6240874-00/events.jsonl",
+      "sha256": "4b7848a208618fff2b5a8b8143fbdfcdd254860f348b379d26263c882b72cbc4"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_scenario_diagnostic_v1/baseline/e_full_loop/6262359-00/events.jsonl",
+      "sha256": "ac1f9143646dce7ff246237908bd4426b8eea8ee42fe59900e033997b1f4b8ad"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_scenario_diagnostic_v1/baseline/e_full_loop/6270283-00/events.jsonl",
+      "sha256": "ce4c687b6127cf99c46c184120000ec625959309d7775e964f06ed90e2510029"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_scenario_diagnostic_v1/baseline/e_full_loop/6286583-00/events.jsonl",
+      "sha256": "2c22196be97c5c644446330f86028d5bea07329ffa164a1589440a1a2f004eb0"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_scenario_diagnostic_v1/treatment/e_full_loop/6200234-00/events.jsonl",
+      "sha256": "6ee346d04a09feed35e89090bc770a5190cf0049600fc94cc246d77741d41e06"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_scenario_diagnostic_v1/treatment/e_full_loop/6204573-00/events.jsonl",
+      "sha256": "d0040b44d0d488c19bb3853e173fe33f62b430dbf89901dc67aad1e49fd58706"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_scenario_diagnostic_v1/treatment/e_full_loop/6206386-00/events.jsonl",
+      "sha256": "582fe415f6b8742cea3131de17cca989b66baf66a0538b2cdb606e8e1a614950"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_scenario_diagnostic_v1/treatment/e_full_loop/6217731-00/events.jsonl",
+      "sha256": "b4d447274115f2a83afa9403a1083264f1268f3d8161d2dbe8de32d0861617fc"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_scenario_diagnostic_v1/treatment/e_full_loop/6219079-00/events.jsonl",
+      "sha256": "eeb4e843bc094fe0a0860c405a2e0d360dc8e2ce3aa5225ef9f62d4bf72f69e5"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_scenario_diagnostic_v1/treatment/e_full_loop/6230451-00/events.jsonl",
+      "sha256": "7079d9f1350034eb855a97046cbe4b4e2f40cba4f2e338755d9b94107fe3de2e"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_scenario_diagnostic_v1/treatment/e_full_loop/6240874-00/events.jsonl",
+      "sha256": "3eee665d79d2728e865a9a70f338998bbd50a228ed329119e01ecd841380ba1c"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_scenario_diagnostic_v1/treatment/e_full_loop/6262359-00/events.jsonl",
+      "sha256": "285bf7337e3ca9a21f909cfa0dcd722a4d6f5bd3d5b0e42fcb34735589ff331b"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_scenario_diagnostic_v1/treatment/e_full_loop/6270283-00/events.jsonl",
+      "sha256": "5ce93a39c8a155889805c326740c549d180e755d13201eb09f48d850c8587d1c"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_scenario_diagnostic_v1/treatment/e_full_loop/6286583-00/events.jsonl",
+      "sha256": "0b75239aaf40582e188304a7a8d74bf013001f937a66339aa2edf4b19cc7976f"
+    }
+  ],
+  "trace_validation": {
+    "error_count": 0,
+    "event_count": 549770,
+    "valid": true,
+    "warning_count": 0
+  }
+}

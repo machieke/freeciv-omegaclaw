@@ -2579,6 +2579,68 @@ paired_impact:
         count: 10
         minimum: 6200000
         maximum: 6299999
+    combat_operation_material_authority_pilot_v1:
+      claim_eligible: false
+      purpose: pilot
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 160
+      planned_pairs: 30
+      controller_workers: 3
+      release_game_config:
+        startunits: csxxxxxxxxxxxxdddddd
+      isolated_policy_keys:
+        - pressure_combat_operation_authority_enabled
+      mechanism_design:
+        schema_version: "1.0"
+        declared_operation_types:
+          - attack_then_conditional_attack
+        friendly_terminal_loss:
+          # One shield-equivalent point is 10% of the cheapest supported
+          # attacker in this ruleset.  The diagnostic residual shift was
+          # -0.37625, but the fresh pilot is evaluated only against this
+          # source-frozen threshold.
+          adverse_shift_tolerance: 1.0
+          metric: shield_equivalent_terminal_destruction_per_committed_step
+          observation_window: first_authoritative_same-turn_snapshot_after_commit
+          censoring: no_same-turn-authoritative-snapshot
+      arms:
+        baseline:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_combat_operation_authority_enabled: false
+          pressure_combat_operations_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_native_combat_probabilities_enabled: true
+          pressure_operation_lifecycle_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_resource_scheduler_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+        treatment:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_combat_operation_authority_enabled: true
+          pressure_combat_operations_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_native_combat_probabilities_enabled: true
+          pressure_operation_lifecycle_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_resource_scheduler_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-combat-operation-material-authority-pilot-v1
+        count: 30
+        minimum: 6300000
+        maximum: 6399999
     # Retained zero-exposure diagnostic: 156 treatment proposals were all
     # protected holds or unsafe sole-defender moves, so the exact gate
     # correctly exposed no authority opportunity.

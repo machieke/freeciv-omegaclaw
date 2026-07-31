@@ -516,6 +516,60 @@ def _validate_paired_impact(value):
             raise ValueError("{}.planned_pairs must equal its predeclared seed count".format(prefix))
         if purpose == "pilot" and len(seeds) < minimum_pairs:
             raise ValueError("{} requires at least {} pilot pairs".format(prefix, minimum_pairs))
+        mechanism_design = cohort.get("mechanism_design")
+        if mechanism_design is not None:
+            if (
+                    not isinstance(mechanism_design, dict)
+                    or set(mechanism_design) != {
+                        "declared_operation_types",
+                        "friendly_terminal_loss",
+                        "schema_version",
+                    }
+                    or mechanism_design.get("schema_version") != "1.0"):
+                raise ValueError(
+                    "{}.mechanism_design must use the exact 1.0 schema"
+                    .format(prefix))
+            operation_types = mechanism_design.get(
+                "declared_operation_types")
+            if (
+                    not isinstance(operation_types, list)
+                    or not operation_types
+                    or len(operation_types) != len(set(operation_types))
+                    or any(
+                        not isinstance(operation_type, str)
+                        or not operation_type.strip()
+                        for operation_type in operation_types)):
+                raise ValueError(
+                    "{}.mechanism_design declared operation types are invalid"
+                    .format(prefix))
+            friendly_loss = mechanism_design.get(
+                "friendly_terminal_loss")
+            if (
+                    not isinstance(friendly_loss, dict)
+                    or set(friendly_loss) != {
+                        "adverse_shift_tolerance",
+                        "censoring",
+                        "metric",
+                        "observation_window",
+                    }
+                    or friendly_loss.get("metric")
+                    != "shield_equivalent_terminal_destruction_per_committed_step"
+                    or friendly_loss.get("observation_window")
+                    != "first_authoritative_same-turn_snapshot_after_commit"
+                    or friendly_loss.get("censoring")
+                    != "no_same-turn-authoritative-snapshot"):
+                raise ValueError(
+                    "{}.mechanism_design friendly terminal loss is invalid"
+                    .format(prefix))
+            loss_tolerance = friendly_loss.get(
+                "adverse_shift_tolerance")
+            if (
+                    isinstance(loss_tolerance, bool)
+                    or not isinstance(loss_tolerance, (int, float))
+                    or not 0.0 <= float(loss_tolerance) <= 100.0):
+                raise ValueError(
+                    "{}.mechanism_design adverse loss tolerance must be in "
+                    "0..100".format(prefix))
         if purpose in ("diagnostic", "pilot", "confirmatory") and not cohort[
                 "require_clean_source"]:
             raise ValueError("{} must require a clean source tree".format(prefix))
