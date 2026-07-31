@@ -1,0 +1,544 @@
+{
+  "arms": {
+    "baseline": {
+      "authority": {
+        "action_types": {
+          "unit_attack": 46
+        },
+        "operation_types": {
+          "attack_then_conditional_attack": 46
+        },
+        "policy_authority_values": {
+          "False": 46
+        },
+        "row_count": 46
+      },
+      "duplicate_selected_targets": [],
+      "event_counts": {
+        "operation_abandoned": 12,
+        "operation_activated": 46,
+        "operation_blocked": 65,
+        "operation_completed": 84,
+        "operation_expired": 23,
+        "operation_failed": 0,
+        "operation_proposed": 1049,
+        "operation_reserved": 119,
+        "operation_step_committed": 47,
+        "operation_step_revalidated": 123,
+        "operation_step_selected": 125
+      },
+      "hard_current_reservation_conflicts": [],
+      "immediate_terminal_loss": {
+        "calibration_residual_vs_expected_upper": 0.5265248226950352,
+        "censored_commits": 0,
+        "expected_mean": {
+          "lower": 0.7819148936170212,
+          "upper": 0.9628368794326243
+        },
+        "observation_count": 47,
+        "realized_mean": 1.4893617021276595,
+        "scope": "immediate-terminal-destruction-only"
+      },
+      "lifecycle": {
+        "activated_adverse": 1,
+        "activated_completed": 45,
+        "activated_unique": 46,
+        "activation_rate_per_selection": 0.3865546218487395,
+        "adverse_terminal_rate_per_activation": 0.021739130434782608,
+        "adverse_terminal_rate_per_selection": 0.29411764705882354,
+        "committed_unique": 46,
+        "completion_rate_per_activation": 0.9782608695652174,
+        "completion_rate_per_selection": 0.7058823529411765,
+        "selected_adverse": 35,
+        "selected_completed": 84,
+        "selected_unique": 119
+      },
+      "nonpositive_activations": [],
+      "partial_activations": [],
+      "scheduler_latency_ms": {
+        "maximum": 40.208593010902405,
+        "p50": 0.0,
+        "p95": 0.0,
+        "positive_p95": 14.215440955013037,
+        "positive_sample_count": 217,
+        "sample_count": 9310
+      }
+    },
+    "treatment": {
+      "authority": {
+        "action_types": {
+          "unit_attack": 80
+        },
+        "operation_types": {
+          "attack_then_conditional_attack": 80
+        },
+        "policy_authority_values": {
+          "True": 80
+        },
+        "row_count": 80
+      },
+      "duplicate_selected_targets": [],
+      "event_counts": {
+        "operation_abandoned": 0,
+        "operation_activated": 80,
+        "operation_blocked": 12,
+        "operation_completed": 81,
+        "operation_expired": 21,
+        "operation_failed": 1,
+        "operation_proposed": 1022,
+        "operation_reserved": 103,
+        "operation_step_committed": 83,
+        "operation_step_revalidated": 153,
+        "operation_step_selected": 189
+      },
+      "hard_current_reservation_conflicts": [],
+      "immediate_terminal_loss": {
+        "calibration_residual_vs_expected_upper": -0.3609036144578306,
+        "censored_commits": 0,
+        "expected_mean": {
+          "lower": 1.228192771084337,
+          "upper": 1.445240963855421
+        },
+        "observation_count": 83,
+        "realized_mean": 1.0843373493975903,
+        "scope": "immediate-terminal-destruction-only"
+      },
+      "lifecycle": {
+        "activated_adverse": 1,
+        "activated_completed": 79,
+        "activated_unique": 80,
+        "activation_rate_per_selection": 0.7766990291262136,
+        "adverse_terminal_rate_per_activation": 0.0125,
+        "adverse_terminal_rate_per_selection": 0.21359223300970873,
+        "committed_unique": 80,
+        "completion_rate_per_activation": 0.9875,
+        "completion_rate_per_selection": 0.7864077669902912,
+        "selected_adverse": 22,
+        "selected_completed": 81,
+        "selected_unique": 103
+      },
+      "nonpositive_activations": [],
+      "partial_activations": [],
+      "scheduler_latency_ms": {
+        "maximum": 44.7618761099875,
+        "p50": 0.0,
+        "p95": 0.0,
+        "positive_p95": 10.159808676689863,
+        "positive_sample_count": 206,
+        "sample_count": 9703
+      }
+    }
+  },
+  "authority": {
+    "claim_status": "bounded-mechanism-pilot",
+    "policy_authority_eligible": true,
+    "score_claim_eligible": false
+  },
+  "captured_replay": {
+    "path": "benchmarks/gdo/gdo5_combat_operation_captured_diagnostic.json",
+    "report_hash": "da172ebe3292822ffb89618e95a9dfb680879a487d2b761064fc8ceed43c7502",
+    "sha256": "ae48c141cf38a6883a298d46d805a6fb28c3a7c518b4bb8ee2440d19b852a70e"
+  },
+  "cohort": {
+    "aggregate_path": "impact-aggregate.json",
+    "aggregate_sha256": "4c601e12e180b455503e737c5368482fd62e0b8dad93a60f5a73565d400086c2",
+    "complete_pairs": 30,
+    "configuration_hash": "e254da1ba24fb789e1189d0efd9520fdecd0ee9538ffee1bb9b960e456c848e8",
+    "id": "combat_operation_material_atomic_repair_pilot_v1",
+    "primary_score_delta": {
+      "estimate": 2.3666666666666667,
+      "lower": -0.8333333333333334,
+      "method": "paired_bootstrap_delta",
+      "n": 30,
+      "paired_seeds": [
+        6500760,
+        6504041,
+        6518975,
+        6519347,
+        6521414,
+        6521620,
+        6523065,
+        6524360,
+        6525265,
+        6525811,
+        6534979,
+        6535821,
+        6540228,
+        6541284,
+        6545386,
+        6552263,
+        6553163,
+        6554365,
+        6556143,
+        6557228,
+        6566677,
+        6567909,
+        6571136,
+        6575019,
+        6576105,
+        6577554,
+        6577766,
+        6580476,
+        6592815,
+        6597105
+      ],
+      "upper": 5.8
+    },
+    "purpose": "pilot",
+    "source_freeze": {
+      "commits": [
+        "c31c5ee5c8965be86d0773f4352cb8bafd815248"
+      ],
+      "dirty_games": [],
+      "implementation_sha256s": [
+        "a0324c3fe75fc6e316c5cb752e5e3cee3ddfad4ed98c4bf156bdf00a89db2f24"
+      ],
+      "passed": true,
+      "required": true,
+      "run_source_stable": true,
+      "unavailable_games": []
+    }
+  },
+  "deltas": {
+    "adverse_terminal_rate_per_selection": -0.08052541404911481,
+    "completion_rate_per_selection": 0.08052541404911473,
+    "friendly_terminal_loss_calibration_residual": -0.8874284371528658
+  },
+  "gates": {
+    "captured_atomic_lower_duplicate_targeting_than_b1": true,
+    "fresh_directional_mechanism_benefit": true,
+    "hard_current_reservation_conflicts_zero": true,
+    "no_adverse_friendly_terminal_loss_shift_beyond_predeclared_tolerance": true,
+    "nonpositive_material_activations_zero": true,
+    "partial_current_activation_zero": true,
+    "policy_authority_limited_to_declared_operation_types": true,
+    "scheduler_p95_below_50_ms": true,
+    "selected_target_conflicts_zero": true,
+    "source_freeze_passed": true,
+    "trace_validation_passed": true
+  },
+  "pilot_gate_passed": true,
+  "predeclared_mechanism_design": {
+    "declared_operation_types": [
+      "attack_then_conditional_attack"
+    ],
+    "friendly_terminal_loss": {
+      "adverse_shift_tolerance": 1.0,
+      "censoring": "no_same-turn-authoritative-snapshot",
+      "metric": "shield_equivalent_terminal_destruction_per_committed_step",
+      "observation_window": "first_authoritative_same-turn_snapshot_after_commit"
+    },
+    "present": true,
+    "tolerance_predeclared": true
+  },
+  "report_hash": "db748b269690276cc9b5a3f506abe6281a84c42a2da4c17c2b2a2a5a8f95dc65",
+  "report_schema_version": "1.0",
+  "trace_sources": [
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6500760-00/events.jsonl",
+      "sha256": "cae8fa57c351e5419f6df192f1f2c3480c50b1c11486ee89cf36c7f196e1c4ae"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6504041-00/events.jsonl",
+      "sha256": "05f390635b2f2bc26a8da33335fcd6dfe5a7a770b177b8fdc40a79207bac0e83"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6518975-00/events.jsonl",
+      "sha256": "3175aa985d2aface0786ebb147e73e841115f1cd809c810307e031a3de68b051"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6519347-00/events.jsonl",
+      "sha256": "56672d3b9ad0f0c73ca72db3b631853487814d51b69b9738ead13860ef328285"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6521414-00/events.jsonl",
+      "sha256": "8065f097c6a117128e23390b0bd57eb03fbe862bc7ceedd33efa6716cdd02059"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6521620-00/events.jsonl",
+      "sha256": "53e4cb0463eb7116a158327fad0c3787a84a299111fc349308420d5875385d0b"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6523065-00/events.jsonl",
+      "sha256": "9b69dc0e6d1bd959372ec4cdb63898d78234ebbc9233976a623c0d52ad6356d2"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6524360-00/events.jsonl",
+      "sha256": "442f6954659dc4044a50d05808f640f2e68ab30755ae56c83d9609560c414b69"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6525265-00/events.jsonl",
+      "sha256": "d784f8a8e0ce4bd56c11bc47a0ee10cdf72366fcb13ac0c941614a5e51fd0508"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6525811-00/events.jsonl",
+      "sha256": "46190b072fcb525f182bb2faf012c7ff702a583494e8a34035b240f997d78fd1"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6534979-00/events.jsonl",
+      "sha256": "2e0702b649f5e2b938963136f717525555a43d647ee3a6b28f4140741d74abd9"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6535821-00/events.jsonl",
+      "sha256": "df80abae320e8b0f05ec62def4fa84baf52a08bd5b81a9d746bfd513ad3e6e75"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6540228-00/events.jsonl",
+      "sha256": "f076dd7d6c818a719fe12bf8e9ac1bd57ee9d1f42c746d2d3de36f16fde67b49"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6541284-00/events.jsonl",
+      "sha256": "7838bf8ede7d157ac099be636249dace7ab3f7a335b11333c1805f83c31f4188"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6545386-00/events.jsonl",
+      "sha256": "96c516e1ac9b3ca2186af095b29792b4acc0edaf1e95733cc018e4faeda6605b"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6552263-00/events.jsonl",
+      "sha256": "a51ecf6a41e4bdfb994d3e726e7b557a842d9f384d4b91c848f39804cab008dc"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6553163-00/events.jsonl",
+      "sha256": "f80e6d9dbea20d0ac5760f7c70649098a8daae6991900ba9ad51299bf2ebc6c6"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6554365-00/events.jsonl",
+      "sha256": "ce19feef8e52ac025100dc25d1b333721f52be75f682391b82160e7ad0c7d43d"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6556143-00/events.jsonl",
+      "sha256": "12274460fee00a626a3eb16eafa37bdd639beb96bc77b5b35d3911a3f86b4e9d"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6557228-00/events.jsonl",
+      "sha256": "c63d64ebcac38ec8633403e33e2e7751626be2542cfbe2b6a4fbba2363797cf8"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6566677-00/events.jsonl",
+      "sha256": "ddd04104d6a47185ccd017a0c6d38c4f7e01c924842b88c985fe888703754657"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6567909-00/events.jsonl",
+      "sha256": "92df55f3bdffa18271154438ef68e7835679b5bdd1c8e337a338f6725a25611f"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6571136-00/events.jsonl",
+      "sha256": "2af8a8ed12adfebadfa4014c7598c776bb474c7c011ab322b6f966d74435d774"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6575019-00/events.jsonl",
+      "sha256": "80d618ad7663d356993496ce886d1936861c04b2e0dcf5ae3e78b45dd456659d"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6576105-00/events.jsonl",
+      "sha256": "166a893b5217fb55da65b748c26a4bfe107526e25c18690951bee30e3ea20b10"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6577554-00/events.jsonl",
+      "sha256": "267216da74474c3889b112f80615d3069b468c37c6d11613f8383e9df5e2ee19"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6577766-00/events.jsonl",
+      "sha256": "5e43f48fd3066e1c4f5e3a64e4a851812d091ea78dd8cbc9f90ca72f21038714"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6580476-00/events.jsonl",
+      "sha256": "4ff920029ccb4967908244772a358919867b861b7c89f306ff1e7153dc97fcad"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6592815-00/events.jsonl",
+      "sha256": "d541fac6107c3ecc09f8e230fde8ed3a78b39eb8c992eac4e3f73e92d2932add"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/baseline/e_full_loop/6597105-00/events.jsonl",
+      "sha256": "8b83d98b7520ef352700252b78454ee611de0e75d018522007c18b4476c0cf73"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6500760-00/events.jsonl",
+      "sha256": "91e1fd103cefd54ef699c714ddd3c4a2ea4db4e2036a5f8c0d3fd55f143f5875"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6504041-00/events.jsonl",
+      "sha256": "e3118638dac317bd23a571dcbf97d1ce29e2edcdf750cb2b678f36ab63d255e9"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6518975-00/events.jsonl",
+      "sha256": "a3fc70f4956f00c9f42a97438db691b69d141c9f0af1aae34f0aecda80bec07d"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6519347-00/events.jsonl",
+      "sha256": "087292e3fd988dbd23f203f198618322e79285c40f80134dd722abdfb21e7cbc"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6521414-00/events.jsonl",
+      "sha256": "6c35a6e49b5ae0bfe099eea763f3d50340b13e949bac6432876fec204f0e7b76"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6521620-00/events.jsonl",
+      "sha256": "86a215706119ea8a7c9aa0890688ca99e6bade02ccb859430812715d3bbd7001"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6523065-00/events.jsonl",
+      "sha256": "1b893f5cfa92a29f2ca8047a00ace72a715e75de527c34af34c9cb5b25d1e654"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6524360-00/events.jsonl",
+      "sha256": "79aa5db5316bb3db237e0d8714e5c0ac055322ec9a5bb339071c09b3fbc37f85"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6525265-00/events.jsonl",
+      "sha256": "5c46639158731b98178682aefeaa743c9a5ea30c5a27f53e82268bab2a86d88a"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6525811-00/events.jsonl",
+      "sha256": "17af88295e2df7bb1e6de5e092bf9bc84f850dee8fabd9b4c1d9fc27fc2d6bf6"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6534979-00/events.jsonl",
+      "sha256": "4dde6550f97a5bb221c0ea9f93c11bb384276109b6aa5b9d9937eff090d8faa7"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6535821-00/events.jsonl",
+      "sha256": "d309c76b436d9226b30afbf104e8a8eaa68bc91d249f29fbc1c0574cb673d7b9"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6540228-00/events.jsonl",
+      "sha256": "54b2d756bf01e9f736c5f976c37f6f09a1255b4869905b2758fd4ebd0a43d0a6"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6541284-00/events.jsonl",
+      "sha256": "2ff154cdd3aecb7aac7dbd16625e1e737b244555a6909f3e49cdf0ec2b003c1b"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6545386-00/events.jsonl",
+      "sha256": "8610fe0d5f5c4e1ad005e751d50c80732daf8180c9819e4266e21113c6f61ec3"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6552263-00/events.jsonl",
+      "sha256": "1fda3712e0476fd262c5254dcadf29e8a7719dc106088fbec232e0fd912f62d0"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6553163-00/events.jsonl",
+      "sha256": "06e8f1f6d9a56f6e5096dc8e723cc9aae46b9f565562e1f70faf121fda1df056"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6554365-00/events.jsonl",
+      "sha256": "2b4e207f06a84508975322e70b8a2a2d9139a3f9526b66c469f63338efe4eae6"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6556143-00/events.jsonl",
+      "sha256": "12a0328bcb5d6fd574af4910335da36575faab4ab7ad6d4435ae30d16a9f59ab"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6557228-00/events.jsonl",
+      "sha256": "bd862535f386577a7c6b4e414cd3f2ae7f19040c70cb836fa3b27c8453131c62"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6566677-00/events.jsonl",
+      "sha256": "f1bcd24d4d9f5f3ffe17fc7225003804a5bd25c8b5b99a79b4ebdee33fcc03fb"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6567909-00/events.jsonl",
+      "sha256": "e820dbd91ed4ec1a62b9d4c4118320d92c3e0c88bd0005ef7b0c83c889c92232"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6571136-00/events.jsonl",
+      "sha256": "7789c38c954103ec31c671e4a0664e732157c08beef56db1de76e10d6f454622"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6575019-00/events.jsonl",
+      "sha256": "91876864c51079c5bd81be390c84da6f396047447c9e4be48dd0aacd69da8f2a"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6576105-00/events.jsonl",
+      "sha256": "da16d2c422bf2ec8f0926ea055b900cf2a94245f2a971c3d7aa398e436f361d4"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6577554-00/events.jsonl",
+      "sha256": "84da778e466bdd222ef9dac79f697abc8ec04b6a15d637cec15508c01e38edea"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6577766-00/events.jsonl",
+      "sha256": "93d5e8e5f786bd123a0896ccc609748a4b6eab8274d8f770ea3517cb0cc32c4c"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6580476-00/events.jsonl",
+      "sha256": "6172cfba79cc03dd8992765c841629b3bb8109960460b1f4d907f24472628cc2"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6592815-00/events.jsonl",
+      "sha256": "bad268875e1c7f06e65af8dd286ee3c17da8e2ce7e28bed63b1361acaaf355d1"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_atomic_repair_pilot_v1/treatment/e_full_loop/6597105-00/events.jsonl",
+      "sha256": "fa54ffcebbe5d0d6a79979c3f630f28167baa024502af0ebe5b1ed7b85d61a41"
+    }
+  ],
+  "trace_validation": {
+    "error_count": 0,
+    "event_count": 1805576,
+    "valid": true,
+    "warning_count": 0
+  }
+}
