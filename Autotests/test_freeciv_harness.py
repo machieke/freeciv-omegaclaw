@@ -13,6 +13,7 @@ from unittest import mock
 
 import jsonschema
 import pytest
+import yaml
 
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -196,6 +197,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "city_defense_immediate_fortify_authority_pilot_v3": 30,
             "city_defense_immediate_fortify_authority_pilot_v4": 30,
             "city_defense_immediate_fortify_authority_pilot_v5": 30,
+            "city_defense_immediate_fortify_authority_pilot_v6": 30,
             "calibrated_scalar_diagnostic_v1": 10,
             "protected_bridge_readout_diagnostic_v1": 10,
             "corrected_probe_readout_diagnostic_v1": 10,
@@ -446,6 +448,57 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "count": 30,
             "minimum": 7100000,
             "maximum": 7199999,
+        }
+    process_isolation_confirmation = paired["cohorts"][
+        "city_defense_immediate_fortify_authority_pilot_v6"]
+    assert process_isolation_confirmation[
+        "controller_worker_execution"
+    ] == "process_isolated"
+    assert process_isolation_confirmation[
+        "city_defense_mechanism_design"] == {
+            "analyzed_action_scope": (
+                "declared_operation_types_plus_immediate_interception_"
+                "legal_context"),
+            "city_loss_metric": (
+                "selected_at_risk_city_identity_disappearance_by_deadline"),
+            "controller_isolation":
+                "process_per_worker",
+            "declared_operation_types": [
+                "fortify_existing_defender",
+            ],
+            "fortify_completion_states": [
+                "fortify",
+                "fortifying",
+                "fortified",
+            ],
+            "latency": {
+                "full_loop_p95_ratio_ceiling":
+                    1.15,
+                "preparation_p95_ceiling_ms":
+                    50.0,
+            },
+            "no_visible_threat_fast_path": (
+                "no_authority_without_visible_enemy"),
+            "schema_version": "1.4",
+            "sole_defender_metric": (
+                "authority_unit_move_while_actor_protected_in_same_snapshot"),
+            "typed_winner_change": {
+                "minimum_coverage": 0.90,
+            },
+            "uncovered_threat_turn_metric": (
+                "unique_selected_city_snapshot_observations_minus_unique_"
+                "activations"),
+            "unsupported_fallback":
+                "exact_b1_ordering",
+        }
+    assert process_isolation_confirmation[
+        "seed_derivation"] == {
+            "algorithm": "sha256-counter-v1",
+            "namespace": (
+                "pf-pln-city-defense-immediate-fortify-authority-pilot-v6"),
+            "count": 30,
+            "minimum": 7200000,
+            "maximum": 7299999,
         }
     score_derivation = paired["cohorts"]["confirmatory_score"]["seed_derivation"]
     assert score_derivation == {
@@ -1120,7 +1173,7 @@ def test_config_rejects_unfrozen_city_defense_schema_1_2_scope():
             stream.write(source)
             with pytest.raises(
                     ValueError,
-                    match="exact 1.0, 1.1, 1.2, or 1.3 schema"):
+                    match="exact 1.0, 1.1, 1.2, 1.3, or 1.4 schema"):
                 load(path)
 
 
@@ -1176,7 +1229,44 @@ def test_combat_scenario_override_is_manifested_and_rejects_seed_drift():
         with pytest.raises(
                 ValueError,
                 match="startunits is invalid"):
-            load(path)
+                load(path)
+
+
+def test_config_rejects_unknown_or_unbound_process_worker_execution():
+    source = open(os.path.join(
+        REPO, "profile",
+        "freeciv_harness.yaml"),
+        encoding="utf-8").read()
+    with tempfile.TemporaryDirectory() as directory:
+        unknown_path = os.path.join(
+            directory,
+            "unknown-worker-execution.yaml")
+        with open(
+                unknown_path, "w",
+                encoding="utf-8") as stream:
+            stream.write(source.replace(
+                "      controller_worker_execution: process_isolated\n",
+                "      controller_worker_execution: green_threads\n",
+                1))
+        with pytest.raises(
+                ValueError,
+                match="controller_worker_execution"):
+            load(unknown_path)
+
+        unbound_path = os.path.join(
+            directory,
+            "unbound-worker-execution.yaml")
+        with open(
+                unbound_path, "w",
+                encoding="utf-8") as stream:
+            stream.write(source.replace(
+                "      controller_worker_execution: process_isolated\n",
+                "      controller_worker_execution: thread\n",
+                1))
+        with pytest.raises(
+                ValueError,
+                match="exact 1.0, 1.1, 1.2, 1.3, or 1.4 schema"):
+            load(unbound_path)
 
 
 def test_wilson_and_paired_bootstrap_are_bounded_and_deterministic():
@@ -2882,6 +2972,93 @@ def test_parallel_impact_execution_keeps_each_pair_serial_on_one_worker(monkeypa
                       key=lambda row: row[0])
         assert [row[2] for row in rows] == [0, 1]
         assert {row[4] for row in rows} == {pair_index % 3}
+
+
+def test_process_isolated_impact_execution_preserves_pair_and_worker_identity():
+    source = os.path.join(
+        REPO,
+        "profile",
+        "freeciv_harness.yaml")
+    with open(
+            source,
+            encoding="utf-8") as stream:
+        config = yaml.safe_load(
+            stream)
+    development = config[
+        "paired_impact"]["cohorts"][
+            "development"]
+    development[
+        "controller_workers"] = 2
+    development[
+        "controller_worker_execution"
+    ] = "process_isolated"
+
+    with tempfile.TemporaryDirectory() as directory:
+        config_path = os.path.join(
+            directory,
+            "process-isolated.yaml")
+        with open(
+                config_path, "w",
+                encoding="utf-8") as stream:
+            yaml.safe_dump(
+                config,
+                stream,
+                sort_keys=False)
+        out = os.path.join(
+            directory, "out")
+        runner = HarnessRunner(
+            out,
+            config_path=config_path,
+            workers=2,
+            seed_limit=2,
+            conditions=(
+                "e_full_loop",))
+        summary = runner.run_impact_pairs(
+            resume=False)
+
+        manifests = []
+        for root, _, files in os.walk(
+                os.path.join(
+                    out, "games")):
+            if "manifest.json" in files:
+                manifests.append(json.load(
+                    open(
+                        os.path.join(
+                            root,
+                            "manifest.json"),
+                        encoding="utf-8")))
+
+    assert summary[
+        "controller_worker_execution"
+    ] == "process_isolated"
+    assert summary["completed"] == 4
+    assert summary[
+        "infrastructure_failures"] == 0
+    assert len(manifests) == 4
+    for pair_index in (0, 1):
+        rows = [
+            row for row in manifests
+            if row["impact_pair"][
+                "pair_index"] == pair_index
+        ]
+        assert {
+            row["impact_pair"][
+                "within_pair_order"]
+            for row in rows
+        } == {0, 1}
+        assert {
+            row["worker"]
+            for row in rows
+        } == {
+            pair_index % 2,
+        }
+        assert {
+            row[
+                "controller_worker_execution"]
+            for row in rows
+        } == {
+            "process_isolated",
+        }
 
 
 def test_parallel_cohort_requires_predeclared_worker_count():

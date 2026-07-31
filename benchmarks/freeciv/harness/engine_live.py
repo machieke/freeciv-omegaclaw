@@ -7,6 +7,7 @@ player connection's packet-visible foreign units.
 
 import asyncio
 from datetime import datetime
+import fcntl
 import json
 import math
 import os
@@ -27,6 +28,7 @@ from freeciv_agent.events.writer import EventWriter
 from freeciv_agent.llm import GoalGrader, ProposalParser, SymbolCatalog
 from freeciv_agent.monitoring import AtomRevision, LocalRepairer, PlanMonitor
 from freeciv_agent.oracle import CrispStateView, DependencyOracle, Goal
+from freeciv_agent.paths import REPO_ROOT
 from freeciv_agent.pf_runtime import (
     emit_runtime_activation,
     validate_runtime_activation,
@@ -55,6 +57,38 @@ _STACK_LOCK = threading.RLock()
 _LAST_CLEAN_SERVER_PIDS = {}
 SELECTION_CALL_POLICY = "canonical-singleton-bypass-v1"
 READINESS_POLICY = "chat-once-expiry-aware-resident-v2"
+
+
+def _acquire_model_readiness_process_lock(timeout):
+    """Serialize a cold-model readiness call across worker processes."""
+    path = os.path.join(
+        REPO_ROOT,
+        "artifacts",
+        "freeciv",
+        ".model-readiness.lock")
+    os.makedirs(
+        os.path.dirname(path),
+        exist_ok=True)
+    stream = open(
+        path, "a+",
+        encoding="utf-8")
+    deadline = (
+        time.monotonic()
+        + float(timeout))
+    while True:
+        try:
+            fcntl.flock(
+                stream.fileno(),
+                fcntl.LOCK_EX
+                | fcntl.LOCK_NB)
+            return stream
+        except BlockingIOError:
+            if time.monotonic() >= deadline:
+                stream.close()
+                raise RuntimeError(
+                    "model readiness budget exhausted waiting for "
+                    "process lock")
+            time.sleep(0.05)
 
 
 def _websocket_compression():
@@ -283,7 +317,11 @@ def _ollama_readiness(manifest):
     # cold model load is never duplicated or CPU-contended.
     if not _MODEL_READINESS_LOCK.acquire(timeout=timeout):
         raise RuntimeError("model readiness budget exhausted waiting for local model")
+    process_lock = None
     try:
+        process_lock = (
+            _acquire_model_readiness_process_lock(
+                timeout))
         if readiness_key in _MODEL_READINESS_VERIFIED:
             resident = _ollama_model_residency(
                 native_endpoint, manifest["model"], timeout)
@@ -323,6 +361,13 @@ def _ollama_readiness(manifest):
         })
         return result
     finally:
+        if process_lock is not None:
+            try:
+                fcntl.flock(
+                    process_lock.fileno(),
+                    fcntl.LOCK_UN)
+            finally:
+                process_lock.close()
         _MODEL_READINESS_LOCK.release()
 
 

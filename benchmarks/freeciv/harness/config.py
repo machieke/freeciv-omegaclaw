@@ -449,6 +449,22 @@ def _validate_paired_impact(value):
                 or not isinstance(controller_workers, int)
                 or not 1 <= controller_workers <= 9):
             raise ValueError("{}.controller_workers must be in 1..9".format(prefix))
+        controller_worker_execution = cohort.get(
+            "controller_worker_execution",
+            "thread")
+        if controller_worker_execution not in (
+                "thread",
+                "process_isolated"):
+            raise ValueError(
+                "{}.controller_worker_execution must be thread or "
+                "process_isolated".format(prefix))
+        if (
+                controller_worker_execution
+                == "process_isolated"
+                and controller_workers < 2):
+            raise ValueError(
+                "{} process-isolated execution requires at least two "
+                "controller workers".format(prefix))
         release_game_config = cohort.get(
             "release_game_config", {})
         if (not isinstance(release_game_config, dict)
@@ -596,6 +612,7 @@ def _validate_paired_impact(value):
                     "1.1",
                     "1.2",
                     "1.3",
+                    "1.4",
                 )
                 and city_defense_design.get(
                     "city_loss_metric")
@@ -641,6 +658,30 @@ def _validate_paired_impact(value):
                     "no_visible_threat_fast_path")
                 == (
                     "no_authority_without_visible_enemy"))
+            city_defense_v5 = (
+                city_defense_schema == "1.4"
+                and city_defense_v2
+                and city_defense_design.get(
+                    "analyzed_action_scope")
+                == (
+                    "declared_operation_types_plus_immediate_"
+                    "interception_legal_context")
+                and city_defense_design.get(
+                    "fortify_completion_states")
+                == [
+                    "fortify",
+                    "fortifying",
+                    "fortified",
+                ]
+                and city_defense_design.get(
+                    "no_visible_threat_fast_path")
+                == (
+                    "no_authority_without_visible_enemy")
+                and city_defense_design.get(
+                    "controller_isolation")
+                == "process_per_worker"
+                and controller_worker_execution
+                == "process_isolated")
             expected_city_defense_keys = {
                 "city_loss_metric",
                 "declared_operation_types",
@@ -659,6 +700,13 @@ def _validate_paired_impact(value):
             elif city_defense_schema == "1.3":
                 expected_city_defense_keys.update({
                     "analyzed_action_scope",
+                    "fortify_completion_states",
+                    "no_visible_threat_fast_path",
+                })
+            elif city_defense_schema == "1.4":
+                expected_city_defense_keys.update({
+                    "analyzed_action_scope",
+                    "controller_isolation",
                     "fortify_completion_states",
                     "no_visible_threat_fast_path",
                 })
@@ -683,10 +731,11 @@ def _validate_paired_impact(value):
                             and city_defense_schema
                             == "1.1")
                         or city_defense_v3
-                        or city_defense_v4)):
+                        or city_defense_v4
+                        or city_defense_v5)):
                 raise ValueError(
                     "{}.city_defense_mechanism_design must use the exact "
-                    "1.0, 1.1, 1.2, or 1.3 schema".format(prefix))
+                    "1.0, 1.1, 1.2, 1.3, or 1.4 schema".format(prefix))
             operation_types = (
                 city_defense_design.get(
                     "declared_operation_types"))
@@ -713,14 +762,15 @@ def _validate_paired_impact(value):
                         "1.1",
                         "1.2",
                         "1.3",
+                        "1.4",
                     )
                     and operation_types
                     != [
                         "fortify_existing_defender",
                     ]):
                 raise ValueError(
-                    "{}.city_defense_mechanism_design 1.1/1.2/1.3 authority "
-                    "must be "
+                    "{}.city_defense_mechanism_design 1.1/1.2/1.3/1.4 "
+                    "authority must be "
                     "limited to fortify_existing_defender".format(prefix))
             latency = city_defense_design.get(
                 "latency")

@@ -89,11 +89,47 @@ def _source_identity():
             "implementation_sha256": digest.hexdigest(), "source_files": len(files)}
 
 
+def _run_process_isolated_impact_bucket(spec):
+    """Execute one serial pair bucket in its own controller process."""
+    runner = HarnessRunner(
+        spec["out"],
+        config_path=spec["config_path"],
+        backend=spec["backend"],
+        workers=spec["workers"],
+        base_port=spec["base_port"],
+        seed_limit=spec["seed_limit"],
+        conditions=spec["conditions"],
+        impact_cohort=spec["impact_cohort"],
+        server_ports=spec["server_ports"])
+    # Every child must stamp the exact source identity frozen by the parent
+    # immediately before execution. A child-local source scan is still
+    # performed by construction, but it cannot silently create a distinct
+    # behavioral identity for one worker.
+    if runner.source_identity != spec["source_identity"]:
+        raise RuntimeError(
+            "process-isolated worker source differs from parent freeze")
+    runner.source_identity = dict(
+        spec["source_identity"])
+    worker = int(spec["worker"])
+    return [
+        runner._run_one(
+            indexed_job,
+            spec["resume"],
+            worker=worker)
+        for indexed_job in spec["jobs"]
+    ]
+
+
 class HarnessRunner(object):
     def __init__(self, out, config_path=None, backend="representative",
                  workers=1, base_port=6100, seed_limit=None, conditions=None,
                  impact_cohort=None, server_ports=None):
         self.out = os.path.abspath(out)
+        self.config_path = (
+            None
+            if config_path is None
+            else os.path.abspath(
+                config_path))
         self.config = load(config_path)
         self.backend = backend
         self.workers = max(1, int(workers))
@@ -195,6 +231,12 @@ class HarnessRunner(object):
                 "arms", self.config["paired_impact"]["arms"])
             impact_policy.update(arm_design[arm])
             impact_policy["horizon_turn"] = horizon_turn
+        controller_worker_execution = (
+            cohort_design.get(
+                "controller_worker_execution",
+                "thread")
+            if arm is not None
+            else "thread")
         material = {
             "backend": self.backend, "beliefs": self.config["beliefs"],
             "capabilities": self.config["capabilities"][job["condition"]],
@@ -204,6 +246,8 @@ class HarnessRunner(object):
             # identity even though the individual worker slot and port remain
             # operational details.
             "controller_workers": self.workers,
+            "controller_worker_execution":
+                controller_worker_execution,
             "engine": self.config["engine"], "game_id": game_id,
             "impact_policy": impact_policy,
             "machine_profile": self.config["machine_profile"],
@@ -429,12 +473,45 @@ class HarnessRunner(object):
                 worker = pair[0][1]["pair_index"] % self.workers
                 buckets[worker].extend(pair)
 
-            def run_pair_bucket(worker):
-                return [self._run_one(job, resume, worker=worker)
-                        for job in buckets[worker]]
+            worker_execution = cohort.get(
+                "controller_worker_execution",
+                "thread")
+            if worker_execution == "process_isolated":
+                specs = [{
+                    "backend": self.backend,
+                    "base_port": self.base_port,
+                    "conditions": self.conditions,
+                    "config_path": self.config_path,
+                    "impact_cohort":
+                        self.impact_cohort,
+                    "jobs": buckets[worker],
+                    "out": self.out,
+                    "resume": bool(resume),
+                    "seed_limit":
+                        self.seed_limit,
+                    "server_ports":
+                        self.server_ports,
+                    "source_identity":
+                        self.source_identity,
+                    "worker": worker,
+                    "workers": self.workers,
+                } for worker in range(
+                    self.workers)]
+                with concurrent.futures.ProcessPoolExecutor(
+                        max_workers=self.workers) as pool:
+                    grouped = list(pool.map(
+                        _run_process_isolated_impact_bucket,
+                        specs))
+            else:
+                def run_pair_bucket(worker):
+                    return [self._run_one(job, resume, worker=worker)
+                            for job in buckets[worker]]
 
-            with concurrent.futures.ThreadPoolExecutor(max_workers=self.workers) as pool:
-                grouped = list(pool.map(run_pair_bucket, range(self.workers)))
+                with concurrent.futures.ThreadPoolExecutor(
+                        max_workers=self.workers) as pool:
+                    grouped = list(pool.map(
+                        run_pair_bucket,
+                        range(self.workers)))
             results = [row for group in grouped for row in group]
         summary = {
             "backend": self.backend,
@@ -449,6 +526,10 @@ class HarnessRunner(object):
             "cohort": self.impact_cohort,
             "cohort_purpose": cohort["purpose"],
             "claim_eligible": cohort["claim_eligible"],
+            "controller_worker_execution":
+                cohort.get(
+                    "controller_worker_execution",
+                    "thread"),
             "controller_workers": self.workers,
             "pairs": len(self._impact_jobs()) // 2,
             "resumed": sum(row["resumed"] for row in results),

@@ -458,3 +458,25 @@ positive at +1.93 with interval `[-1.33, 5.93]`; fixed-horizon win-rate
 difference was 0.00 with interval `[-0.10, 0.10]`. No score or win-rate claim
 is made. Because the complete GDO-4 conjunction still failed, live authority
 remains ineligible.
+
+## Frozen process-isolation confirmation v6
+
+V5 demonstrated that the bounded city-defence artifact is fast when it owns a
+Python process, but its wall-clock preparation tail is inflated when three
+controller games share one interpreter and contend for the GIL. This is an
+evaluation/runtime isolation defect: each engine already has a dedicated
+server port, while controller computation was still multiplexed through
+threads.
+
+`city_defense_immediate_fortify_authority_pilot_v6` freezes process-per-worker
+controller execution on 30 unused paired seeds in the disjoint 7.2M range.
+Both arms use the same three isolated processes, deterministic pair-to-worker
+assignment, serial arm order within a pair, dedicated engine ports, and
+cross-process model-readiness locking. Existing cohorts retain threaded
+execution by default.
+
+The policy, city-defence analyzer, candidate scope, lifecycle, start state,
+worker count, and every mechanism and latency threshold are unchanged. V6
+must still pass the full conjunction, including 50 ms preparation p95 and
+1.15 treatment/baseline full-loop p95 ratio. It remains claim-ineligible
+regardless of score direction.
