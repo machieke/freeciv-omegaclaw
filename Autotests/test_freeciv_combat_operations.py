@@ -713,6 +713,9 @@ def test_reserved_combat_operation_completes_if_target_is_removed_externally():
         "target-neutralized")
     assert resolved[
         0].released_reservation is not None
+    assert resolved[
+        0].released_reservation.reason == (
+            "reservation-refreshed-from-new-snapshot")
     assert lifecycle.ledger.active_claims() == ()
 
 

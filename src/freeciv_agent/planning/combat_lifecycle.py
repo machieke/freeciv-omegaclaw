@@ -1,6 +1,9 @@
 """Shadow lifecycle for grounded, multi-step combat operations."""
 
-from dataclasses import dataclass
+from dataclasses import (
+    dataclass,
+    replace,
+)
 
 from ..events.schema import canonical_json_bytes
 from ..pressure.resource_capacity import (
@@ -8,6 +11,9 @@ from ..pressure.resource_capacity import (
 )
 from ..pressure.resource_ledger import (
     ResourceReservationLedger,
+)
+from ..pressure.resource_claims import (
+    GameResourceKind,
 )
 from ..pressure.resource_scheduler import (
     BoundedExactScheduler,
@@ -100,6 +106,7 @@ class CombatOperationLifecycle:
                 "combat:{}".format(
                     identity)))
         self._assemblies = {}
+        self._action_budget = 1
 
     def assembly(self, operation_id):
         return self._assemblies.get(
@@ -148,6 +155,17 @@ class CombatOperationLifecycle:
             self, assemblies, schedule,
             snapshot):
         """Register and reserve only newly selected complete operations."""
+        declared_action_budgets = [
+            capacity.quantity
+            for capacity in
+            schedule.capacities
+            if capacity.resource.kind
+            == GameResourceKind
+            .ACTION_BUDGET
+        ]
+        if declared_action_budgets:
+            self._action_budget = max(
+                declared_action_budgets)
         by_id = {
             assembly.spec.operation_id:
                 assembly
@@ -472,16 +490,31 @@ class CombatOperationLifecycle:
         if request is None:
             return None, None, None
         capacities = (
-            ResourceCapacityExtractor()
-            .extract(
-                snapshot,
-                action_budget=1)
-            .capacities
-            + combat_target_capacities(
-                (assembly,), snapshot))
+            self._current_capacities(
+                snapshot))
         return self._reserve_request(
             operation_id,
             request, capacities)
+
+    def _current_capacities(
+            self, snapshot):
+        assemblies = tuple(
+            self._assemblies[
+                record.spec.operation_id]
+            for record in
+            self.store
+            .nonterminal_records()
+            if record.spec.operation_id
+            in self._assemblies)
+        return (
+            ResourceCapacityExtractor()
+            .extract(
+                snapshot,
+                action_budget=(
+                    self._action_budget))
+            .capacities
+            + combat_target_capacities(
+                assemblies, snapshot))
 
     def _revalidate_reserved(
             self, record, snapshot):
@@ -531,14 +564,8 @@ class CombatOperationLifecycle:
                 .claims),
             requirement_set_id=None)
         capacities = (
-            ResourceCapacityExtractor()
-            .extract(
-                snapshot,
-                action_budget=len(
-                    assembly.spec.steps))
-            .capacities
-            + combat_target_capacities(
-                (assembly,), snapshot))
+            self._current_capacities(
+                snapshot))
         schedule, reservation, released = (
             self._reserve_request(
                 record.spec.operation_id,
@@ -582,6 +609,26 @@ class CombatOperationLifecycle:
 
     def observe(self, snapshot):
         """Resolve or repair each operation from a newer exact snapshot."""
+        stale_releases = {}
+        for record in (
+                self.store
+                .nonterminal_records()):
+            operation_id = (
+                record.spec.operation_id)
+            reservation = (
+                self.ledger.reservation(
+                    operation_id))
+            if (
+                    reservation is not None
+                    and reservation.active
+                    and reservation.snapshot_id
+                    != snapshot.snapshot_id
+            ):
+                stale_releases[
+                    operation_id] = (
+                        self.ledger.release(
+                            operation_id,
+                            "reservation-refreshed-from-new-snapshot"))
         updates = []
         for original in (
                 self.store
@@ -889,4 +936,16 @@ class CombatOperationLifecycle:
                     reservation=reservation,
                     released_reservation=(
                         refreshed)))
-        return tuple(updates)
+        attributed = []
+        for update in updates:
+            stale = stale_releases.pop(
+                update.operation_id,
+                None)
+            attributed.append(
+                replace(
+                    update,
+                    released_reservation=(
+                        update
+                        .released_reservation
+                        or stale)))
+        return tuple(attributed)
