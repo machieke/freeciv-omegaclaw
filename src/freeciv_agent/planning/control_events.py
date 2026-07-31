@@ -231,6 +231,48 @@ class ControlEventEmitter:
                 game_id] = lifecycle
         return lifecycle
 
+    def _active_city_defense_record(
+            self, store, payload, turn):
+        """Find the persistent operation owning a newly grounded route step."""
+        if not isinstance(payload, dict):
+            return None
+        matches = []
+        for record in (
+                store.nonterminal_records()):
+            if (record.progress.state
+                    != OperationState.ACTIVE
+                    or record.spec.expiry_turn
+                    < int(turn)):
+                continue
+            previous = (
+                self._operation_payloads
+                .get(
+                    record.spec
+                    .operation_id))
+            if (
+                    isinstance(previous, dict)
+                    and previous.get(
+                        "operation_type")
+                    == payload.get(
+                        "operation_type")
+                    and previous.get(
+                        "actor_id")
+                    == payload.get(
+                        "actor_id")
+                    and previous.get(
+                        "target_id")
+                    == payload.get(
+                        "target_id")
+            ):
+                matches.append(record)
+        if not matches:
+            return None
+        return sorted(
+            matches,
+            key=lambda row: (
+                row.spec.expiry_turn,
+                row.spec.operation_id))[0]
+
     def operation_authority_readout(
             self, writer, snapshot,
             city_defense_enabled=False,
@@ -279,7 +321,9 @@ class ControlEventEmitter:
                     .get(operation_id))
                 if (
                     record.progress.state
-                    != OperationState.RESERVED
+                    not in (
+                        OperationState.RESERVED,
+                        OperationState.ACTIVE)
                     or record.progress
                     .last_snapshot_id
                     != snapshot_id
@@ -528,7 +572,9 @@ class ControlEventEmitter:
         if (
                 record is None
                 or record.progress.state
-                != OperationState.RESERVED
+                not in (
+                    OperationState.RESERVED,
+                    OperationState.ACTIVE)
         ):
             return ()
         record = store.transition(
@@ -989,6 +1035,7 @@ class ControlEventEmitter:
             or "unknown-city-defense-snapshot")
         parents = tuple(caused_by)
         emitted = []
+        current_lifecycle_ids = set()
         operations = sorted(
             (
                 row for row
@@ -1134,9 +1181,42 @@ class ControlEventEmitter:
                 continue
             store = self._operation_store_for(
                 writer)
+            lifecycle_operation_id = (
+                operation_id)
+            active_record = (
+                self._active_city_defense_record(
+                    store, payload,
+                    int(
+                        artifact.get(
+                            "source_turn",
+                            turn))))
+            if active_record is not None:
+                lifecycle_operation_id = (
+                    active_record.spec
+                    .operation_id)
+                payload = dict(payload)
+                payload["operation_id"] = (
+                    lifecycle_operation_id)
+                payload["deadline_turn"] = (
+                    active_record.spec
+                    .expiry_turn)
+                payload["operation_digest"] = (
+                    active_record.spec
+                    .spec_digest)
+                payload["claims"] = [
+                    {
+                        **claim,
+                        "source_operation_id":
+                            lifecycle_operation_id,
+                    }
+                    if isinstance(claim, dict)
+                    else claim
+                    for claim in payload.get(
+                        "claims", ())
+                ]
             try:
                 record = store.get(
-                    operation_id)
+                    lifecycle_operation_id)
                 if record is None:
                     spec = (
                         assemble_city_defense_operation(
@@ -1156,7 +1236,7 @@ class ControlEventEmitter:
                                 "source_turn",
                                 turn)))
                     record = store.transition(
-                        operation_id,
+                        lifecycle_operation_id,
                         OperationState
                         .RESERVABLE,
                         snapshot_id,
@@ -1165,7 +1245,7 @@ class ControlEventEmitter:
                                 "source_turn",
                                 turn)))
                     record = store.transition(
-                        operation_id,
+                        lifecycle_operation_id,
                         OperationState
                         .RESERVED,
                         snapshot_id,
@@ -1175,25 +1255,27 @@ class ControlEventEmitter:
                                 turn)))
                 elif (
                     record.progress.state
-                    == OperationState.RESERVED
+                    in (
+                        OperationState.RESERVED,
+                        OperationState.ACTIVE)
                     and record.progress
                     .last_snapshot_id
                     != snapshot_id
                 ):
                     record = (
                         store.record_observation(
-                            operation_id,
+                            lifecycle_operation_id,
                             snapshot_id,
                             int(
                                 artifact.get(
                                     "source_turn",
                                     turn))))
-                if record.progress.state != (
-                        OperationState
-                        .RESERVED):
+                if record.progress.state not in (
+                        OperationState.RESERVED,
+                        OperationState.ACTIVE):
                     raise (
                         OperationTransitionError(
-                            "operation is not reservable"))
+                            "operation is not eligible for a current step"))
             except (
                     OperationStoreError,
                     OperationTransitionError,
@@ -1221,27 +1303,31 @@ class ControlEventEmitter:
                         "event_id"],)
                 continue
             self._operation_payloads[
-                operation_id] = dict(
+                lifecycle_operation_id] = dict(
                     payload)
             self._operation_action_keys[
-                operation_id] = (
+                lifecycle_operation_id] = (
                     operation_action_key)
-            reserved_payload = dict(
-                payload)
-            reserved_payload[
-                "state"] = "reserved"
-            reserved_payload[
-                "reason_code"] = None
-            reserved_event = writer.emit(
-                "operation_reserved",
-                turn,
-                reserved_payload,
-                caused_by=list(parents))
-            emitted.append(
-                reserved_event)
-            parents = (
-                reserved_event[
-                    "event_id"],)
+            current_lifecycle_ids.add(
+                lifecycle_operation_id)
+            if (record.progress.state
+                    == OperationState.RESERVED):
+                reserved_payload = dict(
+                    payload)
+                reserved_payload[
+                    "state"] = "reserved"
+                reserved_payload[
+                    "reason_code"] = None
+                reserved_event = writer.emit(
+                    "operation_reserved",
+                    turn,
+                    reserved_payload,
+                    caused_by=list(parents))
+                emitted.append(
+                    reserved_event)
+                parents = (
+                    reserved_event[
+                        "event_id"],)
             selected_payload = dict(
                 payload)
             selected_payload[
@@ -1257,12 +1343,57 @@ class ControlEventEmitter:
             emitted.append(
                 selected_event)
             self._operation_event_ids[
-                operation_id] = (
+                lifecycle_operation_id] = (
                     selected_event[
                         "event_id"])
             parents = (
                 selected_event[
                     "event_id"],)
+        if synchronous_authority:
+            store = self._operation_store_for(
+                writer)
+            source_turn = int(
+                artifact.get(
+                    "source_turn",
+                    turn))
+            for record in (
+                    store.nonterminal_records()):
+                operation_id = (
+                    record.spec.operation_id)
+                if (
+                        record.progress.state
+                        != OperationState.ACTIVE
+                        or operation_id
+                        in current_lifecycle_ids
+                        or operation_id
+                        not in self
+                        ._operation_payloads
+                ):
+                    continue
+                reason = (
+                    "current-assignment-no-longer-supports-active-step")
+                store.transition(
+                    operation_id,
+                    OperationState.ABANDONED,
+                    snapshot_id,
+                    source_turn,
+                    reason=reason)
+                event = (
+                    self._emit_operation_state(
+                        writer, source_turn,
+                        operation_id,
+                        "operation_abandoned",
+                        "abandoned",
+                        reason,
+                        snapshot_id,
+                        tuple(parents),
+                        resolution_status=(
+                            "censored_operation_abort")))
+                emitted.append(event)
+                parents = (
+                    event["event_id"],)
+                self._operation_action_keys.pop(
+                    operation_id, None)
         return tuple(emitted)
 
     def emit_city_defense_action_outcome(
@@ -1294,8 +1425,9 @@ class ControlEventEmitter:
             if (expected == action_key
                     and record is not None
                     and record.progress.state
-                    == OperationState
-                    .RESERVED):
+                    in (
+                        OperationState.RESERVED,
+                        OperationState.ACTIVE)):
                 matches.append(
                     record)
         if not matches:
@@ -1378,24 +1510,33 @@ class ControlEventEmitter:
             self._operation_action_keys.pop(
                 operation_id, None)
             return (event,)
-        store.transition(
-            operation_id,
-            OperationState.ACTIVE,
-            snapshot.snapshot_id,
-            int(turn))
+        newly_active = (
+            record.progress.state
+            == OperationState.RESERVED)
+        if newly_active:
+            store.transition(
+                operation_id,
+                OperationState.ACTIVE,
+                snapshot.snapshot_id,
+                int(turn))
         store.record_attempt(
             operation_id,
             snapshot.snapshot_id,
             int(turn))
-        activated = (
-            self._emit_operation_state(
-                writer, turn,
-                operation_id,
-                "operation_activated",
-                "activated", None,
-                snapshot.snapshot_id,
-                parent_ids,
-                action_id=action_id))
+        activated = None
+        if newly_active:
+            activated = (
+                self._emit_operation_state(
+                    writer, turn,
+                    operation_id,
+                    "operation_activated",
+                    "activated", None,
+                    snapshot.snapshot_id,
+                    parent_ids,
+                    action_id=action_id))
+            parent_ids = (
+                activated[
+                    "event_id"],)
         revalidated = (
             self._emit_operation_state(
                 writer, turn,
@@ -1404,8 +1545,7 @@ class ControlEventEmitter:
                 "step_revalidated",
                 None,
                 snapshot.snapshot_id,
-                (activated[
-                    "event_id"],),
+                parent_ids,
                 action_id=action_id))
         committed = (
             self._emit_operation_state(
@@ -1418,11 +1558,12 @@ class ControlEventEmitter:
                 (revalidated[
                     "event_id"],),
                 action_id=action_id))
-        return (
-            activated,
-            revalidated,
-            committed,
-        )
+        return tuple(
+            event for event in (
+                activated,
+                revalidated,
+                committed)
+            if event is not None)
 
     def resolve_city_defense_operations(
             self, writer, snapshot,

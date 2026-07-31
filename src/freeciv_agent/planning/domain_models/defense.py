@@ -2939,8 +2939,11 @@ def build_city_defense_assignment_artifact(
             row.operation_type
             != DefenseOperationType
             .MOVE_DEFENDER_TO_CITY
-            or row.arrival_turn
-            <= int(snapshot.turn)))
+            # A move command can advance only part of the native route.  Do
+            # not authorize one on the deadline turn because no later exact
+            # snapshot remains in which to prove that it reached the city.
+            or row.deadline_turn
+            > int(snapshot.turn)))
     readout = (
         sorted(
             authority_operations,

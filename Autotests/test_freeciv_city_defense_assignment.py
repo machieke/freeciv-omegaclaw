@@ -16,6 +16,7 @@ if SRC not in sys.path:
 from freeciv_agent.planning import ImpactCandidate  # noqa: E402
 from freeciv_agent.events.validator import validate_file  # noqa: E402
 from freeciv_agent.events.writer import EventWriter  # noqa: E402
+from freeciv_agent.events.schema import structural_hash  # noqa: E402
 from freeciv_agent.execution import ActionOutcome  # noqa: E402
 from freeciv_agent.planning import ControlEventEmitter  # noqa: E402
 from freeciv_agent.planning.domain_models import (  # noqa: E402
@@ -1354,7 +1355,7 @@ def test_city_defense_authority_keeps_interception_shadow_only():
         "selected_action_key"] is None
 
 
-def test_city_defense_authority_keeps_multi_turn_approach_shadow_only():
+def test_city_defense_authority_allows_grounded_approach_before_deadline():
     move = _candidate({
         "action_type": "unit_move",
         "actor_id": 2,
@@ -1401,10 +1402,11 @@ def test_city_defense_authority_keeps_multi_turn_approach_shadow_only():
         == "move_defender_to_city"
         for row in artifact[
             "assignment"]["entries"])
-    assert not artifact[
+    assert artifact[
         "decision_safe_candidate_readout"]
     assert artifact[
-        "selected_action_key"] is None
+        "selected_action_key"] == (
+            move.action_key)
 
 
 def test_current_snapshot_city_defense_authority_is_prepared_once():
@@ -1774,6 +1776,246 @@ def test_city_defense_shadow_operations_emit_valid_attributable_events():
         and not row["payload"][
             "policy_authority"]
         for row in events)
+    assert report.valid, [
+        row.to_dict()
+        for row in report.errors]
+
+
+def test_city_defense_move_rebinds_current_steps_until_city_occupancy():
+    first_action = {
+        "action_type": "unit_move",
+        "actor_id": 2,
+        "movement_cost": 1,
+        "target": {"x": 1, "y": 0},
+        "transport_required": False,
+    }
+    second_action = {
+        "action_type": "unit_move",
+        "actor_id": 2,
+        "movement_cost": 1,
+        "target": {"x": 2, "y": 0},
+        "transport_required": False,
+    }
+
+    def artifact(
+            operation_id, action,
+            snapshot_id, turn):
+        operation = {
+            "actor_id": 2,
+            "arrival_turn": turn + 1,
+            "bid": 50.0,
+            "city_id": 20,
+            "claims": [],
+            "deadline_turn": 12,
+            "expected_prevented_loss":
+                50.0,
+            "next_action": dict(action),
+            "operation_id": operation_id,
+            "operation_type":
+                "move_defender_to_city",
+            "opportunity_cost": 0.0,
+            "provenance": [
+                "server-advertised-legal-action",
+                "native-server-route-eta",
+            ],
+            "requirement_id":
+                "city-defense-requirement",
+            "support_reason": None,
+        }
+        return {
+            "analysis": {
+                "operations": [operation],
+                "snapshot_id": snapshot_id,
+            },
+            "assignment": {
+                "decision_digest":
+                    structural_hash({
+                        "snapshot_id":
+                            snapshot_id,
+                    }),
+                "entries": [{
+                    "operation_id":
+                        operation_id,
+                    "reason": None,
+                    "selected": True,
+                }],
+            },
+            "ruleset_digest":
+                "ruleset-proof",
+            "selected_action_key":
+                ImpactCandidate(
+                    action=action,
+                    category="test",
+                    utility=0.0,
+                    rationale="test")
+                .action_key,
+            "source_turn": turn,
+            "synchronous_authority_preparation":
+                True,
+        }
+
+    def snapshot(
+            snapshot_id, turn,
+            unit_x, legal_action):
+        city = SimpleNamespace(
+            city_id=20,
+            x=2, y=0)
+        unit = SimpleNamespace(
+            unit_id=2,
+            x=unit_x, y=0,
+            activity=None)
+        legal_key = (
+            None
+            if legal_action is None
+            else ImpactCandidate(
+                action=legal_action,
+                category="test",
+                utility=0.0,
+                rationale="test")
+            .action_key)
+        return SimpleNamespace(
+            snapshot_id=snapshot_id,
+            legal_actions_digest=(
+                "legal-{}".format(
+                    snapshot_id)),
+            legal_action_json=(
+                (legal_key,)
+                if legal_action is not None
+                else ()),
+            turn=turn,
+            city=lambda city_id: (
+                city if city_id == 20
+                else None),
+            unit=lambda unit_id: (
+                unit if unit_id == 2
+                else None))
+
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(
+            directory,
+            "events.jsonl")
+        writer = EventWriter(
+            path,
+            "city-defense-persistence",
+            durable=False)
+        emitter = ControlEventEmitter()
+        first_snapshot = snapshot(
+            "route-step-1", 10, 0,
+            first_action)
+        first_events = (
+            emitter
+            .emit_city_defense_operations(
+                writer, 10,
+                artifact(
+                    "volatile-operation-1",
+                    first_action,
+                    "route-step-1", 10)))
+        first_readout = (
+            emitter
+            .operation_authority_readout(
+                writer,
+                first_snapshot,
+                city_defense_enabled=True))
+        first_outcome = (
+            emitter
+            .emit_city_defense_action_outcome(
+                writer, 10,
+                first_snapshot,
+                first_action,
+                ActionOutcome(
+                    action_id="route-action-1",
+                    status="accepted",
+                    reason=None,
+                    submitted=True)))
+
+        second_snapshot = snapshot(
+            "route-step-2", 11, 1,
+            second_action)
+        assert (
+            emitter
+            .resolve_city_defense_operations(
+                writer,
+                second_snapshot)
+        ) == ()
+        second_events = (
+            emitter
+            .emit_city_defense_operations(
+                writer, 11,
+                artifact(
+                    "volatile-operation-2",
+                    second_action,
+                    "route-step-2", 11)))
+        second_readout = (
+            emitter
+            .operation_authority_readout(
+                writer,
+                second_snapshot,
+                city_defense_enabled=True))
+        second_outcome = (
+            emitter
+            .emit_city_defense_action_outcome(
+                writer, 11,
+                second_snapshot,
+                second_action,
+                ActionOutcome(
+                    action_id="route-action-2",
+                    status="accepted",
+                    reason=None,
+                    submitted=True)))
+        completed_snapshot = snapshot(
+            "route-complete", 12, 2,
+            None)
+        completed = (
+            emitter
+            .resolve_city_defense_operations(
+                writer,
+                completed_snapshot))
+        report = validate_file(path)
+
+    assert first_readout is not None
+    assert second_readout is not None
+    assert (
+        second_readout.operation_id
+        == first_readout.operation_id
+        == "volatile-operation-1")
+    assert [
+        row["type"]
+        for row in first_outcome
+    ] == [
+        "operation_activated",
+        "operation_step_revalidated",
+        "operation_step_committed",
+    ]
+    assert [
+        row["type"]
+        for row in second_outcome
+    ] == [
+        "operation_step_revalidated",
+        "operation_step_committed",
+    ]
+    assert not any(
+        row["type"]
+        == "operation_reserved"
+        for row in second_events)
+    assert any(
+        row["type"]
+        == "operation_step_selected"
+        and row["payload"][
+            "operation_id"]
+        == "volatile-operation-1"
+        for row in second_events)
+    assert [
+        row["type"]
+        for row in completed
+    ] == [
+        "operation_completed",
+    ]
+    assert all(
+        row["payload"][
+            "operation_id"]
+        == "volatile-operation-1"
+        for row in completed)
+    assert first_events
     assert report.valid, [
         row.to_dict()
         for row in report.errors]

@@ -127,6 +127,17 @@ def assemble_city_defense_operation(
         or (
             "city-defense-domain-operation",
         ))
+    maximum_attempts = 1
+    if operation_type == (
+            "move_defender_to_city"):
+        # A server-advertised move is a current legal route step, not proof
+        # that the unit will occupy the destination in the next snapshot.
+        # Keep retries bounded by the original threat deadline while allowing
+        # the lifecycle to rebind each later, independently advertised step.
+        maximum_attempts = max(
+            1,
+            int(deadline_turn)
+            - int(created_turn))
     return OperationSpec(
         schema_version=(
             OPERATION_SCHEMA_VERSION),
@@ -148,7 +159,8 @@ def assemble_city_defense_operation(
                 completion_predicate_id=(
                     _CITY_DEFENSE_COMPLETION_PREDICATES[
                         operation_type]),
-                maximum_attempts=1),),
+                maximum_attempts=(
+                    maximum_attempts)),),
         created_turn=int(
             created_turn),
         expiry_turn=deadline_turn,
