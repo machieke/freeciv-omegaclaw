@@ -97,3 +97,27 @@ goal-relief prediction. The deterministic policy did not randomize alternative
 actions, so the result is not an off-policy causal value estimate. Collection
 arms ran without contextual authority and therefore do not establish score,
 win-rate, or policy-ordering benefit.
+
+## Fresh authority diagnostic
+
+The approved model was then loaded read-only in a fresh, disjoint,
+claim-ineligible 10-pair engine diagnostic. The authority path was requested,
+fully supported, and active in all 514 treatment decisions, with no fallback,
+rejected action, safety-gate failure, or infrastructure failure.
+
+The readout changed action payloads in 4 of 10 pairs. It did not change player
+score in any pair:
+
+| Diagnostic delta | Estimate | Paired interval |
+|---|---:|---:|
+| player score | 0.00 | [0.00, 0.00] |
+| win rate | 0.00 | [0.00, 0.00] |
+| score margin | +0.10 | [0.00, +0.30] |
+| Impact planning latency | +4.93 ms/turn | [-4.34, +14.84] |
+| full-loop latency | +23.71 ms/turn | [-3.54, +59.20] |
+
+This closes the runtime-load and complete-support diagnostic, but it does not
+pass a gameplay-benefit gate. Contextual authority remains default-off and is
+not recommended for general live use from this result. The canonical retained
+summary is
+`benchmarks/gdo/gdo8_contextual_authority_diagnostic.json`.
