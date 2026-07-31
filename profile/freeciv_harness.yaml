@@ -2371,6 +2371,55 @@ paired_impact:
         count: 30
         minimum: 5700000
         maximum: 5799999
+    contextual_transition_authority_diagnostic_v1:
+      claim_eligible: false
+      purpose: diagnostic
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 60
+      planned_pairs: 10
+      controller_workers: 3
+      isolated_policy_keys:
+        - pressure_contextual_conductance_authority_enabled
+      arms:
+        baseline:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_contextual_conductance_approval_path: docs/freeciv/evidence/gdo8-contextual-transition-holdout-v1-approval.json
+          pressure_contextual_conductance_authority_enabled: false
+          pressure_contextual_conductance_enabled: true
+          pressure_contextual_conductance_model_identity: gdo8-contextual-transition-training-v1
+          pressure_contextual_conductance_model_path: docs/freeciv/evidence/gdo8-contextual-transition-training-v1-model.json
+          pressure_contextual_conductance_read_only: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+        treatment:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_contextual_conductance_approval_path: docs/freeciv/evidence/gdo8-contextual-transition-holdout-v1-approval.json
+          pressure_contextual_conductance_authority_enabled: true
+          pressure_contextual_conductance_enabled: true
+          pressure_contextual_conductance_model_identity: gdo8-contextual-transition-training-v1
+          pressure_contextual_conductance_model_path: docs/freeciv/evidence/gdo8-contextual-transition-training-v1-model.json
+          pressure_contextual_conductance_read_only: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-contextual-transition-authority-diagnostic-v1
+        count: 10
+        minimum: 5800000
+        maximum: 5899999
     calibrated_scalar_diagnostic_v1:
       claim_eligible: false
       purpose: diagnostic

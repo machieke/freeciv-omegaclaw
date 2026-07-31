@@ -275,6 +275,13 @@ def test_contextual_fit_and_disjoint_holdout_write_approved_bundle(
         read_only=True)
 
     assert approval["authority_approved"]
+    assert approval["claim_eligible"] is False
+    assert approval["cohort"] == (
+        "contextual-holdout")
+    assert approval["seed_count"] == 1
+    assert len(approval["event_files"]) == 1
+    assert approval["model_identity"] == (
+        "contextual-fit")
     assert approval["aggregate"][
         "coverage"] == 1.0
     assert validate_contextual_calibration_bundle(

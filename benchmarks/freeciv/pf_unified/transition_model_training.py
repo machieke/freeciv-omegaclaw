@@ -326,6 +326,7 @@ def fit_contextual_transition_value_model(
         legacy_ruleset_family=None,
         overwrite=False):
     """Fit a v2 model without turning v1 rows into contextual support."""
+    declared_output_path = str(output_path)
     output_path = os.path.abspath(output_path)
     if os.path.exists(output_path):
         if not overwrite:
@@ -410,7 +411,7 @@ def fit_contextual_transition_value_model(
         "identity": str(identity),
         "legacy_migration_scope":
             "category-prior-only",
-        "model_path": output_path,
+        "model_path": declared_output_path,
         "model_sha256": _sha256(
             output_path),
         "model_state_hash":
@@ -460,8 +461,10 @@ def evaluate_contextual_transition_value_model(
             "contextual approval output already exists")
     files = _eligible_event_files(
         artifact_root, cohort, arm)
-    outcomes, _, _, _ = (
-        _contextual_outcomes(files))
+    (
+        outcomes, event_files,
+        source_identity, seeds,
+    ) = _contextual_outcomes(files)
     model = ContextualTransitionValueModel(
         path=os.path.abspath(
             model_path),
@@ -482,6 +485,21 @@ def evaluate_contextual_transition_value_model(
         bootstrap_iterations=int(
             bootstrap_iterations)
     ).evaluate(model, outcomes)
+    report.pop("report_hash", None)
+    report.update({
+        "arm": str(arm),
+        "claim_eligible": False,
+        "cohort": str(cohort),
+        "event_files": event_files,
+        "model_identity": str(identity),
+        "model_sha256": _sha256(
+            os.path.abspath(model_path)),
+        "seed_count": len(seeds),
+        "source_identity":
+            source_identity,
+    })
+    report["report_hash"] = structural_hash(
+        report)
     parent = os.path.dirname(
         output_path)
     if parent:

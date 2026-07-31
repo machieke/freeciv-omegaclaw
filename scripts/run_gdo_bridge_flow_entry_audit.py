@@ -24,7 +24,7 @@ from freeciv_agent.events.schema import (  # noqa: E402
 INPUTS = {
     "contextual_calibration":
         "benchmarks/gdo/"
-        "gdo8_contextual_calibration_diagnostic.json",
+        "gdo8_contextual_engine_confirmation.json",
     "engine_lifecycle":
         "benchmarks/gdo/"
         "gdo4_operation_lifecycle_160_diagnostic.json",
@@ -134,14 +134,17 @@ def run():
         "1_candidate_invariant_calibrated_target_slice": {
             "passed": bool(
                 contextual.get(
+                    "result", {}).get(
+                        "engine_holdout_approved")
+                and contextual.get(
                     "scope", {}).get(
                         "engine_backed")
                 and contextual.get(
                     "scope", {}).get(
                         "live_authority_eligible")),
             "reason": (
-                "contextual v2 passes a synthetic mechanism gate but has "
-                "no disjoint engine-backed support/holdout bundle"),
+                "contextual v2 has a clean disjoint engine-backed "
+                "training/holdout bundle with every frozen gate passed"),
         },
         "2_zero_hard_identity_overallocation": {
             "passed": bool(
@@ -190,7 +193,8 @@ def run():
             "passed": False,
             "reason": (
                 "the prior engine failure was semantic terminal-action "
-                "exclusion, while current contextual engine support is absent"),
+                "exclusion; calibrated support is now present but no "
+                "post-B4 residual has isolated route allocation"),
         },
         "7_incremental_value_exceeds_controller_cost": {
             "passed": bool(
@@ -255,9 +259,9 @@ def run():
             "live_authority_allowed":
                 False,
             "next_required_evidence": (
-                "disjoint engine-backed contextual training/holdout, "
                 "stable engine operation completions, then a B4 replay "
-                "residual attributable only to route allocation"),
+                "residual attributable only to route allocation and "
+                "controller-inclusive incremental benefit"),
             "result": (
                 "entry-approved"
                 if entry_approved

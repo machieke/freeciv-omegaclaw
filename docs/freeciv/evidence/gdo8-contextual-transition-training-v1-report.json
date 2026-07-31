@@ -1,0 +1,1998 @@
+{
+  "arm": "treatment",
+  "claim_eligible": false,
+  "cohort": "contextual_transition_training_diagnostic_v1",
+  "duplicate_outcomes": 0,
+  "event_files": [
+    {
+      "arm": "treatment",
+      "events_sha256": "ea8e9630a8ba7a00edef71edf5abae476a197c78c1481abadac5890571c6406f",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5600465-00/events.jsonl",
+      "seed": 5600465,
+      "v2_contextual_update_events": 72
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "fbc4d3b85468476c8541cc84aedef9f49303ae5f90521e492df4ae21967930ef",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5600610-00/events.jsonl",
+      "seed": 5600610,
+      "v2_contextual_update_events": 55
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "e49b49e6823b218394bfcac2245dd8d35cc3bedcd2fd2697a40cfa032fe05453",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5605041-00/events.jsonl",
+      "seed": 5605041,
+      "v2_contextual_update_events": 27
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "7dc0c0f6ab512ea7f836fcfc7295af91a6ac2ac5569f184a6ce72e826bab5e6b",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5605073-00/events.jsonl",
+      "seed": 5605073,
+      "v2_contextual_update_events": 37
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "33d64401007ce62997256a68e482b9971b20244771f8fbd9a30c220ba411f0ed",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5606085-00/events.jsonl",
+      "seed": 5606085,
+      "v2_contextual_update_events": 87
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "709610c3b2c0f5979f824b197b1113a92b000d3e82ede630461aec1991776b3f",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5613865-00/events.jsonl",
+      "seed": 5613865,
+      "v2_contextual_update_events": 73
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "05de046075b3486f521494d3d739348a10bcd988d780f8febfa758991f5b4c87",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5614590-00/events.jsonl",
+      "seed": 5614590,
+      "v2_contextual_update_events": 79
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "08324867fb754425976b87f5622783ec3ec413ef6ae1b7e032dc0369912e7fbb",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5615181-00/events.jsonl",
+      "seed": 5615181,
+      "v2_contextual_update_events": 32
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "5b0653394909f7fe472f051c03c97031f20e6a4369d2bf347398f0ba202cbaac",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5617021-00/events.jsonl",
+      "seed": 5617021,
+      "v2_contextual_update_events": 36
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "de60c2677c4629626df0d52afe848ab11febd5e0c2abd435c26d025e47738635",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5626722-00/events.jsonl",
+      "seed": 5626722,
+      "v2_contextual_update_events": 68
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "dd22a679fe4bd2091f84f7c849429780811f0d13602cd1e87f0245bcda9ddd11",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5627310-00/events.jsonl",
+      "seed": 5627310,
+      "v2_contextual_update_events": 70
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "766f55bf6257b13557b3af804f9580e134ec7fd96aad726a10ec794e1196a043",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5634488-00/events.jsonl",
+      "seed": 5634488,
+      "v2_contextual_update_events": 46
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "b7b817bdbc2e35f3828514418757c4e336ac3b1991482977c481bd963b68ce69",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5637432-00/events.jsonl",
+      "seed": 5637432,
+      "v2_contextual_update_events": 65
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "2df53b027803bc2da49cc74d55188bb34281bcd38e1476a9e5bd8852b2c64e96",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5637515-00/events.jsonl",
+      "seed": 5637515,
+      "v2_contextual_update_events": 34
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "a5177ab0e8cb9f007c5d89753ba8a9efc2391c0fc367fb6b69795b6d6e8404b8",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5643387-00/events.jsonl",
+      "seed": 5643387,
+      "v2_contextual_update_events": 75
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "2e25eea9bbaa0adfd00ddd00fa19161ff7ac64636cb37d1f623c30546d73f4e3",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5644338-00/events.jsonl",
+      "seed": 5644338,
+      "v2_contextual_update_events": 83
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "28e8bf6631589c9bbe92d00a90d06ea7097c1940429a4981f09a806d2f89a99e",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5648458-00/events.jsonl",
+      "seed": 5648458,
+      "v2_contextual_update_events": 36
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "c9313bde8b3d3e90802cc146ef19f26c7f857c71207625d60327eaa7566e0870",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5650795-00/events.jsonl",
+      "seed": 5650795,
+      "v2_contextual_update_events": 49
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "2034fdd72a9322239c3eb7d93ddde1789c11b1e677d5eaec92566cbf62e16070",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5651284-00/events.jsonl",
+      "seed": 5651284,
+      "v2_contextual_update_events": 72
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "98e9876e5c9b7aa895b5b9577234c78e9a36bd7264c8cae4a00801ef5a907795",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5659230-00/events.jsonl",
+      "seed": 5659230,
+      "v2_contextual_update_events": 49
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "09c46ce13c285882392a573f58d35f9a82ad74ba6b626d506c36a95f2e86b052",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5659793-00/events.jsonl",
+      "seed": 5659793,
+      "v2_contextual_update_events": 44
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "984e0fe247fcfa59508866ad7365ccb6075187c307d88d7507252b6ed37ccd7a",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5662294-00/events.jsonl",
+      "seed": 5662294,
+      "v2_contextual_update_events": 36
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "571a25ffa631a5c4c16281b2fc56a5e4dd244984c35de34d827001dbd598f954",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5663835-00/events.jsonl",
+      "seed": 5663835,
+      "v2_contextual_update_events": 40
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "ef4985b1c5a0345763a7545add669da8f048176f604cb5945bf70693b6952512",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5671766-00/events.jsonl",
+      "seed": 5671766,
+      "v2_contextual_update_events": 54
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "60c0ca02420b1056248de85565e6b2f1dded7de5e7046fa17c0ce22667e1786c",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5681720-00/events.jsonl",
+      "seed": 5681720,
+      "v2_contextual_update_events": 45
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "7015b07ed69f0aa5b18c97c63c736f0d6485f945b8b74fef71663c1b2bf168f6",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5682576-00/events.jsonl",
+      "seed": 5682576,
+      "v2_contextual_update_events": 25
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "143d859941eae6098d19bb1df42dad2dfc012c75bf85ef5cd208104e8c43b0a0",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5682952-00/events.jsonl",
+      "seed": 5682952,
+      "v2_contextual_update_events": 47
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "b102723828fa51733d270c339216bc53eb02595e42ee679bfec6646b11ae0b34",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5686463-00/events.jsonl",
+      "seed": 5686463,
+      "v2_contextual_update_events": 45
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "62b508a9a8398b5cc4c67fca0e440d8af6cb9d25f877f50b12a9569f199cf25d",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5695954-00/events.jsonl",
+      "seed": 5695954,
+      "v2_contextual_update_events": 30
+    },
+    {
+      "arm": "treatment",
+      "events_sha256": "acaaeae116c29cbc63e76be13bc43f14860a9303faf36914a33c59669e58598b",
+      "path": "games/impact_pair/contextual_transition_training_diagnostic_v1/treatment/e_full_loop/5696902-00/events.jsonl",
+      "seed": 5696902,
+      "v2_contextual_update_events": 76
+    }
+  ],
+  "fit_scope": "causally eligible selected actions with authoritative goal relief; unknown outcomes retained but excluded",
+  "identity": "gdo8-contextual-transition-training-v1",
+  "legacy_migration_scope": "category-prior-only",
+  "model_path": "docs/freeciv/evidence/gdo8-contextual-transition-training-v1-model.json",
+  "model_sha256": "d1c79ad066d242d3ab3753109a08515d9c6d113463defa8329c30f38562293a8",
+  "model_state_hash": "3a78109bfb441514e1b7543a5a9fd01c7766cc5d28389d5ff985c6098c8375e0",
+  "outcome_count": 1587,
+  "schema_version": "2.0",
+  "seed_count": 30,
+  "source_identity": "3bf22d57b9aec50194c1e74814cbd0a691378b09efbfcb31319fde79b3687336",
+  "support": [
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.3343414809476091,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "production",
+          "action_type": "city_production",
+          "actor_class": "city",
+          "exact_context_digest": "5306e9663b218b7a086a82ebfd4493c235753817260016a8ff2a9ea0c2a655f8",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "production-commitment",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "city",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:expansion",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 66,
+      "support_key": {
+        "action_category": "production",
+        "action_type": "city_production",
+        "actor_class": "city",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": "5306e9663b218b7a086a82ebfd4493c235753817260016a8ff2a9ea0c2a655f8",
+        "goal_id": "pf-impact:expansion",
+        "horizon_bucket": "long:11+",
+        "level": "exact-context",
+        "lifecycle_state": "production-commitment",
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+        "ruleset_family": "civ2civ3",
+        "target_class": "city",
+        "threat_bucket": "unknown"
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.19501201269141885,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "movement",
+          "action_type": "unit_move",
+          "actor_class": "unit:Settlers",
+          "exact_context_digest": "7211f78e55838daa9ea3c59a29f32a378390532f91b218334a878b3dc3128894",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "route-progress",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "tile",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:expansion",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 194,
+      "support_key": {
+        "action_category": "movement",
+        "action_type": "unit_move",
+        "actor_class": "unit:Settlers",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": "7211f78e55838daa9ea3c59a29f32a378390532f91b218334a878b3dc3128894",
+        "goal_id": "pf-impact:expansion",
+        "horizon_bucket": "long:11+",
+        "level": "exact-context",
+        "lifecycle_state": "route-progress",
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+        "ruleset_family": "civ2civ3",
+        "target_class": "tile",
+        "threat_bucket": "unknown"
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.3730991802034017,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "settlement",
+          "action_type": "unit_build_city",
+          "actor_class": "unit:Settlers",
+          "exact_context_digest": "ebaf5d6e2003356c6a75f6a633c2ac2971d3929df2e5353be8a99475f774daa4",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "terminal-completion",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "target:unknown",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:expansion",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 53,
+      "support_key": {
+        "action_category": "settlement",
+        "action_type": "unit_build_city",
+        "actor_class": "unit:Settlers",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": "ebaf5d6e2003356c6a75f6a633c2ac2971d3929df2e5353be8a99475f774daa4",
+        "goal_id": "pf-impact:expansion",
+        "horizon_bucket": "long:11+",
+        "level": "exact-context",
+        "lifecycle_state": "terminal-completion",
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+        "ruleset_family": "civ2civ3",
+        "target_class": "target:unknown",
+        "threat_bucket": "unknown"
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.4728302568200146,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "movement",
+          "action_type": "unit_move",
+          "actor_class": "unit:Diplomat",
+          "exact_context_digest": "3a4572a9f93a887144c6236361da514f3e2ae2aa635d566d1e2efd87fcca85ab",
+          "horizon_bucket": "medium:4-10",
+          "lifecycle_state": "route-progress",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "tile",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:exploration",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 33,
+      "support_key": {
+        "action_category": "movement",
+        "action_type": "unit_move",
+        "actor_class": "unit:Diplomat",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": "3a4572a9f93a887144c6236361da514f3e2ae2aa635d566d1e2efd87fcca85ab",
+        "goal_id": "pf-impact:exploration",
+        "horizon_bucket": "medium:4-10",
+        "level": "exact-context",
+        "lifecycle_state": "route-progress",
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+        "ruleset_family": "civ2civ3",
+        "target_class": "tile",
+        "threat_bucket": "unknown"
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.10122691031805085,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "movement",
+          "action_type": "unit_move",
+          "actor_class": "unit:Diplomat",
+          "exact_context_digest": "6d2d9e32b289f6843ee77cd07f75173b9113bf23d53942cfaf02f97a1b083b77",
+          "horizon_bucket": "immediate:0-1",
+          "lifecycle_state": "route-progress",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "tile",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:exploration",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 720,
+      "support_key": {
+        "action_category": null,
+        "action_type": "unit_move",
+        "actor_class": "unit:Diplomat",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:exploration",
+        "horizon_bucket": null,
+        "level": "action-actor",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.104701932470432,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "movement",
+          "action_type": "unit_move",
+          "actor_class": "unit:Diplomat",
+          "exact_context_digest": "c320d9fe0c4cfe80a0440082955c1d3caecc10e7edc5b026490c9a5c9b652b79",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "route-progress",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "tile",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:exploration",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 673,
+      "support_key": {
+        "action_category": "movement",
+        "action_type": "unit_move",
+        "actor_class": "unit:Diplomat",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": "c320d9fe0c4cfe80a0440082955c1d3caecc10e7edc5b026490c9a5c9b652b79",
+        "goal_id": "pf-impact:exploration",
+        "horizon_bucket": "long:11+",
+        "level": "exact-context",
+        "lifecycle_state": "route-progress",
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+        "ruleset_family": "civ2civ3",
+        "target_class": "tile",
+        "threat_bucket": "unknown"
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.10122691031805085,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "movement",
+          "action_type": "unit_move",
+          "actor_class": "unit:Diplomat",
+          "exact_context_digest": "e7d704c48e30e557a1d48ec96acdb91cb657d39c4c236995a770539180dc9fca",
+          "horizon_bucket": "short:2-3",
+          "lifecycle_state": "route-progress",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "tile",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:exploration",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 720,
+      "support_key": {
+        "action_category": null,
+        "action_type": "unit_move",
+        "actor_class": "unit:Diplomat",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:exploration",
+        "horizon_bucket": null,
+        "level": "action-actor",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.3018003368312488,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "production",
+          "action_type": "city_production",
+          "actor_class": "city",
+          "exact_context_digest": "035e8035d2c450a003922d25f6034eb86aad190a42b83787af76af5bca5ed218",
+          "horizon_bucket": "medium:4-10",
+          "lifecycle_state": "production-commitment",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "city",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:food_sustainability",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 81,
+      "support_key": {
+        "action_category": null,
+        "action_type": "city_production",
+        "actor_class": "city",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:food_sustainability",
+        "horizon_bucket": null,
+        "level": "action-actor",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.23822676508266838,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "city-policy",
+          "action_type": "city_governor",
+          "actor_class": "city",
+          "exact_context_digest": "04826e2a74e7c483eb76ac611e500887ee0b71171bf273fcf9f397b9a3445659",
+          "horizon_bucket": "medium:4-10",
+          "lifecycle_state": "reversible-execution",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "city",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:food_sustainability",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 130,
+      "support_key": {
+        "action_category": null,
+        "action_type": "city_governor",
+        "actor_class": "city",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:food_sustainability",
+        "horizon_bucket": null,
+        "level": "action-actor",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.23822676508266838,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "city-policy",
+          "action_type": "city_governor",
+          "actor_class": "city",
+          "exact_context_digest": "3555c63e5ca415be23f3ddba72420c5a25dfda26cd612b8f7665e1e5e93a7497",
+          "horizon_bucket": "short:2-3",
+          "lifecycle_state": "reversible-execution",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "city",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:food_sustainability",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 130,
+      "support_key": {
+        "action_category": null,
+        "action_type": "city_governor",
+        "actor_class": "city",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:food_sustainability",
+        "horizon_bucket": null,
+        "level": "action-actor",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.305596716717813,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "production",
+          "action_type": "city_production",
+          "actor_class": "city",
+          "exact_context_digest": "5306e9663b218b7a086a82ebfd4493c235753817260016a8ff2a9ea0c2a655f8",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "production-commitment",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "city",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:food_sustainability",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 79,
+      "support_key": {
+        "action_category": "production",
+        "action_type": "city_production",
+        "actor_class": "city",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": "5306e9663b218b7a086a82ebfd4493c235753817260016a8ff2a9ea0c2a655f8",
+        "goal_id": "pf-impact:food_sustainability",
+        "horizon_bucket": "long:11+",
+        "level": "exact-context",
+        "lifecycle_state": "production-commitment",
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+        "ruleset_family": "civ2civ3",
+        "target_class": "city",
+        "threat_bucket": "unknown"
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.23822676508266838,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "city-policy",
+          "action_type": "city_governor",
+          "actor_class": "city",
+          "exact_context_digest": "b1419c9421eff0df96dfc14325f2cdfe34743d4f26a214b798283eac754c1667",
+          "horizon_bucket": "immediate:0-1",
+          "lifecycle_state": "reversible-execution",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "city",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:food_sustainability",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 130,
+      "support_key": {
+        "action_category": null,
+        "action_type": "city_governor",
+        "actor_class": "city",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:food_sustainability",
+        "horizon_bucket": null,
+        "level": "action-actor",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.28165713367263895,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "city-policy",
+          "action_type": "city_governor",
+          "actor_class": "city",
+          "exact_context_digest": "b443c042f025ba906a47161ab9553388ad86637de1feb26dcd1e9c0672dcae37",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "reversible-execution",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "city",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:food_sustainability",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 93,
+      "support_key": {
+        "action_category": "city-policy",
+        "action_type": "city_governor",
+        "actor_class": "city",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": "b443c042f025ba906a47161ab9553388ad86637de1feb26dcd1e9c0672dcae37",
+        "goal_id": "pf-impact:food_sustainability",
+        "horizon_bucket": "long:11+",
+        "level": "exact-context",
+        "lifecycle_state": "reversible-execution",
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+        "ruleset_family": "civ2civ3",
+        "target_class": "city",
+        "threat_bucket": "unknown"
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.4004822882754555,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "fiscal-policy",
+          "action_type": "player_rates",
+          "actor_class": "player",
+          "exact_context_digest": "02738b2b69dfd75b73cfeed2245081622cc44b8a733f4924650388e3fc98dc4c",
+          "horizon_bucket": "medium:4-10",
+          "lifecycle_state": "policy-transition",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "player-policy",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:score",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 46,
+      "support_key": {
+        "action_category": null,
+        "action_type": null,
+        "actor_class": null,
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:score",
+        "horizon_bucket": null,
+        "level": "global-prior",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.4406263158465719,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "production",
+          "action_type": "city_production",
+          "actor_class": "city",
+          "exact_context_digest": "035e8035d2c450a003922d25f6034eb86aad190a42b83787af76af5bca5ed218",
+          "horizon_bucket": "medium:4-10",
+          "lifecycle_state": "production-commitment",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "city",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:score",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 38,
+      "support_key": {
+        "action_category": null,
+        "action_type": "city_production",
+        "actor_class": "city",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:score",
+        "horizon_bucket": null,
+        "level": "action-actor",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.4004822882754555,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "grounded:unit_join_city",
+          "action_type": "unit_join_city",
+          "actor_class": "unit:Settlers",
+          "exact_context_digest": "31c50d5d4989cc67e82c218e4a2a9f84103882c0803e9d716033bdb8d5e86582",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "terminal-completion",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "city",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:score",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 46,
+      "support_key": {
+        "action_category": null,
+        "action_type": null,
+        "actor_class": null,
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:score",
+        "horizon_bucket": null,
+        "level": "global-prior",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.4465410276912572,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "production",
+          "action_type": "city_production",
+          "actor_class": "city",
+          "exact_context_digest": "5306e9663b218b7a086a82ebfd4493c235753817260016a8ff2a9ea0c2a655f8",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "production-commitment",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "city",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:score",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 37,
+      "support_key": {
+        "action_category": "production",
+        "action_type": "city_production",
+        "actor_class": "city",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": "5306e9663b218b7a086a82ebfd4493c235753817260016a8ff2a9ea0c2a655f8",
+        "goal_id": "pf-impact:score",
+        "horizon_bucket": "long:11+",
+        "level": "exact-context",
+        "lifecycle_state": "production-commitment",
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+        "ruleset_family": "civ2civ3",
+        "target_class": "city",
+        "threat_bucket": "unknown"
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.4004822882754555,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "movement",
+          "action_type": "unit_move",
+          "actor_class": "unit:Settlers",
+          "exact_context_digest": "7211f78e55838daa9ea3c59a29f32a378390532f91b218334a878b3dc3128894",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "route-progress",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "tile",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:score",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 46,
+      "support_key": {
+        "action_category": null,
+        "action_type": null,
+        "actor_class": null,
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:score",
+        "horizon_bucket": null,
+        "level": "global-prior",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.4004822882754555,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "fiscal-policy",
+          "action_type": "player_rates",
+          "actor_class": "player",
+          "exact_context_digest": "a999a21382ba31e9a7212ab5523d5adbbe274d4b969c5e802044cde018c5e586",
+          "horizon_bucket": "short:2-3",
+          "lifecycle_state": "policy-transition",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "player-policy",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:score",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 46,
+      "support_key": {
+        "action_category": null,
+        "action_type": null,
+        "actor_class": null,
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:score",
+        "horizon_bucket": null,
+        "level": "global-prior",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.424199645479661,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "unit-posture",
+          "action_type": "unit_fortify",
+          "actor_class": "unit:Alpine Troops",
+          "exact_context_digest": "2216d709e204d4e9d09eac65b365b9e62c840b754d46a06e5092a26d456f8afd",
+          "horizon_bucket": "medium:4-10",
+          "lifecycle_state": "reversible-execution",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "target:unknown",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:survival",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 41,
+      "support_key": {
+        "action_category": null,
+        "action_type": "unit_fortify",
+        "actor_class": "unit:Alpine Troops",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:survival",
+        "horizon_bucket": null,
+        "level": "action-actor",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.2963620474912214,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "unit-posture",
+          "action_type": "unit_fortify",
+          "actor_class": "unit:Riflemen",
+          "exact_context_digest": "22cd344dcb657f6f5c4849e7543373e0397c369a6ccebafb3c9bd5e89c11ea11",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "reversible-execution",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "target:unknown",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:survival",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 84,
+      "support_key": {
+        "action_category": "unit-posture",
+        "action_type": null,
+        "actor_class": null,
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:survival",
+        "horizon_bucket": null,
+        "level": "action-category",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.2521931202442211,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "movement",
+          "action_type": "unit_move",
+          "actor_class": "unit:Diplomat",
+          "exact_context_digest": "3a4572a9f93a887144c6236361da514f3e2ae2aa635d566d1e2efd87fcca85ab",
+          "horizon_bucket": "medium:4-10",
+          "lifecycle_state": "route-progress",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "tile",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:survival",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 116,
+      "support_key": {
+        "action_category": null,
+        "action_type": "unit_move",
+        "actor_class": "unit:Diplomat",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:survival",
+        "horizon_bucket": null,
+        "level": "action-actor",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.2963620474912214,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "unit-posture",
+          "action_type": "unit_fortify",
+          "actor_class": "unit:Musketeers",
+          "exact_context_digest": "47af1a57afe4fd26d2633333ce665db5a5cc738da3acf3855d23511953a52191",
+          "horizon_bucket": "medium:4-10",
+          "lifecycle_state": "reversible-execution",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "target:unknown",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:survival",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 84,
+      "support_key": {
+        "action_category": "unit-posture",
+        "action_type": null,
+        "actor_class": null,
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:survival",
+        "horizon_bucket": null,
+        "level": "action-category",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.3730991802034017,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "production",
+          "action_type": "city_production",
+          "actor_class": "city",
+          "exact_context_digest": "5306e9663b218b7a086a82ebfd4493c235753817260016a8ff2a9ea0c2a655f8",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "production-commitment",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "city",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:survival",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 53,
+      "support_key": {
+        "action_category": "production",
+        "action_type": "city_production",
+        "actor_class": "city",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": "5306e9663b218b7a086a82ebfd4493c235753817260016a8ff2a9ea0c2a655f8",
+        "goal_id": "pf-impact:survival",
+        "horizon_bucket": "long:11+",
+        "level": "exact-context",
+        "lifecycle_state": "production-commitment",
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+        "ruleset_family": "civ2civ3",
+        "target_class": "city",
+        "threat_bucket": "unknown"
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.2521931202442211,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "movement",
+          "action_type": "unit_move",
+          "actor_class": "unit:Diplomat",
+          "exact_context_digest": "6d2d9e32b289f6843ee77cd07f75173b9113bf23d53942cfaf02f97a1b083b77",
+          "horizon_bucket": "immediate:0-1",
+          "lifecycle_state": "route-progress",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "tile",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:survival",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 116,
+      "support_key": {
+        "action_category": null,
+        "action_type": "unit_move",
+        "actor_class": "unit:Diplomat",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:survival",
+        "horizon_bucket": null,
+        "level": "action-actor",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.2963620474912214,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "unit-posture",
+          "action_type": "unit_fortify",
+          "actor_class": "unit:Riflemen",
+          "exact_context_digest": "771f0825dd58e406aac4d1d6842c2a1585329d8816544134415a18c6b4e504a5",
+          "horizon_bucket": "medium:4-10",
+          "lifecycle_state": "reversible-execution",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "target:unknown",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:survival",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 84,
+      "support_key": {
+        "action_category": "unit-posture",
+        "action_type": null,
+        "actor_class": null,
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:survival",
+        "horizon_bucket": null,
+        "level": "action-category",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.2963620474912214,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "unit-posture",
+          "action_type": "unit_fortify",
+          "actor_class": "unit:Archers",
+          "exact_context_digest": "7b0f675d4d6eaa2e82ec597209c7cd8856206873585a016aa84344f808738c31",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "reversible-execution",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "target:unknown",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:survival",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 84,
+      "support_key": {
+        "action_category": "unit-posture",
+        "action_type": null,
+        "actor_class": null,
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:survival",
+        "horizon_bucket": null,
+        "level": "action-category",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.4349405767908718,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "unit-posture",
+          "action_type": "unit_fortify",
+          "actor_class": "unit:Alpine Troops",
+          "exact_context_digest": "a239177e20b7db99582f3dc6d1e86d1eef10aa3fa5ebe913c5bee804ced2e8ab",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "reversible-execution",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "target:unknown",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:survival",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 39,
+      "support_key": {
+        "action_category": "unit-posture",
+        "action_type": "unit_fortify",
+        "actor_class": "unit:Alpine Troops",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": "a239177e20b7db99582f3dc6d1e86d1eef10aa3fa5ebe913c5bee804ced2e8ab",
+        "goal_id": "pf-impact:survival",
+        "horizon_bucket": "long:11+",
+        "level": "exact-context",
+        "lifecycle_state": "reversible-execution",
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+        "ruleset_family": "civ2civ3",
+        "target_class": "target:unknown",
+        "threat_bucket": "unknown"
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.23038533420655644,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "movement",
+          "action_type": "unit_move",
+          "actor_class": "unit:Musketeers",
+          "exact_context_digest": "a2bf73c21d60850373b2472dfdcc8078a0a7686e4330192eb474f652e0c9c8f9",
+          "horizon_bucket": "immediate:0-1",
+          "lifecycle_state": "route-progress",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "tile",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:survival",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 139,
+      "support_key": {
+        "action_category": "movement",
+        "action_type": null,
+        "actor_class": null,
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:survival",
+        "horizon_bucket": null,
+        "level": "action-category",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.23038533420655644,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "movement",
+          "action_type": "unit_move",
+          "actor_class": "unit:Musketeers",
+          "exact_context_digest": "b92d57be333517a8f2fff3a4b05aa91cf4be19cc32f03c3385d1c97ebff9a40f",
+          "horizon_bucket": "short:2-3",
+          "lifecycle_state": "route-progress",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "tile",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:survival",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 139,
+      "support_key": {
+        "action_category": "movement",
+        "action_type": null,
+        "actor_class": null,
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:survival",
+        "horizon_bucket": null,
+        "level": "action-category",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.27298867605603533,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "movement",
+          "action_type": "unit_move",
+          "actor_class": "unit:Diplomat",
+          "exact_context_digest": "c320d9fe0c4cfe80a0440082955c1d3caecc10e7edc5b026490c9a5c9b652b79",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "route-progress",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "tile",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:survival",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 99,
+      "support_key": {
+        "action_category": "movement",
+        "action_type": "unit_move",
+        "actor_class": "unit:Diplomat",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": "c320d9fe0c4cfe80a0440082955c1d3caecc10e7edc5b026490c9a5c9b652b79",
+        "goal_id": "pf-impact:survival",
+        "horizon_bucket": "long:11+",
+        "level": "exact-context",
+        "lifecycle_state": "route-progress",
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+        "ruleset_family": "civ2civ3",
+        "target_class": "tile",
+        "threat_bucket": "unknown"
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.23038533420655644,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "movement",
+          "action_type": "unit_move",
+          "actor_class": "unit:Alpine Troops",
+          "exact_context_digest": "cc10eb82c0af836553b6b2d0b8eebe26f9416b2ef6e8a73b7595f41ea2a259df",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "route-progress",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "tile",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:survival",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 139,
+      "support_key": {
+        "action_category": "movement",
+        "action_type": null,
+        "actor_class": null,
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:survival",
+        "horizon_bucket": null,
+        "level": "action-category",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.23038533420655644,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "movement",
+          "action_type": "unit_move",
+          "actor_class": "unit:Musketeers",
+          "exact_context_digest": "d0d5c30dfc66f3f5631267c9c6875da8b4e973bee795c4df5660669e25981b63",
+          "horizon_bucket": "medium:4-10",
+          "lifecycle_state": "route-progress",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "tile",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:survival",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 139,
+      "support_key": {
+        "action_category": "movement",
+        "action_type": null,
+        "actor_class": null,
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:survival",
+        "horizon_bucket": null,
+        "level": "action-category",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.2963620474912214,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "unit-posture",
+          "action_type": "unit_fortify",
+          "actor_class": "unit:Warriors",
+          "exact_context_digest": "dde6526de9baaa896241a35ec0895517dd26ea2cea60cb350addbeb0b23835b7",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "reversible-execution",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "target:unknown",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:survival",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 84,
+      "support_key": {
+        "action_category": "unit-posture",
+        "action_type": null,
+        "actor_class": null,
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:survival",
+        "horizon_bucket": null,
+        "level": "action-category",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.2963620474912214,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "unit-posture",
+          "action_type": "unit_fortify",
+          "actor_class": "unit:Musketeers",
+          "exact_context_digest": "e1873c1978b5a8383e1680d7741e8ab9d8c6e6beb6eedfdaba8ea5ebcbd9849f",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "reversible-execution",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "target:unknown",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:survival",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 84,
+      "support_key": {
+        "action_category": "unit-posture",
+        "action_type": null,
+        "actor_class": null,
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:survival",
+        "horizon_bucket": null,
+        "level": "action-category",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.23038533420655644,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "movement",
+          "action_type": "unit_move",
+          "actor_class": "unit:Musketeers",
+          "exact_context_digest": "e42036c2fcefd1d5531dd62f45ac387058559bbe9263598ca56b50d064672e79",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "route-progress",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "tile",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:survival",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 139,
+      "support_key": {
+        "action_category": "movement",
+        "action_type": null,
+        "actor_class": null,
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:survival",
+        "horizon_bucket": null,
+        "level": "action-category",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.2521931202442211,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "movement",
+          "action_type": "unit_move",
+          "actor_class": "unit:Diplomat",
+          "exact_context_digest": "e7d704c48e30e557a1d48ec96acdb91cb657d39c4c236995a770539180dc9fca",
+          "horizon_bucket": "short:2-3",
+          "lifecycle_state": "route-progress",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "tile",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:survival",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 116,
+      "support_key": {
+        "action_category": null,
+        "action_type": "unit_move",
+        "actor_class": "unit:Diplomat",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:survival",
+        "horizon_bucket": null,
+        "level": "action-actor",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": true,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 0.23038533420655644,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "movement",
+          "action_type": "unit_move",
+          "actor_class": "unit:Archers",
+          "exact_context_digest": "ef20a3e25826e9b2771f3eb3c3f2f1fe1e4561cb3d353326edcc90486110f4bc",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "route-progress",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "tile",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:survival",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 139,
+      "support_key": {
+        "action_category": "movement",
+        "action_type": null,
+        "actor_class": null,
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": null,
+        "goal_id": "pf-impact:survival",
+        "horizon_bucket": null,
+        "level": "action-category",
+        "lifecycle_state": null,
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": null,
+        "ruleset_family": "civ2civ3",
+        "target_class": null,
+        "threat_bucket": null
+      }
+    },
+    {
+      "calibrated": false,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 1.0,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "fiscal-policy",
+          "action_type": "player_rates",
+          "actor_class": "player",
+          "exact_context_digest": "02738b2b69dfd75b73cfeed2245081622cc44b8a733f4924650388e3fc98dc4c",
+          "horizon_bucket": "medium:4-10",
+          "lifecycle_state": "policy-transition",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "player-policy",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:treasury_sustainability",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 3,
+      "support_key": {
+        "action_category": "fiscal-policy",
+        "action_type": "player_rates",
+        "actor_class": "player",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": "02738b2b69dfd75b73cfeed2245081622cc44b8a733f4924650388e3fc98dc4c",
+        "goal_id": "pf-impact:treasury_sustainability",
+        "horizon_bucket": "medium:4-10",
+        "level": "exact-context",
+        "lifecycle_state": "policy-transition",
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+        "ruleset_family": "civ2civ3",
+        "target_class": "player-policy",
+        "threat_bucket": "unknown"
+      }
+    },
+    {
+      "calibrated": false,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 1.0,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "production",
+          "action_type": "city_production",
+          "actor_class": "city",
+          "exact_context_digest": "035e8035d2c450a003922d25f6034eb86aad190a42b83787af76af5bca5ed218",
+          "horizon_bucket": "medium:4-10",
+          "lifecycle_state": "production-commitment",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "city",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:treasury_sustainability",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 7,
+      "support_key": {
+        "action_category": "production",
+        "action_type": "city_production",
+        "actor_class": "city",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": "035e8035d2c450a003922d25f6034eb86aad190a42b83787af76af5bca5ed218",
+        "goal_id": "pf-impact:treasury_sustainability",
+        "horizon_bucket": "medium:4-10",
+        "level": "exact-context",
+        "lifecycle_state": "production-commitment",
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+        "ruleset_family": "civ2civ3",
+        "target_class": "city",
+        "threat_bucket": "unknown"
+      }
+    },
+    {
+      "calibrated": false,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 1.0,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "fiscal-policy",
+          "action_type": "player_rates",
+          "actor_class": "player",
+          "exact_context_digest": "0c742d50f00c2a27da1bf602efb68e644fb39b0eafee2d04c55fd2f3509b03de",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "policy-transition",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "player-policy",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:treasury_sustainability",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 3,
+      "support_key": {
+        "action_category": "fiscal-policy",
+        "action_type": "player_rates",
+        "actor_class": "player",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": "0c742d50f00c2a27da1bf602efb68e644fb39b0eafee2d04c55fd2f3509b03de",
+        "goal_id": "pf-impact:treasury_sustainability",
+        "horizon_bucket": "long:11+",
+        "level": "exact-context",
+        "lifecycle_state": "policy-transition",
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+        "ruleset_family": "civ2civ3",
+        "target_class": "player-policy",
+        "threat_bucket": "unknown"
+      }
+    },
+    {
+      "calibrated": false,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 1.0,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "production",
+          "action_type": "city_production",
+          "actor_class": "city",
+          "exact_context_digest": "5306e9663b218b7a086a82ebfd4493c235753817260016a8ff2a9ea0c2a655f8",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "production-commitment",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "city",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:treasury_sustainability",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 7,
+      "support_key": {
+        "action_category": "production",
+        "action_type": "city_production",
+        "actor_class": "city",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": "5306e9663b218b7a086a82ebfd4493c235753817260016a8ff2a9ea0c2a655f8",
+        "goal_id": "pf-impact:treasury_sustainability",
+        "horizon_bucket": "long:11+",
+        "level": "exact-context",
+        "lifecycle_state": "production-commitment",
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+        "ruleset_family": "civ2civ3",
+        "target_class": "city",
+        "threat_bucket": "unknown"
+      }
+    },
+    {
+      "calibrated": false,
+      "conductance_sample_count": 0,
+      "confidence_half_width": 1.0,
+      "contextual_conductance": 0.5,
+      "key": {
+        "context": {
+          "action_category": "grounded:unit_disband",
+          "action_type": "unit_disband",
+          "actor_class": "unit:Musketeers",
+          "exact_context_digest": "5a518ae53a9e7e2f08676d6aca988dbf9749bbff60d3e97e1739c6738370863c",
+          "horizon_bucket": "long:11+",
+          "lifecycle_state": "terminal-completion",
+          "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+          "ruleset_family": "civ2civ3",
+          "target_class": "target:unknown",
+          "threat_bucket": "unknown"
+        },
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "goal_id": "pf-impact:treasury_sustainability",
+        "policy_version": "controller:scalar_v2/1.0",
+        "schema_version": "2.0"
+      },
+      "sample_count": 1,
+      "support_key": {
+        "action_category": "grounded:unit_disband",
+        "action_type": "unit_disband",
+        "actor_class": "unit:Musketeers",
+        "estimator_version": "grounded-impact-one-step/1.0",
+        "exact_context_digest": "5a518ae53a9e7e2f08676d6aca988dbf9749bbff60d3e97e1739c6738370863c",
+        "goal_id": "pf-impact:treasury_sustainability",
+        "horizon_bucket": "long:11+",
+        "level": "exact-context",
+        "lifecycle_state": "terminal-completion",
+        "policy_version": "controller:scalar_v2/1.0",
+        "ruleset_digest": "deb09389bdffdede7d26f710ba07601f95211c6a1a6de607b2edb5610f1f3cde",
+        "ruleset_family": "civ2civ3",
+        "target_class": "target:unknown",
+        "threat_bucket": "unknown"
+      }
+    }
+  ],
+  "supported_key_count": 38,
+  "total_key_count": 43,
+  "training_hash": "522ac399191f595d91a27805e1cdccad5156ca029d01c837f2bff9876ff2d1b2",
+  "unknown_outcome_count": 0,
+  "update_scope": "control-model-only"
+}

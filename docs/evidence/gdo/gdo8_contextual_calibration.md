@@ -124,15 +124,50 @@ The complete FreeCiv subsystem regression passed after implementation:
 `PYTHONPATH=.:src:benchmarks python3 -m pytest -q
 Autotests/test_freeciv*.py`.
 
+## Engine confirmation
+
+The frozen thresholds above were subsequently applied without retuning to two
+clean, claim-ineligible engine cohorts:
+
+- 30 training seed pairs / 60 arms;
+- 30 disjoint holdout seed pairs / 60 arms;
+- 60 turns per arm;
+- three declared controller workers;
+- zero gameplay or infrastructure failures.
+
+The training treatment traces produced 1,587 eligible contextual outcomes.
+The frozen model supports 38 of 43 observed training keys through the declared
+exact-to-parent hierarchy. The disjoint holdout contains 1,831 eligible
+outcomes:
+
+| Metric | Raw grounded prediction | Frozen contextual v2 |
+|---|---:|---:|
+| Brier score | 0.267491 | 0.041237 |
+| supported holdout coverage | — | 100% |
+| mean Brier improvement | — | 0.226254 |
+| 95% bootstrap improvement interval | — | [0.210036, 0.242391] |
+
+Every predeclared gate passes. Training and holdout seed sets are disjoint,
+their clean source identities match, the model is immutable during evaluation,
+and the approval hash binds the holdout report to the exact model state.
+
+The canonical engine audit is
+`benchmarks/gdo/gdo8_contextual_engine_confirmation.json`. The frozen model,
+training provenance, and approval bundle are:
+
+- `docs/freeciv/evidence/gdo8-contextual-transition-training-v1-model.json`;
+- `docs/freeciv/evidence/gdo8-contextual-transition-training-v1-report.json`;
+- `docs/freeciv/evidence/gdo8-contextual-transition-holdout-v1-approval.json`.
+
 ## Claim boundary and next evidence
 
-This result is synthetic and mechanism-only. It proves context isolation,
-declared backoff, strict migration, immutable evaluation, and the ability to
-correct controlled category-level negative transfer. It does not prove a
-FreeCiv prediction, policy, score, or win-rate improvement.
+The synthetic result proves context isolation, declared backoff, strict
+migration, and controlled negative-transfer correction. The engine result
+additionally establishes a disjoint selected-action prediction-calibration
+improvement under the frozen gate.
 
-No retained trace predates the v2 outcome schema with enough exact contextual
-support for a disjoint engine holdout. Consequently contextual authority
-remains disabled. A future claim requires clean, claim-ineligible training and
-holdout engine cohorts under the frozen thresholds above; only their approved
-bundle may unlock a separate pilot.
+This is not an off-policy value estimate and does not prove that changing live
+candidate order improves Freeciv score or win rate. Contextual authority
+remains default-off. The approved bundle may now be exercised only in a fresh,
+claim-ineligible authority diagnostic; a gameplay claim would require a
+separate frozen pilot and confirmation.
