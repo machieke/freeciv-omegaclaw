@@ -249,6 +249,11 @@ class HarnessRunner(object):
                 "horizon_turn": horizon_turn,
                 "within_pair_order": job["within_pair_order"],
             }
+            material["release_game_config"] = (
+                copy.deepcopy(
+                    cohort_design.get(
+                        "release_game_config",
+                        {})))
             material["impact_outcomes"] = copy.deepcopy(
                 self.config["paired_impact"]["outcomes"])
             material["impact_outcomes"]["horizon_turn"] = horizon_turn

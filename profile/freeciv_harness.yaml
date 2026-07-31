@@ -2475,6 +2475,58 @@ paired_impact:
         count: 10
         minimum: 5900000
         maximum: 5999999
+    combat_operation_authority_scenario_diagnostic_v1:
+      claim_eligible: false
+      purpose: diagnostic
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 160
+      planned_pairs: 10
+      controller_workers: 3
+      release_game_config:
+        # The same independently configured units are given to both players
+        # and both arms. This raises multi-actor combat exposure without
+        # changing the isolated policy treatment.
+        startunits: csdAAAAAA
+      isolated_policy_keys:
+        - pressure_combat_operation_authority_enabled
+      arms:
+        baseline:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_combat_operation_authority_enabled: false
+          pressure_combat_operations_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_native_combat_probabilities_enabled: true
+          pressure_operation_lifecycle_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_resource_scheduler_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+        treatment:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_combat_operation_authority_enabled: true
+          pressure_combat_operations_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_native_combat_probabilities_enabled: true
+          pressure_operation_lifecycle_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_resource_scheduler_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-combat-operation-authority-scenario-diagnostic-v1
+        count: 10
+        minimum: 6000000
+        maximum: 6099999
     calibrated_scalar_diagnostic_v1:
       claim_eligible: false
       purpose: diagnostic

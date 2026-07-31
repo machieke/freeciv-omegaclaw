@@ -1648,6 +1648,10 @@ async def _play(run_dir, manifest, context):
         "max_turns": manifest.get("engine_max_turns", manifest["turn_limit"]),
         "ai_skill_level": manifest["opponent"].get("difficulty", "experimental"),
     }
+    config.update(
+        manifest.get(
+            "release_game_config",
+            {}))
     store = SnapshotStore()
     belief_store = (BeliefStore(manifest["beliefs"])
                     if context.capabilities["uncertain_beliefs"] else None)

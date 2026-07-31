@@ -185,6 +185,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "contextual_transition_holdout_diagnostic_v1": 30,
             "contextual_transition_authority_diagnostic_v1": 10,
             "combat_operation_authority_diagnostic_v1": 10,
+            "combat_operation_authority_scenario_diagnostic_v1": 10,
             "calibrated_scalar_diagnostic_v1": 10,
             "protected_bridge_readout_diagnostic_v1": 10,
             "corrected_probe_readout_diagnostic_v1": 10,
@@ -216,6 +217,12 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "max_no_effect_failovers_per_scope": 4,
             "production_strategy": "horizon_score"},
     }
+    combat_scenario = paired["cohorts"][
+        "combat_operation_authority_scenario_diagnostic_v1"]
+    assert combat_scenario["release_game_config"] == {
+        "startunits": "csdAAAAAA"}
+    assert combat_scenario["isolated_policy_keys"] == [
+        "pressure_combat_operation_authority_enabled"]
     score_derivation = paired["cohorts"]["confirmatory_score"]["seed_derivation"]
     assert score_derivation == {
         "algorithm": "sha256-counter-v1",
@@ -842,6 +849,44 @@ def test_config_rejects_pressure_cohort_with_an_undeclared_arm_difference():
             stream.write(source)
         with pytest.raises(
                 ValueError, match="exactly match isolated_policy_keys"):
+            load(path)
+
+
+def test_combat_scenario_override_is_manifested_and_rejects_seed_drift():
+    with tempfile.TemporaryDirectory() as directory:
+        runner = HarnessRunner(
+            directory,
+            backend="representative",
+            workers=3,
+            seed_limit=1,
+            conditions=("e_full_loop",),
+            impact_cohort=(
+                "combat_operation_authority_scenario_diagnostic_v1"))
+        job = runner._impact_jobs()[0]
+        manifest = runner._manifest(
+            job, worker=0)
+
+        assert manifest["release_game_config"] == {
+            "startunits": "csdAAAAAA"}
+        assert manifest["impact_pair"]["isolated_policy_keys"] == [
+            "pressure_combat_operation_authority_enabled"]
+
+    source = open(os.path.join(
+        REPO, "profile", "freeciv_harness.yaml"),
+        encoding="utf-8").read()
+    source = source.replace(
+        "        startunits: csdAAAAAA",
+        "        mapseed: 123456",
+        1)
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(
+            directory,
+            "invalid-release-override.yaml")
+        with open(path, "w", encoding="utf-8") as stream:
+            stream.write(source)
+        with pytest.raises(
+                ValueError,
+                match="may override only startunits"):
             load(path)
 
 
