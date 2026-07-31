@@ -1580,6 +1580,14 @@ async def _play(run_dir, manifest, context):
         manifest["impact_policy"].get(
             "pressure_combat_operations_enabled",
             False))
+    combat_operation_authority_enabled = bool(
+        manifest["impact_policy"].get(
+            "pressure_combat_operation_authority_enabled",
+            False))
+    city_defense_operation_authority_enabled = bool(
+        manifest["impact_policy"].get(
+            "pressure_city_defense_operation_authority_enabled",
+            False))
     combat_operation_action_budget = (
         int(manifest["impact_policy"][
             "max_actions_per_turn"])
@@ -1702,6 +1710,9 @@ async def _play(run_dir, manifest, context):
         "effect_confirmation_recovered": 0,
         "effect_confirmation_expired": 0,
         "stale_terminal_followups_blocked": 0,
+        "operation_authority_opportunities": 0,
+        "operation_authority_actions": 0,
+        "operation_authority_winner_changes": 0,
     }
     pending_impact_outcomes = DeferredImpactOutcomeLedger()
     action_type_counts = {}
@@ -2263,10 +2274,30 @@ async def _play(run_dir, manifest, context):
                             >= turn_timeout - impact_planner.refresh_timeout_seconds - 0.5):
                         break
                     impact_planning_started = time.perf_counter()
+                    operation_authority = (
+                        control_event_emitter
+                        .operation_authority_readout(
+                            writer,
+                            snapshot,
+                            city_defense_enabled=(
+                                city_defense_operation_authority_enabled),
+                            combat_enabled=(
+                                combat_operation_authority_enabled))
+                        if (
+                            city_defense_operation_authority_enabled
+                            or combat_operation_authority_enabled)
+                        else None)
+                    decision_stats[
+                        "operation_authority_opportunities"
+                    ] += int(
+                        operation_authority
+                        is not None)
                     decision = impact_planner.plan(
                         snapshot, excluded=excluded_impact_actions,
                         excluded_scopes=impact_budget.excluded_scopes,
-                        diagnostics=impact_planning_diagnostics)
+                        diagnostics=impact_planning_diagnostics,
+                        operation_authority=(
+                            operation_authority))
                     impact_planning_latency_ms += (
                         time.perf_counter() - impact_planning_started) * 1000.0
                     impact_planning_calls += 1
@@ -2365,6 +2396,43 @@ async def _play(run_dir, manifest, context):
                         if control_events:
                             parent = control_events[
                                 -1]["event_id"]
+                    if (
+                            isinstance(
+                                decision
+                                .operation_authority,
+                                dict)
+                            and decision
+                            .operation_authority
+                            .get("applied")
+                    ):
+                        authority_events = (
+                            control_event_emitter
+                            .emit_operation_authority_selection(
+                                writer,
+                                snapshot.turn,
+                                decision
+                                .operation_authority[
+                                    "readout"],
+                                decision
+                                .operation_authority
+                                .get(
+                                    "baseline_candidate_key"),
+                                caused_by=(
+                                    parent,)))
+                        parent = (
+                            authority_events[
+                                -1]["event_id"])
+                        decision_stats[
+                            "operation_authority_actions"
+                        ] += 1
+                        decision_stats[
+                            "operation_authority_winner_changes"
+                        ] += int(
+                            decision
+                            .operation_authority
+                            .get(
+                                "changed_winner",
+                                False))
                     plan_event = writer.emit(
                         "plan_created", snapshot.turn,
                         {"plan": decision.plan.to_dict()}, caused_by=[parent])
@@ -3087,6 +3155,12 @@ async def _play(run_dir, manifest, context):
         ("meaningful_actions_per_turn", meaningful_per_turn),
         ("decision_impact_actions", decision_stats["impact_actions"]),
         ("decision_impact_turn_rate", impact_turn_rate),
+        ("operation_authority_opportunities",
+         decision_stats["operation_authority_opportunities"]),
+        ("operation_authority_actions",
+         decision_stats["operation_authority_actions"]),
+        ("operation_authority_winner_changes",
+         decision_stats["operation_authority_winner_changes"]),
         ("decision_effect_observed_rate", effect_observed_rate),
         ("decision_effect_confirmation_latency_ms",
          sum(effect_confirmation_latencies) / max(1, len(effect_confirmation_latencies))),
@@ -3461,6 +3535,15 @@ async def _play(run_dir, manifest, context):
             "model_selection_calls_avoided": (
                 decision_stats["model_selection_calls_avoided"]),
             "decision_impact_actions": decision_stats["impact_actions"],
+            "operation_authority_opportunities": (
+                decision_stats[
+                    "operation_authority_opportunities"]),
+            "operation_authority_actions": (
+                decision_stats[
+                    "operation_authority_actions"]),
+            "operation_authority_winner_changes": (
+                decision_stats[
+                    "operation_authority_winner_changes"]),
             "decision_no_effect_retries_blocked": (
                 impact_planner.no_effect_retries_blocked
                 if impact_planner is not None else 0),
@@ -3663,6 +3746,15 @@ async def _play(run_dir, manifest, context):
         "model_selection_calls_avoided": (
             decision_stats["model_selection_calls_avoided"]),
         "decision_impact_actions": decision_stats["impact_actions"],
+        "operation_authority_opportunities": (
+            decision_stats[
+                "operation_authority_opportunities"]),
+        "operation_authority_actions": (
+            decision_stats[
+                "operation_authority_actions"]),
+        "operation_authority_winner_changes": (
+            decision_stats[
+                "operation_authority_winner_changes"]),
         "decision_no_effect_retries_blocked": (
             impact_planner.no_effect_retries_blocked
             if impact_planner is not None else 0),

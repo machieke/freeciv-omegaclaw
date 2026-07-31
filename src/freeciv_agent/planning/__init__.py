@@ -108,6 +108,8 @@ from .operation_store import (
 from .operations import (
     OPERATION_SCHEMA_VERSION,
     TERMINAL_OPERATION_STATES,
+    OperationAuthorityKind,
+    OperationAuthorityReadout,
     OperationParticipant,
     OperationProgress,
     OperationSpec,
@@ -148,6 +150,7 @@ __all__ = [
     "OPERATION_SCHEMA_VERSION",
     "OPERATION_STORE_SCHEMA_VERSION",
     "TERMINAL_OPERATION_STATES",
+    "OperationAuthorityKind", "OperationAuthorityReadout",
     "OperationParticipant", "OperationProgress",
     "OperationRecord", "OperationSpec", "OperationState",
     "OperationStep", "OperationStore", "OperationStoreError",

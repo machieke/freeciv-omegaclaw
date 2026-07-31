@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 from ..events.schema import canonical_json_bytes, structural_hash
 from .model import BranchScore, Plan, PlanStep, ResourceLedger
+from .operations import OperationAuthorityReadout
 
 
 LEGACY_FOUNDER_TYPES = frozenset(("settlers", "migrants", "engineers"))
@@ -99,6 +100,7 @@ class ImpactDecision:
     candidate: ImpactCandidate
     plan: Plan
     pressure_artifact: object = None
+    operation_authority: object = None
 
 
 @dataclass(frozen=True)
@@ -1207,6 +1209,9 @@ class GroundedImpactPlanner(object):
                         city_defense_operations_enabled=bool(
                             controller_policy[
                                 "pressure_city_defense_operations_enabled"]),
+                        combat_operation_authority_enabled=bool(
+                            controller_policy[
+                                "pressure_combat_operation_authority_enabled"]),
                         domain_ruleset_ir=ruleset_ir,
                         ruleset_digest=domain_ruleset_digest,
                         teleological_enabled=(
@@ -1266,6 +1271,9 @@ class GroundedImpactPlanner(object):
                         city_defense_operations_enabled=bool(
                             controller_policy[
                                 "pressure_city_defense_operations_enabled"]),
+                        combat_operation_authority_enabled=bool(
+                            controller_policy[
+                                "pressure_combat_operation_authority_enabled"]),
                         domain_ruleset_ir=ruleset_ir,
                         ruleset_digest=domain_ruleset_digest,
                         teleological_enabled=True,
@@ -6751,9 +6759,34 @@ class GroundedImpactPlanner(object):
 
     def candidates(
             self, snapshot, excluded=(), excluded_scopes=(),
-            diagnostics=None):
+            diagnostics=None,
+            operation_authority=None):
         excluded = set(excluded)
         excluded_scopes = set(excluded_scopes)
+        if (operation_authority is not None
+                and not isinstance(
+                    operation_authority,
+                    OperationAuthorityReadout)):
+            raise TypeError(
+                "operation authority must be an OperationAuthorityReadout")
+        protected_action_key = None
+        if (
+            operation_authority is not None
+            and operation_authority.snapshot_id
+                == str(snapshot.snapshot_id)
+            and operation_authority
+                .legal_actions_digest
+                == str(
+                    snapshot
+                    .legal_actions_digest)
+            and operation_authority.action_key
+                in frozenset(
+                    snapshot
+                    .legal_action_json)
+        ):
+            protected_action_key = (
+                operation_authority
+                .action_key)
         result = []
         catalog_started = time.perf_counter()
         actions = self._actions(snapshot)
@@ -6924,6 +6957,70 @@ class GroundedImpactPlanner(object):
                     candidate = ImpactCandidate(
                         action, "city_defense", 680.0,
                         "fortify the sole grounded city defender")
+            if (
+                    candidate is None
+                    and key
+                    == protected_action_key
+            ):
+                candidate = ImpactCandidate(
+                    action,
+                    operation_authority
+                    .candidate_category,
+                    (
+                        980.0
+                        if operation_authority
+                        .candidate_category
+                        == "city_defense"
+                        else 900.0),
+                    "execute the exact current step of a complete, "
+                    "identity-reserved grounded operation",
+                    {
+                        "operation_authority_kind":
+                            operation_authority
+                            .authority_kind.value,
+                        "operation_bid":
+                            float(
+                                operation_authority
+                                .bid),
+                        "operation_id":
+                            operation_authority
+                            .operation_id,
+                        "operation_type":
+                            operation_authority
+                            .operation_type,
+                    })
+            elif (
+                    candidate is not None
+                    and key
+                    == protected_action_key
+            ):
+                projection = dict(
+                    candidate.projection
+                    or {})
+                projection.update({
+                    "operation_authority_kind":
+                        operation_authority
+                        .authority_kind.value,
+                    "operation_bid":
+                        float(
+                            operation_authority
+                            .bid),
+                    "operation_id":
+                        operation_authority
+                        .operation_id,
+                    "operation_type":
+                        operation_authority
+                        .operation_type,
+                })
+                candidate = ImpactCandidate(
+                    action=candidate.action,
+                    category=(
+                        candidate.category),
+                    utility=(
+                        candidate.utility),
+                    rationale=(
+                        candidate.rationale),
+                    projection=projection)
             if candidate is not None and candidate.scope not in excluded_scopes:
                 if not self._no_effect_suppressed(snapshot, candidate):
                     result.append(candidate)
@@ -6987,14 +7084,16 @@ class GroundedImpactPlanner(object):
         return None
 
     def plan(self, snapshot, excluded=(), excluded_scopes=(),
-             diagnostics=None):
+             diagnostics=None, operation_authority=None):
         self.last_stranded_pressure_artifact = None
         self.last_control_query = None
         self.last_control_decision = None
         candidate_started = time.perf_counter()
         rows = self.candidates(
             snapshot, excluded=excluded, excluded_scopes=excluded_scopes,
-            diagnostics=diagnostics)
+            diagnostics=diagnostics,
+            operation_authority=(
+                operation_authority))
         candidate_latency_ms = (
             time.perf_counter() - candidate_started) * 1000.0
         if diagnostics is not None:
@@ -7045,6 +7144,7 @@ class GroundedImpactPlanner(object):
                     self.last_stranded_pressure_artifact = None
             return None
         pressure_artifact = None
+        operation_authority_result = None
         if self._control_adapter is not None:
             control_started = time.perf_counter()
             goal_facts = self._sustainability_facts(
@@ -7108,6 +7208,64 @@ class GroundedImpactPlanner(object):
                     + (time.perf_counter() - pressure_started) * 1000.0)
                 diagnostics["pressure_calls"] = (
                     diagnostics.get("pressure_calls", 0) + 1)
+        baseline_candidate_key = (
+            rows[0].action_key
+            if rows else None)
+        controller_operation_authority = (
+            pressure_artifact.get(
+                "operation_authority")
+            if isinstance(
+                pressure_artifact, dict)
+            else None)
+        if (
+                isinstance(
+                    controller_operation_authority,
+                    dict)
+                and controller_operation_authority
+                .get("authority_active")
+        ):
+            baseline_candidate_key = (
+                controller_operation_authority
+                .get(
+                    "baseline_action_key"))
+        if (
+                isinstance(
+                    operation_authority,
+                    OperationAuthorityReadout)
+                and operation_authority
+                .snapshot_id
+                == str(snapshot.snapshot_id)
+                and operation_authority
+                .legal_actions_digest
+                == str(
+                    snapshot
+                    .legal_actions_digest)
+        ):
+            operation_candidate = next((
+                row for row in rows
+                if row.action_key
+                == operation_authority
+                .action_key
+            ), None)
+            if operation_candidate is not None:
+                rows = (
+                    (operation_candidate,)
+                    + tuple(
+                        row for row in rows
+                        if row.action_key
+                        != operation_candidate
+                        .action_key))
+                operation_authority_result = {
+                    "applied": True,
+                    "baseline_candidate_key":
+                        baseline_candidate_key,
+                    "changed_winner":
+                        baseline_candidate_key
+                        != operation_candidate
+                        .action_key,
+                    "readout":
+                        operation_authority,
+                }
         materialization_started = time.perf_counter()
         candidate = rows[0]
         if (candidate.category == "production_military_score"
@@ -7164,7 +7322,10 @@ class GroundedImpactPlanner(object):
                 self._pending_control_decisions.pop(
                     next(iter(
                         self._pending_control_decisions)))
-        return ImpactDecision(candidate, plan, pressure_artifact)
+        return ImpactDecision(
+            candidate, plan,
+            pressure_artifact,
+            operation_authority_result)
 
     def flush_domain_estimates(self, timeout=None):
         """Drain retained non-authoritative domain artifacts for observability."""

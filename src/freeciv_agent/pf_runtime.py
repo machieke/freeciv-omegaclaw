@@ -110,6 +110,7 @@ CONTROLLER_LAYER_SPECS = (
     {"layer": "identity_resource_scheduler", "support": "experimental"},
     {"layer": "operation_lifecycle", "support": "experimental"},
     {"layer": "city_defense_operations", "support": "experimental"},
+    {"layer": "bounded_operation_authority", "support": "experimental"},
     {"layer": "native_movement_routes", "support": "experimental"},
     {"layer": "native_combat_probabilities", "support": "experimental"},
     {"layer": "combat_operations", "support": "experimental"},
@@ -148,6 +149,7 @@ CONTROLLER_POLICY_DEFAULTS = {
     "pressure_flow_live_enabled": False,
     "pressure_commit_revalidation_enabled": False,
     "pressure_city_defense_operations_enabled": False,
+    "pressure_city_defense_operation_authority_enabled": False,
     "pressure_llm_expansion_enabled": False,
     "pressure_llm_validation_packet_budget": 0,
     "pressure_packet_scheduler_enabled": False,
@@ -156,6 +158,7 @@ CONTROLLER_POLICY_DEFAULTS = {
     "pressure_native_movement_routes_enabled": False,
     "pressure_native_combat_probabilities_enabled": False,
     "pressure_combat_operations_enabled": False,
+    "pressure_combat_operation_authority_enabled": False,
     "pressure_transport_operations_enabled": False,
     "pressure_production_operations_enabled": False,
     "pressure_research_operations_enabled": False,
@@ -689,11 +692,13 @@ def validate_controller_policy(impact_policy):
                 "pressure_native_movement_routes_enabled",
                 "pressure_native_combat_probabilities_enabled",
                 "pressure_combat_operations_enabled",
+                "pressure_combat_operation_authority_enabled",
                 "pressure_transport_operations_enabled",
                 "pressure_production_operations_enabled",
                 "pressure_research_operations_enabled",
                 "pressure_city_worker_macro_actions_enabled",
                 "pressure_city_defense_operations_enabled",
+                "pressure_city_defense_operation_authority_enabled",
                 "pressure_requirement_sets_enabled",
                 "pressure_domain_estimates_enabled",
                 "pressure_bridge_enabled",
@@ -794,6 +799,18 @@ def validate_controller_policy(impact_policy):
             "combat operations require native combat probabilities, "
             "operation lifecycle, identity resource scheduling, and "
             "RequirementSets")
+    if (
+            policy[
+                "pressure_combat_operation_authority_enabled"]
+            and not (
+                policy[
+                    "pressure_combat_operations_enabled"]
+                and policy[
+                    "pressure_commit_revalidation_enabled"])
+    ):
+        raise PFRuntimeConfigurationError(
+            "combat operation authority requires combat operations "
+            "and commit revalidation")
     if (policy[
             "pressure_transport_operations_enabled"]
             and not (
@@ -863,6 +880,39 @@ def validate_controller_policy(impact_policy):
                 "pressure_operation_lifecycle_enabled"]):
         raise PFRuntimeConfigurationError(
             "city-defence operations require operation lifecycle")
+    if (
+            policy[
+                "pressure_city_defense_operation_authority_enabled"]
+            and not (
+                policy[
+                    "pressure_city_defense_operations_enabled"]
+                and policy[
+                    "pressure_native_movement_routes_enabled"]
+                and policy[
+                    "pressure_commit_revalidation_enabled"])
+    ):
+        raise PFRuntimeConfigurationError(
+            "city-defence operation authority requires city-defence "
+            "operations, native movement routes, and commit revalidation")
+    if (
+            (
+                policy[
+                    "pressure_city_defense_operation_authority_enabled"]
+                or policy[
+                    "pressure_combat_operation_authority_enabled"]
+            )
+            and (
+                policy[
+                    "pressure_transition_value_authority_enabled"]
+                or policy[
+                    "pressure_contextual_conductance_authority_enabled"]
+                or policy[
+                    "pressure_flow_live_enabled"]
+            )
+    ):
+        raise PFRuntimeConfigurationError(
+            "bounded operation authority cannot be combined with another "
+            "winner-changing experimental authority")
     for name in (
             "pressure_transition_value_model_identity",
             "pressure_transition_value_model_path",
@@ -1045,11 +1095,13 @@ def validate_controller_policy(impact_policy):
                 "pressure_native_movement_routes_enabled",
                 "pressure_native_combat_probabilities_enabled",
                 "pressure_combat_operations_enabled",
+                "pressure_combat_operation_authority_enabled",
                 "pressure_transport_operations_enabled",
                 "pressure_production_operations_enabled",
                 "pressure_research_operations_enabled",
                 "pressure_city_worker_macro_actions_enabled",
                 "pressure_city_defense_operations_enabled",
+                "pressure_city_defense_operation_authority_enabled",
                 "pressure_requirement_sets_enabled",
                 "pressure_domain_estimates_enabled",
                 "pressure_bridge_enabled",
@@ -1094,6 +1146,13 @@ def build_controller_activation(impact_policy):
             pressure_enabled and v2
             and policy[
                 "pressure_city_defense_operations_enabled"]),
+        "bounded_operation_authority": (
+            pressure_enabled and v2
+            and (
+                policy[
+                    "pressure_city_defense_operation_authority_enabled"]
+                or policy[
+                    "pressure_combat_operation_authority_enabled"])),
         "native_movement_routes": (
             pressure_enabled and v2
             and policy[

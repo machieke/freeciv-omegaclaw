@@ -440,6 +440,56 @@ def test_native_combat_and_atomic_operations_are_default_off_and_gated():
         "combat_operations"]["enabled"]
 
 
+def test_bounded_combat_operation_authority_is_default_off_and_fail_closed():
+    default = build_controller_activation({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+    })
+    assert not default["layers"][
+        "bounded_operation_authority"]["enabled"]
+    assert not default["controller_policy"][
+        "pressure_combat_operation_authority_enabled"]
+
+    with pytest.raises(
+            PFRuntimeConfigurationError,
+            match="combat operation authority requires"):
+        validate_controller_policy({
+            "pressure_enabled": True,
+            "pressure_semantics_version": "v2",
+            "pressure_controller_mode": "scalar_v2",
+            "pressure_combat_operation_authority_enabled": True,
+        })
+
+    enabled = build_controller_activation({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+        "pressure_packet_scheduler_enabled": True,
+        "pressure_resource_scheduler_enabled": True,
+        "pressure_requirement_sets_enabled": True,
+        "pressure_domain_estimates_enabled": True,
+        "pressure_commit_revalidation_enabled": True,
+        "pressure_operation_lifecycle_enabled": True,
+        "pressure_native_combat_probabilities_enabled": True,
+        "pressure_combat_operations_enabled": True,
+        "pressure_combat_operation_authority_enabled": True,
+    })
+    assert enabled["layers"][
+        "bounded_operation_authority"]["enabled"]
+    assert enabled["controller_policy"][
+        "pressure_combat_operation_authority_enabled"]
+
+    with pytest.raises(
+            PFRuntimeConfigurationError,
+            match="cannot be combined"):
+        validate_controller_policy({
+            **enabled["controller_policy"],
+            "pressure_contextual_conductance_enabled": True,
+            "pressure_contextual_conductance_authority_enabled": True,
+        })
+
+
 def test_transport_operations_are_default_off_and_grounded_stack_gated():
     default = build_controller_activation({
         "pressure_enabled": True,

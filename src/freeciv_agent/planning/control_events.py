@@ -23,6 +23,8 @@ from .operation_store import (
     OperationTransitionError,
 )
 from .operations import (
+    OperationAuthorityKind,
+    OperationAuthorityReadout,
     OperationState,
 )
 
@@ -226,6 +228,278 @@ class ControlEventEmitter:
             self._combat_lifecycles[
                 game_id] = lifecycle
         return lifecycle
+
+    def operation_authority_readout(
+            self, writer, snapshot,
+            city_defense_enabled=False,
+            combat_enabled=False):
+        """Return one exact, reserved next step for a bounded live slice.
+
+        Scheduling and lifecycle observation remain responsible for producing
+        the reservation.  This boundary only exposes a byte-identical current
+        legal action and fails closed when provenance, reservation, deadline,
+        or current-step support is incomplete.
+        """
+        if snapshot is None:
+            return None
+        snapshot_id = str(
+            getattr(
+                snapshot, "snapshot_id", ""))
+        legal_actions_digest = str(
+            getattr(
+                snapshot,
+                "legal_actions_digest", ""))
+        legal_keys = frozenset(
+            str(value) for value in
+            getattr(
+                snapshot,
+                "legal_action_json", ()))
+        if (not snapshot_id
+                or not legal_actions_digest
+                or not legal_keys):
+            return None
+        turn = int(
+            getattr(snapshot, "turn", 0))
+        candidates = []
+        if city_defense_enabled:
+            store = self._operation_store_for(
+                writer)
+            for record in (
+                    store
+                    .nonterminal_records()):
+                operation_id = (
+                    record.spec.operation_id)
+                payload = (
+                    self._operation_payloads
+                    .get(operation_id))
+                action_key = (
+                    self._operation_action_keys
+                    .get(operation_id))
+                if (
+                    record.progress.state
+                    != OperationState.RESERVED
+                    or record.progress
+                    .last_snapshot_id
+                    != snapshot_id
+                    or record.spec.expiry_turn
+                    < turn
+                    or not isinstance(
+                        payload, dict)
+                    or action_key
+                    not in legal_keys
+                    or not isinstance(
+                        payload.get(
+                            "next_action"),
+                        dict)
+                ):
+                    continue
+                readout = OperationAuthorityReadout(
+                    authority_kind=(
+                        OperationAuthorityKind
+                        .CITY_DEFENSE),
+                    operation_id=operation_id,
+                    operation_type=(
+                        record.spec
+                        .operation_type),
+                    action=dict(
+                        payload[
+                            "next_action"]),
+                    action_key=action_key,
+                    candidate_category=(
+                        "city_defense"),
+                    snapshot_id=snapshot_id,
+                    legal_actions_digest=(
+                        legal_actions_digest),
+                    bid=float(
+                        payload.get(
+                            "bid", 0.0)),
+                    provenance=tuple(
+                        payload.get(
+                            "provenance")
+                        or (
+                            "city-defense-exact-assignment",
+                        )))
+                candidates.append((
+                    0,
+                    -float(
+                        payload.get(
+                            "expected_prevented_loss",
+                            readout.bid)),
+                    operation_id,
+                    readout))
+        if combat_enabled:
+            from .combat_operations import (
+                CombatOperationAssembler,
+            )
+            lifecycle = (
+                self._combat_lifecycle_for(
+                    writer))
+            for record in (
+                    lifecycle.store
+                    .nonterminal_records()):
+                operation_id = (
+                    record.spec.operation_id)
+                assembly = (
+                    lifecycle.assembly(
+                        operation_id))
+                reservation = (
+                    lifecycle.ledger
+                    .reservation(
+                        operation_id))
+                payload = (
+                    self._operation_payloads
+                    .get(operation_id))
+                if (
+                    record.progress.state
+                    not in (
+                        OperationState.RESERVED,
+                        OperationState.ACTIVE)
+                    or record.spec.expiry_turn
+                    < turn
+                    or assembly is None
+                    or reservation is None
+                    or not reservation.active
+                    or not isinstance(
+                        payload, dict)
+                ):
+                    continue
+                step_index = (
+                    record.progress
+                    .current_step_index)
+                if step_index >= len(
+                        assembly.spec.steps):
+                    continue
+                domain_readout = (
+                    CombatOperationAssembler
+                    .readout(
+                        assembly, snapshot,
+                        step_index))
+                action = (
+                    domain_readout
+                    .next_action)
+                if (
+                    domain_readout
+                    .disposition
+                    != "reservable"
+                    or not isinstance(
+                        action, dict)
+                ):
+                    continue
+                action_key = (
+                    canonical_json_bytes(
+                        action)
+                    .decode("utf-8"))
+                if action_key not in (
+                        legal_keys):
+                    continue
+                bid = float(
+                    domain_readout
+                    .probability_interval
+                    .lower)
+                readout = OperationAuthorityReadout(
+                    authority_kind=(
+                        OperationAuthorityKind
+                        .COMBAT),
+                    operation_id=operation_id,
+                    operation_type=(
+                        record.spec
+                        .operation_type),
+                    action=dict(action),
+                    action_key=action_key,
+                    candidate_category=(
+                        "tactical_attack"),
+                    snapshot_id=snapshot_id,
+                    legal_actions_digest=(
+                        legal_actions_digest),
+                    bid=bid,
+                    provenance=tuple(
+                        payload.get(
+                            "provenance")
+                        or (
+                            "combat-exact-schedule",
+                        )))
+                candidates.append((
+                    1, -bid,
+                    operation_id,
+                    readout))
+        if not candidates:
+            return None
+        return sorted(
+            candidates,
+            key=lambda row: (
+                row[0], row[1],
+                row[2]))[0][3]
+
+    def emit_operation_authority_selection(
+            self, writer, turn,
+            readout, baseline_candidate_key,
+            caused_by=()):
+        """Record the exact point where a default-off slice changes readout."""
+        if not isinstance(
+                readout,
+                OperationAuthorityReadout):
+            raise TypeError(
+                "operation authority selection requires a readout")
+        payload = self._operation_payloads.get(
+            readout.operation_id)
+        if not isinstance(payload, dict):
+            raise ValueError(
+                "operation authority selection has no retained payload")
+        payload["policy_authority"] = True
+        payload["shadow_only"] = False
+        provenance = tuple(
+            payload.get(
+                "provenance") or ())
+        marker = (
+            "bounded-{}-operation-authority/1.0"
+            .format(
+                readout
+                .authority_kind.value))
+        payload["provenance"] = list(
+            dict.fromkeys(
+                provenance
+                + (marker,)))
+        selected = dict(payload)
+        selected.update({
+            "reason_code":
+                "bounded-operation-authority",
+            "selected": True,
+            "snapshot_id":
+                readout.snapshot_id,
+            "state": "step_selected",
+        })
+        event = writer.emit(
+            "operation_step_selected",
+            int(turn), selected,
+            caused_by=list(
+                caused_by))
+        self._operation_event_ids[
+            readout.operation_id] = (
+                event["event_id"])
+        metric = writer.emit(
+            "metric_sample",
+            int(turn), {
+                "labels": {
+                    "authority_kind":
+                        readout
+                        .authority_kind.value,
+                    "changed_winner": str(
+                        baseline_candidate_key
+                        != readout.action_key)
+                    .lower(),
+                    "component":
+                        "bounded-operation-authority",
+                    "operation_type":
+                        readout.operation_type,
+                },
+                "name":
+                    "operation_authority_selection",
+                "unit": "count",
+                "value": 1.0,
+            },
+            caused_by=[
+                event["event_id"]])
+        return (event, metric)
 
     def _apply_combat_lifecycle_update(
             self, lifecycle, update):

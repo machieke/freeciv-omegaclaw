@@ -1143,6 +1143,61 @@ class ImpactPressureRanker(object):
         ordered = tuple(sorted(candidates, key=lambda candidate: (
             rank.get(operation_by_candidate[id(candidate)], len(rank)),
             -candidate.utility, candidate.category, candidate.action_key)))
+        operation_authority_artifact = None
+        if getattr(
+                self,
+                "combat_operation_authority_enabled",
+                False):
+            operation_candidate = next((
+                candidate for candidate in ordered
+                if isinstance(
+                    candidate.projection,
+                    dict)
+                and candidate.projection.get(
+                    "operation_authority_kind")
+                == "combat"
+                and isinstance(
+                    candidate.projection.get(
+                        "operation_id"),
+                    str)
+            ), None)
+            if operation_candidate is not None:
+                baseline_action_key = (
+                    ordered[0].action_key
+                    if ordered else None)
+                ordered = (
+                    (operation_candidate,)
+                    + tuple(
+                        candidate
+                        for candidate in ordered
+                        if candidate.action_key
+                        != operation_candidate
+                        .action_key))
+                operation_authority_artifact = {
+                    "authority_active": True,
+                    "authority_kind": "combat",
+                    "baseline_action_key":
+                        baseline_action_key,
+                    "changed_winner":
+                        baseline_action_key
+                        != operation_candidate
+                        .action_key,
+                    "operation_id":
+                        operation_candidate
+                        .projection[
+                            "operation_id"],
+                    "operation_type":
+                        operation_candidate
+                        .projection[
+                            "operation_type"],
+                    "selected_action_key":
+                        operation_candidate
+                        .action_key,
+                }
+                operation_authority_artifact[
+                    "artifact_hash"] = (
+                        structural_hash(
+                            operation_authority_artifact))
         if diagnostics is not None:
             diagnostics["pressure_schedule_latency_ms"] = (
                 diagnostics.get("pressure_schedule_latency_ms", 0.0)
@@ -1182,6 +1237,9 @@ class ImpactPressureRanker(object):
         if identity_resource_schedule is not None:
             artifact["identity_resource_schedule"] = (
                 identity_resource_schedule)
+        if operation_authority_artifact is not None:
+            artifact["operation_authority"] = (
+                operation_authority_artifact)
         if diagnostics is not None:
             diagnostics["pressure_artifact_latency_ms"] = (
                 diagnostics.get("pressure_artifact_latency_ms", 0.0)
@@ -1233,6 +1291,7 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
             resource_scheduler_enabled=False,
             resource_scheduler_node_budget=5000,
             city_defense_operations_enabled=False,
+            combat_operation_authority_enabled=False,
             ruleset_digest=None,
             bridge_scalar_enabled=False,
             bridge_scalar_config=None,
@@ -1354,6 +1413,13 @@ class ImpactPressureRankerV2(ImpactPressureRanker):
                 "city-defence operations require identity resource scheduling")
         self.city_defense_operations_enabled = (
             city_defense_operations_enabled)
+        if not isinstance(
+                combat_operation_authority_enabled,
+                bool):
+            raise TypeError(
+                "combat operation authority setting must be boolean")
+        self.combat_operation_authority_enabled = (
+            combat_operation_authority_enabled)
         self._domain_estimate_executor = None
         self._resource_schedule_executor = None
         if domain_estimates_enabled:

@@ -93,9 +93,11 @@ impact_policy:
   pressure_native_movement_routes_enabled: true
   pressure_native_combat_probabilities_enabled: true
   pressure_combat_operations_enabled: true
+  pressure_combat_operation_authority_enabled: false
   pressure_commit_revalidation_enabled: true
   pressure_operation_lifecycle_enabled: true
   pressure_city_defense_operations_enabled: true
+  pressure_city_defense_operation_authority_enabled: false
   pressure_score_alignment_enabled: true
   pressure_exploration_information_enabled: true
   pressure_score_alignment_utility_tolerance: 0.05

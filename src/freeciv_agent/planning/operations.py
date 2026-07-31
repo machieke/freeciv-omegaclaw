@@ -9,7 +9,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional, Tuple
 
-from ..events.schema import structural_hash
+from ..events.schema import (
+    canonical_json_bytes,
+    structural_hash,
+)
 
 
 OPERATION_SCHEMA_VERSION = 1
@@ -48,6 +51,100 @@ class OperationState(str, Enum):
     FAILED = "failed"
     ABANDONED = "abandoned"
     EXPIRED = "expired"
+
+
+class OperationAuthorityKind(str, Enum):
+    CITY_DEFENSE = "city_defense"
+    COMBAT = "combat"
+
+
+@dataclass(frozen=True)
+class OperationAuthorityReadout:
+    """One exact current operation step eligible for bounded policy readout.
+
+    This value does not itself grant authority.  Runtime configuration must
+    opt into the matching slice, and the action planner still verifies that
+    the byte-identical action is present in the current advertised legal set.
+    """
+
+    authority_kind: OperationAuthorityKind
+    operation_id: str
+    operation_type: str
+    action: dict
+    action_key: str
+    candidate_category: str
+    snapshot_id: str
+    legal_actions_digest: str
+    bid: float
+    provenance: Tuple[str, ...]
+
+    def __post_init__(self):
+        object.__setattr__(
+            self,
+            "authority_kind",
+            OperationAuthorityKind(
+                self.authority_kind))
+        for value, name in (
+                (self.operation_id,
+                 "authority operation id"),
+                (self.operation_type,
+                 "authority operation type"),
+                (self.action_key,
+                 "authority action key"),
+                (self.candidate_category,
+                 "authority candidate category"),
+                (self.snapshot_id,
+                 "authority snapshot id"),
+                (self.legal_actions_digest,
+                 "authority legal-action digest")):
+            _required_text(value, name)
+        if not isinstance(
+                self.action, dict):
+            raise TypeError(
+                "authority action must be an object")
+        expected_key = (
+            canonical_json_bytes(
+                self.action)
+            .decode("utf-8"))
+        if self.action_key != expected_key:
+            raise ValueError(
+                "authority action key does not match action")
+        if (isinstance(self.bid, bool)
+                or not isinstance(
+                    self.bid, (int, float))
+                or self.bid < 0):
+            raise ValueError(
+                "authority bid must be non-negative")
+        object.__setattr__(
+            self,
+            "provenance",
+            _text_tuple(
+                self.provenance,
+                "authority provenance"))
+
+    def to_dict(self):
+        return {
+            "action": dict(
+                self.action),
+            "action_key":
+                self.action_key,
+            "authority_kind":
+                self.authority_kind.value,
+            "bid": float(
+                self.bid),
+            "candidate_category":
+                self.candidate_category,
+            "legal_actions_digest":
+                self.legal_actions_digest,
+            "operation_id":
+                self.operation_id,
+            "operation_type":
+                self.operation_type,
+            "provenance": list(
+                self.provenance),
+            "snapshot_id":
+                self.snapshot_id,
+        }
 
 
 TERMINAL_OPERATION_STATES = frozenset((

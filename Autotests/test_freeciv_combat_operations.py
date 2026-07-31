@@ -22,6 +22,8 @@ from freeciv_agent.planning import (
     CombatOperationLifecycle,
     ControlEventEmitter,
     ConditionalProbabilityInterval,
+    GroundedImpactPlanner,
+    OperationAuthorityKind,
     combat_target_capacities,
     conditional_success_interval,
 )
@@ -917,3 +919,106 @@ def test_combat_lifecycle_events_are_causal_valid_and_release_every_claim():
     assert report.valid, [
         row.to_dict()
         for row in report.errors]
+
+
+def test_bounded_combat_authority_reads_out_and_commits_exact_reserved_step():
+    snapshot = _snapshot()
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(
+            directory,
+            "events.jsonl")
+        writer = EventWriter(
+            path,
+            "combat-operation-authority",
+            durable=False)
+        emitter = ControlEventEmitter()
+        proposed = (
+            emitter
+            .emit_combat_operation_shadow(
+                writer, snapshot,
+                "ruleset-proof",
+                action_budget=8))
+        readout = (
+            emitter
+            .operation_authority_readout(
+                writer, snapshot,
+                combat_enabled=True))
+
+        assert readout is not None
+        assert readout.authority_kind == (
+            OperationAuthorityKind.COMBAT)
+        assert readout.action_key in (
+            snapshot.legal_action_json)
+
+        planner = GroundedImpactPlanner({
+            "pressure_achievement_uncertainty_split_enabled": True,
+            "pressure_combat_operation_authority_enabled": True,
+            "pressure_combat_operations_enabled": True,
+            "pressure_commit_revalidation_enabled": True,
+            "pressure_controller_mode": "scalar_v2",
+            "pressure_distributional_risk_enabled": True,
+            "pressure_domain_estimates_enabled": True,
+            "pressure_enabled": True,
+            "pressure_native_combat_probabilities_enabled": True,
+            "pressure_operation_lifecycle_enabled": True,
+            "pressure_packet_scheduler_enabled": True,
+            "pressure_requirement_sets_enabled": True,
+            "pressure_resource_scheduler_enabled": True,
+            "pressure_semantics_version": "v2",
+            "pressure_signed_channels_enabled": True,
+        })
+        decision = planner.plan(
+            snapshot,
+            operation_authority=readout)
+
+        assert decision.candidate.action_key == (
+            readout.action_key)
+        assert planner.last_control_decision\
+            .selected_candidate_key == (
+                readout.action_key)
+        assert decision.operation_authority[
+            "applied"]
+        assert decision.pressure_artifact[
+            "operation_authority"][
+                "authority_active"]
+
+        selected = (
+            emitter
+            .emit_operation_authority_selection(
+                writer, snapshot.turn,
+                readout,
+                decision
+                .operation_authority[
+                    "baseline_candidate_key"],
+                caused_by=(
+                    proposed[-1][
+                        "event_id"],)))
+        committed = (
+            emitter
+            .emit_combat_action_outcome(
+                writer, snapshot,
+                decision.candidate.action,
+                SimpleNamespace(
+                    submitted=True,
+                    status="accepted",
+                    action_id=(
+                        "authority-action"),
+                    reason=None),
+                caused_by=(
+                    selected[-1][
+                        "event_id"],)))
+        report = validate_file(path)
+
+    assert report.valid
+    assert any(
+        row["type"]
+        == "operation_step_committed"
+        for row in committed)
+    assert all(
+        row["payload"][
+            "policy_authority"]
+        and not row["payload"][
+            "shadow_only"]
+        for row in committed
+        if row["type"].startswith(
+            "operation_"))
