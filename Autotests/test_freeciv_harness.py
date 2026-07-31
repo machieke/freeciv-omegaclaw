@@ -185,7 +185,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "contextual_transition_holdout_diagnostic_v1": 30,
             "contextual_transition_authority_diagnostic_v1": 10,
             "combat_operation_authority_diagnostic_v1": 10,
-            "combat_operation_authority_scenario_diagnostic_v1": 10,
+            "combat_operation_authority_scenario_diagnostic_v2": 10,
             "calibrated_scalar_diagnostic_v1": 10,
             "protected_bridge_readout_diagnostic_v1": 10,
             "corrected_probe_readout_diagnostic_v1": 10,
@@ -218,9 +218,9 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "production_strategy": "horizon_score"},
     }
     combat_scenario = paired["cohorts"][
-        "combat_operation_authority_scenario_diagnostic_v1"]
+        "combat_operation_authority_scenario_diagnostic_v2"]
     assert combat_scenario["release_game_config"] == {
-        "startunits": "csdAAAAAA"}
+        "startunits": "csxxxxxxxxxxxxdddddd"}
     assert combat_scenario["isolated_policy_keys"] == [
         "pressure_combat_operation_authority_enabled"]
     score_derivation = paired["cohorts"]["confirmatory_score"]["seed_derivation"]
@@ -861,13 +861,13 @@ def test_combat_scenario_override_is_manifested_and_rejects_seed_drift():
             seed_limit=1,
             conditions=("e_full_loop",),
             impact_cohort=(
-                "combat_operation_authority_scenario_diagnostic_v1"))
+                "combat_operation_authority_scenario_diagnostic_v2"))
         job = runner._impact_jobs()[0]
         manifest = runner._manifest(
             job, worker=0)
 
         assert manifest["release_game_config"] == {
-            "startunits": "csdAAAAAA"}
+            "startunits": "csxxxxxxxxxxxxdddddd"}
         assert manifest["impact_pair"]["isolated_policy_keys"] == [
             "pressure_combat_operation_authority_enabled"]
 
@@ -875,7 +875,7 @@ def test_combat_scenario_override_is_manifested_and_rejects_seed_drift():
         REPO, "profile", "freeciv_harness.yaml"),
         encoding="utf-8").read()
     source = source.replace(
-        "        startunits: csdAAAAAA",
+        "        startunits: csxxxxxxxxxxxxdddddd",
         "        mapseed: 123456",
         1)
     with tempfile.TemporaryDirectory() as directory:
@@ -887,6 +887,23 @@ def test_combat_scenario_override_is_manifested_and_rejects_seed_drift():
         with pytest.raises(
                 ValueError,
                 match="may override only startunits"):
+            load(path)
+
+    unsupported = open(os.path.join(
+        REPO, "profile", "freeciv_harness.yaml"),
+        encoding="utf-8").read().replace(
+            "        startunits: csxxxxxxxxxxxxdddddd",
+            "        startunits: csdA",
+            1)
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(
+            directory,
+            "unsupported-startunits.yaml")
+        with open(path, "w", encoding="utf-8") as stream:
+            stream.write(unsupported)
+        with pytest.raises(
+                ValueError,
+                match="startunits is invalid"):
             load(path)
 
 

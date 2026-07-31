@@ -463,10 +463,10 @@ def _validate_paired_impact(value):
                 startunits is not None
                 and (
                     not isinstance(startunits, str)
-                    or not 1 <= len(startunits) <= 32
+                    or not 1 <= len(startunits) <= 20
                     or any(
                         token not in
-                        "cwxksfdDaA"
+                        "cwxksfd"
                         for token in startunits)
                 )
         ):

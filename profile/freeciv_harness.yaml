@@ -2475,7 +2475,7 @@ paired_impact:
         count: 10
         minimum: 5900000
         maximum: 5999999
-    combat_operation_authority_scenario_diagnostic_v1:
+    combat_operation_authority_scenario_diagnostic_v2:
       claim_eligible: false
       purpose: diagnostic
       require_clean_source: true
@@ -2487,7 +2487,7 @@ paired_impact:
         # The same independently configured units are given to both players
         # and both arms. This raises multi-actor combat exposure without
         # changing the isolated policy treatment.
-        startunits: csdAAAAAA
+        startunits: csxxxxxxxxxxxxdddddd
       isolated_policy_keys:
         - pressure_combat_operation_authority_enabled
       arms:
@@ -2523,10 +2523,10 @@ paired_impact:
           pressure_signed_channels_enabled: true
       seed_derivation:
         algorithm: sha256-counter-v1
-        namespace: pf-pln-combat-operation-authority-scenario-diagnostic-v1
+        namespace: pf-pln-combat-operation-authority-scenario-diagnostic-v2
         count: 10
-        minimum: 6000000
-        maximum: 6099999
+        minimum: 6100000
+        maximum: 6199999
     calibrated_scalar_diagnostic_v1:
       claim_eligible: false
       purpose: diagnostic
@@ -2792,6 +2792,23 @@ paired_impact:
         minimum: 5600000
         maximum: 5699999
   retired_cohorts:
+    combat_operation_authority_scenario_diagnostic_v1:
+      retired_reason: deployed_proxy_rejected_uppercase_startunit_roles
+      source_commit: af2c94fd347dd68f7452be5183b401003174b0e5
+      completed_arms: 2
+      planned_arms: 20
+      outcome_values_inspected: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 160
+      controller_workers: 3
+      release_game_config:
+        startunits: csdAAAAAA
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-combat-operation-authority-scenario-diagnostic-v1
+        count: 10
+        minimum: 6000000
+        maximum: 6099999
     confirmatory_score_horizon_60_v4:
       retired_reason: terminal_player_elimination_misclassified_as_infrastructure_timeout
       source_commit: b59205c57a481bda657d7a71af9657fd014f87fb
