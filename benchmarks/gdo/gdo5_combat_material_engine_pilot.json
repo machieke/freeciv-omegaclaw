@@ -1,0 +1,556 @@
+{
+  "arms": {
+    "baseline": {
+      "authority": {
+        "action_types": {
+          "unit_attack": 42
+        },
+        "operation_types": {
+          "attack_then_conditional_attack": 42
+        },
+        "policy_authority_values": {
+          "False": 42
+        },
+        "row_count": 42
+      },
+      "duplicate_selected_targets": [],
+      "event_counts": {
+        "operation_abandoned": 1,
+        "operation_activated": 42,
+        "operation_blocked": 34,
+        "operation_completed": 74,
+        "operation_expired": 19,
+        "operation_failed": 0,
+        "operation_proposed": 813,
+        "operation_reserved": 99,
+        "operation_step_committed": 42,
+        "operation_step_revalidated": 132,
+        "operation_step_selected": 101
+      },
+      "hard_current_reservation_conflicts": [],
+      "immediate_terminal_loss": {
+        "calibration_residual_vs_expected_upper": -1.194206349206349,
+        "censored_commits": 0,
+        "expected_mean": {
+          "lower": 1.4654761904761908,
+          "upper": 1.670396825396825
+        },
+        "observation_count": 42,
+        "realized_mean": 0.47619047619047616,
+        "scope": "immediate-terminal-destruction-only"
+      },
+      "lifecycle": {
+        "activated_adverse": 0,
+        "activated_completed": 42,
+        "activated_unique": 42,
+        "activation_rate_per_selection": 0.44680851063829785,
+        "adverse_terminal_rate_per_activation": 0.0,
+        "adverse_terminal_rate_per_selection": 0.2127659574468085,
+        "committed_unique": 42,
+        "completion_rate_per_activation": 1.0,
+        "completion_rate_per_selection": 0.7872340425531915,
+        "selected_adverse": 20,
+        "selected_completed": 74,
+        "selected_unique": 94
+      },
+      "nonpositive_activations": [],
+      "partial_activations": [],
+      "scheduler_latency_ms": {
+        "maximum": 35.5752850882709,
+        "p50": 0.0,
+        "p95": 0.0,
+        "positive_p95": 16.242936719208956,
+        "positive_sample_count": 195,
+        "sample_count": 10906
+      }
+    },
+    "treatment": {
+      "authority": {
+        "action_types": {
+          "unit_attack": 94
+        },
+        "operation_types": {
+          "attack_then_conditional_attack": 94
+        },
+        "policy_authority_values": {
+          "True": 94
+        },
+        "row_count": 94
+      },
+      "duplicate_selected_targets": [],
+      "event_counts": {
+        "operation_abandoned": 0,
+        "operation_activated": 94,
+        "operation_blocked": 10,
+        "operation_completed": 95,
+        "operation_expired": 9,
+        "operation_failed": 0,
+        "operation_proposed": 694,
+        "operation_reserved": 105,
+        "operation_step_committed": 98,
+        "operation_step_revalidated": 136,
+        "operation_step_selected": 207
+      },
+      "hard_current_reservation_conflicts": [],
+      "immediate_terminal_loss": {
+        "calibration_residual_vs_expected_upper": -0.5511904761904763,
+        "censored_commits": 0,
+        "expected_mean": {
+          "lower": 1.3076530612244899,
+          "upper": 1.4695578231292519
+        },
+        "observation_count": 98,
+        "realized_mean": 0.9183673469387755,
+        "scope": "immediate-terminal-destruction-only"
+      },
+      "lifecycle": {
+        "activated_adverse": 0,
+        "activated_completed": 94,
+        "activated_unique": 94,
+        "activation_rate_per_selection": 0.9038461538461539,
+        "adverse_terminal_rate_per_activation": 0.0,
+        "adverse_terminal_rate_per_selection": 0.08653846153846154,
+        "committed_unique": 94,
+        "completion_rate_per_activation": 1.0,
+        "completion_rate_per_selection": 0.9134615384615384,
+        "selected_adverse": 9,
+        "selected_completed": 95,
+        "selected_unique": 104
+      },
+      "nonpositive_activations": [],
+      "partial_activations": [
+        {
+          "claimed_current_actors": [
+            "unit:142"
+          ],
+          "operation_id": "operation-0730818ab6d67396e8a1771f7e92db6a",
+          "required_participants": [
+            "unit:139",
+            "unit:142"
+          ],
+          "snapshot_id": "m7-ip-x4bf137408a-t-6384065-00-c00355ae:6:8617:e63ac21390e523e0"
+        }
+      ],
+      "scheduler_latency_ms": {
+        "maximum": 99.80178717523813,
+        "p50": 0.0,
+        "p95": 0.0,
+        "positive_p95": 17.992441076785326,
+        "positive_sample_count": 163,
+        "sample_count": 10735
+      }
+    }
+  },
+  "authority": {
+    "claim_status": "bounded-mechanism-pilot",
+    "policy_authority_eligible": false,
+    "score_claim_eligible": false
+  },
+  "captured_replay": {
+    "path": "benchmarks/gdo/gdo5_combat_operation_captured_diagnostic.json",
+    "report_hash": "da172ebe3292822ffb89618e95a9dfb680879a487d2b761064fc8ceed43c7502",
+    "sha256": "ae48c141cf38a6883a298d46d805a6fb28c3a7c518b4bb8ee2440d19b852a70e"
+  },
+  "cohort": {
+    "aggregate_path": "impact-aggregate.json",
+    "aggregate_sha256": "7475042074bd54d79c56f45eae1dda4b8b88740dec9bedfce6513ec1b1c492c8",
+    "complete_pairs": 30,
+    "configuration_hash": "566b54f01fe3db2f1c010ab75b27e709f58e9f71094048cd726c27c6107299a5",
+    "id": "combat_operation_material_authority_pilot_v1",
+    "primary_score_delta": {
+      "estimate": -2.6666666666666665,
+      "lower": -5.733333333333333,
+      "method": "paired_bootstrap_delta",
+      "n": 30,
+      "paired_seeds": [
+        6300237,
+        6301383,
+        6306312,
+        6308168,
+        6310594,
+        6313349,
+        6314995,
+        6316607,
+        6318963,
+        6328456,
+        6334775,
+        6336134,
+        6344876,
+        6346414,
+        6348304,
+        6350380,
+        6352622,
+        6355178,
+        6355997,
+        6357847,
+        6358167,
+        6360342,
+        6365000,
+        6376449,
+        6380842,
+        6381336,
+        6382879,
+        6384065,
+        6394203,
+        6397682
+      ],
+      "upper": 0.13333333333333333
+    },
+    "purpose": "pilot",
+    "source_freeze": {
+      "commits": [
+        "9c7a072279155320b4aab01e6e54e4005fa7c05a"
+      ],
+      "dirty_games": [],
+      "implementation_sha256s": [
+        "49e6c3dff4291c8108f1ee227b646e3b1e4ccce07269cc93068a59dcbd5babde"
+      ],
+      "passed": true,
+      "required": true,
+      "run_source_stable": true,
+      "unavailable_games": []
+    }
+  },
+  "deltas": {
+    "adverse_terminal_rate_per_selection": -0.12622749590834698,
+    "completion_rate_per_selection": 0.12622749590834692,
+    "friendly_terminal_loss_calibration_residual": 0.6430158730158727
+  },
+  "gates": {
+    "captured_atomic_lower_duplicate_targeting_than_b1": true,
+    "fresh_directional_mechanism_benefit": true,
+    "hard_current_reservation_conflicts_zero": true,
+    "no_adverse_friendly_terminal_loss_shift_beyond_predeclared_tolerance": true,
+    "nonpositive_material_activations_zero": true,
+    "partial_current_activation_zero": false,
+    "policy_authority_limited_to_declared_operation_types": true,
+    "scheduler_p95_below_50_ms": true,
+    "selected_target_conflicts_zero": true,
+    "source_freeze_passed": true,
+    "trace_validation_passed": true
+  },
+  "pilot_gate_passed": false,
+  "predeclared_mechanism_design": {
+    "declared_operation_types": [
+      "attack_then_conditional_attack"
+    ],
+    "friendly_terminal_loss": {
+      "adverse_shift_tolerance": 1.0,
+      "censoring": "no_same-turn-authoritative-snapshot",
+      "metric": "shield_equivalent_terminal_destruction_per_committed_step",
+      "observation_window": "first_authoritative_same-turn_snapshot_after_commit"
+    },
+    "present": true,
+    "tolerance_predeclared": true
+  },
+  "report_hash": "3661006e7fb53fb3db2f1cd0674c624070a58843d0d78c9ed91166c80c58278b",
+  "report_schema_version": "1.0",
+  "trace_sources": [
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6300237-00/events.jsonl",
+      "sha256": "b5965b62c96a7ac8e059a2554270e0b784d09bc8518f7ea5245342b511be511e"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6301383-00/events.jsonl",
+      "sha256": "d308829a86cde310f14f3a1ee0c0aed7f7e1df1eefd479f550a2e2fd2381ea4e"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6306312-00/events.jsonl",
+      "sha256": "2892b617f3570d41512c183fbafc1bce187d2f8c53cb0120bba8a122f58067b9"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6308168-00/events.jsonl",
+      "sha256": "16fe697048888c40ecaf79926224878aac5c17552edde8396724896e534d0ba3"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6310594-00/events.jsonl",
+      "sha256": "e496a342401f20d1b12423d59ba1a6d5e6c7a15c7c26d57ea58d266da82c4fd1"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6313349-00/events.jsonl",
+      "sha256": "7bc47d5ec0539e387069ed26ed8c1a4d68a371c4907bb941b868d29171eca4f4"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6314995-00/events.jsonl",
+      "sha256": "5571a175e151d94e1f928ec49adea2e6d51f522aa2612b363ba88faea9e468d6"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6316607-00/events.jsonl",
+      "sha256": "88dfe0a53e22284fb298fbef7f1c9e792bcdbcc6383a9d9403101f6f9e29e30f"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6318963-00/events.jsonl",
+      "sha256": "e34c35a36e1ab3c840563ce519f94c1f78dcb7573dfb53cc44a02125d3d6c03b"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6328456-00/events.jsonl",
+      "sha256": "704347cf9688d43571867f9b07d048bdfbb1b2b0878cc9d3125072a56f206f8c"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6334775-00/events.jsonl",
+      "sha256": "96ee51bb512aa7a4cc855ba6ea67bb85147842795237c5c105b0f9dfee974d2d"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6336134-00/events.jsonl",
+      "sha256": "decd01e8be1f47c9dd39ca818f280b3a32da4fbe474abe651138da86ceddd336"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6344876-00/events.jsonl",
+      "sha256": "5a7c3c72c0371b6306f122d3e112fb8d0dcfc2bce6f7286b19938bec64a49b5f"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6346414-00/events.jsonl",
+      "sha256": "9acaa461bc21697f67a29681b01a70b581f3b6f54975116a0bff5481ad9d15a5"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6348304-00/events.jsonl",
+      "sha256": "a824e4c8eb02cabdc9a0991f811f8963e1a77c7e0b3589ececc0e9e7aa561e99"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6350380-00/events.jsonl",
+      "sha256": "354c784396ffbc6ed64e5a649dcf9dd7d846e8165ea2d1a76bdc03441c827773"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6352622-00/events.jsonl",
+      "sha256": "108f5c89966d5bd549ce1e06be3d4ddc8fbf162734b1266671dc1a2fae0003ed"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6355178-00/events.jsonl",
+      "sha256": "d67f4f64c543dd9aa920f0c71c73d882f68a55d175915e78c8946178fea24593"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6355997-00/events.jsonl",
+      "sha256": "864d7506f74f6166426cc192a0c789848d6cfca4b62ee8a748af1828e8c77be3"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6357847-00/events.jsonl",
+      "sha256": "df221832508a257e680ab4f94af549154a890543ef3ca83be80b13f91cd828bd"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6358167-00/events.jsonl",
+      "sha256": "a166454ea4ac4064cf5a6e0e57f0a97a65e459822032508728bd89467c6c9b53"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6360342-00/events.jsonl",
+      "sha256": "8a8e3f086a4941bb8f6f125d432c6d66d978d9a08289fbdd99e25e6c3e24fb41"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6365000-00/events.jsonl",
+      "sha256": "2c9c3d5d8a3ad1354d4bd2db613cecb7035d2a5b4f496acb18629e44faa0719b"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6376449-00/events.jsonl",
+      "sha256": "85b63b0e0e030428d233eb4ef03b83153c79501ae8ae1184b1f6a0c3ff4b4f74"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6380842-00/events.jsonl",
+      "sha256": "bb2092132c9b0273fa65bbd709f6982e773a4f814b2393fc47b5c0372b009677"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6381336-00/events.jsonl",
+      "sha256": "7fd6c091e8a5a872ee9dff5395d4ad6c7306b1bdb536b535fafb81d9db38da25"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6382879-00/events.jsonl",
+      "sha256": "2f697b996dd0c506105eb2d708809f3a38651171bf27533cf924f1cf1b50d72d"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6384065-00/events.jsonl",
+      "sha256": "a8ea2c58561de6b4e79e29013c1b033a2eb517492388f146b3efb7758a3b99a2"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6394203-00/events.jsonl",
+      "sha256": "583029843dfb18a5440750091b7b53b477ca4f730e22bde8136a0debfbdeb868"
+    },
+    {
+      "arm": "baseline",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/baseline/e_full_loop/6397682-00/events.jsonl",
+      "sha256": "89fef9d30de87d54d2012f3acaaf9df1a1f2edfee6e5f158b14c5e6be031e57d"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6300237-00/events.jsonl",
+      "sha256": "9761962055bb832033af82b3fc6c6592e8b62650855bbb83f1a29c098e810ece"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6301383-00/events.jsonl",
+      "sha256": "dd8a878aa381f8f6203db037010c5f7fa1b79b87ad6589750bb4141d23bd9fff"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6306312-00/events.jsonl",
+      "sha256": "8779f0c97fbc9f500d19ed9dcd61589bdb77cbfed5f47ae963c9d9ed39fdf43b"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6308168-00/events.jsonl",
+      "sha256": "9555f7bfab6fd195a7d4fee7849b18b18412f8be9778b9bbc17b45d4a6ec5853"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6310594-00/events.jsonl",
+      "sha256": "d5e9d533ccdbe6ae9ce9d2190eab5eca5ff3d955d7d9e3271e0a757b0e9b2f41"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6313349-00/events.jsonl",
+      "sha256": "1797902d60b83833be783a9cb8d86a827cc98b98ce196543d658af0906c81313"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6314995-00/events.jsonl",
+      "sha256": "5fbfe6aca5a3986e0e01a7e5f64339d86d5cfd592eb098180719bad7821670e1"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6316607-00/events.jsonl",
+      "sha256": "22df77a5fab4a8f69e416295420c8f50a79dae4cc9fa18626a9aec6633fef8c5"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6318963-00/events.jsonl",
+      "sha256": "5652f024a58b09fbda419f2d33462d420cfd96641df0c37cfd01c6098bb15c99"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6328456-00/events.jsonl",
+      "sha256": "0f335e98c9b24675ae0da92d998ebf85170407004e2d28cf583acd8563958595"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6334775-00/events.jsonl",
+      "sha256": "0fbdc67cd402ade8dc2d6846323137db1495f93bfe8b41ec213d70ad7f1cc57a"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6336134-00/events.jsonl",
+      "sha256": "4e944144439d6ac6c1db33921626749e4333687b0fd5238aad45272aa02a38d5"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6344876-00/events.jsonl",
+      "sha256": "08cd18d9492018c7b0a72f081216b87325e52ee3f1239a3d4b5af0c7c8970d3a"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6346414-00/events.jsonl",
+      "sha256": "ab168520280bad4334dca17e15c08f4ac7bb4f1b64f046adf487e9ee1513cd42"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6348304-00/events.jsonl",
+      "sha256": "902815c52ba77f90892c522d451f7b302459d78dba956029acee8d42139d7b5d"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6350380-00/events.jsonl",
+      "sha256": "51c8000029cab1f4e52b0d2bb9c11fb1d896709c371a3ec693bb94292da6e5bc"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6352622-00/events.jsonl",
+      "sha256": "d65319ff39806fe8bf7f60cf2fd99c167f6ae187e2bc5fb20375f0b0ed498370"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6355178-00/events.jsonl",
+      "sha256": "ee49aac9b7b8935fda4d3753baf3320421d9244815ab9772bfca0b20848ade95"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6355997-00/events.jsonl",
+      "sha256": "eaea43f3ed7e4c3c5efd787f99129f5181e1d735d60cd5bb9a48b4f2e0f2083a"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6357847-00/events.jsonl",
+      "sha256": "41d85d6c9d5a06264cffd019dc496830eca2c2cb926186fa9e640e5a249aeda6"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6358167-00/events.jsonl",
+      "sha256": "0d9b4971e99e173c3e6553c44642444148c8bb48a5c2442a8899baf26395611a"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6360342-00/events.jsonl",
+      "sha256": "ff2757019080e16b3db616a08a8766570c2add52df6085c964574817a81782eb"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6365000-00/events.jsonl",
+      "sha256": "b7a648944b6509a74125eb589b7cf37141c9a076017f260e79b64133eaf626b5"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6376449-00/events.jsonl",
+      "sha256": "4a191b42c976939a33a9a0177e214ea92bb5b55b2ce2fed838bf59e40b221c75"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6380842-00/events.jsonl",
+      "sha256": "a00016a898b6c1d7e66301f5dfe6491bb30865da31cb9ab3c62c2f1d6e282a8b"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6381336-00/events.jsonl",
+      "sha256": "a4adc651b3273b3d85fec5c0fc6e38428392daf557ac2f34e52b34c5c2027929"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6382879-00/events.jsonl",
+      "sha256": "83cf58ed9f68176b46f097e1a2ce0a1f48bf70a1626110ca1911ec0aa4873808"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6384065-00/events.jsonl",
+      "sha256": "e1e7427ce0b3f6cfd963c9a2e6165e2bd760d5ea0d5bb4476734f0abc59aca55"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6394203-00/events.jsonl",
+      "sha256": "628ad31fe1e48747085f43df9f1616e620beaec667e11eda3dd684e62f0d08f4"
+    },
+    {
+      "arm": "treatment",
+      "path": "games/impact_pair/combat_operation_material_authority_pilot_v1/treatment/e_full_loop/6397682-00/events.jsonl",
+      "sha256": "42a34b686d26cbbcc4c6bee980f454c237db433b533c3f40625002c62cd6c9c8"
+    }
+  ],
+  "trace_validation": {
+    "error_count": 0,
+    "event_count": 2059020,
+    "valid": true,
+    "warning_count": 0
+  }
+}

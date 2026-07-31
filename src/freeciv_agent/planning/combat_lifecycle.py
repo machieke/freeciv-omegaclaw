@@ -772,6 +772,103 @@ class CombatOperationLifecycle:
                 continue
             if (
                 progress.state
+                == OperationState.BLOCKED
+                and progress.attempt_count
+                == 0
+            ):
+                # A blocked operation that has never activated still carries
+                # an atomic commitment to every required participant.  Repair
+                # it only after every remaining step is grounded and the
+                # whole-operation claim set can be reserved.  Reserving just
+                # the current step here would allow a multi-participant
+                # operation to activate partially while retaining its
+                # original participant contract.
+                (
+                    readout,
+                    schedule,
+                    reservation,
+                    refreshed,
+                ) = self._revalidate_reserved(
+                    original, snapshot)
+                if readout.disposition != (
+                        "reservable"):
+                    if readout.disposition == (
+                            "completed"):
+                        updates.append(
+                            self._finish(
+                                original, snapshot,
+                                OperationState.COMPLETED,
+                                "completed",
+                                readout.reason))
+                    elif readout.disposition == (
+                            "abandoned"):
+                        updates.append(
+                            self._finish(
+                                original, snapshot,
+                                OperationState.ABANDONED,
+                                "abandoned",
+                                readout.reason))
+                    else:
+                        updates.append(
+                            self._update(
+                                original,
+                                progress.state,
+                                "blocked",
+                                readout.reason,
+                                snapshot,
+                                schedule=schedule,
+                                released_reservation=(
+                                    refreshed)))
+                    continue
+                if reservation is None:
+                    reason = next(
+                        (
+                            row.reason
+                            for row in
+                            schedule.entries
+                            if row.operation_id
+                            == operation_id
+                        ),
+                        "whole-operation-resource-capacity-unavailable")
+                    updates.append(
+                        self._update(
+                            original,
+                            progress.state,
+                            "blocked", reason,
+                            snapshot,
+                            schedule=schedule,
+                            released_reservation=(
+                                refreshed)))
+                    continue
+                record = self.store.transition(
+                    operation_id,
+                    OperationState.RESERVABLE,
+                    snapshot.snapshot_id,
+                    int(snapshot.turn))
+                record = self.store.transition(
+                    operation_id,
+                    OperationState.RESERVED,
+                    snapshot.snapshot_id,
+                    int(snapshot.turn))
+                updates.append(
+                    self._update(
+                        record,
+                        progress.state,
+                        "repaired",
+                        "blocked-whole-operation-repaired",
+                        snapshot,
+                        next_action=(
+                            readout.next_action),
+                        probability_interval=(
+                            readout
+                            .probability_interval),
+                        schedule=schedule,
+                        reservation=reservation,
+                        released_reservation=(
+                            refreshed)))
+                continue
+            if (
+                progress.state
                 == OperationState.ACTIVE
                 and progress.attempt_count
                 > 0

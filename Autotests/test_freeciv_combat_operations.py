@@ -1044,6 +1044,76 @@ def test_combat_lifecycle_reestimates_and_reserves_only_the_next_step():
     assert lifecycle.ledger.active_claims() == ()
 
 
+def test_combat_lifecycle_repairs_unactivated_operation_atomically():
+    snapshot = _snapshot()
+    assembly, schedule = (
+        _assembly_schedule(
+            snapshot))
+    lifecycle = (
+        CombatOperationLifecycle(
+            "preactivation-repair-proof"))
+    lifecycle.register_schedule(
+        (assembly,), schedule,
+        snapshot)
+    second_actor_id = next(
+        participant.actor_id
+        for participant in
+        assembly.spec.participants
+        if participant.role
+        == assembly.spec.steps[1]
+        .actor_role)
+    blocked_snapshot = _next_snapshot(
+        snapshot, 22,
+        legal_action_json=tuple(
+            value for value in
+            snapshot.legal_action_json
+            if json.loads(value).get(
+                "actor_id")
+            != int(
+                second_actor_id.split(
+                    ":", 1)[1])))
+
+    blocked = lifecycle.observe(
+        blocked_snapshot)
+
+    assert blocked[0].state == (
+        "blocked")
+    assert blocked[0].step_index == 0
+    assert lifecycle.ledger.active_claims() == ()
+
+    repaired_snapshot = _next_snapshot(
+        snapshot, 23)
+    repaired = lifecycle.observe(
+        repaired_snapshot)
+
+    assert repaired[0].disposition == (
+        "repaired")
+    assert repaired[0].reason == (
+        "blocked-whole-operation-repaired")
+    assert repaired[0].state == (
+        "reserved")
+    assert repaired[0].step_index == 0
+    actor_claims = {
+        claim.resource.owner_id
+        for claim in
+        repaired[0].reservation.claims
+        if claim.resource.kind.value
+        == "actor"
+    }
+    assert actor_claims == {
+        participant.actor_id
+        for participant in
+        assembly.spec.participants
+        if participant.required
+    }
+    action_claim = next(
+        claim for claim in
+        repaired[0].reservation.claims
+        if claim.resource.kind.value
+        == "action_budget")
+    assert action_claim.quantity == 2
+
+
 def test_combat_lifecycle_blocks_repairs_and_abandons_removed_participant():
     snapshot = _snapshot()
     assembly, schedule = (
