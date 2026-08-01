@@ -847,8 +847,16 @@ async def _next_turn_state(ws, game_id, api_token, agent_id, minimum_turn,
         return result
 
 
-def _global_state_ready(state, player_id=None, minimum_turn=None):
-    if not (state.get("units") and state.get("players") and state.get("techs")):
+def _global_state_ready(state, player_id=None, minimum_turn=None,
+                        require_units=True):
+    if not isinstance(require_units, bool):
+        raise ValueError("require_units must be boolean")
+    if not (
+            state.get("players")
+            and state.get("techs")
+            and (
+                not require_units
+                or state.get("units"))):
         return False
     if minimum_turn is not None:
         turn = state.get("turn")
@@ -875,7 +883,7 @@ def _player_row(state, player_id):
 
 
 async def _global_state(ws, timeout=15.0, player_id=None, minimum_turn=None,
-                        poll_interval=0.05):
+                        poll_interval=0.05, require_units=True):
     if not 0.05 <= float(poll_interval) <= 1.0:
         raise ValueError("poll_interval must be in [0.05,1]")
     deadline = time.monotonic() + timeout
@@ -888,7 +896,8 @@ async def _global_state(ws, timeout=15.0, player_id=None, minimum_turn=None,
         if response and response.get("type") == "global_state_response":
             state = response.get("data", {})
             if _global_state_ready(
-                    state, player_id=player_id, minimum_turn=minimum_turn):
+                    state, player_id=player_id, minimum_turn=minimum_turn,
+                    require_units=require_units):
                 return state
         await asyncio.sleep(min(float(poll_interval), max(
             0.0, deadline - time.monotonic())))
@@ -896,7 +905,8 @@ async def _global_state(ws, timeout=15.0, player_id=None, minimum_turn=None,
 
 
 async def _final_global_state(ws, player_id, minimum_turn, timeout=15.0,
-                              attempts=2):
+                              attempts=2, fallback_minimum_turn=None,
+                              diagnostics=None):
     """Read post-horizon scores without replaying a completed engine arm.
 
     Combat-rich scenarios produce substantially larger observer payloads than
@@ -909,14 +919,60 @@ async def _final_global_state(ws, player_id, minimum_turn, timeout=15.0,
     if (isinstance(attempts, bool) or not isinstance(attempts, int)
             or attempts < 1):
         raise ValueError("attempts must be a positive integer")
+    if (
+            fallback_minimum_turn is not None
+            and (
+                isinstance(
+                    fallback_minimum_turn,
+                    bool)
+                or not isinstance(
+                    fallback_minimum_turn,
+                    int)
+                or fallback_minimum_turn < 0
+                or fallback_minimum_turn
+                >= minimum_turn)):
+        raise ValueError(
+            "fallback minimum turn must be a non-negative integer below "
+            "the requested minimum turn")
+    if diagnostics is not None:
+        diagnostics.update({
+            "attempts": 0,
+            "fallback_used": False,
+            "requested_minimum_turn":
+                int(minimum_turn),
+        })
     last_error = None
-    for _ in range(attempts):
+    for attempt in range(attempts):
         try:
-            return await _global_state(
+            state = await _global_state(
                 ws, timeout=timeout, player_id=player_id,
-                minimum_turn=minimum_turn)
+                minimum_turn=minimum_turn,
+                require_units=False)
+            if diagnostics is not None:
+                diagnostics.update({
+                    "attempts": attempt + 1,
+                    "observed_turn":
+                        state.get("turn"),
+                })
+            return state
         except TimeoutError as error:
             last_error = error
+            if diagnostics is not None:
+                diagnostics[
+                    "attempts"] = attempt + 1
+    if fallback_minimum_turn is not None:
+        state = await _global_state(
+            ws, timeout=timeout, player_id=player_id,
+            minimum_turn=fallback_minimum_turn,
+            require_units=False)
+        if diagnostics is not None:
+            diagnostics.update({
+                "attempts": attempts + 1,
+                "fallback_used": True,
+                "observed_turn":
+                    state.get("turn"),
+            })
+        return state
     raise last_error
 
 
@@ -2883,12 +2939,33 @@ async def _play(run_dir, manifest, context):
         # assuming a fixed sleep is long enough for endgame packets to settle.
         final_global_started = time.perf_counter()
         observer_global_state_queries += 1
+        final_score_readout_mode = manifest.get(
+            "final_score_readout_mode",
+            "strict_post_horizon")
+        if final_score_readout_mode not in (
+                "strict_post_horizon",
+                "post_horizon_with_terminal_fallback"):
+            raise ValueError(
+                "unsupported final score readout mode {}".format(
+                    final_score_readout_mode))
+        final_global_diagnostics = {}
+        final_global_minimum_turn = (
+            final_turn
+            if terminal_game_over
+            or terminal_player_elimination
+            else final_turn + 1)
         final_global = await _final_global_state(
             ws, player_id=player_id,
-            minimum_turn=(
+            minimum_turn=final_global_minimum_turn,
+            fallback_minimum_turn=(
                 final_turn
-                if terminal_game_over or terminal_player_elimination
-                else final_turn + 1))
+                if (
+                    final_score_readout_mode
+                    == "post_horizon_with_terminal_fallback"
+                    and final_global_minimum_turn
+                    > final_turn)
+                else None),
+            diagnostics=final_global_diagnostics)
         final_global_settle_latency = (
             time.perf_counter() - final_global_started) * 1000.0
 
@@ -3309,6 +3386,20 @@ async def _play(run_dir, manifest, context):
          sum(turn_checkpoint_sync_latencies)
          / max(1, len(turn_checkpoint_sync_latencies))),
         ("final_global_settle_latency_ms", final_global_settle_latency),
+        ("final_global_readout_attempts",
+         final_global_diagnostics.get(
+             "attempts", 0)),
+        ("final_global_horizon_fallback_used",
+         int(final_global_diagnostics.get(
+             "fallback_used", False))),
+        ("final_global_requested_minimum_turn",
+         final_global_diagnostics.get(
+             "requested_minimum_turn",
+             final_global_minimum_turn)),
+        ("final_global_observed_turn",
+         final_global_diagnostics.get(
+             "observed_turn",
+             final_global.get("turn", final_turn))),
         ("observer_global_state_queries", observer_global_state_queries),
         ("full_loop_under_30s_rate", full_loop_under_30),
         ("zombie_action_attempt_blocked", zombie_blocked),
@@ -3900,6 +3991,23 @@ async def _play(run_dir, manifest, context):
         "horizon_reached": horizon_reached,
         "score_observation_semantics": score_observation_semantics,
         "score_observation_turn": final_turn,
+        "final_global_readout_attempts":
+            final_global_diagnostics.get(
+                "attempts", 0),
+        "final_global_horizon_fallback_used":
+            bool(final_global_diagnostics.get(
+                "fallback_used", False)),
+        "final_global_requested_minimum_turn":
+            final_global_diagnostics.get(
+                "requested_minimum_turn",
+                final_global_minimum_turn),
+        "final_global_observed_turn":
+            final_global_diagnostics.get(
+                "observed_turn",
+                final_global.get(
+                    "turn", final_turn)),
+        "final_score_readout_mode":
+            final_score_readout_mode,
         "terminal_game_over": terminal_game_over,
         "terminal_player_elimination": terminal_player_elimination,
         "model_latency_ms": model_latency, "rejected_actions": rejected,

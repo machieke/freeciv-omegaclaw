@@ -569,3 +569,33 @@ V8 is successful only if its initial pass completes 60/60 with zero
 infrastructure failures, every manifest proves `engine_max_turns ==
 turn_limit + 1`, and the complete GDO-4 pilot conjunction passes. It remains
 claim-ineligible regardless of score direction.
+
+V8 was stopped for predeclared-gate futility after its first three scheduled
+arms: two completed and treatment seed 7493158 failed final global-state
+readout after complete turn-160 gameplay. Its manifest proves decision horizon
+160, engine maximum 161, and one finalization turn. The result shows that a
+legal turn-161 window is necessary but not sufficient: at terminal boundaries
+the observer may expose an authoritative scored state without a nonempty unit
+table, or may retain the terminal turn-160 state. V8 is retained as a negative
+diagnostic and is not a passing pilot.
+
+## Frozen terminal-readout confirmation v9
+
+`city_defense_immediate_fortify_authority_pilot_v9` retains V8 unchanged and
+uses 30 fresh paired seeds from the disjoint 7.5M range. Its only new behavior
+is predeclared
+`final_score_readout_mode: post_horizon_with_terminal_fallback`.
+
+Final score readiness requires authoritative player scores and technology
+state but not a nonempty unit table, because a valid terminal game may have no
+remaining units. The reader first makes the same two bounded attempts to
+obtain post-horizon turn 161. Only if both time out may this claim-ineligible
+cohort accept the authoritative terminal/horizon turn-160 score state. The
+requested turn, observed turn, attempt count, and fallback use are emitted as
+metrics and status fields. The fallback cannot be configured for a
+claim-eligible cohort and requires the one-turn engine finalization window.
+
+V9 binds this contract to mechanism schema 1.7. It must complete 60/60 on the
+initial pass with zero infrastructure failures, preserve exact source
+identity, expose every fallback in telemetry, and pass the full GDO-4 pilot
+conjunction. It remains ineligible for a score or win-rate claim.

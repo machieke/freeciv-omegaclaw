@@ -200,6 +200,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "city_defense_immediate_fortify_authority_pilot_v6": 30,
             "city_defense_immediate_fortify_authority_pilot_v7": 30,
             "city_defense_immediate_fortify_authority_pilot_v8": 30,
+            "city_defense_immediate_fortify_authority_pilot_v9": 30,
             "calibrated_scalar_diagnostic_v1": 10,
             "protected_bridge_readout_diagnostic_v1": 10,
             "corrected_probe_readout_diagnostic_v1": 10,
@@ -617,6 +618,40 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "count": 30,
             "minimum": 7400000,
             "maximum": 7499999,
+        }
+    fallback_confirmation = paired["cohorts"][
+        "city_defense_immediate_fortify_authority_pilot_v9"]
+    assert fallback_confirmation[
+        "controller_worker_execution"
+    ] == "process_isolated"
+    assert fallback_confirmation[
+        "server_recycle_mode"
+    ] == "hard_per_arm"
+    assert fallback_confirmation[
+        "engine_finalization_turns"
+    ] == 1
+    assert fallback_confirmation[
+        "final_score_readout_mode"
+    ] == "post_horizon_with_terminal_fallback"
+    expected_fallback_design = dict(
+        finalization_confirmation[
+            "city_defense_mechanism_design"])
+    expected_fallback_design.update({
+        "final_score_readout_mode":
+            "post_horizon_with_terminal_fallback",
+        "schema_version": "1.7",
+    })
+    assert fallback_confirmation[
+        "city_defense_mechanism_design"
+    ] == expected_fallback_design
+    assert fallback_confirmation[
+        "seed_derivation"] == {
+            "algorithm": "sha256-counter-v1",
+            "namespace": (
+                "pf-pln-city-defense-immediate-fortify-authority-pilot-v9"),
+            "count": 30,
+            "minimum": 7500000,
+            "maximum": 7599999,
         }
     score_derivation = paired["cohorts"]["confirmatory_score"]["seed_derivation"]
     assert score_derivation == {
@@ -1292,8 +1327,8 @@ def test_config_rejects_unfrozen_city_defense_schema_1_2_scope():
         with pytest.raises(
                 ValueError,
                 match=(
-                    "exact 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, or 1.6 "
-                    "schema")):
+                    "exact 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, or "
+                    "1.7 schema")):
             load(path)
 
 
@@ -1417,6 +1452,22 @@ def test_config_rejects_unknown_or_unbound_process_worker_execution():
                 ValueError,
                 match="engine_finalization_turns"):
             load(invalid_finalization_path)
+
+        invalid_readout_path = os.path.join(
+            directory,
+            "invalid-final-score-readout.yaml")
+        with open(
+                invalid_readout_path, "w",
+                encoding="utf-8") as stream:
+            stream.write(source.replace(
+                "      final_score_readout_mode: "
+                "post_horizon_with_terminal_fallback\n",
+                "      final_score_readout_mode: best_effort\n",
+                1))
+        with pytest.raises(
+                ValueError,
+                match="final_score_readout_mode"):
+            load(invalid_readout_path)
 
 
 def test_wilson_and_paired_bootstrap_are_bounded_and_deterministic():
@@ -2207,8 +2258,16 @@ def test_global_state_readiness_requires_both_authoritative_scores():
     assert _global_state_ready(state, player_id=0)
     assert _global_state_ready(state, player_id=0, minimum_turn=12)
     assert not _global_state_ready(state, player_id=0, minimum_turn=13)
+    state["units"] = {}
+    assert not _global_state_ready(
+        state, player_id=0, minimum_turn=12)
+    assert _global_state_ready(
+        state, player_id=0, minimum_turn=12,
+        require_units=False)
     state["players"]["1"].pop("score")
-    assert not _global_state_ready(state, player_id=0)
+    assert not _global_state_ready(
+        state, player_id=0,
+        require_units=False)
 
 
 def test_global_state_polls_at_50ms_until_observer_reaches_required_turn(monkeypatch):
@@ -2272,15 +2331,92 @@ def test_final_global_state_retries_one_bounded_observer_timeout(monkeypatch):
 
     assert returned is final_state
     assert calls == [
-        {"timeout": 15.0, "player_id": 0, "minimum_turn": 160},
-        {"timeout": 15.0, "player_id": 0, "minimum_turn": 160},
+        {
+            "timeout": 15.0,
+            "player_id": 0,
+            "minimum_turn": 160,
+            "require_units": False,
+        },
+        {
+            "timeout": 15.0,
+            "player_id": 0,
+            "minimum_turn": 160,
+            "require_units": False,
+        },
     ]
+
+
+def test_final_global_state_uses_explicit_horizon_fallback(monkeypatch):
+    calls = []
+    diagnostics = {}
+    final_state = {
+        "turn": 160,
+        "players": {},
+    }
+
+    async def global_state(_ws, **options):
+        calls.append(options)
+        if options["minimum_turn"] == 161:
+            raise TimeoutError(
+                "observer global state was not populated")
+        return final_state
+
+    monkeypatch.setattr(
+        engine_live,
+        "_global_state",
+        global_state)
+
+    returned = asyncio.run(
+        engine_live._final_global_state(
+            object(),
+            player_id=0,
+            minimum_turn=161,
+            attempts=2,
+            fallback_minimum_turn=160,
+            diagnostics=diagnostics))
+
+    assert returned is final_state
+    assert calls == [
+        {
+            "timeout": 15.0,
+            "player_id": 0,
+            "minimum_turn": 161,
+            "require_units": False,
+        },
+        {
+            "timeout": 15.0,
+            "player_id": 0,
+            "minimum_turn": 161,
+            "require_units": False,
+        },
+        {
+            "timeout": 15.0,
+            "player_id": 0,
+            "minimum_turn": 160,
+            "require_units": False,
+        },
+    ]
+    assert diagnostics == {
+        "attempts": 3,
+        "fallback_used": True,
+        "observed_turn": 160,
+        "requested_minimum_turn": 161,
+    }
 
 
 def test_final_global_state_rejects_unbounded_attempt_contract():
     with pytest.raises(ValueError, match="positive integer"):
         asyncio.run(engine_live._final_global_state(
             object(), player_id=0, minimum_turn=160, attempts=0))
+    with pytest.raises(
+            ValueError,
+            match="fallback minimum turn"):
+        asyncio.run(
+            engine_live._final_global_state(
+                object(),
+                player_id=0,
+                minimum_turn=160,
+                fallback_minimum_turn=160))
 
 
 def test_scheduler_impact_path_does_not_need_per_turn_observer_state():
@@ -3228,6 +3364,9 @@ def test_process_isolated_impact_execution_preserves_pair_and_worker_identity():
     assert summary[
         "engine_finalization_turns"
     ] == 1
+    assert summary[
+        "final_score_readout_mode"
+    ] == "strict_post_horizon"
     assert summary["completed"] == 4
     assert summary[
         "infrastructure_failures"] == 0
@@ -3273,6 +3412,13 @@ def test_process_isolated_impact_execution_preserves_pair_and_worker_identity():
             - row["turn_limit"]
             for row in rows
         } == {1}
+        assert {
+            row[
+                "final_score_readout_mode"]
+            for row in rows
+        } == {
+            "strict_post_horizon",
+        }
 
 
 def test_parallel_cohort_requires_predeclared_worker_count():
