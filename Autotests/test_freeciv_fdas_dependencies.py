@@ -119,6 +119,35 @@ def test_snapshot_delta_is_field_specific_and_stable():
     assert delta == SnapshotDelta.between(first, second)
 
 
+def test_closed_collection_membership_is_fingerprinted_and_invalidated():
+    first = _snapshot()
+    payload = copy.deepcopy(_payload())
+    payload["units"]["90"] = {
+        "activity": "idle",
+        "hp": 10,
+        "id": 90,
+        "moves_left": 3,
+        "owner": 1,
+        "tile": 82,
+        "type": "Warriors",
+        "type_id": 4,
+        "upkeep": [0, 0, 0, 0, 0, 0],
+        "x": 2,
+        "y": 2,
+    }
+    second = _snapshot(payload, 432)
+
+    fingerprints = snapshot_dependency_fingerprints(first)
+    paths = {key.path for key in fingerprints}
+    changed = {
+        key.path for key in SnapshotDelta.between(
+            first, second).changed_dependency_keys}
+
+    assert "visible_enemy_units.__members__" in paths
+    assert "visible_enemy_units.__members__" in changed
+    assert "visible_enemy_units.90.__exists__" in changed
+
+
 def test_incremental_projection_matches_cold_and_recomputes_changed_relation():
     first = _snapshot()
     payload = _payload()

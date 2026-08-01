@@ -131,6 +131,15 @@
     {"argument_kinds": [["route-corridor"]], "arity": 1, "name": "route-corridor-reachable", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["route-corridor"], ["visibility-status"]], "arity": 2, "name": "route-corridor-visibility", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["route-corridor"], ["action"]], "arity": 2, "name": "route-corridor-current-legal-step", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["settlement-site"], ["tile"]], "arity": 2, "name": "settlement-site-at", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["settlement-site"], ["unit"]], "arity": 2, "name": "settlement-site-eligible-for", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["unit"]], "arity": 1, "name": "founder-current-settlement-capability", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["unit"], ["settlement-site"]], "arity": 2, "name": "founder-can-settle-now", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["unit"], ["settlement-site"], ["action"]], "arity": 3, "name": "founder-legal-site-step", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["settlement-site"], ["route-corridor"]], "arity": 2, "name": "settlement-site-route-corridor", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["settlement-site"]], "arity": 1, "name": "settlement-site-currently-uncontested", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["settlement-site"], ["unit"]], "arity": 2, "name": "settlement-site-contested-by", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["unit"], ["settlement-site"], ["unit"]], "arity": 3, "name": "settlement-escort-required", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["unit"], ["operation-kind"]], "arity": 2, "name": "unit-available", "namespace": "derived", "status": "proposed"},
     {"argument_kinds": [["operation"], ["operation-type"]], "arity": 2, "name": "operation-type", "namespace": "operation", "status": "component-only"},
     {"argument_kinds": [["operation"], ["goal"]], "arity": 2, "name": "operation-serves-goal", "namespace": "operation", "status": "component-only"},
@@ -195,6 +204,7 @@
     {"kind": "unit-control", "materialization": "focused", "status": "proposed"},
     {"kind": "region", "materialization": "focused", "status": "component-only"},
     {"kind": "route-corridor", "materialization": "exact-advertised-routes", "status": "component-only"},
+    {"kind": "settlement-site", "materialization": "packet-proven-sites", "status": "component-only"},
     {"kind": "operation", "materialization": "active-lifecycle", "status": "component-only"},
     {"kind": "episode", "materialization": "durable-compact", "status": "component-only"}
   ]

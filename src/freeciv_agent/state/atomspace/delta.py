@@ -142,9 +142,20 @@ def snapshot_dependency_fingerprints(snapshot, document=None):
         _flatten(key, value, flattened)
     collection_names = set(name for name, _ in _COLLECTIONS)
     for name in collection_names:
+        # A closed collection needs an explicit membership fingerprint.  A
+        # per-entity dependency can prove presence, but cannot support a
+        # deterministic absence claim or invalidate that claim when a new
+        # entity appears.
+        flattened["{}.__members__".format(name)] = structural_hash(
+            tuple(sorted(document[name])))
         for entity_id in document[name]:
             flattened["{}.{}.__exists__".format(name, entity_id)] = (
                 structural_hash(True))
+    for name in (
+            "visible_tile_ids", "known_hut_tile_ids", "known_techs",
+            "legal_actions"):
+        flattened["{}.__members__".format(name)] = structural_hash(
+            tuple(sorted(document[name])))
     return dict(
         (DependencyKey("snapshot-field", owner_id, path), fingerprint)
         for path, fingerprint in flattened.items())
@@ -279,6 +290,8 @@ class SnapshotDelta:
                 continue
             before = before or {}
             after = after or {}
+            if set(before) != set(after):
+                changed_scalars.append(dependency(name + ".__members__"))
             for entity_id in sorted(set(before).union(after)):
                 prefix = "{}.{}".format(name, entity_id)
                 keys = changed_paths(
