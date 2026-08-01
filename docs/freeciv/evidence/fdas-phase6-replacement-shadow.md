@@ -2,7 +2,8 @@
 
 Date: 2026-08-01  
 Branch: `experimental/functional-dependent-atomspace`  
-Capability: `unit_domain_projection=component-only`  
+Capabilities: `unit_domain_projection=component-only`,
+`coordinated_replacement_lifecycle=component-only`
 Policy authority: disabled
 
 ## Realized scope
@@ -30,6 +31,18 @@ protected-garrison safety and coordinated reinforcement:
   is explicitly a future step that must be refreshed on its later snapshot;
 - current and conditional-future unit resources remain separate, and atom plus
   support identities are carried into candidate provenance.
+- `FdasCoordinatedReplacementAdapter` uses the caller-owned `OperationStore`,
+  persists the same operation across both steps, advances a step only after
+  authoritative city occupancy, and rebinds the next actor to that snapshot's
+  exact native route/legal action;
+- each step exposes a current `RequirementSet`, actor and move-point claims,
+  deadline, route, legal-action, and source-coverage premises through the
+  operation projector;
+- source coverage is revalidated before every action and before final
+  completion; simultaneous target occupancy and replacement departure remains
+  blocked, not successful;
+- completion, expiry, stale routes, missing legal actions, and source-coverage
+  loss fail closed and clear current bindings/claims where appropriate.
 
 ## Verification
 
@@ -46,12 +59,16 @@ reinforcement route and verifies participant roles, ordered step targets,
 current/future resource identities, legal first-step binding, causal
 atom/support provenance, and disabled authority.
 
+Lifecycle fixtures then verify stable operation identity, authoritative
+step advancement, current actor rebinding, projected step requirements/claims,
+exact completion, source-coverage blocking, and the negative completion case
+where the reinforcement reaches the target after the replacement leaves.
+
 The complete FDAS and city-defense regression is run before commit.
 
 ## Claim boundary
 
-This increment assembles a shadow operation schema but does not activate its
-lifecycle, reserve either unit, execute either step, waive the source-garrison
-invariant, or grant policy authority. The compiled ruleset still reports the
-movement effect as unknown, so the candidate retains its existing
-`uncompiled-action-effect` blocker.
+This increment reconciles a shadow lifecycle but does not reserve either unit,
+execute either step, waive the source-garrison invariant, or grant policy
+authority. The compiled ruleset still reports the movement effect as unknown,
+so the candidate retains its existing `uncompiled-action-effect` blocker.

@@ -4,6 +4,7 @@
     "dependent_atomspace_core": "component-only",
     "defense_operation_reconciliation": "component-only",
     "defense_requirement_projection": "component-only",
+    "coordinated_replacement_lifecycle": "component-only",
     "dependency_truth_maintenance": "component-only",
     "episode_attribution": "component-only",
     "fdas_exact_commit_validation": "component-only",

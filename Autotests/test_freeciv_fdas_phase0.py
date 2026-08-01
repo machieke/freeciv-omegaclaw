@@ -36,6 +36,7 @@ def test_fdas_manifest_exposes_only_evidenced_component_capabilities():
         "dependent_atomspace_core",
         "defense_operation_reconciliation",
         "defense_requirement_projection",
+        "coordinated_replacement_lifecycle",
         "episode_attribution",
         "dependent_atom_pressure_adapter",
         "dependency_truth_maintenance",
