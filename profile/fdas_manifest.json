@@ -20,7 +20,8 @@
     "settlement_site_projection": "component-only",
     "settlement_escort_reachability": "component-only",
     "transport_capability_projection": "component-only",
-    "transport_operation_projection": "component-only"
+    "transport_operation_projection": "component-only",
+    "combat_task_force_projection": "component-only"
   },
   "component_enabled": true,
   "policy_authority": false,
