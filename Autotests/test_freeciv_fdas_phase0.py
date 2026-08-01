@@ -40,6 +40,7 @@ def test_fdas_manifest_exposes_only_evidenced_component_capabilities():
         "combat_task_force_projection",
         "combat_operation_projection",
         "belief_domain_projection",
+        "observation_pressure_planning",
         "episode_attribution",
         "expansion_operation_projection",
         "dependent_atom_pressure_adapter",

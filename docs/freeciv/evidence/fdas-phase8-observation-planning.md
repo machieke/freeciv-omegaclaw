@@ -1,0 +1,27 @@
+# FDAS Phase 8 decision-safe observation planning evidence
+
+Status: component-only, shadow-only, no action authority.
+
+The existing value-of-information planner now has a hard decision-eligibility
+boundary. A test is omitted—not merely ranked last—when decision sensitivity,
+expected information gain, success probability, feasibility, or deadline fit
+is zero. Thus generic uncertainty cannot consume observation resources unless
+an outcome can change a declared bounded decision.
+
+Engine-live observation planning declares two indivisible packet costs per
+operation: one CPU packet plus one observation or simulation packet. The new
+packet decision path feeds the pressure scores and operations to the existing
+whole-packet scheduler. A high-value simulation with no simulation capacity
+does not strand or partially consume CPU; a lower-value feasible observation
+may use the intact CPU+observation pair. No CPU capacity means no selection.
+
+Selection records are created before execution and distinguish committed from
+uncommitted tests. Evidence still crosses the separate
+`ObservationEvidenceGate` only after a selected authoritative return. Model
+identity, version/hash, validity scope, inexact confidence cap, selection
+propensity, and evidence-overlap discount remain serialized in the operation
+and resulting evidence path. Neither pressure nor packet scheduling revises a
+belief.
+
+Coverage is in `Autotests/test_freeciv_observation_live.py` together with the
+existing belief, pressure, and packet scheduler suites.

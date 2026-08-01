@@ -20,6 +20,7 @@ from freeciv_agent.pressure import (  # noqa: E402
     ObservationOutcome,
     ObservationSelectionRecord,
     ObservationTest,
+    PacketBudget,
     ResourceKind,
     ValueOfInformationPlanner,
     expected_information_value,
@@ -35,10 +36,11 @@ def _provenance(scope=("civ2civ3", "horizon<=8")):
 
 def _test(
         test_id, likelihood=1.0, relevance=1.0,
-        overlap=0.0, execution_kind="observation"):
+        overlap=0.0, execution_kind="observation",
+        atom_id="uncertain-branch"):
     return ObservationTest(
         test_id=test_id,
-        atom_id="uncertain-branch",
+        atom_id=atom_id,
         outcomes=(
             ObservationOutcome(
                 "left", (("left", likelihood),
@@ -150,3 +152,75 @@ def test_observation_selection_propensity_is_logged():
     assert {
         row.resource for row in operation.packet_costs
     } == {ResourceKind.CPU, ResourceKind.OBSERVATION}
+
+
+def _conflict():
+    from freeciv_agent.beliefs import BeliefKey, ConflictAtom
+    key = BeliefKey("enemy-intent", ("fixed-ai",))
+    return ConflictAtom(
+        "conflict-intent", key, ("scout",), ("diplomacy",),
+        {"strength": 1.0, "confidence": 0.8},
+        {"strength": 0.0, "confidence": 0.8},
+        0.0, 0.64, ("context-a", "context-b"), 4)
+
+
+def test_decision_irrelevant_test_is_omitted_not_merely_ranked_last():
+    planner = ValueOfInformationPlanner()
+    decision = planner.decision_for_conflict(
+        _conflict(), _hypotheses(), (
+            _test("irrelevant", likelihood=1.0, relevance=0.0,
+                  atom_id="conflict-intent"),))
+
+    assert decision["operations"] == ()
+    assert decision["schedule"]["selected_operation_id"] is None
+    assert decision["selection_records"] == ()
+    assert decision["omitted_tests"] == ({
+        "reason": "decision-insensitive-uncertainty",
+        "test_id": "irrelevant",
+    },)
+
+
+def test_observation_and_simulation_use_atomic_cpu_packet_budgets():
+    planner = ValueOfInformationPlanner(engine_live=True)
+    decision = planner.packet_decision_for_conflict(
+        _conflict(), _hypotheses(), (
+            _test("simulation", likelihood=0.95,
+                  execution_kind="simulation", atom_id="conflict-intent"),
+            _test("scout", likelihood=0.8,
+                  execution_kind="observation", atom_id="conflict-intent"),
+        ), (
+            PacketBudget(ResourceKind.CPU, 1),
+            PacketBudget(ResourceKind.OBSERVATION, 1),
+            PacketBudget(ResourceKind.SIMULATION, 0),
+        ))
+
+    schedule = decision["packet_schedule"]
+    assert decision["selected_operation_ids"] == ("observe:scout",)
+    assert schedule.conserved
+    by_id = {
+        value.operation_id: value for value in schedule.reservations}
+    assert by_id["observe:simulation"].state == "pending"
+    assert by_id["observe:simulation"].reason == (
+        "insufficient-whole-packets")
+    assert by_id["observe:scout"].state == "committed"
+    selected = {
+        value.operation_id: value.selected
+        for value in decision["selection_records"]}
+    assert selected == {
+        "observe:scout": True,
+        "observe:simulation": False,
+    }
+
+
+def test_missing_cpu_budget_selects_no_observation():
+    planner = ValueOfInformationPlanner(engine_live=True)
+    decision = planner.packet_decision_for_conflict(
+        _conflict(), _hypotheses(), (
+            _test("scout", atom_id="conflict-intent"),), (
+            PacketBudget(ResourceKind.CPU, 0),
+            PacketBudget(ResourceKind.OBSERVATION, 1),
+        ))
+
+    assert decision["selected_operation_ids"] == ()
+    assert not any(value.selected for value in decision["selection_records"])
+    assert decision["packet_schedule"].conserved

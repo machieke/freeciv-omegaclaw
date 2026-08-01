@@ -15,7 +15,7 @@ from .model import (
     TruthState,
 )
 from .provenance import ObservationPolicy
-from .packets import PacketCost, ResourceKind
+from .packets import PacketBudget, PacketCost, PacketScheduler, ResourceKind
 from .scheduler import PressureScheduler
 
 
@@ -391,11 +391,34 @@ class ValueOfInformationPlanner(object):
             key=lambda row: (
                 -row.expected_information_gain, row.test.test_id)))
 
+    @staticmethod
+    def eligibility(value):
+        """Fail closed unless an observation can affect a bounded decision."""
+        if not isinstance(value, InformationValue):
+            raise TypeError("observation eligibility requires InformationValue")
+        test = value.test
+        if test.decision_sensitivity <= 0.0:
+            return False, "decision-insensitive-uncertainty"
+        if value.expected_information_gain <= _PROBABILITY_TOLERANCE:
+            return False, "no-bounded-decision-information-gain"
+        if test.success_probability <= 0.0:
+            return False, "observation-cannot-succeed"
+        if test.feasibility <= 0.0:
+            return False, "observation-not-feasible"
+        if test.deadline_fit <= 0.0:
+            return False, "observation-misses-decision-deadline"
+        return True, None
+
     def operation(
             self, value, goal_id, propensity=None,
             deterministic_reason=None):
         if not isinstance(value, InformationValue):
             raise TypeError("operation requires InformationValue")
+        eligible, reason = self.eligibility(value)
+        if not eligible:
+            raise ValueError(
+                "observation cannot change bounded decision: {}".format(
+                    reason))
         policy = ObservationPolicy(
             str(goal_id), "observe",
             value.expected_information_gain,
@@ -462,12 +485,23 @@ class ValueOfInformationPlanner(object):
         values = self.rank(hypotheses, tests)
         if any(row.test.atom_id != conflict.conflict_id for row in values):
             raise ValueError("conflict tests must target the conflict atom")
+        eligible_values = []
+        omitted_tests = []
+        for value in values:
+            eligible, reason = self.eligibility(value)
+            if eligible:
+                eligible_values.append(value)
+            else:
+                omitted_tests.append({
+                    "reason": reason,
+                    "test_id": value.test.test_id,
+                })
         operations = tuple(
             self.operation(
                 value, goal.goal_id,
                 deterministic_reason=(
                     "deterministic-highest-priority"))
-            for value in values)
+            for value in eligible_values)
         schedule = self.scheduler.decision_artifact(
             operations, pressure)
         selected_id = schedule["selected_operation_id"]
@@ -487,8 +521,46 @@ class ValueOfInformationPlanner(object):
             "goal": goal,
             "graph": graph,
             "information_values": values,
+            "omitted_tests": tuple(omitted_tests),
             "operations": operations,
             "pressure": pressure,
             "schedule": schedule,
             "selection_records": selection_records,
         }
+
+    def packet_decision_for_conflict(
+            self, conflict, hypotheses, tests, packet_budgets,
+            utility=1.0, urgency=1.0):
+        """Atomically budget CPU plus observation/simulation packets."""
+        if not self.engine_live:
+            raise ValueError(
+                "packet observation decisions require engine_live")
+        packet_budgets = tuple(packet_budgets)
+        if any(not isinstance(value, PacketBudget) for value in packet_budgets):
+            raise TypeError("observation packet budgets require PacketBudget")
+        decision = self.decision_for_conflict(
+            conflict, hypotheses, tests, utility=utility, urgency=urgency)
+        scores = self.scheduler.score_all(
+            decision["operations"], decision["pressure"])
+        packet_schedule = PacketScheduler().schedule(
+            decision["operations"], scores, packet_budgets)
+        committed = frozenset(packet_schedule.committed_operation_ids)
+        score_by_id = dict(
+            (value.operation_id, value) for value in scores)
+        selection_records = tuple(
+            ObservationSelectionRecord(
+                operation.operation_id,
+                decision["goal"].goal_id,
+                operation.operation_id in committed,
+                max(0.0, float(score_by_id[operation.operation_id].priority)),
+                None,
+                ("atomic-packet-budget-committed"
+                 if operation.operation_id in committed else
+                 "atomic-packet-budget-not-committed"))
+            for operation in decision["operations"])
+        result = dict(decision)
+        result["packet_schedule"] = packet_schedule
+        result["selection_records"] = selection_records
+        result["selected_operation_ids"] = tuple(
+            packet_schedule.committed_operation_ids)
+        return result

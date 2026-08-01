@@ -25,7 +25,8 @@
     "transport_operation_projection": "component-only",
     "combat_task_force_projection": "component-only",
     "combat_operation_projection": "component-only",
-    "belief_domain_projection": "component-only"
+    "belief_domain_projection": "component-only",
+    "observation_pressure_planning": "component-only"
   },
   "component_enabled": true,
   "policy_authority": false,
