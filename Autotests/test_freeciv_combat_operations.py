@@ -22,6 +22,7 @@ from freeciv_agent.planning import (
     CombatOperationLifecycle,
     ControlEventEmitter,
     ConditionalProbabilityInterval,
+    FdasCombatProjectionAdapter,
     GroundedImpactPlanner,
     OperationAuthorityKind,
     combat_target_capacities,
@@ -32,6 +33,10 @@ from freeciv_agent.pressure import (
     ResourceCapacityExtractor,
 )
 from freeciv_agent.state import ProxyStateDTO
+from freeciv_agent.state.atomspace import (
+    DependentAtomSpaceStore,
+    OperationProjector,
+)
 from freeciv_agent.events.validator import validate_file
 from freeciv_agent.events.writer import EventWriter
 from freeciv_agent.events.schema import structural_hash
@@ -849,6 +854,77 @@ def test_combat_lifecycle_completes_and_releases_when_first_attack_kills():
     assert lifecycle.store.get(
         assembly.spec.operation_id
     ).progress.current_step_index == 0
+
+
+def test_fdas_combat_adapter_projects_atomic_claims_and_current_binding():
+    snapshot = _snapshot()
+    assembly, schedule = _assembly_schedule(snapshot)
+    lifecycle = CombatOperationLifecycle("fdas-combat-projection")
+    adapter = FdasCombatProjectionAdapter(lifecycle, "ruleset-proof")
+
+    registered = adapter.register_schedule((assembly,), schedule, snapshot)
+    operation_id = assembly.spec.operation_id
+    binding = adapter.binding(operation_id)
+    context = adapter.requirement_context(operation_id)
+
+    assert registered[-1].state == "reserved"
+    assert binding.action == assembly.action_for_step(0)
+    assert binding.action_key in snapshot.legal_action_json
+    assert context.blocked_premises == ()
+    assert len(context.resource_claims) == 6
+    revision = DependentAtomSpaceStore(
+        domain_projector=OperationProjector(
+            lifecycle.store, adapter.bindings,
+            adapter.requirement_contexts)).build(snapshot)
+    predicates = {value.key.predicate for value in revision.records}
+    assert {
+        "operation-current-action",
+        "operation-current-action-legal",
+        "operation-requirement-set",
+        "operation-resource-claim",
+    }.issubset(predicates)
+
+    committed = adapter.commit_matching_action(
+        snapshot, binding.action, accepted=True)
+    assert committed[-1].disposition == "step_committed"
+    assert adapter.binding(operation_id) is None
+    assert adapter.requirement_context(operation_id).resource_claims == ()
+    assert dict(adapter.requirement_context(
+        operation_id).blocked_premises) == {
+            "combat:step:{}:conservative-interval-and-material-positive".format(
+                assembly.spec.steps[0].step_id):
+                    "awaiting-authoritative-combat-effect",
+        }
+
+
+def test_fdas_combat_adapter_advances_to_conditional_step_and_rebinds():
+    snapshot = _snapshot()
+    assembly, schedule = _assembly_schedule(snapshot)
+    lifecycle = CombatOperationLifecycle("fdas-combat-rebind")
+    adapter = FdasCombatProjectionAdapter(lifecycle, "ruleset-proof")
+    adapter.register_schedule((assembly,), schedule, snapshot)
+    adapter.commit_matching_action(
+        snapshot, assembly.action_for_step(0), accepted=True)
+
+    after_first = _next_snapshot(snapshot, 21)
+    updates = adapter.observe(after_first)
+    operation_id = assembly.spec.operation_id
+    record = lifecycle.store.get(operation_id)
+
+    assert updates[-1].disposition == "step_reestimated"
+    assert record.progress.current_step_index == 1
+    assert adapter.binding(operation_id).action == assembly.action_for_step(1)
+    assert adapter.requirement_context(operation_id).blocked_premises == ()
+    assert len(adapter.requirement_context(operation_id).resource_claims) == 4
+    revision = DependentAtomSpaceStore(
+        domain_projector=OperationProjector(
+            lifecycle.store, adapter.bindings,
+            adapter.requirement_contexts)).build(after_first)
+    current_step = next(
+        value for value in revision.records
+        if value.key.predicate == "operation-current-step")
+    assert current_step.key.arguments[1].entity_id == (
+        assembly.spec.steps[1].step_id)
 
 
 def test_reserved_combat_operation_completes_if_target_is_removed_externally():

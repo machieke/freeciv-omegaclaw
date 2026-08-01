@@ -127,6 +127,7 @@ from .fdas_episodes import (
 )
 from .fdas_replacement import FdasCoordinatedReplacementAdapter
 from .fdas_transport import FdasFounderTransportProjectionAdapter
+from .fdas_combat import FdasCombatProjectionAdapter
 from .fdas_commit import (
     FDASCommitBinding,
     FDASCommitValidation,
@@ -195,6 +196,7 @@ __all__ = [
     "FdasDefenseEpisodeRecorder",
     "FdasCoordinatedReplacementAdapter",
     "FdasFounderTransportProjectionAdapter",
+    "FdasCombatProjectionAdapter",
     "FDASCommitBinding", "FDASCommitValidation", "FDASCommitValidator",
     "ShadowCandidateComparison", "ShadowOperationCandidate",
     "compare_shadow_candidates",

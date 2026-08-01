@@ -38,6 +38,7 @@ def test_fdas_manifest_exposes_only_evidenced_component_capabilities():
         "defense_requirement_projection",
         "coordinated_replacement_lifecycle",
         "combat_task_force_projection",
+        "combat_operation_projection",
         "episode_attribution",
         "dependent_atom_pressure_adapter",
         "dependency_truth_maintenance",
