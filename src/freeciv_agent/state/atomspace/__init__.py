@@ -85,6 +85,11 @@ from .unit import (
     unit_defense_predicate_registry,
     unit_defense_scopes,
 )
+from .region import (
+    CityRegionPolicy,
+    CityRegionProjector,
+    region_predicate_registry,
+)
 from .store import (
     DependentAtomSpaceRevision,
     DependentAtomSpaceStore,
@@ -156,6 +161,8 @@ __all__ = (
     "TypedGroundingRegistry",
     "UNIT_DEFENSE_GROUNDING_SPECS",
     "UnitDefenseProjector",
+    "CityRegionPolicy", "CityRegionProjector",
+    "region_predicate_registry",
     "unit_defense_predicate_registry",
     "unit_defense_scopes",
     "persistent_defender_type",

@@ -112,6 +112,12 @@
     {"argument_kinds": [["unit"], ["city"]], "arity": 2, "name": "unit-required-garrison", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["unit"], ["city"]], "arity": 2, "name": "unit-fortification-opportunity", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["unit"], ["city"]], "arity": 2, "name": "unit-reinforcement-route", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["region"], ["city"]], "arity": 2, "name": "region-centered-on", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["tile"], ["region"]], "arity": 2, "name": "tile-in-region", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["tile"], ["tile"]], "arity": 2, "name": "tile-adjacent", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["tile"], ["terrain"]], "arity": 2, "name": "terrain-kind", "namespace": "authoritative", "status": "component-only"},
+    {"argument_kinds": [["unit"], ["city"], ["radius-policy"]], "arity": 3, "name": "visible-threat-near", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["region"], ["activation-reason"]], "arity": 2, "name": "region-activation-reason", "namespace": "diagnostic", "status": "component-only"},
     {"argument_kinds": [["unit"], ["operation-kind"]], "arity": 2, "name": "unit-available", "namespace": "derived", "status": "proposed"},
     {"argument_kinds": [["operation"], ["operation-type"]], "arity": 2, "name": "operation-type", "namespace": "operation", "status": "component-only"},
     {"argument_kinds": [["operation"], ["goal"]], "arity": 2, "name": "operation-serves-goal", "namespace": "operation", "status": "component-only"},
@@ -139,7 +145,7 @@
     {"kind": "city-control", "materialization": "focused", "status": "proposed"},
     {"kind": "unit-facts", "materialization": "owned-and-visible-summary", "status": "component-only"},
     {"kind": "unit-control", "materialization": "focused", "status": "proposed"},
-    {"kind": "region", "materialization": "focused", "status": "proposed"},
+    {"kind": "region", "materialization": "focused", "status": "component-only"},
     {"kind": "operation", "materialization": "active-lifecycle", "status": "component-only"},
     {"kind": "episode", "materialization": "durable-compact", "status": "proposed"}
   ]
