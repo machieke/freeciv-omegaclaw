@@ -52,6 +52,7 @@ def test_fdas_manifest_exposes_only_evidenced_component_capabilities():
         "fdas_operator_diagnostics",
         "legacy_consolidation_audit",
         "legacy_integration_facade",
+        "focused_scope_activation",
         "expansion_operation_projection",
         "dependent_atom_pressure_adapter",
         "dependency_truth_maintenance",

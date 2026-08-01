@@ -93,3 +93,60 @@ class CompositeDomainProjector(object):
         for projector in self.projectors:
             records.extend(projector.project(snapshot, scopes, fingerprints))
         return tuple(sorted(records, key=lambda value: value.atom_id))
+
+
+class ActivatedDomainProjector(object):
+    """Apply explicit focused-scope funding around any pure projector."""
+
+    projector_id = "fdas-activated-domain-projector"
+    version = "1.0"
+
+    def __init__(self, projector, activator, signal_source):
+        from .scopes import ScopeActivator
+
+        if not isinstance(activator, ScopeActivator):
+            raise TypeError("activated projector requires ScopeActivator")
+        if not callable(signal_source):
+            raise TypeError("activated projector requires signal source")
+        self.projector = projector
+        self.activator = activator
+        self.signal_source = signal_source
+        self.predicate_registry = projector.predicate_registry
+        self._builds = {}
+
+    def scopes(self, snapshot):
+        all_scopes = tuple(self.projector.scopes(snapshot))
+        signals = tuple(self.signal_source(snapshot, all_scopes))
+        state = self.activator.activate(all_scopes, signals, snapshot.turn)
+        active = frozenset(state.active_scope_ids)
+        selected = tuple(value for value in all_scopes
+                         if value.scope_id in active)
+        if not any(value.scope_kind == "world" for value in selected):
+            raise ValueError("focused projection cannot omit world scope")
+        if not any(value.scope_kind == "empire" for value in selected):
+            raise ValueError("focused projection cannot omit empire scope")
+        self._builds[snapshot.snapshot_id] = (all_scopes, state)
+        return selected
+
+    def activation(self, snapshot_id):
+        try:
+            return self._builds[str(snapshot_id)][1]
+        except KeyError:
+            raise KeyError("snapshot has no scope activation state")
+
+    def extend_fingerprints(self, fingerprints):
+        return self.projector.extend_fingerprints(fingerprints)
+
+    def project(self, snapshot, scopes, fingerprints):
+        try:
+            all_scopes, state = self._builds[snapshot.snapshot_id]
+        except KeyError:
+            self.scopes(snapshot)
+            all_scopes, state = self._builds[snapshot.snapshot_id]
+        supplied = frozenset(value.scope_id for value in scopes)
+        if supplied != frozenset(state.active_scope_ids):
+            raise ValueError("focused projection scope set changed during build")
+        records = self.projector.project(
+            snapshot, all_scopes, fingerprints)
+        return tuple(value for value in records
+                     if value.key.scope_id in supplied)

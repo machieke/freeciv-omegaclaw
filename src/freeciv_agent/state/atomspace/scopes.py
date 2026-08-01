@@ -1,6 +1,8 @@
-"""Logical scope contracts for the FDAS full-build compatibility layer."""
+"""Logical scope contracts and deterministic focused activation for FDAS."""
 
 from dataclasses import dataclass
+
+from ...events.schema import structural_hash
 
 from .model import AtomNamespace, EntityRef, ValidityInterval
 
@@ -132,3 +134,218 @@ def snapshot_scopes(snapshot):
         validity=validity,
     )
     return world, empire
+
+
+@dataclass(frozen=True)
+class ScopeActivationSignal:
+    scope_id: str
+    reason: str
+    funded_by: str
+    priority: float
+    causal_parent_ids: tuple = ()
+
+    def __post_init__(self):
+        for value, name in (
+                (self.scope_id, "scope ID"), (self.reason, "reason"),
+                (self.funded_by, "funding identity")):
+            if not isinstance(value, str) or not value:
+                raise ValueError("scope activation {} is required".format(name))
+        priority = float(self.priority)
+        if not 0.0 <= priority <= 1.0:
+            raise ValueError("scope activation priority must be in 0..1")
+        parents = tuple(sorted(str(value) for value in self.causal_parent_ids))
+        if (any(not value for value in parents)
+                or len(parents) != len(set(parents))):
+            raise ValueError("scope activation parents must be unique strings")
+        object.__setattr__(self, "priority", priority)
+        object.__setattr__(self, "causal_parent_ids", parents)
+
+
+@dataclass(frozen=True)
+class ScopeActivationRequest:
+    scope_id: str
+    scope_kind: str
+    reason: str
+    funded_by: str
+    priority: float
+    activated_turn: int
+    expires_turn: int
+    retained: bool
+    causal_parent_ids: tuple
+
+    def to_dict(self):
+        return {
+            "activated_turn": self.activated_turn,
+            "causal_parent_ids": list(self.causal_parent_ids),
+            "expires_turn": self.expires_turn,
+            "funded_by": self.funded_by,
+            "priority": self.priority,
+            "reason": self.reason,
+            "retained": self.retained,
+            "scope_id": self.scope_id,
+            "scope_kind": self.scope_kind,
+        }
+
+
+@dataclass(frozen=True)
+class ScopeActivationState:
+    turn: int
+    requests: tuple
+    rejected: tuple
+    state_hash: str
+
+    @property
+    def active_scope_ids(self):
+        return tuple(value.scope_id for value in self.requests)
+
+    def to_dict(self):
+        return {
+            "active_scope_ids": list(self.active_scope_ids),
+            "rejected": [dict(value) for value in self.rejected],
+            "requests": [value.to_dict() for value in self.requests],
+            "state_hash": self.state_hash,
+            "turn": self.turn,
+        }
+
+
+@dataclass(frozen=True)
+class ScopeActivationPolicy:
+    maximum_active_scopes: int = 512
+    maximum_by_kind: tuple = (
+        ("combat-engagement", 64),
+        ("opponent-belief", 8),
+        ("population-recovery", 32),
+        ("region", 16),
+        ("route-corridor", 64),
+        ("settlement-site", 64),
+        ("task-force", 32),
+        ("transport", 32),
+    )
+    focused_scope_ttl_turns: int = 3
+    always_active_kinds: tuple = (
+        "city-facts", "empire", "episode", "operation", "ruleset",
+        "unit-facts", "world",
+    )
+
+    def __post_init__(self):
+        if (isinstance(self.maximum_active_scopes, bool)
+                or not isinstance(self.maximum_active_scopes, int)
+                or self.maximum_active_scopes < 1):
+            raise ValueError("maximum active scopes must be positive")
+        if (isinstance(self.focused_scope_ttl_turns, bool)
+                or not isinstance(self.focused_scope_ttl_turns, int)
+                or self.focused_scope_ttl_turns < 0):
+            raise ValueError("focused scope TTL must be non-negative")
+        limits = tuple(sorted(
+            (str(kind), int(limit)) for kind, limit in self.maximum_by_kind))
+        if (any(not kind or limit < 1 for kind, limit in limits)
+                or len({kind for kind, _limit in limits}) != len(limits)):
+            raise ValueError("scope kind limits must be unique and positive")
+        always = tuple(sorted(str(value) for value in self.always_active_kinds))
+        if (any(not value for value in always)
+                or len(always) != len(set(always))):
+            raise ValueError("always-active scope kinds must be unique")
+        object.__setattr__(self, "maximum_by_kind", limits)
+        object.__setattr__(self, "always_active_kinds", always)
+
+
+class ScopeActivator(object):
+    """Fund scopes deterministically; absence of a signal is not a fact."""
+
+    ACTIVATOR_IDENTITY = "fdas-scope-activator/1.0"
+
+    def __init__(self, policy=None):
+        self.policy = policy or ScopeActivationPolicy()
+
+    def activate(self, scopes, signals, turn, previous_state=None):
+        scopes = tuple(scopes)
+        if any(not isinstance(value, ScopeSpec) for value in scopes):
+            raise TypeError("scope activator requires ScopeSpec values")
+        by_id = dict((value.scope_id, value) for value in scopes)
+        if len(by_id) != len(scopes):
+            raise ValueError("scope activation IDs must be unique")
+        turn = int(turn)
+        if turn < 0:
+            raise ValueError("scope activation turn must be non-negative")
+        signals = tuple(signals)
+        if any(not isinstance(value, ScopeActivationSignal)
+               for value in signals):
+            raise TypeError("scope activator requires typed signals")
+        if any(value.scope_id not in by_id for value in signals):
+            raise ValueError("scope activation signal references unknown scope")
+        strongest = {}
+        for signal in signals:
+            prior = strongest.get(signal.scope_id)
+            if (prior is None
+                    or (-signal.priority, signal.reason, signal.funded_by)
+                    < (-prior.priority, prior.reason, prior.funded_by)):
+                strongest[signal.scope_id] = signal
+        candidates = []
+        for scope in scopes:
+            if scope.scope_kind in self.policy.always_active_kinds:
+                candidates.append((
+                    0, -1.0, scope.scope_id, scope,
+                    "always-materialized", "base-scope", (), False,
+                    turn + self.policy.focused_scope_ttl_turns))
+        for scope_id, signal in strongest.items():
+            scope = by_id[scope_id]
+            if scope.scope_kind in self.policy.always_active_kinds:
+                continue
+            candidates.append((
+                1, -signal.priority, scope.scope_id, scope,
+                signal.reason, signal.funded_by, signal.causal_parent_ids,
+                False, turn + self.policy.focused_scope_ttl_turns))
+        if previous_state is not None:
+            if not isinstance(previous_state, ScopeActivationState):
+                raise TypeError("previous activation must be ScopeActivationState")
+            if previous_state.turn > turn:
+                raise ValueError("scope activation turn regressed")
+            for previous in previous_state.requests:
+                scope = by_id.get(previous.scope_id)
+                if (scope is None or previous.expires_turn < turn
+                        or scope.scope_kind in self.policy.always_active_kinds
+                        or previous.scope_id in strongest):
+                    continue
+                candidates.append((
+                    2, -previous.priority, scope.scope_id, scope,
+                    "retained-scope-momentum", previous.funded_by,
+                    previous.causal_parent_ids, True, previous.expires_turn))
+        candidates.sort(key=lambda value: value[:3])
+        limits = dict(self.policy.maximum_by_kind)
+        by_kind_count = {}
+        requests = []
+        rejected = []
+        for (_tier, negative_priority, _scope_id, scope, reason, funded_by,
+             parents, retained, expires_turn) in candidates:
+            if len(requests) >= self.policy.maximum_active_scopes:
+                rejected.append({
+                    "reason": "global-scope-budget-exhausted",
+                    "scope_id": scope.scope_id,
+                    "scope_kind": scope.scope_kind,
+                })
+                continue
+            kind_limit = limits.get(scope.scope_kind)
+            if (kind_limit is not None
+                    and by_kind_count.get(scope.scope_kind, 0) >= kind_limit):
+                rejected.append({
+                    "reason": "scope-kind-budget-exhausted",
+                    "scope_id": scope.scope_id,
+                    "scope_kind": scope.scope_kind,
+                })
+                continue
+            requests.append(ScopeActivationRequest(
+                scope.scope_id, scope.scope_kind, reason, funded_by,
+                -negative_priority, turn, expires_turn, retained, parents))
+            by_kind_count[scope.scope_kind] = (
+                by_kind_count.get(scope.scope_kind, 0) + 1)
+        requests = tuple(sorted(requests, key=lambda value: value.scope_id))
+        rejected = tuple(sorted(
+            rejected, key=lambda value: (value["scope_id"], value["reason"])))
+        semantic = {
+            "activator_identity": self.ACTIVATOR_IDENTITY,
+            "rejected": list(rejected),
+            "requests": [value.to_dict() for value in requests],
+            "turn": turn,
+        }
+        return ScopeActivationState(
+            turn, requests, rejected, structural_hash(semantic))

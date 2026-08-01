@@ -38,6 +38,11 @@ from .predicates import (
     legacy_predicate_registry,
 )
 from .scopes import (
+    ScopeActivationPolicy,
+    ScopeActivationRequest,
+    ScopeActivationSignal,
+    ScopeActivationState,
+    ScopeActivator,
     ScopeSpec,
     snapshot_scopes,
 )
@@ -70,6 +75,7 @@ from .city import (
     city_economy_scopes,
 )
 from .composite import (
+    ActivatedDomainProjector,
     CompositeDomainProjector,
     merge_predicate_registries,
 )
@@ -138,6 +144,7 @@ __all__ = (
     "AtomSpaceTransaction",
     "AtomSpaceDiagnostics",
     "AuthorityClass",
+    "ActivatedDomainProjector",
     "ALL_GROUNDING_SPECS",
     "CITY_ECONOMY_GROUNDING_SPECS",
     "CityEconomyPolicy",
@@ -171,6 +178,11 @@ __all__ = (
     "RevisionQueryContext",
     "RulesetAtomSpaceStore",
     "ScopeSpec",
+    "ScopeActivationPolicy",
+    "ScopeActivationRequest",
+    "ScopeActivationSignal",
+    "ScopeActivationState",
+    "ScopeActivator",
     "SupportRecord",
     "SymbolRef",
     "SnapshotDelta",
