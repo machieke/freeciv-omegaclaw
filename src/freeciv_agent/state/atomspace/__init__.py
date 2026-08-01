@@ -115,6 +115,10 @@ from .recovery import (
     population_recovery_profile,
     population_recovery_predicate_registry,
 )
+from .belief import (
+    BeliefProjector,
+    belief_predicate_registry,
+)
 from .store import (
     DependentAtomSpaceRevision,
     DependentAtomSpaceStore,
@@ -195,6 +199,7 @@ __all__ = (
     "CombatTaskForceProjector", "combat_predicate_registry",
     "PopulationRecoveryProjector", "population_recovery_profile",
     "population_recovery_predicate_registry",
+    "BeliefProjector", "belief_predicate_registry",
     "unit_defense_predicate_registry",
     "unit_defense_scopes",
     "persistent_defender_type",
