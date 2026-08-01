@@ -6,7 +6,10 @@ from dataclasses import dataclass
 from ..events.schema import structural_hash
 from ..pressure.model import GoalState
 from ..state.atomspace.model import AtomKey, AtomNamespace, EntityRef
-from ..state.atomspace.grounding import persistent_defender_type
+from ..state.atomspace.grounding import (
+    TypedGroundingRegistry,
+    persistent_defender_type,
+)
 from .operations import (
     OPERATION_SCHEMA_VERSION,
     OperationParticipant,
@@ -248,6 +251,7 @@ class CandidateOperationFactory(object):
         "treasury-below-reserve": frozenset(("player_rates",)),
         "research-throughput-stalled": frozenset(("tech_research",)),
     }
+    _GARRISON_POLICY_LIMIT = 3
 
     def __init__(self, ruleset_ir, ruleset_digest):
         self.ruleset_ir = ruleset_ir
@@ -257,6 +261,8 @@ class CandidateOperationFactory(object):
             for schema in ruleset_ir.action_schemas)
         self._effects = dict(
             (effect.effect_id, effect) for effect in ruleset_ir.effects)
+        self._groundings = TypedGroundingRegistry(
+            ruleset_ir, ruleset_digest=self.ruleset_digest)
         self._defender_types = set(
             str(rule.rule_name).strip().lower().replace("_", " ")
             for rule in ruleset_ir.rules
@@ -347,17 +353,13 @@ class CandidateOperationFactory(object):
         if actor is None:
             blockers.append("unit-actor-unavailable")
             return tuple(sorted(set(blockers)))
-        source_city = next((
-            value for value in snapshot.cities
-            if value.tile is not None and value.tile == actor.tile), None)
-        if source_city is not None:
-            local_defenders = tuple(
-                value for value in snapshot.units
-                if value.tile is not None and value.tile == source_city.tile
-                and str(value.unit_type).strip().lower().replace(
-                    "_", " ") in self._defender_types)
-            if len(local_defenders) <= 1:
-                blockers.append("protected-source-garrison")
+        removal = self._groundings.evaluate(
+            "defense.removal-deficit", snapshot, actor.unit_id,
+            self._GARRISON_POLICY_LIMIT)
+        if not removal.available:
+            blockers.append("source-garrison-opportunity-cost-unavailable")
+        elif removal.value["creates_deficit"] is True:
+            blockers.append("protected-source-garrison")
         return tuple(sorted(set(blockers)))
 
     def instantiate(self, snapshot, goal_contexts):

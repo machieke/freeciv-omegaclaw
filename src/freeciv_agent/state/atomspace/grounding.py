@@ -205,6 +205,10 @@ UNIT_DEFENSE_GROUNDING_SPECS = (
         confidence_cap=0.45,
         residual_unknown_required=True,
     ),
+    _spec("defense.removal-deficit", ("unit", "policy-limit"),
+          "removal-deficit", "units",
+          ("units.{unit}.tile", "cities", "units"),
+          GroundingAuthority.DETERMINISTIC_DERIVED),
 )
 
 
@@ -408,6 +412,39 @@ class TypedGroundingRegistry(object):
         return values[0]
 
     def _evaluate(self, grounding_id, snapshot, args):
+        if grounding_id == "defense.removal-deficit":
+            if len(args) != 2:
+                raise ValueError(
+                    "defense.removal-deficit expects unit and policy limit")
+            actor = snapshot.unit(args[0])
+            if actor is None:
+                raise LookupError("unknown own unit")
+            source_city = next((
+                value for value in snapshot.cities
+                if value.tile is not None and value.tile == actor.tile), None)
+            if source_city is None:
+                return {
+                    "creates_deficit": False,
+                    "current_city_id": None,
+                    "current_garrison": 0,
+                    "remaining_garrison": 0,
+                    "required_garrison": 0,
+                }
+            current = sum(
+                value.tile is not None
+                and value.tile == source_city.tile
+                and self._persistent_defender(value.unit_type)
+                for value in snapshot.units)
+            required = self._required_garrison(source_city, args[1])
+            actor_counts = self._persistent_defender(actor.unit_type)
+            remaining = max(0, current - (1 if actor_counts else 0))
+            return {
+                "creates_deficit": remaining < required,
+                "current_city_id": source_city.city_id,
+                "current_garrison": current,
+                "remaining_garrison": remaining,
+                "required_garrison": required,
+            }
         if grounding_id == "defense.visible-threat-eta":
             if len(args) != 2:
                 raise ValueError(
@@ -618,10 +655,14 @@ class TypedGroundingRegistry(object):
             if len(args) >= 2 and spec.grounding_id.startswith("movement.")
             else None)
         if spec.grounding_id.startswith("defense."):
-            city = str(args[0]) if args else None
+            if spec.grounding_id == "defense.removal-deficit":
+                unit = str(args[0]) if args else None
+            else:
+                city = str(args[0]) if args else None
         enemy = (
             str(args[1])
-            if len(args) >= 2 and spec.grounding_id.startswith("defense.")
+            if (len(args) >= 2
+                and spec.grounding_id == "defense.visible-threat-eta")
             else None)
         return tuple(path.format(
             city=city, unit=unit, route=route, enemy=enemy)
@@ -670,11 +711,14 @@ class TypedGroundingRegistry(object):
                 "city.production-cost", "city.production-eta",
                 "unit.combat-profile", "unit.persistent-defender",
                 "city.local-garrison-count",
-                "defense.visible-threat-eta"):
+                "defense.visible-threat-eta",
+                "defense.removal-deficit"):
             if self.ruleset_digest is None:
                 raise ValueError(
                     "{} requires a ruleset digest".format(grounding_id))
-            if grounding_id == "defense.visible-threat-eta":
+            if grounding_id == "defense.removal-deficit":
+                target_kind, target = "unit", "defender-catalog"
+            elif grounding_id == "defense.visible-threat-eta":
                 target_kind = "unit"
                 target = snapshot.visible_enemy_unit(args[1]).unit_type
             elif grounding_id.startswith("unit."):

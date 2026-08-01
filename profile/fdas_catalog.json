@@ -54,7 +54,7 @@
     {"authority": "control_model", "name": "defense.visible-threat-eta", "status": "component-only"},
     {"authority": "server_exact", "name": "combat.win-probability", "status": "proposed"},
     {"authority": "deterministic_derived", "name": "defense.coverage", "status": "proposed"},
-    {"authority": "deterministic_derived", "name": "defense.removal-deficit", "status": "proposed"}
+    {"authority": "deterministic_derived", "name": "defense.removal-deficit", "status": "component-only"}
   ],
   "namespaces": [
     "ruleset",
@@ -113,6 +113,7 @@
     {"argument_kinds": [["unit"]], "arity": 1, "name": "unit-persistent-defender", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["unit"], ["city"]], "arity": 2, "name": "unit-protects-city", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["unit"], ["city"]], "arity": 2, "name": "unit-required-garrison", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["unit"], ["city"]], "arity": 2, "name": "unit-critical-garrison", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["unit"], ["city"]], "arity": 2, "name": "unit-fortification-opportunity", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["unit"], ["city"]], "arity": 2, "name": "unit-reinforcement-route", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["region"], ["city"]], "arity": 2, "name": "region-centered-on", "namespace": "derived", "status": "component-only"},

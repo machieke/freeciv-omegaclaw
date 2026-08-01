@@ -88,6 +88,8 @@ def unit_defense_predicate_registry():
               derived, ("city-facts",)),
         _spec("unit-required-garrison", (("unit",), ("city",)),
               derived, ("city-facts",)),
+        _spec("unit-critical-garrison", (("unit",), ("city",)),
+              derived, ("city-facts",)),
         _spec("unit-fortification-opportunity", (("unit",), ("city",)),
               derived, ("city-facts",)),
         _spec("unit-reinforcement-route", (("unit",), ("city",)),
@@ -415,6 +417,9 @@ class UnitDefenseProjector(object):
                         "unit_id": unit.unit_id,
                     }))
                 if len(local) <= int(required.value):
+                    removal = self.groundings.evaluate(
+                        "defense.removal-deficit", snapshot, unit.unit_id,
+                        self.policy.maximum_garrison_per_city)
                     records.append(self._record(
                         scope, AtomNamespace.DERIVED,
                         "unit-required-garrison", (unit_ref, city_ref),
@@ -426,6 +431,14 @@ class UnitDefenseProjector(object):
                             "required": required.value,
                             "unit_id": unit.unit_id,
                         }))
+                    if (removal.available
+                            and removal.value["creates_deficit"] is True):
+                        records.append(self._record(
+                            scope, AtomNamespace.DERIVED,
+                            "unit-critical-garrison", (unit_ref, city_ref),
+                            AuthorityClass.DETERMINISTIC_DERIVED,
+                            removal.dependencies + policy_refs,
+                            removal.value))
                 fortify = legal_fortify.get(str(unit.unit_id))
                 if (fortify is not None
                         and str(unit.activity or "").lower() not in (

@@ -153,6 +153,14 @@ def test_unit_groundings_match_ruleset_and_local_garrison(ir):
         "city.required-garrison-count", snapshot, 3, 3).value == 1
     assert registry.evaluate(
         "city.local-garrison-count", snapshot, 3).value == 1
+    assert registry.evaluate(
+        "defense.removal-deficit", snapshot, 7, 3).value == {
+            "creates_deficit": True,
+            "current_city_id": 3,
+            "current_garrison": 1,
+            "remaining_garrison": 0,
+            "required_garrison": 1,
+        }
 
 
 def test_garrison_projection_is_factual_supported_and_legacy_exact(ir):
@@ -164,6 +172,7 @@ def test_garrison_projection_is_factual_supported_and_legacy_exact(ir):
     assert {
         "city-garrison-covered",
         "unit-has-capability",
+        "unit-critical-garrison",
         "unit-persistent-defender",
         "unit-protects-city",
         "unit-required-garrison",
@@ -330,6 +339,44 @@ def test_garrison_deficit_regresses_to_legal_move_but_protects_source(ir):
         evaluation.pressure_result.pressure(
             goal.goal_id, operation.atom_id).value("act") == 0.0
         for goal in evaluation.context.goals)
+
+
+def test_disorder_policy_protects_source_even_with_two_defenders(ir):
+    payload = _payload()
+    payload["cities"]["3"]["disorder"] = True
+    target = copy.deepcopy(payload["cities"]["3"])
+    target.update({"id": 4, "name": "Antium", "tile": 83, "x": 3, "y": 2,
+                   "disorder": False})
+    payload["cities"]["4"] = target
+    second = copy.deepcopy(payload["units"]["7"])
+    second["id"] = 8
+    payload["units"]["8"] = second
+    snapshot = _snapshot(payload, 4651)
+    digest = ruleset_digest(ir)
+    store = _store(ir)
+    revision = store.build(snapshot)
+    goals = GoalFactory().instantiate(
+        revision,
+        store.query_current(snapshot.identity.game_id, snapshot.player_id),
+    )
+    candidates = CandidateOperationFactory(ir, digest).instantiate(
+        snapshot, goals)
+    route = next(
+        value for value in candidates
+        if (value.action.get("action_type") == "unit_move"
+            and value.operation.target_ref == "city:4"))
+
+    removal = TypedGroundingRegistry(
+        ir, ruleset_digest=digest).evaluate(
+            "defense.removal-deficit", snapshot, 7, 3)
+    assert removal.value == {
+        "creates_deficit": True,
+        "current_city_id": 3,
+        "current_garrison": 2,
+        "remaining_garrison": 1,
+        "required_garrison": 3,
+    }
+    assert "protected-source-garrison" in route.blockers
 
 
 def test_native_route_grounding_projects_multi_turn_reinforcement(ir):
