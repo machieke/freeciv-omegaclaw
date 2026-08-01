@@ -4,7 +4,7 @@
     "dependent_atomspace_core": "component-only",
     "defense_operation_reconciliation": "component-only",
     "dependency_truth_maintenance": "component-only",
-    "episode_attribution": "not-built",
+    "episode_attribution": "component-only",
     "fdas_exact_commit_validation": "component-only",
     "fdas_resource_packet_bridge": "component-only",
     "generic_rule_execution": "component-only",

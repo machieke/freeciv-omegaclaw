@@ -90,6 +90,10 @@ from .region import (
     CityRegionProjector,
     region_predicate_registry,
 )
+from .episodes import (
+    EpisodeProjector,
+    episode_predicate_registry,
+)
 from .store import (
     DependentAtomSpaceRevision,
     DependentAtomSpaceStore,
@@ -163,6 +167,7 @@ __all__ = (
     "UnitDefenseProjector",
     "CityRegionPolicy", "CityRegionProjector",
     "region_predicate_registry",
+    "EpisodeProjector", "episode_predicate_registry",
     "unit_defense_predicate_registry",
     "unit_defense_scopes",
     "persistent_defender_type",

@@ -141,7 +141,22 @@
     {"argument_kinds": [["operation"], ["action"]], "arity": 2, "name": "operation-current-action", "namespace": "operation", "status": "component-only"},
     {"argument_kinds": [["operation"], ["action"]], "arity": 2, "name": "operation-current-action-legal", "namespace": "operation", "status": "component-only"},
     {"argument_kinds": [["operation"], ["action-binding"]], "arity": 2, "name": "operation-action-binding", "namespace": "operation", "status": "component-only"},
-    {"argument_kinds": [["operation"]], "arity": 1, "name": "operation-eligible", "namespace": "operation", "status": "proposed"}
+    {"argument_kinds": [["operation"]], "arity": 1, "name": "operation-eligible", "namespace": "operation", "status": "proposed"},
+    {"argument_kinds": [["episode"], ["operation"]], "arity": 2, "name": "episode-operation", "namespace": "episode", "status": "component-only"},
+    {"argument_kinds": [["episode"], ["action"]], "arity": 2, "name": "episode-action", "namespace": "episode", "status": "component-only"},
+    {"argument_kinds": [["episode"], ["revision"]], "arity": 2, "name": "episode-before-revision", "namespace": "episode", "status": "component-only"},
+    {"argument_kinds": [["episode"], ["revision"]], "arity": 2, "name": "episode-after-revision", "namespace": "episode", "status": "component-only"},
+    {"argument_kinds": [["episode"], ["episode-outcome"]], "arity": 2, "name": "episode-outcome-status", "namespace": "episode", "status": "component-only"},
+    {"argument_kinds": [["episode"], ["context-signature"]], "arity": 2, "name": "episode-context", "namespace": "episode", "status": "component-only"},
+    {"argument_kinds": [["episode"], ["atom"]], "arity": 2, "name": "episode-source-atom", "namespace": "episode", "status": "component-only"},
+    {"argument_kinds": [["episode"], ["support"]], "arity": 2, "name": "episode-source-support", "namespace": "episode", "status": "component-only"},
+    {"argument_kinds": [["episode"], ["grounding-result"]], "arity": 2, "name": "episode-grounding-result", "namespace": "episode", "status": "component-only"},
+    {"argument_kinds": [["episode"], ["prediction"]], "arity": 2, "name": "episode-prediction", "namespace": "episode", "status": "component-only"},
+    {"argument_kinds": [["episode"], ["resource-claim"]], "arity": 2, "name": "episode-resource-claim", "namespace": "episode", "status": "component-only"},
+    {"argument_kinds": [["episode"], ["validation-result"]], "arity": 2, "name": "episode-validation", "namespace": "episode", "status": "component-only"},
+    {"argument_kinds": [["episode"], ["event"]], "arity": 2, "name": "episode-execution-event", "namespace": "episode", "status": "component-only"},
+    {"argument_kinds": [["episode"], ["effect"]], "arity": 2, "name": "episode-attributed-effect", "namespace": "episode", "status": "component-only"},
+    {"argument_kinds": [["episode"], ["goal"]], "arity": 2, "name": "episode-goal-relief", "namespace": "episode", "status": "component-only"}
   ],
   "schema_version": "1.0",
   "scopes": [
@@ -154,6 +169,6 @@
     {"kind": "unit-control", "materialization": "focused", "status": "proposed"},
     {"kind": "region", "materialization": "focused", "status": "component-only"},
     {"kind": "operation", "materialization": "active-lifecycle", "status": "component-only"},
-    {"kind": "episode", "materialization": "durable-compact", "status": "proposed"}
+    {"kind": "episode", "materialization": "durable-compact", "status": "component-only"}
   ]
 }

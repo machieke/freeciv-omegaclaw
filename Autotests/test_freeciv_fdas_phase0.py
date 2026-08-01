@@ -33,8 +33,9 @@ def test_fdas_manifest_exposes_only_evidenced_component_capabilities():
     assert manifest["policy_authority"] is False
     assert manifest["capabilities"]
     component_only = {
-            "dependent_atomspace_core",
-            "defense_operation_reconciliation",
+        "dependent_atomspace_core",
+        "defense_operation_reconciliation",
+        "episode_attribution",
         "dependent_atom_pressure_adapter",
         "dependency_truth_maintenance",
         "fdas_exact_commit_validation",
@@ -54,7 +55,7 @@ def test_fdas_manifest_exposes_only_evidenced_component_capabilities():
     assert {
         value for key, value in manifest["capabilities"].items()
         if key not in component_only
-    } == {"not-built"}
+    }.issubset({"not-built"})
 
 
 def test_fdas_phase0_catalog_freezes_legacy_projection_and_groundings():
