@@ -21,6 +21,10 @@ creating a second lifecycle authority:
   the same persistent operation when type, actor, and target match;
 - each current action must be byte-identical to a current advertised legal
   action; otherwise the operation is blocked and no current binding is exposed;
+- every executable defense schema without a current action is blocked at its
+  legal-binding premise; only `hold_sole_defender` is retained as an explicit
+  non-actionable protection constraint, with no action binding or legal-action
+  premise;
 - blocked operations can recover to reservable when a later exact legal binding
   appears;
 - authoritative destination occupation and fortification activity can complete

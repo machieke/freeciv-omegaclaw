@@ -339,6 +339,15 @@ def test_enemy_disappearance_never_completes_interception():
     first = adapter.reconcile(snapshot, (interception,))
     operation_id = first[0].operation_id
 
+    assert first[0].state == "blocked"
+    assert first[0].reason == "current-executable-action-unavailable"
+    assert adapter.binding(operation_id) is None
+    assert dict(
+        adapter.requirement_context(operation_id).blocked_premises) == {
+            "legal-action:current-byte-identical":
+                "current-executable-action-unavailable",
+        }
+
     later_payload = _payload()
     later_payload["turn"] = 13
     later = _snapshot(later_payload, 486)
@@ -347,6 +356,36 @@ def test_enemy_disappearance_never_completes_interception():
     assert update.disposition == "blocked"
     assert store.get(operation_id).progress.state == OperationState.BLOCKED
     assert store.get(operation_id).progress.terminal_reason is None
+
+
+def test_hold_is_an_explicit_non_action_constraint_without_legal_premise():
+    snapshot = _snapshot(_payload(), 490)
+    store = OperationStore("fdas-defense:hold-constraint")
+    adapter = FdasCityDefenseOperationAdapter(store, "ruleset-proof")
+    hold = {
+        "actor_id": 7,
+        "arrival_turn": 12,
+        "city_id": 3,
+        "claims": _actor_claims("domain-hold", 12)[:1],
+        "deadline_turn": 14,
+        "next_action": None,
+        "operation_id": "domain-hold",
+        "operation_type": "hold_sole_defender",
+        "provenance": ["protected-sole-defender-constraint"],
+        "requirement_id": "defense:city:3:hold:14",
+        "support_reason": None,
+    }
+
+    update = adapter.reconcile(snapshot, (hold,))[0]
+    context = adapter.requirement_context(update.operation_id)
+
+    assert update.state == "reservable"
+    assert update.binding is None
+    assert adapter.binding(update.operation_id) is None
+    assert "legal-binding" not in context.requirement_set.role_ids
+    assert all(
+        not value.startswith("legal-action:")
+        for value in context.requirement_set.premise_ids)
 
 
 def test_quarantined_store_cannot_reconcile():

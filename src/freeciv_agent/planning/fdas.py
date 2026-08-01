@@ -362,7 +362,179 @@ class CandidateOperationFactory(object):
             blockers.append("protected-source-garrison")
         return tuple(sorted(set(blockers)))
 
-    def instantiate(self, snapshot, goal_contexts):
+    def _coordinated_replacement_candidates(
+            self, snapshot, goal_contexts, revision):
+        if revision is None:
+            return ()
+        if revision.snapshot_id != snapshot.snapshot_id:
+            raise ValueError(
+                "coordinated replacement requires the current FDAS revision")
+        coordinated = tuple(
+            value for value in revision.records
+            if (value.key.namespace == AtomNamespace.DERIVED
+                and value.key.predicate
+                == "unit-coordinated-replacement-for"))
+        reinforcement = {
+            (value.key.arguments[0].entity_id,
+             value.key.arguments[1].entity_id): value
+            for value in revision.records
+            if (value.key.namespace == AtomNamespace.DERIVED
+                and value.key.predicate == "unit-reinforcement-route")
+        }
+        if not coordinated or not reinforcement:
+            return ()
+        legal = tuple(
+            (json.loads(value), value) for value in snapshot.legal_action_json)
+        result = []
+        for goal in goal_contexts:
+            if goal.deficit_predicate != "city-garrison-deficit":
+                continue
+            target_city_id = self._city_id(goal)
+            target_city = snapshot.city(target_city_id)
+            if target_city is None or target_city.tile is None:
+                continue
+            for relation in coordinated:
+                replacement_id = relation.key.arguments[0].entity_id
+                protected_id = relation.key.arguments[1].entity_id
+                source_city_id = relation.key.arguments[2].entity_id
+                if source_city_id == target_city_id:
+                    continue
+                source_city = snapshot.city(source_city_id)
+                replacement_unit = snapshot.unit(replacement_id)
+                protected_unit = snapshot.unit(protected_id)
+                target_relation = reinforcement.get((
+                    protected_id, target_city_id))
+                if (source_city is None or source_city.tile is None
+                        or replacement_unit is None or protected_unit is None
+                        or target_relation is None):
+                    continue
+                replacement_route = snapshot.movement_route(
+                    replacement_id, source_city.tile)
+                target_route = snapshot.movement_route(
+                    protected_id, target_city.tile)
+                if not bool(
+                        replacement_route is not None
+                        and replacement_route.reachable
+                        and target_route is not None
+                        and target_route.reachable
+                        and snapshot.map_width > 0):
+                    continue
+                first_x = (
+                    replacement_route.first_step_tile % snapshot.map_width)
+                first_y = (
+                    replacement_route.first_step_tile // snapshot.map_width)
+                action_row = next((
+                    (action, action_key)
+                    for action, action_key in legal
+                    if (action.get("action_type") == "unit_move"
+                        and str(action.get("actor_id")) == replacement_id
+                        and isinstance(action.get("target"), dict)
+                        and action["target"].get("x") == first_x
+                        and action["target"].get("y") == first_y)
+                ), None)
+                if action_row is None:
+                    continue
+                action, action_key = action_row
+                participants = (
+                    OperationParticipant(
+                        "replacement", replacement_id, "unit", True),
+                    OperationParticipant(
+                        "reinforcement", protected_id, "unit", True),
+                )
+                operation_type = "fdas-defense:coordinated-replacement"
+                operation_id = operation_id_from_components(
+                    operation_type, (goal.goal.goal_id,), participants,
+                    "city:{}".format(target_city_id), self.ruleset_digest,
+                    snapshot.turn)
+                source_requirement = "requirements-" + structural_hash({
+                    "coordinated_atom_id": relation.atom_id,
+                    "operation_id": operation_id,
+                    "phase": "replacement",
+                    "snapshot_id": snapshot.snapshot_id,
+                })[:28]
+                target_requirement = "requirements-" + structural_hash({
+                    "deficit_atom_id": goal.deficit_atom_id,
+                    "operation_id": operation_id,
+                    "phase": "reinforcement",
+                    "route_atom_id": target_relation.atom_id,
+                    "snapshot_id": snapshot.snapshot_id,
+                })[:28]
+                arrival_turn = (
+                    int(snapshot.turn)
+                    + int(replacement_route.estimated_turns)
+                    + int(target_route.estimated_turns))
+                expiry_turn = max(int(snapshot.turn) + 1, arrival_turn)
+                steps = (
+                    OperationStep(
+                        "step-" + structural_hash({
+                            "operation_id": operation_id,
+                            "phase": "replacement",
+                        })[:28],
+                        "unit_move", "replacement",
+                        "city:{}".format(source_city_id),
+                        source_requirement,
+                        "city-defense:replacement-at-source-city",
+                        max(1, int(replacement_route.estimated_turns) + 1)),
+                    OperationStep(
+                        "step-" + structural_hash({
+                            "operation_id": operation_id,
+                            "phase": "reinforcement",
+                        })[:28],
+                        "unit_move", "reinforcement",
+                        "city:{}".format(target_city_id),
+                        target_requirement,
+                        "city-defense:protected-defender-at-target-city",
+                        max(1, int(target_route.estimated_turns) + 1)),
+                )
+                operation = OperationSpec(
+                    OPERATION_SCHEMA_VERSION,
+                    operation_id,
+                    operation_type,
+                    (goal.goal.goal_id,),
+                    participants,
+                    "city:{}".format(target_city_id),
+                    steps,
+                    int(snapshot.turn),
+                    expiry_turn,
+                    0.0,
+                    (
+                        "fdas-coordinated-replacement-shadow/1.0",
+                        "exact-replacement-relation",
+                        "native-server-route-eta",
+                        "current-byte-identical-first-action",
+                        "future-second-step-requires-refresh",
+                        "no-action-authority",
+                    ),
+                    self.ruleset_digest,
+                )
+                blockers = tuple(sorted(set(
+                    self._effect_blockers("unit_move"))))
+                resource_keys = (
+                    "unit-action:{}:current".format(replacement_id),
+                    "unit-action:{}:conditional-future".format(protected_id),
+                )
+                provenance = (
+                    "fdas-coordinated-replacement-shadow/1.0",
+                    "atom:{}".format(relation.atom_id),
+                    "atom:{}".format(target_relation.atom_id),
+                ) + tuple(
+                    "support:{}".format(value.support_id)
+                    for value in relation.supports + target_relation.supports)
+                semantic = {
+                    "action_key": action_key,
+                    "arrival_turn": arrival_turn,
+                    "blockers": list(blockers),
+                    "operation": operation.to_dict(),
+                    "provenance": list(provenance),
+                    "resource_keys": list(resource_keys),
+                }
+                result.append(ShadowOperationCandidate(
+                    operation, action, action_key, resource_keys,
+                    action_key in snapshot.legal_action_json,
+                    False, blockers, provenance, structural_hash(semantic)))
+        return tuple(result)
+
+    def instantiate(self, snapshot, goal_contexts, revision=None):
         legal = tuple(
             (json.loads(value), value) for value in snapshot.legal_action_json)
         candidates = []
@@ -457,6 +629,8 @@ class CandidateOperationFactory(object):
                     ),
                     structural_hash(semantic),
                 ))
+        candidates.extend(self._coordinated_replacement_candidates(
+            snapshot, goal_contexts, revision))
         return tuple(sorted(
             candidates,
             key=lambda value: (

@@ -323,6 +323,11 @@ class FdasCityDefenseOperationAdapter(object):
             premises.insert(2, "route:native:unit:{}:city:{}".format(
                 actor_id, city_id))
             roles.insert(2, "route")
+        if (row.get("next_action") is None
+                and row.get("operation_type") == "hold_sole_defender"):
+            legal_index = roles.index("legal-binding")
+            del roles[legal_index]
+            del premises[legal_index]
         requirement_set = RequirementSet(
             step.requirement_set_id,
             "fdas-defense:{}".format(row["operation_type"]),
@@ -342,7 +347,9 @@ class FdasCityDefenseOperationAdapter(object):
         if blocker is not None:
             premise = (
                 "legal-action:current-byte-identical"
-                if blocker == "current-byte-identical-legal-action-unavailable"
+                if blocker in (
+                    "current-byte-identical-legal-action-unavailable",
+                    "current-executable-action-unavailable")
                 else "deadline:arrival:{}<=threat:{}".format(
                     row.get("arrival_turn"), row.get("deadline_turn"))
                 if "deadline" in blocker or "arrival" in blocker
@@ -467,6 +474,10 @@ class FdasCityDefenseOperationAdapter(object):
             blocker = (
                 str(row.get("support_reason"))
                 if not supported else
+                "current-executable-action-unavailable"
+                if (row.get("next_action") is None
+                    and row.get("operation_type")
+                    != "hold_sole_defender") else
                 "current-byte-identical-legal-action-unavailable"
                 if row.get("next_action") is not None and not binding.legal_bound
                 else None)
@@ -504,9 +515,15 @@ class FdasCityDefenseOperationAdapter(object):
                     snapshot.snapshot_id, int(snapshot.turn))
                 disposition = "reconciled"
                 reason = "persistent-defense-step-refreshed"
-            self._bindings[record.spec.operation_id] = binding
+            current_binding = binding
+            if binding.action is None:
+                self._bindings.pop(record.spec.operation_id, None)
+                current_binding = None
+            else:
+                self._bindings[record.spec.operation_id] = binding
             updates.append(self._update(
-                record, previous, disposition, reason, snapshot, binding))
+                record, previous, disposition, reason, snapshot,
+                current_binding))
 
         updated_ids = {value.operation_id for value in updates}
         for record in tuple(self.store.nonterminal_records()):

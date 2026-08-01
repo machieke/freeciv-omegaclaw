@@ -94,6 +94,11 @@ def unit_defense_predicate_registry():
               derived, ("city-facts",)),
         _spec("unit-reinforcement-route", (("unit",), ("city",)),
               derived, ("city-facts",)),
+        _spec("city-replacement-defender-available", (
+            ("city",), ("unit",)), derived, ("city-facts",)),
+        _spec("unit-coordinated-replacement-for", (
+            ("unit",), ("unit",), ("city",)),
+            derived, ("city-facts",)),
         _spec("city-garrison-covered", (("city",), ("defense-policy",)),
               derived, ("city-facts",)),
         _spec("city-garrison-deficit", (("city",), ("defense-policy",)),
@@ -345,6 +350,7 @@ class UnitDefenseProjector(object):
                 ))
 
         legal_fortify = {}
+        legal_moves = {}
         for action_json in snapshot.legal_action_json:
             action = json.loads(action_json)
             if action.get("action_type") == "unit_fortify":
@@ -354,6 +360,20 @@ class UnitDefenseProjector(object):
                         snapshot,
                         "legal_actions.{}".format(structural_hash(action_json)),
                         fingerprints))
+            elif action.get("action_type") == "unit_move":
+                target = action.get("target")
+                if (isinstance(target, dict)
+                        and None not in (target.get("x"), target.get("y"))):
+                    legal_moves[(
+                        str(action.get("actor_id")),
+                        int(target["x"]), int(target["y"]),
+                    )] = (
+                        action_json,
+                        snapshot_dependency_ref(
+                            snapshot,
+                            "legal_actions.{}".format(
+                                structural_hash(action_json)),
+                            fingerprints))
 
         for city in sorted(snapshot.cities, key=lambda value: value.city_id):
             city_id = str(city.city_id)
@@ -407,6 +427,7 @@ class UnitDefenseProjector(object):
             local = tuple(
                 unit for unit in defender_by_id.values()
                 if unit.tile is not None and unit.tile == city.tile)
+            critical = []
             for unit in sorted(local, key=lambda value: value.unit_id):
                 unit_ref = EntityRef("unit", str(unit.unit_id))
                 records.append(self._record(
@@ -433,6 +454,7 @@ class UnitDefenseProjector(object):
                         }))
                     if (removal.available
                             and removal.value["creates_deficit"] is True):
+                        critical.append((unit, removal))
                         records.append(self._record(
                             scope, AtomNamespace.DERIVED,
                             "unit-critical-garrison", (unit_ref, city_ref),
@@ -454,6 +476,75 @@ class UnitDefenseProjector(object):
                             "factual_garrison_deficit": (
                                 predicate == "city-garrison-deficit"),
                         }))
+
+            # Replacement is a coordinated causal route, not a waiver of the
+            # protected-garrison invariant. Materialize it only when another
+            # persistent defender can legally take the critical unit's place
+            # through the current native server-selected route, and moving
+            # that replacement creates no deficit at its own source.
+            if critical and city.tile is not None and snapshot.map_width > 0:
+                for replacement_id, replacement in sorted(
+                        defender_by_id.items()):
+                    if any(
+                            replacement.unit_id == value[0].unit_id
+                            for value in critical):
+                        continue
+                    removal = self.groundings.evaluate(
+                        "defense.removal-deficit", snapshot,
+                        replacement.unit_id,
+                        self.policy.maximum_garrison_per_city)
+                    route = self.groundings.evaluate(
+                        "movement.shortest-route", snapshot,
+                        replacement.unit_id, city.tile)
+                    eta = self.groundings.evaluate(
+                        "movement.arrival-eta", snapshot,
+                        replacement.unit_id, city.tile)
+                    if (not removal.available
+                            or removal.value["creates_deficit"] is True
+                            or not route.available or not eta.available):
+                        continue
+                    first_step = int(route.value["first_step_tile"])
+                    legal = legal_moves.get((
+                        replacement_id,
+                        first_step % snapshot.map_width,
+                        first_step // snapshot.map_width,
+                    ))
+                    if legal is None:
+                        continue
+                    dependencies = tuple(sorted(set(
+                        removal.dependencies + route.dependencies
+                        + eta.dependencies + required.dependencies
+                        + current.dependencies + policy_refs
+                        + (legal[1],))))
+                    witness = {
+                        "action_key": legal[0],
+                        "destination_tile": city.tile,
+                        "estimated_turns": eta.value,
+                        "first_step_tile": first_step,
+                        "removal_deficit": removal.value,
+                        "route_authority": route.value["authority"],
+                    }
+                    records.append(self._record(
+                        scope, AtomNamespace.DERIVED,
+                        "city-replacement-defender-available",
+                        (city_ref, EntityRef("unit", replacement_id)),
+                        AuthorityClass.DETERMINISTIC_DERIVED,
+                        dependencies, witness))
+                    for protected, protected_removal in critical:
+                        coordinated_witness = dict(witness)
+                        coordinated_witness["protected_defender_id"] = (
+                            protected.unit_id)
+                        coordinated_witness["protected_removal_deficit"] = (
+                            protected_removal.value)
+                        records.append(self._record(
+                            scope, AtomNamespace.DERIVED,
+                            "unit-coordinated-replacement-for",
+                            (EntityRef("unit", replacement_id),
+                             EntityRef("unit", str(protected.unit_id)),
+                             city_ref),
+                            AuthorityClass.DETERMINISTIC_DERIVED,
+                            dependencies + protected_removal.dependencies,
+                            coordinated_witness))
 
             for enemy in sorted(
                     snapshot.visible_enemy_units,

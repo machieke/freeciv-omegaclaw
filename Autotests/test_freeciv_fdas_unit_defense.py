@@ -494,3 +494,183 @@ def test_unreachable_native_route_remains_unknown_and_non_actionable(ir):
         value.action.get("action_type") == "unit_move"
         and value.operation.target_ref == "city:4"
         for value in candidates)
+
+
+def test_coordinated_replacement_requires_spare_route_and_exact_legal_step(ir):
+    payload = _payload()
+    replacement = copy.deepcopy(payload["units"]["7"])
+    replacement.update({
+        "id": 8, "tile": 81, "transported": False, "x": 1, "y": 2})
+    payload["units"]["8"] = replacement
+    payload["legal_actions"].append({
+        "action_type": "unit_move",
+        "actor_id": 8,
+        "is_valid": True,
+        "target": {"direction": "e", "x": 2, "y": 2},
+    })
+    payload["authoritative"]["movement_routes"] = [{
+        "authority": "freeciv-server-pathfinder",
+        "destination_tile": 82,
+        "estimated_turns": 1,
+        "first_step_movement_cost": 1,
+        "first_step_tile": 82,
+        "initially_transported": False,
+        "movement_points_remaining": 2,
+        "moves_left_at_request": 3,
+        "origin_tile": 81,
+        "path_directions": [0],
+        "path_length": 1,
+        "reachable": True,
+        "schema_version": "1.0",
+        "source_seq": 468,
+        "total_movement_cost": 1,
+        "transported_at_request": False,
+        "turn": 12,
+        "unit_id": 8,
+    }]
+    snapshot = _snapshot(payload, 468)
+    revision = _store(ir).build(snapshot)
+    available = next(
+        value for value in revision.records
+        if value.key.predicate == "city-replacement-defender-available")
+    coordinated = next(
+        value for value in revision.records
+        if value.key.predicate == "unit-coordinated-replacement-for")
+
+    assert [value.entity_id for value in available.key.arguments] == ["3", "8"]
+    assert [value.entity_id for value in coordinated.key.arguments] == [
+        "8", "7", "3"]
+    dependencies = coordinated.supports[0].dependencies
+    assert any(
+        value.key.path == "movement_routes.8:82.first_step_tile"
+        for value in dependencies)
+    assert any(
+        value.key.path.startswith("legal_actions.")
+        for value in dependencies)
+    assert coordinated.supports[0].witness_hash == structural_hash({
+        "action_key": next(
+            value for value in snapshot.legal_action_json
+            if json.loads(value).get("actor_id") == 8),
+        "destination_tile": 82,
+        "estimated_turns": 1,
+        "first_step_tile": 82,
+        "protected_defender_id": 7,
+        "protected_removal_deficit": {
+            "creates_deficit": True,
+            "current_city_id": 3,
+            "current_garrison": 1,
+            "remaining_garrison": 0,
+            "required_garrison": 1,
+        },
+        "removal_deficit": {
+            "creates_deficit": False,
+            "current_city_id": None,
+            "current_garrison": 0,
+            "remaining_garrison": 0,
+            "required_garrison": 0,
+        },
+        "route_authority": "freeciv-server-pathfinder",
+    })
+
+    payload["legal_actions"] = [
+        value for value in payload["legal_actions"]
+        if value.get("actor_id") != 8]
+    payload["authoritative"]["source_seq"] = 469
+    payload["authoritative"]["movement_routes"][0]["source_seq"] = 469
+    unavailable = _store(ir).build(_snapshot(payload, 469))
+    assert "city-replacement-defender-available" not in _predicates(unavailable)
+    assert "unit-coordinated-replacement-for" not in _predicates(unavailable)
+
+    source = copy.deepcopy(payload["cities"]["3"])
+    source.update({"id": 4, "name": "Antium", "tile": 81, "x": 1, "y": 2})
+    payload["cities"]["4"] = source
+    payload["legal_actions"].append({
+        "action_type": "unit_move",
+        "actor_id": 8,
+        "is_valid": True,
+        "target": {"direction": "e", "x": 2, "y": 2},
+    })
+    payload["authoritative"]["source_seq"] = 470
+    payload["authoritative"]["movement_routes"][0]["source_seq"] = 470
+    cross_city_protected = _store(ir).build(_snapshot(payload, 470))
+    assert "city-replacement-defender-available" not in _predicates(
+        cross_city_protected)
+    assert "unit-coordinated-replacement-for" not in _predicates(
+        cross_city_protected)
+
+
+def test_coordinated_replacement_relation_assembles_two_step_shadow_schema(ir):
+    payload = _payload()
+    target = copy.deepcopy(payload["cities"]["3"])
+    target.update({"id": 4, "name": "Antium", "tile": 84, "x": 4, "y": 2})
+    payload["cities"]["4"] = target
+    payload["units"]["7"]["transported"] = False
+    replacement = copy.deepcopy(payload["units"]["7"])
+    replacement.update({
+        "id": 8, "tile": 81, "transported": False, "x": 1, "y": 2})
+    payload["units"]["8"] = replacement
+    payload["legal_actions"].append({
+        "action_type": "unit_move",
+        "actor_id": 8,
+        "is_valid": True,
+        "target": {"direction": "e", "x": 2, "y": 2},
+    })
+    replacement_route = {
+        "authority": "freeciv-server-pathfinder",
+        "destination_tile": 82,
+        "estimated_turns": 1,
+        "first_step_movement_cost": 1,
+        "first_step_tile": 82,
+        "initially_transported": False,
+        "movement_points_remaining": 2,
+        "moves_left_at_request": 3,
+        "origin_tile": 81,
+        "path_directions": [0],
+        "path_length": 1,
+        "reachable": True,
+        "schema_version": "1.0",
+        "source_seq": 471,
+        "total_movement_cost": 1,
+        "transported_at_request": False,
+        "turn": 12,
+        "unit_id": 8,
+    }
+    payload["authoritative"]["movement_routes"] = [
+        _native_route(7, 84, 471), replacement_route]
+    snapshot = _snapshot(payload, 471)
+    digest = ruleset_digest(ir)
+    store = _store(ir)
+    revision = store.build(snapshot)
+    goals = GoalFactory().instantiate(
+        revision,
+        store.query_current(snapshot.identity.game_id, snapshot.player_id),
+    )
+
+    candidates = CandidateOperationFactory(ir, digest).instantiate(
+        snapshot, goals, revision)
+    candidate = next(
+        value for value in candidates
+        if value.operation.operation_type
+        == "fdas-defense:coordinated-replacement")
+
+    assert candidate.action["actor_id"] == 8
+    assert candidate.legal_bound is True
+    assert candidate.authority_eligible is False
+    assert candidate.blockers == ("uncompiled-action-effect",)
+    assert candidate.resource_keys == (
+        "unit-action:8:current",
+        "unit-action:7:conditional-future",
+    )
+    assert [(value.role, value.actor_id) for value
+            in candidate.operation.participants] == [
+        ("replacement", "8"), ("reinforcement", "7")]
+    assert [(value.actor_role, value.target_ref) for value
+            in candidate.operation.steps] == [
+        ("replacement", "city:3"),
+        ("reinforcement", "city:4"),
+    ]
+    assert candidate.operation.expiry_turn == 14
+    assert any(
+        value.startswith("atom:") for value in candidate.provenance)
+    assert any(
+        value.startswith("support:") for value in candidate.provenance)
