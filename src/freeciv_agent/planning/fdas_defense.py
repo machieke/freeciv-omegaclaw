@@ -3,6 +3,14 @@
 from dataclasses import dataclass
 
 from ..events.schema import canonical_json_bytes, structural_hash
+from ..pressure.coalitions import RequirementSet
+from ..pressure.resource_claims import (
+    ClaimHardness,
+    GameResourceKind,
+    ResourceClaim,
+    ResourceRef,
+    TurnWindow,
+)
 from .operation_assembler import assemble_city_defense_operation
 from .operation_store import OperationStore
 from .operations import OperationState
@@ -93,6 +101,54 @@ class FdasDefenseLifecycleUpdate:
         }
 
 
+@dataclass(frozen=True)
+class FdasDefenseRequirementContext:
+    operation_id: str
+    snapshot_id: str
+    requirement_set: RequirementSet
+    resource_claims: tuple
+    blocked_premises: tuple
+    context_hash: str
+
+    def __post_init__(self):
+        for value, name in (
+                (self.operation_id, "operation ID"),
+                (self.snapshot_id, "snapshot ID"),
+                (self.context_hash, "context hash")):
+            if not isinstance(value, str) or not value:
+                raise ValueError(
+                    "FDAS defense requirement {} is required".format(name))
+        if not isinstance(self.requirement_set, RequirementSet):
+            raise TypeError("FDAS defense context requires RequirementSet")
+        object.__setattr__(self, "resource_claims", tuple(
+            self.resource_claims))
+        if any(not isinstance(value, ResourceClaim)
+               for value in self.resource_claims):
+            raise TypeError("FDAS defense resource claim is invalid")
+        blocked = tuple(tuple(value) for value in self.blocked_premises)
+        if any(len(value) != 2 or any(
+                not isinstance(item, str) or not item for item in value)
+               for value in blocked):
+            raise ValueError("blocked requirement premises are invalid")
+        if any(value[0] not in self.requirement_set.premise_ids
+               for value in blocked):
+            raise ValueError("blocked requirement premise is undeclared")
+        if len({value[0] for value in blocked}) != len(blocked):
+            raise ValueError("blocked requirement premises must be unique")
+        object.__setattr__(self, "blocked_premises", tuple(sorted(blocked)))
+
+    def to_dict(self):
+        return {
+            "blocked_premises": dict(self.blocked_premises),
+            "context_hash": self.context_hash,
+            "operation_id": self.operation_id,
+            "requirement_set": self.requirement_set.to_dict(),
+            "resource_claims": [
+                value.to_dict() for value in self.resource_claims],
+            "snapshot_id": self.snapshot_id,
+        }
+
+
 class FdasCityDefenseOperationAdapter(object):
     """Reconcile defense rows into a caller-owned durable operation store.
 
@@ -111,6 +167,7 @@ class FdasCityDefenseOperationAdapter(object):
         self.store = operation_store
         self.ruleset_digest = ruleset_digest
         self._bindings = {}
+        self._contexts = {}
 
     def binding(self, operation_id):
         return self._bindings.get(str(operation_id))
@@ -118,6 +175,12 @@ class FdasCityDefenseOperationAdapter(object):
     def bindings(self):
         return tuple(
             self._bindings[key] for key in sorted(self._bindings))
+
+    def requirement_context(self, operation_id):
+        return self._contexts.get(str(operation_id))
+
+    def requirement_contexts(self):
+        return tuple(self._contexts[key] for key in sorted(self._contexts))
 
     @staticmethod
     def _row(value):
@@ -213,6 +276,83 @@ class FdasCityDefenseOperationAdapter(object):
         )
 
     @staticmethod
+    def _requirement_context(record, row, snapshot, binding, blocker):
+        operation_id = record.spec.operation_id
+        step = record.spec.steps[record.progress.current_step_index]
+        actor_id = row.get("actor_id")
+        city_id = int(row["city_id"])
+        premises = [
+            "capability:persistent-defense:{}".format(
+                "city:producer" if actor_id is None else "unit:{}".format(
+                    actor_id)),
+            "availability:not-protected-source:{}".format(
+                "city:producer" if actor_id is None else "unit:{}".format(
+                    actor_id)),
+            "deadline:arrival:{}<=threat:{}".format(
+                row.get("arrival_turn"), row.get("deadline_turn")),
+            "legal-action:current-byte-identical",
+            "resource:current-operation-capacity",
+        ]
+        roles = [
+            "capability", "availability", "deadline", "legal-binding",
+            "resource-capacity",
+        ]
+        if row.get("operation_type") == "move_defender_to_city":
+            premises.insert(2, "route:native:unit:{}:city:{}".format(
+                actor_id, city_id))
+            roles.insert(2, "route")
+        requirement_set = RequirementSet(
+            step.requirement_set_id,
+            "fdas-defense:{}".format(row["operation_type"]),
+            tuple(premises), tuple(roles),
+            structural_hash({
+                "operation_id": operation_id,
+                "snapshot_id": snapshot.snapshot_id,
+                "step_id": step.step_id,
+            }))
+        claims = ()
+        if (blocker is None and actor_id is not None
+                and row.get("next_action") is not None):
+            resource = ResourceRef(
+                GameResourceKind.ACTOR, str(actor_id), "current-action",
+                "player:{}".format(snapshot.player_id))
+            claims = (ResourceClaim(
+                resource, 1,
+                TurnWindow(int(snapshot.turn), int(snapshot.turn) + 1),
+                ClaimHardness.HARD_CURRENT, True, operation_id, step.step_id),)
+        elif (blocker is None and actor_id is None
+              and row.get("operation_type") == "emergency_build_defender"):
+            resource = ResourceRef(
+                GameResourceKind.CITY_PRODUCTION_SLOT, str(city_id), None,
+                "city:{}".format(city_id))
+            claims = (ResourceClaim(
+                resource, 1,
+                TurnWindow(int(snapshot.turn), int(snapshot.turn) + 1),
+                ClaimHardness.HARD_CURRENT, True, operation_id, step.step_id),)
+        blocked_premises = ()
+        if blocker is not None:
+            premise = (
+                "legal-action:current-byte-identical"
+                if blocker == "current-byte-identical-legal-action-unavailable"
+                else "deadline:arrival:{}<=threat:{}".format(
+                    row.get("arrival_turn"), row.get("deadline_turn"))
+                if "deadline" in blocker or "arrival" in blocker
+                else "availability:not-protected-source:{}".format(
+                    "city:producer" if actor_id is None
+                    else "unit:{}".format(actor_id)))
+            blocked_premises = ((premise, blocker),)
+        material = {
+            "blocked_premises": dict(blocked_premises),
+            "operation_id": operation_id,
+            "requirement_set": requirement_set.to_dict(),
+            "resource_claims": [value.to_dict() for value in claims],
+            "snapshot_id": snapshot.snapshot_id,
+        }
+        return FdasDefenseRequirementContext(
+            operation_id, snapshot.snapshot_id, requirement_set, claims,
+            blocked_premises, structural_hash(material))
+
+    @staticmethod
     def _update(record, previous, disposition, reason, snapshot, binding=None):
         return FdasDefenseLifecycleUpdate(
             record.spec.operation_id,
@@ -235,6 +375,7 @@ class FdasCityDefenseOperationAdapter(object):
                 int(snapshot.turn),
                 reason="authoritative-completion-observed")
             self._bindings.pop(record.spec.operation_id, None)
+            self._contexts.pop(record.spec.operation_id, None)
             updates.append(self._update(
                 record, previous, "completed",
                 "authoritative-completion-observed", snapshot))
@@ -248,6 +389,7 @@ class FdasCityDefenseOperationAdapter(object):
                 int(snapshot.turn),
                 reason="operation-deadline-passed")
             self._bindings.pop(record.spec.operation_id, None)
+            self._contexts.pop(record.spec.operation_id, None)
             updates.append(self._update(
                 record, previous, "expired",
                 "operation-deadline-passed", snapshot))
@@ -315,6 +457,9 @@ class FdasCityDefenseOperationAdapter(object):
                 "current-byte-identical-legal-action-unavailable"
                 if row.get("next_action") is not None and not binding.legal_bound
                 else None)
+            context = self._requirement_context(
+                record, row, snapshot, binding, blocker)
+            self._contexts[record.spec.operation_id] = context
             if blocker is not None:
                 if record.progress.state == OperationState.BLOCKED:
                     record = self.store.record_observation(
@@ -367,6 +512,7 @@ class FdasCityDefenseOperationAdapter(object):
                     OperationState.BLOCKED,
                     snapshot.snapshot_id, int(snapshot.turn), reason=reason)
             self._bindings.pop(record.spec.operation_id, None)
+            self._contexts.pop(record.spec.operation_id, None)
             updates.append(self._update(
                 record, previous, "blocked", reason, snapshot))
         return tuple(sorted(updates, key=lambda value: value.operation_id))

@@ -75,6 +75,42 @@ def operation_predicate_registry():
             ("operation",), ("action",))),
         _spec("operation-action-binding", (
             ("operation",), ("action-binding",))),
+        _spec("operation-deadline", (
+            ("operation",), ("deadline-turn",))),
+        _spec("operation-requirement-set", (
+            ("operation",), ("requirement-set",))),
+        _spec("requirement-set-premise", (
+            ("requirement-set",), ("requirement-premise",))),
+        _spec("requirement-premise-role", (
+            ("requirement-set",), ("requirement-premise",),
+            ("premise-role",))),
+        _spec("requirement-premise-blocked", (
+            ("requirement-set",), ("requirement-premise",),
+            ("operation-blocker",))),
+        _spec("operation-resource-claim", (
+            ("operation",), ("resource-claim",))),
+        _spec("resource-claim-resource", (
+            ("resource-claim",), ("game-resource",))),
+        _spec("resource-claim-window", (
+            ("resource-claim",), ("turn-window",))),
+        _spec("resource-claim-hardness", (
+            ("resource-claim",), ("claim-hardness",))),
+        _spec("resource-claim-quantity", (
+            ("resource-claim",), ("resource-quantity",))),
+        _spec("resource-claim-exclusive", (
+            ("resource-claim",), ("claim-exclusivity",))),
+        _spec("resource-claim-window-start", (
+            ("resource-claim",), ("turn",))),
+        _spec("resource-claim-window-end", (
+            ("resource-claim",), ("turn",))),
+        _spec("game-resource-kind", (
+            ("game-resource",), ("resource-kind",))),
+        _spec("game-resource-owner", (
+            ("game-resource",), ("resource-owner",))),
+        _spec("game-resource-scope", (
+            ("game-resource",), ("resource-scope",))),
+        _spec("game-resource-subresource", (
+            ("game-resource",), ("resource-subresource",))),
     ))
 
 
@@ -83,6 +119,7 @@ class OperationProjectionSnapshot:
     records: tuple
     projection_hash: str
     bindings: tuple = ()
+    requirement_contexts: tuple = ()
 
 
 class OperationProjector(object):
@@ -91,9 +128,11 @@ class OperationProjector(object):
     projector_id = "fdas-operation-projector"
     version = "1.0"
 
-    def __init__(self, records_source, bindings_source=None):
+    def __init__(self, records_source, bindings_source=None,
+                 requirement_contexts_source=None):
         self.records_source = records_source
         self.bindings_source = bindings_source
+        self.requirement_contexts_source = requirement_contexts_source
         self.predicate_registry = operation_predicate_registry()
 
     def _records(self):
@@ -120,16 +159,20 @@ class OperationProjector(object):
     def projection_snapshot(self):
         records = self._records()
         bindings = self._bindings(records)
+        contexts = self._requirement_contexts(records)
         projection_value = (
             [value.to_dict() for value in records]
-            if not bindings else {
+            if not bindings and not contexts else {
                 "bindings": [value.to_dict() for value in bindings],
                 "records": [value.to_dict() for value in records],
+                "requirement_contexts": [
+                    value.to_dict() for value in contexts],
             })
         return OperationProjectionSnapshot(
             records,
             structural_hash(projection_value),
             bindings,
+            contexts,
         )
 
     def _bindings(self, records=None):
@@ -155,6 +198,43 @@ class OperationProjector(object):
             raise ValueError("operation projection bindings must be unique")
         return tuple(sorted(bindings, key=lambda value: value.operation_id))
 
+    def _requirement_contexts(self, records=None):
+        source = self.requirement_contexts_source
+        if source is None:
+            return ()
+        if callable(source):
+            source = source()
+        if isinstance(source, dict):
+            source = source.values()
+        contexts = tuple(source)
+        required = (
+            "blocked_premises", "context_hash", "operation_id",
+            "requirement_set", "resource_claims", "snapshot_id", "to_dict")
+        if any(any(not hasattr(value, name) for name in required)
+               for value in contexts):
+            raise TypeError("operation requirement context is invalid")
+        operation_ids = {
+            value.spec.operation_id for value in (records or self._records())}
+        if any(value.operation_id not in operation_ids for value in contexts):
+            raise ValueError(
+                "operation requirement context names an unknown operation")
+        if len({value.operation_id for value in contexts}) != len(contexts):
+            raise ValueError(
+                "operation requirement contexts must be unique")
+        for context in contexts:
+            material = {
+                "blocked_premises": dict(context.blocked_premises),
+                "operation_id": context.operation_id,
+                "requirement_set": context.requirement_set.to_dict(),
+                "resource_claims": [
+                    value.to_dict() for value in context.resource_claims],
+                "snapshot_id": context.snapshot_id,
+            }
+            if structural_hash(material) != context.context_hash:
+                raise ValueError(
+                    "operation requirement context hash is invalid")
+        return tuple(sorted(contexts, key=lambda value: value.operation_id))
+
     def scopes(self, snapshot):
         world, empire = snapshot_scopes(snapshot)
         result = [world, empire]
@@ -171,7 +251,9 @@ class OperationProjector(object):
                 (),
                 tuple(sorted(
                     value for value in self.predicate_registry.predicates
-                    if value.startswith("operation-"))),
+                    if value.startswith((
+                        "game-resource-", "operation-", "requirement-",
+                        "resource-")))),
                 frozenset((AtomNamespace.OPERATION,)),
                 250,
                 250,
@@ -204,6 +286,10 @@ class OperationProjector(object):
             key = DependencyKey(
                 "operation-binding", binding.operation_id, "current")
             result[key] = structural_hash(binding.to_dict())
+        for context in self._requirement_contexts(records):
+            key = DependencyKey(
+                "operation-requirements", context.operation_id, "current")
+            result[key] = structural_hash(context.to_dict())
         return result
 
     def _record(self, scope, predicate, arguments, dependencies, witness,
@@ -236,6 +322,9 @@ class OperationProjector(object):
         bindings = dict(
             (value.operation_id, value)
             for value in self._bindings(records))
+        contexts = dict(
+            (value.operation_id, value)
+            for value in self._requirement_contexts(records))
         scope_by_operation = dict(
             (value.root_entities[0].entity_id, value)
             for value in scopes if value.scope_kind == "operation")
@@ -274,6 +363,10 @@ class OperationProjector(object):
                 operation,
                 SymbolRef("ruleset-digest", spec.ruleset_digest)),
                 (spec_dependency,), {"ruleset_digest": spec.ruleset_digest})
+            add("operation-deadline", (
+                operation,
+                SymbolRef("deadline-turn", str(spec.expiry_turn))),
+                (spec_dependency,), {"expiry_turn": spec.expiry_turn})
             if spec.target_ref is not None:
                 add("operation-target", (
                     operation,
@@ -340,6 +433,135 @@ class OperationProjector(object):
                         progress.terminal_reason)),
                     (progress_dependency,), progress.to_dict(),
                     lifecycle=progress.state.value)
+            context = contexts.get(spec.operation_id)
+            if context is not None:
+                context_dependency = DependencyRef(
+                    DependencyKey(
+                        "operation-requirements", spec.operation_id,
+                        "current"),
+                    structural_hash(context.to_dict()))
+                if fingerprints.get(context_dependency.key) != (
+                        context_dependency.fingerprint):
+                    raise ValueError(
+                        "operation requirements changed during revision")
+                # Requirement evaluations and current claims are scoped to the
+                # exact snapshot in which they were grounded. A stale context
+                # is omitted, never converted into a negative fact.
+                if context.snapshot_id == snapshot.snapshot_id:
+                    requirement_set = context.requirement_set
+                    requirement_ref = EntityRef(
+                        "requirement-set",
+                        requirement_set.requirement_set_id)
+                    add("operation-requirement-set", (
+                        operation, requirement_ref),
+                        (context_dependency,), requirement_set.to_dict(),
+                        lifecycle=progress.state.value)
+                    blocked = dict(context.blocked_premises)
+                    for premise_id, role_id in zip(
+                            requirement_set.premise_ids,
+                            requirement_set.role_ids):
+                        premise_ref = EntityRef(
+                            "requirement-premise", premise_id)
+                        add("requirement-set-premise", (
+                            requirement_ref, premise_ref),
+                            (context_dependency,), requirement_set.to_dict(),
+                            lifecycle=progress.state.value)
+                        add("requirement-premise-role", (
+                            requirement_ref, premise_ref,
+                            SymbolRef("premise-role", role_id)),
+                            (context_dependency,), requirement_set.to_dict(),
+                            lifecycle=progress.state.value)
+                        if premise_id in blocked:
+                            add("requirement-premise-blocked", (
+                                requirement_ref, premise_ref,
+                                SymbolRef(
+                                    "operation-blocker",
+                                    blocked[premise_id])),
+                                (context_dependency,), {
+                                    "blocker": blocked[premise_id],
+                                    "premise_id": premise_id,
+                                }, lifecycle="blocked")
+                    for claim in sorted(
+                            context.resource_claims,
+                            key=lambda value: value.sort_key):
+                        claim_ref = EntityRef(
+                            "resource-claim", claim.claim_id)
+                        resource_ref = EntityRef(
+                            "game-resource", claim.resource.resource_id)
+                        window_ref = EntityRef(
+                            "turn-window", structural_hash(
+                                claim.window.to_dict()))
+                        witness = claim.to_dict()
+                        add("operation-resource-claim", (
+                            operation, claim_ref),
+                            (context_dependency,), witness,
+                            lifecycle=progress.state.value)
+                        add("resource-claim-resource", (
+                            claim_ref, resource_ref),
+                            (context_dependency,), witness,
+                            lifecycle=progress.state.value)
+                        add("resource-claim-window", (
+                            claim_ref, window_ref),
+                            (context_dependency,), witness,
+                            lifecycle=progress.state.value)
+                        add("resource-claim-hardness", (
+                            claim_ref,
+                            SymbolRef(
+                                "claim-hardness", claim.hardness.value)),
+                            (context_dependency,), witness,
+                            lifecycle=progress.state.value)
+                        add("resource-claim-quantity", (
+                            claim_ref,
+                            SymbolRef(
+                                "resource-quantity", str(claim.quantity))),
+                            (context_dependency,), witness,
+                            lifecycle=progress.state.value)
+                        add("resource-claim-exclusive", (
+                            claim_ref,
+                            SymbolRef(
+                                "claim-exclusivity",
+                                "exclusive" if claim.exclusive else "shared")),
+                            (context_dependency,), witness,
+                            lifecycle=progress.state.value)
+                        add("resource-claim-window-start", (
+                            claim_ref,
+                            SymbolRef(
+                                "turn", str(claim.window.start_turn))),
+                            (context_dependency,), witness,
+                            lifecycle=progress.state.value)
+                        add("resource-claim-window-end", (
+                            claim_ref,
+                            SymbolRef(
+                                "turn", str(
+                                    claim.window.end_turn_exclusive))),
+                            (context_dependency,), witness,
+                            lifecycle=progress.state.value)
+                        add("game-resource-kind", (
+                            resource_ref,
+                            SymbolRef(
+                                "resource-kind", claim.resource.kind.value)),
+                            (context_dependency,), witness,
+                            lifecycle=progress.state.value)
+                        add("game-resource-owner", (
+                            resource_ref,
+                            SymbolRef(
+                                "resource-owner", claim.resource.owner_id)),
+                            (context_dependency,), witness,
+                            lifecycle=progress.state.value)
+                        add("game-resource-scope", (
+                            resource_ref,
+                            SymbolRef(
+                                "resource-scope", claim.resource.scope)),
+                            (context_dependency,), witness,
+                            lifecycle=progress.state.value)
+                        if claim.resource.subresource is not None:
+                            add("game-resource-subresource", (
+                                resource_ref,
+                                SymbolRef(
+                                    "resource-subresource",
+                                    claim.resource.subresource)),
+                                (context_dependency,), witness,
+                                lifecycle=progress.state.value)
             binding = bindings.get(spec.operation_id)
             if binding is None:
                 continue

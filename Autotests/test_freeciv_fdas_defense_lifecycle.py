@@ -77,11 +77,23 @@ def test_multi_turn_route_reuses_lifecycle_and_refreshes_exact_binding():
     registered = adapter.reconcile(first, (_operation(_move_action(first)),))
     operation_id = registered[0].operation_id
     first_binding = adapter.binding(operation_id)
+    first_context = adapter.requirement_context(operation_id)
 
     assert registered[0].state == "reservable"
     assert first_binding.legal_bound
     assert first_binding.action["target"] == {
         "direction": "e", "x": 3, "y": 2}
+    assert first_context.snapshot_id == first.snapshot_id
+    assert first_context.requirement_set.completion_policy == "all"
+    assert set(first_context.requirement_set.role_ids) == {
+        "availability", "capability", "deadline", "legal-binding",
+        "resource-capacity", "route",
+    }
+    assert len(first_context.resource_claims) == 1
+    assert first_context.resource_claims[0].resource.kind.value == "actor"
+    assert first_context.resource_claims[0].resource.owner_id == "7"
+    assert first_context.resource_claims[0].hardness.value == "hard_current"
+    assert first_context.resource_claims[0].exclusive is True
 
     second_payload = _payload()
     second_payload["turn"] = 13
@@ -107,13 +119,19 @@ def test_multi_turn_route_reuses_lifecycle_and_refreshes_exact_binding():
     assert second_binding.binding_hash != first_binding.binding_hash
     current_revision = DependentAtomSpaceStore(
         domain_projector=OperationProjector(
-            operation_store, adapter.bindings)).build(second)
+            operation_store, adapter.bindings,
+            adapter.requirement_contexts)).build(second)
     current_predicates = {
         value.key.predicate for value in current_revision.records}
     assert {
         "operation-action-binding",
         "operation-current-action",
         "operation-current-action-legal",
+        "operation-deadline",
+        "operation-requirement-set",
+        "operation-resource-claim",
+        "requirement-set-premise",
+        "resource-claim-resource",
     }.issubset(current_predicates)
     legal_relation = next(
         value for value in current_revision.records
@@ -121,6 +139,21 @@ def test_multi_turn_route_reuses_lifecycle_and_refreshes_exact_binding():
     assert any(
         value.key.path.startswith("legal_actions.")
         for value in legal_relation.supports[0].dependencies)
+    claim_relation = next(
+        value for value in current_revision.records
+        if value.key.predicate == "operation-resource-claim")
+    assert {
+        value.key.kind for value in claim_relation.supports[0].dependencies
+    } == {"operation-requirements"}
+    requirement_roles = {
+        value.key.arguments[2].symbol
+        for value in current_revision.records
+        if value.key.predicate == "requirement-premise-role"
+    }
+    assert requirement_roles == {
+        "availability", "capability", "deadline", "legal-binding",
+        "resource-capacity", "route",
+    }
 
     third_payload = _payload()
     third_payload["turn"] = 14
@@ -129,8 +162,13 @@ def test_multi_turn_route_reuses_lifecycle_and_refreshes_exact_binding():
     third = _snapshot(third_payload, 482)
     stale_revision = DependentAtomSpaceStore(
         domain_projector=OperationProjector(
-            operation_store, adapter.bindings)).build(third)
+            operation_store, adapter.bindings,
+            adapter.requirement_contexts)).build(third)
     assert "operation-current-action" not in {
+        value.key.predicate for value in stale_revision.records}
+    assert "operation-requirement-set" not in {
+        value.key.predicate for value in stale_revision.records}
+    assert "operation-resource-claim" not in {
         value.key.predicate for value in stale_revision.records}
     # A lagging analysis row cannot reopen a route after the authoritative
     # destination observation has already completed its persistent intent.
@@ -144,6 +182,7 @@ def test_multi_turn_route_reuses_lifecycle_and_refreshes_exact_binding():
     assert record.progress.state == OperationState.COMPLETED
     assert record.progress.terminal_reason == "authoritative-completion-observed"
     assert adapter.binding(operation_id) is None
+    assert adapter.requirement_context(operation_id) is None
 
     revision = DependentAtomSpaceStore(
         domain_projector=OperationProjector(operation_store)).build(third)
@@ -169,6 +208,23 @@ def test_non_legal_binding_blocks_then_recovers_on_current_exact_action():
     assert blocked[0].reason == (
         "current-byte-identical-legal-action-unavailable")
     assert adapter.binding(operation_id) is None
+    blocked_context = adapter.requirement_context(operation_id)
+    assert dict(blocked_context.blocked_premises) == {
+        "legal-action:current-byte-identical":
+            "current-byte-identical-legal-action-unavailable",
+    }
+    assert blocked_context.resource_claims == ()
+    blocked_revision = DependentAtomSpaceStore(
+        domain_projector=OperationProjector(
+            operation_store, adapter.bindings,
+            adapter.requirement_contexts)).build(first)
+    blocked_relation = next(
+        value for value in blocked_revision.records
+        if value.key.predicate == "requirement-premise-blocked")
+    assert blocked_relation.key.arguments[2].symbol == (
+        "current-byte-identical-legal-action-unavailable")
+    assert "operation-resource-claim" not in {
+        value.key.predicate for value in blocked_revision.records}
 
     repaired_payload = _payload()
     repaired_payload["authoritative"]["source_seq"] = 484
@@ -179,6 +235,49 @@ def test_non_legal_binding_blocks_then_recovers_on_current_exact_action():
     assert updates[0].previous_state == "blocked"
     assert updates[0].state == "reservable"
     assert adapter.binding(operation_id).legal_bound
+    assert adapter.requirement_context(operation_id).blocked_premises == ()
+
+
+def test_defender_production_claims_exact_current_city_slot():
+    snapshot = _snapshot(_payload(), 488)
+    store = OperationStore("fdas-defense:production-claim")
+    adapter = FdasCityDefenseOperationAdapter(store, "ruleset-proof")
+    action = next(
+        json.loads(value) for value in snapshot.legal_action_json
+        if json.loads(value).get("action_type") == "city_production")
+    operation = {
+        "actor_id": None,
+        "arrival_turn": 14,
+        "city_id": 3,
+        "deadline_turn": 14,
+        "next_action": action,
+        "operation_id": "domain-produce-defender",
+        "operation_type": "emergency_build_defender",
+        "provenance": ["exact-city-production-action"],
+        "requirement_id": "defense:city:3:production:14",
+        "support_reason": None,
+    }
+
+    update = adapter.reconcile(snapshot, (operation,))[0]
+    context = adapter.requirement_context(update.operation_id)
+    claim = context.resource_claims[0]
+
+    assert update.state == "reservable"
+    assert claim.resource.kind.value == "city_production_slot"
+    assert claim.resource.owner_id == "3"
+    assert claim.resource.scope == "city:3"
+    assert claim.window.start_turn == snapshot.turn
+    assert claim.window.end_turn_exclusive == snapshot.turn + 1
+    revision = DependentAtomSpaceStore(
+        domain_projector=OperationProjector(
+            store, adapter.bindings,
+            adapter.requirement_contexts)).build(snapshot)
+    kinds = {
+        value.key.arguments[1].symbol
+        for value in revision.records
+        if value.key.predicate == "game-resource-kind"
+    }
+    assert kinds == {"city_production_slot"}
 
 
 def test_enemy_disappearance_never_completes_interception():

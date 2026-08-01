@@ -117,6 +117,7 @@ from .fdas_defense import (
     FdasCityDefenseOperationAdapter,
     FdasDefenseActionBinding,
     FdasDefenseLifecycleUpdate,
+    FdasDefenseRequirementContext,
 )
 from .fdas_episodes import (
     EPISODE_SCHEMA_VERSION,
@@ -187,6 +188,7 @@ __all__ = [
     "CandidateOperationFactory", "GoalFactory", "LocalGoalContext",
     "FdasCityDefenseOperationAdapter",
     "FdasDefenseActionBinding", "FdasDefenseLifecycleUpdate",
+    "FdasDefenseRequirementContext",
     "EPISODE_SCHEMA_VERSION", "DecisionEpisode", "DecisionEpisodeStore",
     "FdasDefenseEpisodeRecorder",
     "FDASCommitBinding", "FDASCommitValidation", "FDASCommitValidator",
