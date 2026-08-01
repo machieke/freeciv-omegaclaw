@@ -102,6 +102,10 @@ from .settlement import (
     SettlementSiteProjector,
     settlement_predicate_registry,
 )
+from .transport import (
+    TransportCapabilityProjector,
+    transport_predicate_registry,
+)
 from .store import (
     DependentAtomSpaceRevision,
     DependentAtomSpaceStore,
@@ -178,6 +182,7 @@ __all__ = (
     "EpisodeProjector", "episode_predicate_registry",
     "RouteCorridorProjector", "route_corridor_predicate_registry",
     "SettlementSiteProjector", "settlement_predicate_registry",
+    "TransportCapabilityProjector", "transport_predicate_registry",
     "unit_defense_predicate_registry",
     "unit_defense_scopes",
     "persistent_defender_type",
