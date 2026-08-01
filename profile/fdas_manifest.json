@@ -19,6 +19,7 @@
     "legacy_integration_facade": "component-only",
     "focused_scope_activation": "component-only",
     "fdas_causal_event_stream": "component-only",
+    "legacy_projection_rollback": "component-only",
     "fdas_exact_commit_validation": "component-only",
     "fdas_resource_packet_bridge": "component-only",
     "generic_rule_execution": "component-only",

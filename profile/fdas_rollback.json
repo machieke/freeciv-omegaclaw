@@ -1,0 +1,19 @@
+{
+  "available_through_schema_version": "2.0",
+  "default_mode": "dependent",
+  "modes": {
+    "dependent": {
+      "description": "Publish coordinated typed FDAS revisions and the exact legacy compatibility view",
+      "revision_available": true
+    },
+    "legacy": {
+      "description": "Bypass FDAS revision publication and use the frozen historical atom projection",
+      "revision_available": false
+    }
+  },
+  "rollback_ids": [
+    "legacy-atom-projection-v1",
+    "legacy-grounded-impact-v1"
+  ],
+  "schema_version": "1.0"
+}

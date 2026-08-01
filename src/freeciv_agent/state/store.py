@@ -11,7 +11,11 @@ class SnapshotConflict(RuntimeError):
 
 
 class SnapshotStore(object):
-    def __init__(self, dependent_atomspace_store=None):
+    def __init__(self, dependent_atomspace_store=None,
+                 atomspace_mode="dependent"):
+        if atomspace_mode not in ("dependent", "legacy"):
+            raise ValueError("atomspace mode must be dependent or legacy")
+        self.atomspace_mode = atomspace_mode
         self._lock = threading.RLock()
         self._snapshots = {}
         self._atomspaces = {}
@@ -38,17 +42,27 @@ class SnapshotStore(object):
                         return prior
                     raise SnapshotConflict("source_seq must increase within a turn")
             prior_revision = self._dependent_revisions.get(key)
-            try:
-                revision = self._dependent_store.prepare(
-                    snapshot, prior, prior_revision, cold=False)
-            except ValueError as error:
-                raise SnapshotConflict(
-                    "dependent projection rejected snapshot: {}".format(error))
-            projected = legacy_view_from_revision(revision)
-            self._dependent_store.publish(snapshot, revision)
+            if self.atomspace_mode == "legacy":
+                from .atoms import _build_legacy_atomspaces
+
+                revision = None
+                projected = _build_legacy_atomspaces(snapshot)
+            else:
+                try:
+                    revision = self._dependent_store.prepare(
+                        snapshot, prior, prior_revision, cold=False)
+                except ValueError as error:
+                    raise SnapshotConflict(
+                        "dependent projection rejected snapshot: {}".format(
+                            error))
+                projected = legacy_view_from_revision(revision)
+                self._dependent_store.publish(snapshot, revision)
             self._snapshots[key] = snapshot
             self._atomspaces[key] = projected
-            self._dependent_revisions[key] = revision
+            if revision is None:
+                self._dependent_revisions.pop(key, None)
+            else:
+                self._dependent_revisions[key] = revision
         return snapshot
 
     def current(self, game_id, player_id):

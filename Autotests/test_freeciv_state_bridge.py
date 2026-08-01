@@ -22,7 +22,10 @@ from freeciv_agent.rulesets.compiler import compile_ruleset  # noqa: E402
 from freeciv_agent.state import (ContractError, GroundedRegistry, ProxyStateDTO,  # noqa: E402
                                  SnapshotConflict, SnapshotStore,
                                  StateSummaryService)
-from freeciv_agent.state.atoms import QUANTITATIVE_PREDICATES  # noqa: E402
+from freeciv_agent.state.atoms import (  # noqa: E402
+    QUANTITATIVE_PREDICATES,
+    _build_legacy_atomspaces,
+)
 from freeciv_agent.state.parity import packet_reference, run_state_action_parity  # noqa: E402
 
 
@@ -75,6 +78,29 @@ def test_authoritative_contract_fixture_schema_and_stable_identity():
     assert map_payload["visible"] == [[2, 2]]
     assert map_payload["coverage"] == {
         "status": "partial", "tile_records": 1, "visible_tiles": 1}
+
+
+def test_snapshot_store_legacy_mode_is_an_exact_revision_free_rollback():
+    snapshot = _snapshot()
+    dependent = SnapshotStore()
+    rollback = SnapshotStore(atomspace_mode="legacy")
+
+    dependent.replace(snapshot)
+    rollback.replace(snapshot)
+
+    expected = _build_legacy_atomspaces(snapshot)
+    assert dependent.current_atomspaces("state-test", 0) == expected
+    assert rollback.current_atomspaces("state-test", 0) == expected
+    assert dependent.current_dependent_revision("state-test", 0) is not None
+    assert rollback.current_dependent_revision("state-test", 0) is None
+    assert rollback.current_pair("state-test", 0) == (snapshot, None)
+    with pytest.raises(SnapshotConflict, match="no current dependent revision"):
+        rollback.lease_dependent_revision("state-test", 0)
+
+
+def test_snapshot_store_rejects_unknown_atomspace_mode():
+    with pytest.raises(ValueError, match="dependent or legacy"):
+        SnapshotStore(atomspace_mode="automatic")
 
 
 def test_government_mood_support_and_recovery_action_are_typed():
