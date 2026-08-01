@@ -3873,7 +3873,6 @@ paired_impact:
       horizon_turn: 160
       engine_finalization_turns: 1
       final_score_readout_mode: post_horizon_with_terminal_fallback
-      final_score_source: engine_scorelog_exact_horizon
       planned_pairs: 10
       controller_workers: 3
       controller_worker_execution: process_isolated
@@ -3887,7 +3886,6 @@ paired_impact:
         production_completion_authority: authoritative_product_identity
         research_completion_authority: authoritative_known_technology
         deadline: fixed_cohort_horizon
-        final_score_source: engine_scorelog_exact_horizon
         terminal_score_fallback_source: retained_authoritative_horizon_observer
         behavior_invariance: no_candidate_ordering_or_execution_authority
         required_mechanisms:
