@@ -2513,6 +2513,42 @@ Canonical evidence:
 - `docs/freeciv/evidence/gdo7a-production-persistence-pilot-v1.json`;
 - `docs/evidence/gdo/gdo7a_production_persistence_pilot.md`.
 
+### 22.4 Post-completion GDO-7A snapshot-local confirmation
+
+Status: all corrected mechanism gates passed on 2026-08-01
+
+The claim-ineligible `grounded_production_persistence_snapshot_pilot_v2`
+cohort corrected the first pilot's evidence contract without retuning its
+controller. One application protects only the current authoritative snapshot;
+the audit separately requires proof whenever a previously guarded operation
+is relinquished on a later snapshot.
+
+All 30 fresh pairs and 60 arms completed at frozen commit
+`c17d7d85769039aa138e384d6c6e98fb67251ae9`, with zero infrastructure
+failures, zero engine rejections, and zero schema errors across 396,093
+events. All 13 declared gates passed:
+
+- 3,914 treatment guard applications and zero baseline authority rows;
+- zero accepted excluded switches within a protected snapshot;
+- all nine later relinquishments attributed to authoritative negative food
+  (five), visible threat (three), or completion-bound excess (one);
+- unique divergence reduced from 15.83% to 8.06% (-7.78 points);
+- completion increased from 78.89% to 84.72% (+5.83 points);
+- completed products/game increased from 9.967 to 10.167 (+0.200); and
+- no scope, source-freeze, or score-safety-floor violation.
+
+This establishes that the same bounded controller improves the declared
+production-continuity mechanism while honoring its snapshot-local safety
+contract. It does not establish general score benefit. Paired score was +0.9
+with a 95% interval of [-0.3, 2.5] and exact randomization p=0.359375; the
+cohort was not claim-eligible. Authority therefore remains default-off pending
+a separately frozen and adequately powered score confirmation.
+
+Canonical evidence:
+
+- `docs/freeciv/evidence/gdo7a-production-persistence-snapshot-pilot-v2.json`;
+- `docs/evidence/gdo/gdo7a_production_persistence_snapshot_pilot.md`.
+
 ---
 
 ## 23. Recommended first implementation issue

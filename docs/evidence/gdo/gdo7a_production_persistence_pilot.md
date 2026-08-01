@@ -176,8 +176,8 @@ or remove the 13 rows from the canonical result.
 The new authority remains default-off. The run supports a strong directional
 mechanism result but no production-authority, score, or win-rate claim.
 
-A fresh follow-on is predeclared in
-`gdo7a_production_persistence_snapshot_pilot.md`. It tests the same frozen
+A fresh follow-on was predeclared and completed in
+`gdo7a_production_persistence_snapshot_pilot.md`. It tested the same frozen
 controller with a corrected safety metric:
 
 1. zero accepted competing same-city production switches on snapshots where
@@ -188,8 +188,13 @@ controller with a corrected safety metric:
    score-floor gates; and
 4. a new cohort name and disjoint seeds.
 
-That follow-on must remain distinct from a score confirmation. If it passes,
-a separately powered confirmatory score cohort would still be required.
+The follow-on passed all 13 corrected gates on 30 new pairs: it produced zero
+same-snapshot protected switches, attributed all nine later relinquishments,
+reduced unique divergence by 7.78 percentage points, improved completion by
+5.83 points, and added 0.20 completed products/game. It remains distinct from
+a score confirmation. A separately powered confirmatory score cohort would
+still be required before enabling the authority by default or claiming a
+gameplay benefit.
 
 Canonical hashes:
 

@@ -1,6 +1,6 @@
 # GDO-7A snapshot-local production-persistence pilot
 
-Status: predeclared; engine evaluation pending
+Status: completed; all 13 corrected mechanism gates passed
 
 Date: 2026-08-01
 
@@ -97,10 +97,71 @@ snapshot-local safety; it would not establish a score or win-rate benefit.
 The observed first-pilot score interval crossed zero, and any later score
 claim requires a separately predeclared and adequately powered confirmation.
 
-The canonical result will be written to:
+## Engine result
+
+The source-frozen implementation at commit
+`c17d7d85769039aa138e384d6c6e98fb67251ae9` completed all 30 fresh
+pairs and 60 arms with hard server recycling, zero infrastructure failures,
+and a passing source-freeze gate. The strict audit validated 396,093 events
+with zero schema errors or warnings.
+
+| Observation | Baseline | Treatment | Delta |
+| --- | ---: | ---: | ---: |
+| committed production operations | 379 | 360 | -19 |
+| completed products | 299 | 305 | +6 |
+| completed products/game | 9.967 | 10.167 | +0.200 |
+| completion rate/commit | 78.89% | 84.72% | +5.83 points |
+| unique queue divergences | 60 | 29 | -31 |
+| divergence rate/commit | 15.83% | 8.06% | -7.78 points |
+| persistence authority rows | 0 | 3,914 | +3,914 |
+| uniquely guarded operations | 0 | 272 | +272 |
+| off-scope authority rows | 0 | 0 | 0 |
+| engine-rejected-action rate | 0 | 0 | 0 |
+
+No accepted competing production switch occurred before the next
+authoritative snapshot for any of the 3,914 guard applications. Nine guarded
+operations later diverged after the guard was reevaluated and relinquished
+authority. All nine have an authoritative reason: five had negative food,
+three had a visible threat within radius three, and one exceeded the declared
+completion bound. None was unattributed.
+
+All 13 corrected gates passed. This reproduces the first pilot's directional
+mechanism effect under a contract that exactly matches the controller's
+snapshot-local safety boundary. The authority remains repository-default-off:
+the result proves a bounded production-continuity mechanism, not that enabling
+it generally improves gameplay score.
+
+## Score boundary
+
+Mean score was 129.7 in baseline and 130.6 in treatment. The paired mean
+delta was +0.9 with a 95% paired-bootstrap interval of [-0.3, 2.5]; the exact
+two-sided paired randomization p-value was 0.359375. Fixed-horizon score lead
+was 2/30 in baseline and 3/30 in treatment, a paired risk difference of
++3.33 points with only one discordant pair and an exact McNemar p-value of
+1.0.
+
+The cohort was deliberately `claim_eligible: false` and achieved an estimated
+76.8% power for a +2 score-point target. It therefore supports no score or
+win-rate claim. The aggregate recommends at least 33 fresh pairs for a
+separately frozen score confirmation under the observed variance; win-rate
+confirmation would require a much larger design.
+
+## Canonical evidence
+
+The canonical audit is:
 
 ```text
 docs/freeciv/evidence/
 gdo7a-production-persistence-snapshot-pilot-v2.json
 ```
 
+Canonical hashes:
+
+```text
+audit semantic hash:
+958e6fd15c1784375baba807aaeb334c1ab5af78500274c56a4eddc4886aed06
+audit file SHA-256:
+b6d40c808ebcafd75834e3f49754fac9a07be805cb78fd59ed64b44d6f2ccec6
+aggregate file SHA-256:
+77854ac553eb21ab7d3748f2e28d3ed9c6af54f3f4303aa5b41a2351b6d7e521
+```

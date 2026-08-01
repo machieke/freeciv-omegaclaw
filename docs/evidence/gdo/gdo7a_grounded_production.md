@@ -1,7 +1,7 @@
 # GDO-7A grounded production enabling operations
 
-Status: retained mechanism and fresh shadow-execution confirmation passed;
-bounded persistence-authority pilot completed but failed its overall gate
+Status: retained mechanism, fresh shadow execution, and corrected bounded
+persistence-authority mechanism confirmation passed
 
 Date: 2026-08-01
 
@@ -202,10 +202,11 @@ exactly equal on all 10 seeds. That is the intended result for a shadow-only
 cohort: it proves action attribution and lifecycle observation without policy
 write-through.
 
-The fresh shadow-execution confirmation is therefore closed. Its separately
-predeclared bounded-live follow-on is reported below and did not pass overall.
-Production therefore receives no authority and makes no score or win-rate
-claim.
+The fresh shadow-execution confirmation is therefore closed. Its first
+separately predeclared bounded-live follow-on is reported below and did not
+pass overall; a corrected snapshot-local confirmation then passed. The
+behavior-changing authority remains default-off and makes no score or
+win-rate claim.
 
 ## Bounded persistence-authority follow-on
 
@@ -219,6 +220,21 @@ safe snapshot later diverged after the guard correctly relinquished authority
 for visible-threat or negative-operating-gold safety.
 
 The result is retained as a failed pilot; the favorable post-hoc explanation
-does not convert it into a pass. Production authority remains default-off and
-there is no score or win-rate claim. Any corrected safety-continuity gate must
-use a newly predeclared cohort and disjoint seeds.
+does not convert it into a pass.
+
+The separately predeclared
+`grounded_production_persistence_snapshot_pilot_v2` follow-on used 30 disjoint
+fresh pairs and the unchanged controller. All 13 corrected gates passed. It
+recorded 3,914 guard applications with zero accepted competing switches
+before the next authoritative snapshot, and attributed all nine later
+relinquishments to newly observed negative food (five), visible threat
+(three), or completion-bound excess (one). Unique divergence fell from 15.83%
+to 8.06%, completion rose from 78.89% to 84.72%, and completed products/game
+rose from 9.967 to 10.167.
+
+The corrected result establishes the bounded snapshot-local production
+continuity mechanism. Production authority nevertheless remains default-off.
+The paired score delta was +0.9 with a 95% interval of [-0.3, 2.5], and the
+cohort was not claim-eligible. A separately frozen and powered confirmation is
+required for any score or win-rate claim and before considering a repository
+default change.
