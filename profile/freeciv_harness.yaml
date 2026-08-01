@@ -3271,6 +3271,80 @@ paired_impact:
         count: 30
         minimum: 7300000
         maximum: 7399999
+    city_defense_immediate_fortify_authority_pilot_v8:
+      claim_eligible: false
+      purpose: pilot
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 160
+      engine_finalization_turns: 1
+      planned_pairs: 30
+      controller_workers: 3
+      controller_worker_execution: process_isolated
+      server_recycle_mode: hard_per_arm
+      release_game_config:
+        startunits: ccxxxxxxdddddddddddd
+      isolated_policy_keys:
+        - pressure_city_defense_operation_authority_enabled
+      city_defense_mechanism_design:
+        schema_version: "1.6"
+        declared_operation_types:
+          - fortify_existing_defender
+        analyzed_action_scope: declared_operation_types_plus_immediate_interception_legal_context
+        controller_isolation: process_per_worker
+        server_recycle_mode: hard_per_arm
+        engine_finalization_turns: 1
+        fortify_completion_states:
+          - fortify
+          - fortifying
+          - fortified
+        no_visible_threat_fast_path: no_authority_without_visible_enemy
+        uncovered_threat_turn_metric: unique_selected_city_snapshot_observations_minus_unique_activations
+        city_loss_metric: selected_at_risk_city_identity_disappearance_by_deadline
+        sole_defender_metric: authority_unit_move_while_actor_protected_in_same_snapshot
+        latency:
+          preparation_p95_ceiling_ms: 50.0
+          full_loop_p95_ratio_ceiling: 1.15
+        typed_winner_change:
+          minimum_coverage: 0.90
+        unsupported_fallback: exact_b1_ordering
+      arms:
+        baseline:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_city_defense_operation_authority_enabled: false
+          pressure_city_defense_operations_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_native_movement_routes_enabled: true
+          pressure_operation_lifecycle_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_resource_scheduler_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+        treatment:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_city_defense_operation_authority_enabled: true
+          pressure_city_defense_operations_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_native_movement_routes_enabled: true
+          pressure_operation_lifecycle_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_resource_scheduler_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-city-defense-immediate-fortify-authority-pilot-v8
+        count: 30
+        minimum: 7400000
+        maximum: 7499999
     calibrated_scalar_diagnostic_v1:
       claim_eligible: false
       purpose: diagnostic

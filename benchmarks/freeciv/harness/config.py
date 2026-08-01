@@ -510,6 +510,21 @@ def _validate_paired_impact(value):
         if (isinstance(horizon_turn, bool) or not isinstance(horizon_turn, int)
                 or not 1 <= horizon_turn <= 500):
             raise ValueError("{}.horizon_turn must be in 1..500".format(prefix))
+        engine_finalization_turns = cohort.get(
+            "engine_finalization_turns",
+            0)
+        if (
+                isinstance(
+                    engine_finalization_turns,
+                    bool)
+                or not isinstance(
+                    engine_finalization_turns,
+                    int)
+                or engine_finalization_turns
+                not in (0, 1)):
+            raise ValueError(
+                "{}.engine_finalization_turns must be 0 or 1".format(
+                    prefix))
         if purpose == "development" and horizon_turn != outcomes["horizon_turn"]:
             raise ValueError(
                 "{}.horizon_turn may differ from the default outcome only for "
@@ -631,6 +646,7 @@ def _validate_paired_impact(value):
                     "1.3",
                     "1.4",
                     "1.5",
+                    "1.6",
                 )
                 and city_defense_design.get(
                     "city_loss_metric")
@@ -729,6 +745,40 @@ def _validate_paired_impact(value):
                 == "process_isolated"
                 and server_recycle_mode
                 == "hard_per_arm")
+            city_defense_v7 = (
+                city_defense_schema == "1.6"
+                and city_defense_v2
+                and city_defense_design.get(
+                    "analyzed_action_scope")
+                == (
+                    "declared_operation_types_plus_immediate_"
+                    "interception_legal_context")
+                and city_defense_design.get(
+                    "fortify_completion_states")
+                == [
+                    "fortify",
+                    "fortifying",
+                    "fortified",
+                ]
+                and city_defense_design.get(
+                    "no_visible_threat_fast_path")
+                == (
+                    "no_authority_without_visible_enemy")
+                and city_defense_design.get(
+                    "controller_isolation")
+                == "process_per_worker"
+                and city_defense_design.get(
+                    "server_recycle_mode")
+                == "hard_per_arm"
+                and city_defense_design.get(
+                    "engine_finalization_turns")
+                == 1
+                and controller_worker_execution
+                == "process_isolated"
+                and server_recycle_mode
+                == "hard_per_arm"
+                and engine_finalization_turns
+                == 1)
             expected_city_defense_keys = {
                 "city_loss_metric",
                 "declared_operation_types",
@@ -765,6 +815,15 @@ def _validate_paired_impact(value):
                     "no_visible_threat_fast_path",
                     "server_recycle_mode",
                 })
+            elif city_defense_schema == "1.6":
+                expected_city_defense_keys.update({
+                    "analyzed_action_scope",
+                    "controller_isolation",
+                    "engine_finalization_turns",
+                    "fortify_completion_states",
+                    "no_visible_threat_fast_path",
+                    "server_recycle_mode",
+                })
             if (
                     not isinstance(
                         city_defense_design, dict)
@@ -788,10 +847,12 @@ def _validate_paired_impact(value):
                         or city_defense_v3
                         or city_defense_v4
                         or city_defense_v5
-                        or city_defense_v6)):
+                        or city_defense_v6
+                        or city_defense_v7)):
                 raise ValueError(
                     "{}.city_defense_mechanism_design must use the exact "
-                    "1.0, 1.1, 1.2, 1.3, 1.4, or 1.5 schema".format(prefix))
+                    "1.0, 1.1, 1.2, 1.3, 1.4, 1.5, or 1.6 schema".format(
+                        prefix))
             operation_types = (
                 city_defense_design.get(
                     "declared_operation_types"))

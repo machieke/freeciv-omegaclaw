@@ -243,6 +243,12 @@ class HarnessRunner(object):
                 "clean_successor")
             if arm is not None
             else "clean_successor")
+        engine_finalization_turns = (
+            cohort_design.get(
+                "engine_finalization_turns",
+                0)
+            if arm is not None
+            else 0)
         material = {
             "backend": self.backend, "beliefs": self.config["beliefs"],
             "capabilities": self.config["capabilities"][job["condition"]],
@@ -256,6 +262,8 @@ class HarnessRunner(object):
                 controller_worker_execution,
             "server_recycle_mode":
                 server_recycle_mode,
+            "engine_finalization_turns":
+                engine_finalization_turns,
             "engine": self.config["engine"], "game_id": game_id,
             "impact_policy": impact_policy,
             "machine_profile": self.config["machine_profile"],
@@ -281,7 +289,11 @@ class HarnessRunner(object):
             },
             "turn_limit": horizon_turn,
             "engine_max_turns": max(
-                horizon_turn, self.config.get("engine_max_turns", horizon_turn)),
+                horizon_turn
+                + engine_finalization_turns,
+                self.config.get(
+                    "engine_max_turns",
+                    horizon_turn)),
             "worker": worker,
         }
         if arm is not None:
@@ -542,6 +554,10 @@ class HarnessRunner(object):
                 cohort.get(
                     "server_recycle_mode",
                     "clean_successor"),
+            "engine_finalization_turns":
+                cohort.get(
+                    "engine_finalization_turns",
+                    0),
             "controller_workers": self.workers,
             "pairs": len(self._impact_jobs()) // 2,
             "resumed": sum(row["resumed"] for row in results),

@@ -199,6 +199,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "city_defense_immediate_fortify_authority_pilot_v5": 30,
             "city_defense_immediate_fortify_authority_pilot_v6": 30,
             "city_defense_immediate_fortify_authority_pilot_v7": 30,
+            "city_defense_immediate_fortify_authority_pilot_v8": 30,
             "calibrated_scalar_diagnostic_v1": 10,
             "protected_bridge_readout_diagnostic_v1": 10,
             "corrected_probe_readout_diagnostic_v1": 10,
@@ -556,6 +557,66 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "count": 30,
             "minimum": 7300000,
             "maximum": 7399999,
+        }
+    finalization_confirmation = paired["cohorts"][
+        "city_defense_immediate_fortify_authority_pilot_v8"]
+    assert finalization_confirmation[
+        "controller_worker_execution"
+    ] == "process_isolated"
+    assert finalization_confirmation[
+        "server_recycle_mode"
+    ] == "hard_per_arm"
+    assert finalization_confirmation[
+        "engine_finalization_turns"
+    ] == 1
+    assert finalization_confirmation[
+        "city_defense_mechanism_design"] == {
+            "analyzed_action_scope": (
+                "declared_operation_types_plus_immediate_interception_"
+                "legal_context"),
+            "city_loss_metric": (
+                "selected_at_risk_city_identity_disappearance_by_deadline"),
+            "controller_isolation":
+                "process_per_worker",
+            "declared_operation_types": [
+                "fortify_existing_defender",
+            ],
+            "engine_finalization_turns": 1,
+            "fortify_completion_states": [
+                "fortify",
+                "fortifying",
+                "fortified",
+            ],
+            "latency": {
+                "full_loop_p95_ratio_ceiling":
+                    1.15,
+                "preparation_p95_ceiling_ms":
+                    50.0,
+            },
+            "no_visible_threat_fast_path": (
+                "no_authority_without_visible_enemy"),
+            "schema_version": "1.6",
+            "server_recycle_mode":
+                "hard_per_arm",
+            "sole_defender_metric": (
+                "authority_unit_move_while_actor_protected_in_same_snapshot"),
+            "typed_winner_change": {
+                "minimum_coverage": 0.90,
+            },
+            "uncovered_threat_turn_metric": (
+                "unique_selected_city_snapshot_observations_minus_unique_"
+                "activations"),
+            "unsupported_fallback":
+                "exact_b1_ordering",
+        }
+    assert finalization_confirmation[
+        "seed_derivation"] == {
+            "algorithm": "sha256-counter-v1",
+            "namespace": (
+                "pf-pln-city-defense-immediate-fortify-authority-pilot-v8"),
+            "count": 30,
+            "minimum": 7400000,
+            "maximum": 7499999,
         }
     score_derivation = paired["cohorts"]["confirmatory_score"]["seed_derivation"]
     assert score_derivation == {
@@ -1230,7 +1291,9 @@ def test_config_rejects_unfrozen_city_defense_schema_1_2_scope():
             stream.write(source)
         with pytest.raises(
                 ValueError,
-                match="exact 1.0, 1.1, 1.2, 1.3, 1.4, or 1.5 schema"):
+                match=(
+                    "exact 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, or 1.6 "
+                    "schema")):
             load(path)
 
 
@@ -1339,6 +1402,21 @@ def test_config_rejects_unknown_or_unbound_process_worker_execution():
                 ValueError,
                 match="server_recycle_mode"):
             load(invalid_recycle_path)
+
+        invalid_finalization_path = os.path.join(
+            directory,
+            "invalid-engine-finalization.yaml")
+        with open(
+                invalid_finalization_path, "w",
+                encoding="utf-8") as stream:
+            stream.write(source.replace(
+                "      engine_finalization_turns: 1\n",
+                "      engine_finalization_turns: 2\n",
+                1))
+        with pytest.raises(
+                ValueError,
+                match="engine_finalization_turns"):
+            load(invalid_finalization_path)
 
 
 def test_wilson_and_paired_bootstrap_are_bounded_and_deterministic():
@@ -3105,6 +3183,9 @@ def test_process_isolated_impact_execution_preserves_pair_and_worker_identity():
     development[
         "controller_worker_execution"
     ] = "process_isolated"
+    development[
+        "engine_finalization_turns"
+    ] = 1
 
     with tempfile.TemporaryDirectory() as directory:
         config_path = os.path.join(
@@ -3144,6 +3225,9 @@ def test_process_isolated_impact_execution_preserves_pair_and_worker_identity():
     assert summary[
         "controller_worker_execution"
     ] == "process_isolated"
+    assert summary[
+        "engine_finalization_turns"
+    ] == 1
     assert summary["completed"] == 4
     assert summary[
         "infrastructure_failures"] == 0
@@ -3179,6 +3263,16 @@ def test_process_isolated_impact_execution_preserves_pair_and_worker_identity():
         } == {
             "clean_successor",
         }
+        assert {
+            row[
+                "engine_finalization_turns"]
+            for row in rows
+        } == {1}
+        assert {
+            row["engine_max_turns"]
+            - row["turn_limit"]
+            for row in rows
+        } == {1}
 
 
 def test_parallel_cohort_requires_predeclared_worker_count():

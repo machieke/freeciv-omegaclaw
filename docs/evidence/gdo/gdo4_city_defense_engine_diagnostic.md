@@ -504,14 +504,15 @@ at-risk city losses fell from two to zero; raw city losses were unchanged at
 25 per arm. There were no legality, hard-reservation, or sole-defender
 violations.
 
-The first execution pass exposed a separate server-startup race: five arms
-timed out before gameplay while a recently spawned civserver successor was
-listening but had not yet populated observer global state. All five failed
-attempts were archived, and an exact-source resume completed the cohort
-60/60 with zero current infrastructure failures. The recovery preserves the
-pilot result, but the operational correction is to predeclare and enforce a
-hard server recycle for every process-isolated arm before a fresh confirmation
-cohort.
+The first execution pass recorded five observer-global-state timeouts. A
+later trace-level audit corrected the initial startup hypothesis: every failed
+attempt contains complete gameplay through turn 160 and stops after the final
+turn metric, before `run_completed`. The failure is therefore in final score
+readout, not server startup. The engine was configured to stop at turn 160
+while the non-terminal fixed-horizon readout required observer turn 161. The
+server exposes that post-horizon revision intermittently at the max-turn
+boundary. All five failed attempts were archived, and an exact-source resume
+completed the cohort 60/60 with zero current infrastructure failures.
 
 The generic paired score delta was -2.27 with interval `[-5.40, 0.60]`;
 fixed-horizon win-rate difference was 0.00. The cohort was predeclared
@@ -539,3 +540,32 @@ validation.
 V7 is successful only if the initial, no-resume pass completes 60/60 with
 zero infrastructure failures and the same full GDO-4 conjunction passes.
 Like v6, it is claim-ineligible regardless of score direction.
+
+V7 completed 59/60 arms and 29 complete pairs on its initial source-frozen
+pass. All 59 successful arms reported `hard_per_arm` and
+`kill-then-listener`, proving that successor reuse was eliminated. The single
+failed arm, baseline seed 7332356, again contains complete gameplay through
+turn 160 and failed only while waiting for observer turn 161. Hard recycling
+therefore excludes server reuse as the cause but does not correct the
+post-horizon readout contract. V7 is retained as a negative operational
+diagnostic and is not audited as a passing pilot.
+
+## Frozen finalization-turn confirmation v8
+
+`city_defense_immediate_fortify_authority_pilot_v8` retains the v7 controller,
+policy, hard-per-arm server isolation, start state, 160-turn decision horizon,
+worker count, and all mechanism and latency thresholds. It uses 30 fresh
+paired seeds from the disjoint 7.4M range.
+
+The only new behavior is predeclared `engine_finalization_turns: 1`. The agent
+still takes exactly 160 decision turns, but the civserver maximum is 161 so
+the existing final score query always has a legal post-horizon revision to
+observe. This preserves one score semantic across arms; it does not mix
+turn-160 fallback scores with turn-161 scores. The finalization window is part
+of manifest identity and is bound to city-defence mechanism design schema
+1.6.
+
+V8 is successful only if its initial pass completes 60/60 with zero
+infrastructure failures, every manifest proves `engine_max_turns ==
+turn_limit + 1`, and the complete GDO-4 pilot conjunction passes. It remains
+claim-ineligible regardless of score direction.
