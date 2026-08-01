@@ -1,6 +1,6 @@
 # Functional Dependent AtomSpace
 
-Status: Phase 2 dependency materializer passed; component-only
+Status: Phase 3 ruleset/proof foundation passed; component-only
 
 Branch: `experimental/functional-dependent-atomspace`
 
@@ -116,12 +116,35 @@ updates.
 This remains a compatibility-only materialized view. No generic domain rule,
 goal, candidate, pressure, or execution path consumes FDAS yet.
 
+## Phase 3 ruleset and proof foundation
+
+Ruleset IR 2.0 extends the unchanged prerequisite/quantitative compatibility
+surface with typed requirement expressions, capability and role bindings,
+ruleset effects, action schemas, and exact legacy grounding declarations. The
+compiler parses and hashes the applicable technology, unit, building, game,
+government, terrain, action, and effect sources. Effects unavailable through
+the ruleset/proxy contract remain explicit unknowns and cannot be promoted to
+ruleset-exact action outcomes.
+
+The static projector produces a ruleset-only namespace valid for one complete
+compiled digest. Its records have ruleset-exact authority, compiler
+provenance, dependency-backed supports, and typed non-numeric arguments.
+Cross-digest atom reuse is rejected.
+
+A bounded typed proof engine now implements deterministic proof records,
+indexed conclusion lookup, typed bindings, recursive prerequisite proof, and
+explicit `UNKNOWN` results for exhausted budgets. Across every civ2civ3
+technology, the generic shadow path matches the specialized oracle's status
+and prerequisite closure in empty and prerequisite-complete states. The
+specialized oracle remains authoritative and research behavior is unchanged.
+
 ## Activation
 
 `profile/fdas_manifest.json` declares the typed core, dependency truth
-maintenance, and incremental snapshot projection as `component-only`. The
-compatibility facade is enabled, but policy authority is false and every
-domain/policy capability remains `not-built`. `profile/fdas_catalog.json`
+maintenance, incremental snapshot projection, ruleset domain projection, and
+generic rule execution as `component-only`. The compatibility facade is
+enabled, but policy authority is false and every live domain/policy capability
+remains `not-built`. `profile/fdas_catalog.json`
 separates the ten legacy projected predicates and nine legacy groundings from
 the proposed namespaces, authority classes, scopes, first-slice predicates,
 and typed groundings.

@@ -117,6 +117,72 @@ def compiler_projection(ir):
             "parameters": parameters}
 
 
+def _semantic_audit(ir):
+    issues = []
+    expressions = dict(
+        (value.expression_id, value)
+        for value in getattr(ir, "requirement_expressions", ()))
+    effects = dict(
+        (value.effect_id, value)
+        for value in getattr(ir, "effects", ()))
+    capabilities = tuple(getattr(ir, "capabilities", ()))
+    schemas = tuple(getattr(ir, "action_schemas", ()))
+    groundings = tuple(getattr(ir, "grounding_specs", ()))
+    for expression in expressions.values():
+        if any(child not in expressions for child in expression.children):
+            issues.append("requirement references unknown child: {}".format(
+                expression.expression_id))
+        if expression.kind == "not" and expression.completeness_spec is None:
+            issues.append("negative requirement lacks completeness: {}".format(
+                expression.expression_id))
+    for capability in capabilities:
+        if not capability.provenance:
+            issues.append("capability lacks provenance: {}".format(
+                capability.capability_id))
+        if (capability.requirements is not None
+                and capability.requirements not in expressions):
+            issues.append("capability references unknown requirement: {}".format(
+                capability.capability_id))
+    for effect in effects.values():
+        if not effect.provenance:
+            issues.append("effect lacks provenance: {}".format(
+                effect.effect_id))
+        if not effect.known and not effect.unknown_reason:
+            issues.append("unknown effect lacks reason: {}".format(
+                effect.effect_id))
+        if (effect.requirements is not None
+                and effect.requirements not in expressions):
+            issues.append("effect references unknown requirement: {}".format(
+                effect.effect_id))
+    for schema in schemas:
+        if not schema.legal_binding_required:
+            issues.append("action schema lacks legal binding: {}".format(
+                schema.schema_id))
+        if schema.requirements not in expressions:
+            issues.append("action schema references unknown requirement: {}".format(
+                schema.schema_id))
+        if any(effect_id not in effects for effect_id in schema.effects):
+            issues.append("action schema references unknown effect: {}".format(
+                schema.schema_id))
+    coverage = dict(getattr(ir, "semantics_coverage", {}))
+    expected = {
+        "action_schemas": len(schemas),
+        "capability_bindings": len(capabilities),
+        "exact_ruleset_effects": sum(value.known for value in effects.values()),
+        "grounding_specs": len(groundings),
+        "requirement_expressions": len(expressions),
+        "unknown_effects": sum(not value.known for value in effects.values()),
+    }
+    if coverage != expected:
+        issues.append("semantic coverage counters disagree with compiled IR")
+    return {
+        "coverage": coverage,
+        "issues": sorted(issues),
+        "unknown_effect_ids": sorted(
+            value.effect_id for value in effects.values() if not value.known),
+    }
+
+
 def audit(ir, ruleset_root, sample_seed=20260717, sample_size=20):
     reference = extract_reference(ruleset_root, ir.ruleset)
     compiled = compiler_projection(ir)
@@ -161,6 +227,7 @@ def audit(ir, ruleset_root, sample_seed=20260717, sample_size=20):
         "tech_rules": sum(rule.target_kind == "tech" for rule in ir.rules),
         "unit_rules": sum(rule.target_kind == "unit" for rule in ir.rules),
     }
+    semantic = _semantic_audit(ir)
     return {
         "counts": counts,
         "extra_edges": extra_edges,
@@ -170,11 +237,14 @@ def audit(ir, ruleset_root, sample_seed=20260717, sample_size=20):
         "parameter_mismatches": parameter_mismatches,
         "passed": not any((missing_targets, extra_targets, missing_edges, extra_edges,
                            sample_mismatches, trait_mismatches,
-                           parameter_mismatches)),
+                           parameter_mismatches, semantic["issues"])),
         "sample_mismatches": sample_mismatches,
         "sample_seed": sample_seed,
         "samples": samples,
         "trait_mismatches": trait_mismatches,
+        "semantic_coverage": semantic["coverage"],
+        "semantic_issues": semantic["issues"],
+        "unknown_effect_ids": semantic["unknown_effect_ids"],
     }
 
 

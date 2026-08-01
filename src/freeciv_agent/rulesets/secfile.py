@@ -79,7 +79,7 @@ def _without_comment(text):
             escaped = True
         elif char == '"':
             quote = not quote
-        elif char == ";" and not quote:
+        elif char in (";", "#") and not quote:
             return text[:index]
     return text
 
@@ -169,6 +169,59 @@ def _table_cells(text, path, line):
         raise SecfileError(path, line, "invalid table row: {}".format(exc))
 
 
+def _consume_table(lines, probe, path, start_line, name, initial=None):
+    table_lines = []
+    closed = False
+    if initial is not None:
+        part = initial[1:].strip()
+        if part.endswith("}"):
+            part = part[:-1].strip()
+            closed = True
+        if part:
+            table_lines.append((start_line, part))
+    while not closed and probe < len(lines):
+        part = _without_comment(lines[probe]).strip()
+        row_line = probe + 1
+        probe += 1
+        if not part:
+            continue
+        if part.startswith("{"):
+            part = part[1:].strip()
+        if part == "}":
+            closed = True
+            break
+        if part.endswith("}"):
+            part = part[:-1].strip()
+            closed = True
+        if part:
+            table_lines.append((row_line, part))
+    if not closed:
+        raise SecfileError(
+            path, start_line, "unterminated table {}".format(name))
+    if not table_lines:
+        raise SecfileError(
+            path, start_line, "table {} has no header".format(name))
+    header_line, header = table_lines[0]
+    columns = _table_cells(header, path, header_line)
+    if not all(isinstance(column, str) and column for column in columns):
+        raise SecfileError(path, header_line, "invalid table header")
+    rows = []
+    for row_line, row_text in table_lines[1:]:
+        values = _table_cells(row_text, path, row_line)
+        if len(values) > len(columns):
+            raise SecfileError(
+                path, row_line,
+                "table {} has {} columns, got {}".format(
+                    name, len(columns), len(values)))
+        values = values + (None,) * (len(columns) - len(values))
+        rows.append(TableRow(values, row_line))
+    return (
+        SecTable(columns, tuple(rows)),
+        "\n".join(part for _, part in table_lines),
+        probe,
+    )
+
+
 def parse(path):
     with open(path, encoding="utf-8") as handle:
         lines = handle.readlines()
@@ -187,6 +240,11 @@ def parse(path):
             sections.append(current)
             index += 1
             continue
+        if cleaned.startswith("*include "):
+            # Include resolution belongs to the compiler so its source hashes
+            # and coverage report can expose uncompiled external semantics.
+            index += 1
+            continue
         if current is None:
             raise SecfileError(path, line_number, "content before first section")
         assignment = _ASSIGNMENT.match(cleaned)
@@ -196,51 +254,16 @@ def parse(path):
         if name in current.fields:
             raise SecfileError(path, line_number, "duplicate field {}".format(name))
         start_line = line_number
-        if not rhs:
+        if rhs.startswith("{"):
+            value, raw, index = _consume_table(
+                lines, index + 1, path, start_line, name, rhs)
+        elif not rhs:
             probe = index + 1
             while probe < len(lines) and not _without_comment(lines[probe]).strip():
                 probe += 1
             if probe < len(lines) and _without_comment(lines[probe]).strip().startswith("{"):
-                table_lines = []
-                closed = False
-                while probe < len(lines):
-                    part = _without_comment(lines[probe]).strip()
-                    row_line = probe + 1
-                    probe += 1
-                    if not part:
-                        continue
-                    if part.startswith("{"):
-                        part = part[1:].strip()
-                    if part == "}":
-                        closed = True
-                        break
-                    if part.endswith("}"):
-                        part = part[:-1].strip()
-                        closed = True
-                    if part:
-                        table_lines.append((row_line, part))
-                    if closed:
-                        break
-                if not closed:
-                    raise SecfileError(path, start_line, "unterminated table {}".format(name))
-                if not table_lines:
-                    raise SecfileError(path, start_line, "table {} has no header".format(name))
-                header_line, header = table_lines[0]
-                columns = _table_cells(header, path, header_line)
-                if not all(isinstance(column, str) and column for column in columns):
-                    raise SecfileError(path, header_line, "invalid table header")
-                rows = []
-                for row_line, row_text in table_lines[1:]:
-                    values = _table_cells(row_text, path, row_line)
-                    if len(values) > len(columns):
-                        raise SecfileError(path, row_line,
-                                           "table {} has {} columns, got {}".format(
-                                               name, len(columns), len(values)))
-                    values = values + (None,) * (len(columns) - len(values))
-                    rows.append(TableRow(values, row_line))
-                value = SecTable(columns, tuple(rows))
-                raw = "\n".join(part for _, part in table_lines)
-                index = probe
+                value, raw, index = _consume_table(
+                    lines, probe, path, start_line, name)
             elif (probe < len(lines)
                   and not _SECTION.match(_without_comment(lines[probe]).strip())
                   and not _ASSIGNMENT.match(_without_comment(lines[probe]).strip())):

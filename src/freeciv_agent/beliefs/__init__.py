@@ -3,6 +3,15 @@
 
 from .inference import UncertainInference
 from .memory import OpponentMemory, post_game_calibration
+from .rule_engine import (
+    DeterministicRuleEngine,
+    InferenceOutcome,
+    InferenceRequest,
+    ProofRecord,
+    RuleBinding,
+    TypedRuleIndex,
+    compare_technology_proof,
+)
 from .model import (
     BeliefKey,
     ConflictAtom,
@@ -23,6 +32,8 @@ from .store import (
 __all__ = (
     "BeliefKey", "BeliefStore", "ConflictAtom", "ContextQuarantineConflict",
     "ContextQuarantineOperation", "Contribution", "Evidence", "ModelProvenance",
-    "EvidenceConflict", "OpponentMemory", "Revision", "SelfSupportingProof",
-    "UncertainBelief", "UncertainInference", "post_game_calibration",
+    "DeterministicRuleEngine", "EvidenceConflict", "InferenceOutcome",
+    "InferenceRequest", "OpponentMemory", "ProofRecord", "Revision",
+    "RuleBinding", "SelfSupportingProof", "TypedRuleIndex", "UncertainBelief",
+    "UncertainInference", "compare_technology_proof", "post_game_calibration",
 )

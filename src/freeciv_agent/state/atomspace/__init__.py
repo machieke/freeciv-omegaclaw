@@ -46,6 +46,13 @@ from .query import (
     RevisionQueryContext,
     StaleAtomSpaceRevision,
 )
+from .ruleset import (
+    RulesetAtomSpaceStore,
+    project_ruleset_records,
+    ruleset_digest,
+    ruleset_predicate_registry,
+    ruleset_scope,
+)
 from .store import (
     DependentAtomSpaceRevision,
     DependentAtomSpaceStore,
@@ -82,6 +89,7 @@ __all__ = (
     "ProjectionBatch",
     "RevisionLease",
     "RevisionQueryContext",
+    "RulesetAtomSpaceStore",
     "ScopeSpec",
     "SupportRecord",
     "SymbolRef",
@@ -91,6 +99,10 @@ __all__ = (
     "build_compatible_atomspaces",
     "legacy_predicate_registry",
     "legacy_view_from_revision",
+    "project_ruleset_records",
+    "ruleset_digest",
+    "ruleset_predicate_registry",
+    "ruleset_scope",
     "snapshot_scopes",
     "snapshot_dependency_fingerprints",
 )

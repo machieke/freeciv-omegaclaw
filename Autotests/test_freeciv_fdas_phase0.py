@@ -35,7 +35,9 @@ def test_fdas_manifest_exposes_only_the_component_only_typed_core():
     component_only = {
         "dependent_atomspace_core",
         "dependency_truth_maintenance",
+        "generic_rule_execution",
         "incremental_snapshot_projection",
+        "ruleset_domain_projection",
     }
     assert {
         key for key, value in manifest["capabilities"].items()
