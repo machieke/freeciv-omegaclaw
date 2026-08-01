@@ -90,6 +90,8 @@ def unit_defense_predicate_registry():
               derived, ("city-facts",)),
         _spec("unit-fortification-opportunity", (("unit",), ("city",)),
               derived, ("city-facts",)),
+        _spec("unit-reinforcement-route", (("unit",), ("city",)),
+              derived, ("city-facts",)),
         _spec("city-garrison-covered", (("city",), ("defense-policy",)),
               derived, ("city-facts",)),
         _spec("city-garrison-deficit", (("city",), ("defense-policy",)),
@@ -306,6 +308,29 @@ class UnitDefenseProjector(object):
                     "policy": self.policy.policy_id,
                     "required": required.value,
                 }))
+            if predicate == "city-garrison-deficit" and city.tile is not None:
+                for unit_id, unit in sorted(defender_by_id.items()):
+                    if unit.tile is None or unit.tile == city.tile:
+                        continue
+                    route = self.groundings.evaluate(
+                        "movement.shortest-route", snapshot, unit_id, city.tile)
+                    eta = self.groundings.evaluate(
+                        "movement.arrival-eta", snapshot, unit_id, city.tile)
+                    if not route.available or not eta.available:
+                        continue
+                    records.append(self._record(
+                        scope, AtomNamespace.DERIVED,
+                        "unit-reinforcement-route",
+                        (EntityRef("unit", unit_id), city_ref),
+                        AuthorityClass.DETERMINISTIC_DERIVED,
+                        route.dependencies + eta.dependencies,
+                        {
+                            "destination_tile": city.tile,
+                            "estimated_turns": eta.value,
+                            "first_step_tile": route.value["first_step_tile"],
+                            "path_length": route.value["path_length"],
+                            "route_authority": route.value["authority"],
+                        }))
             local = tuple(
                 unit for unit in defender_by_id.values()
                 if unit.tile is not None and unit.tile == city.tile)

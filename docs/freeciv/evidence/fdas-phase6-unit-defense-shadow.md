@@ -35,9 +35,10 @@ This increment establishes the first Phase-6 city-defense causal substrate:
   unknown action effect keeps the route on diagnostic expansion with zero act
   pressure.
 
-The slice does not yet implement route-ETA groundings, replacement movements,
+Exact friendly reinforcement routes and arrival ETAs are added in the follow-up
+`fdas-phase6-route-shadow.md` evidence increment. Replacement movements,
 defender production before a threat deadline, durable reinforcement lifecycle,
-episode attribution, or bounded defense authority.
+episode attribution, and bounded defense authority remain open.
 
 ## Verification
 

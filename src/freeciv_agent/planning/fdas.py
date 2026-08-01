@@ -279,13 +279,29 @@ class CandidateOperationFactory(object):
                 city = snapshot.city(city_id)
                 actor = snapshot.unit(action.get("actor_id"))
                 target = action.get("target") or {}
-                return bool(
+                if not bool(
                     city is not None and actor is not None
                     and str(actor.unit_type).strip().lower().replace(
                         "_", " ") in self._defender_types
-                    and city.x is not None and city.y is not None
-                    and target.get("x") == city.x
-                    and target.get("y") == city.y)
+                    and city.tile is not None
+                    and city.x is not None and city.y is not None):
+                    return False
+                if target.get("x") == city.x and target.get("y") == city.y:
+                    return True
+                route = snapshot.movement_route(actor.unit_id, city.tile)
+                if not bool(
+                        route is not None
+                        and route.authority == "freeciv-server-pathfinder"
+                        and route.schema_version == "1.0"
+                        and route.reachable
+                        and route.origin_tile == actor.tile
+                        and route.turn == snapshot.turn
+                        and route.source_seq <= snapshot.identity.source_seq
+                        and snapshot.map_width > 0):
+                    return False
+                first_x = route.first_step_tile % snapshot.map_width
+                first_y = route.first_step_tile // snapshot.map_width
+                return target.get("x") == first_x and target.get("y") == first_y
             if str(action.get("city_id")) != city_id:
                 return False
             target = action.get("target") or {}

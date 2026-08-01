@@ -184,6 +184,14 @@ UNIT_DEFENSE_GROUNDING_SPECS = (
     _spec("city.local-garrison-count", ("city",), "integer", "units",
           ("cities.{city}.tile", "units"),
           GroundingAuthority.DETERMINISTIC_DERIVED),
+    _spec("movement.shortest-route", ("unit", "destination-tile"),
+          "route-or-unknown", None,
+          ("source_seq", "movement_routes.{route}.*"),
+          GroundingAuthority.SERVER_EXACT),
+    _spec("movement.arrival-eta", ("unit", "destination-tile"),
+          "integer-or-unknown", "turns",
+          ("source_seq", "movement_routes.{route}.*"),
+          GroundingAuthority.SERVER_EXACT),
 )
 
 
@@ -387,6 +395,31 @@ class TypedGroundingRegistry(object):
         return values[0]
 
     def _evaluate(self, grounding_id, snapshot, args):
+        if grounding_id.startswith("movement."):
+            if len(args) != 2:
+                raise ValueError(
+                    "{} expects unit and destination tile".format(
+                        grounding_id))
+            route = snapshot.movement_route(args[0], args[1])
+            if route is None:
+                raise LookupError("native movement route is unavailable")
+            actor = snapshot.unit(args[0])
+            if (
+                    route.authority != "freeciv-server-pathfinder"
+                    or route.schema_version != "1.0"
+                    or actor is None
+                    or actor.tile != route.origin_tile
+                    or route.turn != snapshot.turn
+                    or route.source_seq > snapshot.identity.source_seq):
+                raise LookupError(
+                    "native movement route does not match current revision")
+            if not route.reachable:
+                raise LookupError("native movement route reports unreachable")
+            if grounding_id == "movement.shortest-route":
+                return route.to_dict()
+            if grounding_id == "movement.arrival-eta":
+                return int(route.estimated_turns)
+            raise AssertionError(grounding_id)
         city = None
         if grounding_id.startswith("city."):
             if not args:
@@ -531,7 +564,11 @@ class TypedGroundingRegistry(object):
     def _resolved_paths(spec, args):
         city = str(args[0]) if args and spec.grounding_id.startswith("city.") else None
         unit = str(args[0]) if args and spec.grounding_id.startswith("unit.") else None
-        return tuple(path.format(city=city, unit=unit)
+        route = (
+            "{}:{}".format(args[0], args[1])
+            if len(args) >= 2 and spec.grounding_id.startswith("movement.")
+            else None)
+        return tuple(path.format(city=city, unit=unit, route=route)
                      for path in spec.dependency_paths)
 
     def evaluate(self, grounding_id, snapshot, *args):
@@ -558,6 +595,13 @@ class TypedGroundingRegistry(object):
                 path))
 
         for path in self._resolved_paths(spec, args):
+            if path.endswith(".*"):
+                prefix = path[:-1]
+                dependencies.extend(
+                    snapshot_dependency_ref(snapshot, key.path, fingerprints)
+                    for key in sorted(fingerprints)
+                    if key.path.startswith(prefix))
+                continue
             if path in ("cities", "units"):
                 prefix = path + "."
                 dependencies.extend(

@@ -49,8 +49,8 @@
     {"authority": "deterministic_derived", "name": "city.required-garrison-count", "status": "component-only"},
     {"authority": "deterministic_derived", "name": "city.local-garrison-count", "status": "component-only"},
     {"authority": "server_exact", "name": "map.wrapped-distance", "status": "proposed"},
-    {"authority": "server_exact", "name": "movement.shortest-route", "status": "proposed"},
-    {"authority": "server_exact", "name": "movement.arrival-eta", "status": "proposed"},
+    {"authority": "server_exact", "name": "movement.shortest-route", "status": "component-only"},
+    {"authority": "server_exact", "name": "movement.arrival-eta", "status": "component-only"},
     {"authority": "server_exact", "name": "combat.win-probability", "status": "proposed"},
     {"authority": "deterministic_derived", "name": "defense.coverage", "status": "proposed"},
     {"authority": "deterministic_derived", "name": "defense.removal-deficit", "status": "proposed"}
@@ -111,6 +111,7 @@
     {"argument_kinds": [["unit"], ["city"]], "arity": 2, "name": "unit-protects-city", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["unit"], ["city"]], "arity": 2, "name": "unit-required-garrison", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["unit"], ["city"]], "arity": 2, "name": "unit-fortification-opportunity", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["unit"], ["city"]], "arity": 2, "name": "unit-reinforcement-route", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["unit"], ["operation-kind"]], "arity": 2, "name": "unit-available", "namespace": "derived", "status": "proposed"},
     {"argument_kinds": [["operation"], ["operation-type"]], "arity": 2, "name": "operation-type", "namespace": "operation", "status": "component-only"},
     {"argument_kinds": [["operation"], ["goal"]], "arity": 2, "name": "operation-serves-goal", "namespace": "operation", "status": "component-only"},

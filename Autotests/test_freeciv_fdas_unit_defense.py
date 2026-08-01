@@ -12,6 +12,7 @@ if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
 from freeciv_agent.rulesets.compiler import compile_ruleset  # noqa: E402
+from freeciv_agent.events.schema import structural_hash  # noqa: E402
 from freeciv_agent.planning import (  # noqa: E402
     CandidateOperationFactory,
     GoalFactory,
@@ -75,6 +76,29 @@ def _store(ir):
 
 def _predicates(revision):
     return {value.key.predicate for value in revision.records}
+
+
+def _native_route(unit_id, destination_tile, source_seq, reachable=True):
+    return {
+        "authority": "freeciv-server-pathfinder",
+        "destination_tile": destination_tile,
+        "estimated_turns": 1 if reachable else 0,
+        "first_step_movement_cost": 1 if reachable else 0,
+        "first_step_tile": 83 if reachable else 82,
+        "initially_transported": False,
+        "movement_points_remaining": 2 if reachable else 3,
+        "moves_left_at_request": 3,
+        "origin_tile": 82,
+        "path_directions": [0, 0] if reachable else [],
+        "path_length": 2 if reachable else 0,
+        "reachable": reachable,
+        "schema_version": "1.0",
+        "source_seq": source_seq,
+        "total_movement_cost": 4 if reachable else 0,
+        "transported_at_request": False,
+        "turn": 12,
+        "unit_id": unit_id,
+    }
 
 
 def test_unit_catalog_matches_component_contract():
@@ -274,3 +298,98 @@ def test_garrison_deficit_regresses_to_legal_move_but_protects_source(ir):
         evaluation.pressure_result.pressure(
             goal.goal_id, operation.atom_id).value("act") == 0.0
         for goal in evaluation.context.goals)
+
+
+def test_native_route_grounding_projects_multi_turn_reinforcement(ir):
+    payload = _payload()
+    target = copy.deepcopy(payload["cities"]["3"])
+    target.update({
+        "id": 4,
+        "name": "Antium",
+        "tile": 84,
+        "x": 4,
+        "y": 2,
+    })
+    payload["cities"]["4"] = target
+    # Preserve Rome's required garrison while allowing unit 7 to reinforce.
+    payload["units"]["7"]["transported"] = False
+    second = copy.deepcopy(payload["units"]["7"])
+    second["id"] = 8
+    payload["units"]["8"] = second
+    payload["authoritative"]["movement_routes"] = [
+        _native_route(7, 84, 466)]
+    snapshot = _snapshot(payload, 466)
+    digest = ruleset_digest(ir)
+    registry = TypedGroundingRegistry(ir, ruleset_digest=digest)
+
+    route = registry.evaluate("movement.shortest-route", snapshot, 7, 84)
+    eta = registry.evaluate("movement.arrival-eta", snapshot, 7, 84)
+    assert route.available and eta.available
+    assert route.authority.value == "server_exact"
+    assert route.value["first_step_tile"] == 83
+    assert eta.value == 1
+    assert any(
+        value.key.path == "movement_routes.7:84.first_step_tile"
+        for value in route.dependencies)
+
+    store = _store(ir)
+    revision = store.build(snapshot)
+    reinforcement = next(
+        value for value in revision.records
+        if value.key.predicate == "unit-reinforcement-route")
+    assert reinforcement.key.arguments[0].entity_id == "7"
+    assert reinforcement.key.arguments[1].entity_id == "4"
+    assert reinforcement.supports[0].witness_hash == structural_hash({
+        "destination_tile": 84,
+        "estimated_turns": 1,
+        "first_step_tile": 83,
+        "path_length": 2,
+        "route_authority": "freeciv-server-pathfinder",
+    })
+
+    goals = GoalFactory().instantiate(
+        revision,
+        store.query_current(snapshot.identity.game_id, snapshot.player_id),
+    )
+    candidates = CandidateOperationFactory(ir, digest).instantiate(
+        snapshot, goals)
+    move = next(
+        value for value in candidates
+        if value.action.get("action_type") == "unit_move")
+    assert move.action["target"] == {"direction": "e", "x": 3, "y": 2}
+    assert move.operation.target_ref == "city:4"
+    assert set(move.blockers) == {"uncompiled-action-effect"}
+
+
+def test_unreachable_native_route_remains_unknown_and_non_actionable(ir):
+    payload = _payload()
+    target = copy.deepcopy(payload["cities"]["3"])
+    target.update({"id": 4, "name": "Antium", "tile": 84, "x": 4, "y": 2})
+    payload["cities"]["4"] = target
+    payload["units"]["7"]["transported"] = False
+    payload["authoritative"]["movement_routes"] = [
+        _native_route(7, 84, 467, reachable=False)]
+    snapshot = _snapshot(payload, 467)
+    digest = ruleset_digest(ir)
+    registry = TypedGroundingRegistry(ir, ruleset_digest=digest)
+
+    route = registry.evaluate("movement.shortest-route", snapshot, 7, 84)
+    assert not route.available
+    assert route.diagnostic == "native movement route reports unreachable"
+    assert any(
+        value.key.path == "movement_routes.7:84.reachable"
+        for value in route.dependencies)
+
+    store = _store(ir)
+    revision = store.build(snapshot)
+    assert "unit-reinforcement-route" not in _predicates(revision)
+    goals = GoalFactory().instantiate(
+        revision,
+        store.query_current(snapshot.identity.game_id, snapshot.player_id),
+    )
+    candidates = CandidateOperationFactory(ir, digest).instantiate(
+        snapshot, goals)
+    assert not any(
+        value.action.get("action_type") == "unit_move"
+        and value.operation.target_ref == "city:4"
+        for value in candidates)
