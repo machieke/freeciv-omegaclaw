@@ -40,6 +40,7 @@ def test_fdas_manifest_exposes_only_evidenced_component_capabilities():
         "combat_task_force_projection",
         "combat_operation_projection",
         "episode_attribution",
+        "expansion_operation_projection",
         "dependent_atom_pressure_adapter",
         "dependency_truth_maintenance",
         "fdas_exact_commit_validation",
