@@ -75,6 +75,22 @@ class ResourceRef:
             "subresource": self.subresource,
         }
 
+    @classmethod
+    def from_dict(cls, value):
+        if not isinstance(value, dict):
+            raise TypeError("resource reference must be an object")
+        try:
+            kind = GameResourceKind(value["kind"])
+            owner_id = value["owner_id"]
+            scope = value["scope"]
+        except KeyError as error:
+            raise ValueError(
+                "resource reference field is missing: {}".format(
+                    error.args[0]))
+        except ValueError:
+            raise ValueError("unknown game resource kind")
+        return cls(kind, owner_id, value.get("subresource"), scope)
+
 
 @dataclass(frozen=True)
 class TurnWindow:
@@ -126,6 +142,17 @@ class TurnWindow:
                 self.end_turn_exclusive,
             "start_turn": self.start_turn,
         }
+
+    @classmethod
+    def from_dict(cls, value):
+        if not isinstance(value, dict):
+            raise TypeError("turn window must be an object")
+        try:
+            return cls(
+                value["start_turn"], value["end_turn_exclusive"])
+        except KeyError as error:
+            raise ValueError(
+                "turn window field is missing: {}".format(error.args[0]))
 
 
 @dataclass(frozen=True)
@@ -197,6 +224,31 @@ class ResourceClaim:
                 self.source_step_id,
             "window": self.window.to_dict(),
         }
+
+    @classmethod
+    def from_dict(cls, value):
+        if not isinstance(value, dict):
+            raise TypeError("resource claim must be an object")
+        try:
+            resource = ResourceRef.from_dict(value["resource"])
+            window = TurnWindow.from_dict(value["window"])
+        except KeyError as error:
+            raise ValueError(
+                "resource claim field is missing: {}".format(error.args[0]))
+        try:
+            hardness = ClaimHardness(value["hardness"])
+        except KeyError:
+            raise ValueError("resource claim field is missing: hardness")
+        except ValueError:
+            raise ValueError("unknown resource claim hardness")
+        try:
+            return cls(
+                resource, value["quantity"], window, hardness,
+                value["exclusive"], value["source_operation_id"],
+                value["source_step_id"])
+        except KeyError as error:
+            raise ValueError(
+                "resource claim field is missing: {}".format(error.args[0]))
 
 
 @dataclass(frozen=True)

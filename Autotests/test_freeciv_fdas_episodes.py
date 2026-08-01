@@ -18,6 +18,13 @@ from freeciv_agent.planning import (  # noqa: E402
     FdasDefenseEpisodeRecorder,
     OperationStore,
 )
+from freeciv_agent.pressure import (  # noqa: E402
+    ClaimHardness,
+    GameResourceKind,
+    ResourceClaim,
+    ResourceRef,
+    TurnWindow,
+)
 from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 from freeciv_agent.state.atomspace import (  # noqa: E402
     AtomNamespace,
@@ -64,6 +71,12 @@ def _operation(action, operation_id="episode-route"):
         "actor_id": 7,
         "arrival_turn": 14,
         "city_id": 4,
+        "claims": [ResourceClaim(
+            ResourceRef(
+                GameResourceKind.ACTOR, "unit:7", "whole_actor",
+                "player:2"),
+            1, TurnWindow(12, 13), ClaimHardness.HARD_CURRENT, True,
+            operation_id, "current-defence-action").to_dict()],
         "deadline_turn": 15,
         "next_action": action,
         "operation_id": operation_id,

@@ -4,13 +4,7 @@ from dataclasses import dataclass
 
 from ..events.schema import canonical_json_bytes, structural_hash
 from ..pressure.coalitions import RequirementSet
-from ..pressure.resource_claims import (
-    ClaimHardness,
-    GameResourceKind,
-    ResourceClaim,
-    ResourceRef,
-    TurnWindow,
-)
+from ..pressure.resource_claims import ResourceClaim
 from .operation_assembler import assemble_city_defense_operation
 from .operation_store import OperationStore
 from .operations import OperationState
@@ -191,6 +185,33 @@ class FdasCityDefenseOperationAdapter(object):
         return dict(value)
 
     @staticmethod
+    def _domain_claims(row, snapshot):
+        values = row.get("claims")
+        if not isinstance(values, (list, tuple)) or not values:
+            raise ValueError(
+                "city-defense operation requires exact resource claims")
+        operation_id = str(row["operation_id"])
+        claims = tuple(
+            value if isinstance(value, ResourceClaim)
+            else ResourceClaim.from_dict(value)
+            for value in values)
+        if any(
+                value.source_operation_id != operation_id
+                for value in claims):
+            raise ValueError(
+                "city-defense claim must name its domain operation")
+        turn = int(snapshot.turn)
+        if any(
+                value.window.start_turn > turn
+                or value.window.end_turn_exclusive <= turn
+                for value in claims):
+            raise ValueError(
+                "city-defense claim does not cover the current turn")
+        if len({value.claim_id for value in claims}) != len(claims):
+            raise ValueError("city-defense resource claims must be unique")
+        return tuple(sorted(claims, key=lambda value: value.sort_key))
+
+    @staticmethod
     def _row_key(row):
         return (
             str(row.get("operation_type") or ""),
@@ -276,7 +297,8 @@ class FdasCityDefenseOperationAdapter(object):
         )
 
     @staticmethod
-    def _requirement_context(record, row, snapshot, binding, blocker):
+    def _requirement_context(
+            record, row, snapshot, binding, blocker, domain_claims):
         operation_id = record.spec.operation_id
         step = record.spec.steps[record.progress.current_step_index]
         actor_id = row.get("actor_id")
@@ -310,25 +332,12 @@ class FdasCityDefenseOperationAdapter(object):
                 "snapshot_id": snapshot.snapshot_id,
                 "step_id": step.step_id,
             }))
-        claims = ()
-        if (blocker is None and actor_id is not None
-                and row.get("next_action") is not None):
-            resource = ResourceRef(
-                GameResourceKind.ACTOR, str(actor_id), "current-action",
-                "player:{}".format(snapshot.player_id))
-            claims = (ResourceClaim(
-                resource, 1,
-                TurnWindow(int(snapshot.turn), int(snapshot.turn) + 1),
-                ClaimHardness.HARD_CURRENT, True, operation_id, step.step_id),)
-        elif (blocker is None and actor_id is None
-              and row.get("operation_type") == "emergency_build_defender"):
-            resource = ResourceRef(
-                GameResourceKind.CITY_PRODUCTION_SLOT, str(city_id), None,
-                "city:{}".format(city_id))
-            claims = (ResourceClaim(
-                resource, 1,
-                TurnWindow(int(snapshot.turn), int(snapshot.turn) + 1),
-                ClaimHardness.HARD_CURRENT, True, operation_id, step.step_id),)
+        claims = () if blocker is not None else tuple(
+            ResourceClaim(
+                value.resource, value.quantity, value.window,
+                value.hardness, value.exclusive, operation_id,
+                value.source_step_id)
+            for value in domain_claims)
         blocked_premises = ()
         if blocker is not None:
             premise = (
@@ -415,6 +424,10 @@ class FdasCityDefenseOperationAdapter(object):
         rows = tuple(
             value for value in rows
             if str(value["operation_id"]) in selected)
+        claims_by_operation = {
+            str(value["operation_id"]): self._domain_claims(value, snapshot)
+            for value in rows
+        }
         updates = []
         completed_keys = set()
         for record in tuple(self.store.nonterminal_records()):
@@ -458,7 +471,8 @@ class FdasCityDefenseOperationAdapter(object):
                 if row.get("next_action") is not None and not binding.legal_bound
                 else None)
             context = self._requirement_context(
-                record, row, snapshot, binding, blocker)
+                record, row, snapshot, binding, blocker,
+                claims_by_operation[str(row["operation_id"])])
             self._contexts[record.spec.operation_id] = context
             if blocker is not None:
                 if record.progress.state == OperationState.BLOCKED:

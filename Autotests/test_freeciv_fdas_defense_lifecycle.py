@@ -16,6 +16,13 @@ from freeciv_agent.planning import (  # noqa: E402
     OperationState,
     OperationStore,
 )
+from freeciv_agent.pressure import (  # noqa: E402
+    ClaimHardness,
+    GameResourceKind,
+    ResourceClaim,
+    ResourceRef,
+    TurnWindow,
+)
 from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 from freeciv_agent.state.atomspace import (  # noqa: E402
     AtomNamespace,
@@ -49,11 +56,32 @@ def _move_action(snapshot):
         if json.loads(value).get("action_type") == "unit_move")
 
 
-def _operation(action, operation_id="domain-route-step-1", deadline=14):
+def _actor_claims(operation_id, turn, actor_id=7):
+    return [
+        ResourceClaim(
+            ResourceRef(
+                GameResourceKind.ACTOR, "unit:{}".format(actor_id),
+                "whole_actor", "player:2"),
+            1, TurnWindow(turn, turn + 1),
+            ClaimHardness.HARD_CURRENT, True,
+            operation_id, "current-defence-action").to_dict(),
+        ResourceClaim(
+            ResourceRef(
+                GameResourceKind.MOVE_POINTS, "unit:{}".format(actor_id),
+                "current_turn", "player:2"),
+            1, TurnWindow(turn, turn + 1),
+            ClaimHardness.ADVISORY, False,
+            operation_id, "current-movement").to_dict(),
+    ]
+
+
+def _operation(action, operation_id="domain-route-step-1", deadline=14,
+               claim_turn=12):
     return {
         "actor_id": 7,
         "arrival_turn": 14,
         "city_id": 4,
+        "claims": _actor_claims(operation_id, claim_turn),
         "deadline_turn": deadline,
         "next_action": action,
         "operation_id": operation_id,
@@ -89,11 +117,13 @@ def test_multi_turn_route_reuses_lifecycle_and_refreshes_exact_binding():
         "availability", "capability", "deadline", "legal-binding",
         "resource-capacity", "route",
     }
-    assert len(first_context.resource_claims) == 1
-    assert first_context.resource_claims[0].resource.kind.value == "actor"
-    assert first_context.resource_claims[0].resource.owner_id == "7"
-    assert first_context.resource_claims[0].hardness.value == "hard_current"
-    assert first_context.resource_claims[0].exclusive is True
+    assert len(first_context.resource_claims) == 2
+    actor_claim = next(
+        value for value in first_context.resource_claims
+        if value.resource.kind.value == "actor")
+    assert actor_claim.resource.owner_id == "unit:7"
+    assert actor_claim.hardness.value == "hard_current"
+    assert actor_claim.exclusive is True
 
     second_payload = _payload()
     second_payload["turn"] = 13
@@ -106,7 +136,8 @@ def test_multi_turn_route_reuses_lifecycle_and_refreshes_exact_binding():
     }]
     second = _snapshot(second_payload, 481)
     refreshed = adapter.reconcile(second, (
-        _operation(_move_action(second), "domain-route-step-2"),))
+        _operation(
+            _move_action(second), "domain-route-step-2", claim_turn=13),))
     second_binding = adapter.binding(operation_id)
 
     assert len(operation_store.records()) == 1
@@ -173,7 +204,8 @@ def test_multi_turn_route_reuses_lifecycle_and_refreshes_exact_binding():
     # A lagging analysis row cannot reopen a route after the authoritative
     # destination observation has already completed its persistent intent.
     completed = adapter.reconcile(third, (
-        _operation(second_binding.action, "domain-route-step-3"),))
+        _operation(
+            second_binding.action, "domain-route-step-3", claim_turn=14),))
     record = operation_store.get(operation_id)
 
     assert len(completed) == 1
@@ -230,7 +262,8 @@ def test_non_legal_binding_blocks_then_recovers_on_current_exact_action():
     repaired_payload["authoritative"]["source_seq"] = 484
     repaired = _snapshot(repaired_payload, 484)
     updates = adapter.reconcile(
-        repaired, (_operation(_move_action(repaired), "domain-route-step-2"),))
+        repaired, (_operation(
+            _move_action(repaired), "domain-route-step-2"),))
 
     assert updates[0].previous_state == "blocked"
     assert updates[0].state == "reservable"
@@ -249,6 +282,12 @@ def test_defender_production_claims_exact_current_city_slot():
         "actor_id": None,
         "arrival_turn": 14,
         "city_id": 3,
+        "claims": [ResourceClaim(
+            ResourceRef(
+                GameResourceKind.CITY_PRODUCTION_SLOT, "city:3",
+                "production", "player:2"),
+            1, TurnWindow(12, 13), ClaimHardness.HARD_CURRENT, True,
+            "domain-produce-defender", "emergency-production").to_dict()],
         "deadline_turn": 14,
         "next_action": action,
         "operation_id": "domain-produce-defender",
@@ -264,8 +303,8 @@ def test_defender_production_claims_exact_current_city_slot():
 
     assert update.state == "reservable"
     assert claim.resource.kind.value == "city_production_slot"
-    assert claim.resource.owner_id == "3"
-    assert claim.resource.scope == "city:3"
+    assert claim.resource.owner_id == "city:3"
+    assert claim.resource.scope == "player:2"
     assert claim.window.start_turn == snapshot.turn
     assert claim.window.end_turn_exclusive == snapshot.turn + 1
     revision = DependentAtomSpaceStore(
@@ -288,6 +327,7 @@ def test_enemy_disappearance_never_completes_interception():
         "actor_id": 7,
         "arrival_turn": 13,
         "city_id": 4,
+        "claims": _actor_claims("domain-interception", 12),
         "deadline_turn": 14,
         "next_action": None,
         "operation_id": "domain-interception",
@@ -318,3 +358,21 @@ def test_quarantined_store_cannot_reconcile():
 
     with pytest.raises(ValueError, match="quarantined"):
         adapter.reconcile(snapshot, ())
+
+
+def test_invalid_claims_fail_before_operation_store_mutation():
+    snapshot = _snapshot(_payload(), 489)
+    store = OperationStore("fdas-defense:claim-validation")
+    adapter = FdasCityDefenseOperationAdapter(store, "ruleset-proof")
+    missing = _operation(_move_action(snapshot))
+    missing.pop("claims")
+
+    with pytest.raises(ValueError, match="exact resource claims"):
+        adapter.reconcile(snapshot, (missing,))
+    assert store.records() == ()
+
+    stale = _operation(_move_action(snapshot))
+    stale["claims"] = _actor_claims(stale["operation_id"], 11)
+    with pytest.raises(ValueError, match="current turn"):
+        adapter.reconcile(snapshot, (stale,))
+    assert store.records() == ()

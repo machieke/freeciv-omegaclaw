@@ -79,6 +79,9 @@ def test_resource_identity_and_claim_digest_are_candidate_independent():
             "end_turn_exclusive": 41,
             "start_turn": 40,
         }
+    assert ResourceClaim.from_dict(claim.to_dict()) == claim
+    assert ResourceRef.from_dict(resource.to_dict()) == resource
+    assert TurnWindow.from_dict(claim.window.to_dict()) == claim.window
 
 
 def test_legacy_packets_adapt_without_mutating_v1_identity():
@@ -140,3 +143,21 @@ def test_resource_contracts_reject_ambiguous_values():
             match="operation and step"):
         claims_from_packet_costs(
             "", "step", (), 1)
+    with pytest.raises(ValueError):
+        ResourceClaim.from_dict({
+            "exclusive": True,
+            "hardness": "imaginary",
+            "quantity": 1,
+            "resource": {
+                "kind": "actor",
+                "owner_id": "unit:1",
+                "scope": "player:1",
+                "subresource": None,
+            },
+            "source_operation_id": "operation",
+            "source_step_id": "step",
+            "window": {
+                "end_turn_exclusive": 2,
+                "start_turn": 1,
+            },
+        })
