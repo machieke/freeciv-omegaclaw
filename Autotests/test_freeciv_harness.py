@@ -198,6 +198,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "city_defense_immediate_fortify_authority_pilot_v4": 30,
             "city_defense_immediate_fortify_authority_pilot_v5": 30,
             "city_defense_immediate_fortify_authority_pilot_v6": 30,
+            "city_defense_immediate_fortify_authority_pilot_v7": 30,
             "calibrated_scalar_diagnostic_v1": 10,
             "protected_bridge_readout_diagnostic_v1": 10,
             "corrected_probe_readout_diagnostic_v1": 10,
@@ -499,6 +500,62 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "count": 30,
             "minimum": 7200000,
             "maximum": 7299999,
+        }
+    hard_recycle_confirmation = paired["cohorts"][
+        "city_defense_immediate_fortify_authority_pilot_v7"]
+    assert hard_recycle_confirmation[
+        "controller_worker_execution"
+    ] == "process_isolated"
+    assert hard_recycle_confirmation[
+        "server_recycle_mode"
+    ] == "hard_per_arm"
+    assert hard_recycle_confirmation[
+        "city_defense_mechanism_design"] == {
+            "analyzed_action_scope": (
+                "declared_operation_types_plus_immediate_interception_"
+                "legal_context"),
+            "city_loss_metric": (
+                "selected_at_risk_city_identity_disappearance_by_deadline"),
+            "controller_isolation":
+                "process_per_worker",
+            "declared_operation_types": [
+                "fortify_existing_defender",
+            ],
+            "fortify_completion_states": [
+                "fortify",
+                "fortifying",
+                "fortified",
+            ],
+            "latency": {
+                "full_loop_p95_ratio_ceiling":
+                    1.15,
+                "preparation_p95_ceiling_ms":
+                    50.0,
+            },
+            "no_visible_threat_fast_path": (
+                "no_authority_without_visible_enemy"),
+            "schema_version": "1.5",
+            "server_recycle_mode":
+                "hard_per_arm",
+            "sole_defender_metric": (
+                "authority_unit_move_while_actor_protected_in_same_snapshot"),
+            "typed_winner_change": {
+                "minimum_coverage": 0.90,
+            },
+            "uncovered_threat_turn_metric": (
+                "unique_selected_city_snapshot_observations_minus_unique_"
+                "activations"),
+            "unsupported_fallback":
+                "exact_b1_ordering",
+        }
+    assert hard_recycle_confirmation[
+        "seed_derivation"] == {
+            "algorithm": "sha256-counter-v1",
+            "namespace": (
+                "pf-pln-city-defense-immediate-fortify-authority-pilot-v7"),
+            "count": 30,
+            "minimum": 7300000,
+            "maximum": 7399999,
         }
     score_derivation = paired["cohorts"]["confirmatory_score"]["seed_derivation"]
     assert score_derivation == {
@@ -1171,10 +1228,10 @@ def test_config_rejects_unfrozen_city_defense_schema_1_2_scope():
                 path, "w",
                 encoding="utf-8") as stream:
             stream.write(source)
-            with pytest.raises(
-                    ValueError,
-                    match="exact 1.0, 1.1, 1.2, 1.3, or 1.4 schema"):
-                load(path)
+        with pytest.raises(
+                ValueError,
+                match="exact 1.0, 1.1, 1.2, 1.3, 1.4, or 1.5 schema"):
+            load(path)
 
 
 def test_combat_scenario_override_is_manifested_and_rejects_seed_drift():
@@ -1265,8 +1322,23 @@ def test_config_rejects_unknown_or_unbound_process_worker_execution():
                 1))
         with pytest.raises(
                 ValueError,
-                match="exact 1.0, 1.1, 1.2, 1.3, or 1.4 schema"):
+                match="exact 1.0"):
             load(unbound_path)
+
+        invalid_recycle_path = os.path.join(
+            directory,
+            "invalid-server-recycle.yaml")
+        with open(
+                invalid_recycle_path, "w",
+                encoding="utf-8") as stream:
+            stream.write(source.replace(
+                "      server_recycle_mode: hard_per_arm\n",
+                "      server_recycle_mode: listener_only\n",
+                1))
+        with pytest.raises(
+                ValueError,
+                match="server_recycle_mode"):
+            load(invalid_recycle_path)
 
 
 def test_wilson_and_paired_bootstrap_are_bounded_and_deterministic():
@@ -2643,6 +2715,9 @@ def test_engine_live_clears_stale_proxy_game_before_server_recycle(monkeypatch):
         result["engine_proxy_clear_latency_ms"]
         + result["engine_server_recycle_latency_ms"])
     assert result["engine_server_pid"] == "42"
+    assert result[
+        "engine_server_recycle_mode"
+    ] == "clean_successor"
     assert result["engine_server_recycle_method"] == "kill-then-listener"
     assert result["engine_gameplay_latency_ms"] >= 0
     assert result["engine_cleanup_latency_ms"] >= 0
@@ -2657,6 +2732,44 @@ def test_engine_live_clears_stale_proxy_game_before_server_recycle(monkeypatch):
         ("terminate", "release-retry", "test-token-fc3d-001", False),
     ]
     assert engine_live._LAST_CLEAN_SERVER_PIDS == {6001: "42"}
+
+    calls[:] = []
+    engine_live._LAST_CLEAN_SERVER_PIDS.clear()
+    engine_live._LAST_CLEAN_SERVER_PIDS[6001] = "41"
+    result = engine_live.run_game(
+        "/tmp/run", {
+            "game_id": "release-hard-recycle",
+            "port": 6001,
+            "server_recycle_mode": "hard_per_arm",
+        }, context)
+    assert result[
+        "engine_server_recycle_mode"
+    ] == "hard_per_arm"
+    assert result[
+        "engine_server_recycle_method"
+    ] == "kill-then-listener"
+    assert calls == [
+        (
+            "terminate",
+            "release-hard-recycle",
+            "test-token-fc3d-001",
+            True,
+        ),
+        ("recycle", 6001, None),
+        (
+            "play",
+            "/tmp/run",
+            "release-hard-recycle",
+            context,
+        ),
+        (
+            "terminate",
+            "release-hard-recycle",
+            "test-token-fc3d-001",
+            False,
+        ),
+    ]
+    assert engine_live._LAST_CLEAN_SERVER_PIDS == {}
 
 
 def test_accepted_unit_no_update_reaches_no_effect_accounting():
@@ -3058,6 +3171,13 @@ def test_process_isolated_impact_execution_preserves_pair_and_worker_identity():
             for row in rows
         } == {
             "process_isolated",
+        }
+        assert {
+            row[
+                "server_recycle_mode"]
+            for row in rows
+        } == {
+            "clean_successor",
         }
 
 

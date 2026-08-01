@@ -4238,7 +4238,22 @@ def run_game(run_dir, manifest, context):
     # Every job starts from a newly spawned process so no autosave/session state can
     # leak across seeds or conditions.
     port = int(manifest["port"])
+    server_recycle_mode = manifest.get(
+        "server_recycle_mode",
+        "clean_successor")
+    if server_recycle_mode not in (
+            "clean_successor",
+            "hard_per_arm"):
+        raise ValueError(
+            "unsupported engine server recycle mode {}".format(
+                server_recycle_mode))
     previous_clean_pid = _LAST_CLEAN_SERVER_PIDS.pop(port, None)
+    if server_recycle_mode == "hard_per_arm":
+        # A listening successor is not sufficient readiness evidence: fast
+        # process-isolated turnover can observe the socket before the server
+        # can populate observer global state. Force the authoritative
+        # kill/recycle boundary for every arm in hardened cohorts.
+        previous_clean_pid = None
     server_recycle_started = time.perf_counter()
     server_recycle = _recycle_server(
         port, previous_clean_pid=previous_clean_pid)
@@ -4273,6 +4288,7 @@ def run_game(run_dir, manifest, context):
         "engine_proxy_clear_latency_ms": proxy_clear_latency,
         "engine_server_recycle_latency_ms": server_recycle_latency,
         "engine_server_pid": active_server_pid,
+        "engine_server_recycle_mode": server_recycle_mode,
         "engine_server_recycle_method": server_recycle["method"],
         "model_readiness_latency_ms": readiness_latency,
         "model_readiness_method": readiness["readiness_method"],
@@ -4283,5 +4299,6 @@ def run_game(run_dir, manifest, context):
     # Publish a reusable predecessor only after the game and its cleanup have
     # both completed successfully. A failed arm leaves no successor shortcut,
     # so its next attempt retains the unconditional kill/recycle path.
-    _LAST_CLEAN_SERVER_PIDS[port] = active_server_pid
+    if server_recycle_mode == "clean_successor":
+        _LAST_CLEAN_SERVER_PIDS[port] = active_server_pid
     return result

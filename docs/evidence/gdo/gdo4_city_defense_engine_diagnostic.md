@@ -518,3 +518,24 @@ fixed-horizon win-rate difference was 0.00. The cohort was predeclared
 claim-ineligible, so neither gameplay endpoint supports a score or win-rate
 claim. The supported conclusion is the bounded city-defence mechanism and
 safety result, not a general game-score improvement.
+
+## Frozen hard-recycle confirmation v7
+
+`city_defense_immediate_fortify_authority_pilot_v7` is the fresh operational
+confirmation of the passing v6 mechanism. It retains the v6 controller,
+policy, start state, three process-isolated workers, 160-turn horizon, and all
+mechanism, safety, coverage, and latency thresholds. Its 30 paired seeds are
+derived from the unused disjoint 7.3M range.
+
+The only runtime change is predeclared
+`server_recycle_mode: hard_per_arm`. Every arm must kill the currently
+listening civserver process and observe a different listening PID before
+connecting; no process-local clean-successor shortcut is permitted. The mode
+is part of behavioral manifest identity, is emitted in engine results, and is
+bound to city-defence mechanism design schema 1.5. Invalid modes and a schema
+that does not bind hard recycling to process isolation fail configuration
+validation.
+
+V7 is successful only if the initial, no-resume pass completes 60/60 with
+zero infrastructure failures and the same full GDO-4 conjunction passes.
+Like v6, it is claim-ineligible regardless of score direction.

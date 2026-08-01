@@ -465,6 +465,23 @@ def _validate_paired_impact(value):
             raise ValueError(
                 "{} process-isolated execution requires at least two "
                 "controller workers".format(prefix))
+        server_recycle_mode = cohort.get(
+            "server_recycle_mode",
+            "clean_successor")
+        if server_recycle_mode not in (
+                "clean_successor",
+                "hard_per_arm"):
+            raise ValueError(
+                "{}.server_recycle_mode must be clean_successor or "
+                "hard_per_arm".format(prefix))
+        if (
+                server_recycle_mode
+                == "hard_per_arm"
+                and controller_worker_execution
+                != "process_isolated"):
+            raise ValueError(
+                "{} hard-per-arm server recycling requires "
+                "process-isolated controller execution".format(prefix))
         release_game_config = cohort.get(
             "release_game_config", {})
         if (not isinstance(release_game_config, dict)
@@ -613,6 +630,7 @@ def _validate_paired_impact(value):
                     "1.2",
                     "1.3",
                     "1.4",
+                    "1.5",
                 )
                 and city_defense_design.get(
                     "city_loss_metric")
@@ -682,6 +700,35 @@ def _validate_paired_impact(value):
                 == "process_per_worker"
                 and controller_worker_execution
                 == "process_isolated")
+            city_defense_v6 = (
+                city_defense_schema == "1.5"
+                and city_defense_v2
+                and city_defense_design.get(
+                    "analyzed_action_scope")
+                == (
+                    "declared_operation_types_plus_immediate_"
+                    "interception_legal_context")
+                and city_defense_design.get(
+                    "fortify_completion_states")
+                == [
+                    "fortify",
+                    "fortifying",
+                    "fortified",
+                ]
+                and city_defense_design.get(
+                    "no_visible_threat_fast_path")
+                == (
+                    "no_authority_without_visible_enemy")
+                and city_defense_design.get(
+                    "controller_isolation")
+                == "process_per_worker"
+                and city_defense_design.get(
+                    "server_recycle_mode")
+                == "hard_per_arm"
+                and controller_worker_execution
+                == "process_isolated"
+                and server_recycle_mode
+                == "hard_per_arm")
             expected_city_defense_keys = {
                 "city_loss_metric",
                 "declared_operation_types",
@@ -710,6 +757,14 @@ def _validate_paired_impact(value):
                     "fortify_completion_states",
                     "no_visible_threat_fast_path",
                 })
+            elif city_defense_schema == "1.5":
+                expected_city_defense_keys.update({
+                    "analyzed_action_scope",
+                    "controller_isolation",
+                    "fortify_completion_states",
+                    "no_visible_threat_fast_path",
+                    "server_recycle_mode",
+                })
             if (
                     not isinstance(
                         city_defense_design, dict)
@@ -732,10 +787,11 @@ def _validate_paired_impact(value):
                             == "1.1")
                         or city_defense_v3
                         or city_defense_v4
-                        or city_defense_v5)):
+                        or city_defense_v5
+                        or city_defense_v6)):
                 raise ValueError(
                     "{}.city_defense_mechanism_design must use the exact "
-                    "1.0, 1.1, 1.2, 1.3, or 1.4 schema".format(prefix))
+                    "1.0, 1.1, 1.2, 1.3, 1.4, or 1.5 schema".format(prefix))
             operation_types = (
                 city_defense_design.get(
                     "declared_operation_types"))

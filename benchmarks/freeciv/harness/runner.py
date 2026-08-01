@@ -237,6 +237,12 @@ class HarnessRunner(object):
                 "thread")
             if arm is not None
             else "thread")
+        server_recycle_mode = (
+            cohort_design.get(
+                "server_recycle_mode",
+                "clean_successor")
+            if arm is not None
+            else "clean_successor")
         material = {
             "backend": self.backend, "beliefs": self.config["beliefs"],
             "capabilities": self.config["capabilities"][job["condition"]],
@@ -248,6 +254,8 @@ class HarnessRunner(object):
             "controller_workers": self.workers,
             "controller_worker_execution":
                 controller_worker_execution,
+            "server_recycle_mode":
+                server_recycle_mode,
             "engine": self.config["engine"], "game_id": game_id,
             "impact_policy": impact_policy,
             "machine_profile": self.config["machine_profile"],
@@ -530,6 +538,10 @@ class HarnessRunner(object):
                 cohort.get(
                     "controller_worker_execution",
                     "thread"),
+            "server_recycle_mode":
+                cohort.get(
+                    "server_recycle_mode",
+                    "clean_successor"),
             "controller_workers": self.workers,
             "pairs": len(self._impact_jobs()) // 2,
             "resumed": sum(row["resumed"] for row in results),
