@@ -24,7 +24,7 @@ def _json(path):
         return json.load(stream)
 
 
-def test_fdas_manifest_exposes_only_the_component_only_typed_core():
+def test_fdas_manifest_exposes_only_evidenced_component_capabilities():
     manifest = _json("profile/fdas_manifest.json")
 
     assert manifest["schema_version"] == "1.0"
@@ -35,6 +35,7 @@ def test_fdas_manifest_exposes_only_the_component_only_typed_core():
     component_only = {
         "dependent_atomspace_core",
         "dependency_truth_maintenance",
+        "city_domain_projection",
         "generic_rule_execution",
         "incremental_snapshot_projection",
         "ruleset_domain_projection",

@@ -146,12 +146,18 @@ class DependentAtomSpaceStore(object):
     """Prepare, publish, retain, and verify immutable dependent revisions."""
 
     def __init__(self, predicate_registry=None, revision_retention=4,
-                 lock=None):
+                 lock=None, domain_projector=None):
         if (isinstance(revision_retention, bool)
                 or not isinstance(revision_retention, int)
                 or revision_retention < 1):
             raise ValueError("revision retention must be positive")
+        if domain_projector is not None and predicate_registry is not None:
+            raise ValueError(
+                "domain projector owns the combined predicate registry")
+        self.domain_projector = domain_projector
         self.predicate_registry = (
+            domain_projector.predicate_registry
+            if domain_projector is not None else
             predicate_registry or legacy_predicate_registry())
         self.revision_retention = revision_retention
         self._lock = lock or threading.RLock()
@@ -199,7 +205,9 @@ class DependentAtomSpaceStore(object):
         )
 
         self._validate_order(prior_snapshot, snapshot)
-        scopes = snapshot_scopes(snapshot)
+        scopes = (
+            self.domain_projector.scopes(snapshot)
+            if self.domain_projector is not None else snapshot_scopes(snapshot))
         current_document = snapshot_document(snapshot)
         prior_document = (
             snapshot_document(prior_snapshot)
@@ -212,6 +220,9 @@ class DependentAtomSpaceStore(object):
         )
         fingerprints = snapshot_dependency_fingerprints(
             snapshot, current_document)
+        if self.domain_projector is not None:
+            fingerprints = self.domain_projector.extend_fingerprints(
+                fingerprints)
         if cold or prior_revision is None:
             records = project_legacy_records(
                 snapshot, scopes, fingerprints)
@@ -223,6 +234,11 @@ class DependentAtomSpaceStore(object):
         else:
             records, projection_metrics = project_legacy_records_incremental(
                 snapshot, scopes, prior_revision, fingerprints)
+        if self.domain_projector is not None:
+            domain_records = self.domain_projector.project(
+                snapshot, scopes, fingerprints)
+            records = tuple(records) + tuple(domain_records)
+            projection_metrics["recomputed_records"] += len(domain_records)
         transaction = AtomSpaceTransaction(
             snapshot.snapshot_id, self.predicate_registry, scopes)
         for record in records:

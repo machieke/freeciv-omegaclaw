@@ -8,7 +8,7 @@
     "incremental_snapshot_projection": "component-only",
     "operation_atom_projection": "not-built",
     "ruleset_domain_projection": "component-only",
-    "city_domain_projection": "not-built",
+    "city_domain_projection": "component-only",
     "unit_domain_projection": "not-built",
     "region_domain_projection": "not-built"
   },

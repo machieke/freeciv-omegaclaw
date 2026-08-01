@@ -105,6 +105,14 @@ from .operation_store import (
     OperationStoreError,
     OperationTransitionError,
 )
+from .fdas import (
+    CandidateOperationFactory,
+    GoalFactory,
+    LocalGoalContext,
+    ShadowCandidateComparison,
+    ShadowOperationCandidate,
+    compare_shadow_candidates,
+)
 from .operations import (
     OPERATION_SCHEMA_VERSION,
     TERMINAL_OPERATION_STATES,
@@ -160,6 +168,9 @@ __all__ = [
     "CombatOperationReadout", "ConditionalProbabilityInterval",
     "CityWorkerMacroAssembler", "CityWorkerMacroAssembly",
     "CityWorkerMacroIntent", "CityWorkerMacroResult",
+    "CandidateOperationFactory", "GoalFactory", "LocalGoalContext",
+    "ShadowCandidateComparison", "ShadowOperationCandidate",
+    "compare_shadow_candidates",
     "CombatLifecycleUpdate", "CombatOperationLifecycle",
     "combat_target_capacities", "conditional_success_interval",
     "FounderTransportIntent",

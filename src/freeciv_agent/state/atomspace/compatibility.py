@@ -217,8 +217,13 @@ def project_legacy_records_incremental(
         valid_through_turn=snapshot.turn,
         source_seq=snapshot.identity.source_seq,
     )
-    prior = dict((_legacy_identity(value), value)
-                 for value in prior_revision.records)
+    legacy_predicates = frozenset(_ARGUMENT_KINDS)
+    prior = dict(
+        (_legacy_identity(value), value)
+        for value in prior_revision.records
+        if (value.key.predicate in legacy_predicates
+            and value.key.namespace in (
+                AtomNamespace.AUTHORITATIVE, AtomNamespace.OBSERVATION)))
     records = []
     recomputed = 0
     refreshed = 0
@@ -255,6 +260,8 @@ def legacy_view_from_revision(revision):
     visible = set()
     uncertain = set()
     for record in revision.records:
+        if record.key.predicate not in _ARGUMENT_KINDS:
+            continue
         atom = Atom(
             record.key.predicate,
             tuple(term_value(value) for value in record.key.arguments),

@@ -118,6 +118,14 @@ class PredicateRegistry(object):
     def predicates(self):
         return tuple(sorted(self._specs))
 
+    @property
+    def specs(self):
+        return tuple(self._specs[key] for key in sorted(self._specs))
+
+    def extended(self, specs):
+        """Return a new registry without mutating either input registry."""
+        return PredicateRegistry(self.specs + tuple(specs))
+
     def to_dict(self):
         return {
             "predicates": [self._specs[key].to_dict()

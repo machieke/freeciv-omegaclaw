@@ -1,6 +1,6 @@
 # Functional Dependent AtomSpace
 
-Status: Phase 3 ruleset/proof foundation passed; component-only
+Status: Phase 4 city/economy shadow slice passed; component-only
 
 Branch: `experimental/functional-dependent-atomspace`
 
@@ -113,8 +113,9 @@ recomputation and measured 20.3 ms mean and 37.1 ms p95; they are retained as
 worst-case catch-up evidence rather than represented as ordinary single-turn
 updates.
 
-This remains a compatibility-only materialized view. No generic domain rule,
-goal, candidate, pressure, or execution path consumes FDAS yet.
+At the Phase 2 boundary this remained a compatibility-only materialized view;
+no generic domain rule, goal, candidate, pressure, or execution path consumed
+FDAS.
 
 ## Phase 3 ruleset and proof foundation
 
@@ -138,13 +139,36 @@ technology, the generic shadow path matches the specialized oracle's status
 and prerequisite closure in empty and prerequisite-complete states. The
 specialized oracle remains authoritative and research behavior is unchanged.
 
+## Phase 4 city/economy shadow slice
+
+An opt-in rich projector now composes the exact legacy facade with empire and
+per-city factual scopes. Numeric food, shield, treasury, rate, research,
+buildability, cost, and ETA values remain outside atom arguments and are
+available through typed dependency-declaring groundings. The projector emits
+symbolic authoritative facts and deterministic food, order, production,
+queue-funding, treasury, and research-throughput conditions.
+
+Local deficits instantiate distinct pressure-compatible `GoalState` values;
+utility and safety do not enter the factual atom truth. Candidate construction
+binds only current canonical city-governor, city-production, player-rate, and
+research actions into durable `OperationSpec` shadows with explicit resource
+keys. Because generic action effects remain unknown in IR 2.0, every such
+candidate is explicitly blocked from authority. Candidate comparison reports
+record overlap, omissions, extras, legal-binding failures, authority
+violations, and safety downgrades.
+
+Revision-bound `explain` and `why_not` queries expose supports, exact field and
+policy dependencies, provenance, completeness, and deterministic hashes.
+The rich projector is opt-in and not used by the default compatibility or live
+planning path.
+
 ## Activation
 
 `profile/fdas_manifest.json` declares the typed core, dependency truth
-maintenance, incremental snapshot projection, ruleset domain projection, and
-generic rule execution as `component-only`. The compatibility facade is
-enabled, but policy authority is false and every live domain/policy capability
-remains `not-built`. `profile/fdas_catalog.json`
+maintenance, incremental snapshot projection, ruleset domain projection,
+generic rule execution, and city domain projection as `component-only`. The
+compatibility facade is enabled, but policy authority is false and every live
+domain/policy capability remains `not-built`. `profile/fdas_catalog.json`
 separates the ten legacy projected predicates and nine legacy groundings from
 the proposed namespaces, authority classes, scopes, first-slice predicates,
 and typed groundings.
