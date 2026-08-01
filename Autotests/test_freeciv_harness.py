@@ -209,6 +209,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "protected_bridge_readout_diagnostic_v1": 10,
             "corrected_probe_readout_diagnostic_v1": 10,
             "path_persistence_diagnostic_v1": 10,
+            "grounded_enabling_operations_diagnostic_v1": 10,
             "path_persistence_pilot_v1": 30,
         }
     seed_sets = [
@@ -235,6 +236,38 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "treatment": {
             "max_no_effect_failovers_per_scope": 4,
             "production_strategy": "horizon_score"},
+    }
+    enabling_diagnostic = paired["cohorts"][
+        "grounded_enabling_operations_diagnostic_v1"]
+    assert enabling_diagnostic["isolated_policy_keys"] == [
+        "pressure_production_operations_enabled",
+        "pressure_research_operations_enabled",
+    ]
+    assert enabling_diagnostic["grounded_enabling_design"] == {
+        "authority": "shadow_only_existing_policy_actions",
+        "behavior_invariance": (
+            "no_candidate_ordering_or_execution_authority"),
+        "deadline": "fixed_cohort_horizon",
+        "production_completion_authority": (
+            "authoritative_product_identity"),
+        "required_mechanisms": [
+            "grounded_transition_estimate",
+            "requirement_set",
+            "exact_identity_resource_schedule",
+            "engine_acceptance_attribution",
+            "authoritative_lifecycle_resolution",
+        ],
+        "research_completion_authority": (
+            "authoritative_known_technology"),
+        "schema_version": "1.0",
+    }
+    assert enabling_diagnostic["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": (
+            "pf-pln-grounded-enabling-operations-diagnostic-v1"),
+        "count": 10,
+        "minimum": 7900000,
+        "maximum": 7999999,
     }
     combat_scenario = paired["cohorts"][
         "combat_operation_authority_scenario_diagnostic_v2"]

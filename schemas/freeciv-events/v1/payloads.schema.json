@@ -300,6 +300,27 @@
           "items": {"$ref": "#/$defs/jsonValue"}
         },
         "requirement_set": {"$ref": "#/$defs/jsonValue"},
+        "domain_estimate_request_id": {
+          "type": "string", "minLength": 1
+        },
+        "downstream_operation_id": {
+          "type": "string", "minLength": 1
+        },
+        "released_downstream_operation_id": {
+          "type": "string", "minLength": 1
+        },
+        "goal_ids": {
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "grounded_goal_id": {"type": "string", "minLength": 1},
+        "mechanism": {"type": "string", "minLength": 1},
+        "step_index": {"type": "integer", "minimum": 0},
+        "product_ref": {"type": "string", "minLength": 1},
+        "technology_ref": {"type": "string", "minLength": 1},
+        "dependency_ready": {"type": "boolean"},
+        "downstream_ready": {"type": "boolean"},
+        "replan_required": {"type": "boolean"},
         "probability_interval": {"$ref": "#/$defs/jsonValue"},
         "material_estimate": {"$ref": "#/$defs/jsonValue"},
         "step_probability_intervals": {

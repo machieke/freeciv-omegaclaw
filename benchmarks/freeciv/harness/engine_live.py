@@ -1889,6 +1889,14 @@ async def _play(run_dir, manifest, context):
         manifest["impact_policy"].get(
             "pressure_city_defense_operation_authority_enabled",
             False))
+    production_operations_enabled = bool(
+        manifest["impact_policy"].get(
+            "pressure_production_operations_enabled",
+            False))
+    research_operations_enabled = bool(
+        manifest["impact_policy"].get(
+            "pressure_research_operations_enabled",
+            False))
     combat_operation_action_budget = (
         int(manifest["impact_policy"][
             "max_actions_per_turn"])
@@ -1904,7 +1912,9 @@ async def _play(run_dir, manifest, context):
             observability_ir.to_dict())
         if (
             combat_operations_enabled
-            or city_defense_operation_authority_enabled)
+            or city_defense_operation_authority_enabled
+            or production_operations_enabled
+            or research_operations_enabled)
         else None)
     combat_ruleset_digest = (
         operation_ruleset_digest
@@ -2374,14 +2384,32 @@ async def _play(run_dir, manifest, context):
                     caused_by=[cause])
                 domain_observability.emit_snapshot(
                     next_snapshot, event["event_id"], raw=next_raw)
+                enabling_events = (
+                    control_event_emitter
+                    .resolve_grounded_enabling_operations(
+                        writer,
+                        next_snapshot,
+                        production_enabled=(
+                            production_operations_enabled),
+                        research_enabled=(
+                            research_operations_enabled),
+                        caused_by=(
+                            event["event_id"],))
+                    if (
+                        production_operations_enabled
+                        or research_operations_enabled)
+                    else ())
+                enabling_parent = (
+                    enabling_events[-1]["event_id"]
+                    if enabling_events
+                    else event["event_id"])
                 operation_events = (
                     control_event_emitter
                     .resolve_city_defense_operations(
                         writer,
                         next_snapshot,
                         caused_by=(
-                            event[
-                                "event_id"],)))
+                            enabling_parent,)))
                 combat_parent = (
                     operation_events[
                         -1]["event_id"]
@@ -2449,13 +2477,31 @@ async def _play(run_dir, manifest, context):
                     caused_by=[parent])
                 domain_observability.emit_snapshot(
                     snapshot, state_event["event_id"], raw=raw)
+                enabling_events = (
+                    control_event_emitter
+                    .resolve_grounded_enabling_operations(
+                        writer,
+                        snapshot,
+                        production_enabled=(
+                            production_operations_enabled),
+                        research_enabled=(
+                            research_operations_enabled),
+                        caused_by=(
+                            state_event["event_id"],))
+                    if (
+                        production_operations_enabled
+                        or research_operations_enabled)
+                    else ())
+                enabling_parent = (
+                    enabling_events[-1]["event_id"]
+                    if enabling_events
+                    else state_event["event_id"])
                 operation_events = (
                     control_event_emitter
                     .resolve_city_defense_operations(
                         writer, snapshot,
                         caused_by=(
-                            state_event[
-                                "event_id"],)))
+                            enabling_parent,)))
                 operation_parent = (
                     operation_events[
                         -1]["event_id"]
@@ -2609,12 +2655,41 @@ async def _play(run_dir, manifest, context):
 
             planned_action = _action_for_plan(raw, snapshot, active_plan)
             if planned_action is not None:
+                enabling_events = (
+                    control_event_emitter
+                    .prepare_grounded_enabling_operation(
+                        writer, snapshot,
+                        observability_ir,
+                        operation_ruleset_digest,
+                        planned_action,
+                        int(manifest["turn_limit"]),
+                        caused_by=(parent,))
+                    if (
+                        research_operations_enabled
+                        and planned_action.get(
+                            "action_type")
+                        == "tech_research")
+                    else ())
+                if enabling_events:
+                    parent = enabling_events[-1][
+                        "event_id"]
                 outcome, parent = await _execute_action(
                     gate, manifest["game_id"], player_id, snapshot,
                     planned_action, parent, attempted_count, active_plan)
                 attempted_count += 1
                 action_count += int(outcome.submitted)
                 rejected += int(outcome.submitted and outcome.status != "accepted")
+                enabling_outcome_events = (
+                    control_event_emitter
+                    .emit_grounded_enabling_action_outcome(
+                        writer, snapshot,
+                        planned_action, outcome,
+                        caused_by=(parent,))
+                    if research_operations_enabled
+                    else ())
+                if enabling_outcome_events:
+                    parent = enabling_outcome_events[
+                        -1]["event_id"]
                 if outcome.status != "accepted":
                     raise RuntimeError("planned action failed: {}".format(outcome.reason))
                 planned_actions += 1
@@ -2627,12 +2702,36 @@ async def _play(run_dir, manifest, context):
                   and plain_selection != "end_turn"):
                 direct_action = _research_action(snapshot, plain_selection)
                 if direct_action is not None:
+                    enabling_events = (
+                        control_event_emitter
+                        .prepare_grounded_enabling_operation(
+                            writer, snapshot,
+                            observability_ir,
+                            operation_ruleset_digest,
+                            direct_action,
+                            int(manifest[
+                                "turn_limit"]),
+                            caused_by=(parent,))
+                        if research_operations_enabled
+                        else ())
+                    if enabling_events:
+                        parent = enabling_events[
+                            -1]["event_id"]
                     outcome, parent = await _execute_action(
                         gate, manifest["game_id"], player_id, snapshot,
                         direct_action, parent, attempted_count)
                     attempted_count += 1
                     action_count += int(outcome.submitted)
                     rejected += int(outcome.submitted and outcome.status != "accepted")
+                    enabling_outcome_events = (
+                        control_event_emitter
+                        .emit_grounded_enabling_action_outcome(
+                            writer, snapshot,
+                            direct_action, outcome,
+                            caused_by=(parent,)))
+                    if enabling_outcome_events:
+                        parent = enabling_outcome_events[
+                            -1]["event_id"]
                     if outcome.status != "accepted":
                         raise RuntimeError(
                             "model-selected action failed: {}".format(outcome.reason))
@@ -2898,6 +2997,28 @@ async def _play(run_dir, manifest, context):
                     execution_monitor.register(decision.plan)
                     impact_decision_event_latency_ms += (
                         time.perf_counter() - decision_event_started) * 1000.0
+                    enabling_events = (
+                        control_event_emitter
+                        .prepare_grounded_enabling_operation(
+                            writer,
+                            action_snapshot,
+                            observability_ir,
+                            operation_ruleset_digest,
+                            impact_action,
+                            int(manifest[
+                                "turn_limit"]),
+                            candidate=(
+                                decision.candidate),
+                            caused_by=(parent,))
+                        if (
+                            production_operations_enabled
+                            and impact_action.get(
+                                "action_type")
+                            == "city_production")
+                        else ())
+                    if enabling_events:
+                        parent = enabling_events[
+                            -1]["event_id"]
                     execution_started = time.perf_counter()
                     outcome, parent = await _execute_action(
                         gate, manifest["game_id"], player_id, snapshot,
@@ -2911,6 +3032,20 @@ async def _play(run_dir, manifest, context):
                     attempted_count += 1
                     action_count += int(outcome.submitted)
                     rejected += int(outcome.submitted and outcome.status != "accepted")
+                    enabling_outcome_events = (
+                        control_event_emitter
+                        .emit_grounded_enabling_action_outcome(
+                            writer,
+                            action_snapshot,
+                            impact_action,
+                            outcome,
+                            caused_by=(parent,))
+                        if production_operations_enabled
+                        else ())
+                    if enabling_outcome_events:
+                        parent = (
+                            enabling_outcome_events[
+                                -1]["event_id"])
                     operation_events = (
                         control_event_emitter
                         .emit_city_defense_action_outcome(

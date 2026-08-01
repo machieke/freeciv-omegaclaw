@@ -109,6 +109,8 @@ impact_policy:
   pressure_city_defense_operation_authority_enabled: false
   pressure_combat_operations_enabled: false
   pressure_combat_operation_authority_enabled: false
+  pressure_production_operations_enabled: false
+  pressure_research_operations_enabled: false
   pressure_domain_estimates_enabled: false
   pressure_domain_estimates_authority_enabled: false
   pressure_transition_value_enabled: false
@@ -3863,6 +3865,67 @@ paired_impact:
         count: 10
         minimum: 5500000
         maximum: 5599999
+    grounded_enabling_operations_diagnostic_v1:
+      claim_eligible: false
+      purpose: diagnostic
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 160
+      planned_pairs: 10
+      controller_workers: 3
+      controller_worker_execution: process_isolated
+      server_recycle_mode: hard_per_arm
+      isolated_policy_keys:
+        - pressure_production_operations_enabled
+        - pressure_research_operations_enabled
+      grounded_enabling_design:
+        schema_version: "1.0"
+        authority: shadow_only_existing_policy_actions
+        production_completion_authority: authoritative_product_identity
+        research_completion_authority: authoritative_known_technology
+        deadline: fixed_cohort_horizon
+        behavior_invariance: no_candidate_ordering_or_execution_authority
+        required_mechanisms:
+          - grounded_transition_estimate
+          - requirement_set
+          - exact_identity_resource_schedule
+          - engine_acceptance_attribution
+          - authoritative_lifecycle_resolution
+      arms:
+        baseline:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_operation_lifecycle_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_production_operations_enabled: false
+          pressure_requirement_sets_enabled: true
+          pressure_research_operations_enabled: false
+          pressure_resource_scheduler_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+        treatment:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_operation_lifecycle_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_production_operations_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_research_operations_enabled: true
+          pressure_resource_scheduler_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-grounded-enabling-operations-diagnostic-v1
+        count: 10
+        minimum: 7900000
+        maximum: 7999999
     path_persistence_pilot_v1:
       claim_eligible: false
       purpose: pilot

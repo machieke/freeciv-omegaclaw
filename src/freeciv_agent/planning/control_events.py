@@ -203,6 +203,9 @@ class ControlEventEmitter:
         self._operation_action_keys = {}
         self._operation_event_ids = {}
         self._combat_lifecycles = {}
+        self._production_lifecycles = {}
+        self._research_lifecycles = {}
+        self._prepared_enabling_actions = set()
 
     def _operation_store_for(self, writer):
         game_id = str(
@@ -229,6 +232,38 @@ class ControlEventEmitter:
                 CombatOperationLifecycle(
                     game_id))
             self._combat_lifecycles[
+                game_id] = lifecycle
+        return lifecycle
+
+    def _production_lifecycle_for(
+            self, writer):
+        from .production_lifecycle import (
+            ProductionOperationLifecycle,
+        )
+
+        game_id = str(writer.game_id)
+        lifecycle = self._production_lifecycles.get(
+            game_id)
+        if lifecycle is None:
+            lifecycle = ProductionOperationLifecycle(
+                game_id)
+            self._production_lifecycles[
+                game_id] = lifecycle
+        return lifecycle
+
+    def _research_lifecycle_for(
+            self, writer):
+        from .research_lifecycle import (
+            ResearchOperationLifecycle,
+        )
+
+        game_id = str(writer.game_id)
+        lifecycle = self._research_lifecycles.get(
+            game_id)
+        if lifecycle is None:
+            lifecycle = ResearchOperationLifecycle(
+                game_id)
+            self._research_lifecycles[
                 game_id] = lifecycle
         return lifecycle
 
@@ -2073,6 +2108,739 @@ class ControlEventEmitter:
                         "event_id"],)
             self._emitted_resource_batch_ids.add(
                 batch_id)
+        return tuple(emitted)
+
+    @staticmethod
+    def _grounded_enabling_assembly(
+            snapshot, ruleset_ir,
+            ruleset_digest, action,
+            completion_deadline_turn,
+            candidate=None):
+        """Ground one chosen production/research action without policy input."""
+        from .domain_models import (
+            DomainEstimateRequest,
+            EstimateValidity,
+            GroundedProductionTransitionModel,
+            GroundedResearchTransitionModel,
+        )
+        from .impact import ImpactCandidate
+        from .production_operations import (
+            ProductionEnablingIntent,
+            ProductionEnablingOperationAssembler,
+        )
+        from .research_operations import (
+            ResearchEnablingIntent,
+            ResearchEnablingOperationAssembler,
+        )
+
+        action_type = str(
+            action.get("action_type", ""))
+        if action_type not in (
+                "city_production",
+                "tech_research"):
+            return None
+        if candidate is None:
+            candidate = ImpactCandidate(
+                action=dict(action),
+                category=(
+                    "research_strategy"
+                    if action_type
+                    == "tech_research"
+                    else "production_enabling"),
+                utility=1.0,
+                rationale=(
+                    "observed existing-policy selection"),
+                projection={})
+        projection = dict(
+            getattr(
+                candidate,
+                "projection", None)
+            or {})
+        target = action.get("target")
+        if action_type == "tech_research":
+            immediate_tech = (
+                target.get("tech_name")
+                if isinstance(target, dict)
+                else None)
+            if not isinstance(
+                    immediate_tech, str
+                    ) or not immediate_tech:
+                return None
+            projection.setdefault(
+                "strategic_target_tech",
+                immediate_tech)
+            candidate = ImpactCandidate(
+                action=dict(action),
+                category=str(getattr(
+                    candidate, "category",
+                    "research_strategy")),
+                utility=float(getattr(
+                    candidate, "utility", 1.0)),
+                rationale=str(getattr(
+                    candidate, "rationale",
+                    "observed existing-policy selection")),
+                projection=projection)
+            goal_id = "pf-impact:science"
+        else:
+            goal_id = "pf-impact:{}".format(
+                str(getattr(
+                    candidate, "category",
+                    "production_enabling")))
+        action_key = canonical_json_bytes(
+            action).decode("utf-8")
+        request_id = structural_hash({
+            "action": action_key,
+            "component":
+                "gdo7-live-enabling-shadow/1.0",
+            "goal_id": goal_id,
+            "legal_actions_digest":
+                snapshot.legal_actions_digest,
+            "ruleset_digest":
+                str(ruleset_digest),
+            "snapshot_id": snapshot.snapshot_id,
+        })
+        request = DomainEstimateRequest(
+            request_id=request_id,
+            snapshot=snapshot,
+            ruleset_ir=ruleset_ir,
+            legal_action=dict(action),
+            candidate=candidate,
+            goal_losses=((goal_id, 1.0),),
+            operation_context=None,
+            validity=EstimateValidity(
+                snapshot_id=snapshot.snapshot_id,
+                legal_actions_digest=(
+                    snapshot.legal_actions_digest),
+                ruleset_digest=str(
+                    ruleset_digest),
+                estimated_at_turn=int(
+                    snapshot.turn),
+                valid_through_turn=int(
+                    snapshot.turn)),
+            horizon_turn=int(
+                completion_deadline_turn))
+        if action_type == "city_production":
+            estimate = (
+                GroundedProductionTransitionModel()
+                .estimate(request))
+            if not isinstance(target, dict):
+                return estimate, None, request, goal_id
+            target_name = target.get(
+                "production_type")
+            fields = (
+                action.get("city_id"),
+                action.get("production_kind"),
+                action.get("production_value"))
+            if (
+                    not isinstance(target_name, str)
+                    or not target_name
+                    or any(
+                        isinstance(value, bool)
+                        or not isinstance(value, int)
+                        or value < 0
+                        for value in fields)
+            ):
+                return estimate, None, request, goal_id
+            intent = ProductionEnablingIntent(
+                operation_type=(
+                    "BUILD_ENABLING_PRODUCT"),
+                city_id=int(fields[0]),
+                production_kind=int(fields[1]),
+                production_value=int(fields[2]),
+                target_name=target_name,
+                downstream_operation_id=(
+                    "policy-action:{}".format(
+                        structural_hash({
+                            "category":
+                                candidate.category,
+                            "goal": goal_id,
+                        })[:24])),
+                completion_deadline_turn=int(
+                    completion_deadline_turn),
+                scheduling_bid=1.0,
+                emergency=False)
+            assembly = (
+                ProductionEnablingOperationAssembler
+                .assemble(
+                    snapshot, intent,
+                    estimate, (goal_id,),
+                    str(ruleset_digest)))
+        else:
+            estimate = (
+                GroundedResearchTransitionModel()
+                .estimate(request))
+            strategic_target = projection[
+                "strategic_target_tech"]
+            intent = ResearchEnablingIntent(
+                operation_type=(
+                    "RESEARCH_ENABLER"),
+                immediate_tech=immediate_tech,
+                strategic_target_tech=(
+                    strategic_target),
+                downstream_operation_id=(
+                    "policy-action:{}".format(
+                        structural_hash({
+                            "goal": goal_id,
+                            "strategic_target":
+                                strategic_target,
+                        })[:24])),
+                completion_deadline_turn=int(
+                    completion_deadline_turn),
+                scheduling_bid=1.0,
+                emergency=False)
+            assembly = (
+                ResearchEnablingOperationAssembler
+                .assemble(
+                    snapshot, intent,
+                    estimate, (goal_id,),
+                    str(ruleset_digest)))
+        return estimate, assembly, request, goal_id
+
+    def _emit_grounded_enabling_estimate(
+            self, writer, snapshot,
+            estimate, request, candidate,
+            caused_by=()):
+        from ..pressure.teleology import (
+            typed_expected_reliefs,
+        )
+
+        if request.request_id in (
+                self._emitted_domain_request_ids):
+            return ()
+        estimate_dict = estimate.to_dict()
+        action = request.legal_action
+        authority = estimate.authority.value
+        target = action.get("target")
+        target_id = action.get(
+            "city_id", action.get("target_id"))
+        if isinstance(target, dict):
+            target_id = target.get(
+                "tech_name",
+                target.get(
+                    "production_type",
+                    target_id))
+        payload = {
+            "action_category": str(getattr(
+                candidate, "category",
+                "research_strategy"
+                if request.action_type
+                == "tech_research"
+                else "production_enabling")),
+            "action_type": request.action_type,
+            "actor_id": (
+                None
+                if action.get(
+                    "actor_id",
+                    action.get("city_id"))
+                is None
+                else str(action.get(
+                    "actor_id",
+                    action.get("city_id")))),
+            "adverse_risk": float(
+                estimate.transition
+                .expected_adverse_loss),
+            "authority": authority,
+            "candidate_action_id":
+                structural_hash(action),
+            "confidence": float(
+                estimate.confidence),
+            "context_key":
+                estimate_dict["context_key"],
+            "estimator_id":
+                estimate.estimator_id,
+            "estimator_version":
+                estimate.estimator_version,
+            "expected_relief": dict(
+                typed_expected_reliefs(
+                    estimate.transition,
+                    request.goal_losses)),
+            "latency_ms": 0.0,
+            "operation_id":
+                estimate.transition.operation_id,
+            "provenance": list(
+                estimate.provenance),
+            "request_id": request.request_id,
+            "target_id": (
+                None if target_id is None
+                else str(target_id)),
+            "transition":
+                estimate_dict["transition"],
+            "validity":
+                estimate_dict["validity"],
+        }
+        if "model_artifact" in estimate_dict:
+            payload["model_artifact"] = (
+                estimate_dict[
+                    "model_artifact"])
+        event_type = "domain_estimate_emitted"
+        if authority == "abstain":
+            event_type = "domain_estimate_abstained"
+            payload["abstention_reason"] = (
+                estimate.abstention_reason)
+            artifact = estimate_dict.get(
+                "model_artifact")
+            payload["missing_fields"] = list(
+                artifact.get(
+                    "missing_fields", ())
+                if isinstance(artifact, dict)
+                else ())
+        event = writer.emit(
+            event_type,
+            int(snapshot.turn),
+            payload,
+            caused_by=list(caused_by))
+        self._emitted_domain_request_ids.add(
+            request.request_id)
+        return (event,)
+
+    @staticmethod
+    def _grounded_enabling_payload(
+            assembly, request, goal_id,
+            snapshot, selected, reason):
+        spec = assembly.spec
+        participant = spec.participants[0]
+        return {
+            "actor_id": participant.actor_id,
+            "assignment_digest": None,
+            "bid": float(
+                assembly.resource_request.bid),
+            "claims": [
+                claim.to_dict()
+                for claim in
+                assembly.resource_request.claims],
+            "deadline_turn": spec.expiry_turn,
+            "domain_estimate_request_id":
+                request.request_id,
+            "event_schema_version":
+                CONTROL_EVENT_SCHEMA_VERSION,
+            "expected_prevented_loss": 0.0,
+            "goal_ids": list(spec.goal_ids),
+            "next_action": (
+                assembly.queue_action()
+                if hasattr(assembly, "queue_action")
+                else assembly.selection_action()),
+            "operation_digest":
+                structural_hash(spec.to_dict()),
+            "operation_id": spec.operation_id,
+            "operation_type": spec.operation_type,
+            "opportunity_cost": 0.0,
+            "participants": [
+                row.to_dict()
+                for row in spec.participants],
+            "policy_authority": False,
+            "provenance": list(spec.provenance),
+            "reason_code": reason,
+            "requirement_id":
+                assembly.requirement_set
+                .requirement_set_id,
+            "requirement_set":
+                assembly.requirement_set.to_dict(),
+            "selected": bool(selected),
+            "shadow_only": True,
+            "snapshot_id": snapshot.snapshot_id,
+            "state": "proposed",
+            "target_id": spec.target_ref,
+            "downstream_operation_id": (
+                assembly.intent
+                .downstream_operation_id),
+            "grounded_goal_id": goal_id,
+            "mechanism": (
+                "gdo7a-production-enabling"
+                if hasattr(assembly, "queue_action")
+                else "gdo7b-research-enabling"),
+        }
+
+    def _apply_grounded_enabling_update(
+            self, lifecycle, update):
+        payload = self._operation_payloads[
+            update.operation_id]
+        assembly = lifecycle.assembly(
+            update.operation_id)
+        payload["state"] = update.state
+        payload["step_index"] = (
+            update.step_index)
+        payload["reason_code"] = (
+            update.reason)
+        if update.next_action is not None:
+            payload["next_action"] = dict(
+                update.next_action)
+        if update.schedule is not None:
+            payload["assignment_digest"] = (
+                update.schedule
+                .decision_digest)
+            request = next((
+                row for row in
+                update.schedule.requests
+                if row.operation_id
+                == update.operation_id
+            ), None)
+            if request is not None:
+                payload["claims"] = [
+                    claim.to_dict()
+                    for claim in request.claims]
+        product_ref = getattr(
+            update, "product_ref", None)
+        technology_ref = getattr(
+            update, "technology_ref", None)
+        if product_ref is not None:
+            payload["product_ref"] = product_ref
+        if technology_ref is not None:
+            payload["technology_ref"] = (
+                technology_ref)
+        for name in (
+                "dependency_ready",
+                "downstream_ready",
+                "replan_required"):
+            if hasattr(update, name):
+                payload[name] = bool(
+                    getattr(update, name))
+        downstream_id = getattr(
+            update,
+            "downstream_operation_id",
+            None)
+        if downstream_id is not None:
+            payload[
+                "released_downstream_operation_id"
+            ] = downstream_id
+        return payload, assembly
+
+    def _emit_grounded_enabling_schedule(
+            self, writer, snapshot,
+            update, component,
+            caused_by=()):
+        if update.schedule is None:
+            return ()
+        schedule = update.schedule
+        batch_id = structural_hash({
+            "component": component,
+            "operation_id":
+                update.operation_id,
+            "snapshot_id":
+                snapshot.snapshot_id,
+            "step_index":
+                update.step_index,
+        })
+        artifact = {
+            "batch_id": batch_id,
+            "exact": schedule.to_dict(),
+            "packet_committed_operation_ids":
+                list(schedule
+                     .selected_operation_ids),
+            "packet_exact_selection_equal": True,
+            "request_count": len(
+                schedule.requests),
+        }
+        artifact["artifact_hash"] = (
+            structural_hash(artifact))
+        return self.emit_resource_schedule_results(
+            writer, int(snapshot.turn),
+            (artifact,), caused_by=caused_by)
+
+    def _emit_grounded_enabling_update(
+            self, writer, snapshot,
+            lifecycle, update,
+            component, caused_by=(),
+            action_id=None):
+        self._apply_grounded_enabling_update(
+            lifecycle, update)
+        parents = tuple(dict.fromkeys(
+            tuple(caused_by)
+            + tuple(
+                value for value in (
+                    self._operation_event_ids.get(
+                        update.operation_id),)
+                if value)))
+        emitted = []
+        schedule_events = (
+            self._emit_grounded_enabling_schedule(
+                writer, snapshot, update,
+                component, caused_by=parents))
+        emitted.extend(schedule_events)
+        if schedule_events:
+            parents = (
+                schedule_events[-1][
+                    "event_id"],)
+        common = (
+            writer, int(snapshot.turn),
+            update.operation_id)
+
+        def emit_state(
+                event_type, state,
+                reason=None,
+                resolution_status=None):
+            nonlocal parents
+            event = self._emit_operation_state(
+                *common, event_type, state,
+                reason,
+                snapshot.snapshot_id,
+                parents,
+                action_id=action_id,
+                resolution_status=(
+                    resolution_status))
+            emitted.append(event)
+            parents = (event["event_id"],)
+
+        if update.disposition == "reserved":
+            emit_state(
+                "operation_reserved",
+                "reserved")
+            emit_state(
+                "operation_step_selected",
+                "step_selected")
+        elif update.disposition == (
+                "step_committed"):
+            if update.previous_state == (
+                    OperationState.RESERVED.value):
+                emit_state(
+                    "operation_activated",
+                    "activated")
+            emit_state(
+                "operation_step_revalidated",
+                "step_revalidated")
+            emit_state(
+                "operation_step_committed",
+                "step_committed")
+        elif update.disposition in (
+                "waiting", "step_revalidated"):
+            if update.previous_state in (
+                    OperationState.RESERVED.value,
+                    OperationState.BLOCKED.value):
+                emit_state(
+                    "operation_activated",
+                    "activated")
+            emit_state(
+                "operation_step_revalidated",
+                "step_revalidated",
+                update.reason)
+        elif update.disposition == "completed":
+            emit_state(
+                "operation_completed",
+                "completed", update.reason,
+                "resolved_success")
+        elif update.disposition == "failed":
+            emit_state(
+                "operation_failed",
+                "failed", update.reason,
+                "resolved_failure")
+        elif update.disposition == "blocked":
+            emit_state(
+                "operation_blocked",
+                "blocked", update.reason)
+        elif update.disposition == "repaired":
+            emit_state(
+                "operation_repaired",
+                "repaired", update.reason)
+        elif update.disposition in (
+                "abandoned", "expired"):
+            emit_state(
+                "operation_abandoned"
+                if update.disposition
+                == "abandoned"
+                else "operation_expired",
+                update.disposition,
+                update.reason,
+                "censored_operation_abort")
+        if update.released_reservation is not None:
+            releases = self.emit_resource_releases(
+                writer, int(snapshot.turn),
+                (update.released_reservation,),
+                lifecycle.ledger.ledger_digest,
+                lifecycle.ledger.LEDGER_IDENTITY,
+                caused_by=parents)
+            emitted.extend(releases)
+        return tuple(emitted)
+
+    def prepare_grounded_enabling_operation(
+            self, writer, snapshot,
+            ruleset_ir, ruleset_digest,
+            action, completion_deadline_turn,
+            candidate=None, caused_by=()):
+        """Register a shadow GDO-7 operation for an existing-policy action."""
+        if (
+                snapshot is None
+                or not isinstance(action, dict)
+                or not isinstance(
+                    completion_deadline_turn, int)
+                or isinstance(
+                    completion_deadline_turn, bool)
+                or completion_deadline_turn
+                    <= int(snapshot.turn)
+        ):
+            return ()
+        action_type = str(
+            action.get("action_type", ""))
+        if action_type not in (
+                "city_production",
+                "tech_research"):
+            return ()
+        key = (
+            str(writer.game_id),
+            str(snapshot.snapshot_id),
+            canonical_json_bytes(
+                action).decode("utf-8"))
+        if key in self._prepared_enabling_actions:
+            return ()
+        self._prepared_enabling_actions.add(key)
+        result = self._grounded_enabling_assembly(
+            snapshot, ruleset_ir,
+            ruleset_digest, action,
+            completion_deadline_turn,
+            candidate=candidate)
+        if result is None:
+            return ()
+        estimate, assembly, request, goal_id = (
+            result)
+        candidate_for_event = candidate
+        if candidate_for_event is None:
+            from .impact import ImpactCandidate
+            candidate_for_event = ImpactCandidate(
+                dict(action),
+                "research_strategy"
+                if action_type
+                == "tech_research"
+                else "production_enabling",
+                1.0,
+                "observed existing-policy selection")
+        estimate_events = (
+            self._emit_grounded_enabling_estimate(
+                writer, snapshot,
+                estimate, request,
+                candidate_for_event,
+                caused_by=caused_by))
+        parents = (
+            (estimate_events[-1]["event_id"],)
+            if estimate_events
+            else tuple(caused_by))
+        if assembly is None:
+            return estimate_events
+        lifecycle = (
+            self._production_lifecycle_for(writer)
+            if action_type == "city_production"
+            else self._research_lifecycle_for(writer))
+        updates = lifecycle.register(
+            assembly, snapshot)
+        selected = bool(
+            updates
+            and updates[0].disposition
+            != "blocked")
+        reason = (
+            updates[0].reason
+            if updates else
+            "duplicate-operation-identity")
+        payload = self._grounded_enabling_payload(
+            assembly, request, goal_id,
+            snapshot, selected, reason)
+        proposed = writer.emit(
+            "operation_proposed",
+            int(snapshot.turn), payload,
+            caused_by=list(parents))
+        self._operation_payloads[
+            assembly.spec.operation_id] = (
+                dict(payload))
+        self._operation_event_ids[
+            assembly.spec.operation_id] = (
+                proposed["event_id"])
+        emitted = list(estimate_events)
+        emitted.append(proposed)
+        parents = (proposed["event_id"],)
+        component = (
+            "gdo7a-production-lifecycle"
+            if action_type
+            == "city_production"
+            else "gdo7b-research-lifecycle")
+        for update in updates:
+            events = self._emit_grounded_enabling_update(
+                writer, snapshot, lifecycle,
+                update, component,
+                caused_by=parents)
+            emitted.extend(events)
+            if events:
+                parents = (
+                    events[-1]["event_id"],)
+        return tuple(emitted)
+
+    def emit_grounded_enabling_action_outcome(
+            self, writer, snapshot,
+            action, outcome,
+            caused_by=()):
+        """Attribute an accepted engine action to its exact GDO-7 shadow."""
+        if (
+                snapshot is None
+                or not isinstance(action, dict)
+                or outcome is None
+        ):
+            return ()
+        action_type = str(
+            action.get("action_type", ""))
+        if action_type == "city_production":
+            lifecycle = self._production_lifecycle_for(
+                writer)
+            component = (
+                "gdo7a-production-lifecycle")
+        elif action_type == "tech_research":
+            lifecycle = self._research_lifecycle_for(
+                writer)
+            component = (
+                "gdo7b-research-lifecycle")
+        else:
+            return ()
+        accepted = bool(
+            getattr(outcome, "submitted", False)
+            and getattr(outcome, "status", None)
+            == "accepted")
+        updates = lifecycle.commit_matching_action(
+            snapshot, action,
+            accepted=accepted,
+            reason=getattr(
+                outcome, "reason", None))
+        emitted = []
+        parents = tuple(caused_by)
+        for update in updates:
+            events = self._emit_grounded_enabling_update(
+                writer, snapshot, lifecycle,
+                update, component,
+                caused_by=parents,
+                action_id=getattr(
+                    outcome, "action_id", None))
+            emitted.extend(events)
+            if events:
+                parents = (
+                    events[-1]["event_id"],)
+        return tuple(emitted)
+
+    def resolve_grounded_enabling_operations(
+            self, writer, snapshot,
+            production_enabled=False,
+            research_enabled=False,
+            caused_by=()):
+        """Resolve GDO-7 shadows from one later authoritative snapshot."""
+        if snapshot is None:
+            return ()
+        lifecycles = []
+        if production_enabled:
+            lifecycles.append((
+                self._production_lifecycle_for(
+                    writer),
+                "gdo7a-production-lifecycle"))
+        if research_enabled:
+            lifecycles.append((
+                self._research_lifecycle_for(
+                    writer),
+                "gdo7b-research-lifecycle"))
+        emitted = []
+        parents = tuple(caused_by)
+        for lifecycle, component in lifecycles:
+            for update in lifecycle.observe(
+                    snapshot):
+                events = self._emit_grounded_enabling_update(
+                    writer, snapshot,
+                    lifecycle, update,
+                    component,
+                    caused_by=parents)
+                emitted.extend(events)
+                if events:
+                    parents = (
+                        events[-1]["event_id"],)
         return tuple(emitted)
 
     def emit_combat_operation_shadow(

@@ -2,6 +2,7 @@
 
 import os
 import sys
+import tempfile
 from types import SimpleNamespace
 
 
@@ -12,7 +13,10 @@ if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
 from freeciv_agent.events.schema import canonical_json_bytes  # noqa: E402
+from freeciv_agent.events.validator import validate_file  # noqa: E402
+from freeciv_agent.events.writer import EventWriter  # noqa: E402
 from freeciv_agent.planning import (  # noqa: E402
+    ControlEventEmitter,
     ImpactCandidate,
     OperationState,
     ResearchEnablingIntent,
@@ -356,3 +360,89 @@ def test_accepted_selection_must_be_observed_and_stall_can_repair():
         "research-beaker-output-stalled")
     assert repaired.disposition == "repaired"
     assert not repaired.dependency_ready
+
+
+def test_live_shadow_observer_attributes_selection_and_technology():
+    intent = _intent()
+    before = _snapshot(intent)
+    action = intent.action(0)
+    outcome = SimpleNamespace(
+        submitted=True,
+        status="accepted",
+        reason=None,
+        action_id="engine-research-1")
+
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(
+            directory, "events.jsonl")
+        writer = EventWriter(
+            path, "research-live-shadow",
+            durable=False)
+        emitter = ControlEventEmitter()
+        prepared = (
+            emitter
+            .prepare_grounded_enabling_operation(
+                writer, before,
+                _ruleset(), "ruleset",
+                action, 30))
+        committed = (
+            emitter
+            .emit_grounded_enabling_action_outcome(
+                writer, before,
+                action, outcome,
+                caused_by=(
+                    prepared[-1]["event_id"],)))
+        selected = _snapshot(
+            intent, turn=11,
+            current="Foundation",
+            progress=0, cost=20,
+            advertise=False,
+            suffix="selected")
+        waiting = (
+            emitter
+            .resolve_grounded_enabling_operations(
+                writer, selected,
+                research_enabled=True,
+                caused_by=(
+                    committed[-1]["event_id"],)))
+        learned = _snapshot(
+            intent, turn=15,
+            current=None,
+            progress=0, cost=20,
+            known=("Foundation",),
+            advertise=False,
+            suffix="learned")
+        completed = (
+            emitter
+            .resolve_grounded_enabling_operations(
+                writer, learned,
+                research_enabled=True,
+                caused_by=(
+                    waiting[-1]["event_id"],)))
+        writer.sync()
+        report = validate_file(path)
+
+    event_types = tuple(
+        row["type"]
+        for row in (
+            prepared + committed
+            + waiting + completed))
+    assert "domain_estimate_emitted" in event_types
+    assert "operation_proposed" in event_types
+    assert "operation_reserved" in event_types
+    assert "operation_step_committed" in event_types
+    assert "operation_completed" in event_types
+    completion = next(
+        row for row in completed
+        if row["type"]
+        == "operation_completed")
+    assert completion["payload"][
+        "technology_ref"] == (
+            "technology:Foundation")
+    assert completion["payload"][
+        "downstream_ready"] is True
+    assert completion["payload"][
+        "replan_required"] is False
+    assert report.valid, [
+        row.to_dict()
+        for row in report.errors]

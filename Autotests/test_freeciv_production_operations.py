@@ -2,6 +2,7 @@
 
 import os
 import sys
+import tempfile
 from types import SimpleNamespace
 
 
@@ -13,7 +14,10 @@ if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
 from freeciv_agent.events.schema import canonical_json_bytes  # noqa: E402
+from freeciv_agent.events.validator import validate_file  # noqa: E402
+from freeciv_agent.events.writer import EventWriter  # noqa: E402
 from freeciv_agent.planning import (  # noqa: E402
+    ControlEventEmitter,
     ImpactCandidate,
     OperationState,
     ProductionEnablingIntent,
@@ -493,3 +497,89 @@ def test_building_completion_requires_new_authoritative_building():
     assert update.product_ref == (
         "building:17")
     assert update.downstream_ready
+
+
+def test_live_shadow_observer_attributes_queue_and_product_completion():
+    intent = _intent(
+        emergency=False)
+    before = _snapshot(intent)
+    ruleset = SimpleNamespace(
+        rules=(_rule(),))
+    outcome = SimpleNamespace(
+        submitted=True,
+        status="accepted",
+        reason=None,
+        action_id="engine-production-1")
+
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(
+            directory, "events.jsonl")
+        writer = EventWriter(
+            path, "production-live-shadow",
+            durable=False)
+        emitter = ControlEventEmitter()
+        prepared = (
+            emitter
+            .prepare_grounded_enabling_operation(
+                writer, before,
+                ruleset, "ruleset",
+                intent.action(), 100))
+        committed = (
+            emitter
+            .emit_grounded_enabling_action_outcome(
+                writer, before,
+                intent.action(), outcome,
+                caused_by=(
+                    prepared[-1]["event_id"],)))
+        selected = _snapshot(
+            intent, turn=73,
+            current_kind=6,
+            current_value=10,
+            advertise=False,
+            snapshot_suffix="selected")
+        waiting = (
+            emitter
+            .resolve_grounded_enabling_operations(
+                writer, selected,
+                production_enabled=True,
+                caused_by=(
+                    committed[-1]["event_id"],)))
+        completed_snapshot = _snapshot(
+            intent, turn=80,
+            current_kind=6,
+            current_value=10,
+            units=(_unit(
+                900, "Riflemen"),),
+            advertise=False,
+            snapshot_suffix="completed")
+        completed = (
+            emitter
+            .resolve_grounded_enabling_operations(
+                writer, completed_snapshot,
+                production_enabled=True,
+                caused_by=(
+                    waiting[-1]["event_id"],)))
+        writer.sync()
+        report = validate_file(path)
+
+    event_types = tuple(
+        row["type"]
+        for row in (
+            prepared + committed
+            + waiting + completed))
+    assert "domain_estimate_emitted" in event_types
+    assert "operation_proposed" in event_types
+    assert "operation_reserved" in event_types
+    assert "operation_step_committed" in event_types
+    assert "operation_completed" in event_types
+    completion = next(
+        row for row in completed
+        if row["type"]
+        == "operation_completed")
+    assert completion["payload"][
+        "product_ref"] == "unit:900"
+    assert completion["payload"][
+        "downstream_ready"] is True
+    assert report.valid, [
+        row.to_dict()
+        for row in report.errors]
