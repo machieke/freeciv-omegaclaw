@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from ..events.schema import structural_hash
 from ..pressure.model import GoalState
 from ..state.atomspace.model import AtomKey, AtomNamespace, EntityRef
+from ..state.atomspace.grounding import persistent_defender_type
 from .operations import (
     OPERATION_SCHEMA_VERSION,
     OperationParticipant,
@@ -172,6 +173,8 @@ class GoalFactory(object):
             "city-order-stable", "governance", 1.5, True),
         "city-production-stalled": (
             "city-production-active", "production_continuity", 1.2, False),
+        "city-garrison-deficit": (
+            "city-garrison-covered", "survival", 2.0, True),
         "treasury-below-reserve": (
             "treasury-structurally-safe", "treasury_sustainability", 1.6,
             True),
@@ -241,6 +244,7 @@ class CandidateOperationFactory(object):
         "city-food-deficit": frozenset(("city_governor",)),
         "city-order-deficit": frozenset(("city_governor",)),
         "city-production-stalled": frozenset(("city_production",)),
+        "city-garrison-deficit": frozenset(("unit_move",)),
         "treasury-below-reserve": frozenset(("player_rates",)),
         "research-throughput-stalled": frozenset(("tech_research",)),
     }
@@ -253,6 +257,11 @@ class CandidateOperationFactory(object):
             for schema in ruleset_ir.action_schemas)
         self._effects = dict(
             (effect.effect_id, effect) for effect in ruleset_ir.effects)
+        self._defender_types = set(
+            str(rule.rule_name).strip().lower().replace("_", " ")
+            for rule in ruleset_ir.rules
+            if (rule.target_kind == "unit"
+                and persistent_defender_type(ruleset_ir, rule.rule_name)))
 
     @staticmethod
     def _city_id(goal):
@@ -261,10 +270,22 @@ class CandidateOperationFactory(object):
                 return argument.entity_id
         return None
 
-    @staticmethod
-    def _action_matches(goal, action, player_id):
+    def _action_matches(self, goal, action, player_id, snapshot=None):
         city_id = CandidateOperationFactory._city_id(goal)
         if city_id is not None:
+            if goal.deficit_predicate == "city-garrison-deficit":
+                if action.get("action_type") != "unit_move" or snapshot is None:
+                    return False
+                city = snapshot.city(city_id)
+                actor = snapshot.unit(action.get("actor_id"))
+                target = action.get("target") or {}
+                return bool(
+                    city is not None and actor is not None
+                    and str(actor.unit_type).strip().lower().replace(
+                        "_", " ") in self._defender_types
+                    and city.x is not None and city.y is not None
+                    and target.get("x") == city.x
+                    and target.get("y") == city.y)
             if str(action.get("city_id")) != city_id:
                 return False
             target = action.get("target") or {}
@@ -289,6 +310,8 @@ class CandidateOperationFactory(object):
             return ("player-rate-action:{}".format(player_id),)
         if action_type == "tech_research":
             return ("research-choice:{}".format(player_id),)
+        if str(action_type).startswith("unit_"):
+            return ("unit-action:{}".format(action.get("actor_id")),)
         return ("action-budget:{}".format(player_id),)
 
     def _effect_blockers(self, action_type):
@@ -299,6 +322,27 @@ class CandidateOperationFactory(object):
         if not effects or any(not value.known for value in effects):
             return ("uncompiled-action-effect",)
         return ()
+
+    def _route_blockers(self, goal, action, snapshot):
+        blockers = list(self._effect_blockers(action.get("action_type")))
+        if goal.deficit_predicate != "city-garrison-deficit":
+            return tuple(blockers)
+        actor = snapshot.unit(action.get("actor_id"))
+        if actor is None:
+            blockers.append("unit-actor-unavailable")
+            return tuple(sorted(set(blockers)))
+        source_city = next((
+            value for value in snapshot.cities
+            if value.tile is not None and value.tile == actor.tile), None)
+        if source_city is not None:
+            local_defenders = tuple(
+                value for value in snapshot.units
+                if value.tile is not None and value.tile == source_city.tile
+                and str(value.unit_type).strip().lower().replace(
+                    "_", " ") in self._defender_types)
+            if len(local_defenders) <= 1:
+                blockers.append("protected-source-garrison")
+        return tuple(sorted(set(blockers)))
 
     def instantiate(self, snapshot, goal_contexts):
         legal = tuple(
@@ -311,11 +355,16 @@ class CandidateOperationFactory(object):
                 action_type = str(action.get("action_type"))
                 if (action_type not in accepted_types
                         or not self._action_matches(
-                            goal, action, snapshot.player_id)):
+                            goal, action, snapshot.player_id, snapshot)):
                     continue
                 city_id = self._city_id(goal)
-                actor_id = city_id or str(snapshot.player_id)
-                actor_class = "city" if city_id is not None else "player"
+                unit_action = str(action_type).startswith("unit_")
+                actor_id = (
+                    str(action.get("actor_id")) if unit_action
+                    else city_id or str(snapshot.player_id))
+                actor_class = (
+                    "unit" if unit_action else
+                    "city" if city_id is not None else "player")
                 participant = OperationParticipant(
                     "controller", str(actor_id), actor_class, True)
                 target_ref = (
@@ -367,7 +416,7 @@ class CandidateOperationFactory(object):
                     ),
                     self.ruleset_digest,
                 )
-                blockers = self._effect_blockers(action_type)
+                blockers = self._route_blockers(goal, action, snapshot)
                 semantic = {
                     "action_key": action_key,
                     "blockers": list(blockers),

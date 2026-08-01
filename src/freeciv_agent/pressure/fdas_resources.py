@@ -89,6 +89,10 @@ class DependentAtomSchedulingBridge(object):
                 GameResourceKind.RESEARCH_SLOT,
                 player_scope,
                 None),
+            "unit-action": (
+                GameResourceKind.ACTOR,
+                "unit:{}".format(owner_id),
+                "current-action"),
         }
         row = mapping.get(prefix)
         if row is None:

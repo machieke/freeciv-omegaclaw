@@ -168,10 +168,66 @@ CITY_ECONOMY_GROUNDING_SPECS = (
 )
 
 
+UNIT_DEFENSE_GROUNDING_SPECS = (
+    _spec("unit.combat-profile", ("unit",), "combat-profile", None,
+          ("units.{unit}.type",), GroundingAuthority.RULESET_EXACT),
+    _spec("unit.persistent-defender", ("unit",), "boolean", None,
+          ("units.{unit}.type",),
+          GroundingAuthority.DETERMINISTIC_DERIVED),
+    _spec("city.required-garrison-count", ("city", "policy-limit"),
+          "integer", "units",
+          ("cities.{city}.disorder", "cities.{city}.size",
+           "cities.{city}.citizen_mood.happy",
+           "cities.{city}.citizen_mood.unhappy",
+           "cities.{city}.citizen_mood.angry"),
+          GroundingAuthority.DETERMINISTIC_DERIVED),
+    _spec("city.local-garrison-count", ("city",), "integer", "units",
+          ("cities.{city}.tile", "units"),
+          GroundingAuthority.DETERMINISTIC_DERIVED),
+)
+
+
+ALL_GROUNDING_SPECS = (
+    CITY_ECONOMY_GROUNDING_SPECS + UNIT_DEFENSE_GROUNDING_SPECS)
+
+
+_EXPLICIT_PERSISTENT_DEFENDERS = frozenset((
+    "mech. inf.", "alpine troops", "riflemen", "musketeers", "pikemen",
+    "phalanx", "legion", "warriors"))
+
+
+def persistent_defender_type(ruleset_ir, unit_type):
+    """Return the shared ruleset-grounded durable garrison classification."""
+    normalized = str(unit_type or "").strip().lower().replace("_", " ")
+    if normalized in _EXPLICIT_PERSISTENT_DEFENDERS:
+        return True
+    rows = tuple(
+        value for value in (ruleset_ir.rules if ruleset_ir is not None else ())
+        if value.target_kind == "unit" and value.rule_name == str(unit_type))
+    if len(rows) != 1:
+        return False
+    rule = rows[0]
+
+    def numeric(name):
+        value = rule.quantitative.get(name, 0)
+        if isinstance(value, dict):
+            value = value.get("value", 0)
+        return (0 if isinstance(value, bool)
+                or not isinstance(value, (int, float)) else value)
+
+    class_trait = rule.traits.get("class", {})
+    classes = class_trait.get("values", ()) if isinstance(
+        class_trait, dict) else ()
+    return bool(
+        any(str(value).strip().lower() == "land" for value in classes)
+        and numeric("defense") > 0
+        and numeric("defense") >= numeric("attack"))
+
+
 class TypedGroundingRegistry(object):
     """Evaluate exact/derived scalar functions with dependency witnesses."""
 
-    def __init__(self, ruleset_ir=None, specs=CITY_ECONOMY_GROUNDING_SPECS,
+    def __init__(self, ruleset_ir=None, specs=ALL_GROUNDING_SPECS,
                  ruleset_digest=None):
         self.ruleset_ir = ruleset_ir
         self.ruleset_digest = ruleset_digest
@@ -187,6 +243,77 @@ class TypedGroundingRegistry(object):
             for rule in ruleset_ir.rules:
                 self._rules.setdefault(
                     (rule.target_kind, rule.rule_name), []).append(rule)
+
+    @staticmethod
+    def _normalized_type(value):
+        return str(value or "").strip().lower().replace("_", " ")
+
+    @staticmethod
+    def _quantitative(rule, name):
+        value = rule.quantitative.get(name, 0)
+        if isinstance(value, dict):
+            value = value.get("value", 0)
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return 0
+        return max(0, int(value))
+
+    def _unit_rule(self, unit_type):
+        rows = tuple(self._rules.get(("unit", str(unit_type)), ()))
+        if len(rows) != 1:
+            raise LookupError("unit type has no unambiguous ruleset record")
+        return rows[0]
+
+    def _combat_profile(self, unit_type):
+        rule = self._unit_rule(unit_type)
+        class_trait = rule.traits.get("class", {})
+        unit_class = tuple(sorted(
+            str(value) for value in (
+                class_trait.get("values", ())
+                if isinstance(class_trait, dict) else ())))
+        return {
+            "attack": self._quantitative(rule, "attack"),
+            "defense": self._quantitative(rule, "defense"),
+            "firepower": self._quantitative(rule, "firepower"),
+            "hitpoints": self._quantitative(rule, "hitpoints"),
+            "move_rate": self._quantitative(rule, "move_rate"),
+            "unit_class": list(unit_class),
+        }
+
+    def _persistent_defender(self, unit_type):
+        return persistent_defender_type(self.ruleset_ir, unit_type)
+
+    @staticmethod
+    def _city_mood_margin(city):
+        values = (
+            city.feeling_happy, city.feeling_unhappy, city.feeling_angry)
+        if not all(value for value in values):
+            return None
+        return (
+            int(city.feeling_happy[-1])
+            - int(city.feeling_unhappy[-1])
+            - 2 * int(city.feeling_angry[-1]))
+
+    @staticmethod
+    def _city_martial_law_relief(city):
+        unhappy = tuple(city.feeling_unhappy or ())
+        angry = tuple(city.feeling_angry or ())
+        if len(unhappy) < 5 or len(angry) < 5:
+            return None
+        before = int(unhappy[3]) + 2 * int(angry[3])
+        after = int(unhappy[4]) + 2 * int(angry[4])
+        return max(0, before - after)
+
+    def _required_garrison(self, city, limit):
+        limit = int(limit)
+        if limit < 1:
+            raise ValueError("garrison policy limit must be positive")
+        if city.disorder is True:
+            return min(limit, max(1, int(city.size or 1)))
+        relief = self._city_martial_law_relief(city)
+        margin = self._city_mood_margin(city)
+        if relief is not None and margin is not None:
+            return min(limit, max(1, max(0, relief - max(0, margin))))
+        return 1
 
     @property
     def grounding_ids(self):
@@ -265,6 +392,28 @@ class TypedGroundingRegistry(object):
             if not args:
                 raise ValueError("{} expects a city".format(grounding_id))
             city = self._city(snapshot, args[0])
+        unit = None
+        if grounding_id.startswith("unit."):
+            if not args:
+                raise ValueError("{} expects a unit".format(grounding_id))
+            unit = snapshot.unit(args[0])
+            if unit is None:
+                raise LookupError("unknown own unit")
+        if grounding_id == "unit.combat-profile":
+            return self._combat_profile(unit.unit_type)
+        if grounding_id == "unit.persistent-defender":
+            return self._persistent_defender(unit.unit_type)
+        if grounding_id == "city.required-garrison-count":
+            if len(args) != 2:
+                raise ValueError(
+                    "city.required-garrison-count expects city and limit")
+            return self._required_garrison(city, args[1])
+        if grounding_id == "city.local-garrison-count":
+            return sum(
+                value.tile is not None
+                and value.tile == city.tile
+                and self._persistent_defender(value.unit_type)
+                for value in snapshot.units)
         if grounding_id == "city.food-stock":
             if city.food_stock is None:
                 raise LookupError("city food stock is unavailable")
@@ -381,7 +530,9 @@ class TypedGroundingRegistry(object):
     @staticmethod
     def _resolved_paths(spec, args):
         city = str(args[0]) if args and spec.grounding_id.startswith("city.") else None
-        return tuple(path.format(city=city) for path in spec.dependency_paths)
+        unit = str(args[0]) if args and spec.grounding_id.startswith("unit.") else None
+        return tuple(path.format(city=city, unit=unit)
+                     for path in spec.dependency_paths)
 
     def evaluate(self, grounding_id, snapshot, *args):
         spec = self.spec(grounding_id)
@@ -415,18 +566,27 @@ class TypedGroundingRegistry(object):
                     if key.path.startswith(prefix))
             else:
                 dependencies.append(source_reference(path))
-        if grounding_id in ("city.production-cost", "city.production-eta"):
+        if grounding_id in (
+                "city.production-cost", "city.production-eta",
+                "unit.combat-profile", "unit.persistent-defender",
+                "city.local-garrison-count"):
             if self.ruleset_digest is None:
                 raise ValueError(
                     "{} requires a ruleset digest".format(grounding_id))
+            if grounding_id.startswith("unit."):
+                target_kind, target = "unit", snapshot.unit(args[0]).unit_type
+            elif grounding_id == "city.local-garrison-count":
+                target_kind, target = "unit", "defender-catalog"
+            else:
+                target_kind, target = args[-2], args[-1]
             dependencies.append(DependencyRef(
                 DependencyKey(
                     "ruleset-digest", self.ruleset_digest,
-                    "target:{}:{}".format(args[-2], args[-1])),
+                    "target:{}:{}".format(target_kind, target)),
                 structural_hash({
                     "ruleset_digest": self.ruleset_digest,
-                    "target_kind": args[-2],
-                    "target": args[-1],
+                    "target_kind": target_kind,
+                    "target": target,
                 }),
             ))
         dependencies = tuple(sorted(set(dependencies)))

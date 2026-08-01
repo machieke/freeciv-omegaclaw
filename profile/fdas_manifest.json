@@ -11,7 +11,7 @@
     "operation_atom_projection": "component-only",
     "ruleset_domain_projection": "component-only",
     "city_domain_projection": "component-only",
-    "unit_domain_projection": "not-built",
+    "unit_domain_projection": "component-only",
     "region_domain_projection": "not-built"
   },
   "component_enabled": true,

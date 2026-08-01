@@ -54,11 +54,14 @@ from .ruleset import (
     ruleset_scope,
 )
 from .grounding import (
+    ALL_GROUNDING_SPECS,
     CITY_ECONOMY_GROUNDING_SPECS,
     GroundingAuthority,
     GroundingResult,
     GroundingSpec,
     TypedGroundingRegistry,
+    UNIT_DEFENSE_GROUNDING_SPECS,
+    persistent_defender_type,
 )
 from .city import (
     CityEconomyPolicy,
@@ -76,6 +79,12 @@ from .operations import (
     operation_predicate_registry,
 )
 from .config import DependentAtomSpaceConfig
+from .unit import (
+    CityDefensePolicy,
+    UnitDefenseProjector,
+    unit_defense_predicate_registry,
+    unit_defense_scopes,
+)
 from .store import (
     DependentAtomSpaceRevision,
     DependentAtomSpaceStore,
@@ -93,9 +102,11 @@ __all__ = (
     "AtomQuery",
     "AtomSpaceTransaction",
     "AuthorityClass",
+    "ALL_GROUNDING_SPECS",
     "CITY_ECONOMY_GROUNDING_SPECS",
     "CityEconomyPolicy",
     "CityEconomyProjector",
+    "CityDefensePolicy",
     "CompositeDomainProjector",
     "CollectionChange",
     "DependencyKey",
@@ -143,4 +154,9 @@ __all__ = (
     "snapshot_scopes",
     "snapshot_dependency_fingerprints",
     "TypedGroundingRegistry",
+    "UNIT_DEFENSE_GROUNDING_SPECS",
+    "UnitDefenseProjector",
+    "unit_defense_predicate_registry",
+    "unit_defense_scopes",
+    "persistent_defender_type",
 )

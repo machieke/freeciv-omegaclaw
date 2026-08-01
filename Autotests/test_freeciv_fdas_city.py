@@ -76,13 +76,17 @@ def test_phase4_catalog_matches_component_registry():
     with open(os.path.join(REPO, "profile", "fdas_catalog.json"),
               encoding="utf-8") as stream:
         catalog = json.load(stream)
+    city_grounding_names = {
+        value.grounding_id for value in CITY_ECONOMY_GROUNDING_SPECS}
     component_groundings = {
         value["name"] for value in catalog["groundings"]
-        if value["status"] == "component-only"}
+        if (value["status"] == "component-only"
+            and value["name"] in city_grounding_names)}
+    city_predicate_names = set(city_economy_predicate_registry().predicates)
     component_predicates = {
         value["name"] for value in catalog["predicates"]
         if (value["status"] == "component-only"
-            and value["namespace"] != "operation")}
+            and value["name"] in city_predicate_names)}
 
     assert component_groundings == {
         value.grounding_id for value in CITY_ECONOMY_GROUNDING_SPECS}

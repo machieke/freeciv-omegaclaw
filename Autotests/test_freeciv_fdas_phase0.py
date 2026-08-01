@@ -43,6 +43,7 @@ def test_fdas_manifest_exposes_only_evidenced_component_capabilities():
         "incremental_snapshot_projection",
         "operation_atom_projection",
         "ruleset_domain_projection",
+        "unit_domain_projection",
     }
     assert {
         key for key, value in manifest["capabilities"].items()
