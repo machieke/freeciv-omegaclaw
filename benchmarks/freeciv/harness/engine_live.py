@@ -1893,6 +1893,10 @@ async def _play(run_dir, manifest, context):
         manifest["impact_policy"].get(
             "pressure_production_operations_enabled",
             False))
+    production_persistence_authority_enabled = bool(
+        manifest["impact_policy"].get(
+            "pressure_production_persistence_authority_enabled",
+            False))
     research_operations_enabled = bool(
         manifest["impact_policy"].get(
             "pressure_research_operations_enabled",
@@ -1914,6 +1918,7 @@ async def _play(run_dir, manifest, context):
             combat_operations_enabled
             or city_defense_operation_authority_enabled
             or production_operations_enabled
+            or production_persistence_authority_enabled
             or research_operations_enabled)
         else None)
     combat_ruleset_digest = (
@@ -2034,6 +2039,9 @@ async def _play(run_dir, manifest, context):
         "operation_authority_opportunities": 0,
         "operation_authority_actions": 0,
         "operation_authority_winner_changes": 0,
+        "production_persistence_guard_applications": 0,
+        "production_persistence_guard_excluded_actions": 0,
+        "production_persistence_guard_opportunities": 0,
     }
     pending_impact_outcomes = DeferredImpactOutcomeLedger()
     action_type_counts = {}
@@ -2756,13 +2764,48 @@ async def _play(run_dir, manifest, context):
                             >= turn_timeout - impact_planner.refresh_timeout_seconds - 0.5):
                         break
                     impact_planning_started = time.perf_counter()
+                    production_guard_excluded = frozenset()
+                    if production_persistence_authority_enabled:
+                        (
+                            production_guard_excluded,
+                            production_guard_events,
+                        ) = (
+                            control_event_emitter
+                            .production_persistence_guard(
+                                writer,
+                                snapshot,
+                                maximum_remaining_turns=12,
+                                threat_radius=(
+                                    impact_planner
+                                    .pressure_survival_threat_radius),
+                                caused_by=(parent,)))
+                        if production_guard_events:
+                            parent = production_guard_events[
+                                -1]["event_id"]
+                        decision_stats[
+                            "production_persistence_guard_opportunities"
+                        ] += int(bool(
+                            production_guard_excluded))
+                        decision_stats[
+                            "production_persistence_guard_applications"
+                        ] += sum(
+                            event.get("type")
+                            == "operation_step_selected"
+                            for event in production_guard_events)
+                        decision_stats[
+                            "production_persistence_guard_excluded_actions"
+                        ] += len(
+                            production_guard_excluded)
+                    planning_excluded_actions = (
+                        set(excluded_impact_actions)
+                        | set(production_guard_excluded))
                     operation_authority = None
                     if city_defense_operation_authority_enabled:
                         city_defense_candidates = (
                             impact_planner.candidates(
                                 snapshot,
                                 excluded=(
-                                    excluded_impact_actions),
+                                    planning_excluded_actions),
                                 excluded_scopes=(
                                     impact_budget
                                     .excluded_scopes)))
@@ -2810,7 +2853,7 @@ async def _play(run_dir, manifest, context):
                         operation_authority
                         is not None)
                     decision = impact_planner.plan(
-                        snapshot, excluded=excluded_impact_actions,
+                        snapshot, excluded=planning_excluded_actions,
                         excluded_scopes=impact_budget.excluded_scopes,
                         diagnostics=impact_planning_diagnostics,
                         operation_authority=(
@@ -3814,6 +3857,15 @@ async def _play(run_dir, manifest, context):
          decision_stats["operation_authority_actions"]),
         ("operation_authority_winner_changes",
          decision_stats["operation_authority_winner_changes"]),
+        ("production_persistence_guard_opportunities",
+         decision_stats[
+             "production_persistence_guard_opportunities"]),
+        ("production_persistence_guard_applications",
+         decision_stats[
+             "production_persistence_guard_applications"]),
+        ("production_persistence_guard_excluded_actions",
+         decision_stats[
+             "production_persistence_guard_excluded_actions"]),
         ("decision_effect_observed_rate", effect_observed_rate),
         ("decision_effect_confirmation_latency_ms",
          sum(effect_confirmation_latencies) / max(1, len(effect_confirmation_latencies))),
@@ -4197,6 +4249,12 @@ async def _play(run_dir, manifest, context):
             "operation_authority_winner_changes": (
                 decision_stats[
                     "operation_authority_winner_changes"]),
+            "production_persistence_guard_applications": (
+                decision_stats[
+                    "production_persistence_guard_applications"]),
+            "production_persistence_guard_excluded_actions": (
+                decision_stats[
+                    "production_persistence_guard_excluded_actions"]),
             "decision_no_effect_retries_blocked": (
                 impact_planner.no_effect_retries_blocked
                 if impact_planner is not None else 0),
@@ -4449,6 +4507,12 @@ async def _play(run_dir, manifest, context):
         "operation_authority_winner_changes": (
             decision_stats[
                 "operation_authority_winner_changes"]),
+        "production_persistence_guard_applications": (
+            decision_stats[
+                "production_persistence_guard_applications"]),
+        "production_persistence_guard_excluded_actions": (
+            decision_stats[
+                "production_persistence_guard_excluded_actions"]),
         "decision_no_effect_retries_blocked": (
             impact_planner.no_effect_retries_blocked
             if impact_planner is not None else 0),

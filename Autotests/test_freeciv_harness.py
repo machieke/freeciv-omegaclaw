@@ -210,6 +210,8 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "corrected_probe_readout_diagnostic_v1": 10,
             "path_persistence_diagnostic_v1": 10,
             "grounded_enabling_operations_diagnostic_v2": 10,
+            "grounded_production_persistence_smoke_v1": 1,
+            "grounded_production_persistence_pilot_v1": 30,
             "path_persistence_pilot_v1": 30,
         }
     seed_sets = [
@@ -274,6 +276,54 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "count": 10,
         "minimum": 8000000,
         "maximum": 8099999,
+    }
+    persistence_smoke = paired["cohorts"][
+        "grounded_production_persistence_smoke_v1"]
+    persistence_pilot = paired["cohorts"][
+        "grounded_production_persistence_pilot_v1"]
+    for row in (
+            persistence_smoke,
+            persistence_pilot):
+        assert row["isolated_policy_keys"] == [
+            "pressure_production_persistence_authority_enabled"]
+        assert row["production_persistence_design"]["authority"] == (
+            "bounded_queue_switch_veto")
+        assert row["production_persistence_design"][
+            "maximum_remaining_turns"] == 12
+        assert row["production_persistence_design"][
+            "visible_threat_radius"] == 3
+        assert row["production_persistence_design"][
+            "score_claim"] is False
+        assert row["arms"]["baseline"][
+            "pressure_production_operations_enabled"] is True
+        assert row["arms"]["treatment"][
+            "pressure_production_operations_enabled"] is True
+        assert row["arms"]["baseline"][
+            "pressure_production_persistence_authority_enabled"] is False
+        assert row["arms"]["treatment"][
+            "pressure_production_persistence_authority_enabled"] is True
+    assert persistence_smoke["planned_pairs"] == 1
+    assert persistence_smoke["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": (
+            "pf-pln-grounded-production-persistence-smoke-v1"),
+        "count": 1,
+        "minimum": 8100000,
+        "maximum": 8199999,
+    }
+    assert persistence_pilot["purpose"] == "pilot"
+    assert persistence_pilot["planned_pairs"] == 30
+    assert persistence_pilot["production_persistence_design"][
+        "minimum_absolute_divergence_reduction"] == 0.03
+    assert persistence_pilot["production_persistence_design"][
+        "maximum_guarded_divergences"] == 0
+    assert persistence_pilot["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": (
+            "pf-pln-grounded-production-persistence-pilot-v1"),
+        "count": 30,
+        "minimum": 8200000,
+        "maximum": 8299999,
     }
     combat_scenario = paired["cohorts"][
         "combat_operation_authority_scenario_diagnostic_v2"]

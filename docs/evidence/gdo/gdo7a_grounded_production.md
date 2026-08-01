@@ -1,7 +1,7 @@
 # GDO-7A grounded production enabling operations
 
 Status: retained mechanism and fresh shadow-execution confirmation passed;
-policy-benefit/authority gate remains open
+bounded persistence-authority pilot predeclared
 
 Date: 2026-08-01
 
@@ -207,3 +207,13 @@ GDO-7A gate is a separately predeclared, default-off advisory or bounded-live
 pilot that compares decision correctness and safety against the current
 production policy. Until it wins that gate, production receives no authority
 and makes no score or win-rate claim.
+
+## Bounded persistence-authority follow-on
+
+The next evaluation is frozen in
+`gdo7a_production_persistence_pilot.md`. It tests whether a default-off,
+safety-bounded veto of competing same-city production switches reduces the 11
+unique queue divergences observed in this cohort. The treatment cannot inject
+or select an action and must pass completion, throughput, engine-safety,
+authority-scope, and score-floor gates in a fresh 30-pair engine pilot. It
+remains claim-ineligible and changes no repository default.

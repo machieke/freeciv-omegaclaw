@@ -170,22 +170,44 @@ export type OperationEvent = {
   "action_id"?: string | null;
   "actor_id": string | null;
   "assignment_digest": string | null;
+  "authority_effect"?: string;
   "bid": number;
   "claims": Array<JsonValue>;
   "deadline_turn": number | null;
+  "dependency_ready"?: boolean;
+  "domain_estimate_request_id"?: string;
+  "downstream_operation_id"?: string;
+  "downstream_ready"?: boolean;
   "event_schema_version": "1.0";
+  "excluded_action_ids"?: Array<string>;
+  "excluded_actions"?: Array<{
+    [key: string]: unknown;
+  }>;
   "expected_prevented_loss": number;
+  "goal_ids"?: Array<string>;
+  "grounded_goal_id"?: string;
   "material_estimate"?: JsonValue;
+  "mechanism"?: string;
   "next_action": JsonValue;
   "operation_digest": string;
   "operation_id": string;
   "operation_type": string;
   "opportunity_cost": number;
   "participants"?: Array<JsonValue>;
+  "persistence_maximum_remaining_turns"?: number;
+  "persistence_threat_radius"?: number;
   "policy_authority": boolean;
   "probability_interval"?: JsonValue;
+  "product_ref"?: string;
+  "production_persistence_safety"?: {
+    [key: string]: unknown;
+  };
+  "projected_completion_turn"?: number;
+  "protected_city_id"?: number;
   "provenance": Array<string>;
   "reason_code": string | null;
+  "released_downstream_operation_id"?: string;
+  "replan_required"?: boolean;
   "requirement_id": string | null;
   "requirement_set"?: JsonValue;
   "resolution_snapshot_id"?: string | null;
@@ -194,9 +216,12 @@ export type OperationEvent = {
   "shadow_only": boolean;
   "snapshot_id": string;
   "state": "proposed" | "reserved" | "activated" | "step_selected" | "step_revalidated" | "step_committed" | "blocked" | "repaired" | "suspended" | "completed" | "failed" | "abandoned" | "expired";
+  "step_index"?: number;
   "step_material_estimates"?: Array<JsonValue>;
   "step_probability_intervals"?: Array<JsonValue>;
   "target_id": string | null;
+  "technology_ref"?: string;
+  "visible_threat_count"?: number;
 };
 
 export type OperationProposed = OperationEvent;

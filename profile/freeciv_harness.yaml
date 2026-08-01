@@ -110,6 +110,7 @@ impact_policy:
   pressure_combat_operations_enabled: false
   pressure_combat_operation_authority_enabled: false
   pressure_production_operations_enabled: false
+  pressure_production_persistence_authority_enabled: false
   pressure_research_operations_enabled: false
   pressure_domain_estimates_enabled: false
   pressure_domain_estimates_authority_enabled: false
@@ -3929,6 +3930,144 @@ paired_impact:
         count: 10
         minimum: 8000000
         maximum: 8099999
+    grounded_production_persistence_smoke_v1:
+      claim_eligible: false
+      purpose: diagnostic
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 120
+      engine_finalization_turns: 1
+      final_score_readout_mode: post_horizon_with_terminal_fallback
+      planned_pairs: 1
+      controller_workers: 2
+      controller_worker_execution: process_isolated
+      server_recycle_mode: hard_per_arm
+      isolated_policy_keys:
+        - pressure_production_persistence_authority_enabled
+      production_persistence_design:
+        schema_version: "1.0"
+        authority: bounded_queue_switch_veto
+        maximum_remaining_turns: 12
+        visible_threat_radius: 3
+        behavior_scope:
+          - active_observation_step
+          - exact_current_queue_identity
+          - positive_shield_surplus
+          - nonnegative_food_surplus
+          - no_disorder_or_famine
+          - no_visible_threat_in_radius
+          - completion_within_deadline
+          - nonnegative_operating_gold_for_upkeep
+          - single_active_operation_per_city
+        score_claim: false
+      arms:
+        baseline:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_operation_lifecycle_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_production_operations_enabled: true
+          pressure_production_persistence_authority_enabled: false
+          pressure_requirement_sets_enabled: true
+          pressure_resource_scheduler_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+        treatment:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_operation_lifecycle_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_production_operations_enabled: true
+          pressure_production_persistence_authority_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_resource_scheduler_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-grounded-production-persistence-smoke-v1
+        count: 1
+        minimum: 8100000
+        maximum: 8199999
+    grounded_production_persistence_pilot_v1:
+      claim_eligible: false
+      purpose: pilot
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 120
+      engine_finalization_turns: 1
+      final_score_readout_mode: post_horizon_with_terminal_fallback
+      planned_pairs: 30
+      controller_workers: 3
+      controller_worker_execution: process_isolated
+      server_recycle_mode: hard_per_arm
+      isolated_policy_keys:
+        - pressure_production_persistence_authority_enabled
+      production_persistence_design:
+        schema_version: "1.0"
+        authority: bounded_queue_switch_veto
+        maximum_remaining_turns: 12
+        visible_threat_radius: 3
+        primary_metric: unique_queue_divergence_rate_per_commit
+        minimum_absolute_divergence_reduction: 0.03
+        minimum_completion_rate_delta: 0.0
+        minimum_completed_products_per_game_delta: 0.0
+        maximum_guarded_divergences: 0
+        maximum_off_scope_authority_rows: 0
+        maximum_engine_rejected_action_rate: 0.0
+        minimum_mean_score_delta: -2.0
+        behavior_scope:
+          - active_observation_step
+          - exact_current_queue_identity
+          - positive_shield_surplus
+          - nonnegative_food_surplus
+          - no_disorder_or_famine
+          - no_visible_threat_in_radius
+          - completion_within_deadline
+          - nonnegative_operating_gold_for_upkeep
+          - single_active_operation_per_city
+        score_claim: false
+      arms:
+        baseline:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_operation_lifecycle_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_production_operations_enabled: true
+          pressure_production_persistence_authority_enabled: false
+          pressure_requirement_sets_enabled: true
+          pressure_resource_scheduler_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+        treatment:
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_operation_lifecycle_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_production_operations_enabled: true
+          pressure_production_persistence_authority_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_resource_scheduler_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+      seed_derivation:
+        algorithm: sha256-counter-v1
+        namespace: pf-pln-grounded-production-persistence-pilot-v1
+        count: 30
+        minimum: 8200000
+        maximum: 8299999
     path_persistence_pilot_v1:
       claim_eligible: false
       purpose: pilot

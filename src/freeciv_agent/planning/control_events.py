@@ -1,6 +1,7 @@
 """Aggregate, versioned event emission for the unified control boundary."""
 
 import json
+import math
 import time
 
 from ..events.schema import (
@@ -206,6 +207,7 @@ class ControlEventEmitter:
         self._production_lifecycles = {}
         self._research_lifecycles = {}
         self._prepared_enabling_actions = set()
+        self._emitted_production_persistence_guards = set()
 
     def _operation_store_for(self, writer):
         game_id = str(
@@ -2842,6 +2844,340 @@ class ControlEventEmitter:
                     parents = (
                         events[-1]["event_id"],)
         return tuple(emitted)
+
+    @staticmethod
+    def _production_guard_distance(
+            left_x, left_y, right_x, right_y,
+            width, height, wrap_x, wrap_y):
+        if None in (
+                left_x, left_y,
+                right_x, right_y):
+            return None
+        if any(isinstance(value, bool) for value in (
+                left_x, left_y, right_x, right_y)):
+            return None
+        try:
+            left_x = int(left_x)
+            left_y = int(left_y)
+            right_x = int(right_x)
+            right_y = int(right_y)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        dx = abs(left_x - right_x)
+        dy = abs(left_y - right_y)
+        if wrap_x is True:
+            if (
+                    isinstance(width, bool)
+                    or not isinstance(width, int)
+                    or width <= 0):
+                return None
+            dx = min(dx, width - dx)
+        if wrap_y is True:
+            if (
+                    isinstance(height, bool)
+                    or not isinstance(height, int)
+                    or height <= 0):
+                return None
+            dy = min(dy, height - dy)
+        return max(dx, dy)
+
+    def production_persistence_guard(
+            self, writer, snapshot,
+            maximum_remaining_turns=12,
+            threat_radius=3,
+            caused_by=()):
+        """Protect safe active products from a competing queue switch.
+
+        This is a bounded veto, not a replacement action.  It returns only
+        byte-identical currently advertised city-production actions that may
+        be excluded from this planner readout.  Incomplete economy, food,
+        threat, ETA, lifecycle, or target identity fails closed.
+        """
+        if snapshot is None:
+            return frozenset(), ()
+        for value, name in (
+                (maximum_remaining_turns,
+                 "maximum remaining turns"),
+                (threat_radius,
+                 "threat radius")):
+            if (
+                    isinstance(value, bool)
+                    or not isinstance(value, int)
+                    or value < 0):
+                raise ValueError(
+                    "production persistence {} must be non-negative"
+                    .format(name))
+        from .production_operations import (
+            ProductionEnablingOperationAssembler,
+        )
+
+        legal_rows = []
+        for action_key in tuple(
+                getattr(
+                    snapshot,
+                    "legal_action_json", ())):
+            try:
+                action = json.loads(action_key)
+            except (TypeError, ValueError):
+                continue
+            if isinstance(action, dict):
+                legal_rows.append((
+                    str(action_key), action))
+        lifecycle = self._production_lifecycle_for(
+            writer)
+        eligible_by_city = {}
+        for record in lifecycle.store.nonterminal_records():
+            assembly = lifecycle.assembly(
+                record.spec.operation_id)
+            if (
+                    assembly is None
+                    or record.progress.state
+                    != OperationState.ACTIVE
+                    or record.progress.current_step_index != 1
+                    or record.spec.expiry_turn
+                    < int(snapshot.turn)):
+                continue
+            readout = (
+                ProductionEnablingOperationAssembler
+                .readout(
+                    assembly, snapshot, 1))
+            if readout.disposition != "waiting":
+                continue
+            city = snapshot.city(
+                assembly.intent.city_id)
+            if city is None:
+                continue
+            if (
+                    getattr(city, "disorder", None) is not False
+                    or getattr(city, "had_famine", None) is not False):
+                continue
+            surplus = tuple(
+                getattr(city, "surplus", ()))
+            if (
+                    len(surplus) < 2
+                    or isinstance(surplus[0], bool)
+                    or not isinstance(
+                        surplus[0], (int, float))
+                    or surplus[0] < 0
+                    or isinstance(surplus[1], bool)
+                    or not isinstance(
+                        surplus[1], (int, float))
+                    or surplus[1] <= 0):
+                continue
+            stock = getattr(
+                city, "shield_stock", None)
+            build_cost = assembly.target_profile.get(
+                "build_cost")
+            if any(
+                    isinstance(value, bool)
+                    or not isinstance(value, int)
+                    or value < 0
+                    for value in (stock, build_cost)):
+                continue
+            remaining_turns = max(
+                1,
+                int(math.ceil(
+                    max(0, build_cost - stock)
+                    / float(surplus[1]))))
+            projected_completion_turn = (
+                int(snapshot.turn)
+                + remaining_turns)
+            if (
+                    remaining_turns
+                    > maximum_remaining_turns
+                    or projected_completion_turn
+                    > record.spec.expiry_turn):
+                continue
+            profile = assembly.target_profile
+            future_gold_upkeep = sum(
+                int(profile.get(name, 0) or 0)
+                for name in (
+                    "building_upkeep",
+                    "gold_upkeep"))
+            if future_gold_upkeep > 0:
+                economy = getattr(
+                    snapshot, "economy", None)
+                gold = getattr(
+                    economy, "gold", None)
+                operating = getattr(
+                    economy,
+                    "operating_gold_per_turn",
+                    None)
+                if (
+                        getattr(
+                            economy,
+                            "available", False)
+                        is not True
+                        or isinstance(gold, bool)
+                        or not isinstance(gold, int)
+                        or gold < future_gold_upkeep
+                        or isinstance(operating, bool)
+                        or not isinstance(operating, int)
+                        or operating < 0):
+                    continue
+            visible_enemies = getattr(
+                snapshot, "visible_enemy_units", None)
+            if not isinstance(visible_enemies, (tuple, list)):
+                continue
+            threats = []
+            threat_geometry_unknown = False
+            if visible_enemies and (
+                    not isinstance(
+                        getattr(snapshot, "map_width", None), int)
+                    or isinstance(
+                        getattr(snapshot, "map_width", None), bool)
+                    or getattr(snapshot, "map_width", 0) <= 0
+                    or not isinstance(
+                        getattr(snapshot, "map_height", None), int)
+                    or isinstance(
+                        getattr(snapshot, "map_height", None), bool)
+                    or getattr(snapshot, "map_height", 0) <= 0
+                    or not isinstance(
+                        getattr(snapshot, "map_wrap_x", None), bool)
+                    or not isinstance(
+                        getattr(snapshot, "map_wrap_y", None), bool)):
+                continue
+            for unit in tuple(visible_enemies):
+                distance = self._production_guard_distance(
+                    city.x, city.y,
+                    getattr(unit, "x", None),
+                    getattr(unit, "y", None),
+                    getattr(snapshot, "map_width", 0),
+                    getattr(snapshot, "map_height", 0),
+                    getattr(snapshot, "map_wrap_x", None),
+                    getattr(snapshot, "map_wrap_y", None))
+                if distance is None:
+                    threat_geometry_unknown = True
+                elif distance <= threat_radius:
+                    threats.append(unit)
+            if threats or threat_geometry_unknown:
+                continue
+            city_id = int(
+                assembly.intent.city_id)
+            eligible_by_city.setdefault(
+                city_id, []).append((
+                    record,
+                    assembly,
+                    projected_completion_turn,
+                    {
+                        "city_disorder": bool(
+                            getattr(city, "disorder", False)),
+                        "city_had_famine": bool(
+                            getattr(city, "had_famine", False)),
+                        "competing_active_operation_count": 1,
+                        "current_production_kind": getattr(
+                            city, "production_kind", None),
+                        "current_production_value": getattr(
+                            city, "production_value", None),
+                        "food_surplus": float(surplus[0]),
+                        "future_gold_upkeep": future_gold_upkeep,
+                        "gold": getattr(
+                            getattr(snapshot, "economy", None),
+                            "gold", None),
+                        "operating_gold_per_turn": getattr(
+                            getattr(snapshot, "economy", None),
+                            "operating_gold_per_turn", None),
+                        "remaining_turns": remaining_turns,
+                        "shield_surplus": float(surplus[1]),
+                        "visible_threat_count": 0,
+                    }))
+        excluded = set()
+        emitted = []
+        parents = tuple(caused_by)
+        for city_id, rows in sorted(
+                eligible_by_city.items()):
+            # Competing active intents for one identity-bearing production
+            # slot are ambiguous.  Do not choose between them here.
+            if len(rows) != 1:
+                continue
+            record, assembly, completion_turn, safety = rows[0]
+            protected_key = canonical_json_bytes(
+                assembly.queue_action()).decode("utf-8")
+            competing = tuple(sorted(
+                action_key
+                for action_key, action in legal_rows
+                if (
+                    action.get("action_type")
+                    == "city_production"
+                    and action.get("city_id") == city_id
+                    and action_key != protected_key)))
+            if not competing:
+                continue
+            excluded.update(competing)
+            guard_key = (
+                str(writer.game_id),
+                str(snapshot.snapshot_id),
+                record.spec.operation_id)
+            if guard_key in (
+                    self
+                    ._emitted_production_persistence_guards):
+                continue
+            self._emitted_production_persistence_guards.add(
+                guard_key)
+            payload = self._operation_payloads.get(
+                record.spec.operation_id)
+            if not isinstance(payload, dict):
+                continue
+            payload["policy_authority"] = True
+            payload["shadow_only"] = False
+            payload["provenance"] = list(dict.fromkeys(
+                tuple(payload.get("provenance") or ())
+                + (
+                    "bounded-production-persistence-authority/1.0",
+                )))
+            selected = dict(payload)
+            selected.update({
+                "authority_effect": (
+                    "exclude-competing-city-production-switches"),
+                "excluded_action_ids": [
+                    structural_hash(json.loads(action_key))
+                    for action_key in competing
+                ],
+                "excluded_actions": [
+                    json.loads(action_key)
+                    for action_key in competing
+                ],
+                "next_action": assembly.queue_action(),
+                "persistence_maximum_remaining_turns": (
+                    maximum_remaining_turns),
+                "persistence_threat_radius": threat_radius,
+                "policy_authority": True,
+                "production_persistence_safety": dict(safety),
+                "projected_completion_turn": completion_turn,
+                "protected_city_id": city_id,
+                "reason_code": (
+                    "bounded-production-persistence-authority"),
+                "selected": True,
+                "shadow_only": False,
+                "snapshot_id": snapshot.snapshot_id,
+                "state": "step_selected",
+                "visible_threat_count": 0,
+            })
+            event = writer.emit(
+                "operation_step_selected",
+                int(snapshot.turn), selected,
+                caused_by=list(parents))
+            emitted.append(event)
+            metric = writer.emit(
+                "metric_sample",
+                int(snapshot.turn), {
+                    "labels": {
+                        "authority_kind": (
+                            "production_persistence"),
+                        "component": (
+                            "bounded-operation-authority"),
+                        "operation_type": (
+                            record.spec.operation_type),
+                    },
+                    "name": (
+                        "production_persistence_authority_application"),
+                    "unit": "count",
+                    "value": 1.0,
+                },
+                caused_by=[event["event_id"]])
+            emitted.append(metric)
+            parents = (metric["event_id"],)
+        return frozenset(excluded), tuple(emitted)
 
     def emit_combat_operation_shadow(
             self, writer, snapshot,

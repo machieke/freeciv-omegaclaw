@@ -577,6 +577,10 @@ def test_production_operations_are_default_off_and_grounded_stack_gated():
     })
     assert not default["layers"][
         "production_operations"]["enabled"]
+    assert not default["layers"][
+        "bounded_operation_authority"]["enabled"]
+    assert not default["controller_policy"][
+        "pressure_production_persistence_authority_enabled"]
 
     with pytest.raises(
             PFRuntimeConfigurationError,
@@ -604,6 +608,34 @@ def test_production_operations_are_default_off_and_grounded_stack_gated():
         "production_operations"]["enabled"]
     assert enabled["controller_policy"][
         "pressure_production_operations_enabled"]
+
+    with pytest.raises(
+            PFRuntimeConfigurationError,
+            match="production persistence authority requires"):
+        validate_controller_policy({
+            "pressure_enabled": True,
+            "pressure_semantics_version": "v2",
+            "pressure_controller_mode": "scalar_v2",
+            "pressure_production_persistence_authority_enabled": True,
+        })
+
+    persistence = build_controller_activation({
+        "pressure_enabled": True,
+        "pressure_semantics_version": "v2",
+        "pressure_controller_mode": "scalar_v2",
+        "pressure_packet_scheduler_enabled": True,
+        "pressure_resource_scheduler_enabled": True,
+        "pressure_requirement_sets_enabled": True,
+        "pressure_domain_estimates_enabled": True,
+        "pressure_commit_revalidation_enabled": True,
+        "pressure_operation_lifecycle_enabled": True,
+        "pressure_production_operations_enabled": True,
+        "pressure_production_persistence_authority_enabled": True,
+    })
+    assert persistence["layers"][
+        "bounded_operation_authority"]["enabled"]
+    assert persistence["controller_policy"][
+        "pressure_production_persistence_authority_enabled"]
 
 
 def test_research_operations_are_default_off_and_grounded_stack_gated():

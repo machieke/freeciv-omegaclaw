@@ -161,6 +161,7 @@ CONTROLLER_POLICY_DEFAULTS = {
     "pressure_combat_operation_authority_enabled": False,
     "pressure_transport_operations_enabled": False,
     "pressure_production_operations_enabled": False,
+    "pressure_production_persistence_authority_enabled": False,
     "pressure_research_operations_enabled": False,
     "pressure_city_worker_macro_actions_enabled": False,
     "pressure_path_persistence_enabled": False,
@@ -695,6 +696,7 @@ def validate_controller_policy(impact_policy):
                 "pressure_combat_operation_authority_enabled",
                 "pressure_transport_operations_enabled",
                 "pressure_production_operations_enabled",
+                "pressure_production_persistence_authority_enabled",
                 "pressure_research_operations_enabled",
                 "pressure_city_worker_macro_actions_enabled",
                 "pressure_city_defense_operations_enabled",
@@ -843,6 +845,18 @@ def validate_controller_policy(impact_policy):
             "production operations require operation lifecycle, "
             "identity resource scheduling, RequirementSets, and "
             "grounded domain estimates")
+    if (
+            policy[
+                "pressure_production_persistence_authority_enabled"]
+            and not (
+                policy[
+                    "pressure_production_operations_enabled"]
+                and policy[
+                    "pressure_commit_revalidation_enabled"])
+    ):
+        raise PFRuntimeConfigurationError(
+            "production persistence authority requires production "
+            "operations and commit revalidation")
     if (policy[
             "pressure_research_operations_enabled"]
             and not (
@@ -903,6 +917,8 @@ def validate_controller_policy(impact_policy):
                     "pressure_city_defense_operation_authority_enabled"]
                 or policy[
                     "pressure_combat_operation_authority_enabled"]
+                or policy[
+                    "pressure_production_persistence_authority_enabled"]
             )
             and (
                 policy[
@@ -1101,6 +1117,7 @@ def validate_controller_policy(impact_policy):
                 "pressure_combat_operation_authority_enabled",
                 "pressure_transport_operations_enabled",
                 "pressure_production_operations_enabled",
+                "pressure_production_persistence_authority_enabled",
                 "pressure_research_operations_enabled",
                 "pressure_city_worker_macro_actions_enabled",
                 "pressure_city_defense_operations_enabled",
@@ -1155,7 +1172,9 @@ def build_controller_activation(impact_policy):
                 policy[
                     "pressure_city_defense_operation_authority_enabled"]
                 or policy[
-                    "pressure_combat_operation_authority_enabled"])),
+                    "pressure_combat_operation_authority_enabled"]
+                or policy[
+                    "pressure_production_persistence_authority_enabled"])),
         "native_movement_routes": (
             pressure_enabled and v2
             and policy[

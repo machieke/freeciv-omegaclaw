@@ -315,6 +315,23 @@
         },
         "grounded_goal_id": {"type": "string", "minLength": 1},
         "mechanism": {"type": "string", "minLength": 1},
+        "authority_effect": {"type": "string", "minLength": 1},
+        "excluded_action_ids": {
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        },
+        "excluded_actions": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"type": "object"}
+        },
+        "projected_completion_turn": {"type": "integer", "minimum": 0},
+        "persistence_maximum_remaining_turns": {
+          "type": "integer", "minimum": 0
+        },
+        "persistence_threat_radius": {"type": "integer", "minimum": 0},
+        "production_persistence_safety": {"type": "object"},
+        "protected_city_id": {"type": "integer", "minimum": 0},
+        "visible_threat_count": {"type": "integer", "minimum": 0},
         "step_index": {"type": "integer", "minimum": 0},
         "product_ref": {"type": "string", "minLength": 1},
         "technology_ref": {"type": "string", "minLength": 1},

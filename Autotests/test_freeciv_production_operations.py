@@ -156,9 +156,13 @@ def _snapshot(
         city_id=103,
         owner=0,
         name="Roma",
+        x=4,
+        y=5,
         production_kind=current_kind,
         production_value=current_value,
         shield_stock=stock,
+        disorder=False,
+        had_famine=False,
         surplus=(
             3, rate, 4, 3, 0, 2),
         buildability_available=True,
@@ -182,9 +186,16 @@ def _snapshot(
                 turn, snapshot_suffix)),
         legal_action_json=actions,
         units=tuple(units),
+        visible_enemy_units=(),
         cities=(city,),
+        map_width=20,
+        map_height=20,
+        map_wrap_x=True,
+        map_wrap_y=True,
         economy=SimpleNamespace(
-            gold=200),
+            available=True,
+            gold=200,
+            operating_gold_per_turn=5),
         research=SimpleNamespace(
             available=False),
         city=lambda city_id: (
@@ -583,3 +594,197 @@ def test_live_shadow_observer_attributes_queue_and_product_completion():
     assert report.valid, [
         row.to_dict()
         for row in report.errors]
+
+
+def test_bounded_persistence_guard_excludes_only_competing_safe_switches():
+    intent = _intent(
+        emergency=False)
+    before = _snapshot(intent)
+    ruleset = SimpleNamespace(
+        rules=(_rule(),))
+    outcome = SimpleNamespace(
+        submitted=True,
+        status="accepted",
+        reason=None,
+        action_id="engine-production-persistence")
+    competing = {
+        "action_type": "city_production",
+        "city_id": 103,
+        "production_kind": 3,
+        "production_value": 14,
+        "target": {
+            "production_type": "Granary",
+        },
+    }
+
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(
+            directory, "events.jsonl")
+        writer = EventWriter(
+            path,
+            "production-persistence-authority",
+            durable=False)
+        emitter = ControlEventEmitter()
+        emitter.prepare_grounded_enabling_operation(
+            writer, before, ruleset,
+            "ruleset", intent.action(), 100)
+        emitter.emit_grounded_enabling_action_outcome(
+            writer, before,
+            intent.action(), outcome)
+        selected = _snapshot(
+            intent, turn=73,
+            current_kind=6,
+            current_value=10,
+            advertise=False,
+            snapshot_suffix="selected")
+        selected.legal_action_json = tuple(sorted((
+            canonical_json_bytes(
+                intent.action()).decode("utf-8"),
+            canonical_json_bytes(
+                competing).decode("utf-8"),
+        )))
+        emitter.resolve_grounded_enabling_operations(
+            writer, selected,
+            production_enabled=True)
+
+        excluded, events = (
+            emitter.production_persistence_guard(
+                writer, selected,
+                maximum_remaining_turns=12,
+                threat_radius=3))
+        repeated_excluded, repeated_events = (
+            emitter.production_persistence_guard(
+                writer, selected,
+                maximum_remaining_turns=12,
+                threat_radius=3))
+        writer.sync()
+        report = validate_file(path)
+
+    competing_key = canonical_json_bytes(
+        competing).decode("utf-8")
+    assert excluded == frozenset((
+        competing_key,))
+    assert repeated_excluded == excluded
+    assert repeated_events == ()
+    selected_event = next(
+        row for row in events
+        if row["type"]
+        == "operation_step_selected")
+    payload = selected_event["payload"]
+    assert payload["authority_effect"] == (
+        "exclude-competing-city-production-switches")
+    assert payload["policy_authority"] is True
+    assert payload["shadow_only"] is False
+    assert payload["protected_city_id"] == 103
+    assert payload["projected_completion_turn"] == 83
+    assert payload["persistence_maximum_remaining_turns"] == 12
+    assert payload["persistence_threat_radius"] == 3
+    assert report.valid, [
+        row.to_dict()
+        for row in report.errors]
+
+
+def test_bounded_persistence_guard_fails_closed_on_visible_threat():
+    intent = _intent(
+        emergency=False)
+    initial = _snapshot(
+        intent,
+        current_kind=6,
+        current_value=10)
+    assembly = _assembly(
+        initial, intent)
+
+    with tempfile.TemporaryDirectory() as directory:
+        writer = EventWriter(
+            os.path.join(directory, "events.jsonl"),
+            "production-persistence-threat",
+            durable=False)
+        emitter = ControlEventEmitter()
+        lifecycle = emitter._production_lifecycle_for(
+            writer)
+        lifecycle.register(
+            assembly, initial)
+        emitter._operation_payloads[
+            assembly.spec.operation_id] = {
+                "operation_id": assembly.spec.operation_id,
+            }
+        threatened = _snapshot(
+            intent, turn=73,
+            current_kind=6,
+            current_value=10,
+            snapshot_suffix="threatened")
+        threatened.visible_enemy_units = (
+            SimpleNamespace(x=5, y=5),)
+        competitor = {
+            "action_type": "city_production",
+            "city_id": 103,
+            "production_kind": 3,
+            "production_value": 14,
+            "target": {
+                "production_type": "Granary",
+            },
+        }
+        threatened.legal_action_json = (
+            canonical_json_bytes(
+                competitor).decode("utf-8"),)
+
+        excluded, events = (
+            emitter.production_persistence_guard(
+                writer, threatened,
+                maximum_remaining_turns=12,
+                threat_radius=3))
+
+    assert excluded == frozenset()
+    assert events == ()
+
+
+def test_bounded_persistence_guard_fails_closed_on_unknown_threat_geometry():
+    intent = _intent(
+        emergency=False)
+    initial = _snapshot(
+        intent,
+        current_kind=6,
+        current_value=10)
+    assembly = _assembly(
+        initial, intent)
+
+    with tempfile.TemporaryDirectory() as directory:
+        writer = EventWriter(
+            os.path.join(directory, "events.jsonl"),
+            "production-persistence-unknown-threat",
+            durable=False)
+        emitter = ControlEventEmitter()
+        lifecycle = emitter._production_lifecycle_for(
+            writer)
+        lifecycle.register(
+            assembly, initial)
+        emitter._operation_payloads[
+            assembly.spec.operation_id] = {
+                "operation_id": assembly.spec.operation_id,
+            }
+        snapshot = _snapshot(
+            intent, turn=73,
+            current_kind=6,
+            current_value=10,
+            snapshot_suffix="unknown-threat")
+        snapshot.visible_enemy_units = (
+            SimpleNamespace(x=None, y=5),)
+        snapshot.legal_action_json = (
+            canonical_json_bytes({
+                "action_type": "city_production",
+                "city_id": 103,
+                "production_kind": 3,
+                "production_value": 14,
+                "target": {
+                    "production_type": "Granary",
+                },
+            }).decode("utf-8"),)
+
+        excluded, events = (
+            emitter.production_persistence_guard(
+                writer, snapshot,
+                maximum_remaining_turns=12,
+                threat_radius=3))
+
+    assert excluded == frozenset()
+    assert events == ()
