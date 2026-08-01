@@ -14,6 +14,7 @@
     "contextual_conductance_holdout_gate": "component-only",
     "quarantined_contextual_induction": "component-only",
     "induced_rule_heldout_gate": "component-only",
+    "fdas_operator_diagnostics": "component-only",
     "fdas_exact_commit_validation": "component-only",
     "fdas_resource_packet_bridge": "component-only",
     "generic_rule_execution": "component-only",

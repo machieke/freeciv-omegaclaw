@@ -127,6 +127,7 @@ from .store import (
     RevisionLease,
 )
 from .transaction import AtomSpaceTransaction
+from .diagnostics import AtomSpaceDiagnostics
 
 
 __all__ = (
@@ -135,6 +136,7 @@ __all__ = (
     "AtomRecord",
     "AtomQuery",
     "AtomSpaceTransaction",
+    "AtomSpaceDiagnostics",
     "AuthorityClass",
     "ALL_GROUNDING_SPECS",
     "CITY_ECONOMY_GROUNDING_SPECS",
