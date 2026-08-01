@@ -1,7 +1,7 @@
 # GDO-7A grounded production enabling operations
 
 Status: retained mechanism and fresh shadow-execution confirmation passed;
-bounded persistence-authority pilot predeclared
+bounded persistence-authority pilot completed but failed its overall gate
 
 Date: 2026-08-01
 
@@ -202,18 +202,23 @@ exactly equal on all 10 seeds. That is the intended result for a shadow-only
 cohort: it proves action attribution and lifecycle observation without policy
 write-through.
 
-The fresh shadow-execution confirmation is therefore closed. The remaining
-GDO-7A gate is a separately predeclared, default-off advisory or bounded-live
-pilot that compares decision correctness and safety against the current
-production policy. Until it wins that gate, production receives no authority
-and makes no score or win-rate claim.
+The fresh shadow-execution confirmation is therefore closed. Its separately
+predeclared bounded-live follow-on is reported below and did not pass overall.
+Production therefore receives no authority and makes no score or win-rate
+claim.
 
 ## Bounded persistence-authority follow-on
 
-The next evaluation is frozen in
-`gdo7a_production_persistence_pilot.md`. It tests whether a default-off,
-safety-bounded veto of competing same-city production switches reduces the 11
-unique queue divergences observed in this cohort. The treatment cannot inject
-or select an action and must pass completion, throughput, engine-safety,
-authority-scope, and score-floor gates in a fresh 30-pair engine pilot. It
-remains claim-ineligible and changes no repository default.
+The completed evaluation is recorded in
+`gdo7a_production_persistence_pilot.md`. Its default-off, safety-bounded veto
+reduced unique divergence by 6.82 percentage points, improved completion by
+8.40 points, added 0.833 completed products/game, and had a paired mean score
+delta of +0.9 across 30 fresh pairs. It nevertheless failed one of 13
+predeclared gates because 13 operations that had been guarded on an earlier
+safe snapshot later diverged after the guard correctly relinquished authority
+for visible-threat or negative-operating-gold safety.
+
+The result is retained as a failed pilot; the favorable post-hoc explanation
+does not convert it into a pass. Production authority remains default-off and
+there is no score or win-rate claim. Any corrected safety-continuity gate must
+use a newly predeclared cohort and disjoint seeds.

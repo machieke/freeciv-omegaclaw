@@ -2479,6 +2479,40 @@ program's authority boundary and makes no score or win-rate claim. Production
 and research remain default-off and require their own predeclared advisory or
 bounded-live policy-benefit pilot before receiving authority.
 
+### 22.3 Post-completion GDO-7A bounded-live pilot
+
+Status: completed with a failed overall mechanism gate on 2026-08-01
+
+The claim-ineligible `grounded_production_persistence_pilot_v1` cohort tested
+a default-off, same-city production-switch veto over 30 fresh paired seeds and
+120 turns. All 60 arms completed with zero infrastructure failures and zero
+engine rejections. The source-fresh audit validated 419,358 events with no
+schema warnings or errors.
+
+The bounded treatment reduced unique queue divergence from 15.32% to 8.50%,
+increased completion from 77.44% to 85.84%, increased completed products/game
+by 0.833, and produced a paired mean score delta of +0.9. The score interval
+[-0.867, 3.2] crosses zero and the exact paired randomization p-value is 0.5;
+no score or win-rate claim is supported.
+
+Twelve of 13 declared gates passed. The pilot failed the predeclared zero
+`guarded_operations_do_not_diverge` gate because 13 previously guarded
+operations later diverged. Trace RCA found no same-snapshot override: 11 later
+switches followed entry of a visible threat into the safety radius and two
+followed negative operating gold for an upkeep-bearing product. Those are
+required authority-relinquishment conditions. The result remains a failure
+rather than being rescored post hoc.
+
+Production persistence authority remains default-off. A corrected follow-on
+must predeclare snapshot-local protection and reason-coded safety
+relinquishment, use disjoint seeds, retain all completion/throughput/safety
+floors, and remain separate from any powered score confirmation.
+
+Canonical evidence:
+
+- `docs/freeciv/evidence/gdo7a-production-persistence-pilot-v1.json`;
+- `docs/evidence/gdo/gdo7a_production_persistence_pilot.md`.
+
 ---
 
 ## 23. Recommended first implementation issue

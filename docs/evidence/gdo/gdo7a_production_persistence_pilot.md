@@ -1,6 +1,6 @@
 # GDO-7A bounded production-persistence pilot
 
-Status: predeclared; engine evaluation pending
+Status: completed; 12 of 13 gates passed, overall mechanism gate failed
 
 Date: 2026-08-01
 
@@ -111,3 +111,92 @@ The canonical post-run audit will be written to:
 docs/freeciv/evidence/gdo7a-production-persistence-pilot-v1.json
 ```
 
+## Engine result
+
+The source-frozen implementation at commit
+`0148f2ae7b2718232e42d8a31d5a4e47ba165a4c` first passed the one-pair smoke:
+both arms completed, treatment emitted 131 in-scope authority rows over nine
+unique operations, baseline emitted none, schema validation was clean, and
+the guarded arm improved both divergence and completion on that diagnostic
+seed. The smoke result was not used to change the pilot design.
+
+The fresh pilot then completed all 30 pairs and 60 arms with hard server
+recycling, zero infrastructure failures, and a passing source-freeze gate.
+The canonical audit validated 419,358 events with zero schema errors or
+warnings.
+
+| Observation | Baseline | Treatment | Delta |
+| --- | ---: | ---: | ---: |
+| committed production operations | 359 | 353 | -6 |
+| completed products | 278 | 303 | +25 |
+| completed products/game | 9.267 | 10.100 | +0.833 |
+| completion rate/commit | 77.44% | 85.84% | +8.40 points |
+| unique queue divergences | 55 | 30 | -25 |
+| divergence rate/commit | 15.32% | 8.50% | -6.82 points |
+| persistence authority rows | 0 | 3,829 | +3,829 |
+| uniquely guarded operations | 0 | 262 | +262 |
+| off-scope authority rows | 0 | 0 | 0 |
+| engine-rejected-action rate | 0 | 0 | 0 |
+
+The paired mean score delta was +0.9 with a paired-bootstrap interval of
+[-0.867, 3.2]. The exact two-sided paired randomization p-value was 0.5. This
+is neither statistically significant nor claim-eligible, and the cohort was
+not powered as a score confirmation.
+
+Twelve of the 13 predeclared gates passed. The sole failure was
+`guarded_operations_do_not_diverge`: 13 of the 262 operations that had been
+guarded at least once later diverged, exceeding the declared maximum of zero.
+The pilot therefore failed overall despite the positive mechanism deltas.
+
+## Failed-gate RCA
+
+The failed gate was retained unchanged. A post-hoc trace diagnosis found:
+
+- every one of the 13 operations was protected only on an earlier snapshot;
+- no competing same-city production action was accepted on a snapshot where
+  the guard was active;
+- all 13 later snapshots contained an explicit competing production switch;
+- 11 switches occurred after a visible enemy entered the declared radius
+  three, causing the guard to abstain as designed; and
+- the other two occurred after operating gold became negative while the
+  protected product carried future upkeep, also causing required abstention.
+
+This identifies a mismatch between the zero-tolerance gate and the bounded
+authority contract. The guard is intentionally snapshot-local and must yield
+when threat or affordability becomes unsafe. The gate instead treated an
+operation as permanently protected after any earlier safe application. Making
+the implementation satisfy that gate would require overriding its declared
+threat/economy safety rules, so the implementation is not changed to chase it.
+
+This RCA is explanatory only. It does not convert the failed pilot into a pass
+or remove the 13 rows from the canonical result.
+
+## Decision and next evidence boundary
+
+The new authority remains default-off. The run supports a strong directional
+mechanism result but no production-authority, score, or win-rate claim.
+
+A fresh follow-on may test the same frozen controller with a corrected,
+predeclared safety metric:
+
+1. zero accepted competing same-city production switches on snapshots where
+   the guard is active;
+2. every later relinquishment attributed to a persisted threat, economy,
+   disorder/famine, ETA/deadline, ambiguity, or identity reason;
+3. the same divergence-reduction, completion, throughput, engine-safety, and
+   score-floor gates; and
+4. a new cohort name and disjoint seeds.
+
+That follow-on must remain distinct from a score confirmation. If it passes,
+a separately powered confirmatory score cohort would still be required.
+
+Canonical hashes:
+
+```text
+audit semantic hash:
+3aa0cec94928286973e176f66c228450020c3e1e18b628891e375f44fd0d7fa5
+audit file SHA-256:
+c475006a0f84db6d5c317ae0eb3616af4f19ae6cc79ff7575a19bb0f582c259d
+aggregate file SHA-256:
+32fc308b3a23f2a9c12d78314addd09deb77d54276f3e1f654264b140c0c40c6
+```
