@@ -42,13 +42,14 @@ class DependentAtomSpaceConfig:
     projection: tuple
     materialization: tuple
     inference: tuple
+    learning: tuple
     domain_authority: tuple
     events: tuple
 
     ROOT_KEYS = frozenset((
         "authority_enabled", "cold_verify_sample_rate", "domain_authority",
         "enabled", "events", "inference", "materialization", "projection",
-        "revision_retention", "schema_version", "shadow_enabled",
+        "revision_retention", "schema_version", "shadow_enabled", "learning",
         "store_backend"))
     PROJECTION_KEYS = frozenset((
         "beliefs", "city", "economy", "empire", "operations", "region",
@@ -62,6 +63,12 @@ class DependentAtomSpaceConfig:
         "deterministic_forward_enabled", "generic_rule_engine_enabled",
         "goal_regression_enabled", "technology_compatibility_path_enabled",
         "uncertain_assessment_enabled"))
+    LEARNING_KEYS = frozenset((
+        "contextual_conductance_authority_enabled",
+        "contextual_conductance_enabled",
+        "episode_attribution_enabled",
+        "induced_rule_readout_enabled",
+        "induction_enabled"))
     DOMAIN_KEYS = frozenset((
         "city_defense", "city_production", "city_stability", "combat",
         "expansion", "local_movement", "research", "transport"))
@@ -87,17 +94,20 @@ class DependentAtomSpaceConfig:
             raise ValueError("revision retention must be positive")
         projection = value["projection"]
         inference = value["inference"]
+        learning = value["learning"]
         authority = value["domain_authority"]
         events = value["events"]
         materialization = value["materialization"]
         _exact_keys(projection, cls.PROJECTION_KEYS, "projection")
         _exact_keys(inference, cls.INFERENCE_KEYS, "inference")
+        _exact_keys(learning, cls.LEARNING_KEYS, "learning")
         _exact_keys(authority, cls.DOMAIN_KEYS, "domain_authority")
         _exact_keys(events, cls.EVENT_KEYS, "events")
         _exact_keys(
             materialization, cls.MATERIALIZATION_KEYS, "materialization")
         _booleans(projection, "projection")
         _booleans(inference, "inference")
+        _booleans(learning, "learning")
         _booleans(authority, "domain_authority")
         _booleans({
             key: events[key] for key in (
@@ -113,6 +123,28 @@ class DependentAtomSpaceConfig:
             raise ValueError("FDAS authority requires the core to be enabled")
         if any(authority.values()) and not value["authority_enabled"]:
             raise ValueError("domain authority requires the authority gate")
+        if (learning["contextual_conductance_enabled"]
+                and not learning["episode_attribution_enabled"]):
+            raise ValueError(
+                "contextual conductance requires episode attribution")
+        if (learning["contextual_conductance_authority_enabled"]
+                and not learning["contextual_conductance_enabled"]):
+            raise ValueError(
+                "contextual conductance authority requires conductance")
+        if (learning["contextual_conductance_authority_enabled"]
+                and not value["authority_enabled"]):
+            raise ValueError(
+                "contextual conductance authority requires the authority gate")
+        if (learning["induction_enabled"]
+                and not learning["episode_attribution_enabled"]):
+            raise ValueError("induction requires episode attribution")
+        if (learning["induced_rule_readout_enabled"]
+                and not learning["induction_enabled"]):
+            raise ValueError("induced rule readout requires induction")
+        if (learning["induced_rule_readout_enabled"]
+                and not value["authority_enabled"]):
+            raise ValueError(
+                "induced rule readout requires the authority gate")
         if authority["research"] and not inference[
                 "technology_compatibility_path_enabled"]:
             raise ValueError(
@@ -133,6 +165,7 @@ class DependentAtomSpaceConfig:
             tuple(sorted(projection.items())),
             tuple(sorted(materialization.items())),
             tuple(sorted(inference.items())),
+            tuple(sorted(learning.items())),
             tuple(sorted(authority.items())),
             tuple(sorted(events.items())),
         )
@@ -168,6 +201,24 @@ class DependentAtomSpaceConfig:
         if config["inference"]["uncertain_assessment_enabled"]:
             require("belief_domain_projection", "shadow-live")
             require("observation_pressure_planning", "shadow-live")
+        learning = config["learning"]
+        if learning["episode_attribution_enabled"]:
+            require("episode_attribution", "shadow-live")
+            require("fdas_learning_diagnostics", "shadow-live")
+        if learning["contextual_conductance_enabled"]:
+            require("episode_control_learning_bridge", "shadow-live")
+            require("contextual_conductance_learning", "shadow-live")
+        if learning["induction_enabled"]:
+            require("episode_induction_bridge", "shadow-live")
+            require("quarantined_contextual_induction", "shadow-live")
+        if learning["contextual_conductance_authority_enabled"]:
+            require("episode_control_learning_bridge", "bounded-authority")
+            require("contextual_conductance_learning", "bounded-authority")
+            require("contextual_conductance_holdout_gate", "bounded-authority")
+        if learning["induced_rule_readout_enabled"]:
+            require("episode_induction_bridge", "bounded-authority")
+            require("quarantined_contextual_induction", "bounded-authority")
+            require("induced_rule_heldout_gate", "bounded-authority")
         if any(config["domain_authority"].values()):
             require("dependent_atom_pressure_adapter", "bounded-authority")
             require("fdas_resource_packet_bridge", "bounded-authority")
@@ -215,6 +266,7 @@ class DependentAtomSpaceConfig:
             "enabled": self.enabled,
             "events": dict(self.events),
             "inference": dict(self.inference),
+            "learning": dict(self.learning),
             "materialization": dict(self.materialization),
             "projection": dict(self.projection),
             "revision_retention": self.revision_retention,
