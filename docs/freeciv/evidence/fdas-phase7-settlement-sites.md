@@ -16,6 +16,16 @@ enemy collection. Fog produces neither a safety claim nor an escort
 requirement. A packet-visible enemy occupying the exact site instead produces
 `settlement-site-contested-by` and `settlement-escort-required`.
 
+The escort extension adds a bounded visible-threat policy. Exact occupation is
+a distance-zero threat even when map topology is unavailable. A nonzero threat
+radius is used only when width, height, and both wrap flags are explicit. Each
+threat produces an escort requirement. The requirement becomes actionable
+only when a current persistent defender has an exact native route and unique
+legal first step that can reach the founder within the bounded catch window.
+Moving the sole persistent defender out of an owned city is excluded. If no
+such escort exists, the site receives `settlement-site-blocked-by-threat`
+instead of a fabricated escort action.
+
 The closed visible-enemy collection has an explicit membership dependency.
 Consequently, a current-uncontested support is invalidated when an enemy is
 added, even though that enemy had no per-entity dependency in the prior
@@ -25,9 +35,10 @@ transition.
 Boundaries of this increment:
 
 - `currently-uncontested` is not a forecast and does not claim future safety;
-- escort requirements cover exact site occupation only in this increment;
-- reachable-threat envelopes and whether an escort can catch the founder are
-  not yet projected;
+- threat reachability is a bounded current visible-distance policy, not an
+  enemy path forecast;
+- escort catchability covers the current founder rendezvous window; it is not
+  a multi-turn escort operation;
 - candidate ranking, population recovery, persistent settlement operations,
   and action selection remain outside this component;
 - no FDAS authority flag is enabled.
@@ -40,5 +51,5 @@ pytest -q Autotests/test_freeciv_fdas_dependencies.py \
   Autotests/test_freeciv_fdas_corridor.py \
   Autotests/test_freeciv_fdas_phase0.py
 
-24 passed
+26 passed
 ```

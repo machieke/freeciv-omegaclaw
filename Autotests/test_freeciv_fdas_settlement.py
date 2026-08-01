@@ -60,6 +60,29 @@ def _snapshot(payload, seq):
         "fdas-settlement-sites", seq, payload).to_snapshot()
 
 
+def _escort_route(source_seq):
+    return {
+        "authority": "freeciv-server-pathfinder",
+        "destination_tile": 82,
+        "estimated_turns": 1,
+        "first_step_movement_cost": 1,
+        "first_step_tile": 82,
+        "initially_transported": False,
+        "movement_points_remaining": 2,
+        "moves_left_at_request": 3,
+        "origin_tile": 81,
+        "path_directions": [0],
+        "path_length": 1,
+        "reachable": True,
+        "schema_version": "1.0",
+        "source_seq": source_seq,
+        "total_movement_cost": 1,
+        "transported_at_request": False,
+        "turn": 12,
+        "unit_id": 8,
+    }
+
+
 def _predicates(revision, tile):
     scope = next(
         value for value in revision.scopes
@@ -120,7 +143,9 @@ def test_fog_is_unknown_and_visible_enemy_creates_exact_escort_requirement():
     assert "settlement-site-currently-uncontested" not in predicates
     assert {
         "settlement-escort-required",
+        "settlement-site-blocked-by-threat",
         "settlement-site-contested-by",
+        "settlement-visible-threat-near",
     }.issubset(predicates)
     requirement = next(
         value for value in contested.records
@@ -130,6 +155,69 @@ def test_fog_is_unknown_and_visible_enemy_creates_exact_escort_requirement():
     assert any(
         value.key.path == "visible_enemy_units.90.tile"
         for value in requirement.supports[0].dependencies)
+
+
+def test_escort_is_actionable_only_with_current_exact_catch_route():
+    payload = _payload(visible_target=True, enemy_at_target=True)
+    escort = copy.deepcopy(payload["units"]["7"])
+    escort.update({
+        "id": 8, "tile": 81, "transported": False,
+        "transported_by": 0, "x": 1, "y": 2})
+    payload["units"]["8"] = escort
+    payload["legal_actions"].append({
+        "action_type": "unit_move",
+        "actor_id": 8,
+        "is_valid": True,
+        "target": {"x": 2, "y": 2},
+    })
+    payload["authoritative"]["movement_routes"] = [_escort_route(526)]
+    revision = DependentAtomSpaceStore(
+        domain_projector=SettlementSiteProjector()).build(
+            _snapshot(payload, 526))
+    predicates = _predicates(revision, 83)
+
+    assert {
+        "escort-can-catch-founder",
+        "settlement-actionable-escort",
+        "settlement-escort-required",
+    }.issubset(predicates)
+    assert "settlement-site-blocked-by-threat" not in predicates
+    actionable = next(
+        value for value in revision.records
+        if value.key.predicate == "settlement-actionable-escort")
+    assert [value.entity_id for value in actionable.key.arguments] == [
+        "7", "tile:83", "8"]
+    assert any(
+        value.key.path == "movement_routes.8:82.estimated_turns"
+        for value in actionable.supports[0].dependencies)
+
+
+def test_visible_nearby_threat_requires_explicit_topology():
+    payload = _payload(visible_target=True, enemy_at_target=True)
+    payload["map"]["wrap_x"] = False
+    payload["map"]["wrap_y"] = False
+    payload["units"]["90"].update({"tile": 84, "x": 4, "y": 2})
+    exact = DependentAtomSpaceStore(
+        domain_projector=SettlementSiteProjector()).build(
+            _snapshot(payload, 527))
+    predicates = _predicates(exact, 83)
+
+    assert "settlement-site-contested-by" not in predicates
+    assert "settlement-site-currently-uncontested" in predicates
+    assert {
+        "settlement-escort-required",
+        "settlement-site-blocked-by-threat",
+        "settlement-visible-threat-near",
+    }.issubset(predicates)
+
+    payload["map"].pop("wrap_x")
+    payload["map"].pop("wrap_y")
+    unknown = DependentAtomSpaceStore(
+        domain_projector=SettlementSiteProjector()).build(
+            _snapshot(payload, 528))
+    unknown_predicates = _predicates(unknown, 83)
+    assert "settlement-visible-threat-near" not in unknown_predicates
+    assert "settlement-escort-required" not in unknown_predicates
 
 
 def test_visible_uncontested_site_retracts_incrementally_when_enemy_appears():

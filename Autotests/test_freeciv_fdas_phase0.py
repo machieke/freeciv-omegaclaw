@@ -49,6 +49,7 @@ def test_fdas_manifest_exposes_only_evidenced_component_capabilities():
         "region_domain_projection",
         "route_corridor_projection",
         "settlement_site_projection",
+        "settlement_escort_reachability",
         "transport_capability_projection",
         "transport_operation_projection",
         "ruleset_domain_projection",
