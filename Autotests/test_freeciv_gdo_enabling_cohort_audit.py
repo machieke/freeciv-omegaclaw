@@ -118,3 +118,108 @@ def test_arm_combination_reports_attribution_completion_and_censoring():
     assert production["completion_rate_per_commit"] == 1.0
     assert production["terminal_coverage"] == 0.5
     assert production["nonterminal_at_trace_end"] == 1
+
+
+def _research_payload(operation_id, request_id):
+    payload = _payload(
+        operation_id,
+        "gdo7b-research-enabling")
+    payload.update({
+        "claims": [{
+            "hardness": "hard_current",
+            "resource": {
+                "kind": "research_slot",
+                "owner_id": "player:0",
+                "subresource": "current_target",
+            },
+        }],
+        "deadline_turn": 10,
+        "domain_estimate_request_id": request_id,
+        "downstream_operation_id": "downstream-research",
+        "requirement_set": {
+            "requirement_set_id": "requirements-research",
+            "role_ids": [
+                "completion_forecast_supported",
+                "immediate_dependency_researchable",
+            ],
+        },
+    })
+    return payload
+
+
+def _research_estimate(request_id, immediate="Alphabet", **dependency):
+    profile = {
+        "currently_researchable_frontier": ["Alphabet"],
+        "legacy_tech_want_applied": False,
+        "propagation_mode": (
+            "decomposed_ruleset_dependency_graph"),
+    }
+    profile.update(dependency)
+    return _event("domain_estimate_emitted", {
+        "estimator_id": "grounded_research_selection",
+        "model_artifact": {
+            "dependency_profile": profile,
+            "immediate_target_tech": immediate,
+        },
+        "request_id": request_id,
+    })
+
+
+def test_trace_audit_proves_research_confirmation_contract():
+    research = _research_payload(
+        "operation-research", "request-research")
+    completed = dict(
+        research,
+        downstream_ready=True,
+        released_downstream_operation_id=(
+            "downstream-research"),
+        technology_ref="technology:Alphabet")
+
+    result = analyze_trace([
+        _research_estimate("request-research"),
+        _event("operation_proposed", research),
+        _event("operation_step_committed", research),
+        _event("operation_completed", completed),
+    ])
+
+    contract = result["mechanisms"][
+        "gdo7b-research-enabling"][
+            "contract_observations"]
+    assert contract["frontier_admission_unique"] == 1
+    assert contract["decomposed_dependency_unique"] == 1
+    assert contract["legacy_tech_want_free_unique"] == 1
+    assert contract["completion_before_deadline_unique"] == 1
+    assert contract["downstream_release_unique"] == 1
+    assert result["semantic_violations"] == []
+
+
+def test_trace_audit_rejects_off_frontier_and_slot_overallocation():
+    first = _research_payload(
+        "operation-research-a", "request-research-a")
+    second = _research_payload(
+        "operation-research-b", "request-research-b")
+
+    result = analyze_trace([
+        _research_estimate(
+            "request-research-a",
+            immediate="Writing",
+            legacy_tech_want_applied=True),
+        _research_estimate("request-research-b"),
+        _event("operation_proposed", first),
+        _event("operation_proposed", second),
+    ])
+
+    violations = result["semantic_violations"]
+    assert any(
+        value.endswith("off-frontier-research-admission")
+        for value in violations)
+    assert any(
+        value.endswith("legacy-tech-want-applied")
+        for value in violations)
+    assert any(
+        "hard-slot-overallocated" in value
+        for value in violations)
+    assert result["mechanisms"][
+        "gdo7b-research-enabling"][
+            "contract_observations"][
+                "hard_slot_overallocation_violations"] == 2

@@ -101,14 +101,19 @@ def _metric(events, name):
 def analyze_trace(events):
     """Return source-fresh mechanism observations for one engine trace."""
     proposals = {}
+    proposal_turns = {}
+    estimates_by_request = {}
     lifecycle = defaultdict(Counter)
     terminal = {}
     domain_estimates = Counter()
     domain_abstentions = Counter()
     resource = defaultdict(Counter)
     reason_codes = defaultdict(Counter)
+    contract = defaultdict(Counter)
+    hard_slot_claims = defaultdict(list)
     duplicate_proposals = []
     malformed_proposals = []
+    semantic_violations = []
     for event in events:
         event_type = str(event.get("type", ""))
         payload = event.get("payload", {})
@@ -123,6 +128,10 @@ def analyze_trace(events):
                 if event_type == "domain_estimate_emitted"
                 else domain_abstentions)
             target[str(estimator)] += 1
+            if event_type == "domain_estimate_emitted":
+                request_id = payload.get("request_id")
+                if isinstance(request_id, str):
+                    estimates_by_request[request_id] = dict(payload)
         operation_id = payload.get("operation_id")
         mechanism = payload.get("mechanism")
         if (
@@ -132,6 +141,7 @@ def analyze_trace(events):
             if operation_id in proposals:
                 duplicate_proposals.append(operation_id)
             proposals[operation_id] = dict(payload)
+            proposal_turns[operation_id] = event.get("turn")
             if (
                     payload.get("shadow_only") is not True
                     or payload.get("policy_authority") is not False
@@ -141,6 +151,95 @@ def analyze_trace(events):
                     or not payload.get(
                         "domain_estimate_request_id")):
                 malformed_proposals.append(operation_id)
+            estimate = estimates_by_request.get(
+                payload.get("domain_estimate_request_id"))
+            if not isinstance(estimate, dict):
+                semantic_violations.append(
+                    "%s:missing-domain-estimate" % operation_id)
+                estimate = {}
+            artifact = estimate.get("model_artifact", {})
+            requirement_set = payload.get("requirement_set", {})
+            role_ids = set(requirement_set.get("role_ids", ()))
+            claims = payload.get("claims", ())
+            if "completion_forecast_supported" in role_ids:
+                contract[mechanism][
+                    "deadline_supported_unique"] += 1
+            else:
+                semantic_violations.append(
+                    "%s:deadline-not-supported" % operation_id)
+            for claim in claims:
+                resource_key = claim.get("resource", {})
+                if (
+                        claim.get("hardness") == "hard_current"
+                        and resource_key.get("kind") in (
+                            "city_production_slot",
+                            "research_slot")):
+                    hard_slot_claims[(
+                        event.get("turn"),
+                        resource_key.get("kind"),
+                        resource_key.get("owner_id"),
+                        resource_key.get("subresource"),
+                    )].append(operation_id)
+            if mechanism == "gdo7a-production-enabling":
+                current = artifact.get("current_production", {})
+                if current.get("same_target") is False:
+                    contract[mechanism]["queue_switch_unique"] += 1
+                profile = artifact.get("target_profile", {})
+                upkeep_fields = (
+                    "building_upkeep", "food_upkeep",
+                    "gold_upkeep", "happiness_cost",
+                    "shield_upkeep")
+                if (
+                        all(field in profile for field in upkeep_fields)
+                        and artifact.get("upkeep_timing")
+                        == "only-after-observed-completion"):
+                    contract[mechanism][
+                        "upkeep_profile_grounded_unique"] += 1
+                else:
+                    semantic_violations.append(
+                        "%s:upkeep-profile-not-grounded"
+                        % operation_id)
+                if any(
+                        claim.get("hardness")
+                        == "conditional_future"
+                        and claim.get("resource", {}).get("kind")
+                        == "treasury"
+                        for claim in claims):
+                    contract[mechanism][
+                        "conditional_treasury_claim_unique"] += 1
+            elif mechanism == "gdo7b-research-enabling":
+                dependency = artifact.get(
+                    "dependency_profile", {})
+                immediate = artifact.get(
+                    "immediate_target_tech")
+                frontier = dependency.get(
+                    "currently_researchable_frontier", ())
+                if (
+                        immediate in frontier
+                        and "immediate_dependency_researchable"
+                        in role_ids):
+                    contract[mechanism][
+                        "frontier_admission_unique"] += 1
+                else:
+                    semantic_violations.append(
+                        "%s:off-frontier-research-admission"
+                        % operation_id)
+                if dependency.get("propagation_mode") == (
+                        "decomposed_ruleset_dependency_graph"):
+                    contract[mechanism][
+                        "decomposed_dependency_unique"] += 1
+                else:
+                    semantic_violations.append(
+                        "%s:unexpected-dependency-mode"
+                        % operation_id)
+                if dependency.get(
+                        "legacy_tech_want_applied") is False:
+                    contract[mechanism][
+                        "legacy_tech_want_free_unique"] += 1
+                else:
+                    semantic_violations.append(
+                        "%s:legacy-tech-want-applied"
+                        % operation_id)
         if (
                 event_type in LIFECYCLE_TYPES
                 and operation_id in proposals):
@@ -151,11 +250,55 @@ def analyze_trace(events):
                 reason_codes[mechanism][reason] += 1
             if event_type in TERMINAL_TYPES:
                 terminal[operation_id] = event_type
+            if event_type == "operation_completed":
+                deadline = proposals[operation_id].get(
+                    "deadline_turn")
+                turn = event.get("turn")
+                if (
+                        isinstance(deadline, int)
+                        and isinstance(turn, int)
+                        and turn <= deadline):
+                    contract[mechanism][
+                        "completion_before_deadline_unique"] += 1
+                else:
+                    semantic_violations.append(
+                        "%s:completion-after-deadline"
+                        % operation_id)
+                if (
+                        payload.get("downstream_ready") is True
+                        and payload.get(
+                            "released_downstream_operation_id")
+                        == proposals[operation_id].get(
+                            "downstream_operation_id")):
+                    contract[mechanism][
+                        "downstream_release_unique"] += 1
+                else:
+                    semantic_violations.append(
+                        "%s:completion-without-downstream-release"
+                        % operation_id)
+            if (
+                    mechanism == "gdo7b-research-enabling"
+                    and event_type == "operation_blocked"
+                    and payload.get("reason_code")
+                    == "research-beaker-output-stalled"):
+                contract[mechanism][
+                    "beaker_stall_events"] += 1
         if (
                 event_type.startswith("resource_claim_")
                 and operation_id in proposals):
             mechanism = proposals[operation_id]["mechanism"]
             resource[mechanism][event_type] += 1
+    for key, operation_ids in sorted(hard_slot_claims.items()):
+        if len(operation_ids) <= 1:
+            continue
+        semantic_violations.append(
+            "%s:hard-slot-overallocated:%s" % (
+                ",".join(sorted(operation_ids)),
+                ":".join(str(value) for value in key)))
+        for operation_id in operation_ids:
+            mechanism = proposals[operation_id]["mechanism"]
+            contract[mechanism][
+                "hard_slot_overallocation_violations"] += 1
     mechanisms = {}
     for mechanism in MECHANISMS:
         operation_ids = {
@@ -179,6 +322,8 @@ def analyze_trace(events):
                 len(completed_ids), len(committed_ids)),
             "committed_unique": len(committed_ids),
             "completed_unique": len(completed_ids),
+            "contract_observations": dict(sorted(
+                contract[mechanism].items())),
             "lifecycle_events": dict(sorted(
                 lifecycle[mechanism].items())),
             "nonterminal_at_trace_end": len(
@@ -197,6 +342,7 @@ def analyze_trace(events):
             domain_estimates.items())),
         "duplicate_proposals": sorted(duplicate_proposals),
         "malformed_proposals": sorted(malformed_proposals),
+        "semantic_violations": sorted(semantic_violations),
         "mechanisms": mechanisms,
         "metrics": {
             "engine_rejected_action_rate": _metric(
@@ -219,6 +365,7 @@ def _combine(rows):
         "domain_estimates": Counter(),
         "duplicate_proposals": [],
         "malformed_proposals": [],
+        "semantic_violations": [],
         "mechanisms": {},
     }
     for row in rows:
@@ -230,16 +377,20 @@ def _combine(rows):
             row["duplicate_proposals"])
         result["malformed_proposals"].extend(
             row["malformed_proposals"])
+        result["semantic_violations"].extend(
+            row["semantic_violations"])
     for mechanism in MECHANISMS:
         lifecycle = Counter()
         resource = Counter()
         reasons = Counter()
+        contract = Counter()
         proposed = committed = completed = terminal = nonterminal = 0
         for row in rows:
             value = row["mechanisms"][mechanism]
             lifecycle.update(value["lifecycle_events"])
             resource.update(value["resource_events"])
             reasons.update(value["reason_codes"])
+            contract.update(value["contract_observations"])
             proposed += value["proposed_unique"]
             committed += value["committed_unique"]
             completed += value["completed_unique"]
@@ -252,6 +403,8 @@ def _combine(rows):
                 completed, committed),
             "committed_unique": committed,
             "completed_unique": completed,
+            "contract_observations": dict(sorted(
+                contract.items())),
             "lifecycle_events": dict(sorted(lifecycle.items())),
             "nonterminal_at_trace_end": nonterminal,
             "proposed_unique": proposed,
@@ -268,6 +421,8 @@ def _combine(rows):
         result["duplicate_proposals"])
     result["malformed_proposals"] = sorted(
         result["malformed_proposals"])
+    result["semantic_violations"] = sorted(
+        result["semantic_violations"])
     return result
 
 
@@ -347,6 +502,14 @@ def run(root, profile, cohort=COHORT):
         value["completed_unique"]
         for value in treatment[
             "mechanisms"].values())
+    production = treatment["mechanisms"][
+        "gdo7a-production-enabling"]
+    production_contract = production[
+        "contract_observations"]
+    research = treatment["mechanisms"][
+        "gdo7b-research-enabling"]
+    research_contract = research[
+        "contract_observations"]
     gates = {
         "all_predeclared_pairs_completed": (
             expected == design["planned_pairs"]),
@@ -364,6 +527,29 @@ def run(root, profile, cohort=COHORT):
             not treatment["duplicate_proposals"]),
         "no_malformed_operation_contract": (
             not treatment["malformed_proposals"]),
+        "no_semantic_contract_violation": (
+            not treatment["semantic_violations"]),
+        "no_hard_slot_overallocation": all(
+            not value["contract_observations"].get(
+                "hard_slot_overallocation_violations", 0)
+            for value in treatment["mechanisms"].values()),
+        "production_confirmation_contract": (
+            production_contract.get(
+                "queue_switch_unique", 0) > 0
+            and production_contract.get(
+                "deadline_supported_unique", 0)
+            == production["proposed_unique"]
+            and production_contract.get(
+                "upkeep_profile_grounded_unique", 0)
+            == production["proposed_unique"]
+            and production_contract.get(
+                "completion_before_deadline_unique", 0)
+            == production["completed_unique"]
+            and production_contract.get(
+                "downstream_release_unique", 0)
+            == production["completed_unique"]
+            and production["lifecycle_events"].get(
+                "operation_repaired", 0) > 0),
         "production_and_research_both_exercised": all(
             treatment["mechanisms"][mechanism][
                 "proposed_unique"] > 0
@@ -372,6 +558,28 @@ def run(root, profile, cohort=COHORT):
             baseline_proposals == 0),
         "treatment_shadow_mechanism_active": (
             treatment_proposals > 0),
+        "research_confirmation_contract": (
+            research_contract.get(
+                "frontier_admission_unique", 0)
+            == research["proposed_unique"]
+            and research_contract.get(
+                "decomposed_dependency_unique", 0)
+            == research["proposed_unique"]
+            and research_contract.get(
+                "legacy_tech_want_free_unique", 0)
+            == research["proposed_unique"]
+            and research_contract.get(
+                "deadline_supported_unique", 0)
+            == research["proposed_unique"]
+            and research_contract.get(
+                "completion_before_deadline_unique", 0)
+            == research["completed_unique"]
+            and research_contract.get(
+                "downstream_release_unique", 0)
+            == research["completed_unique"]
+            and not research_contract.get(
+                "beaker_stall_events", 0)
+            and parity["technology_gain"]["passed"]),
     }
     return {
         "schema_version": "1.0",

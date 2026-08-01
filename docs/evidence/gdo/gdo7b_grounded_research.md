@@ -139,11 +139,39 @@ Coverage includes:
 - strategic-completion downstream release;
 - default-off runtime gating.
 
-## Open confirmation gate
+## Fresh confirmation and remaining authority gate
 
-Before any authority or gameplay-benefit claim, run a fresh engine-backed
-cohort that captures research options and operation lifecycle events. It must
-show:
+The fresh engine-backed shadow confirmation is now complete. The
+claim-ineligible `grounded_enabling_operations_diagnostic_v2` cohort ran 10
+disjoint paired seeds for 120 turns and captured research options, exact
+accepted actions, and persistent operation lifecycle events. The treatment
+enabled only shadow GDO-7A/GDO-7B instrumentation; it had no candidate-ordering
+or execution authority.
+
+The source-fresh audit found:
+
+| Research observation | Result |
+| --- | ---: |
+| grounded research operations | 16 |
+| exact engine acceptances attributed | 16 / 16 |
+| frontier-only admissions | 16 / 16 |
+| decomposed dependency mode | 16 / 16 |
+| operations with legacy `tech_want` absent | 16 / 16 |
+| authoritative technology completions | 6 / 16 |
+| completions within declared deadline | 6 / 6 |
+| completions releasing exact downstream dependency | 6 / 6 |
+| nonterminal at the fixed horizon | 10 |
+| beaker-stall lifecycle events | 0 |
+| hard research-slot overallocations | 0 |
+
+Technology gain, score, score lead, and meaningful-action rate were exactly
+equal between baseline and treatment on every paired seed. Across production
+and research the audit validated 109,431 events with zero schema errors or
+warnings, no duplicate operation identity, and no semantic contract
+violation. Canonical machine-readable evidence is
+`docs/freeciv/evidence/gdo7-grounded-enabling-operations-diagnostic-v2.json`.
+
+This closes the previously listed confirmation conditions:
 
 - no off-frontier selection admitted by the grounded readout;
 - no double propagation through legacy `tech_want`;
@@ -152,5 +180,9 @@ show:
 - no regression in technology acquisition or score against the frozen
   comparator.
 
-Until that disjoint confirmation exists, GDO-7B remains a semantic and
-decision-safety result only.
+It does not close the policy-benefit gate because the confirmed mechanism was
+deliberately shadow-only. Before receiving any research authority, GDO-7B
+still requires a separately predeclared, default-off advisory or bounded-live
+pilot that improves research decision quality without safety, technology, or
+score regression. GDO-7B therefore remains a semantic, lifecycle, and
+decision-safety result, not a score or win-rate result.

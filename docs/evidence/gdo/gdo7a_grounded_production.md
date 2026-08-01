@@ -1,9 +1,9 @@
 # GDO-7A grounded production enabling operations
 
-Status: retained mechanism gate passed; fresh execution and policy-benefit
-gates remain open
+Status: retained mechanism and fresh shadow-execution confirmation passed;
+policy-benefit/authority gate remains open
 
-Date: 2026-07-30
+Date: 2026-08-01
 
 Branch: `experimental/pln-pressure–bridge–fluid`
 
@@ -20,11 +20,17 @@ completion after switching the city target. The grounded model makes zero
 zero-turn product claims and always reports that the queued unit or building
 is unavailable until a later authoritative snapshot supplies its identity.
 
-This is a decision-safety mechanism result, not an engine-backed outcome or
-score result. The operation remains `policy_authority=false`. The retained
-corpus does not contain enough typed post-completion unit/building state to
-claim ETA calibration, improved production completion rate, score benefit, or
-win-rate benefit.
+The retained replay result described above is a decision-safety mechanism
+result, not an engine-backed outcome or score result. The operation remains
+`policy_authority=false`. The retained corpus does not contain enough typed
+post-completion unit/building state to claim ETA calibration, improved
+production completion rate, score benefit, or win-rate benefit.
+
+The fresh engine confirmation described below now adds accepted-action
+attribution, later authoritative product identity, deadline coverage,
+stall/repair, compiled upkeep profiles, and downstream release. It remains a
+shadow-only behavior-invariance experiment, so it still does not establish
+that giving this mechanism policy authority would improve gameplay.
 
 ## Current-step transition model
 
@@ -145,8 +151,59 @@ it eliminates the simpler baseline's impossible zero-turn product semantics,
 grounds all retained candidate costs, and makes product identity contingent on
 later observation. The slice stays shadow-only.
 
-The remaining GDO-7A evidence gate is a fresh engine cohort that exercises
-queue switch, accepted-action attribution, product completion, deadline
-coverage, stall/repair, upkeep observation, and downstream activation. Only
-after that cohort beats the immediate baseline on completion/deadline
-correctness should production receive any authority.
+## Fresh engine confirmation
+
+The predeclared, claim-ineligible
+`grounded_enabling_operations_diagnostic_v2` cohort ran 10 disjoint paired
+seeds for 120 turns with hard server recycling per arm. Baseline and treatment
+used the same existing policy. The only treatment difference was enabling
+shadow GDO-7A and GDO-7B lifecycle instrumentation; neither mechanism could
+change candidate ordering or execute an action.
+
+```bash
+python3 scripts/freeciv/run_impact_evaluation.py \
+  --out artifacts/freeciv/gdo7-grounded-enabling-diagnostic-v2-final \
+  --backend engine-live \
+  --workers 3 \
+  --server-ports 6001,6002,6003 \
+  --cohort grounded_enabling_operations_diagnostic_v2 \
+  --no-resume
+
+python3 scripts/run_gdo_enabling_cohort_audit.py \
+  artifacts/freeciv/gdo7-grounded-enabling-diagnostic-v2-final \
+  --out docs/freeciv/evidence/\
+gdo7-grounded-enabling-operations-diagnostic-v2.json
+```
+
+All 20 arms completed with zero infrastructure failures. The strict audit
+validated 109,431 events with zero schema errors or warnings and reported:
+
+| Production observation | Result |
+| --- | ---: |
+| grounded queue-switch operations | 109 |
+| exact engine acceptances attributed | 109 / 109 |
+| authoritative product completions | 93 / 109 |
+| completions within declared deadline | 93 / 93 |
+| completions releasing exact downstream dependency | 93 / 93 |
+| grounded upkeep profiles | 109 / 109 |
+| conditional future treasury claims | 79 |
+| repair transitions | 1 |
+| abandoned because the city disappeared | 1 |
+| nonterminal at the fixed horizon | 15 |
+| hard production-slot overallocations | 0 |
+
+The 792 `production-target-diverged-before-product-observation` records are
+repeated, snapshot-level blocked observations, not 792 failed operations. One
+such lifecycle recovered and emitted `operation_repaired`; terminal counts are
+deduplicated by operation identity.
+
+The paired score, score lead, meaningful-action rate, and technology gain were
+exactly equal on all 10 seeds. That is the intended result for a shadow-only
+cohort: it proves action attribution and lifecycle observation without policy
+write-through.
+
+The fresh shadow-execution confirmation is therefore closed. The remaining
+GDO-7A gate is a separately predeclared, default-off advisory or bounded-live
+pilot that compares decision correctness and safety against the current
+production policy. Until it wins that gate, production receives no authority
+and makes no score or win-rate claim.

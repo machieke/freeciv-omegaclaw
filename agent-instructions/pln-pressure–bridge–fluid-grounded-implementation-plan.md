@@ -2442,6 +2442,43 @@ that route allocation is the limiting error or that bridge/flow value exceeds
 its measured controller cost. Per the plan, further bridge/flow authority is
 therefore out of scope until new independent evidence opens the entry gate.
 
+### 22.2 Post-completion GDO-7 shadow confirmation
+
+Status: passed on 2026-08-01
+
+The claim-ineligible `grounded_enabling_operations_diagnostic_v2` cohort adds
+a fresh engine confirmation for the production and research extensions. It
+ran 10 disjoint paired seeds for 120 turns (20 complete arms, zero
+infrastructure failures) with GDO-7A/GDO-7B disabled in baseline and enabled
+only as shadow lifecycle observers in treatment.
+
+The source-fresh audit passed every declared gate:
+
+- exact paired score, score-lead, meaningful-action, and technology-gain
+  parity;
+- 109/109 production and 16/16 research operations attributed to byte-exact
+  accepted engine actions;
+- 93 authoritative product identities and 6 authoritative technology
+  identities observed later, all within their declared deadlines and all
+  releasing the exact downstream dependency;
+- all research admissions on the proved frontier, one decomposed dependency
+  mode, and zero legacy `tech_want` applications;
+- grounded production upkeep profiles, an exercised block/repair lifecycle,
+  and zero hard production/research slot overallocations;
+- zero schema errors, duplicate operation identities, or semantic contract
+  violations across 109,431 events.
+
+Canonical evidence:
+
+- `docs/freeciv/evidence/gdo7-grounded-enabling-operations-diagnostic-v2.json`;
+- `docs/evidence/gdo/gdo7a_grounded_production.md`;
+- `docs/evidence/gdo/gdo7b_grounded_research.md`.
+
+This closes fresh shadow-execution confirmation only. It does not alter the
+program's authority boundary and makes no score or win-rate claim. Production
+and research remain default-off and require their own predeclared advisory or
+bounded-live policy-benefit pilot before receiving authority.
+
 ---
 
 ## 23. Recommended first implementation issue
