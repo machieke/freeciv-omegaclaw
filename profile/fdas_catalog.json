@@ -124,6 +124,13 @@
     {"argument_kinds": [["tile"], ["terrain"]], "arity": 2, "name": "terrain-kind", "namespace": "authoritative", "status": "component-only"},
     {"argument_kinds": [["unit"], ["city"], ["radius-policy"]], "arity": 3, "name": "visible-threat-near", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["region"], ["activation-reason"]], "arity": 2, "name": "region-activation-reason", "namespace": "diagnostic", "status": "component-only"},
+    {"argument_kinds": [["route-corridor"], ["unit"]], "arity": 2, "name": "route-corridor-for", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["route-corridor"], ["tile"]], "arity": 2, "name": "route-corridor-origin", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["route-corridor"], ["tile"]], "arity": 2, "name": "route-corridor-destination", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["route-corridor"], ["tile"]], "arity": 2, "name": "route-corridor-first-step", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["route-corridor"]], "arity": 1, "name": "route-corridor-reachable", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["route-corridor"], ["visibility-status"]], "arity": 2, "name": "route-corridor-visibility", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["route-corridor"], ["action"]], "arity": 2, "name": "route-corridor-current-legal-step", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["unit"], ["operation-kind"]], "arity": 2, "name": "unit-available", "namespace": "derived", "status": "proposed"},
     {"argument_kinds": [["operation"], ["operation-type"]], "arity": 2, "name": "operation-type", "namespace": "operation", "status": "component-only"},
     {"argument_kinds": [["operation"], ["goal"]], "arity": 2, "name": "operation-serves-goal", "namespace": "operation", "status": "component-only"},
@@ -187,6 +194,7 @@
     {"kind": "unit-facts", "materialization": "owned-and-visible-summary", "status": "component-only"},
     {"kind": "unit-control", "materialization": "focused", "status": "proposed"},
     {"kind": "region", "materialization": "focused", "status": "component-only"},
+    {"kind": "route-corridor", "materialization": "exact-advertised-routes", "status": "component-only"},
     {"kind": "operation", "materialization": "active-lifecycle", "status": "component-only"},
     {"kind": "episode", "materialization": "durable-compact", "status": "component-only"}
   ]

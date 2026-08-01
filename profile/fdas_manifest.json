@@ -15,7 +15,8 @@
     "ruleset_domain_projection": "component-only",
     "city_domain_projection": "component-only",
     "unit_domain_projection": "component-only",
-    "region_domain_projection": "component-only"
+    "region_domain_projection": "component-only",
+    "route_corridor_projection": "component-only"
   },
   "component_enabled": true,
   "policy_authority": false,
