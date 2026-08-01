@@ -8,6 +8,7 @@
     "dependency_truth_maintenance": "component-only",
     "episode_attribution": "component-only",
     "episode_control_learning_bridge": "component-only",
+    "episode_induction_bridge": "component-only",
     "fdas_exact_commit_validation": "component-only",
     "fdas_resource_packet_bridge": "component-only",
     "generic_rule_execution": "component-only",

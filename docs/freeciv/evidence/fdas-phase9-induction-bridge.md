@@ -1,0 +1,24 @@
+# FDAS Phase 9 episode/induction bridge evidence
+
+Status: component-only, shadow-only, no policy authority.
+
+`FdasEpisodeInductionAdapter` is the fail-closed seam between durable FDAS
+decision episodes and the existing bounded induction engine. It accepts only
+goal-relief, effect-without-relief, and closed no-effect terminal outcomes.
+Pending, contradicted, expired, and confounded episodes abstain.
+
+Every sample uses explicitly selected episode context keys. Additional feature
+IDs must cite evidence already linked by the episode. Shared execution-event
+lineage is retained in induction provenance, so two rows from the same causal
+event fail the independence check rather than inflating support. The adapter
+does not mutate truth and exposes no action or policy authority.
+
+Encoded samples enter the existing bounded `PatternMiner`. Every proposal is
+created outside executable rule graphs, enters `InductionLedger` as
+`quarantined`, and is invisible through `promoted_rules()` until disjoint
+held-out replay records a promotion verdict. Exact prerequisites, legal-action
+binding, resource claims, commit validation, and downstream execution remain
+outside and downstream of this learning bridge.
+
+Coverage is in `Autotests/test_freeciv_fdas_episode_induction.py` and the
+existing `Autotests/test_freeciv_pressure_induction.py` lifecycle suite.

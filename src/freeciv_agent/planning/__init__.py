@@ -130,6 +130,11 @@ from .fdas_episode_learning import (
     EpisodeLearningResult,
     FdasEpisodeLearningAdapter,
 )
+from .fdas_episode_induction import (
+    EpisodeInductionResult,
+    EpisodeInductionSpec,
+    FdasEpisodeInductionAdapter,
+)
 from .fdas_replacement import FdasCoordinatedReplacementAdapter
 from .fdas_transport import FdasFounderTransportProjectionAdapter
 from .fdas_combat import FdasCombatProjectionAdapter
@@ -207,6 +212,8 @@ __all__ = [
     "FdasDefenseEpisodeRecorder",
     "EpisodeControlPrediction", "EpisodeLearningResult",
     "FdasEpisodeLearningAdapter",
+    "EpisodeInductionResult", "EpisodeInductionSpec",
+    "FdasEpisodeInductionAdapter",
     "FdasCoordinatedReplacementAdapter",
     "FdasFounderTransportProjectionAdapter",
     "FdasCombatProjectionAdapter",
