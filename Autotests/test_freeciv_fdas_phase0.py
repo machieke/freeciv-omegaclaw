@@ -24,15 +24,20 @@ def _json(path):
         return json.load(stream)
 
 
-def test_fdas_phase0_manifest_is_explicitly_not_built_and_non_authoritative():
+def test_fdas_manifest_exposes_only_the_component_only_typed_core():
     manifest = _json("profile/fdas_manifest.json")
 
     assert manifest["schema_version"] == "1.0"
-    assert manifest["status"] == "not-built"
-    assert manifest["component_enabled"] is False
+    assert manifest["status"] == "component-only"
+    assert manifest["component_enabled"] is True
     assert manifest["policy_authority"] is False
     assert manifest["capabilities"]
-    assert set(manifest["capabilities"].values()) == {"not-built"}
+    assert manifest["capabilities"]["dependent_atomspace_core"] == (
+        "component-only")
+    assert {
+        value for key, value in manifest["capabilities"].items()
+        if key != "dependent_atomspace_core"
+    } == {"not-built"}
 
 
 def test_fdas_phase0_catalog_freezes_legacy_projection_and_groundings():

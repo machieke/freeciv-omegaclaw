@@ -1,6 +1,6 @@
 # Functional Dependent AtomSpace
 
-Status: Phase 0 contract and baseline passed; FDAS core not built
+Status: Phase 1 typed core and compatibility facade passed; component-only
 
 Branch: `experimental/functional-dependent-atomspace`
 
@@ -73,10 +73,32 @@ python3 scripts/run_fdas_phase0_baseline.py
 python3 scripts/run_fdas_phase0_baseline.py --check --iterations 1
 ```
 
+## Phase 1 typed core
+
+The compatibility facade now sends the existing ten-predicate snapshot
+projection through immutable typed records before returning the unchanged
+`SnapshotAtomspaces` value. The component includes:
+
+- typed entity and symbol terms with numeric leakage rejection;
+- deterministic atom, support, materialization, and revision identities;
+- predicate arity, namespace, argument-kind, and scope validation;
+- authority and validity metadata;
+- dependency-backed direct-projection supports;
+- deterministic world and empire scopes;
+- atomic, fail-closed full-build transactions; and
+- an in-memory immutable revision store.
+
+All 13 baseline fixtures produce exactly the frozen legacy view. The warm
+captured-snapshot projection measured 21.1 ms mean and 29.8 ms p95 over 260
+builds, within the initial 30 ms base-projection target. This phase implements
+full rebuild only: reverse dependency indexes, invalidation, incremental
+materialization, derivations, queries, and planning authority remain absent.
+
 ## Activation
 
-`profile/fdas_manifest.json` declares every FDAS capability `not-built`, with
-the component and policy authority disabled. `profile/fdas_catalog.json`
+`profile/fdas_manifest.json` declares only `dependent_atomspace_core` as
+`component-only`. The compatibility facade is enabled, but policy authority is
+false and every later capability remains `not-built`. `profile/fdas_catalog.json`
 separates the ten legacy projected predicates and nine legacy groundings from
 the proposed namespaces, authority classes, scopes, first-slice predicates,
 and typed groundings.

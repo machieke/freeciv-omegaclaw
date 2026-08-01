@@ -51,7 +51,8 @@ class SnapshotAtomspaces:
     uncertain: frozenset
 
 
-def build_atomspaces(snapshot):
+def _build_legacy_atomspaces(snapshot):
+    """Return the frozen pre-FDAS projection used by the compatibility builder."""
     own = set()
     player = str(snapshot.player_id)
     for tech in snapshot.research.known_techs:
@@ -78,3 +79,9 @@ def build_atomspaces(snapshot):
     visible = frozenset(Atom("tile-visible", (str(tile_id),))
                         for tile_id in snapshot.visible_tile_ids)
     return SnapshotAtomspaces(snapshot.snapshot_id, frozenset(own), visible, frozenset())
+
+
+def build_atomspaces(snapshot):
+    """Return the byte-compatible legacy view through the typed FDAS builder."""
+    from .atomspace.compatibility import build_compatible_atomspaces
+    return build_compatible_atomspaces(snapshot)

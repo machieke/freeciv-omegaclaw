@@ -83,7 +83,11 @@ pytest -q \
   Autotests/test_freeciv_pressure_v2.py
 ```
 
-## Canonical hashes
+## Canonical Phase 0 hashes
+
+These hashes identify the files as committed at the Phase 0 boundary. The
+live capability manifest advances in later phases while the semantic baseline
+and its report hash remain frozen.
 
 ```text
 semantic report hash:

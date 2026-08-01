@@ -118,6 +118,9 @@ def _snapshot_view(event):
     units = tuple(_unit(row) for row in own.get("units", ()))
     unit_by_id = dict((unit.unit_id, unit) for unit in units)
     return SimpleNamespace(
+        identity=SimpleNamespace(
+            game_id=str(event["game_id"]),
+            source_seq=int(payload["source_seq"])),
         player_id=int(payload["player_id"]),
         turn=int(event["turn"]),
         snapshot_id=str(payload["snapshot_id"]),
