@@ -176,8 +176,9 @@ or remove the 13 rows from the canonical result.
 The new authority remains default-off. The run supports a strong directional
 mechanism result but no production-authority, score, or win-rate claim.
 
-A fresh follow-on may test the same frozen controller with a corrected,
-predeclared safety metric:
+A fresh follow-on is predeclared in
+`gdo7a_production_persistence_snapshot_pilot.md`. It tests the same frozen
+controller with a corrected safety metric:
 
 1. zero accepted competing same-city production switches on snapshots where
    the guard is active;

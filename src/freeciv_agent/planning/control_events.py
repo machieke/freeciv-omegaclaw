@@ -3065,6 +3065,7 @@ class ControlEventEmitter:
                         "city_had_famine": bool(
                             getattr(city, "had_famine", False)),
                         "competing_active_operation_count": 1,
+                        "build_cost": build_cost,
                         "current_production_kind": getattr(
                             city, "production_kind", None),
                         "current_production_value": getattr(
@@ -3078,6 +3079,7 @@ class ControlEventEmitter:
                             getattr(snapshot, "economy", None),
                             "operating_gold_per_turn", None),
                         "remaining_turns": remaining_turns,
+                        "shield_stock": stock,
                         "shield_surplus": float(surplus[1]),
                         "visible_threat_count": 0,
                     }))

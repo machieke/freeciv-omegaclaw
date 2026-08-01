@@ -679,6 +679,10 @@ def test_bounded_persistence_guard_excludes_only_competing_safe_switches():
     assert payload["projected_completion_turn"] == 83
     assert payload["persistence_maximum_remaining_turns"] == 12
     assert payload["persistence_threat_radius"] == 3
+    assert payload["production_persistence_safety"][
+        "build_cost"] == 50
+    assert payload["production_persistence_safety"][
+        "shield_stock"] == 30
     assert report.valid, [
         row.to_dict()
         for row in report.errors]

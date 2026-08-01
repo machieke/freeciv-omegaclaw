@@ -212,6 +212,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "grounded_enabling_operations_diagnostic_v2": 10,
             "grounded_production_persistence_smoke_v1": 1,
             "grounded_production_persistence_pilot_v1": 30,
+            "grounded_production_persistence_snapshot_pilot_v2": 30,
             "path_persistence_pilot_v1": 30,
         }
     seed_sets = [
@@ -324,6 +325,29 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "count": 30,
         "minimum": 8200000,
         "maximum": 8299999,
+    }
+    persistence_snapshot = paired["cohorts"][
+        "grounded_production_persistence_snapshot_pilot_v2"]
+    assert persistence_snapshot["planned_pairs"] == 30
+    assert persistence_snapshot["isolated_policy_keys"] == [
+        "pressure_production_persistence_authority_enabled"]
+    assert persistence_snapshot["arms"]["baseline"][
+        "pressure_production_persistence_authority_enabled"] is False
+    assert persistence_snapshot["arms"]["treatment"][
+        "pressure_production_persistence_authority_enabled"] is True
+    snapshot_design = persistence_snapshot[
+        "production_persistence_snapshot_design"]
+    assert snapshot_design["maximum_protected_snapshot_switches"] == 0
+    assert snapshot_design["maximum_unattributed_relinquishments"] == 0
+    assert snapshot_design["protected_snapshot_boundary"] == (
+        "next_state_snapshot")
+    assert persistence_snapshot["seed_derivation"] == {
+        "algorithm": "sha256-counter-v1",
+        "namespace": (
+            "pf-pln-grounded-production-persistence-snapshot-pilot-v2"),
+        "count": 30,
+        "minimum": 8300000,
+        "maximum": 8399999,
     }
     combat_scenario = paired["cohorts"][
         "combat_operation_authority_scenario_diagnostic_v2"]
