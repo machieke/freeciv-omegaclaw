@@ -81,7 +81,8 @@ def test_phase4_catalog_matches_component_registry():
         if value["status"] == "component-only"}
     component_predicates = {
         value["name"] for value in catalog["predicates"]
-        if value["status"] == "component-only"}
+        if (value["status"] == "component-only"
+            and value["namespace"] != "operation")}
 
     assert component_groundings == {
         value.grounding_id for value in CITY_ECONOMY_GROUNDING_SPECS}

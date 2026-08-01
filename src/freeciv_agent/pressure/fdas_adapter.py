@@ -13,6 +13,7 @@ from .model import (
     Resolvability,
     TruthState,
 )
+from .packets import PacketCost, ResourceKind
 from .scheduler import PressureScheduler
 
 
@@ -164,13 +165,22 @@ class DependentAtomPressureAdapter(object):
                 "blockers": list(candidate.blockers),
                 "candidate_hash": candidate.candidate_hash,
                 "operation_spec_digest": candidate.operation.spec_digest,
+                "operation_requirement_set_id": (
+                    candidate.operation.steps[0].requirement_set_id),
                 "resource_keys": list(candidate.resource_keys),
                 "shadow_only": True,
             },
             reversible=True,
             externally_consequential=not blocked,
-            requirement_set_id=(
-                candidate.operation.steps[0].requirement_set_id),
+            packet_costs=(
+                (PacketCost(ResourceKind.CPU, 1),
+                 PacketCost(ResourceKind.EXPANSION, 1))
+                if blocked else
+                (PacketCost(ResourceKind.ACTION, 1),
+                 PacketCost(ResourceKind.CPU, 1))),
+            # The OperationSpec requirement remains projected and explained,
+            # but is not confused with PF's premise-packet RequirementSet.
+            requirement_set_id=None,
         )
 
     @staticmethod
@@ -196,6 +206,10 @@ class DependentAtomPressureAdapter(object):
                 "reason": "no-current-legal-causal-route",
                 "shadow_only": True,
             },
+            packet_costs=(
+                PacketCost(ResourceKind.CPU, 1),
+                PacketCost(ResourceKind.EXPANSION, 1),
+            ),
         )
 
     def build_context(self, revision, goals, candidate_operations,

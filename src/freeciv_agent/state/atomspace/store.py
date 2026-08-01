@@ -253,8 +253,22 @@ class DependentAtomSpaceStore(object):
         if prior_revision is None:
             invalidation = None
         else:
+            prior_fingerprints = {}
+            for support in prior_revision.dependency_index.support_by_id.values():
+                for dependency in support.dependencies:
+                    existing = prior_fingerprints.get(dependency.key)
+                    if (existing is not None
+                            and existing != dependency.fingerprint):
+                        raise ValueError(
+                            "prior revision has inconsistent dependency "
+                            "fingerprints")
+                    prior_fingerprints[dependency.key] = dependency.fingerprint
+            changed_keys = set(delta.changed_dependency_keys)
+            changed_keys.update(
+                key for key, fingerprint in prior_fingerprints.items()
+                if fingerprints.get(key) != fingerprint)
             invalidation = prior_revision.dependency_index.invalidate(
-                delta.changed_dependency_keys)
+                changed_keys)
         metrics = MaterializationMetrics(
             bool(cold or prior_revision is None),
             len(transaction.records),
@@ -328,6 +342,27 @@ class DependentAtomSpaceStore(object):
             if (prior_snapshot is not None
                     and prior_snapshot.snapshot_id == snapshot.snapshot_id):
                 return prior_revision
+        revision = self.prepare(
+            snapshot, prior_snapshot, prior_revision, cold=False)
+        return self.publish(snapshot, revision)
+
+    def rematerialize(self, snapshot):
+        """Refresh non-snapshot sources against the same snapshot identity.
+
+        Operation and belief stores can advance while the authoritative game
+        snapshot remains unchanged.  This explicit method avoids making the
+        ordinary idempotent ``update`` path surprising while still committing
+        a coherent new FDAS revision for those source revisions.
+        """
+        key = self._snapshot_key(snapshot)
+        with self._lock:
+            prior_snapshot = self._snapshots.get(key)
+            prior_revision = self.current(*key)
+        if prior_snapshot is None or prior_revision is None:
+            return self.build(snapshot)
+        if prior_snapshot.snapshot_id != snapshot.snapshot_id:
+            raise ValueError(
+                "rematerialization requires the current snapshot identity")
         revision = self.prepare(
             snapshot, prior_snapshot, prior_revision, cold=False)
         return self.publish(snapshot, revision)

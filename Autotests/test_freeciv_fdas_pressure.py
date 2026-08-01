@@ -14,11 +14,17 @@ if SRC not in sys.path:
 
 from freeciv_agent.planning import (  # noqa: E402
     CandidateOperationFactory,
+    FDASCommitBinding,
+    FDASCommitValidator,
     GoalFactory,
+    ValidationDisposition,
 )
 from freeciv_agent.pressure import (  # noqa: E402
     DependentAtomPressureAdapter,
+    DependentAtomSchedulingBridge,
     MaterializationBudget,
+    PacketBudget,
+    ResourceKind,
 )
 from freeciv_agent.rulesets.compiler import compile_ruleset  # noqa: E402
 from freeciv_agent.state import ProxyStateDTO  # noqa: E402
@@ -204,3 +210,151 @@ def test_stale_goal_revision_is_rejected(ir):
     with pytest.raises(ValueError, match="stale snapshot"):
         DependentAtomPressureAdapter().build_context(
             revision, (stale,), candidates)
+
+
+def test_blocked_routes_request_no_action_resources(ir):
+    snapshot, revision, goals, candidates = _case(ir)
+    evaluation = DependentAtomPressureAdapter().evaluate(
+        revision, goals, candidates)
+    scheduling = DependentAtomSchedulingBridge().schedule(
+        evaluation,
+        candidates,
+        snapshot,
+        packet_budgets=(
+            PacketBudget(ResourceKind.ACTION, 1),
+            PacketBudget(ResourceKind.CPU, 8),
+        ),
+    )
+
+    assert scheduling.resource_schedule.requests == ()
+    assert scheduling.resource_schedule.capacities == ()
+    assert scheduling.resource_schedule.selected_operation_ids == ()
+    assert scheduling.packet_schedule.committed_operation_ids == ()
+    assert scheduling.joint_selected_operation_ids == ()
+    assert scheduling.policy_authority is False
+
+
+def test_exact_resource_and_packet_bridge_select_one_shared_city_slot(ir):
+    snapshot, revision, goals, candidates = _case(ir)
+    governor = tuple(
+        replace(value, blockers=())
+        for value in candidates
+        if value.resource_keys == ("city-governor-slot:3",))
+    goal_ids = {
+        goal_id for value in governor for goal_id in value.operation.goal_ids}
+    route_goals = tuple(
+        value for value in goals if value.goal.goal_id in goal_ids)
+    assert len(governor) == len(route_goals) == 2
+    evaluation = DependentAtomPressureAdapter().evaluate(
+        revision, route_goals, governor)
+    bridge = DependentAtomSchedulingBridge()
+    first = bridge.schedule(
+        evaluation,
+        governor,
+        snapshot,
+        packet_budgets=(
+            PacketBudget(ResourceKind.ACTION, 1),
+            PacketBudget(ResourceKind.CPU, 1),
+        ),
+    )
+    second = bridge.schedule(
+        evaluation,
+        governor,
+        snapshot,
+        packet_budgets=(
+            PacketBudget(ResourceKind.ACTION, 1),
+            PacketBudget(ResourceKind.CPU, 1),
+        ),
+    )
+
+    assert len(first.resource_schedule.requests) == 2
+    assert len(first.resource_schedule.capacities) == 1
+    assert len(first.resource_schedule.selected_operation_ids) == 1
+    assert len(first.packet_schedule.committed_operation_ids) == 1
+    assert first.joint_selected_operation_ids == (
+        first.resource_schedule.selected_operation_ids)
+    rejected = tuple(
+        value for value in first.resource_schedule.entries
+        if not value.selected)
+    assert len(rejected) == 1
+    assert rejected[0].reason == "exclusive-resource-conflict"
+    assert rejected[0].conflicting_operation_ids
+    assert all(
+        claim.exclusive
+        for request in first.resource_schedule.requests
+        for claim in request.claims)
+    assert first.artifact_hash == second.artifact_hash
+    assert (first.resource_schedule.decision_digest
+            == second.resource_schedule.decision_digest)
+    assert first.policy_authority is False
+
+
+def test_unmapped_resource_identity_fails_closed(ir):
+    snapshot, revision, goals, candidates = _case(ir)
+    source = candidates[0]
+    goal_id = source.operation.goal_ids[0]
+    goal = next(value for value in goals if value.goal.goal_id == goal_id)
+    malformed = replace(
+        source, blockers=(), resource_keys=("unmapped-resource:3",))
+    evaluation = DependentAtomPressureAdapter().evaluate(
+        revision, (goal,), (malformed,))
+    scheduling = DependentAtomSchedulingBridge().schedule(
+        evaluation, (malformed,), snapshot)
+
+    assert scheduling.resource_schedule.requests == ()
+    assert scheduling.joint_selected_operation_ids == ()
+    assert "unmapped-resource-identity:{}".format(
+        malformed.operation.operation_id) in scheduling.diagnostics
+    assert "packet-budgets-not-provided" in scheduling.diagnostics
+
+
+def test_commit_binding_revalidates_supports_and_rejects_shadow_authority(ir):
+    snapshot, revision, goals, candidates = _case(ir)
+    candidate = candidates[0]
+    binding = FDASCommitBinding.create(
+        revision, snapshot, candidate, goals)
+    validator = FDASCommitValidator()
+
+    blocked = validator.validate(
+        binding, revision, snapshot, candidate,
+        authority_enabled=False)
+    assert blocked.disposition == ValidationDisposition.REJECT
+    assert blocked.reason == "fdas-candidate-has-causal-blockers"
+    assert "fdas-source-supports" in blocked.checks
+    assert not blocked.plan_materialization_authorized
+    assert not blocked.execution_authority
+
+    compiled_effect = replace(candidate, blockers=())
+    compiled_binding = FDASCommitBinding.create(
+        revision, snapshot, compiled_effect, goals)
+    disabled = validator.validate(
+        compiled_binding, revision, snapshot, compiled_effect,
+        authority_enabled=True)
+    assert disabled.disposition == ValidationDisposition.REJECT
+    assert disabled.reason == "fdas-domain-authority-disabled"
+    assert disabled.checks[-1] == "domain-authority-gate"
+    assert compiled_effect.authority_eligible is False
+
+
+def test_commit_binding_rejects_changed_revision_and_candidate(ir):
+    snapshot, revision, goals, candidates = _case(ir)
+    candidate = candidates[0]
+    binding = FDASCommitBinding.create(
+        revision, snapshot, candidate, goals)
+    validator = FDASCommitValidator()
+
+    changed_revision = replace(
+        revision,
+        revision_id="fdas-revision-changed",
+        build_hash="changed-build-hash")
+    stale = validator.validate(
+        binding, changed_revision, snapshot, candidate)
+    assert stale.disposition == ValidationDisposition.REGENERATE
+    assert stale.reason == "fdas-revision-changed"
+
+    changed_candidate = replace(
+        candidate, candidate_hash="changed-candidate-hash")
+    changed = validator.validate(
+        binding, revision, snapshot, changed_candidate)
+    assert changed.disposition == ValidationDisposition.REGENERATE
+    assert changed.reason == "fdas-candidate-changed"

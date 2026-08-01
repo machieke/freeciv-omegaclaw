@@ -14,6 +14,10 @@ from .fdas_adapter import (
     DependentAtomPressureEvaluation,
     MaterializationBudget,
 )
+from .fdas_resources import (
+    DependentAtomSchedulingBridge,
+    DependentAtomSchedulingResult,
+)
 from .artifact_validator import (
     PressureArtifactValidationError,
     active_pressure_goal_count,

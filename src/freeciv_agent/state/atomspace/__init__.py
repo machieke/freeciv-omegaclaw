@@ -66,6 +66,16 @@ from .city import (
     city_economy_predicate_registry,
     city_economy_scopes,
 )
+from .composite import (
+    CompositeDomainProjector,
+    merge_predicate_registries,
+)
+from .operations import (
+    OperationProjectionSnapshot,
+    OperationProjector,
+    operation_predicate_registry,
+)
+from .config import DependentAtomSpaceConfig
 from .store import (
     DependentAtomSpaceRevision,
     DependentAtomSpaceStore,
@@ -86,6 +96,7 @@ __all__ = (
     "CITY_ECONOMY_GROUNDING_SPECS",
     "CityEconomyPolicy",
     "CityEconomyProjector",
+    "CompositeDomainProjector",
     "CollectionChange",
     "DependencyKey",
     "DependencyRef",
@@ -95,6 +106,7 @@ __all__ = (
     "DerivationRun",
     "DerivationSpec",
     "DependentAtomSpaceRevision",
+    "DependentAtomSpaceConfig",
     "DependentAtomSpaceStore",
     "DifferentialVerification",
     "EntityRef",
@@ -103,6 +115,8 @@ __all__ = (
     "GroundingSpec",
     "InvalidationResult",
     "MaterializationMetrics",
+    "OperationProjectionSnapshot",
+    "OperationProjector",
     "PredicateRegistry",
     "PredicateSpec",
     "ProjectionBatch",
@@ -120,6 +134,8 @@ __all__ = (
     "city_economy_scopes",
     "legacy_predicate_registry",
     "legacy_view_from_revision",
+    "merge_predicate_registries",
+    "operation_predicate_registry",
     "project_ruleset_records",
     "ruleset_digest",
     "ruleset_predicate_registry",

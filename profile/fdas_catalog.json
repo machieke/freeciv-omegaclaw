@@ -103,8 +103,21 @@
     {"argument_kinds": [["unit"], ["capability"]], "arity": 2, "name": "unit-has-capability", "namespace": "derived", "status": "proposed"},
     {"argument_kinds": [["unit"]], "arity": 1, "name": "unit-persistent-defender", "namespace": "derived", "status": "proposed"},
     {"argument_kinds": [["unit"], ["operation-kind"]], "arity": 2, "name": "unit-available", "namespace": "derived", "status": "proposed"},
-    {"argument_kinds": [["operation"], ["goal"]], "arity": 2, "name": "serves-goal", "namespace": "operation", "status": "proposed"},
-    {"argument_kinds": [["operation"], ["entity"]], "arity": 2, "name": "operation-participant", "namespace": "operation", "status": "proposed"},
+    {"argument_kinds": [["operation"], ["operation-type"]], "arity": 2, "name": "operation-type", "namespace": "operation", "status": "component-only"},
+    {"argument_kinds": [["operation"], ["goal"]], "arity": 2, "name": "operation-serves-goal", "namespace": "operation", "status": "component-only"},
+    {"argument_kinds": [["operation"], ["city", "player", "research_slot", "task-force", "transport", "unit"]], "arity": 2, "name": "operation-participant", "namespace": "operation", "status": "component-only"},
+    {"argument_kinds": [["operation"], ["city", "player", "research_slot", "task-force", "transport", "unit"], ["operation-role"]], "arity": 3, "name": "operation-participant-role", "namespace": "operation", "status": "component-only"},
+    {"argument_kinds": [["operation"], ["operation-target"]], "arity": 2, "name": "operation-target", "namespace": "operation", "status": "component-only"},
+    {"argument_kinds": [["operation"], ["operation-step"]], "arity": 2, "name": "operation-step", "namespace": "operation", "status": "component-only"},
+    {"argument_kinds": [["operation"], ["operation-step"]], "arity": 2, "name": "operation-current-step", "namespace": "operation", "status": "component-only"},
+    {"argument_kinds": [["operation-step"], ["action-type"]], "arity": 2, "name": "operation-step-action", "namespace": "operation", "status": "component-only"},
+    {"argument_kinds": [["operation-step"], ["requirement-set"]], "arity": 2, "name": "operation-step-requires", "namespace": "operation", "status": "component-only"},
+    {"argument_kinds": [["operation-step"], ["completion-predicate"]], "arity": 2, "name": "operation-step-completes", "namespace": "operation", "status": "component-only"},
+    {"argument_kinds": [["operation"], ["operation-state"]], "arity": 2, "name": "operation-state", "namespace": "operation", "status": "component-only"},
+    {"argument_kinds": [["operation"], ["operation-blocker"]], "arity": 2, "name": "operation-blocked-reason", "namespace": "operation", "status": "component-only"},
+    {"argument_kinds": [["operation"], ["operation-terminal-reason"]], "arity": 2, "name": "operation-terminal-reason", "namespace": "operation", "status": "component-only"},
+    {"argument_kinds": [["operation"], ["ruleset-digest"]], "arity": 2, "name": "operation-ruleset", "namespace": "operation", "status": "component-only"},
+    {"argument_kinds": [["operation"], ["operation-spec-digest"]], "arity": 2, "name": "operation-specification", "namespace": "operation", "status": "component-only"},
     {"argument_kinds": [["operation"]], "arity": 1, "name": "operation-eligible", "namespace": "operation", "status": "proposed"}
   ],
   "schema_version": "1.0",
@@ -117,7 +130,7 @@
     {"kind": "unit-facts", "materialization": "owned-and-visible-summary", "status": "proposed"},
     {"kind": "unit-control", "materialization": "focused", "status": "proposed"},
     {"kind": "region", "materialization": "focused", "status": "proposed"},
-    {"kind": "operation", "materialization": "active-lifecycle", "status": "proposed"},
+    {"kind": "operation", "materialization": "active-lifecycle", "status": "component-only"},
     {"kind": "episode", "materialization": "durable-compact", "status": "proposed"}
   ]
 }

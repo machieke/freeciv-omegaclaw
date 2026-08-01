@@ -53,9 +53,16 @@ def _term(kind, value):
 def _scope_by_kind(scopes):
     result = {}
     for scope in scopes:
+        # The compatibility projection has records only in the singleton
+        # world and empire scopes.  Rich FDAS domains legitimately contain
+        # many city, unit, operation, and episode scopes of one kind.
+        if scope.scope_kind not in ("world", "empire"):
+            continue
         if scope.scope_kind in result:
             raise ValueError("duplicate scope kind in compatibility projection")
         result[scope.scope_kind] = scope
+    if set(result) != {"world", "empire"}:
+        raise ValueError("compatibility projection requires world and empire")
     return result
 
 
