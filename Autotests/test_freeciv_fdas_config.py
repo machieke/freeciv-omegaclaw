@@ -57,10 +57,12 @@ def test_authority_requires_bounded_manifest_capabilities():
     value.update({"enabled": True, "authority_enabled": True})
     value["domain_authority"]["city_stability"] = True
 
-    with pytest.raises(ValueError, match="requires bounded-authority"):
-        DependentAtomSpaceConfig.from_dict(value, manifest)
-
     accepted_manifest = copy.deepcopy(manifest)
+    accepted_manifest["status"] = "bounded-authority"
+    accepted_manifest["policy_authority"] = True
+    with pytest.raises(ValueError, match="requires bounded-authority"):
+        DependentAtomSpaceConfig.from_dict(value, accepted_manifest)
+
     for name in (
             "dependent_atom_pressure_adapter",
             "fdas_resource_packet_bridge",
@@ -103,6 +105,10 @@ def test_phase7_authority_requires_every_exact_domain_capability(
     value.update({"enabled": True, "authority_enabled": True})
     value["domain_authority"][domain] = True
     accepted_manifest = copy.deepcopy(manifest)
+    accepted_manifest["status"] = "bounded-authority"
+    accepted_manifest["policy_authority"] = True
+    value["projection"]["unit"] = True
+    value["projection"]["region"] = True
     for name in (
             "dependent_atom_pressure_adapter",
             "fdas_resource_packet_bridge",
@@ -142,6 +148,8 @@ def test_uncertain_assessment_requires_shadow_live_belief_and_observation():
         DependentAtomSpaceConfig.from_dict(value, manifest)
 
     accepted = copy.deepcopy(manifest)
+    accepted["status"] = "bounded-authority"
+    accepted["policy_authority"] = True
     accepted["capabilities"]["belief_domain_projection"] = "shadow-live"
     accepted["capabilities"]["observation_pressure_planning"] = "shadow-live"
     config = DependentAtomSpaceConfig.from_dict(value, accepted)
@@ -156,6 +164,8 @@ def test_authority_with_uncertain_assessment_requires_bounded_belief_firewall():
     value["inference"]["uncertain_assessment_enabled"] = True
     value["domain_authority"]["city_stability"] = True
     accepted = copy.deepcopy(manifest)
+    accepted["status"] = "bounded-authority"
+    accepted["policy_authority"] = True
     for name in (
             "dependent_atom_pressure_adapter",
             "fdas_resource_packet_bridge",
@@ -227,6 +237,8 @@ def test_learning_authority_requires_holdout_and_versioned_bounded_capability():
             "induced_rule_readout_enabled"):
         value["learning"][key] = True
     accepted = copy.deepcopy(manifest)
+    accepted["status"] = "bounded-authority"
+    accepted["policy_authority"] = True
     for name in (
             "episode_attribution", "fdas_learning_diagnostics",
             "episode_control_learning_bridge",
@@ -249,3 +261,78 @@ def test_learning_authority_requires_holdout_and_versioned_bounded_capability():
     assert config.section("learning")[
         "contextual_conductance_authority_enabled"]
     assert config.section("learning")["induced_rule_readout_enabled"]
+
+
+def test_authority_rejects_missing_aggregate_manifest_promotion():
+    value, manifest = _values()
+    value = copy.deepcopy(value)
+    value.update({"enabled": True, "authority_enabled": True})
+    value["domain_authority"]["city_stability"] = True
+    promoted = copy.deepcopy(manifest)
+    for name in (
+            "dependent_atom_pressure_adapter",
+            "fdas_resource_packet_bridge",
+            "fdas_exact_commit_validation",
+            "city_domain_projection"):
+        promoted["capabilities"][name] = "bounded-authority"
+
+    with pytest.raises(ValueError, match="manifest policy authority"):
+        DependentAtomSpaceConfig.from_dict(value, promoted)
+    promoted["policy_authority"] = True
+    with pytest.raises(ValueError, match="aggregate manifest status"):
+        DependentAtomSpaceConfig.from_dict(value, promoted)
+
+
+def test_preacceptance_profile_cannot_disable_cold_verification():
+    value, manifest = _values()
+    value = copy.deepcopy(value)
+    value["cold_verify_sample_rate"] = 0.0
+    with pytest.raises(ValueError, match="cannot be disabled"):
+        DependentAtomSpaceConfig.from_dict(value, manifest)
+
+
+def test_authority_requires_live_domain_projection_and_explanations():
+    value, manifest = _values()
+    value = copy.deepcopy(value)
+    value.update({"enabled": True, "authority_enabled": True})
+    value["domain_authority"]["city_stability"] = True
+    promoted = copy.deepcopy(manifest)
+    promoted["status"] = "bounded-authority"
+    promoted["policy_authority"] = True
+    for name in (
+            "dependent_atom_pressure_adapter",
+            "fdas_resource_packet_bridge",
+            "fdas_exact_commit_validation",
+            "city_domain_projection"):
+        promoted["capabilities"][name] = "bounded-authority"
+
+    value["projection"]["operations"] = False
+    with pytest.raises(ValueError, match="operations projection"):
+        DependentAtomSpaceConfig.from_dict(value, promoted)
+    value["projection"]["operations"] = True
+    value["events"]["explanation_capture"] = False
+    with pytest.raises(ValueError, match="explanation capture"):
+        DependentAtomSpaceConfig.from_dict(value, promoted)
+
+
+def test_research_authority_requires_generic_engine_projection_and_parity():
+    value, manifest = _values()
+    value = copy.deepcopy(value)
+    value.update({"enabled": True, "authority_enabled": True})
+    value["domain_authority"]["research"] = True
+    promoted = copy.deepcopy(manifest)
+    promoted["status"] = "bounded-authority"
+    promoted["policy_authority"] = True
+    for name in (
+            "dependent_atom_pressure_adapter",
+            "fdas_resource_packet_bridge",
+            "fdas_exact_commit_validation",
+            "ruleset_domain_projection",
+            "generic_rule_execution"):
+        promoted["capabilities"][name] = "bounded-authority"
+
+    with pytest.raises(ValueError, match="generic rule engine"):
+        DependentAtomSpaceConfig.from_dict(value, promoted)
+    value["inference"]["generic_rule_engine_enabled"] = True
+    config = DependentAtomSpaceConfig.from_dict(value, promoted)
+    assert config.section("domain_authority")["research"] is True

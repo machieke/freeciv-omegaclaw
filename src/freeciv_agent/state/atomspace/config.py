@@ -182,6 +182,26 @@ class DependentAtomSpaceConfig:
             if value not in _ACTIVATION_LEVELS)
         if unknown_levels:
             raise ValueError("unknown FDAS activation status")
+        if manifest.get("schema_version") != config["schema_version"]:
+            raise ValueError("FDAS manifest/config schema mismatch")
+        status = manifest.get("status")
+        if status not in _ACTIVATION_LEVELS:
+            raise ValueError("FDAS manifest has unknown aggregate status")
+        if not isinstance(manifest.get("policy_authority"), bool):
+            raise TypeError("FDAS manifest policy authority must be boolean")
+        if (config["cold_verify_sample_rate"] == 0.0
+                and _ACTIVATION_LEVELS[status]
+                < _ACTIVATION_LEVELS["engine-live"]):
+            raise ValueError(
+                "cold verification cannot be disabled before engine-live")
+        if config["authority_enabled"]:
+            if not manifest["policy_authority"]:
+                raise ValueError(
+                    "FDAS authority requires manifest policy authority")
+            if (_ACTIVATION_LEVELS[status]
+                    < _ACTIVATION_LEVELS["bounded-authority"]):
+                raise ValueError(
+                    "FDAS authority requires bounded aggregate manifest status")
 
         def require(name, level):
             actual = capabilities.get(name, "not-built")
@@ -192,6 +212,15 @@ class DependentAtomSpaceConfig:
 
         if config["enabled"]:
             require("dependent_atomspace_core", "component-only")
+            projection_capabilities = {
+                "city": "city_domain_projection",
+                "region": "region_domain_projection",
+                "ruleset": "ruleset_domain_projection",
+                "unit": "unit_domain_projection",
+            }
+            for projection, capability in projection_capabilities.items():
+                if config["projection"][projection]:
+                    require(capability, "component-only")
         if config["shadow_enabled"]:
             require("dependent_atom_pressure_adapter", "component-only")
         if config["projection"]["operations"]:
@@ -201,6 +230,8 @@ class DependentAtomSpaceConfig:
         if config["inference"]["uncertain_assessment_enabled"]:
             require("belief_domain_projection", "shadow-live")
             require("observation_pressure_planning", "shadow-live")
+        if config["inference"]["generic_rule_engine_enabled"]:
+            require("generic_rule_execution", "component-only")
         learning = config["learning"]
         if learning["episode_attribution_enabled"]:
             require("episode_attribution", "shadow-live")
@@ -220,6 +251,14 @@ class DependentAtomSpaceConfig:
             require("quarantined_contextual_induction", "bounded-authority")
             require("induced_rule_heldout_gate", "bounded-authority")
         if any(config["domain_authority"].values()):
+            for projection in ("world", "empire", "operations"):
+                if not config["projection"][projection]:
+                    raise ValueError(
+                        "FDAS domain authority requires {} projection".format(
+                            projection))
+            if not config["events"]["explanation_capture"]:
+                raise ValueError(
+                    "FDAS domain authority requires explanation capture")
             require("dependent_atom_pressure_adapter", "bounded-authority")
             require("fdas_resource_packet_bridge", "bounded-authority")
             require("fdas_exact_commit_validation", "bounded-authority")
@@ -229,10 +268,32 @@ class DependentAtomSpaceConfig:
                     "observation_pressure_planning", "bounded-authority")
         if (config["domain_authority"]["city_stability"]
                 or config["domain_authority"]["city_production"]):
+            if not config["projection"]["city"]:
+                raise ValueError("city authority requires city projection")
             require("city_domain_projection", "bounded-authority")
         if (config["domain_authority"]["city_defense"]
                 or config["domain_authority"]["local_movement"]):
+            if not config["projection"]["unit"]:
+                raise ValueError("defense authority requires unit projection")
             require("unit_domain_projection", "bounded-authority")
+        required_projection = {
+            "expansion": ("city", "unit", "region"),
+            "transport": ("unit", "region"),
+            "combat": ("unit", "region"),
+            "research": ("ruleset", "research"),
+        }
+        for domain, names in required_projection.items():
+            if not config["domain_authority"][domain]:
+                continue
+            for name in names:
+                if not config["projection"][name]:
+                    raise ValueError(
+                        "{} authority requires {} projection".format(
+                            domain, name))
+        if config["domain_authority"]["local_movement"] \
+                and not config["projection"]["region"]:
+            raise ValueError(
+                "local movement authority requires region projection")
         domain_capabilities = {
             "expansion": (
                 "route_corridor_projection",
@@ -248,12 +309,20 @@ class DependentAtomSpaceConfig:
                 "combat_task_force_projection",
                 "combat_operation_projection",
             ),
+            "research": (
+                "ruleset_domain_projection",
+                "generic_rule_execution",
+            ),
         }
         for domain, names in domain_capabilities.items():
             if not config["domain_authority"][domain]:
                 continue
             for name in names:
                 require(name, "bounded-authority")
+        if (config["domain_authority"]["research"]
+                and not config["inference"]["generic_rule_engine_enabled"]):
+            raise ValueError(
+                "research authority requires the generic rule engine")
 
     def section(self, name):
         return dict(getattr(self, name))
