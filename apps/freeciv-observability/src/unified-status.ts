@@ -8,12 +8,12 @@ export interface UnifiedStageStatus {
 }
 
 export const UNIFIED_CONTROLLER_STATUS = {
-  statusDate: "2026-07-29",
+  statusDate: "2026-07-30",
   supportedController: "scalar-v2 + whole-packet scheduling",
-  experimentalController: "unified-flow advisory + terminal guard v2",
+  experimentalController: "GDO-9-gated bridge / source–sink flow advisory",
   authority: "offline · replay · shadow · experimental advisory",
   releaseDecision: "Live authority stopped",
-  releaseReason: "Fresh engine confirmation found no score benefit; transition preferences remain uncalibrated.",
+  releaseReason: "Contextual prediction is calibrated, but no B4 route-allocation residual or value-above-cost evidence opens GDO-9.",
   stages: [
     { stage: "S0", title: "frozen baseline", state: "passed",
       scope: "source, fixture, ruleset, runtime, solver, and golden identity" },

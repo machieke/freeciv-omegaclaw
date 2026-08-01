@@ -17,6 +17,7 @@ import {
   findPairedArtifact,
 } from "./artifacts";
 import { LiveEventClient, type LiveStatus } from "./live";
+import { GroundedPlannerDashboard } from "./GroundedPlanner";
 import { ancestry, densityByTurn, foldEvents } from "./store";
 import {
   parseJsonl, parseJsonlStream, type ParseResult, type QuarantinedLine,
@@ -43,10 +44,11 @@ const NAV: Array<{ view: ViewName; label: string; key: string }> = [
   { view: "audit", label: "Epistemic audit", key: "06" },
   { view: "metrics", label: "Metrics", key: "07" },
   { view: "pfpln", label: "PF-PLN", key: "08" },
-  { view: "technology", label: "Technology", key: "09" },
-  { view: "economy", label: "Economy & production", key: "10" },
-  { view: "forces", label: "Unit lifecycle", key: "11" },
-  { view: "about", label: "How it works", key: "12" },
+  { view: "grounded", label: "Grounded planner", key: "09" },
+  { view: "technology", label: "Technology", key: "10" },
+  { view: "economy", label: "Economy & production", key: "11" },
+  { view: "forces", label: "Unit lifecycle", key: "12" },
+  { view: "about", label: "How it works", key: "13" },
 ];
 
 const STAGES: Array<{ name: string; types: Set<string> }> = [
@@ -62,6 +64,7 @@ const STAGES: Array<{ name: string; types: Set<string> }> = [
     "rule_proposed", "rule_validated", "llm_call_scheduled",
     "llm_gateway_result", "rule_parameter_updated",
     "teleology_estimated", "transition_value_estimated",
+    "domain_estimate_emitted", "domain_estimate_abstained",
     "transition_value_updated", "path_persistence_applied",
     "reverse_operator_applied",
     "requirement_set_materialized", "bridge_estimated",
@@ -73,6 +76,7 @@ const STAGES: Array<{ name: string; types: Set<string> }> = [
     "selection_coverage_sample",
     "resource_schedule_decided", "resource_claim_requested",
     "resource_claim_reserved", "resource_claim_rejected",
+    "resource_claim_released",
     "resource_capacity_changed", "operation_proposed",
     "operation_reserved", "operation_activated",
     "operation_step_selected", "operation_step_revalidated",
@@ -276,9 +280,10 @@ function ProofGraph({ result, onSelect }: {
   const nodesById = new Map(result.proof.nodes.map((node) => [node.node_id, node]));
   const depthById = new Map<string, number>([[result.proof.root_node_id, 0]]);
   const queue = [result.proof.root_node_id];
-  while (queue.length) {
-    const id = queue.shift();
-    if (!id) continue;
+  let queueIndex = 0;
+  while (queueIndex < queue.length) {
+    const id = queue[queueIndex];
+    queueIndex += 1;
     const depth = depthById.get(id) ?? 0;
     for (const premise of nodesById.get(id)?.premise_node_refs ?? []) {
       if (!depthById.has(premise)) {
@@ -287,8 +292,13 @@ function ProofGraph({ result, onSelect }: {
       }
     }
   }
-  const visible = result.proof.nodes.filter((node) => depthById.has(node.node_id)).slice(0, 120);
+  // Keep the complete proof in the DOM-selectable tree while bounding the duplicate SVG
+  // representation more tightly for large traces. This keeps split mode responsive without
+  // hiding any node from keyboard or inspector access.
+  const graphNodeLimit = result.proof.nodes.length > 150 ? 80 : 120;
+  const visible = result.proof.nodes.filter((node) => depthById.has(node.node_id)).slice(0, graphNodeLimit);
   const visibleIds = new Set(visible.map((node) => node.node_id));
+  const atomTextById = new Map(visible.map((node) => [node.node_id, formatAtom(node.atom)]));
   const levels = new Map<number, ProofNode[]>();
   for (const node of visible) {
     const depth = depthById.get(node.node_id) ?? 0;
@@ -320,9 +330,10 @@ function ProofGraph({ result, onSelect }: {
       {visible.map((node) => {
         const point = position.get(node.node_id);
         if (!point) return null;
+        const atomText = atomTextById.get(node.node_id) ?? node.atom.predicate;
         return <g key={node.node_id} transform={`translate(${point.x} ${point.y})`}
           className={`proof-graph-node ${node.satisfied ? "satisfied" : "blocked"} ${node.crisp ? "crisp" : "uncertain"}`}
-          role="button" tabIndex={0} aria-label={`${node.kind} ${formatAtom(node.atom)}`}
+          role="button" tabIndex={0} aria-label={`${node.kind} ${atomText}`}
           onClick={() => onSelect({ kind: "node", value: node })}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") onSelect({ kind: "node", value: node });
@@ -330,7 +341,7 @@ function ProofGraph({ result, onSelect }: {
           <circle r={node.kind === "goal" ? 12 : 9} />
           <text x="16" y="-2">{humanize(node.kind)}</text>
           <text x="16" y="10" className="proof-graph-label">{node.atom.predicate}</text>
-          <title>{formatAtom(node.atom)} · confidence {node.tv.confidence}</title>
+          <title>{atomText} · confidence {node.tv.confidence}</title>
         </g>;
       })}
     </svg>
@@ -347,7 +358,8 @@ export function ProofExplorer({ state, selection, onSelect }: {
   const [comparison, setComparison] = useState(-1);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(() => new Set());
   const [proofWindow, setProofWindow] = useState(0);
-  const [displayMode, setDisplayMode] = useState<"split" | "graph" | "list">("split");
+  const [displayMode, setDisplayMode] = useState<"split" | "graph" | "list">(() =>
+    (state.proofs.at(-1)?.result.proof.nodes.length ?? 0) > 150 ? "list" : "split");
   const explicitProof = state.proofs.find(
     (record) => record.event.event_id === selectedProofId);
   const proofRecord = selectedProofId === "latest" || !explicitProof
@@ -3156,6 +3168,12 @@ function HowItWorks({ onNavigate }: { onNavigate: (view: ViewName) => void }) {
       label: "PF-PLN",
     },
     {
+      question: "What grounded authority existed?",
+      answer: "Separate typed estimates from abstentions, inspect identity resources, and follow explicit operation lifecycles through resolution.",
+      view: "grounded",
+      label: "Grounded planner",
+    },
+    {
       question: "Why is research stuck?",
       answer: "Track the current target, accumulated beakers, science rate, stall duration, acquisitions, and the ruleset-pinned prerequisite graph.",
       view: "technology",
@@ -3191,6 +3209,7 @@ function HowItWorks({ onNavigate }: { onNavigate: (view: ViewName) => void }) {
         <div className="about-hero-actions">
           <button onClick={() => onNavigate("timeline")}>Explore a decision <span>→</span></button>
           <button onClick={() => onNavigate("pfpln")}>Inspect PF-PLN <span>→</span></button>
+          <button onClick={() => onNavigate("grounded")}>Audit grounded authority <span>→</span></button>
         </div>
       </div>
       <aside className="about-trust">
@@ -3237,6 +3256,43 @@ function HowItWorks({ onNavigate }: { onNavigate: (view: ViewName) => void }) {
           <code>treatment ↔ baseline</code>
         </li>
       </ol>
+    </section>
+
+    <section className="about-section about-pipeline-section" aria-labelledby="grounded-about-title">
+      <header>
+        <div><span className="eyebrow">grounded planner / decision-safe readout</span>
+          <h3 id="grounded-about-title">How typed evidence becomes one legal step</h3></div>
+        <p>Grounded authority is current, typed, resource-safe, slice-specific, and reversible.</p>
+      </header>
+      <ol className="about-pipeline" aria-label="Grounded planning pipeline">
+        <li><span>01</span><strong>Estimate or abstain</strong>
+          <p>A domain model declares authority, context, validity, confidence, transition,
+            unknown mass, risk, and provenance—or names exactly what is missing.</p>
+          <code>domain_estimate_emitted | abstained</code></li>
+        <li><span>02</span><strong>Assemble an operation</strong>
+          <p>Stable participants, roles, RequirementSets, steps, deadlines, and reason codes
+            replace generic score persistence.</p>
+          <code>operation_proposed</code></li>
+        <li><span>03</span><strong>Reserve identities</strong>
+          <p>B4 compares authoritative capacity against current-hard claims. Future needs stay
+            conditional and rejected conflicts remain visible.</p>
+          <code>resource_schedule_decided</code></li>
+        <li><span>04</span><strong>Commit one step</strong>
+          <p>Only the next action receives authority, after exact snapshot and legal-action
+            revalidation. Current reservations are then released.</p>
+          <code>operation_step_revalidated → committed</code></li>
+        <li><span>05</span><strong>Resolve and calibrate</strong>
+          <p>A later authoritative snapshot records success, failure, partial/no effect,
+            censoring, or invalidation without relabeling unknown outcomes.</p>
+          <code>operation_completed → transition_value_updated</code></li>
+      </ol>
+      <div className="pf-event-chain" role="region" aria-label="Grounded planner emitted event chain">
+        <span>grounded evidence</span><code>domain_estimate_emitted</code><i>→</i>
+        <code>operation_proposed</code><i>→</i><code>resource_claim_reserved</code><i>→</i>
+        <code>operation_step_committed</code><i>→</i><code>resource_claim_released</code><i>→</i>
+        <code>operation_completed | failed</code>
+        <button onClick={() => onNavigate("grounded")}>open grounded planner →</button>
+      </div>
     </section>
 
     <section className="about-section pf-about" aria-labelledby="pf-about-title">
@@ -3341,8 +3397,9 @@ function HowItWorks({ onNavigate }: { onNavigate: (view: ViewName) => void }) {
         <footer>
           <strong>Why it is not live authority:</strong>
           <span>The fresh 100-pair engine confirmation measured +0.05 player score with a
-            95% interval of [-0.33, +0.43] and exact p=0.839085. The known terminal-delay
-            defect is guarded, but the remaining behavior has no confirmed benefit.</span>
+            95% interval of [-0.33, +0.43] and exact p=0.839085. Grounded calibration and
+            B4 operation scheduling now pass their own gates, but GDO-9 still has no isolated
+            route-allocation residual or value-above-cost evidence.</span>
         </footer>
       </section>
 
@@ -3864,6 +3921,8 @@ export function App({ initialText = demoTrace }: { initialText?: string }) {
                   decisionId={pfDecision} onDecision={setPfDecision}
                   comparisonState={comparisonState} comparisonSource={comparisonSource}
                   pairQuality={pairQuality} />
+                  : view === "grounded" ? <GroundedPlannerDashboard state={state}
+                    onSelectEvent={(event) => setSelection({ kind: "event", value: event })} />
                   : view === "technology" ? <TechnologyDashboard state={state}
                     onSelect={setSelection} />
                     : view === "economy" ? <EconomyProductionDashboard state={state}

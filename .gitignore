@@ -65,3 +65,6 @@ agent-instructions
 /apps/freeciv-observability/node_modules/
 /apps/freeciv-observability/dist/
 /apps/freeciv-observability/coverage/
+
+# Local recorded UI verification bundles
+/proofshot-artifacts/

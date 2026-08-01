@@ -42,6 +42,8 @@ export interface ReplayState {
   operationScores: TraceEvent[];
   conductanceUpdates: TraceEvent[];
   teleologyEstimates: TraceEvent[];
+  domainEstimates: TraceEvent[];
+  domainAbstentions: TraceEvent[];
   transitionValueEstimates: TraceEvent[];
   transitionValueUpdates: TraceEvent[];
   pathPersistenceEvents: TraceEvent[];
@@ -54,6 +56,10 @@ export interface ReplayState {
   candidateRevalidations: TraceEvent[];
   controllerFallbacks: TraceEvent[];
   controlOutcomes: TraceEvent[];
+  resourceSchedules: TraceEvent[];
+  resourceClaims: TraceEvent[];
+  resourceCapacities: TraceEvent[];
+  operationEvents: TraceEvent[];
   quarantines: TraceEvent[];
   metrics: TraceEvent[];
   unknown: TraceEvent[];

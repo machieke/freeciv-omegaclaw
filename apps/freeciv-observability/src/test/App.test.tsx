@@ -93,6 +93,16 @@ const proposedTerminalGuardCandidate = JSON.stringify({
   action_type: "unit_move", actor_id: 102, settlement_site_eligible: true,
   target: { x: 13, y: 14 },
 });
+
+it("opens the grounded implementation workspace from primary navigation", async () => {
+  const user = userEvent.setup();
+  render(<App />);
+  await user.click(screen.getByRole("button", { name: /^09 Grounded planner/ }));
+  expect(screen.getByRole("heading", { name: "Grounded planner" })).toBeInTheDocument();
+  expect(screen.getByText(/Program evidence is available below/i)).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Grounded planner authority map" }))
+    .toBeInTheDocument();
+});
 const effectiveTerminalGuardCandidate = JSON.stringify({
   action_type: "unit_build_city", actor_id: 102,
 });
@@ -434,7 +444,7 @@ describe("Decision Observatory", () => {
   it("shows authoritative resource flow, score gap, research upkeep, and buildings", async () => {
     const user = userEvent.setup();
     render(<App initialText={resourceFlowTrace} />);
-    await user.click(screen.getByRole("button", { name: /^10 Economy & production/ }));
+    await user.click(screen.getByRole("button", { name: /^11 Economy & production/ }));
     expect(screen.getByText("operating flow")).toBeInTheDocument();
     expect(screen.getByText("Coinage conversion")).toBeInTheDocument();
     expect(screen.getByText(/-13 to leader/)).toBeInTheDocument();
@@ -475,7 +485,7 @@ describe("Decision Observatory", () => {
   it("explains the evidence pipeline, trust boundary, and routes users to an answer", async () => {
     const user = userEvent.setup();
     render(<App initialText={demoTrace} />);
-    await user.click(screen.getByRole("button", { name: /^12 How it works/ }));
+    await user.click(screen.getByRole("button", { name: /^13 How it works/ }));
     expect(screen.getByRole("heading", {
       name: "See the decision, not just the outcome.",
     })).toBeInTheDocument();

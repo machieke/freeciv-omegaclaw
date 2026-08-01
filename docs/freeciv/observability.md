@@ -55,7 +55,11 @@ The UI exposes one global `(turn, seq)` cursor across:
 - quarantined LLM claims, claim-handling chronology, and the write-through alarm;
 - the PF-PLN goal field, pressure transport lineage, emitted operation schedule,
   candidate rank, selected operation, conductance trends, activation phases,
-  runtime composition, and paired trace outcomes; and
+  runtime composition, and paired trace outcomes;
+- the grounded-program closeout, typed estimate/abstention ledger, domain support
+  coverage, authoritative resource capacities, current-hard versus
+  conditional-future claims, B4 schedule decisions, explicit operation
+  lifecycles, contextual calibration, and the fail-closed GDO-9 release gate; and
 - grouped harness-emitted calibration, latency, error, depth, and ablation metric
   series.
 
@@ -133,6 +137,44 @@ application does not recalculate pressure, rescore operations, infer missing
 goals, or estimate unlogged latency. A missing family is displayed as a logging
 gap. Baseline traces without PF-PLN events therefore remain explicitly empty
 rather than being presented as zero-pressure runs.
+
+## Grounded planner replay
+
+Open **Grounded planner** for the completed grounded-domain program and its
+trace-level evidence. The view deliberately separates two authorities:
+
+- the frozen GDO-0 through GDO-9 scientific record, including the passing
+  city-defence and atomic-combat mechanism pilots, the contract-only transport
+  boundary, contextual prediction calibration, and the closed bridge/flow
+  re-entry gate; and
+- events actually present at the global cursor in the loaded replay.
+
+The dynamic panels index `domain_estimate_emitted` and
+`domain_estimate_abstained` without converting utility to probability or
+discarding unknown mass. Each row exposes its action/domain, authority,
+confidence, expected relief, adverse risk, validity window, estimator, latency,
+or exact abstention reason. Domain cards distinguish movement, city defence,
+combat, production/city workers, research, and founder transport.
+
+Resource panels retain exact resource identity and time windows from
+`resource_capacity_changed` and every request, reservation, rejection, release,
+or expiry. A rejection is labelled as conflict prevention rather than a
+capacity violation. Current-hard and conditional-future claims remain separate;
+the browser does not promote a future claim to present capacity. B4 schedule
+status and deterministic fallback reasons are shown verbatim from
+`resource_schedule_decided`.
+
+Operation events are grouped only by emitted `operation_id`. Their state trail,
+participants, claims, policy boundary, reason codes, and authoritative
+resolution remain visible through proposal, reservation, activation,
+revalidation, one-step commit, block/repair/suspension, completion, failure,
+abandonment, or expiry. The UI does not invent missing lifecycle transitions.
+
+The GDO-8 calibration card displays the frozen training/holdout result and any
+query-local transition estimate/update events independently. Its passed
+prediction gate is not presented as a causal gameplay claim. GDO-9 lists all
+seven preconditions, preserves the three blocked conditions, and keeps bridge
+and source-sink flow authority visibly disabled.
 
 ## Visualization and calculation boundary
 

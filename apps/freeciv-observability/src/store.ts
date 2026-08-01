@@ -15,6 +15,8 @@ const PF_PLN_EVENT_TYPES = new Set([
   "llm_gateway_result",
   "rule_parameter_updated",
   "teleology_estimated",
+  "domain_estimate_emitted",
+  "domain_estimate_abstained",
   "transition_value_estimated",
   "transition_value_updated",
   "path_persistence_applied",
@@ -36,6 +38,7 @@ const PF_PLN_EVENT_TYPES = new Set([
   "resource_claim_requested",
   "resource_claim_reserved",
   "resource_claim_rejected",
+  "resource_claim_released",
   "resource_capacity_changed",
   "operation_proposed",
   "operation_reserved",
@@ -78,6 +81,8 @@ export const foldEvents = (allEvents: TraceEvent[], cursor: Cursor): ReplayState
   const operationScores: TraceEvent[] = [];
   const conductanceUpdates: TraceEvent[] = [];
   const teleologyEstimates: TraceEvent[] = [];
+  const domainEstimates: TraceEvent[] = [];
+  const domainAbstentions: TraceEvent[] = [];
   const transitionValueEstimates: TraceEvent[] = [];
   const transitionValueUpdates: TraceEvent[] = [];
   const pathPersistenceEvents: TraceEvent[] = [];
@@ -90,6 +95,10 @@ export const foldEvents = (allEvents: TraceEvent[], cursor: Cursor): ReplayState
   const candidateRevalidations: TraceEvent[] = [];
   const controllerFallbacks: TraceEvent[] = [];
   const controlOutcomes: TraceEvent[] = [];
+  const resourceSchedules: TraceEvent[] = [];
+  const resourceClaims: TraceEvent[] = [];
+  const resourceCapacities: TraceEvent[] = [];
+  const operationEvents: TraceEvent[] = [];
   const quarantines: TraceEvent[] = [];
   const metrics: TraceEvent[] = [];
   const unknown: TraceEvent[] = [];
@@ -148,6 +157,8 @@ export const foldEvents = (allEvents: TraceEvent[], cursor: Cursor): ReplayState
     if (event.type === "operation_scored") operationScores.push(event);
     if (event.type === "conductance_updated") conductanceUpdates.push(event);
     if (event.type === "teleology_estimated") teleologyEstimates.push(event);
+    if (event.type === "domain_estimate_emitted") domainEstimates.push(event);
+    if (event.type === "domain_estimate_abstained") domainAbstentions.push(event);
     if (event.type === "transition_value_estimated") transitionValueEstimates.push(event);
     if (event.type === "transition_value_updated") transitionValueUpdates.push(event);
     if (event.type === "path_persistence_applied") pathPersistenceEvents.push(event);
@@ -160,6 +171,12 @@ export const foldEvents = (allEvents: TraceEvent[], cursor: Cursor): ReplayState
     if (event.type === "candidate_revalidated") candidateRevalidations.push(event);
     if (event.type === "controller_fallback") controllerFallbacks.push(event);
     if (event.type === "control_outcome_recorded") controlOutcomes.push(event);
+    if (event.type === "resource_schedule_decided") resourceSchedules.push(event);
+    if (event.type.startsWith("resource_claim_")) resourceClaims.push(event);
+    if (event.type === "resource_capacity_changed") resourceCapacities.push(event);
+    if (event.type.startsWith("operation_") && event.type !== "operation_scored") {
+      operationEvents.push(event);
+    }
     if (event.type === "metric_sample") metrics.push(event);
     if (event.type === "logging_gap") loggingGaps.push(event);
     if (event.type === "verification") verifications.push(event);
@@ -172,10 +189,12 @@ export const foldEvents = (allEvents: TraceEvent[], cursor: Cursor): ReplayState
   return {
     cursor, events, eventsById, atoms, plans, proofs, pfPlnEvents,
     pressurePropagations, operationScores, conductanceUpdates, quarantines, metrics,
-    teleologyEstimates, transitionValueEstimates, transitionValueUpdates,
+    teleologyEstimates, domainEstimates, domainAbstentions,
+    transitionValueEstimates, transitionValueUpdates,
     pathPersistenceEvents, requirementSets, bridgeEstimates, flowProjections,
     packetReservations, packetReturns, flowSelections, candidateRevalidations,
-    controllerFallbacks, controlOutcomes,
+    controllerFallbacks, controlOutcomes, resourceSchedules, resourceClaims,
+    resourceCapacities, operationEvents,
     unknown, loggingGaps, snapshots, invalidations, verifications, actionResults,
     technologyCatalogs, technologyProgress, productionStates, unitLifecycles,
   };
