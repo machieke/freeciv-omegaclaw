@@ -248,6 +248,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "behavior_invariance": (
             "no_candidate_ordering_or_execution_authority"),
         "deadline": "fixed_cohort_horizon",
+        "final_score_source": "engine_scorelog_exact_horizon",
         "terminal_score_fallback_source": (
             "retained_authoritative_horizon_observer"),
         "production_completion_authority": (
@@ -266,6 +267,8 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert enabling_diagnostic["engine_finalization_turns"] == 1
     assert enabling_diagnostic["final_score_readout_mode"] == (
         "post_horizon_with_terminal_fallback")
+    assert enabling_diagnostic["final_score_source"] == (
+        "engine_scorelog_exact_horizon")
     assert enabling_diagnostic["seed_derivation"] == {
         "algorithm": "sha256-counter-v1",
         "namespace": (
