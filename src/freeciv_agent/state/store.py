@@ -2,7 +2,8 @@
 
 import threading
 
-from .atoms import build_atomspaces
+from .atomspace.compatibility import legacy_view_from_revision
+from .atomspace.store import DependentAtomSpaceStore
 
 
 class SnapshotConflict(RuntimeError):
@@ -10,10 +11,15 @@ class SnapshotConflict(RuntimeError):
 
 
 class SnapshotStore(object):
-    def __init__(self):
+    def __init__(self, dependent_atomspace_store=None):
         self._lock = threading.RLock()
         self._snapshots = {}
         self._atomspaces = {}
+        self._dependent_revisions = {}
+        self._dependent_store = (
+            dependent_atomspace_store
+            or DependentAtomSpaceStore(lock=self._lock))
+        self._dependent_store.bind_coordinator_lock(self._lock)
 
     @staticmethod
     def _key(snapshot):
@@ -22,7 +28,6 @@ class SnapshotStore(object):
     def replace(self, snapshot):
         """Atomically replace snapshot and every authoritative atom for its key."""
         key = self._key(snapshot)
-        projected = build_atomspaces(snapshot)
         with self._lock:
             prior = self._snapshots.get(key)
             if prior is not None:
@@ -32,8 +37,18 @@ class SnapshotStore(object):
                     if snapshot.snapshot_id == prior.snapshot_id:
                         return prior
                     raise SnapshotConflict("source_seq must increase within a turn")
+            prior_revision = self._dependent_revisions.get(key)
+            try:
+                revision = self._dependent_store.prepare(
+                    snapshot, prior, prior_revision, cold=False)
+            except ValueError as error:
+                raise SnapshotConflict(
+                    "dependent projection rejected snapshot: {}".format(error))
+            projected = legacy_view_from_revision(revision)
+            self._dependent_store.publish(snapshot, revision)
             self._snapshots[key] = snapshot
             self._atomspaces[key] = projected
+            self._dependent_revisions[key] = revision
         return snapshot
 
     def current(self, game_id, player_id):
@@ -43,6 +58,25 @@ class SnapshotStore(object):
     def current_atomspaces(self, game_id, player_id):
         with self._lock:
             return self._atomspaces.get((str(game_id), int(player_id)))
+
+    def current_dependent_revision(self, game_id, player_id):
+        with self._lock:
+            return self._dependent_revisions.get(
+                (str(game_id), int(player_id)))
+
+    def current_pair(self, game_id, player_id):
+        """Return an atomically consistent snapshot/FDAS revision pair."""
+        key = (str(game_id), int(player_id))
+        with self._lock:
+            return self._snapshots.get(key), self._dependent_revisions.get(key)
+
+    def lease_dependent_revision(self, game_id, player_id):
+        with self._lock:
+            revision = self._dependent_revisions.get(
+                (str(game_id), int(player_id)))
+            if revision is None:
+                raise SnapshotConflict("no current dependent revision")
+            return self._dependent_store.lease(revision.revision_id)
 
     def require_snapshot(self, snapshot_id):
         with self._lock:

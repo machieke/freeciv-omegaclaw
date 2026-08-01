@@ -11,8 +11,6 @@ from .model import (
     AtomNamespace,
     AtomRecord,
     AuthorityClass,
-    DependencyKey,
-    DependencyRef,
     EntityRef,
     SupportRecord,
     SymbolRef,
@@ -20,6 +18,7 @@ from .model import (
     joined_identity_hash,
     term_value,
 )
+from .delta import snapshot_dependency_fingerprints, snapshot_dependency_ref
 
 
 _ARGUMENT_KINDS = {
@@ -60,7 +59,60 @@ def _scope_by_kind(scopes):
     return result
 
 
-def _record(snapshot, atom, namespace, scope):
+def _dependency_paths(atom):
+    first = atom.args[0]
+    if atom.predicate == "buildable":
+        return (
+            "cities.{}.buildability_available".format(first),
+            "cities.{}.buildable".format(first),
+        )
+    if atom.predicate == "city-at":
+        return ("cities.{}.tile".format(first),)
+    if atom.predicate == "city-producing":
+        return (
+            "cities.{}.production_kind".format(first),
+            "cities.{}.production_value".format(first),
+        )
+    if atom.predicate == "has-tech":
+        return ("known_techs.{}".format(atom.args[1]),)
+    if atom.predicate == "owns-city":
+        return ("cities.{}.__exists__".format(atom.args[1]),)
+    if atom.predicate == "owns-unit":
+        return ("units.{}.__exists__".format(atom.args[1]),)
+    if atom.predicate == "tile-visible":
+        return ("visible_tile_ids.{}".format(first),)
+    if atom.predicate == "unit-activity":
+        return ("units.{}.activity".format(first),)
+    if atom.predicate == "unit-at":
+        return ("units.{}.tile".format(first),)
+    if atom.predicate == "unit-type":
+        return (
+            "units.{}.type".format(first),
+            "units.{}.unit_type".format(first),
+        )
+    raise KeyError("no dependency projection for {}".format(atom.predicate))
+
+
+def _dependencies(snapshot, atom, fingerprints):
+    paths = _dependency_paths(atom)
+    available = []
+    for path in paths:
+        try:
+            available.append(snapshot_dependency_ref(
+                snapshot, path, fingerprints))
+        except KeyError:
+            # `UnitState.grounded_dict()` exposes `type`; the lightweight
+            # baseline fixture view exposes `unit_type`. Exactly one alias is
+            # expected and both resolve to the same typed unit relation.
+            if atom.predicate != "unit-type":
+                raise
+    if not available:
+        raise KeyError(
+            "no dependency source resolved for {}".format(atom.predicate))
+    return tuple(available)
+
+
+def _record(snapshot, atom, namespace, scope, fingerprints, validity):
     kinds = _ARGUMENT_KINDS[atom.predicate]
     key = AtomKey(
         namespace,
@@ -72,23 +124,13 @@ def _record(snapshot, atom, namespace, scope):
         "legacy-atom",
         namespace.value,
         atom.predicate,
-        snapshot.snapshot_id,
     ) + tuple(atom.args))
-    dependency = DependencyRef(
-        DependencyKey(
-            "snapshot-projection",
-            snapshot.snapshot_id,
-            "legacy.{}.{}.{}".format(
-                namespace.value,
-                atom.predicate,
-                key.atom_id[-20:])),
-        witness_hash,
-    )
+    dependencies = _dependencies(snapshot, atom, fingerprints)
     support = SupportRecord.from_hashes(
         "legacy-build-atomspaces",
         "1.0",
         key.key_hash,
-        (dependency,),
+        dependencies,
         witness_hash,
         ("legacy-build-atomspaces/1.0",),
     )
@@ -96,12 +138,6 @@ def _record(snapshot, atom, namespace, scope):
         AuthorityClass.ENGINE_AUTHORITATIVE
         if namespace == AtomNamespace.AUTHORITATIVE
         else AuthorityClass.PACKET_OBSERVATION)
-    validity = ValidityInterval(
-        snapshot_id=snapshot.snapshot_id,
-        valid_from_turn=snapshot.turn,
-        valid_through_turn=snapshot.turn,
-        source_seq=snapshot.identity.source_seq,
-    )
     return AtomRecord.create(
         key,
         authority,
@@ -114,21 +150,104 @@ def _record(snapshot, atom, namespace, scope):
     )
 
 
-def project_legacy_records(snapshot, scopes):
+def project_legacy_records(snapshot, scopes, fingerprints=None):
     """Convert the exact pre-FDAS projection into typed full-build records."""
     legacy = _build_legacy_atomspaces(snapshot)
     by_kind = _scope_by_kind(scopes)
+    fingerprints = fingerprints or snapshot_dependency_fingerprints(snapshot)
+    validity = ValidityInterval(
+        snapshot_id=snapshot.snapshot_id,
+        valid_from_turn=snapshot.turn,
+        valid_through_turn=snapshot.turn,
+        source_seq=snapshot.identity.source_seq,
+    )
     records = []
     for atom in sorted(legacy.authoritative):
         records.append(_record(
-            snapshot, atom, AtomNamespace.AUTHORITATIVE, by_kind["empire"]))
+            snapshot, atom, AtomNamespace.AUTHORITATIVE, by_kind["empire"],
+            fingerprints, validity))
     for atom in sorted(legacy.visible):
         records.append(_record(
-            snapshot, atom, AtomNamespace.OBSERVATION, by_kind["world"]))
+            snapshot, atom, AtomNamespace.OBSERVATION, by_kind["world"],
+            fingerprints, validity))
     if legacy.uncertain:
         raise ValueError(
             "Phase-1 compatibility has no uncertain legacy projection")
     return tuple(sorted(records, key=lambda value: value.atom_id))
+
+
+def _legacy_identity(record):
+    return (
+        record.key.namespace,
+        record.key.predicate,
+        tuple(term_value(value) for value in record.key.arguments),
+    )
+
+
+def _refreshed_record(record, validity):
+    return AtomRecord.create(
+        record.key,
+        record.authority,
+        truth=_CRISP_TRUTH,
+        validity=validity,
+        supports=record.supports,
+        provenance_ids=record.provenance_ids,
+        lifecycle=record.lifecycle,
+        tags=record.tags,
+        truth_hash=_CRISP_TRUTH_HASH,
+    )
+
+
+def project_legacy_records_incremental(
+        snapshot, scopes, prior_revision, fingerprints=None):
+    """Refresh unchanged supports and recompute only changed base relations."""
+    if prior_revision is None:
+        records = project_legacy_records(snapshot, scopes, fingerprints)
+        return records, {
+            "recomputed_records": len(records),
+            "refreshed_records": 0,
+            "removed_records": 0,
+        }
+    legacy = _build_legacy_atomspaces(snapshot)
+    by_kind = _scope_by_kind(scopes)
+    fingerprints = fingerprints or snapshot_dependency_fingerprints(snapshot)
+    validity = ValidityInterval(
+        snapshot_id=snapshot.snapshot_id,
+        valid_from_turn=snapshot.turn,
+        valid_through_turn=snapshot.turn,
+        source_seq=snapshot.identity.source_seq,
+    )
+    prior = dict((_legacy_identity(value), value)
+                 for value in prior_revision.records)
+    records = []
+    recomputed = 0
+    refreshed = 0
+    identities = []
+    for namespace, atoms, scope in (
+            (AtomNamespace.AUTHORITATIVE,
+             legacy.authoritative, by_kind["empire"]),
+            (AtomNamespace.OBSERVATION,
+             legacy.visible, by_kind["world"])):
+        for atom in sorted(atoms):
+            identity = (namespace, atom.predicate, tuple(atom.args))
+            identities.append(identity)
+            old = prior.get(identity)
+            reusable = old is not None and all(
+                fingerprints.get(dependency.key) == dependency.fingerprint
+                for support in old.supports
+                for dependency in support.dependencies)
+            if reusable:
+                records.append(_refreshed_record(old, validity))
+                refreshed += 1
+            else:
+                records.append(_record(
+                    snapshot, atom, namespace, scope, fingerprints, validity))
+                recomputed += 1
+    return tuple(sorted(records, key=lambda value: value.atom_id)), {
+        "recomputed_records": recomputed,
+        "refreshed_records": refreshed,
+        "removed_records": len(set(prior).difference(identities)),
+    }
 
 
 def legacy_view_from_revision(revision):

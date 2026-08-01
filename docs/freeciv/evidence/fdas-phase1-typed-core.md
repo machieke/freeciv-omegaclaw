@@ -88,7 +88,8 @@ pytest -q \
 
 ## Activation state
 
-`profile/fdas_manifest.json` enables only the compatibility component:
+At the Phase 1 commit, `profile/fdas_manifest.json` enabled only the
+compatibility component:
 
 ```text
 dependent_atomspace_core = component-only
@@ -96,3 +97,6 @@ component_enabled = true
 policy_authority = false
 all later capabilities = not-built
 ```
+
+The live manifest advances dependency and incremental-projection capabilities
+at the separately evidenced Phase 2 boundary.

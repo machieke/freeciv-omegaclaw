@@ -183,6 +183,15 @@ class DependencyRef:
             "key": self.key.to_dict(),
         }
 
+    @cached_property
+    def identity_hash(self):
+        return joined_identity_hash((
+            self.key.kind,
+            self.key.owner_id,
+            self.key.path,
+            self.fingerprint,
+        ))
+
 
 @dataclass(frozen=True)
 class ValidityInterval:
@@ -216,6 +225,16 @@ class ValidityInterval:
             "valid_from_turn": self.valid_from_turn,
             "valid_through_turn": self.valid_through_turn,
         }
+
+    @cached_property
+    def identity_hash(self):
+        return joined_identity_hash((
+            self.snapshot_id,
+            self.valid_from_turn,
+            self.valid_through_turn,
+            self.source_seq,
+            self.ruleset_digest,
+        ))
 
 
 @dataclass(frozen=True)
@@ -272,13 +291,8 @@ class SupportRecord:
             binding_hash,
             witness_hash,
         ]
-        for value in dependencies:
-            identity_parts.extend((
-                value.key.kind,
-                value.key.owner_id,
-                value.key.path,
-                value.fingerprint,
-            ))
+        identity_parts.extend(
+            value.identity_hash for value in dependencies)
         return cls(
             "support-" + joined_identity_hash(identity_parts)[:32],
             str(derivation_id),
@@ -349,11 +363,7 @@ class AtomRecord:
             AuthorityClass(authority).value,
             lifecycle,
             truth_hash,
-            validity.snapshot_id,
-            validity.valid_from_turn,
-            validity.valid_through_turn,
-            validity.source_seq,
-            validity.ruleset_digest,
+            validity.identity_hash,
         ) + tuple(value.support_id for value in supports)
           + provenance_ids
           + tuple("{}={}".format(*value) for value in tags))

@@ -1,6 +1,6 @@
 # Functional Dependent AtomSpace
 
-Status: Phase 1 typed core and compatibility facade passed; component-only
+Status: Phase 2 dependency materializer passed; component-only
 
 Branch: `experimental/functional-dependent-atomspace`
 
@@ -92,13 +92,36 @@ All 13 baseline fixtures produce exactly the frozen legacy view. The warm
 captured-snapshot projection measured 21.1 ms mean and 29.8 ms p95 over 260
 builds, within the initial 30 ms base-projection target. This phase implements
 full rebuild only: reverse dependency indexes, invalidation, incremental
-materialization, derivations, queries, and planning authority remain absent.
+materialization, derivations, queries, and planning authority were absent at
+the Phase 1 boundary.
+
+## Phase 2 dependent materializer
+
+The current store adds stable field/entity dependency keys, canonical snapshot
+deltas, immutable reverse indexes, support-aware transitive retraction,
+stratified pure derivations, completeness guards for negative outputs,
+incremental support reuse, cold-reference verification, revision leases, and
+decision-stale query rejection. `SnapshotStore` publishes the authoritative
+snapshot, legacy view, and typed revision under one coordinator lock.
+
+Incremental/cold equality passes for 20 deterministic randomized mutations and
+all 12 transitions in the retained 13-snapshot game sequence. On adjacent or
+same-turn captured revisions the full incremental transaction measured 16.2 ms
+mean and 18.5 ms p95. Dependency invalidation measured 1.12 ms mean and 5.54 ms
+p95 over 1,200 samples. Sparse captures spanning 2–60 turns require more
+recomputation and measured 20.3 ms mean and 37.1 ms p95; they are retained as
+worst-case catch-up evidence rather than represented as ordinary single-turn
+updates.
+
+This remains a compatibility-only materialized view. No generic domain rule,
+goal, candidate, pressure, or execution path consumes FDAS yet.
 
 ## Activation
 
-`profile/fdas_manifest.json` declares only `dependent_atomspace_core` as
-`component-only`. The compatibility facade is enabled, but policy authority is
-false and every later capability remains `not-built`. `profile/fdas_catalog.json`
+`profile/fdas_manifest.json` declares the typed core, dependency truth
+maintenance, and incremental snapshot projection as `component-only`. The
+compatibility facade is enabled, but policy authority is false and every
+domain/policy capability remains `not-built`. `profile/fdas_catalog.json`
 separates the ten legacy projected predicates and nine legacy groundings from
 the proposed namespaces, authority classes, scopes, first-slice predicates,
 and typed groundings.

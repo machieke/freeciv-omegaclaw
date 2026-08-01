@@ -32,11 +32,18 @@ def test_fdas_manifest_exposes_only_the_component_only_typed_core():
     assert manifest["component_enabled"] is True
     assert manifest["policy_authority"] is False
     assert manifest["capabilities"]
-    assert manifest["capabilities"]["dependent_atomspace_core"] == (
-        "component-only")
+    component_only = {
+        "dependent_atomspace_core",
+        "dependency_truth_maintenance",
+        "incremental_snapshot_projection",
+    }
+    assert {
+        key for key, value in manifest["capabilities"].items()
+        if value == "component-only"
+    } == component_only
     assert {
         value for key, value in manifest["capabilities"].items()
-        if key != "dependent_atomspace_core"
+        if key not in component_only
     } == {"not-built"}
 
 
