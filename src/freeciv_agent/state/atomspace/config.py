@@ -163,10 +163,19 @@ class DependentAtomSpaceConfig:
             require("dependent_atom_pressure_adapter", "component-only")
         if config["projection"]["operations"]:
             require("operation_atom_projection", "component-only")
+        if config["projection"]["beliefs"]:
+            require("belief_domain_projection", "component-only")
+        if config["inference"]["uncertain_assessment_enabled"]:
+            require("belief_domain_projection", "shadow-live")
+            require("observation_pressure_planning", "shadow-live")
         if any(config["domain_authority"].values()):
             require("dependent_atom_pressure_adapter", "bounded-authority")
             require("fdas_resource_packet_bridge", "bounded-authority")
             require("fdas_exact_commit_validation", "bounded-authority")
+            if config["inference"]["uncertain_assessment_enabled"]:
+                require("belief_domain_projection", "bounded-authority")
+                require(
+                    "observation_pressure_planning", "bounded-authority")
         if (config["domain_authority"]["city_stability"]
                 or config["domain_authority"]["city_production"]):
             require("city_domain_projection", "bounded-authority")

@@ -116,3 +116,62 @@ def test_phase7_authority_requires_every_exact_domain_capability(
     config = DependentAtomSpaceConfig.from_dict(value, accepted_manifest)
 
     assert config.section("domain_authority")[domain] is True
+
+
+def test_belief_projection_requires_declared_component():
+    value, manifest = _values()
+    value = copy.deepcopy(value)
+    value["projection"]["beliefs"] = True
+    config = DependentAtomSpaceConfig.from_dict(value, manifest)
+    assert config.section("projection")["beliefs"] is True
+
+    missing = copy.deepcopy(manifest)
+    missing["capabilities"]["belief_domain_projection"] = "not-built"
+    with pytest.raises(ValueError, match="belief_domain_projection"):
+        DependentAtomSpaceConfig.from_dict(value, missing)
+
+
+def test_uncertain_assessment_requires_shadow_live_belief_and_observation():
+    value, manifest = _values()
+    value = copy.deepcopy(value)
+    value["projection"]["beliefs"] = True
+    value["inference"]["uncertain_assessment_enabled"] = True
+
+    with pytest.raises(ValueError, match="requires shadow-live"):
+        DependentAtomSpaceConfig.from_dict(value, manifest)
+
+    accepted = copy.deepcopy(manifest)
+    accepted["capabilities"]["belief_domain_projection"] = "shadow-live"
+    accepted["capabilities"]["observation_pressure_planning"] = "shadow-live"
+    config = DependentAtomSpaceConfig.from_dict(value, accepted)
+    assert config.section("inference")["uncertain_assessment_enabled"] is True
+
+
+def test_authority_with_uncertain_assessment_requires_bounded_belief_firewall():
+    value, manifest = _values()
+    value = copy.deepcopy(value)
+    value.update({"enabled": True, "authority_enabled": True})
+    value["projection"]["beliefs"] = True
+    value["inference"]["uncertain_assessment_enabled"] = True
+    value["domain_authority"]["city_stability"] = True
+    accepted = copy.deepcopy(manifest)
+    for name in (
+            "dependent_atom_pressure_adapter",
+            "fdas_resource_packet_bridge",
+            "fdas_exact_commit_validation",
+            "city_domain_projection"):
+        accepted["capabilities"][name] = "bounded-authority"
+    for name in (
+            "belief_domain_projection",
+            "observation_pressure_planning"):
+        accepted["capabilities"][name] = "shadow-live"
+
+    with pytest.raises(ValueError, match="requires bounded-authority"):
+        DependentAtomSpaceConfig.from_dict(value, accepted)
+
+    for name in (
+            "belief_domain_projection",
+            "observation_pressure_planning"):
+        accepted["capabilities"][name] = "bounded-authority"
+    config = DependentAtomSpaceConfig.from_dict(value, accepted)
+    assert config.authority_enabled is True
