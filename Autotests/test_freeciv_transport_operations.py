@@ -20,6 +20,7 @@ from freeciv_agent.events.schema import (  # noqa: E402
     structural_hash,
 )
 from freeciv_agent.planning import (  # noqa: E402
+    FdasFounderTransportProjectionAdapter,
     FounderTransportIntent,
     FounderTransportOperationAssembler,
     FounderTransportOperationLifecycle,
@@ -37,6 +38,10 @@ from freeciv_agent.state import (  # noqa: E402
     MovementRouteState,
     ProxyStateDTO,
     SnapshotIdentity,
+)
+from freeciv_agent.state.atomspace import (  # noqa: E402
+    DependentAtomSpaceStore,
+    OperationProjector,
 )
 
 
@@ -837,6 +842,98 @@ def test_lifecycle_reserves_commits_and_reestimates_the_next_exact_step():
     assert lifecycle.ledger.reservation(
         assembly.spec.operation_id
     ).active
+
+
+def test_fdas_transport_adapter_projects_current_step_claims_and_binding():
+    initial = _snapshot(embark=True)
+    ruleset = _ruleset()
+    assembly = (
+        FounderTransportOperationAssembler()
+        .assemble(initial, ruleset, "ruleset-proof", _intent())
+        .assembly)
+    lifecycle = FounderTransportOperationLifecycle(
+        "fdas-projection-proof", ruleset)
+    adapter = FdasFounderTransportProjectionAdapter(
+        lifecycle, "ruleset-proof")
+
+    registered = adapter.register(assembly, initial)
+    operation_id = assembly.spec.operation_id
+    binding = adapter.binding(operation_id)
+    context = adapter.requirement_context(operation_id)
+
+    assert registered[-1].state == "reserved"
+    assert binding.action == assembly.initial_readout.next_action
+    assert binding.action_key in initial.legal_action_json
+    assert context.blocked_premises == ()
+    assert GameResourceKind.TRANSPORT_SEAT in {
+        value.resource.kind for value in context.resource_claims}
+    revision = DependentAtomSpaceStore(
+        domain_projector=OperationProjector(
+            lifecycle.store, adapter.bindings,
+            adapter.requirement_contexts)).build(initial)
+    predicates = {value.key.predicate for value in revision.records}
+    assert {
+        "operation-current-action",
+        "operation-current-action-legal",
+        "operation-requirement-set",
+        "operation-resource-claim",
+        "resource-claim-resource",
+    }.issubset(predicates)
+
+    committed = adapter.commit_matching_action(
+        initial, binding.action, accepted=True)
+    assert committed[-1].disposition == "step_committed"
+    assert adapter.binding(operation_id) is None
+    assert dict(adapter.requirement_context(
+        operation_id).blocked_premises) == {
+            "phase:embark:current-precondition":
+                "awaiting-authoritative-step-effect",
+        }
+    assert adapter.requirement_context(operation_id).resource_claims == ()
+
+
+def test_fdas_transport_adapter_advances_and_rebinds_authoritatively():
+    initial = _snapshot(embark=True)
+    ruleset = _ruleset()
+    assembly = (
+        FounderTransportOperationAssembler()
+        .assemble(initial, ruleset, "ruleset-proof", _intent())
+        .assembly)
+    lifecycle = FounderTransportOperationLifecycle(
+        "fdas-rebind-proof", ruleset)
+    adapter = FdasFounderTransportProjectionAdapter(
+        lifecycle, "ruleset-proof")
+    adapter.register(assembly, initial)
+    adapter.commit_matching_action(
+        initial, assembly.initial_readout.next_action, accepted=True)
+
+    founder = replace(
+        initial.unit(102), transported=True, transported_by=200,
+        tile=201, x=9, y=4)
+    ferry = replace(initial.unit(200), carrying=1)
+    action = _move(200, 202)
+    carried = _revision(
+        initial, 2, (founder, ferry), (action,),
+        routes=(_route(200, 201, 300, 202, 3, source_seq=2),))
+
+    updates = adapter.observe(carried)
+    operation_id = assembly.spec.operation_id
+    record = lifecycle.store.get(operation_id)
+
+    assert [value.disposition for value in updates] == [
+        "step_completed", "step_reestimated"]
+    assert record.progress.current_step_index == 3
+    assert adapter.binding(operation_id).action == action
+    assert adapter.requirement_context(operation_id).blocked_premises == ()
+    revision = DependentAtomSpaceStore(
+        domain_projector=OperationProjector(
+            lifecycle.store, adapter.bindings,
+            adapter.requirement_contexts)).build(carried)
+    current_step = next(
+        value for value in revision.records
+        if value.key.predicate == "operation-current-step")
+    assert current_step.key.arguments[1].entity_id == (
+        record.spec.steps[3].step_id)
 
 
 def test_lifecycle_fails_closed_on_stale_commit_and_releases_claims():
