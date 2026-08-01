@@ -150,14 +150,38 @@ def test_no_update_is_pending_until_window_closes_then_no_effect():
 
     pending = recorder.observe(
         episode.episode_id, unchanged, "fdas-revision-pending")
-    no_effect = recorder.observe(
-        episode.episode_id, unchanged, "fdas-revision-window-closed",
+    assert recorder.store.pending_for_operation(
+        episode.operation_id) == (pending,)
+    no_effect = recorder.observe_operation(
+        episode.operation_id, unchanged, "fdas-revision-window-closed",
         observation_window_closed=True)
 
     assert pending.outcome_status == "delayed-effect-pending"
     assert no_effect.outcome_status == "no-effect-observed"
     assert not no_effect.attributed_effects
     assert not no_effect.realized_goal_relief
+
+
+def test_immediate_effect_without_relief_closes_as_distinct_terminal_state():
+    recorder, store, episode = _begin_episode(
+        operation_id="episode-effect-no-relief")
+    intermediate = _snapshot(_payload(
+        turn=13, unit_tile=83, unit_x=3, legal_target_x=4), 497)
+    effect = recorder.observe(
+        episode.episode_id, intermediate, "fdas-revision-effect")
+    terminal = recorder.observe_operation(
+        episode.operation_id, intermediate, "fdas-revision-window-closed",
+        observation_window_closed=True)
+    replay = recorder.observe(
+        episode.episode_id, intermediate, "fdas-revision-window-closed",
+        observation_window_closed=True)
+
+    assert effect.outcome_status == "immediate-effect-observed"
+    assert terminal.outcome_status == "effect-without-goal-relief"
+    assert terminal.attributed_effects
+    assert not terminal.realized_goal_relief
+    assert replay is terminal
+    assert store.pending_for_operation(episode.operation_id) == ()
 
 
 def test_actor_disappearance_is_unattributable_not_goal_relief():

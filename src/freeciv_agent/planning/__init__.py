@@ -125,6 +125,11 @@ from .fdas_episodes import (
     DecisionEpisodeStore,
     FdasDefenseEpisodeRecorder,
 )
+from .fdas_episode_learning import (
+    EpisodeControlPrediction,
+    EpisodeLearningResult,
+    FdasEpisodeLearningAdapter,
+)
 from .fdas_replacement import FdasCoordinatedReplacementAdapter
 from .fdas_transport import FdasFounderTransportProjectionAdapter
 from .fdas_combat import FdasCombatProjectionAdapter
@@ -200,6 +205,8 @@ __all__ = [
     "FdasDefenseRequirementContext",
     "EPISODE_SCHEMA_VERSION", "DecisionEpisode", "DecisionEpisodeStore",
     "FdasDefenseEpisodeRecorder",
+    "EpisodeControlPrediction", "EpisodeLearningResult",
+    "FdasEpisodeLearningAdapter",
     "FdasCoordinatedReplacementAdapter",
     "FdasFounderTransportProjectionAdapter",
     "FdasCombatProjectionAdapter",

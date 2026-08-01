@@ -16,11 +16,13 @@ _OUTCOME_STATES = frozenset((
     "proposed", "selected", "reserved", "commit-revalidated", "sent",
     "accepted-by-server", "immediate-effect-observed",
     "delayed-effect-pending", "goal-relief-observed",
+    "effect-without-goal-relief",
     "no-effect-observed", "contradicted", "expired-unresolved",
     "confounded-unattributable",
 ))
 _TERMINAL_STATES = frozenset((
-    "goal-relief-observed", "no-effect-observed", "contradicted",
+    "goal-relief-observed", "effect-without-goal-relief",
+    "no-effect-observed", "contradicted",
     "expired-unresolved", "confounded-unattributable",
 ))
 _STATE_RANK = {
@@ -225,6 +227,16 @@ class DecisionEpisodeStore(object):
     def get(self, episode_id):
         return self._episodes.get(str(episode_id))
 
+    def pending_for_operation(self, operation_id):
+        """Return nonterminal delayed/effect episodes for one operation."""
+        operation_id = str(operation_id)
+        return tuple(
+            value for value in self.episodes()
+            if (value.operation_id == operation_id
+                and value.outcome_status in (
+                    "accepted-by-server", "delayed-effect-pending",
+                    "immediate-effect-observed")))
+
     @staticmethod
     def _transition_allowed(before, after):
         if before == after:
@@ -232,7 +244,8 @@ class DecisionEpisodeStore(object):
         if before in _TERMINAL_STATES:
             return False
         if after in ("contradicted", "expired-unresolved",
-                     "confounded-unattributable", "no-effect-observed"):
+                     "confounded-unattributable", "no-effect-observed",
+                     "effect-without-goal-relief"):
             return True
         return _STATE_RANK.get(after, -1) >= _STATE_RANK.get(before, -1)
 
@@ -436,6 +449,8 @@ class FdasDefenseEpisodeRecorder(object):
                 (goal_id, 1.0) for goal_id in prior.goal_ids) if relieved else ()
             if relieved:
                 status = "goal-relief-observed"
+            elif effects and observation_window_closed:
+                status = "effect-without-goal-relief"
             elif effects:
                 status = "immediate-effect-observed"
             elif observation_window_closed:
@@ -458,3 +473,15 @@ class FdasDefenseEpisodeRecorder(object):
             outcome_status=status,
         )
         return self.store.record(updated)
+
+    def observe_operation(
+            self, operation_id, after_snapshot, after_revision_id,
+            observation_window_closed=False):
+        pending = self.store.pending_for_operation(operation_id)
+        if not pending:
+            raise KeyError("operation has no pending decision episode")
+        if len(pending) != 1:
+            raise ValueError("operation has ambiguous pending decision episodes")
+        return self.observe(
+            pending[0].episode_id, after_snapshot, after_revision_id,
+            observation_window_closed=observation_window_closed)
