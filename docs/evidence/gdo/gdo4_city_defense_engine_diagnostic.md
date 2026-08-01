@@ -599,3 +599,35 @@ V9 binds this contract to mechanism schema 1.7. It must complete 60/60 on the
 initial pass with zero infrastructure failures, preserve exact source
 identity, expose every fallback in telemetry, and pass the full GDO-4 pilot
 conjunction. It remains ineligible for a score or win-rate claim.
+
+V9 was stopped for predeclared-gate futility after 26 successful arms and one
+infrastructure failure. Twenty-four ordinary completed arms read turn 161 on
+their first attempt; a naturally terminal matched pair read turn 4. None used
+fallback. Baseline seed 7537003 completed gameplay through turn 160 and the
+server accepted its final `end_turn`, but all subsequent global-state queries
+lost the authoritative scored-player projection. Re-querying turn 160 cannot
+recover an observer projection that has already been discarded. V9 therefore
+validates the relaxed unit-table criterion but not the terminal fallback.
+
+## Frozen retained-horizon confirmation v10
+
+`city_defense_immediate_fortify_authority_pilot_v10` retains the V9 controller,
+policy, decision horizon, finalization turn, process isolation, hard server
+recycling, and complete GDO-4 conjunction. It uses 30 fresh paired seeds from
+the disjoint 7.6M range.
+
+Before the final horizon `end_turn`, V10 makes one explicit observer-global
+query that requires the perspective player and a paired opponent to have
+finite authoritative scores at turn 160. The ordinary readout still prefers
+turn 161, retries it once, and then re-queries turn 160. Only if all three
+queries time out may it consume the retained, already-validated turn-160
+observer state. Telemetry distinguishes `post_horizon_observer`,
+`horizon_observer_query`, and `retained_horizon_observer`, and separately
+reports capture availability and retained-fallback use.
+
+This behavior is bound to mechanism schema 1.8 with
+`terminal_score_fallback_source:
+retained_authoritative_horizon_observer`. It remains claim-ineligible and must
+complete 60/60 on its source-frozen initial pass with zero infrastructure
+failures before its mechanism result can be treated as a fresh operational
+confirmation.

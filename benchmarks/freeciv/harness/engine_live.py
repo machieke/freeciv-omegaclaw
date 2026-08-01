@@ -906,6 +906,7 @@ async def _global_state(ws, timeout=15.0, player_id=None, minimum_turn=None,
 
 async def _final_global_state(ws, player_id, minimum_turn, timeout=15.0,
                               attempts=2, fallback_minimum_turn=None,
+                              fallback_state=None,
                               diagnostics=None):
     """Read post-horizon scores without replaying a completed engine arm.
 
@@ -934,10 +935,23 @@ async def _final_global_state(ws, player_id, minimum_turn, timeout=15.0,
         raise ValueError(
             "fallback minimum turn must be a non-negative integer below "
             "the requested minimum turn")
+    if fallback_state is not None and fallback_minimum_turn is None:
+        raise ValueError(
+            "fallback state requires an explicit fallback minimum turn")
+    if (
+            fallback_state is not None
+            and not _global_state_ready(
+                fallback_state,
+                player_id=player_id,
+                minimum_turn=fallback_minimum_turn,
+                require_units=False)):
+        raise ValueError(
+            "fallback state must be authoritative at the fallback minimum turn")
     if diagnostics is not None:
         diagnostics.update({
             "attempts": 0,
             "fallback_used": False,
+            "readout_source": None,
             "requested_minimum_turn":
                 int(minimum_turn),
         })
@@ -953,6 +967,7 @@ async def _final_global_state(ws, player_id, minimum_turn, timeout=15.0,
                     "attempts": attempt + 1,
                     "observed_turn":
                         state.get("turn"),
+                    "readout_source": "post_horizon_observer",
                 })
             return state
         except TimeoutError as error:
@@ -961,18 +976,33 @@ async def _final_global_state(ws, player_id, minimum_turn, timeout=15.0,
                 diagnostics[
                     "attempts"] = attempt + 1
     if fallback_minimum_turn is not None:
-        state = await _global_state(
-            ws, timeout=timeout, player_id=player_id,
-            minimum_turn=fallback_minimum_turn,
-            require_units=False)
-        if diagnostics is not None:
-            diagnostics.update({
-                "attempts": attempts + 1,
-                "fallback_used": True,
-                "observed_turn":
-                    state.get("turn"),
-            })
-        return state
+        try:
+            state = await _global_state(
+                ws, timeout=timeout, player_id=player_id,
+                minimum_turn=fallback_minimum_turn,
+                require_units=False)
+            if diagnostics is not None:
+                diagnostics.update({
+                    "attempts": attempts + 1,
+                    "fallback_used": True,
+                    "observed_turn":
+                        state.get("turn"),
+                    "readout_source": "horizon_observer_query",
+                })
+            return state
+        except TimeoutError:
+            if diagnostics is not None:
+                diagnostics["attempts"] = attempts + 1
+            if fallback_state is None:
+                raise
+            if diagnostics is not None:
+                diagnostics.update({
+                    "fallback_used": True,
+                    "observed_turn":
+                        fallback_state.get("turn"),
+                    "readout_source": "retained_horizon_observer",
+                })
+            return fallback_state
     raise last_error
 
 
@@ -1927,6 +1957,17 @@ async def _play(run_dir, manifest, context):
     production_preexpansion_settlement_runways = []
     corrections = 0
     final_global = None
+    retained_horizon_global = None
+    retained_horizon_capture_attempted = False
+    final_score_readout_mode = manifest.get(
+        "final_score_readout_mode",
+        "strict_post_horizon")
+    if final_score_readout_mode not in (
+            "strict_post_horizon",
+            "post_horizon_with_terminal_fallback"):
+        raise ValueError(
+            "unsupported final score readout mode {}".format(
+                final_score_readout_mode))
     observer_global_state_queries = 0
     # Engine-live runs the proxy on the same host. The proxy's level-9
     # per-message deflate costs more CPU/scheduling than loopback bytes save;
@@ -2325,6 +2366,25 @@ async def _play(run_dir, manifest, context):
                 terminal_game_over = snapshot.game_over
                 terminal_player_elimination = _player_eliminated(snapshot)
                 break
+            if (
+                    final_score_readout_mode
+                    == "post_horizon_with_terminal_fallback"
+                    and snapshot.turn >= manifest["turn_limit"]
+                    and retained_horizon_global is None):
+                # Capture scored-player authority before the final end-turn can
+                # close the civserver and discard the observer projection. The
+                # retained state is accepted later only after the ordinary
+                # post-horizon and horizon re-queries have both timed out.
+                retained_horizon_capture_attempted = True
+                try:
+                    retained_horizon_global = await _global_state(
+                        ws,
+                        player_id=player_id,
+                        minimum_turn=snapshot.turn,
+                        require_units=False)
+                    observer_global_state_queries += 1
+                except TimeoutError:
+                    observer_global_state_queries += 1
 
             if turn_boundary_started is not None:
                 turn_boundary_latencies.append(
@@ -2939,15 +2999,6 @@ async def _play(run_dir, manifest, context):
         # assuming a fixed sleep is long enough for endgame packets to settle.
         final_global_started = time.perf_counter()
         observer_global_state_queries += 1
-        final_score_readout_mode = manifest.get(
-            "final_score_readout_mode",
-            "strict_post_horizon")
-        if final_score_readout_mode not in (
-                "strict_post_horizon",
-                "post_horizon_with_terminal_fallback"):
-            raise ValueError(
-                "unsupported final score readout mode {}".format(
-                    final_score_readout_mode))
         final_global_diagnostics = {}
         final_global_minimum_turn = (
             final_turn
@@ -2959,6 +3010,14 @@ async def _play(run_dir, manifest, context):
             minimum_turn=final_global_minimum_turn,
             fallback_minimum_turn=(
                 final_turn
+                if (
+                    final_score_readout_mode
+                    == "post_horizon_with_terminal_fallback"
+                    and final_global_minimum_turn
+                    > final_turn)
+                else None),
+            fallback_state=(
+                retained_horizon_global
                 if (
                     final_score_readout_mode
                     == "post_horizon_with_terminal_fallback"
@@ -3392,6 +3451,11 @@ async def _play(run_dir, manifest, context):
         ("final_global_horizon_fallback_used",
          int(final_global_diagnostics.get(
              "fallback_used", False))),
+        ("final_global_retained_horizon_capture_available",
+         int(retained_horizon_global is not None)),
+        ("final_global_retained_horizon_fallback_used",
+         int(final_global_diagnostics.get(
+             "readout_source") == "retained_horizon_observer")),
         ("final_global_requested_minimum_turn",
          final_global_diagnostics.get(
              "requested_minimum_turn",
@@ -3997,6 +4061,23 @@ async def _play(run_dir, manifest, context):
         "final_global_horizon_fallback_used":
             bool(final_global_diagnostics.get(
                 "fallback_used", False)),
+        "final_global_readout_source":
+            final_global_diagnostics.get(
+                "readout_source"),
+        "final_global_retained_horizon_capture_attempted":
+            retained_horizon_capture_attempted,
+        "final_global_retained_horizon_capture_available":
+            retained_horizon_global is not None,
+        "final_global_retained_horizon_capture_turn":
+            (
+                retained_horizon_global.get("turn")
+                if retained_horizon_global is not None
+                else None),
+        "final_global_retained_horizon_fallback_used":
+            (
+                final_global_diagnostics.get(
+                    "readout_source")
+                == "retained_horizon_observer"),
         "final_global_requested_minimum_turn":
             final_global_diagnostics.get(
                 "requested_minimum_turn",
