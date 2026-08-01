@@ -480,3 +480,41 @@ worker count, and every mechanism and latency threshold are unchanged. V6
 must still pass the full conjunction, including 50 ms preparation p95 and
 1.15 treatment/baseline full-loop p95 ratio. It remains claim-ineligible
 regardless of score direction.
+
+The completed v6 audit is
+`benchmarks/gdo/gdo4_city_defense_immediate_fortify_process_isolation_confirmation.json`
+with self-hash
+`65b3f0c005e3bd971e1826ab246d7d86ce416195fa587f4df5624aef40fd2fa2`.
+It contains 30/30 complete pairs, 1,783,128 schema-valid events, zero event
+errors or warnings, exact source identity
+`e605f9fb5a2e439304f2332c0424e1b7cae26f4e`, and passes the complete
+predeclared pilot gate.
+
+Process isolation removed the preparation-latency failure decisively:
+treatment preparation p95 fell from 83.30 ms in v5 to 8.76 ms in v6, with
+p50 3.30 ms over 9,583 samples. Treatment/baseline full-loop p95 was
+3,082.25/3,082.92 ms, a ratio of 0.9998 against the 1.15 ceiling. Typed
+winner-changing coverage remained 100%, and unsupported states received zero
+policy authority.
+
+The mechanism result also passed. Treatment activated and completed 22 of 36
+unique selected operations, while baseline completed none. Unique uncovered
+city/snapshot observations fell from 403 to 14, a delta of -389. Selected
+at-risk city losses fell from two to zero; raw city losses were unchanged at
+25 per arm. There were no legality, hard-reservation, or sole-defender
+violations.
+
+The first execution pass exposed a separate server-startup race: five arms
+timed out before gameplay while a recently spawned civserver successor was
+listening but had not yet populated observer global state. All five failed
+attempts were archived, and an exact-source resume completed the cohort
+60/60 with zero current infrastructure failures. The recovery preserves the
+pilot result, but the operational correction is to predeclare and enforce a
+hard server recycle for every process-isolated arm before a fresh confirmation
+cohort.
+
+The generic paired score delta was -2.27 with interval `[-5.40, 0.60]`;
+fixed-horizon win-rate difference was 0.00. The cohort was predeclared
+claim-ineligible, so neither gameplay endpoint supports a score or win-rate
+claim. The supported conclusion is the bounded city-defence mechanism and
+safety result, not a general game-score improvement.
