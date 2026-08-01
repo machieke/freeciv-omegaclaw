@@ -1,7 +1,7 @@
 """Component-only unit capability and city-defense FDAS projection."""
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from ...events.schema import structural_hash
 from .city import city_economy_predicate_registry, city_economy_scopes
@@ -98,11 +98,22 @@ def unit_defense_predicate_registry():
               derived, ("city-facts",)),
         _spec("city-visible-threat", (("city",), ("unit",)),
               derived, ("city-facts",)),
+        _spec("city-threat-arrival-estimate", (
+            ("city",), ("unit",), ("threat-model",)),
+            AtomNamespace.BELIEF, ("city-facts",), truth="uncertain"),
+        _spec("city-threat-arrives-before-defense", (
+            ("city",), ("unit",), ("unit",)),
+            AtomNamespace.BELIEF, ("city-facts",), truth="uncertain"),
     ))
 
 
 def unit_defense_scopes(snapshot):
     scopes = list(city_economy_scopes(snapshot))
+    scopes = [
+        replace(value, namespaces=frozenset(
+            set(value.namespaces).union((AtomNamespace.BELIEF,))))
+        if value.scope_kind == "city-facts" else value
+        for value in scopes]
     empire = next(value for value in scopes if value.scope_kind == "empire")
     predicates = unit_defense_predicate_registry().predicates
     for unit in sorted(snapshot.units, key=lambda value: value.unit_id):
@@ -183,6 +194,64 @@ class UnitDefenseProjector(object):
             key, authority, _CRISP, scope.validity, (support,), (provenance,),
             tags=(("domain", "unit-defense-shadow"),),
             truth_hash=_CRISP_HASH)
+
+    def _uncertain_record(self, scope, predicate, arguments, grounding):
+        truth = {
+            "confidence": float(grounding.value["confidence"]),
+            "strength": 1.0,
+            "uncertain": True,
+            "unknown_mass": float(grounding.value["unknown_mass"]),
+        }
+        key = AtomKey(
+            AtomNamespace.BELIEF, predicate, tuple(arguments), scope.scope_id)
+        support = SupportRecord.create(
+            "model-visible-threat-eta", "1.0", key.to_dict(),
+            grounding.dependencies, grounding.witness,
+            (self.projector_id, "ruleset-move-rate-geometric-lower-bound"),
+            confidence_cap=grounding.confidence_cap)
+        return AtomRecord.create(
+            key, AuthorityClass.UNCERTAIN_BELIEF, truth, scope.validity,
+            (support,),
+            (self.projector_id, "ruleset-move-rate-geometric-lower-bound"),
+            tags=(("domain", "unit-defense-shadow"),
+                  ("epistemic", "control-model")),
+            truth_hash=structural_hash(truth))
+
+    def _deadline_record(self, scope, city_ref, enemy, defender_id,
+                         threat_eta, defense_eta):
+        truth = {
+            "confidence": float(threat_eta.value["confidence"]),
+            "strength": 1.0,
+            "uncertain": True,
+            "unknown_mass": float(threat_eta.value["unknown_mass"]),
+        }
+        key = AtomKey(
+            AtomNamespace.BELIEF,
+            "city-threat-arrives-before-defense",
+            (city_ref, EntityRef("unit", str(enemy.unit_id)),
+             EntityRef("unit", str(defender_id))),
+            scope.scope_id)
+        witness = {
+            "defender_arrival_turn": (
+                int(scope.validity.valid_from_turn) + int(defense_eta.value)),
+            "defender_eta_turns": defense_eta.value,
+            "enemy_earliest_attack_turn":
+                threat_eta.value["earliest_attack_turn"],
+            "threat_basis": threat_eta.value["basis"],
+        }
+        support = SupportRecord.create(
+            "compare-threat-defense-deadline", "1.0", key.to_dict(),
+            tuple(sorted(set(
+                threat_eta.dependencies + defense_eta.dependencies))), witness,
+            (self.projector_id, "mixed-exact-and-control-deadline"),
+            confidence_cap=threat_eta.confidence_cap)
+        return AtomRecord.create(
+            key, AuthorityClass.UNCERTAIN_BELIEF, truth, scope.validity,
+            (support,),
+            (self.projector_id, "mixed-exact-and-control-deadline"),
+            tags=(("domain", "unit-defense-shadow"),
+                  ("epistemic", "control-model")),
+            truth_hash=structural_hash(truth))
 
     @staticmethod
     def _scope_maps(scopes):
@@ -308,6 +377,7 @@ class UnitDefenseProjector(object):
                     "policy": self.policy.policy_id,
                     "required": required.value,
                 }))
+            reinforcement_etas = []
             if predicate == "city-garrison-deficit" and city.tile is not None:
                 for unit_id, unit in sorted(defender_by_id.items()):
                     if unit.tile is None or unit.tile == city.tile:
@@ -318,6 +388,7 @@ class UnitDefenseProjector(object):
                         "movement.arrival-eta", snapshot, unit_id, city.tile)
                     if not route.available or not eta.available:
                         continue
+                    reinforcement_etas.append((unit_id, eta))
                     records.append(self._record(
                         scope, AtomNamespace.DERIVED,
                         "unit-reinforcement-route",
@@ -395,4 +466,23 @@ class UnitDefenseProjector(object):
                         "distance": distance,
                         "radius": self.policy.visible_threat_radius,
                     }))
+                eta = self.groundings.evaluate(
+                    "defense.visible-threat-eta", snapshot,
+                    city.city_id, enemy.unit_id)
+                if eta.available:
+                    records.append(self._uncertain_record(
+                        scope, "city-threat-arrival-estimate",
+                        (city_ref, EntityRef("unit", str(enemy.unit_id)),
+                         SymbolRef(
+                             "threat-model",
+                             "ruleset-geometric-lower-bound:v1.0")),
+                        eta))
+                    for defender_id, defense_eta in reinforcement_etas:
+                        defender_arrival = (
+                            int(snapshot.turn) + int(defense_eta.value))
+                        if (int(eta.value["earliest_attack_turn"])
+                                < defender_arrival):
+                            records.append(self._deadline_record(
+                                scope, city_ref, enemy, defender_id,
+                                eta, defense_eta))
         return tuple(sorted(records, key=lambda value: value.atom_id))

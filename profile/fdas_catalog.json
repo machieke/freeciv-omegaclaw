@@ -51,6 +51,7 @@
     {"authority": "server_exact", "name": "map.wrapped-distance", "status": "proposed"},
     {"authority": "server_exact", "name": "movement.shortest-route", "status": "component-only"},
     {"authority": "server_exact", "name": "movement.arrival-eta", "status": "component-only"},
+    {"authority": "control_model", "name": "defense.visible-threat-eta", "status": "component-only"},
     {"authority": "server_exact", "name": "combat.win-probability", "status": "proposed"},
     {"authority": "deterministic_derived", "name": "defense.coverage", "status": "proposed"},
     {"authority": "deterministic_derived", "name": "defense.removal-deficit", "status": "proposed"}
@@ -106,6 +107,8 @@
     {"argument_kinds": [["city"], ["defense-policy"]], "arity": 2, "name": "city-garrison-covered", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["city"], ["defense-policy"]], "arity": 2, "name": "city-garrison-deficit", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["city"], ["unit"]], "arity": 2, "name": "city-visible-threat", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["city"], ["unit"], ["threat-model"]], "arity": 3, "name": "city-threat-arrival-estimate", "namespace": "belief", "status": "component-only"},
+    {"argument_kinds": [["city"], ["unit"], ["unit"]], "arity": 3, "name": "city-threat-arrives-before-defense", "namespace": "belief", "status": "component-only"},
     {"argument_kinds": [["unit"], ["capability"]], "arity": 2, "name": "unit-has-capability", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["unit"]], "arity": 1, "name": "unit-persistent-defender", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["unit"], ["city"]], "arity": 2, "name": "unit-protects-city", "namespace": "derived", "status": "component-only"},

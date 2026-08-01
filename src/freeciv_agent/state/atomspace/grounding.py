@@ -192,6 +192,19 @@ UNIT_DEFENSE_GROUNDING_SPECS = (
           "integer-or-unknown", "turns",
           ("source_seq", "movement_routes.{route}.*"),
           GroundingAuthority.SERVER_EXACT),
+    GroundingSpec(
+        "defense.visible-threat-eta", "1.0", ("city", "enemy-unit"),
+        "threat-eta-estimate", "turns", GroundingAuthority.CONTROL_MODEL,
+        True, "revision", (
+            "cities.{city}.x", "cities.{city}.y",
+            "visible_enemy_units.{enemy}.x",
+            "visible_enemy_units.{enemy}.y",
+            "visible_enemy_units.{enemy}.type",
+            "map_width", "map_height", "map_wrap_x", "map_wrap_y",
+            "turn"),
+        confidence_cap=0.45,
+        residual_unknown_required=True,
+    ),
 )
 
 
@@ -395,6 +408,42 @@ class TypedGroundingRegistry(object):
         return values[0]
 
     def _evaluate(self, grounding_id, snapshot, args):
+        if grounding_id == "defense.visible-threat-eta":
+            if len(args) != 2:
+                raise ValueError(
+                    "defense.visible-threat-eta expects city and enemy unit")
+            city = self._city(snapshot, args[0])
+            enemy = snapshot.visible_enemy_unit(args[1])
+            if enemy is None:
+                raise LookupError("visible enemy unit is unavailable")
+            if (None in (city.x, city.y, enemy.x, enemy.y,
+                         snapshot.map_wrap_x, snapshot.map_wrap_y)
+                    or snapshot.map_width <= 0 or snapshot.map_height <= 0):
+                raise LookupError("exact map topology is unavailable")
+            dx = abs(int(city.x) - int(enemy.x))
+            dy = abs(int(city.y) - int(enemy.y))
+            if snapshot.map_wrap_x:
+                dx = min(dx, snapshot.map_width - dx)
+            if snapshot.map_wrap_y:
+                dy = min(dy, snapshot.map_height - dy)
+            distance = max(dx, dy)
+            move_rate = self._combat_profile(enemy.unit_type)["move_rate"]
+            if (isinstance(move_rate, bool)
+                    or not isinstance(move_rate, (int, float))
+                    or float(move_rate) <= 0.0):
+                raise LookupError("enemy movement rate is unavailable")
+            approach_tiles = max(0, distance - 1)
+            eta_turns = int(math.ceil(
+                float(approach_tiles) / float(move_rate)))
+            return {
+                "basis": "ruleset-move-rate-geometric-lower-bound",
+                "confidence": 0.45,
+                "distance_tiles": distance,
+                "earliest_attack_turn": int(snapshot.turn) + eta_turns,
+                "eta_turns": eta_turns,
+                "movement_rate": float(move_rate),
+                "unknown_mass": 0.55,
+            }
         if grounding_id.startswith("movement."):
             if len(args) != 2:
                 raise ValueError(
@@ -568,7 +617,14 @@ class TypedGroundingRegistry(object):
             "{}:{}".format(args[0], args[1])
             if len(args) >= 2 and spec.grounding_id.startswith("movement.")
             else None)
-        return tuple(path.format(city=city, unit=unit, route=route)
+        if spec.grounding_id.startswith("defense."):
+            city = str(args[0]) if args else None
+        enemy = (
+            str(args[1])
+            if len(args) >= 2 and spec.grounding_id.startswith("defense.")
+            else None)
+        return tuple(path.format(
+            city=city, unit=unit, route=route, enemy=enemy)
                      for path in spec.dependency_paths)
 
     def evaluate(self, grounding_id, snapshot, *args):
@@ -613,11 +669,15 @@ class TypedGroundingRegistry(object):
         if grounding_id in (
                 "city.production-cost", "city.production-eta",
                 "unit.combat-profile", "unit.persistent-defender",
-                "city.local-garrison-count"):
+                "city.local-garrison-count",
+                "defense.visible-threat-eta"):
             if self.ruleset_digest is None:
                 raise ValueError(
                     "{} requires a ruleset digest".format(grounding_id))
-            if grounding_id.startswith("unit."):
+            if grounding_id == "defense.visible-threat-eta":
+                target_kind = "unit"
+                target = snapshot.visible_enemy_unit(args[1]).unit_type
+            elif grounding_id.startswith("unit."):
                 target_kind, target = "unit", snapshot.unit(args[0]).unit_type
             elif grounding_id == "city.local-garrison-count":
                 target_kind, target = "unit", "defender-catalog"

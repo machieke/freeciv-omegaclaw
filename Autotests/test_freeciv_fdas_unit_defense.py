@@ -236,6 +236,7 @@ def test_visible_threat_requires_explicit_topology_and_never_proves_absence(ir):
     unknown_topology = _store(ir).build(_snapshot(payload, 463))
     assert "visible-enemy-unit" in _predicates(unknown_topology)
     assert "city-visible-threat" not in _predicates(unknown_topology)
+    assert "city-threat-arrival-estimate" not in _predicates(unknown_topology)
     assert not any(
         "not-threatened" in value.key.predicate
         for value in unknown_topology.records)
@@ -246,10 +247,41 @@ def test_visible_threat_requires_explicit_topology_and_never_proves_absence(ir):
     threat = next(
         value for value in exact_topology.records
         if value.key.predicate == "city-visible-threat")
+    estimate = next(
+        value for value in exact_topology.records
+        if value.key.predicate == "city-threat-arrival-estimate")
     assert threat.key.arguments[1].entity_id == "8"
     assert any(
         dependency.key.path == "map_wrap_x"
         for dependency in threat.supports[0].dependencies)
+    assert estimate.key.namespace == AtomNamespace.BELIEF
+    assert estimate.authority == AuthorityClass.UNCERTAIN_BELIEF
+    assert estimate.truth == {
+        "confidence": 0.45,
+        "strength": 1.0,
+        "uncertain": True,
+        "unknown_mass": 0.55,
+    }
+    assert estimate.supports[0].confidence_cap == 0.45
+    assert dict(estimate.tags)["epistemic"] == "control-model"
+
+    registry = TypedGroundingRegistry(
+        ir, ruleset_digest=ruleset_digest(ir))
+    spec = registry.spec("defense.visible-threat-eta")
+    eta = registry.evaluate(
+        "defense.visible-threat-eta", _snapshot(payload, 464), 3, 8)
+    assert spec.residual_unknown_required is True
+    assert spec.confidence_cap == 0.45
+    assert eta.available
+    assert eta.value == {
+        "basis": "ruleset-move-rate-geometric-lower-bound",
+        "confidence": 0.45,
+        "distance_tiles": 1,
+        "earliest_attack_turn": 12,
+        "eta_turns": 0,
+        "movement_rate": 1.0,
+        "unknown_mass": 0.55,
+    }
 
 
 def test_garrison_deficit_regresses_to_legal_move_but_protects_source(ir):
@@ -311,11 +343,25 @@ def test_native_route_grounding_projects_multi_turn_reinforcement(ir):
         "y": 2,
     })
     payload["cities"]["4"] = target
+    payload["map"].update({"wrap_x": True, "wrap_y": False})
     # Preserve Rome's required garrison while allowing unit 7 to reinforce.
     payload["units"]["7"]["transported"] = False
     second = copy.deepcopy(payload["units"]["7"])
     second["id"] = 8
     payload["units"]["8"] = second
+    payload["units"]["90"] = {
+        "activity": "idle",
+        "hp": 10,
+        "id": 90,
+        "moves_left": 3,
+        "owner": 1,
+        "tile": 85,
+        "type": "Warriors",
+        "type_id": 4,
+        "upkeep": [0, 0, 0, 0, 0, 0],
+        "x": 5,
+        "y": 2,
+    }
     payload["authoritative"]["movement_routes"] = [
         _native_route(7, 84, 466)]
     snapshot = _snapshot(payload, 466)
@@ -346,6 +392,14 @@ def test_native_route_grounding_projects_multi_turn_reinforcement(ir):
         "path_length": 2,
         "route_authority": "freeciv-server-pathfinder",
     })
+    deadline = next(
+        value for value in revision.records
+        if value.key.predicate == "city-threat-arrives-before-defense")
+    assert deadline.key.arguments[0].entity_id == "4"
+    assert deadline.key.arguments[1].entity_id == "90"
+    assert deadline.key.arguments[2].entity_id == "7"
+    assert deadline.authority == AuthorityClass.UNCERTAIN_BELIEF
+    assert deadline.supports[0].confidence_cap == 0.45
 
     goals = GoalFactory().instantiate(
         revision,

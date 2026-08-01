@@ -36,9 +36,13 @@ This increment establishes the first Phase-6 city-defense causal substrate:
   pressure.
 
 Exact friendly reinforcement routes and arrival ETAs are added in the follow-up
-`fdas-phase6-route-shadow.md` evidence increment. Replacement movements,
-defender production before a threat deadline, durable reinforcement lifecycle,
-episode attribution, and bounded defense authority remain open.
+`fdas-phase6-route-shadow.md` evidence increment. The component-only durable
+reinforcement bridge is covered by
+`fdas-phase6-defense-lifecycle-shadow.md`. Replacement movements, defender
+production before a threat deadline, episode attribution, and bounded defense
+authority remain open. The later
+`fdas-phase6-threat-eta-shadow.md` increment adds a confidence-capped modeled
+enemy ETA while preserving its residual unknown mass.
 
 ## Verification
 
