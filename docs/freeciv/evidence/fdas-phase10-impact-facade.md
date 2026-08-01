@@ -5,8 +5,9 @@ Status: behavior-preserving structural consolidation.
 Stable Impact data contracts, explicit strategic priority defaults, and pure
 action/map helpers now live in `planning/impact_types.py`. `planning/impact.py`
 re-exports the identical objects, so existing callers and serialized candidate
-semantics remain unchanged. The extraction reduced the planner implementation
-from 7,432 to 7,220 lines without removing any legacy decision branch.
+semantics remain unchanged. The unchanged imperative implementation is now in
+`planning/impact_legacy.py`; the public `planning/impact.py` integration facade
+is 75 lines instead of 7,432. No legacy decision branch was removed.
 
 The separation makes policy defaults visible as policy rather than ruleset
 facts and allows FDAS operation adapters to consume stable candidate/outcome

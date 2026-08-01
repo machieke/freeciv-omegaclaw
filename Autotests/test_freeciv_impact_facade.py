@@ -13,12 +13,16 @@ from freeciv_agent.planning import (  # noqa: E402
     GroundedGoalRelief,
     ImpactCandidate,
     ImpactTurnBudget,
+    GroundedImpactPlanner,
 )
 from freeciv_agent.planning import impact  # noqa: E402
+from freeciv_agent.planning import impact_legacy  # noqa: E402
 from freeciv_agent.planning import impact_types  # noqa: E402
 
 
 def test_impact_facade_reexports_exact_contract_and_policy_objects():
+    assert impact.GroundedImpactPlanner is GroundedImpactPlanner
+    assert impact.GroundedImpactPlanner is impact_legacy.GroundedImpactPlanner
     assert impact.ImpactCandidate is impact_types.ImpactCandidate
     assert impact.ImpactDecision is impact_types.ImpactDecision
     assert impact.DeferredImpactOutcomeLedger is (
