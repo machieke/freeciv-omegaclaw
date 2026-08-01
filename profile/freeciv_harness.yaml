@@ -3865,12 +3865,12 @@ paired_impact:
         count: 10
         minimum: 5500000
         maximum: 5599999
-    grounded_enabling_operations_diagnostic_v1:
+    grounded_enabling_operations_diagnostic_v2:
       claim_eligible: false
       purpose: diagnostic
       require_clean_source: true
       endpoints: [score_turn_n, score_lead_turn_n]
-      horizon_turn: 160
+      horizon_turn: 120
       engine_finalization_turns: 1
       final_score_readout_mode: post_horizon_with_terminal_fallback
       planned_pairs: 10
@@ -3925,10 +3925,10 @@ paired_impact:
           pressure_signed_channels_enabled: true
       seed_derivation:
         algorithm: sha256-counter-v1
-        namespace: pf-pln-grounded-enabling-operations-diagnostic-v1
+        namespace: pf-pln-grounded-enabling-operations-diagnostic-v2
         count: 10
-        minimum: 7900000
-        maximum: 7999999
+        minimum: 8000000
+        maximum: 8099999
     path_persistence_pilot_v1:
       claim_eligible: false
       purpose: pilot

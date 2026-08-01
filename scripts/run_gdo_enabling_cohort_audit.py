@@ -23,7 +23,7 @@ from freeciv_agent.events.schema import canonical_json_bytes  # noqa: E402
 from freeciv_agent.events.validator import validate_file  # noqa: E402
 
 
-COHORT = "grounded_enabling_operations_diagnostic_v1"
+COHORT = "grounded_enabling_operations_diagnostic_v2"
 MECHANISMS = (
     "gdo7a-production-enabling",
     "gdo7b-research-enabling",

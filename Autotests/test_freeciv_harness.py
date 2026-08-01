@@ -209,7 +209,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "protected_bridge_readout_diagnostic_v1": 10,
             "corrected_probe_readout_diagnostic_v1": 10,
             "path_persistence_diagnostic_v1": 10,
-            "grounded_enabling_operations_diagnostic_v1": 10,
+            "grounded_enabling_operations_diagnostic_v2": 10,
             "path_persistence_pilot_v1": 30,
         }
     seed_sets = [
@@ -238,7 +238,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "production_strategy": "horizon_score"},
     }
     enabling_diagnostic = paired["cohorts"][
-        "grounded_enabling_operations_diagnostic_v1"]
+        "grounded_enabling_operations_diagnostic_v2"]
     assert enabling_diagnostic["isolated_policy_keys"] == [
         "pressure_production_operations_enabled",
         "pressure_research_operations_enabled",
@@ -264,15 +264,16 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
         "schema_version": "1.0",
     }
     assert enabling_diagnostic["engine_finalization_turns"] == 1
+    assert enabling_diagnostic["horizon_turn"] == 120
     assert enabling_diagnostic["final_score_readout_mode"] == (
         "post_horizon_with_terminal_fallback")
     assert enabling_diagnostic["seed_derivation"] == {
         "algorithm": "sha256-counter-v1",
         "namespace": (
-            "pf-pln-grounded-enabling-operations-diagnostic-v1"),
+            "pf-pln-grounded-enabling-operations-diagnostic-v2"),
         "count": 10,
-        "minimum": 7900000,
-        "maximum": 7999999,
+        "minimum": 8000000,
+        "maximum": 8099999,
     }
     combat_scenario = paired["cohorts"][
         "combat_operation_authority_scenario_diagnostic_v2"]
