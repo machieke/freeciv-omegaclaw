@@ -151,6 +151,12 @@ from .fdas_commit import (
     FDASCommitValidation,
     FDASCommitValidator,
 )
+from .fdas_consolidation import (
+    LegacyConsolidationAudit,
+    LegacyConsolidationReport,
+    LegacyReplacementDecision,
+    LegacyReplacementSpec,
+)
 from .operations import (
     OPERATION_SCHEMA_VERSION,
     TERMINAL_OPERATION_STATES,
@@ -223,6 +229,8 @@ __all__ = [
     "FOUND_CITY_OPERATION", "RECOVER_POPULATION_OPERATION",
     "FdasExpansionLifecycleUpdate", "FdasExpansionOperationAdapter",
     "FDASCommitBinding", "FDASCommitValidation", "FDASCommitValidator",
+    "LegacyConsolidationAudit", "LegacyConsolidationReport",
+    "LegacyReplacementDecision", "LegacyReplacementSpec",
     "ShadowCandidateComparison", "ShadowOperationCandidate",
     "compare_shadow_candidates",
     "CombatLifecycleUpdate", "CombatOperationLifecycle",

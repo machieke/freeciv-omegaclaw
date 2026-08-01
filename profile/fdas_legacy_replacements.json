@@ -1,0 +1,76 @@
+{
+  "audit_identity": "fdas-legacy-consolidation-audit/1.0",
+  "branches": [
+    {
+      "branch_id": "impact.city-stability-production",
+      "legacy_owner": "freeciv_agent.planning.impact.GroundedImpactPlanner",
+      "minimum_activation": "engine-live",
+      "policy_defaults": ["food-security-before-growth", "explicit-production-priority"],
+      "replacement_capabilities": ["city_domain_projection", "dependent_atom_pressure_adapter", "fdas_exact_commit_validation"],
+      "replacement_test_ids": ["Autotests/test_freeciv_fdas_city.py", "Autotests/test_freeciv_fdas_pressure.py"],
+      "requested_action": "retain",
+      "rollback_id": "legacy-grounded-impact-v1"
+    },
+    {
+      "branch_id": "impact.city-defense-local-movement",
+      "legacy_owner": "freeciv_agent.planning.impact.GroundedImpactPlanner",
+      "minimum_activation": "engine-live",
+      "policy_defaults": ["protect-critical-garrison", "visible-threat-priority"],
+      "replacement_capabilities": ["unit_domain_projection", "region_domain_projection", "defense_operation_reconciliation", "fdas_exact_commit_validation"],
+      "replacement_test_ids": ["Autotests/test_freeciv_fdas_defense_lifecycle.py", "Autotests/test_freeciv_fdas_region.py"],
+      "requested_action": "retain",
+      "rollback_id": "legacy-grounded-impact-v1"
+    },
+    {
+      "branch_id": "impact.expansion",
+      "legacy_owner": "freeciv_agent.planning.impact.GroundedImpactPlanner",
+      "minimum_activation": "engine-live",
+      "policy_defaults": ["minimum-city-separation", "visible-current-site-safety"],
+      "replacement_capabilities": ["route_corridor_projection", "settlement_site_projection", "population_recovery_projection", "expansion_operation_projection", "fdas_exact_commit_validation"],
+      "replacement_test_ids": ["Autotests/test_freeciv_fdas_expansion_lifecycle.py", "Autotests/test_freeciv_fdas_settlement.py"],
+      "requested_action": "retain",
+      "rollback_id": "legacy-grounded-impact-v1"
+    },
+    {
+      "branch_id": "impact.transport",
+      "legacy_owner": "freeciv_agent.planning.impact.GroundedImpactPlanner",
+      "minimum_activation": "engine-live",
+      "policy_defaults": ["founder-transport-priority"],
+      "replacement_capabilities": ["transport_capability_projection", "transport_operation_projection", "fdas_exact_commit_validation"],
+      "replacement_test_ids": ["Autotests/test_freeciv_fdas_transport.py", "Autotests/test_freeciv_transport_operations.py"],
+      "requested_action": "retain",
+      "rollback_id": "legacy-grounded-impact-v1"
+    },
+    {
+      "branch_id": "impact.combat",
+      "legacy_owner": "freeciv_agent.planning.impact.GroundedImpactPlanner",
+      "minimum_activation": "engine-live",
+      "policy_defaults": ["conservative-unknown-combat-mass", "protect-critical-garrison"],
+      "replacement_capabilities": ["combat_task_force_projection", "combat_operation_projection", "fdas_exact_commit_validation"],
+      "replacement_test_ids": ["Autotests/test_freeciv_fdas_combat.py", "Autotests/test_freeciv_combat_operations.py"],
+      "requested_action": "retain",
+      "rollback_id": "legacy-grounded-impact-v1"
+    },
+    {
+      "branch_id": "impact.research",
+      "legacy_owner": "freeciv_agent.planning.impact.GroundedImpactPlanner",
+      "minimum_activation": "engine-live",
+      "policy_defaults": ["technology-compatibility-parity"],
+      "replacement_capabilities": ["ruleset_domain_projection", "generic_rule_execution", "fdas_exact_commit_validation"],
+      "replacement_test_ids": ["Autotests/test_freeciv_fdas_ruleset.py", "Autotests/test_freeciv_grounded_research.py"],
+      "requested_action": "retain",
+      "rollback_id": "legacy-grounded-impact-v1"
+    },
+    {
+      "branch_id": "state.legacy-atom-projection",
+      "legacy_owner": "freeciv_agent.state.atoms",
+      "minimum_activation": "engine-live",
+      "policy_defaults": ["byte-compatible-legacy-view"],
+      "replacement_capabilities": ["dependent_atomspace_core", "incremental_snapshot_projection", "dependency_truth_maintenance"],
+      "replacement_test_ids": ["Autotests/test_freeciv_fdas_core.py", "Autotests/test_freeciv_fdas_dependencies.py"],
+      "requested_action": "retain",
+      "rollback_id": "legacy-atom-projection-v1"
+    }
+  ],
+  "schema_version": "1.0"
+}

@@ -50,6 +50,7 @@ def test_fdas_manifest_exposes_only_evidenced_component_capabilities():
         "quarantined_contextual_induction",
         "induced_rule_heldout_gate",
         "fdas_operator_diagnostics",
+        "legacy_consolidation_audit",
         "expansion_operation_projection",
         "dependent_atom_pressure_adapter",
         "dependency_truth_maintenance",
