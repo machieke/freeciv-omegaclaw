@@ -1,6 +1,6 @@
 {
   "capabilities": {
-    "dependent_atom_pressure_adapter": "not-built",
+    "dependent_atom_pressure_adapter": "component-only",
     "dependent_atomspace_core": "component-only",
     "dependency_truth_maintenance": "component-only",
     "episode_attribution": "not-built",

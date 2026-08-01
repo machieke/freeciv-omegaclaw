@@ -34,6 +34,7 @@ def test_fdas_manifest_exposes_only_evidenced_component_capabilities():
     assert manifest["capabilities"]
     component_only = {
         "dependent_atomspace_core",
+        "dependent_atom_pressure_adapter",
         "dependency_truth_maintenance",
         "city_domain_projection",
         "generic_rule_execution",

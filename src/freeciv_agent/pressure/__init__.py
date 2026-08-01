@@ -8,6 +8,12 @@ from .adapters import (
     ProofPressureContext,
     proof_pressure_context,
 )
+from .fdas_adapter import (
+    DependentAtomPressureAdapter,
+    DependentAtomPressureContext,
+    DependentAtomPressureEvaluation,
+    MaterializationBudget,
+)
 from .artifact_validator import (
     PressureArtifactValidationError,
     active_pressure_goal_count,
@@ -298,6 +304,9 @@ __all__ = [
     "ControlCalibrationLedger",
     "ControlCalibrationRecord",
     "DifferentiableTruthRule",
+    "DependentAtomPressureAdapter",
+    "DependentAtomPressureContext",
+    "DependentAtomPressureEvaluation",
     "DecisionRelevantUncertainty",
     "DeadlineFit",
     "DeadlineState",
@@ -329,6 +338,7 @@ __all__ = [
     "InductionEpisode",
     "InductionLedger",
     "LearnableRuleParameter",
+    "MaterializationBudget",
     "LeverageEstimate",
     "ObservationPolicy",
     "ObservationEvidenceGate",
