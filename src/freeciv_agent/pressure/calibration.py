@@ -62,6 +62,7 @@ class ControlCalibrationRecord:
     frontier_signature: object = None
     generation: object = None
     relief_source: str = "authoritative-outcome"
+    episode_id: object = None
 
     def __post_init__(self):
         if not self.context_signature or not self.rule_or_operation_id:
@@ -114,6 +115,10 @@ class ControlCalibrationRecord:
         if not self.relief_source:
             raise ValueError(
                 "realized relief requires provenance")
+        if (self.episode_id is not None
+                and (not isinstance(self.episode_id, str)
+                     or not self.episode_id)):
+            raise ValueError("calibration episode ID must be non-empty or absent")
 
     @property
     def record_id(self):
@@ -136,7 +141,7 @@ class ControlCalibrationRecord:
         return 1.0 / float(self.selection_propensity)
 
     def to_dict(self):
-        return {
+        value = {
             "context_signature": self.context_signature,
             "frontier_signature": self.frontier_signature,
             "generation": self.generation,
@@ -151,6 +156,9 @@ class ControlCalibrationRecord:
             "success": bool(self.success),
             "update_targets": list(self.update_targets),
         }
+        if self.episode_id is not None:
+            value["episode_id"] = self.episode_id
+        return value
 
 
 @dataclass(frozen=True, order=True)
@@ -283,7 +291,11 @@ class ContextualConductanceStore:
 
     @property
     def state_hash(self):
-        return structural_hash({
+        return structural_hash(self.snapshot())
+
+    def snapshot(self):
+        """Return a deterministic diagnostic view with no update authority."""
+        return {
             "applied_record_ids": sorted(self._applied),
             "configuration": {
                 "initial_conductance": self.initial_conductance,
@@ -297,7 +309,7 @@ class ContextualConductanceStore:
                 }
                 for key in sorted(self._rows)
             ],
-        })
+        }
 
 
 class ControlCalibrationLedger:

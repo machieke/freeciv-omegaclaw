@@ -33,6 +33,7 @@ def test_default_configuration_is_strict_shadow_only_and_manifest_valid():
     assert config.shadow_enabled is True
     assert config.authority_enabled is False
     assert not any(config.section("domain_authority").values())
+    assert not any(config.section("learning").values())
     assert config.section("projection")["operations"] is True
     assert config.to_dict() == value
 
@@ -175,3 +176,76 @@ def test_authority_with_uncertain_assessment_requires_bounded_belief_firewall():
         accepted["capabilities"][name] = "bounded-authority"
     config = DependentAtomSpaceConfig.from_dict(value, accepted)
     assert config.authority_enabled is True
+
+
+def test_episode_learning_requires_explicit_shadow_live_capabilities():
+    value, manifest = _values()
+    value = copy.deepcopy(value)
+    value["enabled"] = True
+    value["learning"]["episode_attribution_enabled"] = True
+
+    with pytest.raises(ValueError, match="requires shadow-live"):
+        DependentAtomSpaceConfig.from_dict(value, manifest)
+
+    accepted = copy.deepcopy(manifest)
+    for name in ("episode_attribution", "fdas_learning_diagnostics"):
+        accepted["capabilities"][name] = "shadow-live"
+    value["learning"]["contextual_conductance_enabled"] = True
+    with pytest.raises(ValueError, match="requires shadow-live"):
+        DependentAtomSpaceConfig.from_dict(value, accepted)
+
+    for name in (
+            "episode_control_learning_bridge",
+            "contextual_conductance_learning"):
+        accepted["capabilities"][name] = "shadow-live"
+    config = DependentAtomSpaceConfig.from_dict(value, accepted)
+    assert config.section("learning")["contextual_conductance_enabled"]
+
+
+def test_learning_dependencies_fail_closed_before_manifest_validation():
+    value, manifest = _values()
+    invalid = copy.deepcopy(value)
+    invalid["learning"]["contextual_conductance_enabled"] = True
+    with pytest.raises(ValueError, match="requires episode attribution"):
+        DependentAtomSpaceConfig.from_dict(invalid, manifest)
+
+    invalid = copy.deepcopy(value)
+    invalid["learning"]["induced_rule_readout_enabled"] = True
+    with pytest.raises(ValueError, match="requires induction"):
+        DependentAtomSpaceConfig.from_dict(invalid, manifest)
+
+
+def test_learning_authority_requires_holdout_and_versioned_bounded_capability():
+    value, manifest = _values()
+    value = copy.deepcopy(value)
+    value.update({"enabled": True, "authority_enabled": True})
+    for key in (
+            "episode_attribution_enabled",
+            "contextual_conductance_enabled",
+            "contextual_conductance_authority_enabled",
+            "induction_enabled",
+            "induced_rule_readout_enabled"):
+        value["learning"][key] = True
+    accepted = copy.deepcopy(manifest)
+    for name in (
+            "episode_attribution", "fdas_learning_diagnostics",
+            "episode_control_learning_bridge",
+            "contextual_conductance_learning",
+            "episode_induction_bridge",
+            "quarantined_contextual_induction"):
+        accepted["capabilities"][name] = "bounded-authority"
+
+    with pytest.raises(ValueError, match="holdout_gate"):
+        DependentAtomSpaceConfig.from_dict(value, accepted)
+
+    accepted["capabilities"][
+        "contextual_conductance_holdout_gate"] = "bounded-authority"
+    with pytest.raises(ValueError, match="induced_rule_heldout_gate"):
+        DependentAtomSpaceConfig.from_dict(value, accepted)
+
+    accepted["capabilities"][
+        "induced_rule_heldout_gate"] = "bounded-authority"
+    config = DependentAtomSpaceConfig.from_dict(value, accepted)
+    assert config.section("learning")[
+        "contextual_conductance_authority_enabled"]
+    assert config.section("learning")["induced_rule_readout_enabled"]

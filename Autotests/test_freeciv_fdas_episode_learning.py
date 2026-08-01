@@ -147,3 +147,67 @@ def test_pending_confounded_or_unlinked_episode_cannot_update_control():
     assert results[2].reason == (
         "episode-requires-one-current-control-prediction")
     assert conductance.state_hash == before
+
+
+def test_learning_metrics_and_explanations_are_read_only_and_episode_linked():
+    relief = _episode(
+        "episode-relief", "goal-relief-observed",
+        effects=({"effect": "defender-arrived"},),
+        relief=(("pf-impact:survival", 1.0),))
+    no_effect = _episode("episode-no-effect", "no-effect-observed")
+    confounded = _episode(
+        "episode-confounded", "confounded-unattributable")
+    adapter, conductance = _adapter((relief, no_effect, confounded))
+    before = conductance.state_hash
+
+    pending_explanation = adapter.explain(relief.episode_id)
+    assert pending_explanation.learning_eligible is True
+    assert pending_explanation.reason == "eligible-not-yet-applied"
+    assert pending_explanation.calibration_record is None
+    assert conductance.state_hash == before
+
+    adapter.apply(relief.episode_id)
+    adapter.apply(no_effect.episode_id)
+    report = adapter.metrics()
+    explanation = adapter.explain(relief.episode_id)
+    abstention = adapter.explain(confounded.episode_id)
+    after = conductance.state_hash
+
+    assert report.episode_count == 3
+    assert report.attributable_terminal_count == 2
+    assert report.confounded_count == 1
+    assert report.calibration_sample_count == 2
+    assert report.contextual_route_count == 1
+    assert report.mean_absolute_relief_error == 0.5
+    assert round(report.success_brier_score, 8) == 0.34
+    assert report.outcome_counts == (
+        ("confounded-unattributable", 1),
+        ("goal-relief-observed", 1),
+        ("no-effect-observed", 1),
+    )
+    assert report.truth_mutated is False
+    assert report.policy_authority is False
+    assert explanation.calibration_record.episode_id == relief.episode_id
+    assert explanation.contextual_conductance == (
+        conductance.snapshot()["routes"][0]["value"])
+    assert explanation.reason == "contextual-control-sample-recorded"
+    assert abstention.learning_eligible is False
+    assert abstention.calibration_record is None
+    assert conductance.state_hash == after
+
+
+def test_conductance_snapshot_is_deterministic_and_does_not_expose_mutators():
+    episode = _episode("episode-relief", "goal-relief-observed",
+                       effects=({"effect": "defender-arrived"},),
+                       relief=(("pf-impact:survival", 1.0),))
+    adapter, conductance = _adapter((episode,))
+    adapter.apply(episode.episode_id)
+
+    first = conductance.snapshot()
+    second = conductance.snapshot()
+
+    assert first == second
+    assert structural_hash(first) == conductance.state_hash
+    assert first["routes"][0]["key"]["route_id"] == "route:defense"
+    first["routes"][0]["value"] = 0.0
+    assert conductance.snapshot()["routes"][0]["value"] > 0.5

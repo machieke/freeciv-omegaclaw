@@ -127,6 +127,8 @@ from .fdas_episodes import (
 )
 from .fdas_episode_learning import (
     EpisodeControlPrediction,
+    EpisodeLearningExplanation,
+    EpisodeLearningMetrics,
     EpisodeLearningResult,
     FdasEpisodeLearningAdapter,
 )
@@ -210,7 +212,8 @@ __all__ = [
     "FdasDefenseRequirementContext",
     "EPISODE_SCHEMA_VERSION", "DecisionEpisode", "DecisionEpisodeStore",
     "FdasDefenseEpisodeRecorder",
-    "EpisodeControlPrediction", "EpisodeLearningResult",
+    "EpisodeControlPrediction", "EpisodeLearningExplanation",
+    "EpisodeLearningMetrics", "EpisodeLearningResult",
     "FdasEpisodeLearningAdapter",
     "EpisodeInductionResult", "EpisodeInductionSpec",
     "FdasEpisodeInductionAdapter",

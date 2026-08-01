@@ -30,3 +30,12 @@ transaction, action binding, or execution path.
 
 Coverage is in `Autotests/test_freeciv_fdas_episodes.py` and
 `Autotests/test_freeciv_fdas_episode_learning.py`.
+
+The calibration record now retains the immutable episode ID. Read-only
+`metrics()` reports episode outcome counts, attributable/confounded totals,
+calibration samples, exact route-context count, mean absolute relief error,
+success Brier score, and the deterministic conductance state hash.
+`explain(episode_id)` exposes the linked prediction, calibration record,
+current context-qualified conductance, eligibility, and abstention reason.
+Neither diagnostic method applies a sample or changes truth, conductance, or
+policy authority.
