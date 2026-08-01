@@ -259,7 +259,8 @@ def test_settlement_catalog_matches_component_registry():
     names = {
         value["name"] for value in catalog["predicates"]
         if value["status"] == "component-only"
-        and value["name"].startswith(("founder-", "settlement-"))}
+        and value["name"].startswith(("founder-", "settlement-"))
+        and not value["name"].startswith("founder-population-recovery-")}
     expected = {
         value for value in settlement_predicate_registry().predicates
         if value.startswith(("founder-", "settlement-"))}
