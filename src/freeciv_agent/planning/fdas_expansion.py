@@ -12,7 +12,7 @@ from ..pressure.resource_claims import (
     ResourceRef,
     TurnWindow,
 )
-from ..state.atomspace import population_recovery_profile
+from ..state.ruleset_profiles import population_recovery_profile
 from .fdas_defense import (
     FdasDefenseActionBinding,
     FdasDefenseRequirementContext,

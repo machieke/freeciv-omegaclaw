@@ -173,6 +173,27 @@ class DependentAtomSpaceConfig:
         if (config["domain_authority"]["city_defense"]
                 or config["domain_authority"]["local_movement"]):
             require("unit_domain_projection", "bounded-authority")
+        domain_capabilities = {
+            "expansion": (
+                "route_corridor_projection",
+                "settlement_site_projection",
+                "population_recovery_projection",
+                "expansion_operation_projection",
+            ),
+            "transport": (
+                "transport_capability_projection",
+                "transport_operation_projection",
+            ),
+            "combat": (
+                "combat_task_force_projection",
+                "combat_operation_projection",
+            ),
+        }
+        for domain, names in domain_capabilities.items():
+            if not config["domain_authority"][domain]:
+                continue
+            for name in names:
+                require(name, "bounded-authority")
 
     def section(self, name):
         return dict(getattr(self, name))

@@ -77,3 +77,42 @@ def test_domain_authority_cannot_bypass_global_gates():
     value["domain_authority"]["city_production"] = True
     with pytest.raises(ValueError, match="authority gate"):
         DependentAtomSpaceConfig.from_dict(value, manifest)
+
+
+@pytest.mark.parametrize(("domain", "capabilities"), (
+    ("expansion", (
+        "route_corridor_projection",
+        "settlement_site_projection",
+        "population_recovery_projection",
+        "expansion_operation_projection",
+    )),
+    ("transport", (
+        "transport_capability_projection",
+        "transport_operation_projection",
+    )),
+    ("combat", (
+        "combat_task_force_projection",
+        "combat_operation_projection",
+    )),
+))
+def test_phase7_authority_requires_every_exact_domain_capability(
+        domain, capabilities):
+    value, manifest = _values()
+    value = copy.deepcopy(value)
+    value.update({"enabled": True, "authority_enabled": True})
+    value["domain_authority"][domain] = True
+    accepted_manifest = copy.deepcopy(manifest)
+    for name in (
+            "dependent_atom_pressure_adapter",
+            "fdas_resource_packet_bridge",
+            "fdas_exact_commit_validation"):
+        accepted_manifest["capabilities"][name] = "bounded-authority"
+
+    with pytest.raises(ValueError, match="requires bounded-authority"):
+        DependentAtomSpaceConfig.from_dict(value, accepted_manifest)
+
+    for name in capabilities:
+        accepted_manifest["capabilities"][name] = "bounded-authority"
+    config = DependentAtomSpaceConfig.from_dict(value, accepted_manifest)
+
+    assert config.section("domain_authority")[domain] is True
