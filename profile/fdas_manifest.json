@@ -16,6 +16,7 @@
     "induced_rule_heldout_gate": "component-only",
     "fdas_operator_diagnostics": "component-only",
     "legacy_consolidation_audit": "component-only",
+    "legacy_integration_facade": "component-only",
     "fdas_exact_commit_validation": "component-only",
     "fdas_resource_packet_bridge": "component-only",
     "generic_rule_execution": "component-only",
