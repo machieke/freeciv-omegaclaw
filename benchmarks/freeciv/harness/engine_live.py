@@ -887,6 +887,8 @@ async def _global_state(ws, timeout=15.0, player_id=None, minimum_turn=None,
     if not 0.05 <= float(poll_interval) <= 1.0:
         raise ValueError("poll_interval must be in [0.05,1]")
     deadline = time.monotonic() + timeout
+    last_state_summary = None
+    error_codes = {}
     while time.monotonic() < deadline:
         await ws.send(json.dumps({"type": "global_state_query"}))
         remaining = deadline - time.monotonic()
@@ -895,18 +897,46 @@ async def _global_state(ws, timeout=15.0, player_id=None, minimum_turn=None,
             timeout=min(10.0, max(0.05, remaining)))
         if response and response.get("type") == "global_state_response":
             state = response.get("data", {})
+            scored_player_ids = []
+            for row in state.get("players", {}).values():
+                score = row.get("score") if isinstance(row, dict) else None
+                if (
+                        isinstance(score, (int, float))
+                        and not isinstance(score, bool)
+                        and math.isfinite(float(score))
+                        and float(score) >= 0):
+                    scored_player_ids.append(row.get("id"))
+            last_state_summary = {
+                "players": len(state.get("players", {})),
+                "scored_player_ids": sorted(
+                    scored_player_ids,
+                    key=lambda value: (
+                        value is None,
+                        str(value))),
+                "tech_players": len(state.get("techs", {})),
+                "turn": state.get("turn"),
+                "units": len(state.get("units", {})),
+            }
             if _global_state_ready(
                     state, player_id=player_id, minimum_turn=minimum_turn,
                     require_units=require_units):
                 return state
+        elif response and response.get("type") == "error":
+            code = str(response.get("code", "unknown"))
+            error_codes[code] = error_codes.get(code, 0) + 1
         await asyncio.sleep(min(float(poll_interval), max(
             0.0, deadline - time.monotonic())))
-    raise TimeoutError("observer global state was not populated")
+    raise TimeoutError(
+        "observer global state was not populated; "
+        "last_state_summary={}; error_codes={}".format(
+            last_state_summary,
+            dict(sorted(error_codes.items()))))
 
 
 async def _final_global_state(ws, player_id, minimum_turn, timeout=15.0,
                               attempts=2, fallback_minimum_turn=None,
                               fallback_state=None,
+                              poll_interval=0.5,
                               diagnostics=None):
     """Read post-horizon scores without replaying a completed engine arm.
 
@@ -920,6 +950,8 @@ async def _final_global_state(ws, player_id, minimum_turn, timeout=15.0,
     if (isinstance(attempts, bool) or not isinstance(attempts, int)
             or attempts < 1):
         raise ValueError("attempts must be a positive integer")
+    if not 0.05 <= float(poll_interval) <= 1.0:
+        raise ValueError("poll_interval must be in [0.05,1]")
     if (
             fallback_minimum_turn is not None
             and (
@@ -961,6 +993,7 @@ async def _final_global_state(ws, player_id, minimum_turn, timeout=15.0,
             state = await _global_state(
                 ws, timeout=timeout, player_id=player_id,
                 minimum_turn=minimum_turn,
+                poll_interval=poll_interval,
                 require_units=False)
             if diagnostics is not None:
                 diagnostics.update({
@@ -980,6 +1013,7 @@ async def _final_global_state(ws, player_id, minimum_turn, timeout=15.0,
             state = await _global_state(
                 ws, timeout=timeout, player_id=player_id,
                 minimum_turn=fallback_minimum_turn,
+                poll_interval=poll_interval,
                 require_units=False)
             if diagnostics is not None:
                 diagnostics.update({
@@ -2381,6 +2415,7 @@ async def _play(run_dir, manifest, context):
                         ws,
                         player_id=player_id,
                         minimum_turn=snapshot.turn,
+                        poll_interval=0.5,
                         require_units=False)
                     observer_global_state_queries += 1
                 except TimeoutError:

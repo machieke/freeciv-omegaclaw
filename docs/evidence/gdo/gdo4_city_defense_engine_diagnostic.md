@@ -631,3 +631,37 @@ retained_authoritative_horizon_observer`. It remains claim-ineligible and must
 complete 60/60 on its source-frozen initial pass with zero infrastructure
 failures before its mechanism result can be treated as a fresh operational
 confirmation.
+
+V10 was stopped for predeclared-gate futility after 35 successful arms and
+one infrastructure failure. Every fixed-horizon success retained turn 160,
+and all successful final reads used the preferred observer path. Baseline
+seed 7643640 reached turn 160 and accepted its final action, but the capture
+and all later readouts timed out.
+
+Proxy logs provide a deterministic cause. The pre-horizon capture started at
+03:02:30 and sent a global-state query every 50 ms for 15 seconds. The final
+reader continued at the same cadence. At 03:03:27 the proxy began reporting
+the exact quota boundary `600/600` and `E429`; every subsequent turn-160
+fallback query was rate-limited. The client treated those explicit errors as
+ordinary not-ready responses and continued polling, amplifying the outage.
+V10 therefore validates retention availability on ordinary arms but fails the
+operational gate because its polling cadence can exhaust the proxy quota.
+
+## Frozen bounded-poll confirmation v11
+
+`city_defense_immediate_fortify_authority_pilot_v11` retains V10 unchanged and
+uses 30 fresh paired seeds from the disjoint 7.7M range. Its only behavioral
+change is a predeclared final-score poll interval of 0.5 seconds. A complete
+capture plus two post-horizon attempts and one horizon re-query can therefore
+send at most 90 requests over their three 15-second windows, rather than 900.
+
+Observer timeouts now include a bounded summary of the most recent rejected
+state—turn, unit count, technology-player count, player count, and scored
+player IDs—plus counts by explicit proxy error code. This makes a future stale
+projection distinguishable from `E429` without relying on a 42 GB proxy debug
+log.
+
+V11 binds `final_score_poll_interval_seconds: 0.5` to mechanism schema 1.9.
+It remains claim-ineligible and must complete the source-frozen initial
+60-arm pass with zero infrastructure failures and then pass the full GDO-4
+pilot conjunction.

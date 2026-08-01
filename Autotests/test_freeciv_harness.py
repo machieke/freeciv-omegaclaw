@@ -202,6 +202,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "city_defense_immediate_fortify_authority_pilot_v8": 30,
             "city_defense_immediate_fortify_authority_pilot_v9": 30,
             "city_defense_immediate_fortify_authority_pilot_v10": 30,
+            "city_defense_immediate_fortify_authority_pilot_v11": 30,
             "calibrated_scalar_diagnostic_v1": 10,
             "protected_bridge_readout_diagnostic_v1": 10,
             "corrected_probe_readout_diagnostic_v1": 10,
@@ -687,6 +688,39 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "count": 30,
             "minimum": 7600000,
             "maximum": 7699999,
+        }
+    bounded_poll_confirmation = paired["cohorts"][
+        "city_defense_immediate_fortify_authority_pilot_v11"]
+    assert bounded_poll_confirmation[
+        "controller_worker_execution"
+    ] == "process_isolated"
+    assert bounded_poll_confirmation[
+        "server_recycle_mode"
+    ] == "hard_per_arm"
+    assert bounded_poll_confirmation[
+        "engine_finalization_turns"
+    ] == 1
+    assert bounded_poll_confirmation[
+        "final_score_readout_mode"
+    ] == "post_horizon_with_terminal_fallback"
+    expected_bounded_poll_design = dict(
+        retained_fallback_confirmation[
+            "city_defense_mechanism_design"])
+    expected_bounded_poll_design.update({
+        "final_score_poll_interval_seconds": 0.5,
+        "schema_version": "1.9",
+    })
+    assert bounded_poll_confirmation[
+        "city_defense_mechanism_design"
+    ] == expected_bounded_poll_design
+    assert bounded_poll_confirmation[
+        "seed_derivation"] == {
+            "algorithm": "sha256-counter-v1",
+            "namespace": (
+                "pf-pln-city-defense-immediate-fortify-authority-pilot-v11"),
+            "count": 30,
+            "minimum": 7700000,
+            "maximum": 7799999,
         }
     score_derivation = paired["cohorts"]["confirmatory_score"]["seed_derivation"]
     assert score_derivation == {
@@ -1362,8 +1396,8 @@ def test_config_rejects_unfrozen_city_defense_schema_1_2_scope():
         with pytest.raises(
                 ValueError,
                 match=(
-                    "exact 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, or "
-                    "1.8 schema")):
+                    "exact 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, "
+                    "or 1.9 schema")):
             load(path)
 
 
@@ -2370,12 +2404,14 @@ def test_final_global_state_retries_one_bounded_observer_timeout(monkeypatch):
             "timeout": 15.0,
             "player_id": 0,
             "minimum_turn": 160,
+            "poll_interval": 0.5,
             "require_units": False,
         },
         {
             "timeout": 15.0,
             "player_id": 0,
             "minimum_turn": 160,
+            "poll_interval": 0.5,
             "require_units": False,
         },
     ]
@@ -2416,18 +2452,21 @@ def test_final_global_state_uses_explicit_horizon_fallback(monkeypatch):
             "timeout": 15.0,
             "player_id": 0,
             "minimum_turn": 161,
+            "poll_interval": 0.5,
             "require_units": False,
         },
         {
             "timeout": 15.0,
             "player_id": 0,
             "minimum_turn": 161,
+            "poll_interval": 0.5,
             "require_units": False,
         },
         {
             "timeout": 15.0,
             "player_id": 0,
             "minimum_turn": 160,
+            "poll_interval": 0.5,
             "require_units": False,
         },
     ]
@@ -2517,6 +2556,15 @@ def test_final_global_state_rejects_unbounded_attempt_contract():
                 minimum_turn=161,
                 fallback_minimum_turn=160,
                 fallback_state={"turn": 160}))
+    with pytest.raises(
+            ValueError,
+            match="poll_interval"):
+        asyncio.run(
+            engine_live._final_global_state(
+                object(),
+                player_id=0,
+                minimum_turn=160,
+                poll_interval=2.0))
 
 
 def test_scheduler_impact_path_does_not_need_per_turn_observer_state():

@@ -782,6 +782,7 @@ def run(cohort_root, profile):
             "1.6",
             "1.7",
             "1.8",
+            "1.9",
         ))
     declared_types = tuple(
         design.get(
