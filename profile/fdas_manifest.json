@@ -2,6 +2,7 @@
   "capabilities": {
     "dependent_atom_pressure_adapter": "component-only",
     "dependent_atomspace_core": "component-only",
+    "defense_operation_reconciliation": "component-only",
     "dependency_truth_maintenance": "component-only",
     "episode_attribution": "not-built",
     "fdas_exact_commit_validation": "component-only",

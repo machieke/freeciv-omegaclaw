@@ -113,6 +113,11 @@ from .fdas import (
     ShadowOperationCandidate,
     compare_shadow_candidates,
 )
+from .fdas_defense import (
+    FdasCityDefenseOperationAdapter,
+    FdasDefenseActionBinding,
+    FdasDefenseLifecycleUpdate,
+)
 from .fdas_commit import (
     FDASCommitBinding,
     FDASCommitValidation,
@@ -174,6 +179,8 @@ __all__ = [
     "CityWorkerMacroAssembler", "CityWorkerMacroAssembly",
     "CityWorkerMacroIntent", "CityWorkerMacroResult",
     "CandidateOperationFactory", "GoalFactory", "LocalGoalContext",
+    "FdasCityDefenseOperationAdapter",
+    "FdasDefenseActionBinding", "FdasDefenseLifecycleUpdate",
     "FDASCommitBinding", "FDASCommitValidation", "FDASCommitValidator",
     "ShadowCandidateComparison", "ShadowOperationCandidate",
     "compare_shadow_candidates",

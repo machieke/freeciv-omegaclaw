@@ -33,7 +33,8 @@ def test_fdas_manifest_exposes_only_evidenced_component_capabilities():
     assert manifest["policy_authority"] is False
     assert manifest["capabilities"]
     component_only = {
-        "dependent_atomspace_core",
+            "dependent_atomspace_core",
+            "defense_operation_reconciliation",
         "dependent_atom_pressure_adapter",
         "dependency_truth_maintenance",
         "fdas_exact_commit_validation",

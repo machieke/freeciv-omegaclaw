@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 from ...events.schema import structural_hash
+from .delta import snapshot_dependency_ref
 from .model import (
     AtomKey,
     AtomNamespace,
@@ -68,6 +69,12 @@ def operation_predicate_registry():
             ("operation",), ("ruleset-digest",))),
         _spec("operation-specification", (
             ("operation",), ("operation-spec-digest",))),
+        _spec("operation-current-action", (
+            ("operation",), ("action",))),
+        _spec("operation-current-action-legal", (
+            ("operation",), ("action",))),
+        _spec("operation-action-binding", (
+            ("operation",), ("action-binding",))),
     ))
 
 
@@ -75,6 +82,7 @@ def operation_predicate_registry():
 class OperationProjectionSnapshot:
     records: tuple
     projection_hash: str
+    bindings: tuple = ()
 
 
 class OperationProjector(object):
@@ -83,8 +91,9 @@ class OperationProjector(object):
     projector_id = "fdas-operation-projector"
     version = "1.0"
 
-    def __init__(self, records_source):
+    def __init__(self, records_source, bindings_source=None):
         self.records_source = records_source
+        self.bindings_source = bindings_source
         self.predicate_registry = operation_predicate_registry()
 
     def _records(self):
@@ -110,10 +119,41 @@ class OperationProjector(object):
 
     def projection_snapshot(self):
         records = self._records()
+        bindings = self._bindings(records)
+        projection_value = (
+            [value.to_dict() for value in records]
+            if not bindings else {
+                "bindings": [value.to_dict() for value in bindings],
+                "records": [value.to_dict() for value in records],
+            })
         return OperationProjectionSnapshot(
             records,
-            structural_hash([value.to_dict() for value in records]),
+            structural_hash(projection_value),
+            bindings,
         )
+
+    def _bindings(self, records=None):
+        source = self.bindings_source
+        if source is None:
+            return ()
+        if callable(source):
+            source = source()
+        if isinstance(source, dict):
+            source = source.values()
+        bindings = tuple(source)
+        required = (
+            "action", "action_key", "binding_hash", "legal_actions_digest",
+            "legal_bound", "operation_id", "snapshot_id", "to_dict")
+        if any(any(not hasattr(value, name) for name in required)
+               for value in bindings):
+            raise TypeError("operation projection binding is invalid")
+        operation_ids = {
+            value.spec.operation_id for value in (records or self._records())}
+        if any(value.operation_id not in operation_ids for value in bindings):
+            raise ValueError("operation binding names an unknown operation")
+        if len({value.operation_id for value in bindings}) != len(bindings):
+            raise ValueError("operation projection bindings must be unique")
+        return tuple(sorted(bindings, key=lambda value: value.operation_id))
 
     def scopes(self, snapshot):
         world, empire = snapshot_scopes(snapshot)
@@ -155,10 +195,15 @@ class OperationProjector(object):
 
     def extend_fingerprints(self, fingerprints):
         result = dict(fingerprints)
-        for record in self._records():
+        records = self._records()
+        for record in records:
             for path in ("spec", "progress"):
                 dependency = self._dependency(record, path)
                 result[dependency.key] = dependency.fingerprint
+        for binding in self._bindings(records):
+            key = DependencyKey(
+                "operation-binding", binding.operation_id, "current")
+            result[key] = structural_hash(binding.to_dict())
         return result
 
     def _record(self, scope, predicate, arguments, dependencies, witness,
@@ -187,11 +232,15 @@ class OperationProjector(object):
         )
 
     def project(self, snapshot, scopes, fingerprints):
+        records = self._records()
+        bindings = dict(
+            (value.operation_id, value)
+            for value in self._bindings(records))
         scope_by_operation = dict(
             (value.root_entities[0].entity_id, value)
             for value in scopes if value.scope_kind == "operation")
         result = []
-        for record in self._records():
+        for record in records:
             spec = record.spec
             progress = record.progress
             scope = scope_by_operation[spec.operation_id]
@@ -291,4 +340,43 @@ class OperationProjector(object):
                         progress.terminal_reason)),
                     (progress_dependency,), progress.to_dict(),
                     lifecycle=progress.state.value)
+            binding = bindings.get(spec.operation_id)
+            if binding is None:
+                continue
+            binding_dependency = DependencyRef(
+                DependencyKey(
+                    "operation-binding", spec.operation_id, "current"),
+                structural_hash(binding.to_dict()))
+            if fingerprints.get(binding_dependency.key) != (
+                    binding_dependency.fingerprint):
+                raise ValueError(
+                    "operation action binding changed during revision")
+            # A stale/blocked binding is a control input, never a current legal
+            # relation. Fail closed without converting it into a negative fact.
+            if (not binding.legal_bound
+                    or binding.snapshot_id != snapshot.snapshot_id
+                    or binding.legal_actions_digest
+                    != snapshot.legal_actions_digest
+                    or binding.action_key not in snapshot.legal_action_json):
+                continue
+            action_ref = EntityRef(
+                "action", "legal-" + structural_hash(
+                    binding.action_key)[:24])
+            legal_dependency = snapshot_dependency_ref(
+                snapshot,
+                "legal_actions.{}".format(structural_hash(
+                    binding.action_key)), fingerprints)
+            add("operation-current-action", (
+                operation, action_ref),
+                (binding_dependency,), binding.to_dict(),
+                lifecycle=progress.state.value)
+            add("operation-current-action-legal", (
+                operation, action_ref),
+                (binding_dependency, legal_dependency), binding.to_dict(),
+                lifecycle=progress.state.value)
+            add("operation-action-binding", (
+                operation,
+                SymbolRef("action-binding", binding.binding_hash)),
+                (binding_dependency, legal_dependency), binding.to_dict(),
+                lifecycle=progress.state.value)
         return tuple(sorted(result, key=lambda value: value.atom_id))

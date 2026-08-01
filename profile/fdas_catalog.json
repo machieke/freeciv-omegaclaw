@@ -134,6 +134,9 @@
     {"argument_kinds": [["operation"], ["operation-terminal-reason"]], "arity": 2, "name": "operation-terminal-reason", "namespace": "operation", "status": "component-only"},
     {"argument_kinds": [["operation"], ["ruleset-digest"]], "arity": 2, "name": "operation-ruleset", "namespace": "operation", "status": "component-only"},
     {"argument_kinds": [["operation"], ["operation-spec-digest"]], "arity": 2, "name": "operation-specification", "namespace": "operation", "status": "component-only"},
+    {"argument_kinds": [["operation"], ["action"]], "arity": 2, "name": "operation-current-action", "namespace": "operation", "status": "component-only"},
+    {"argument_kinds": [["operation"], ["action"]], "arity": 2, "name": "operation-current-action-legal", "namespace": "operation", "status": "component-only"},
+    {"argument_kinds": [["operation"], ["action-binding"]], "arity": 2, "name": "operation-action-binding", "namespace": "operation", "status": "component-only"},
     {"argument_kinds": [["operation"]], "arity": 1, "name": "operation-eligible", "namespace": "operation", "status": "proposed"}
   ],
   "schema_version": "1.0",
