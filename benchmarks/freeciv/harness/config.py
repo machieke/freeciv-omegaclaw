@@ -491,6 +491,15 @@ def _validate_paired_impact(value):
             raise ValueError(
                 "{}.final_score_readout_mode is invalid".format(
                     prefix))
+        final_score_source = cohort.get(
+            "final_score_source",
+            "observer_global_state")
+        if final_score_source not in (
+                "observer_global_state",
+                "engine_scorelog_exact_horizon"):
+            raise ValueError(
+                "{}.final_score_source is invalid".format(
+                    prefix))
         release_game_config = cohort.get(
             "release_game_config", {})
         if (not isinstance(release_game_config, dict)
@@ -669,6 +678,7 @@ def _validate_paired_impact(value):
                     "1.7",
                     "1.8",
                     "1.9",
+                    "2.0",
                 )
                 and city_defense_design.get(
                     "city_loss_metric")
@@ -933,6 +943,58 @@ def _validate_paired_impact(value):
                 and final_score_readout_mode
                 == (
                     "post_horizon_with_terminal_fallback"))
+            city_defense_v11 = (
+                city_defense_schema == "2.0"
+                and city_defense_v2
+                and city_defense_design.get(
+                    "analyzed_action_scope")
+                == (
+                    "declared_operation_types_plus_immediate_"
+                    "interception_legal_context")
+                and city_defense_design.get(
+                    "fortify_completion_states")
+                == [
+                    "fortify",
+                    "fortifying",
+                    "fortified",
+                ]
+                and city_defense_design.get(
+                    "no_visible_threat_fast_path")
+                == (
+                    "no_authority_without_visible_enemy")
+                and city_defense_design.get(
+                    "controller_isolation")
+                == "process_per_worker"
+                and city_defense_design.get(
+                    "server_recycle_mode")
+                == "hard_per_arm"
+                and city_defense_design.get(
+                    "engine_finalization_turns")
+                == 1
+                and city_defense_design.get(
+                    "final_score_readout_mode")
+                == (
+                    "post_horizon_with_terminal_fallback")
+                and city_defense_design.get(
+                    "terminal_score_fallback_source")
+                == "retained_authoritative_horizon_observer"
+                and city_defense_design.get(
+                    "final_score_poll_interval_seconds")
+                == 0.5
+                and city_defense_design.get(
+                    "final_score_source")
+                == "engine_scorelog_exact_horizon"
+                and controller_worker_execution
+                == "process_isolated"
+                and server_recycle_mode
+                == "hard_per_arm"
+                and engine_finalization_turns
+                == 1
+                and final_score_readout_mode
+                == (
+                    "post_horizon_with_terminal_fallback")
+                and final_score_source
+                == "engine_scorelog_exact_horizon")
             expected_city_defense_keys = {
                 "city_loss_metric",
                 "declared_operation_types",
@@ -1011,6 +1073,19 @@ def _validate_paired_impact(value):
                     "server_recycle_mode",
                     "terminal_score_fallback_source",
                 })
+            elif city_defense_schema == "2.0":
+                expected_city_defense_keys.update({
+                    "analyzed_action_scope",
+                    "controller_isolation",
+                    "engine_finalization_turns",
+                    "final_score_poll_interval_seconds",
+                    "final_score_readout_mode",
+                    "final_score_source",
+                    "fortify_completion_states",
+                    "no_visible_threat_fast_path",
+                    "server_recycle_mode",
+                    "terminal_score_fallback_source",
+                })
             if (
                     not isinstance(
                         city_defense_design, dict)
@@ -1038,10 +1113,12 @@ def _validate_paired_impact(value):
                         or city_defense_v7
                         or city_defense_v8
                         or city_defense_v9
-                        or city_defense_v10)):
+                        or city_defense_v10
+                        or city_defense_v11)):
                 raise ValueError(
                     "{}.city_defense_mechanism_design must use the exact "
-                    "1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, or 1.9 "
+                    "1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, "
+                    "or 2.0 "
                     "schema".format(prefix))
             operation_types = (
                 city_defense_design.get(

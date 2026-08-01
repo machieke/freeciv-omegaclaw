@@ -665,3 +665,33 @@ V11 binds `final_score_poll_interval_seconds: 0.5` to mechanism schema 1.9.
 It remains claim-ineligible and must complete the source-frozen initial
 60-arm pass with zero infrastructure failures and then pass the full GDO-4
 pilot conjunction.
+
+V11 was stopped for predeclared-gate futility after nine successful arms and
+one infrastructure failure. Its bounded diagnostics showed an up-to-date turn
+161 observer state with six players, six units, one technology table, no proxy
+errors, and only player 0 in `scored_player_ids`. The lower cadence therefore
+corrected the V10 quota exhaustion, but it exposed the final semantic coupling:
+the player-info projection does not always publish finite AI scores even to the
+global observer.
+
+## Frozen engine-scorelog confirmation v12
+
+`city_defense_immediate_fortify_authority_pilot_v12` retains V11 unchanged and
+uses 30 fresh paired seeds from the disjoint 7.8M range. Before the final
+decision-horizon action, it reads the live isolated civserver's native
+SCORELOG2 row for the perspective player and paired opponent at exact turn
+160. Multiplayer startup already enables `scorelog`, and FreeCiv recalculates
+every player with `calc_civ_score()` at turn begin before flushing that row.
+The source is therefore engine authority, not a harness estimate.
+
+Observer global state remains the source for technology calibration and
+terminal detection, but V12 no longer requires it to expose the opponent's
+score after the horizon. Natural terminal arms first attempt the corresponding
+native scorelog row and retain the complete endgame observer report as their
+fallback. Status and event telemetry distinguish the configured source,
+effective authority, and exact authority turn.
+
+V12 binds `final_score_source: engine_scorelog_exact_horizon` to mechanism
+schema 2.0. It remains claim-ineligible and must complete 60/60 on its
+source-frozen initial pass with zero infrastructure failures before the full
+GDO-4 mechanism audit is accepted as fresh operational confirmation.

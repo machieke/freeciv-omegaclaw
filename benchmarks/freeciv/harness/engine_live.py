@@ -848,9 +848,11 @@ async def _next_turn_state(ws, game_id, api_token, agent_id, minimum_turn,
 
 
 def _global_state_ready(state, player_id=None, minimum_turn=None,
-                        require_units=True):
+                        require_units=True, require_opponent_score=True):
     if not isinstance(require_units, bool):
         raise ValueError("require_units must be boolean")
+    if not isinstance(require_opponent_score, bool):
+        raise ValueError("require_opponent_score must be boolean")
     if not (
             state.get("players")
             and state.get("techs")
@@ -873,8 +875,11 @@ def _global_state_ready(state, player_id=None, minimum_turn=None,
             scored.append(row)
     if player_id is None:
         return bool(scored)
-    return (any(row.get("id") == player_id for row in scored)
-            and any(row.get("id") != player_id for row in scored))
+    if not any(row.get("id") == player_id for row in scored):
+        return False
+    return (
+        not require_opponent_score
+        or any(row.get("id") != player_id for row in scored))
 
 
 def _player_row(state, player_id):
@@ -883,7 +888,8 @@ def _player_row(state, player_id):
 
 
 async def _global_state(ws, timeout=15.0, player_id=None, minimum_turn=None,
-                        poll_interval=0.05, require_units=True):
+                        poll_interval=0.05, require_units=True,
+                        require_opponent_score=True):
     if not 0.05 <= float(poll_interval) <= 1.0:
         raise ValueError("poll_interval must be in [0.05,1]")
     deadline = time.monotonic() + timeout
@@ -919,7 +925,8 @@ async def _global_state(ws, timeout=15.0, player_id=None, minimum_turn=None,
             }
             if _global_state_ready(
                     state, player_id=player_id, minimum_turn=minimum_turn,
-                    require_units=require_units):
+                    require_units=require_units,
+                    require_opponent_score=require_opponent_score):
                 return state
         elif response and response.get("type") == "error":
             code = str(response.get("code", "unknown"))
@@ -937,6 +944,7 @@ async def _final_global_state(ws, player_id, minimum_turn, timeout=15.0,
                               attempts=2, fallback_minimum_turn=None,
                               fallback_state=None,
                               poll_interval=0.5,
+                              require_opponent_score=True,
                               diagnostics=None):
     """Read post-horizon scores without replaying a completed engine arm.
 
@@ -952,6 +960,8 @@ async def _final_global_state(ws, player_id, minimum_turn, timeout=15.0,
         raise ValueError("attempts must be a positive integer")
     if not 0.05 <= float(poll_interval) <= 1.0:
         raise ValueError("poll_interval must be in [0.05,1]")
+    if not isinstance(require_opponent_score, bool):
+        raise ValueError("require_opponent_score must be boolean")
     if (
             fallback_minimum_turn is not None
             and (
@@ -976,7 +986,8 @@ async def _final_global_state(ws, player_id, minimum_turn, timeout=15.0,
                 fallback_state,
                 player_id=player_id,
                 minimum_turn=fallback_minimum_turn,
-                require_units=False)):
+                require_units=False,
+                require_opponent_score=require_opponent_score)):
         raise ValueError(
             "fallback state must be authoritative at the fallback minimum turn")
     if diagnostics is not None:
@@ -994,6 +1005,7 @@ async def _final_global_state(ws, player_id, minimum_turn, timeout=15.0,
                 ws, timeout=timeout, player_id=player_id,
                 minimum_turn=minimum_turn,
                 poll_interval=poll_interval,
+                require_opponent_score=require_opponent_score,
                 require_units=False)
             if diagnostics is not None:
                 diagnostics.update({
@@ -1014,6 +1026,7 @@ async def _final_global_state(ws, player_id, minimum_turn, timeout=15.0,
                 ws, timeout=timeout, player_id=player_id,
                 minimum_turn=fallback_minimum_turn,
                 poll_interval=poll_interval,
+                require_opponent_score=require_opponent_score,
                 require_units=False)
             if diagnostics is not None:
                 diagnostics.update({
@@ -1038,6 +1051,104 @@ async def _final_global_state(ws, player_id, minimum_turn, timeout=15.0,
                 })
             return fallback_state
     raise last_error
+
+
+def _parse_scorelog_scores(raw):
+    """Return authoritative per-turn civilization scores from SCORELOG2."""
+    if not isinstance(raw, str) or not raw.startswith("#FREECIV SCORELOG2 "):
+        raise ValueError("scorelog must use the FREECIV SCORELOG2 format")
+    score_tag = None
+    scores = {}
+    for line in raw.splitlines():
+        fields = line.split()
+        if len(fields) >= 3 and fields[0] == "tag":
+            try:
+                tag_id = int(fields[1])
+            except ValueError:
+                continue
+            if fields[2] == "score":
+                score_tag = tag_id
+        elif len(fields) == 5 and fields[0] == "data":
+            try:
+                turn = int(fields[1])
+                tag_id = int(fields[2])
+                player_id = int(fields[3])
+                value = int(fields[4])
+            except ValueError:
+                continue
+            if score_tag is not None and tag_id == score_tag and value >= 0:
+                scores.setdefault(turn, {})[player_id] = value
+    if score_tag is None:
+        raise ValueError("scorelog does not declare the score tag")
+    if not scores:
+        raise ValueError("scorelog has no score data")
+    return scores
+
+
+def _scorelog_scores(port, player_ids, minimum_turn, timeout=15.0,
+                     poll_interval=0.5):
+    """Read one exact engine score row while its isolated civserver is live."""
+    if (
+            isinstance(port, bool)
+            or not isinstance(port, int)
+            or not 6001 <= port <= 6009):
+        raise ValueError("scorelog port must be a dedicated multiplayer port")
+    required = tuple(sorted(set(player_ids)))
+    if (
+            not required
+            or any(
+                isinstance(player_id, bool)
+                or not isinstance(player_id, int)
+                or player_id < 0
+                for player_id in required)):
+        raise ValueError("scorelog player IDs must be non-negative integers")
+    if (
+            isinstance(minimum_turn, bool)
+            or not isinstance(minimum_turn, int)
+            or minimum_turn < 0):
+        raise ValueError("scorelog minimum turn must be non-negative")
+    if not 0.05 <= float(poll_interval) <= 1.0:
+        raise ValueError("scorelog poll_interval must be in [0.05,1]")
+    container = os.environ.get("FREECIV_SERVER_CONTAINER", "fciv-net")
+    path = (
+        "/var/lib/tomcat10/webapps/data/scorelogs/"
+        "score-{}.log".format(port))
+    deadline = time.monotonic() + timeout
+    last_error = None
+    last_turn = None
+    while time.monotonic() < deadline:
+        try:
+            raw = subprocess.check_output(
+                ["docker", "exec", container, "cat", path],
+                stderr=subprocess.DEVNULL,
+                text=True)
+            rows = _parse_scorelog_scores(raw)
+            eligible_turns = sorted(
+                turn for turn, values in rows.items()
+                if turn >= minimum_turn
+                and all(player_id in values for player_id in required))
+            if eligible_turns:
+                turn = eligible_turns[-1]
+                return {
+                    "path": path,
+                    "scores": {
+                        player_id: rows[turn][player_id]
+                        for player_id in required
+                    },
+                    "turn": turn,
+                }
+            last_turn = max(rows)
+        except (OSError, subprocess.CalledProcessError, ValueError) as error:
+            last_error = "{}: {}".format(type(error).__name__, error)
+        time.sleep(min(
+            float(poll_interval),
+            max(0.0, deadline - time.monotonic())))
+    raise TimeoutError(
+        "authoritative engine scorelog did not reach turn {}; "
+        "last_turn={}; last_error={}".format(
+            minimum_turn,
+            last_turn,
+            last_error))
 
 
 def _needs_turn_global_state(impact_planner):
@@ -1992,6 +2103,7 @@ async def _play(run_dir, manifest, context):
     corrections = 0
     final_global = None
     retained_horizon_global = None
+    retained_horizon_scorelog = None
     retained_horizon_capture_attempted = False
     final_score_readout_mode = manifest.get(
         "final_score_readout_mode",
@@ -2002,6 +2114,15 @@ async def _play(run_dir, manifest, context):
         raise ValueError(
             "unsupported final score readout mode {}".format(
                 final_score_readout_mode))
+    final_score_source = manifest.get(
+        "final_score_source",
+        "observer_global_state")
+    if final_score_source not in (
+            "observer_global_state",
+            "engine_scorelog_exact_horizon"):
+        raise ValueError(
+            "unsupported final score source {}".format(
+                final_score_source))
     observer_global_state_queries = 0
     # Engine-live runs the proxy on the same host. The proxy's level-9
     # per-message deflate costs more CPU/scheduling than loopback bytes save;
@@ -2399,8 +2520,33 @@ async def _play(run_dir, manifest, context):
             if _game_terminal(snapshot):
                 terminal_game_over = snapshot.game_over
                 terminal_player_elimination = _player_eliminated(snapshot)
+                if (
+                        final_score_source
+                        == "engine_scorelog_exact_horizon"
+                        and retained_horizon_scorelog is None):
+                    try:
+                        retained_horizon_scorelog = _scorelog_scores(
+                            int(manifest["port"]),
+                            (player_id, int(opponent.get("id", 1))),
+                            snapshot.turn)
+                    except TimeoutError:
+                        # Exact endgame packets ordinarily expose every final
+                        # score. Keep that observer path as the terminal
+                        # fallback if the exiting server removes its scorelog.
+                        pass
                 break
             if (
+                    final_score_source
+                    == "engine_scorelog_exact_horizon"
+                    and snapshot.turn >= manifest["turn_limit"]
+                    and retained_horizon_scorelog is None):
+                retained_horizon_scorelog = _scorelog_scores(
+                    int(manifest["port"]),
+                    (player_id, int(opponent.get("id", 1))),
+                    snapshot.turn)
+            if (
+                    final_score_source == "observer_global_state"
+                    and
                     final_score_readout_mode
                     == "post_horizon_with_terminal_fallback"
                     and snapshot.turn >= manifest["turn_limit"]
@@ -3059,6 +3205,9 @@ async def _play(run_dir, manifest, context):
                     and final_global_minimum_turn
                     > final_turn)
                 else None),
+            require_opponent_score=(
+                final_score_source
+                == "observer_global_state"),
             diagnostics=final_global_diagnostics)
         final_global_settle_latency = (
             time.perf_counter() - final_global_started) * 1000.0
@@ -3111,10 +3260,24 @@ async def _play(run_dir, manifest, context):
                          if correct else 0.0)
     player_row = _player_row(final_global or {}, player_id)
     opponent_row = _player_row(final_global or {}, opponent.get("id", 1))
-    if "score" not in player_row or "score" not in opponent_row:
-        raise RuntimeError("final paired scores were not authoritative")
-    player_score = float(player_row["score"])
-    opponent_score = float(opponent_row["score"])
+    if retained_horizon_scorelog is not None:
+        player_score = float(
+            retained_horizon_scorelog[
+                "scores"][player_id])
+        opponent_score = float(
+            retained_horizon_scorelog[
+                "scores"][int(opponent.get("id", 1))])
+        final_score_authority = "engine_scorelog"
+        final_score_observed_turn = int(
+            retained_horizon_scorelog["turn"])
+    else:
+        if "score" not in player_row or "score" not in opponent_row:
+            raise RuntimeError("final paired scores were not authoritative")
+        player_score = float(player_row["score"])
+        opponent_score = float(opponent_row["score"])
+        final_score_authority = "observer_global_state"
+        final_score_observed_turn = int(
+            final_global.get("turn", final_turn))
     score_margin = player_score - opponent_score
     score_lead = player_score > opponent_score
     horizon_reached = final_turn >= manifest["turn_limit"]
@@ -3491,6 +3654,10 @@ async def _play(run_dir, manifest, context):
         ("final_global_retained_horizon_fallback_used",
          int(final_global_diagnostics.get(
              "readout_source") == "retained_horizon_observer")),
+        ("final_engine_scorelog_used",
+         int(final_score_authority == "engine_scorelog")),
+        ("final_score_authority_turn",
+         final_score_observed_turn),
         ("final_global_requested_minimum_turn",
          final_global_diagnostics.get(
              "requested_minimum_turn",
@@ -4077,6 +4244,8 @@ async def _play(run_dir, manifest, context):
             "horizon_reached": horizon_reached,
             "score_observation_semantics": score_observation_semantics,
             "score_observation_turn": final_turn,
+            "score_authority": final_score_authority,
+            "score_authority_turn": final_score_observed_turn,
             "score": player_score, "score_lead": score_lead,
             "score_margin": score_margin, "won": won,
             "terminal_game_over": terminal_game_over,
@@ -4090,6 +4259,11 @@ async def _play(run_dir, manifest, context):
         "horizon_reached": horizon_reached,
         "score_observation_semantics": score_observation_semantics,
         "score_observation_turn": final_turn,
+        "final_score_authority": final_score_authority,
+        "final_score_authority_turn": final_score_observed_turn,
+        "final_score_source": final_score_source,
+        "final_engine_scorelog_capture_available":
+            retained_horizon_scorelog is not None,
         "final_global_readout_attempts":
             final_global_diagnostics.get(
                 "attempts", 0),

@@ -255,6 +255,12 @@ class HarnessRunner(object):
                 "strict_post_horizon")
             if arm is not None
             else "strict_post_horizon")
+        final_score_source = (
+            cohort_design.get(
+                "final_score_source",
+                "observer_global_state")
+            if arm is not None
+            else "observer_global_state")
         material = {
             "backend": self.backend, "beliefs": self.config["beliefs"],
             "capabilities": self.config["capabilities"][job["condition"]],
@@ -272,6 +278,8 @@ class HarnessRunner(object):
                 engine_finalization_turns,
             "final_score_readout_mode":
                 final_score_readout_mode,
+            "final_score_source":
+                final_score_source,
             "engine": self.config["engine"], "game_id": game_id,
             "impact_policy": impact_policy,
             "machine_profile": self.config["machine_profile"],
@@ -570,6 +578,10 @@ class HarnessRunner(object):
                 cohort.get(
                     "final_score_readout_mode",
                     "strict_post_horizon"),
+            "final_score_source":
+                cohort.get(
+                    "final_score_source",
+                    "observer_global_state"),
             "controller_workers": self.workers,
             "pairs": len(self._impact_jobs()) // 2,
             "resumed": sum(row["resumed"] for row in results),

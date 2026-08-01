@@ -39,7 +39,8 @@ from freeciv.harness.engine_live import (  # noqa: E402
     _plain_state_summary, _refresh_accepted_impact_action,
     _impact_refresh_timeout,
     _decision_state_fingerprint, _decision_state_ready, _global_state_ready,
-    _global_state, _player_eliminated, _release_configuration_active, _state,
+    _global_state, _parse_scorelog_scores, _player_eliminated,
+    _release_configuration_active, _state,
     _retain_terminal_predictions, _selection_target_rules, _target_rules,
     _validate_compact_goal_proposal,
     _websocket_compression)
@@ -203,6 +204,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "city_defense_immediate_fortify_authority_pilot_v9": 30,
             "city_defense_immediate_fortify_authority_pilot_v10": 30,
             "city_defense_immediate_fortify_authority_pilot_v11": 30,
+            "city_defense_immediate_fortify_authority_pilot_v12": 30,
             "calibrated_scalar_diagnostic_v1": 10,
             "protected_bridge_readout_diagnostic_v1": 10,
             "corrected_probe_readout_diagnostic_v1": 10,
@@ -721,6 +723,42 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "count": 30,
             "minimum": 7700000,
             "maximum": 7799999,
+        }
+    scorelog_confirmation = paired["cohorts"][
+        "city_defense_immediate_fortify_authority_pilot_v12"]
+    assert scorelog_confirmation[
+        "controller_worker_execution"
+    ] == "process_isolated"
+    assert scorelog_confirmation[
+        "server_recycle_mode"
+    ] == "hard_per_arm"
+    assert scorelog_confirmation[
+        "engine_finalization_turns"
+    ] == 1
+    assert scorelog_confirmation[
+        "final_score_readout_mode"
+    ] == "post_horizon_with_terminal_fallback"
+    assert scorelog_confirmation[
+        "final_score_source"
+    ] == "engine_scorelog_exact_horizon"
+    expected_scorelog_design = dict(
+        bounded_poll_confirmation[
+            "city_defense_mechanism_design"])
+    expected_scorelog_design.update({
+        "final_score_source": "engine_scorelog_exact_horizon",
+        "schema_version": "2.0",
+    })
+    assert scorelog_confirmation[
+        "city_defense_mechanism_design"
+    ] == expected_scorelog_design
+    assert scorelog_confirmation[
+        "seed_derivation"] == {
+            "algorithm": "sha256-counter-v1",
+            "namespace": (
+                "pf-pln-city-defense-immediate-fortify-authority-pilot-v12"),
+            "count": 30,
+            "minimum": 7800000,
+            "maximum": 7899999,
         }
     score_derivation = paired["cohorts"]["confirmatory_score"]["seed_derivation"]
     assert score_derivation == {
@@ -1397,7 +1435,7 @@ def test_config_rejects_unfrozen_city_defense_schema_1_2_scope():
                 ValueError,
                 match=(
                     "exact 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, "
-                    "or 1.9 schema")):
+                    "1.9, or 2.0 schema")):
             load(path)
 
 
@@ -1537,6 +1575,22 @@ def test_config_rejects_unknown_or_unbound_process_worker_execution():
                 ValueError,
                 match="final_score_readout_mode"):
             load(invalid_readout_path)
+
+        invalid_score_source_path = os.path.join(
+            directory,
+            "invalid-final-score-source.yaml")
+        with open(
+                invalid_score_source_path, "w",
+                encoding="utf-8") as stream:
+            stream.write(source.replace(
+                "      final_score_source: "
+                "engine_scorelog_exact_horizon\n",
+                "      final_score_source: estimated\n",
+                1))
+        with pytest.raises(
+                ValueError,
+                match="final_score_source"):
+            load(invalid_score_source_path)
 
 
 def test_wilson_and_paired_bootstrap_are_bounded_and_deterministic():
@@ -2337,6 +2391,10 @@ def test_global_state_readiness_requires_both_authoritative_scores():
     assert not _global_state_ready(
         state, player_id=0,
         require_units=False)
+    assert _global_state_ready(
+        state, player_id=0,
+        require_units=False,
+        require_opponent_score=False)
 
 
 def test_global_state_polls_at_50ms_until_observer_reaches_required_turn(monkeypatch):
@@ -2383,6 +2441,40 @@ def test_global_state_polls_at_50ms_until_observer_reaches_required_turn(monkeyp
     assert sleeps == [pytest.approx(0.05)]
 
 
+def test_scorelog_parser_extracts_exact_authoritative_score_rows():
+    raw = """#FREECIV SCORELOG2 3.2.90
+id test-game
+tag 0 score
+tag 1 pop
+turn 159 2026 year
+data 159 0 0 100
+data 159 0 1 90
+data 159 1 0 20
+turn 160 2027 year
+data 160 0 0 103
+data 160 0 1 95
+"""
+
+    assert _parse_scorelog_scores(raw) == {
+        159: {0: 100, 1: 90},
+        160: {0: 103, 1: 95},
+    }
+
+
+def test_scorelog_parser_rejects_missing_format_or_score_rows():
+    with pytest.raises(ValueError, match="SCORELOG2"):
+        _parse_scorelog_scores("data 1 0 0 1\n")
+    with pytest.raises(ValueError, match="score tag"):
+        _parse_scorelog_scores(
+            "#FREECIV SCORELOG2 3.2.90\n"
+            "tag 1 pop\n"
+            "data 1 1 0 1\n")
+    with pytest.raises(ValueError, match="no score data"):
+        _parse_scorelog_scores(
+            "#FREECIV SCORELOG2 3.2.90\n"
+            "tag 0 score\n")
+
+
 def test_final_global_state_retries_one_bounded_observer_timeout(monkeypatch):
     calls = []
     final_state = {"turn": 160, "players": {}}
@@ -2405,6 +2497,7 @@ def test_final_global_state_retries_one_bounded_observer_timeout(monkeypatch):
             "player_id": 0,
             "minimum_turn": 160,
             "poll_interval": 0.5,
+            "require_opponent_score": True,
             "require_units": False,
         },
         {
@@ -2412,9 +2505,43 @@ def test_final_global_state_retries_one_bounded_observer_timeout(monkeypatch):
             "player_id": 0,
             "minimum_turn": 160,
             "poll_interval": 0.5,
+            "require_opponent_score": True,
             "require_units": False,
         },
     ]
+
+
+def test_final_global_state_can_decouple_scorelog_from_opponent_projection(
+        monkeypatch):
+    calls = []
+    final_state = {
+        "turn": 161,
+        "players": {"0": {"id": 0, "score": 100}},
+        "techs": {"player0": ["Alphabet"]},
+        "units": {},
+    }
+
+    async def global_state(_ws, **options):
+        calls.append(options)
+        return final_state
+
+    monkeypatch.setattr(engine_live, "_global_state", global_state)
+
+    returned = asyncio.run(engine_live._final_global_state(
+        object(),
+        player_id=0,
+        minimum_turn=161,
+        require_opponent_score=False))
+
+    assert returned is final_state
+    assert calls == [{
+        "timeout": 15.0,
+        "player_id": 0,
+        "minimum_turn": 161,
+        "poll_interval": 0.5,
+        "require_opponent_score": False,
+        "require_units": False,
+    }]
 
 
 def test_final_global_state_uses_explicit_horizon_fallback(monkeypatch):
@@ -2453,6 +2580,7 @@ def test_final_global_state_uses_explicit_horizon_fallback(monkeypatch):
             "player_id": 0,
             "minimum_turn": 161,
             "poll_interval": 0.5,
+            "require_opponent_score": True,
             "require_units": False,
         },
         {
@@ -2460,6 +2588,7 @@ def test_final_global_state_uses_explicit_horizon_fallback(monkeypatch):
             "player_id": 0,
             "minimum_turn": 161,
             "poll_interval": 0.5,
+            "require_opponent_score": True,
             "require_units": False,
         },
         {
@@ -2467,6 +2596,7 @@ def test_final_global_state_uses_explicit_horizon_fallback(monkeypatch):
             "player_id": 0,
             "minimum_turn": 160,
             "poll_interval": 0.5,
+            "require_opponent_score": True,
             "require_units": False,
         },
     ]
@@ -3515,6 +3645,9 @@ def test_process_isolated_impact_execution_preserves_pair_and_worker_identity():
     assert summary[
         "final_score_readout_mode"
     ] == "strict_post_horizon"
+    assert summary[
+        "final_score_source"
+    ] == "observer_global_state"
     assert summary["completed"] == 4
     assert summary[
         "infrastructure_failures"] == 0
@@ -3566,6 +3699,13 @@ def test_process_isolated_impact_execution_preserves_pair_and_worker_identity():
             for row in rows
         } == {
             "strict_post_horizon",
+        }
+        assert {
+            row[
+                "final_score_source"]
+            for row in rows
+        } == {
+            "observer_global_state",
         }
 
 
