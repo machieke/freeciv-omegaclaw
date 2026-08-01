@@ -1,0 +1,17 @@
+{
+  "capabilities": {
+    "dependent_atom_pressure_adapter": "not-built",
+    "dependent_atomspace_core": "not-built",
+    "episode_attribution": "not-built",
+    "generic_rule_execution": "not-built",
+    "operation_atom_projection": "not-built",
+    "ruleset_domain_projection": "not-built",
+    "city_domain_projection": "not-built",
+    "unit_domain_projection": "not-built",
+    "region_domain_projection": "not-built"
+  },
+  "component_enabled": false,
+  "policy_authority": false,
+  "schema_version": "1.0",
+  "status": "not-built"
+}

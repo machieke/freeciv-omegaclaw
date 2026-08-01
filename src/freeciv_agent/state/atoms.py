@@ -9,6 +9,27 @@ QUANTITATIVE_PREDICATES = frozenset({
 })
 
 
+# Phase-0 FDAS migration inventory.  These constants describe the existing
+# compatibility projection; they do not expand it or grant new authority.
+LEGACY_AUTHORITATIVE_PREDICATES = frozenset({
+    "buildable",
+    "city-at",
+    "city-producing",
+    "has-tech",
+    "owns-city",
+    "owns-unit",
+    "unit-activity",
+    "unit-at",
+    "unit-type",
+})
+LEGACY_VISIBLE_PREDICATES = frozenset({
+    "tile-visible",
+})
+LEGACY_PROJECTED_PREDICATES = frozenset(
+    LEGACY_AUTHORITATIVE_PREDICATES
+    | LEGACY_VISIBLE_PREDICATES)
+
+
 @dataclass(frozen=True, order=True)
 class Atom:
     predicate: str
