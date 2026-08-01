@@ -134,6 +134,7 @@ from .store import (
 )
 from .transaction import AtomSpaceTransaction
 from .diagnostics import AtomSpaceDiagnostics
+from .events import AtomSpaceEventEmitter, FDAS_EVENT_TYPES
 
 
 __all__ = (
@@ -143,6 +144,7 @@ __all__ = (
     "AtomQuery",
     "AtomSpaceTransaction",
     "AtomSpaceDiagnostics",
+    "AtomSpaceEventEmitter",
     "AuthorityClass",
     "ActivatedDomainProjector",
     "ALL_GROUNDING_SPECS",
@@ -164,6 +166,7 @@ __all__ = (
     "DependentAtomSpaceStore",
     "DifferentialVerification",
     "EntityRef",
+    "FDAS_EVENT_TYPES",
     "GroundingAuthority",
     "GroundingResult",
     "GroundingSpec",

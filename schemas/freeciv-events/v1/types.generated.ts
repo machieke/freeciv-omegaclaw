@@ -983,13 +983,83 @@ export type MetricSample = {
   "value": number;
 };
 
+export type AtomspaceEvent = {
+  "component_id": string;
+  "component_version": string;
+  "details": JsonValue;
+  "revision_id": string;
+  "ruleset_digest": string;
+  "snapshot_id": string;
+  "structural_hash": string;
+};
+
+export type AtomspaceRevisionStarted = AtomspaceEvent;
+
+export type SnapshotDeltaComputed = AtomspaceEvent;
+
+export type ProjectionBatchApplied = AtomspaceEvent;
+
+export type AtomSupportAdded = AtomspaceEvent;
+
+export type AtomSupportRetracted = AtomspaceEvent;
+
+export type AtomInvalidated = AtomspaceEvent;
+
+export type AtomRederived = AtomspaceEvent;
+
+export type AtomspaceRevisionCommitted = AtomspaceEvent;
+
+export type ScopeActivationRequested = AtomspaceEvent;
+
+export type ScopeMaterialized = AtomspaceEvent;
+
+export type ScopeBudgetExhausted = AtomspaceEvent;
+
+export type GroundingEvaluated = AtomspaceEvent;
+
+export type GroundingCacheHit = AtomspaceEvent;
+
+export type DerivationFired = AtomspaceEvent;
+
+export type DerivationUnknown = AtomspaceEvent;
+
+export type CompletenessWitnessUsed = AtomspaceEvent;
+
+export type GoalInstantiated = AtomspaceEvent;
+
+export type GoalResolved = AtomspaceEvent;
+
+export type OperationProjected = AtomspaceEvent;
+
+export type OperationCandidateInstantiated = AtomspaceEvent;
+
+export type OperationCandidateRejected = AtomspaceEvent;
+
+export type PressureGraphBuilt = AtomspaceEvent;
+
+export type AtomspaceShadowDecision = AtomspaceEvent;
+
+export type EpisodeOpened = AtomspaceEvent;
+
+export type EpisodeEffectObserved = AtomspaceEvent;
+
+export type EpisodeReliefAttributed = AtomspaceEvent;
+
+export type ConductanceSampleRecorded = AtomspaceEvent;
+
+export type InducedRuleQuarantined = AtomspaceEvent;
+
+export type InducedRulePromoted = AtomspaceEvent;
+
+export type InducedRuleDemoted = AtomspaceEvent;
+
 export type LoggingGap = {
   "component": string;
   "detail": string;
   "missing": string;
 };
 
-export type KnownEventType = "teleology_estimated" | "domain_estimate_emitted" | "domain_estimate_abstained" | "resource_schedule_decided" | "resource_claim_requested" | "resource_claim_reserved" | "resource_claim_rejected" | "resource_claim_released" | "resource_capacity_changed" | "operation_proposed" | "operation_reserved" | "operation_activated" | "operation_step_selected" | "operation_step_revalidated" | "operation_step_committed" | "operation_blocked" | "operation_repaired" | "operation_suspended" | "operation_completed" | "operation_failed" | "operation_abandoned" | "operation_expired" | "transition_value_estimated" | "transition_value_updated" | "path_persistence_applied" | "reverse_operator_applied" | "requirement_set_materialized" | "bridge_estimated" | "probe_block_completed" | "path_current_deposited" | "flow_projected" | "attention_advected" | "packet_reserved" | "packet_returned" | "flow_candidate_selected" | "candidate_revalidated" | "controller_fallback" | "control_outcome_recorded" | "selection_coverage_sample" | "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "technology_catalog" | "technology_progress" | "production_state" | "unit_lifecycle" | "observation" | "revision" | "belief_conflict" | "context_quarantine" | "llm_proposal" | "goal_selection" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "rule_proposed" | "rule_validated" | "llm_call_scheduled" | "llm_gateway_result" | "rule_parameter_updated" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "logging_gap";
+export type KnownEventType = "teleology_estimated" | "domain_estimate_emitted" | "domain_estimate_abstained" | "resource_schedule_decided" | "resource_claim_requested" | "resource_claim_reserved" | "resource_claim_rejected" | "resource_claim_released" | "resource_capacity_changed" | "operation_proposed" | "operation_reserved" | "operation_activated" | "operation_step_selected" | "operation_step_revalidated" | "operation_step_committed" | "operation_blocked" | "operation_repaired" | "operation_suspended" | "operation_completed" | "operation_failed" | "operation_abandoned" | "operation_expired" | "transition_value_estimated" | "transition_value_updated" | "path_persistence_applied" | "reverse_operator_applied" | "requirement_set_materialized" | "bridge_estimated" | "probe_block_completed" | "path_current_deposited" | "flow_projected" | "attention_advected" | "packet_reserved" | "packet_returned" | "flow_candidate_selected" | "candidate_revalidated" | "controller_fallback" | "control_outcome_recorded" | "selection_coverage_sample" | "run_started" | "run_completed" | "ruleset_compiled" | "state_snapshot" | "technology_catalog" | "technology_progress" | "production_state" | "unit_lifecycle" | "observation" | "revision" | "belief_conflict" | "context_quarantine" | "llm_proposal" | "goal_selection" | "verification" | "quarantine" | "pln_query" | "pln_result" | "pressure_propagated" | "operation_scored" | "conductance_updated" | "rule_proposed" | "rule_validated" | "llm_call_scheduled" | "llm_gateway_result" | "rule_parameter_updated" | "plan_created" | "monitor_trigger" | "plan_invalidated" | "plan_step_executed" | "action_sent" | "action_result" | "grounded_check" | "metric_sample" | "atomspace_revision_started" | "snapshot_delta_computed" | "projection_batch_applied" | "atom_support_added" | "atom_support_retracted" | "atom_invalidated" | "atom_rederived" | "atomspace_revision_committed" | "scope_activation_requested" | "scope_materialized" | "scope_budget_exhausted" | "grounding_evaluated" | "grounding_cache_hit" | "derivation_fired" | "derivation_unknown" | "completeness_witness_used" | "goal_instantiated" | "goal_resolved" | "operation_projected" | "operation_candidate_instantiated" | "operation_candidate_rejected" | "pressure_graph_built" | "atomspace_shadow_decision" | "episode_opened" | "episode_effect_observed" | "episode_relief_attributed" | "conductance_sample_recorded" | "induced_rule_quarantined" | "induced_rule_promoted" | "induced_rule_demoted" | "logging_gap";
 
 export interface EventEnvelope<T extends string = string, P extends object = Record<string, unknown>> {
   schema_version: typeof EVENT_SCHEMA_VERSION;
@@ -1077,6 +1147,36 @@ export interface KnownPayloadMap {
   "action_result": ActionResult;
   "grounded_check": GroundedCheck;
   "metric_sample": MetricSample;
+  "atomspace_revision_started": AtomspaceRevisionStarted;
+  "snapshot_delta_computed": SnapshotDeltaComputed;
+  "projection_batch_applied": ProjectionBatchApplied;
+  "atom_support_added": AtomSupportAdded;
+  "atom_support_retracted": AtomSupportRetracted;
+  "atom_invalidated": AtomInvalidated;
+  "atom_rederived": AtomRederived;
+  "atomspace_revision_committed": AtomspaceRevisionCommitted;
+  "scope_activation_requested": ScopeActivationRequested;
+  "scope_materialized": ScopeMaterialized;
+  "scope_budget_exhausted": ScopeBudgetExhausted;
+  "grounding_evaluated": GroundingEvaluated;
+  "grounding_cache_hit": GroundingCacheHit;
+  "derivation_fired": DerivationFired;
+  "derivation_unknown": DerivationUnknown;
+  "completeness_witness_used": CompletenessWitnessUsed;
+  "goal_instantiated": GoalInstantiated;
+  "goal_resolved": GoalResolved;
+  "operation_projected": OperationProjected;
+  "operation_candidate_instantiated": OperationCandidateInstantiated;
+  "operation_candidate_rejected": OperationCandidateRejected;
+  "pressure_graph_built": PressureGraphBuilt;
+  "atomspace_shadow_decision": AtomspaceShadowDecision;
+  "episode_opened": EpisodeOpened;
+  "episode_effect_observed": EpisodeEffectObserved;
+  "episode_relief_attributed": EpisodeReliefAttributed;
+  "conductance_sample_recorded": ConductanceSampleRecorded;
+  "induced_rule_quarantined": InducedRuleQuarantined;
+  "induced_rule_promoted": InducedRulePromoted;
+  "induced_rule_demoted": InducedRuleDemoted;
   "logging_gap": LoggingGap;
 }
 
