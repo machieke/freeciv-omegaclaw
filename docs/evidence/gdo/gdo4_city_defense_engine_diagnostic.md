@@ -695,3 +695,21 @@ V12 binds `final_score_source: engine_scorelog_exact_horizon` to mechanism
 schema 2.0. It remains claim-ineligible and must complete 60/60 on its
 source-frozen initial pass with zero infrastructure failures before the full
 GDO-4 mechanism audit is accepted as fresh operational confirmation.
+
+V12 was stopped after two infrastructure failures before either arm produced
+a valid result. The deployed `fciv-net` runtime accepted the scorelog
+configuration and reported score logging as enabled, but it created neither
+the configured per-session SCORELOG2 file nor any scorelog or autosave file
+elsewhere in the container. The harness therefore correctly refused to
+substitute an observer projection or an estimated score for the predeclared
+engine authority.
+
+This is a negative runtime-compatibility result, not a GDO-4 mechanism result.
+The optional engine-scorelog source remains disabled by default and V12 is not
+evidence for any claim. Enabling it in this deployment requires a compatible
+FreeCiv runtime build outside this repository. The source-frozen V6 cohort
+remains the canonical passing GDO-4 evidence: it completed all 30 paired seeds
+and passed every mechanism, safety, coverage, latency, source-identity, and
+trace-freeze gate. The later V7--V12 cohorts are retained as transparent
+terminal-readout diagnostics and do not replace or weaken that completed
+mechanism audit.

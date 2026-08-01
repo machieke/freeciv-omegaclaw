@@ -1,6 +1,7 @@
 """GDO baseline and paired shadow diagnostic reproducibility."""
 
 import importlib.util
+import json
 import os
 import sys
 
@@ -37,6 +38,36 @@ def test_baseline_manifest_capture_has_stable_required_identity():
         "B0": "canonical Impact",
         "B1": "scalar PF-v2 plus v1 packet scheduler",
     }
+
+
+def test_frozen_grounded_baseline_records_complete_supported_scope():
+    with open(os.path.join(
+            REPO, "benchmarks", "gdo",
+            "baseline_manifest.json"),
+            encoding="utf-8") as stream:
+        manifest = json.load(stream)
+
+    assert manifest[
+        "baseline_status"] == "frozen_complete"
+    assert all(
+        status.startswith("passed")
+        for status in
+        manifest["gates"].values())
+    assert manifest[
+        "engine_baseline"][
+            "cohort_status"] == "passed"
+    assert len(manifest[
+        "engine_baseline"][
+            "evidence"]) == 3
+    assert manifest[
+        "retained_inputs"][
+            "transport_boundary"][
+                "authority"] == (
+                    "synthetic-contract-only")
+    assert manifest[
+        "retained_inputs"][
+            "transport_boundary"][
+                "fresh_engine_sequence_available"] is False
 
 
 def test_paired_shadow_replay_preserves_policy_and_estimate_semantics():

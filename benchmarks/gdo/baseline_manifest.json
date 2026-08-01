@@ -1,5 +1,5 @@
 {
-  "baseline_status": "in_progress",
+  "baseline_status": "frozen_complete",
   "branch": "experimental/pln-pressure–bridge–fluid",
   "comparators": {
     "B0": {
@@ -16,15 +16,35 @@
     "requirements.txt": "32d1e7e3c6fd397f7dcab9cd92b7f4d1929077ff9ae23cca9b08b7185e6368b8"
   },
   "engine_baseline": {
-    "cohort_status": "pending",
-    "engine_identity": "pending",
-    "ruleset_identity": "pending"
+    "cohort_status": "passed",
+    "engine_identity": "source-frozen-per-arm-manifest",
+    "evidence": [
+      {
+        "path": "benchmarks/gdo/gdo4_city_defense_immediate_fortify_process_isolation_confirmation.json",
+        "report_hash": "65b3f0c005e3bd971e1826ab246d7d86ce416195fa587f4df5624aef40fd2fa2",
+        "source_commit": "e605f9fb5a2e439304f2332c0424e1b7cae26f4e"
+      },
+      {
+        "path": "benchmarks/gdo/gdo5_combat_material_atomic_repair_engine_pilot.json",
+        "report_hash": "db748b269690276cc9b5a3f506abe6281a84c42a2da4c17c2b2a2a5a8f95dc65"
+      },
+      {
+        "path": "benchmarks/gdo/gdo8_contextual_engine_confirmation.json",
+        "report_hash": "860a182aed67a67a1a06246b5dd04dc74cf0cded2253b0aaa12e075a1acc9d4c"
+      }
+    ],
+    "ruleset_identity": {
+      "compiler_version": "freeciv-ruleset-compiler/1.3",
+      "ir_sha256": "2f25a21c969e60b94c2da4d40c336fcc14a41e6741d8edf86d0eb8be4e696f06",
+      "name": "civ2civ3",
+      "source_sha256": "3aed61bdc092b4bde2515c9d925a43be38c650fca88ff3bef32ad316b0dccd8e"
+    }
   },
   "gates": {
-    "captured_snapshot_set": "pending",
-    "controller_latency_distribution": "pending",
-    "engine_live_repeatability": "pending",
-    "full_test_suite": "pending",
+    "captured_snapshot_set": "passed_supported_scopes",
+    "controller_latency_distribution": "passed",
+    "engine_live_repeatability": "passed",
+    "full_test_suite": "passed",
     "freeciv_test_family": "passed",
     "targeted_regression": "passed"
   },
@@ -36,9 +56,28 @@
   "source_commit": "87f3482e631b0713378e69b350e460d4c6a310b7",
   "freeciv_regression": {
     "command": "PYTHONPATH=.:src:benchmarks pytest -q Autotests/test_freeciv_*.py",
-    "duration_seconds": 327.98,
+    "duration_seconds": 346.23,
     "failed": 0,
-    "passed": 820
+    "passed": 1063
+  },
+  "retained_inputs": {
+    "captured_manifests": [
+      "benchmarks/gdo/captured_snapshots/city_defense_replay_manifest.json",
+      "benchmarks/gdo/captured_snapshots/city_defense_grounded_160_manifest.json",
+      "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160_manifest.json",
+      "benchmarks/gdo/captured_snapshots/city_defense_native_160_manifest.json",
+      "benchmarks/gdo/captured_snapshots/combat_operations_native_160_manifest.json"
+    ],
+    "production_research_evidence": [
+      "benchmarks/gdo/gdo7a_production_grounding_diagnostic.json",
+      "benchmarks/gdo/gdo7b_research_grounding_diagnostic.json",
+      "benchmarks/gdo/gdo7c_city_worker_macro_diagnostic.json"
+    ],
+    "transport_boundary": {
+      "authority": "synthetic-contract-only",
+      "evidence": "docs/evidence/gdo/gdo6_transport_input_audit.md",
+      "fresh_engine_sequence_available": false
+    }
   },
   "targeted_regression": {
     "command": "PYTHONPATH=.:src:benchmarks pytest -q Autotests/test_freeciv_transitions.py Autotests/test_freeciv_teleology.py Autotests/test_freeciv_pf_runtime.py Autotests/test_freeciv_adapter.py",

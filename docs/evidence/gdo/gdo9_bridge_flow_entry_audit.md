@@ -8,7 +8,7 @@ authority.
 
 GDO-9 is conditional: numerical flow work resumes only after all seven entry
 conditions are proven against the grounded B4 scheduler. Implementing or
-retuning another flow controller while four conditions remain false would
+retuning another flow controller while three conditions remain false would
 confound routing with unresolved lifecycle, allocation, and semantic errors.
 
 ## Entry conditions
@@ -17,7 +17,7 @@ confound routing with unresolved lifecycle, allocation, and semantic errors.
 |---|---|---|
 | Candidate-invariant, calibrated typed estimates for target slice | passed | GDO-8 passes a clean 30-seed training / 30-seed disjoint engine holdout with every frozen prediction gate satisfied |
 | Zero hard identity/resource over-allocation | passed | GDO-3 reports no hard-capacity violations and deterministic exact scheduling |
-| Stable operation completion/failure semantics | blocked | synthetic combat lifecycle passes, but retained engine replay has no committed or completed operation |
+| Stable operation completion/failure semantics | passed | GDO-4 city defence and the fresh GDO-5 atomic-combat pilot pass operation completion, safety, and source-freeze gates; synthetic lifecycle repair/failure semantics also pass |
 | Bounded exact operation scheduler as comparison baseline | passed | B4 is implemented and deterministic in captured shadow comparison |
 | Residual error specifically caused by route allocation | blocked | no post-calibration B4 replay residual has been isolated |
 | Residual is not semantic, stale, missing-candidate, or unsupported-estimate error | blocked | the prior engine failure was semantic terminal-action exclusion; calibrated support now exists, but no post-B4 residual isolates route allocation |
@@ -74,15 +74,15 @@ approval hash.
 
 ## Required evidence before re-entry
 
-The clean contextual collection and disjoint frozen holdout are complete. The
-remaining admissible sequence is:
+The clean contextual collection, disjoint frozen holdout, and engine-backed
+operation completion evidence are complete. The remaining admissible sequence
+is:
 
-1. demonstrate committed and completed grounded operations in engine replay;
-2. replay B4 and identify a residual error attributable only to route or
+1. replay B4 and identify a residual error attributable only to route or
    bottleneck allocation;
-3. show that solving that residual has expected value above measured
+2. show that solving that residual has expected value above measured
    controller-inclusive latency;
-4. only then compare B5 with B4, followed by B6 with B5.
+3. only then compare B5 with B4, followed by B6 with B5.
 
 If no such residual exists, GDO-9 remains closed; that is a valid negative
 result, not an implementation gap.

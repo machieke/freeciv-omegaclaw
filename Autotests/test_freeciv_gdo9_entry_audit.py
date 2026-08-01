@@ -49,12 +49,15 @@ def test_gdo9_entry_audit_is_deterministic_and_fail_closed():
     assert sum(
         row["passed"]
         for row in
-        artifact["conditions"].values()) == 3
+        artifact["conditions"].values()) == 4
     assert artifact["conditions"][
         "1_candidate_invariant_calibrated_target_slice"][
             "passed"]
     assert artifact["conditions"][
         "2_zero_hard_identity_overallocation"][
+            "passed"]
+    assert artifact["conditions"][
+        "3_stable_operation_completion_failure_semantics"][
             "passed"]
     assert artifact["conditions"][
         "4_bounded_exact_scheduler_is_comparison_baseline"][

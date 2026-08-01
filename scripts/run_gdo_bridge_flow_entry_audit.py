@@ -25,9 +25,12 @@ INPUTS = {
     "contextual_calibration":
         "benchmarks/gdo/"
         "gdo8_contextual_engine_confirmation.json",
-    "engine_lifecycle":
+    "engine_city_defense_confirmation":
         "benchmarks/gdo/"
-        "gdo4_operation_lifecycle_160_diagnostic.json",
+        "gdo4_city_defense_immediate_fortify_process_isolation_confirmation.json",
+    "engine_combat_pilot":
+        "benchmarks/gdo/"
+        "gdo5_combat_material_atomic_repair_engine_pilot.json",
     "resource_scheduler":
         "benchmarks/gdo/"
         "gdo3_resource_shadow_diagnostic.json",
@@ -114,8 +117,12 @@ def run():
     contextual = _json(
         absolute[
             "contextual_calibration"])
-    lifecycle = _json(
-        absolute["engine_lifecycle"])
+    city_defense = _json(
+        absolute[
+            "engine_city_defense_confirmation"])
+    combat_pilot = _json(
+        absolute[
+            "engine_combat_pilot"])
     resource = _json(
         absolute["resource_scheduler"])
     combat_lifecycle = _json(
@@ -159,17 +166,37 @@ def run():
         },
         "3_stable_operation_completion_failure_semantics": {
             "passed": bool(
-                lifecycle.get(
+                city_defense.get(
                     "gates", {}).get(
-                        "at_least_one_committed_operation")
-                and lifecycle.get(
+                        "positive_operation_completion_delta")
+                and city_defense.get(
                     "gates", {}).get(
-                        "at_least_one_completed_operation")
+                        "source_freeze_passed")
+                and city_defense.get(
+                    "gates", {}).get(
+                        "trace_validation_passed")
+                and city_defense.get(
+                    "pilot_gate_passed") is True
+                and combat_pilot.get(
+                    "pilot_gate_passed") is True
+                and combat_pilot.get(
+                    "gates", {}).get(
+                        "partial_current_activation_zero")
+                and combat_pilot.get(
+                    "gates", {}).get(
+                        "fresh_directional_mechanism_benefit")
+                and combat_pilot.get(
+                    "gates", {}).get(
+                        "source_freeze_passed")
+                and combat_pilot.get(
+                    "gates", {}).get(
+                        "trace_validation_passed")
                 and combat_lifecycle.get(
                     "passed") is True),
             "reason": (
-                "synthetic lifecycle semantics pass, but retained engine "
-                "replay has no committed or completed operation"),
+                "city-defence and atomic-combat engine pilots pass their "
+                "operation completion, safety, and source-freeze gates; "
+                "synthetic lifecycle repair/failure semantics also pass"),
         },
         "4_bounded_exact_scheduler_is_comparison_baseline": {
             "passed": bool(
@@ -259,8 +286,8 @@ def run():
             "live_authority_allowed":
                 False,
             "next_required_evidence": (
-                "stable engine operation completions, then a B4 replay "
-                "residual attributable only to route allocation and "
+                "a B4 replay residual attributable only to route "
+                "allocation, followed by "
                 "controller-inclusive incremental benefit"),
             "result": (
                 "entry-approved"
