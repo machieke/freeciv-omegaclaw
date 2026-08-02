@@ -618,6 +618,13 @@ def test_bounded_city_authority_rolls_back_and_falls_back_fail_closed(ir):
     assert disabled.reason == "fdas-city-stability-authority-disabled"
     assert disabled.action_key is None
 
+    no_legacy_decision = authority.evaluate(
+        snapshot, revision, evaluation, None,
+        authority_enabled=True, city_stability_enabled=True)
+    assert no_legacy_decision.status == "fallback"
+    assert no_legacy_decision.reason == (
+        "legacy-selected-candidate-unavailable")
+
     different = replace(
         legacy,
         action={

@@ -3009,7 +3009,8 @@ async def _play(run_dir, manifest, context):
                         if fdas_turn_sampled:
                             fdas_shadow_evaluated_turns.add(snapshot.turn)
                         fdas_authority = fdas_runtime.evaluate_authority(
-                            snapshot, fdas_shadow, decision.candidate)
+                            snapshot, fdas_shadow,
+                            None if decision is None else decision.candidate)
                         if fdas_authority is not None:
                             decision_stats[
                                 "fdas_authority_opportunities"] += 1
