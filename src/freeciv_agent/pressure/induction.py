@@ -18,6 +18,8 @@ from .model import CostVector, Operation
 
 
 SCHEMA_VERSION = "1.0"
+PROMOTION_APPROVAL_SCHEMA_VERSION = "1.0"
+PROMOTION_GATE_ID = "fdas-heldout-induction-promotion/1.0"
 PROPOSAL_SOURCES = frozenset(("pattern", "generalization", "analogy"))
 VALIDATION_VERDICTS = frozenset(("promoted", "demoted"))
 
@@ -627,6 +629,11 @@ class ReplayMetrics:
             "samples": int(self.samples),
         }
 
+    @classmethod
+    def from_dict(cls, value):
+        return cls(**dict(
+            (key, value[key]) for key in cls.__dataclass_fields__))
+
 
 @dataclass(frozen=True)
 class ReplayValidation:
@@ -659,6 +666,152 @@ class ReplayValidation:
             "validation_id": self.validation_id,
             "verdict": self.verdict,
         }
+
+    @classmethod
+    def from_dict(cls, value):
+        return cls(
+            value["validation_id"], value["proposal_id"], value["verdict"],
+            value["reason"], tuple(value["validation_episode_ids"]),
+            ReplayMetrics.from_dict(value["metrics"]),
+            tuple(sorted(value["configuration"].items())))
+
+
+@dataclass(frozen=True)
+class InductionPromotionApproval:
+    """Versioned proof that one disjoint held-out promotion was approved.
+
+    Promotion changes only the induction ledger lifecycle.  It deliberately
+    grants neither policy authority nor induced-rule readout authority.
+    """
+
+    schema_version: str
+    approval_id: str
+    gate_id: str
+    proposal_id: str
+    validation_id: str
+    training_episode_ids: tuple
+    validation_episode_ids: tuple
+    training_artifact_hash: str
+    holdout_artifact_hash: str
+    validation_result_hash: str
+
+    def __post_init__(self):
+        if self.schema_version != PROMOTION_APPROVAL_SCHEMA_VERSION:
+            raise ValueError("unsupported induction approval schema")
+        for value, name in (
+                (self.approval_id, "approval ID"),
+                (self.gate_id, "gate ID"),
+                (self.proposal_id, "proposal ID"),
+                (self.validation_id, "validation ID")):
+            if not isinstance(value, str) or not value:
+                raise ValueError("induction {} is required".format(name))
+        object.__setattr__(
+            self, "training_episode_ids", _canonical_strings(
+                self.training_episode_ids, "approval training episode"))
+        object.__setattr__(
+            self, "validation_episode_ids", _canonical_strings(
+                self.validation_episode_ids, "approval validation episode"))
+        if set(self.training_episode_ids) & set(self.validation_episode_ids):
+            raise ValueError("approval training/validation episodes overlap")
+        for value, name in (
+                (self.training_artifact_hash, "training artifact hash"),
+                (self.holdout_artifact_hash, "holdout artifact hash"),
+                (self.validation_result_hash, "validation result hash")):
+            if (not isinstance(value, str) or len(value) != 64
+                    or any(character not in "0123456789abcdef"
+                           for character in value)):
+                raise ValueError("induction {} is invalid".format(name))
+        if self.training_artifact_hash == self.holdout_artifact_hash:
+            raise ValueError("training and holdout artifacts must be disjoint")
+        expected = "approval-" + structural_hash(self._material())[:24]
+        if self.approval_id != expected:
+            raise ValueError("induction approval identity mismatch")
+
+    def _material(self):
+        return {
+            "gate_id": self.gate_id,
+            "holdout_artifact_hash": self.holdout_artifact_hash,
+            "proposal_id": self.proposal_id,
+            "schema_version": self.schema_version,
+            "training_artifact_hash": self.training_artifact_hash,
+            "training_episode_ids": list(self.training_episode_ids),
+            "validation_episode_ids": list(self.validation_episode_ids),
+            "validation_id": self.validation_id,
+            "validation_result_hash": self.validation_result_hash,
+        }
+
+    def to_dict(self):
+        value = self._material()
+        value.update({
+            "approval_id": self.approval_id,
+            "policy_authority": False,
+            "readout_authority": False,
+        })
+        return value
+
+    @classmethod
+    def issue(
+            cls, proposal, validation, training_artifact_hash,
+            holdout_artifact_hash, gate_id=PROMOTION_GATE_ID):
+        if not isinstance(proposal, InducedRuleProposal):
+            raise TypeError("induction approval requires a proposal")
+        if not isinstance(validation, ReplayValidation):
+            raise TypeError("induction approval requires replay validation")
+        if validation.verdict != "promoted":
+            raise ValueError("only a promoted validation can be approved")
+        if validation.proposal_id != proposal.proposal_id:
+            raise ValueError("approval proposal/validation mismatch")
+        material = {
+            "gate_id": str(gate_id),
+            "holdout_artifact_hash": str(holdout_artifact_hash),
+            "proposal_id": proposal.proposal_id,
+            "schema_version": PROMOTION_APPROVAL_SCHEMA_VERSION,
+            "training_artifact_hash": str(training_artifact_hash),
+            "training_episode_ids": list(proposal.training_episode_ids),
+            "validation_episode_ids": list(
+                validation.validation_episode_ids),
+            "validation_id": validation.validation_id,
+            "validation_result_hash": structural_hash(validation.to_dict()),
+        }
+        return cls(
+            PROMOTION_APPROVAL_SCHEMA_VERSION,
+            "approval-" + structural_hash(material)[:24],
+            str(gate_id), proposal.proposal_id, validation.validation_id,
+            proposal.training_episode_ids, validation.validation_episode_ids,
+            str(training_artifact_hash), str(holdout_artifact_hash),
+            structural_hash(validation.to_dict()))
+
+    @classmethod
+    def from_dict(cls, value):
+        if (value.get("policy_authority") is not False
+                or value.get("readout_authority") is not False):
+            raise ValueError("induction approval cannot grant authority")
+        return cls(
+            value["schema_version"], value["approval_id"], value["gate_id"],
+            value["proposal_id"], value["validation_id"],
+            tuple(value["training_episode_ids"]),
+            tuple(value["validation_episode_ids"]),
+            value["training_artifact_hash"], value["holdout_artifact_hash"],
+            value["validation_result_hash"])
+
+    def validate(self, proposal, validation):
+        if not isinstance(proposal, InducedRuleProposal):
+            raise TypeError("approval validation requires a proposal")
+        if not isinstance(validation, ReplayValidation):
+            raise TypeError("approval validation requires replay validation")
+        if validation.verdict != "promoted":
+            raise ValueError("approval cannot accompany a demotion")
+        checks = (
+            self.proposal_id == proposal.proposal_id,
+            self.validation_id == validation.validation_id,
+            self.training_episode_ids == proposal.training_episode_ids,
+            self.validation_episode_ids == validation.validation_episode_ids,
+            self.validation_result_hash == structural_hash(
+                validation.to_dict()),
+        )
+        if not all(checks):
+            raise ValueError("induction approval does not match validation")
+        return True
 
 
 class ReplayValidator(object):
@@ -866,6 +1019,20 @@ class InductionLedger(object):
             if validation_id not in self._proposals[
                     proposal_id].get("validation_ids", ()):
                 raise ValueError("persisted validation is not linked")
+            validation = ReplayValidation.from_dict(row)
+            if validation.verdict == "promoted":
+                approval_value = row.get("approval")
+                if not isinstance(approval_value, dict):
+                    raise ValueError(
+                        "persisted promotion has no versioned approval")
+                approval = InductionPromotionApproval.from_dict(
+                    approval_value)
+                approval.validate(
+                    InducedRuleProposal.from_dict(
+                        self._proposals[proposal_id]["proposal"]),
+                    validation)
+            elif row.get("approval") is not None:
+                raise ValueError("persisted demotion cannot carry approval")
         linked = [
             validation_id
             for row in self._proposals.values()
@@ -915,7 +1082,7 @@ class InductionLedger(object):
             self.save()
             return True
 
-    def record_validation(self, validation):
+    def record_validation(self, validation, approval=None):
         if not isinstance(validation, ReplayValidation):
             raise TypeError("ledger accepts ReplayValidation")
         with self._lock:
@@ -923,6 +1090,16 @@ class InductionLedger(object):
             if proposal is None:
                 raise KeyError("validation proposal is not quarantined")
             value = validation.to_dict()
+            proposal_value = InducedRuleProposal.from_dict(
+                proposal["proposal"])
+            if validation.verdict == "promoted":
+                if not isinstance(approval, InductionPromotionApproval):
+                    raise ValueError(
+                        "promoted validation requires versioned approval")
+                approval.validate(proposal_value, validation)
+                value["approval"] = approval.to_dict()
+            elif approval is not None:
+                raise ValueError("demoted validation cannot carry approval")
             existing = self._validations.get(validation.validation_id)
             if existing is not None:
                 if existing != value:
@@ -963,13 +1140,17 @@ class InductionLedger(object):
         }, caused_by=caused_by)
 
     def emit_validation(
-            self, writer, turn, validation, caused_by=()):
-        self.record_validation(validation)
-        return writer.emit("rule_validated", turn, {
+            self, writer, turn, validation, approval=None, caused_by=()):
+        self.record_validation(validation, approval=approval)
+        payload = {
             "ledger_hash": self.state_hash,
             "metrics": validation.metrics.to_dict(),
             "proposal_id": validation.proposal_id,
             "reason": validation.reason,
             "validation_id": validation.validation_id,
             "verdict": validation.verdict,
-        }, caused_by=caused_by)
+        }
+        if approval is not None:
+            payload["approval"] = approval.to_dict()
+        return writer.emit(
+            "rule_validated", turn, payload, caused_by=caused_by)

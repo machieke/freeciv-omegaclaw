@@ -22,6 +22,7 @@ from freeciv_agent.pressure import (  # noqa: E402
     GoalState,
     InductionEpisode,
     InductionLedger,
+    InductionPromotionApproval,
     PatternMiner,
     PressureEngine,
     PressureGraph,
@@ -75,6 +76,11 @@ def _proposal(opponent="alpha"):
     return next(
         row for row in candidates
         if row.antecedent == ("border-road", "military-spike"))
+
+
+def _approval(proposal, validation):
+    return InductionPromotionApproval.issue(
+        proposal, validation, "a" * 64, "b" * 64)
 
 
 def _pressure(expand):
@@ -233,7 +239,8 @@ def test_ledger_persists_quarantine_promotion_and_valid_events():
         assert ledger.status(proposal.proposal_id) == "quarantined"
         assert ledger.promoted_rules() == ()
         ledger.emit_validation(
-            writer, 4, validation, caused_by=(proposed["event_id"],))
+            writer, 4, validation, approval=_approval(proposal, validation),
+            caused_by=(proposed["event_id"],))
         assert ledger.status(proposal.proposal_id) == "promoted"
         assert ledger.promoted_rules() == (proposal,)
         state_hash = ledger.state_hash
@@ -242,3 +249,30 @@ def test_ledger_persists_quarantine_promotion_and_valid_events():
         assert reloaded.promoted_rules() == (proposal,)
         report = validate_file(event_path)
         assert report.valid, report.errors
+
+
+def test_promoted_validation_requires_non_authorizing_versioned_approval():
+    proposal = _proposal()
+    validation = ReplayValidator().validate(
+        proposal, _population("alpha", "validation"))
+    ledger = InductionLedger(identity="approval-required")
+    ledger.propose(proposal)
+
+    with pytest.raises(ValueError, match="versioned approval"):
+        ledger.record_validation(validation)
+
+    approval = _approval(proposal, validation)
+    assert approval.to_dict()["policy_authority"] is False
+    assert approval.to_dict()["readout_authority"] is False
+    assert ledger.record_validation(validation, approval=approval) is True
+    assert ledger.promoted_rules() == (proposal,)
+
+
+def test_induction_approval_rejects_same_training_and_holdout_artifact():
+    proposal = _proposal()
+    validation = ReplayValidator().validate(
+        proposal, _population("alpha", "validation"))
+
+    with pytest.raises(ValueError, match="artifacts must be disjoint"):
+        InductionPromotionApproval.issue(
+            proposal, validation, "a" * 64, "a" * 64)

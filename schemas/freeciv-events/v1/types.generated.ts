@@ -857,6 +857,20 @@ export type RuleProposed = {
 };
 
 export type RuleValidated = {
+  "approval"?: {
+    "approval_id": string;
+    "gate_id": string;
+    "holdout_artifact_hash": string;
+    "policy_authority": false;
+    "proposal_id": string;
+    "readout_authority": false;
+    "schema_version": "1.0";
+    "training_artifact_hash": string;
+    "training_episode_ids": Array<string>;
+    "validation_episode_ids": Array<string>;
+    "validation_id": string;
+    "validation_result_hash": string;
+  };
   "ledger_hash": string;
   "metrics": {
     "activations": number;

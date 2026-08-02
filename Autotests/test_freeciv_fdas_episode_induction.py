@@ -19,6 +19,7 @@ from freeciv_agent.planning import (  # noqa: E402
 )
 from freeciv_agent.pressure import (  # noqa: E402
     InductionLedger,
+    InductionPromotionApproval,
     PatternMiner,
     ReplayValidator,
 )
@@ -166,7 +167,11 @@ def test_encoded_training_and_disjoint_holdout_obey_quarantine_lifecycle():
         minimum_brier_improvement=0.0,
         minimum_calibration_improvement=0.0).validate(
             proposal, heldout_rows)
-    ledger.record_validation(validation)
+    approval = (
+        InductionPromotionApproval.issue(
+            proposal, validation, "a" * 64, "b" * 64)
+        if validation.verdict == "promoted" else None)
+    ledger.record_validation(validation, approval=approval)
     assert ledger.status(proposal.proposal_id) in ("promoted", "demoted")
     if validation.verdict == "promoted":
         assert ledger.promoted_rules() == (proposal,)
