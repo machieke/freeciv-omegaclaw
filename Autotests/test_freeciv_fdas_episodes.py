@@ -14,7 +14,13 @@ if SRC not in sys.path:
 
 from freeciv_agent.planning import (  # noqa: E402
     DecisionEpisodeStore,
+    DURABLE_CITY_COVERAGE_TARGET,
+    EpisodeInductionSpec,
+    EpisodeInductionOutcomeLabelStore,
     FdasCityDefenseOperationAdapter,
+    FdasDefenseDurabilityLabeler,
+    FdasEpisodeInductionAdapter,
+    FdasEpisodeInductionShadow,
     FdasDefenseEpisodeRecorder,
     OperationStore,
 )
@@ -149,6 +155,99 @@ def test_acceptance_effect_and_goal_relief_are_separate_idempotent_states():
     assert relieved.observed_delta["actor_tile_after"] == 84
     assert replay is relieved
     assert len(store.episodes()) == 1
+
+
+def test_delayed_durable_city_coverage_label_is_revision_bound_and_persistent():
+    recorder, episode_store, episode = _begin_episode()
+    relief_snapshot = _snapshot(_payload(
+        turn=14, unit_tile=84, unit_x=4, legal_target_x=4), 510)
+    relieved = recorder.observe(
+        episode.episode_id, relief_snapshot, "fdas-relief-revision")
+    label_store = EpisodeInductionOutcomeLabelStore("durability-label-test")
+    labeler = FdasDefenseDurabilityLabeler(label_store)
+
+    pending = labeler.open(
+        relieved, relief_snapshot.turn, "fdas-relief-revision")
+    base_spec = FdasEpisodeInductionShadow._spec(relieved)
+    delayed_spec = EpisodeInductionSpec(
+        base_spec.episode_id,
+        base_spec.context_keys,
+        base_spec.feature_context_keys,
+        base_spec.linked_features,
+        DURABLE_CITY_COVERAGE_TARGET)
+    adapter = FdasEpisodeInductionAdapter(episode_store, label_store)
+    pending_encoding = adapter.encode(delayed_spec)
+    early = labeler.observe(
+        relieved,
+        _snapshot(_payload(
+            turn=21, unit_tile=84, unit_x=4, legal_target_x=4), 511),
+        "fdas-early-revision")
+    observed = labeler.observe(
+        relieved,
+        _snapshot(_payload(
+            turn=22, unit_tile=84, unit_x=4, legal_target_x=4), 512),
+        "fdas-due-revision")
+
+    assert pending.target_id == DURABLE_CITY_COVERAGE_TARGET
+    assert pending.due_turn == 22
+    assert pending_encoding.accepted is False
+    assert pending_encoding.reason.endswith("not-observed:pending")
+    assert early is pending
+    assert observed.status == "observed"
+    assert observed.outcome is True
+    assert dict(observed.observed_value)["own_unit_count_at_city"] >= 1
+    assert observed.to_dict()["truth_mutated"] is False
+    assert observed.to_dict()["policy_authority"] is False
+    encoding = adapter.encode(delayed_spec)
+    assert encoding.accepted is True
+    assert encoding.induction_episode.outcome is True
+    assert ("outcome_target", DURABLE_CITY_COVERAGE_TARGET) in (
+        encoding.induction_episode.context)
+    assert "outcome-label:" + observed.state_digest in (
+        encoding.induction_episode.provenance_ids)
+
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "labels.json")
+        label_store.save(path)
+        reloaded = EpisodeInductionOutcomeLabelStore.load(
+            path, "durability-label-test")
+        assert reloaded.quarantined is False
+        assert reloaded.store_digest == label_store.store_digest
+        assert reloaded.for_episode(
+            relieved.episode_id, DURABLE_CITY_COVERAGE_TARGET) == observed
+
+
+def test_delayed_durable_city_coverage_can_record_real_no_coverage():
+    recorder, episode_store, episode = _begin_episode()
+    relief_snapshot = _snapshot(_payload(
+        turn=14, unit_tile=84, unit_x=4, legal_target_x=4), 520)
+    relieved = recorder.observe(
+        episode.episode_id, relief_snapshot, "fdas-relief-revision")
+    label_store = EpisodeInductionOutcomeLabelStore("durability-negative-test")
+    labeler = FdasDefenseDurabilityLabeler(label_store)
+    labeler.open(relieved, relief_snapshot.turn, "fdas-relief-revision")
+    payload = _payload(turn=22, unit_tile=82, unit_x=2)
+    payload["units"] = {"7": payload["units"]["7"]}
+
+    observed = labeler.observe(
+        relieved, _snapshot(payload, 521), "fdas-no-coverage-revision")
+
+    assert observed.status == "observed"
+    assert observed.outcome is False
+    assert dict(observed.observed_value)["city_owned_and_present"] is True
+    assert dict(observed.observed_value)["own_unit_count_at_city"] == 0
+    assert observed.reason == (
+        "authoritative-own-unit-coverage-absent-at-due-turn")
+    base_spec = FdasEpisodeInductionShadow._spec(relieved)
+    encoding = FdasEpisodeInductionAdapter(
+        episode_store, label_store).encode(EpisodeInductionSpec(
+            base_spec.episode_id,
+            base_spec.context_keys,
+            base_spec.feature_context_keys,
+            base_spec.linked_features,
+            DURABLE_CITY_COVERAGE_TARGET))
+    assert encoding.accepted is True
+    assert encoding.induction_episode.outcome is False
 
 
 def test_no_update_is_pending_until_window_closes_then_no_effect():

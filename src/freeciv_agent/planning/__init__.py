@@ -135,6 +135,7 @@ from .fdas_episode_learning import (
     FdasEpisodeLearningAdapter,
 )
 from .fdas_episode_induction import (
+    IMMEDIATE_GOAL_RELIEF_TARGET,
     EpisodeInductionHeldoutResult,
     EpisodeInductionResult,
     EpisodeInductionShadowResult,
@@ -143,6 +144,13 @@ from .fdas_episode_induction import (
     FdasEpisodeInductionHeldoutGate,
     FdasEpisodeInductionShadow,
     combine_episode_stores,
+)
+from .fdas_induction_labels import (
+    DURABLE_CITY_COVERAGE_TARGET,
+    LABEL_SCHEMA_VERSION,
+    EpisodeInductionOutcomeLabel,
+    EpisodeInductionOutcomeLabelStore,
+    FdasDefenseDurabilityLabeler,
 )
 from .fdas_observation import (
     FdasObservationActionBinding,
@@ -245,10 +253,14 @@ __all__ = [
     "EpisodeLearningMetrics", "EpisodeLearningResult",
     "FdasEpisodeLearningAdapter",
     "EpisodeInductionHeldoutResult",
+    "IMMEDIATE_GOAL_RELIEF_TARGET",
     "EpisodeInductionResult", "EpisodeInductionShadowResult",
     "EpisodeInductionSpec", "FdasEpisodeInductionAdapter",
     "FdasEpisodeInductionHeldoutGate", "FdasEpisodeInductionShadow",
     "combine_episode_stores",
+    "DURABLE_CITY_COVERAGE_TARGET", "LABEL_SCHEMA_VERSION",
+    "EpisodeInductionOutcomeLabel", "EpisodeInductionOutcomeLabelStore",
+    "FdasDefenseDurabilityLabeler",
     "FdasObservationActionBinding",
     "FdasObservationAuthoritativeReturn",
     "FdasObservationCommitValidation",

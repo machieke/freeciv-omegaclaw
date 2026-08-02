@@ -11,6 +11,10 @@ from ..pressure.induction import (
     ReplayValidator,
 )
 from .fdas_episodes import DecisionEpisodeStore, INDUCTION_FEATURE_SCHEMA
+from .fdas_induction_labels import EpisodeInductionOutcomeLabelStore
+
+
+IMMEDIATE_GOAL_RELIEF_TARGET = "immediate-goal-relief/1.0"
 
 
 def combine_episode_stores(stores, persistence_identity):
@@ -46,10 +50,13 @@ class EpisodeInductionSpec:
     context_keys: tuple
     feature_context_keys: tuple
     linked_features: tuple = ()
+    outcome_target: str = IMMEDIATE_GOAL_RELIEF_TARGET
 
     def __post_init__(self):
         if not isinstance(self.episode_id, str) or not self.episode_id:
             raise ValueError("episode induction spec requires an episode ID")
+        if not isinstance(self.outcome_target, str) or not self.outcome_target:
+            raise ValueError("episode induction spec requires outcome target")
         for name in ("context_keys", "feature_context_keys"):
             values = tuple(sorted(str(value) for value in getattr(self, name)))
             if any(not value for value in values) or len(values) != len(
@@ -79,6 +86,7 @@ class EpisodeInductionSpec:
                 {"evidence_id": evidence_id, "feature_id": feature_id}
                 for feature_id, evidence_id in self.linked_features
             ],
+            "outcome_target": self.outcome_target,
         }
 
 
@@ -116,10 +124,16 @@ class FdasEpisodeInductionAdapter(object):
         "no-effect-observed",
     ))
 
-    def __init__(self, episode_store):
+    def __init__(self, episode_store, outcome_label_store=None):
         if not isinstance(episode_store, DecisionEpisodeStore):
             raise TypeError("episode induction requires DecisionEpisodeStore")
+        if (outcome_label_store is not None
+                and not isinstance(
+                    outcome_label_store, EpisodeInductionOutcomeLabelStore)):
+            raise TypeError(
+                "episode induction labels require typed outcome-label store")
         self.episode_store = episode_store
+        self.outcome_label_store = outcome_label_store
 
     @staticmethod
     def _result(episode_id, accepted, reason, induction_episode=None):
@@ -161,10 +175,40 @@ class FdasEpisodeInductionAdapter(object):
         episode = self.episode_store.get(spec.episode_id)
         if episode is None:
             raise KeyError("unknown decision episode")
-        if episode.outcome_status not in self._ELIGIBLE:
-            return self._result(
-                episode.episode_id, False,
-                "episode-outcome-not-attributable-for-induction")
+        label = None
+        if spec.outcome_target == IMMEDIATE_GOAL_RELIEF_TARGET:
+            if episode.outcome_status not in self._ELIGIBLE:
+                return self._result(
+                    episode.episode_id, False,
+                    "episode-outcome-not-attributable-for-induction")
+            outcome = episode.outcome_status == "goal-relief-observed"
+            accepted_reason = (
+                "attributable-episode-encoded-for-quarantined-induction")
+        else:
+            if self.outcome_label_store is None:
+                return self._result(
+                    episode.episode_id, False,
+                    "episode-outcome-label-store-not-configured")
+            if self.outcome_label_store.quarantined:
+                raise ValueError(
+                    "quarantined outcome-label store cannot feed induction")
+            label = self.outcome_label_store.for_episode(
+                episode.episode_id, spec.outcome_target)
+            if label is None:
+                return self._result(
+                    episode.episode_id, False,
+                    "episode-outcome-label-missing")
+            if label.episode_digest != episode.immutable_digest:
+                raise ValueError("episode outcome-label digest mismatch")
+            if label.status != "observed":
+                return self._result(
+                    episode.episode_id, False,
+                    "episode-outcome-label-not-observed:{}".format(
+                        label.status))
+            outcome = label.outcome
+            accepted_reason = (
+                "revision-bound-delayed-outcome-encoded-for-"
+                "quarantined-induction")
         context = dict(episode.context_signature)
         requested = set(spec.context_keys + spec.feature_context_keys)
         missing = sorted(requested.difference(context))
@@ -183,6 +227,9 @@ class FdasEpisodeInductionAdapter(object):
                     ",".join(unlinked)))
         induction_context = tuple(
             (key, context[key]) for key in spec.context_keys)
+        if spec.outcome_target != IMMEDIATE_GOAL_RELIEF_TARGET:
+            induction_context += (("outcome_target", spec.outcome_target),)
+            induction_context = tuple(sorted(induction_context))
         features = tuple(sorted(
             tuple("context:{}={}".format(key, context[key])
                   for key in spec.feature_context_keys)
@@ -191,18 +238,18 @@ class FdasEpisodeInductionAdapter(object):
         provenance = tuple(sorted(set(
             ("fdas-episode:" + episode.immutable_digest,)
             + (() if episode.execution_event_id is None else (
-                "execution-event:" + episode.execution_event_id,)))))
+                "execution-event:" + episode.execution_event_id,))
+            + (() if label is None else (
+                "outcome-label:" + label.state_digest,)))))
         induction_episode = InductionEpisode(
             episode.episode_id,
             induction_context,
             features,
-            episode.outcome_status == "goal-relief-observed",
+            outcome,
             provenance,
         )
         return self._result(
-            episode.episode_id, True,
-            "attributable-episode-encoded-for-quarantined-induction",
-            induction_episode)
+            episode.episode_id, True, accepted_reason, induction_episode)
 
 
 @dataclass(frozen=True)
@@ -390,7 +437,9 @@ class FdasEpisodeInductionHeldoutGate(object):
 
     def __init__(
             self, training_store, holdout_store, ledger, miner=None,
-            validator=None):
+            validator=None, outcome_target=IMMEDIATE_GOAL_RELIEF_TARGET,
+            training_outcome_label_store=None,
+            holdout_outcome_label_store=None):
         for value, name in (
                 (training_store, "training"), (holdout_store, "holdout")):
             if not isinstance(value, DecisionEpisodeStore):
@@ -412,10 +461,34 @@ class FdasEpisodeInductionHeldoutGate(object):
             raise ValueError("training and holdout store identities overlap")
         if training_store.store_digest == holdout_store.store_digest:
             raise ValueError("training and holdout store artifacts overlap")
+        if not isinstance(outcome_target, str) or not outcome_target:
+            raise ValueError("held-out induction requires outcome target")
+        if outcome_target != IMMEDIATE_GOAL_RELIEF_TARGET:
+            for value, name in (
+                    (training_outcome_label_store, "training"),
+                    (holdout_outcome_label_store, "holdout")):
+                if not isinstance(value, EpisodeInductionOutcomeLabelStore):
+                    raise TypeError(
+                        "{} delayed induction requires outcome-label store".format(
+                            name))
+                if value.quarantined:
+                    raise ValueError(
+                        "quarantined {} outcome-label store".format(name))
+            if (training_outcome_label_store.persistence_identity
+                    == holdout_outcome_label_store.persistence_identity
+                    or training_outcome_label_store.store_digest
+                    == holdout_outcome_label_store.store_digest):
+                raise ValueError(
+                    "training and holdout outcome-label artifacts overlap")
         self.training_store = training_store
         self.holdout_store = holdout_store
-        self.training_adapter = FdasEpisodeInductionAdapter(training_store)
-        self.holdout_adapter = FdasEpisodeInductionAdapter(holdout_store)
+        self.outcome_target = outcome_target
+        self.training_outcome_label_store = training_outcome_label_store
+        self.holdout_outcome_label_store = holdout_outcome_label_store
+        self.training_adapter = FdasEpisodeInductionAdapter(
+            training_store, training_outcome_label_store)
+        self.holdout_adapter = FdasEpisodeInductionAdapter(
+            holdout_store, holdout_outcome_label_store)
         self.ledger = ledger
         self.miner = miner or PatternMiner(
             minimum_support=4,
@@ -424,9 +497,29 @@ class FdasEpisodeInductionHeldoutGate(object):
             maximum_candidates=32)
         self.validator = validator or ReplayValidator()
 
-    @staticmethod
-    def _spec(episode):
-        return FdasEpisodeInductionShadow._spec(episode)
+    def _spec(self, episode):
+        value = FdasEpisodeInductionShadow._spec(episode)
+        return EpisodeInductionSpec(
+            value.episode_id,
+            value.context_keys,
+            value.feature_context_keys,
+            value.linked_features,
+            self.outcome_target)
+
+    def _artifact_hash(self, partition):
+        episode_store = (
+            self.training_store if partition == "training"
+            else self.holdout_store)
+        label_store = (
+            self.training_outcome_label_store if partition == "training"
+            else self.holdout_outcome_label_store)
+        if label_store is None:
+            return episode_store.store_digest
+        return structural_hash({
+            "episode_store_digest": episode_store.store_digest,
+            "outcome_label_store_digest": label_store.store_digest,
+            "outcome_target": self.outcome_target,
+        })
 
     @staticmethod
     def _assert_partition_independence(training_rows, holdout_rows):
@@ -464,7 +557,10 @@ class FdasEpisodeInductionHeldoutGate(object):
             mining_reason = "insufficient-attributable-training-support"
         else:
             proposals = self.miner.mine(
-                training_rows, "defense-operation-relieves-goal")
+                training_rows,
+                "defense-operation-relieves-goal"
+                if self.outcome_target == IMMEDIATE_GOAL_RELIEF_TARGET
+                else self.outcome_target)
             mining_reason = (
                 "heldout-candidates-mined" if proposals
                 else "no-pattern-cleared-residual-gate")
@@ -485,8 +581,8 @@ class FdasEpisodeInductionHeldoutGate(object):
             approval = (
                 InductionPromotionApproval.issue(
                     proposal, validation,
-                    self.training_store.store_digest,
-                    self.holdout_store.store_digest)
+                    self._artifact_hash("training"),
+                    self._artifact_hash("holdout"))
                 if validation.verdict == "promoted" else None)
             inserted = self.ledger.record_validation(
                 validation, approval=approval)
@@ -510,6 +606,7 @@ class FdasEpisodeInductionHeldoutGate(object):
             "mining_reason": mining_reason,
             "newly_quarantined_proposal_ids": sorted(new_proposals),
             "newly_validated_ids": sorted(new_validations),
+            "outcome_target": self.outcome_target,
             "policy_authority": False,
             "promoted_rule_ids": sorted(promoted),
             "proposals": [value.to_dict() for value in proposals],

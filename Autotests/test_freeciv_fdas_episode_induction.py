@@ -10,9 +10,12 @@ if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
 from freeciv_agent.planning import (  # noqa: E402
+    DURABLE_CITY_COVERAGE_TARGET,
     DecisionEpisode,
     DecisionEpisodeStore,
     EPISODE_SCHEMA_VERSION,
+    EpisodeInductionOutcomeLabel,
+    EpisodeInductionOutcomeLabelStore,
     EpisodeInductionSpec,
     FdasEpisodeInductionAdapter,
     FdasEpisodeInductionHeldoutGate,
@@ -25,11 +28,12 @@ from freeciv_agent.pressure import (  # noqa: E402
     PatternMiner,
     ReplayValidator,
 )
+from freeciv_agent.events.schema import structural_hash  # noqa: E402
 
 
 def _episode(
         index, status, cohort="train", event_id=None, tile="10",
-        feature_schema=None):
+        feature_schema=None, unit_type="Warrior"):
     terminal = status in (
         "goal-relief-observed", "effect-without-goal-relief",
         "no-effect-observed", "confounded-unattributable")
@@ -44,7 +48,7 @@ def _episode(
     if feature_schema is not None:
         context.update({
             "actor_moves_band": "one",
-            "actor_unit_type": "Warrior",
+            "actor_unit_type": unit_type,
             "actor_veteran_band": "none",
             "city_disorder": "false",
             "city_size_band": "2-4",
@@ -98,6 +102,53 @@ def _correlated_population(cohort, inverted=False):
             cohort=cohort,
             tile=tile))
     return tuple(rows)
+
+
+def _delayed_population(cohort, inverted=False):
+    episodes = []
+    labels = []
+    for index in range(16):
+        unit_type = "Warrior" if index % 2 == 0 else "Archer"
+        outcome = (unit_type == "Warrior") != inverted
+        episode = _episode(
+            index,
+            "goal-relief-observed",
+            cohort=cohort,
+            feature_schema="defense-episode-features/2.0",
+            unit_type=unit_type)
+        material = {
+            "due_turn": 9,
+            "episode_digest": episode.immutable_digest,
+            "episode_id": episode.episode_id,
+            "game_id": episode.game_id,
+            "player_id": episode.player_id,
+            "relief_revision_id": episode.after_revision_id,
+            "relief_turn": 1,
+            "schema_version": 1,
+            "target_id": DURABLE_CITY_COVERAGE_TARGET,
+        }
+        labels.append(EpisodeInductionOutcomeLabel(
+            1,
+            "outcome-label-" + structural_hash(material)[:24],
+            episode.episode_id,
+            episode.immutable_digest,
+            episode.game_id,
+            episode.player_id,
+            DURABLE_CITY_COVERAGE_TARGET,
+            1,
+            9,
+            episode.after_revision_id,
+            "observed",
+            9,
+            "assessment-{}-{}".format(cohort, index),
+            outcome,
+            (("city_owned_and_present", True),
+             ("city_id", 4),
+             ("own_unit_count_at_city", 1 if outcome else 0)),
+            "synthetic-delayed-component-fixture",
+            ("assessment-provenance-{}-{}".format(cohort, index),)))
+        episodes.append(episode)
+    return tuple(episodes), tuple(labels)
 
 
 def test_only_attributable_terminal_episode_is_encoded_without_authority():
@@ -358,6 +409,42 @@ def test_heldout_gate_rejects_episode_partition_overlap():
 
     with pytest.raises(ValueError, match="episode overlap"):
         gate.evaluate()
+
+
+def test_heldout_gate_validates_revision_bound_delayed_target():
+    training_episodes, training_labels = _delayed_population("training")
+    holdout_episodes, holdout_labels = _delayed_population("holdout")
+    training = DecisionEpisodeStore(
+        "delayed-training-episodes", training_episodes)
+    holdout = DecisionEpisodeStore(
+        "delayed-holdout-episodes", holdout_episodes)
+    training_outcomes = EpisodeInductionOutcomeLabelStore(
+        "delayed-training-labels", training_labels)
+    holdout_outcomes = EpisodeInductionOutcomeLabelStore(
+        "delayed-holdout-labels", holdout_labels)
+    ledger = InductionLedger(identity="delayed-heldout-gate")
+
+    result = FdasEpisodeInductionHeldoutGate(
+        training,
+        holdout,
+        ledger,
+        outcome_target=DURABLE_CITY_COVERAGE_TARGET,
+        training_outcome_label_store=training_outcomes,
+        holdout_outcome_label_store=holdout_outcomes).evaluate()
+
+    assert result.promoted_rule_ids
+    assert not result.demoted_rule_ids
+    assert len(result.approvals) == len(result.promoted_rule_ids)
+    assert all(
+        value.consequent == DURABLE_CITY_COVERAGE_TARGET
+        for value in result.proposals)
+    assert all(
+        ("outcome_target", DURABLE_CITY_COVERAGE_TARGET)
+        in value.induction_episode.context
+        for value in result.training_encoding_results)
+    assert result.truth_mutated is False
+    assert result.policy_authority is False
+    assert result.readout_authority is False
 
 
 def test_episode_cohort_combines_verified_disjoint_stores():

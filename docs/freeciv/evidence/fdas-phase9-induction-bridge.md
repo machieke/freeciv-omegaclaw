@@ -56,3 +56,20 @@ split passed all mechanism and source gates but rejected the scientific
 proposal gate because all 17 eligible outcomes were positive. See
 [`fdas-pr22-induction-holdout.md`](fdas-pr22-induction-holdout.md). Held-out
 promotion/readout therefore remains `component-only`.
+
+The next component increment removes the immediate-relief target limitation.
+`EpisodeInductionOutcomeLabelStore` durably records revision-bound delayed
+labels without changing the source episode. The first declared target asks
+whether an owned city still has authoritative own-unit coverage eight turns
+after immediate fortification relief. Pending labels abstain; due-turn coverage
+may resolve true or false; identity, episode digest, relief/assessment
+revisions, observed value, and provenance survive atomic restart. Labels state
+`truth_mutated=false` and `policy_authority=false`.
+
+`FdasEpisodeInductionAdapter` can consume this label only when its target and
+episode digest match and status is `observed`. Delayed target identity enters
+the induction context and the combined episode/label artifact hashes enter any
+promotion approval. Component train/holdout fixtures exercise a stable delayed
+promotion with generalizable feature-v2 inputs. Engine scheduling and a live
+delayed outcome population remain a separate gate; the capability status is
+therefore still `component-only`.
