@@ -27,7 +27,7 @@ def _json(path):
 def test_fdas_manifest_exposes_only_evidenced_component_capabilities():
     manifest = _json("profile/fdas_manifest.json")
 
-    assert manifest["schema_version"] == "1.0"
+    assert manifest["schema_version"] == "1.1"
     assert manifest["status"] == "component-only"
     assert manifest["component_enabled"] is True
     assert manifest["policy_authority"] is False

@@ -169,7 +169,9 @@ export FREECIV_FDAS_CONFIG_PATH=profile/dependent_atomspace_shadow_sampled.yaml
 The harness embeds the resolved declaration, source path, capability manifest,
 and structural hash in every run manifest. This profile verifies a deterministic
 5% sample against a cold build and leaves aggregate and per-domain action
-authority disabled.
+authority disabled. FDAS schema 1.1 exposes independent shadow switches for
+city regions, route corridors, settlement sites, population recovery,
+transport, and combat; the sampled profile enables all six explicitly.
 
 Configuration ownership is deliberate:
 

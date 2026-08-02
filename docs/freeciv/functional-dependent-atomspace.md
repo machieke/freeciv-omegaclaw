@@ -129,6 +129,12 @@ rejects the revision before publication. This catches declaration drift during
 ordinary tests instead of relying exclusively on sampled cold verification;
 the cold builder remains the final output-equivalence oracle.
 
+FDAS configuration and its capability manifest use schema 1.1. Focused shadow
+projection is independently selectable for city regions, route corridors,
+settlement sites, population recovery, transport, and combat. Authority gates
+remain separate and off; enabling one projection only materializes that
+component and does not authorize its domain.
+
 At the Phase 2 boundary this remained a compatibility-only materialized view;
 no generic domain rule, goal, candidate, pressure, or execution path consumed
 FDAS.

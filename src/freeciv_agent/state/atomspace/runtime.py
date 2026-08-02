@@ -492,17 +492,23 @@ def build_runtime(declaration, ruleset_ir=None, belief_store=None,
                 "unit projection requires compiled ruleset IR")
         projectors.append(UnitDefenseProjector(ruleset_ir, digest))
     if projection["region"]:
-        if ruleset_ir is None:
-            raise FdasRuntimeConfigurationError(
-                "region projection requires compiled ruleset IR")
-        projectors.extend((
-            CityRegionProjector(),
-            RouteCorridorProjector(),
-            SettlementSiteProjector(ruleset_ir, digest),
-            TransportCapabilityProjector(ruleset_ir, digest),
-            CombatTaskForceProjector(ruleset_ir, digest),
-            PopulationRecoveryProjector(ruleset_ir, digest),
-        ))
+        projectors.append(CityRegionProjector())
+    if projection["route_corridors"]:
+        projectors.append(RouteCorridorProjector())
+    if projection["settlement_sites"]:
+        projectors.append(SettlementSiteProjector(ruleset_ir, digest))
+    if (any(projection[name] for name in (
+            "combat", "population_recovery", "transport"))
+            and ruleset_ir is None):
+        raise FdasRuntimeConfigurationError(
+            "combat, population recovery, and transport projection require "
+            "compiled ruleset IR")
+    if projection["transport"]:
+        projectors.append(TransportCapabilityProjector(ruleset_ir, digest))
+    if projection["combat"]:
+        projectors.append(CombatTaskForceProjector(ruleset_ir, digest))
+    if projection["population_recovery"]:
+        projectors.append(PopulationRecoveryProjector(ruleset_ir, digest))
     if projection["operations"]:
         if operation_records_source is None:
             raise FdasRuntimeConfigurationError(

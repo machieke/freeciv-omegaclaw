@@ -2,7 +2,7 @@ dependent_atomspace:
   enabled: true
   shadow_enabled: true
   authority_enabled: false
-  schema_version: "1.0"
+  schema_version: "1.1"
   store_backend: "memory"
   cold_verify_sample_rate: 1.0
   revision_retention: 4
@@ -16,6 +16,11 @@ dependent_atomspace:
     city: true
     unit: true
     region: true
+    route_corridors: true
+    settlement_sites: true
+    population_recovery: true
+    transport: true
+    combat: true
     beliefs: false
     operations: true
 

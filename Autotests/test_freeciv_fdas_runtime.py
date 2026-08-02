@@ -56,6 +56,20 @@ def _enabled_city_declaration():
     return value
 
 
+def _enabled_corridor_only_declaration():
+    declaration = load_runtime_declaration()
+    value = copy.deepcopy(declaration)
+    value["config"]["enabled"] = True
+    for name in value["config"]["projection"]:
+        value["config"]["projection"][name] = name in (
+            "empire", "route_corridors", "world")
+    semantic = dict(value)
+    semantic.pop("declaration_hash")
+    from freeciv_agent.events.schema import structural_hash
+    value["declaration_hash"] = structural_hash(semantic)
+    return value
+
+
 def _ruleset_root():
     configured = os.environ.get("FREECIV_RULESET_ROOT")
     candidates = [configured] if configured else []
@@ -80,6 +94,14 @@ def test_checked_default_declaration_is_disabled_and_manifest_safe():
     assert update.revision_id is not None
     assert update.atom_count > 0
     assert runtime.activation_payload()["policy_authority"] is False
+
+
+def test_route_corridor_shadow_projection_can_be_activated_independently():
+    runtime = build_runtime(_enabled_corridor_only_declaration())
+
+    assert runtime.projector_ids == ("fdas-route-corridor-projector",)
+    update = runtime.replace(_snapshot())
+    assert update.revision_id is not None
 
 
 def test_declaration_tampering_and_missing_enabled_dependencies_fail_closed():

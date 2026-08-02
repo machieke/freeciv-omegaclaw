@@ -43,6 +43,6 @@
   },
   "component_enabled": true,
   "policy_authority": false,
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "status": "component-only"
 }

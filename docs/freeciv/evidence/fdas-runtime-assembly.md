@@ -1,7 +1,7 @@
 # FDAS runtime assembly and engine shadow seam
 
-Date: 2026-08-01  
-Branch: `experimental/functional-dependent-atomspace`  
+Date: 2026-08-02
+Branch: `experimental/functional-dependent-atomspace`
 Activation level: component-only manifest; checked default disabled; no policy authority
 
 ## Realized boundary
@@ -17,13 +17,17 @@ path instead of being assembled only by tests:
 - `build_runtime()` constructs the exact configured projector set. It refuses
   enabled ruleset, operation, belief, or episode projection when the associated
   compiled IR or durable store source is absent.
+- FDAS configuration/manifest schema 1.1 separates city-region,
+  route-corridor, settlement-site, population-recovery, transport, and combat
+  projection switches. Each switch is independently capability-bound; the
+  former `region` umbrella no longer activates the other five projectors.
 - Ruleset projection is materialized once into an immutable digest-bound static
   revision. Snapshot projection remains a separate coordinated revision over
   authoritative state and declared durable sources.
 - The enabled checked projector set consists of city/economy/research plus the
-  read-only durable operation view. Unit, region, belief, learning, and every
-  authority slice remain independently configurable and off in the checked
-  profile.
+  read-only durable operation view. Unit, all six focused projection domains,
+  belief, learning, and every authority slice remain independently
+  configurable and off in the checked profile.
 - Focused scopes pass through the deterministic `ScopeActivator`; each opened
   detail scope records its reason, funding identity, priority, and snapshot
   parent.
@@ -68,17 +72,16 @@ base harness; the resolved declaration and hash are part of run identity.
 
 ## Verification
 
-- Current FDAS, operation, harness, and planner integration surface:
-  `288 passed in 319.02s`.
-- Complete FreeCiv acceptance suite: `1,266 passed in 378.04s`.
+- Focused FDAS suite: `180 passed in 38.04s`.
+- Configuration, runtime, and harness integration: `140 passed in 297.14s`.
+- Complete FreeCiv acceptance suite: `1,277 passed in 380.54s`.
 - Enabled checked projector assembly was exercised against the compiled
   Civ2Civ3 ruleset and authoritative contract fixture.
 - Strict captured replay exercised 38 snapshots and 37 transitions with 100%
   cold verification and no mismatches.
-- After prepared-revision publication, a diagnostic 100%-verification replay
-  retained 37/37 equivalence while reducing projection p95 from 1,119.24 ms to
-  756.69 ms and mean latency from 605.10 ms to 412.44 ms. This path still
-  includes both incremental and cold builds by design.
+- The schema-1.1 diagnostic replay retained 37/37 equivalence. Its strict
+  incremental-plus-cold projection measured 471.55 ms mean and 846.20 ms p95;
+  this path includes both builds by design and is not a live-controller timing.
 - One predeclared engine-live shadow game completed 30 turns with 52 rich
   revisions and 51 non-authorizing shadow decisions.
 - `git diff --check`: clean.

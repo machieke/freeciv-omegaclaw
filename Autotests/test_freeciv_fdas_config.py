@@ -84,6 +84,7 @@ def test_domain_authority_cannot_bypass_global_gates():
 
 @pytest.mark.parametrize(("domain", "capabilities"), (
     ("expansion", (
+        "region_domain_projection",
         "route_corridor_projection",
         "settlement_site_projection",
         "population_recovery_projection",
@@ -109,6 +110,13 @@ def test_phase7_authority_requires_every_exact_domain_capability(
     accepted_manifest["policy_authority"] = True
     value["projection"]["unit"] = True
     value["projection"]["region"] = True
+    value["projection"].update({
+        "combat": True,
+        "population_recovery": True,
+        "route_corridors": True,
+        "settlement_sites": True,
+        "transport": True,
+    })
     for name in (
             "dependent_atom_pressure_adapter",
             "fdas_resource_packet_bridge",
@@ -136,6 +144,60 @@ def test_belief_projection_requires_declared_component():
     missing["capabilities"]["belief_domain_projection"] = "not-built"
     with pytest.raises(ValueError, match="belief_domain_projection"):
         DependentAtomSpaceConfig.from_dict(value, missing)
+
+
+def test_local_movement_authority_requires_both_focused_capabilities():
+    value, manifest = _values()
+    value = copy.deepcopy(value)
+    value.update({"enabled": True, "authority_enabled": True})
+    value["domain_authority"]["local_movement"] = True
+    value["projection"].update({
+        "region": True, "route_corridors": True, "unit": True})
+    promoted = copy.deepcopy(manifest)
+    promoted["status"] = "bounded-authority"
+    promoted["policy_authority"] = True
+    for name in (
+            "dependent_atom_pressure_adapter",
+            "fdas_resource_packet_bridge",
+            "fdas_exact_commit_validation",
+            "unit_domain_projection"):
+        promoted["capabilities"][name] = "bounded-authority"
+
+    with pytest.raises(ValueError, match="region_domain_projection"):
+        DependentAtomSpaceConfig.from_dict(value, promoted)
+    promoted["capabilities"][
+        "region_domain_projection"] = "bounded-authority"
+    with pytest.raises(ValueError, match="route_corridor_projection"):
+        DependentAtomSpaceConfig.from_dict(value, promoted)
+    promoted["capabilities"][
+        "route_corridor_projection"] = "bounded-authority"
+
+    config = DependentAtomSpaceConfig.from_dict(value, promoted)
+    assert config.section("domain_authority")["local_movement"] is True
+
+
+@pytest.mark.parametrize(("projection", "capability"), (
+    ("combat", "combat_task_force_projection"),
+    ("population_recovery", "population_recovery_projection"),
+    ("region", "region_domain_projection"),
+    ("route_corridors", "route_corridor_projection"),
+    ("settlement_sites", "settlement_site_projection"),
+    ("transport", "transport_capability_projection"),
+))
+def test_focused_shadow_projection_flags_are_independently_manifest_bound(
+        projection, capability):
+    value, manifest = _values()
+    value = copy.deepcopy(value)
+    value["enabled"] = True
+    value["projection"][projection] = True
+    missing = copy.deepcopy(manifest)
+    missing["capabilities"][capability] = "not-built"
+
+    with pytest.raises(ValueError, match=capability):
+        DependentAtomSpaceConfig.from_dict(value, missing)
+
+    config = DependentAtomSpaceConfig.from_dict(value, manifest)
+    assert config.section("projection")[projection] is True
 
 
 def test_uncertain_assessment_requires_shadow_live_belief_and_observation():

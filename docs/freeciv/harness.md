@@ -110,6 +110,10 @@ rich runtime is disabled. A shadow experiment can select
 `FREECIV_FDAS_CONFIG_PATH`. Configuration loading resolves and hashes that
 profile into the behavioral manifest; an empty override fails validation.
 Neither the override nor the sampled profile enables policy authority.
+The FDAS schema-1.1 declaration independently versions region, corridor,
+settlement, recovery, transport, and combat projection flags, so changing one
+of those shadow slices changes the manifest identity without activating the
+others.
 
 Only one engine-live controller may run at once. It owns
 `artifacts/freeciv/.engine-live.lock`; its workers receive fixed ports within

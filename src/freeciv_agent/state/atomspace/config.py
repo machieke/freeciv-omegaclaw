@@ -52,8 +52,9 @@ class DependentAtomSpaceConfig:
         "revision_retention", "schema_version", "shadow_enabled", "learning",
         "store_backend"))
     PROJECTION_KEYS = frozenset((
-        "beliefs", "city", "economy", "empire", "operations", "region",
-        "research", "ruleset", "unit", "world"))
+        "beliefs", "city", "combat", "economy", "empire", "operations",
+        "population_recovery", "region", "research", "route_corridors",
+        "ruleset", "settlement_sites", "transport", "unit", "world"))
     MATERIALIZATION_KEYS = frozenset((
         "focused_scope_ttl_turns", "maximum_atoms_global",
         "maximum_atoms_per_city_scope", "maximum_atoms_per_region_scope",
@@ -81,7 +82,7 @@ class DependentAtomSpaceConfig:
         for name in ("enabled", "shadow_enabled", "authority_enabled"):
             if not isinstance(value[name], bool):
                 raise TypeError("{} must be boolean".format(name))
-        if value["schema_version"] != "1.0":
+        if value["schema_version"] != "1.1":
             raise ValueError("unsupported dependent AtomSpace schema")
         if value["store_backend"] != "memory":
             raise ValueError("unsupported dependent AtomSpace store backend")
@@ -149,9 +150,13 @@ class DependentAtomSpaceConfig:
                 "technology_compatibility_path_enabled"]:
             raise ValueError(
                 "research authority requires technology compatibility parity")
-        if projection["region"] and materialization[
-                "maximum_atoms_per_region_scope"] < 1:
-            raise ValueError("region projection requires a region atom budget")
+        if (any(projection[name] for name in (
+                "combat", "population_recovery", "region",
+                "route_corridors", "settlement_sites", "transport"))
+                and materialization[
+                    "maximum_atoms_per_region_scope"] < 1):
+            raise ValueError(
+                "focused projection requires a region atom budget")
         if manifest is not None:
             cls._validate_manifest(value, manifest)
         return cls(
@@ -214,8 +219,13 @@ class DependentAtomSpaceConfig:
             require("dependent_atomspace_core", "component-only")
             projection_capabilities = {
                 "city": "city_domain_projection",
+                "combat": "combat_task_force_projection",
+                "population_recovery": "population_recovery_projection",
                 "region": "region_domain_projection",
+                "route_corridors": "route_corridor_projection",
                 "ruleset": "ruleset_domain_projection",
+                "settlement_sites": "settlement_site_projection",
+                "transport": "transport_capability_projection",
                 "unit": "unit_domain_projection",
             }
             for projection, capability in projection_capabilities.items():
@@ -277,9 +287,11 @@ class DependentAtomSpaceConfig:
                 raise ValueError("defense authority requires unit projection")
             require("unit_domain_projection", "bounded-authority")
         required_projection = {
-            "expansion": ("city", "unit", "region"),
-            "transport": ("unit", "region"),
-            "combat": ("unit", "region"),
+            "expansion": (
+                "city", "unit", "region", "route_corridors",
+                "settlement_sites", "population_recovery"),
+            "transport": ("unit", "transport"),
+            "combat": ("unit", "combat"),
             "research": ("ruleset", "research"),
         }
         for domain, names in required_projection.items():
@@ -291,11 +303,14 @@ class DependentAtomSpaceConfig:
                         "{} authority requires {} projection".format(
                             domain, name))
         if config["domain_authority"]["local_movement"] \
-                and not config["projection"]["region"]:
+                and (not config["projection"]["region"]
+                     or not config["projection"]["route_corridors"]):
             raise ValueError(
-                "local movement authority requires region projection")
+                "local movement authority requires region and route "
+                "corridor projection")
         domain_capabilities = {
             "expansion": (
+                "region_domain_projection",
                 "route_corridor_projection",
                 "settlement_site_projection",
                 "population_recovery_projection",
@@ -308,6 +323,10 @@ class DependentAtomSpaceConfig:
             "combat": (
                 "combat_task_force_projection",
                 "combat_operation_projection",
+            ),
+            "local_movement": (
+                "region_domain_projection",
+                "route_corridor_projection",
             ),
             "research": (
                 "ruleset_domain_projection",

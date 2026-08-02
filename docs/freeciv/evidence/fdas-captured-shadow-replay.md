@@ -4,7 +4,7 @@ Date: 2026-08-02
 Branch: `experimental/functional-dependent-atomspace`
 Machine scope: local diagnostic replay
 Machine-readable report: `fdas-captured-shadow-replay.json`
-Report hash: `3f1370dfe79ae1caf5a4b752375cbb335e635e80bdffaac6c1d79fd75ca74671`
+Report hash: `2c0d1e597990bd33d4ff3eab901743561c58c26a2bee659e12d365b388d9a309`
 
 ## Corpus and strictness
 
@@ -15,8 +15,9 @@ for strict snapshot reconstruction. Nine older captures are retained as named
 data gaps; they are not silently treated as passes. There were zero parse,
 projection, evaluation, or comparison failures among replayable snapshots.
 
-The acceptance profile enables the full rich projector set, leaves all
-authority flags false, and sets cold verification to 100%. Thirty-seven
+The schema-1.1 acceptance profile independently enables the full rich
+projector set, leaves all authority flags false, and sets cold verification to
+100%. Thirty-seven
 incremental transitions were each compared with an independently rebuilt cold
 revision; all 37 were canonically equivalent.
 
@@ -24,10 +25,10 @@ revision; all 37 were canonically equivalent.
 
 | Measurement | Result |
 |---|---:|
-| Cold projection p50 / p95 / max | 183.41 / 374.83 / 395.64 ms |
-| Shadow readout p50 / p95 / max | 18.07 / 174.58 / 207.77 ms |
-| Combined cold FDAS p50 / p95 / max | 257.08 / 434.66 / 583.59 ms |
-| Strict incremental plus cold verification p50 / p95 / max | 454.98 / 845.04 / 963.93 ms |
+| Cold projection p50 / p95 / max | 185.36 / 380.28 / 401.71 ms |
+| Shadow readout p50 / p95 / max | 17.74 / 176.37 / 209.53 ms |
+| Combined cold FDAS p50 / p95 / max | 249.34 / 442.04 / 593.61 ms |
+| Strict incremental plus cold verification p50 / p95 / max | 467.41 / 846.20 / 968.28 ms |
 | Incremental recomputation ratio mean / p50 / p95 | 0.781 / 0.756 / 0.888 |
 | Maximum atoms / scopes / supports | 2,610 / 80 / 1,388 |
 | Maximum dependency keys | 2,002 |
@@ -40,7 +41,7 @@ revision; all 37 were canonically equivalent.
 | Safety downgrades | 0 |
 
 The 500 ms production-safe gate is a p95 gate: combined cold captured p95 is
-434.66 ms. The single worst cold capture is 583.59 ms and the proposed 150 ms
+442.04 ms. The single worst cold capture is 593.61 ms and the proposed 150 ms
 ordinary FDAS contribution target is not met across this stress corpus. The
 evidence therefore supports bounded shadow operation, not unrestricted
 activation or authority.
