@@ -127,10 +127,13 @@ def _fixture(tmp_path):
             _event(2, "operation_scored", {}, caused_by=("e1",)),
             _event(3, "packet_reserved", {
                 "summary": _packet_summary()}, caused_by=("e2",)),
-            _event(4, "action_sent", {
-                "action": {"action_type": "end_turn"}}, caused_by=("e3",)),
-            _event(5, "action_result", {
-                "status": "accepted"}, caused_by=("e4",)),
+            _event(4, "metric_sample", {
+                "name": "fdas_observation_pressure_latency_ms",
+                "value": 3.0}, caused_by=("e3",)),
+            _event(5, "action_sent", {
+                "action": {"action_type": "end_turn"}}, caused_by=("e4",)),
+            _event(6, "action_result", {
+                "status": "accepted"}, caused_by=("e5",)),
         )
         (directory / "events.jsonl").write_text(
             "".join(json.dumps(row, sort_keys=True) + "\n" for row in events),
@@ -242,8 +245,10 @@ def test_engine_emits_schema_valid_observation_pressure_without_mutation(
             "simulation_confidence_cap": 0.6,
         },
         "dependent_atomspace": {"declaration_hash": "a" * 64},
+        "condition_id": "e_full_loop",
         "game_id": "observation-emission",
         "ruleset": "civ2civ3",
+        "track": "impact_pair",
     }
 
     parent, decision = _emit_fdas_observation_pressure(
@@ -253,6 +258,8 @@ def test_engine_emits_schema_valid_observation_pressure_without_mutation(
     rows = [json.loads(line) for line in path.read_text(
         encoding="utf-8").splitlines()]
     assert rows[-1]["event_id"] == parent
-    assert rows[-1]["type"] == "packet_reserved"
-    assert rows[-1]["payload"]["summary"]["truth_mutated"] is False
+    assert rows[-2]["type"] == "packet_reserved"
+    assert rows[-2]["payload"]["summary"]["truth_mutated"] is False
+    assert rows[-1]["payload"]["name"] == (
+        "fdas_observation_pressure_latency_ms")
     assert decision["selected_operation_ids"]

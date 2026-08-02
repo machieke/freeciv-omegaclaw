@@ -360,6 +360,7 @@ def _fdas_observation_pressure_decision(belief, manifest):
 def _emit_fdas_observation_pressure(
         belief, snapshot, manifest, store, writer, parent):
     """Emit a closed-schema shadow decision without executing or observing."""
+    started = time.perf_counter()
     evidence_before = len(store.evidence)
     store_hash_before = store.artifact_hash
     decision = _fdas_observation_pressure_decision(belief, manifest)
@@ -456,7 +457,17 @@ def _emit_fdas_observation_pressure(
             or store.artifact_hash != store_hash_before):
         raise RuntimeError(
             "observation pressure mutated belief evidence before return")
-    return event["event_id"], decision
+    metric_parent = _metric(
+        writer,
+        snapshot.turn,
+        event["event_id"],
+        "fdas_observation_pressure_latency_ms",
+        (time.perf_counter() - started) * 1000.0,
+        manifest,
+        packet_commits=len(decision["selected_operation_ids"]),
+        policy_authority=False,
+        shadow_only=True)
+    return metric_parent, decision
 
 
 def _ollama_json(manifest, prompt, expected_keys, attempts=2, validator=None):

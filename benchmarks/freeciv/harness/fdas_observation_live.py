@@ -54,6 +54,18 @@ def _arm_directory(root, arm):
     return candidates[0]
 
 
+def _latency(events, name):
+    values = tuple(
+        float(row["payload"]["value"])
+        for row in events
+        if (row["type"] == "metric_sample"
+            and row["payload"].get("name") == name))
+    return {
+        "count": len(values),
+        "maximum_ms": max(values) if values else None,
+    }
+
+
 def _audit_arm(root, arm, repo=None):
     game_dir = _arm_directory(root, arm)
     paths = dict(
@@ -112,6 +124,8 @@ def _audit_arm(root, arm, repo=None):
         if packet_parent is not None
         and len(packet_parent.get("caused_by", ())) == 1 else None)
     beliefs = manifest.get("beliefs", {})
+    planning_latency = _latency(
+        events, "fdas_observation_pressure_latency_ms")
     checks = {
         "action_results_are_complete_and_accepted": (
             bool(sent) and len(sent) == len(results)
@@ -184,6 +198,10 @@ def _audit_arm(root, arm, repo=None):
             and not authority
             and status.get("fdas_authority_actions") == 0
             and status.get("operation_authority_actions") == 0),
+        "observation_planning_latency_within_budget": (
+            planning_latency["count"] == 1
+            and planning_latency["maximum_ms"] is not None
+            and planning_latency["maximum_ms"] <= 250.0),
         "status_counters_match_shadow_artifacts": (
             status.get("fdas_observation_pressure_decisions") == len(packets)
             and status.get("fdas_observation_pressure_selected")
@@ -199,6 +217,7 @@ def _audit_arm(root, arm, repo=None):
             (name, {"path": _logical_path(path, repo), "sha256": _sha256(path)})
             for name, path in sorted(paths.items())),
         "source": manifest.get("source"),
+        "latency": {"observation_pressure": planning_latency},
         "summary": {
             "actions": len(sent),
             "decision_change_probability": analysis.get(
