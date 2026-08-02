@@ -156,6 +156,7 @@ from .fdas_commit import (
 from .fdas_authority import (
     FdasAuthorityReadout,
     FdasBoundedCityAuthority,
+    FdasBoundedDefenseAuthority,
 )
 from .fdas_consolidation import (
     LegacyConsolidationAudit,
@@ -237,6 +238,7 @@ __all__ = [
     "FdasExpansionLifecycleUpdate", "FdasExpansionOperationAdapter",
     "FDASCommitBinding", "FDASCommitValidation", "FDASCommitValidator",
     "FdasAuthorityReadout", "FdasBoundedCityAuthority",
+    "FdasBoundedDefenseAuthority",
     "LegacyConsolidationAudit", "LegacyConsolidationReport",
     "LegacyReplacementDecision", "LegacyReplacementSpec",
     "ShadowCandidateComparison", "ShadowOperationCandidate",

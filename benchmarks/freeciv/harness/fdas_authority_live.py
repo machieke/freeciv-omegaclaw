@@ -8,15 +8,27 @@ import os
 from freeciv_agent.events.schema import structural_hash
 
 
-_AUTHORITY_CHECKS = frozenset((
-    "domain-authority-gate",
-    "revision-current-evaluation",
-    "legacy-winner-fdas-route-binding",
-    "bounded-city-stability-contract",
-    "authority-pressure-readout",
-    "resource-and-packet-schedule",
-    "exact-fdas-commit-validation",
-))
+_AUTHORITY_CHECKS = {
+    "fdas-bounded-city-stability/1.0": frozenset((
+        "domain-authority-gate",
+        "revision-current-evaluation",
+        "legacy-winner-fdas-route-binding",
+        "bounded-city-stability-contract",
+        "authority-pressure-readout",
+        "resource-and-packet-schedule",
+        "exact-fdas-commit-validation",
+    )),
+    "fdas-bounded-defense-fortification/1.0": frozenset((
+        "domain-authority-gate",
+        "legacy-defense-category-gate",
+        "revision-current-evaluation",
+        "legacy-winner-fdas-fortification-route-binding",
+        "bounded-defense-fortification-contract",
+        "authority-pressure-readout",
+        "resource-and-packet-schedule",
+        "exact-fdas-commit-validation",
+    )),
+}
 _COMMIT_CHECKS = frozenset((
     "snapshot-and-legal-action-refresh",
     "fdas-revision-identity",
@@ -49,6 +61,24 @@ def _load_events(path):
 def _action_key(action):
     return json.dumps(
         action, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def _bounded_action_shape(authority_slice, action):
+    if authority_slice == "fdas-bounded-city-stability/1.0":
+        return bool(
+            isinstance(action, dict)
+            and action.get("action_type") == "city_governor"
+            and isinstance(action.get("city_id"), int)
+            and not isinstance(action.get("city_id"), bool)
+            and action.get("target") == {"food_surplus_reserve": 1})
+    if authority_slice == "fdas-bounded-defense-fortification/1.0":
+        return bool(
+            isinstance(action, dict)
+            and set(action) == {"action_type", "actor_id"}
+            and action.get("action_type") == "unit_fortify"
+            and isinstance(action.get("actor_id"), int)
+            and not isinstance(action.get("actor_id"), bool))
+    return False
 
 
 def _causal_path(ancestor, descendant, parents):
@@ -166,6 +196,7 @@ def audit_fdas_authority_live(game_dir, repo=None):
                 None if sent_row is None else sent_row["event_id"]),
             "authority_event_id": decision["event_id"],
             "authority_checks": list(details.get("checks", ())),
+            "authority_slice": details.get("authority_slice"),
             "authority_pressure_status": pressure.get("status"),
             "authority_to_send_distance": (
                 None if not sent_path else len(sent_path) - 1),
@@ -194,11 +225,8 @@ def audit_fdas_authority_live(game_dir, repo=None):
             "snapshot_id": details.get("snapshot_id"),
             "turn": decision["turn"],
             "within_bounded_action_shape": (
-                isinstance(bounded_action, dict)
-                and bounded_action.get("action_type") == "city_governor"
-                and isinstance(bounded_action.get("city_id"), int)
-                and not isinstance(bounded_action.get("city_id"), bool)
-                and bounded_action.get("target") == {"food_surplus_reserve": 1}),
+                _bounded_action_shape(
+                    details.get("authority_slice"), bounded_action)),
         })
 
     terminal_summary = (
@@ -226,7 +254,9 @@ def audit_fdas_authority_live(game_dir, repo=None):
             and row["event_revision_id"] == row["revision_id"]
             for row in authorization_rows),
         "all_declared_authority_and_commit_checks_ran": all(
-            _AUTHORITY_CHECKS.issubset(row["authority_checks"])
+            row["authority_slice"] in _AUTHORITY_CHECKS
+            and _AUTHORITY_CHECKS[row["authority_slice"]].issubset(
+                row["authority_checks"])
             and _COMMIT_CHECKS.issubset(row["commit_checks"])
             for row in authorization_rows),
         "all_packet_schedules_are_conserved_non_authoritative": all(

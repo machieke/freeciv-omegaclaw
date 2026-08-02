@@ -369,6 +369,7 @@ class FdasRuntime(object):
         self._candidate_factory = None
         self._pressure_adapter = None
         self._authority_adapter = None
+        self._authority_domain = None
         self._last_cold_verification_turn = {}
 
     @property
@@ -476,7 +477,7 @@ class FdasRuntime(object):
         self._pressure_adapter = pressure_adapter
         return self
 
-    def configure_authority(self, authority_adapter):
+    def configure_authority(self, authority_adapter, authority_domain):
         """Install the separately gated bounded authority readout."""
         if not self.enabled or not self.config.authority_enabled:
             raise FdasRuntimeConfigurationError(
@@ -484,7 +485,12 @@ class FdasRuntime(object):
         if authority_adapter is None:
             raise FdasRuntimeConfigurationError(
                 "FDAS authority adapter is required")
+        domains = self.config.section("domain_authority")
+        if authority_domain not in domains or not domains[authority_domain]:
+            raise FdasRuntimeConfigurationError(
+                "FDAS authority adapter domain is not enabled")
         self._authority_adapter = authority_adapter
+        self._authority_domain = authority_domain
         return self
 
     @staticmethod
@@ -692,10 +698,18 @@ class FdasRuntime(object):
             raise RuntimeError(
                 "FDAS authority requires the current revision")
         domains = self.config.section("domain_authority")
-        return self._authority_adapter.evaluate(
-            snapshot, revision, shadow_evaluation, legacy_candidate,
-            authority_enabled=self.config.authority_enabled,
-            city_stability_enabled=domains["city_stability"])
+        if self._authority_domain == "city_stability":
+            return self._authority_adapter.evaluate(
+                snapshot, revision, shadow_evaluation, legacy_candidate,
+                authority_enabled=self.config.authority_enabled,
+                city_stability_enabled=domains["city_stability"])
+        if self._authority_domain == "city_defense":
+            return self._authority_adapter.evaluate(
+                snapshot, revision, shadow_evaluation, legacy_candidate,
+                authority_enabled=self.config.authority_enabled,
+                city_defense_enabled=domains["city_defense"])
+        raise FdasRuntimeConfigurationError(
+            "configured FDAS authority domain has no runtime adapter")
 
     def emit_current(self, writer, snapshot, caused_by=(), prior_revision=None):
         """Emit bounded causal evidence for the current rich revision."""
@@ -859,6 +873,21 @@ def build_runtime(declaration, ruleset_ir=None, belief_store=None,
             GoalFactory(), CandidateOperationFactory(ruleset_ir, digest),
             DependentAtomPressureAdapter())
         if config.authority_enabled:
-            from ...planning import FdasBoundedCityAuthority
-            runtime.configure_authority(FdasBoundedCityAuthority())
+            from ...planning import (
+                FdasBoundedCityAuthority,
+                FdasBoundedDefenseAuthority,
+            )
+            domains = config.section("domain_authority")
+            active_domains = tuple(sorted(
+                name for name, enabled in domains.items() if enabled))
+            if active_domains == ("city_stability",):
+                runtime.configure_authority(
+                    FdasBoundedCityAuthority(), "city_stability")
+            elif active_domains == ("city_defense",):
+                runtime.configure_authority(
+                    FdasBoundedDefenseAuthority(), "city_defense")
+            else:
+                raise FdasRuntimeConfigurationError(
+                    "no bounded runtime adapter for FDAS authority domains "
+                    "{}".format(active_domains))
     return runtime

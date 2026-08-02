@@ -19,6 +19,8 @@ from .impact_types import ImpactCandidate
 
 
 _AUTHORITY_IDENTITY = "fdas-bounded-city-stability/1.0"
+_DEFENSE_AUTHORITY_IDENTITY = (
+    "fdas-bounded-defense-fortification/1.0")
 
 
 @dataclass(frozen=True)
@@ -231,6 +233,263 @@ class FdasBoundedCityAuthority(object):
                 operation_id=selected_id, action_key=source.action_key,
                 checks=checks + ["bounded-city-stability-contract"])
         checks.append("bounded-city-stability-contract")
+        goal_ids = frozenset(candidate.operation.goal_ids)
+        route_goals = tuple(
+            value for value in shadow_evaluation.goals
+            if value.goal.goal_id in goal_ids)
+        authority_pressure = self.pressure_adapter.evaluate(
+            revision, route_goals, (candidate,))
+        authority_pressure_value = {
+            "evaluation_hash": authority_pressure.evaluation_hash,
+            "schedule_hash": authority_pressure.schedule.get(
+                "structural_hash"),
+            "selected_operation_id": authority_pressure.schedule.get(
+                "selected_operation_id"),
+            "status": authority_pressure.status,
+        }
+        if authority_pressure.schedule.get("selected_operation_id") != \
+                candidate.operation.operation_id:
+            return self._readout(
+                "fallback", "fdas-authority-route-not-selected",
+                snapshot, revision, operation_id=selected_id,
+                action_key=candidate.action_key,
+                checks=checks + ["authority-pressure-readout"],
+                authority_pressure=authority_pressure_value)
+        checks.append("authority-pressure-readout")
+        scheduling = self.scheduling_bridge.schedule(
+            authority_pressure, (candidate,), snapshot,
+            packet_budgets=(
+                PacketBudget(ResourceKind.ACTION, 1),
+                PacketBudget(ResourceKind.CPU, 1),
+            ))
+        if candidate.operation.operation_id not in \
+                scheduling.joint_selected_operation_ids:
+            return self._readout(
+                "fallback", "fdas-resource-or-packet-schedule-rejected",
+                snapshot, revision, operation_id=selected_id,
+                action_key=candidate.action_key,
+                checks=checks + ["resource-and-packet-schedule"],
+                scheduling=scheduling,
+                authority_pressure=authority_pressure_value)
+        checks.append("resource-and-packet-schedule")
+        binding = FDASCommitBinding.create(
+            revision, snapshot, candidate, route_goals)
+        validation = self.commit_validator.validate(
+            binding, revision, snapshot, candidate,
+            authority_enabled=True)
+        if not validation.plan_materialization_authorized:
+            return self._readout(
+                "fallback", validation.reason, snapshot, revision,
+                operation_id=selected_id, action_key=candidate.action_key,
+                checks=checks + ["exact-fdas-commit-validation"],
+                scheduling=scheduling, validation=validation,
+                authority_pressure=authority_pressure_value)
+        checks.append("exact-fdas-commit-validation")
+        return self._readout(
+            "authorized", None, snapshot, revision,
+            operation_id=selected_id, action_key=candidate.action_key,
+            checks=checks, scheduling=scheduling, validation=validation,
+            authority_pressure=authority_pressure_value)
+
+
+class FdasBoundedDefenseAuthority(object):
+    """Authorize one exact legacy-selected fortification or fallback."""
+
+    AUTHORITY_IDENTITY = _DEFENSE_AUTHORITY_IDENTITY
+
+    def __init__(self, pressure_adapter=None, scheduling_bridge=None,
+                 commit_validator=None):
+        self.pressure_adapter = (
+            pressure_adapter or DependentAtomPressureAdapter())
+        self.scheduling_bridge = (
+            scheduling_bridge or DependentAtomSchedulingBridge())
+        self.commit_validator = commit_validator or FDASCommitValidator()
+
+    @staticmethod
+    def _readout(status, reason, snapshot, revision, operation_id=None,
+                 action_key=None, checks=(), scheduling=None,
+                 validation=None, authority_pressure=None):
+        scheduling_value = (
+            None if scheduling is None
+            else scheduling.to_dict(include_latency=False))
+        validation_value = (
+            None if validation is None else validation.to_dict())
+        semantic = {
+            "action_key": action_key,
+            "authority_slice": _DEFENSE_AUTHORITY_IDENTITY,
+            "authority_pressure": authority_pressure,
+            "checks": list(checks),
+            "commit_validation": validation_value,
+            "operation_id": operation_id,
+            "reason": reason,
+            "revision_id": revision.revision_id,
+            "scheduling": scheduling_value,
+            "snapshot_id": snapshot.snapshot_id,
+            "status": status,
+        }
+        return FdasAuthorityReadout(
+            status, reason, snapshot.snapshot_id, revision.revision_id,
+            operation_id, action_key, _DEFENSE_AUTHORITY_IDENTITY,
+            tuple(checks), authority_pressure, scheduling_value,
+            validation_value, structural_hash(semantic))
+
+    @staticmethod
+    def _target_city(goal):
+        values = tuple(
+            value.entity_id for value in goal.target_key.arguments
+            if (getattr(value, "kind", None) == "city"
+                and getattr(value, "entity_id", None) is not None))
+        return values[0] if len(values) == 1 else None
+
+    @staticmethod
+    def _opportunity_record(revision, actor_id, city_id):
+        matches = tuple(
+            record for record in revision.records
+            if (record.key.predicate == "unit-fortification-opportunity"
+                and len(record.key.arguments) == 2
+                and getattr(record.key.arguments[0], "entity_id", None)
+                == str(actor_id)
+                and getattr(record.key.arguments[1], "entity_id", None)
+                == str(city_id)))
+        return matches[0] if len(matches) == 1 else None
+
+    def _promote(self, candidate, snapshot, revision, goals):
+        if not isinstance(candidate, ShadowOperationCandidate):
+            return None, "selected-operation-candidate-unavailable"
+        if (not candidate.legal_bound
+                or candidate.action_key not in snapshot.legal_action_json):
+            return None, "selected-action-not-currently-legal"
+        action = candidate.action
+        if (
+                action.get("action_type") != "unit_fortify"
+                or set(action) != {"action_type", "actor_id"}
+                or isinstance(action.get("actor_id"), bool)
+                or not isinstance(action.get("actor_id"), int)):
+            return None, "outside-bounded-defense-fortification-action-shape"
+        goal_by_id = dict((value.goal.goal_id, value) for value in goals)
+        routes = tuple(
+            goal_by_id.get(goal_id)
+            for goal_id in candidate.operation.goal_ids)
+        if (len(routes) != 1
+                or routes[0] is None
+                or routes[0].deficit_predicate
+                != "unit-fortification-opportunity"):
+            return None, "outside-bounded-unit-fortification-route"
+        city_id = self._target_city(routes[0])
+        city = snapshot.city(city_id)
+        actor_id = action["actor_id"]
+        actor = snapshot.unit(actor_id)
+        if (city is None or city.tile is None or actor is None
+                or actor.tile != city.tile):
+            return None, "current-defense-actor-or-city-state-unavailable"
+        if str(actor.activity or "").lower() in (
+                "fortify", "fortified", "fortifying"):
+            return None, "current-unit-is-already-fortifying"
+        opportunity = self._opportunity_record(
+            revision, actor_id, city_id)
+        if opportunity is None or not opportunity.supports:
+            return None, "fdas-fortification-opportunity-support-unavailable"
+        if candidate.resource_keys != (
+                "unit-action:{}".format(actor_id),):
+            return None, "bounded-defense-resource-identity-mismatch"
+        permitted_blockers = frozenset((
+            "legacy-shadow-control-route-uncompiled",
+            "uncompiled-action-effect",
+        ))
+        unexpected_blockers = tuple(
+            value for value in candidate.blockers
+            if value not in permitted_blockers)
+        if unexpected_blockers:
+            return None, "candidate-has-noncontractual-blockers"
+        operation = replace(
+            candidate.operation,
+            provenance=tuple(
+                value for value in candidate.operation.provenance
+                if value != "no-action-authority") + (
+                    _DEFENSE_AUTHORITY_IDENTITY,
+                    "freeciv-unit-fortification-contract/1.0",
+                    "legacy-selected-byte-identical-pass-through",
+                ))
+        semantic = {
+            "action_key": candidate.action_key,
+            "authority_identity": _DEFENSE_AUTHORITY_IDENTITY,
+            "goal_ids": list(operation.goal_ids),
+            "operation_spec_digest": operation.spec_digest,
+            "resource_keys": list(candidate.resource_keys),
+            "opportunity_atom_id": opportunity.atom_id,
+            "snapshot_id": snapshot.snapshot_id,
+        }
+        promoted = replace(
+            candidate,
+            operation=operation,
+            authority_eligible=True,
+            blockers=(),
+            provenance=tuple(candidate.provenance) + (
+                _DEFENSE_AUTHORITY_IDENTITY,
+                "atom:{}".format(opportunity.atom_id),
+                "freeciv-unit-fortification-contract/1.0",
+                "legacy-selected-byte-identical-pass-through",
+            ),
+            candidate_hash=structural_hash(semantic),
+        )
+        return promoted, None
+
+    def evaluate(self, snapshot, revision, shadow_evaluation,
+                 legacy_candidate, authority_enabled=False,
+                 city_defense_enabled=False):
+        checks = []
+        if not authority_enabled or not city_defense_enabled:
+            return self._readout(
+                "disabled", "fdas-city-defense-authority-disabled",
+                snapshot, revision, checks=("domain-authority-gate",))
+        checks.append("domain-authority-gate")
+        if not isinstance(legacy_candidate, ImpactCandidate):
+            return self._readout(
+                "fallback", "legacy-selected-candidate-unavailable",
+                snapshot, revision, checks=checks)
+        if legacy_candidate.category != "city_defense":
+            return self._readout(
+                "fallback", "legacy-winner-is-not-city-defense",
+                snapshot, revision, action_key=legacy_candidate.action_key,
+                checks=checks + ["legacy-defense-category-gate"])
+        checks.append("legacy-defense-category-gate")
+        if (
+                shadow_evaluation.snapshot_id != snapshot.snapshot_id
+                or shadow_evaluation.revision_id != revision.revision_id):
+            return self._readout(
+                "fallback", "fdas-evaluation-not-current",
+                snapshot, revision, checks=checks + [
+                    "revision-current-evaluation"])
+        checks.append("revision-current-evaluation")
+        fortification_goal_ids = frozenset(
+            value.goal.goal_id for value in shadow_evaluation.goals
+            if value.deficit_predicate
+            == "unit-fortification-opportunity")
+        candidates = tuple(
+            value for value in shadow_evaluation.candidates
+            if (value.action_key == legacy_candidate.action_key
+                and value.operation.goal_ids
+                and set(value.operation.goal_ids)
+                <= fortification_goal_ids))
+        if len(candidates) != 1:
+            return self._readout(
+                "fallback",
+                "legacy-winner-has-no-unique-fdas-fortification-route",
+                snapshot, revision, action_key=legacy_candidate.action_key,
+                checks=checks + [
+                    "legacy-winner-fdas-fortification-route-binding"])
+        source = candidates[0]
+        selected_id = source.operation.operation_id
+        checks.append("legacy-winner-fdas-fortification-route-binding")
+        candidate, reason = self._promote(
+            source, snapshot, revision, shadow_evaluation.goals)
+        if candidate is None:
+            return self._readout(
+                "fallback", reason, snapshot, revision,
+                operation_id=selected_id, action_key=source.action_key,
+                checks=checks + [
+                    "bounded-defense-fortification-contract"])
+        checks.append("bounded-defense-fortification-contract")
         goal_ids = frozenset(candidate.operation.goal_ids)
         route_goals = tuple(
             value for value in shadow_evaluation.goals

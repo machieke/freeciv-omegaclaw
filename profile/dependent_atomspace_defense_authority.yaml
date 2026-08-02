@@ -1,0 +1,65 @@
+dependent_atomspace:
+  enabled: true
+  shadow_enabled: true
+  authority_enabled: true
+  shadow_refresh_policy: "every-snapshot"
+  schema_version: "1.1"
+  store_backend: "memory"
+  cold_verify_sample_rate: 0.05
+  revision_retention: 4
+
+  projection:
+    ruleset: true
+    world: true
+    empire: true
+    economy: true
+    research: false
+    city: true
+    unit: true
+    region: true
+    route_corridors: false
+    settlement_sites: false
+    population_recovery: false
+    transport: false
+    combat: false
+    beliefs: false
+    operations: true
+
+  materialization:
+    maximum_atoms_global: 25000
+    maximum_atoms_per_city_scope: 500
+    maximum_atoms_per_unit_scope: 200
+    maximum_atoms_per_region_scope: 3000
+    maximum_rule_fires_per_scope: 2000
+    maximum_groundings_per_scope: 1000
+    maximum_expansion_depth: 6
+    focused_scope_ttl_turns: 3
+
+  inference:
+    generic_rule_engine_enabled: false
+    technology_compatibility_path_enabled: true
+    deterministic_forward_enabled: true
+    goal_regression_enabled: true
+    uncertain_assessment_enabled: false
+
+  learning:
+    episode_attribution_enabled: false
+    contextual_conductance_enabled: false
+    contextual_conductance_authority_enabled: false
+    induction_enabled: false
+    induced_rule_readout_enabled: false
+
+  domain_authority:
+    city_stability: false
+    city_production: false
+    city_defense: true
+    local_movement: false
+    expansion: false
+    combat: false
+    transport: false
+    research: false
+
+  events:
+    support_level: "selected"
+    explanation_capture: true
+    shadow_divergence_capture: true

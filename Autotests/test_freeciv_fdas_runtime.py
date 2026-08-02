@@ -173,6 +173,32 @@ def test_checked_defense_shadow_runtime_assembles_only_declared_projectors():
         "turn-boundary-before-readout")
 
 
+def test_checked_defense_authority_runtime_installs_only_defense_adapter():
+    declaration = load_runtime_declaration(
+        os.path.join(
+            REPO, "profile", "dependent_atomspace_defense_authority.yaml"),
+        os.path.join(
+            REPO, "profile", "fdas_manifest_defense_authority.json"),
+    )
+    ir = compile_ruleset(_ruleset_root(), "civ2civ3")
+
+    runtime = build_runtime(
+        declaration,
+        ruleset_ir=ir,
+        operation_records_source=lambda: ())
+
+    assert runtime.config.authority_enabled is True
+    assert runtime._authority_domain == "city_defense"
+    assert runtime._authority_adapter.AUTHORITY_IDENTITY == (
+        "fdas-bounded-defense-fortification/1.0")
+    assert runtime.projector_ids == (
+        "fdas-city-economy-shadow",
+        "fdas-unit-defense-shadow",
+        "fdas-city-region-shadow",
+        "fdas-operation-projector",
+    )
+
+
 def test_route_corridor_shadow_projection_can_be_activated_independently():
     runtime = build_runtime(_enabled_corridor_only_declaration())
 

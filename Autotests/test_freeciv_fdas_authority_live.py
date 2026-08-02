@@ -30,6 +30,7 @@ def _fixture(tmp_path, result_status="accepted"):
     events = [
         _event("e1", "atomspace_authority_decision", {"details": {
             "action_key": action_key,
+            "authority_slice": "fdas-bounded-city-stability/1.0",
             "authority_pressure": {"status": "complete"},
             "checks": [
                 "domain-authority-gate",

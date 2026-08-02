@@ -93,6 +93,8 @@ def unit_defense_predicate_registry():
               derived, ("city-facts",)),
         _spec("unit-fortification-opportunity", (("unit",), ("city",)),
               derived, ("city-facts",)),
+        _spec("unit-fortified-ready", (("unit",), ("city",)),
+              derived, ("city-facts",)),
         _spec("unit-reinforcement-route", (("unit",), ("city",)),
               derived, ("city-facts",)),
         _spec("city-replacement-defender-available", (
@@ -544,7 +546,8 @@ class UnitDefenseProjector(object):
                         "unit-fortification-opportunity",
                         (unit_ref, city_ref),
                         AuthorityClass.DETERMINISTIC_DERIVED,
-                        current.dependencies + (fortify[1],),
+                        defender.dependencies + current.dependencies
+                        + (fortify[1],),
                         {
                             "action_key": fortify[0],
                             "factual_garrison_deficit": (

@@ -69,3 +69,18 @@ verification, emitted no authority event, and passed the 150 ms FDAS and 500 ms
 controller p95 gates. See `fdas-pr14-defense-shadow.md`. PR 15 bounded defense
 authority and live episode attribution remain separate and are not implied by
 this promotion.
+
+## Post-substrate bounded defense authority
+
+PR 15 now has a default-off bounded fortification implementation and accepted
+captured replay. It can authorize only an exact legacy-selected
+`unit_fortify` backed by a current FDAS fortification opportunity, exact actor
+resource/packet scheduling, and commit revalidation. The frozen corpus
+exercised 13 authorizations and 25 explicit fallbacks with zero winner changes
+or replay failures. A linked episode fixture separates server acceptance from
+the authoritative fortified effect and realized goal relief. See
+`fdas-bounded-defense-authority.md`.
+
+This is not yet an engine-live promotion: fresh clean-source execution and
+durable episode event wiring remain open, and the default manifest is
+unchanged.

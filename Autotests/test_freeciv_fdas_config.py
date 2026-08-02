@@ -113,6 +113,54 @@ def test_checked_defense_shadow_profile_is_narrow_and_non_authoritative():
         "shadow-live")
 
 
+def test_checked_defense_authority_profile_requires_exact_bounded_stack():
+    with open(os.path.join(
+            REPO, "profile", "dependent_atomspace_defense_authority.yaml"),
+            encoding="utf-8") as stream:
+        value = yaml.safe_load(stream)["dependent_atomspace"]
+    with open(os.path.join(
+            REPO, "profile", "fdas_manifest_defense_authority.json"),
+            encoding="utf-8") as stream:
+        manifest = json.load(stream)
+
+    config = DependentAtomSpaceConfig.from_dict(value, manifest)
+
+    assert config.enabled is True
+    assert config.authority_enabled is True
+    assert config.shadow_refresh_policy == "every-snapshot"
+    assert config.section("domain_authority") == {
+        "city_defense": True,
+        "city_production": False,
+        "city_stability": False,
+        "combat": False,
+        "expansion": False,
+        "local_movement": False,
+        "research": False,
+        "transport": False,
+    }
+    assert not any(config.section("learning").values())
+    assert manifest["status"] == "bounded-authority"
+    assert manifest["policy_authority"] is True
+    for capability in (
+            "dependent_atom_pressure_adapter",
+            "defense_operation_reconciliation",
+            "defense_requirement_projection",
+            "fdas_exact_commit_validation",
+            "fdas_resource_packet_bridge",
+            "operation_atom_projection",
+            "unit_domain_projection"):
+        assert manifest["capabilities"][capability] == "bounded-authority"
+
+    for capability in (
+            "defense_operation_reconciliation",
+            "defense_requirement_projection",
+            "operation_atom_projection"):
+        rejected = copy.deepcopy(manifest)
+        rejected["capabilities"][capability] = "shadow-live"
+        with pytest.raises(ValueError, match=capability):
+            DependentAtomSpaceConfig.from_dict(value, rejected)
+
+
 def test_unknown_configuration_fields_and_invalid_budgets_fail_closed():
     value, manifest = _values()
     unknown = copy.deepcopy(value)

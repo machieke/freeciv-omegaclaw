@@ -351,14 +351,19 @@ class FdasDefenseEpisodeRecorder(object):
         spec = operation_record.spec
         if spec.operation_id != binding.operation_id:
             raise ValueError("episode operation/binding mismatch")
-        actor_ref = spec.participants[0].actor_id
+        participant = spec.participants[0]
+        actor_ref = participant.actor_id
+        normalized_actor_ref = (
+            "unit:{}".format(actor_ref)
+            if participant.actor_class == "unit"
+            and not actor_ref.startswith("unit:") else actor_ref)
         actor = (
-            before_snapshot.unit(int(actor_ref.split(":", 1)[1]))
-            if actor_ref.startswith("unit:") else None)
+            before_snapshot.unit(int(normalized_actor_ref.split(":", 1)[1]))
+            if normalized_actor_ref.startswith("unit:") else None)
         city_id = int(spec.target_ref.split(":", 1)[1])
         city = before_snapshot.city(city_id)
         context = tuple(sorted({
-            "actor_id": actor_ref,
+            "actor_id": normalized_actor_ref,
             "actor_tile_before": str(None if actor is None else actor.tile),
             "city_id": str(city_id),
             "operation_type": spec.operation_type,
@@ -435,7 +440,9 @@ class FdasDefenseEpisodeRecorder(object):
             operation_type = context["operation_type"]
             relieved = bool(
                 (operation_type == "move_defender_to_city" and reached)
-                or (operation_type == "fortify_existing_defender"
+                or (operation_type in (
+                        "fortify_existing_defender",
+                        "fdas-shadow:unit-fortification-opportunity:unit_fortify")
                     and reached and fortified))
             effects = tuple(
                 value for value in (

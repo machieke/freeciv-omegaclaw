@@ -70,18 +70,33 @@ class ShadowOperationCandidate:
             reserve = (
                 target.get("food_surplus_reserve")
                 if isinstance(target, dict) else None)
-            if (
-                    not self.legal_bound
-                    or self.blockers
-                    or self.action.get("action_type") != "city_governor"
-                    or isinstance(reserve, bool)
-                    or not isinstance(reserve, int)
-                    or not 1 <= reserve <= 10
-                    or "fdas-bounded-city-stability/1.0"
-                    not in self.provenance):
+            city_stability = bool(
+                self.legal_bound
+                and not self.blockers
+                and self.action.get("action_type") == "city_governor"
+                and not isinstance(reserve, bool)
+                and isinstance(reserve, int)
+                and 1 <= reserve <= 10
+                and "fdas-bounded-city-stability/1.0"
+                in self.provenance)
+            defense_fortification = bool(
+                self.legal_bound
+                and not self.blockers
+                and self.action.get("action_type") == "unit_fortify"
+                and set(self.action) == {"action_type", "actor_id"}
+                and "fdas-bounded-defense-fortification/1.0"
+                in self.provenance)
+            if not city_stability and not defense_fortification:
                 raise ValueError(
-                    "FDAS authority candidate violates the bounded city "
-                    "stability contract")
+                    "FDAS authority candidate violates every bounded "
+                    "authority contract")
+            if defense_fortification and (
+                    isinstance(self.action.get("actor_id"), bool)
+                    or not isinstance(self.action.get("actor_id"), int)
+            ):
+                raise ValueError(
+                    "FDAS defense authority candidate violates the bounded "
+                    "fortification action shape")
 
     def to_dict(self):
         return {
@@ -116,6 +131,7 @@ class CandidateInstantiation:
 
 
 _LEGACY_CATEGORY_GOAL_ROUTES = {
+    "city_defense": ("unit-fortification-opportunity",),
     "production_defense": ("city-garrison-deficit",),
     "production_food_stabilization": ("city-food-deficit",),
     "production_repurpose": ("city-production-stalled",),
@@ -171,9 +187,10 @@ def _goal_target_city(goal):
 
 def compare_shadow_candidates(
         snapshot, legacy_candidates, fdas_candidates, goal_contexts=()):
-    """Compare only the Phase-4 city/economy action surface."""
+    """Compare the activated city/economy and local-defense action surface."""
     action_types = frozenset((
-        "city_governor", "city_production", "player_rates", "tech_research"))
+        "city_governor", "city_production", "player_rates", "tech_research",
+        "unit_fortify", "unit_move"))
     legacy = dict(
         (value.action_key, value)
         for value in legacy_candidates
@@ -264,6 +281,8 @@ class GoalFactory(object):
             "city-production-active", "production_continuity", 1.2, False),
         "city-garrison-deficit": (
             "city-garrison-covered", "survival", 2.0, True),
+        "unit-fortification-opportunity": (
+            "unit-fortified-ready", "survival", 1.8, True),
         "treasury-below-reserve": (
             "treasury-structurally-safe", "treasury_sustainability", 1.6,
             True),
@@ -334,6 +353,7 @@ class CandidateOperationFactory(object):
         "city-order-deficit": frozenset(("city_governor",)),
         "city-production-stalled": frozenset(("city_production",)),
         "city-garrison-deficit": frozenset(("unit_move",)),
+        "unit-fortification-opportunity": frozenset(("unit_fortify",)),
         "treasury-below-reserve": frozenset(("player_rates",)),
         "research-throughput-stalled": frozenset(("tech_research",)),
     }
@@ -373,6 +393,14 @@ class CandidateOperationFactory(object):
 
     def _action_matches(self, goal, action, player_id, snapshot=None):
         city_id = CandidateOperationFactory._city_id(goal)
+        if goal.deficit_predicate == "unit-fortification-opportunity":
+            unit_ids = tuple(
+                argument.entity_id for argument in goal.target_key.arguments
+                if isinstance(argument, EntityRef) and argument.kind == "unit")
+            return bool(
+                len(unit_ids) == 1
+                and action.get("action_type") == "unit_fortify"
+                and str(action.get("actor_id")) == unit_ids[0])
         if city_id is not None:
             if goal.deficit_predicate == "city-garrison-deficit":
                 if action.get("action_type") != "unit_move" or snapshot is None:

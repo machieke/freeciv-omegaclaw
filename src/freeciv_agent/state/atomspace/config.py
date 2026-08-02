@@ -295,6 +295,12 @@ class DependentAtomSpaceConfig:
             if not config["projection"]["unit"]:
                 raise ValueError("defense authority requires unit projection")
             require("unit_domain_projection", "bounded-authority")
+        if config["domain_authority"]["city_defense"]:
+            for capability in (
+                    "defense_operation_reconciliation",
+                    "defense_requirement_projection",
+                    "operation_atom_projection"):
+                require(capability, "bounded-authority")
         required_projection = {
             "expansion": (
                 "city", "unit", "region", "route_corridors",

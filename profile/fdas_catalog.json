@@ -115,6 +115,7 @@
     {"argument_kinds": [["unit"], ["city"]], "arity": 2, "name": "unit-required-garrison", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["unit"], ["city"]], "arity": 2, "name": "unit-critical-garrison", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["unit"], ["city"]], "arity": 2, "name": "unit-fortification-opportunity", "namespace": "derived", "status": "component-only"},
+    {"argument_kinds": [["unit"], ["city"]], "arity": 2, "name": "unit-fortified-ready", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["unit"], ["city"]], "arity": 2, "name": "unit-reinforcement-route", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["city"], ["unit"]], "arity": 2, "name": "city-replacement-defender-available", "namespace": "derived", "status": "component-only"},
     {"argument_kinds": [["unit"], ["unit"], ["city"]], "arity": 3, "name": "unit-coordinated-replacement-for", "namespace": "derived", "status": "component-only"},

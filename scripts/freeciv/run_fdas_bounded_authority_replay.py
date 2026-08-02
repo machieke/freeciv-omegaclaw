@@ -35,16 +35,16 @@ DEFAULT_MANIFEST = os.path.join(
     REPO, "profile", "fdas_manifest_city_stability_authority.json")
 DEFAULT_ROLLBACK_CONFIG = os.path.join(
     REPO, "profile", "dependent_atomspace.yaml")
-IMPLEMENTATION_PATHS = (
+CORE_IMPLEMENTATION_PATHS = (
     "src/freeciv_agent/planning/fdas.py",
     "src/freeciv_agent/planning/fdas_authority.py",
     "src/freeciv_agent/planning/fdas_commit.py",
+    "src/freeciv_agent/planning/fdas_episodes.py",
     "src/freeciv_agent/pressure/fdas_adapter.py",
     "src/freeciv_agent/pressure/fdas_resources.py",
     "src/freeciv_agent/state/atomspace/runtime.py",
+    "src/freeciv_agent/state/atomspace/unit.py",
     "benchmarks/freeciv/harness/engine_live.py",
-    "profile/dependent_atomspace_city_stability_authority.yaml",
-    "profile/fdas_manifest_city_stability_authority.json",
 )
 
 
@@ -56,10 +56,16 @@ def _sha256(path):
     return digest.hexdigest()
 
 
-def implementation_identity():
+def implementation_identity(config_path=DEFAULT_CONFIG,
+                            manifest_path=DEFAULT_MANIFEST):
+    selected = tuple(
+        os.path.relpath(os.path.abspath(path), REPO)
+        for path in (config_path, manifest_path))
+    implementation_paths = tuple(dict.fromkeys(
+        CORE_IMPLEMENTATION_PATHS + selected))
     files = dict(
         (path, _sha256(os.path.join(REPO, path)))
-        for path in IMPLEMENTATION_PATHS)
+        for path in implementation_paths)
     return {
         "files": files,
         "implementation_digest": structural_hash(files),
@@ -161,6 +167,9 @@ def main(argv=None):
     parser.add_argument("--config", default=DEFAULT_CONFIG)
     parser.add_argument("--manifest", default=DEFAULT_MANIFEST)
     parser.add_argument("--rollback-config", default=DEFAULT_ROLLBACK_CONFIG)
+    parser.add_argument(
+        "--authority-domain", default="city-stability",
+        choices=("city-stability", "city-defense"))
     parser.add_argument("--capture-manifest", action="append",
                         dest="capture_manifests")
     parser.add_argument("--output")
@@ -213,19 +222,39 @@ def main(argv=None):
         row["readout"]["authority_pressure"]["selected_operation_id"]
         == row["readout"]["operation_id"]
         for row in authorized)
+    expected_domain = {
+        "city-stability": "city_stability",
+        "city-defense": "city_defense",
+    }[args.authority_domain]
+    expected_domains = {
+        "city_defense": False,
+        "city_production": False,
+        "city_stability": False,
+        "combat": False,
+        "expansion": False,
+        "local_movement": False,
+        "research": False,
+        "transport": False,
+    }
+    expected_domains[expected_domain] = True
+    declared_shape = all(
+        (row["legacy_category"] == "city_food_governor"
+         and json.loads(row["action_key"])["action_type"]
+         == "city_governor")
+        if args.authority_domain == "city-stability" else
+        (row["legacy_category"] == "city_defense"
+         and json.loads(row["action_key"]) == {
+             "action_type": "unit_fortify",
+             "actor_id": json.loads(row["action_key"])["actor_id"],
+         })
+        for row in authorized)
     gates = {
-        "authority_profile_is_narrow_city_stability": (
+        "authority_profile_is_narrow_{}".format(
+            args.authority_domain.replace("-", "_")): (
             declaration["config"]["authority_enabled"] is True
-            and declaration["config"]["domain_authority"] == {
-                "city_defense": False,
-                "city_production": False,
-                "city_stability": True,
-                "combat": False,
-                "expansion": False,
-                "local_movement": False,
-                "research": False,
-                "transport": False,
-            }),
+            and declaration["config"]["domain_authority"]
+            == expected_domains),
+        "authorized_actions_match_declared_shape": declared_shape,
         "default_profile_rolls_back_all_fdas_authority": (
             rollback["config"]["authority_enabled"] is False
             and not any(rollback["config"]["domain_authority"].values())
@@ -246,8 +275,8 @@ def main(argv=None):
     }
     report = {
         "claim_scope": (
-            "bounded-city-stability-pass-through-authority; "
-            "no-gameplay-improvement-claim"),
+            "bounded-{}-pass-through-authority; "
+            "no-gameplay-improvement-claim".format(args.authority_domain)),
         "config": {
             "declaration_hash": declaration["declaration_hash"],
             "manifest_path": os.path.relpath(args.manifest, REPO),
@@ -280,8 +309,8 @@ def main(argv=None):
                 for row in authorized),
         },
         "ruleset": args.ruleset,
-        "schema_version": "1.0",
-        "source": implementation_identity(),
+        "schema_version": "1.1",
+        "source": implementation_identity(args.config, args.manifest),
     }
     semantic = dict(report)
     semantic.pop("generated_at")

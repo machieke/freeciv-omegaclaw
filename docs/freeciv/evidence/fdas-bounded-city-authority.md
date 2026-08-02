@@ -75,7 +75,7 @@ Results:
 | Explicit legacy fallbacks | 34 |
 | Policy winner changes | 0 |
 | Replay failures | 0 |
-| Authority readout p50 / p95 | 0.045 / 1.602 ms |
+| Authority readout p50 / p95 | 0.046 / 1.615 ms |
 
 All eleven acceptance gates passed. The two complete runs produced identical
 semantic readouts. Every authorized action matched the legacy winner exactly,
@@ -85,9 +85,9 @@ commit record retained `execution_authority: false`, proving that the final
 execution gate remains downstream.
 
 The report hash is
-`7df235aaea42cf06d56b23a898543689100fb9848da0bc6f483b0f84687a17d5`;
+`dde11f4efdb98b5d9a457b9d0a1c2614b6e9c1d6cb841c1bd8ae516a3815f89a`;
 its implementation digest is
-`ef94d3e15ad0ca278f3608500fe62a729403c7489d0a443113993e6c95409db2`.
+`9a96315599b71d16f933edca2a3146dcfb356517b1f6a13b1a66fceb8dd77eab`.
 
 The 34 fallbacks report
 `legacy-winner-has-no-unique-fdas-food-route`. This is intentional: actions
@@ -161,7 +161,8 @@ inventory was regenerated:
 1298 passed in 385.00s
 ```
 
-The complete FDAS subset passed 203 tests after the live auditor was added.
+The current complete FDAS subset passed 211 tests after the bounded defense
+slice and generalized live auditor were added.
 
 The authority-specific pressure suite passed 16 tests, including exact
 pass-through, default-off rollback, different-winner fallback, stale-revision
