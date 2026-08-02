@@ -238,9 +238,10 @@ def test_declared_city_input_change_recomputes_rich_component():
     assert update.cold_verification.equivalent
     assert update.materialization_metrics.recomputed_projector_ids == (
         "fdas-city-economy-shadow",)
-    assert update.materialization_metrics.reused_projector_ids == ()
+    assert update.materialization_metrics.reused_projector_ids == (
+        "fdas-city-economy-shadow",)
     assert update.materialization_metrics.rich_recomputed_records > 0
-    assert update.materialization_metrics.rich_reused_records == 0
+    assert update.materialization_metrics.rich_reused_records > 0
 
 
 def test_city_input_change_recomputes_only_affected_entity_shards():
@@ -267,10 +268,94 @@ def test_city_input_change_recomputes_only_affected_entity_shards():
         "fdas-city-economy-shadow/empire",
         "fdas-city-economy-shadow/city:3",
     )
-    assert metrics.reused_shard_ids == (
-        "fdas-city-economy-shadow/city:4",)
+    assert "fdas-city-economy-shadow/city:4" in metrics.reused_shard_ids
+    assert len(tuple(
+        value for value in metrics.reused_shard_ids
+        if "/legal-action:" in value)) == 2
     assert metrics.rich_recomputed_records > 0
     assert metrics.rich_reused_records > 0
+
+
+def test_legal_action_addition_reuses_stable_action_record_shards():
+    declaration = _enabled_city_declaration()
+    declaration["config"]["cold_verify_sample_rate"] = 1.0
+    semantic = dict(declaration)
+    semantic.pop("declaration_hash")
+    from freeciv_agent.events.schema import structural_hash
+    declaration["declaration_hash"] = structural_hash(semantic)
+    runtime = build_runtime(declaration)
+    with open(FIXTURE, encoding="utf-8") as stream:
+        before = json.load(stream)
+    after = copy.deepcopy(before)
+    after["legal_actions"].append({
+        "action_type": "player_rates",
+        "actor_id": 0,
+        "is_valid": True,
+        "luxury": 20,
+        "science": 50,
+        "tax": 30,
+    })
+    first = ProxyStateDTO.parse("fdas-runtime", 431, before).to_snapshot()
+    second = ProxyStateDTO.parse("fdas-runtime", 432, after).to_snapshot()
+
+    runtime.replace(first)
+    update = runtime.replace(second)
+    metrics = update.materialization_metrics
+
+    assert update.cold_verification.equivalent
+    assert len(metrics.recomputed_shard_ids) == 1
+    assert metrics.recomputed_shard_ids[0].startswith(
+        "fdas-city-economy-shadow/legal-action:")
+    assert dict(metrics.recomputed_shard_records)[
+        metrics.recomputed_shard_ids[0]] == 2
+    assert len(tuple(
+        value for value in metrics.reused_shard_ids
+        if "/legal-action:" in value)) == 2
+    assert sum(
+        count for shard_id, count in metrics.reused_shard_records
+        if "/legal-action:" in shard_id) == 4
+
+    after_removal = copy.deepcopy(after)
+    after_removal["legal_actions"].pop(0)
+    third = ProxyStateDTO.parse(
+        "fdas-runtime", 433, after_removal).to_snapshot()
+    removed_actions = set(second.legal_action_json).difference(
+        third.legal_action_json)
+    assert len(removed_actions) == 1
+    removed_action_id = CityEconomyProjector._legal_action_identity(
+        next(iter(removed_actions)))[1]
+    removal = runtime.replace(third)
+    current = runtime.snapshot_store.current_dependent_revision(
+        third.identity.game_id, third.player_id)
+
+    assert removal.cold_verification.equivalent
+    assert removal.materialization_metrics.recomputed_shard_ids == ()
+    assert all(
+        not (record.key.predicate in (
+            "legal-action-for", "legal-action-type")
+            and record.key.arguments[0].entity_id == removed_action_id)
+        for record in current.records)
+
+
+def test_overlapping_shards_require_valid_explicit_record_owner(monkeypatch):
+    monkeypatch.delattr(
+        CityEconomyProjector, "projection_shard_for_record")
+    runtime = build_runtime(_enabled_city_declaration())
+
+    with pytest.raises(
+            SnapshotConflict,
+            match="overlapping projection shard scopes require explicit"):
+        runtime.replace(_snapshot())
+
+
+def test_overlapping_shards_reject_invalid_record_owner(monkeypatch):
+    monkeypatch.setattr(
+        CityEconomyProjector, "projection_shard_for_record",
+        staticmethod(lambda _record: "unknown-shard"))
+    runtime = build_runtime(_enabled_city_declaration())
+
+    with pytest.raises(SnapshotConflict, match="returned invalid shard owner"):
+        runtime.replace(_snapshot())
 
 
 def test_rich_projector_undeclared_snapshot_read_fails_closed(monkeypatch):
@@ -285,19 +370,19 @@ def test_rich_projector_undeclared_snapshot_read_fails_closed(monkeypatch):
     with pytest.raises(
             SnapshotConflict,
             match=(
-                "fdas-city-economy-shadow read undeclared snapshot roots: "
-                "cities")):
+                "projection shard dependencies exceed projector "
+                "declaration: empire")):
         runtime.replace(_snapshot())
 
 
 def test_city_entity_shard_undeclared_dependency_fails_closed(monkeypatch):
     original = CityEconomyProjector.projection_shards
 
-    def missing_city_prefix(self, scopes):
+    def missing_city_prefix(self, snapshot, scopes):
         return tuple(
             replace(spec, snapshot_prefixes=("player_id",))
             if spec.shard_id == "city:3" else spec
-            for spec in original(self, scopes))
+            for spec in original(self, snapshot, scopes))
 
     monkeypatch.setattr(
         CityEconomyProjector, "projection_shards", missing_city_prefix)

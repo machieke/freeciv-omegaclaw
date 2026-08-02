@@ -177,6 +177,15 @@ class CompositeDomainProjector(object):
                 roots.setdefault(root, []).append((key, fingerprint))
             elif key.kind in wanted_kinds:
                 kinds.setdefault(key.kind, []).append((key, fingerprint))
+        root_rows = dict(
+            (root, tuple(sorted(rows))) for root, rows in roots.items())
+        prefix_rows = {}
+        for rows in root_rows.values():
+            for row in rows:
+                parts = str(row[0].path).split(".")
+                for length in range(1, len(parts) + 1):
+                    prefix = ".".join(parts[:length])
+                    prefix_rows.setdefault(prefix, []).append(row)
         return {
             "kinds": dict(
                 (kind, cls._semantic_fingerprint(tuple(sorted(rows))))
@@ -184,8 +193,9 @@ class CompositeDomainProjector(object):
             "roots": dict(
                 (root, cls._semantic_fingerprint(tuple(sorted(rows))))
                 for root, rows in roots.items()),
-            "root_rows": dict(
-                (root, tuple(sorted(rows))) for root, rows in roots.items()),
+            "prefix_rows": dict(
+                (prefix, tuple(rows))
+                for prefix, rows in prefix_rows.items()),
         }
 
     @staticmethod
@@ -199,15 +209,14 @@ class CompositeDomainProjector(object):
             ("kind", kind, fingerprint_index["kinds"].get(kind))
             for kind in sorted(spec.dependency_kinds)]
         for prefix in spec.snapshot_prefixes:
-            root = cls._root(prefix)
-            rows = tuple(
-                row for row in fingerprint_index["root_rows"].get(root, ())
-                if cls._matches_prefix(row[0].path, prefix))
+            rows = fingerprint_index["prefix_rows"].get(prefix, ())
             semantic.append((
-                "snapshot-prefix", prefix,
-                cls._semantic_fingerprint(rows)))
+                "snapshot-prefix", prefix, rows))
         semantic.append(("output-scopes", spec.scope_ids))
-        return structural_hash(semantic)
+        # This signature is private in-memory cache state. Exact immutable
+        # dependency rows are both cheaper and stronger than hashing each of
+        # hundreds of small entity shards independently.
+        return tuple(semantic)
 
     @classmethod
     def _component_fingerprint(
@@ -234,8 +243,9 @@ class CompositeDomainProjector(object):
         return structural_hash(semantic)
 
     @staticmethod
-    def _refresh(records, scopes):
-        scope_by_id = dict((value.scope_id, value) for value in scopes)
+    def _refresh(records, scopes, scope_by_id=None):
+        scope_by_id = scope_by_id or dict(
+            (value.scope_id, value) for value in scopes)
         refreshed = []
         for record in records:
             scope = scope_by_id.get(record.key.scope_id)
@@ -263,7 +273,8 @@ class CompositeDomainProjector(object):
 
     @classmethod
     def _project_shard_checked(
-            cls, projector, spec, snapshot, scopes, fingerprints):
+            cls, projector, spec, shard_owners, snapshot, scopes,
+            fingerprints):
         tracked = _SnapshotAccessRecorder(snapshot)
         records = tuple(projector.project_shard(
             spec.shard_id, tracked, scopes, fingerprints))
@@ -284,6 +295,14 @@ class CompositeDomainProjector(object):
                 "projector {} shard {} wrote undeclared scopes: {}".format(
                     projector.projector_id, spec.shard_id,
                     ", ".join(invalid_scopes)))
+        misowned = tuple(
+            record for record in records
+            if cls._record_shard_id(projector, shard_owners, record)
+            != spec.shard_id)
+        if misowned:
+            raise ValueError(
+                "projector {} shard {} wrote records owned by another "
+                "shard".format(projector.projector_id, spec.shard_id))
         cls._validate_shard_dependencies(projector, spec, records)
         return records
 
@@ -314,10 +333,10 @@ class CompositeDomainProjector(object):
                               for value in undeclared)))
 
     @classmethod
-    def _shard_specs(cls, projector, scopes):
+    def _shard_specs(cls, projector, snapshot, scopes):
         if not hasattr(projector, "projection_shards"):
             return ()
-        specs = tuple(projector.projection_shards(scopes))
+        specs = tuple(projector.projection_shards(snapshot, scopes))
         if not all(isinstance(value, ProjectionShardSpec) for value in specs):
             raise TypeError(
                 "projection_shards must return ProjectionShardSpec values")
@@ -347,22 +366,49 @@ class CompositeDomainProjector(object):
                     "projection shard references unknown output scopes: {}"
                     .format(spec.shard_id))
             for scope_id in spec.scope_ids:
-                if scope_id in scope_owners:
-                    raise ValueError(
-                        "projection shard output scopes must not overlap: {}"
-                        .format(scope_id))
-                scope_owners[scope_id] = spec.shard_id
+                scope_owners.setdefault(scope_id, []).append(spec.shard_id)
+        overlapping = tuple(sorted(
+            scope_id for scope_id, owners in scope_owners.items()
+            if len(owners) > 1))
+        if (overlapping
+                and not hasattr(projector, "projection_shard_for_record")):
+            raise ValueError(
+                "overlapping projection shard scopes require explicit "
+                "record ownership: {}".format(", ".join(overlapping)))
         return specs
+
+    @staticmethod
+    def _shard_owners(specs):
+        owners = {}
+        for spec in specs:
+            for scope_id in spec.scope_ids:
+                owners.setdefault(scope_id, []).append(spec.shard_id)
+        return dict(
+            (scope_id, frozenset(shard_ids))
+            for scope_id, shard_ids in owners.items())
+
+    @staticmethod
+    def _record_shard_id(projector, shard_owners, record):
+        candidates = shard_owners.get(record.key.scope_id, frozenset())
+        if not candidates:
+            return None
+        if len(candidates) == 1:
+            return next(iter(candidates))
+        owner = projector.projection_shard_for_record(record)
+        if owner not in candidates:
+            raise ValueError(
+                "projector {} returned invalid shard owner {} for {}"
+                .format(projector.projector_id, owner, record.atom_id))
+        return owner
 
     @classmethod
     def _partition_records(cls, projector, specs, records):
-        owners = dict(
-            (scope_id, spec.shard_id)
-            for spec in specs for scope_id in spec.scope_ids)
+        shard_owners = cls._shard_owners(specs)
         partitions = dict((spec.shard_id, []) for spec in specs)
         unassigned = []
         for record in records:
-            shard_id = owners.get(record.key.scope_id)
+            shard_id = cls._record_shard_id(
+                projector, shard_owners, record)
             if shard_id is None:
                 unassigned.append(record.key.scope_id)
             else:
@@ -382,7 +428,8 @@ class CompositeDomainProjector(object):
     @classmethod
     def _component_state(
             cls, projector, projected, scopes, fingerprints,
-            fingerprint_index, component_scope_ids):
+            fingerprint_index, component_scope_ids, specs=(),
+            shard_fingerprints=None):
         dependency_keys = cls._dependency_keys(projected)
         state = {
             "dependency_keys": dependency_keys,
@@ -391,13 +438,14 @@ class CompositeDomainProjector(object):
             "records": projected,
             "scope_ids": component_scope_ids,
         }
-        specs = cls._shard_specs(projector, scopes)
         if specs:
+            shard_fingerprints = shard_fingerprints or dict(
+                (spec.shard_id, cls._shard_fingerprint(
+                    spec, fingerprint_index)) for spec in specs)
             partitions = cls._partition_records(projector, specs, projected)
             state["shards"] = dict(
                 (spec.shard_id, {
-                    "fingerprint": cls._shard_fingerprint(
-                        spec, fingerprint_index),
+                    "fingerprint": shard_fingerprints[spec.shard_id],
                     "records": partitions[spec.shard_id],
                     "spec": spec,
                 }) for spec in specs)
@@ -461,13 +509,14 @@ class CompositeDomainProjector(object):
         fingerprint_index = self._fingerprint_index(
             fingerprints, self._incremental_roots, self._incremental_kinds)
         for projector in self.projectors:
+            specs = self._shard_specs(projector, snapshot, scopes)
             projected = self._project_checked(
                 projector, snapshot, scopes, fingerprints)
             components[projector.projector_id] = self._component_state(
                 projector, projected, scopes, fingerprints,
                 fingerprint_index,
                 self._component_scopes.get(snapshot.snapshot_id, {}).get(
-                    projector.projector_id, ()))
+                    projector.projector_id, ()), specs)
             records.extend(projected)
         self._projections[snapshot.snapshot_id] = components
         self._trim(self._projections)
@@ -479,6 +528,7 @@ class CompositeDomainProjector(object):
         prior = self._projections.get(prior_snapshot.snapshot_id, {})
         current_scopes = self._component_scopes.get(
             snapshot.snapshot_id, {})
+        scope_by_id = dict((value.scope_id, value) for value in scopes)
         fingerprint_index = self._fingerprint_index(
             fingerprints, self._incremental_roots, self._incremental_kinds)
         records = []
@@ -495,8 +545,12 @@ class CompositeDomainProjector(object):
             projector_id = projector.projector_id
             cached = prior.get(projector_id)
             current_scope_ids = current_scopes.get(projector_id, ())
-            specs = self._shard_specs(projector, scopes)
+            specs = self._shard_specs(projector, snapshot, scopes)
             if specs:
+                shard_owners = self._shard_owners(specs)
+                shard_fingerprints = dict(
+                    (spec.shard_id, self._shard_fingerprint(
+                        spec, fingerprint_index)) for spec in specs)
                 cached_shards = (
                     {} if cached is None else cached.get("shards", {}))
                 shard_records = []
@@ -504,8 +558,7 @@ class CompositeDomainProjector(object):
                 projector_reused = False
                 for spec in specs:
                     prior_shard = cached_shards.get(spec.shard_id)
-                    fingerprint = self._shard_fingerprint(
-                        spec, fingerprint_index)
+                    fingerprint = shard_fingerprints[spec.shard_id]
                     can_reuse_shard = bool(
                         prior_shard is not None
                         and prior_shard["spec"] == spec
@@ -514,14 +567,15 @@ class CompositeDomainProjector(object):
                         projector_id, spec.shard_id)
                     if can_reuse_shard:
                         values = self._refresh(
-                            prior_shard["records"], scopes)
+                            prior_shard["records"], scopes, scope_by_id)
                         reused_shards.append(metric_id)
                         reused_shard_records.append((metric_id, len(values)))
                         reused_record_count += len(values)
                         projector_reused = True
                     else:
                         values = self._project_shard_checked(
-                            projector, spec, snapshot, scopes, fingerprints)
+                            projector, spec, shard_owners, snapshot, scopes,
+                            fingerprints)
                         recomputed_shards.append(metric_id)
                         recomputed_shard_records.append(
                             (metric_id, len(values)))
@@ -532,7 +586,8 @@ class CompositeDomainProjector(object):
                     shard_records, key=lambda value: value.atom_id))
                 components[projector_id] = self._component_state(
                     projector, projected, scopes, fingerprints,
-                    fingerprint_index, current_scope_ids)
+                    fingerprint_index, current_scope_ids, specs,
+                    shard_fingerprints)
                 if projector_recomputed:
                     recomputed.append(projector_id)
                 if projector_reused:
@@ -548,7 +603,8 @@ class CompositeDomainProjector(object):
                 and fingerprint == cached["fingerprint"]
                 and current_scope_ids == cached["scope_ids"])
             if can_reuse:
-                projected = self._refresh(cached["records"], scopes)
+                projected = self._refresh(
+                    cached["records"], scopes, scope_by_id)
                 dependency_keys = cached["dependency_keys"]
                 reused.append(projector_id)
                 reused_record_count += len(projected)

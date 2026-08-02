@@ -169,7 +169,7 @@ class UnitDefenseProjector(object):
     def scopes(self, snapshot):
         return unit_defense_scopes(snapshot)
 
-    def projection_shards(self, scopes):
+    def projection_shards(self, _snapshot, scopes):
         """Separate world observations, unit facts, and coupled defense."""
         world, city_scopes, unit_scopes = self._scope_maps(scopes)
         kinds = self.incremental_dependency_kinds

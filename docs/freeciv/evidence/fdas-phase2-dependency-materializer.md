@@ -148,23 +148,25 @@ and route-corridor visibility reads map tiles and turn state. Those inputs are
 now declared. After correction, the audited full-rich captured cohort again
 passed 37/37 differential transitions with zero failures.
 
-## Per-entity city/economy follow-on
+## Per-entity city/economy and legal-action follow-on
 
 The city/economy projector now divides its deterministic output into one
-empire shard and one stable shard per city factual scope. Every shard declares
-conservative snapshot prefixes, durable dependency kinds, and exclusive output
-scopes. Incremental reuse requires the complete prefix/kind digest and shard
-contract to remain identical. Reused records are reconstructed against current
-scope validity; changed, added, removed, undeclared, or unavailable shards fail
-closed to recomputation or rejection.
+empire shard, one stable shard per legal action, and one shard per city factual
+scope. Every shard declares conservative snapshot prefixes, durable dependency
+kinds, and output ownership. Legal actions deliberately share the empire scope
+but map their two records to one explicit action-identity owner; missing,
+ambiguous, or invalid ownership is rejected. Incremental reuse requires the
+complete exact dependency signature and shard contract to remain identical.
+Reused records are reconstructed against current scope validity; changed,
+added, removed, undeclared, or unavailable shards fail closed to recomputation,
+retraction, or rejection.
 
 A focused two-city mutation rebuilt the empire and changed-city shards, reused
-the unchanged city's two non-empty rich records, recomputed 11 of 30 total
-records, and matched an independent cold build. The strict captured rich-shadow
-corpus again passed 37/37 differential transitions with zero failures. It
-reused 81 rich records through five partial city/economy projector updates;
-the corpus remains a sparse catch-up stress set and is not presented as an
-ordinary-turn latency claim.
+the unchanged city's two records and four stable-action records, recomputed 11
+of 30 total records, and matched an independent cold build. An action
+addition/removal sequence recomputed only the added action's two records,
+reused survivors, retracted the removed action without rebuilding survivors,
+and remained cold-equivalent.
 
 Unit/defense projection now uses the same fail-closed shard protocol for world
 observations, individual unit factual scopes, and the coupled city-defense
@@ -174,9 +176,14 @@ garrison safety cross entity boundaries. A two-unit mutation rebuilt the
 changed unit and defense shards, reused three non-empty capability records for
 the unchanged unit, and matched the cold builder.
 
-In the strict captured corpus, city and unit sharding reused 732 non-empty rich
-records while all 37 transitions remained cold-equivalent: 81 city records and
-651 unit/defense records. Aggregate metrics now publish exact recomputed and
-reused record counts per shard, not only shard IDs. Mean recomputation fell
-from the component-only 78.1% reference to 76.8%; the sparse corpus still does
-not establish an ordinary-turn latency improvement.
+In the strict captured corpus, entity sharding reused 29,330 non-empty rich
+records while all 37 transitions remained cold-equivalent: 28,586 legal-action
+records, 12 empire records, 81 city records, and 651 unit/defense records.
+Aggregate metrics publish exact recomputed and reused record counts per shard,
+not only shard IDs. Mean recomputation fell from the prior 76.8% checkpoint to
+25.5%. Exact prefix indexing, snapshot-local action identity caching, skipped
+unused grounding initialization, batched scope refresh lookup, and exact
+in-memory dependency signatures recovered the first high-cardinality latency
+regression. Strict incremental-plus-cold mean/p95 measured 528.68/935.83 ms
+versus the pushed 535.14/950.43 ms checkpoint. This sparse diagnostic corpus
+still does not establish an ordinary-turn or live-controller latency claim.

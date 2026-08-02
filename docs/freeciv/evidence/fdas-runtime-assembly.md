@@ -74,16 +74,18 @@ base harness; the resolved declaration and hash are part of run identity.
 
 ## Verification
 
-- Focused FDAS suite: `184 passed` (latest explanation checkpoint).
+- Focused FDAS suite: `187 passed in 38.82s` (legal-action shard checkpoint).
 - Configuration, runtime, and harness integration: `140 passed in 297.14s`.
-- Complete FreeCiv acceptance suite: `1,281 passed in 380.50s`.
+- Complete FreeCiv acceptance suite: `1,284 passed in 380.65s`.
 - Enabled checked projector assembly was exercised against the compiled
   Civ2Civ3 ruleset and authoritative contract fixture.
 - Strict captured replay exercised 38 snapshots and 37 transitions with 100%
   cold verification and no mismatches.
 - The schema-1.1 diagnostic replay retained 37/37 equivalence. Its strict
-  incremental-plus-cold projection measured 535.14 ms mean and 950.43 ms p95;
+  incremental-plus-cold projection measured 528.68 ms mean and 935.83 ms p95;
   this path includes both builds by design and is not a live-controller timing.
+- Exact legal-action sharding reused 28,586 action records and reduced mean
+  rich recomputation from 76.8% to 25.5% without regressing that strict timing.
 - All 38 replayed shadow decisions carry bounded canonical explanations; 76/76
   cold and incremental explanation hashes and the report hash were recomputed.
 - One predeclared engine-live shadow game completed 30 turns with 52 rich

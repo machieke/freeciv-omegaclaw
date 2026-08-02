@@ -214,6 +214,7 @@ class CityEconomyProjector(object):
         self.groundings = TypedGroundingRegistry(
             ruleset_ir, ruleset_digest=ruleset_digest)
         self.predicate_registry = city_economy_predicate_registry()
+        self._legal_action_cache = {}
 
     def scopes(self, snapshot):
         return city_economy_scopes(snapshot)
@@ -330,19 +331,48 @@ class CityEconomyProjector(object):
             return EntityRef(kind, str(action["actor_id"]))
         return EntityRef("player", str(player_id))
 
-    def projection_shards(self, scopes):
-        """Split global facts from stable per-city factual microspaces."""
+    @staticmethod
+    def _legal_action_identity(action_json):
+        action_hash = structural_hash(action_json)
+        return action_hash, "legal-" + action_hash[:24]
+
+    def _legal_action_rows(self, snapshot):
+        cached = self._legal_action_cache.get(snapshot.snapshot_id)
+        if cached is not None:
+            return cached
+        rows = tuple(sorted(
+            self._legal_action_identity(action_json) + (action_json,)
+            for action_json in snapshot.legal_action_json))
+        action_ids = tuple(row[1] for row in rows)
+        if len(action_ids) != len(set(action_ids)):
+            raise ValueError("legal action projection identities collide")
+        self._legal_action_cache[snapshot.snapshot_id] = rows
+        while len(self._legal_action_cache) > 8:
+            self._legal_action_cache.pop(next(iter(self._legal_action_cache)))
+        return rows
+
+    def projection_shards(self, snapshot, scopes):
+        """Split global, legal-action, and per-city factual microspaces."""
         empire, city_scopes = _scope_map(scopes)
         kinds = self.incremental_dependency_kinds
         shards = [ProjectionShardSpec(
             "empire",
             (
-                "cities", "economy", "government", "legal_actions",
-                "player_id", "research", "turn", "units",
+                "cities", "economy", "government", "player_id", "research",
+                "turn", "units",
             ),
             kinds,
             (empire.scope_id,),
         )]
+        shards.extend(
+            ProjectionShardSpec(
+                "legal-action:{}".format(action_id),
+                ("legal_actions.{}".format(action_hash), "player_id"),
+                frozenset(),
+                (empire.scope_id,),
+            )
+            for action_hash, action_id, _action_json
+            in self._legal_action_rows(snapshot))
         shards.extend(
             ProjectionShardSpec(
                 "city:{}".format(city_id),
@@ -356,7 +386,19 @@ class CityEconomyProjector(object):
             for city_id, scope in sorted(city_scopes.items()))
         return tuple(shards)
 
-    def _project_empire(self, snapshot, empire, fingerprints):
+    @staticmethod
+    def projection_shard_for_record(record):
+        """Return explicit ownership where empire shard scopes overlap."""
+        if record.key.predicate in (
+                "legal-action-for", "legal-action-type"):
+            action = record.key.arguments[0]
+            if (not isinstance(action, EntityRef)
+                    or action.kind != "action"):
+                raise ValueError("legal action record lacks action identity")
+            return "legal-action:{}".format(action.entity_id)
+        return "empire"
+
+    def _project_empire_core(self, snapshot, empire, fingerprints):
         player = EntityRef("player", str(snapshot.player_id))
         records = []
         records.append(self._base(
@@ -378,34 +420,6 @@ class CityEconomyProjector(object):
                 (player, EntityRef(
                     "government", str(snapshot.government.current_name))),
                 ("government.current_name",), fingerprints))
-        for action_json in snapshot.legal_action_json:
-            action = json.loads(action_json)
-            action_hash = structural_hash(action_json)
-            action_ref = EntityRef(
-                "action", "legal-" + action_hash[:24])
-            dependency_path = "legal_actions.{}".format(
-                action_hash)
-            actor = self._legal_actor(action, snapshot.player_id)
-            action_type = SymbolRef(
-                "action-type", str(action.get("action_type")))
-            dependency = self._snapshot_dep(
-                snapshot, dependency_path, fingerprints)
-            support = SupportRecord.from_hashes(
-                self.projector_id, self.version, action_hash, (dependency,),
-                structural_hash({
-                    "action": action_ref.to_dict(),
-                    "actor": actor.to_dict(),
-                    "action_type": action_type.to_dict(),
-                }), (self.projector_id,))
-            for predicate, arguments in (
-                    ("legal-action-for", (action_ref, actor)),
-                    ("legal-action-type", (action_ref, action_type))):
-                records.append(_record(
-                    empire, AtomNamespace.AUTHORITATIVE, predicate,
-                    arguments, AuthorityClass.ENGINE_AUTHORITATIVE,
-                    empire.validity, support, self.projector_id,
-                    (("domain", "city-economy-shadow"),)))
-
         policy_refs = self.policy.dependency_refs()
         treasury_policy = SymbolRef(
             "treasury-policy", self.policy.treasury_policy_id)
@@ -446,6 +460,33 @@ class CityEconomyProjector(object):
                     "observed_beakers_per_turn": beakers.value,
                 }))
         return tuple(records)
+
+    def _project_legal_action(
+            self, snapshot, action_json, empire, fingerprints):
+        action = json.loads(action_json)
+        action_hash, action_id = self._legal_action_identity(action_json)
+        action_ref = EntityRef("action", action_id)
+        dependency_path = "legal_actions.{}".format(action_hash)
+        actor = self._legal_actor(action, snapshot.player_id)
+        action_type = SymbolRef(
+            "action-type", str(action.get("action_type")))
+        dependency = self._snapshot_dep(
+            snapshot, dependency_path, fingerprints)
+        support = SupportRecord.from_hashes(
+            self.projector_id, self.version, action_hash, (dependency,),
+            structural_hash({
+                "action": action_ref.to_dict(),
+                "actor": actor.to_dict(),
+                "action_type": action_type.to_dict(),
+            }), (self.projector_id,))
+        return tuple(
+            _record(
+                empire, AtomNamespace.AUTHORITATIVE, predicate, arguments,
+                AuthorityClass.ENGINE_AUTHORITATIVE, empire.validity, support,
+                self.projector_id, (("domain", "city-economy-shadow"),))
+            for predicate, arguments in (
+                ("legal-action-for", (action_ref, actor)),
+                ("legal-action-type", (action_ref, action_type))))
 
     def _project_city(self, snapshot, city, scope, fingerprints):
         records = []
@@ -560,11 +601,25 @@ class CityEconomyProjector(object):
         return tuple(records)
 
     def project_shard(self, shard_id, snapshot, scopes, fingerprints):
-        self.groundings.prime(snapshot, fingerprints)
         empire, city_scopes = _scope_map(scopes)
         if shard_id == "empire":
-            records = self._project_empire(snapshot, empire, fingerprints)
+            self.groundings.prime(snapshot, fingerprints)
+            records = self._project_empire_core(
+                snapshot, empire, fingerprints)
+        elif str(shard_id).startswith("legal-action:"):
+            action_id = str(shard_id).split(":", 1)[1]
+            matches = tuple(
+                action_json for _action_hash, current_id, action_json
+                in self._legal_action_rows(snapshot)
+                if current_id == action_id)
+            if len(matches) != 1:
+                raise ValueError(
+                    "legal action projection shard requires one current "
+                    "action")
+            records = self._project_legal_action(
+                snapshot, matches[0], empire, fingerprints)
         elif str(shard_id).startswith("city:"):
+            self.groundings.prime(snapshot, fingerprints)
             city_id = str(shard_id).split(":", 1)[1]
             city = snapshot.city(city_id)
             if city is None or city_id not in city_scopes:
@@ -579,8 +634,12 @@ class CityEconomyProjector(object):
     def project(self, snapshot, scopes, fingerprints):
         self.groundings.prime(snapshot, fingerprints)
         empire, city_scopes = _scope_map(scopes)
-        records = list(self._project_empire(
+        records = list(self._project_empire_core(
             snapshot, empire, fingerprints))
+        for _action_hash, _action_id, action_json in self._legal_action_rows(
+                snapshot):
+            records.extend(self._project_legal_action(
+                snapshot, action_json, empire, fingerprints))
         for city in sorted(snapshot.cities, key=lambda value: value.city_id):
             records.extend(self._project_city(
                 snapshot, city, city_scopes[str(city.city_id)], fingerprints))

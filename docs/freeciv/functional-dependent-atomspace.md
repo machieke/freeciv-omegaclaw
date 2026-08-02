@@ -123,16 +123,22 @@ revision metrics, and 37/37 captured rich transitions match independent cold
 builds.
 
 City/economy and unit/defense projection additionally have conservative entity
-shards. The empire summary and each city factual microspace are independent.
+shards. The empire summary, each stable legal action, and each city factual
+microspace are independent. Legal-action records retain the empire scope but
+declare an explicit action-identity owner and exact per-action dependency, so
+an added or removed action does not invalidate surviving action facts.
 Unit projection separates world observations, each unit factual microspace,
 and one deliberately coupled city-defense graph whose garrison, replacement,
 route, legal-action, and threat dependencies span entities. A changed city or
 unit can therefore reuse unaffected local records without pretending the
 cross-entity defense graph is independent. The runtime rejects undeclared
-shard reads and support dependencies, overlapping or missing output scopes,
-declarations broader than the parent projector, and cold-build divergence.
-Shard reuse/recompute IDs and exact record counts are emitted in
-materialization metrics. Other rich projectors remain at the coarser component
+shard reads and support dependencies, missing output scopes, overlapping
+scopes without explicit record ownership, invalid owners, declarations broader
+than the parent projector, and cold-build divergence. Shard reuse/recompute IDs
+and exact record counts are emitted in materialization metrics. In strict
+captured replay, stable action sharding reuses 28,586 records and reduces mean
+recomputation from 76.8% to 25.5% without regressing the pushed strict
+mean/p95 timing. Other rich projectors remain at the coarser component
 boundary; this is not yet universal per-entity derivation scheduling.
 
 Recomputed rich projectors receive a read-only access-recording snapshot view.

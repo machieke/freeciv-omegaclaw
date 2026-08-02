@@ -4,7 +4,7 @@ Date: 2026-08-02
 Branch: `experimental/functional-dependent-atomspace`
 Machine scope: local diagnostic replay
 Machine-readable report: `fdas-captured-shadow-replay.json`
-Report hash: `d430bdd8eb57bac7b938b5d2f5f67cc6de4a37425d6f283638f06944fa4ae595`
+Report hash: `bc592352b160c17bd8e1015351909bd3399def0f7099334cb664fe93bd93dea5`
 
 ## Corpus and strictness
 
@@ -25,11 +25,11 @@ revision; all 37 were canonically equivalent.
 
 | Measurement | Result |
 |---|---:|
-| Cold projection p50 / p95 / max | 217.62 / 430.11 / 432.31 ms |
-| Shadow readout p50 / p95 / max | 18.62 / 368.65 / 414.85 ms |
-| Combined cold FDAS p50 / p95 / max | 290.55 / 482.70 / 620.64 ms |
-| Strict incremental plus cold verification p50 / p95 / max | 521.77 / 950.43 / 1,083.00 ms |
-| Incremental recomputation ratio mean / p50 / p95 | 0.768 / 0.739 / 0.874 |
+| Cold projection p50 / p95 / max | 213.70 / 427.40 / 447.05 ms |
+| Shadow readout p50 / p95 / max | 19.90 / 376.75 / 438.94 ms |
+| Combined cold FDAS p50 / p95 / max | 250.07 / 560.36 / 639.23 ms |
+| Strict incremental plus cold verification p50 / p95 / max | 525.29 / 935.83 / 1,080.27 ms |
+| Incremental recomputation ratio mean / p50 / p95 | 0.255 / 0.215 / 0.482 |
 | Maximum atoms / scopes / supports | 2,610 / 80 / 1,388 |
 | Maximum dependency keys | 2,002 |
 | Local goals / FDAS candidates | 116 / 855 |
@@ -44,24 +44,27 @@ revision; all 37 were canonically equivalent.
 | Maximum serialized decision explanation | 16,980 bytes |
 
 The 500 ms production-safe gate is a p95 gate. Cold projection alone remains
-below it at 430.11 ms. Projection plus shadow readout measured 482.70 ms p95 in
-this run, inside that broad gate, but the proposed 150 ms ordinary FDAS
-contribution target is not met. A single local diagnostic run is not a live
-latency promotion cohort. The evidence supports bounded diagnostic shadow
-operation, not unrestricted activation or authority.
+below it at 427.40 ms, but projection plus shadow readout measured 560.36 ms
+p95 and therefore does not pass the controller-inclusive gate in this stress
+corpus. The proposed 150 ms ordinary FDAS contribution target is also not met.
+A single local diagnostic run is not a live latency promotion cohort. The
+evidence supports bounded diagnostic shadow operation, not unrestricted
+activation or authority.
 
 The strict incremental timing is diagnostic rather than a live-controller
 timing: every transition prepares an incremental revision and a second,
 independent cold revision before publishing the already-verified incremental
-revision. All 37 transitions were equivalent. The sparse corpus changes most
-domain roots between captures, so it recomputes 76.8% of records on average.
+revision. All 37 transitions were equivalent. Fine-grained stable legal-action
+shards reduce mean recomputation from 76.8% to 25.5% in this sparse corpus.
 It records three region and four combat-projector cache hits whose reused
-outputs are empty. Entity sharding reuses 732 non-empty rich records: 81 city
-records across 14 city-shard instances and 651 unit/defense records across 254
-shard instances. The latter includes 38 world-observation records across 20
-instances; the remaining 613 records come from independently reusable unit
-factual scopes. The coupled city-defense shard is deliberately not reused in
-this corpus because its complete city/unit/route/legal/threat inputs changed.
+outputs are empty. Entity sharding reuses 29,330 non-empty rich records:
+28,586 records across 14,293 stable legal-action shard instances, 12 empire
+records, 81 city records, and 651 unit/defense records. The action cohort
+retains 89.9% of current legal actions across adjacent captures; 1,613 added or
+changed action instances recompute 3,226 records. The unit/defense total
+includes 38 world-observation records; the remaining 613 records come from
+independently reusable unit factual scopes. The coupled city-defense shard is
+deliberately not reused because its complete cross-entity inputs changed.
 
 Every shadow result now carries one canonical decision explanation bound to
 its exact revision and snapshot. A grounded route joins the selected local
@@ -71,9 +74,10 @@ and selected scheduler row. A gap route explicitly records
 `no-current-legal-causal-route`; a not-applicable result records the budget or
 diagnostic blockers. All 76 cold and incremental explanation hashes and the
 top-level report hash were independently recomputed successfully. The bundle
-retains only selected-operation scheduler evidence, reducing the report from
-the rejected 13.7 MB draft to 2,666,884 bytes while keeping the largest
-individual explanation at 16,980 bytes.
+retains only selected-operation scheduler evidence and keeps the largest
+individual explanation at 16,980 bytes. The complete report is 5,834,034 bytes
+because it also retains exact high-cardinality action-shard reuse/recompute
+identities; it remains well below the rejected 13.7 MB full-schedule draft.
 
 A separate same-turn full-rich fixture provides the positive ordinary-update
 check. It reused city/economy, region, combat, and population-recovery output,
@@ -81,7 +85,10 @@ including 11 non-empty rich records; recomputed 7 of 30 total records; matched
 the independent cold revision; and completed the strict two-build check in
 24.32 ms. In a focused two-city fixture, a city-surplus mutation recomputes the
 empire and changed-city shards, reuses two non-empty records from the unchanged
-city, recomputes 11 of 30 total records, and remains cold-equivalent.
+city plus four records from two stable legal actions, recomputes 11 of 30 total
+records, and remains cold-equivalent. A focused addition/removal sequence
+recomputes only a new action's two records, reuses survivor records, retracts a
+removed action without rebuilding survivors, and remains cold-equivalent.
 
 ## Candidate interpretation
 
@@ -125,11 +132,19 @@ predictive goal semantics before treating these candidates as causal.
   repeated serialization of overlapping dependency maps. Reuse/recompute
   projector IDs, record counts, and the recomputation ratio are emitted in
   materialization metrics and captured by this report.
-- City/economy and unit/defense output use exclusive conservative shards. The
-  latter separates world observations, each unit factual scope, and the
-  cross-entity city-defense graph. Runtime access, support dependencies, scope
-  ownership, and cold equivalence are checked fail-closed; shard IDs and exact
-  record counts are included in per-snapshot and aggregate replay metrics.
+- City/economy and unit/defense output use conservative shards. Legal actions
+  share the empire scope but have explicit disjoint record ownership and exact
+  per-action dependencies; added/removed actions cannot invalidate survivors.
+  Ambiguous, missing, or invalid ownership fails closed. Unit/defense separates
+  world observations, each unit factual scope, and the cross-entity defense
+  graph. Runtime access, support dependencies, scope ownership, and cold
+  equivalence are checked; exact shard IDs and record counts remain auditable.
+- Prefix fingerprints are indexed once, action identities are cached by
+  immutable snapshot, legal-action shards skip unused grounding initialization,
+  and private shard cache signatures compare exact dependency rows. These
+  changes recover the initial high-cardinality latency regression: strict mean
+  / p95 improved from the pushed 535.14 / 950.43 ms baseline to
+  528.68 / 935.83 ms while recomputation fell by 51.3 percentage points.
 
 ## Non-claims
 
