@@ -17,6 +17,7 @@ from freeciv_agent.planning import (  # noqa: E402
     FdasEpisodeInductionAdapter,
     FdasEpisodeInductionHeldoutGate,
     FdasEpisodeInductionShadow,
+    combine_episode_stores,
 )
 from freeciv_agent.pressure import (  # noqa: E402
     InductionLedger,
@@ -320,3 +321,30 @@ def test_heldout_gate_rejects_episode_partition_overlap():
 
     with pytest.raises(ValueError, match="episode overlap"):
         gate.evaluate()
+
+
+def test_episode_cohort_combines_verified_disjoint_stores():
+    left = DecisionEpisodeStore(
+        "source-left", _correlated_population("left")[:4])
+    right = DecisionEpisodeStore(
+        "source-right", _correlated_population("right")[:4])
+
+    cohort = combine_episode_stores((left, right), "combined-cohort")
+
+    assert cohort.persistence_identity == "combined-cohort"
+    assert len(cohort.episodes()) == 8
+    assert cohort.quarantined is False
+
+
+def test_episode_cohort_rejects_duplicate_source_identity_and_episode_ids():
+    left = DecisionEpisodeStore(
+        "source-shared", _correlated_population("left")[:4])
+    same_identity = DecisionEpisodeStore(
+        "source-shared", _correlated_population("right")[:4])
+    duplicate_episodes = DecisionEpisodeStore(
+        "source-distinct", left.episodes())
+
+    with pytest.raises(ValueError, match="source identities overlap"):
+        combine_episode_stores((left, same_identity), "combined-cohort")
+    with pytest.raises(ValueError, match="IDs overlap"):
+        combine_episode_stores((left, duplicate_episodes), "combined-cohort")

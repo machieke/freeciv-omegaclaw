@@ -13,6 +13,31 @@ from ..pressure.induction import (
 from .fdas_episodes import DecisionEpisodeStore
 
 
+def combine_episode_stores(stores, persistence_identity):
+    """Combine verified source stores without weakening their identities."""
+    stores = tuple(stores)
+    if not stores:
+        raise ValueError("episode cohort requires at least one source store")
+    if not isinstance(persistence_identity, str) or not persistence_identity:
+        raise ValueError("episode cohort persistence identity is required")
+    if any(not isinstance(value, DecisionEpisodeStore) for value in stores):
+        raise TypeError("episode cohort accepts DecisionEpisodeStore values")
+    if any(value.quarantined for value in stores):
+        raise ValueError("quarantined source store cannot enter episode cohort")
+    source_identities = [value.persistence_identity for value in stores]
+    source_digests = [value.store_digest for value in stores]
+    if len(source_identities) != len(set(source_identities)):
+        raise ValueError("episode cohort source identities overlap")
+    if len(source_digests) != len(set(source_digests)):
+        raise ValueError("episode cohort source artifacts overlap")
+    episodes = tuple(
+        episode for store in stores for episode in store.episodes())
+    episode_ids = [value.episode_id for value in episodes]
+    if len(episode_ids) != len(set(episode_ids)):
+        raise ValueError("episode cohort IDs overlap")
+    return DecisionEpisodeStore(persistence_identity, episodes)
+
+
 @dataclass(frozen=True)
 class EpisodeInductionSpec:
     """Explicit, evidence-linked feature declaration for one episode."""

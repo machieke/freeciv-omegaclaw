@@ -142,6 +142,7 @@ from .fdas_episode_induction import (
     FdasEpisodeInductionAdapter,
     FdasEpisodeInductionHeldoutGate,
     FdasEpisodeInductionShadow,
+    combine_episode_stores,
 )
 from .fdas_observation import (
     FdasObservationActionBinding,
@@ -247,6 +248,7 @@ __all__ = [
     "EpisodeInductionResult", "EpisodeInductionShadowResult",
     "EpisodeInductionSpec", "FdasEpisodeInductionAdapter",
     "FdasEpisodeInductionHeldoutGate", "FdasEpisodeInductionShadow",
+    "combine_episode_stores",
     "FdasObservationActionBinding",
     "FdasObservationAuthoritativeReturn",
     "FdasObservationCommitValidation",
