@@ -237,13 +237,13 @@ class ResourceCapacityExtractor:
                     ruleset_ir,
                     unit.unit_type))
             if transport_capacity is None:
-                if unit.carrying is not None:
+                if unit.cargo_count is not None:
                     omissions.add(
                         "transport-rules-missing:{}".format(
                             unit_id))
             elif transport_capacity > 0:
-                if (unit.carrying is None
-                        or unit.carrying < 0):
+                if (unit.cargo_count is None
+                        or unit.cargo_count < 0):
                     omissions.add(
                         "transport-load-missing:{}".format(
                             unit_id))
@@ -254,8 +254,8 @@ class ResourceCapacityExtractor:
                         max(
                             0,
                             transport_capacity
-                            - unit.carrying),
-                        "derived-ruleset-and-unit-state")
+                            - unit.cargo_count),
+                        "derived-ruleset-and-transport-relations")
 
         for city in sorted(
                 getattr(snapshot, "cities", ()),

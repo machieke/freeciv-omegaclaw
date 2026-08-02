@@ -77,10 +77,10 @@ def _payload():
         return json.load(stream)
 
 
-def _ferry(unit_id, carrying):
+def _ferry(unit_id):
     return {
         "activity": "idle",
-        "carrying": carrying,
+        "carrying": -1,
         "done_moving": False,
         "homecity": 0,
         "hp": 10,
@@ -102,7 +102,7 @@ def _ferry(unit_id, carrying):
 def _snapshot(
         disembark=False,
         second_ferry=False,
-        carrying=0):
+        cargo_count=0):
     payload = copy.deepcopy(
         _payload())
     actor = payload[
@@ -115,15 +115,22 @@ def _snapshot(
         "transported_by": (
             200 if disembark else 0),
     })
-    ferry_carrying = (
-        1 if disembark
-        else carrying)
     payload["units"]["200"] = (
-        _ferry(
-            200, ferry_carrying))
+        _ferry(200))
+    loaded = 1 if disembark else 0
+    for offset in range(max(0, cargo_count - loaded)):
+        cargo_id = 300 + offset
+        cargo = copy.deepcopy(actor)
+        cargo.update({
+            "id": cargo_id,
+            "tile": 1982,
+            "transported": True,
+            "transported_by": 200,
+        })
+        payload["units"][str(cargo_id)] = cargo
     if second_ferry:
         payload["units"]["201"] = (
-            _ferry(201, 0))
+            _ferry(201))
     if disembark:
         actor.update({
             "tile": 1982,
@@ -271,7 +278,7 @@ def test_embark_abstains_for_ambiguous_or_full_carrier():
         _snapshot(
             second_ferry=True))
     full_snapshot, full_action = (
-        _snapshot(carrying=2))
+        _snapshot(cargo_count=2))
     model = (
         GroundedTransportTransitionModel())
 

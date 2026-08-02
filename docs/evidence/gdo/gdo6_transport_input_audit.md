@@ -26,7 +26,7 @@ rendezvous latency, or gameplay benefit.
 | Required fact | Source | Current status |
 | --- | --- | --- |
 | ferry identity and position | authoritative own-unit packet | available |
-| current cargo count | authoritative `carrying` field | available in grounded snapshot |
+| current cargo count | count of complete authoritative own-unit `transported_by` relations | available as derived `cargo_count`; unknown when relations are incomplete |
 | transported state and carrier identity | authoritative `transported` and `transported_by` fields | available in grounded snapshot |
 | ferry capacity | compiled unit rule `quantitative.transport_cap` | available |
 | accepted cargo classes | compiled unit trait `cargo` | available |
@@ -44,14 +44,22 @@ invent embark legality.
 `ResourceCapacityExtractor` previously looked only for a synthetic
 `transport_capacity` quantitative key. The actual ruleset compiler projects
 the Freeciv field as `transport_cap`. Consequently, real Triremes with exact
-`carrying` state produced a `transport-rules-missing` omission instead of a
+transport relations produced a `transport-rules-missing` omission instead of a
 `TRANSPORT_SEAT` capacity.
 
 The extractor now treats `transport_cap` as canonical and retains
 `transport_capacity` only as a compatibility alias. The regression compiles
 the pinned `civ2civ3` ruleset, gives a visible Trireme one passenger, and
 requires exactly one remaining seat with authority
-`derived-ruleset-and-unit-state`.
+`derived-ruleset-and-transport-relations`.
+
+The initial implementation incorrectly interpreted FreeCiv's packet
+`carrying` member as the passenger count. Protocol and server-source review
+showed that it is the carried trade-goods type ID. The corrected snapshot keeps
+that field as goods metadata and derives `cargo_count` by counting own units
+whose authoritative `transported=true` and `transported_by` relation names the
+carrier. A complete relation set proves both loaded seats and an empty load;
+an incomplete set proves neither and therefore omits transport-seat capacity.
 
 This capacity is current-turn only. It does not promise that the ferry, seat,
 pickup tile, or movement points will exist next turn.
@@ -147,8 +155,8 @@ city-defence operations.
 
 ## Observed opportunity boundary
 
-Repository event traces contain visible empty Triremes with exact grounded
-`carrying=0`, but the retained corpus currently contains no
+Repository event traces contain visible Triremes with complete grounded
+transport relations and zero derived cargo, but the retained corpus currently contains no
 `transport_required=true` advertised move and no own unit with
 `transported=true`. A ferry/founder operation assembled solely from those
 traces would therefore fabricate an embark transition.

@@ -28,7 +28,7 @@ The patch series is pinned to upstream commit
 output, unit upkeep, buildability, and ruleset-ready packet data and adds a monotonic packet
 sequence. The authoritative-state and spatial-projection patch SHA-256 values are,
 respectively,
-`48e416000bf36c3c7ce13c8c59bb51bc682a1f17ee8568e432a82f673a10df55` and
+`8a6b32d2ccbcdfe4e521e5e0bcb6ae116590f5c1514093c99a95a065239c1a44` and
 `a4eb88c827c7a2ea68db602aa2463c2aa53bb0c6156a71e1a5a5e7fc09908856`.
 The sustainability-control patch is pinned at
 `412f4b462afab900233793f192732317b7e00b42b165dee1c09056ca9d5a1827`;
@@ -315,9 +315,11 @@ actions, and passed every paired safety gate.
 Non-native movement legality also distinguishes a unit type's static embark capability from
 an executable move. An ocean move is advertised only when a packet-visible, owned transport
 is present at the exact target, its ruleset cargo bitvector includes the passenger's exact
-`unit_class_id`, and its current `carrying` count is below `transport_capacity`. Full,
-incompatible, missing, or foreign transports fail closed. The proxy retains current cargo and
-transport identity from unit packets so this check does not infer availability from unit names.
+`unit_class_id`, and the number of own units naming it through an authoritative
+`transported_by` relation is below `transport_capacity`. Full, incompatible, missing, or
+foreign transports fail closed. FreeCiv's packet `carrying` member is a trade-goods type ID,
+not a passenger count; transport load is derived from the complete relation set and remains
+unknown when that set is incomplete.
 
 Plain movement also respects exact packet-visible occupancy. A destination containing a
 non-allied unit or city is not advertised as an ordinary move; alliance status is read from

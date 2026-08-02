@@ -2,7 +2,7 @@
 
 import copy
 import hashlib
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from ..events.schema import canonical_json_bytes
 from .snapshot import (AuthoritativeSnapshot, BuildingState, CityState,
@@ -638,15 +638,50 @@ class ProxyStateDTO:
                     "unit.transported_by"),
                 carrying=_integer(
                     row.get("carrying"), "unit.carrying"),
+                cargo_count=_integer(
+                    row.get("cargo_count"), "unit.cargo_count"),
                 done_moving=_boolean(
                     row.get("done_moving"),
                     "unit.done_moving"))
+            if parsed.cargo_count is not None and parsed.cargo_count < 0:
+                raise ContractError("unit.cargo_count must be non-negative")
             if owner == player_id:
                 units.append(parsed)
             else:
                 # CivCom contains only packet-visible foreign units for a player
                 # connection. Preserve them as observations, never as own-state facts.
                 visible_enemy_units.append(parsed)
+
+        # PACKET_UNIT_INFO.carrying is the carried trade-goods type, not a
+        # transport load.  The exact load of each own carrier is instead the
+        # number of authoritative own units whose transported_by relation
+        # names it.  Only derive zeroes when every own relation is complete;
+        # otherwise absence would be mistaken for proof of a free seat.
+        transport_relations_complete = all(
+            unit.transported is not None
+            and (unit.transported is not True
+                 or (isinstance(unit.transported_by, int)
+                     and not isinstance(unit.transported_by, bool)
+                     and unit.transported_by > 0))
+            for unit in units)
+        if transport_relations_complete:
+            cargo_counts = {}
+            for unit in units:
+                if unit.transported is True:
+                    cargo_counts[unit.transported_by] = (
+                        cargo_counts.get(unit.transported_by, 0) + 1)
+            reconciled_units = []
+            for unit in units:
+                derived_count = cargo_counts.get(unit.unit_id, 0)
+                if (unit.cargo_count is not None
+                        and unit.cargo_count != derived_count):
+                    raise ContractError(
+                        "unit.cargo_count contradicts transported_by relations "
+                        "for unit {}: {} != {}".format(
+                            unit.unit_id, unit.cargo_count, derived_count))
+                reconciled_units.append(replace(
+                    unit, cargo_count=derived_count))
+            units = reconciled_units
 
         city_rows = _collection(payload.get("cities"), "cities")
         cities = []

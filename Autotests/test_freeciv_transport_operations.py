@@ -145,10 +145,10 @@ def _route_payload(
 
 def _unit(
         unit_id, unit_type,
-        tile, carrying=0):
+        tile):
     return {
         "activity": "idle",
-        "carrying": carrying,
+        "carrying": -1,
         "done_moving": False,
         "homecity": 0,
         "hp": 20,
@@ -595,7 +595,7 @@ def test_readout_revalidates_every_phase_and_rejects_partner_switch():
         transported_by=200,
         tile=201, x=9, y=4)
     loaded_ferry = replace(
-        ferry, carrying=1)
+        ferry, cargo_count=1)
     landing_action = _move(
         200, 202)
     carried = _revision(
@@ -681,7 +681,7 @@ def test_readout_revalidates_every_phase_and_rejects_partner_switch():
             landed_founder,
             replace(
                 landed_ferry,
-                carrying=0)),
+                cargo_count=0)),
         (settlement_move_action,),
         routes=(
             _route(
@@ -715,7 +715,7 @@ def test_readout_revalidates_every_phase_and_rejects_partner_switch():
                 x=14, y=6),
             replace(
                 landed_ferry,
-                carrying=0)),
+                cargo_count=0)),
         (settlement_action,))
     assert (
         FounderTransportOperationAssembler
@@ -751,7 +751,7 @@ def test_readout_revalidates_every_phase_and_rejects_partner_switch():
         (
             replace(
                 landed_ferry,
-                carrying=0),),
+                cargo_count=0),),
         (),
         cities=(city,))
     final = (
@@ -810,7 +810,7 @@ def test_lifecycle_reserves_commits_and_reestimates_the_next_exact_step():
         tile=201, x=9, y=4)
     ferry = replace(
         initial.unit(200),
-        carrying=1)
+        cargo_count=1)
     action = _move(
         200, 202)
     carried = _revision(
@@ -910,7 +910,7 @@ def test_fdas_transport_adapter_advances_and_rebinds_authoritatively():
     founder = replace(
         initial.unit(102), transported=True, transported_by=200,
         tile=201, x=9, y=4)
-    ferry = replace(initial.unit(200), carrying=1)
+    ferry = replace(initial.unit(200), cargo_count=1)
     action = _move(200, 202)
     carried = _revision(
         initial, 2, (founder, ferry), (action,),
@@ -1007,7 +1007,7 @@ def test_lifecycle_blocks_and_repairs_only_after_new_grounded_route():
         tile=201, x=9, y=4)
     ferry = replace(
         initial.unit(200),
-        carrying=1)
+        cargo_count=1)
     blocked_snapshot = _revision(
         initial, 2,
         (founder, ferry), ())

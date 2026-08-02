@@ -211,8 +211,8 @@ class TransportCapabilityProjector(object):
                 tile = self._target_tile(snapshot, action, cargo.tile)
                 for carrier, profile in carriers:
                     if (carrier.tile == tile
-                            and carrier.carrying is not None
-                            and 0 <= carrier.carrying
+                            and carrier.cargo_count is not None
+                            and 0 <= carrier.cargo_count
                             < profile.transport_capacity
                             and cargo_profile.unit_class
                             in profile.cargo_classes):
@@ -241,7 +241,7 @@ class TransportCapabilityProjector(object):
                 ("tile", "transported", "transported_by", "type"))
             dependencies += self._unit_dependencies(
                 snapshot, carrier, fingerprints,
-                ("carrying", "tile", "type"))
+                ("cargo_count", "tile", "type"))
             dependencies += (
                 self._ruleset_dependency(cargo.unit_type),
                 self._ruleset_dependency(carrier.unit_type),
@@ -273,7 +273,7 @@ class TransportCapabilityProjector(object):
             transport = scope.root_entities[0]
             carrier_ref = EntityRef("unit", str(carrier.unit_id))
             carrier_dependencies = self._unit_dependencies(
-                snapshot, carrier, fingerprints, ("carrying", "type"))
+                snapshot, carrier, fingerprints, ("cargo_count", "type"))
             carrier_dependencies += (
                 self._ruleset_dependency(carrier.unit_type),)
             profile_witness = profile.to_dict()

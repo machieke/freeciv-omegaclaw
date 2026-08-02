@@ -56,6 +56,7 @@ def _unit(row):
         transported=row.get("transported"),
         transported_by=row.get("transported_by"),
         carrying=row.get("carrying"),
+        cargo_count=row.get("cargo_count"),
         done_moving=row.get("done_moving"),
     )
 

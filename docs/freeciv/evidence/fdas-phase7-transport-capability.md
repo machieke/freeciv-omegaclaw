@@ -10,7 +10,8 @@ projects:
 - current cargo compatibility and founder compatibility from compiled unit
   classes and flags;
 - authoritative carried-by relations from `transported` and `transported_by`;
-- current available/full status when authoritative `carrying` is present;
+- current available/full status when the authoritative own-unit transport
+  relation set is complete and yields an exact derived `cargo_count`;
 - the same typed `transport_seat` `ResourceRef` used by
   `ResourceCapacityExtractor` and the exact resource scheduler;
 - a current embark or disembark edge only when the action is server-advertised
@@ -46,3 +47,9 @@ pytest -q Autotests/test_freeciv_fdas_transport.py \
 
 30 passed
 ```
+
+Semantic correction: FreeCiv's packet `carrying` field identifies trade goods
+and is never used as passenger load. Passenger count is derived from complete
+`transported`/`transported_by` relationships; incomplete relationships fail
+closed. This correction is covered by empty, loaded, full, contradictory, and
+incomplete-relation regressions.

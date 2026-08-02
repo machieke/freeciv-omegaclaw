@@ -379,10 +379,10 @@ class GroundedTransportTransitionModel:
                         .unit_class
                         not in profile
                         .cargo_classes
-                        or unit.carrying
+                        or unit.cargo_count
                         is None
-                        or unit.carrying < 0
-                        or unit.carrying
+                        or unit.cargo_count < 0
+                        or unit.cargo_count
                         >= profile
                         .transport_capacity
                 ):
@@ -405,7 +405,7 @@ class GroundedTransportTransitionModel:
             seats_before = (
                 carrier_profile
                 .transport_capacity
-                - carrier.carrying)
+                - carrier.cargo_count)
             seats_after = seats_before - 1
             mode = "embark"
             seat_delta = -1.0
@@ -445,9 +445,9 @@ class GroundedTransportTransitionModel:
                     .unit_class
                     not in carrier_profile
                     .cargo_classes
-                    or carrier.carrying
+                    or carrier.cargo_count
                     is None
-                    or carrier.carrying <= 0
+                    or carrier.cargo_count <= 0
             ):
                 return self._abstain(
                     request,
@@ -455,7 +455,7 @@ class GroundedTransportTransitionModel:
             seats_before = (
                 carrier_profile
                 .transport_capacity
-                - carrier.carrying)
+                - carrier.cargo_count)
             seats_after = seats_before + 1
             mode = "disembark"
             seat_delta = 1.0

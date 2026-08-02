@@ -400,12 +400,14 @@ proxy's movement validator allowed these moves whenever the Diplomat unit type h
 the static Embark action capability. That capability proves only that the unit may
 be cargo; it does not prove an executable transport exists at the destination.
 
-The proxy now retains `carrying` and `transported_by` from authoritative unit
+The proxy retains `transported` and `transported_by` from authoritative unit
 packets and reads the exact ruleset `unit_class_id`. A non-native ocean move is
 advertised only when an owned, packet-visible transport is on the exact target,
-has spare `transport_capacity`, and its cargo bitvector includes the passenger's
-unit class. Missing, foreign, full, or incompatible transports fail closed. Focused
-tests cover all four cases without relying on unit names.
+has spare `transport_capacity` after counting units that name it as carrier,
+and its cargo bitvector includes the passenger's unit class. FreeCiv's packet
+`carrying` field is trade-goods metadata and is not used as passenger load.
+Missing, foreign, full, or incompatible transports fail closed. Focused tests
+cover all four cases without relying on unit names.
 
 The clean engine-backed pair at
 `artifacts/freeciv/impact-transport-legality-probe-104729-20260720` used patch

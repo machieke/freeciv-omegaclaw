@@ -901,9 +901,9 @@ class FounderTransportOperationAssembler:
                     and _normalized_type(
                         unit.unit_type)
                         in capacity_by_type
-                    and unit.carrying
+                    and unit.cargo_count
                         is not None
-                    and 0 <= unit.carrying
+                    and 0 <= unit.cargo_count
                         < capacity_by_type[
                             _normalized_type(
                                 unit.unit_type)]
@@ -1430,9 +1430,9 @@ class FounderTransportOperationAssembler:
                     .unit_class
                     not in ferry_profile
                     .cargo_classes
-                or ferry.carrying is None
-                or ferry.carrying < 0
-                or ferry.carrying
+                or ferry.cargo_count is None
+                or ferry.cargo_count < 0
+                or ferry.cargo_count
                     >= ferry_profile
                     .transport_capacity
         ):

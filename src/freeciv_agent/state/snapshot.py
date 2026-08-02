@@ -152,7 +152,11 @@ class UnitState:
     veteran: Optional[int] = None
     transported: Optional[bool] = None
     transported_by: Optional[int] = None
+    # FreeCiv's PACKET_UNIT_INFO ``carrying`` member identifies trade goods;
+    # it is not the number of units loaded into a transport.  Cargo load is
+    # derived independently from authoritative transported_by relations.
     carrying: Optional[int] = None
+    cargo_count: Optional[int] = None
     done_moving: Optional[bool] = None
 
     def to_dict(self):
@@ -172,6 +176,7 @@ class UnitState:
         return {
             **self.to_dict(),
             "carrying": self.carrying,
+            "cargo_count": self.cargo_count,
             "done_moving": self.done_moving,
             "transported": self.transported,
             "transported_by":

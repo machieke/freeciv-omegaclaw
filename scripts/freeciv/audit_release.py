@@ -24,7 +24,7 @@ from freeciv_agent.rulesets.compiler import compile_ruleset  # noqa: E402
 
 PINNED_FREECIV_COMMIT = "26ba7124249f34fd3050ef29bf191bd4d8808018"
 PINNED_PROXY_PATCH_SHA256S = (
-    "48e416000bf36c3c7ce13c8c59bb51bc682a1f17ee8568e432a82f673a10df55",
+    "8a6b32d2ccbcdfe4e521e5e0bcb6ae116590f5c1514093c99a95a065239c1a44",
     "a4eb88c827c7a2ea68db602aa2463c2aa53bb0c6156a71e1a5a5e7fc09908856",
     "1df99426c617e72beb0ca2bcbc879793cffce03e79a28a91e6e1955346228c31",
     "d7fa7b77ff7040af0da25ea8ed86156d754b5b6007eee5d98a95b87fe9b3cafa",
@@ -42,7 +42,7 @@ PINNED_PROXY_PATCH_SHA256S = (
     "659627003f09f980692021bd27eff1620e805dbadd2e9b42faedc98329bcc59c",
 )
 PINNED_PROXY_PATCH_SERIES_SHA256 = (
-    "56f9ae36e3e985bc36c04600df294436498854321c2390d7e281b7a3071cd6ca")
+    "d8f586ad5741106beb23b24c3e5f599fd74cb8e1b0f0a33961f2c966e66fe7d4")
 REQUIRED_CONFIDENCE_PARAMETERS = frozenset({
     "actionable_threshold", "minimum_logged_confidence", "dampening_lambda",
     "observation_strength", "observation_confidence", "abduction_strength",

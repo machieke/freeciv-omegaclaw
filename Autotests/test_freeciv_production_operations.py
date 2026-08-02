@@ -128,7 +128,7 @@ def _unit(
         unit_type=target_name,
         homecity=homecity,
         moves_left=3,
-        carrying=None)
+        cargo_count=None)
 
 
 def _building(

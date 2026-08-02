@@ -48,6 +48,20 @@ def _by_kind(result, kind):
         if row.resource.kind == kind)
 
 
+def _load_carrier(payload, carrier_id, count):
+    cargo_ids = [
+        unit_id for unit_id in sorted(payload["units"], key=int)
+        if int(unit_id) != carrier_id][:count]
+    assert len(cargo_ids) == count
+    carrier_tile = payload["units"][str(carrier_id)]["tile"]
+    for cargo_id in cargo_ids:
+        payload["units"][cargo_id].update({
+            "tile": carrier_tile,
+            "transported": True,
+            "transported_by": carrier_id,
+        })
+
+
 def _external_ruleset_root():
     configured = os.environ.get(
         "FREECIV_RULESET_ROOT")
@@ -120,9 +134,10 @@ def test_transport_seats_require_ruleset_capacity_and_visible_load():
     payload = copy.deepcopy(
         _payload())
     payload["units"]["102"][
-        "carrying"] = 1
+        "carrying"] = -1
     payload["units"]["102"][
         "type"] = "Ferry"
+    _load_carrier(payload, 102, 1)
     snapshot = ProxyStateDTO.parse(
         "transport-capacity", 1,
         payload).to_snapshot()
@@ -142,16 +157,17 @@ def test_transport_seats_require_ruleset_capacity_and_visible_load():
         "unit:102")
     assert seats[0].quantity == 2
     assert seats[0].authority == (
-        "derived-ruleset-and-unit-state")
+        "derived-ruleset-and-transport-relations")
 
 
 def test_compiled_trireme_transport_cap_exposes_exact_free_seat_count():
     payload = copy.deepcopy(
         _payload())
     payload["units"]["102"].update({
-        "carrying": 1,
+        "carrying": -1,
         "type": "Trireme",
     })
+    _load_carrier(payload, 102, 1)
     snapshot = ProxyStateDTO.parse(
         "compiled-transport-capacity",
         1, payload).to_snapshot()

@@ -627,7 +627,7 @@ index 02e3d7d..63e49f1 100755
  
                      def get_coords_from_tile_index(tile_idx):
                          # tile['index'] = x + y * map['xsize'];
-@@ -1653,10 +1803,15 @@ class CivCom(Thread):
+@@ -1653,10 +1803,16 @@ class CivCom(Thread):
                          'type_id': unit_type_raw,  # Preserve original integer for debugging/reference
                          'tile': tile_idx,
                          'homecity': packet.get('homecity', 0),
@@ -637,9 +637,10 @@ index 02e3d7d..63e49f1 100755
                          'veteran': packet.get('veteran', 0),
                          'transported': packet.get('transported', False),
 +                        'transported_by': packet.get('transported_by'),
-+                        # Exact cargo count prevents advertising embark moves
-+                        # onto a transport whose capacity is already full.
-+                        'carrying': packet.get('carrying', 0),
++                        # FreeCiv defines carrying as the carried trade-goods
++                        # type ID. Transport load is derived from the complete
++                        # transported/transported_by relation set downstream.
++                        'carrying': packet.get('carrying', -1),
                          'done_moving': packet.get('done_moving', False),
                          'activity': activity_name,  # String name (e.g., 'idle', 'sentry') or None
                          'x': x,
@@ -2022,7 +2023,7 @@ index 803966c..2cdccd6 100644
  
          if action_type == 'build_city':
              return {'type': 'unit_build_city', 'unit_id': unit_id, 'is_valid': True, 'priority': priority or 5}
-@@ -1075,6 +1097,94 @@ class StateExtractor:
+@@ -1075,6 +1097,98 @@ class StateExtractor:
                  return civcom.utype_can_do_action(unit_type_id, action_id)
              # Fallback to name-based heuristics if no ruleset data
              return self._fallback_can_do_action(unit_type_name, action_id)
@@ -2057,8 +2058,12 @@ index 803966c..2cdccd6 100644
 +                transport_type = civcom.unit_types.get(
 +                    other.get('type_id'), {})
 +                capacity = int(transport_type.get('transport_capacity', 0) or 0)
-+                carrying = int(other.get('carrying', 0) or 0)
-+                if capacity <= carrying:
++                cargo_count = sum(
++                    1 for cargo in civcom.player_units.values()
++                    if (cargo.get('owner') == player_id
++                        and cargo.get('transported') is True
++                        and cargo.get('transported_by') == other_id))
++                if capacity <= cargo_count:
 +                    continue
 +                if bitvector_contains(
 +                        transport_type.get('cargo'), passenger_class_id):
@@ -2462,7 +2467,7 @@ new file mode 100644
 index 0000000..93d611f
 --- /dev/null
 +++ b/freeciv-proxy/tests/test_pln_authoritative_state.py
-@@ -0,0 +1,688 @@
+@@ -0,0 +1,695 @@
 +"""Contract tests for the packet-backed PLN authoritative state format."""
 +
 +import asyncio
@@ -3016,12 +3021,19 @@ index 0000000..93d611f
 +        }
 +        tiles = {56: {"terrain": 2}}
 +
-+        def __init__(self, transport=None):
++        def __init__(self, transport=None, cargo_count=0):
 +            self.player_units = {105: {
 +                "id": 105, "owner": 0, "type_id": 48, "tile": 55,
 +            }}
 +            if transport is not None:
 +                self.player_units[200] = transport
++            for offset in range(cargo_count):
++                cargo_id = 300 + offset
++                self.player_units[cargo_id] = {
++                    "id": cargo_id, "owner": 0, "type_id": 48,
++                    "tile": 56, "transported": True,
++                    "transported_by": 200,
++                }
 +
 +        @staticmethod
 +        def utype_can_do_action(_unit_type, action_id):
@@ -3060,13 +3072,13 @@ index 0000000..93d611f
 +
 +    full = east_move(FakeCivCom({
 +        "id": 200, "owner": 0, "type_id": 34, "tile": 56,
-+        "carrying": 2,
-+    }))
++        "carrying": -1,
++    }, cargo_count=2))
 +    assert not full["is_valid"]
 +
 +    incompatible = FakeCivCom({
 +        "id": 200, "owner": 0, "type_id": 34, "tile": 56,
-+        "carrying": 0,
++        "carrying": -1,
 +    })
 +    incompatible.unit_types = dict(incompatible.unit_types)
 +    incompatible.unit_types[34] = dict(
@@ -3075,8 +3087,8 @@ index 0000000..93d611f
 +
 +    available = east_move(FakeCivCom({
 +        "id": 200, "owner": 0, "type_id": 34, "tile": 56,
-+        "carrying": 1,
-+    }))
++        "carrying": 7,
++    }, cargo_count=1))
 +    assert available["is_valid"]
 +
 +
