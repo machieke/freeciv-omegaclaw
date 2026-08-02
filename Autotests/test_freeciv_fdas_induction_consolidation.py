@@ -14,9 +14,15 @@ if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
 from freeciv_agent.pressure import (  # noqa: E402
+    CostVector,
+    GoalEffect,
     InducedRuleProposal,
     InductionEpisode,
+    InductionFeatureQuery,
     InductionPromotionApproval,
+    Operation,
+    OperationScore,
+    PromotedRuleCandidateImpactAnalyzer,
     PromotedRuleConsolidation,
     PromotedRuleConsolidator,
     PromotedRuleShadowReadout,
@@ -294,3 +300,120 @@ def test_shadow_readout_rejects_consolidation_not_reproduced_from_approvals():
     with pytest.raises(ValueError, match="does not match approvals"):
         PromotedRuleShadowReadout(
             proposals, validations, approvals, forged)
+
+
+def _score(operation_id, priority, positive_effect=1.0, admissible=True):
+    operation = Operation(
+        operation_id,
+        "atom-{}".format(operation_id),
+        "act",
+        CostVector(compute=1.0),
+        causal_kind="causal",
+    )
+    return OperationScore(
+        operation,
+        admissible,
+        None if admissible else "blocked",
+        priority,
+        priority,
+        1.0,
+        0.0,
+        (GoalEffect(
+            "goal-defense", 1.0, 1.0, 1.0, positive_effect),),
+    )
+
+
+def _query(query_id, feature):
+    return InductionFeatureQuery(
+        query_id,
+        (("schema", "causal-v1"),),
+        (feature,),
+        ("snapshot-bound-query",),
+    )
+
+
+def test_candidate_impact_reports_hypothetical_change_without_selecting_it():
+    lower = _proposal(
+        "rule-lower", ("feature:a",), probability=0.6, positives=5)
+    higher = _proposal(
+        "rule-higher", ("feature:b",), probability=0.8, positives=7)
+    analyzer = PromotedRuleCandidateImpactAnalyzer(
+        _readout((lower, higher)))
+    scores = (
+        _score("operation-actual", 1.0),
+        _score("operation-alternative", 0.95),
+    )
+
+    result = analyzer.analyze(scores, {
+        "operation-actual": _query("query-actual", "feature:a"),
+        "operation-alternative": _query("query-alternative", "feature:b"),
+    }, "operation-actual")
+    value = result.to_dict()
+
+    assert result.complete_prediction_coverage is True
+    assert result.counterfactual_selected_operation_id == (
+        "operation-alternative")
+    assert result.counterfactual_winner_changed is True
+    assert result.actual_selected_operation_id == "operation-actual"
+    assert value["action_selection_changed"] is False
+    assert value["truth_mutated"] is False
+    assert value["policy_authority"] is False
+    assert value["readout_authority"] is False
+    rows = dict((row.operation_id, row) for row in result.rows)
+    assert rows["operation-actual"].baseline_rank == 1
+    assert rows["operation-actual"].shadow_rank == 2
+    assert rows["operation-alternative"].baseline_rank == 2
+    assert rows["operation-alternative"].shadow_rank == 1
+    assert rows["operation-actual"].priority_delta < 0.0
+    assert rows["operation-alternative"].priority_delta < 0.0
+
+
+def test_candidate_impact_withholds_winner_without_complete_coverage():
+    analyzer = PromotedRuleCandidateImpactAnalyzer(
+        _readout((_proposal("rule", ("feature:a",)),)))
+    scores = (
+        _score("operation-actual", 1.0),
+        _score("operation-unobserved", 0.9),
+        _score("operation-blocked", 20.0, admissible=False),
+    )
+
+    result = analyzer.analyze(scores, {
+        "operation-actual": _query("query-actual", "feature:a"),
+    }, "operation-actual")
+    rows = dict((row.operation_id, row) for row in result.rows)
+
+    assert result.complete_prediction_coverage is False
+    assert result.counterfactual_selected_operation_id is None
+    assert result.counterfactual_winner_changed is None
+    assert result.action_selection_changed is False
+    assert rows["operation-unobserved"].reason == (
+        "candidate_feature_query_missing")
+    assert rows["operation-blocked"].reason == "candidate_inadmissible"
+
+
+def test_candidate_impact_rejects_outcome_bearing_query_surface():
+    analyzer = PromotedRuleCandidateImpactAnalyzer(
+        _readout((_proposal("rule", ("feature:a",)),)))
+
+    with pytest.raises(TypeError, match="outcome-free feature queries"):
+        analyzer.analyze(
+            (_score("operation", 1.0),),
+            {"operation": _induction_episode(("feature:a",))},
+            "operation")
+
+
+def test_candidate_impact_rejects_inconsistent_actual_winner():
+    analyzer = PromotedRuleCandidateImpactAnalyzer(
+        _readout((_proposal("rule", ("feature:a",)),)))
+    scores = (
+        _score("operation-winner", 1.0),
+        _score("operation-other", 0.9),
+    )
+    queries = {
+        value.operation_id: _query(
+            "query-{}".format(value.operation_id), "feature:a")
+        for value in scores
+    }
+
+    with pytest.raises(ValueError, match="does not match baseline winner"):
+        analyzer.analyze(scores, queries, "operation-other")

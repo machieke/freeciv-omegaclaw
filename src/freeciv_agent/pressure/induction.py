@@ -14,7 +14,8 @@ import threading
 from dataclasses import dataclass
 
 from ..events.schema import structural_hash
-from .model import CostVector, Operation
+from .model import CostVector, Operation, PressureConfig
+from .scheduler import OperationScore
 
 
 SCHEMA_VERSION = "1.0"
@@ -89,6 +90,42 @@ class InductionEpisode:
             "features": list(self.features),
             "outcome": bool(self.outcome),
             "provenance_ids": list(self.provenance_ids),
+        }
+
+
+@dataclass(frozen=True)
+class InductionFeatureQuery:
+    """Outcome-free contextual features for prediction-time readout."""
+
+    query_id: str
+    context: tuple
+    features: tuple
+    provenance_ids: tuple = ()
+
+    def __post_init__(self):
+        if not isinstance(self.query_id, str) or not self.query_id:
+            raise ValueError("induction feature query requires an ID")
+        object.__setattr__(self, "context", _canonical_context(self.context))
+        object.__setattr__(
+            self, "features", _canonical_strings(self.features, "feature"))
+        object.__setattr__(
+            self, "provenance_ids",
+            _canonical_strings(self.provenance_ids, "provenance"))
+
+    @property
+    def episode_id(self):
+        """Compatibility identity for outcome-blind readout results."""
+        return self.query_id
+
+    def in_scope(self, scope):
+        return _context_contains(self.context, scope)
+
+    def to_dict(self):
+        return {
+            "context": [list(row) for row in self.context],
+            "features": list(self.features),
+            "provenance_ids": list(self.provenance_ids),
+            "query_id": self.query_id,
         }
 
 
@@ -1266,8 +1303,9 @@ class PromotedRuleShadowReadout(object):
             structural_hash(semantic))
 
     def read(self, episode):
-        if not isinstance(episode, InductionEpisode):
-            raise TypeError("shadow readout requires InductionEpisode")
+        if not isinstance(episode, (InductionEpisode, InductionFeatureQuery)):
+            raise TypeError(
+                "shadow readout requires an outcome-free query or episode")
         matching = tuple(
             value for value in self.rules if value.applies(episode))
         if not matching:
@@ -1301,6 +1339,254 @@ class PromotedRuleShadowReadout(object):
             matching,
             maximal,
             selected)
+
+
+@dataclass(frozen=True)
+class PromotedRuleCandidateImpactRow:
+    """One action-preserving counterfactual candidate score."""
+
+    operation_id: str
+    query_id: object
+    admissible: bool
+    baseline_rank: object
+    shadow_rank: object
+    baseline_priority: float
+    population_baseline_priority: float
+    shadow_priority: float
+    priority_delta: float
+    positive_goal_effect: float
+    estimated: bool
+    reason: str
+    prediction: object
+
+    def to_dict(self):
+        return {
+            "admissible": bool(self.admissible),
+            "baseline_priority": float(self.baseline_priority),
+            "baseline_rank": self.baseline_rank,
+            "estimated": bool(self.estimated),
+            "operation_id": self.operation_id,
+            "population_baseline_priority": float(
+                self.population_baseline_priority),
+            "positive_goal_effect": float(self.positive_goal_effect),
+            "prediction": (
+                None if self.prediction is None
+                else self.prediction.to_dict()),
+            "priority_delta": float(self.priority_delta),
+            "query_id": self.query_id,
+            "reason": self.reason,
+            "shadow_priority": float(self.shadow_priority),
+            "shadow_rank": self.shadow_rank,
+        }
+
+
+@dataclass(frozen=True)
+class PromotedRuleCandidateImpactResult:
+    """A complete candidate ranking diagnostic with no selection authority."""
+
+    actual_selected_operation_id: str
+    counterfactual_selected_operation_id: object
+    counterfactual_winner_changed: object
+    complete_prediction_coverage: bool
+    rows: tuple
+    truth_mutated: bool
+    policy_authority: bool
+    readout_authority: bool
+    action_selection_changed: bool
+    result_hash: str
+
+    def to_dict(self):
+        return {
+            "action_selection_changed": bool(self.action_selection_changed),
+            "actual_selected_operation_id": (
+                self.actual_selected_operation_id),
+            "complete_prediction_coverage": bool(
+                self.complete_prediction_coverage),
+            "counterfactual_selected_operation_id": (
+                self.counterfactual_selected_operation_id),
+            "counterfactual_winner_changed": (
+                self.counterfactual_winner_changed),
+            "policy_authority": bool(self.policy_authority),
+            "readout_authority": bool(self.readout_authority),
+            "result_hash": self.result_hash,
+            "rows": [value.to_dict() for value in self.rows],
+            "truth_mutated": bool(self.truth_mutated),
+        }
+
+
+class PromotedRuleCandidateImpactAnalyzer(object):
+    """Join shadow predictions to PF scores without changing their winner."""
+
+    ANALYZER_IDENTITY = "fdas-promoted-rule-candidate-impact-shadow/1.0"
+
+    def __init__(self, readout, config=None):
+        if not isinstance(readout, PromotedRuleShadowReadout):
+            raise TypeError("candidate impact requires promoted-rule readout")
+        if config is not None and not isinstance(config, PressureConfig):
+            raise TypeError("candidate impact requires PressureConfig")
+        self.readout = readout
+        self.config = config or PressureConfig()
+
+    def _calibrated_priority(self, score, positive_effect, probability):
+        if not score.admissible or positive_effect <= 0.0:
+            return float(score.priority)
+        operation = score.operation
+        denominator = float(score.scalar_cost) + self.config.cost_epsilon
+        multiplier = (
+            operation.feasibility * operation.effective_deadline_fit
+            / denominator)
+        full_formula = (
+            score.value * multiplier
+            - operation.redundancy - operation.contradiction_risk)
+        calibrated_value = (
+            score.value - positive_effect
+            + positive_effect * float(probability))
+        calibrated_formula = (
+            calibrated_value * multiplier
+            - operation.redundancy - operation.contradiction_risk)
+        # Preserve bridge, path-persistence, and other already-applied score
+        # adjustments; change only the declared positive relief component.
+        return float(score.priority) + calibrated_formula - full_formula
+
+    @staticmethod
+    def _rank(rows, field):
+        eligible = tuple(
+            value for value in rows if value["score"].admissible)
+        ordered = tuple(sorted(eligible, key=lambda value: (
+            -float(value[field]), value["score"].operation_id)))
+        return dict(
+            (value["score"].operation_id, index + 1)
+            for index, value in enumerate(ordered))
+
+    def analyze(self, scores, queries_by_operation,
+                actual_selected_operation_id):
+        scores = tuple(scores)
+        if not scores or any(
+                not isinstance(value, OperationScore) for value in scores):
+            raise TypeError("candidate impact requires OperationScore values")
+        score_ids = tuple(value.operation_id for value in scores)
+        if len(score_ids) != len(set(score_ids)):
+            raise ValueError("candidate impact score IDs must be unique")
+        queries = dict(queries_by_operation)
+        if set(queries).difference(score_ids):
+            raise ValueError("candidate impact query references unknown score")
+        if any(
+                not isinstance(value, InductionFeatureQuery)
+                for value in queries.values()):
+            raise TypeError(
+                "candidate impact requires outcome-free feature queries")
+        actual_selected_operation_id = str(actual_selected_operation_id)
+        selected = tuple(
+            value for value in scores
+            if value.operation_id == actual_selected_operation_id)
+        if len(selected) != 1 or not selected[0].admissible:
+            raise ValueError(
+                "actual selected operation must be uniquely admissible")
+
+        intermediate = []
+        for score in scores:
+            positive_effect = sum(
+                max(0.0, float(value.weighted_effect))
+                for value in score.goal_effects)
+            query = queries.get(score.operation_id)
+            prediction = (
+                None if query is None else self.readout.read(query))
+            estimated = bool(
+                score.admissible
+                and prediction is not None
+                and prediction.accepted
+                and positive_effect > 0.0)
+            if not score.admissible:
+                reason = "candidate_inadmissible"
+            elif query is None:
+                reason = "candidate_feature_query_missing"
+            elif not prediction.accepted:
+                reason = "shadow_readout_abstained:{}".format(
+                    prediction.reason)
+            elif positive_effect <= 0.0:
+                reason = "candidate_has_no_positive_goal_effect"
+            else:
+                reason = "shadow_impact_estimate_available"
+            population_priority = (
+                self._calibrated_priority(
+                    score, positive_effect,
+                    prediction.selected_baseline_probability)
+                if estimated else float(score.priority))
+            shadow_priority = (
+                self._calibrated_priority(
+                    score, positive_effect,
+                    prediction.selected_probability)
+                if estimated else float(score.priority))
+            intermediate.append({
+                "estimated": estimated,
+                "population_priority": population_priority,
+                "positive_effect": positive_effect,
+                "prediction": prediction,
+                "query": query,
+                "reason": reason,
+                "score": score,
+                "shadow_priority": shadow_priority,
+            })
+        baseline_ranks = self._rank(
+            tuple(dict(value, baseline_priority=value["score"].priority)
+                  for value in intermediate),
+            "baseline_priority")
+        if baseline_ranks.get(actual_selected_operation_id) != 1:
+            raise ValueError(
+                "actual selected operation does not match baseline winner")
+        shadow_ranks = self._rank(intermediate, "shadow_priority")
+        admissible = tuple(
+            value for value in intermediate if value["score"].admissible)
+        complete = bool(admissible) and all(
+            value["estimated"] for value in admissible)
+        counterfactual = (
+            min(admissible, key=lambda value: (
+                -value["shadow_priority"], value["score"].operation_id))[
+                    "score"].operation_id
+            if complete else None)
+        changed = (
+            counterfactual != actual_selected_operation_id
+            if counterfactual is not None else None)
+        rows = tuple(
+            PromotedRuleCandidateImpactRow(
+                value["score"].operation_id,
+                None if value["query"] is None else value["query"].query_id,
+                value["score"].admissible,
+                baseline_ranks.get(value["score"].operation_id),
+                shadow_ranks.get(value["score"].operation_id),
+                value["score"].priority,
+                value["population_priority"],
+                value["shadow_priority"],
+                value["shadow_priority"] - value["score"].priority,
+                value["positive_effect"],
+                value["estimated"],
+                value["reason"],
+                value["prediction"])
+            for value in sorted(
+                intermediate, key=lambda row: row["score"].operation_id))
+        semantic = {
+            "action_selection_changed": False,
+            "actual_selected_operation_id": actual_selected_operation_id,
+            "analyzer_identity": self.ANALYZER_IDENTITY,
+            "complete_prediction_coverage": complete,
+            "counterfactual_selected_operation_id": counterfactual,
+            "counterfactual_winner_changed": changed,
+            "policy_authority": False,
+            "readout_authority": False,
+            "rows": [value.to_dict() for value in rows],
+            "truth_mutated": False,
+        }
+        return PromotedRuleCandidateImpactResult(
+            actual_selected_operation_id,
+            counterfactual,
+            changed,
+            complete,
+            rows,
+            False,
+            False,
+            False,
+            False,
+            structural_hash(semantic))
 
 
 class ReplayValidator(object):
