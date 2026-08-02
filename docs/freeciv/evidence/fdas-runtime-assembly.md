@@ -40,8 +40,10 @@ path instead of being assembled only by tests:
   view. Reading it cannot create a lifecycle or alter planner behavior.
 - Enabled engine runs publish bounded causal revision and post-legacy shadow
   decision events, atom/scope counts, projection latency, and shadow-readout
-  latency. Each readout also emits the hash, route kind, and blockers of a
-  canonical revision-bound decision explanation. Revision-start events are
+  latency, including revision/query, goal, candidate, pressure, explanation,
+  and comparison stage timings. Each readout also emits the hash, route kind,
+  and blockers of a canonical revision-bound decision explanation.
+  Revision-start events are
   causally linked to the authoritative `state_snapshot` event. The readout
   returns no executable action.
 - Deterministically sampled incremental/cold verification fails the runtime
@@ -74,20 +76,24 @@ base harness; the resolved declaration and hash are part of run identity.
 
 ## Verification
 
-- Focused FDAS suite: `187 passed in 38.82s` (legal-action shard checkpoint).
+- Focused FDAS suite: `187 passed in 38.27s` (bounded-readout checkpoint).
 - Configuration, runtime, and harness integration: `140 passed in 297.14s`.
-- Complete FreeCiv acceptance suite: `1,284 passed in 380.65s`.
+- Complete FreeCiv acceptance suite: `1,284 passed in 377.89s`.
 - Enabled checked projector assembly was exercised against the compiled
   Civ2Civ3 ruleset and authoritative contract fixture.
 - Strict captured replay exercised 38 snapshots and 37 transitions with 100%
   cold verification and no mismatches.
 - The schema-1.1 diagnostic replay retained 37/37 equivalence. Its strict
-  incremental-plus-cold projection measured 528.68 ms mean and 935.83 ms p95;
+  incremental-plus-cold projection measured 533.53 ms mean and 911.40 ms p95;
   this path includes both builds by design and is not a live-controller timing.
 - Exact legal-action sharding reused 28,586 action records and reduced mean
   rich recomputation from 76.8% to 25.5% without regressing that strict timing.
 - All 38 replayed shadow decisions carry bounded canonical explanations; 76/76
   cold and incremental explanation hashes and the report hash were recomputed.
+- Exception-safe cyclic-GC suppression reduced shadow readout p95 from
+  376.75 ms to 77.85 ms. Combined cold projection plus readout measured
+  476.83 ms p95 in this diagnostic cohort; both the 500 ms combined gate and
+  150 ms contribution target pass here without changing candidate semantics.
 - One predeclared engine-live shadow game completed 30 turns with 52 rich
   revisions and 51 non-authorizing shadow decisions.
 - `git diff --check`: clean.

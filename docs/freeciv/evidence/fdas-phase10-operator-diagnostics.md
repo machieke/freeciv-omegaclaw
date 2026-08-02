@@ -17,6 +17,14 @@ evidence, and why-not blockers. `atomspace_shadow_decision` exposes the bundle
 hash, route kind, and blockers; the replay artifact retains the full bounded
 bundle for inspection.
 
+Each shadow decision also carries stage timings for revision/query, goal
+instantiation, candidate instantiation, pressure evaluation, decision
+explanation, and legacy comparison. This made the former p95 outliers
+attributable to cyclic-GC pauses rather than proof or explanation cost. The
+bounded readout now suppresses cyclic GC with exception-safe state restoration;
+the strict diagnostic cohort records 77.85 ms readout p95 and shows candidate
+construction and pressure evaluation as the remaining dominant stages.
+
 Diagnostics operate on an immutable `DependentAtomSpaceRevision`. They cannot
 publish revisions, mutate supports, update truth or beliefs, reserve resources,
 bind legal actions, or acquire policy authority. A missing condition remains

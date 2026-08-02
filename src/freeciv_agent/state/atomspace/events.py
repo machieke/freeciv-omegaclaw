@@ -348,6 +348,7 @@ class AtomSpaceEventEmitter(object):
             "schedule_hash": pressure.schedule.get("structural_hash"),
             "selected_operation_id": pressure.schedule.get(
                 "selected_operation_id"),
+            "stage_latency_ms": dict(evaluation.stage_latency_ms),
             "status": pressure.status,
         }, (pressure_event["event_id"],))
         return tuple(emitted)

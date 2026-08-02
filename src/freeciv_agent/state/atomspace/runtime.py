@@ -8,8 +8,10 @@ pressure adapter, commit validator, and execution gate.
 """
 
 from dataclasses import dataclass, replace
+import gc
 import json
 import os
+import threading
 import time
 
 import yaml
@@ -41,6 +43,24 @@ from .unit import UnitDefenseProjector
 
 DEFAULT_CONFIG_PATH = repo_path("profile", "dependent_atomspace.yaml")
 DEFAULT_MANIFEST_PATH = repo_path("profile", "fdas_manifest.json")
+
+
+_FDAS_SHADOW_LOCK = threading.RLock()
+
+
+def _without_cyclic_gc(function):
+    """Keep non-deterministic cyclic-GC pauses outside bounded readout."""
+    def guarded(*args, **kwargs):
+        with _FDAS_SHADOW_LOCK:
+            enabled = gc.isenabled()
+            if enabled:
+                gc.disable()
+            try:
+                return function(*args, **kwargs)
+            finally:
+                if enabled:
+                    gc.enable()
+    return guarded
 
 
 class FdasRuntimeConfigurationError(ValueError):
@@ -300,7 +320,16 @@ class FdasShadowEvaluation:
     pressure: object
     comparison: object
     decision_explanation: FdasDecisionExplanation
+    stage_latency_ms: tuple
     latency_ms: float
+
+    def __post_init__(self):
+        stages = tuple(sorted(
+            (str(name), float(value))
+            for name, value in self.stage_latency_ms))
+        if any(value < 0.0 for _name, value in stages):
+            raise ValueError("FDAS stage latency cannot be negative")
+        object.__setattr__(self, "stage_latency_ms", stages)
 
     def to_dict(self):
         return {
@@ -315,6 +344,7 @@ class FdasShadowEvaluation:
             "pressure": self.pressure.to_dict(),
             "revision_id": self.revision_id,
             "snapshot_id": self.snapshot_id,
+            "stage_latency_ms": dict(self.stage_latency_ms),
         }
 
 
@@ -552,6 +582,7 @@ class FdasRuntime(object):
             semantic["pressure_operation"], schedule_evidence, blockers,
             diagnostics, structural_hash(semantic))
 
+    @_without_cyclic_gc
     def evaluate_shadow(self, snapshot, legacy_candidates=()):
         """Evaluate local FDAS routes without returning an executable action."""
         if not self.enabled:
@@ -562,6 +593,8 @@ class FdasRuntime(object):
             raise FdasRuntimeConfigurationError(
                 "FDAS shadow evaluation is not configured")
         started = time.perf_counter()
+        stage_started = started
+        stage_latency = []
         revision = self.snapshot_store.current_dependent_revision(
             snapshot.identity.game_id, snapshot.player_id)
         if revision is None or revision.snapshot_id != snapshot.snapshot_id:
@@ -569,7 +602,15 @@ class FdasRuntime(object):
                 "FDAS shadow evaluation requires the current revision")
         query = self.dependent_store.query_current(
             snapshot.identity.game_id, snapshot.player_id)
+        now = time.perf_counter()
+        stage_latency.append((
+            "revision_query", (now - stage_started) * 1000.0))
+        stage_started = now
         goals = self._goal_factory.instantiate(revision, query)
+        now = time.perf_counter()
+        stage_latency.append((
+            "goal_instantiation", (now - stage_started) * 1000.0))
+        stage_started = now
         legacy_candidates = (
             None if legacy_candidates is None else tuple(legacy_candidates))
         from ...planning import legacy_shadow_goal_routes
@@ -581,20 +622,35 @@ class FdasRuntime(object):
             protected_goal_routes=(
                 () if legacy_candidates is None else
                 legacy_shadow_goal_routes(legacy_candidates)))
+        now = time.perf_counter()
+        stage_latency.append((
+            "candidate_instantiation", (now - stage_started) * 1000.0))
+        stage_started = now
         candidates = instantiation.candidates
         pressure = self._pressure_adapter.evaluate(
             revision, goals, candidates)
+        now = time.perf_counter()
+        stage_latency.append((
+            "pressure_evaluation", (now - stage_started) * 1000.0))
+        stage_started = now
         decision_explanation = self.explain_shadow_decision(
             revision, query, goals, candidates, instantiation, pressure)
+        now = time.perf_counter()
+        stage_latency.append((
+            "decision_explanation", (now - stage_started) * 1000.0))
+        stage_started = now
         comparison = None
         if legacy_candidates is not None:
             from ...planning import compare_shadow_candidates
             comparison = compare_shadow_candidates(
                 snapshot, legacy_candidates, candidates)
+        now = time.perf_counter()
+        stage_latency.append((
+            "legacy_comparison", (now - stage_started) * 1000.0))
         return FdasShadowEvaluation(
             snapshot.snapshot_id, revision.revision_id, goals, candidates,
             instantiation, pressure, comparison, decision_explanation,
-            (time.perf_counter() - started) * 1000.0)
+            tuple(stage_latency), (now - started) * 1000.0)
 
     def emit_current(self, writer, snapshot, caused_by=(), prior_revision=None):
         """Emit bounded causal evidence for the current rich revision."""

@@ -211,6 +211,15 @@ and not-applicable results carry their why-not blockers instead. The bundle is
 revision/snapshot-bound, structurally hashed, and bounded by retaining only the
 selected scheduler row; it cannot authorize or execute an action.
 
+Shadow readout is an immutable, serialized bounded transaction. Cyclic garbage
+collection is suppressed only during that transaction and its prior state is
+restored on success or exception, avoiding non-deterministic generation-2
+pauses while ordinary reference counting remains active. Revision/query, goal,
+candidate, pressure, explanation, and legacy-comparison timings are emitted
+separately. In strict captured replay this reduced readout p95 from 376.75 ms
+to 77.85 ms and brought combined cold FDAS p95 to 476.83 ms; this is diagnostic
+performance evidence, not an authority or live-promotion claim.
+
 ## Activation
 
 `profile/fdas_manifest.json` declares the typed core, dependency truth

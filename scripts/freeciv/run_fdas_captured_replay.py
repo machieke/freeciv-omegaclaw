@@ -219,6 +219,7 @@ def _cold_replay(snapshots, declaration, ruleset_ir):
                     "pressure_status": evaluation.pressure.status,
                     "selected_operation_id": evaluation.pressure.schedule.get(
                         "selected_operation_id"),
+                    "stage_latency_ms": dict(evaluation.stage_latency_ms),
                 },
                 "turn": snapshot.turn,
             }
@@ -275,6 +276,7 @@ def _incremental_replay(snapshots, declaration, ruleset_ir):
                     "pressure_status": evaluation.pressure.status,
                     "selected_operation_id": evaluation.pressure.schedule.get(
                         "selected_operation_id"),
+                    "stage_latency_ms": dict(evaluation.stage_latency_ms),
                 },
                 "snapshot_id": snapshot.snapshot_id,
                 "source_seq": snapshot.identity.source_seq,
@@ -334,6 +336,10 @@ def main(argv=None):
     def shadow_summary(samples):
         comparisons = tuple(
             row["shadow_evaluation"]["comparison"] for row in samples)
+        stage_names = tuple(sorted(set(
+            name for row in samples
+            for name in row["shadow_evaluation"].get(
+                "stage_latency_ms", {}))))
         return {
             "authority_eligible_count": sum(
                 row["shadow_evaluation"]["authority_eligible_count"]
@@ -376,6 +382,11 @@ def main(argv=None):
                     "explanation_hash")) for row in samples),
             "safety_downgrade_count": sum(
                 len(row["safety_downgrades"]) for row in comparisons),
+            "stage_latency": dict(
+                (name, _summary(
+                    row["shadow_evaluation"]["stage_latency_ms"][name]
+                    for row in samples))
+                for name in stage_names),
         }
 
     def materialization_summary(samples):

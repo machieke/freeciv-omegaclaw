@@ -4,7 +4,7 @@ Date: 2026-08-02
 Branch: `experimental/functional-dependent-atomspace`
 Machine scope: local diagnostic replay
 Machine-readable report: `fdas-captured-shadow-replay.json`
-Report hash: `bc592352b160c17bd8e1015351909bd3399def0f7099334cb664fe93bd93dea5`
+Report hash: `f16629c3fd06f296e8ff49c7ac23ba69075802bf3b2454bbd241a3618f720f58`
 
 ## Corpus and strictness
 
@@ -25,10 +25,10 @@ revision; all 37 were canonically equivalent.
 
 | Measurement | Result |
 |---|---:|
-| Cold projection p50 / p95 / max | 213.70 / 427.40 / 447.05 ms |
-| Shadow readout p50 / p95 / max | 19.90 / 376.75 / 438.94 ms |
-| Combined cold FDAS p50 / p95 / max | 250.07 / 560.36 / 639.23 ms |
-| Strict incremental plus cold verification p50 / p95 / max | 525.29 / 935.83 / 1,080.27 ms |
+| Cold projection p50 / p95 / max | 211.65 / 418.10 / 438.07 ms |
+| Shadow readout p50 / p95 / max | 15.37 / 77.85 / 80.39 ms |
+| Combined cold FDAS p50 / p95 / max | 240.79 / 476.83 / 500.42 ms |
+| Strict incremental plus cold verification p50 / p95 / max | 531.25 / 911.40 / 1,059.81 ms |
 | Incremental recomputation ratio mean / p50 / p95 | 0.255 / 0.215 / 0.482 |
 | Maximum atoms / scopes / supports | 2,610 / 80 / 1,388 |
 | Maximum dependency keys | 2,002 |
@@ -43,13 +43,22 @@ revision; all 37 were canonically equivalent.
 | Explanation routes: blocked candidate / gap / none | 16 / 13 / 9 |
 | Maximum serialized decision explanation | 16,980 bytes |
 
-The 500 ms production-safe gate is a p95 gate. Cold projection alone remains
-below it at 427.40 ms, but projection plus shadow readout measured 560.36 ms
-p95 and therefore does not pass the controller-inclusive gate in this stress
-corpus. The proposed 150 ms ordinary FDAS contribution target is also not met.
-A single local diagnostic run is not a live latency promotion cohort. The
-evidence supports bounded diagnostic shadow operation, not unrestricted
-activation or authority.
+The 500 ms production-safe gate is a p95 gate. Cold projection measured
+418.10 ms p95 and projection plus shadow readout measured 476.83 ms p95, so
+this diagnostic stress cohort passes the broad controller-inclusive gate.
+Shadow readout measured 77.85 ms p95 and passes the proposed 150 ms ordinary
+FDAS contribution target. A single local replay is not a live latency promotion
+cohort; the evidence supports bounded diagnostic shadow operation, not
+unrestricted activation or authority.
+
+| Shadow stage p50 / p95 / max | Result |
+|---|---:|
+| Candidate instantiation | 5.50 / 45.72 / 47.09 ms |
+| Pressure evaluation | 4.40 / 33.44 / 34.85 ms |
+| Goal instantiation | 1.02 / 1.58 / 1.74 ms |
+| Decision explanation | 0.38 / 0.51 / 0.57 ms |
+| Legacy comparison | 0.11 / 0.37 / 0.45 ms |
+| Revision query | 0.02 / 0.02 / 0.02 ms |
 
 The strict incremental timing is diagnostic rather than a live-controller
 timing: every transition prepares an incremental revision and a second,
@@ -75,9 +84,10 @@ and selected scheduler row. A gap route explicitly records
 diagnostic blockers. All 76 cold and incremental explanation hashes and the
 top-level report hash were independently recomputed successfully. The bundle
 retains only selected-operation scheduler evidence and keeps the largest
-individual explanation at 16,980 bytes. The complete report is 5,834,034 bytes
+individual explanation at 16,980 bytes. The complete report is 5,867,668 bytes
 because it also retains exact high-cardinality action-shard reuse/recompute
-identities; it remains well below the rejected 13.7 MB full-schedule draft.
+identities and stage timings; it remains well below the rejected 13.7 MB
+full-schedule draft.
 
 A separate same-turn full-rich fixture provides the positive ordinary-update
 check. It reused city/economy, region, combat, and population-recovery output,
@@ -143,8 +153,14 @@ predictive goal semantics before treating these candidates as causal.
   immutable snapshot, legal-action shards skip unused grounding initialization,
   and private shard cache signatures compare exact dependency rows. These
   changes recover the initial high-cardinality latency regression: strict mean
-  / p95 improved from the pushed 535.14 / 950.43 ms baseline to
-  528.68 / 935.83 ms while recomputation fell by 51.3 percentage points.
+  / p95 measured 533.53 / 911.40 ms versus the pushed
+  535.14 / 950.43 ms baseline while recomputation fell by 51.3 percentage
+  points.
+- Shadow evaluation suppresses cyclic GC only within an exception-safe,
+  serialized bounded readout transaction, then restores the prior GC state.
+  A repeated 82-candidate case fell from 55.72 ms mean / 142.91 ms max to
+  48.96 / 73.65 ms; the strict cohort's readout p95 fell from 376.75 to
+  77.85 ms. Every readout emits per-stage timings for future attribution.
 
 ## Non-claims
 

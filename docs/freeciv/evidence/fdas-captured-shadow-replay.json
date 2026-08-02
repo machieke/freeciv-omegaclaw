@@ -75,28 +75,28 @@
     "unique_fixture_count": 47
   },
   "failures": [],
-  "generated_at": "2026-08-02T05:14:50.080935+00:00",
+  "generated_at": "2026-08-02T05:33:44.078366+00:00",
   "mode": "all",
-  "report_hash": "bc592352b160c17bd8e1015351909bd3399def0f7099334cb664fe93bd93dea5",
+  "report_hash": "f16629c3fd06f296e8ff49c7ac23ba69075802bf3b2454bbd241a3618f720f58",
   "results": {
     "cold": {
       "fdas_total_latency": {
         "count": 38,
-        "maximum_ms": 639.2349847592413,
-        "mean_ms": 284.08656257057663,
-        "minimum_ms": 58.57010092586279,
-        "p50_ms": 250.06808107718825,
-        "p95_ms": 560.3642081841826,
-        "p99_ms": 639.2349847592413
+        "maximum_ms": 500.4193210043013,
+        "mean_ms": 256.60290444073706,
+        "minimum_ms": 57.28551093488932,
+        "p50_ms": 240.7944998703897,
+        "p95_ms": 476.83490300551057,
+        "p99_ms": 500.4193210043013
       },
       "latency": {
         "count": 38,
-        "maximum_ms": 447.0487688668072,
-        "mean_ms": 233.78827991454224,
-        "minimum_ms": 57.9838608391583,
-        "p50_ms": 213.69886118918657,
-        "p95_ms": 427.39512771368027,
-        "p99_ms": 447.0487688668072
+        "maximum_ms": 438.07329004630446,
+        "mean_ms": 230.6674465316495,
+        "minimum_ms": 56.69318698346615,
+        "p50_ms": 211.64997294545174,
+        "p95_ms": 418.1037819944322,
+        "p99_ms": 438.07329004630446
       },
       "materialization": {
         "incremental_recomputation_ratio": {
@@ -136,8 +136,8 @@
         {
           "atom_count": 410,
           "dependency_key_count": 262,
-          "fdas_total_latency_ms": 68.20235913619399,
-          "latency_ms": 67.46532022953033,
+          "fdas_total_latency_ms": 67.18462612479925,
+          "latency_ms": 66.4666942320764,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -290,10 +290,18 @@
             },
             "evaluation_hash": "809f3eea031e6e4bc1d5ee0d044b5383e000f1e493056ffe0bfcb41c52825ed6",
             "goal_count": 0,
-            "latency_ms": 0.7370389066636562,
+            "latency_ms": 0.7179318927228451,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
-            "selected_operation_id": null
+            "selected_operation_id": null,
+            "stage_latency_ms": {
+              "candidate_instantiation": 0.5036420188844204,
+              "decision_explanation": 0.035019125789403915,
+              "goal_instantiation": 0.05210377275943756,
+              "legacy_comparison": 0.04197005182504654,
+              "pressure_evaluation": 0.07038703188300133,
+              "revision_query": 0.01480989158153534
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:1:6870:9531d66bf53cf635",
           "source_seq": 6870,
@@ -303,8 +311,8 @@
         {
           "atom_count": 410,
           "dependency_key_count": 261,
-          "fdas_total_latency_ms": 62.45497427880764,
-          "latency_ms": 61.752875335514545,
+          "fdas_total_latency_ms": 62.58092820644379,
+          "latency_ms": 61.86066893860698,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -450,10 +458,18 @@
             },
             "evaluation_hash": "d1e104ce1b4c9946198295fa0ed279c7478aa02b1a7d2634338582fdb1e8ac00",
             "goal_count": 0,
-            "latency_ms": 0.7020989432930946,
+            "latency_ms": 0.7202592678368092,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
-            "selected_operation_id": null
+            "selected_operation_id": null,
+            "stage_latency_ms": {
+              "candidate_instantiation": 0.5266880616545677,
+              "decision_explanation": 0.03239791840314865,
+              "goal_instantiation": 0.047188252210617065,
+              "legacy_comparison": 0.03251805901527405,
+              "pressure_evaluation": 0.06670411676168442,
+              "revision_query": 0.014762859791517258
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:1:6878:0ba043e59e81330b",
           "source_seq": 6878,
@@ -463,8 +479,8 @@
         {
           "atom_count": 368,
           "dependency_key_count": 243,
-          "fdas_total_latency_ms": 58.57010092586279,
-          "latency_ms": 57.9838608391583,
+          "fdas_total_latency_ms": 57.28551093488932,
+          "latency_ms": 56.69318698346615,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -595,10 +611,18 @@
             },
             "evaluation_hash": "cf4df93647a4ece90a9d4faac2b06f78e0d77d60c37328f9191500800d08c633",
             "goal_count": 0,
-            "latency_ms": 0.5862400867044926,
+            "latency_ms": 0.5923239514231682,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
-            "selected_operation_id": null
+            "selected_operation_id": null,
+            "stage_latency_ms": {
+              "candidate_instantiation": 0.4079570062458515,
+              "decision_explanation": 0.03167707473039627,
+              "goal_instantiation": 0.04350673407316208,
+              "legacy_comparison": 0.03097672015428543,
+              "pressure_evaluation": 0.06471015512943268,
+              "revision_query": 0.013496261090040207
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:1:6889:ad01aee0dd0de1a0",
           "source_seq": 6889,
@@ -608,8 +632,8 @@
         {
           "atom_count": 659,
           "dependency_key_count": 450,
-          "fdas_total_latency_ms": 126.47781800478697,
-          "latency_ms": 107.80704813078046,
+          "fdas_total_latency_ms": 121.0308033041656,
+          "latency_ms": 105.36382300779223,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -1258,10 +1282,18 @@
             },
             "evaluation_hash": "b4fb4eaa6e1ffebd798a8cfebe55697159caedeccfbee3a8bfb3271844ad8edd",
             "goal_count": 1,
-            "latency_ms": 18.67076987400651,
+            "latency_ms": 15.666980296373367,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-a5c3a8614249b52878aadb8d06f6d1c4"
+            "selected_operation_id": "operation-a5c3a8614249b52878aadb8d06f6d1c4",
+            "stage_latency_ms": {
+              "candidate_instantiation": 13.662570156157017,
+              "decision_explanation": 0.3275582566857338,
+              "goal_instantiation": 0.31090574339032173,
+              "legacy_comparison": 0.07132813334465027,
+              "pressure_evaluation": 1.2782118283212185,
+              "revision_query": 0.01640617847442627
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:12:7964:d2046321a6cfd875",
           "source_seq": 7964,
@@ -1271,8 +1303,8 @@
         {
           "atom_count": 659,
           "dependency_key_count": 450,
-          "fdas_total_latency_ms": 117.02962685376406,
-          "latency_ms": 99.07170897349715,
+          "fdas_total_latency_ms": 114.01037685573101,
+          "latency_ms": 98.43388805165887,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -1908,10 +1940,18 @@
             },
             "evaluation_hash": "a352823e4262ffd8301d79980f3a819e315e772458e83d0a0047c0145fc7e31e",
             "goal_count": 1,
-            "latency_ms": 17.957917880266905,
+            "latency_ms": 15.576488804072142,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-aeb2dc9808da4ceb6cb21199ee677b49"
+            "selected_operation_id": "operation-aeb2dc9808da4ceb6cb21199ee677b49",
+            "stage_latency_ms": {
+              "candidate_instantiation": 13.639464974403381,
+              "decision_explanation": 0.30915578827261925,
+              "goal_instantiation": 0.2842061221599579,
+              "legacy_comparison": 0.05209306254982948,
+              "pressure_evaluation": 1.2754928320646286,
+              "revision_query": 0.016076024621725082
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:12:7972:5748605bb9321ef8",
           "source_seq": 7972,
@@ -1921,8 +1961,8 @@
         {
           "atom_count": 754,
           "dependency_key_count": 521,
-          "fdas_total_latency_ms": 142.41710817441344,
-          "latency_ms": 121.13334098830819,
+          "fdas_total_latency_ms": 138.1866210140288,
+          "latency_ms": 119.69588091596961,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -2580,10 +2620,18 @@
             },
             "evaluation_hash": "6a3182fe56ef0cd8bdabdbce2fa1d3fc4725103f74a4e1ad51aa8ae07bf7e172",
             "goal_count": 1,
-            "latency_ms": 21.28376718610525,
+            "latency_ms": 18.490740098059177,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-185daba30fb0e219cb39e90affe141a8"
+            "selected_operation_id": "operation-185daba30fb0e219cb39e90affe141a8",
+            "stage_latency_ms": {
+              "candidate_instantiation": 16.13617641851306,
+              "decision_explanation": 0.33935578539967537,
+              "goal_instantiation": 0.32316986471414566,
+              "legacy_comparison": 0.05961116403341293,
+              "pressure_evaluation": 1.6156998462975025,
+              "revision_query": 0.016727019101381302
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:20:8764:63a8328b34ff1b16",
           "source_seq": 8764,
@@ -2593,8 +2641,8 @@
         {
           "atom_count": 845,
           "dependency_key_count": 581,
-          "fdas_total_latency_ms": 143.59790459275246,
-          "latency_ms": 142.2406048513949,
+          "fdas_total_latency_ms": 142.16326037421823,
+          "latency_ms": 140.86287515237927,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -2748,10 +2796,18 @@
             },
             "evaluation_hash": "8dcc453589c997876720452a9db3b2a6a1690db7b6f4efb658b336fe1b20ee23",
             "goal_count": 0,
-            "latency_ms": 1.357299741357565,
+            "latency_ms": 1.300385221838951,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
-            "selected_operation_id": null
+            "selected_operation_id": null,
+            "stage_latency_ms": {
+              "candidate_instantiation": 0.9833788499236107,
+              "decision_explanation": 0.036028213798999786,
+              "goal_instantiation": 0.1328950747847557,
+              "legacy_comparison": 0.05511194467544556,
+              "pressure_evaluation": 0.07657194510102272,
+              "revision_query": 0.016399193555116653
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:24:9179:825ca79757519911",
           "source_seq": 9179,
@@ -2761,8 +2817,8 @@
         {
           "atom_count": 845,
           "dependency_key_count": 581,
-          "fdas_total_latency_ms": 133.98562697693706,
-          "latency_ms": 132.6736300252378,
+          "fdas_total_latency_ms": 132.5246561318636,
+          "latency_ms": 131.2275230884552,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -2903,10 +2959,18 @@
             },
             "evaluation_hash": "af454599fc4f78ea21a91ff10fc7a9cee21fd06a0609ad19bc8162ecd5dfd5a7",
             "goal_count": 0,
-            "latency_ms": 1.311996951699257,
+            "latency_ms": 1.2971330434083939,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
-            "selected_operation_id": null
+            "selected_operation_id": null,
+            "stage_latency_ms": {
+              "candidate_instantiation": 0.9979880414903164,
+              "decision_explanation": 0.03447616472840309,
+              "goal_instantiation": 0.13830885291099548,
+              "legacy_comparison": 0.03548711538314819,
+              "pressure_evaluation": 0.07388787344098091,
+              "revision_query": 0.01698499545454979
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:24:9187:5c0048e213e1c34f",
           "source_seq": 9187,
@@ -2916,8 +2980,8 @@
         {
           "atom_count": 944,
           "dependency_key_count": 662,
-          "fdas_total_latency_ms": 164.6841438487172,
-          "latency_ms": 163.11548510566354,
+          "fdas_total_latency_ms": 158.52242521941662,
+          "latency_ms": 157.02817309647799,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -3064,10 +3128,18 @@
             },
             "evaluation_hash": "c40554833ec70aded085bf741ba18b8c5bd6155335e3be06e6452c33fc68862f",
             "goal_count": 0,
-            "latency_ms": 1.5686587430536747,
+            "latency_ms": 1.494252122938633,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
-            "selected_operation_id": null
+            "selected_operation_id": null,
+            "stage_latency_ms": {
+              "candidate_instantiation": 1.1356179602444172,
+              "decision_explanation": 0.03476114943623543,
+              "goal_instantiation": 0.18570013344287872,
+              "legacy_comparison": 0.04563387483358383,
+              "pressure_evaluation": 0.07569091394543648,
+              "revision_query": 0.016848091036081314
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:26:9437:9d538467e8bf7c8e",
           "source_seq": 9437,
@@ -3077,8 +3149,8 @@
         {
           "atom_count": 1304,
           "dependency_key_count": 959,
-          "fdas_total_latency_ms": 250.06808107718825,
-          "latency_ms": 213.69886118918657,
+          "fdas_total_latency_ms": 240.7944998703897,
+          "latency_ms": 211.64997294545174,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -3895,10 +3967,18 @@
             },
             "evaluation_hash": "ac1df74b26e36e2e549d5b078fc7c12e208bdbcef02bba305b97261e6127f1fa",
             "goal_count": 1,
-            "latency_ms": 36.36921988800168,
+            "latency_ms": 29.144526924937963,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-54ff9821c77677ecbeddff0c2c97b285"
+            "selected_operation_id": "operation-54ff9821c77677ecbeddff0c2c97b285",
+            "stage_latency_ms": {
+              "candidate_instantiation": 25.67992080003023,
+              "decision_explanation": 0.36772526800632477,
+              "goal_instantiation": 0.5391361191868782,
+              "legacy_comparison": 0.16112066805362701,
+              "pressure_evaluation": 2.3786029778420925,
+              "revision_query": 0.01802109181880951
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:37:11130:a9cf247e1c1b9a63",
           "source_seq": 11130,
@@ -3908,8 +3988,8 @@
         {
           "atom_count": 1462,
           "dependency_key_count": 1140,
-          "fdas_total_latency_ms": 292.2661788761616,
-          "latency_ms": 246.30175391212106,
+          "fdas_total_latency_ms": 281.57832007855177,
+          "latency_ms": 244.1300512291491,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -4706,10 +4786,18 @@
             },
             "evaluation_hash": "4f13204338c5d06cf22cfe4fedf650053f13abeea4e2f06875cfd3420a421603",
             "goal_count": 2,
-            "latency_ms": 45.96442496404052,
+            "latency_ms": 37.448268849402666,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-08c8df739186ea49b883e635df1f2dd6"
+            "selected_operation_id": "operation-08c8df739186ea49b883e635df1f2dd6",
+            "stage_latency_ms": {
+              "candidate_instantiation": 31.744827050715685,
+              "decision_explanation": 0.3909273073077202,
+              "goal_instantiation": 0.7312698289752007,
+              "legacy_comparison": 0.11626677587628365,
+              "pressure_evaluation": 4.44656191393733,
+              "revision_query": 0.018415972590446472
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:40:11774:687e6c950a3ec8d6",
           "source_seq": 11774,
@@ -4719,8 +4807,8 @@
         {
           "atom_count": 1438,
           "dependency_key_count": 802,
-          "fdas_total_latency_ms": 211.86243323609233,
-          "latency_ms": 207.918053958565,
+          "fdas_total_latency_ms": 209.59783624857664,
+          "latency_ms": 205.72313526645303,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -5333,10 +5421,18 @@
             },
             "evaluation_hash": "b59582f2f8618c3c5ac195ea942ce399fbbe93b3ab4a1b349181e4a232ca4898",
             "goal_count": 1,
-            "latency_ms": 3.9443792775273323,
+            "latency_ms": 3.8747009821236134,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-a4738e2f003b8f641979dc902c81"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-a4738e2f003b8f641979dc902c81",
+            "stage_latency_ms": {
+              "candidate_instantiation": 2.0360280759632587,
+              "decision_explanation": 0.30665891245007515,
+              "goal_instantiation": 0.6071589887142181,
+              "legacy_comparison": 0.040502287447452545,
+              "pressure_evaluation": 0.8660219609737396,
+              "revision_query": 0.018330756574869156
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:46:11645:2c4269b48ef94baa",
           "source_seq": 11645,
@@ -5346,8 +5442,8 @@
         {
           "atom_count": 1628,
           "dependency_key_count": 1268,
-          "fdas_total_latency_ms": 380.0535360351205,
-          "latency_ms": 252.1917619742453,
+          "fdas_total_latency_ms": 285.5310356244445,
+          "latency_ms": 249.65095985680819,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -6177,10 +6273,18 @@
             },
             "evaluation_hash": "b200730522ce7241d688eef4489146cfcb3dce4031dc9a4893c27eff11b6d0c3",
             "goal_count": 1,
-            "latency_ms": 127.86177406087518,
+            "latency_ms": 35.8800757676363,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-30a6bb17a40f98057a29c04e98f6c3c0"
+            "selected_operation_id": "operation-30a6bb17a40f98057a29c04e98f6c3c0",
+            "stage_latency_ms": {
+              "candidate_instantiation": 29.613791964948177,
+              "decision_explanation": 0.37766387686133385,
+              "goal_instantiation": 0.6583873182535172,
+              "legacy_comparison": 0.1459447667002678,
+              "pressure_evaluation": 5.065449047833681,
+              "revision_query": 0.0188387930393219
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:46:13081:c1c4f57ca9636773",
           "source_seq": 13081,
@@ -6190,8 +6294,8 @@
         {
           "atom_count": 2404,
           "dependency_key_count": 1372,
-          "fdas_total_latency_ms": 479.07057451084256,
-          "latency_ms": 344.82896281406283,
+          "fdas_total_latency_ms": 370.2326570637524,
+          "latency_ms": 329.7998639754951,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -7017,10 +7121,18 @@
             },
             "evaluation_hash": "440accc336c4e7b74be14f6b4dedd258cc3236ef535160d95d25b749d5b9d0a8",
             "goal_count": 1,
-            "latency_ms": 134.24161169677973,
+            "latency_ms": 40.43279308825731,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-0d2cad34a9a6ef04ab478300699834c9"
+            "selected_operation_id": "operation-0d2cad34a9a6ef04ab478300699834c9",
+            "stage_latency_ms": {
+              "candidate_instantiation": 33.97989412769675,
+              "decision_explanation": 0.3767949528992176,
+              "goal_instantiation": 0.9022718295454979,
+              "legacy_comparison": 0.13959594070911407,
+              "pressure_evaluation": 5.016263108700514,
+              "revision_query": 0.017973128706216812
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:46:13107:3d648a9a23914ba4",
           "source_seq": 13107,
@@ -7030,8 +7142,8 @@
         {
           "atom_count": 1434,
           "dependency_key_count": 801,
-          "fdas_total_latency_ms": 218.70753495022655,
-          "latency_ms": 208.88942200690508,
+          "fdas_total_latency_ms": 213.5644955560565,
+          "latency_ms": 209.83940223231912,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -7627,10 +7739,18 @@
             },
             "evaluation_hash": "4b23eae5723910443a0f63e89f36b70265f51aaf5e39ba6e5444e5f45a431743",
             "goal_count": 1,
-            "latency_ms": 9.818112943321466,
+            "latency_ms": 3.725093323737383,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-ad5a6dad5f1d2955b0a5891552cf"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-ad5a6dad5f1d2955b0a5891552cf",
+            "stage_latency_ms": {
+              "candidate_instantiation": 1.9089533016085625,
+              "decision_explanation": 0.3110473044216633,
+              "goal_instantiation": 0.5622496828436852,
+              "legacy_comparison": 0.038675032556056976,
+              "pressure_evaluation": 0.8854386396706104,
+              "revision_query": 0.01872936263680458
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:48:12066:b0cf57c147ec1499",
           "source_seq": 12066,
@@ -7640,8 +7760,8 @@
         {
           "atom_count": 1631,
           "dependency_key_count": 1279,
-          "fdas_total_latency_ms": 303.1610087491572,
-          "latency_ms": 258.13566567376256,
+          "fdas_total_latency_ms": 287.3725830577314,
+          "latency_ms": 251.2129731476307,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -8454,10 +8574,18 @@
             },
             "evaluation_hash": "40d11b26b7b6218a934a77d02d512c807319f2695cf6fa18dd30a7cf410f7806",
             "goal_count": 1,
-            "latency_ms": 45.02534307539463,
+            "latency_ms": 36.1596099101007,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-135cfe9850ae9a9cd682e40cdf444357"
+            "selected_operation_id": "operation-135cfe9850ae9a9cd682e40cdf444357",
+            "stage_latency_ms": {
+              "candidate_instantiation": 29.823108110576868,
+              "decision_explanation": 0.38908887654542923,
+              "goal_instantiation": 0.71352394297719,
+              "legacy_comparison": 0.1421552151441574,
+              "pressure_evaluation": 5.073817912489176,
+              "revision_query": 0.01791585236787796
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:48:13676:1a4c3886245dce08",
           "source_seq": 13676,
@@ -8467,8 +8595,8 @@
         {
           "atom_count": 1775,
           "dependency_key_count": 1365,
-          "fdas_total_latency_ms": 328.55175575241446,
-          "latency_ms": 280.53695568814874,
+          "fdas_total_latency_ms": 320.710735861212,
+          "latency_ms": 282.65221789479256,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -9401,10 +9529,18 @@
             },
             "evaluation_hash": "e48509f6093674e093f12ac91bb259466d208dff2e7acc8a4ba2aea944bb2250",
             "goal_count": 1,
-            "latency_ms": 48.01480006426573,
+            "latency_ms": 38.05851796641946,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-17545dad789ce996cba0f5f0390863a0"
+            "selected_operation_id": "operation-17545dad789ce996cba0f5f0390863a0",
+            "stage_latency_ms": {
+              "candidate_instantiation": 33.662859350442886,
+              "decision_explanation": 0.4005059599876404,
+              "goal_instantiation": 0.7290090434253216,
+              "legacy_comparison": 0.27099484577775,
+              "pressure_evaluation": 2.97648087143898,
+              "revision_query": 0.01866789534687996
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:51:14406:76bb82d9fb15dce2",
           "source_seq": 14406,
@@ -9414,8 +9550,8 @@
         {
           "atom_count": 2610,
           "dependency_key_count": 1344,
-          "fdas_total_latency_ms": 339.01026798412204,
-          "latency_ms": 335.31776908785105,
+          "fdas_total_latency_ms": 331.0596812516451,
+          "latency_ms": 327.4676282890141,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -9556,10 +9692,18 @@
             },
             "evaluation_hash": "b0ea6525834762042e6168f6122994ee2d4fd82c9afec53d548a2edeea8f3353",
             "goal_count": 0,
-            "latency_ms": 3.6924988962709904,
+            "latency_ms": 3.592052962630987,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
-            "selected_operation_id": null
+            "selected_operation_id": null,
+            "stage_latency_ms": {
+              "candidate_instantiation": 2.693560905754566,
+              "decision_explanation": 0.03598583862185478,
+              "goal_instantiation": 0.728147104382515,
+              "legacy_comparison": 0.03530411049723625,
+              "pressure_evaluation": 0.08053099736571312,
+              "revision_query": 0.018524006009101868
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:55:15445:dcc706c6aa8b83c3",
           "source_seq": 15445,
@@ -9569,8 +9713,8 @@
         {
           "atom_count": 2258,
           "dependency_key_count": 1472,
-          "fdas_total_latency_ms": 463.79573130980134,
-          "latency_ms": 348.896608222276,
+          "fdas_total_latency_ms": 349.85880507156253,
+          "latency_ms": 346.3472151197493,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -9777,10 +9921,18 @@
             },
             "evaluation_hash": "865620b7a17a085114c59c2795dce47d22309fa89722ab56ed1a24a6acd21fd0",
             "goal_count": 0,
-            "latency_ms": 114.89912308752537,
+            "latency_ms": 3.511589951813221,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
-            "selected_operation_id": null
+            "selected_operation_id": null,
+            "stage_latency_ms": {
+              "candidate_instantiation": 2.6486781425774097,
+              "decision_explanation": 0.03444310277700424,
+              "goal_instantiation": 0.6111869588494301,
+              "legacy_comparison": 0.11567072942852974,
+              "pressure_evaluation": 0.08312612771987915,
+              "revision_query": 0.018484890460968018
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:64:17510:1a50d7b695be9399",
           "source_seq": 17510,
@@ -9790,8 +9942,8 @@
         {
           "atom_count": 1999,
           "dependency_key_count": 1502,
-          "fdas_total_latency_ms": 356.45840829238296,
-          "latency_ms": 353.1476161442697,
+          "fdas_total_latency_ms": 345.42576409876347,
+          "latency_ms": 342.3630562610924,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -9925,10 +10077,18 @@
             },
             "evaluation_hash": "fe8f5608dfb1abccb755093c4340d49755232927ffdc0de514fda2532f93902f",
             "goal_count": 0,
-            "latency_ms": 3.3107921481132507,
+            "latency_ms": 3.0627078376710415,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
-            "selected_operation_id": null
+            "selected_operation_id": null,
+            "stage_latency_ms": {
+              "candidate_instantiation": 2.393412869423628,
+              "decision_explanation": 0.03692926838994026,
+              "goal_instantiation": 0.4936959594488144,
+              "legacy_comparison": 0.03544474020600319,
+              "pressure_evaluation": 0.08463487029075623,
+              "revision_query": 0.018590129911899567
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:75:20079:80fff8ca8add1161",
           "source_seq": 20079,
@@ -9938,8 +10098,8 @@
         {
           "atom_count": 2239,
           "dependency_key_count": 1878,
-          "fdas_total_latency_ms": 611.6150254383683,
-          "latency_ms": 427.39512771368027,
+          "fdas_total_latency_ms": 476.83490300551057,
+          "latency_ms": 418.1037819944322,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -10874,10 +11034,18 @@
             },
             "evaluation_hash": "cfef4d737761fb40b3885e86f4527f47e107db18ba6e30423daf2abcfdbfce8f",
             "goal_count": 1,
-            "latency_ms": 184.21989772468805,
+            "latency_ms": 58.73112101107836,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-03c7f76eefbc09f4394f4fce58b94571"
+            "selected_operation_id": "operation-03c7f76eefbc09f4394f4fce58b94571",
+            "stage_latency_ms": {
+              "candidate_instantiation": 44.94291078299284,
+              "decision_explanation": 0.4642750136554241,
+              "goal_instantiation": 0.925844069570303,
+              "legacy_comparison": 0.1972089521586895,
+              "pressure_evaluation": 12.1819949708879,
+              "revision_query": 0.018887221813201904
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:87:23158:1a197d9de0b58cc6",
           "source_seq": 23158,
@@ -10887,8 +11055,8 @@
         {
           "atom_count": 2305,
           "dependency_key_count": 2002,
-          "fdas_total_latency_ms": 523.1309048831463,
-          "latency_ms": 447.0487688668072,
+          "fdas_total_latency_ms": 500.4193210043013,
+          "latency_ms": 438.07329004630446,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -12033,10 +12201,18 @@
             },
             "evaluation_hash": "e4f3751e3f160870dacbf56ec66d85a499949dfe25edaf25d0465d7c466b0b4f",
             "goal_count": 4,
-            "latency_ms": 76.08213601633906,
+            "latency_ms": 62.346030957996845,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-00d854081bee48f480a070ba9a8458a7"
+            "selected_operation_id": "operation-00d854081bee48f480a070ba9a8458a7",
+            "stage_latency_ms": {
+              "candidate_instantiation": 43.01351401954889,
+              "decision_explanation": 0.4887580871582031,
+              "goal_instantiation": 1.137285027652979,
+              "legacy_comparison": 0.28170784935355186,
+              "pressure_evaluation": 17.406533006578684,
+              "revision_query": 0.01823296770453453
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:98:26897:dfb69f2e859e1120",
           "source_seq": 26897,
@@ -12046,8 +12222,8 @@
         {
           "atom_count": 2302,
           "dependency_key_count": 2001,
-          "fdas_total_latency_ms": 639.2349847592413,
-          "latency_ms": 444.3714967928827,
+          "fdas_total_latency_ms": 490.26581319049,
+          "latency_ms": 433.96735517308116,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -13096,10 +13272,18 @@
             },
             "evaluation_hash": "74ffb3fa2180247e90bcf4dd92b44445ba4a6771b36d9115e06982d38230f4f1",
             "goal_count": 2,
-            "latency_ms": 194.86348796635866,
+            "latency_ms": 56.29845801740885,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-0a0e6335cb33d355445ddfb3e8d52fbc"
+            "selected_operation_id": "operation-0a0e6335cb33d355445ddfb3e8d52fbc",
+            "stage_latency_ms": {
+              "candidate_instantiation": 41.241797152906656,
+              "decision_explanation": 0.46702194958925247,
+              "goal_instantiation": 1.0366840288043022,
+              "legacy_comparison": 0.23202411830425262,
+              "pressure_evaluation": 13.302220962941647,
+              "revision_query": 0.018709804862737656
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:98:26908:10eb3d1db326d221",
           "source_seq": 26908,
@@ -13109,8 +13293,8 @@
         {
           "atom_count": 1928,
           "dependency_key_count": 1050,
-          "fdas_total_latency_ms": 306.1418035067618,
-          "latency_ms": 289.16225070133805,
+          "fdas_total_latency_ms": 296.98953684419394,
+          "latency_ms": 287.74756100028753,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -13906,10 +14090,18 @@
             },
             "evaluation_hash": "aa9739639a71557f97de09dc2c827e18c75a463ef357cd3a64ae65ee83d5f459",
             "goal_count": 2,
-            "latency_ms": 16.979552805423737,
+            "latency_ms": 9.241975843906403,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-589f90490b35392b7f538235bc2f"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-589f90490b35392b7f538235bc2f",
+            "stage_latency_ms": {
+              "candidate_instantiation": 3.9024553261697292,
+              "decision_explanation": 0.39251428097486496,
+              "goal_instantiation": 1.0004849173128605,
+              "legacy_comparison": 0.07952377200126648,
+              "pressure_evaluation": 3.847765736281872,
+              "revision_query": 0.01923181116580963
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:108:20701:b1372bd519d5c1fd",
           "source_seq": 20701,
@@ -13919,8 +14111,8 @@
         {
           "atom_count": 1927,
           "dependency_key_count": 1050,
-          "fdas_total_latency_ms": 302.7727440930903,
-          "latency_ms": 297.654549125582,
+          "fdas_total_latency_ms": 299.47968386113644,
+          "latency_ms": 294.63092889636755,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -14635,10 +14827,18 @@
             },
             "evaluation_hash": "f42ea870b75d9d560390810a76c06e08f30f10b3a18ffe3beb22ebeea2aa2f6f",
             "goal_count": 1,
-            "latency_ms": 5.118194967508316,
+            "latency_ms": 4.848754964768887,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-cd45af36b8c1c6ceb41a0d0d9d2e"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-cd45af36b8c1c6ceb41a0d0d9d2e",
+            "stage_latency_ms": {
+              "candidate_instantiation": 2.7133971452713013,
+              "decision_explanation": 0.3826501779258251,
+              "goal_instantiation": 0.8042319677770138,
+              "legacy_comparison": 0.03888783976435661,
+              "pressure_evaluation": 0.8905557915568352,
+              "revision_query": 0.01903204247355461
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:108:20710:3b0f790ced40052d",
           "source_seq": 20710,
@@ -14648,8 +14848,8 @@
         {
           "atom_count": 1983,
           "dependency_key_count": 1669,
-          "fdas_total_latency_ms": 560.3642081841826,
-          "latency_ms": 361.79240606725216,
+          "fdas_total_latency_ms": 433.4770510904491,
+          "latency_ms": 360.33375188708305,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -15630,10 +15830,18 @@
             },
             "evaluation_hash": "3e7ac9a61edc12850a8f94f847a74e1b1a0dd423fddd2bfe7c478f752e2bac41",
             "goal_count": 6,
-            "latency_ms": 198.57180211693048,
+            "latency_ms": 73.14329920336604,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-04d3e91e456dc2463a5f356929065de2"
+            "selected_operation_id": "operation-04d3e91e456dc2463a5f356929065de2",
+            "stage_latency_ms": {
+              "candidate_instantiation": 42.40434803068638,
+              "decision_explanation": 0.3305678255856037,
+              "goal_instantiation": 1.295706257224083,
+              "legacy_comparison": 0.4451880231499672,
+              "pressure_evaluation": 28.64806493744254,
+              "revision_query": 0.019424129277467728
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:125:36273:263820b9c840fc7d",
           "source_seq": 36273,
@@ -15643,8 +15851,8 @@
         {
           "atom_count": 1472,
           "dependency_key_count": 822,
-          "fdas_total_latency_ms": 265.8499521203339,
-          "latency_ms": 219.41123204305768,
+          "fdas_total_latency_ms": 266.7983057908714,
+          "latency_ms": 227.22204588353634,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -16722,10 +16930,18 @@
             },
             "evaluation_hash": "06156b053ed7c29937c0f9b784cdc955639b451d703f1359c19e43390695e973",
             "goal_count": 9,
-            "latency_ms": 46.43872007727623,
+            "latency_ms": 39.57625990733504,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-0e95390c16c8a4857061910eb96e"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-0e95390c16c8a4857061910eb96e",
+            "stage_latency_ms": {
+              "candidate_instantiation": 9.727078955620527,
+              "decision_explanation": 0.46740612015128136,
+              "goal_instantiation": 1.2572016566991806,
+              "legacy_comparison": 0.3406680189073086,
+              "pressure_evaluation": 27.764846105128527,
+              "revision_query": 0.01905905082821846
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:130:25251:53e17615bdbbb5bb",
           "source_seq": 25251,
@@ -16735,8 +16951,8 @@
         {
           "atom_count": 1474,
           "dependency_key_count": 823,
-          "fdas_total_latency_ms": 258.72670486569405,
-          "latency_ms": 211.0299738124013,
+          "fdas_total_latency_ms": 266.2208662368357,
+          "latency_ms": 224.24880415201187,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -17826,10 +18042,18 @@
             },
             "evaluation_hash": "e51c99eee044087c33dd1cb4c453834dfcf75c47d73e2200515bbb36b5f9fee0",
             "goal_count": 9,
-            "latency_ms": 47.69673105329275,
+            "latency_ms": 41.97206208482385,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-4dfaec9b1e185b1a2bc010afe935"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-4dfaec9b1e185b1a2bc010afe935",
+            "stage_latency_ms": {
+              "candidate_instantiation": 9.943101089447737,
+              "decision_explanation": 0.48525305464863777,
+              "goal_instantiation": 1.3036937452852726,
+              "legacy_comparison": 0.349357258528471,
+              "pressure_evaluation": 29.871861916035414,
+              "revision_query": 0.018795020878314972
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:130:25280:fadfa06a8304c53b",
           "source_seq": 25280,
@@ -17839,8 +18063,8 @@
         {
           "atom_count": 1595,
           "dependency_key_count": 1370,
-          "fdas_total_latency_ms": 356.57484643161297,
-          "latency_ms": 277.18223771080375,
+          "fdas_total_latency_ms": 349.0162119269371,
+          "latency_ms": 271.9497261568904,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -18898,10 +19122,18 @@
             },
             "evaluation_hash": "a422d3f6658ebf5416022e7da97e8831a47303507e8c232cf0ef3cfc4b7eb784",
             "goal_count": 9,
-            "latency_ms": 79.39260872080922,
+            "latency_ms": 77.06648577004671,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-03c8cd77ac689a84997325acaf0ba554"
+            "selected_operation_id": "operation-03c8cd77ac689a84997325acaf0ba554",
+            "stage_latency_ms": {
+              "candidate_instantiation": 40.71186063811183,
+              "decision_explanation": 0.38874195888638496,
+              "goal_instantiation": 1.2999721802771091,
+              "legacy_comparison": 0.3970838151872158,
+              "pressure_evaluation": 34.25026731565595,
+              "revision_query": 0.018559861928224564
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:149:43479:dffd017e1a17ba0b",
           "source_seq": 43479,
@@ -18911,8 +19143,8 @@
         {
           "atom_count": 1499,
           "dependency_key_count": 1264,
-          "fdas_total_latency_ms": 476.40934912487864,
-          "latency_ms": 262.98157311975956,
+          "fdas_total_latency_ms": 330.74623392894864,
+          "latency_ms": 255.2808988839388,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -20245,10 +20477,18 @@
             },
             "evaluation_hash": "e23f247438a3e736ae12db13aed9b0830a43cc7d850fc3f8cfa375fdf059a179",
             "goal_count": 12,
-            "latency_ms": 213.42777600511909,
+            "latency_ms": 75.46533504500985,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-026fe50fd395bbd7f17d83ae6d18c84b"
+            "selected_operation_id": "operation-026fe50fd395bbd7f17d83ae6d18c84b",
+            "stage_latency_ms": {
+              "candidate_instantiation": 40.49470601603389,
+              "decision_explanation": 0.5039917305111885,
+              "goal_instantiation": 1.403316855430603,
+              "legacy_comparison": 0.3528581000864506,
+              "pressure_evaluation": 32.69276209175587,
+              "revision_query": 0.017700251191854477
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:150:43948:a422bb3274326fc7",
           "source_seq": 43948,
@@ -20258,8 +20498,8 @@
         {
           "atom_count": 1499,
           "dependency_key_count": 1264,
-          "fdas_total_latency_ms": 336.94993890821934,
-          "latency_ms": 253.31916380673647,
+          "fdas_total_latency_ms": 342.63464342802763,
+          "latency_ms": 257.78290862217546,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -21609,10 +21849,18 @@
             },
             "evaluation_hash": "4d98605d34d15bdbf3357108282530567e12f5a09d21191c4345253c04fd2ab4",
             "goal_count": 12,
-            "latency_ms": 83.63077510148287,
+            "latency_ms": 84.85173480585217,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-04528c92f757d83003d61848e3319257"
+            "selected_operation_id": "operation-04528c92f757d83003d61848e3319257",
+            "stage_latency_ms": {
+              "candidate_instantiation": 49.190770369023085,
+              "decision_explanation": 0.5240640603005886,
+              "goal_instantiation": 1.42695102840662,
+              "legacy_comparison": 0.35128090530633926,
+              "pressure_evaluation": 33.3402706310153,
+              "revision_query": 0.01839781180024147
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:150:43960:6238ef9d08c16721",
           "source_seq": 43960,
@@ -21622,8 +21870,8 @@
         {
           "atom_count": 1401,
           "dependency_key_count": 799,
-          "fdas_total_latency_ms": 231.81935492902994,
-          "latency_ms": 219.88027496263385,
+          "fdas_total_latency_ms": 217.91453752666712,
+          "latency_ms": 205.35572385415435,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -22408,10 +22656,18 @@
             },
             "evaluation_hash": "5ba1695df5a6c02c68c300183641ce8d0f1f562d5fce4b695128f12786044b73",
             "goal_count": 4,
-            "latency_ms": 11.939079966396093,
+            "latency_ms": 12.55881367251277,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-262a4c429996ecf484dd0386d927"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-262a4c429996ecf484dd0386d927",
+            "stage_latency_ms": {
+              "candidate_instantiation": 3.975908737629652,
+              "decision_explanation": 0.3720000386238098,
+              "goal_instantiation": 0.8745109662413597,
+              "legacy_comparison": 0.11363672092556953,
+              "pressure_evaluation": 7.204083260148764,
+              "revision_query": 0.01867394894361496
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:151:28195:2f3cf86fcf86c1d5",
           "source_seq": 28195,
@@ -22421,8 +22677,8 @@
         {
           "atom_count": 1401,
           "dependency_key_count": 798,
-          "fdas_total_latency_ms": 218.4356488287449,
-          "latency_ms": 200.5944298580289,
+          "fdas_total_latency_ms": 210.53547086194158,
+          "latency_ms": 198.50925169885159,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -23211,10 +23467,18 @@
             },
             "evaluation_hash": "fef7f5fd21404eb9d94bdf4f785c3b2e284be99d0a44e966408529df24e0cf9b",
             "goal_count": 4,
-            "latency_ms": 17.841218970716,
+            "latency_ms": 12.02621916308999,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-35d6d39398200c70b53f881733dd"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-35d6d39398200c70b53f881733dd",
+            "stage_latency_ms": {
+              "candidate_instantiation": 3.9611137472093105,
+              "decision_explanation": 0.354069285094738,
+              "goal_instantiation": 0.8657611906528473,
+              "legacy_comparison": 0.1258188858628273,
+              "pressure_evaluation": 6.7004431039094925,
+              "revision_query": 0.019012950360774994
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:151:28206:f07349a78e6dc7da",
           "source_seq": 28206,
@@ -23224,8 +23488,8 @@
         {
           "atom_count": 1403,
           "dependency_key_count": 800,
-          "fdas_total_latency_ms": 220.78750282526016,
-          "latency_ms": 208.66901613771915,
+          "fdas_total_latency_ms": 219.33041652664542,
+          "latency_ms": 207.2268263436854,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -24003,10 +24267,18 @@
             },
             "evaluation_hash": "f8b845940f4f2bab95061f242a20fd96915106b73323686f4340e53b45d53241",
             "goal_count": 4,
-            "latency_ms": 12.118486687541008,
+            "latency_ms": 12.103590182960033,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-6d4140b1c172cda0701d7136dc4e"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-6d4140b1c172cda0701d7136dc4e",
+            "stage_latency_ms": {
+              "candidate_instantiation": 3.910547122359276,
+              "decision_explanation": 0.35665323957800865,
+              "goal_instantiation": 0.9067817591130733,
+              "legacy_comparison": 0.09723100811243057,
+              "pressure_evaluation": 6.812843028455973,
+              "revision_query": 0.019534025341272354
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:152:28505:5b3cc7605265cd26",
           "source_seq": 28505,
@@ -24016,8 +24288,8 @@
         {
           "atom_count": 1401,
           "dependency_key_count": 798,
-          "fdas_total_latency_ms": 226.0231808759272,
-          "latency_ms": 208.04238598793745,
+          "fdas_total_latency_ms": 218.04905403405428,
+          "latency_ms": 206.12069312483072,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -24797,10 +25069,18 @@
             },
             "evaluation_hash": "aec4e502bd8df3298d66184d0eb1ef4087bff1bf7c0e08334cbcda9a78a619b2",
             "goal_count": 4,
-            "latency_ms": 17.98079488798976,
+            "latency_ms": 11.928360909223557,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-60e7024d24a80601c963dcc7d538"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-60e7024d24a80601c963dcc7d538",
+            "stage_latency_ms": {
+              "candidate_instantiation": 3.8416991010308266,
+              "decision_explanation": 0.3509228117763996,
+              "goal_instantiation": 0.8714967407286167,
+              "legacy_comparison": 0.10092416778206825,
+              "pressure_evaluation": 6.7300330847501755,
+              "revision_query": 0.033285003155469894
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:153:28747:201813e66ed0eb66",
           "source_seq": 28747,
@@ -24810,8 +25090,8 @@
         {
           "atom_count": 1263,
           "dependency_key_count": 730,
-          "fdas_total_latency_ms": 210.12711944058537,
-          "latency_ms": 198.0740437284112,
+          "fdas_total_latency_ms": 207.60764321312308,
+          "latency_ms": 195.6919450312853,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -25560,10 +25840,18 @@
             },
             "evaluation_hash": "fad1194f71fd28c53ad6415da532169a9fb137ed6a4de855b147bcb2f047230a",
             "goal_count": 4,
-            "latency_ms": 12.053075712174177,
+            "latency_ms": 11.915698181837797,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-2bff02ee7720cc764cf90b658b9d"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-2bff02ee7720cc764cf90b658b9d",
+            "stage_latency_ms": {
+              "candidate_instantiation": 3.536098636686802,
+              "decision_explanation": 0.33392105251550674,
+              "goal_instantiation": 0.8168132044374943,
+              "legacy_comparison": 0.10533211752772331,
+              "pressure_evaluation": 7.1057821623981,
+              "revision_query": 0.01775100827217102
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:157:29662:fae284e7cb110bb1",
           "source_seq": 29662,
@@ -25573,8 +25861,8 @@
         {
           "atom_count": 1187,
           "dependency_key_count": 689,
-          "fdas_total_latency_ms": 209.34284897521138,
-          "latency_ms": 180.3706712089479,
+          "fdas_total_latency_ms": 200.7535775192082,
+          "latency_ms": 171.8217539601028,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -26532,10 +26820,18 @@
             },
             "evaluation_hash": "2e98ab32b01ee7d50e9396cbeba409812551782612ad5c3d8fd2edd41fbbcf6c",
             "goal_count": 9,
-            "latency_ms": 28.972177766263485,
+            "latency_ms": 28.931823559105396,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-493ea780ec6198c0e79914cc4622"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-493ea780ec6198c0e79914cc4622",
+            "stage_latency_ms": {
+              "candidate_instantiation": 6.928510963916779,
+              "decision_explanation": 0.40070991963148117,
+              "goal_instantiation": 1.110697165131569,
+              "legacy_comparison": 0.236468855291605,
+              "pressure_evaluation": 20.23820485919714,
+              "revision_query": 0.01723179593682289
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:158:29868:a9ce0c6feb07e08b",
           "source_seq": 29868,
@@ -26545,8 +26841,8 @@
         {
           "atom_count": 1185,
           "dependency_key_count": 688,
-          "fdas_total_latency_ms": 200.5580859258771,
-          "latency_ms": 173.8677299581468,
+          "fdas_total_latency_ms": 194.62147681042552,
+          "latency_ms": 172.82653180882335,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -27452,10 +27748,18 @@
             },
             "evaluation_hash": "8461c727b541b44665533bc4bb4da6aefe139c80fe069a5b0446be9dd69b786f",
             "goal_count": 8,
-            "latency_ms": 26.690355967730284,
+            "latency_ms": 21.794945001602173,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-3ff7499b2e4a41844c448bc82105"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-3ff7499b2e4a41844c448bc82105",
+            "stage_latency_ms": {
+              "candidate_instantiation": 5.52496500313282,
+              "decision_explanation": 0.3576972521841526,
+              "goal_instantiation": 1.0107997804880142,
+              "legacy_comparison": 0.15565892681479454,
+              "pressure_evaluation": 14.728711917996407,
+              "revision_query": 0.017112120985984802
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:158:29897:a8fa9bcbf3ebe7fc",
           "source_seq": 29897,
@@ -27477,12 +27781,12 @@
         "goal_count": 116,
         "latency": {
           "count": 38,
-          "maximum_ms": 213.42777600511909,
-          "mean_ms": 50.29828265603436,
-          "minimum_ms": 0.5862400867044926,
-          "p50_ms": 18.67076987400651,
-          "p95_ms": 194.86348796635866,
-          "p99_ms": 213.42777600511909
+          "maximum_ms": 84.85173480585217,
+          "mean_ms": 25.935457909087603,
+          "minimum_ms": 0.5923239514231682,
+          "p50_ms": 15.576488804072142,
+          "p95_ms": 75.46533504500985,
+          "p99_ms": 84.85173480585217
         },
         "legacy_candidate_count": 139,
         "legal_binding_failure_count": 0,
@@ -27493,7 +27797,63 @@
           "complete": 29,
           "not-applicable": 9
         },
-        "safety_downgrade_count": 0
+        "safety_downgrade_count": 0,
+        "stage_latency": {
+          "candidate_instantiation": {
+            "count": 38,
+            "maximum_ms": 49.190770369023085,
+            "mean_ms": 15.898507921711394,
+            "minimum_ms": 0.4079570062458515,
+            "p50_ms": 5.52496500313282,
+            "p95_ms": 43.01351401954889,
+            "p99_ms": 49.190770369023085
+          },
+          "decision_explanation": {
+            "count": 38,
+            "maximum_ms": 0.5240640603005886,
+            "mean_ms": 0.30603731590274136,
+            "minimum_ms": 0.03167707473039627,
+            "p50_ms": 0.35665323957800865,
+            "p95_ms": 0.4887580871582031,
+            "p99_ms": 0.5240640603005886
+          },
+          "goal_instantiation": {
+            "count": 38,
+            "maximum_ms": 1.42695102840662,
+            "mean_ms": 0.74058562811268,
+            "minimum_ms": 0.04350673407316208,
+            "p50_ms": 0.7312698289752007,
+            "p95_ms": 1.3036937452852726,
+            "p99_ms": 1.42695102840662
+          },
+          "legacy_comparison": {
+            "count": 38,
+            "maximum_ms": 0.4451880231499672,
+            "mean_ms": 0.14913854140200114,
+            "minimum_ms": 0.03097672015428543,
+            "p50_ms": 0.11363672092556953,
+            "p95_ms": 0.3528581000864506,
+            "p99_ms": 0.4451880231499672
+          },
+          "pressure_evaluation": {
+            "count": 38,
+            "maximum_ms": 34.25026731565595,
+            "mean_ms": 8.822934996140631,
+            "minimum_ms": 0.06471015512943268,
+            "p50_ms": 4.44656191393733,
+            "p95_ms": 32.69276209175587,
+            "p99_ms": 34.25026731565595
+          },
+          "revision_query": {
+            "count": 38,
+            "maximum_ms": 0.033285003155469894,
+            "mean_ms": 0.018253505818153683,
+            "minimum_ms": 0.013496261090040207,
+            "p50_ms": 0.01839781180024147,
+            "p95_ms": 0.019424129277467728,
+            "p99_ms": 0.033285003155469894
+          }
+        }
       }
     },
     "incremental": {
@@ -27501,21 +27861,21 @@
       "equivalent_count": 37,
       "fdas_total_latency": {
         "count": 38,
-        "maximum_ms": 1330.433340743184,
-        "mean_ms": 592.3607977425778,
-        "minimum_ms": 62.98560183495283,
-        "p50_ms": 537.6505358144641,
-        "p95_ms": 1167.755133472383,
-        "p99_ms": 1330.433340743184
+        "maximum_ms": 1126.2971232645214,
+        "mean_ms": 560.3501410101002,
+        "minimum_ms": 62.73909891024232,
+        "p50_ms": 552.1311592310667,
+        "p95_ms": 972.0374750904739,
+        "p99_ms": 1126.2971232645214
       },
       "latency": {
         "count": 38,
-        "maximum_ms": 1080.2659462206066,
-        "mean_ms": 528.6773704850164,
-        "minimum_ms": 62.24125390872359,
-        "p50_ms": 525.291679892689,
-        "p95_ms": 935.8339090831578,
-        "p99_ms": 1080.2659462206066
+        "maximum_ms": 1059.813646133989,
+        "mean_ms": 533.5293594796799,
+        "minimum_ms": 62.01783288270235,
+        "p50_ms": 531.2457522377372,
+        "p95_ms": 911.4043973386288,
+        "p99_ms": 1059.813646133989
       },
       "materialization": {
         "incremental_recomputation_ratio": {
@@ -32145,8 +32505,8 @@
       "samples": [
         {
           "cold_verification": null,
-          "fdas_total_latency_ms": 62.98560183495283,
-          "latency_ms": 62.24125390872359,
+          "fdas_total_latency_ms": 62.73909891024232,
+          "latency_ms": 62.01783288270235,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -32255,10 +32615,18 @@
             },
             "evaluation_hash": "809f3eea031e6e4bc1d5ee0d044b5383e000f1e493056ffe0bfcb41c52825ed6",
             "goal_count": 0,
-            "latency_ms": 0.7443479262292385,
+            "latency_ms": 0.7212660275399685,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
-            "selected_operation_id": null
+            "selected_operation_id": null,
+            "stage_latency_ms": {
+              "candidate_instantiation": 0.5128518678247929,
+              "decision_explanation": 0.033254269510507584,
+              "goal_instantiation": 0.049836933612823486,
+              "legacy_comparison": 0.04281988367438316,
+              "pressure_evaluation": 0.06796792149543762,
+              "revision_query": 0.014535151422023773
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:1:6870:9531d66bf53cf635",
           "source_seq": 6870,
@@ -32272,8 +32640,8 @@
             "mismatch_categories": [],
             "verification_hash": "70e045d04afda48cded9d2d8438aa837b981acd70f5d748727c1fa2231e13af2"
           },
-          "fdas_total_latency_ms": 128.2759429886937,
-          "latency_ms": 127.54607340320945,
+          "fdas_total_latency_ms": 123.44325985759497,
+          "latency_ms": 122.7047499269247,
           "materialization_metrics": {
             "affected_atoms": 1,
             "cold_build": false,
@@ -32642,10 +33010,18 @@
             },
             "evaluation_hash": "d1e104ce1b4c9946198295fa0ed279c7478aa02b1a7d2634338582fdb1e8ac00",
             "goal_count": 0,
-            "latency_ms": 0.7298695854842663,
+            "latency_ms": 0.7385099306702614,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
-            "selected_operation_id": null
+            "selected_operation_id": null,
+            "stage_latency_ms": {
+              "candidate_instantiation": 0.5355589091777802,
+              "decision_explanation": 0.03386335447430611,
+              "goal_instantiation": 0.05374569445848465,
+              "legacy_comparison": 0.031167641282081604,
+              "pressure_evaluation": 0.06973696872591972,
+              "revision_query": 0.014437362551689148
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:1:6878:0ba043e59e81330b",
           "source_seq": 6878,
@@ -32659,8 +33035,8 @@
             "mismatch_categories": [],
             "verification_hash": "35cba815c420b898f3847e37af9d55bdefe1a525941a168d9b23bde0122dc6ed"
           },
-          "fdas_total_latency_ms": 270.56595077738166,
-          "latency_ms": 269.9375841766596,
+          "fdas_total_latency_ms": 121.35903909802437,
+          "latency_ms": 120.75379304587841,
           "materialization_metrics": {
             "affected_atoms": 48,
             "cold_build": false,
@@ -32984,10 +33360,18 @@
             },
             "evaluation_hash": "cf4df93647a4ece90a9d4faac2b06f78e0d77d60c37328f9191500800d08c633",
             "goal_count": 0,
-            "latency_ms": 0.6283666007220745,
+            "latency_ms": 0.605246052145958,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
-            "selected_operation_id": null
+            "selected_operation_id": null,
+            "stage_latency_ms": {
+              "candidate_instantiation": 0.40929438546299934,
+              "decision_explanation": 0.03437697887420654,
+              "goal_instantiation": 0.04629697650671005,
+              "legacy_comparison": 0.03019394353032112,
+              "pressure_evaluation": 0.0677378848195076,
+              "revision_query": 0.017345882952213287
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:1:6889:ad01aee0dd0de1a0",
           "source_seq": 6889,
@@ -33001,8 +33385,8 @@
             "mismatch_categories": [],
             "verification_hash": "fc518933bb5900de54f733c94be2805fd7919d767a29d4e9b118cdf04d83137d"
           },
-          "fdas_total_latency_ms": 293.37471537292004,
-          "latency_ms": 274.0990282036364,
+          "fdas_total_latency_ms": 283.6607787758112,
+          "latency_ms": 268.28785007819533,
           "materialization_metrics": {
             "affected_atoms": 38,
             "cold_build": false,
@@ -34013,10 +34397,18 @@
             },
             "evaluation_hash": "b4fb4eaa6e1ffebd798a8cfebe55697159caedeccfbee3a8bfb3271844ad8edd",
             "goal_count": 1,
-            "latency_ms": 19.27568716928363,
+            "latency_ms": 15.372928697615862,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-a5c3a8614249b52878aadb8d06f6d1c4"
+            "selected_operation_id": "operation-a5c3a8614249b52878aadb8d06f6d1c4",
+            "stage_latency_ms": {
+              "candidate_instantiation": 13.42509500682354,
+              "decision_explanation": 0.30483491718769073,
+              "goal_instantiation": 0.2909330651164055,
+              "legacy_comparison": 0.07177982479333878,
+              "pressure_evaluation": 1.262397039681673,
+              "revision_query": 0.01788884401321411
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:12:7964:d2046321a6cfd875",
           "source_seq": 7964,
@@ -34030,8 +34422,8 @@
             "mismatch_categories": [],
             "verification_hash": "d42443daf24d0063f650837b66a482dee3be2cb769435724408c5cc10ca21f8e"
           },
-          "fdas_total_latency_ms": 227.4601967073977,
-          "latency_ms": 207.55668496713042,
+          "fdas_total_latency_ms": 216.3890227675438,
+          "latency_ms": 201.0089778341353,
           "materialization_metrics": {
             "affected_atoms": 31,
             "cold_build": false,
@@ -35029,10 +35421,18 @@
             },
             "evaluation_hash": "a352823e4262ffd8301d79980f3a819e315e772458e83d0a0047c0145fc7e31e",
             "goal_count": 1,
-            "latency_ms": 19.903511740267277,
+            "latency_ms": 15.380044933408499,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-aeb2dc9808da4ceb6cb21199ee677b49"
+            "selected_operation_id": "operation-aeb2dc9808da4ceb6cb21199ee677b49",
+            "stage_latency_ms": {
+              "candidate_instantiation": 13.464076910167933,
+              "decision_explanation": 0.30504586175084114,
+              "goal_instantiation": 0.3065369091928005,
+              "legacy_comparison": 0.052934978157281876,
+              "pressure_evaluation": 1.23318238183856,
+              "revision_query": 0.01826789230108261
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:12:7972:5748605bb9321ef8",
           "source_seq": 7972,
@@ -35046,8 +35446,8 @@
             "mismatch_categories": [],
             "verification_hash": "3b4cc5aeadcdc09c86d5f73a57a4b0aba34aa3f404483b5cd5f429ea633783cf"
           },
-          "fdas_total_latency_ms": 284.52188754454255,
-          "latency_ms": 263.4886126033962,
+          "fdas_total_latency_ms": 269.63804801926017,
+          "latency_ms": 252.19849217683077,
           "materialization_metrics": {
             "affected_atoms": 55,
             "cold_build": false,
@@ -36139,10 +36539,18 @@
             },
             "evaluation_hash": "6a3182fe56ef0cd8bdabdbce2fa1d3fc4725103f74a4e1ad51aa8ae07bf7e172",
             "goal_count": 1,
-            "latency_ms": 21.033274941146374,
+            "latency_ms": 17.4395558424294,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-185daba30fb0e219cb39e90affe141a8"
+            "selected_operation_id": "operation-185daba30fb0e219cb39e90affe141a8",
+            "stage_latency_ms": {
+              "candidate_instantiation": 15.150193125009537,
+              "decision_explanation": 0.3254152834415436,
+              "goal_instantiation": 0.32925885170698166,
+              "legacy_comparison": 0.057365745306015015,
+              "pressure_evaluation": 1.5590786933898926,
+              "revision_query": 0.018244143575429916
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:20:8764:63a8328b34ff1b16",
           "source_seq": 8764,
@@ -36156,8 +36564,8 @@
             "mismatch_categories": [],
             "verification_hash": "d40937252d78625f6586b329c0316ab26d7a813902e9895e643bcb7efe504356"
           },
-          "fdas_total_latency_ms": 306.26295739784837,
-          "latency_ms": 304.9441003240645,
+          "fdas_total_latency_ms": 307.249897159636,
+          "latency_ms": 305.9362852945924,
           "materialization_metrics": {
             "affected_atoms": 70,
             "cold_build": false,
@@ -36804,10 +37212,18 @@
             },
             "evaluation_hash": "8dcc453589c997876720452a9db3b2a6a1690db7b6f4efb658b336fe1b20ee23",
             "goal_count": 0,
-            "latency_ms": 1.3188570737838745,
+            "latency_ms": 1.3136118650436401,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
-            "selected_operation_id": null
+            "selected_operation_id": null,
+            "stage_latency_ms": {
+              "candidate_instantiation": 0.9787576273083687,
+              "decision_explanation": 0.035733915865421295,
+              "goal_instantiation": 0.15124911442399025,
+              "legacy_comparison": 0.05308026447892189,
+              "pressure_evaluation": 0.07602106779813766,
+              "revision_query": 0.018769875168800354
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:24:9179:825ca79757519911",
           "source_seq": 9179,
@@ -36821,8 +37237,8 @@
             "mismatch_categories": [],
             "verification_hash": "d43144e4694b9492af49d9654db8f75e5cb16f19e9e994b0ba87b4a8349c87a8"
           },
-          "fdas_total_latency_ms": 278.80488662049174,
-          "latency_ms": 277.4505107663572,
+          "fdas_total_latency_ms": 275.8698770776391,
+          "latency_ms": 274.53839406371117,
           "materialization_metrics": {
             "affected_atoms": 49,
             "cold_build": false,
@@ -37456,10 +37872,18 @@
             },
             "evaluation_hash": "af454599fc4f78ea21a91ff10fc7a9cee21fd06a0609ad19bc8162ecd5dfd5a7",
             "goal_count": 0,
-            "latency_ms": 1.3543758541345596,
+            "latency_ms": 1.3314830139279366,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
-            "selected_operation_id": null
+            "selected_operation_id": null,
+            "stage_latency_ms": {
+              "candidate_instantiation": 1.0004760697484016,
+              "decision_explanation": 0.0360291451215744,
+              "goal_instantiation": 0.16493117436766624,
+              "legacy_comparison": 0.034525059163570404,
+              "pressure_evaluation": 0.07537985220551491,
+              "revision_query": 0.020141713321208954
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:24:9187:5c0048e213e1c34f",
           "source_seq": 9187,
@@ -37473,8 +37897,8 @@
             "mismatch_categories": [],
             "verification_hash": "ea7c6b58be21c88d5a499415d1238babf5167c3055245f8a362a219ea2170f84"
           },
-          "fdas_total_latency_ms": 352.37080277875066,
-          "latency_ms": 350.90983379632235,
+          "fdas_total_latency_ms": 347.1225732937455,
+          "latency_ms": 345.6439161673188,
           "materialization_metrics": {
             "affected_atoms": 131,
             "cold_build": false,
@@ -38184,10 +38608,18 @@
             },
             "evaluation_hash": "c40554833ec70aded085bf741ba18b8c5bd6155335e3be06e6452c33fc68862f",
             "goal_count": 0,
-            "latency_ms": 1.4609689824283123,
+            "latency_ms": 1.4786571264266968,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
-            "selected_operation_id": null
+            "selected_operation_id": null,
+            "stage_latency_ms": {
+              "candidate_instantiation": 1.0770452208817005,
+              "decision_explanation": 0.03600120544433594,
+              "goal_instantiation": 0.22069690749049187,
+              "legacy_comparison": 0.045835040509700775,
+              "pressure_evaluation": 0.07542269304394722,
+              "revision_query": 0.023656059056520462
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:26:9437:9d538467e8bf7c8e",
           "source_seq": 9437,
@@ -38201,8 +38633,8 @@
             "mismatch_categories": [],
             "verification_hash": "0145f240c16c69ab4d73432db00d9704085e601936c21a2e6f49035165460d1f"
           },
-          "fdas_total_latency_ms": 584.4405237585306,
-          "latency_ms": 548.0937818065286,
+          "fdas_total_latency_ms": 552.1311592310667,
+          "latency_ms": 521.3175881654024,
           "materialization_metrics": {
             "affected_atoms": 158,
             "cold_build": false,
@@ -39765,10 +40197,18 @@
             },
             "evaluation_hash": "ac1df74b26e36e2e549d5b078fc7c12e208bdbcef02bba305b97261e6127f1fa",
             "goal_count": 1,
-            "latency_ms": 36.34674195200205,
+            "latency_ms": 30.81357106566429,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-54ff9821c77677ecbeddff0c2c97b285"
+            "selected_operation_id": "operation-54ff9821c77677ecbeddff0c2c97b285",
+            "stage_latency_ms": {
+              "candidate_instantiation": 27.23982697352767,
+              "decision_explanation": 0.37010433152318,
+              "goal_instantiation": 0.6180102936923504,
+              "legacy_comparison": 0.16493303701281548,
+              "pressure_evaluation": 2.399388700723648,
+              "revision_query": 0.021307729184627533
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:37:11130:a9cf247e1c1b9a63",
           "source_seq": 11130,
@@ -39782,8 +40222,8 @@
             "mismatch_categories": [],
             "verification_hash": "ce2830fbdc39f413a9e1e2e3835a3bb22d99f3350cdd8f5c46a1fa01e3a72169"
           },
-          "fdas_total_latency_ms": 600.0494170002639,
-          "latency_ms": 552.0262629725039,
+          "fdas_total_latency_ms": 798.9566791802645,
+          "latency_ms": 761.0985920764506,
           "materialization_metrics": {
             "affected_atoms": 278,
             "cold_build": false,
@@ -41412,10 +41852,18 @@
             },
             "evaluation_hash": "4f13204338c5d06cf22cfe4fedf650053f13abeea4e2f06875cfd3420a421603",
             "goal_count": 2,
-            "latency_ms": 48.02315402776003,
+            "latency_ms": 37.85808710381389,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-08c8df739186ea49b883e635df1f2dd6"
+            "selected_operation_id": "operation-08c8df739186ea49b883e635df1f2dd6",
+            "stage_latency_ms": {
+              "candidate_instantiation": 32.095813658088446,
+              "decision_explanation": 0.3784680739045143,
+              "goal_instantiation": 0.8514630608260632,
+              "legacy_comparison": 0.11539971455931664,
+              "pressure_evaluation": 4.396381322294474,
+              "revision_query": 0.020561274141073227
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:40:11774:687e6c950a3ec8d6",
           "source_seq": 11774,
@@ -41429,8 +41877,8 @@
             "mismatch_categories": [],
             "verification_hash": "1dad4f2b51219df01b87c661ea6fff1bb70760a2f3665cb7c90a9f59df233a27"
           },
-          "fdas_total_latency_ms": 512.7853401936591,
-          "latency_ms": 508.6982022039592,
+          "fdas_total_latency_ms": 535.2386054582894,
+          "latency_ms": 531.2457522377372,
           "materialization_metrics": {
             "affected_atoms": 278,
             "cold_build": false,
@@ -43010,10 +43458,18 @@
             },
             "evaluation_hash": "b59582f2f8618c3c5ac195ea942ce399fbbe93b3ab4a1b349181e4a232ca4898",
             "goal_count": 1,
-            "latency_ms": 4.0871379896998405,
+            "latency_ms": 3.992853220552206,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-a4738e2f003b8f641979dc902c81"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-a4738e2f003b8f641979dc902c81",
+            "stage_latency_ms": {
+              "candidate_instantiation": 2.0502060651779175,
+              "decision_explanation": 0.31726015731692314,
+              "goal_instantiation": 0.680787954479456,
+              "legacy_comparison": 0.03953510895371437,
+              "pressure_evaluation": 0.8830837905406952,
+              "revision_query": 0.02198014408349991
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:46:11645:2c4269b48ef94baa",
           "source_seq": 11645,
@@ -43027,8 +43483,8 @@
             "mismatch_categories": [],
             "verification_hash": "61ebff0567ccb258f8f41d3231245ceb2ae687126d67a36df675c025d7042339"
           },
-          "fdas_total_latency_ms": 812.761063221842,
-          "latency_ms": 530.8762448839843,
+          "fdas_total_latency_ms": 595.1615329831839,
+          "latency_ms": 553.7645728327334,
           "materialization_metrics": {
             "affected_atoms": 38,
             "cold_build": false,
@@ -44815,10 +45271,18 @@
             },
             "evaluation_hash": "b200730522ce7241d688eef4489146cfcb3dce4031dc9a4893c27eff11b6d0c3",
             "goal_count": 1,
-            "latency_ms": 281.8848183378577,
+            "latency_ms": 41.39696015045047,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-30a6bb17a40f98057a29c04e98f6c3c0"
+            "selected_operation_id": "operation-30a6bb17a40f98057a29c04e98f6c3c0",
+            "stage_latency_ms": {
+              "candidate_instantiation": 34.55909015610814,
+              "decision_explanation": 0.4143882542848587,
+              "goal_instantiation": 0.9344988502562046,
+              "legacy_comparison": 0.15208404511213303,
+              "pressure_evaluation": 5.316068883985281,
+              "revision_query": 0.020829960703849792
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:46:13081:c1c4f57ca9636773",
           "source_seq": 13081,
@@ -44832,8 +45296,8 @@
             "mismatch_categories": [],
             "verification_hash": "b20e5b206bcac383ac6f5445d15c36199cc9f4c787f42295ed0eb17d8a4e2be2"
           },
-          "fdas_total_latency_ms": 797.2611137665808,
-          "latency_ms": 739.8320375941694,
+          "fdas_total_latency_ms": 776.4972755685449,
+          "latency_ms": 734.8124948330224,
           "materialization_metrics": {
             "affected_atoms": 259,
             "cold_build": false,
@@ -46605,10 +47069,18 @@
             },
             "evaluation_hash": "440accc336c4e7b74be14f6b4dedd258cc3236ef535160d95d25b749d5b9d0a8",
             "goal_count": 1,
-            "latency_ms": 57.42907617241144,
+            "latency_ms": 41.68478073552251,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-0d2cad34a9a6ef04ab478300699834c9"
+            "selected_operation_id": "operation-0d2cad34a9a6ef04ab478300699834c9",
+            "stage_latency_ms": {
+              "candidate_instantiation": 34.811379853636026,
+              "decision_explanation": 0.3836466930806637,
+              "goal_instantiation": 1.2458818964660168,
+              "legacy_comparison": 0.1402110792696476,
+              "pressure_evaluation": 5.082945339381695,
+              "revision_query": 0.020715873688459396
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:46:13107:3d648a9a23914ba4",
           "source_seq": 13107,
@@ -46622,8 +47094,8 @@
             "mismatch_categories": [],
             "verification_hash": "dcacc443e7f1e3e1d849a84acb7878fc801e703234399ab1c2be34a2cefcecf7"
           },
-          "fdas_total_latency_ms": 500.94570964574814,
-          "latency_ms": 496.82434368878603,
+          "fdas_total_latency_ms": 553.3388028852642,
+          "latency_ms": 548.8568958826363,
           "materialization_metrics": {
             "affected_atoms": 1067,
             "cold_build": false,
@@ -48184,10 +48656,18 @@
             },
             "evaluation_hash": "4b23eae5723910443a0f63e89f36b70265f51aaf5e39ba6e5444e5f45a431743",
             "goal_count": 1,
-            "latency_ms": 4.121365956962109,
+            "latency_ms": 4.48190700262785,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-ad5a6dad5f1d2955b0a5891552cf"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-ad5a6dad5f1d2955b0a5891552cf",
+            "stage_latency_ms": {
+              "candidate_instantiation": 2.226053737103939,
+              "decision_explanation": 0.30937232077121735,
+              "goal_instantiation": 0.991936307400465,
+              "legacy_comparison": 0.0380207784473896,
+              "pressure_evaluation": 0.8928189054131508,
+              "revision_query": 0.023704953491687775
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:48:12066:b0cf57c147ec1499",
           "source_seq": 12066,
@@ -48201,8 +48681,8 @@
             "mismatch_categories": [],
             "verification_hash": "03644c2a2692138016dec9a8cf6e8dcc7ecc61b12ecd4e5f6d39cc3d7533918b"
           },
-          "fdas_total_latency_ms": 596.6617171652615,
-          "latency_ms": 540.0765892118216,
+          "fdas_total_latency_ms": 572.2761563956738,
+          "latency_ms": 535.2462152950466,
           "materialization_metrics": {
             "affected_atoms": 40,
             "cold_build": false,
@@ -49970,10 +50450,18 @@
             },
             "evaluation_hash": "40d11b26b7b6218a934a77d02d512c807319f2695cf6fa18dd30a7cf410f7806",
             "goal_count": 1,
-            "latency_ms": 56.58512795343995,
+            "latency_ms": 37.029941100627184,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-135cfe9850ae9a9cd682e40cdf444357"
+            "selected_operation_id": "operation-135cfe9850ae9a9cd682e40cdf444357",
+            "stage_latency_ms": {
+              "candidate_instantiation": 30.138013884425163,
+              "decision_explanation": 0.4011271521449089,
+              "goal_instantiation": 0.789891928434372,
+              "legacy_comparison": 0.1460658386349678,
+              "pressure_evaluation": 5.5337692610919476,
+              "revision_query": 0.021073035895824432
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:48:13676:1a4c3886245dce08",
           "source_seq": 13676,
@@ -49987,8 +50475,8 @@
             "mismatch_categories": [],
             "verification_hash": "9f3d608d35930b448cfcc7ca420d36f75fc2ff189659fb4a906302115a96431c"
           },
-          "fdas_total_latency_ms": 715.3347204439342,
-          "latency_ms": 663.3865893818438,
+          "fdas_total_latency_ms": 698.5669578425586,
+          "latency_ms": 657.6705169863999,
           "materialization_metrics": {
             "affected_atoms": 358,
             "cold_build": false,
@@ -51978,10 +52466,18 @@
             },
             "evaluation_hash": "e48509f6093674e093f12ac91bb259466d208dff2e7acc8a4ba2aea944bb2250",
             "goal_count": 1,
-            "latency_ms": 51.9481310620904,
+            "latency_ms": 40.89644085615873,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-17545dad789ce996cba0f5f0390863a0"
+            "selected_operation_id": "operation-17545dad789ce996cba0f5f0390863a0",
+            "stage_latency_ms": {
+              "candidate_instantiation": 36.246457137167454,
+              "decision_explanation": 0.3960421308875084,
+              "goal_instantiation": 0.970328226685524,
+              "legacy_comparison": 0.26014866307377815,
+              "pressure_evaluation": 3.001859877258539,
+              "revision_query": 0.02160482108592987
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:51:14406:76bb82d9fb15dce2",
           "source_seq": 14406,
@@ -51995,8 +52491,8 @@
             "mismatch_categories": [],
             "verification_hash": "3b79f9c0d8c736120b80dddad08905ee1422c42e2f6beb0c22259cad766de094"
           },
-          "fdas_total_latency_ms": 734.608284663409,
-          "latency_ms": 730.3634448908269,
+          "fdas_total_latency_ms": 727.0593261346221,
+          "latency_ms": 723.1283541768789,
           "materialization_metrics": {
             "affected_atoms": 405,
             "cold_build": false,
@@ -53219,10 +53715,18 @@
             },
             "evaluation_hash": "b0ea6525834762042e6168f6122994ee2d4fd82c9afec53d548a2edeea8f3353",
             "goal_count": 0,
-            "latency_ms": 4.244839772582054,
+            "latency_ms": 3.930971957743168,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
-            "selected_operation_id": null
+            "selected_operation_id": null,
+            "stage_latency_ms": {
+              "candidate_instantiation": 2.602421212941408,
+              "decision_explanation": 0.038011930882930756,
+              "goal_instantiation": 1.142650842666626,
+              "legacy_comparison": 0.033807940781116486,
+              "pressure_evaluation": 0.09204400703310966,
+              "revision_query": 0.022036023437976837
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:55:15445:dcc706c6aa8b83c3",
           "source_seq": 15445,
@@ -53236,8 +53740,8 @@
             "mismatch_categories": [],
             "verification_hash": "e342c672ef3c66c7e0cac6eff5895951912afc80c50df5aa0d9754f039a82072"
           },
-          "fdas_total_latency_ms": 793.8634939491749,
-          "latency_ms": 789.6172916516662,
+          "fdas_total_latency_ms": 752.3341118358076,
+          "latency_ms": 748.6127386800945,
           "materialization_metrics": {
             "affected_atoms": 385,
             "cold_build": false,
@@ -54577,10 +55081,18 @@
             },
             "evaluation_hash": "865620b7a17a085114c59c2795dce47d22309fa89722ab56ed1a24a6acd21fd0",
             "goal_count": 0,
-            "latency_ms": 4.246202297508717,
+            "latency_ms": 3.7213731557130814,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
-            "selected_operation_id": null
+            "selected_operation_id": null,
+            "stage_latency_ms": {
+              "candidate_instantiation": 2.570835407823324,
+              "decision_explanation": 0.034953001886606216,
+              "goal_instantiation": 0.9034848771989346,
+              "legacy_comparison": 0.11038314551115036,
+              "pressure_evaluation": 0.08075078949332237,
+              "revision_query": 0.020965933799743652
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:64:17510:1a50d7b695be9399",
           "source_seq": 17510,
@@ -54594,8 +55106,8 @@
             "mismatch_categories": [],
             "verification_hash": "9ea48d1bff3061383c50df02d9d5664a0166c79215fb1bb3d2d52a740c890021"
           },
-          "fdas_total_latency_ms": 747.0530038699508,
-          "latency_ms": 743.6692048795521,
+          "fdas_total_latency_ms": 818.7652509659529,
+          "latency_ms": 814.936535898596,
           "materialization_metrics": {
             "affected_atoms": 445,
             "cold_build": false,
@@ -55934,10 +56446,18 @@
             },
             "evaluation_hash": "fe8f5608dfb1abccb755093c4340d49755232927ffdc0de514fda2532f93902f",
             "goal_count": 0,
-            "latency_ms": 3.3837989903986454,
+            "latency_ms": 3.828715067356825,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
-            "selected_operation_id": null
+            "selected_operation_id": null,
+            "stage_latency_ms": {
+              "candidate_instantiation": 2.6595769450068474,
+              "decision_explanation": 0.03659632056951523,
+              "goal_instantiation": 0.9915269911289215,
+              "legacy_comparison": 0.035496894270181656,
+              "pressure_evaluation": 0.08329562842845917,
+              "revision_query": 0.022222287952899933
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:75:20079:80fff8ca8add1161",
           "source_seq": 20079,
@@ -55951,8 +56471,8 @@
             "mismatch_categories": [],
             "verification_hash": "2ab6060cd303da3480682c5732aafedcde4e747e21299bc87f237d0a398ca58e"
           },
-          "fdas_total_latency_ms": 1330.433340743184,
-          "latency_ms": 940.5884076841176,
+          "fdas_total_latency_ms": 991.8330330401659,
+          "latency_ms": 930.1288039423525,
           "materialization_metrics": {
             "affected_atoms": 576,
             "cold_build": false,
@@ -58174,10 +58694,18 @@
             },
             "evaluation_hash": "cfef4d737761fb40b3885e86f4527f47e107db18ba6e30423daf2abcfdbfce8f",
             "goal_count": 1,
-            "latency_ms": 389.84493305906653,
+            "latency_ms": 61.70422909781337,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-03c7f76eefbc09f4394f4fce58b94571"
+            "selected_operation_id": "operation-03c7f76eefbc09f4394f4fce58b94571",
+            "stage_latency_ms": {
+              "candidate_instantiation": 47.0851669088006,
+              "decision_explanation": 0.5041318945586681,
+              "goal_instantiation": 1.2648808769881725,
+              "legacy_comparison": 0.20509399473667145,
+              "pressure_evaluation": 12.62336503714323,
+              "revision_query": 0.02159038558602333
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:87:23158:1a197d9de0b58cc6",
           "source_seq": 23158,
@@ -58191,8 +58719,8 @@
             "mismatch_categories": [],
             "verification_hash": "a30f173456678bd8184336a96cacc3905f9e046f13c36c61f6e9ae78dcebd001"
           },
-          "fdas_total_latency_ms": 1167.755133472383,
-          "latency_ms": 1080.2659462206066,
+          "fdas_total_latency_ms": 1126.2971232645214,
+          "latency_ms": 1059.813646133989,
           "materialization_metrics": {
             "affected_atoms": 924,
             "cold_build": false,
@@ -60589,10 +61117,18 @@
             },
             "evaluation_hash": "e4f3751e3f160870dacbf56ec66d85a499949dfe25edaf25d0465d7c466b0b4f",
             "goal_count": 4,
-            "latency_ms": 87.48918725177646,
+            "latency_ms": 66.48347713053226,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-00d854081bee48f480a070ba9a8458a7"
+            "selected_operation_id": "operation-00d854081bee48f480a070ba9a8458a7",
+            "stage_latency_ms": {
+              "candidate_instantiation": 46.07211612164974,
+              "decision_explanation": 0.5105659365653992,
+              "goal_instantiation": 1.4757849276065826,
+              "legacy_comparison": 0.3164699301123619,
+              "pressure_evaluation": 18.08697497472167,
+              "revision_query": 0.021565239876508713
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:98:26897:dfb69f2e859e1120",
           "source_seq": 26897,
@@ -60606,8 +61142,8 @@
             "mismatch_categories": [],
             "verification_hash": "f666644e75bf69e5a6a7a3577fcaf17bf9ebd7f1969fa5c65f544bdd6f8a850c"
           },
-          "fdas_total_latency_ms": 1015.1091739535332,
-          "latency_ms": 935.8339090831578,
+          "fdas_total_latency_ms": 972.0374750904739,
+          "latency_ms": 911.4043973386288,
           "materialization_metrics": {
             "affected_atoms": 471,
             "cold_build": false,
@@ -62909,10 +63445,18 @@
             },
             "evaluation_hash": "74ffb3fa2180247e90bcf4dd92b44445ba4a6771b36d9115e06982d38230f4f1",
             "goal_count": 2,
-            "latency_ms": 79.2752648703754,
+            "latency_ms": 60.63307775184512,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-0a0e6335cb33d355445ddfb3e8d52fbc"
+            "selected_operation_id": "operation-0a0e6335cb33d355445ddfb3e8d52fbc",
+            "stage_latency_ms": {
+              "candidate_instantiation": 44.884923845529556,
+              "decision_explanation": 0.5012573674321175,
+              "goal_instantiation": 1.4818152412772179,
+              "legacy_comparison": 0.2543018199503422,
+              "pressure_evaluation": 13.489397708326578,
+              "revision_query": 0.021381769329309464
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:98:26908:10eb3d1db326d221",
           "source_seq": 26908,
@@ -62926,8 +63470,8 @@
             "mismatch_categories": [],
             "verification_hash": "fa14ac9a1ee12b003396b8de9cacff6f69203bac30a2a6ee9e7ac30d8f1054a1"
           },
-          "fdas_total_latency_ms": 734.3853479251266,
-          "latency_ms": 724.8264621011913,
+          "fdas_total_latency_ms": 724.295916967094,
+          "latency_ms": 715.0042587891221,
           "materialization_metrics": {
             "affected_atoms": 884,
             "cold_build": false,
@@ -65052,10 +65596,18 @@
             },
             "evaluation_hash": "aa9739639a71557f97de09dc2c827e18c75a463ef357cd3a64ae65ee83d5f459",
             "goal_count": 2,
-            "latency_ms": 9.55888582393527,
+            "latency_ms": 9.29165817797184,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-589f90490b35392b7f538235bc2f"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-589f90490b35392b7f538235bc2f",
+            "stage_latency_ms": {
+              "candidate_instantiation": 3.77845112234354,
+              "decision_explanation": 0.38676196709275246,
+              "goal_instantiation": 1.2158979661762714,
+              "legacy_comparison": 0.07595028728246689,
+              "pressure_evaluation": 3.813324961811304,
+              "revision_query": 0.021271873265504837
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:108:20701:b1372bd519d5c1fd",
           "source_seq": 20701,
@@ -65069,8 +65621,8 @@
             "mismatch_categories": [],
             "verification_hash": "828cf0d1581f7ab8b69397696dccde6d2861229263a7602c0f580f23dead5b5b"
           },
-          "fdas_total_latency_ms": 588.7579843401909,
-          "latency_ms": 583.3415552042425,
+          "fdas_total_latency_ms": 683.7767194956541,
+          "latency_ms": 678.4863593056798,
           "materialization_metrics": {
             "affected_atoms": 5,
             "cold_build": false,
@@ -67114,10 +67666,18 @@
             },
             "evaluation_hash": "f42ea870b75d9d560390810a76c06e08f30f10b3a18ffe3beb22ebeea2aa2f6f",
             "goal_count": 1,
-            "latency_ms": 5.41642913594842,
+            "latency_ms": 5.290360189974308,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-cd45af36b8c1c6ceb41a0d0d9d2e"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-cd45af36b8c1c6ceb41a0d0d9d2e",
+            "stage_latency_ms": {
+              "candidate_instantiation": 2.8600459918379784,
+              "decision_explanation": 0.39896415546536446,
+              "goal_instantiation": 1.086917705833912,
+              "legacy_comparison": 0.037224963307380676,
+              "pressure_evaluation": 0.8848882280290127,
+              "revision_query": 0.022319145500659943
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:108:20710:3b0f790ced40052d",
           "source_seq": 20710,
@@ -67131,8 +67691,8 @@
             "mismatch_categories": [],
             "verification_hash": "9d1fec2da891f4db97e659d44fd8e44da535606c3996f54b31da7865a81d6be5"
           },
-          "fdas_total_latency_ms": 1286.0609577037394,
-          "latency_ms": 847.1211078576744,
+          "fdas_total_latency_ms": 917.9830029606819,
+          "latency_ms": 840.3312489390373,
           "materialization_metrics": {
             "affected_atoms": 635,
             "cold_build": false,
@@ -69182,10 +69742,18 @@
             },
             "evaluation_hash": "3e7ac9a61edc12850a8f94f847a74e1b1a0dd423fddd2bfe7c478f752e2bac41",
             "goal_count": 6,
-            "latency_ms": 438.93984984606504,
+            "latency_ms": 77.65175402164459,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-04d3e91e456dc2463a5f356929065de2"
+            "selected_operation_id": "operation-04d3e91e456dc2463a5f356929065de2",
+            "stage_latency_ms": {
+              "candidate_instantiation": 45.72379495948553,
+              "decision_explanation": 0.37586409598588943,
+              "goal_instantiation": 1.5797009691596031,
+              "legacy_comparison": 0.450825784355402,
+              "pressure_evaluation": 29.49985209852457,
+              "revision_query": 0.02171611413359642
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:125:36273:263820b9c840fc7d",
           "source_seq": 36273,
@@ -69199,8 +69767,8 @@
             "mismatch_categories": [],
             "verification_hash": "58184d485f789f583962113e9a43e9455443a71c800d7ee36dde658352e172fe"
           },
-          "fdas_total_latency_ms": 616.0476324148476,
-          "latency_ms": 564.3831635825336,
+          "fdas_total_latency_ms": 611.3767446950078,
+          "latency_ms": 571.1481040343642,
           "materialization_metrics": {
             "affected_atoms": 842,
             "cold_build": false,
@@ -71206,10 +71774,18 @@
             },
             "evaluation_hash": "06156b053ed7c29937c0f9b784cdc955639b451d703f1359c19e43390695e973",
             "goal_count": 9,
-            "latency_ms": 51.664468832314014,
+            "latency_ms": 40.22864066064358,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-0e95390c16c8a4857061910eb96e"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-0e95390c16c8a4857061910eb96e",
+            "stage_latency_ms": {
+              "candidate_instantiation": 9.80625580996275,
+              "decision_explanation": 0.4820493049919605,
+              "goal_instantiation": 1.4815651811659336,
+              "legacy_comparison": 0.34302566200494766,
+              "pressure_evaluation": 28.095563873648643,
+              "revision_query": 0.020180828869342804
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:130:25251:53e17615bdbbb5bb",
           "source_seq": 25251,
@@ -71223,8 +71799,8 @@
             "mismatch_categories": [],
             "verification_hash": "c585b0987d6b282070976ccd13b5405dc144c946df72ec9e34a596868a341197"
           },
-          "fdas_total_latency_ms": 507.48099898919463,
-          "latency_ms": 456.6975203342736,
+          "fdas_total_latency_ms": 506.9649559445679,
+          "latency_ms": 465.793086681515,
           "materialization_metrics": {
             "affected_atoms": 11,
             "cold_build": false,
@@ -73244,10 +73820,18 @@
             },
             "evaluation_hash": "e51c99eee044087c33dd1cb4c453834dfcf75c47d73e2200515bbb36b5f9fee0",
             "goal_count": 9,
-            "latency_ms": 50.783478654921055,
+            "latency_ms": 41.17186926305294,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-4dfaec9b1e185b1a2bc010afe935"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-4dfaec9b1e185b1a2bc010afe935",
+            "stage_latency_ms": {
+              "candidate_instantiation": 9.825143031775951,
+              "decision_explanation": 0.5020289681851864,
+              "goal_instantiation": 1.5294491313397884,
+              "legacy_comparison": 0.3462759777903557,
+              "pressure_evaluation": 28.947574086487293,
+              "revision_query": 0.021398067474365234
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:130:25280:fadfa06a8304c53b",
           "source_seq": 25280,
@@ -73261,8 +73845,8 @@
             "mismatch_categories": [],
             "verification_hash": "db719f19f6f4fbacd4a52ab8ede62fe6cb8860901821d5a373859d739d539847"
           },
-          "fdas_total_latency_ms": 781.0437143780291,
-          "latency_ms": 696.6802100650966,
+          "fdas_total_latency_ms": 748.5574362799525,
+          "latency_ms": 668.2665580883622,
           "materialization_metrics": {
             "affected_atoms": 515,
             "cold_build": false,
@@ -75133,10 +75717,18 @@
             },
             "evaluation_hash": "a422d3f6658ebf5416022e7da97e8831a47303507e8c232cf0ef3cfc4b7eb784",
             "goal_count": 9,
-            "latency_ms": 84.36350431293249,
+            "latency_ms": 80.29087819159031,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-03c8cd77ac689a84997325acaf0ba554"
+            "selected_operation_id": "operation-03c8cd77ac689a84997325acaf0ba554",
+            "stage_latency_ms": {
+              "candidate_instantiation": 43.05027797818184,
+              "decision_explanation": 0.4218420945107937,
+              "goal_instantiation": 1.5248782001435757,
+              "legacy_comparison": 0.4210430197417736,
+              "pressure_evaluation": 34.851479809731245,
+              "revision_query": 0.021357089281082153
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:149:43479:dffd017e1a17ba0b",
           "source_seq": 43479,
@@ -75150,8 +75742,8 @@
             "mismatch_categories": [],
             "verification_hash": "1e0b12e539936a12f72294f0428a0b50ddd347ee959dabb52abb8803360c0aed"
           },
-          "fdas_total_latency_ms": 667.0185569673777,
-          "latency_ms": 574.6271568350494,
+          "fdas_total_latency_ms": 722.2726289182901,
+          "latency_ms": 644.4211066700518,
           "materialization_metrics": {
             "affected_atoms": 383,
             "cold_build": false,
@@ -77232,10 +77824,18 @@
             },
             "evaluation_hash": "e23f247438a3e736ae12db13aed9b0830a43cc7d850fc3f8cfa375fdf059a179",
             "goal_count": 12,
-            "latency_ms": 92.39140013232827,
+            "latency_ms": 77.85152224823833,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-026fe50fd395bbd7f17d83ae6d18c84b"
+            "selected_operation_id": "operation-026fe50fd395bbd7f17d83ae6d18c84b",
+            "stage_latency_ms": {
+              "candidate_instantiation": 41.726377326995134,
+              "decision_explanation": 0.5520978011190891,
+              "goal_instantiation": 1.7401226796209812,
+              "legacy_comparison": 0.37150923162698746,
+              "pressure_evaluation": 33.43942994251847,
+              "revision_query": 0.021985266357660294
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:150:43948:a422bb3274326fc7",
           "source_seq": 43948,
@@ -77249,8 +77849,8 @@
             "mismatch_categories": [],
             "verification_hash": "5b5e59451fc56adc7aa233c06e4c9cd92333b2b34fcecb426cd6953bde453633"
           },
-          "fdas_total_latency_ms": 924.4736209511757,
-          "latency_ms": 547.7194809354842,
+          "fdas_total_latency_ms": 636.3120870664716,
+          "latency_ms": 555.9218651615083,
           "materialization_metrics": {
             "affected_atoms": 219,
             "cold_build": false,
@@ -79348,10 +79948,18 @@
             },
             "evaluation_hash": "4d98605d34d15bdbf3357108282530567e12f5a09d21191c4345253c04fd2ab4",
             "goal_count": 12,
-            "latency_ms": 376.7541400156915,
+            "latency_ms": 80.39022190496325,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "operation-04528c92f757d83003d61848e3319257"
+            "selected_operation_id": "operation-04528c92f757d83003d61848e3319257",
+            "stage_latency_ms": {
+              "candidate_instantiation": 43.41964656487107,
+              "decision_explanation": 0.5714818835258484,
+              "goal_instantiation": 1.6728062182664871,
+              "legacy_comparison": 0.3618127666413784,
+              "pressure_evaluation": 34.344039391726255,
+              "revision_query": 0.02043507993221283
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:150:43960:6238ef9d08c16721",
           "source_seq": 43960,
@@ -79365,8 +79973,8 @@
             "mismatch_categories": [],
             "verification_hash": "25c8c19ead407b7787c9c5261d2067812053493bf7e1e497f87afc1097a8e534"
           },
-          "fdas_total_latency_ms": 537.6505358144641,
-          "latency_ms": 525.291679892689,
+          "fdas_total_latency_ms": 533.9092239737511,
+          "latency_ms": 521.6009789146483,
           "materialization_metrics": {
             "affected_atoms": 550,
             "cold_build": false,
@@ -81035,10 +81643,18 @@
             },
             "evaluation_hash": "5ba1695df5a6c02c68c300183641ce8d0f1f562d5fce4b695128f12786044b73",
             "goal_count": 4,
-            "latency_ms": 12.358855921775103,
+            "latency_ms": 12.308245059102774,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-262a4c429996ecf484dd0386d927"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-262a4c429996ecf484dd0386d927",
+            "stage_latency_ms": {
+              "candidate_instantiation": 3.8651018403470516,
+              "decision_explanation": 0.36307424306869507,
+              "goal_instantiation": 1.0624532587826252,
+              "legacy_comparison": 0.10686879977583885,
+              "pressure_evaluation": 6.889482028782368,
+              "revision_query": 0.02126488834619522
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:151:28195:2f3cf86fcf86c1d5",
           "source_seq": 28195,
@@ -81052,8 +81668,8 @@
             "mismatch_categories": [],
             "verification_hash": "89905acc0fbc059a76a36f02983376785dca89c87c75affd0d18bc2dd8eb70b3"
           },
-          "fdas_total_latency_ms": 456.6840622574091,
-          "latency_ms": 444.29333228617907,
+          "fdas_total_latency_ms": 454.0433958172798,
+          "latency_ms": 441.80947076529264,
           "materialization_metrics": {
             "affected_atoms": 47,
             "cold_build": false,
@@ -82724,10 +83340,18 @@
             },
             "evaluation_hash": "fef7f5fd21404eb9d94bdf4f785c3b2e284be99d0a44e966408529df24e0cf9b",
             "goal_count": 4,
-            "latency_ms": 12.39072997123003,
+            "latency_ms": 12.233925051987171,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-35d6d39398200c70b53f881733dd"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-35d6d39398200c70b53f881733dd",
+            "stage_latency_ms": {
+              "candidate_instantiation": 3.8922419771552086,
+              "decision_explanation": 0.3795991651713848,
+              "goal_instantiation": 1.0986579582095146,
+              "legacy_comparison": 0.11028209701180458,
+              "pressure_evaluation": 6.731407716870308,
+              "revision_query": 0.021736137568950653
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:151:28206:f07349a78e6dc7da",
           "source_seq": 28206,
@@ -82741,8 +83365,8 @@
             "mismatch_categories": [],
             "verification_hash": "2733d60d26036a06f18b7e8ee736b96b0f99ebddd21ecdf452c03ad74bbfc3f7"
           },
-          "fdas_total_latency_ms": 493.5877094976604,
-          "latency_ms": 481.05613980442286,
+          "fdas_total_latency_ms": 461.7733731865883,
+          "latency_ms": 449.37156792730093,
           "materialization_metrics": {
             "affected_atoms": 62,
             "cold_build": false,
@@ -84406,10 +85030,18 @@
             },
             "evaluation_hash": "f8b845940f4f2bab95061f242a20fd96915106b73323686f4340e53b45d53241",
             "goal_count": 4,
-            "latency_ms": 12.531569693237543,
+            "latency_ms": 12.401805259287357,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-6d4140b1c172cda0701d7136dc4e"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-6d4140b1c172cda0701d7136dc4e",
+            "stage_latency_ms": {
+              "candidate_instantiation": 3.9383182302117348,
+              "decision_explanation": 0.36815181374549866,
+              "goal_instantiation": 1.0721618309617043,
+              "legacy_comparison": 0.09766733273863792,
+              "pressure_evaluation": 6.904507987201214,
+              "revision_query": 0.020998064428567886
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:152:28505:5b3cc7605265cd26",
           "source_seq": 28505,
@@ -84423,8 +85055,8 @@
             "mismatch_categories": [],
             "verification_hash": "67db7cc5703429501b69d7232e9850c748283e086e8012b5677160d296372503"
           },
-          "fdas_total_latency_ms": 475.8918937295675,
-          "latency_ms": 463.07545667514205,
+          "fdas_total_latency_ms": 530.2226250059903,
+          "latency_ms": 517.3172419890761,
           "materialization_metrics": {
             "affected_atoms": 90,
             "cold_build": false,
@@ -86090,10 +86722,18 @@
             },
             "evaluation_hash": "aec4e502bd8df3298d66184d0eb1ef4087bff1bf7c0e08334cbcda9a78a619b2",
             "goal_count": 4,
-            "latency_ms": 12.816437054425478,
+            "latency_ms": 12.90538301691413,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-60e7024d24a80601c963dcc7d538"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-60e7024d24a80601c963dcc7d538",
+            "stage_latency_ms": {
+              "candidate_instantiation": 4.2408788576722145,
+              "decision_explanation": 0.38084620609879494,
+              "goal_instantiation": 1.316932961344719,
+              "legacy_comparison": 0.09720912203192711,
+              "pressure_evaluation": 6.846664939075708,
+              "revision_query": 0.02285093069076538
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:153:28747:201813e66ed0eb66",
           "source_seq": 28747,
@@ -86107,8 +86747,8 @@
             "mismatch_categories": [],
             "verification_hash": "71aadf171a569aa399d7442f109852c4f9ffce20e56f6f8ae80d02347cb808b2"
           },
-          "fdas_total_latency_ms": 474.92904169484973,
-          "latency_ms": 443.2327407412231,
+          "fdas_total_latency_ms": 454.7091848216951,
+          "latency_ms": 442.2789579257369,
           "materialization_metrics": {
             "affected_atoms": 232,
             "cold_build": false,
@@ -87611,10 +88251,18 @@
             },
             "evaluation_hash": "fad1194f71fd28c53ad6415da532169a9fb137ed6a4de855b147bcb2f047230a",
             "goal_count": 4,
-            "latency_ms": 31.696300953626633,
+            "latency_ms": 12.430226895958185,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-2bff02ee7720cc764cf90b658b9d"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-2bff02ee7720cc764cf90b658b9d",
+            "stage_latency_ms": {
+              "candidate_instantiation": 3.708326257765293,
+              "decision_explanation": 0.36253780126571655,
+              "goal_instantiation": 1.0164198465645313,
+              "legacy_comparison": 0.10668206959962845,
+              "pressure_evaluation": 7.215255871415138,
+              "revision_query": 0.021005049347877502
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:157:29662:fae284e7cb110bb1",
           "source_seq": 29662,
@@ -87628,8 +88276,8 @@
             "mismatch_categories": [],
             "verification_hash": "e53f333a6b927ab26a8c6758f8f30577977299d19b897596a6dd62c576d8ca41"
           },
-          "fdas_total_latency_ms": 428.23785031214356,
-          "latency_ms": 398.3745346777141,
+          "fdas_total_latency_ms": 424.11301424726844,
+          "latency_ms": 394.6486059576273,
           "materialization_metrics": {
             "affected_atoms": 102,
             "cold_build": false,
@@ -89278,10 +89926,18 @@
             },
             "evaluation_hash": "2e98ab32b01ee7d50e9396cbeba409812551782612ad5c3d8fd2edd41fbbcf6c",
             "goal_count": 9,
-            "latency_ms": 29.863315634429455,
+            "latency_ms": 29.464408289641142,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-493ea780ec6198c0e79914cc4622"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-493ea780ec6198c0e79914cc4622",
+            "stage_latency_ms": {
+              "candidate_instantiation": 6.9260988384485245,
+              "decision_explanation": 0.41096704080700874,
+              "goal_instantiation": 1.3089058920741081,
+              "legacy_comparison": 0.2373959869146347,
+              "pressure_evaluation": 20.56039124727249,
+              "revision_query": 0.02064928412437439
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:158:29868:a9ce0c6feb07e08b",
           "source_seq": 29868,
@@ -89295,8 +89951,8 @@
             "mismatch_categories": [],
             "verification_hash": "c4c2d238df1395757aab6f26a98140e8b59484a5baa7d87b778864906b2b1cf2"
           },
-          "fdas_total_latency_ms": 423.7754293717444,
-          "latency_ms": 400.6935991346836,
+          "fdas_total_latency_ms": 405.0299641676247,
+          "latency_ms": 382.5888531282544,
           "materialization_metrics": {
             "affected_atoms": 13,
             "cold_build": false,
@@ -90891,10 +91547,18 @@
             },
             "evaluation_hash": "8461c727b541b44665533bc4bb4da6aefe139c80fe069a5b0446be9dd69b786f",
             "goal_count": 8,
-            "latency_ms": 23.081830237060785,
+            "latency_ms": 22.4411110393703,
             "pressure_reason": null,
             "pressure_status": "complete",
-            "selected_operation_id": "fdas-expand-gap:fdas-goal-3ff7499b2e4a41844c448bc82105"
+            "selected_operation_id": "fdas-expand-gap:fdas-goal-3ff7499b2e4a41844c448bc82105",
+            "stage_latency_ms": {
+              "candidate_instantiation": 5.495070945471525,
+              "decision_explanation": 0.3819698467850685,
+              "goal_instantiation": 1.1960621923208237,
+              "legacy_comparison": 0.16433000564575195,
+              "pressure_evaluation": 15.183255076408386,
+              "revision_query": 0.02042297273874283
+            }
           },
           "snapshot_id": "m7-main-e_full_loop-4543804-00:158:29897:a8fa9bcbf3ebe7fc",
           "source_seq": 29897,
@@ -90915,12 +91579,12 @@
         "goal_count": 116,
         "latency": {
           "count": 38,
-          "maximum_ms": 438.93984984606504,
-          "mean_ms": 63.68342725756137,
-          "minimum_ms": 0.6283666007220745,
-          "p50_ms": 19.903511740267277,
-          "p95_ms": 376.7541400156915,
-          "p99_ms": 438.93984984606504
+          "maximum_ms": 80.39022190496325,
+          "mean_ms": 26.82078153042025,
+          "minimum_ms": 0.605246052145958,
+          "p50_ms": 15.372928697615862,
+          "p95_ms": 77.85152224823833,
+          "p99_ms": 80.39022190496325
         },
         "legacy_candidate_count": 139,
         "legal_binding_failure_count": 0,
@@ -90931,7 +91595,63 @@
           "complete": 29,
           "not-applicable": 9
         },
-        "safety_downgrade_count": 0
+        "safety_downgrade_count": 0,
+        "stage_latency": {
+          "candidate_instantiation": {
+            "count": 38,
+            "maximum_ms": 47.0851669088006,
+            "mean_ms": 16.422401598997805,
+            "minimum_ms": 0.40929438546299934,
+            "p50_ms": 5.495070945471525,
+            "p95_ms": 45.72379495948553,
+            "p99_ms": 47.0851669088006
+          },
+          "decision_explanation": {
+            "count": 38,
+            "maximum_ms": 0.5714818835258484,
+            "mean_ms": 0.31786097066574975,
+            "minimum_ms": 0.033254269510507584,
+            "p50_ms": 0.37586409598588943,
+            "p95_ms": 0.5105659365653992,
+            "p99_ms": 0.5714818835258484
+          },
+          "goal_instantiation": {
+            "count": 38,
+            "maximum_ms": 1.7401226796209812,
+            "mean_ms": 0.9436673656302063,
+            "minimum_ms": 0.04629697650671005,
+            "p50_ms": 1.0164198465645313,
+            "p95_ms": 1.5797009691596031,
+            "p99_ms": 1.7401226796209812
+          },
+          "legacy_comparison": {
+            "count": 38,
+            "maximum_ms": 0.450825784355402,
+            "mean_ms": 0.1515725652050031,
+            "minimum_ms": 0.03019394353032112,
+            "p50_ms": 0.10686879977583885,
+            "p95_ms": 0.37150923162698746,
+            "p99_ms": 0.450825784355402
+          },
+          "pressure_evaluation": {
+            "count": 38,
+            "maximum_ms": 34.851479809731245,
+            "mean_ms": 8.964636473377285,
+            "minimum_ms": 0.0677378848195076,
+            "p50_ms": 4.396381322294474,
+            "p95_ms": 33.43942994251847,
+            "p99_ms": 34.851479809731245
+          },
+          "revision_query": {
+            "count": 38,
+            "maximum_ms": 0.023704953491687775,
+            "mean_ms": 0.020642556544197232,
+            "minimum_ms": 0.014437362551689148,
+            "p50_ms": 0.021073035895824432,
+            "p95_ms": 0.02285093069076538,
+            "p99_ms": 0.023704953491687775
+          }
+        }
       }
     }
   },

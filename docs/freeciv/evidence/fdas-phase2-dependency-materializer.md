@@ -184,6 +184,6 @@ not only shard IDs. Mean recomputation fell from the prior 76.8% checkpoint to
 25.5%. Exact prefix indexing, snapshot-local action identity caching, skipped
 unused grounding initialization, batched scope refresh lookup, and exact
 in-memory dependency signatures recovered the first high-cardinality latency
-regression. Strict incremental-plus-cold mean/p95 measured 528.68/935.83 ms
+regression. Strict incremental-plus-cold mean/p95 measured 533.53/911.40 ms
 versus the pushed 535.14/950.43 ms checkpoint. This sparse diagnostic corpus
 still does not establish an ordinary-turn or live-controller latency claim.

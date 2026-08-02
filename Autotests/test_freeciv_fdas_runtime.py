@@ -1,5 +1,6 @@
 import copy
 from dataclasses import replace
+import gc
 import json
 import os
 import sys
@@ -425,7 +426,7 @@ def test_configured_global_atom_budget_is_enforced_before_publication():
 
 
 def test_full_checked_projector_set_assembles_with_read_only_operations(
-        tmp_path):
+        tmp_path, monkeypatch):
     declaration = load_runtime_declaration()
     declaration = copy.deepcopy(declaration)
     declaration["config"]["enabled"] = True
@@ -451,7 +452,18 @@ def test_full_checked_projector_set_assembles_with_read_only_operations(
     assert update.atom_count <= declaration["config"]["materialization"][
         "maximum_atoms_global"]
 
+    observed_gc = []
+    instantiate = runtime._goal_factory.instantiate
+
+    def recording_instantiate(*args, **kwargs):
+        observed_gc.append(gc.isenabled())
+        return instantiate(*args, **kwargs)
+
+    monkeypatch.setattr(
+        runtime._goal_factory, "instantiate", recording_instantiate)
     evaluation = runtime.evaluate_shadow(snapshot, ())
+    assert observed_gc == [False]
+    assert gc.isenabled()
     assert evaluation.snapshot_id == snapshot.snapshot_id
     assert evaluation.revision_id == update.revision_id
     assert evaluation.comparison.legacy_candidate_count == 0
@@ -459,6 +471,11 @@ def test_full_checked_projector_set_assembles_with_read_only_operations(
     assert evaluation.decision_explanation.route_kind == "none"
     assert evaluation.decision_explanation.selected_operation_id is None
     assert evaluation.decision_explanation.explanation_hash
+    assert set(dict(evaluation.stage_latency_ms)) == {
+        "candidate_instantiation", "decision_explanation",
+        "goal_instantiation", "legacy_comparison", "pressure_evaluation",
+        "revision_query",
+    }
     assert not any(
         candidate.authority_eligible for candidate in evaluation.candidates)
 
@@ -476,9 +493,16 @@ def test_full_checked_projector_set_assembles_with_read_only_operations(
     assert events[-1]["payload"]["details"][
         "decision_explanation_hash"] == (
             evaluation.decision_explanation.explanation_hash)
+    assert events[-1]["payload"]["details"]["stage_latency_ms"]
     assert validate_file(path).valid
 
     with pytest.raises(RuntimeError, match="revision-current"):
         runtime.emit_shadow(
             writer, snapshot,
             replace(evaluation, revision_id="fdas-revision-stale"))
+
+    stale_snapshot = _snapshot(seq=snapshot.identity.source_seq + 1)
+    assert gc.isenabled()
+    with pytest.raises(RuntimeError, match="current revision"):
+        runtime.evaluate_shadow(stale_snapshot, ())
+    assert gc.isenabled()
