@@ -4813,6 +4813,16 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_expansion_failures"]),
         ("fdas_expansion_reconciliations",
          decision_stats["fdas_expansion_reconciliations"]),
+        ("fdas_transport_action_matches",
+         decision_stats["fdas_transport_action_matches"]),
+        ("fdas_transport_completions",
+         decision_stats["fdas_transport_completions"]),
+        ("fdas_transport_failures",
+         decision_stats["fdas_transport_failures"]),
+        ("fdas_transport_operations",
+         decision_stats["fdas_transport_operations"]),
+        ("fdas_transport_reconciliations",
+         decision_stats["fdas_transport_reconciliations"]),
         ("production_persistence_guard_opportunities",
          decision_stats[
              "production_persistence_guard_opportunities"]),
@@ -5232,6 +5242,16 @@ async def _play(run_dir, manifest, context):
                 decision_stats["fdas_expansion_failures"]),
             "fdas_expansion_reconciliations": (
                 decision_stats["fdas_expansion_reconciliations"]),
+            "fdas_transport_action_matches": (
+                decision_stats["fdas_transport_action_matches"]),
+            "fdas_transport_completions": (
+                decision_stats["fdas_transport_completions"]),
+            "fdas_transport_failures": (
+                decision_stats["fdas_transport_failures"]),
+            "fdas_transport_operations": (
+                decision_stats["fdas_transport_operations"]),
+            "fdas_transport_reconciliations": (
+                decision_stats["fdas_transport_reconciliations"]),
             "production_persistence_guard_applications": (
                 decision_stats[
                     "production_persistence_guard_applications"]),
@@ -5517,6 +5537,16 @@ async def _play(run_dir, manifest, context):
             decision_stats["fdas_expansion_failures"]),
         "fdas_expansion_reconciliations": (
             decision_stats["fdas_expansion_reconciliations"]),
+        "fdas_transport_action_matches": (
+            decision_stats["fdas_transport_action_matches"]),
+        "fdas_transport_completions": (
+            decision_stats["fdas_transport_completions"]),
+        "fdas_transport_failures": (
+            decision_stats["fdas_transport_failures"]),
+        "fdas_transport_operations": (
+            decision_stats["fdas_transport_operations"]),
+        "fdas_transport_reconciliations": (
+            decision_stats["fdas_transport_reconciliations"]),
         "production_persistence_guard_applications": (
             decision_stats[
                 "production_persistence_guard_applications"]),
