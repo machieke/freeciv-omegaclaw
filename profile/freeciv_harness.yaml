@@ -115,6 +115,7 @@ impact_policy:
   pressure_city_defense_operation_authority_enabled: false
   pressure_combat_operations_enabled: false
   pressure_combat_operation_authority_enabled: false
+  pressure_transport_operations_enabled: false
   pressure_production_operations_enabled: false
   pressure_production_persistence_authority_enabled: false
   pressure_research_operations_enabled: false
@@ -365,6 +366,54 @@ paired_impact:
         cannot support a gameplay claim.
       release_game_config:
         startunits: csdf
+    fdas_transport_operation_shadow_diagnostic_v1:
+      purpose: diagnostic
+      claim_eligible: false
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 30
+      planned_pairs: 1
+      seeds: [104729]
+      reused_seeds_from: [development, fdas_transport_shadow_diagnostic_v1]
+      reused_seed_reason: >-
+        The operation-lifecycle diagnostic deliberately extends the existing
+        capability-only transport diagnostic on its established smoke seed;
+        it remains non-authorizing and cannot support a gameplay claim.
+      release_game_config:
+        startunits: csdf
+      arms:
+        baseline:
+          max_no_effect_failovers_per_scope: 0
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_native_movement_routes_enabled: true
+          pressure_operation_lifecycle_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_resource_scheduler_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+          pressure_transport_operations_enabled: true
+          production_strategy: static_priority
+        treatment:
+          max_no_effect_failovers_per_scope: 4
+          pressure_achievement_uncertainty_split_enabled: true
+          pressure_commit_revalidation_enabled: true
+          pressure_controller_mode: scalar_v2
+          pressure_distributional_risk_enabled: true
+          pressure_domain_estimates_enabled: true
+          pressure_native_movement_routes_enabled: true
+          pressure_operation_lifecycle_enabled: true
+          pressure_packet_scheduler_enabled: true
+          pressure_requirement_sets_enabled: true
+          pressure_resource_scheduler_enabled: true
+          pressure_semantics_version: v2
+          pressure_signed_channels_enabled: true
+          pressure_transport_operations_enabled: true
+          production_strategy: horizon_score
     diagnostic_unitless_city_v1:
       purpose: development
       claim_eligible: false

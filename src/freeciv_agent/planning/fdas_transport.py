@@ -8,7 +8,53 @@ from .fdas_defense import (
 )
 from .operations import OperationState
 from .transport_lifecycle import FounderTransportOperationLifecycle
-from .transport_operations import FounderTransportOperationAssembler
+from .transport_operations import (
+    FounderTransportIntent,
+    FounderTransportOperationAssembler,
+)
+
+
+def declared_transport_intents(manifest, seed):
+    """Read a manifest-pinned diagnostic intent set without inventing policy."""
+    if not isinstance(manifest, dict):
+        raise TypeError("FDAS manifest must be an object")
+    declaration = manifest.get("transport_operation_intents")
+    if declaration is None:
+        return ()
+    if not isinstance(declaration, dict):
+        raise TypeError("transport intent declaration must be an object")
+    expected = {
+        "intents_by_seed", "mode", "policy_authority", "schema_version"}
+    if set(declaration) != expected:
+        raise ValueError("transport intent declaration keys differ")
+    if declaration["schema_version"] != "1.0":
+        raise ValueError("unsupported transport intent declaration schema")
+    if declaration["mode"] != "diagnostic-configured-shadow-only":
+        raise ValueError("transport intent declaration mode is not diagnostic")
+    if declaration["policy_authority"] is not False:
+        raise ValueError("configured transport intents cannot grant authority")
+    intents_by_seed = declaration["intents_by_seed"]
+    if not isinstance(intents_by_seed, dict):
+        raise TypeError("transport intents_by_seed must be an object")
+    if any(
+            not isinstance(key, str)
+            or not key.isdigit()
+            or not isinstance(rows, list)
+            for key, rows in intents_by_seed.items()):
+        raise ValueError("transport seed intents are invalid")
+    rows = intents_by_seed.get(str(int(seed)), [])
+    intents = tuple(
+        FounderTransportIntent.from_dict(row)
+        for row in rows)
+    canonical = tuple(
+        canonical_json_bytes(value.to_dict())
+        for value in intents)
+    if len(set(canonical)) != len(canonical):
+        raise ValueError("transport seed intents contain duplicates")
+    return tuple(
+        value for _, value in sorted(
+            zip(canonical, intents),
+            key=lambda row: row[0]))
 
 
 class FdasFounderTransportProjectionAdapter(object):

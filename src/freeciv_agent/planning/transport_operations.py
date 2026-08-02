@@ -747,7 +747,8 @@ class FounderTransportOperationAssembler:
             transport_required=True)
         founder_corridor = None
         founder_eta = 0
-        if embark is None:
+        if embark is None and founder.tile != (
+                intent.pickup_tile_id):
             (
                 founder_corridor,
                 founder_action,
@@ -951,6 +952,12 @@ class FounderTransportOperationAssembler:
                     "step_complete", phase,
                     step_index,
                     "embark-edge-advertised")
+            if founder.tile == (
+                    intent.pickup_tile_id):
+                return TransportOperationReadout(
+                    "step_complete", phase,
+                    step_index,
+                    "founder-at-pickup-awaiting-ferry")
             corridor, action = (
                 cls._route_action(
                     snapshot,

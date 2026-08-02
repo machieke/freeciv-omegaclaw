@@ -29,6 +29,7 @@ from freeciv_agent.planning import (  # noqa: E402
     OperationStoreError,
     OperationState,
     SettlementRetentionTracker,
+    declared_transport_intents,
 )
 from freeciv_agent.pressure import (  # noqa: E402
     BoundedExactScheduler,
@@ -440,6 +441,65 @@ def test_partner_locked_assembly_uses_native_rendezvous_and_future_claims():
         if claim.resource.kind
         == GameResourceKind.TILE_OCCUPANCY
     }) == 4
+
+
+def test_founder_already_at_pickup_waits_without_a_self_route():
+    snapshot = _snapshot()
+    snapshot = replace(
+        snapshot,
+        movement_routes=(
+            _route(
+                200, 200, 100,
+                201, 2,
+                source_seq=1),))
+    intent = replace(
+        _intent(),
+        pickup_tile_id=100)
+
+    decision = (
+        FounderTransportOperationAssembler()
+        .assemble(
+            snapshot,
+            _ruleset(),
+            "ruleset-proof",
+            intent))
+
+    assert decision.disposition == "assembled"
+    assert decision.assembly.rendezvous_eta_turns == 2
+    assert decision.assembly.initial_readout.phase == "ferry_to_pickup"
+    assert canonical_json_bytes(
+        decision.assembly.initial_readout.next_action) in {
+            canonical_json_bytes(json.loads(value))
+            for value in snapshot.legal_action_json
+            if json.loads(value).get("actor_id") == 200}
+    assert tuple(
+        row.actor_id
+        for row in decision.assembly.initial_corridors) == ("unit:200",)
+
+
+def test_manifest_declared_transport_intents_are_seed_scoped_and_non_authorizing():
+    declaration = {
+        "transport_operation_intents": {
+            "intents_by_seed": {
+                "104729": [_intent().to_dict()],
+            },
+            "mode": "diagnostic-configured-shadow-only",
+            "policy_authority": False,
+            "schema_version": "1.0",
+        },
+    }
+
+    assert declared_transport_intents(declaration, 104729) == (_intent(),)
+    assert declared_transport_intents(declaration, 99) == ()
+    authority = copy.deepcopy(declaration)
+    authority["transport_operation_intents"]["policy_authority"] = True
+    with pytest.raises(ValueError, match="cannot grant authority"):
+        declared_transport_intents(authority, 104729)
+    duplicate = copy.deepcopy(declaration)
+    duplicate["transport_operation_intents"]["intents_by_seed"][
+        "104729"].append(_intent().to_dict())
+    with pytest.raises(ValueError, match="duplicates"):
+        declared_transport_intents(duplicate, 104729)
 
 
 def test_assembly_abstains_when_deadline_cargo_or_escort_is_not_grounded():

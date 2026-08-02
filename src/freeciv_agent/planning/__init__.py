@@ -140,7 +140,10 @@ from .fdas_episode_induction import (
     FdasEpisodeInductionAdapter,
 )
 from .fdas_replacement import FdasCoordinatedReplacementAdapter
-from .fdas_transport import FdasFounderTransportProjectionAdapter
+from .fdas_transport import (
+    FdasFounderTransportProjectionAdapter,
+    declared_transport_intents,
+)
 from .fdas_combat import FdasCombatProjectionAdapter
 from .fdas_expansion import (
     FOUND_CITY_OPERATION,
@@ -233,6 +236,7 @@ __all__ = [
     "FdasEpisodeInductionAdapter",
     "FdasCoordinatedReplacementAdapter",
     "FdasFounderTransportProjectionAdapter",
+    "declared_transport_intents",
     "FdasCombatProjectionAdapter",
     "FOUND_CITY_OPERATION", "RECOVER_POPULATION_OPERATION",
     "FdasExpansionLifecycleUpdate", "FdasExpansionOperationAdapter",
