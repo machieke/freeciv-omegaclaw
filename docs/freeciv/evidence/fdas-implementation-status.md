@@ -98,3 +98,22 @@ broader late-game controller still measures 1,348.97 ms p95. This closes PR
 does not establish a universal late-game latency or score claim and does not
 activate the default profile. See `fdas-bounded-defense-authority.md` for exact
 hashes and claim boundaries.
+
+## Post-substrate expansion shadow
+
+The expansion sub-slice of PR 16 now has an independent `shadow-live`
+activation and clean engine evidence. It projects exact settlement,
+population-recovery, corridor, requirement, resource-claim, and persistent
+operation state while the legacy controller retains all action authority.
+One clean 30-turn run exercised an exact founding action from proposal through
+server acceptance to a later authoritative city effect, plus one explicitly
+unattempted expiration. All 52 actions were accepted, no FDAS authority event
+occurred, sampled cold verification was equivalent, and all 15 deterministic
+audit gates passed.
+
+Action-scoped refresh reduced unnecessary rich work while retaining the exact
+same-snapshot founding binding. The accepted cohort measured 118.39 ms FDAS
+projection p95 and 490.65 ms full-controller p95. See
+`fdas-pr16-expansion-shadow.md`. This is a mechanism and preservation result,
+not expansion authority or a gameplay-improvement claim; transport and combat
+remain separate PR 16+ increments.

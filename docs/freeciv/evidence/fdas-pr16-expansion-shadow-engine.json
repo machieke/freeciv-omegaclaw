@@ -1,0 +1,122 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "all_action_results_accepted": true,
+      "all_completed_operations_have_exact_causal_legacy_actions": true,
+      "all_lifecycle_events_are_non_authorizing_shadow": true,
+      "all_operations_are_projected": true,
+      "cold_verification_is_equivalent": true,
+      "completed_effects_are_explicit": true,
+      "engine_run_completed_at_horizon": true,
+      "expirations_are_unattempted_not_failures": true,
+      "fdas_projection_p95_within_budget": true,
+      "manifest_is_expansion_shadow_only": true,
+      "no_failed_expansion_effects": true,
+      "no_fdas_authority_events": true,
+      "source_is_clean": true,
+      "store_is_valid_and_unquarantined": true,
+      "terminal_counters_match_evidence": true
+    },
+    "performance_observation": {
+      "full_controller_p95_target_ms": 500.0,
+      "full_controller_p95_within_target": true
+    }
+  },
+  "claim_scope": "expansion-shadow-lifecycle-and-behavior-preservation; no-policy-authority-or-gameplay-improvement-claim",
+  "evidence": {
+    "events.jsonl": {
+      "path": "artifacts/freeciv/fdas-expansion-shadow-live-30-v2/games/main/e_full_loop/104729-00/events.jsonl",
+      "sha256": "71b1cb0db03445647ca98b44e22a75c835d88d554c4ac397a7f126e5cd18a485"
+    },
+    "fdas-expansion-operations.json": {
+      "path": "artifacts/freeciv/fdas-expansion-shadow-live-30-v2/games/main/e_full_loop/104729-00/fdas-expansion-operations.json",
+      "sha256": "3eedc86d0657d0630db4d089b0fe85a679c5f873b1c0283ea993a2330c2181ac"
+    },
+    "manifest.json": {
+      "path": "artifacts/freeciv/fdas-expansion-shadow-live-30-v2/games/main/e_full_loop/104729-00/manifest.json",
+      "sha256": "f7416c4a38e7cf08f6b8097e45722dbd3395b94f34292648f9e93efa68b22a13"
+    },
+    "status.json": {
+      "path": "artifacts/freeciv/fdas-expansion-shadow-live-30-v2/games/main/e_full_loop/104729-00/status.json",
+      "sha256": "17c5b6e0e6f597612690ec0e187b87894dca0a7d94a45db7c13772fb97f21e70"
+    }
+  },
+  "latency": {
+    "fdas_projection": {
+      "count": 31,
+      "maximum_ms": 133.12531309202313,
+      "p50_ms": 72.30242202058434,
+      "p95_ms": 118.39288985356688
+    },
+    "fdas_shadow_evaluation": {
+      "count": 30,
+      "maximum_ms": 2.616886980831623,
+      "p50_ms": 1.9802646711468697,
+      "p95_ms": 2.5862357579171658
+    },
+    "full_controller": {
+      "count": 30,
+      "maximum_ms": 747.3016977310181,
+      "p50_ms": 28.008910827338696,
+      "p95_ms": 490.64832320436835
+    }
+  },
+  "operations": [
+    {
+      "activation_count": 0,
+      "attempt_count": 0,
+      "causal": {},
+      "completion_count": 0,
+      "exact_action_results": 0,
+      "exact_actions_sent": 0,
+      "expiration_count": 1,
+      "failure_count": 0,
+      "operation_id": "operation-17e2d8600075fedb0094246190245b86",
+      "operation_type": "fdas_expansion_recover_population",
+      "projected": true,
+      "state": "expired",
+      "terminal_event_count": 1,
+      "terminal_reason": "operation-deadline-passed-without-expansion-effect"
+    },
+    {
+      "activation_count": 1,
+      "attempt_count": 1,
+      "causal": {
+        "activation_to_completion": true,
+        "result_to_activation": true,
+        "sent_to_result": true
+      },
+      "completion_count": 1,
+      "exact_action_results": 1,
+      "exact_actions_sent": 1,
+      "expiration_count": 0,
+      "failure_count": 0,
+      "operation_id": "operation-2ec272512168e45bdf0ba19594aeecaa",
+      "operation_type": "fdas_expansion_found_city",
+      "projected": true,
+      "state": "completed",
+      "terminal_event_count": 1,
+      "terminal_reason": "authoritative-expansion-effect-observed"
+    }
+  ],
+  "schema_version": "1.0",
+  "source": {
+    "commit": "1345eb81f5d5dbd930d97fd6833638c2d69c0278",
+    "dirty": false,
+    "implementation_sha256": "00bb85e234416ca54448638ee5bb96e38f2ed6ba91f61b4e084cb480c2744923",
+    "source_files": 263
+  },
+  "structural_hash": "08b07102e6984ef2de82ff1d31d16af1622994d7fefc4ce1f0c7c0a06ccb42fe",
+  "summary": {
+    "accepted_action_results": 52,
+    "action_matches": 1,
+    "actions": 52,
+    "cold_verifications": 1,
+    "completions": 1,
+    "expirations": 1,
+    "failures": 0,
+    "operations": 2,
+    "projected_operations": 2
+  }
+}
