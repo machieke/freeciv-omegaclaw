@@ -301,3 +301,19 @@ sampling cannot create an actor-ranking comparison in this sequential slice;
 the next bounded target is an action-stratified competitive defense choice
 surface with observational episodes for accepted legacy-selected actions. See
 `fdas-pr34-candidate-choice-yield-pilot.md`.
+
+PR35 implements the bounded correction identified by that failure. A distinct
+non-authorizing defense choice surface records exact legal garrison moves and
+fortifications in one observational decision set, while keeping action and
+lifecycle strata in every outcome-free feature query. The legacy planner
+still selects every action; only its accepted exact selection can open an
+episode and receive the new 32-turn selected-actor persistence label.
+Contextual conductance, promoted-rule readout, transition estimates, and
+nonselected labels are all disabled. One 160-turn engineering smoke produced
+15 selected sets, 71 choices, 13 multi-candidate sets, and seven observed
+outcomes with 4/3 positive/negative contrast, with zero rejected actions and
+30,159 valid events. This repairs candidate-choice yield, not calibration or
+ranking. The smoke was intentionally treated as claim-ineligible because
+regenerated replay reports made its source worktree dirty; a fresh
+preregistered clean-source yield cohort remains the next gate. See
+`fdas-pr35-defense-choice-surface-smoke.md`.
