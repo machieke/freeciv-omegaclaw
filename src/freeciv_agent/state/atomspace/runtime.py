@@ -387,6 +387,7 @@ class FdasRuntime(object):
                 else self.ruleset_revision.revision_id),
             "runtime_identity": self.RUNTIME_IDENTITY,
             "shadow_enabled": self.config.shadow_enabled,
+            "shadow_refresh_policy": self.config.shadow_refresh_policy,
         }
 
     def _sample_cold_verification(self, snapshot):
@@ -643,7 +644,7 @@ class FdasRuntime(object):
         if legacy_candidates is not None:
             from ...planning import compare_shadow_candidates
             comparison = compare_shadow_candidates(
-                snapshot, legacy_candidates, candidates)
+                snapshot, legacy_candidates, candidates, goals)
         now = time.perf_counter()
         stage_latency.append((
             "legacy_comparison", (now - stage_started) * 1000.0))

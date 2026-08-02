@@ -35,6 +35,7 @@ class DependentAtomSpaceConfig:
     enabled: bool
     shadow_enabled: bool
     authority_enabled: bool
+    shadow_refresh_policy: str
     schema_version: str
     store_backend: str
     cold_verify_sample_rate: float
@@ -50,7 +51,7 @@ class DependentAtomSpaceConfig:
         "authority_enabled", "cold_verify_sample_rate", "domain_authority",
         "enabled", "events", "inference", "materialization", "projection",
         "revision_retention", "schema_version", "shadow_enabled", "learning",
-        "store_backend"))
+        "shadow_refresh_policy", "store_backend"))
     PROJECTION_KEYS = frozenset((
         "beliefs", "city", "combat", "economy", "empire", "operations",
         "population_recovery", "region", "research", "route_corridors",
@@ -86,6 +87,9 @@ class DependentAtomSpaceConfig:
             raise ValueError("unsupported dependent AtomSpace schema")
         if value["store_backend"] != "memory":
             raise ValueError("unsupported dependent AtomSpace store backend")
+        if value["shadow_refresh_policy"] not in (
+                "every-snapshot", "turn-boundary-before-readout"):
+            raise ValueError("unsupported FDAS shadow refresh policy")
         sample_rate = float(value["cold_verify_sample_rate"])
         if not 0.0 <= sample_rate <= 1.0:
             raise ValueError("cold verification sample rate must be in 0..1")
@@ -122,6 +126,10 @@ class DependentAtomSpaceConfig:
                     "materialization budget {} must be positive".format(key))
         if value["authority_enabled"] and not value["enabled"]:
             raise ValueError("FDAS authority requires the core to be enabled")
+        if (value["authority_enabled"]
+                and value["shadow_refresh_policy"] != "every-snapshot"):
+            raise ValueError(
+                "FDAS authority requires every-snapshot materialization")
         if any(authority.values()) and not value["authority_enabled"]:
             raise ValueError("domain authority requires the authority gate")
         if (learning["contextual_conductance_enabled"]
@@ -163,6 +171,7 @@ class DependentAtomSpaceConfig:
             value["enabled"],
             value["shadow_enabled"],
             value["authority_enabled"],
+            value["shadow_refresh_policy"],
             value["schema_version"],
             value["store_backend"],
             sample_rate,
@@ -360,5 +369,6 @@ class DependentAtomSpaceConfig:
             "revision_retention": self.revision_retention,
             "schema_version": self.schema_version,
             "shadow_enabled": self.shadow_enabled,
+            "shadow_refresh_policy": self.shadow_refresh_policy,
             "store_backend": self.store_backend,
         }

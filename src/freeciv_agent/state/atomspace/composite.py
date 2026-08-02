@@ -168,7 +168,9 @@ class CompositeDomainProjector(object):
             (key.to_dict(), fingerprint) for key, fingerprint in rows))
 
     @classmethod
-    def _fingerprint_index(cls, fingerprints, wanted_roots, wanted_kinds):
+    def _fingerprint_index(
+            cls, fingerprints, wanted_roots, wanted_kinds,
+            wanted_prefixes=()):
         roots = {}
         kinds = {}
         for key, fingerprint in fingerprints.items():
@@ -179,13 +181,24 @@ class CompositeDomainProjector(object):
                 kinds.setdefault(key.kind, []).append((key, fingerprint))
         root_rows = dict(
             (root, tuple(sorted(rows))) for root, rows in roots.items())
+        prefix_trie = {}
+        for prefix in sorted(set(str(value) for value in wanted_prefixes)):
+            node = prefix_trie
+            for part in prefix.split("."):
+                node = node.setdefault(part, {})
+            node[None] = prefix
         prefix_rows = {}
-        for rows in root_rows.values():
-            for row in rows:
-                parts = str(row[0].path).split(".")
-                for length in range(1, len(parts) + 1):
-                    prefix = ".".join(parts[:length])
-                    prefix_rows.setdefault(prefix, []).append(row)
+        if prefix_trie:
+            for rows in root_rows.values():
+                for row in rows:
+                    node = prefix_trie
+                    for part in str(row[0].path).split("."):
+                        node = node.get(part)
+                        if node is None:
+                            break
+                        prefix = node.get(None)
+                        if prefix is not None:
+                            prefix_rows.setdefault(prefix, []).append(row)
         return {
             "kinds": dict(
                 (kind, cls._semantic_fingerprint(tuple(sorted(rows))))
@@ -506,10 +519,17 @@ class CompositeDomainProjector(object):
     def project(self, snapshot, scopes, fingerprints):
         records = []
         components = {}
+        specs_by_projector = dict(
+            (projector.projector_id,
+             self._shard_specs(projector, snapshot, scopes))
+            for projector in self.projectors)
         fingerprint_index = self._fingerprint_index(
-            fingerprints, self._incremental_roots, self._incremental_kinds)
+            fingerprints, self._incremental_roots, self._incremental_kinds,
+            tuple(
+                prefix for specs in specs_by_projector.values()
+                for spec in specs for prefix in spec.snapshot_prefixes))
         for projector in self.projectors:
-            specs = self._shard_specs(projector, snapshot, scopes)
+            specs = specs_by_projector[projector.projector_id]
             projected = self._project_checked(
                 projector, snapshot, scopes, fingerprints)
             components[projector.projector_id] = self._component_state(
@@ -529,8 +549,15 @@ class CompositeDomainProjector(object):
         current_scopes = self._component_scopes.get(
             snapshot.snapshot_id, {})
         scope_by_id = dict((value.scope_id, value) for value in scopes)
+        specs_by_projector = dict(
+            (projector.projector_id,
+             self._shard_specs(projector, snapshot, scopes))
+            for projector in self.projectors)
         fingerprint_index = self._fingerprint_index(
-            fingerprints, self._incremental_roots, self._incremental_kinds)
+            fingerprints, self._incremental_roots, self._incremental_kinds,
+            tuple(
+                prefix for specs in specs_by_projector.values()
+                for spec in specs for prefix in spec.snapshot_prefixes))
         records = []
         components = {}
         reused = []
@@ -545,7 +572,7 @@ class CompositeDomainProjector(object):
             projector_id = projector.projector_id
             cached = prior.get(projector_id)
             current_scope_ids = current_scopes.get(projector_id, ())
-            specs = self._shard_specs(projector, snapshot, scopes)
+            specs = specs_by_projector[projector_id]
             if specs:
                 shard_owners = self._shard_owners(specs)
                 shard_fingerprints = dict(

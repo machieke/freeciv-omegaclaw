@@ -43,7 +43,7 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     ImpactTurnBudget,
                                     ControlEventEmitter)
 from freeciv_agent.rulesets.compiler import compile_ruleset
-from freeciv_agent.state import ProxyStateDTO, StateSummaryService
+from freeciv_agent.state import ProxyStateDTO, SnapshotStore, StateSummaryService
 from freeciv_agent.state.atomspace import build_runtime as build_fdas_runtime
 from .domain_observability import DomainObservabilityEmitter
 
@@ -2001,7 +2001,22 @@ async def _play(run_dir, manifest, context):
             control_event_emitter.fdas_operation_records(
                 manifest["game_id"])),
     )
-    store = fdas_runtime.snapshot_store
+    fdas_store = fdas_runtime.snapshot_store
+    fdas_turn_sampled = bool(
+        fdas_runtime.enabled
+        and fdas_runtime.config.shadow_refresh_policy
+        == "turn-boundary-before-readout")
+    if fdas_turn_sampled and fdas_runtime.config.authority_enabled:
+        raise RuntimeError(
+            "turn-sampled FDAS cannot be used with action authority")
+    # Shadow sampling is an observability concern. Keep exact execution-state
+    # refreshes current after every action without forcing a rich projection
+    # that no decision will read. The FDAS store remains internally coherent
+    # at its most recent sampled snapshot and is advanced before readout.
+    store = (
+        SnapshotStore(atomspace_mode="legacy")
+        if fdas_turn_sampled else fdas_store)
+    fdas_shadow_evaluated_turns = set()
     memory = None
     induction_prediction = None
     induction_estimate = None
@@ -2197,8 +2212,10 @@ async def _play(run_dir, manifest, context):
             include_movement_routes=movement_routes_enabled,
             include_combat_probabilities=(
                 combat_probabilities_enabled))
-        prior_fdas_revision = store.current_dependent_revision(
+        prior_fdas_revision = fdas_store.current_dependent_revision(
             manifest["game_id"], player_id)
+        if store is not fdas_store:
+            store.replace(snapshot)
         fdas_update = fdas_runtime.replace(snapshot)
         state_event = writer.emit("state_snapshot", snapshot.turn, snapshot.event_payload(),
                                   caused_by=[parent])
@@ -2408,9 +2425,13 @@ async def _play(run_dir, manifest, context):
                     minimum_seq = next_snapshot.identity.source_seq + 1
                     await asyncio.sleep(0.05)
                     continue
-                prior_fdas_revision = store.current_dependent_revision(
+                prior_fdas_revision = fdas_store.current_dependent_revision(
                     manifest["game_id"], player_id)
-                fdas_update = fdas_runtime.replace(next_snapshot)
+                if store is not fdas_store:
+                    store.replace(next_snapshot)
+                fdas_update = (
+                    None if fdas_turn_sampled
+                    else fdas_runtime.replace(next_snapshot))
                 observer_started = time.perf_counter()
                 observe_impact_snapshot(next_snapshot)
                 action_refresh_observer_latency_ms += (
@@ -2419,15 +2440,18 @@ async def _play(run_dir, manifest, context):
                 event = writer.emit(
                     "state_snapshot", next_snapshot.turn, next_snapshot.event_payload(),
                     caused_by=[cause])
-                fdas_events = fdas_runtime.emit_current(
-                    writer, next_snapshot, caused_by=(event["event_id"],),
-                    prior_revision=prior_fdas_revision)
+                fdas_events = (
+                    () if fdas_update is None else
+                    fdas_runtime.emit_current(
+                        writer, next_snapshot,
+                        caused_by=(event["event_id"],),
+                        prior_revision=prior_fdas_revision))
                 domain_observability.emit_snapshot(
                     next_snapshot, event["event_id"], raw=next_raw)
                 fdas_parent = (
                     fdas_events[-1]["event_id"]
                     if fdas_events else event["event_id"])
-                if fdas_runtime.enabled:
+                if fdas_runtime.enabled and fdas_update is not None:
                     fdas_parent = _metric(
                         writer, next_snapshot.turn, fdas_parent,
                         "fdas_projection_latency_ms",
@@ -2526,8 +2550,10 @@ async def _play(run_dir, manifest, context):
                     include_movement_routes=movement_routes_enabled,
                     include_combat_probabilities=(
                         combat_probabilities_enabled))
-                prior_fdas_revision = store.current_dependent_revision(
+                prior_fdas_revision = fdas_store.current_dependent_revision(
                     manifest["game_id"], player_id)
+                if store is not fdas_store:
+                    store.replace(snapshot)
                 fdas_update = fdas_runtime.replace(snapshot)
                 state_event = writer.emit(
                     "state_snapshot", snapshot.turn, snapshot.event_payload(),
@@ -2927,9 +2953,40 @@ async def _play(run_dir, manifest, context):
                     impact_planning_latency_ms += (
                         time.perf_counter() - impact_planning_started) * 1000.0
                     impact_planning_calls += 1
-                    fdas_shadow = fdas_runtime.evaluate_shadow(
-                        snapshot,
-                        impact_planner.last_candidate_catalog)
+                    evaluate_fdas_shadow = bool(
+                        not fdas_turn_sampled
+                        or snapshot.turn
+                        not in fdas_shadow_evaluated_turns)
+                    if evaluate_fdas_shadow and fdas_turn_sampled:
+                        current_fdas_revision = (
+                            fdas_store.current_dependent_revision(
+                                manifest["game_id"], player_id))
+                        if (current_fdas_revision is None
+                                or current_fdas_revision.snapshot_id
+                                != snapshot.snapshot_id):
+                            prior_fdas_revision = current_fdas_revision
+                            fdas_update = fdas_runtime.replace(snapshot)
+                            fdas_events = fdas_runtime.emit_current(
+                                writer, snapshot, caused_by=(parent,),
+                                prior_revision=prior_fdas_revision)
+                            if fdas_events:
+                                parent = fdas_events[-1]["event_id"]
+                            parent = _metric(
+                                writer, snapshot.turn, parent,
+                                "fdas_projection_latency_ms",
+                                fdas_update.latency_ms, manifest,
+                                atoms=fdas_update.atom_count,
+                                cold_equivalent=bool(
+                                    fdas_update.cold_verification is not None
+                                    and fdas_update.cold_verification.equivalent),
+                                cold_verified=(
+                                    fdas_update.cold_verification is not None),
+                                scopes=fdas_update.scope_count)
+                    fdas_shadow = (
+                        fdas_runtime.evaluate_shadow(
+                            snapshot,
+                            impact_planner.last_candidate_catalog)
+                        if evaluate_fdas_shadow else None)
                     if fdas_shadow is not None:
                         fdas_shadow_events = fdas_runtime.emit_shadow(
                             writer, snapshot, fdas_shadow,
@@ -2946,6 +3003,8 @@ async def _play(run_dir, manifest, context):
                                 fdas_shadow.candidate_instantiation
                                 .omitted_unprotected_count),
                             status=fdas_shadow.pressure.status)
+                        if fdas_turn_sampled:
+                            fdas_shadow_evaluated_turns.add(snapshot.turn)
                     # Identity-resource scheduling is observational in GDO-3.
                     # Dispatch it only after the complete live planning
                     # boundary has stopped its latency clock.

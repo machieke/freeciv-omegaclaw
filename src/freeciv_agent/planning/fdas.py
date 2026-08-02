@@ -123,6 +123,7 @@ class ShadowCandidateComparison:
     legacy_candidate_count: int
     fdas_candidate_count: int
     overlapping_action_keys: tuple
+    explained_legacy: tuple
     missing_legacy: tuple
     extra_fdas: tuple
     legal_binding_failures: tuple
@@ -138,6 +139,7 @@ class ShadowCandidateComparison:
             "fdas_candidate_count": self.fdas_candidate_count,
             "legacy_candidate_count": self.legacy_candidate_count,
             "legal_binding_failures": list(self.legal_binding_failures),
+            "explained_legacy": list(self.explained_legacy),
             "missing_legacy": list(self.missing_legacy),
             "overlapping_action_keys": list(self.overlapping_action_keys),
             "safety_downgrades": list(self.safety_downgrades),
@@ -145,7 +147,15 @@ class ShadowCandidateComparison:
         }
 
 
-def compare_shadow_candidates(snapshot, legacy_candidates, fdas_candidates):
+def _goal_target_city(goal):
+    for argument in goal.target_key.arguments:
+        if isinstance(argument, EntityRef) and argument.kind == "city":
+            return argument.entity_id
+    return None
+
+
+def compare_shadow_candidates(
+        snapshot, legacy_candidates, fdas_candidates, goal_contexts=()):
     """Compare only the Phase-4 city/economy action surface."""
     action_types = frozenset((
         "city_governor", "city_production", "player_rates", "tech_research"))
@@ -155,13 +165,37 @@ def compare_shadow_candidates(snapshot, legacy_candidates, fdas_candidates):
         if value.action.get("action_type") in action_types)
     fdas = dict((value.action_key, value) for value in fdas_candidates)
     overlap = tuple(sorted(set(legacy).intersection(fdas)))
-    missing = tuple(
-        {
+    active_routes = frozenset(
+        (goal.deficit_predicate, _goal_target_city(goal))
+        for goal in goal_contexts)
+    explained = []
+    missing = []
+    for key in sorted(set(legacy).difference(fdas)):
+        candidate = legacy[key]
+        routes = _LEGACY_CATEGORY_GOAL_ROUTES.get(candidate.category, ())
+        city_id = candidate.action.get("city_id")
+        target_city = None if city_id is None else str(city_id)
+        route_active = any(
+            (predicate, target_city) in active_routes
+            or (predicate, None) in active_routes
+            for predicate in routes)
+        value = {
             "action_key": key,
-            "category": legacy[key].category,
-            "reason": "no-active-fdas-deficit-route",
+            "category": candidate.category,
+            "reason": (
+                "active-fdas-route-did-not-instantiate"
+                if route_active else
+                "no-active-fdas-deficit-route"
+                if routes else
+                "legacy-category-outside-current-fdas-ontology"),
+            "route_predicates": list(routes),
         }
-        for key in sorted(set(legacy).difference(fdas)))
+        if (key not in snapshot.legal_action_json or route_active):
+            missing.append(value)
+        else:
+            explained.append(value)
+    explained = tuple(explained)
+    missing = tuple(missing)
     extra = tuple(
         {
             "action_key": key,
@@ -182,6 +216,7 @@ def compare_shadow_candidates(snapshot, legacy_candidates, fdas_candidates):
         "fdas_candidate_count": len(fdas),
         "legacy_candidate_count": len(legacy),
         "legal_binding_failures": list(legal_failures),
+        "explained_legacy": list(explained),
         "missing_legacy": list(missing),
         "overlapping_action_keys": list(overlap),
         "safety_downgrades": [],
@@ -192,6 +227,7 @@ def compare_shadow_candidates(snapshot, legacy_candidates, fdas_candidates):
         len(legacy),
         len(fdas),
         overlap,
+        explained,
         missing,
         extra,
         legal_failures,

@@ -173,6 +173,9 @@ def _shadow_diagnostics(events):
         "detail_omission_count": sum(
             int(value.get("omitted_detail_event_count", 0))
             for value in decisions),
+        "explained_legacy_count": sum(
+            int(value.get("explained_legacy_count", 0))
+            for value in comparisons),
         "extra_fdas_count": sum(
             int(value.get("extra_fdas_count", 0)) for value in comparisons),
         "legal_binding_failure_count": sum(
@@ -364,6 +367,8 @@ def audit_fdas_shadow_cohort(control_root, shadow_root, minimum_pairs=3):
         totals["cold_verification_count"] += shadow_evidence[
             "cold_verification_count"]
         totals["decision_count"] += diagnostics["decision_count"]
+        totals["explained_legacy_count"] += diagnostics[
+            "explained_legacy_count"]
         totals["extra_fdas_count"] += diagnostics["extra_fdas_count"]
         totals["revision_count"] += volume["revision_count"]
 

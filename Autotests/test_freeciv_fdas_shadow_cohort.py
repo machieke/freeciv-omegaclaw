@@ -107,6 +107,7 @@ def _write_run(root, seed, enabled, action=None, dirty=False):
             _fdas_payload("atomspace_shadow_decision", {
                 "authority_eligible": False, "comparison": {
                     "authority_violations": [], "comparison_hash": "comparison",
+                    "explained_legacy_count": 2,
                     "extra_fdas_count": 0, "fdas_candidate_count": 1,
                     "legal_binding_failures": [], "legacy_candidate_count": 1,
                     "missing_legacy_count": 0, "overlap_count": 1,
@@ -158,6 +159,7 @@ def test_audit_accepts_exact_read_only_shadow_pairs(tmp_path):
     assert report["acceptance"]["accepted"]
     assert report["aggregate"]["totals"]["decision_count"] == 3
     assert report["aggregate"]["totals"]["cold_verification_count"] == 3
+    assert report["aggregate"]["totals"]["explained_legacy_count"] == 6
     assert all(pair["action_trace_match"] for pair in report["pairs"])
 
 

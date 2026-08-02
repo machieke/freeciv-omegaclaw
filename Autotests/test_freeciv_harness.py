@@ -92,6 +92,8 @@ def test_config_accepts_manifest_bound_fdas_shadow_profile_override(
     assert config["dependent_atomspace"]["config"]["enabled"] is True
     assert config["dependent_atomspace"]["config"][
         "cold_verify_sample_rate"] == 0.05
+    assert config["dependent_atomspace"]["config"][
+        "shadow_refresh_policy"] == "turn-boundary-before-readout"
     assert config["dependent_atomspace"]["config_source"] == (
         "profile/dependent_atomspace_shadow_sampled.yaml")
     assert config["dependent_atomspace"]["manifest"][

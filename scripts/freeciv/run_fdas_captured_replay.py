@@ -351,6 +351,9 @@ def main(argv=None):
                 for row in samples),
             "extra_fdas_count": sum(
                 len(row["extra_fdas"]) for row in comparisons),
+            "explained_legacy_count": sum(
+                len(row.get("explained_legacy", ()))
+                for row in comparisons),
             "goal_count": sum(
                 row["shadow_evaluation"]["goal_count"]
                 for row in samples),

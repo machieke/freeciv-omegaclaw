@@ -400,9 +400,23 @@ def test_local_goals_and_shadow_operations_are_legal_bound_without_authority(ir)
     assert comparison.overlapping_action_keys
     assert len(comparison.missing_legacy) == 1
     assert comparison.missing_legacy[0]["reason"] == (
-        "no-active-fdas-deficit-route")
+        "legacy-category-outside-current-fdas-ontology")
+    assert comparison.explained_legacy == ()
     assert comparison.extra_fdas
     assert comparison.legal_binding_failures == ()
     assert comparison.authority_violations == ()
     assert comparison.safety_downgrades == ()
     assert comparison.comparison_hash
+
+    inactive_legacy = ImpactCandidate(
+        candidates[0].action,
+        "production_food_stabilization",
+        1.0,
+        "proactive legacy route without an active local FDAS deficit",
+    )
+    inactive_comparison = compare_shadow_candidates(
+        snapshot, (inactive_legacy,), (), ())
+    assert inactive_comparison.missing_legacy == ()
+    assert len(inactive_comparison.explained_legacy) == 1
+    assert inactive_comparison.explained_legacy[0]["reason"] == (
+        "no-active-fdas-deficit-route")

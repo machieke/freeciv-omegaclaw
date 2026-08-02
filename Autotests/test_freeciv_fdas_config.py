@@ -353,6 +353,19 @@ def test_preacceptance_profile_cannot_disable_cold_verification():
         DependentAtomSpaceConfig.from_dict(value, manifest)
 
 
+def test_turn_sampled_shadow_cannot_be_combined_with_authority():
+    value, manifest = _values()
+    value = copy.deepcopy(value)
+    value.update({
+        "authority_enabled": True,
+        "enabled": True,
+        "shadow_refresh_policy": "turn-boundary-before-readout",
+    })
+
+    with pytest.raises(ValueError, match="every-snapshot materialization"):
+        DependentAtomSpaceConfig.from_dict(value, manifest)
+
+
 def test_authority_requires_live_domain_projection_and_explanations():
     value, manifest = _values()
     value = copy.deepcopy(value)

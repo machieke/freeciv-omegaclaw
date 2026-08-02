@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+from dataclasses import replace
 
 import pytest
 
@@ -128,3 +129,38 @@ def test_fdas_event_vocabulary_is_complete_and_unknown_type_fails():
     with pytest.raises(ValueError, match="unknown FDAS"):
         emitter.emit_component(
             object(), "invented", 4, _revision(), {})
+
+
+def test_revision_events_do_not_report_validity_refresh_as_rederivation(
+        tmp_path):
+    prior = _revision()
+    validity = ValidityInterval("event-snapshot-next", 4, 4, 2)
+    scope = replace(prior.scopes[0], validity=validity)
+    record = AtomRecord.create(
+        prior.records[0].key,
+        prior.records[0].authority,
+        prior.records[0].truth,
+        validity,
+        prior.records[0].supports,
+        prior.records[0].provenance_ids,
+        prior.records[0].lifecycle,
+        prior.records[0].tags,
+    )
+    transaction = AtomSpaceTransaction(
+        "event-snapshot-next", legacy_predicate_registry(), (scope,))
+    transaction.apply(record)
+    revision_id = transaction.commit()
+    current = DependentAtomSpaceRevision(
+        revision_id, "event-snapshot-next", transaction.records,
+        transaction.scopes, revision_id.split("fdas-revision-", 1)[1],
+        transaction.dependency_index)
+    path = os.path.join(str(tmp_path), "events.jsonl")
+    writer = EventWriter(path, "fdas-refresh", durable=False)
+
+    AtomSpaceEventEmitter(support_level="none").emit_revision(
+        writer, 4, current, prior_revision=prior)
+
+    with open(path, encoding="utf-8") as stream:
+        kinds = tuple(json.loads(line)["type"] for line in stream)
+    assert "atom_rederived" not in kinds
+    assert "atom_invalidated" not in kinds

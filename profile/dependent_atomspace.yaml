@@ -2,6 +2,7 @@ dependent_atomspace:
   enabled: false
   shadow_enabled: true
   authority_enabled: false
+  shadow_refresh_policy: "every-snapshot"
   schema_version: "1.1"
   store_backend: "memory"
   cold_verify_sample_rate: 0.05

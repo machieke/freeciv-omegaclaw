@@ -178,9 +178,18 @@ class AtomSpaceEventEmitter(object):
                 "atom_id": atom_id,
                 "reason": "absent-from-current-committed-revision",
             })
+        def derivation_semantic(record):
+            # A current-revision validity refresh is not a derivation fire.
+            # Support, truth, lifecycle, provenance, or namespace changes are.
+            return (
+                record.key, record.authority, record.truth, record.supports,
+                record.provenance_ids, record.lifecycle, record.tags)
+
         for atom_id in sorted(records):
             prior = prior_records.get(atom_id)
-            if prior is None or prior != records[atom_id]:
+            if (prior is None
+                    or derivation_semantic(prior)
+                    != derivation_semantic(records[atom_id])):
                 detail("atom_rederived", {
                     "atom_id": atom_id,
                     "predicate": records[atom_id].key.predicate,
@@ -321,6 +330,8 @@ class AtomSpaceEventEmitter(object):
         comparison_details = None if comparison is None else {
             "authority_violations": list(comparison.authority_violations),
             "comparison_hash": comparison.comparison_hash,
+            "explained_legacy_count": len(
+                comparison.explained_legacy),
             "extra_fdas_count": len(comparison.extra_fdas),
             "fdas_candidate_count": comparison.fdas_candidate_count,
             "legal_binding_failures": list(
