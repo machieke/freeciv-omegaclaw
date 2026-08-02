@@ -181,6 +181,59 @@ def _fdas_defense_episode_prediction(
     )
 
 
+def _fdas_transport_event(spec, step, context, update, action=None):
+    """Build one schema-valid, non-authorizing transport lifecycle event."""
+    event_type, event_state = {
+        "abandoned": ("operation_abandoned", "abandoned"),
+        "blocked": ("operation_blocked", "blocked"),
+        "completed": ("operation_completed", "completed"),
+        "expired": ("operation_expired", "expired"),
+        "failed": ("operation_failed", "failed"),
+        "repaired": ("operation_repaired", "repaired"),
+        "reservation_reconstructed": (
+            "operation_reserved", "reserved"),
+        "reserved": ("operation_reserved", "reserved"),
+        "step_committed": (
+            "operation_step_committed", "step_committed"),
+        "step_completed": (
+            "operation_step_revalidated", "step_revalidated"),
+        "step_reestimated": (
+            "operation_step_selected", "step_selected"),
+    }[update.disposition]
+    next_action = action if action is not None else update.next_action
+    return event_type, {
+        "actor_id": next((
+            value.actor_id for value in spec.participants
+            if value.role == step.actor_role), None),
+        "assignment_digest": None,
+        "bid": 0.0,
+        "claims": ([] if context is None else [
+            value.to_dict() for value in context.resource_claims]),
+        "deadline_turn": spec.expiry_turn,
+        "event_schema_version": "1.0",
+        "expected_prevented_loss": 0.0,
+        "mechanism": "fdas-founder-transport-shadow/1.0",
+        "next_action": next_action,
+        "operation_digest": spec.spec_digest,
+        "operation_id": spec.operation_id,
+        "operation_type": spec.operation_type,
+        "opportunity_cost": 0.0,
+        "policy_authority": False,
+        "provenance": list(spec.provenance),
+        "reason_code": update.reason,
+        "requirement_id": step.requirement_set_id,
+        "requirement_set": (
+            None if context is None
+            else context.requirement_set.to_dict()),
+        "selected": False,
+        "shadow_only": True,
+        "snapshot_id": update.snapshot_id,
+        "state": event_state,
+        "step_index": update.step_index,
+        "target_id": spec.target_ref,
+    }
+
+
 def _emit_belief_configuration(writer, parent, manifest):
     """Put every confidence-affecting release parameter in the event stream."""
     beliefs = manifest["beliefs"]
@@ -2435,57 +2488,16 @@ async def _play(run_dir, manifest, context):
         """Emit one non-authorizing founder/ferry lifecycle observation."""
         if fdas_transport_lifecycle is None:
             return parent
-        event_type, event_state = {
-            "abandoned": ("operation_abandoned", "abandoned"),
-            "blocked": ("operation_blocked", "blocked"),
-            "completed": ("operation_completed", "completed"),
-            "expired": ("operation_expired", "expired"),
-            "failed": ("operation_failed", "failed"),
-            "repaired": ("operation_repaired", "reserved"),
-            "reservation_reconstructed": (
-                "operation_reserved", "reserved"),
-            "reserved": ("operation_reserved", "reserved"),
-            "step_committed": ("operation_step_committed", "active"),
-            "step_completed": ("operation_step_revalidated", "satisfied"),
-            "step_reestimated": ("operation_step_selected", "selected"),
-        }[update.disposition]
         record = fdas_transport_lifecycle.store.get(update.operation_id)
         spec = record.spec
         step_index = min(update.step_index, len(spec.steps) - 1)
         step = spec.steps[step_index]
         context = fdas_transport_adapter.requirement_context(
             update.operation_id)
-        next_action = action if action is not None else update.next_action
-        event = writer.emit(event_type, current.turn, {
-            "actor_id": next((
-                value.actor_id for value in spec.participants
-                if value.role == step.actor_role), None),
-            "assignment_digest": None,
-            "bid": 0.0,
-            "claims": ([] if context is None else [
-                value.to_dict() for value in context.resource_claims]),
-            "deadline_turn": spec.expiry_turn,
-            "event_schema_version": "1.0",
-            "expected_prevented_loss": 0.0,
-            "next_action": next_action,
-            "operation_digest": spec.spec_digest,
-            "operation_id": spec.operation_id,
-            "operation_type": spec.operation_type,
-            "opportunity_cost": 0.0,
-            "policy_authority": False,
-            "provenance": list(spec.provenance),
-            "reason_code": update.reason,
-            "requirement_id": step.requirement_set_id,
-            "requirement_set": (
-                None if context is None
-                else context.requirement_set.to_dict()),
-            "selected": False,
-            "shadow_only": True,
-            "snapshot_id": update.snapshot_id,
-            "state": event_state,
-            "target_id": spec.target_ref,
-            "transport_phase": update.phase,
-        }, caused_by=[parent])
+        event_type, payload = _fdas_transport_event(
+            spec, step, context, update, action=action)
+        event = writer.emit(
+            event_type, current.turn, payload, caused_by=[parent])
         return event["event_id"]
 
     def emit_pending_fdas_transport_transitions(current, parent):

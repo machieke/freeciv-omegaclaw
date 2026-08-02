@@ -40,6 +40,7 @@ from freeciv.harness.engine_live import (  # noqa: E402
     _impact_refresh_timeout,
     _decision_state_fingerprint, _decision_state_ready, _global_state_ready,
     _global_state, _parse_scorelog_scores, _player_eliminated,
+    _fdas_transport_event,
     _release_configuration_active, _state,
     _retain_terminal_predictions, _selection_target_rules, _target_rules,
     _validate_compact_goal_proposal,
@@ -61,6 +62,40 @@ def test_terminal_calibration_retains_only_latest_prediction_per_atom():
     _retain_terminal_predictions(predictions, (later,))
 
     assert predictions == {"belief-a": later, "belief-b": other}
+
+
+def test_fdas_transport_lifecycle_events_are_closed_schema_valid(tmp_path):
+    spec = SimpleNamespace(
+        expiry_turn=20,
+        operation_id="transport-operation-1",
+        operation_type="founder_transport_settlement",
+        participants=(SimpleNamespace(
+            actor_id="unit:102", role="founder"),),
+        provenance=("diagnostic-configured-shadow-only",),
+        spec_digest="a" * 64,
+        target_ref="tile:488")
+    step = SimpleNamespace(
+        actor_role="founder", requirement_set_id="transport-requirement-1")
+    writer = EventWriter(
+        str(tmp_path / "events.jsonl"), "game-1", durable=False)
+    dispositions = (
+        "abandoned", "blocked", "completed", "expired", "failed",
+        "repaired", "reservation_reconstructed", "reserved",
+        "step_committed", "step_completed", "step_reestimated")
+    for index, disposition in enumerate(dispositions):
+        update = SimpleNamespace(
+            disposition=disposition,
+            next_action=None,
+            operation_id=spec.operation_id,
+            reason="diagnostic-transition",
+            snapshot_id="snapshot-1",
+            step_index=0)
+        event_type, payload = _fdas_transport_event(
+            spec, step, None, update)
+        event = writer.emit(event_type, 0, payload)
+        assert event["payload"]["policy_authority"] is False
+        assert event["payload"]["shadow_only"] is True
+        assert event["seq"] == index
 
 
 def test_config_accepts_the_versioned_960_turn_horizon():
