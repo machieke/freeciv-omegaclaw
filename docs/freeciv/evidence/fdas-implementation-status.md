@@ -236,3 +236,12 @@ local redundancy, economy, production-class, and explicitly visible-threat
 context. Existing `2.0` profiles are unchanged, schema/profile mismatches fail
 closed, and induced readout remains disabled. All earlier inspected cohorts
 are excluded from confirmation; see `fdas-pr27-causal-induction-features.md`.
+
+PRs 28–29 complete that fresh discovery/confirmation cycle. Nineteen clean
+discovery labels produced 32 frozen quarantined proposals; a separate 14-label
+untouched confirmation cohort promoted 13 syntactic rules across four distinct
+activation signatures and demoted 19. Exact unit type is absent, while compact
+city size and unit-production context transferred. Promotions remain
+artifact-bound and non-authorizing because induced readout is disabled. See
+`fdas-pr28-causal-induction-discovery.md` and
+`fdas-pr29-causal-induction-holdout.md`.
