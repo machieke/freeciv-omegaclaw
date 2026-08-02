@@ -141,6 +141,12 @@ from .fdas_episode_induction import (
     FdasEpisodeInductionAdapter,
     FdasEpisodeInductionShadow,
 )
+from .fdas_observation import (
+    FdasObservationActionBinding,
+    FdasObservationAuthoritativeReturn,
+    FdasObservationCommitValidation,
+    FdasObservationExecutionBridge,
+)
 from .fdas_replacement import FdasCoordinatedReplacementAdapter
 from .fdas_transport import (
     FdasFounderTransportProjectionAdapter,
@@ -237,6 +243,10 @@ __all__ = [
     "EpisodeInductionResult", "EpisodeInductionShadowResult",
     "EpisodeInductionSpec", "FdasEpisodeInductionAdapter",
     "FdasEpisodeInductionShadow",
+    "FdasObservationActionBinding",
+    "FdasObservationAuthoritativeReturn",
+    "FdasObservationCommitValidation",
+    "FdasObservationExecutionBridge",
     "FdasCoordinatedReplacementAdapter",
     "FdasFounderTransportProjectionAdapter",
     "declared_transport_intents",
