@@ -129,7 +129,7 @@ def test_checked_expansion_shadow_profile_is_live_and_non_authoritative():
     assert config.enabled is True
     assert config.shadow_enabled is True
     assert config.authority_enabled is False
-    assert config.shadow_refresh_policy == "every-snapshot"
+    assert config.shadow_refresh_policy == "turn-boundary-before-readout"
     assert config.section("projection")["legacy_compatibility"] is False
     for name in (
             "city", "operations", "population_recovery", "region",

@@ -2034,6 +2034,7 @@ async def _play(run_dir, manifest, context):
         run_dir, "fdas-expansion-operations.json")
     fdas_expansion_store = None
     fdas_expansion_adapter = None
+    pending_fdas_expansion_transitions = []
     if fdas_expansion_shadow:
         fdas_expansion_identity = structural_hash([
             manifest["manifest_identity"], manifest["attempt_id"],
@@ -2124,6 +2125,10 @@ async def _play(run_dir, manifest, context):
                     for value in updates)
                 decision_stats["fdas_expansion_expirations"] += sum(
                     value.disposition == "expired" for value in updates)
+                pending_fdas_expansion_transitions.extend(
+                    value for value in updates
+                    if value.disposition in (
+                        "completed", "expired", "failed"))
             return bool(updates)
 
         fdas_runtime.configure_post_projection_reconciler(
@@ -2221,6 +2226,69 @@ async def _play(run_dir, manifest, context):
     unreachable_founder_moves = set()
     founder_cycle_moves = set()
     founder_attrition_moves = set()
+
+    def emit_fdas_expansion_transition(current, update, parent, action=None):
+        """Emit one schema-valid, non-authorizing durable lifecycle edge."""
+        if fdas_expansion_store is None:
+            return parent
+        event_type, event_state = {
+            "committed-awaiting-effect": (
+                "operation_activated", "activated"),
+            "completed": ("operation_completed", "completed"),
+            "expired": ("operation_expired", "expired"),
+            "failed": ("operation_failed", "failed"),
+        }[update.disposition]
+        record = fdas_expansion_store.get(update.operation_id)
+        spec = record.spec
+        step = spec.steps[record.progress.current_step_index]
+        context = fdas_expansion_adapter.requirement_context(
+            update.operation_id)
+        binding = update.binding
+        next_action = action
+        if next_action is None and binding is not None:
+            next_action = binding.action
+        event = writer.emit(event_type, current.turn, {
+            "actor_id": next((
+                value.actor_id for value in spec.participants
+                if value.role == step.actor_role), None),
+            "assignment_digest": None,
+            "bid": 0.0,
+            "claims": ([] if context is None else [
+                value.to_dict() for value in context.resource_claims]),
+            "deadline_turn": spec.expiry_turn,
+            "event_schema_version": "1.0",
+            "expected_prevented_loss": 0.0,
+            "next_action": next_action,
+            "operation_digest": spec.spec_digest,
+            "operation_id": spec.operation_id,
+            "operation_type": spec.operation_type,
+            "opportunity_cost": 0.0,
+            "policy_authority": False,
+            "provenance": list(spec.provenance),
+            "reason_code": update.reason,
+            "requirement_id": step.requirement_set_id,
+            "requirement_set": (
+                None if context is None
+                else context.requirement_set.to_dict()),
+            "selected": False,
+            "shadow_only": True,
+            "snapshot_id": update.snapshot_id,
+            "state": event_state,
+            "target_id": spec.target_ref,
+        }, caused_by=[parent])
+        return event["event_id"]
+
+    def emit_pending_fdas_expansion_transitions(current, parent):
+        if not pending_fdas_expansion_transitions:
+            return parent
+        updates = tuple(pending_fdas_expansion_transitions)
+        pending_fdas_expansion_transitions[:] = []
+        if any(value.snapshot_id != current.snapshot_id for value in updates):
+            raise RuntimeError(
+                "FDAS expansion transition escaped its source snapshot")
+        for update in updates:
+            parent = emit_fdas_expansion_transition(current, update, parent)
+        return parent
 
     def observe_impact_snapshot(current):
         if impact_planner is None:
@@ -2373,6 +2441,7 @@ async def _play(run_dir, manifest, context):
         parent = (
             fdas_events[-1]["event_id"]
             if fdas_events else state_event["event_id"])
+        parent = emit_pending_fdas_expansion_transitions(snapshot, parent)
         if fdas_runtime.enabled:
             parent = _metric(
                 writer, snapshot.turn, parent,
@@ -2576,6 +2645,9 @@ async def _play(run_dir, manifest, context):
             if not updates:
                 return cause
             decision_stats["fdas_expansion_action_matches"] += len(updates)
+            for lifecycle_update in updates:
+                cause = emit_fdas_expansion_transition(
+                    current, lifecycle_update, cause, action=action)
             fdas_expansion_store.save(fdas_expansion_path)
             prior_revision = fdas_store.current_dependent_revision(
                 manifest["game_id"], player_id)
@@ -2590,6 +2662,45 @@ async def _play(run_dir, manifest, context):
                 "fdas_expansion_projection_latency_ms", update.latency_ms,
                 manifest, atoms=update.atom_count,
                 matched_actions=len(updates), scopes=update.scope_count)
+
+        def prepare_fdas_expansion_action(current, action, cause):
+            """Refresh rich expansion proof only for a consequential action."""
+            if (fdas_expansion_adapter is None
+                    or action.get("action_type") not in (
+                        "unit_build_city", "unit_join_city")):
+                return cause
+            matching = tuple(
+                binding for binding in fdas_expansion_adapter.bindings()
+                if (binding.snapshot_id == current.snapshot_id
+                    and binding.action == action
+                    and binding.legal_bound))
+            if len(matching) > 1:
+                raise RuntimeError(
+                    "FDAS expansion action has ambiguous current bindings")
+            if matching:
+                return cause
+            current_revision = fdas_store.current_dependent_revision(
+                manifest["game_id"], player_id)
+            if (current_revision is not None
+                    and current_revision.snapshot_id == current.snapshot_id):
+                return cause
+            update = fdas_runtime.replace(current)
+            events = fdas_runtime.emit_current(
+                writer, current, caused_by=(cause,),
+                prior_revision=current_revision)
+            parent_id = events[-1]["event_id"] if events else cause
+            parent_id = emit_pending_fdas_expansion_transitions(
+                current, parent_id)
+            return _metric(
+                writer, current.turn, parent_id,
+                "fdas_projection_latency_ms", update.latency_ms,
+                manifest, atoms=update.atom_count,
+                cold_equivalent=bool(
+                    update.cold_verification is not None
+                    and update.cold_verification.equivalent),
+                cold_verified=update.cold_verification is not None,
+                expansion_action_refresh=True,
+                scopes=update.scope_count)
 
         def reconcile_fdas_decision_episodes(
                 current, cause, observation_window_closed=False):
@@ -2738,6 +2849,8 @@ async def _play(run_dir, manifest, context):
                 fdas_parent = (
                     fdas_events[-1]["event_id"]
                     if fdas_events else event["event_id"])
+                fdas_parent = emit_pending_fdas_expansion_transitions(
+                    next_snapshot, fdas_parent)
                 if fdas_runtime.enabled and fdas_update is not None:
                     fdas_parent = _metric(
                         writer, next_snapshot.turn, fdas_parent,
@@ -2856,6 +2969,8 @@ async def _play(run_dir, manifest, context):
                 fdas_parent = (
                     fdas_events[-1]["event_id"]
                     if fdas_events else state_event["event_id"])
+                fdas_parent = emit_pending_fdas_expansion_transitions(
+                    snapshot, fdas_parent)
                 if fdas_runtime.enabled:
                     fdas_parent = _metric(
                         writer, snapshot.turn, fdas_parent,
@@ -3271,6 +3386,8 @@ async def _play(run_dir, manifest, context):
                                 prior_revision=prior_fdas_revision)
                             if fdas_events:
                                 parent = fdas_events[-1]["event_id"]
+                            parent = emit_pending_fdas_expansion_transitions(
+                                snapshot, parent)
                             parent = _metric(
                                 writer, snapshot.turn, parent,
                                 "fdas_projection_latency_ms",
@@ -3373,6 +3490,8 @@ async def _play(run_dir, manifest, context):
                         break
                     impact_action = decision.candidate.action
                     action_snapshot = snapshot
+                    parent = prepare_fdas_expansion_action(
+                        action_snapshot, impact_action, parent)
                     if (
                             operation_authority
                             is not None
