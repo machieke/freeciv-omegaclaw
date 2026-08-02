@@ -422,6 +422,14 @@ paired_impact:
       horizon_turn: 30
       planned_pairs: 1
       seeds: [271828]
+    fdas_observation_pressure_shadow_diagnostic_v1:
+      purpose: diagnostic
+      claim_eligible: false
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 30
+      planned_pairs: 1
+      seeds: [314159]
     diagnostic_unitless_city_v1:
       purpose: development
       claim_eligible: false

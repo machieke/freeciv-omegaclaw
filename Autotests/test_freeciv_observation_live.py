@@ -12,6 +12,8 @@ if SRC not in sys.path:
 from freeciv_agent.beliefs import ModelProvenance  # noqa: E402
 from freeciv_agent.events.schema import structural_hash  # noqa: E402
 from freeciv_agent.pressure import (  # noqa: E402
+    AtomState,
+    BoundedDecision,
     CostVector,
     EvidenceLedger,
     EvidenceToken,
@@ -22,7 +24,9 @@ from freeciv_agent.pressure import (  # noqa: E402
     ObservationTest,
     PacketBudget,
     ResourceKind,
+    TruthState,
     ValueOfInformationPlanner,
+    bounded_decision_information_value,
     expected_information_value,
 )
 
@@ -224,3 +228,112 @@ def test_missing_cpu_budget_selects_no_observation():
     assert decision["selected_operation_ids"] == ()
     assert not any(value.selected for value in decision["selection_records"])
     assert decision["packet_schedule"].conserved
+
+
+def _presence_decision():
+    return BoundedDecision(
+        "opponent-presence-retention",
+        "present",
+        0.8,
+        "refresh-opponent-presence",
+        "retain-opponent-monitor")
+
+
+def _presence_hypotheses():
+    return (
+        Hypothesis("present", 0.925),
+        Hypothesis("epistemically-unknown", 0.075),
+    )
+
+
+def _presence_test(test_id, likelihood):
+    return ObservationTest(
+        test_id=test_id,
+        atom_id="belief-opponent-present",
+        outcomes=(
+            ObservationOutcome(
+                "supports-presence",
+                (("present", likelihood),
+                 ("epistemically-unknown", 1.0 - likelihood))),
+            ObservationOutcome(
+                "does-not-support-presence",
+                (("present", 1.0 - likelihood),
+                 ("epistemically-unknown", likelihood))),
+        ),
+        cost=CostVector(compute=0.01),
+        model_provenance=_provenance(),
+        # This declaration is intentionally ignored and recomputed from the
+        # bounded decision's counterfactual outcome readouts.
+        decision_sensitivity=1.0)
+
+
+def test_decision_sensitivity_is_derived_from_counterfactual_readout():
+    value = bounded_decision_information_value(
+        _presence_hypotheses(), _presence_test("refresh", 0.9),
+        _presence_decision())
+
+    analysis = value.bounded_decision_analysis
+    assert analysis.prior_action_id == "retain-opponent-monitor"
+    assert analysis.decision_sensitive
+    assert 0.0 < analysis.decision_change_probability < 1.0
+    assert value.test.decision_sensitivity == (
+        analysis.decision_change_probability)
+    assert any(row["changes_decision"] for row in analysis.outcome_rows)
+
+
+def test_test_that_cannot_cross_decision_boundary_is_omitted():
+    planner = ValueOfInformationPlanner(engine_live=True)
+    atom = AtomState(
+        "belief-opponent-present",
+        TruthState(1.0, 0.85, ("visible-player",), crisp=False))
+    result = planner.packet_decision_for_uncertainty(
+        atom, _presence_decision(), _presence_hypotheses(),
+        (_presence_test("too-weak", 0.55),), (
+            PacketBudget(ResourceKind.CPU, 1),
+            PacketBudget(ResourceKind.OBSERVATION, 1),
+        ))
+
+    assert result["operations"] == ()
+    assert result["selected_operation_ids"] == ()
+    assert result["omitted_tests"] == ({
+        "reason": "decision-insensitive-uncertainty",
+        "test_id": "too-weak",
+    },)
+    assert result["packet_schedule"].conserved
+
+
+def test_uncertain_belief_uses_epistemic_rail_and_atomic_packets():
+    planner = ValueOfInformationPlanner(engine_live=True)
+    atom = AtomState(
+        "belief-opponent-present",
+        TruthState(1.0, 0.85, ("visible-player",), crisp=False))
+    result = planner.packet_decision_for_uncertainty(
+        atom, _presence_decision(), _presence_hypotheses(),
+        (_presence_test("refresh", 0.9),), (
+            PacketBudget(ResourceKind.CPU, 1),
+            PacketBudget(ResourceKind.OBSERVATION, 1),
+        ))
+
+    assert result["selected_operation_ids"] == ("observe:refresh",)
+    assert result["packet_schedule"].conserved
+    demand = result["pressure"].demand(result["goal"].goal_id)
+    assert demand.achievement == 0.0
+    assert demand.epistemic > 0.0
+    selected = result["selection_records"][0]
+    assert selected.selected
+    assert selected.propensity is None
+
+
+def test_crisp_fact_cannot_generate_observation_pressure():
+    planner = ValueOfInformationPlanner(engine_live=True)
+    atom = AtomState(
+        "authoritative-opponent-present",
+        TruthState(1.0, 1.0, (), crisp=True))
+    try:
+        planner.decision_for_uncertainty(
+            atom, _presence_decision(), _presence_hypotheses(),
+            (_presence_test("refresh", 0.9),))
+    except ValueError as error:
+        assert "crisp facts" in str(error)
+    else:
+        raise AssertionError("crisp fact created observation pressure")

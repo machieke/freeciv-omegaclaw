@@ -1,9 +1,14 @@
 """Exact one-step value-of-information planning with simulator provenance."""
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
-from .engine import PressureEngine, PressureGraph
+from .engine import (
+    PressureEngine,
+    PressureEngineV2,
+    PressureGraph,
+    PressureV2Policy,
+)
 from .model import (
     AtomState,
     CostVector,
@@ -141,6 +146,73 @@ class ObservationTest:
 
 
 @dataclass(frozen=True)
+class BoundedDecision:
+    """One explicit binary readout whose result an observation may change."""
+
+    decision_id: str
+    positive_hypothesis_id: str
+    threshold: float
+    below_threshold_action_id: str
+    at_or_above_threshold_action_id: str
+
+    def __post_init__(self):
+        if not self.decision_id or not self.positive_hypothesis_id:
+            raise ValueError("bounded decision requires decision and hypothesis IDs")
+        _probability(self.threshold, "bounded decision threshold")
+        if (not self.below_threshold_action_id
+                or not self.at_or_above_threshold_action_id):
+            raise ValueError("bounded decision requires both action IDs")
+        if (self.below_threshold_action_id
+                == self.at_or_above_threshold_action_id):
+            raise ValueError("bounded decision actions must differ")
+
+    def action(self, positive_probability):
+        _probability(positive_probability, "bounded decision probability")
+        return (
+            self.at_or_above_threshold_action_id
+            if float(positive_probability) >= float(self.threshold)
+            else self.below_threshold_action_id)
+
+    def to_dict(self):
+        return {
+            "at_or_above_threshold_action_id":
+                self.at_or_above_threshold_action_id,
+            "below_threshold_action_id": self.below_threshold_action_id,
+            "decision_id": self.decision_id,
+            "positive_hypothesis_id": self.positive_hypothesis_id,
+            "threshold": float(self.threshold),
+        }
+
+
+@dataclass(frozen=True)
+class BoundedDecisionAnalysis:
+    """Counterfactual decision readout for every observation outcome."""
+
+    decision: BoundedDecision
+    prior_positive_probability: float
+    prior_action_id: str
+    outcome_rows: tuple
+    decision_change_probability: float
+
+    @property
+    def decision_sensitive(self):
+        return self.decision_change_probability > _PROBABILITY_TOLERANCE
+
+    def to_dict(self):
+        return {
+            "decision": self.decision.to_dict(),
+            "decision_change_probability": float(
+                self.decision_change_probability),
+            "decision_sensitive": bool(self.decision_sensitive),
+            "outcomes": [dict(row) for row in self.outcome_rows],
+            "prior_action_id": self.prior_action_id,
+            "prior_positive_probability": float(
+                self.prior_positive_probability),
+            "semantics": "bounded-decision-counterfactual/1.0",
+        }
+
+
+@dataclass(frozen=True)
 class InformationValue:
     test: ObservationTest
     prior_entropy: float
@@ -150,6 +222,7 @@ class InformationValue:
     raw_information_gain: object = None
     decision_relevance_factor: float = 1.0
     overlap_discount: float = 1.0
+    bounded_decision_analysis: object = None
 
     def to_dict(self):
         value = {
@@ -170,6 +243,9 @@ class InformationValue:
         if self.overlap_discount != 1.0:
             value["overlap_discount"] = float(
                 self.overlap_discount)
+        if self.bounded_decision_analysis is not None:
+            value["bounded_decision_analysis"] = (
+                self.bounded_decision_analysis.to_dict())
         return value
 
 
@@ -371,6 +447,56 @@ def expected_information_value(hypotheses, test):
     )
 
 
+def bounded_decision_information_value(hypotheses, test, decision):
+    """Bind VOI to observed counterfactual action changes, not a label."""
+    hypotheses = tuple(hypotheses)
+    if not isinstance(test, ObservationTest):
+        raise TypeError("bounded decision VOI requires ObservationTest")
+    if not isinstance(decision, BoundedDecision):
+        raise TypeError("bounded decision VOI requires BoundedDecision")
+    by_id = dict((row.hypothesis_id, row) for row in hypotheses)
+    if decision.positive_hypothesis_id not in by_id:
+        raise ValueError("bounded decision hypothesis is not in the prior")
+    # Validate the probability table before deriving any readout from it.
+    raw = expected_information_value(hypotheses, test)
+    prior_positive = float(
+        by_id[decision.positive_hypothesis_id].probability)
+    prior_action = decision.action(prior_positive)
+    outcome_probability_by_id = dict(raw.outcome_probabilities)
+    outcome_rows = []
+    change_probability = 0.0
+    for outcome in test.outcomes:
+        outcome_probability = float(
+            outcome_probability_by_id[outcome.outcome_id])
+        posterior_positive = (
+            prior_positive
+            * outcome.likelihood(decision.positive_hypothesis_id)
+            / outcome_probability
+            if outcome_probability > 0.0 else prior_positive)
+        action_id = decision.action(posterior_positive)
+        changes_decision = (
+            outcome_probability > 0.0 and action_id != prior_action)
+        if changes_decision:
+            change_probability += outcome_probability
+        outcome_rows.append({
+            "action_id": action_id,
+            "changes_decision": bool(changes_decision),
+            "outcome_id": outcome.outcome_id,
+            "outcome_probability": outcome_probability,
+            "posterior_positive_probability": posterior_positive,
+        })
+    analysis = BoundedDecisionAnalysis(
+        decision=decision,
+        prior_positive_probability=prior_positive,
+        prior_action_id=prior_action,
+        outcome_rows=tuple(outcome_rows),
+        decision_change_probability=min(1.0, change_probability))
+    bound_test = replace(
+        test, decision_sensitivity=analysis.decision_change_probability)
+    value = expected_information_value(hypotheses, bound_test)
+    return replace(value, bounded_decision_analysis=analysis)
+
+
 class ValueOfInformationPlanner(object):
     """Ranks bounded hypothesis tests and schedules them through typed pressure."""
 
@@ -528,18 +654,89 @@ class ValueOfInformationPlanner(object):
             "selection_records": selection_records,
         }
 
-    def packet_decision_for_conflict(
-            self, conflict, hypotheses, tests, packet_budgets,
+    def decision_for_uncertainty(
+            self, atom, decision, hypotheses, tests,
             utility=1.0, urgency=1.0):
-        """Atomically budget CPU plus observation/simulation packets."""
-        if not self.engine_live:
-            raise ValueError(
-                "packet observation decisions require engine_live")
+        """Schedule only tests proven able to change one bounded readout."""
+        if not isinstance(atom, AtomState):
+            raise TypeError("uncertainty decision requires AtomState")
+        if atom.truth.crisp:
+            raise ValueError("crisp facts cannot create observation pressure")
+        if not isinstance(decision, BoundedDecision):
+            raise TypeError("uncertainty decision requires BoundedDecision")
+        values = tuple(sorted(
+            (bounded_decision_information_value(
+                hypotheses, test, decision) for test in tests),
+            key=lambda row: (
+                -row.expected_information_gain, row.test.test_id)))
+        if any(row.test.atom_id != atom.atom_id for row in values):
+            raise ValueError("uncertainty tests must target the uncertain atom")
+        eligible_values = []
+        omitted_tests = []
+        for value in values:
+            eligible, reason = self.eligibility(value)
+            if eligible:
+                eligible_values.append(value)
+            else:
+                omitted_tests.append({
+                    "reason": reason,
+                    "test_id": value.test.test_id,
+                })
+        maximum_sensitivity = max(
+            (value.test.decision_sensitivity for value in values),
+            default=0.0)
+        graph = PressureGraph()
+        graph.add_atom(
+            atom, Resolvability(observe=1.0, infer=0.2, expand=0.2))
+        goal = GoalState(
+            "observe:{}".format(decision.decision_id),
+            atom.atom_id,
+            # No achievement deficit is invented: the only demand is the
+            # confidence gap on the existing uncertain belief.
+            target_strength=atom.truth.strength,
+            utility=utility,
+            urgency=urgency,
+            context=tuple(atom.context))
+        uncertainty_engine = PressureEngineV2(
+            self.config,
+            PressureV2Policy(decision_sensitivity=maximum_sensitivity))
+        pressure = uncertainty_engine.propagate(graph, (goal,))
+        operations = tuple(
+            self.operation(
+                value, goal.goal_id,
+                deterministic_reason="bounded-decision-counterfactual")
+            for value in eligible_values)
+        schedule = self.scheduler.decision_artifact(
+            operations, pressure)
+        selected_id = schedule["selected_operation_id"]
+        score_by_id = dict(
+            (row["operation"]["operation_id"], row["priority"])
+            for row in schedule["scores"])
+        selection_records = tuple(
+            ObservationSelectionRecord(
+                operation.operation_id,
+                goal.goal_id,
+                operation.operation_id == selected_id,
+                max(0.0, float(score_by_id[operation.operation_id])),
+                None,
+                "bounded-decision-counterfactual")
+            for operation in operations)
+        return {
+            "bounded_decision": decision,
+            "goal": goal,
+            "graph": graph,
+            "information_values": values,
+            "omitted_tests": tuple(omitted_tests),
+            "operations": operations,
+            "pressure": pressure,
+            "schedule": schedule,
+            "selection_records": selection_records,
+        }
+
+    def _packetize(self, decision, packet_budgets):
         packet_budgets = tuple(packet_budgets)
         if any(not isinstance(value, PacketBudget) for value in packet_budgets):
             raise TypeError("observation packet budgets require PacketBudget")
-        decision = self.decision_for_conflict(
-            conflict, hypotheses, tests, utility=utility, urgency=urgency)
         scores = self.scheduler.score_all(
             decision["operations"], decision["pressure"])
         packet_schedule = PacketScheduler().schedule(
@@ -564,3 +761,26 @@ class ValueOfInformationPlanner(object):
         result["selected_operation_ids"] = tuple(
             packet_schedule.committed_operation_ids)
         return result
+
+    def packet_decision_for_uncertainty(
+            self, atom, decision, hypotheses, tests, packet_budgets,
+            utility=1.0, urgency=1.0):
+        """Budget a decision-sensitive belief observation atomically."""
+        if not self.engine_live:
+            raise ValueError(
+                "packet observation decisions require engine_live")
+        planned = self.decision_for_uncertainty(
+            atom, decision, hypotheses, tests,
+            utility=utility, urgency=urgency)
+        return self._packetize(planned, packet_budgets)
+
+    def packet_decision_for_conflict(
+            self, conflict, hypotheses, tests, packet_budgets,
+            utility=1.0, urgency=1.0):
+        """Atomically budget CPU plus observation/simulation packets."""
+        if not self.engine_live:
+            raise ValueError(
+                "packet observation decisions require engine_live")
+        decision = self.decision_for_conflict(
+            conflict, hypotheses, tests, utility=utility, urgency=urgency)
+        return self._packetize(decision, packet_budgets)

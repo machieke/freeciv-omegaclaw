@@ -325,6 +325,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "fdas_transport_shadow_diagnostic_v1": 1,
             "fdas_transport_operation_shadow_diagnostic_v1": 1,
             "fdas_belief_shadow_diagnostic_v1": 1,
+            "fdas_observation_pressure_shadow_diagnostic_v1": 1,
         }
     seed_sets = [
         set(row["seeds"]) for row in paired["cohorts"].values()

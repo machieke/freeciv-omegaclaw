@@ -101,6 +101,8 @@ from .induction import (
     implied_similarity,
 )
 from .observation import (
+    BoundedDecision,
+    BoundedDecisionAnalysis,
     Hypothesis,
     InformationValue,
     DecisionRelevantUncertainty,
@@ -109,6 +111,7 @@ from .observation import (
     ObservationSelectionRecord,
     ObservationTest,
     ValueOfInformationPlanner,
+    bounded_decision_information_value,
     decision_relevant_uncertainty,
     expected_information_value,
 )
@@ -279,6 +282,8 @@ __all__ = [
     "ActivityBid",
     "AtomState",
     "BudgetAllocation",
+    "BoundedDecision",
+    "BoundedDecisionAnalysis",
     "BudgetArbiter",
     "BudgetArbiterConfig",
     "BudgetDecision",
@@ -477,6 +482,7 @@ __all__ = [
     "requirement_set_for_rule",
     "requirement_pressure",
     "weight_to_confidence",
+    "bounded_decision_information_value",
     "validate_packet_schedule",
     "validate_pressure_artifact",
     "active_pressure_goal_count",

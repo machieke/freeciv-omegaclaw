@@ -21,7 +21,8 @@ import urllib.request
 
 from freeciv import turncycle
 from freeciv_agent.beliefs import (BeliefKey, BeliefStore, Evidence,
-                                   OpponentMemory, UncertainInference)
+                                   ModelProvenance, OpponentMemory,
+                                   UncertainInference)
 from freeciv_agent.execution import ExecutionGate, ProposedAction
 from freeciv_agent.events.schema import structural_hash
 from freeciv_agent.events.writer import EventWriter
@@ -34,6 +35,16 @@ from freeciv_agent.pf_runtime import (
     validate_runtime_activation,
 )
 from freeciv_agent.pressure import (
+    AtomState,
+    BoundedDecision,
+    CostVector,
+    Hypothesis,
+    ObservationOutcome,
+    ObservationTest,
+    PacketBudget,
+    ResourceKind,
+    TruthState,
+    ValueOfInformationPlanner,
     pressure_dependency_view,
 )
 from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
@@ -269,6 +280,183 @@ def _emit_belief_configuration(writer, parent, manifest):
             declaration="release_configuration", predicate=predicate,
             formula=schedule["formula"])
     return parent
+
+
+def _fdas_observation_pressure_decision(belief, manifest):
+    """Plan one bounded, non-authorizing refresh of a real uncertain belief."""
+    if belief is None or belief.crisp:
+        raise ValueError(
+            "FDAS observation pressure requires an uncertain belief")
+    confidence = float(belief.confidence)
+    probability = min(
+        1.0 - 1e-9,
+        max(1e-9, 0.5 + confidence * (float(belief.strength) - 0.5)))
+    positive_id = "belief-supported"
+    unknown_id = "epistemically-unknown"
+    hypotheses = (
+        Hypothesis(positive_id, probability),
+        Hypothesis(unknown_id, 1.0 - probability),
+    )
+    decision = BoundedDecision(
+        "retain-monitor:{}".format(belief.atom_id),
+        positive_id,
+        0.8,
+        "refresh-belief-evidence",
+        "retain-belief-monitor")
+    likelihood = 0.9
+    model_material = {
+        "bounded_decision": decision.to_dict(),
+        "likelihood": likelihood,
+        "model": "fdas-visible-presence-refresh/1.0",
+        "ruleset": manifest["ruleset"],
+    }
+    model = ModelProvenance(
+        "simulator",
+        "fdas-visible-presence-refresh",
+        "1.0",
+        structural_hash(model_material),
+        False,
+        float(manifest["beliefs"]["simulation_confidence_cap"]),
+        (manifest["ruleset"], "opponent-presence", "one-step"))
+    test = ObservationTest(
+        test_id="refresh:{}".format(belief.atom_id),
+        atom_id=belief.atom_id,
+        outcomes=(
+            ObservationOutcome(
+                "supports-belief",
+                ((positive_id, likelihood),
+                 (unknown_id, 1.0 - likelihood))),
+            ObservationOutcome(
+                "does-not-support-belief",
+                ((positive_id, 1.0 - likelihood),
+                 (unknown_id, likelihood))),
+        ),
+        cost=CostVector(compute=0.01),
+        model_provenance=model,
+        # The planner replaces this declaration with the measured probability
+        # that an outcome crosses the bounded decision threshold.
+        decision_sensitivity=1.0,
+        evidence_overlap=0.0,
+        execution_kind="observation")
+    atom = AtomState(
+        belief.atom_id,
+        TruthState(
+            belief.strength,
+            belief.confidence,
+            tuple(belief.provenance_ids),
+            crisp=False),
+        expression=belief.atom())
+    return ValueOfInformationPlanner(engine_live=True).packet_decision_for_uncertainty(
+        atom,
+        decision,
+        hypotheses,
+        (test,),
+        (
+            PacketBudget(ResourceKind.CPU, 1),
+            PacketBudget(ResourceKind.OBSERVATION, 1),
+        ))
+
+
+def _emit_fdas_observation_pressure(
+        belief, snapshot, manifest, store, writer, parent):
+    """Emit a closed-schema shadow decision without executing or observing."""
+    evidence_before = len(store.evidence)
+    store_hash_before = store.artifact_hash
+    decision = _fdas_observation_pressure_decision(belief, manifest)
+    pressure = decision["pressure"]
+    pressure_payload = pressure.to_dict()
+    pressure_id = "pressure-" + pressure.artifact_hash[:24]
+    propagated = writer.emit("pressure_propagated", snapshot.turn, {
+        "config": {
+            **pressure_payload["config"],
+            "mechanism": "fdas-observation-pressure-shadow/1.0",
+            "policy_authority": False,
+            "teleology_semantics": pressure_payload[
+                "teleology_semantics"],
+        },
+        "dependency": {
+            "achievement": pressure_payload["achievement_dependency"],
+            "epistemic": pressure_payload["epistemic_dependency"],
+        },
+        "goals": pressure_payload["goals"],
+        "graph_hash": pressure.graph_hash,
+        "operational_pressure": pressure_payload["pressure"],
+        "pressure_id": pressure_id,
+        "result_hash": pressure.artifact_hash,
+        "traces": pressure_payload["traces"],
+    }, caused_by=[parent])
+    schedule = decision["schedule"]
+    scored = writer.emit("operation_scored", snapshot.turn, {
+        "allocations": schedule["allocations"],
+        "decision_id": "decision-" + schedule["structural_hash"][:24],
+        "pressure_id": pressure_id,
+        "scores": schedule["scores"],
+        "selected_operation_id": schedule["selected_operation_id"],
+        "solver_identity": schedule["solver_identity"],
+        "structural_hash": schedule["structural_hash"],
+    }, caused_by=[propagated["event_id"]])
+    packet_schedule = decision["packet_schedule"].to_dict()
+    selection_records = [
+        value.to_dict() for value in decision["selection_records"]]
+    information_values = [
+        value.to_dict() for value in decision["information_values"]]
+    summary = {
+        "bounded_decision": decision["bounded_decision"].to_dict(),
+        "evidence_count_after_planning": len(store.evidence),
+        "evidence_count_before_planning": evidence_before,
+        "evidence_registration_status": "awaiting-authoritative-return",
+        "evidence_store_hash_after_planning": store.artifact_hash,
+        "evidence_store_hash_before_planning": store_hash_before,
+        "evidence_write_authorized": False,
+        "information_values": information_values,
+        "mechanism": "fdas-observation-pressure-shadow/1.0",
+        "omitted_tests": list(decision["omitted_tests"]),
+        "packet_schedule": packet_schedule,
+        "policy_authority": False,
+        "pressure_representation": "signed-channel-rails/1.0",
+        "selected_operation_ids": list(
+            decision["selected_operation_ids"]),
+        "selection_effect_widening": {
+            "configured_unknown_propensity_discount": float(
+                manifest["beliefs"]["selection_unknown_discount"]),
+            "propensity": None,
+            "status": "required-on-authoritative-return",
+        },
+        "selection_records": selection_records,
+        "shadow_only": True,
+        "truth_mutated": False,
+    }
+    query_id = "observation-query-" + structural_hash({
+        "belief_atom_id": belief.atom_id,
+        "game_id": manifest["game_id"],
+        "snapshot_id": snapshot.snapshot_id,
+    })[:24]
+    config_digest = structural_hash({
+        "capability": "observation_pressure_planning:shadow-live",
+        "dependent_atomspace": manifest["dependent_atomspace"][
+            "declaration_hash"],
+        "model": information_values[0]["test"]["model_provenance"],
+    })
+    controller_decision_hash = structural_hash({
+        "packet_schedule": packet_schedule,
+        "selection_records": selection_records,
+    })
+    event = writer.emit("packet_reserved", snapshot.turn, {
+        "artifact_hash": structural_hash(summary),
+        "config_digest": config_digest,
+        "controller_decision_hash": controller_decision_hash,
+        "event_schema_version": "1.0",
+        "parent_event_ids": [scored["event_id"]],
+        "query_id": query_id,
+        "semantic_epoch": int(snapshot.turn),
+        "summary": summary,
+        "topology_generation": int(snapshot.identity.source_seq),
+    }, caused_by=[scored["event_id"]])
+    if (len(store.evidence) != evidence_before
+            or store.artifact_hash != store_hash_before):
+        raise RuntimeError(
+            "observation pressure mutated belief evidence before return")
+    return event["event_id"], decision
 
 
 def _ollama_json(manifest, prompt, expected_keys, attempts=2, validator=None):
@@ -2107,8 +2295,12 @@ async def _play(run_dir, manifest, context):
     control_event_emitter = ControlEventEmitter()
     fdas_projection_config = manifest["dependent_atomspace"]["config"][
         "projection"]
+    fdas_inference_config = manifest["dependent_atomspace"]["config"][
+        "inference"]
     fdas_manifest = manifest["dependent_atomspace"]["manifest"]
     fdas_belief_shadow = bool(fdas_projection_config["beliefs"])
+    fdas_observation_pressure_shadow = bool(
+        fdas_inference_config["uncertain_assessment_enabled"])
     if (fdas_belief_shadow
             and fdas_manifest["capabilities"].get(
                 "belief_domain_projection") != "shadow-live"):
@@ -2117,6 +2309,18 @@ async def _play(run_dir, manifest, context):
     if (fdas_belief_shadow
             and fdas_manifest.get("policy_authority") is not False):
         raise RuntimeError("FDAS belief shadow cannot grant policy authority")
+    if fdas_observation_pressure_shadow:
+        if not fdas_belief_shadow:
+            raise RuntimeError(
+                "FDAS observation pressure requires belief projection")
+        if fdas_manifest["capabilities"].get(
+                "observation_pressure_planning") != "shadow-live":
+            raise RuntimeError(
+                "engine-live FDAS observation pressure requires shadow-live "
+                "manifest")
+        if fdas_manifest.get("policy_authority") is not False:
+            raise RuntimeError(
+                "FDAS observation pressure shadow cannot grant policy authority")
     fdas_expansion_shadow = bool(
         fdas_projection_config["settlement_sites"]
         or fdas_projection_config["population_recovery"])
@@ -2432,6 +2636,9 @@ async def _play(run_dir, manifest, context):
         "fdas_expansion_reconciliations": 0,
         "fdas_belief_decay_revisions": 0,
         "fdas_belief_rematerializations": 0,
+        "fdas_observation_pressure_decisions": 0,
+        "fdas_observation_pressure_packet_commits": 0,
+        "fdas_observation_pressure_selected": 0,
         "fdas_transport_action_matches": 0,
         "fdas_transport_completions": 0,
         "fdas_transport_failures": 0,
@@ -3166,6 +3373,27 @@ async def _play(run_dir, manifest, context):
                 raw, snapshot, manifest, belief_store, writer, parent, player_id)
             if monitor_belief is not None:
                 parent = rematerialize_fdas_beliefs(snapshot, parent)
+                if fdas_observation_pressure_shadow:
+                    parent, observation_decision = (
+                        _emit_fdas_observation_pressure(
+                            monitor_belief,
+                            snapshot,
+                            manifest,
+                            belief_store,
+                            writer,
+                            parent))
+                    decision_stats[
+                        "fdas_observation_pressure_decisions"] += 1
+                    selected_observations = len(
+                        observation_decision["selected_operation_ids"])
+                    decision_stats[
+                        "fdas_observation_pressure_selected"] += (
+                            selected_observations)
+                    decision_stats[
+                        "fdas_observation_pressure_packet_commits"] += sum(
+                            value.state == "committed"
+                            for value in observation_decision[
+                                "packet_schedule"].reservations)
 
         async def refresh_after_action(current, cause, predicate=None, timeout=15.0):
             nonlocal action_refresh_event_latency_ms
@@ -4888,6 +5116,12 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_belief_decay_revisions"]),
         ("fdas_belief_rematerializations",
          decision_stats["fdas_belief_rematerializations"]),
+        ("fdas_observation_pressure_decisions",
+         decision_stats["fdas_observation_pressure_decisions"]),
+        ("fdas_observation_pressure_packet_commits",
+         decision_stats["fdas_observation_pressure_packet_commits"]),
+        ("fdas_observation_pressure_selected",
+         decision_stats["fdas_observation_pressure_selected"]),
         ("fdas_transport_action_matches",
          decision_stats["fdas_transport_action_matches"]),
         ("fdas_transport_completions",
@@ -5321,6 +5555,13 @@ async def _play(run_dir, manifest, context):
                 decision_stats["fdas_belief_decay_revisions"]),
             "fdas_belief_rematerializations": (
                 decision_stats["fdas_belief_rematerializations"]),
+            "fdas_observation_pressure_decisions": (
+                decision_stats["fdas_observation_pressure_decisions"]),
+            "fdas_observation_pressure_packet_commits": (
+                decision_stats[
+                    "fdas_observation_pressure_packet_commits"]),
+            "fdas_observation_pressure_selected": (
+                decision_stats["fdas_observation_pressure_selected"]),
             "fdas_transport_action_matches": (
                 decision_stats["fdas_transport_action_matches"]),
             "fdas_transport_completions": (
@@ -5620,6 +5861,12 @@ async def _play(run_dir, manifest, context):
             decision_stats["fdas_belief_decay_revisions"]),
         "fdas_belief_rematerializations": (
             decision_stats["fdas_belief_rematerializations"]),
+        "fdas_observation_pressure_decisions": (
+            decision_stats["fdas_observation_pressure_decisions"]),
+        "fdas_observation_pressure_packet_commits": (
+            decision_stats["fdas_observation_pressure_packet_commits"]),
+        "fdas_observation_pressure_selected": (
+            decision_stats["fdas_observation_pressure_selected"]),
         "fdas_transport_action_matches": (
             decision_stats["fdas_transport_action_matches"]),
         "fdas_transport_completions": (
