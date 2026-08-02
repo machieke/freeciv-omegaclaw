@@ -85,9 +85,9 @@ commit record retained `execution_authority: false`, proving that the final
 execution gate remains downstream.
 
 The report hash is
-`26d5696dd48c2bf5f4320519d61b5acd769209a9352eb62f94c620ecba56a3bb`;
+`864432b29971126b145b0a6625b179bb978a60894770a1050805b38e3d4ea5ad`;
 its implementation digest is
-`faa6310918bf4f688fa4a0f5755bb644d2b405eea0f5cd350c1fc2e4d86f00b9`.
+`fd758b1cbed562b8152b078f36c8a6b34a931f0dc0548e27a8400f9a4cbf03af`.
 
 The 34 fallbacks report
 `legacy-winner-has-no-unique-fdas-food-route`. This is intentional: actions

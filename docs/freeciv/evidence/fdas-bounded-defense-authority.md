@@ -95,9 +95,9 @@ retained `execution_authority: false`. The 25 fallbacks were all legacy winners
 outside the city-defense category.
 
 The report hash is
-`cb30d8e31191aa6882e835cd48615a0fd14ae8b89a49eb9f29403a3a8798c46e`;
+`39bf190979aa3d594606a0e2650e196908ca8cf1420df50c4e1db244b754113a`;
 its implementation digest is
-`7296498464bd731b39e6d8c99d07346283d73ca7431d3419cdce7067aba40eb9`.
+`41f08b8ac616f6582f13ae9025351802fd97c3ed5b2033afedb425e394bd340c`.
 
 ## Episode boundary
 

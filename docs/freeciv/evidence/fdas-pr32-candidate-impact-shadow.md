@@ -98,6 +98,6 @@ python3 scripts/freeciv/evaluate_fdas_candidate_impact_replay.py \
 ```
 
 The machine-readable report has structural hash
-`9426b470750e575aff243dbc7cc760eafbc8a0c9c066b8fa32ecbdf78b73673e`
+`17f9c970dcf2fedc00e1e9ad4cf30ea8d4dca423e20e54a3e9d42ba6872826ff`
 and was produced from clean commit
-`d17d56838dd9858d00a135ef320f77080211f2b3`.
+`75b907e1191a4b9d262b2ae2d320bc3618d6ff9d`.
