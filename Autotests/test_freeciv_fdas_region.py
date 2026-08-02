@@ -124,6 +124,11 @@ def test_visible_threat_activates_bounded_exact_region(ir):
     region_records = tuple(
         value for value in revision.records
         if value.key.scope_id == region_scopes[0].scope_id)
+    world_scope = next(
+        value for value in revision.scopes if value.scope_kind == "world")
+    world_records = tuple(
+        value for value in revision.records
+        if value.key.scope_id == world_scope.scope_id)
     predicates = {value.key.predicate for value in region_records}
 
     assert len(region_scopes) == 1
@@ -134,10 +139,16 @@ def test_visible_threat_activates_bounded_exact_region(ir):
     assert {
         "region-activation-reason",
         "region-centered-on",
-        "tile-adjacent",
         "tile-in-region",
         "visible-threat-near",
     }.issubset(predicates)
+    assert "tile-adjacent" in region_scopes[0].imported_predicates
+    assert "terrain-kind" in region_scopes[0].imported_predicates
+    assert "tile-adjacent" in world_scope.exported_predicates
+    assert "terrain-kind" in world_scope.exported_predicates
+    assert any(
+        value.key.predicate == "tile-adjacent"
+        for value in world_records)
     activation = next(
         value for value in region_records
         if value.key.predicate == "region-activation-reason")
@@ -151,6 +162,38 @@ def test_visible_threat_activates_bounded_exact_region(ir):
         value.key.path == "visible_enemy_units.90.x"
         for value in threat.supports[0].dependencies)
     assert len(region_records) <= region_scopes[0].maximum_atoms
+
+
+def test_overlapping_regions_share_exact_world_geometry(ir):
+    payload = _payload()
+    payload["map"].update({"wrap_x": True, "wrap_y": True})
+    second = copy.deepcopy(payload["cities"]["3"])
+    second.update({"id": 4, "name": "Antium", "tile": 84, "x": 4, "y": 2})
+    payload["cities"]["4"] = second
+    _enemy(payload, x=3, y=2)
+    snapshot = _snapshot(payload, 478)
+    store = _store(ir)
+    revision = store.build(snapshot)
+    world_scope = next(
+        value for value in revision.scopes if value.scope_kind == "world")
+    adjacency = tuple(
+        value for value in revision.records
+        if value.key.scope_id == world_scope.scope_id
+        and value.key.predicate == "tile-adjacent")
+    terrain = tuple(
+        value for value in revision.records
+        if value.key.scope_id == world_scope.scope_id
+        and value.key.predicate == "terrain-kind")
+    region_scopes = tuple(
+        value for value in revision.scopes if value.scope_kind == "region")
+
+    assert len(region_scopes) == 2
+    assert len(adjacency) == len({value.key for value in adjacency})
+    assert len(terrain) == len({value.key for value in terrain})
+    assert len(adjacency) < 2 * 312
+    assert len(terrain) <= 56
+    verification = store.verify_incremental(snapshot, snapshot, revision)
+    assert verification.equivalent, verification.to_dict()
 
 
 def test_region_activation_limit_is_deterministic(ir):
