@@ -1,0 +1,620 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "all_promotions_have_exact_input_artifacts": true,
+      "consolidation_partitions_every_approved_rule": true,
+      "execution_source_requirement_met": true,
+      "no_truth_policy_or_readout_authority": true,
+      "source_acceptance_is_valid": true,
+      "source_report_has_no_authority": true,
+      "source_report_hash_is_valid": true
+    }
+  },
+  "claim_scope": "retrospective, training-structure-only consolidation of exact held-out-approved FDAS rules into a minimal diagnostic basis; zero truth, policy, or readout authority and no gameplay, score, causal-intervention, or win-rate claim",
+  "consolidation": {
+    "algorithm_id": "fdas-promoted-rule-structural-subsumption/1.0",
+    "consolidation_id": "consolidation-c3a2d423e6bd2fc5a20799ae",
+    "input_rule_ids": [
+      "induced-01af5eb7c326d4e5d8f50120",
+      "induced-03d0e6376aa1bdd3be03a32f",
+      "induced-2ad8950041d63b5875cdde94",
+      "induced-4e386981f10d6987f55eebaa",
+      "induced-62eef942dd508eff3bc5aba2",
+      "induced-68af8e6bd3994227610d8a38",
+      "induced-71713b363a8df8a01533c120",
+      "induced-96bb19f3435cf611df2145a5",
+      "induced-9c9f57f72039edaeda5c39d2",
+      "induced-c9cde0196bcee691f8b4efee",
+      "induced-d5de08f722d027a22834708f",
+      "induced-dae6b7c606537b2abfe509e7",
+      "induced-fa80f4c480e7611648c788c2"
+    ],
+    "policy_authority": false,
+    "readout_authority": false,
+    "result_hash": "aa9aceb49077fc8ed35c4eda06a30074ecafb62dc2ec51e24c8a2de18d56cd9c",
+    "retained_rule_ids": [
+      "induced-71713b363a8df8a01533c120",
+      "induced-9c9f57f72039edaeda5c39d2",
+      "induced-c9cde0196bcee691f8b4efee",
+      "induced-d5de08f722d027a22834708f"
+    ],
+    "schema_version": "1.0",
+    "suppressions": [
+      {
+        "proposal_id": "induced-01af5eb7c326d4e5d8f50120",
+        "reason": "strict_antecedent_subsumption_same_prediction",
+        "removed_antecedents": [
+          "context:actor_veteran_band=none"
+        ],
+        "retained_antecedent": [
+          "context:city_size_band=2-4"
+        ],
+        "retained_proposal_id": "induced-d5de08f722d027a22834708f"
+      },
+      {
+        "proposal_id": "induced-03d0e6376aa1bdd3be03a32f",
+        "reason": "strict_antecedent_subsumption_same_prediction",
+        "removed_antecedents": [
+          "context:actor_homecity_relation=target"
+        ],
+        "retained_antecedent": [
+          "context:city_size_band=2-4"
+        ],
+        "retained_proposal_id": "induced-d5de08f722d027a22834708f"
+      },
+      {
+        "proposal_id": "induced-2ad8950041d63b5875cdde94",
+        "reason": "strict_antecedent_subsumption_same_prediction",
+        "removed_antecedents": [
+          "context:other_own_units_at_target_band=0"
+        ],
+        "retained_antecedent": [
+          "context:city_size_band=2-4"
+        ],
+        "retained_proposal_id": "induced-d5de08f722d027a22834708f"
+      },
+      {
+        "proposal_id": "induced-4e386981f10d6987f55eebaa",
+        "reason": "strict_antecedent_subsumption_same_prediction",
+        "removed_antecedents": [
+          "context:economy_operating_gold_band=positive"
+        ],
+        "retained_antecedent": [
+          "context:city_size_band=2-4"
+        ],
+        "retained_proposal_id": "induced-d5de08f722d027a22834708f"
+      },
+      {
+        "proposal_id": "induced-62eef942dd508eff3bc5aba2",
+        "reason": "strict_antecedent_subsumption_same_prediction",
+        "removed_antecedents": [
+          "context:city_disorder=false"
+        ],
+        "retained_antecedent": [
+          "context:city_size_band=2-4"
+        ],
+        "retained_proposal_id": "induced-d5de08f722d027a22834708f"
+      },
+      {
+        "proposal_id": "induced-68af8e6bd3994227610d8a38",
+        "reason": "strict_antecedent_subsumption_same_prediction",
+        "removed_antecedents": [
+          "context:economy_operating_gold_band=positive"
+        ],
+        "retained_antecedent": [
+          "context:city_production_class=unit"
+        ],
+        "retained_proposal_id": "induced-71713b363a8df8a01533c120"
+      },
+      {
+        "proposal_id": "induced-96bb19f3435cf611df2145a5",
+        "reason": "strict_antecedent_subsumption_same_prediction",
+        "removed_antecedents": [
+          "context:actor_moves_band=2+"
+        ],
+        "retained_antecedent": [
+          "context:city_production_class=unit"
+        ],
+        "retained_proposal_id": "induced-71713b363a8df8a01533c120"
+      },
+      {
+        "proposal_id": "induced-dae6b7c606537b2abfe509e7",
+        "reason": "strict_antecedent_subsumption_same_prediction",
+        "removed_antecedents": [
+          "context:actor_veteran_band=none"
+        ],
+        "retained_antecedent": [
+          "context:city_production_class=unit"
+        ],
+        "retained_proposal_id": "induced-71713b363a8df8a01533c120"
+      },
+      {
+        "proposal_id": "induced-fa80f4c480e7611648c788c2",
+        "reason": "strict_antecedent_subsumption_same_prediction",
+        "removed_antecedents": [
+          "context:city_disorder=false"
+        ],
+        "retained_antecedent": [
+          "context:city_production_class=unit"
+        ],
+        "retained_proposal_id": "induced-71713b363a8df8a01533c120"
+      }
+    ],
+    "truth_mutated": false
+  },
+  "retained_proposals": [
+    {
+      "antecedent": [
+        "context:city_production_class=unit"
+      ],
+      "baseline_probability": 0.7142857142857143,
+      "compression_gain": 0.9333333333333333,
+      "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+      "context": [
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "outcome_target",
+          "durable-attributed-actor-city-defense/32-turn/1.0"
+        ]
+      ],
+      "expected_gain": 0.0470588235294117,
+      "expected_generalization": 1.0,
+      "overfit_risk": 0.06666666666666667,
+      "positives": 12,
+      "prediction_residual": 0.05042016806722682,
+      "probability": 0.7647058823529411,
+      "proposal_id": "induced-71713b363a8df8a01533c120",
+      "provenance_ids": [
+        "execution-event:0998f97ccb954f0185471a1f1ca73d65",
+        "execution-event:1f6f51085b9f4633b56fa762c52a32b3",
+        "execution-event:1fe2637ee90640d493ffbc00b03164a8",
+        "execution-event:24e2e22afbc741c78d65656353f3d7dd",
+        "execution-event:284bf50e36d348459596f36b07efd001",
+        "execution-event:3483a3c6d214480fa1e483987f9a6563",
+        "execution-event:444f2882eefe40b090a480cc4461b932",
+        "execution-event:56b841c52f4b490e8246da3f8786343a",
+        "execution-event:65a2903170b2484c9e1a56614d2aea07",
+        "execution-event:7cb11f0eaee645f18a3bf0bf890ef76d",
+        "execution-event:7f271dc12ee243af960d5c4a181add0c",
+        "execution-event:a7e09839a7f64625a44e893ad4d42ce4",
+        "execution-event:b345398045384bd188d800c22d308f35",
+        "execution-event:cd3b7dfafd824fa0aee801768e262959",
+        "execution-event:d2f7e8dbe900409a99bee8532d71bb21",
+        "execution-event:e3154938458f48a08b9314b5800e4f41",
+        "execution-event:e5cfd4e2f5154e38ad6edec1d697c5d7",
+        "execution-event:ebe5472c16724844955b22f28d72e0c5",
+        "execution-event:fb0f4733ae864bc283855c6fa216486e",
+        "fdas-episode:1ac0e18af7b144465fa12f0e363e9e5c854caa67c532c28bacd04f7c5971155b",
+        "fdas-episode:2d505048c9597432d0e6bedabfa416b6ffc8126d17049d74002ba586384ee7fe",
+        "fdas-episode:47928e4c5e9c3b48802ac235a0990ced758c46841937946980cb3a9a2cec5aad",
+        "fdas-episode:4a619f0115aaec5724f44def42382b3348a12e42a16aac198a20aff356f41826",
+        "fdas-episode:4c2c445f6595e701d223f9f5a9fed4570e6ca6b05772af1ed2e1e9a727cf0ed6",
+        "fdas-episode:595956a7fe2dc383bfb08c5e47ba928029d9fc6c4ebf391a60567f842a5a31df",
+        "fdas-episode:5f311c8583dc5d5afe909f48a2110ad082c9c11d397ed87cae779ca284621432",
+        "fdas-episode:623383d0b6a7c7598464d1060bc2e692618d7ead28ac879cfdd8b126e3d6f388",
+        "fdas-episode:639e97924f5069b4f8229bfd854b4b604f45667490cbd037b639340fdbfaf222",
+        "fdas-episode:66abbf30d646c1b858a9c114a7be81482f224fb04d649d8096a367f037b010f4",
+        "fdas-episode:71ae3ce4cbc7731ef901e595565dd5ad9ab5250c63a98dd5a8e0b4869aa631ee",
+        "fdas-episode:81f2473f72ff5df2491436f9e0ff1edd14441ff2b52a1b4005fbf3375293d417",
+        "fdas-episode:8afa412d646017e1fafdb6a3ae7d2882394a4d049b17c0ce5cd13705ccaa77a8",
+        "fdas-episode:8f059534bdf3b333f4afeb26dc9f0163d3d63d970912d99cc96b3bbdf0d7c553",
+        "fdas-episode:93b720bc4b607d471535fe776b099098785b45b777b1333b27f268ccb019dc52",
+        "fdas-episode:94ef46dae942e4c234cfc4a9759e0633fefdc1346d90a5e57d3ebc3b97017d73",
+        "fdas-episode:a3f6ebd6c8de22eda5cb78cd7ee9ad02584b522ef26dc42150cfb17be0f6d70d",
+        "fdas-episode:ac01dcd6599db24afa4c0edc836f1d851a08635993d2e72b59fd7844673a687e",
+        "fdas-episode:f0999dedfe5ce662b65f7f83429478431432b199914f3ba031df7dfc06a5c49c",
+        "outcome-label:25738070c6213a01e3e774ff7bfb05148ae1e0772d0afaa6d6399bacf86cb823",
+        "outcome-label:2b042bf63180842cbf3a5e694fa83bb024408d509b252b500076e7a5fbdc5324",
+        "outcome-label:2f029121155d63937116daf1e0015c8b80081970ec585643a8788d2c9fe99dba",
+        "outcome-label:35d7f95f116eae3a206d60b2a9c04f5e93199fc91c6c2b0ffc4db0376cd734ac",
+        "outcome-label:5566081dc2cf3d0f04af48a6ce2ddc436dae6569c84069763102651b93f985e8",
+        "outcome-label:687cff93234160670ddc432120f56351790b572d5bca3d5a1e6f7c60f413b0db",
+        "outcome-label:69dc4fea1f3c769e96c197179eae1be1b79d1ae52842d8341403877631af255c",
+        "outcome-label:95175a6c402db565a36ed358ebf8c1c1916babc543430d176b2f395105510dd9",
+        "outcome-label:96e8a555a7009980d45382808df50a9c5da189df8a68197e36332f72f71a7038",
+        "outcome-label:9a344abfee374f724682c1c0f51e4321f9ac3d02e739146c71f50502c3ccc569",
+        "outcome-label:9f79d579b02674e83c7638ebd8f21203beb5fded1029a7c5e1e1756c58f3375b",
+        "outcome-label:a7c261b49807e709eb0fbebc7bf35c1e93ef6bf5df1e1e58aa70bcddac891b57",
+        "outcome-label:ae5b6810d785bbe9f0a7604936006c692bed2435d6df1e368c74cf15b5ab6e43",
+        "outcome-label:c612f5c01870f6da3df330f157351508d5a3b68c3082bde206c09efb0ef3db51",
+        "outcome-label:d2d14060e799896c2813087f86447fbaa8149e3bc400b7d9e990737d851ce3c3",
+        "outcome-label:e49e92d45cc17f011e2d9f4d8a400592a4fe195d8bf6f0e8ff91af78daea830e",
+        "outcome-label:f0931a2ec33cb5f68a3a5c8879a467c3c10f6ae76982a80821c7cb4c6f4ac29c",
+        "outcome-label:fa2116ccfe880bc1d662a56d22c3074cb1a5383122b1b2181007b961f30b45f2",
+        "outcome-label:fcbc6db3db7bb1b80b13fae1b086c790b6e1968336b546a4409ad76871896115"
+      ],
+      "source": "pattern",
+      "source_proposal_ids": [],
+      "support": 15,
+      "training_episode_ids": [
+        "episode-02cec8a8307c882f4698d1e99a1ad184",
+        "episode-1d0367ca2e2423d9dccba15c7d783623",
+        "episode-1dd4491b1c854508e7bcfc5c1f3180ac",
+        "episode-32ee00d9816dcb25fb9e41e65bbabcbb",
+        "episode-54636dcf900f91a158f6a3e4c5d23f01",
+        "episode-5d7941691f2138a34e8676a36f3c661e",
+        "episode-6214ba8522b9ae3e86e05c99c9a2d4c1",
+        "episode-91f6c44b2401548c6e8ccbc93a91a56c",
+        "episode-93cbe9d797e7788dd97dad692603e086",
+        "episode-a06483ff63db2644ac30235c5f7959b1",
+        "episode-acd37d998a695ff7d9c1902f9754da0f",
+        "episode-bf45c01b475cc4a4a5e8661dec800a7a",
+        "episode-c7755973d47e48f47fa38cc3de97da2a",
+        "episode-c7b15a1eafeef9fd386ff23e7731b247",
+        "episode-c9350817e6c230d910f874c8296c111b",
+        "episode-d72c6e8a67cf98a7b35264b1677b504a",
+        "episode-e5bafac711ce6635db33c358c9495c7f",
+        "episode-f273f0e98633eb5ee7d7690c25170ad1",
+        "episode-fbdf9fa40740f15a4377fcc78036218d"
+      ],
+      "transfer_uncertainty": 0.0,
+      "trigger_pressure": 0.6588235294117638
+    },
+    {
+      "antecedent": [
+        "context:economy_operating_gold_band=positive",
+        "context:visible_enemy_count_near_city_band=0"
+      ],
+      "baseline_probability": 0.7142857142857143,
+      "compression_gain": 0.8666666666666667,
+      "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+      "context": [
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "outcome_target",
+          "durable-attributed-actor-city-defense/32-turn/1.0"
+        ]
+      ],
+      "expected_gain": 0.04369747899159658,
+      "expected_generalization": 1.0,
+      "overfit_risk": 0.13333333333333333,
+      "positives": 12,
+      "prediction_residual": 0.05042016806722682,
+      "probability": 0.7647058823529411,
+      "proposal_id": "induced-9c9f57f72039edaeda5c39d2",
+      "provenance_ids": [
+        "execution-event:0998f97ccb954f0185471a1f1ca73d65",
+        "execution-event:1f6f51085b9f4633b56fa762c52a32b3",
+        "execution-event:1fe2637ee90640d493ffbc00b03164a8",
+        "execution-event:24e2e22afbc741c78d65656353f3d7dd",
+        "execution-event:284bf50e36d348459596f36b07efd001",
+        "execution-event:3483a3c6d214480fa1e483987f9a6563",
+        "execution-event:444f2882eefe40b090a480cc4461b932",
+        "execution-event:56b841c52f4b490e8246da3f8786343a",
+        "execution-event:65a2903170b2484c9e1a56614d2aea07",
+        "execution-event:7cb11f0eaee645f18a3bf0bf890ef76d",
+        "execution-event:7f271dc12ee243af960d5c4a181add0c",
+        "execution-event:a7e09839a7f64625a44e893ad4d42ce4",
+        "execution-event:b345398045384bd188d800c22d308f35",
+        "execution-event:cd3b7dfafd824fa0aee801768e262959",
+        "execution-event:d2f7e8dbe900409a99bee8532d71bb21",
+        "execution-event:e3154938458f48a08b9314b5800e4f41",
+        "execution-event:e5cfd4e2f5154e38ad6edec1d697c5d7",
+        "execution-event:ebe5472c16724844955b22f28d72e0c5",
+        "execution-event:fb0f4733ae864bc283855c6fa216486e",
+        "fdas-episode:1ac0e18af7b144465fa12f0e363e9e5c854caa67c532c28bacd04f7c5971155b",
+        "fdas-episode:2d505048c9597432d0e6bedabfa416b6ffc8126d17049d74002ba586384ee7fe",
+        "fdas-episode:47928e4c5e9c3b48802ac235a0990ced758c46841937946980cb3a9a2cec5aad",
+        "fdas-episode:4a619f0115aaec5724f44def42382b3348a12e42a16aac198a20aff356f41826",
+        "fdas-episode:4c2c445f6595e701d223f9f5a9fed4570e6ca6b05772af1ed2e1e9a727cf0ed6",
+        "fdas-episode:595956a7fe2dc383bfb08c5e47ba928029d9fc6c4ebf391a60567f842a5a31df",
+        "fdas-episode:5f311c8583dc5d5afe909f48a2110ad082c9c11d397ed87cae779ca284621432",
+        "fdas-episode:623383d0b6a7c7598464d1060bc2e692618d7ead28ac879cfdd8b126e3d6f388",
+        "fdas-episode:639e97924f5069b4f8229bfd854b4b604f45667490cbd037b639340fdbfaf222",
+        "fdas-episode:66abbf30d646c1b858a9c114a7be81482f224fb04d649d8096a367f037b010f4",
+        "fdas-episode:71ae3ce4cbc7731ef901e595565dd5ad9ab5250c63a98dd5a8e0b4869aa631ee",
+        "fdas-episode:81f2473f72ff5df2491436f9e0ff1edd14441ff2b52a1b4005fbf3375293d417",
+        "fdas-episode:8afa412d646017e1fafdb6a3ae7d2882394a4d049b17c0ce5cd13705ccaa77a8",
+        "fdas-episode:8f059534bdf3b333f4afeb26dc9f0163d3d63d970912d99cc96b3bbdf0d7c553",
+        "fdas-episode:93b720bc4b607d471535fe776b099098785b45b777b1333b27f268ccb019dc52",
+        "fdas-episode:94ef46dae942e4c234cfc4a9759e0633fefdc1346d90a5e57d3ebc3b97017d73",
+        "fdas-episode:a3f6ebd6c8de22eda5cb78cd7ee9ad02584b522ef26dc42150cfb17be0f6d70d",
+        "fdas-episode:ac01dcd6599db24afa4c0edc836f1d851a08635993d2e72b59fd7844673a687e",
+        "fdas-episode:f0999dedfe5ce662b65f7f83429478431432b199914f3ba031df7dfc06a5c49c",
+        "outcome-label:25738070c6213a01e3e774ff7bfb05148ae1e0772d0afaa6d6399bacf86cb823",
+        "outcome-label:2b042bf63180842cbf3a5e694fa83bb024408d509b252b500076e7a5fbdc5324",
+        "outcome-label:2f029121155d63937116daf1e0015c8b80081970ec585643a8788d2c9fe99dba",
+        "outcome-label:35d7f95f116eae3a206d60b2a9c04f5e93199fc91c6c2b0ffc4db0376cd734ac",
+        "outcome-label:5566081dc2cf3d0f04af48a6ce2ddc436dae6569c84069763102651b93f985e8",
+        "outcome-label:687cff93234160670ddc432120f56351790b572d5bca3d5a1e6f7c60f413b0db",
+        "outcome-label:69dc4fea1f3c769e96c197179eae1be1b79d1ae52842d8341403877631af255c",
+        "outcome-label:95175a6c402db565a36ed358ebf8c1c1916babc543430d176b2f395105510dd9",
+        "outcome-label:96e8a555a7009980d45382808df50a9c5da189df8a68197e36332f72f71a7038",
+        "outcome-label:9a344abfee374f724682c1c0f51e4321f9ac3d02e739146c71f50502c3ccc569",
+        "outcome-label:9f79d579b02674e83c7638ebd8f21203beb5fded1029a7c5e1e1756c58f3375b",
+        "outcome-label:a7c261b49807e709eb0fbebc7bf35c1e93ef6bf5df1e1e58aa70bcddac891b57",
+        "outcome-label:ae5b6810d785bbe9f0a7604936006c692bed2435d6df1e368c74cf15b5ab6e43",
+        "outcome-label:c612f5c01870f6da3df330f157351508d5a3b68c3082bde206c09efb0ef3db51",
+        "outcome-label:d2d14060e799896c2813087f86447fbaa8149e3bc400b7d9e990737d851ce3c3",
+        "outcome-label:e49e92d45cc17f011e2d9f4d8a400592a4fe195d8bf6f0e8ff91af78daea830e",
+        "outcome-label:f0931a2ec33cb5f68a3a5c8879a467c3c10f6ae76982a80821c7cb4c6f4ac29c",
+        "outcome-label:fa2116ccfe880bc1d662a56d22c3074cb1a5383122b1b2181007b961f30b45f2",
+        "outcome-label:fcbc6db3db7bb1b80b13fae1b086c790b6e1968336b546a4409ad76871896115"
+      ],
+      "source": "pattern",
+      "source_proposal_ids": [],
+      "support": 15,
+      "training_episode_ids": [
+        "episode-02cec8a8307c882f4698d1e99a1ad184",
+        "episode-1d0367ca2e2423d9dccba15c7d783623",
+        "episode-1dd4491b1c854508e7bcfc5c1f3180ac",
+        "episode-32ee00d9816dcb25fb9e41e65bbabcbb",
+        "episode-54636dcf900f91a158f6a3e4c5d23f01",
+        "episode-5d7941691f2138a34e8676a36f3c661e",
+        "episode-6214ba8522b9ae3e86e05c99c9a2d4c1",
+        "episode-91f6c44b2401548c6e8ccbc93a91a56c",
+        "episode-93cbe9d797e7788dd97dad692603e086",
+        "episode-a06483ff63db2644ac30235c5f7959b1",
+        "episode-acd37d998a695ff7d9c1902f9754da0f",
+        "episode-bf45c01b475cc4a4a5e8661dec800a7a",
+        "episode-c7755973d47e48f47fa38cc3de97da2a",
+        "episode-c7b15a1eafeef9fd386ff23e7731b247",
+        "episode-c9350817e6c230d910f874c8296c111b",
+        "episode-d72c6e8a67cf98a7b35264b1677b504a",
+        "episode-e5bafac711ce6635db33c358c9495c7f",
+        "episode-f273f0e98633eb5ee7d7690c25170ad1",
+        "episode-fbdf9fa40740f15a4377fcc78036218d"
+      ],
+      "transfer_uncertainty": 0.0,
+      "trigger_pressure": 0.5680672268907555
+    },
+    {
+      "antecedent": [
+        "context:city_production_class=unit",
+        "context:visible_enemy_count_near_city_band=0"
+      ],
+      "baseline_probability": 0.7142857142857143,
+      "compression_gain": 0.8333333333333334,
+      "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+      "context": [
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "outcome_target",
+          "durable-attributed-actor-city-defense/32-turn/1.0"
+        ]
+      ],
+      "expected_gain": 0.0595238095238095,
+      "expected_generalization": 1.0,
+      "overfit_risk": 0.16666666666666666,
+      "positives": 10,
+      "prediction_residual": 0.0714285714285714,
+      "probability": 0.7857142857142857,
+      "proposal_id": "induced-c9cde0196bcee691f8b4efee",
+      "provenance_ids": [
+        "execution-event:0998f97ccb954f0185471a1f1ca73d65",
+        "execution-event:1f6f51085b9f4633b56fa762c52a32b3",
+        "execution-event:1fe2637ee90640d493ffbc00b03164a8",
+        "execution-event:24e2e22afbc741c78d65656353f3d7dd",
+        "execution-event:284bf50e36d348459596f36b07efd001",
+        "execution-event:3483a3c6d214480fa1e483987f9a6563",
+        "execution-event:444f2882eefe40b090a480cc4461b932",
+        "execution-event:56b841c52f4b490e8246da3f8786343a",
+        "execution-event:65a2903170b2484c9e1a56614d2aea07",
+        "execution-event:7cb11f0eaee645f18a3bf0bf890ef76d",
+        "execution-event:7f271dc12ee243af960d5c4a181add0c",
+        "execution-event:a7e09839a7f64625a44e893ad4d42ce4",
+        "execution-event:b345398045384bd188d800c22d308f35",
+        "execution-event:cd3b7dfafd824fa0aee801768e262959",
+        "execution-event:d2f7e8dbe900409a99bee8532d71bb21",
+        "execution-event:e3154938458f48a08b9314b5800e4f41",
+        "execution-event:e5cfd4e2f5154e38ad6edec1d697c5d7",
+        "execution-event:ebe5472c16724844955b22f28d72e0c5",
+        "execution-event:fb0f4733ae864bc283855c6fa216486e",
+        "fdas-episode:1ac0e18af7b144465fa12f0e363e9e5c854caa67c532c28bacd04f7c5971155b",
+        "fdas-episode:2d505048c9597432d0e6bedabfa416b6ffc8126d17049d74002ba586384ee7fe",
+        "fdas-episode:47928e4c5e9c3b48802ac235a0990ced758c46841937946980cb3a9a2cec5aad",
+        "fdas-episode:4a619f0115aaec5724f44def42382b3348a12e42a16aac198a20aff356f41826",
+        "fdas-episode:4c2c445f6595e701d223f9f5a9fed4570e6ca6b05772af1ed2e1e9a727cf0ed6",
+        "fdas-episode:595956a7fe2dc383bfb08c5e47ba928029d9fc6c4ebf391a60567f842a5a31df",
+        "fdas-episode:5f311c8583dc5d5afe909f48a2110ad082c9c11d397ed87cae779ca284621432",
+        "fdas-episode:623383d0b6a7c7598464d1060bc2e692618d7ead28ac879cfdd8b126e3d6f388",
+        "fdas-episode:639e97924f5069b4f8229bfd854b4b604f45667490cbd037b639340fdbfaf222",
+        "fdas-episode:66abbf30d646c1b858a9c114a7be81482f224fb04d649d8096a367f037b010f4",
+        "fdas-episode:71ae3ce4cbc7731ef901e595565dd5ad9ab5250c63a98dd5a8e0b4869aa631ee",
+        "fdas-episode:81f2473f72ff5df2491436f9e0ff1edd14441ff2b52a1b4005fbf3375293d417",
+        "fdas-episode:8afa412d646017e1fafdb6a3ae7d2882394a4d049b17c0ce5cd13705ccaa77a8",
+        "fdas-episode:8f059534bdf3b333f4afeb26dc9f0163d3d63d970912d99cc96b3bbdf0d7c553",
+        "fdas-episode:93b720bc4b607d471535fe776b099098785b45b777b1333b27f268ccb019dc52",
+        "fdas-episode:94ef46dae942e4c234cfc4a9759e0633fefdc1346d90a5e57d3ebc3b97017d73",
+        "fdas-episode:a3f6ebd6c8de22eda5cb78cd7ee9ad02584b522ef26dc42150cfb17be0f6d70d",
+        "fdas-episode:ac01dcd6599db24afa4c0edc836f1d851a08635993d2e72b59fd7844673a687e",
+        "fdas-episode:f0999dedfe5ce662b65f7f83429478431432b199914f3ba031df7dfc06a5c49c",
+        "outcome-label:25738070c6213a01e3e774ff7bfb05148ae1e0772d0afaa6d6399bacf86cb823",
+        "outcome-label:2b042bf63180842cbf3a5e694fa83bb024408d509b252b500076e7a5fbdc5324",
+        "outcome-label:2f029121155d63937116daf1e0015c8b80081970ec585643a8788d2c9fe99dba",
+        "outcome-label:35d7f95f116eae3a206d60b2a9c04f5e93199fc91c6c2b0ffc4db0376cd734ac",
+        "outcome-label:5566081dc2cf3d0f04af48a6ce2ddc436dae6569c84069763102651b93f985e8",
+        "outcome-label:687cff93234160670ddc432120f56351790b572d5bca3d5a1e6f7c60f413b0db",
+        "outcome-label:69dc4fea1f3c769e96c197179eae1be1b79d1ae52842d8341403877631af255c",
+        "outcome-label:95175a6c402db565a36ed358ebf8c1c1916babc543430d176b2f395105510dd9",
+        "outcome-label:96e8a555a7009980d45382808df50a9c5da189df8a68197e36332f72f71a7038",
+        "outcome-label:9a344abfee374f724682c1c0f51e4321f9ac3d02e739146c71f50502c3ccc569",
+        "outcome-label:9f79d579b02674e83c7638ebd8f21203beb5fded1029a7c5e1e1756c58f3375b",
+        "outcome-label:a7c261b49807e709eb0fbebc7bf35c1e93ef6bf5df1e1e58aa70bcddac891b57",
+        "outcome-label:ae5b6810d785bbe9f0a7604936006c692bed2435d6df1e368c74cf15b5ab6e43",
+        "outcome-label:c612f5c01870f6da3df330f157351508d5a3b68c3082bde206c09efb0ef3db51",
+        "outcome-label:d2d14060e799896c2813087f86447fbaa8149e3bc400b7d9e990737d851ce3c3",
+        "outcome-label:e49e92d45cc17f011e2d9f4d8a400592a4fe195d8bf6f0e8ff91af78daea830e",
+        "outcome-label:f0931a2ec33cb5f68a3a5c8879a467c3c10f6ae76982a80821c7cb4c6f4ac29c",
+        "outcome-label:fa2116ccfe880bc1d662a56d22c3074cb1a5383122b1b2181007b961f30b45f2",
+        "outcome-label:fcbc6db3db7bb1b80b13fae1b086c790b6e1968336b546a4409ad76871896115"
+      ],
+      "source": "pattern",
+      "source_proposal_ids": [],
+      "support": 12,
+      "training_episode_ids": [
+        "episode-02cec8a8307c882f4698d1e99a1ad184",
+        "episode-1d0367ca2e2423d9dccba15c7d783623",
+        "episode-1dd4491b1c854508e7bcfc5c1f3180ac",
+        "episode-32ee00d9816dcb25fb9e41e65bbabcbb",
+        "episode-54636dcf900f91a158f6a3e4c5d23f01",
+        "episode-5d7941691f2138a34e8676a36f3c661e",
+        "episode-6214ba8522b9ae3e86e05c99c9a2d4c1",
+        "episode-91f6c44b2401548c6e8ccbc93a91a56c",
+        "episode-93cbe9d797e7788dd97dad692603e086",
+        "episode-a06483ff63db2644ac30235c5f7959b1",
+        "episode-acd37d998a695ff7d9c1902f9754da0f",
+        "episode-bf45c01b475cc4a4a5e8661dec800a7a",
+        "episode-c7755973d47e48f47fa38cc3de97da2a",
+        "episode-c7b15a1eafeef9fd386ff23e7731b247",
+        "episode-c9350817e6c230d910f874c8296c111b",
+        "episode-d72c6e8a67cf98a7b35264b1677b504a",
+        "episode-e5bafac711ce6635db33c358c9495c7f",
+        "episode-f273f0e98633eb5ee7d7690c25170ad1",
+        "episode-fbdf9fa40740f15a4377fcc78036218d"
+      ],
+      "transfer_uncertainty": 0.0,
+      "trigger_pressure": 0.595238095238095
+    },
+    {
+      "antecedent": [
+        "context:city_size_band=2-4"
+      ],
+      "baseline_probability": 0.7142857142857143,
+      "compression_gain": 0.8888888888888888,
+      "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+      "context": [
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "outcome_target",
+          "durable-attributed-actor-city-defense/32-turn/1.0"
+        ]
+      ],
+      "expected_gain": 0.08749145591250856,
+      "expected_generalization": 0.9473684210526315,
+      "overfit_risk": 0.1111111111111111,
+      "positives": 8,
+      "prediction_residual": 0.10389610389610393,
+      "probability": 0.8181818181818182,
+      "proposal_id": "induced-d5de08f722d027a22834708f",
+      "provenance_ids": [
+        "execution-event:0998f97ccb954f0185471a1f1ca73d65",
+        "execution-event:1f6f51085b9f4633b56fa762c52a32b3",
+        "execution-event:1fe2637ee90640d493ffbc00b03164a8",
+        "execution-event:24e2e22afbc741c78d65656353f3d7dd",
+        "execution-event:284bf50e36d348459596f36b07efd001",
+        "execution-event:3483a3c6d214480fa1e483987f9a6563",
+        "execution-event:444f2882eefe40b090a480cc4461b932",
+        "execution-event:56b841c52f4b490e8246da3f8786343a",
+        "execution-event:65a2903170b2484c9e1a56614d2aea07",
+        "execution-event:7cb11f0eaee645f18a3bf0bf890ef76d",
+        "execution-event:7f271dc12ee243af960d5c4a181add0c",
+        "execution-event:a7e09839a7f64625a44e893ad4d42ce4",
+        "execution-event:b345398045384bd188d800c22d308f35",
+        "execution-event:cd3b7dfafd824fa0aee801768e262959",
+        "execution-event:d2f7e8dbe900409a99bee8532d71bb21",
+        "execution-event:e3154938458f48a08b9314b5800e4f41",
+        "execution-event:e5cfd4e2f5154e38ad6edec1d697c5d7",
+        "execution-event:ebe5472c16724844955b22f28d72e0c5",
+        "execution-event:fb0f4733ae864bc283855c6fa216486e",
+        "fdas-episode:1ac0e18af7b144465fa12f0e363e9e5c854caa67c532c28bacd04f7c5971155b",
+        "fdas-episode:2d505048c9597432d0e6bedabfa416b6ffc8126d17049d74002ba586384ee7fe",
+        "fdas-episode:47928e4c5e9c3b48802ac235a0990ced758c46841937946980cb3a9a2cec5aad",
+        "fdas-episode:4a619f0115aaec5724f44def42382b3348a12e42a16aac198a20aff356f41826",
+        "fdas-episode:4c2c445f6595e701d223f9f5a9fed4570e6ca6b05772af1ed2e1e9a727cf0ed6",
+        "fdas-episode:595956a7fe2dc383bfb08c5e47ba928029d9fc6c4ebf391a60567f842a5a31df",
+        "fdas-episode:5f311c8583dc5d5afe909f48a2110ad082c9c11d397ed87cae779ca284621432",
+        "fdas-episode:623383d0b6a7c7598464d1060bc2e692618d7ead28ac879cfdd8b126e3d6f388",
+        "fdas-episode:639e97924f5069b4f8229bfd854b4b604f45667490cbd037b639340fdbfaf222",
+        "fdas-episode:66abbf30d646c1b858a9c114a7be81482f224fb04d649d8096a367f037b010f4",
+        "fdas-episode:71ae3ce4cbc7731ef901e595565dd5ad9ab5250c63a98dd5a8e0b4869aa631ee",
+        "fdas-episode:81f2473f72ff5df2491436f9e0ff1edd14441ff2b52a1b4005fbf3375293d417",
+        "fdas-episode:8afa412d646017e1fafdb6a3ae7d2882394a4d049b17c0ce5cd13705ccaa77a8",
+        "fdas-episode:8f059534bdf3b333f4afeb26dc9f0163d3d63d970912d99cc96b3bbdf0d7c553",
+        "fdas-episode:93b720bc4b607d471535fe776b099098785b45b777b1333b27f268ccb019dc52",
+        "fdas-episode:94ef46dae942e4c234cfc4a9759e0633fefdc1346d90a5e57d3ebc3b97017d73",
+        "fdas-episode:a3f6ebd6c8de22eda5cb78cd7ee9ad02584b522ef26dc42150cfb17be0f6d70d",
+        "fdas-episode:ac01dcd6599db24afa4c0edc836f1d851a08635993d2e72b59fd7844673a687e",
+        "fdas-episode:f0999dedfe5ce662b65f7f83429478431432b199914f3ba031df7dfc06a5c49c",
+        "outcome-label:25738070c6213a01e3e774ff7bfb05148ae1e0772d0afaa6d6399bacf86cb823",
+        "outcome-label:2b042bf63180842cbf3a5e694fa83bb024408d509b252b500076e7a5fbdc5324",
+        "outcome-label:2f029121155d63937116daf1e0015c8b80081970ec585643a8788d2c9fe99dba",
+        "outcome-label:35d7f95f116eae3a206d60b2a9c04f5e93199fc91c6c2b0ffc4db0376cd734ac",
+        "outcome-label:5566081dc2cf3d0f04af48a6ce2ddc436dae6569c84069763102651b93f985e8",
+        "outcome-label:687cff93234160670ddc432120f56351790b572d5bca3d5a1e6f7c60f413b0db",
+        "outcome-label:69dc4fea1f3c769e96c197179eae1be1b79d1ae52842d8341403877631af255c",
+        "outcome-label:95175a6c402db565a36ed358ebf8c1c1916babc543430d176b2f395105510dd9",
+        "outcome-label:96e8a555a7009980d45382808df50a9c5da189df8a68197e36332f72f71a7038",
+        "outcome-label:9a344abfee374f724682c1c0f51e4321f9ac3d02e739146c71f50502c3ccc569",
+        "outcome-label:9f79d579b02674e83c7638ebd8f21203beb5fded1029a7c5e1e1756c58f3375b",
+        "outcome-label:a7c261b49807e709eb0fbebc7bf35c1e93ef6bf5df1e1e58aa70bcddac891b57",
+        "outcome-label:ae5b6810d785bbe9f0a7604936006c692bed2435d6df1e368c74cf15b5ab6e43",
+        "outcome-label:c612f5c01870f6da3df330f157351508d5a3b68c3082bde206c09efb0ef3db51",
+        "outcome-label:d2d14060e799896c2813087f86447fbaa8149e3bc400b7d9e990737d851ce3c3",
+        "outcome-label:e49e92d45cc17f011e2d9f4d8a400592a4fe195d8bf6f0e8ff91af78daea830e",
+        "outcome-label:f0931a2ec33cb5f68a3a5c8879a467c3c10f6ae76982a80821c7cb4c6f4ac29c",
+        "outcome-label:fa2116ccfe880bc1d662a56d22c3074cb1a5383122b1b2181007b961f30b45f2",
+        "outcome-label:fcbc6db3db7bb1b80b13fae1b086c790b6e1968336b546a4409ad76871896115"
+      ],
+      "source": "pattern",
+      "source_proposal_ids": [],
+      "support": 9,
+      "training_episode_ids": [
+        "episode-02cec8a8307c882f4698d1e99a1ad184",
+        "episode-1d0367ca2e2423d9dccba15c7d783623",
+        "episode-1dd4491b1c854508e7bcfc5c1f3180ac",
+        "episode-32ee00d9816dcb25fb9e41e65bbabcbb",
+        "episode-54636dcf900f91a158f6a3e4c5d23f01",
+        "episode-5d7941691f2138a34e8676a36f3c661e",
+        "episode-6214ba8522b9ae3e86e05c99c9a2d4c1",
+        "episode-91f6c44b2401548c6e8ccbc93a91a56c",
+        "episode-93cbe9d797e7788dd97dad692603e086",
+        "episode-a06483ff63db2644ac30235c5f7959b1",
+        "episode-acd37d998a695ff7d9c1902f9754da0f",
+        "episode-bf45c01b475cc4a4a5e8661dec800a7a",
+        "episode-c7755973d47e48f47fa38cc3de97da2a",
+        "episode-c7b15a1eafeef9fd386ff23e7731b247",
+        "episode-c9350817e6c230d910f874c8296c111b",
+        "episode-d72c6e8a67cf98a7b35264b1677b504a",
+        "episode-e5bafac711ce6635db33c358c9495c7f",
+        "episode-f273f0e98633eb5ee7d7690c25170ad1",
+        "episode-fbdf9fa40740f15a4377fcc78036218d"
+      ],
+      "transfer_uncertainty": 0.0,
+      "trigger_pressure": 0.6999316473000685
+    }
+  ],
+  "schema_version": "1.0",
+  "source": {
+    "commit": "7a8db90bf8052efb5b8e334e644799c6eb99e08e",
+    "dirty": false,
+    "implementation_sha256": "bf880cb063d5115fad6e9938110630effbaec57c8fdbd82666c73e3842f199b2",
+    "runner_sha256": "efb35fa4c8a1170c7f6f3815f5ec0fa948b8b0f1282518e2299fed94220ea75a",
+    "source_files": 273
+  },
+  "source_report": {
+    "path": "docs/freeciv/evidence/fdas-pr29-causal-induction-holdout-engine.json",
+    "sha256": "a7d48e881babe9ae209fca46db4a8e67a477f03baa79e6f8cd81db040fb096c1",
+    "structural_hash": "3793db47ed8aa058d78d28ff68d621fafebcc1de4b7504bf3395ac8d66c10a37"
+  },
+  "structural_hash": "1b9ace13af86dddc0afeb4161de5a68e0d239a38955f0ea538f82889d6926dc8"
+}

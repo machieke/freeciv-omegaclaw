@@ -245,3 +245,12 @@ city size and unit-production context transferred. Promotions remain
 artifact-bound and non-authorizing because induced readout is disabled. See
 `fdas-pr28-causal-induction-discovery.md` and
 `fdas-pr29-causal-induction-holdout.md`.
+
+PR30 adds an approval-bound, deterministic structural-subsumption layer. It
+uses no held-out outcomes or metrics and reduces the 13 PR29 promotions to a
+four-rule diagnostic basis by suppressing nine stricter conjunctions with the
+same training population and calibrated prediction as a retained singleton.
+Different predictions and incomparable rules remain distinct. Because the
+policy was designed after PR29, this is a retrospective mechanics audit, not a
+readout or gameplay confirmation; truth, policy, and induced-rule readout
+authority remain false. See `fdas-pr30-promoted-rule-consolidation.md`.
