@@ -4,7 +4,7 @@ Date: 2026-08-02
 Branch: `experimental/functional-dependent-atomspace`
 Machine scope: local diagnostic replay
 Machine-readable report: `fdas-captured-shadow-replay.json`
-Report hash: `cb2d62ae7bd58f61a9041a6703e53b38c487e9d8af5de96cd6dc5f2df0302f3b`
+Report hash: `d430bdd8eb57bac7b938b5d2f5f67cc6de4a37425d6f283638f06944fa4ae595`
 
 ## Corpus and strictness
 
@@ -25,10 +25,10 @@ revision; all 37 were canonically equivalent.
 
 | Measurement | Result |
 |---|---:|
-| Cold projection p50 / p95 / max | 207.06 / 410.24 / 433.35 ms |
-| Shadow readout p50 / p95 / max | 20.40 / 204.36 / 220.55 ms |
-| Combined cold FDAS p50 / p95 / max | 277.53 / 548.92 / 610.69 ms |
-| Strict incremental plus cold verification p50 / p95 / max | 521.59 / 954.51 / 1,087.64 ms |
+| Cold projection p50 / p95 / max | 217.62 / 430.11 / 432.31 ms |
+| Shadow readout p50 / p95 / max | 18.62 / 368.65 / 414.85 ms |
+| Combined cold FDAS p50 / p95 / max | 290.55 / 482.70 / 620.64 ms |
+| Strict incremental plus cold verification p50 / p95 / max | 521.77 / 950.43 / 1,083.00 ms |
 | Incremental recomputation ratio mean / p50 / p95 | 0.768 / 0.739 / 0.874 |
 | Maximum atoms / scopes / supports | 2,610 / 80 / 1,388 |
 | Maximum dependency keys | 2,002 |
@@ -39,13 +39,16 @@ revision; all 37 were canonically equivalent.
 | Illegal FDAS bindings | 0 |
 | Authority-eligible candidates / violations | 0 / 0 |
 | Safety downgrades | 0 |
+| Revision-bound decision explanations | 38 / 38 |
+| Explanation routes: blocked candidate / gap / none | 16 / 13 / 9 |
+| Maximum serialized decision explanation | 16,980 bytes |
 
 The 500 ms production-safe gate is a p95 gate. Cold projection alone remains
-below it at 410.24 ms, but projection plus shadow readout is 548.92 ms p95 and
-therefore does not pass the controller-inclusive gate in this stress corpus.
-The proposed 150 ms ordinary FDAS contribution target is also not met here.
-The evidence supports bounded diagnostic shadow operation, not unrestricted
-activation or authority.
+below it at 430.11 ms. Projection plus shadow readout measured 482.70 ms p95 in
+this run, inside that broad gate, but the proposed 150 ms ordinary FDAS
+contribution target is not met. A single local diagnostic run is not a live
+latency promotion cohort. The evidence supports bounded diagnostic shadow
+operation, not unrestricted activation or authority.
 
 The strict incremental timing is diagnostic rather than a live-controller
 timing: every transition prepares an incremental revision and a second,
@@ -59,6 +62,18 @@ shard instances. The latter includes 38 world-observation records across 20
 instances; the remaining 613 records come from independently reusable unit
 factual scopes. The coupled city-defense shard is deliberately not reused in
 this corpus because its complete city/unit/route/legal/threat inputs changed.
+
+Every shadow result now carries one canonical decision explanation bound to
+its exact revision and snapshot. A grounded route joins the selected local
+goal and deficit proof to the pressure rule, candidate, byte-identical legal
+binding, typed resources, operation requirements/steps/completion predicate,
+and selected scheduler row. A gap route explicitly records
+`no-current-legal-causal-route`; a not-applicable result records the budget or
+diagnostic blockers. All 76 cold and incremental explanation hashes and the
+top-level report hash were independently recomputed successfully. The bundle
+retains only selected-operation scheduler evidence, reducing the report from
+the rejected 13.7 MB draft to 2,666,884 bytes while keeping the largest
+individual explanation at 16,980 bytes.
 
 A separate same-turn full-rich fixture provides the positive ordinary-update
 check. It reused city/economy, region, combat, and population-recovery output,

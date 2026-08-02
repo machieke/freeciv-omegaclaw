@@ -10,7 +10,7 @@ Plan: `agent-instructions/functional-dependent-atomspace-implementation-plan.md`
 | 2 | Dependency indexes, support-aware invalidation, compatibility-record, rich-component, and city/unit entity incrementality, incremental/cold parity, leases | `fdas-phase2-dependency-materializer.md` |
 | 3 | Ruleset IR 2.0, capability projection, typed grounding, bounded generic proof parity | `fdas-phase3-ruleset-proof-foundation.md` |
 | 4 | City/economy/research projection, local goals, shadow candidates | `fdas-phase4-city-economy-shadow.md` |
-| 5 | FDAS pressure routes, exact resources/packets, commit revalidation and authority gates | `fdas-phase5-pressure-shadow.md`, `fdas-phase5-operation-resource-commit.md` |
+| 5 | FDAS pressure routes, exact resources/packets, canonical selected-operation explanations, commit revalidation and authority gates | `fdas-phase5-pressure-shadow.md`, `fdas-phase5-operation-resource-commit.md` |
 | 6 | Unit/region/defense projection, movement, persistent operations, episodes | `fdas-phase6-*.md` |
 | 7 | Expansion, recovery, settlement, corridors, transport, combat/task forces | `fdas-phase7-acceptance.md` |
 | 8 | Opponent beliefs, contradiction quarantine, decision-sensitive observation | `fdas-phase8-acceptance.md` |
@@ -25,3 +25,9 @@ smoke now exercise that seam, including post-legacy candidate protection,
 bounded PF-v2 readout, and causal evidence. The versioned manifest remains
 `component-only`: the empirical work is diagnostic validation, not action
 authority or a gameplay-improvement claim.
+
+The strict captured replay additionally proves 37/37 incremental/cold
+equivalence and validates canonical revision-bound explanations for all 38
+shadow readouts. Grounded, gap, and not-applicable routes are explicit; this
+closes the component-level selected-operation explanation requirement without
+granting those explanations control authority.

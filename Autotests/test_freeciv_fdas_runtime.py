@@ -371,6 +371,9 @@ def test_full_checked_projector_set_assembles_with_read_only_operations(
     assert evaluation.revision_id == update.revision_id
     assert evaluation.comparison.legacy_candidate_count == 0
     assert evaluation.pressure.context.policy_authority is False
+    assert evaluation.decision_explanation.route_kind == "none"
+    assert evaluation.decision_explanation.selected_operation_id is None
+    assert evaluation.decision_explanation.explanation_hash
     assert not any(
         candidate.authority_eligible for candidate in evaluation.candidates)
 
@@ -385,6 +388,9 @@ def test_full_checked_projector_set_assembles_with_read_only_operations(
     assert events[-2]["type"] == "pressure_graph_built"
     assert events[-1]["type"] == "atomspace_shadow_decision"
     assert events[-1]["payload"]["details"]["authority_eligible"] is False
+    assert events[-1]["payload"]["details"][
+        "decision_explanation_hash"] == (
+            evaluation.decision_explanation.explanation_hash)
     assert validate_file(path).valid
 
     with pytest.raises(RuntimeError, match="revision-current"):

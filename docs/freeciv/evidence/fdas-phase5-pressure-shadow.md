@@ -22,6 +22,11 @@ city/economy FDAS slice:
 - missing legal causal routes produce explicit gap-expansion operations;
 - per-goal effects are explicit, preventing unrelated goals from receiving an
   operation's default effect;
+- every selected shadow result produces a canonical revision-bound decision
+  explanation. Grounded routes join the deficit proof, pressure rule, complete
+  candidate and legal binding, typed resources, operation lifecycle contract,
+  and selected scheduler evidence; gap and not-applicable routes retain
+  explicit why-not blockers;
 - atom, rule, and operation budgets fail with deterministic truncation
   diagnostics; exhaustion before a complete target/deficit pair returns
   `unknown` without an orphan false target;
@@ -30,6 +35,12 @@ city/economy FDAS slice:
 The adapter does not yet project operation lifecycles, arbitrate typed game
 resources, extend commit validation, or grant bounded city authority. Those are
 separate Phase-5 increments and remain gated off.
+
+The explanation intentionally embeds only the selected operation's allocation
+and score row, plus the full schedule structural hash. It does not duplicate
+the complete candidate score table. Captured replay bounded the largest
+serialized explanation to 16,980 bytes without weakening its proof or legal
+binding.
 
 ## Verification
 

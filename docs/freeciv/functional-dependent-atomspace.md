@@ -1,6 +1,6 @@
 # Functional Dependent AtomSpace
 
-Status: Phase 4 city/economy shadow slice passed; component-only
+Status: Phases 0-10 implemented at the component-only boundary; no policy authority
 
 Branch: `experimental/functional-dependent-atomspace`
 
@@ -195,6 +195,15 @@ Revision-bound `explain` and `why_not` queries expose supports, exact field and
 policy dependencies, provenance, completeness, and deterministic hashes.
 The rich projector is opt-in and not used by the default compatibility or live
 planning path.
+
+The assembled shadow runtime adds one canonical decision explanation for every
+readout. For a selected grounded route it joins the active goal and deficit
+proof to the causal pressure rule, complete candidate, byte-identical current
+legal action, typed resource claims, operation requirements and steps,
+completion predicate, and selected scheduler evidence. Explicit expansion gaps
+and not-applicable results carry their why-not blockers instead. The bundle is
+revision/snapshot-bound, structurally hashed, and bounded by retaining only the
+selected scheduler row; it cannot authorize or execute an action.
 
 ## Activation
 

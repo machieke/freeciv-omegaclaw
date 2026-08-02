@@ -336,6 +336,12 @@ class AtomSpaceEventEmitter(object):
             "evaluation_hash": pressure.evaluation_hash,
             "candidate_instantiation_hash": (
                 instantiation.instantiation_hash),
+            "decision_explanation_hash": (
+                evaluation.decision_explanation.explanation_hash),
+            "decision_route_kind": (
+                evaluation.decision_explanation.route_kind),
+            "decision_blockers": list(
+                evaluation.decision_explanation.blockers),
             "latency_ms": evaluation.latency_ms,
             "omitted_detail_event_count": omitted_count,
             "reason": pressure.reason,

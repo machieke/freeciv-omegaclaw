@@ -13,6 +13,7 @@ if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
 from freeciv_agent.planning import (  # noqa: E402
+    CandidateInstantiation,
     CandidateOperationFactory,
     FDASCommitBinding,
     FDASCommitValidator,
@@ -21,6 +22,7 @@ from freeciv_agent.planning import (  # noqa: E402
     ValidationDisposition,
     legacy_shadow_goal_routes,
 )
+from freeciv_agent.events.schema import structural_hash  # noqa: E402
 from freeciv_agent.pressure import (  # noqa: E402
     DependentAtomPressureAdapter,
     DependentAtomSchedulingBridge,
@@ -33,6 +35,8 @@ from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 from freeciv_agent.state.atomspace import (  # noqa: E402
     CityEconomyProjector,
     DependentAtomSpaceStore,
+    FdasRuntime,
+    RevisionQueryContext,
     ruleset_digest,
 )
 
@@ -138,6 +142,39 @@ def test_pressure_shadow_is_deterministic_read_only_and_explainable(ir):
         and rule.source["explanation_hash"]
         and rule.source["revision_id"] == revision.revision_id
         for rule in first.context.graph.rules)
+
+
+def test_selected_gap_has_revision_bound_why_not_explanation(ir):
+    _snapshot_value, revision, goals, _candidates = _case(ir)
+    result = DependentAtomPressureAdapter().evaluate(revision, goals, ())
+    instantiation = CandidateInstantiation(
+        (), 0, (), (), structural_hash("gap-only-instantiation"))
+
+    explanation = FdasRuntime.explain_shadow_decision(
+        revision, RevisionQueryContext(revision), goals, (), instantiation,
+        result)
+
+    assert explanation.route_kind == "gap"
+    assert explanation.selected_operation_id.startswith("fdas-expand-gap:")
+    assert explanation.candidate is None
+    assert explanation.blockers == ("no-current-legal-causal-route",)
+    assert len(explanation.goal_routes) == 1
+    assert explanation.causal_rules[0]["causal_kind"] == "diagnostic"
+    assert explanation.pressure_operation["payload"]["reason"] == (
+        "no-current-legal-causal-route")
+
+    unknown_schedule = dict(
+        result.schedule, selected_operation_id="fdas-unknown-operation")
+    with pytest.raises(RuntimeError, match="no candidate or gap route"):
+        FdasRuntime.explain_shadow_decision(
+            revision, RevisionQueryContext(revision), goals, (),
+            instantiation, replace(result, schedule=unknown_schedule))
+
+    scoreless_schedule = dict(result.schedule, scores=[])
+    with pytest.raises(RuntimeError, match="unique scheduler evidence"):
+        FdasRuntime.explain_shadow_decision(
+            revision, RevisionQueryContext(revision), goals, (),
+            instantiation, replace(result, schedule=scoreless_schedule))
 
 
 def test_candidate_budget_preserves_protected_legacy_binding(ir):
@@ -275,6 +312,25 @@ def test_procedural_route_boundary_remains_shadow_only(ir):
     assert operation.payload["authority_eligible"] is False
     assert result.context.policy_authority is False
 
+    instantiation = CandidateInstantiation(
+        (compiled_effect_candidate,), 0, (), (),
+        structural_hash((compiled_effect_candidate.candidate_hash,)))
+    explanation = FdasRuntime.explain_shadow_decision(
+        revision, RevisionQueryContext(revision), (route_goal,),
+        (compiled_effect_candidate,), instantiation, result)
+
+    assert explanation.route_kind == "candidate"
+    assert explanation.selected_operation_id == operation.operation_id
+    assert explanation.candidate["legal_bound"] is True
+    assert explanation.candidate["resource_keys"]
+    assert explanation.candidate["operation"]["steps"][0][
+        "completion_predicate_id"]
+    assert explanation.goal_routes[0]["deficit_explanation"][
+        "structural_hash"] == route_goal.explanation_hash
+    assert explanation.causal_rules[0]["source"][
+        "deficit_atom_id"] == route_goal.deficit_atom_id
+    assert explanation.explanation_hash
+
 
 def test_budget_exhaustion_is_unknown_without_orphan_false_target(ir):
     _snapshot_value, revision, goals, candidates = _case(ir)
@@ -295,6 +351,16 @@ def test_budget_exhaustion_is_unknown_without_orphan_false_target(ir):
     assert result.context.diagnostics == ("atom-budget-exhausted",)
     assert result.context.graph.atoms == ()
     assert result.schedule["selected_operation_id"] is None
+
+    instantiation = CandidateInstantiation(
+        tuple(candidates), 0, (), (), structural_hash("budget-case"))
+    explanation = FdasRuntime.explain_shadow_decision(
+        revision, RevisionQueryContext(revision), goals, candidates,
+        instantiation, result)
+    assert explanation.route_kind == "none"
+    assert explanation.selected_operation_id is None
+    assert "materialization-budget-exhausted" in explanation.blockers
+    assert "atom-budget-exhausted" in explanation.blockers
 
 
 def test_stale_goal_revision_is_rejected(ir):

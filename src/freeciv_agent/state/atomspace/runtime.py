@@ -244,6 +244,53 @@ class FdasRuntimeUpdate:
 
 
 @dataclass(frozen=True)
+class FdasDecisionExplanation:
+    """Canonical revision-bound why/why-not bundle for one shadow readout."""
+
+    revision_id: str
+    snapshot_id: str
+    status: str
+    reason: object
+    selected_operation_id: object
+    route_kind: str
+    goal_routes: tuple
+    causal_rules: tuple
+    candidate: object
+    pressure_operation: object
+    schedule: dict
+    blockers: tuple
+    diagnostics: tuple
+    explanation_hash: str
+
+    def __post_init__(self):
+        if self.route_kind not in (
+                "candidate", "candidate-blocked", "gap", "none"):
+            raise ValueError("invalid FDAS decision explanation route kind")
+        object.__setattr__(self, "goal_routes", tuple(self.goal_routes))
+        object.__setattr__(self, "causal_rules", tuple(self.causal_rules))
+        object.__setattr__(self, "blockers", tuple(self.blockers))
+        object.__setattr__(self, "diagnostics", tuple(self.diagnostics))
+
+    def to_dict(self):
+        return {
+            "blockers": list(self.blockers),
+            "candidate": self.candidate,
+            "causal_rules": list(self.causal_rules),
+            "diagnostics": list(self.diagnostics),
+            "explanation_hash": self.explanation_hash,
+            "goal_routes": list(self.goal_routes),
+            "pressure_operation": self.pressure_operation,
+            "reason": self.reason,
+            "revision_id": self.revision_id,
+            "route_kind": self.route_kind,
+            "schedule": dict(self.schedule),
+            "selected_operation_id": self.selected_operation_id,
+            "snapshot_id": self.snapshot_id,
+            "status": self.status,
+        }
+
+
+@dataclass(frozen=True)
 class FdasShadowEvaluation:
     snapshot_id: str
     revision_id: str
@@ -252,6 +299,7 @@ class FdasShadowEvaluation:
     candidate_instantiation: object
     pressure: object
     comparison: object
+    decision_explanation: FdasDecisionExplanation
     latency_ms: float
 
     def to_dict(self):
@@ -261,6 +309,7 @@ class FdasShadowEvaluation:
             "comparison": (
                 None if self.comparison is None
                 else self.comparison.to_dict()),
+            "decision_explanation": self.decision_explanation.to_dict(),
             "goal_count": len(self.goals),
             "latency_ms": self.latency_ms,
             "pressure": self.pressure.to_dict(),
@@ -382,6 +431,127 @@ class FdasRuntime(object):
         self._pressure_adapter = pressure_adapter
         return self
 
+    @staticmethod
+    def explain_shadow_decision(
+            revision, query, goals, candidates, instantiation, pressure):
+        """Join proof, candidate, pressure, resource, and schedule evidence."""
+        selected_id = pressure.schedule.get("selected_operation_id")
+        candidate = next((
+            value for value in candidates
+            if value.operation.operation_id == selected_id), None)
+        pressure_operation = next((
+            value for value in pressure.context.operations
+            if value.operation_id == selected_id), None)
+        selected_is_gap = (
+            selected_id is not None
+            and str(selected_id).startswith("fdas-expand-gap:"))
+        if (selected_id is not None and candidate is None
+                and not selected_is_gap):
+            raise RuntimeError(
+                "selected FDAS operation has no candidate or gap route")
+        if selected_id is not None and pressure_operation is None:
+            raise RuntimeError(
+                "selected FDAS operation lacks pressure evidence")
+        if candidate is not None:
+            route_kind = (
+                "candidate-blocked" if candidate.blockers else "candidate")
+            goal_ids = tuple(candidate.operation.goal_ids)
+            candidate_value = candidate.to_dict()
+            blockers = tuple(candidate.blockers)
+            atom_id = dict(pressure.context.candidate_atom_ids).get(
+                selected_id)
+        elif selected_is_gap:
+            route_kind = "gap"
+            goal_ids = tuple(
+                goal_id for goal_id, effect
+                in (pressure_operation.goal_effects
+                    if pressure_operation is not None else ())
+                if float(effect) > 0.0)
+            candidate_value = None
+            blockers = ("no-current-legal-causal-route",)
+            gap_atoms = dict(pressure.context.gap_atom_ids)
+            atom_id = next((
+                value for goal_id, value in gap_atoms.items()
+                if goal_id in goal_ids), None)
+        else:
+            route_kind = "none"
+            goal_ids = ()
+            candidate_value = None
+            blockers = tuple(sorted(set(
+                ([pressure.reason] if pressure.reason else [])
+                + list(pressure.context.diagnostics)
+                + list(instantiation.diagnostics))))
+            atom_id = None
+        goal_by_id = dict((value.goal.goal_id, value) for value in goals)
+        goal_routes = []
+        for goal_id in sorted(set(goal_ids)):
+            goal = goal_by_id.get(goal_id)
+            if goal is None:
+                raise RuntimeError(
+                    "selected FDAS operation references an inactive goal")
+            deficit_explanation = query.explain(goal.deficit_atom_id)
+            goal_routes.append({
+                "deficit_atom_id": goal.deficit_atom_id,
+                "deficit_explanation": deficit_explanation,
+                "deficit_predicate": goal.deficit_predicate,
+                "explanation_hash": goal.explanation_hash,
+                "global_goal_kind": goal.global_goal_kind,
+                "goal": goal.goal.to_dict(),
+                "scope_id": goal.scope_id,
+                "target_key": goal.target_key.to_dict(),
+            })
+        causal_rules = tuple(
+            value.to_dict() for value in pressure.context.graph.rules
+            if atom_id is not None and atom_id in value.premise_ids)
+        if selected_id is not None and (
+                not goal_routes or atom_id is None or not causal_rules):
+            raise RuntimeError(
+                "selected FDAS operation has incomplete causal evidence")
+        diagnostics = tuple(sorted(set(
+            pressure.context.diagnostics + instantiation.diagnostics)))
+        schedule_evidence = {
+            "allocations": [
+                value for value in pressure.schedule.get("allocations", ())
+                if value.get("operation_id") == selected_id],
+            "pressure_hash": pressure.schedule.get("pressure_hash"),
+            "reason": pressure.schedule.get("reason"),
+            "scores": [
+                value for value in pressure.schedule.get("scores", ())
+                if value.get("operation", {}).get("operation_id")
+                == selected_id],
+            "selected_operation_id": selected_id,
+            "solver_identity": pressure.schedule.get("solver_identity"),
+            "status": pressure.schedule.get("status"),
+            "structural_hash": pressure.schedule.get("structural_hash"),
+        }
+        if (selected_id is not None
+                and len(schedule_evidence["scores"]) != 1):
+            raise RuntimeError(
+                "selected FDAS operation lacks unique scheduler evidence")
+        semantic = {
+            "blockers": list(blockers),
+            "candidate": candidate_value,
+            "causal_rules": list(causal_rules),
+            "diagnostics": list(diagnostics),
+            "goal_routes": goal_routes,
+            "pressure_operation": (
+                None if pressure_operation is None
+                else pressure_operation.to_dict()),
+            "reason": pressure.reason,
+            "revision_id": revision.revision_id,
+            "route_kind": route_kind,
+            "schedule": schedule_evidence,
+            "selected_operation_id": selected_id,
+            "snapshot_id": revision.snapshot_id,
+            "status": pressure.status,
+        }
+        return FdasDecisionExplanation(
+            revision.revision_id, revision.snapshot_id, pressure.status,
+            pressure.reason, selected_id, route_kind, tuple(goal_routes),
+            causal_rules, candidate_value,
+            semantic["pressure_operation"], schedule_evidence, blockers,
+            diagnostics, structural_hash(semantic))
+
     def evaluate_shadow(self, snapshot, legacy_candidates=()):
         """Evaluate local FDAS routes without returning an executable action."""
         if not self.enabled:
@@ -414,6 +584,8 @@ class FdasRuntime(object):
         candidates = instantiation.candidates
         pressure = self._pressure_adapter.evaluate(
             revision, goals, candidates)
+        decision_explanation = self.explain_shadow_decision(
+            revision, query, goals, candidates, instantiation, pressure)
         comparison = None
         if legacy_candidates is not None:
             from ...planning import compare_shadow_candidates
@@ -421,7 +593,7 @@ class FdasRuntime(object):
                 snapshot, legacy_candidates, candidates)
         return FdasShadowEvaluation(
             snapshot.snapshot_id, revision.revision_id, goals, candidates,
-            instantiation, pressure, comparison,
+            instantiation, pressure, comparison, decision_explanation,
             (time.perf_counter() - started) * 1000.0)
 
     def emit_current(self, writer, snapshot, caused_by=(), prior_revision=None):

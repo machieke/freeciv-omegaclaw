@@ -210,6 +210,8 @@ def _cold_replay(snapshots, declaration, ruleset_ir):
                     "candidate_instantiation": (
                         evaluation.candidate_instantiation.to_dict()),
                     "comparison": evaluation.comparison.to_dict(),
+                    "decision_explanation": (
+                        evaluation.decision_explanation.to_dict()),
                     "evaluation_hash": evaluation.pressure.evaluation_hash,
                     "goal_count": len(evaluation.goals),
                     "latency_ms": evaluation.latency_ms,
@@ -264,6 +266,8 @@ def _incremental_replay(snapshots, declaration, ruleset_ir):
                     "candidate_instantiation": (
                         evaluation.candidate_instantiation.to_dict()),
                     "comparison": evaluation.comparison.to_dict(),
+                    "decision_explanation": (
+                        evaluation.decision_explanation.to_dict()),
                     "evaluation_hash": evaluation.pressure.evaluation_hash,
                     "goal_count": len(evaluation.goals),
                     "latency_ms": evaluation.latency_ms,
@@ -364,6 +368,12 @@ def main(argv=None):
             "pressure_status_counts": dict(sorted(Counter(
                 row["shadow_evaluation"]["pressure_status"]
                 for row in samples).items())),
+            "decision_route_kind_counts": dict(sorted(Counter(
+                row["shadow_evaluation"]["decision_explanation"][
+                    "route_kind"] for row in samples).items())),
+            "decision_explanation_count": sum(
+                bool(row["shadow_evaluation"]["decision_explanation"].get(
+                    "explanation_hash")) for row in samples),
             "safety_downgrade_count": sum(
                 len(row["safety_downgrades"]) for row in comparisons),
         }

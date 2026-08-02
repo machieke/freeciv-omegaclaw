@@ -137,6 +137,7 @@ from .transaction import AtomSpaceTransaction
 from .diagnostics import AtomSpaceDiagnostics
 from .events import AtomSpaceEventEmitter, FDAS_EVENT_TYPES
 from .runtime import (
+    FdasDecisionExplanation,
     FdasRuntime,
     FdasRuntimeConfigurationError,
     FdasShadowEvaluation,
@@ -177,6 +178,7 @@ __all__ = (
     "DifferentialVerification",
     "EntityRef",
     "FDAS_EVENT_TYPES",
+    "FdasDecisionExplanation",
     "FdasRuntime",
     "FdasRuntimeConfigurationError",
     "FdasShadowEvaluation",

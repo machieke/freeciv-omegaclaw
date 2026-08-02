@@ -40,8 +40,10 @@ path instead of being assembled only by tests:
   view. Reading it cannot create a lifecycle or alter planner behavior.
 - Enabled engine runs publish bounded causal revision and post-legacy shadow
   decision events, atom/scope counts, projection latency, and shadow-readout
-  latency. Revision-start events are causally linked to the authoritative
-  `state_snapshot` event. The readout returns no executable action.
+  latency. Each readout also emits the hash, route kind, and blockers of a
+  canonical revision-bound decision explanation. Revision-start events are
+  causally linked to the authoritative `state_snapshot` event. The readout
+  returns no executable action.
 - Deterministically sampled incremental/cold verification fails the runtime
   closed on any canonical mismatch.
 - A successful sampled check publishes the already-verified incremental
@@ -72,16 +74,18 @@ base harness; the resolved declaration and hash are part of run identity.
 
 ## Verification
 
-- Focused FDAS suite: `183 passed` (latest entity-shard checkpoint).
+- Focused FDAS suite: `184 passed` (latest explanation checkpoint).
 - Configuration, runtime, and harness integration: `140 passed in 297.14s`.
-- Complete FreeCiv acceptance suite: `1,280 passed in 382.06s`.
+- Complete FreeCiv acceptance suite: `1,281 passed in 380.50s`.
 - Enabled checked projector assembly was exercised against the compiled
   Civ2Civ3 ruleset and authoritative contract fixture.
 - Strict captured replay exercised 38 snapshots and 37 transitions with 100%
   cold verification and no mismatches.
 - The schema-1.1 diagnostic replay retained 37/37 equivalence. Its strict
-  incremental-plus-cold projection measured 535.51 ms mean and 954.51 ms p95;
+  incremental-plus-cold projection measured 535.14 ms mean and 950.43 ms p95;
   this path includes both builds by design and is not a live-controller timing.
+- All 38 replayed shadow decisions carry bounded canonical explanations; 76/76
+  cold and incremental explanation hashes and the report hash were recomputed.
 - One predeclared engine-live shadow game completed 30 turns with 52 rich
   revisions and 51 non-authorizing shadow decisions.
 - `git diff --check`: clean.
