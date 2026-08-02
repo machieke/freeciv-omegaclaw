@@ -155,6 +155,7 @@ from .fdas_episode_induction import (
 from .fdas_candidate_choices import (
     CANDIDATE_CHOICE_SCHEMA_VERSION,
     DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES,
+    DEFENSE_CANDIDATE_CHOICE_SELECTION_ACTION_TYPES,
     DEFENSE_CANDIDATE_CHOICE_SURFACE,
     FdasCandidateChoice,
     FdasCandidateChoiceCalibrationExport,
@@ -290,6 +291,7 @@ __all__ = [
     "causal_induction_feature_query", "combine_episode_stores",
     "CANDIDATE_CHOICE_SCHEMA_VERSION",
     "DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES",
+    "DEFENSE_CANDIDATE_CHOICE_SELECTION_ACTION_TYPES",
     "DEFENSE_CANDIDATE_CHOICE_SURFACE",
     "FdasCandidateChoice", "FdasCandidateChoiceSet",
     "FdasCandidateChoiceCalibrationExport",

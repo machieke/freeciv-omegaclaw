@@ -73,6 +73,15 @@ def _choice_operation_type(choice):
     return value
 
 
+def _choice_actor_id(choice):
+    action = json.loads(choice.action_key)
+    actor_id = action.get("actor_id")
+    if (isinstance(actor_id, bool) or not isinstance(actor_id, int)
+            or actor_id < 0):
+        raise ValueError("candidate choice lacks exact unit actor")
+    return actor_id
+
+
 def audit(run_root, expected_seeds=EXPECTED_SEEDS, pilot_id=PILOT_ID,
           require_surface_strata=False):
     run_root = os.path.abspath(run_root)
@@ -185,6 +194,20 @@ def audit(run_root, expected_seeds=EXPECTED_SEEDS, pilot_id=PILOT_ID,
             _choice_operation_type(row) == operation_type
             for value in choice_sets for row in value.choices))
         for operation_type in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES)
+    selected_operation_type_lineages = dict(
+        (operation_type, set(
+            (value.game_id, _choice_actor_id(row), operation_type)
+            for value in choice_sets for row in value.choices
+            if (row.selection_role == "selected"
+                and _choice_operation_type(row) == operation_type)))
+        for operation_type in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES)
+    observed_operation_type_lineages = dict(
+        (operation_type, set(
+            (value.game_id, _choice_actor_id(row), operation_type)
+            for value in observed_sets for row in value.choices
+            if (row.selection_role == "selected"
+                and _choice_operation_type(row) == operation_type)))
+        for operation_type in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES)
     yield_measures = {
         "actor_context_signatures": len(actor_context_signatures),
         "choice_sets": len(choice_sets),
@@ -214,6 +237,12 @@ def audit(run_root, expected_seeds=EXPECTED_SEEDS, pilot_id=PILOT_ID,
             for value in choice_sets),
         "selected_operation_type_counts": (
             selected_operation_type_counts),
+        "selected_operation_type_lineage_counts": dict(
+            (key, len(value)) for key, value in
+            selected_operation_type_lineages.items()),
+        "observed_operation_type_lineage_counts": dict(
+            (key, len(value)) for key, value in
+            observed_operation_type_lineages.items()),
         "choice_operation_type_counts": choice_operation_type_counts,
     }
     progression_gates = {
@@ -233,6 +262,9 @@ def audit(run_root, expected_seeds=EXPECTED_SEEDS, pilot_id=PILOT_ID,
                 yield_measures["mixed_operation_type_choice_sets"] >= 3),
             "selected_action_strata_yield": all(
                 selected_operation_type_counts.get(value, 0) >= 2
+                for value in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES),
+            "selected_action_strata_lineage_yield": all(
+                len(selected_operation_type_lineages.get(value, ())) >= 2
                 for value in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES),
         })
     semantic = {

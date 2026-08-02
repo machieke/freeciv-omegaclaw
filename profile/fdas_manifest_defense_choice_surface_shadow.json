@@ -54,6 +54,10 @@
     "outcome_target": "durable-selected-actor-city-defense/32-turn/2.0",
     "policy_authority": false,
     "readout_authority": false,
+    "selection_action_types": [
+      "unit_fortify",
+      "unit_move"
+    ],
     "truth_mutated": false
   },
   "delayed_induction_outcome_diagnostic": {

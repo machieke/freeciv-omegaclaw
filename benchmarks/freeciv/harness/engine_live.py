@@ -61,6 +61,7 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     FdasCandidateChoiceSetRecorder,
                                     FdasCandidateChoiceSetStore,
                                     DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES,
+                                    DEFENSE_CANDIDATE_CHOICE_SELECTION_ACTION_TYPES,
                                     DEFENSE_CANDIDATE_CHOICE_SURFACE,
                                     DURABLE_ACTOR_CITY_DEFENSE_TARGET,
                                     DURABLE_CITY_COVERAGE_TARGET,
@@ -2890,6 +2891,8 @@ async def _play(run_dir, manifest, context):
             "outcome_target": DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET,
             "policy_authority": False,
             "readout_authority": False,
+            "selection_action_types": list(
+                DEFENSE_CANDIDATE_CHOICE_SELECTION_ACTION_TYPES),
             "truth_mutated": False,
         }
         if defense_choice_surface_capability != "shadow-live":
@@ -5103,8 +5106,8 @@ async def _play(run_dir, manifest, context):
                     defense_choice_surface_relevant = bool(
                         fdas_defense_choice_surface
                         and decision is not None
-                        and decision.candidate.category in (
-                            "city_defense", "city_garrison_move"))
+                        and decision.candidate.action.get("action_type")
+                        in DEFENSE_CANDIDATE_CHOICE_SELECTION_ACTION_TYPES)
                     evaluate_fdas_shadow = bool(
                         (not fdas_turn_sampled
                          or snapshot.turn not in fdas_shadow_evaluated_turns)
@@ -5226,9 +5229,16 @@ async def _play(run_dir, manifest, context):
                                 status=candidate_impact.status)
                         if fdas_turn_sampled:
                             fdas_shadow_evaluated_turns.add(snapshot.turn)
-                        fdas_authority = fdas_runtime.evaluate_authority(
-                            snapshot, fdas_shadow,
-                            None if decision is None else decision.candidate)
+                        fdas_authority = (
+                            fdas_runtime.evaluate_authority(
+                                snapshot, fdas_shadow,
+                                None if decision is None
+                                else decision.candidate)
+                            if (not fdas_authority_scoped
+                                or fdas_runtime.authority_relevant(
+                                    None if decision is None
+                                    else decision.candidate))
+                            else None)
                         if fdas_authority is not None:
                             decision_stats[
                                 "fdas_authority_opportunities"] += 1

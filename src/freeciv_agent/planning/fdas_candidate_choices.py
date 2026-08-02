@@ -21,6 +21,8 @@ DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES = (
     "fdas-shadow:city-garrison-deficit:unit_move",
     "fdas-shadow:unit-fortification-opportunity:unit_fortify",
 )
+DEFENSE_CANDIDATE_CHOICE_SELECTION_ACTION_TYPES = (
+    "unit_fortify", "unit_move")
 _SELECTION_ROLES = frozenset(("selected", "nonselected-censored"))
 _EXECUTION_STATES = frozenset((
     "pending", "accepted", "rejected", "not-applicable"))
@@ -797,6 +799,19 @@ def export_candidate_choice_calibration(
         if len(selected) != 1:
             raise ValueError("observed choice set lacks exact selected row")
         row = selected[0]
+        selected_action = json.loads(row.action_key)
+        selected_actor_id = selected_action.get("actor_id")
+        if (isinstance(selected_actor_id, bool)
+                or not isinstance(selected_actor_id, int)
+                or selected_actor_id < 0):
+            raise ValueError(
+                "selected candidate calibration lacks unit actor")
+        selected_operation_type = dict(
+            row.feature_query.context).get("operation_type")
+        if selected_operation_type not in (
+                DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES):
+            raise ValueError(
+                "selected candidate calibration operation type differs")
         examples.append(InductionEpisode(
             "candidate-example-" + choice_set.choice_set_id,
             row.feature_query.context,
@@ -805,8 +820,13 @@ def export_candidate_choice_calibration(
             tuple(sorted(set(
                 row.feature_query.provenance_ids + (
                     "choice-set:" + choice_set.choice_set_id,
+                    "game-id:" + choice_set.game_id,
                     "outcome-label:" + choice_set.outcome_label_id,
+                    "selected-action-type:" + str(
+                        selected_action.get("action_type")),
+                    "selected-actor-id:" + str(selected_actor_id),
                     "selected-operation:" + row.operation_id,
+                    "selected-operation-type:" + selected_operation_type,
                     "selected-episode:" + choice_set.selected_episode_id,
                 ))))))
     examples = tuple(sorted(examples, key=lambda value: value.episode_id))

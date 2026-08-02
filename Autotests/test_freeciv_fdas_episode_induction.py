@@ -448,6 +448,14 @@ def test_candidate_choice_set_censors_nonselected_and_labels_only_selected():
     assert exported.to_dict()["policy_authority"] is False
     assert exported.to_dict()["readout_authority"] is False
     assert exported.to_dict()["truth_mutated"] is False
+    assert "game-id:" + snapshot.identity.game_id in (
+        exported.examples[0].provenance_ids)
+    assert "selected-actor-id:7" in exported.examples[0].provenance_ids
+    assert "selected-action-type:unit_fortify" in (
+        exported.examples[0].provenance_ids)
+    assert (
+        "selected-operation-type:fdas-shadow:unit-fortification-opportunity:"
+        "unit_fortify") in exported.examples[0].provenance_ids
     assert all(
         alternative.operation.operation_id not in value.provenance_ids
         for value in exported.examples)
@@ -574,6 +582,21 @@ def test_defense_choice_surface_captures_move_and_fortify_without_estimates():
                for row in choice_set.choices)
     assert all("outcome" not in row.feature_query.to_dict()
                for row in choice_set.choices)
+
+    no_selection_recorder = FdasCandidateChoiceSetRecorder(
+        FdasCandidateChoiceSetStore(
+            "defense-choice-surface-no-selection-test"))
+    no_selection = no_selection_recorder.capture_defense_surface(
+        (move, fortify), (move_score, fortify_score), legal_snapshot,
+        "surface-no-selection-revision",
+        '{"action_type":"unit_move","actor_id":99}',
+        DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET, queries,
+        global_baseline_selected_operation_id=move.operation.operation_id)
+    assert no_selection.selected_operation_id is None
+    assert no_selection.execution_status == "not-applicable"
+    assert no_selection.outcome_status == "censored-no-selection"
+    assert all(row.selection_role == "nonselected-censored"
+               for row in no_selection.choices)
 
 
 def test_context_and_evidence_features_must_be_linked_to_episode():
