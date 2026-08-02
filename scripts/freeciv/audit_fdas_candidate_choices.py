@@ -20,6 +20,7 @@ from freeciv_agent.events.schema import (  # noqa: E402
 )
 from freeciv_agent.planning import (  # noqa: E402
     FdasCandidateChoiceSetStore,
+    combine_candidate_choice_stores,
     export_candidate_choice_calibration,
 )
 
@@ -32,16 +33,57 @@ def _sha256(path):
     return digest.hexdigest()
 
 
-def audit(path):
+def _load_source(path):
     path = os.path.abspath(path)
     with open(path, encoding="utf-8") as stream:
         raw = json.load(stream)
-    persistence_identity = raw["persistence_identity"]
-    store = FdasCandidateChoiceSetStore.load(path, persistence_identity)
-    if store.quarantined:
+    store = FdasCandidateChoiceSetStore.load(
+        path, raw["persistence_identity"])
+    return path, raw, store
+
+
+def audit(paths):
+    if isinstance(paths, str):
+        paths = (paths,)
+    sources = tuple(_load_source(path) for path in paths)
+    if not sources:
+        raise ValueError("candidate choice audit requires a source store")
+    quarantined = tuple(
+        store for _path, _raw, store in sources if store.quarantined)
+    if quarantined:
         raise ValueError(
             "candidate choice store is quarantined: {}".format(
-                store.quarantine_reason))
+                quarantined[0].quarantine_reason))
+    if len(sources) == 1:
+        path, raw, store = sources[0]
+        artifact = {
+            "path": os.path.relpath(path, REPO).replace(os.sep, "/"),
+            "persistence_identity": store.persistence_identity,
+            "sha256": _sha256(path),
+            "store_digest": store.store_digest,
+        }
+    else:
+        source_rows = tuple({
+            "path": os.path.relpath(path, REPO).replace(os.sep, "/"),
+            "persistence_identity": store.persistence_identity,
+            "sha256": _sha256(path),
+            "store_digest": store.store_digest,
+        } for path, _raw, store in sources)
+        cohort_identity = structural_hash({
+            "source_store_digests": [
+                value["store_digest"] for value in source_rows],
+            "source_store_identities": [
+                value["persistence_identity"] for value in source_rows],
+        })
+        store = combine_candidate_choice_stores(
+            tuple(value[2] for value in sources), cohort_identity)
+        raw = {"store_digest": store.store_digest}
+        artifact = {
+            "cohort_persistence_identity": cohort_identity,
+            "source_count": len(source_rows),
+            "sources": list(source_rows),
+            "store_digest": store.store_digest,
+        }
     choice_sets = store.choice_sets()
     scopes = tuple(sorted(set(
         (value.operation_type, value.outcome_target)
@@ -83,12 +125,7 @@ def audit(path):
         "store_is_not_quarantined": not store.quarantined,
     }
     semantic = {
-        "artifact": {
-            "path": os.path.relpath(path, REPO).replace(os.sep, "/"),
-            "persistence_identity": persistence_identity,
-            "sha256": _sha256(path),
-            "store_digest": store.store_digest,
-        },
+        "artifact": artifact,
         "calibration_export": exported.to_dict(),
         "claim_scope": (
             "selected-only candidate calibration evidence; rejected or "
@@ -125,7 +162,7 @@ def audit(path):
 
 def main(argv=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument("choice_store")
+    parser.add_argument("choice_store", nargs="+")
     parser.add_argument("--output")
     args = parser.parse_args(argv)
     report = audit(args.choice_store)

@@ -36,6 +36,7 @@ from freeciv_agent.planning import (  # noqa: E402
     ShadowOperationCandidate,
     causal_induction_feature_query,
     combine_episode_stores,
+    combine_candidate_choice_stores,
     combine_outcome_label_stores,
     export_candidate_choice_calibration,
 )
@@ -466,6 +467,27 @@ def test_candidate_choice_set_censors_nonselected_and_labels_only_selected():
         assert quarantined.quarantined is True
         assert quarantined.quarantine_reason.startswith(
             "candidate-choice-store-load-failed:")
+
+    independent = replace(
+        observed,
+        choice_set_id="choice-set-independent",
+        game_id="fdas-candidate-impact-independent",
+        evaluation_result_hash="independent-evaluation",
+        execution_event_id="independent-execution",
+        selected_episode_id="independent-episode",
+        outcome_label_id="independent-label")
+    other_store = FdasCandidateChoiceSetStore(
+        "choice-set-other", (independent,))
+    cohort = combine_candidate_choice_stores(
+        (store, other_store), "choice-set-cohort")
+
+    assert len(cohort.choice_sets()) == 2
+    assert len(export_candidate_choice_calibration(
+        cohort, evaluated.operation_type,
+        evaluated.outcome_target).examples) == 2
+    with pytest.raises(ValueError, match="identities overlap"):
+        combine_candidate_choice_stores(
+            (store, store), "choice-set-overlap")
 
 
 def test_candidate_choice_set_without_in_scope_selection_is_all_censored():

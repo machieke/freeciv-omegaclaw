@@ -439,6 +439,45 @@ class FdasCandidateChoiceSetStore(object):
                 .format(error))
 
 
+def combine_candidate_choice_stores(stores, persistence_identity):
+    """Combine independent exact-scope stores without pseudo-replication."""
+    stores = tuple(stores)
+    if not stores:
+        raise ValueError("candidate choice cohort requires a source store")
+    if not isinstance(persistence_identity, str) or not persistence_identity:
+        raise ValueError("candidate choice cohort identity is required")
+    if any(not isinstance(value, FdasCandidateChoiceSetStore)
+           for value in stores):
+        raise TypeError("candidate choice cohort requires typed stores")
+    if any(value.quarantined for value in stores):
+        raise ValueError("quarantined choice store cannot enter cohort")
+    identities = tuple(value.persistence_identity for value in stores)
+    digests = tuple(value.store_digest for value in stores)
+    if len(identities) != len(set(identities)):
+        raise ValueError("candidate choice cohort identities overlap")
+    if len(digests) != len(set(digests)):
+        raise ValueError("candidate choice cohort artifacts overlap")
+    rows = tuple(row for store in stores for row in store.choice_sets())
+    scopes = set((row.operation_type, row.outcome_target) for row in rows)
+    if len(scopes) > 1:
+        raise ValueError("candidate choice cohort scopes differ")
+    choice_set_ids = tuple(row.choice_set_id for row in rows)
+    execution_event_ids = tuple(
+        row.execution_event_id for row in rows
+        if row.execution_event_id is not None)
+    episode_ids = tuple(
+        row.selected_episode_id for row in rows
+        if row.selected_episode_id is not None)
+    for values, name in (
+            (choice_set_ids, "choice set"),
+            (execution_event_ids, "execution event"),
+            (episode_ids, "selected episode")):
+        if len(values) != len(set(values)):
+            raise ValueError(
+                "candidate choice cohort {} lineage overlaps".format(name))
+    return FdasCandidateChoiceSetStore(persistence_identity, rows)
+
+
 class FdasCandidateChoiceSetRecorder(object):
     """Capture offered choices, then resolve only the executed candidate."""
 

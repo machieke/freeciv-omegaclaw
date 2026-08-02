@@ -159,6 +159,7 @@ from .fdas_candidate_choices import (
     FdasCandidateChoiceSet,
     FdasCandidateChoiceSetRecorder,
     FdasCandidateChoiceSetStore,
+    combine_candidate_choice_stores,
     export_candidate_choice_calibration,
 )
 from .fdas_induction_labels import (
@@ -287,6 +288,7 @@ __all__ = [
     "FdasCandidateChoice", "FdasCandidateChoiceSet",
     "FdasCandidateChoiceCalibrationExport",
     "FdasCandidateChoiceSetRecorder", "FdasCandidateChoiceSetStore",
+    "combine_candidate_choice_stores",
     "export_candidate_choice_calibration",
     "DURABLE_ACTOR_CITY_DEFENSE_TARGET", "DURABLE_CITY_COVERAGE_TARGET",
     "LABEL_SCHEMA_VERSION",
