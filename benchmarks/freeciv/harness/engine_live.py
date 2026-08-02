@@ -2146,6 +2146,7 @@ async def _play(run_dir, manifest, context):
         "production_persistence_guard_excluded_actions": 0,
         "production_persistence_guard_opportunities": 0,
     }
+    fdas_episode_open_event_ids = {}
     pending_impact_outcomes = DeferredImpactOutcomeLedger()
     action_type_counts = {}
     impact_turns = set()
@@ -2469,7 +2470,8 @@ async def _play(run_dir, manifest, context):
                     resolution.after_snapshot, resolution.effect_observed,
                     deferred=True, feedback_id=resolution.feedback_id)
 
-        def publish_fdas_episode_revision(current, cause):
+        def publish_fdas_episode_revision(
+                current, cause, opened_episode_id=None):
             """Persist and project the compact episode source atomically."""
             if fdas_episode_store is None:
                 return cause
@@ -2481,6 +2483,17 @@ async def _play(run_dir, manifest, context):
             events = fdas_runtime.emit_current(
                 writer, current, caused_by=(cause,),
                 prior_revision=prior_revision)
+            if opened_episode_id is not None:
+                opened_events = tuple(
+                    event for event in events
+                    if (event["type"] == "episode_opened"
+                        and event["payload"]["details"].get("episode_id")
+                        == opened_episode_id))
+                if len(opened_events) != 1:
+                    raise RuntimeError(
+                        "FDAS episode projection did not emit one opening")
+                fdas_episode_open_event_ids[opened_episode_id] = (
+                    opened_events[0]["event_id"])
             result = events[-1]["event_id"] if events else cause
             return _metric(
                 writer, current.turn, result,
@@ -2506,6 +2519,10 @@ async def _play(run_dir, manifest, context):
                 if updated == prior_episode:
                     continue
                 cause = publish_fdas_episode_revision(current, cause)
+                episode_parents = (cause,) + tuple(
+                    value for value in (
+                        fdas_episode_open_event_ids.get(updated.episode_id),)
+                    if value is not None)
                 if updated.attributed_effects:
                     event = fdas_runtime.emit_episode_component(
                         writer, current, "episode_effect_observed", {
@@ -2515,7 +2532,7 @@ async def _play(run_dir, manifest, context):
                             "outcome_status": updated.outcome_status,
                             "policy_authority": False,
                             "truth_mutated": False,
-                        }, caused_by=(cause,))
+                        }, caused_by=episode_parents)
                     cause = event["event_id"]
                     decision_stats["fdas_episode_effect_observed"] += 1
                 if updated.realized_goal_relief:
@@ -2549,7 +2566,11 @@ async def _play(run_dir, manifest, context):
                             "policy_authority": False,
                             "read_only": True,
                             "truth_mutated": False,
-                        }, caused_by=(cause,))
+                        }, caused_by=(cause,) + tuple(
+                            value for value in (
+                                fdas_episode_open_event_ids.get(
+                                    updated.episode_id),)
+                            if value is not None and value != cause))
                     cause = event["event_id"]
                     decision_stats["fdas_conductance_samples"] += int(
                         learning.applied)
@@ -3477,10 +3498,12 @@ async def _play(run_dir, manifest, context):
                         episode = fdas_episode_recorder.begin_authorized(
                             episode_candidate, fdas_authority, fdas_shadow,
                             action_snapshot, episode_revision,
-                            outcome.result_event_id or parent,
+                            outcome.action_result_event_id
+                            or outcome.result_event_id or parent,
                             prediction_ids=(prediction.prediction_id,))
                         parent = publish_fdas_episode_revision(
-                            action_snapshot, parent)
+                            action_snapshot, parent,
+                            opened_episode_id=episode.episode_id)
                         decision_stats["fdas_episode_opened"] += 1
                     planned_actions += 1
                     record_meaningful_action(

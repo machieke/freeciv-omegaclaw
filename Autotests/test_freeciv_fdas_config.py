@@ -128,6 +128,10 @@ def test_checked_defense_authority_profile_requires_exact_bounded_stack():
     assert config.enabled is True
     assert config.authority_enabled is True
     assert config.shadow_refresh_policy == "every-snapshot"
+    assert config.section("projection")["city"] is False
+    assert config.section("projection")["economy"] is False
+    assert config.section("projection")["region"] is False
+    assert config.section("events")["support_level"] == "none"
     assert config.section("domain_authority") == {
         "city_defense": True,
         "city_production": False,

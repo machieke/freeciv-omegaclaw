@@ -761,12 +761,25 @@ def test_snapshot_grounded_and_action_lifecycle_events_validate():
             0, 20, caused_by=[proposal_event["event_id"]])
         action = {"action_type": "unit_move", "actor_id": 7,
                   "target": {"direction": "e", "x": 3, "y": 2}}
-        proposal = ProposedAction.create(action, snapshot,
-                                         grounded_preconditions=(check,))
+        proposal = ProposedAction.create(
+            action, snapshot, plan_id="plan-state-test",
+            step_id="step-state-test", grounded_preconditions=(check,))
         outcome = ExecutionGate(store, lambda value: {"accepted": True}, writer).execute(
             "state-test", 0, proposal, [check_event["event_id"]])
         report = validate_file(path)
+        with open(path, encoding="utf-8") as stream:
+            emitted = tuple(
+                json.loads(line) for line in stream if line.strip())
     assert outcome.status == "accepted"
+    assert outcome.action_result_event_id != outcome.result_event_id
+    assert next(
+        row for row in emitted
+        if row["event_id"] == outcome.action_result_event_id
+    )["type"] == "action_result"
+    assert next(
+        row for row in emitted
+        if row["event_id"] == outcome.result_event_id
+    )["type"] == "plan_step_executed"
     assert report.valid, report.to_dict()
 
 

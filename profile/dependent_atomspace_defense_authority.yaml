@@ -12,11 +12,11 @@ dependent_atomspace:
     ruleset: true
     world: true
     empire: true
-    economy: true
+    economy: false
     research: false
-    city: true
+    city: false
     unit: true
-    region: true
+    region: false
     route_corridors: false
     settlement_sites: false
     population_recovery: false
@@ -60,6 +60,6 @@ dependent_atomspace:
     research: false
 
   events:
-    support_level: "selected"
+    support_level: "none"
     explanation_capture: true
     shadow_divergence_capture: true

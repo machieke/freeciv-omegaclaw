@@ -47,11 +47,15 @@ The checked defaults remain non-authoritative. Activation requires both:
 
 The manifest promotes only the unit, operation, defense requirement,
 pressure, resource/packet, and exact-commit capabilities needed by this slice
-to `bounded-authority`. Region and the remaining defense substrate stay
-`shadow-live`. Episode attribution and contextual control learning are also
-`shadow-live`, while contextual conductance authority remains disabled.
-Removing the overrides returns to the default legacy path, and a one-sided or
-partially promoted declaration fails validation.
+to `bounded-authority`. The live authority profile materializes only unit,
+operation, and episode domain projectors; unused city/economy and region views
+remain available as substrate capabilities but are not paid for on every
+action refresh. Support provenance remains in each immutable revision while
+redundant per-support event expansion is disabled. Episode attribution and
+contextual control learning are `shadow-live`, while contextual conductance
+authority remains disabled. Removing the overrides returns to the default
+legacy path, and a one-sided or partially promoted declaration fails
+validation.
 
 ## Captured replay
 
@@ -72,7 +76,7 @@ python3 scripts/freeciv/run_fdas_bounded_authority_replay.py \
 | Explicit fallbacks | 25 |
 | Policy winner changes | 0 |
 | Replay failures | 0 |
-| Authority readout p50 / p95 | 0.552 / 18.695 ms |
+| Authority readout p50 / p95 | 0.740 / 3.368 ms |
 
 All twelve gates passed in two deterministic runs. Every authorization was an
 exact legacy-selected `unit_fortify`, received the exact actor resource and
@@ -81,9 +85,9 @@ retained `execution_authority: false`. The 25 fallbacks were all legacy winners
 outside the city-defense category.
 
 The report hash is
-`6941b95de2ddd9b346b40a774c0a7c265e1acb9befec8f64a11a7b6d0e7c0a41`;
+`f215c81c0aae925b3ccd6db517622229feeee26fc8e7883036b8cbff13122a94`;
 its implementation digest is
-`e31be2a2b6f74fcb5384013eb935cf3fbecde4d980c1dfb1068905e82c035e5f`.
+`bea32a942bbe9aa53d1448b20f20b91ca4c17f2f1d1eb72d8565616f3fe65b1f`.
 
 ## Episode boundary
 

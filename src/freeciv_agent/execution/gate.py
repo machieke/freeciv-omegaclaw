@@ -34,6 +34,7 @@ class ActionOutcome:
     submitted: bool
     engine_response: object = None
     result_event_id: object = None
+    action_result_event_id: object = None
 
 
 def _legal_form(action):
@@ -117,12 +118,14 @@ class ExecutionGate(object):
     def _complete(self, current, proposed, response, sent_event):
         accepted = not (isinstance(response, dict) and response.get("accepted") is False)
         status = "accepted" if accepted else "rejected"
+        action_result_event = None
         result_event = None
         if self.writer is not None:
-            result_event = self.writer.emit("action_result", current.turn, {
+            action_result_event = self.writer.emit("action_result", current.turn, {
                 "action_id": proposed.action_id, "engine_response": response,
                 "engine_turn": current.turn, "status": status,
             }, caused_by=[sent_event["event_id"]])
+            result_event = action_result_event
             if proposed.plan_id is not None and proposed.step_id is not None:
                 result_event = self.writer.emit("plan_step_executed", current.turn, {
                     "plan_id": proposed.plan_id, "step_id": proposed.step_id,
@@ -131,7 +134,10 @@ class ExecutionGate(object):
                 }, caused_by=[result_event["event_id"]])
         return ActionOutcome(
             proposed.action_id, status, None if accepted else "engine_rejected",
-            True, response, None if result_event is None else result_event["event_id"])
+            True, response,
+            None if result_event is None else result_event["event_id"],
+            None if action_result_event is None
+            else action_result_event["event_id"])
 
     def execute(self, game_id, player_id, proposed, caused_by=None):
         current, reason = self._preflight(game_id, player_id, proposed)

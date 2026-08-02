@@ -197,9 +197,7 @@ def test_checked_defense_authority_runtime_installs_only_defense_adapter():
     assert runtime._authority_adapter.AUTHORITY_IDENTITY == (
         "fdas-bounded-defense-fortification/1.0")
     assert runtime.projector_ids == (
-        "fdas-city-economy-shadow",
         "fdas-unit-defense-shadow",
-        "fdas-city-region-shadow",
         "fdas-operation-projector",
         "fdas-episode-projector",
     )

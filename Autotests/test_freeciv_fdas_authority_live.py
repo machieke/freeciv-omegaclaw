@@ -1,6 +1,7 @@
 import json
 
 from freeciv.harness.fdas_authority_live import audit_fdas_authority_live
+from freeciv_agent.events.schema import structural_hash
 
 
 def _write_json(path, value):
@@ -130,3 +131,98 @@ def test_authority_live_audit_rejects_nonaccepted_engine_result(tmp_path):
     assert report["acceptance"]["accepted"] is False
     assert report["acceptance"]["checks"][
         "all_authorized_actions_accepted"] is False
+
+
+def test_authority_live_audit_accepts_durable_causal_read_only_episode(tmp_path):
+    _fixture(tmp_path)
+    action = {"action_type": "unit_fortify", "actor_id": 17}
+    action_key = json.dumps(action, sort_keys=True, separators=(",", ":"))
+    events = tuple(
+        json.loads(line) for line in
+        (tmp_path / "events.jsonl").read_text(encoding="utf-8").splitlines())
+    authority = events[0]
+    details = authority["payload"]["details"]
+    details.update({
+        "action_key": action_key,
+        "authority_slice": "fdas-bounded-defense-fortification/1.0",
+        "checks": [
+            "domain-authority-gate", "legacy-defense-category-gate",
+            "revision-current-evaluation",
+            "legacy-winner-fdas-fortification-route-binding",
+            "bounded-defense-fortification-contract",
+            "authority-pressure-readout", "resource-and-packet-schedule",
+            "exact-fdas-commit-validation",
+        ],
+    })
+    events[2]["payload"]["action"] = action
+    episode_id = "episode-live-17"
+    episode = {
+        "action_key": action_key,
+        "attributed_effects": [{"effect": "actor-fortified", "tile": 17}],
+        "episode_id": episode_id,
+        "execution_event_id": "e4",
+        "operation_id": "operation-17",
+        "outcome_status": "goal-relief-observed",
+        "realized_goal_relief": {"goal-17": 1.0},
+    }
+    episode_events = (
+        _event("e5", "episode_opened", {
+            "details": {"episode_id": episode_id, "scope_id": "scope-17"}},
+               ("e4",)),
+        _event("e6", "episode_effect_observed", {"details": {
+            "attributed_effects": episode["attributed_effects"],
+            "episode_id": episode_id, "outcome_status": "goal-relief-observed",
+            "policy_authority": False, "truth_mutated": False,
+        }}, ("e5",)),
+        _event("e7", "episode_relief_attributed", {"details": {
+            "episode_id": episode_id, "outcome_status": "goal-relief-observed",
+            "policy_authority": False,
+            "realized_goal_relief": episode["realized_goal_relief"],
+            "truth_mutated": False,
+        }}, ("e6",)),
+        _event("e8", "conductance_sample_recorded", {"details": {
+            "episode_id": episode_id,
+            "learning": {"applied": True, "policy_authority": False,
+                         "truth_mutated": False},
+            "policy_authority": False, "read_only": True,
+            "truth_mutated": False,
+        }}, ("e7",)),
+    )
+    fallback = _event("e9", "atomspace_authority_decision", {
+        "details": {"reason": "legacy-selected-candidate-unavailable",
+                    "status": "fallback"}}, ("e8",))
+    completed = _event("e10", "run_completed", {"summary": {
+        "actions": 1, "fdas_authority_actions": 1,
+        "fdas_authority_fallbacks": 1,
+        "fdas_authority_opportunities": 2,
+        "fdas_conductance_samples": 1,
+        "fdas_episode_effect_observed": 1,
+        "fdas_episode_opened": 1,
+        "fdas_episode_relief_attributed": 1,
+        "horizon_reached": True, "opponent_score": 100, "score": 101,
+    }}, ("e9",))
+    combined = events[:4] + episode_events + (fallback, completed)
+    (tmp_path / "events.jsonl").write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in combined),
+        encoding="utf-8")
+    manifest = json.loads(
+        (tmp_path / "manifest.json").read_text(encoding="utf-8"))
+    manifest["dependent_atomspace"]["config"] = {
+        "learning": {"episode_attribution_enabled": True}}
+    _write_json(tmp_path / "manifest.json", manifest)
+    store = {
+        "episodes": [episode],
+        "persistence_identity": "episode-live-test",
+        "quarantine_reason": None,
+        "schema_version": 1,
+        "store_identity": "fdas-decision-episode-store/1.0",
+    }
+    store["store_digest"] = structural_hash(store)
+    _write_json(tmp_path / "fdas-decision-episodes.json", store)
+
+    report = audit_fdas_authority_live(str(tmp_path))
+
+    assert report["acceptance"]["accepted"] is True
+    assert report["summary"]["episodes"] == 1
+    assert all(report["episodes"][0]["causal"].values())
+    assert report["episodes"][0]["read_only_sample"] is True

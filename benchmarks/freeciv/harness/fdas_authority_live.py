@@ -122,6 +122,7 @@ def audit_fdas_authority_live(game_dir, repo=None):
     events = _load_events(paths["events.jsonl"])
     manifest = _load_json(paths["manifest.json"])
     status = _load_json(paths["status.json"])
+    episode_path = os.path.join(game_dir, "fdas-decision-episodes.json")
     by_id = dict((row["event_id"], row) for row in events)
     if len(by_id) != len(events):
         raise ValueError("events contain duplicate event IDs")
@@ -140,6 +141,12 @@ def audit_fdas_authority_live(game_dir, repo=None):
     results = tuple(row for row in events if row["type"] == "action_result")
     completed = tuple(row for row in events if row["type"] == "run_completed")
     failed = tuple(row for row in events if row["type"] == "run_failed")
+    episode_events = dict(
+        (event_type, tuple(
+            row for row in events if row["type"] == event_type))
+        for event_type in (
+            "episode_opened", "episode_effect_observed",
+            "episode_relief_attributed", "conductance_sample_recorded"))
 
     authorization_rows = []
     binding_failures = []
@@ -233,6 +240,94 @@ def audit_fdas_authority_live(game_dir, repo=None):
         completed[0]["payload"].get("summary", {}) if len(completed) == 1 else {})
     source = manifest.get("source", {})
     fdas_manifest = manifest.get("dependent_atomspace", {})
+    learning_config = fdas_manifest.get("config", {}).get("learning", {})
+    episode_enabled = bool(
+        learning_config.get("episode_attribution_enabled"))
+    episode_document = (
+        _load_json(episode_path) if os.path.isfile(episode_path) else None)
+    episode_store_valid = not episode_enabled
+    episode_rows = []
+    if episode_document is not None:
+        semantic_store = dict(episode_document)
+        claimed_store_digest = semantic_store.pop("store_digest", None)
+        episode_store_valid = bool(
+            episode_document.get("store_identity")
+            == "fdas-decision-episode-store/1.0"
+            and episode_document.get("quarantine_reason") is None
+            and claimed_store_digest == structural_hash(semantic_store))
+        for episode in episode_document.get("episodes", ()):
+            episode_id = episode.get("episode_id")
+            linked_authority = tuple(
+                row for row in authorization_rows
+                if (row["operation_id"] == episode.get("operation_id")
+                    and row["action_key"] == episode.get("action_key")
+                    and row["action_result_event_id"]
+                    == episode.get("execution_event_id")))
+            linked_events = dict(
+                (event_type, tuple(
+                    row for row in rows
+                    if row["payload"].get("details", {}).get("episode_id")
+                    == episode_id))
+                for event_type, rows in episode_events.items())
+            opened = linked_events["episode_opened"]
+            effects = linked_events["episode_effect_observed"]
+            relief = linked_events["episode_relief_attributed"]
+            samples = linked_events["conductance_sample_recorded"]
+            execution_event_id = episode.get("execution_event_id")
+            causal_paths = {
+                "action_result_to_open": (
+                    _causal_path(
+                        execution_event_id, opened[0]["event_id"], parents)
+                    if execution_event_id in by_id and len(opened) == 1
+                    else ()),
+                "open_to_effect": (
+                    _causal_path(
+                        opened[0]["event_id"], effects[0]["event_id"], parents)
+                    if len(opened) == 1 and len(effects) == 1 else ()),
+                "effect_to_relief": (
+                    _causal_path(
+                        effects[0]["event_id"], relief[0]["event_id"], parents)
+                    if len(effects) == 1 and len(relief) == 1 else ()),
+                "relief_to_sample": (
+                    _causal_path(
+                        relief[0]["event_id"], samples[0]["event_id"], parents)
+                    if len(relief) == 1 and len(samples) == 1 else ()),
+            }
+            effect_details = (
+                effects[0]["payload"]["details"]
+                if len(effects) == 1 else {})
+            relief_details = (
+                relief[0]["payload"]["details"]
+                if len(relief) == 1 else {})
+            sample_details = (
+                samples[0]["payload"]["details"]
+                if len(samples) == 1 else {})
+            episode_rows.append({
+                "attributed_effects_match": (
+                    effect_details.get("attributed_effects")
+                    == episode.get("attributed_effects")),
+                "authority_bindings": len(linked_authority),
+                "causal": dict(
+                    (name, bool(path))
+                    for name, path in causal_paths.items()),
+                "episode_id": episode_id,
+                "event_counts": dict(
+                    (name, len(rows)) for name, rows in linked_events.items()),
+                "goal_relief_matches": (
+                    relief_details.get("realized_goal_relief")
+                    == episode.get("realized_goal_relief")),
+                "outcome_status": episode.get("outcome_status"),
+                "read_only_sample": bool(
+                    sample_details.get("read_only") is True
+                    and sample_details.get("policy_authority") is False
+                    and sample_details.get("truth_mutated") is False
+                    and sample_details.get("learning", {}).get(
+                        "policy_authority") is False
+                    and sample_details.get("learning", {}).get(
+                        "truth_mutated") is False
+                    and sample_details.get("learning", {}).get(
+                        "applied") is True),
+            })
     fallback_reasons = Counter(
         row["payload"].get("details", {}).get("reason") or "unspecified"
         for row in fallbacks)
@@ -288,7 +383,42 @@ def audit_fdas_authority_live(game_dir, repo=None):
             and len(source["commit"]) == 40),
         "completed_exactly_once_without_run_failure": (
             len(completed) == 1 and not failed),
-        "horizon_reached": terminal_summary.get("horizon_reached") is True,
+        "fixed_horizon_or_absorbing_terminal": bool(
+            terminal_summary.get("horizon_reached") is True
+            or terminal_summary.get("terminal_player_elimination") is True
+            or terminal_summary.get("terminal_game_over") is True),
+        "episode_store_is_durable_unquarantined_and_valid": (
+            episode_store_valid),
+        "episodes_bind_one_authorized_action_and_complete_event_chain": (
+            not episode_enabled or bool(episode_rows)
+            and len(episode_rows) == len(authorized)
+            and all(
+                row["authority_bindings"] == 1
+                and all(count == 1 for count in row["event_counts"].values())
+                for row in episode_rows)),
+        "episode_event_chains_are_causal": (
+            not episode_enabled or all(
+                all(row["causal"].values()) for row in episode_rows)),
+        "episode_effect_and_relief_match_durable_outcome": (
+            not episode_enabled or all(
+                row["outcome_status"] == "goal-relief-observed"
+                and row["attributed_effects_match"]
+                and row["goal_relief_matches"]
+                for row in episode_rows)),
+        "conductance_samples_are_read_only_truth_free": (
+            not episode_enabled or all(
+                row["read_only_sample"] for row in episode_rows)),
+        "episode_counters_match_terminal_summary": (
+            not episode_enabled or (
+                terminal_summary.get("fdas_episode_opened")
+                == len(episode_events["episode_opened"])
+                == len(episode_rows)
+                and terminal_summary.get("fdas_episode_effect_observed")
+                == len(episode_events["episode_effect_observed"])
+                and terminal_summary.get("fdas_episode_relief_attributed")
+                == len(episode_events["episode_relief_attributed"])
+                and terminal_summary.get("fdas_conductance_samples")
+                == len(episode_events["conductance_sample_recorded"]))),
         "positive_authority_observed": bool(authorized),
         "zero_rejected_engine_actions": status.get("rejected_actions") == 0,
     }
@@ -299,6 +429,7 @@ def audit_fdas_authority_live(game_dir, repo=None):
             "failures": binding_failures,
         },
         "authorizations": authorization_rows,
+        "episodes": episode_rows,
         "evidence": {
             "events": {
                 "path": _logical_path(paths["events.jsonl"], repo),
@@ -326,7 +457,7 @@ def audit_fdas_authority_live(game_dir, repo=None):
             "source_dirty": source.get("dirty"),
             "turn_limit": manifest.get("turn_limit"),
         },
-        "schema_version": "1.0",
+        "schema_version": "1.1",
         "summary": {
             "action_results": len(results),
             "actions_sent": len(sent),
@@ -334,6 +465,7 @@ def audit_fdas_authority_live(game_dir, repo=None):
             "authorized": len(authorized),
             "event_count": len(events),
             "fallbacks": len(fallbacks),
+            "episodes": len(episode_rows),
             "max_turn": max((row["turn"] for row in events), default=None),
             "run_completed": len(completed),
             "run_failed": len(failed),
@@ -346,9 +478,26 @@ def audit_fdas_authority_live(game_dir, repo=None):
             "fdas_authority_opportunities": terminal_summary.get(
                 "fdas_authority_opportunities"),
             "horizon_reached": terminal_summary.get("horizon_reached"),
+            "terminal_game_over": terminal_summary.get("terminal_game_over"),
+            "terminal_player_elimination": terminal_summary.get(
+                "terminal_player_elimination"),
+            "fdas_episode_opened": terminal_summary.get(
+                "fdas_episode_opened"),
+            "fdas_episode_effect_observed": terminal_summary.get(
+                "fdas_episode_effect_observed"),
+            "fdas_episode_relief_attributed": terminal_summary.get(
+                "fdas_episode_relief_attributed"),
+            "fdas_conductance_samples": terminal_summary.get(
+                "fdas_conductance_samples"),
             "opponent_score": terminal_summary.get("opponent_score"),
             "score": terminal_summary.get("score"),
         },
     }
+    if episode_document is not None:
+        report["evidence"]["episodes"] = {
+            "path": _logical_path(episode_path, repo),
+            "sha256": _sha256(episode_path),
+            "store_digest": episode_document.get("store_digest"),
+        }
     report["structural_hash"] = structural_hash(report)
     return report
