@@ -17,9 +17,25 @@ does not mutate truth and exposes no action or policy authority.
 Encoded samples enter the existing bounded `PatternMiner`. Every proposal is
 created outside executable rule graphs, enters `InductionLedger` as
 `quarantined`, and is invisible through `promoted_rules()` until disjoint
-held-out replay records a promotion verdict. Exact prerequisites, legal-action
-binding, resource claims, commit validation, and downstream execution remain
-outside and downstream of this learning bridge.
+held-out replay records a promotion verdict. Promotion now additionally
+requires a deterministic `InductionPromotionApproval` at schema version 1.0.
+The approval binds the proposal, validation result hash, exact training and
+validation episode IDs, and distinct training/holdout artifact hashes. It
+explicitly records `policy_authority=false` and `readout_authority=false`.
+Persisted promoted rows without this approval fail closed on load. Exact
+prerequisites, legal-action binding, resource claims, commit validation, and
+downstream execution remain outside and downstream of this learning bridge.
+
+`FdasEpisodeInductionHeldoutGate` now implements the complete component-level
+train/holdout lifecycle over two immutable `DecisionEpisodeStore` partitions.
+It rejects shared store identities, content digests, episode IDs, or causal
+provenance before mining. Every candidate is first persisted in quarantine,
+then receives a deterministic replay verdict. A passing verdict gets the
+versioned non-authorizing approval; a failing verdict is persisted as demoted
+without an approval. Replaying the same partitions is ledger-idempotent.
+Component fixtures exercise both a stable correlated promotion and a reversed
+holdout demotion. These synthetic fixtures prove lifecycle correctness, not
+that a useful FreeCiv rule has been discovered.
 
 `FdasEpisodeInductionShadow` now runs this seam over durable engine episodes.
 It emits causal encoding/mining latency and durable quarantine events, rejects

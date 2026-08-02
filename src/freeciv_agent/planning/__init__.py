@@ -135,10 +135,12 @@ from .fdas_episode_learning import (
     FdasEpisodeLearningAdapter,
 )
 from .fdas_episode_induction import (
+    EpisodeInductionHeldoutResult,
     EpisodeInductionResult,
     EpisodeInductionShadowResult,
     EpisodeInductionSpec,
     FdasEpisodeInductionAdapter,
+    FdasEpisodeInductionHeldoutGate,
     FdasEpisodeInductionShadow,
 )
 from .fdas_observation import (
@@ -241,9 +243,10 @@ __all__ = [
     "EpisodeControlPrediction", "EpisodeLearningExplanation",
     "EpisodeLearningMetrics", "EpisodeLearningResult",
     "FdasEpisodeLearningAdapter",
+    "EpisodeInductionHeldoutResult",
     "EpisodeInductionResult", "EpisodeInductionShadowResult",
     "EpisodeInductionSpec", "FdasEpisodeInductionAdapter",
-    "FdasEpisodeInductionShadow",
+    "FdasEpisodeInductionHeldoutGate", "FdasEpisodeInductionShadow",
     "FdasObservationActionBinding",
     "FdasObservationAuthoritativeReturn",
     "FdasObservationCommitValidation",

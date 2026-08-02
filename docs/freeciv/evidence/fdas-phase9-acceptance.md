@@ -24,7 +24,13 @@ promotion/readout `component-only` and disabled by default
   inflate independent support.
 - The existing bounded induction engine mines immutable proposals into
   quarantine. Disjoint held-out replay controls promotion; structural
-  promotion additionally requires committed validation packets.
+  promotion additionally requires committed validation packets. A promoted
+  replay verdict now also requires a versioned approval record bound to exact
+  training/holdout artifacts and episode partitions; approval grants neither
+  policy nor readout authority.
+- A component-level held-out gate rejects shared store identity, artifact
+  digest, episode IDs, or causal provenance, persists promotion/demotion
+  verdicts, and is idempotent under repeat evaluation.
 - A dedicated engine-live shadow bridge now encodes durable defense episodes,
   evaluates the bounded miner, persists even an empty hash-bound ledger, and
   fails closed if any promoted rule appears. It has no truth or policy
@@ -45,15 +51,18 @@ promotion/readout `component-only` and disabled by default
 | Acceptance, effect, and relief are distinct | terminal state model and delayed defense observation tests |
 | Route conductance is truth-free | typed control-only calibration target; adapter reports `truth_mutated=false` and has no AtomSpace transaction |
 | Context estimates are gated | contextual estimator tests cover sample count, uncertainty width, context/ruleset/policy identity, calibration, disjoint holdout, and supported-context regression |
-| Induced rules have zero quarantine escape | component lifecycle tests plus a clean 160-turn engine run with a durable hash-valid ledger, zero validation/readout events, and zero promoted rules |
+| Induced rules have zero quarantine escape | component lifecycle tests require a versioned artifact-bound approval for every promotion; a clean 160-turn engine run retained a durable hash-valid ledger with zero validation/readout events and zero promoted rules |
 | Authority is opt-in and versioned | all learning flags default false; shadow and authority flags require exact manifest capabilities at `shadow-live` or `bounded-authority` |
 
 ## Verification
 
 The original aggregate component regression passed `410` tests. The live
 induction increment additionally passes 99 focused configuration, runtime,
-episode, learning, induction, and evidence-audit tests; its final durability
-correction passes the 18 focused induction/audit tests.
+episode, learning, induction, and evidence-audit tests; its durability
+correction passed the 18 focused induction/audit tests. The later approval and
+held-out gate hardening adds focused promotion, demotion, overlap, persistence,
+and replay-idempotence coverage; fresh aggregate counts should be recorded
+with the next engine-backed induction cohort.
 
 ## Non-claims
 

@@ -15,6 +15,7 @@ from freeciv_agent.planning import (  # noqa: E402
     EPISODE_SCHEMA_VERSION,
     EpisodeInductionSpec,
     FdasEpisodeInductionAdapter,
+    FdasEpisodeInductionHeldoutGate,
     FdasEpisodeInductionShadow,
 )
 from freeciv_agent.pressure import (  # noqa: E402
@@ -67,6 +68,19 @@ def _spec(episode):
         ("operation_type",),
         (("route-grounded", "grounding-route"),),
     )
+
+
+def _correlated_population(cohort, inverted=False):
+    rows = []
+    for index in range(16):
+        tile = "10" if index % 2 == 0 else "20"
+        relieved = (tile == "10") != inverted
+        rows.append(_episode(
+            index,
+            "goal-relief-observed" if relieved else "no-effect-observed",
+            cohort=cohort,
+            tile=tile))
+    return tuple(rows)
 
 
 def test_only_attributable_terminal_episode_is_encoded_without_authority():
@@ -235,3 +249,74 @@ def test_live_shadow_abstains_when_training_lineage_is_not_independent():
     assert result.mining_reason == "training-provenance-not-independent"
     assert result.proposals == ()
     assert ledger.snapshot()["proposals"] == {}
+
+
+def test_heldout_gate_promotes_only_with_disjoint_versioned_approval(tmp_path):
+    training = DecisionEpisodeStore(
+        "fdas-induction-training",
+        _correlated_population("training"))
+    holdout = DecisionEpisodeStore(
+        "fdas-induction-holdout",
+        _correlated_population("holdout"))
+    ledger_path = tmp_path / "heldout-ledger.json"
+    ledger = InductionLedger(
+        str(ledger_path), identity="fdas-induction-heldout")
+    gate = FdasEpisodeInductionHeldoutGate(
+        training, holdout, ledger)
+
+    first = gate.evaluate()
+    state_hash = ledger.state_hash
+    second = gate.evaluate()
+    persisted = InductionLedger(
+        str(ledger_path), identity="fdas-induction-heldout")
+
+    assert first.proposals
+    assert first.promoted_rule_ids
+    assert not first.demoted_rule_ids
+    assert len(first.approvals) == len(first.promoted_rule_ids)
+    assert all(
+        value.to_dict()["policy_authority"] is False
+        and value.to_dict()["readout_authority"] is False
+        for value in first.approvals)
+    assert first.truth_mutated is False
+    assert first.policy_authority is False
+    assert first.readout_authority is False
+    assert len(persisted.promoted_rules()) == len(first.promoted_rule_ids)
+    assert persisted.state_hash == state_hash == ledger.state_hash
+    assert second.newly_quarantined_proposal_ids == ()
+    assert second.newly_validated_ids == ()
+    assert set(second.duplicate_proposal_ids) == set(
+        first.promoted_rule_ids)
+    assert len(second.duplicate_validation_ids) == len(
+        first.promoted_rule_ids)
+
+
+def test_heldout_gate_demotes_out_of_sample_reversal_without_approval():
+    training = DecisionEpisodeStore(
+        "fdas-induction-training",
+        _correlated_population("training"))
+    holdout = DecisionEpisodeStore(
+        "fdas-induction-reversed-holdout",
+        _correlated_population("holdout", inverted=True))
+    ledger = InductionLedger(identity="fdas-induction-demotion")
+
+    result = FdasEpisodeInductionHeldoutGate(
+        training, holdout, ledger).evaluate()
+
+    assert result.proposals
+    assert result.demoted_rule_ids
+    assert not result.promoted_rule_ids
+    assert result.approvals == ()
+    assert ledger.promoted_rules() == ()
+
+
+def test_heldout_gate_rejects_episode_partition_overlap():
+    episodes = _correlated_population("shared")
+    training = DecisionEpisodeStore("training-partition", episodes)
+    holdout = DecisionEpisodeStore("holdout-partition", episodes)
+    gate = FdasEpisodeInductionHeldoutGate(
+        training, holdout,
+        InductionLedger(identity="fdas-induction-overlap"))
+
+    with pytest.raises(ValueError, match="episode overlap"):
+        gate.evaluate()

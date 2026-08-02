@@ -6,7 +6,9 @@ from ..events.schema import structural_hash
 from ..pressure.induction import (
     InductionEpisode,
     InductionLedger,
+    InductionPromotionApproval,
     PatternMiner,
+    ReplayValidator,
 )
 from .fdas_episodes import DecisionEpisodeStore
 
@@ -290,6 +292,210 @@ class FdasEpisodeInductionShadow(object):
             tuple(sorted(duplicate_ids)),
             mining_reason,
             self.ledger.state_hash,
+            False,
+            False,
+            structural_hash(semantic))
+
+
+@dataclass(frozen=True)
+class EpisodeInductionHeldoutResult:
+    """Deterministic train/holdout lifecycle with no readout authority."""
+
+    training_encoding_results: tuple
+    holdout_encoding_results: tuple
+    proposals: tuple
+    validations: tuple
+    approvals: tuple
+    newly_quarantined_proposal_ids: tuple
+    newly_validated_ids: tuple
+    duplicate_proposal_ids: tuple
+    duplicate_validation_ids: tuple
+    promoted_rule_ids: tuple
+    demoted_rule_ids: tuple
+    mining_reason: str
+    ledger_hash: str
+    truth_mutated: bool
+    policy_authority: bool
+    readout_authority: bool
+    result_hash: str
+
+    def to_dict(self):
+        return {
+            "approvals": [value.to_dict() for value in self.approvals],
+            "demoted_rule_ids": list(self.demoted_rule_ids),
+            "duplicate_proposal_ids": list(self.duplicate_proposal_ids),
+            "duplicate_validation_ids": list(self.duplicate_validation_ids),
+            "holdout_encoding_results": [
+                value.to_dict() for value in self.holdout_encoding_results],
+            "ledger_hash": self.ledger_hash,
+            "mining_reason": self.mining_reason,
+            "newly_quarantined_proposal_ids": list(
+                self.newly_quarantined_proposal_ids),
+            "newly_validated_ids": list(self.newly_validated_ids),
+            "policy_authority": bool(self.policy_authority),
+            "promoted_rule_ids": list(self.promoted_rule_ids),
+            "proposals": [value.to_dict() for value in self.proposals],
+            "readout_authority": bool(self.readout_authority),
+            "result_hash": self.result_hash,
+            "training_encoding_results": [
+                value.to_dict() for value in self.training_encoding_results],
+            "truth_mutated": bool(self.truth_mutated),
+            "validations": [value.to_dict() for value in self.validations],
+        }
+
+
+class FdasEpisodeInductionHeldoutGate(object):
+    """Validate quarantined episode rules on an independent episode store."""
+
+    GATE_IDENTITY = "fdas-episode-induction-heldout/1.0"
+
+    def __init__(
+            self, training_store, holdout_store, ledger, miner=None,
+            validator=None):
+        for value, name in (
+                (training_store, "training"), (holdout_store, "holdout")):
+            if not isinstance(value, DecisionEpisodeStore):
+                raise TypeError(
+                    "{} induction partition requires episode store".format(
+                        name))
+            if value.quarantined:
+                raise ValueError(
+                    "quarantined {} episode store cannot feed induction".format(
+                        name))
+        if not isinstance(ledger, InductionLedger):
+            raise TypeError("held-out induction requires induction ledger")
+        if miner is not None and not isinstance(miner, PatternMiner):
+            raise TypeError("held-out induction requires PatternMiner")
+        if validator is not None and not isinstance(validator, ReplayValidator):
+            raise TypeError("held-out induction requires ReplayValidator")
+        if (training_store.persistence_identity
+                == holdout_store.persistence_identity):
+            raise ValueError("training and holdout store identities overlap")
+        if training_store.store_digest == holdout_store.store_digest:
+            raise ValueError("training and holdout store artifacts overlap")
+        self.training_store = training_store
+        self.holdout_store = holdout_store
+        self.training_adapter = FdasEpisodeInductionAdapter(training_store)
+        self.holdout_adapter = FdasEpisodeInductionAdapter(holdout_store)
+        self.ledger = ledger
+        self.miner = miner or PatternMiner(
+            minimum_support=4,
+            maximum_antecedents=2,
+            minimum_residual=0.05,
+            maximum_candidates=32)
+        self.validator = validator or ReplayValidator()
+
+    @staticmethod
+    def _spec(episode):
+        return FdasEpisodeInductionShadow._spec(episode)
+
+    @staticmethod
+    def _assert_partition_independence(training_rows, holdout_rows):
+        training_ids = {value.episode_id for value in training_rows}
+        holdout_ids = {value.episode_id for value in holdout_rows}
+        if training_ids & holdout_ids:
+            raise ValueError("training/holdout episode overlap")
+        seen = set()
+        for partition, rows in (
+                ("training", training_rows), ("holdout", holdout_rows)):
+            for row in rows:
+                overlap = seen & set(row.provenance_ids)
+                if overlap:
+                    raise ValueError(
+                        "{} induction provenance is not independent: {}".format(
+                            partition, sorted(overlap)))
+                seen.update(row.provenance_ids)
+
+    def evaluate(self):
+        training_encodings = tuple(
+            self.training_adapter.encode(self._spec(episode))
+            for episode in self.training_store.episodes())
+        holdout_encodings = tuple(
+            self.holdout_adapter.encode(self._spec(episode))
+            for episode in self.holdout_store.episodes())
+        training_rows = tuple(
+            value.induction_episode for value in training_encodings
+            if value.accepted)
+        holdout_rows = tuple(
+            value.induction_episode for value in holdout_encodings
+            if value.accepted)
+        self._assert_partition_independence(training_rows, holdout_rows)
+        if len(training_rows) < self.miner.minimum_support:
+            proposals = ()
+            mining_reason = "insufficient-attributable-training-support"
+        else:
+            proposals = self.miner.mine(
+                training_rows, "defense-operation-relieves-goal")
+            mining_reason = (
+                "heldout-candidates-mined" if proposals
+                else "no-pattern-cleared-residual-gate")
+        new_proposals = []
+        duplicate_proposals = []
+        validations = []
+        approvals = []
+        new_validations = []
+        duplicate_validations = []
+        promoted = []
+        demoted = []
+        for proposal in proposals:
+            target = (
+                new_proposals
+                if self.ledger.propose(proposal) else duplicate_proposals)
+            target.append(proposal.proposal_id)
+            validation = self.validator.validate(proposal, holdout_rows)
+            approval = (
+                InductionPromotionApproval.issue(
+                    proposal, validation,
+                    self.training_store.store_digest,
+                    self.holdout_store.store_digest)
+                if validation.verdict == "promoted" else None)
+            inserted = self.ledger.record_validation(
+                validation, approval=approval)
+            validations.append(validation)
+            if approval is not None:
+                approvals.append(approval)
+            target = new_validations if inserted else duplicate_validations
+            target.append(validation.validation_id)
+            target = promoted if validation.verdict == "promoted" else demoted
+            target.append(proposal.proposal_id)
+        semantic = {
+            "approvals": [value.to_dict() for value in approvals],
+            "demoted_rule_ids": sorted(demoted),
+            "duplicate_proposal_ids": sorted(duplicate_proposals),
+            "duplicate_validation_ids": sorted(duplicate_validations),
+            "gate_identity": self.GATE_IDENTITY,
+            "holdout_encoding_results": [
+                value.to_dict() for value in holdout_encodings],
+            "holdout_store_digest": self.holdout_store.store_digest,
+            "ledger_hash": self.ledger.state_hash,
+            "mining_reason": mining_reason,
+            "newly_quarantined_proposal_ids": sorted(new_proposals),
+            "newly_validated_ids": sorted(new_validations),
+            "policy_authority": False,
+            "promoted_rule_ids": sorted(promoted),
+            "proposals": [value.to_dict() for value in proposals],
+            "readout_authority": False,
+            "training_encoding_results": [
+                value.to_dict() for value in training_encodings],
+            "training_store_digest": self.training_store.store_digest,
+            "truth_mutated": False,
+            "validations": [value.to_dict() for value in validations],
+        }
+        return EpisodeInductionHeldoutResult(
+            training_encodings,
+            holdout_encodings,
+            proposals,
+            tuple(validations),
+            tuple(approvals),
+            tuple(sorted(new_proposals)),
+            tuple(sorted(new_validations)),
+            tuple(sorted(duplicate_proposals)),
+            tuple(sorted(duplicate_validations)),
+            tuple(sorted(promoted)),
+            tuple(sorted(demoted)),
+            mining_reason,
+            self.ledger.state_hash,
+            False,
             False,
             False,
             structural_hash(semantic))
