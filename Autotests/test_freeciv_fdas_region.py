@@ -229,3 +229,36 @@ def test_threat_removal_retracts_focused_region_and_matches_cold(ir):
         value.key.predicate.startswith("region-")
         or value.key.predicate in ("tile-adjacent", "tile-in-region")
         for value in revision.records)
+
+
+def test_moving_threat_reuses_stable_region_geometry_and_matches_cold(ir):
+    first_payload = _payload()
+    first_payload["map"].update({"wrap_x": True, "wrap_y": True})
+    _enemy(first_payload, x=3, y=2)
+    first = _snapshot(first_payload, 476)
+    second_payload = copy.deepcopy(first_payload)
+    second_payload["units"]["90"].update({
+        "tile": 2 * 40 + 4,
+        "x": 4,
+        "y": 2,
+    })
+    second_payload["authoritative"]["source_seq"] = 477
+    second = _snapshot(second_payload, 477)
+    store = _store(ir)
+    store.build(first)
+
+    incremental = store.update(second)
+    cold = _store(ir).build(second)
+    metrics = incremental.metrics
+
+    assert incremental.records == cold.records
+    assert incremental.scopes == cold.scopes
+    assert any(
+        "/topology|" in shard_id
+        for shard_id in metrics.reused_shard_ids)
+    assert any(
+        "/threat|" in shard_id
+        for shard_id in metrics.recomputed_shard_ids)
+    assert sum(
+        count for shard_id, count in metrics.reused_shard_records
+        if "/topology|" in shard_id) > 100

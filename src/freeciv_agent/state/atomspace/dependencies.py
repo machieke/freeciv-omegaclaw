@@ -93,20 +93,27 @@ class DependencyIndex:
                 existing = supports.get(support.support_id)
                 if existing is not None and existing != support:
                     raise ValueError("support ID collision in dependency index")
-                supports[support.support_id] = support
+                new_support = existing is None
+                if new_support:
+                    supports[support.support_id] = support
                 atom_supports[record.atom_id].add(support.support_id)
                 support_outputs.setdefault(support.support_id, set()).add(
                     record.atom_id)
-                support_dependencies.setdefault(support.support_id, set())
-                derivation_supports.setdefault(
-                    support.derivation_id, set()).add(support.support_id)
-                for dependency in support.dependencies:
-                    key = dependency.key
-                    support_dependencies[support.support_id].add(key)
-                    dependency_supports.setdefault(key, set()).add(
-                        support.support_id)
-                    dependent_keys_by_owner.setdefault(
-                        key.owner_id, set()).add(key)
+                # A shared support may justify hundreds of output atoms (for
+                # example stable region topology). Its dependency and
+                # derivation indexes are support-level data and must be
+                # registered once, not rebuilt once per output atom.
+                if new_support:
+                    support_dependencies[support.support_id] = set()
+                    derivation_supports.setdefault(
+                        support.derivation_id, set()).add(support.support_id)
+                    for dependency in support.dependencies:
+                        key = dependency.key
+                        support_dependencies[support.support_id].add(key)
+                        dependency_supports.setdefault(key, set()).add(
+                            support.support_id)
+                        dependent_keys_by_owner.setdefault(
+                            key.owner_id, set()).add(key)
         return cls(
             _frozen_mapping(atoms),
             _frozen_mapping(supports),

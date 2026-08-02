@@ -372,6 +372,40 @@ def test_reverse_index_invalidates_transitive_atom_dependencies():
     )))
 
 
+def test_shared_support_indexes_all_outputs_once():
+    snapshot = _snapshot(source_seq=430)
+    dependency = DependencyRef(
+        DependencyKey("snapshot-field", "shared-owner", "shared.value"),
+        structural_hash(1),
+    )
+    support = _support(dependency, "shared")
+    scope_id = next(
+        value.scope_id for value in snapshot_scopes(snapshot)
+        if value.scope_kind == "empire")
+    first = _record(snapshot, AtomKey(
+        AtomNamespace.AUTHORITATIVE,
+        "owns-city",
+        (EntityRef("player", "0"), EntityRef("city", "3")),
+        scope_id,
+    ), support)
+    second = _record(snapshot, AtomKey(
+        AtomNamespace.AUTHORITATIVE,
+        "owns-city",
+        (EntityRef("player", "0"), EntityRef("city", "4")),
+        scope_id,
+    ), support)
+
+    index = DependencyIndex.build((first, second))
+
+    assert index.support_by_id[support.support_id] == support
+    assert index.support_output_atom_ids[support.support_id] == tuple(sorted((
+        first.atom_id, second.atom_id)))
+    assert index.support_dependency_keys[support.support_id] == (
+        dependency.key,)
+    assert index.dependency_support_ids[dependency.key] == (
+        support.support_id,)
+
+
 def test_revision_lease_prevents_collection_until_release():
     store = DependentAtomSpaceStore(revision_retention=2)
     first_snapshot = _snapshot(source_seq=431)

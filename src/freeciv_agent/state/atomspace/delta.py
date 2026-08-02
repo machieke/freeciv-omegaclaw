@@ -272,6 +272,11 @@ class SnapshotDelta:
             return DependencyKey("snapshot-field", owner_id, path)
 
         def changed_paths(prefix, before, after):
+            # Immutable snapshot subtrees compare structurally. Avoid
+            # recursively flattening the overwhelmingly common unchanged
+            # roots/entities on every incremental turn.
+            if before == after:
+                return ()
             old = {}
             new = {}
             _flatten(prefix, before, old)

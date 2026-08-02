@@ -198,6 +198,31 @@ class DependentAtomSpaceStore(object):
         self._snapshots = {}
         self._revision_order = {}
         self._lease_counts = {}
+        self._snapshot_documents = {}
+        self._snapshot_fingerprints = {}
+
+    def _trim_snapshot_inputs(self):
+        maximum = max(8, self.revision_retention + 2)
+        for cache in (
+                self._snapshot_documents, self._snapshot_fingerprints):
+            while len(cache) > maximum:
+                cache.pop(next(iter(cache)))
+
+    def _snapshot_document(self, snapshot):
+        value = self._snapshot_documents.get(snapshot.snapshot_id)
+        if value is None:
+            value = snapshot_document(snapshot)
+            self._snapshot_documents[snapshot.snapshot_id] = value
+            self._trim_snapshot_inputs()
+        return value
+
+    def _snapshot_dependency_fingerprints(self, snapshot, document):
+        value = self._snapshot_fingerprints.get(snapshot.snapshot_id)
+        if value is None:
+            value = snapshot_dependency_fingerprints(snapshot, document)
+            self._snapshot_fingerprints[snapshot.snapshot_id] = value
+            self._trim_snapshot_inputs()
+        return value
 
     def bind_coordinator_lock(self, lock):
         """Bind an unused store to its snapshot coordinator's atomic lock."""
@@ -240,9 +265,9 @@ class DependentAtomSpaceStore(object):
         scopes = (
             self.domain_projector.scopes(snapshot)
             if self.domain_projector is not None else snapshot_scopes(snapshot))
-        current_document = snapshot_document(snapshot)
+        current_document = self._snapshot_document(snapshot)
         prior_document = (
-            snapshot_document(prior_snapshot)
+            self._snapshot_document(prior_snapshot)
             if prior_snapshot is not None else {})
         delta = SnapshotDelta.between(
             prior_snapshot,
@@ -250,7 +275,7 @@ class DependentAtomSpaceStore(object):
             prior_document=prior_document,
             current_document=current_document,
         )
-        fingerprints = snapshot_dependency_fingerprints(
+        fingerprints = self._snapshot_dependency_fingerprints(
             snapshot, current_document)
         if self.domain_projector is not None:
             fingerprints = self.domain_projector.extend_fingerprints(

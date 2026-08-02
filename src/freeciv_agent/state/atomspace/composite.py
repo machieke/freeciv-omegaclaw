@@ -4,7 +4,7 @@ from dataclasses import dataclass, replace
 from functools import lru_cache
 
 from ...events.schema import structural_hash
-from .model import AtomRecord
+from .model import AtomRecord, joined_identity_hash
 from .predicates import PredicateRegistry
 
 
@@ -164,8 +164,14 @@ class CompositeDomainProjector(object):
     @staticmethod
     @lru_cache(maxsize=512)
     def _semantic_fingerprint(rows):
-        return structural_hash(tuple(
-            (key.to_dict(), fingerprint) for key, fingerprint in rows))
+        # This digest is private cache identity over already canonical scalar
+        # dependency fields. Avoid JSON-encoding thousands of tiny key
+        # objects on every turn.
+        return joined_identity_hash(tuple(
+            value
+            for key, fingerprint in rows
+            for value in (
+                key.kind, key.owner_id, key.path, fingerprint)))
 
     @classmethod
     def _fingerprint_index(
@@ -173,14 +179,6 @@ class CompositeDomainProjector(object):
             wanted_prefixes=()):
         roots = {}
         kinds = {}
-        for key, fingerprint in fingerprints.items():
-            root = cls._root(key.path)
-            if key.kind == "snapshot-field" and root in wanted_roots:
-                roots.setdefault(root, []).append((key, fingerprint))
-            elif key.kind in wanted_kinds:
-                kinds.setdefault(key.kind, []).append((key, fingerprint))
-        root_rows = dict(
-            (root, tuple(sorted(rows))) for root, rows in roots.items())
         prefix_trie = {}
         for prefix in sorted(set(str(value) for value in wanted_prefixes)):
             node = prefix_trie
@@ -188,17 +186,23 @@ class CompositeDomainProjector(object):
                 node = node.setdefault(part, {})
             node[None] = prefix
         prefix_rows = {}
-        if prefix_trie:
-            for rows in root_rows.values():
-                for row in rows:
-                    node = prefix_trie
-                    for part in str(row[0].path).split("."):
-                        node = node.get(part)
-                        if node is None:
-                            break
-                        prefix = node.get(None)
-                        if prefix is not None:
-                            prefix_rows.setdefault(prefix, []).append(row)
+        for key, fingerprint in fingerprints.items():
+            root = cls._root(key.path)
+            if key.kind == "snapshot-field" and root in wanted_roots:
+                row = (key, fingerprint)
+                roots.setdefault(root, []).append(row)
+                node = prefix_trie
+                for part in str(key.path).split("."):
+                    node = node.get(part)
+                    if node is None:
+                        break
+                    prefix = node.get(None)
+                    if prefix is not None:
+                        prefix_rows.setdefault(prefix, []).append(row)
+            elif key.kind in wanted_kinds:
+                kinds.setdefault(key.kind, []).append((key, fingerprint))
+        root_rows = dict(
+            (root, tuple(sorted(rows))) for root, rows in roots.items())
         return {
             "kinds": dict(
                 (kind, cls._semantic_fingerprint(tuple(sorted(rows))))
@@ -207,7 +211,7 @@ class CompositeDomainProjector(object):
                 (root, cls._semantic_fingerprint(tuple(sorted(rows))))
                 for root, rows in roots.items()),
             "prefix_rows": dict(
-                (prefix, tuple(rows))
+                (prefix, tuple(sorted(rows)))
                 for prefix, rows in prefix_rows.items()),
         }
 
@@ -241,34 +245,43 @@ class CompositeDomainProjector(object):
             projector, "incremental_dependency_kinds", ()))
         if not roots and not kinds:
             return None
-        semantic = [
-            ("kind", kind, fingerprint_index["kinds"].get(kind))
-            for kind in sorted(kinds)]
-        semantic.extend(
-            ("root", root, fingerprint_index["roots"].get(root))
-            for root in sorted(roots))
-        semantic.extend(
-            ("dependency", key.to_dict(), fingerprints.get(key))
-            for key in sorted(set(dependency_keys))
-            if (key.kind not in kinds
-                and not (key.kind == "snapshot-field"
-                         and cls._root(key.path) in roots)))
-        return structural_hash(semantic)
+        identity_parts = []
+        for kind in sorted(kinds):
+            identity_parts.extend((
+                "kind", kind, fingerprint_index["kinds"].get(kind)))
+        for root in sorted(roots):
+            identity_parts.extend((
+                "root", root, fingerprint_index["roots"].get(root)))
+        for key in sorted(set(dependency_keys)):
+            if (key.kind in kinds
+                    or (key.kind == "snapshot-field"
+                        and cls._root(key.path) in roots)):
+                continue
+            identity_parts.extend((
+                "dependency", key.kind, key.owner_id, key.path,
+                fingerprints.get(key)))
+        return joined_identity_hash(tuple(identity_parts))
 
     @staticmethod
     def _refresh(records, scopes, scope_by_id=None):
         scope_by_id = scope_by_id or dict(
             (value.scope_id, value) for value in scopes)
         refreshed = []
+        truth_hashes = {}
         for record in records:
             scope = scope_by_id.get(record.key.scope_id)
             if scope is None:
                 raise ValueError(
                     "incremental projector record scope disappeared")
+            truth_identity = id(record.truth)
+            truth_hash = truth_hashes.get(truth_identity)
+            if truth_hash is None:
+                truth_hash = structural_hash(record.truth)
+                truth_hashes[truth_identity] = truth_hash
             refreshed.append(AtomRecord.create(
                 record.key, record.authority, record.truth, scope.validity,
                 record.supports, record.provenance_ids, record.lifecycle,
-                record.tags))
+                record.tags, truth_hash=truth_hash))
         return tuple(refreshed)
 
     @staticmethod
@@ -442,12 +455,18 @@ class CompositeDomainProjector(object):
     def _component_state(
             cls, projector, projected, scopes, fingerprints,
             fingerprint_index, component_scope_ids, specs=(),
-            shard_fingerprints=None):
-        dependency_keys = cls._dependency_keys(projected)
+            shard_fingerprints=None, shard_partitions=None):
+        # Sharded components are invalidated exclusively through each checked
+        # shard signature. Rebuilding a redundant component-wide dependency
+        # union adds a full scan of every output record on every turn.
+        dependency_keys = (
+            () if specs else cls._dependency_keys(projected))
         state = {
             "dependency_keys": dependency_keys,
-            "fingerprint": cls._component_fingerprint(
-                projector, fingerprints, fingerprint_index, dependency_keys),
+            "fingerprint": (
+                None if specs else cls._component_fingerprint(
+                    projector, fingerprints, fingerprint_index,
+                    dependency_keys)),
             "records": projected,
             "scope_ids": component_scope_ids,
         }
@@ -455,7 +474,9 @@ class CompositeDomainProjector(object):
             shard_fingerprints = shard_fingerprints or dict(
                 (spec.shard_id, cls._shard_fingerprint(
                     spec, fingerprint_index)) for spec in specs)
-            partitions = cls._partition_records(projector, specs, projected)
+            partitions = (
+                shard_partitions if shard_partitions is not None else
+                cls._partition_records(projector, specs, projected))
             state["shards"] = dict(
                 (spec.shard_id, {
                     "fingerprint": shard_fingerprints[spec.shard_id],
@@ -581,6 +602,7 @@ class CompositeDomainProjector(object):
                 cached_shards = (
                     {} if cached is None else cached.get("shards", {}))
                 shard_records = []
+                shard_partitions = {}
                 projector_recomputed = False
                 projector_reused = False
                 for spec in specs:
@@ -608,13 +630,14 @@ class CompositeDomainProjector(object):
                             (metric_id, len(values)))
                         recomputed_record_count += len(values)
                         projector_recomputed = True
+                    shard_partitions[spec.shard_id] = values
                     shard_records.extend(values)
                 projected = tuple(sorted(
                     shard_records, key=lambda value: value.atom_id))
                 components[projector_id] = self._component_state(
                     projector, projected, scopes, fingerprints,
                     fingerprint_index, current_scope_ids, specs,
-                    shard_fingerprints)
+                    shard_fingerprints, shard_partitions)
                 if projector_recomputed:
                     recomputed.append(projector_id)
                 if projector_reused:

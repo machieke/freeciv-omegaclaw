@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 from ...events.schema import structural_hash
+from .composite import ProjectionShardSpec
 from .delta import snapshot_dependency_ref
 from .model import (
     AtomKey,
@@ -183,6 +184,69 @@ class CityRegionProjector(object):
         return result
 
     @staticmethod
+    def _scope_by_city(scopes):
+        result = {}
+        for scope in scopes:
+            if scope.scope_kind != "region":
+                continue
+            region_id = scope.root_entities[0].entity_id
+            city_id = region_id.split(":", 1)[0].split("-", 1)[1]
+            result[city_id] = scope
+        return result
+
+    @staticmethod
+    def _base_paths(city_id):
+        return (
+            "cities.{}.tile".format(city_id),
+            "cities.{}.x".format(city_id),
+            "cities.{}.y".format(city_id),
+            "map_width", "map_height", "map_wrap_x", "map_wrap_y",
+            "player_id",
+        )
+
+    def projection_shards(self, snapshot, scopes):
+        """Keep stable region geometry separate from moving threats."""
+        scope_by_city = self._scope_by_city(scopes)
+        kinds = self.incremental_dependency_kinds
+        shards = []
+        for city, _reasons, _threats in self._activations(snapshot):
+            city_id = str(city.city_id)
+            scope = scope_by_city[city_id]
+            base_paths = self._base_paths(city_id)
+            terrain_paths = tuple(
+                "map_tiles.{}.terrain".format(tile)
+                for tile in self._region_tiles(
+                    city, snapshot, self.policy.radius))
+            shards.append(ProjectionShardSpec(
+                "topology|{}".format(scope.scope_id),
+                base_paths,
+                kinds,
+                (scope.scope_id,),
+            ))
+            shards.append(ProjectionShardSpec(
+                "terrain|{}".format(scope.scope_id),
+                base_paths + terrain_paths,
+                kinds,
+                (scope.scope_id,),
+            ))
+            shards.append(ProjectionShardSpec(
+                "threat|{}".format(scope.scope_id),
+                base_paths + ("visible_enemy_units",),
+                kinds,
+                (scope.scope_id,),
+            ))
+        return tuple(shards)
+
+    @staticmethod
+    def projection_shard_for_record(record):
+        kind = (
+            "threat" if record.key.predicate in (
+                "region-activation-reason", "visible-threat-near")
+            else "terrain" if record.key.predicate == "terrain-kind"
+            else "topology")
+        return "{}|{}".format(kind, record.key.scope_id)
+
+    @staticmethod
     def _record(scope, namespace, predicate, arguments, authority,
                 dependencies, witness, truth=None, support=None):
         truth = truth or _CRISP
@@ -236,62 +300,49 @@ class CityRegionProjector(object):
                 values.add(ny * snapshot.map_width + nx)
         return tuple(sorted(values))
 
-    def project(self, snapshot, scopes, fingerprints):
-        scope_by_city = {}
-        for scope in scopes:
-            if scope.scope_kind != "region":
-                continue
-            region_id = scope.root_entities[0].entity_id
-            city_id = region_id.split(":", 1)[0].split("-", 1)[1]
-            scope_by_city[city_id] = scope
+    def _project_region(
+            self, snapshot, scope, city, reasons, threats, fingerprints,
+            include_topology, include_terrain, include_threat,
+            terrain_by_tile):
         policy_refs = self.policy.dependency_refs()
         policy_ref = SymbolRef("radius-policy", self.policy.policy_id)
-        terrain_by_tile = dict(
-            (int(value["index"]), value)
-            for value in snapshot.map_tiles
-            if isinstance(value, dict) and value.get("index") is not None)
         records = []
-        for city, reasons, threats in self._activations(snapshot):
-            city_id = str(city.city_id)
-            scope = scope_by_city[city_id]
-            region_ref = scope.root_entities[0]
-            city_ref = EntityRef("city", city_id)
-            base_paths = (
-                "cities.{}.tile".format(city_id),
-                "cities.{}.x".format(city_id),
-                "cities.{}.y".format(city_id),
-                "map_width", "map_height", "map_wrap_x", "map_wrap_y",
-            )
-            base_dependencies = tuple(
-                snapshot_dependency_ref(snapshot, path, fingerprints)
-                for path in base_paths) + policy_refs
-            activation_dependencies = list(base_dependencies)
-            for enemy in threats:
-                for field in ("x", "y"):
-                    activation_dependencies.append(snapshot_dependency_ref(
-                        snapshot,
-                        "visible_enemy_units.{}.{}".format(
-                            enemy.unit_id, field), fingerprints))
-            activation_dependencies = tuple(sorted(set(
-                activation_dependencies)))
-            geometry_dependencies = tuple(sorted(set(base_dependencies)))
-            geometry_support = SupportRecord.create(
-                "fdas-city-region-geometry", self.version,
-                {
-                    "city_id": city.city_id,
-                    "region_id": region_ref.entity_id,
-                }, geometry_dependencies, {
-                    "city_id": city.city_id,
-                    "policy": self.policy.policy_id,
-                    "radius": self.policy.radius,
-                }, (self.projector_id,))
+        city_id = str(city.city_id)
+        region_ref = scope.root_entities[0]
+        city_ref = EntityRef("city", city_id)
+        base_paths = self._base_paths(city_id)
+        base_dependencies = tuple(
+            snapshot_dependency_ref(snapshot, path, fingerprints)
+            for path in base_paths) + policy_refs
+        activation_dependencies = list(base_dependencies)
+        for enemy in threats:
+            for field in ("x", "y"):
+                activation_dependencies.append(snapshot_dependency_ref(
+                    snapshot,
+                    "visible_enemy_units.{}.{}".format(
+                        enemy.unit_id, field), fingerprints))
+        activation_dependencies = tuple(sorted(set(
+            activation_dependencies)))
+        geometry_dependencies = tuple(sorted(set(base_dependencies)))
+        geometry_support = SupportRecord.create(
+            "fdas-city-region-geometry", self.version,
+            {
+                "city_id": city.city_id,
+                "region_id": region_ref.entity_id,
+            }, geometry_dependencies, {
+                "city_id": city.city_id,
+                "policy": self.policy.policy_id,
+                "radius": self.policy.radius,
+            }, (self.projector_id,))
+        if include_topology:
             records.append(self._record(
                 scope, AtomNamespace.DERIVED, "region-centered-on",
                 (region_ref, city_ref), AuthorityClass.DETERMINISTIC_DERIVED,
-                activation_dependencies, {
+                geometry_dependencies, {
                     "city_id": city.city_id,
                     "policy": self.policy.policy_id,
                 }))
+        if include_threat:
             for reason in reasons:
                 records.append(self._record(
                     scope, AtomNamespace.DIAGNOSTIC,
@@ -302,20 +353,25 @@ class CityRegionProjector(object):
                         "policy": self.policy.policy_id,
                         "reason": reason,
                     }, truth={"structural": True}))
-            tiles = self._region_tiles(city, snapshot, self.policy.radius)
+        if include_topology or include_terrain:
+            tiles = self._region_tiles(
+                city, snapshot, self.policy.radius)
             tile_set = frozenset(tiles)
             for tile in tiles:
                 tile_ref = EntityRef("tile", str(tile))
-                records.append(self._record(
-                    scope, AtomNamespace.DERIVED, "tile-in-region",
-                    (tile_ref, region_ref),
-                    AuthorityClass.DETERMINISTIC_DERIVED,
-                    geometry_dependencies, {
-                        "radius": self.policy.radius,
-                        "tile": tile,
-                    }, support=geometry_support))
-                terrain = terrain_by_tile.get(tile)
-                if terrain is not None and terrain.get("terrain") is not None:
+                if include_topology:
+                    records.append(self._record(
+                        scope, AtomNamespace.DERIVED, "tile-in-region",
+                        (tile_ref, region_ref),
+                        AuthorityClass.DETERMINISTIC_DERIVED,
+                        geometry_dependencies, {
+                            "radius": self.policy.radius,
+                            "tile": tile,
+                        }, support=geometry_support))
+                terrain = (
+                    terrain_by_tile.get(tile) if include_terrain else None)
+                if (terrain is not None
+                        and terrain.get("terrain") is not None):
                     terrain_dependency = snapshot_dependency_ref(
                         snapshot,
                         "map_tiles.{}.terrain".format(tile), fingerprints)
@@ -326,17 +382,19 @@ class CityRegionProjector(object):
                         AuthorityClass.ENGINE_AUTHORITATIVE,
                         geometry_dependencies + (terrain_dependency,),
                         terrain))
-                for neighbor in self._adjacent(tile, snapshot):
-                    if neighbor not in tile_set:
-                        continue
-                    records.append(self._record(
-                        scope, AtomNamespace.DERIVED, "tile-adjacent",
-                        (tile_ref, EntityRef("tile", str(neighbor))),
-                        AuthorityClass.DETERMINISTIC_DERIVED,
-                        geometry_dependencies, {
-                            "from": tile,
-                            "to": neighbor,
-                        }, support=geometry_support))
+                if include_topology:
+                    for neighbor in self._adjacent(tile, snapshot):
+                        if neighbor not in tile_set:
+                            continue
+                        records.append(self._record(
+                            scope, AtomNamespace.DERIVED, "tile-adjacent",
+                            (tile_ref, EntityRef("tile", str(neighbor))),
+                            AuthorityClass.DETERMINISTIC_DERIVED,
+                            geometry_dependencies, {
+                                "from": tile,
+                                "to": neighbor,
+                            }, support=geometry_support))
+        if include_threat:
             for enemy in threats:
                 enemy_paths = (
                     "visible_enemy_units.{}.x".format(enemy.unit_id),
@@ -354,4 +412,49 @@ class CityRegionProjector(object):
                         "distance": self._distance(city, enemy, snapshot),
                         "radius": self.policy.radius,
                     }))
+        return tuple(sorted(records, key=lambda value: value.atom_id))
+
+    def project_shard(self, shard_id, snapshot, scopes, fingerprints):
+        kind, scope_id = str(shard_id).split("|", 1)
+        scope = next(
+            (value for value in scopes if value.scope_id == scope_id), None)
+        if scope is None or scope.scope_kind != "region":
+            raise ValueError("region projection shard scope is unavailable")
+        city_id = scope.root_entities[0].entity_id.split(
+            ":", 1)[0].split("-", 1)[1]
+        activation = (
+            next(
+                ((city, (), ()) for city in snapshot.cities
+                 if str(city.city_id) == city_id), None)
+            if kind in ("topology", "terrain") else
+            next(
+                (value for value in self._activations(snapshot)
+                 if str(value[0].city_id) == city_id), None))
+        if activation is None:
+            raise ValueError("region projection shard activation disappeared")
+        terrain_by_tile = (
+            dict(
+                (int(value["index"]), value)
+                for value in snapshot.map_tiles
+                if isinstance(value, dict)
+                and value.get("index") is not None)
+            if kind == "terrain" else {})
+        if kind not in ("topology", "terrain", "threat"):
+            raise ValueError("unknown region projection shard kind")
+        return self._project_region(
+            snapshot, scope, activation[0], activation[1], activation[2],
+            fingerprints, kind == "topology", kind == "terrain",
+            kind == "threat", terrain_by_tile)
+
+    def project(self, snapshot, scopes, fingerprints):
+        scope_by_city = self._scope_by_city(scopes)
+        terrain_by_tile = dict(
+            (int(value["index"]), value)
+            for value in snapshot.map_tiles
+            if isinstance(value, dict) and value.get("index") is not None)
+        records = []
+        for city, reasons, threats in self._activations(snapshot):
+            records.extend(self._project_region(
+                snapshot, scope_by_city[str(city.city_id)], city, reasons,
+                threats, fingerprints, True, True, True, terrain_by_tile))
         return tuple(sorted(records, key=lambda value: value.atom_id))
