@@ -1,0 +1,205 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "both_arms_pass_belief_acceptance": true,
+      "cohort_completed_without_failures": true,
+      "cohort_is_predeclared_and_claim_ineligible": true,
+      "paired_source_is_clean_and_stable": true
+    }
+  },
+  "arms": [
+    {
+      "acceptance": {
+        "accepted": true,
+        "checks": {
+          "action_results_are_complete_and_accepted": true,
+          "belief_projection_is_manifest_bound_shadow_only": true,
+          "belief_scopes_and_required_predicates_are_live": true,
+          "cold_verification_is_equivalent": true,
+          "decay_is_explicit_causal_and_monotone": true,
+          "engine_run_completed_at_horizon": true,
+          "expired_support_is_invalidated_not_negated": true,
+          "fdas_projection_p95_within_budget": true,
+          "no_conflict_or_quarantine_is_fabricated": true,
+          "no_fdas_or_observation_authority": true,
+          "observations_and_revised_beliefs_are_uncertain": true,
+          "projection_commits_retain_one_support_per_atom": true,
+          "source_is_clean": true,
+          "status_counters_match_decay_and_rematerialization_events": true
+        }
+      },
+      "arm": "baseline",
+      "evidence": {
+        "events.jsonl": {
+          "path": "artifacts/freeciv/fdas-belief-shadow-live-30-v1/games/impact_pair/fdas_belief_shadow_diagnostic_v1/baseline/e_full_loop/271828-00/events.jsonl",
+          "sha256": "8dbdb540a8262173a2b4548a24eaba8e78111d4724451b18704e6d5cdd4feed2"
+        },
+        "manifest.json": {
+          "path": "artifacts/freeciv/fdas-belief-shadow-live-30-v1/games/impact_pair/fdas_belief_shadow_diagnostic_v1/baseline/e_full_loop/271828-00/manifest.json",
+          "sha256": "bd6e14f2c1e2fa09148c29adff68e264b65f137c07f9d0bcb62c623955262f69"
+        },
+        "status.json": {
+          "path": "artifacts/freeciv/fdas-belief-shadow-live-30-v1/games/impact_pair/fdas_belief_shadow_diagnostic_v1/baseline/e_full_loop/271828-00/status.json",
+          "sha256": "fc0f9d1bdda9befbbb3dec121100dc37b216c4d9bd3e0f46efb64e0b42032fce"
+        }
+      },
+      "latency": {
+        "belief_rematerialization": {
+          "count": 4,
+          "maximum_ms": 28.242624830454588,
+          "p50_ms": 23.10866303741932,
+          "p95_ms": 28.242624830454588
+        },
+        "fdas_projection": {
+          "count": 31,
+          "maximum_ms": 56.84533901512623,
+          "p50_ms": 2.9039871878921986,
+          "p95_ms": 37.62705810368061
+        },
+        "full_controller": {
+          "count": 30,
+          "maximum_ms": 592.1937571838498,
+          "p50_ms": 126.72932399436831,
+          "p95_ms": 371.7110990546644
+        }
+      },
+      "projected_predicates": {
+        "belief-about-opponent": 335,
+        "belief-context": 346,
+        "belief-current-revision": 335,
+        "belief-proposition": 335,
+        "belief-supported-by-evidence": 355
+      },
+      "source": {
+        "commit": "f25f7445a11d93758e5a803714731d18341a6908",
+        "dirty": false,
+        "implementation_sha256": "f1a5a8bc564402bb4a3ddb53b31fe4d378f170267b64cb7d1e55cf6dbfccb487",
+        "source_files": 265
+      },
+      "summary": {
+        "accepted_action_results": 62,
+        "actions": 62,
+        "belief_scopes": 24,
+        "cold_verifications": 1,
+        "conflicts": 0,
+        "decay_revisions": 301,
+        "invalidations": 313,
+        "observations": 4,
+        "quarantines": 0,
+        "rematerializations": 4
+      }
+    },
+    {
+      "acceptance": {
+        "accepted": true,
+        "checks": {
+          "action_results_are_complete_and_accepted": true,
+          "belief_projection_is_manifest_bound_shadow_only": true,
+          "belief_scopes_and_required_predicates_are_live": true,
+          "cold_verification_is_equivalent": true,
+          "decay_is_explicit_causal_and_monotone": true,
+          "engine_run_completed_at_horizon": true,
+          "expired_support_is_invalidated_not_negated": true,
+          "fdas_projection_p95_within_budget": true,
+          "no_conflict_or_quarantine_is_fabricated": true,
+          "no_fdas_or_observation_authority": true,
+          "observations_and_revised_beliefs_are_uncertain": true,
+          "projection_commits_retain_one_support_per_atom": true,
+          "source_is_clean": true,
+          "status_counters_match_decay_and_rematerialization_events": true
+        }
+      },
+      "arm": "treatment",
+      "evidence": {
+        "events.jsonl": {
+          "path": "artifacts/freeciv/fdas-belief-shadow-live-30-v1/games/impact_pair/fdas_belief_shadow_diagnostic_v1/treatment/e_full_loop/271828-00/events.jsonl",
+          "sha256": "2d70eb9d227cdb967473906470b0f2d308f3e662bcc25304c72aa169671e048c"
+        },
+        "manifest.json": {
+          "path": "artifacts/freeciv/fdas-belief-shadow-live-30-v1/games/impact_pair/fdas_belief_shadow_diagnostic_v1/treatment/e_full_loop/271828-00/manifest.json",
+          "sha256": "1bd60081cef903aee861ca7afb004db1e0328c09dc8eeef41fa44d51ecc411c0"
+        },
+        "status.json": {
+          "path": "artifacts/freeciv/fdas-belief-shadow-live-30-v1/games/impact_pair/fdas_belief_shadow_diagnostic_v1/treatment/e_full_loop/271828-00/status.json",
+          "sha256": "446a6945809b515396e8c34fa6edd90b467d8bed94ea8389f721dacb7e50de10"
+        }
+      },
+      "latency": {
+        "belief_rematerialization": {
+          "count": 2,
+          "maximum_ms": 2.458323258906603,
+          "p50_ms": 1.5266849659383297,
+          "p95_ms": 2.458323258906603
+        },
+        "fdas_projection": {
+          "count": 31,
+          "maximum_ms": 4.659655038267374,
+          "p50_ms": 1.3801800087094307,
+          "p95_ms": 3.4044887870550156
+        },
+        "full_controller": {
+          "count": 30,
+          "maximum_ms": 468.524944037199,
+          "p50_ms": 138.46387388184667,
+          "p95_ms": 401.7952033318579
+        }
+      },
+      "projected_predicates": {
+        "belief-about-opponent": 16,
+        "belief-context": 16,
+        "belief-current-revision": 16,
+        "belief-proposition": 16,
+        "belief-supported-by-evidence": 16
+      },
+      "source": {
+        "commit": "f25f7445a11d93758e5a803714731d18341a6908",
+        "dirty": false,
+        "implementation_sha256": "f1a5a8bc564402bb4a3ddb53b31fe4d378f170267b64cb7d1e55cf6dbfccb487",
+        "source_files": 265
+      },
+      "summary": {
+        "accepted_action_results": 73,
+        "actions": 73,
+        "belief_scopes": 17,
+        "cold_verifications": 3,
+        "conflicts": 0,
+        "decay_revisions": 16,
+        "invalidations": 24,
+        "observations": 2,
+        "quarantines": 0,
+        "rematerializations": 2
+      }
+    }
+  ],
+  "claim_scope": "real-observation opponent-belief projection, explicit decay, support invalidation, cold parity, and non-authority; no conflict, quarantine, observation-selection, score, or gameplay improvement claim",
+  "cohort": "fdas_belief_shadow_diagnostic_v1",
+  "evidence": {
+    "impact_aggregate": {
+      "path": "artifacts/freeciv/fdas-belief-shadow-live-30-v1/impact-aggregate.json",
+      "sha256": "7dcd0e9a2d2770b51e3c7208e77fb2667b660d6fb8f4e0f10f8b4a8a418edd39"
+    },
+    "impact_run_summary": {
+      "path": "artifacts/freeciv/fdas-belief-shadow-live-30-v1/impact-run-summary.json",
+      "sha256": "969aab298ea4b1affa54d015cbb17ff88e73c0f0c54ea380eb23c9b9ad8eac6b"
+    }
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "f25f7445a11d93758e5a803714731d18341a6908",
+    "implementation_sha256": "f1a5a8bc564402bb4a3ddb53b31fe4d378f170267b64cb7d1e55cf6dbfccb487"
+  },
+  "structural_hash": "d7597f9db91bf256602252fd1d608221b463ccb66cc9b6319f41d38fc3d43945",
+  "summary": {
+    "accepted_action_results": 135,
+    "actions": 135,
+    "belief_scopes": 41,
+    "cold_verifications": 4,
+    "conflicts": 0,
+    "decay_revisions": 317,
+    "invalidations": 337,
+    "observations": 6,
+    "quarantines": 0,
+    "rematerializations": 6
+  }
+}
