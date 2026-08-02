@@ -75,28 +75,28 @@
     "unique_fixture_count": 47
   },
   "failures": [],
-  "generated_at": "2026-08-02T03:20:19.629726+00:00",
+  "generated_at": "2026-08-02T03:47:37.996263+00:00",
   "mode": "all",
-  "report_hash": "2c0d1e597990bd33d4ff3eab901743561c58c26a2bee659e12d365b388d9a309",
+  "report_hash": "7eea020650511ef3c67a07e1fbc6ff0f788d561bef85539d1e4a62fcb6549fd3",
   "results": {
     "cold": {
       "fdas_total_latency": {
         "count": 38,
-        "maximum_ms": 593.6105917207897,
-        "mean_ms": 258.495499183865,
-        "minimum_ms": 51.19661521166563,
-        "p50_ms": 249.33566991239786,
-        "p95_ms": 442.04223109409213,
-        "p99_ms": 593.6105917207897
+        "maximum_ms": 603.0309959314764,
+        "mean_ms": 278.74056725321634,
+        "minimum_ms": 56.56131589785218,
+        "p50_ms": 257.32625275850296,
+        "p95_ms": 543.7731388956308,
+        "p99_ms": 603.0309959314764
       },
       "latency": {
         "count": 38,
-        "maximum_ms": 401.7085926607251,
-        "mean_ms": 205.01274371666736,
-        "minimum_ms": 50.62123527750373,
-        "p50_ms": 185.36159908398986,
-        "p95_ms": 380.2838590927422,
-        "p99_ms": 401.7085926607251
+        "maximum_ms": 433.56755329295993,
+        "mean_ms": 221.69943927101008,
+        "minimum_ms": 55.96682382747531,
+        "p50_ms": 201.301293913275,
+        "p95_ms": 396.6251937672496,
+        "p99_ms": 433.56755329295993
       },
       "materialization": {
         "incremental_recomputation_ratio": {
@@ -119,7 +119,9 @@
           "fdas-transport-capability-projector": 38,
           "fdas-unit-defense-shadow": 38
         },
+        "recomputed_shard_counts": {},
         "reused_projector_counts": {},
+        "reused_shard_counts": {},
         "rich_recomputed_record_count": 42039,
         "rich_reused_record_count": 0,
         "sample_count": 38
@@ -132,8 +134,8 @@
         {
           "atom_count": 410,
           "dependency_key_count": 262,
-          "fdas_total_latency_ms": 60.28865557163954,
-          "latency_ms": 59.61063923314214,
+          "fdas_total_latency_ms": 64.49601566419005,
+          "latency_ms": 63.8172198086977,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -152,9 +154,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 410,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 272,
             "rich_reused_records": 0,
             "total_records": 410,
@@ -255,7 +259,7 @@
             },
             "evaluation_hash": "809f3eea031e6e4bc1d5ee0d044b5383e000f1e493056ffe0bfcb41c52825ed6",
             "goal_count": 0,
-            "latency_ms": 0.6780163384974003,
+            "latency_ms": 0.6787958554923534,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -268,8 +272,8 @@
         {
           "atom_count": 410,
           "dependency_key_count": 261,
-          "fdas_total_latency_ms": 54.28110295906663,
-          "latency_ms": 53.593161050230265,
+          "fdas_total_latency_ms": 58.49631177261472,
+          "latency_ms": 57.829913683235645,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -288,9 +292,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 410,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 272,
             "rich_reused_records": 0,
             "total_records": 410,
@@ -384,7 +390,7 @@
             },
             "evaluation_hash": "d1e104ce1b4c9946198295fa0ed279c7478aa02b1a7d2634338582fdb1e8ac00",
             "goal_count": 0,
-            "latency_ms": 0.6879419088363647,
+            "latency_ms": 0.6663980893790722,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -397,8 +403,8 @@
         {
           "atom_count": 368,
           "dependency_key_count": 243,
-          "fdas_total_latency_ms": 51.19661521166563,
-          "latency_ms": 50.62123527750373,
+          "fdas_total_latency_ms": 56.56131589785218,
+          "latency_ms": 55.96682382747531,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -417,9 +423,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 368,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 230,
             "rich_reused_records": 0,
             "total_records": 368,
@@ -498,7 +506,7 @@
             },
             "evaluation_hash": "cf4df93647a4ece90a9d4faac2b06f78e0d77d60c37328f9191500800d08c633",
             "goal_count": 0,
-            "latency_ms": 0.5753799341619015,
+            "latency_ms": 0.594492070376873,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -511,8 +519,8 @@
         {
           "atom_count": 659,
           "dependency_key_count": 450,
-          "fdas_total_latency_ms": 111.05791572481394,
-          "latency_ms": 93.08200608938932,
+          "fdas_total_latency_ms": 119.17063081637025,
+          "latency_ms": 101.20507795363665,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -531,9 +539,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 659,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 440,
             "rich_reused_records": 0,
             "total_records": 659,
@@ -644,7 +654,7 @@
             },
             "evaluation_hash": "b4fb4eaa6e1ffebd798a8cfebe55697159caedeccfbee3a8bfb3271844ad8edd",
             "goal_count": 1,
-            "latency_ms": 17.975909635424614,
+            "latency_ms": 17.965552862733603,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-a5c3a8614249b52878aadb8d06f6d1c4"
@@ -657,8 +667,8 @@
         {
           "atom_count": 659,
           "dependency_key_count": 450,
-          "fdas_total_latency_ms": 104.49295397847891,
-          "latency_ms": 86.75751090049744,
+          "fdas_total_latency_ms": 114.01895200833678,
+          "latency_ms": 96.44717909395695,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -677,9 +687,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 659,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 440,
             "rich_reused_records": 0,
             "total_records": 659,
@@ -777,7 +789,7 @@
             },
             "evaluation_hash": "a352823e4262ffd8301d79980f3a819e315e772458e83d0a0047c0145fc7e31e",
             "goal_count": 1,
-            "latency_ms": 17.735443077981472,
+            "latency_ms": 17.571772914379835,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-aeb2dc9808da4ceb6cb21199ee677b49"
@@ -790,8 +802,8 @@
         {
           "atom_count": 754,
           "dependency_key_count": 521,
-          "fdas_total_latency_ms": 122.71454837173223,
-          "latency_ms": 105.04414141178131,
+          "fdas_total_latency_ms": 133.88300221413374,
+          "latency_ms": 113.70218405500054,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -810,9 +822,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 754,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 522,
             "rich_reused_records": 0,
             "total_records": 754,
@@ -916,7 +930,7 @@
             },
             "evaluation_hash": "6a3182fe56ef0cd8bdabdbce2fa1d3fc4725103f74a4e1ad51aa8ae07bf7e172",
             "goal_count": 1,
-            "latency_ms": 17.670406959950924,
+            "latency_ms": 20.180818159133196,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-185daba30fb0e219cb39e90affe141a8"
@@ -929,8 +943,8 @@
         {
           "atom_count": 845,
           "dependency_key_count": 581,
-          "fdas_total_latency_ms": 123.73804161325097,
-          "latency_ms": 122.45612684637308,
+          "fdas_total_latency_ms": 134.00129321962595,
+          "latency_ms": 132.72070419043303,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -949,9 +963,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 845,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 598,
             "rich_reused_records": 0,
             "total_records": 845,
@@ -1053,7 +1069,7 @@
             },
             "evaluation_hash": "8dcc453589c997876720452a9db3b2a6a1690db7b6f4efb658b336fe1b20ee23",
             "goal_count": 0,
-            "latency_ms": 1.2819147668778896,
+            "latency_ms": 1.2805890291929245,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -1066,8 +1082,8 @@
         {
           "atom_count": 845,
           "dependency_key_count": 581,
-          "fdas_total_latency_ms": 115.68179680034518,
-          "latency_ms": 114.40365295857191,
+          "fdas_total_latency_ms": 124.98183595016599,
+          "latency_ms": 123.71309194713831,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -1086,9 +1102,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 845,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 598,
             "rich_reused_records": 0,
             "total_records": 845,
@@ -1177,7 +1195,7 @@
             },
             "evaluation_hash": "af454599fc4f78ea21a91ff10fc7a9cee21fd06a0609ad19bc8162ecd5dfd5a7",
             "goal_count": 0,
-            "latency_ms": 1.2781438417732716,
+            "latency_ms": 1.2687440030276775,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -1190,8 +1208,8 @@
         {
           "atom_count": 944,
           "dependency_key_count": 662,
-          "fdas_total_latency_ms": 139.66897409409285,
-          "latency_ms": 138.21500726044178,
+          "fdas_total_latency_ms": 150.04350477829576,
+          "latency_ms": 148.6362316645682,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -1210,9 +1228,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 944,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 685,
             "rich_reused_records": 0,
             "total_records": 944,
@@ -1307,7 +1327,7 @@
             },
             "evaluation_hash": "c40554833ec70aded085bf741ba18b8c5bd6155335e3be06e6452c33fc68862f",
             "goal_count": 0,
-            "latency_ms": 1.4539668336510658,
+            "latency_ms": 1.4072731137275696,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -1320,8 +1340,8 @@
         {
           "atom_count": 1304,
           "dependency_key_count": 959,
-          "fdas_total_latency_ms": 221.2138739414513,
-          "latency_ms": 185.36159908398986,
+          "fdas_total_latency_ms": 236.45422607660294,
+          "latency_ms": 199.90535778924823,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -1340,9 +1360,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1304,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 959,
             "rich_reused_records": 0,
             "total_records": 1304,
@@ -1541,7 +1563,7 @@
             },
             "evaluation_hash": "ac1df74b26e36e2e549d5b078fc7c12e208bdbcef02bba305b97261e6127f1fa",
             "goal_count": 1,
-            "latency_ms": 35.85227485746145,
+            "latency_ms": 36.54886828735471,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-54ff9821c77677ecbeddff0c2c97b285"
@@ -1554,8 +1576,8 @@
         {
           "atom_count": 1462,
           "dependency_key_count": 1140,
-          "fdas_total_latency_ms": 249.33566991239786,
-          "latency_ms": 210.48979181796312,
+          "fdas_total_latency_ms": 273.28478125855327,
+          "latency_ms": 228.9244062267244,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -1574,9 +1596,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1462,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1062,
             "rich_reused_records": 0,
             "total_records": 1462,
@@ -1740,7 +1764,7 @@
             },
             "evaluation_hash": "4f13204338c5d06cf22cfe4fedf650053f13abeea4e2f06875cfd3420a421603",
             "goal_count": 2,
-            "latency_ms": 38.84587809443474,
+            "latency_ms": 44.36037503182888,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-08c8df739186ea49b883e635df1f2dd6"
@@ -1753,8 +1777,8 @@
         {
           "atom_count": 1438,
           "dependency_key_count": 802,
-          "fdas_total_latency_ms": 185.06868369877338,
-          "latency_ms": 181.43655266612768,
+          "fdas_total_latency_ms": 207.59242912754416,
+          "latency_ms": 199.15859075263143,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -1773,9 +1797,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1438,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1039,
             "rich_reused_records": 0,
             "total_records": 1438,
@@ -1870,7 +1896,7 @@
             },
             "evaluation_hash": "b59582f2f8618c3c5ac195ea942ce399fbbe93b3ab4a1b349181e4a232ca4898",
             "goal_count": 1,
-            "latency_ms": 3.6321310326457024,
+            "latency_ms": 8.433838374912739,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-a4738e2f003b8f641979dc902c81"
@@ -1883,8 +1909,8 @@
         {
           "atom_count": 1628,
           "dependency_key_count": 1268,
-          "fdas_total_latency_ms": 354.20074220746756,
-          "latency_ms": 234.69754913821816,
+          "fdas_total_latency_ms": 371.1820770986378,
+          "latency_ms": 248.15630819648504,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -1903,9 +1929,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1628,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1229,
             "rich_reused_records": 0,
             "total_records": 1628,
@@ -2117,7 +2145,7 @@
             },
             "evaluation_hash": "b200730522ce7241d688eef4489146cfcb3dce4031dc9a4893c27eff11b6d0c3",
             "goal_count": 1,
-            "latency_ms": 119.50319306924939,
+            "latency_ms": 123.02576890215278,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-30a6bb17a40f98057a29c04e98f6c3c0"
@@ -2130,8 +2158,8 @@
         {
           "atom_count": 2404,
           "dependency_key_count": 1372,
-          "fdas_total_latency_ms": 442.04223109409213,
-          "latency_ms": 300.6009259261191,
+          "fdas_total_latency_ms": 456.03573974221945,
+          "latency_ms": 315.6972946599126,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -2150,9 +2178,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 2404,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 2005,
             "rich_reused_records": 0,
             "total_records": 2404,
@@ -2356,7 +2386,7 @@
             },
             "evaluation_hash": "440accc336c4e7b74be14f6b4dedd258cc3236ef535160d95d25b749d5b9d0a8",
             "goal_count": 1,
-            "latency_ms": 141.44130516797304,
+            "latency_ms": 140.33844508230686,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-0d2cad34a9a6ef04ab478300699834c9"
@@ -2369,8 +2399,8 @@
         {
           "atom_count": 1434,
           "dependency_key_count": 801,
-          "fdas_total_latency_ms": 182.79669806361198,
-          "latency_ms": 179.21870900318027,
+          "fdas_total_latency_ms": 204.35189455747604,
+          "latency_ms": 200.78054163604975,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -2389,9 +2419,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1434,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1035,
             "rich_reused_records": 0,
             "total_records": 1434,
@@ -2469,7 +2501,7 @@
             },
             "evaluation_hash": "4b23eae5723910443a0f63e89f36b70265f51aaf5e39ba6e5444e5f45a431743",
             "goal_count": 1,
-            "latency_ms": 3.577989060431719,
+            "latency_ms": 3.5713529214262962,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-ad5a6dad5f1d2955b0a5891552cf"
@@ -2482,8 +2514,8 @@
         {
           "atom_count": 1631,
           "dependency_key_count": 1279,
-          "fdas_total_latency_ms": 266.649441793561,
-          "latency_ms": 223.36941864341497,
+          "fdas_total_latency_ms": 291.84981575235724,
+          "latency_ms": 249.1137213073671,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -2502,9 +2534,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1631,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1232,
             "rich_reused_records": 0,
             "total_records": 1631,
@@ -2699,7 +2733,7 @@
             },
             "evaluation_hash": "40d11b26b7b6218a934a77d02d512c807319f2695cf6fa18dd30a7cf410f7806",
             "goal_count": 1,
-            "latency_ms": 43.28002315014601,
+            "latency_ms": 42.73609444499016,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-135cfe9850ae9a9cd682e40cdf444357"
@@ -2712,8 +2746,8 @@
         {
           "atom_count": 1775,
           "dependency_key_count": 1365,
-          "fdas_total_latency_ms": 288.0037687718868,
-          "latency_ms": 243.15300676971674,
+          "fdas_total_latency_ms": 306.54764734208584,
+          "latency_ms": 261.000398080796,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -2732,9 +2766,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1775,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1369,
             "rich_reused_records": 0,
             "total_records": 1775,
@@ -3015,7 +3051,7 @@
             },
             "evaluation_hash": "e48509f6093674e093f12ac91bb259466d208dff2e7acc8a4ba2aea944bb2250",
             "goal_count": 1,
-            "latency_ms": 44.850762002170086,
+            "latency_ms": 45.547249261289835,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-17545dad789ce996cba0f5f0390863a0"
@@ -3028,8 +3064,8 @@
         {
           "atom_count": 2610,
           "dependency_key_count": 1344,
-          "fdas_total_latency_ms": 301.76875088363886,
-          "latency_ms": 298.2774917036295,
+          "fdas_total_latency_ms": 435.30468037351966,
+          "latency_ms": 329.8355583101511,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -3048,9 +3084,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 2610,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 2205,
             "rich_reused_records": 0,
             "total_records": 2610,
@@ -3139,7 +3177,7 @@
             },
             "evaluation_hash": "b0ea6525834762042e6168f6122994ee2d4fd82c9afec53d548a2edeea8f3353",
             "goal_count": 0,
-            "latency_ms": 3.491259180009365,
+            "latency_ms": 105.46912206336856,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -3152,8 +3190,8 @@
         {
           "atom_count": 2258,
           "dependency_key_count": 1472,
-          "fdas_total_latency_ms": 327.8447682969272,
-          "latency_ms": 316.2852511741221,
+          "fdas_total_latency_ms": 343.95228140056133,
+          "latency_ms": 332.2744886390865,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -3172,9 +3210,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 2258,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1853,
             "rich_reused_records": 0,
             "total_records": 2258,
@@ -3329,7 +3369,7 @@
             },
             "evaluation_hash": "865620b7a17a085114c59c2795dce47d22309fa89722ab56ed1a24a6acd21fd0",
             "goal_count": 0,
-            "latency_ms": 11.559517122805119,
+            "latency_ms": 11.677792761474848,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -3342,8 +3382,8 @@
         {
           "atom_count": 1999,
           "dependency_key_count": 1502,
-          "fdas_total_latency_ms": 419.17546186596155,
-          "latency_ms": 312.7460749819875,
+          "fdas_total_latency_ms": 326.391676440835,
+          "latency_ms": 323.35578417405486,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -3362,9 +3402,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1999,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1595,
             "rich_reused_records": 0,
             "total_records": 1999,
@@ -3446,7 +3488,7 @@
             },
             "evaluation_hash": "fe8f5608dfb1abccb755093c4340d49755232927ffdc0de514fda2532f93902f",
             "goal_count": 0,
-            "latency_ms": 106.42938688397408,
+            "latency_ms": 3.035892266780138,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -3459,8 +3501,8 @@
         {
           "atom_count": 2239,
           "dependency_key_count": 1878,
-          "fdas_total_latency_ms": 441.6820681653917,
-          "latency_ms": 380.2838590927422,
+          "fdas_total_latency_ms": 576.7685417085886,
+          "latency_ms": 396.6251937672496,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -3479,9 +3521,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 2239,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1798,
             "rich_reused_records": 0,
             "total_records": 2239,
@@ -3712,7 +3756,7 @@
             },
             "evaluation_hash": "cfef4d737761fb40b3885e86f4527f47e107db18ba6e30423daf2abcfdbfce8f",
             "goal_count": 1,
-            "latency_ms": 61.39820907264948,
+            "latency_ms": 180.14334794133902,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-03c7f76eefbc09f4394f4fce58b94571"
@@ -3725,8 +3769,8 @@
         {
           "atom_count": 2305,
           "dependency_key_count": 2002,
-          "fdas_total_latency_ms": 593.6105917207897,
-          "latency_ms": 401.7085926607251,
+          "fdas_total_latency_ms": 498.98220552131534,
+          "latency_ms": 433.56755329295993,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -3745,9 +3789,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 2305,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1866,
             "rich_reused_records": 0,
             "total_records": 2305,
@@ -4127,7 +4173,7 @@
             },
             "evaluation_hash": "e4f3751e3f160870dacbf56ec66d85a499949dfe25edaf25d0465d7c466b0b4f",
             "goal_count": 4,
-            "latency_ms": 191.90199906006455,
+            "latency_ms": 65.41465222835541,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-00d854081bee48f480a070ba9a8458a7"
@@ -4140,8 +4186,8 @@
         {
           "atom_count": 2302,
           "dependency_key_count": 2001,
-          "fdas_total_latency_ms": 467.94542856514454,
-          "latency_ms": 399.66383716091514,
+          "fdas_total_latency_ms": 603.0309959314764,
+          "latency_ms": 415.2448629029095,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -4160,9 +4206,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 2302,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1863,
             "rich_reused_records": 0,
             "total_records": 2302,
@@ -4480,7 +4528,7 @@
             },
             "evaluation_hash": "74ffb3fa2180247e90bcf4dd92b44445ba4a6771b36d9115e06982d38230f4f1",
             "goal_count": 2,
-            "latency_ms": 68.2815914042294,
+            "latency_ms": 187.78613302856684,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-0a0e6335cb33d355445ddfb3e8d52fbc"
@@ -4493,8 +4541,8 @@
         {
           "atom_count": 1928,
           "dependency_key_count": 1050,
-          "fdas_total_latency_ms": 267.42121670395136,
-          "latency_ms": 258.575975894928,
+          "fdas_total_latency_ms": 291.79218877106905,
+          "latency_ms": 276.8127997405827,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -4513,9 +4561,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1928,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1492,
             "rich_reused_records": 0,
             "total_records": 1928,
@@ -4664,7 +4714,7 @@
             },
             "evaluation_hash": "aa9739639a71557f97de09dc2c827e18c75a463ef357cd3a64ae65ee83d5f459",
             "goal_count": 2,
-            "latency_ms": 8.84524080902338,
+            "latency_ms": 14.979389030486345,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-589f90490b35392b7f538235bc2f"
@@ -4677,8 +4727,8 @@
         {
           "atom_count": 1927,
           "dependency_key_count": 1050,
-          "fdas_total_latency_ms": 264.73760325461626,
-          "latency_ms": 253.87318106368184,
+          "fdas_total_latency_ms": 286.82762617245317,
+          "latency_ms": 275.6226798519492,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -4697,9 +4747,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1927,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1491,
             "rich_reused_records": 0,
             "total_records": 1927,
@@ -4784,7 +4836,7 @@
             },
             "evaluation_hash": "f42ea870b75d9d560390810a76c06e08f30f10b3a18ffe3beb22ebeea2aa2f6f",
             "goal_count": 1,
-            "latency_ms": 10.86442219093442,
+            "latency_ms": 11.20494632050395,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-cd45af36b8c1c6ceb41a0d0d9d2e"
@@ -4797,8 +4849,8 @@
         {
           "atom_count": 1983,
           "dependency_key_count": 1669,
-          "fdas_total_latency_ms": 399.20197194442153,
-          "latency_ms": 315.639641135931,
+          "fdas_total_latency_ms": 543.7731388956308,
+          "latency_ms": 338.18837394937873,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -4817,9 +4869,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1983,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1579,
             "rich_reused_records": 0,
             "total_records": 1983,
@@ -5314,7 +5368,7 @@
             },
             "evaluation_hash": "3e7ac9a61edc12850a8f94f847a74e1b1a0dd423fddd2bfe7c478f752e2bac41",
             "goal_count": 6,
-            "latency_ms": 83.56233080849051,
+            "latency_ms": 205.5847649462521,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-04d3e91e456dc2463a5f356929065de2"
@@ -5327,8 +5381,8 @@
         {
           "atom_count": 1472,
           "dependency_key_count": 822,
-          "fdas_total_latency_ms": 359.8831947892904,
-          "latency_ms": 193.08296404778957,
+          "fdas_total_latency_ms": 257.32625275850296,
+          "latency_ms": 211.6166758351028,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -5347,9 +5401,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1472,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1076,
             "rich_reused_records": 0,
             "total_records": 1472,
@@ -5770,7 +5826,7 @@
             },
             "evaluation_hash": "06156b053ed7c29937c0f9b784cdc955639b451d703f1359c19e43390695e973",
             "goal_count": 9,
-            "latency_ms": 166.80023074150085,
+            "latency_ms": 45.709576923400164,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-0e95390c16c8a4857061910eb96e"
@@ -5783,8 +5839,8 @@
         {
           "atom_count": 1474,
           "dependency_key_count": 823,
-          "fdas_total_latency_ms": 228.91910281032324,
-          "latency_ms": 188.6332891881466,
+          "fdas_total_latency_ms": 247.6820657029748,
+          "latency_ms": 201.301293913275,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -5803,9 +5859,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1474,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1078,
             "rich_reused_records": 0,
             "total_records": 1474,
@@ -6238,7 +6296,7 @@
             },
             "evaluation_hash": "e51c99eee044087c33dd1cb4c453834dfcf75c47d73e2200515bbb36b5f9fee0",
             "goal_count": 9,
-            "latency_ms": 40.28581362217665,
+            "latency_ms": 46.38077178969979,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-4dfaec9b1e185b1a2bc010afe935"
@@ -6251,8 +6309,8 @@
         {
           "atom_count": 1595,
           "dependency_key_count": 1370,
-          "fdas_total_latency_ms": 328.8365821354091,
-          "latency_ms": 249.93269192054868,
+          "fdas_total_latency_ms": 355.66354589536786,
+          "latency_ms": 274.6579861268401,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -6271,9 +6329,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1595,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1223,
             "rich_reused_records": 0,
             "total_records": 1595,
@@ -6800,7 +6860,7 @@
             },
             "evaluation_hash": "a422d3f6658ebf5416022e7da97e8831a47303507e8c232cf0ef3cfc4b7eb784",
             "goal_count": 9,
-            "latency_ms": 78.90389021486044,
+            "latency_ms": 81.00555976852775,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-03c8cd77ac689a84997325acaf0ba554"
@@ -6813,8 +6873,8 @@
         {
           "atom_count": 1499,
           "dependency_key_count": 1264,
-          "fdas_total_latency_ms": 312.99271853640676,
-          "latency_ms": 228.26980287209153,
+          "fdas_total_latency_ms": 466.41488932073116,
+          "latency_ms": 254.5821419917047,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -6833,9 +6893,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1499,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1132,
             "rich_reused_records": 0,
             "total_records": 1499,
@@ -7398,7 +7460,7 @@
             },
             "evaluation_hash": "e23f247438a3e736ae12db13aed9b0830a43cc7d850fc3f8cfa375fdf059a179",
             "goal_count": 12,
-            "latency_ms": 84.72291566431522,
+            "latency_ms": 211.83274732902646,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-026fe50fd395bbd7f17d83ae6d18c84b"
@@ -7411,8 +7473,8 @@
         {
           "atom_count": 1499,
           "dependency_key_count": 1264,
-          "fdas_total_latency_ms": 439.72642719745636,
-          "latency_ms": 230.1928661763668,
+          "fdas_total_latency_ms": 323.36469925940037,
+          "latency_ms": 241.81614723056555,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -7431,9 +7493,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1499,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1132,
             "rich_reused_records": 0,
             "total_records": 1499,
@@ -7989,7 +8053,7 @@
             },
             "evaluation_hash": "4d98605d34d15bdbf3357108282530567e12f5a09d21191c4345253c04fd2ab4",
             "goal_count": 12,
-            "latency_ms": 209.53356102108955,
+            "latency_ms": 81.54855202883482,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-04528c92f757d83003d61848e3319257"
@@ -8002,8 +8066,8 @@
         {
           "atom_count": 1401,
           "dependency_key_count": 799,
-          "fdas_total_latency_ms": 195.438414812088,
-          "latency_ms": 183.8567815721035,
+          "fdas_total_latency_ms": 231.1871573328972,
+          "latency_ms": 214.70286510884762,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -8022,9 +8086,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1401,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1029,
             "rich_reused_records": 0,
             "total_records": 1401,
@@ -8228,7 +8294,7 @@
             },
             "evaluation_hash": "5ba1695df5a6c02c68c300183641ce8d0f1f562d5fce4b695128f12786044b73",
             "goal_count": 4,
-            "latency_ms": 11.581633239984512,
+            "latency_ms": 16.484292224049568,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-262a4c429996ecf484dd0386d927"
@@ -8241,8 +8307,8 @@
         {
           "atom_count": 1401,
           "dependency_key_count": 798,
-          "fdas_total_latency_ms": 181.61509511992335,
-          "latency_ms": 170.11717427521944,
+          "fdas_total_latency_ms": 202.74542411789298,
+          "latency_ms": 191.15708908066154,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -8261,9 +8327,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1401,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1029,
             "rich_reused_records": 0,
             "total_records": 1401,
@@ -8471,7 +8539,7 @@
             },
             "evaluation_hash": "fef7f5fd21404eb9d94bdf4f785c3b2e284be99d0a44e966408529df24e0cf9b",
             "goal_count": 4,
-            "latency_ms": 11.497920844703913,
+            "latency_ms": 11.588335037231445,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-35d6d39398200c70b53f881733dd"
@@ -8484,8 +8552,8 @@
         {
           "atom_count": 1403,
           "dependency_key_count": 800,
-          "fdas_total_latency_ms": 194.3801799789071,
-          "latency_ms": 182.45731806382537,
+          "fdas_total_latency_ms": 208.95313937216997,
+          "latency_ms": 197.4887317046523,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -8504,9 +8572,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1403,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1031,
             "rich_reused_records": 0,
             "total_records": 1403,
@@ -8703,7 +8773,7 @@
             },
             "evaluation_hash": "f8b845940f4f2bab95061f242a20fd96915106b73323686f4340e53b45d53241",
             "goal_count": 4,
-            "latency_ms": 11.92286191508174,
+            "latency_ms": 11.464407667517662,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-6d4140b1c172cda0701d7136dc4e"
@@ -8716,8 +8786,8 @@
         {
           "atom_count": 1401,
           "dependency_key_count": 798,
-          "fdas_total_latency_ms": 189.55863127484918,
-          "latency_ms": 177.98204626888037,
+          "fdas_total_latency_ms": 208.1381124444306,
+          "latency_ms": 196.4633008465171,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -8736,9 +8806,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1401,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1029,
             "rich_reused_records": 0,
             "total_records": 1401,
@@ -8937,7 +9009,7 @@
             },
             "evaluation_hash": "aec4e502bd8df3298d66184d0eb1ef4087bff1bf7c0e08334cbcda9a78a619b2",
             "goal_count": 4,
-            "latency_ms": 11.57658500596881,
+            "latency_ms": 11.674811597913504,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-60e7024d24a80601c963dcc7d538"
@@ -8950,8 +9022,8 @@
         {
           "atom_count": 1263,
           "dependency_key_count": 730,
-          "fdas_total_latency_ms": 187.9984806291759,
-          "latency_ms": 170.64746469259262,
+          "fdas_total_latency_ms": 205.11384680867195,
+          "latency_ms": 193.3888508938253,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -8970,9 +9042,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1263,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 899,
             "rich_reused_records": 0,
             "total_records": 1263,
@@ -9172,7 +9246,7 @@
             },
             "evaluation_hash": "fad1194f71fd28c53ad6415da532169a9fb137ed6a4de855b147bcb2f047230a",
             "goal_count": 4,
-            "latency_ms": 17.35101593658328,
+            "latency_ms": 11.724995914846659,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-2bff02ee7720cc764cf90b658b9d"
@@ -9185,8 +9259,8 @@
         {
           "atom_count": 1187,
           "dependency_key_count": 689,
-          "fdas_total_latency_ms": 324.3270539678633,
-          "latency_ms": 147.95253099873662,
+          "fdas_total_latency_ms": 339.6655502729118,
+          "latency_ms": 164.4456540234387,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -9205,9 +9279,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1187,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 827,
             "rich_reused_records": 0,
             "total_records": 1187,
@@ -9556,7 +9632,7 @@
             },
             "evaluation_hash": "2e98ab32b01ee7d50e9396cbeba409812551782612ad5c3d8fd2edd41fbbcf6c",
             "goal_count": 9,
-            "latency_ms": 176.3745229691267,
+            "latency_ms": 175.2198962494731,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-493ea780ec6198c0e79914cc4622"
@@ -9569,8 +9645,8 @@
         {
           "atom_count": 1185,
           "dependency_key_count": 688,
-          "fdas_total_latency_ms": 323.3335125260055,
-          "latency_ms": 148.19439221173525,
+          "fdas_total_latency_ms": 336.1120638437569,
+          "latency_ms": 164.65561604127288,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -9589,9 +9665,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1185,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 825,
             "rich_reused_records": 0,
             "total_records": 1185,
@@ -9904,7 +9982,7 @@
             },
             "evaluation_hash": "8461c727b541b44665533bc4bb4da6aefe139c80fe069a5b0446be9dd69b786f",
             "goal_count": 8,
-            "latency_ms": 175.13912031427026,
+            "latency_ms": 171.45644780248404,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-3ff7499b2e4a41844c448bc82105"
@@ -9923,12 +10001,12 @@
         "goal_count": 116,
         "latency": {
           "count": 38,
-          "maximum_ms": 209.53356102108955,
-          "mean_ms": 53.48275546719761,
-          "minimum_ms": 0.5753799341619015,
-          "p50_ms": 17.735443077981472,
-          "p95_ms": 176.3745229691267,
-          "p99_ms": 209.53356102108955
+          "maximum_ms": 211.83274732902646,
+          "mean_ms": 57.04112798220625,
+          "minimum_ms": 0.594492070376873,
+          "p50_ms": 17.965552862733603,
+          "p95_ms": 187.78613302856684,
+          "p99_ms": 211.83274732902646
         },
         "legacy_candidate_count": 139,
         "legal_binding_failure_count": 0,
@@ -9947,29 +10025,29 @@
       "equivalent_count": 37,
       "fdas_total_latency": {
         "count": 38,
-        "maximum_ms": 1238.4633580222726,
-        "mean_ms": 539.6166620040802,
-        "minimum_ms": 55.57247996330261,
-        "p50_ms": 471.4976800605655,
-        "p95_ms": 1055.383482016623,
-        "p99_ms": 1238.4633580222726
+        "maximum_ms": 1358.4851808845997,
+        "mean_ms": 584.6331350652403,
+        "minimum_ms": 61.36034615337849,
+        "p50_ms": 533.9486990123987,
+        "p95_ms": 1125.542998779565,
+        "p99_ms": 1358.4851808845997
       },
       "latency": {
         "count": 38,
-        "maximum_ms": 968.2754729874432,
-        "mean_ms": 471.5521557036003,
-        "minimum_ms": 54.86925598233938,
-        "p50_ms": 467.41403779014945,
-        "p95_ms": 846.1975422687829,
-        "p99_ms": 968.2754729874432
+        "maximum_ms": 1057.2281773202121,
+        "mean_ms": 518.5444521546168,
+        "minimum_ms": 60.62492495402694,
+        "p50_ms": 499.2135828360915,
+        "p95_ms": 924.6647567488253,
+        "p99_ms": 1057.2281773202121
       },
       "materialization": {
         "incremental_recomputation_ratio": {
           "count": 38,
           "maximum": 1.0,
-          "mean": 0.7807828130666776,
+          "mean": 0.77939435157657,
           "minimum": 0.6277173913043478,
-          "p50": 0.7559109874826148,
+          "p50": 0.7551701134089392,
           "p95": 0.8878963823135329,
           "p99": 1.0
         },
@@ -9984,19 +10062,35 @@
           "fdas-transport-capability-projector": 38,
           "fdas-unit-defense-shadow": 38
         },
+        "recomputed_shard_counts": {
+          "fdas-city-economy-shadow/city:101": 33,
+          "fdas-city-economy-shadow/city:109": 31,
+          "fdas-city-economy-shadow/city:127": 27,
+          "fdas-city-economy-shadow/city:131": 25,
+          "fdas-city-economy-shadow/city:182": 17,
+          "fdas-city-economy-shadow/empire": 37
+        },
         "reused_projector_counts": {
+          "fdas-city-economy-shadow": 5,
           "fdas-city-region-shadow": 3,
           "fdas-combat-task-force-projector": 4
         },
-        "rich_recomputed_record_count": 42039,
-        "rich_reused_record_count": 0,
+        "reused_shard_counts": {
+          "fdas-city-economy-shadow/city:101": 4,
+          "fdas-city-economy-shadow/city:109": 4,
+          "fdas-city-economy-shadow/city:127": 2,
+          "fdas-city-economy-shadow/city:131": 3,
+          "fdas-city-economy-shadow/city:182": 1
+        },
+        "rich_recomputed_record_count": 41958,
+        "rich_reused_record_count": 81,
         "sample_count": 38
       },
       "samples": [
         {
           "cold_verification": null,
-          "fdas_total_latency_ms": 55.57247996330261,
-          "latency_ms": 54.86925598233938,
+          "fdas_total_latency_ms": 61.36034615337849,
+          "latency_ms": 60.62492495402694,
           "materialization_metrics": {
             "affected_atoms": 0,
             "cold_build": true,
@@ -10015,9 +10109,11 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 410,
+            "recomputed_shard_ids": [],
             "refreshed_records": 0,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 272,
             "rich_reused_records": 0,
             "total_records": 410,
@@ -10074,7 +10170,7 @@
             },
             "evaluation_hash": "809f3eea031e6e4bc1d5ee0d044b5383e000f1e493056ffe0bfcb41c52825ed6",
             "goal_count": 0,
-            "latency_ms": 0.7032239809632301,
+            "latency_ms": 0.7354211993515491,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -10091,8 +10187,8 @@
             "mismatch_categories": [],
             "verification_hash": "70e045d04afda48cded9d2d8438aa837b981acd70f5d748727c1fa2231e13af2"
           },
-          "fdas_total_latency_ms": 118.96180175244808,
-          "latency_ms": 118.27219044789672,
+          "fdas_total_latency_ms": 124.08506497740746,
+          "latency_ms": 123.42225108295679,
           "materialization_metrics": {
             "affected_atoms": 1,
             "cold_build": false,
@@ -10110,11 +10206,16 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 273,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101"
+            ],
             "refreshed_records": 137,
             "removed_records": 1,
             "reused_projector_ids": [
               "fdas-combat-task-force-projector"
             ],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 272,
             "rich_reused_records": 0,
             "total_records": 410,
@@ -10164,7 +10265,7 @@
             },
             "evaluation_hash": "d1e104ce1b4c9946198295fa0ed279c7478aa02b1a7d2634338582fdb1e8ac00",
             "goal_count": 0,
-            "latency_ms": 0.689611304551363,
+            "latency_ms": 0.6628138944506645,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -10181,8 +10282,8 @@
             "mismatch_categories": [],
             "verification_hash": "35cba815c420b898f3847e37af9d55bdefe1a525941a168d9b23bde0122dc6ed"
           },
-          "fdas_total_latency_ms": 107.75694996118546,
-          "latency_ms": 107.21114603802562,
+          "fdas_total_latency_ms": 116.92867754027247,
+          "latency_ms": 116.33633496239781,
           "materialization_metrics": {
             "affected_atoms": 48,
             "cold_build": false,
@@ -10200,11 +10301,16 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 231,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101"
+            ],
             "refreshed_records": 137,
             "removed_records": 1,
             "reused_projector_ids": [
               "fdas-city-region-shadow"
             ],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 230,
             "rich_reused_records": 0,
             "total_records": 368,
@@ -10245,7 +10351,7 @@
             },
             "evaluation_hash": "cf4df93647a4ece90a9d4faac2b06f78e0d77d60c37328f9191500800d08c633",
             "goal_count": 0,
-            "latency_ms": 0.5458039231598377,
+            "latency_ms": 0.5923425778746605,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -10262,8 +10368,8 @@
             "mismatch_categories": [],
             "verification_hash": "fc518933bb5900de54f733c94be2805fd7919d767a29d4e9b118cdf04d83137d"
           },
-          "fdas_total_latency_ms": 421.3592135347426,
-          "latency_ms": 244.1984242759645,
+          "fdas_total_latency_ms": 432.9945710487664,
+          "latency_ms": 256.39889389276505,
           "materialization_metrics": {
             "affected_atoms": 38,
             "cold_build": false,
@@ -10282,9 +10388,15 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 528,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109"
+            ],
             "refreshed_records": 131,
             "removed_records": 7,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 440,
             "rich_reused_records": 0,
             "total_records": 659,
@@ -10350,7 +10462,7 @@
             },
             "evaluation_hash": "b4fb4eaa6e1ffebd798a8cfebe55697159caedeccfbee3a8bfb3271844ad8edd",
             "goal_count": 1,
-            "latency_ms": 177.1607892587781,
+            "latency_ms": 176.59567715600133,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-a5c3a8614249b52878aadb8d06f6d1c4"
@@ -10367,13 +10479,13 @@
             "mismatch_categories": [],
             "verification_hash": "d42443daf24d0063f650837b66a482dee3be2cb769435724408c5cc10ca21f8e"
           },
-          "fdas_total_latency_ms": 210.75490722432733,
-          "latency_ms": 192.94004421681166,
+          "fdas_total_latency_ms": 218.24967581778765,
+          "latency_ms": 202.6117737405002,
           "materialization_metrics": {
             "affected_atoms": 31,
             "cold_build": false,
             "delta_hash": "snapshot-delta-ac46ede8b112e81d98e9d0c5249663b8",
-            "incremental_recomputation_ratio": 0.669195751138088,
+            "incremental_recomputation_ratio": 0.6631259484066768,
             "invalidated_supports": 11,
             "recomputed_projector_ids": [
               "fdas-city-economy-shadow",
@@ -10385,14 +10497,22 @@
               "fdas-population-recovery-projector",
               "fdas-operation-projector"
             ],
-            "recomputed_records": 441,
-            "refreshed_records": 218,
+            "recomputed_records": 437,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101"
+            ],
+            "refreshed_records": 222,
             "removed_records": 1,
             "reused_projector_ids": [
+              "fdas-city-economy-shadow",
               "fdas-combat-task-force-projector"
             ],
-            "rich_recomputed_records": 440,
-            "rich_reused_records": 0,
+            "reused_shard_ids": [
+              "fdas-city-economy-shadow/city:109"
+            ],
+            "rich_recomputed_records": 436,
+            "rich_reused_records": 4,
             "total_records": 659,
             "unsupported_atoms": 31
           },
@@ -10443,7 +10563,7 @@
             },
             "evaluation_hash": "a352823e4262ffd8301d79980f3a819e315e772458e83d0a0047c0145fc7e31e",
             "goal_count": 1,
-            "latency_ms": 17.81486300751567,
+            "latency_ms": 15.637902077287436,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-aeb2dc9808da4ceb6cb21199ee677b49"
@@ -10460,8 +10580,8 @@
             "mismatch_categories": [],
             "verification_hash": "3b4cc5aeadcdc09c86d5f73a57a4b0aba34aa3f404483b5cd5f429ea633783cf"
           },
-          "fdas_total_latency_ms": 264.9327861145139,
-          "latency_ms": 243.6104528605938,
+          "fdas_total_latency_ms": 268.02035653963685,
+          "latency_ms": 247.1901411190629,
           "materialization_metrics": {
             "affected_atoms": 55,
             "cold_build": false,
@@ -10480,9 +10600,15 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 537,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109"
+            ],
             "refreshed_records": 217,
             "removed_records": 2,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 522,
             "rich_reused_records": 0,
             "total_records": 754,
@@ -10541,7 +10667,7 @@
             },
             "evaluation_hash": "6a3182fe56ef0cd8bdabdbce2fa1d3fc4725103f74a4e1ad51aa8ae07bf7e172",
             "goal_count": 1,
-            "latency_ms": 21.32233325392008,
+            "latency_ms": 20.83021542057395,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-185daba30fb0e219cb39e90affe141a8"
@@ -10558,8 +10684,8 @@
             "mismatch_categories": [],
             "verification_hash": "d40937252d78625f6586b329c0316ab26d7a813902e9895e643bcb7efe504356"
           },
-          "fdas_total_latency_ms": 265.7847572118044,
-          "latency_ms": 264.4754881039262,
+          "fdas_total_latency_ms": 289.26227847114205,
+          "latency_ms": 287.96060383319855,
           "materialization_metrics": {
             "affected_atoms": 70,
             "cold_build": false,
@@ -10578,9 +10704,15 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 615,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109"
+            ],
             "refreshed_records": 230,
             "removed_records": 2,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 598,
             "rich_reused_records": 0,
             "total_records": 845,
@@ -10634,7 +10766,7 @@
             },
             "evaluation_hash": "8dcc453589c997876720452a9db3b2a6a1690db7b6f4efb658b336fe1b20ee23",
             "goal_count": 0,
-            "latency_ms": 1.3092691078782082,
+            "latency_ms": 1.3016746379435062,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -10651,13 +10783,13 @@
             "mismatch_categories": [],
             "verification_hash": "d43144e4694b9492af49d9654db8f75e5cb16f19e9e994b0ba87b4a8349c87a8"
           },
-          "fdas_total_latency_ms": 250.78367162495852,
-          "latency_ms": 249.54645382240415,
+          "fdas_total_latency_ms": 272.27888023480773,
+          "latency_ms": 271.03191800415516,
           "materialization_metrics": {
             "affected_atoms": 49,
             "cold_build": false,
             "delta_hash": "snapshot-delta-bcb7ea9936f7b765c0a74cb739c74891",
-            "incremental_recomputation_ratio": 0.7088757396449704,
+            "incremental_recomputation_ratio": 0.7029585798816568,
             "invalidated_supports": 19,
             "recomputed_projector_ids": [
               "fdas-city-economy-shadow",
@@ -10669,14 +10801,22 @@
               "fdas-population-recovery-projector",
               "fdas-operation-projector"
             ],
-            "recomputed_records": 599,
-            "refreshed_records": 246,
+            "recomputed_records": 594,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:109"
+            ],
+            "refreshed_records": 251,
             "removed_records": 1,
             "reused_projector_ids": [
+              "fdas-city-economy-shadow",
               "fdas-combat-task-force-projector"
             ],
-            "rich_recomputed_records": 598,
-            "rich_reused_records": 0,
+            "reused_shard_ids": [
+              "fdas-city-economy-shadow/city:101"
+            ],
+            "rich_recomputed_records": 593,
+            "rich_reused_records": 5,
             "total_records": 845,
             "unsupported_atoms": 49
           },
@@ -10715,7 +10855,7 @@
             },
             "evaluation_hash": "af454599fc4f78ea21a91ff10fc7a9cee21fd06a0609ad19bc8162ecd5dfd5a7",
             "goal_count": 0,
-            "latency_ms": 1.237217802554369,
+            "latency_ms": 1.2469622306525707,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -10732,8 +10872,8 @@
             "mismatch_categories": [],
             "verification_hash": "ea7c6b58be21c88d5a499415d1238babf5167c3055245f8a362a219ea2170f84"
           },
-          "fdas_total_latency_ms": 319.6011260151863,
-          "latency_ms": 318.14968679100275,
+          "fdas_total_latency_ms": 334.74142383784056,
+          "latency_ms": 333.27452605590224,
           "materialization_metrics": {
             "affected_atoms": 131,
             "cold_build": false,
@@ -10752,9 +10892,15 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 701,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109"
+            ],
             "refreshed_records": 243,
             "removed_records": 4,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 685,
             "rich_reused_records": 0,
             "total_records": 944,
@@ -10801,7 +10947,7 @@
             },
             "evaluation_hash": "c40554833ec70aded085bf741ba18b8c5bd6155335e3be06e6452c33fc68862f",
             "goal_count": 0,
-            "latency_ms": 1.4514392241835594,
+            "latency_ms": 1.4668977819383144,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -10818,8 +10964,8 @@
             "mismatch_categories": [],
             "verification_hash": "0145f240c16c69ab4d73432db00d9704085e601936c21a2e6f49035165460d1f"
           },
-          "fdas_total_latency_ms": 511.53328735381365,
-          "latency_ms": 479.61250599473715,
+          "fdas_total_latency_ms": 544.256342574954,
+          "latency_ms": 486.02842865511775,
           "materialization_metrics": {
             "affected_atoms": 158,
             "cold_build": false,
@@ -10838,9 +10984,16 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1050,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127"
+            ],
             "refreshed_records": 254,
             "removed_records": 5,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 959,
             "rich_reused_records": 0,
             "total_records": 1304,
@@ -10988,7 +11141,7 @@
             },
             "evaluation_hash": "ac1df74b26e36e2e549d5b078fc7c12e208bdbcef02bba305b97261e6127f1fa",
             "goal_count": 1,
-            "latency_ms": 31.9207813590765,
+            "latency_ms": 58.22791391983628,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-54ff9821c77677ecbeddff0c2c97b285"
@@ -11005,8 +11158,8 @@
             "mismatch_categories": [],
             "verification_hash": "ce2830fbdc39f413a9e1e2e3835a3bb22d99f3350cdd8f5c46a1fa01e3a72169"
           },
-          "fdas_total_latency_ms": 531.9095188751817,
-          "latency_ms": 483.7570348754525,
+          "fdas_total_latency_ms": 573.3820870518684,
+          "latency_ms": 525.5439849570394,
           "materialization_metrics": {
             "affected_atoms": 278,
             "cold_build": false,
@@ -11025,9 +11178,17 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1124,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131"
+            ],
             "refreshed_records": 338,
             "removed_records": 7,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1062,
             "rich_reused_records": 0,
             "total_records": 1462,
@@ -11146,7 +11307,7 @@
             },
             "evaluation_hash": "4f13204338c5d06cf22cfe4fedf650053f13abeea4e2f06875cfd3420a421603",
             "goal_count": 2,
-            "latency_ms": 48.15248399972916,
+            "latency_ms": 47.83810209482908,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-08c8df739186ea49b883e635df1f2dd6"
@@ -11163,8 +11324,8 @@
             "mismatch_categories": [],
             "verification_hash": "1dad4f2b51219df01b87c661ea6fff1bb70760a2f3665cb7c90a9f59df233a27"
           },
-          "fdas_total_latency_ms": 471.4976800605655,
-          "latency_ms": 467.41403779014945,
+          "fdas_total_latency_ms": 503.0096471309662,
+          "latency_ms": 499.2135828360915,
           "materialization_metrics": {
             "affected_atoms": 278,
             "cold_build": false,
@@ -11183,9 +11344,17 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1087,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131"
+            ],
             "refreshed_records": 351,
             "removed_records": 8,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1039,
             "rich_reused_records": 0,
             "total_records": 1438,
@@ -11238,7 +11407,7 @@
             },
             "evaluation_hash": "b59582f2f8618c3c5ac195ea942ce399fbbe93b3ab4a1b349181e4a232ca4898",
             "goal_count": 1,
-            "latency_ms": 4.083642270416021,
+            "latency_ms": 3.796064294874668,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-a4738e2f003b8f641979dc902c81"
@@ -11255,13 +11424,13 @@
             "mismatch_categories": [],
             "verification_hash": "61ebff0567ccb258f8f41d3231245ceb2ae687126d67a36df675c025d7042339"
           },
-          "fdas_total_latency_ms": 779.0235220454633,
-          "latency_ms": 500.3685629926622,
+          "fdas_total_latency_ms": 805.3628890775144,
+          "latency_ms": 537.3444110155106,
           "materialization_metrics": {
             "affected_atoms": 38,
             "cold_build": false,
             "delta_hash": "snapshot-delta-0677dee34fa325d073f0e4a77785ffc2",
-            "incremental_recomputation_ratio": 0.754914004914005,
+            "incremental_recomputation_ratio": 0.7438574938574939,
             "invalidated_supports": 19,
             "recomputed_projector_ids": [
               "fdas-city-economy-shadow",
@@ -11273,14 +11442,24 @@
               "fdas-population-recovery-projector",
               "fdas-operation-projector"
             ],
-            "recomputed_records": 1229,
-            "refreshed_records": 399,
+            "recomputed_records": 1211,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire"
+            ],
+            "refreshed_records": 417,
             "removed_records": 0,
             "reused_projector_ids": [
+              "fdas-city-economy-shadow",
               "fdas-city-region-shadow"
             ],
-            "rich_recomputed_records": 1229,
-            "rich_reused_records": 0,
+            "reused_shard_ids": [
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131"
+            ],
+            "rich_recomputed_records": 1211,
+            "rich_reused_records": 18,
             "total_records": 1628,
             "unsupported_atoms": 38
           },
@@ -11438,7 +11617,7 @@
             },
             "evaluation_hash": "b200730522ce7241d688eef4489146cfcb3dce4031dc9a4893c27eff11b6d0c3",
             "goal_count": 1,
-            "latency_ms": 278.65495905280113,
+            "latency_ms": 268.01847806200385,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-30a6bb17a40f98057a29c04e98f6c3c0"
@@ -11455,8 +11634,8 @@
             "mismatch_categories": [],
             "verification_hash": "b20e5b206bcac383ac6f5445d15c36199cc9f4c787f42295ed0eb17d8a4e2be2"
           },
-          "fdas_total_latency_ms": 738.360223826021,
-          "latency_ms": 680.5736189708114,
+          "fdas_total_latency_ms": 785.7168717309833,
+          "latency_ms": 729.6300954185426,
           "materialization_metrics": {
             "affected_atoms": 259,
             "cold_build": false,
@@ -11475,9 +11654,17 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 2007,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131"
+            ],
             "refreshed_records": 397,
             "removed_records": 2,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 2005,
             "rich_reused_records": 0,
             "total_records": 2404,
@@ -11618,7 +11805,7 @@
             },
             "evaluation_hash": "440accc336c4e7b74be14f6b4dedd258cc3236ef535160d95d25b749d5b9d0a8",
             "goal_count": 1,
-            "latency_ms": 57.78660485520959,
+            "latency_ms": 56.086776312440634,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-0d2cad34a9a6ef04ab478300699834c9"
@@ -11635,8 +11822,8 @@
             "mismatch_categories": [],
             "verification_hash": "dcacc443e7f1e3e1d849a84acb7878fc801e703234399ab1c2be34a2cefcecf7"
           },
-          "fdas_total_latency_ms": 453.79562489688396,
-          "latency_ms": 449.9889216385782,
+          "fdas_total_latency_ms": 500.0563790090382,
+          "latency_ms": 496.42303586006165,
           "materialization_metrics": {
             "affected_atoms": 1067,
             "cold_build": false,
@@ -11655,9 +11842,17 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1037,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131"
+            ],
             "refreshed_records": 397,
             "removed_records": 2,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1035,
             "rich_reused_records": 0,
             "total_records": 1434,
@@ -11693,7 +11888,7 @@
             },
             "evaluation_hash": "4b23eae5723910443a0f63e89f36b70265f51aaf5e39ba6e5444e5f45a431743",
             "goal_count": 1,
-            "latency_ms": 3.806703258305788,
+            "latency_ms": 3.6333431489765644,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-ad5a6dad5f1d2955b0a5891552cf"
@@ -11710,13 +11905,13 @@
             "mismatch_categories": [],
             "verification_hash": "03644c2a2692138016dec9a8cf6e8dcc7ecc61b12ecd4e5f6d39cc3d7533918b"
           },
-          "fdas_total_latency_ms": 552.7842701412737,
-          "latency_ms": 505.17542799934745,
+          "fdas_total_latency_ms": 628.8322741165757,
+          "latency_ms": 557.3922218754888,
           "materialization_metrics": {
             "affected_atoms": 40,
             "cold_build": false,
             "delta_hash": "snapshot-delta-e949e94ada80421500cfd1c476bd128d",
-            "incremental_recomputation_ratio": 0.7553648068669528,
+            "incremental_recomputation_ratio": 0.7443286327406499,
             "invalidated_supports": 20,
             "recomputed_projector_ids": [
               "fdas-city-economy-shadow",
@@ -11728,14 +11923,24 @@
               "fdas-population-recovery-projector",
               "fdas-operation-projector"
             ],
-            "recomputed_records": 1232,
-            "refreshed_records": 399,
+            "recomputed_records": 1214,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire"
+            ],
+            "refreshed_records": 417,
             "removed_records": 0,
             "reused_projector_ids": [
+              "fdas-city-economy-shadow",
               "fdas-city-region-shadow"
             ],
-            "rich_recomputed_records": 1232,
-            "rich_reused_records": 0,
+            "reused_shard_ids": [
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131"
+            ],
+            "rich_recomputed_records": 1214,
+            "rich_reused_records": 18,
             "total_records": 1631,
             "unsupported_atoms": 40
           },
@@ -11876,7 +12081,7 @@
             },
             "evaluation_hash": "40d11b26b7b6218a934a77d02d512c807319f2695cf6fa18dd30a7cf410f7806",
             "goal_count": 1,
-            "latency_ms": 47.60884214192629,
+            "latency_ms": 71.44005224108696,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-135cfe9850ae9a9cd682e40cdf444357"
@@ -11893,8 +12098,8 @@
             "mismatch_categories": [],
             "verification_hash": "9f3d608d35930b448cfcc7ca420d36f75fc2ff189659fb4a906302115a96431c"
           },
-          "fdas_total_latency_ms": 627.4078660644591,
-          "latency_ms": 576.1531051248312,
+          "fdas_total_latency_ms": 684.6620510332286,
+          "latency_ms": 632.0855082012713,
           "materialization_metrics": {
             "affected_atoms": 358,
             "cold_build": false,
@@ -11913,9 +12118,17 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1422,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131"
+            ],
             "refreshed_records": 353,
             "removed_records": 5,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1369,
             "rich_reused_records": 0,
             "total_records": 1775,
@@ -12144,7 +12357,7 @@
             },
             "evaluation_hash": "e48509f6093674e093f12ac91bb259466d208dff2e7acc8a4ba2aea944bb2250",
             "goal_count": 1,
-            "latency_ms": 51.254760939627886,
+            "latency_ms": 52.57654283195734,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-17545dad789ce996cba0f5f0390863a0"
@@ -12161,8 +12374,8 @@
             "mismatch_categories": [],
             "verification_hash": "3b79f9c0d8c736120b80dddad08905ee1422c42e2f6beb0c22259cad766de094"
           },
-          "fdas_total_latency_ms": 667.287327349186,
-          "latency_ms": 663.3896590210497,
+          "fdas_total_latency_ms": 721.0352285765111,
+          "latency_ms": 717.0090707950294,
           "materialization_metrics": {
             "affected_atoms": 405,
             "cold_build": false,
@@ -12181,9 +12394,17 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 2254,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131"
+            ],
             "refreshed_records": 356,
             "removed_records": 10,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 2205,
             "rich_reused_records": 0,
             "total_records": 2610,
@@ -12217,7 +12438,7 @@
             },
             "evaluation_hash": "b0ea6525834762042e6168f6122994ee2d4fd82c9afec53d548a2edeea8f3353",
             "goal_count": 0,
-            "latency_ms": 3.8976683281362057,
+            "latency_ms": 4.026157781481743,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -12234,8 +12455,8 @@
             "mismatch_categories": [],
             "verification_hash": "e342c672ef3c66c7e0cac6eff5895951912afc80c50df5aa0d9754f039a82072"
           },
-          "fdas_total_latency_ms": 733.3388500846922,
-          "latency_ms": 694.0920939669013,
+          "fdas_total_latency_ms": 753.3236783929169,
+          "latency_ms": 749.544040299952,
           "materialization_metrics": {
             "affected_atoms": 385,
             "cold_build": false,
@@ -12254,9 +12475,17 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1973,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131"
+            ],
             "refreshed_records": 285,
             "removed_records": 8,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1853,
             "rich_reused_records": 0,
             "total_records": 2258,
@@ -12351,7 +12580,7 @@
             },
             "evaluation_hash": "865620b7a17a085114c59c2795dce47d22309fa89722ab56ed1a24a6acd21fd0",
             "goal_count": 0,
-            "latency_ms": 39.24675611779094,
+            "latency_ms": 3.7796380929648876,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -12368,8 +12597,8 @@
             "mismatch_categories": [],
             "verification_hash": "9ea48d1bff3061383c50df02d9d5664a0166c79215fb1bb3d2d52a740c890021"
           },
-          "fdas_total_latency_ms": 676.1603448539972,
-          "latency_ms": 672.6080537773669,
+          "fdas_total_latency_ms": 741.2882670760155,
+          "latency_ms": 737.7065988257527,
           "materialization_metrics": {
             "affected_atoms": 445,
             "cold_build": false,
@@ -12388,9 +12617,17 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1713,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131"
+            ],
             "refreshed_records": 286,
             "removed_records": 9,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1595,
             "rich_reused_records": 0,
             "total_records": 1999,
@@ -12424,7 +12661,7 @@
             },
             "evaluation_hash": "fe8f5608dfb1abccb755093c4340d49755232927ffdc0de514fda2532f93902f",
             "goal_count": 0,
-            "latency_ms": 3.552291076630354,
+            "latency_ms": 3.5816682502627373,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -12441,8 +12678,8 @@
             "mismatch_categories": [],
             "verification_hash": "2ab6060cd303da3480682c5732aafedcde4e747e21299bc87f237d0a398ca58e"
           },
-          "fdas_total_latency_ms": 1238.4633580222726,
-          "latency_ms": 846.1975422687829,
+          "fdas_total_latency_ms": 1358.4851808845997,
+          "latency_ms": 1000.0808499753475,
           "materialization_metrics": {
             "affected_atoms": 576,
             "cold_build": false,
@@ -12461,9 +12698,18 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1988,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131",
+              "fdas-city-economy-shadow/city:182"
+            ],
             "refreshed_records": 251,
             "removed_records": 10,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1798,
             "rich_reused_records": 0,
             "total_records": 2239,
@@ -12644,7 +12890,7 @@
             },
             "evaluation_hash": "cfef4d737761fb40b3885e86f4527f47e107db18ba6e30423daf2abcfdbfce8f",
             "goal_count": 1,
-            "latency_ms": 392.26581575348973,
+            "latency_ms": 358.40433090925217,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-03c7f76eefbc09f4394f4fce58b94571"
@@ -12661,8 +12907,8 @@
             "mismatch_categories": [],
             "verification_hash": "a30f173456678bd8184336a96cacc3905f9e046f13c36c61f6e9ae78dcebd001"
           },
-          "fdas_total_latency_ms": 1055.383482016623,
-          "latency_ms": 968.2754729874432,
+          "fdas_total_latency_ms": 1125.542998779565,
+          "latency_ms": 1057.2281773202121,
           "materialization_metrics": {
             "affected_atoms": 924,
             "cold_build": false,
@@ -12681,9 +12927,18 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 2063,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131",
+              "fdas-city-economy-shadow/city:182"
+            ],
             "refreshed_records": 242,
             "removed_records": 28,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1866,
             "rich_reused_records": 0,
             "total_records": 2305,
@@ -13000,7 +13255,7 @@
             },
             "evaluation_hash": "e4f3751e3f160870dacbf56ec66d85a499949dfe25edaf25d0465d7c466b0b4f",
             "goal_count": 4,
-            "latency_ms": 87.10800902917981,
+            "latency_ms": 68.31482145935297,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-00d854081bee48f480a070ba9a8458a7"
@@ -13017,8 +13272,8 @@
             "mismatch_categories": [],
             "verification_hash": "f666644e75bf69e5a6a7a3577fcaf17bf9ebd7f1969fa5c65f544bdd6f8a850c"
           },
-          "fdas_total_latency_ms": 930.9099093079567,
-          "latency_ms": 848.6206610687077,
+          "fdas_total_latency_ms": 1006.6138957627118,
+          "latency_ms": 924.6647567488253,
           "materialization_metrics": {
             "affected_atoms": 471,
             "cold_build": false,
@@ -13037,9 +13292,18 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1863,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131",
+              "fdas-city-economy-shadow/city:182"
+            ],
             "refreshed_records": 439,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1863,
             "rich_reused_records": 0,
             "total_records": 2302,
@@ -13297,7 +13561,7 @@
             },
             "evaluation_hash": "74ffb3fa2180247e90bcf4dd92b44445ba4a6771b36d9115e06982d38230f4f1",
             "goal_count": 2,
-            "latency_ms": 82.28924823924899,
+            "latency_ms": 81.94913901388645,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-0a0e6335cb33d355445ddfb3e8d52fbc"
@@ -13314,8 +13578,8 @@
             "mismatch_categories": [],
             "verification_hash": "fa14ac9a1ee12b003396b8de9cacff6f69203bac30a2a6ee9e7ac30d8f1054a1"
           },
-          "fdas_total_latency_ms": 670.2395151369274,
-          "latency_ms": 660.9902232885361,
+          "fdas_total_latency_ms": 724.4599252007902,
+          "latency_ms": 715.2522951364517,
           "materialization_metrics": {
             "affected_atoms": 884,
             "cold_build": false,
@@ -13334,9 +13598,18 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1668,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131",
+              "fdas-city-economy-shadow/city:182"
+            ],
             "refreshed_records": 260,
             "removed_records": 15,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1492,
             "rich_reused_records": 0,
             "total_records": 1928,
@@ -13435,7 +13708,7 @@
             },
             "evaluation_hash": "aa9739639a71557f97de09dc2c827e18c75a463ef357cd3a64ae65ee83d5f459",
             "goal_count": 2,
-            "latency_ms": 9.249291848391294,
+            "latency_ms": 9.207630064338446,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-589f90490b35392b7f538235bc2f"
@@ -13452,13 +13725,13 @@
             "mismatch_categories": [],
             "verification_hash": "828cf0d1581f7ab8b69397696dccde6d2861229263a7602c0f580f23dead5b5b"
           },
-          "fdas_total_latency_ms": 561.7271610535681,
-          "latency_ms": 556.5945482812822,
+          "fdas_total_latency_ms": 631.1535541899502,
+          "latency_ms": 625.9374250657856,
           "materialization_metrics": {
             "affected_atoms": 5,
             "cold_build": false,
             "delta_hash": "snapshot-delta-845c967f3b975fcf12a0cf4c72a9204d",
-            "incremental_recomputation_ratio": 0.7737415672029061,
+            "incremental_recomputation_ratio": 0.755059678256357,
             "invalidated_supports": 4,
             "recomputed_projector_ids": [
               "fdas-city-economy-shadow",
@@ -13471,12 +13744,24 @@
               "fdas-population-recovery-projector",
               "fdas-operation-projector"
             ],
-            "recomputed_records": 1491,
-            "refreshed_records": 436,
+            "recomputed_records": 1455,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:127"
+            ],
+            "refreshed_records": 472,
             "removed_records": 0,
-            "reused_projector_ids": [],
-            "rich_recomputed_records": 1491,
-            "rich_reused_records": 0,
+            "reused_projector_ids": [
+              "fdas-city-economy-shadow"
+            ],
+            "reused_shard_ids": [
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:131",
+              "fdas-city-economy-shadow/city:182"
+            ],
+            "rich_recomputed_records": 1455,
+            "rich_reused_records": 36,
             "total_records": 1927,
             "unsupported_atoms": 5
           },
@@ -13511,7 +13796,7 @@
             },
             "evaluation_hash": "f42ea870b75d9d560390810a76c06e08f30f10b3a18ffe3beb22ebeea2aa2f6f",
             "goal_count": 1,
-            "latency_ms": 5.132612772285938,
+            "latency_ms": 5.216129124164581,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-cd45af36b8c1c6ceb41a0d0d9d2e"
@@ -13528,8 +13813,8 @@
             "mismatch_categories": [],
             "verification_hash": "9d1fec2da891f4db97e659d44fd8e44da535606c3996f54b31da7865a81d6be5"
           },
-          "fdas_total_latency_ms": 1197.3225469700992,
-          "latency_ms": 762.4049251899123,
+          "fdas_total_latency_ms": 1234.304558020085,
+          "latency_ms": 828.8327879272401,
           "materialization_metrics": {
             "affected_atoms": 635,
             "cold_build": false,
@@ -13548,9 +13833,18 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1731,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131",
+              "fdas-city-economy-shadow/city:182"
+            ],
             "refreshed_records": 252,
             "removed_records": 52,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1579,
             "rich_reused_records": 0,
             "total_records": 1983,
@@ -13987,7 +14281,7 @@
             },
             "evaluation_hash": "3e7ac9a61edc12850a8f94f847a74e1b1a0dd423fddd2bfe7c478f752e2bac41",
             "goal_count": 6,
-            "latency_ms": 434.9176217801869,
+            "latency_ms": 405.47177009284496,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-04d3e91e456dc2463a5f356929065de2"
@@ -14004,8 +14298,8 @@
             "mismatch_categories": [],
             "verification_hash": "58184d485f789f583962113e9a43e9455443a71c800d7ee36dde658352e172fe"
           },
-          "fdas_total_latency_ms": 558.9618785306811,
-          "latency_ms": 508.11313977465034,
+          "fdas_total_latency_ms": 615.0004575029016,
+          "latency_ms": 563.6094617657363,
           "materialization_metrics": {
             "affected_atoms": 842,
             "cold_build": false,
@@ -14024,9 +14318,18 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1230,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131",
+              "fdas-city-economy-shadow/city:182"
+            ],
             "refreshed_records": 242,
             "removed_records": 20,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1076,
             "rich_reused_records": 0,
             "total_records": 1472,
@@ -14396,7 +14699,7 @@
             },
             "evaluation_hash": "06156b053ed7c29937c0f9b784cdc955639b451d703f1359c19e43390695e973",
             "goal_count": 9,
-            "latency_ms": 50.8487387560308,
+            "latency_ms": 51.39099573716521,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-0e95390c16c8a4857061910eb96e"
@@ -14413,8 +14716,8 @@
             "mismatch_categories": [],
             "verification_hash": "c585b0987d6b282070976ccd13b5405dc144c946df72ec9e34a596868a341197"
           },
-          "fdas_total_latency_ms": 464.0617030672729,
-          "latency_ms": 413.5654768906534,
+          "fdas_total_latency_ms": 528.8035622797906,
+          "latency_ms": 477.71148197352886,
           "materialization_metrics": {
             "affected_atoms": 11,
             "cold_build": false,
@@ -14433,9 +14736,18 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1078,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131",
+              "fdas-city-economy-shadow/city:182"
+            ],
             "refreshed_records": 396,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1078,
             "rich_reused_records": 0,
             "total_records": 1474,
@@ -14817,7 +15129,7 @@
             },
             "evaluation_hash": "e51c99eee044087c33dd1cb4c453834dfcf75c47d73e2200515bbb36b5f9fee0",
             "goal_count": 9,
-            "latency_ms": 50.49622617661953,
+            "latency_ms": 51.09208030626178,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-4dfaec9b1e185b1a2bc010afe935"
@@ -14834,8 +15146,8 @@
             "mismatch_categories": [],
             "verification_hash": "db719f19f6f4fbacd4a52ab8ede62fe6cb8860901821d5a373859d739d539847"
           },
-          "fdas_total_latency_ms": 694.5342859253287,
-          "latency_ms": 596.6617939993739,
+          "fdas_total_latency_ms": 753.8349898532033,
+          "latency_ms": 656.2490398064256,
           "materialization_metrics": {
             "affected_atoms": 515,
             "cold_build": false,
@@ -14854,9 +15166,18 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1363,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131",
+              "fdas-city-economy-shadow/city:182"
+            ],
             "refreshed_records": 232,
             "removed_records": 39,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1223,
             "rich_reused_records": 0,
             "total_records": 1595,
@@ -15321,7 +15642,7 @@
             },
             "evaluation_hash": "a422d3f6658ebf5416022e7da97e8831a47303507e8c232cf0ef3cfc4b7eb784",
             "goal_count": 9,
-            "latency_ms": 97.87249192595482,
+            "latency_ms": 97.58595004677773,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-03c8cd77ac689a84997325acaf0ba554"
@@ -15338,8 +15659,8 @@
             "mismatch_categories": [],
             "verification_hash": "1e0b12e539936a12f72294f0428a0b50ddd347ee959dabb52abb8803360c0aed"
           },
-          "fdas_total_latency_ms": 605.3061899729073,
-          "latency_ms": 512.033220846206,
+          "fdas_total_latency_ms": 661.3266603089869,
+          "latency_ms": 569.4007291458547,
           "materialization_metrics": {
             "affected_atoms": 383,
             "cold_build": false,
@@ -15358,9 +15679,18 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1162,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131",
+              "fdas-city-economy-shadow/city:182"
+            ],
             "refreshed_records": 337,
             "removed_records": 7,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1132,
             "rich_reused_records": 0,
             "total_records": 1499,
@@ -15860,7 +16190,7 @@
             },
             "evaluation_hash": "e23f247438a3e736ae12db13aed9b0830a43cc7d850fc3f8cfa375fdf059a179",
             "goal_count": 12,
-            "latency_ms": 93.27296912670135,
+            "latency_ms": 91.92593116313219,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-026fe50fd395bbd7f17d83ae6d18c84b"
@@ -15877,8 +16207,8 @@
             "mismatch_categories": [],
             "verification_hash": "5b5e59451fc56adc7aa233c06e4c9cd92333b2b34fcecb426cd6953bde453633"
           },
-          "fdas_total_latency_ms": 866.3984383456409,
-          "latency_ms": 496.7438313178718,
+          "fdas_total_latency_ms": 925.1149664632976,
+          "latency_ms": 564.2329202964902,
           "materialization_metrics": {
             "affected_atoms": 219,
             "cold_build": false,
@@ -15896,11 +16226,20 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1132,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131",
+              "fdas-city-economy-shadow/city:182"
+            ],
             "refreshed_records": 367,
             "removed_records": 0,
             "reused_projector_ids": [
               "fdas-combat-task-force-projector"
             ],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1132,
             "rich_reused_records": 0,
             "total_records": 1499,
@@ -16393,7 +16732,7 @@
             },
             "evaluation_hash": "4d98605d34d15bdbf3357108282530567e12f5a09d21191c4345253c04fd2ab4",
             "goal_count": 12,
-            "latency_ms": 369.6546070277691,
+            "latency_ms": 360.8820461668074,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-04528c92f757d83003d61848e3319257"
@@ -16410,8 +16749,8 @@
             "mismatch_categories": [],
             "verification_hash": "25c8c19ead407b7787c9c5261d2067812053493bf7e1e497f87afc1097a8e534"
           },
-          "fdas_total_latency_ms": 471.34530171751976,
-          "latency_ms": 459.0770727954805,
+          "fdas_total_latency_ms": 533.9486990123987,
+          "latency_ms": 521.5999907813966,
           "materialization_metrics": {
             "affected_atoms": 550,
             "cold_build": false,
@@ -16430,9 +16769,18 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1169,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131",
+              "fdas-city-economy-shadow/city:182"
+            ],
             "refreshed_records": 232,
             "removed_records": 17,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1029,
             "rich_reused_records": 0,
             "total_records": 1401,
@@ -16589,7 +16937,7 @@
             },
             "evaluation_hash": "5ba1695df5a6c02c68c300183641ce8d0f1f562d5fce4b695128f12786044b73",
             "goal_count": 4,
-            "latency_ms": 12.26822892203927,
+            "latency_ms": 12.348708231002092,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-262a4c429996ecf484dd0386d927"
@@ -16606,8 +16954,8 @@
             "mismatch_categories": [],
             "verification_hash": "89905acc0fbc059a76a36f02983376785dca89c87c75affd0d18bc2dd8eb70b3"
           },
-          "fdas_total_latency_ms": 404.7187794931233,
-          "latency_ms": 392.5281446427107,
+          "fdas_total_latency_ms": 464.6130013279617,
+          "latency_ms": 452.58970372378826,
           "materialization_metrics": {
             "affected_atoms": 47,
             "cold_build": false,
@@ -16626,9 +16974,18 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1030,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131",
+              "fdas-city-economy-shadow/city:182"
+            ],
             "refreshed_records": 371,
             "removed_records": 1,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1029,
             "rich_reused_records": 0,
             "total_records": 1401,
@@ -16789,7 +17146,7 @@
             },
             "evaluation_hash": "fef7f5fd21404eb9d94bdf4f785c3b2e284be99d0a44e966408529df24e0cf9b",
             "goal_count": 4,
-            "latency_ms": 12.190634850412607,
+            "latency_ms": 12.023297604173422,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-35d6d39398200c70b53f881733dd"
@@ -16806,8 +17163,8 @@
             "mismatch_categories": [],
             "verification_hash": "2733d60d26036a06f18b7e8ee736b96b0f99ebddd21ecdf452c03ad74bbfc3f7"
           },
-          "fdas_total_latency_ms": 445.21248200908303,
-          "latency_ms": 432.79196694493294,
+          "fdas_total_latency_ms": 476.2589009478688,
+          "latency_ms": 464.0249121002853,
           "materialization_metrics": {
             "affected_atoms": 62,
             "cold_build": false,
@@ -16826,9 +17183,18 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1032,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131",
+              "fdas-city-economy-shadow/city:182"
+            ],
             "refreshed_records": 371,
             "removed_records": 1,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1031,
             "rich_reused_records": 0,
             "total_records": 1403,
@@ -16978,7 +17344,7 @@
             },
             "evaluation_hash": "f8b845940f4f2bab95061f242a20fd96915106b73323686f4340e53b45d53241",
             "goal_count": 4,
-            "latency_ms": 12.420515064150095,
+            "latency_ms": 12.233988847583532,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-6d4140b1c172cda0701d7136dc4e"
@@ -16995,8 +17361,8 @@
             "mismatch_categories": [],
             "verification_hash": "67db7cc5703429501b69d7232e9850c748283e086e8012b5677160d296372503"
           },
-          "fdas_total_latency_ms": 407.32852555811405,
-          "latency_ms": 395.10693680495024,
+          "fdas_total_latency_ms": 491.76391772925854,
+          "latency_ms": 479.67195184901357,
           "materialization_metrics": {
             "affected_atoms": 90,
             "cold_build": false,
@@ -17015,9 +17381,18 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 1031,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131",
+              "fdas-city-economy-shadow/city:182"
+            ],
             "refreshed_records": 370,
             "removed_records": 2,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 1029,
             "rich_reused_records": 0,
             "total_records": 1401,
@@ -17169,7 +17544,7 @@
             },
             "evaluation_hash": "aec4e502bd8df3298d66184d0eb1ef4087bff1bf7c0e08334cbcda9a78a619b2",
             "goal_count": 4,
-            "latency_ms": 12.221588753163815,
+            "latency_ms": 12.09196588024497,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-60e7024d24a80601c963dcc7d538"
@@ -17186,8 +17561,8 @@
             "mismatch_categories": [],
             "verification_hash": "71aadf171a569aa399d7442f109852c4f9ffce20e56f6f8ae80d02347cb808b2"
           },
-          "fdas_total_latency_ms": 396.5831659734249,
-          "latency_ms": 384.3027809634805,
+          "fdas_total_latency_ms": 446.7209526337683,
+          "latency_ms": 434.62544586509466,
           "materialization_metrics": {
             "affected_atoms": 232,
             "cold_build": false,
@@ -17206,9 +17581,18 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 923,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131",
+              "fdas-city-economy-shadow/city:182"
+            ],
             "refreshed_records": 340,
             "removed_records": 11,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 899,
             "rich_reused_records": 0,
             "total_records": 1263,
@@ -17359,7 +17743,7 @@
             },
             "evaluation_hash": "fad1194f71fd28c53ad6415da532169a9fb137ed6a4de855b147bcb2f047230a",
             "goal_count": 4,
-            "latency_ms": 12.280385009944439,
+            "latency_ms": 12.095506768673658,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-2bff02ee7720cc764cf90b658b9d"
@@ -17376,8 +17760,8 @@
             "mismatch_categories": [],
             "verification_hash": "e53f333a6b927ab26a8c6758f8f30577977299d19b897596a6dd62c576d8ca41"
           },
-          "fdas_total_latency_ms": 407.68953412771225,
-          "latency_ms": 378.1581809744239,
+          "fdas_total_latency_ms": 453.1964221969247,
+          "latency_ms": 406.6554829478264,
           "materialization_metrics": {
             "affected_atoms": 102,
             "cold_build": false,
@@ -17396,9 +17780,18 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 827,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131",
+              "fdas-city-economy-shadow/city:182"
+            ],
             "refreshed_records": 360,
             "removed_records": 4,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 827,
             "rich_reused_records": 0,
             "total_records": 1187,
@@ -17697,7 +18090,7 @@
             },
             "evaluation_hash": "2e98ab32b01ee7d50e9396cbeba409812551782612ad5c3d8fd2edd41fbbcf6c",
             "goal_count": 9,
-            "latency_ms": 29.531353153288364,
+            "latency_ms": 46.5409392490983,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-493ea780ec6198c0e79914cc4622"
@@ -17714,8 +18107,8 @@
             "mismatch_categories": [],
             "verification_hash": "c4c2d238df1395757aab6f26a98140e8b59484a5baa7d87b778864906b2b1cf2"
           },
-          "fdas_total_latency_ms": 370.6406899727881,
-          "latency_ms": 340.4098330065608,
+          "fdas_total_latency_ms": 426.06949899345636,
+          "latency_ms": 395.54942306131124,
           "materialization_metrics": {
             "affected_atoms": 13,
             "cold_build": false,
@@ -17734,9 +18127,18 @@
               "fdas-operation-projector"
             ],
             "recomputed_records": 825,
+            "recomputed_shard_ids": [
+              "fdas-city-economy-shadow/empire",
+              "fdas-city-economy-shadow/city:101",
+              "fdas-city-economy-shadow/city:109",
+              "fdas-city-economy-shadow/city:127",
+              "fdas-city-economy-shadow/city:131",
+              "fdas-city-economy-shadow/city:182"
+            ],
             "refreshed_records": 360,
             "removed_records": 0,
             "reused_projector_ids": [],
+            "reused_shard_ids": [],
             "rich_recomputed_records": 825,
             "rich_reused_records": 0,
             "total_records": 1185,
@@ -17999,7 +18401,7 @@
             },
             "evaluation_hash": "8461c727b541b44665533bc4bb4da6aefe139c80fe069a5b0446be9dd69b786f",
             "goal_count": 8,
-            "latency_ms": 30.230856966227293,
+            "latency_ms": 30.52007593214512,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-3ff7499b2e4a41844c448bc82105"
@@ -18017,12 +18419,12 @@
         "goal_count": 116,
         "latency": {
           "count": 38,
-          "maximum_ms": 434.9176217801869,
-          "mean_ms": 68.06450630047996,
-          "minimum_ms": 0.5458039231598377,
-          "p50_ms": 21.32233325392008,
-          "p95_ms": 369.6546070277691,
-          "p99_ms": 434.9176217801869
+          "maximum_ms": 405.47177009284496,
+          "mean_ms": 66.08868291062352,
+          "minimum_ms": 0.5923425778746605,
+          "p50_ms": 15.637902077287436,
+          "p95_ms": 358.40433090925217,
+          "p99_ms": 405.47177009284496
         },
         "legacy_candidate_count": 139,
         "legal_binding_failure_count": 0,

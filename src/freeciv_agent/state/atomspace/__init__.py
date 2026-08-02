@@ -77,6 +77,7 @@ from .city import (
 from .composite import (
     ActivatedDomainProjector,
     CompositeDomainProjector,
+    ProjectionShardSpec,
     merge_predicate_registries,
 )
 from .operations import (

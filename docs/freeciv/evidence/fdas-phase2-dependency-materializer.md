@@ -147,3 +147,21 @@ transport capacity extraction reads city/economy/research capacity sources,
 and route-corridor visibility reads map tiles and turn state. Those inputs are
 now declared. After correction, the audited full-rich captured cohort again
 passed 37/37 differential transitions with zero failures.
+
+## Per-entity city/economy follow-on
+
+The city/economy projector now divides its deterministic output into one
+empire shard and one stable shard per city factual scope. Every shard declares
+conservative snapshot prefixes, durable dependency kinds, and exclusive output
+scopes. Incremental reuse requires the complete prefix/kind digest and shard
+contract to remain identical. Reused records are reconstructed against current
+scope validity; changed, added, removed, undeclared, or unavailable shards fail
+closed to recomputation or rejection.
+
+A focused two-city mutation rebuilt the empire and changed-city shards, reused
+the unchanged city's two non-empty rich records, recomputed 11 of 30 total
+records, and matched an independent cold build. The strict captured rich-shadow
+corpus again passed 37/37 differential transitions with zero failures. It
+reused 81 rich records through five partial city/economy projector updates;
+the corpus remains a sparse catch-up stress set and is not presented as an
+ordinary-turn latency claim.

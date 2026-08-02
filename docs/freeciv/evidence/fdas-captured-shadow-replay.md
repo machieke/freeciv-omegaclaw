@@ -4,7 +4,7 @@ Date: 2026-08-02
 Branch: `experimental/functional-dependent-atomspace`
 Machine scope: local diagnostic replay
 Machine-readable report: `fdas-captured-shadow-replay.json`
-Report hash: `2c0d1e597990bd33d4ff3eab901743561c58c26a2bee659e12d365b388d9a309`
+Report hash: `7eea020650511ef3c67a07e1fbc6ff0f788d561bef85539d1e4a62fcb6549fd3`
 
 ## Corpus and strictness
 
@@ -25,11 +25,11 @@ revision; all 37 were canonically equivalent.
 
 | Measurement | Result |
 |---|---:|
-| Cold projection p50 / p95 / max | 185.36 / 380.28 / 401.71 ms |
-| Shadow readout p50 / p95 / max | 17.74 / 176.37 / 209.53 ms |
-| Combined cold FDAS p50 / p95 / max | 249.34 / 442.04 / 593.61 ms |
-| Strict incremental plus cold verification p50 / p95 / max | 467.41 / 846.20 / 968.28 ms |
-| Incremental recomputation ratio mean / p50 / p95 | 0.781 / 0.756 / 0.888 |
+| Cold projection p50 / p95 / max | 201.30 / 396.63 / 433.57 ms |
+| Shadow readout p50 / p95 / max | 17.97 / 187.79 / 211.83 ms |
+| Combined cold FDAS p50 / p95 / max | 257.33 / 543.77 / 603.03 ms |
+| Strict incremental plus cold verification p50 / p95 / max | 499.21 / 924.66 / 1,057.23 ms |
+| Incremental recomputation ratio mean / p50 / p95 | 0.779 / 0.755 / 0.888 |
 | Maximum atoms / scopes / supports | 2,610 / 80 / 1,388 |
 | Maximum dependency keys | 2,002 |
 | Local goals / FDAS candidates | 116 / 855 |
@@ -40,27 +40,31 @@ revision; all 37 were canonically equivalent.
 | Authority-eligible candidates / violations | 0 / 0 |
 | Safety downgrades | 0 |
 
-The 500 ms production-safe gate is a p95 gate: combined cold captured p95 is
-442.04 ms. The single worst cold capture is 593.61 ms and the proposed 150 ms
-ordinary FDAS contribution target is not met across this stress corpus. The
-evidence therefore supports bounded shadow operation, not unrestricted
+The 500 ms production-safe gate is a p95 gate. Cold projection alone remains
+below it at 396.63 ms, but projection plus shadow readout is 543.77 ms p95 and
+therefore does not pass the controller-inclusive gate in this stress corpus.
+The proposed 150 ms ordinary FDAS contribution target is also not met here.
+The evidence supports bounded diagnostic shadow operation, not unrestricted
 activation or authority.
 
 The strict incremental timing is diagnostic rather than a live-controller
 timing: every transition prepares an incremental revision and a second,
 independent cold revision before publishing the already-verified incremental
 revision. All 37 transitions were equivalent. The sparse corpus changes most
-domain roots between captures, so it recomputes 78.1% of records on average.
-It records three region and four combat-projector cache hits, but those
-projectors emitted no records in the reused captures; this corpus therefore
-does not support a non-empty reuse performance claim.
+domain roots between captures, so it recomputes 77.9% of records on average.
+It records three region and four combat-projector cache hits whose reused
+outputs are empty. Entity sharding additionally reuses 81 non-empty
+city/economy records across five partial projector updates: city 101 four
+times, city 109 four times, city 127 twice, city 131 three times, and city 182
+once.
 
 A separate same-turn full-rich fixture provides the positive ordinary-update
 check. It reused city/economy, region, combat, and population-recovery output,
 including 11 non-empty rich records; recomputed 7 of 30 total records; matched
 the independent cold revision; and completed the strict two-build check in
-24.32 ms. A declared city-surplus mutation instead recomputes the city/economy
-projector and also remains cold-equivalent.
+24.32 ms. In a focused two-city fixture, a city-surplus mutation recomputes the
+empire and changed-city shards, reuses two non-empty records from the unchanged
+city, recomputes 11 of 30 total records, and remains cold-equivalent.
 
 ## Candidate interpretation
 
@@ -104,6 +108,10 @@ predictive goal semantics before treating these candidates as causal.
   repeated serialization of overlapping dependency maps. Reuse/recompute
   projector IDs, record counts, and the recomputation ratio are emitted in
   materialization metrics and captured by this report.
+- City/economy output is split into exclusive empire and per-city shards with
+  conservative prefix/kind fingerprints. Runtime access, support dependencies,
+  scope ownership, and cold equivalence are checked fail-closed; shard IDs are
+  included in per-snapshot and aggregate replay metrics.
 
 ## Non-claims
 

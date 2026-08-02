@@ -379,9 +379,16 @@ def main(argv=None):
                 projector_id for row in values
                 for projector_id in row[
                     "recomputed_projector_ids"]).items())),
+            "recomputed_shard_counts": dict(sorted(Counter(
+                shard_id for row in values
+                for shard_id in row.get(
+                    "recomputed_shard_ids", ())).items())),
             "reused_projector_counts": dict(sorted(Counter(
                 projector_id for row in values
                 for projector_id in row["reused_projector_ids"]).items())),
+            "reused_shard_counts": dict(sorted(Counter(
+                shard_id for row in values
+                for shard_id in row.get("reused_shard_ids", ())).items())),
             "rich_recomputed_record_count": sum(
                 row["rich_recomputed_records"] for row in values),
             "rich_reused_record_count": sum(

@@ -49,6 +49,8 @@ class MaterializationMetrics:
     reused_projector_ids: tuple = ()
     rich_recomputed_records: int = 0
     rich_reused_records: int = 0
+    recomputed_shard_ids: tuple = ()
+    reused_shard_ids: tuple = ()
 
     @property
     def incremental_recomputation_ratio(self):
@@ -67,9 +69,11 @@ class MaterializationMetrics:
             "recomputed_records": self.recomputed_records,
             "recomputed_projector_ids": list(
                 self.recomputed_projector_ids),
+            "recomputed_shard_ids": list(self.recomputed_shard_ids),
             "refreshed_records": self.refreshed_records,
             "removed_records": self.removed_records,
             "reused_projector_ids": list(self.reused_projector_ids),
+            "reused_shard_ids": list(self.reused_shard_ids),
             "rich_recomputed_records": self.rich_recomputed_records,
             "rich_reused_records": self.rich_reused_records,
             "total_records": self.total_records,
@@ -281,6 +285,8 @@ class DependentAtomSpaceStore(object):
                         "recomputed_record_count": len(domain_records),
                         "reused_projector_ids": (),
                         "reused_record_count": 0,
+                        "recomputed_shard_ids": (),
+                        "reused_shard_ids": (),
                     })
             projection_metrics["recomputed_records"] += component_metrics[
                 "recomputed_record_count"]
@@ -292,6 +298,8 @@ class DependentAtomSpaceStore(object):
                 "recomputed_record_count": 0,
                 "reused_projector_ids": (),
                 "reused_record_count": 0,
+                "recomputed_shard_ids": (),
+                "reused_shard_ids": (),
             }
         transaction = AtomSpaceTransaction(
             snapshot.snapshot_id, self.predicate_registry, scopes,
@@ -338,6 +346,8 @@ class DependentAtomSpaceStore(object):
             tuple(component_metrics["reused_projector_ids"]),
             int(component_metrics["recomputed_record_count"]),
             int(component_metrics["reused_record_count"]),
+            tuple(component_metrics.get("recomputed_shard_ids", ())),
+            tuple(component_metrics.get("reused_shard_ids", ())),
         )
         build_hash = revision_id[len("fdas-revision-"):]
         return DependentAtomSpaceRevision(

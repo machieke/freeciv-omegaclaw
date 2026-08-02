@@ -120,8 +120,17 @@ their snapshot-root and durable-source dependencies. Unchanged component
 outputs are refreshed to the current validity interval; changed or undeclared
 inputs recompute fail-closed. Reuse/recompute counts and ratios are part of the
 revision metrics, and 37/37 captured rich transitions match independent cold
-builds. This remains a component-level optimization, not per-city or per-unit
-derivation scheduling.
+builds.
+
+City/economy projection additionally has conservative entity shards. The
+empire summary and each city factual microspace declare independent snapshot
+prefixes, durable dependency kinds, and output scopes. A changed city rebuilds
+its own shard; unaffected city records can be reused even when the shared
+projector also rebuilds its empire shard. The runtime rejects undeclared shard
+reads, support dependencies, overlapping output scopes, missing current
+scopes, and cold-build divergence. Shard reuse/recompute IDs are emitted in
+materialization metrics. Other rich projectors remain at the coarser component
+boundary; this is not yet universal per-entity derivation scheduling.
 
 Recomputed rich projectors receive a read-only access-recording snapshot view.
 Any semantic top-level read outside the projector's declared incremental roots

@@ -37,6 +37,19 @@ def _snapshot(game_id="fdas-runtime", seq=431):
     return ProxyStateDTO.parse(game_id, seq, payload).to_snapshot()
 
 
+def _two_city_snapshot(seq=431, mutate_city_three=False):
+    with open(FIXTURE, encoding="utf-8") as stream:
+        payload = json.load(stream)
+    second = copy.deepcopy(payload["cities"]["3"])
+    second.update({"id": 4, "name": "Antium", "tile": 84,
+                   "x": 4, "y": 2})
+    payload["cities"]["4"] = second
+    if mutate_city_three:
+        payload["cities"]["3"]["surplus"][0] += 1
+    return ProxyStateDTO.parse(
+        "fdas-runtime", seq, payload).to_snapshot()
+
+
 def _enabled_city_declaration():
     declaration = load_runtime_declaration()
     value = copy.deepcopy(declaration)
@@ -230,6 +243,36 @@ def test_declared_city_input_change_recomputes_rich_component():
     assert update.materialization_metrics.rich_reused_records == 0
 
 
+def test_city_input_change_recomputes_only_affected_entity_shards():
+    declaration = _enabled_city_declaration()
+    declaration["config"]["cold_verify_sample_rate"] = 1.0
+    semantic = dict(declaration)
+    semantic.pop("declaration_hash")
+    from freeciv_agent.events.schema import structural_hash
+    declaration["declaration_hash"] = structural_hash(semantic)
+    runtime = build_runtime(declaration)
+    first = _two_city_snapshot(seq=431)
+    second = _two_city_snapshot(seq=432, mutate_city_three=True)
+
+    runtime.replace(first)
+    update = runtime.replace(second)
+    metrics = update.materialization_metrics
+
+    assert update.cold_verification.equivalent
+    assert metrics.recomputed_projector_ids == (
+        "fdas-city-economy-shadow",)
+    assert metrics.reused_projector_ids == (
+        "fdas-city-economy-shadow",)
+    assert metrics.recomputed_shard_ids == (
+        "fdas-city-economy-shadow/empire",
+        "fdas-city-economy-shadow/city:3",
+    )
+    assert metrics.reused_shard_ids == (
+        "fdas-city-economy-shadow/city:4",)
+    assert metrics.rich_recomputed_records > 0
+    assert metrics.rich_reused_records > 0
+
+
 def test_rich_projector_undeclared_snapshot_read_fails_closed(monkeypatch):
     monkeypatch.setattr(
         CityEconomyProjector,
@@ -244,6 +287,27 @@ def test_rich_projector_undeclared_snapshot_read_fails_closed(monkeypatch):
             match=(
                 "fdas-city-economy-shadow read undeclared snapshot roots: "
                 "cities")):
+        runtime.replace(_snapshot())
+
+
+def test_city_entity_shard_undeclared_dependency_fails_closed(monkeypatch):
+    original = CityEconomyProjector.projection_shards
+
+    def missing_city_prefix(self, scopes):
+        return tuple(
+            replace(spec, snapshot_prefixes=("player_id",))
+            if spec.shard_id == "city:3" else spec
+            for spec in original(self, scopes))
+
+    monkeypatch.setattr(
+        CityEconomyProjector, "projection_shards", missing_city_prefix)
+    runtime = build_runtime(_enabled_city_declaration())
+
+    with pytest.raises(
+            SnapshotConflict,
+            match=(
+                "fdas-city-economy-shadow shard city:3 emitted undeclared "
+                "dependencies")):
         runtime.replace(_snapshot())
 
 

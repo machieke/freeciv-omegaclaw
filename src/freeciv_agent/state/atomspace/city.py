@@ -4,6 +4,7 @@ import json
 from dataclasses import dataclass, replace
 
 from ...events.schema import structural_hash
+from .composite import ProjectionShardSpec
 from .delta import snapshot_dependency_ref
 from .grounding import TypedGroundingRegistry
 from .model import (
@@ -329,9 +330,33 @@ class CityEconomyProjector(object):
             return EntityRef(kind, str(action["actor_id"]))
         return EntityRef("player", str(player_id))
 
-    def project(self, snapshot, scopes, fingerprints):
-        self.groundings.prime(snapshot, fingerprints)
+    def projection_shards(self, scopes):
+        """Split global facts from stable per-city factual microspaces."""
         empire, city_scopes = _scope_map(scopes)
+        kinds = self.incremental_dependency_kinds
+        shards = [ProjectionShardSpec(
+            "empire",
+            (
+                "cities", "economy", "government", "legal_actions",
+                "player_id", "research", "turn", "units",
+            ),
+            kinds,
+            (empire.scope_id,),
+        )]
+        shards.extend(
+            ProjectionShardSpec(
+                "city:{}".format(city_id),
+                (
+                    "cities.{}".format(city_id), "economy", "player_id",
+                    "units",
+                ),
+                kinds,
+                (scope.scope_id,),
+            )
+            for city_id, scope in sorted(city_scopes.items()))
+        return tuple(shards)
+
+    def _project_empire(self, snapshot, empire, fingerprints):
         player = EntityRef("player", str(snapshot.player_id))
         records = []
         records.append(self._base(
@@ -382,118 +407,8 @@ class CityEconomyProjector(object):
                     (("domain", "city-economy-shadow"),)))
 
         policy_refs = self.policy.dependency_refs()
-        food_policy = SymbolRef("food-policy", self.policy.food_policy_id)
         treasury_policy = SymbolRef(
             "treasury-policy", self.policy.treasury_policy_id)
-        for city in sorted(snapshot.cities, key=lambda value: value.city_id):
-            city_id = str(city.city_id)
-            scope = city_scopes[city_id]
-            city_ref = EntityRef("city", city_id)
-            if city.disorder is True:
-                records.append(self._base(
-                    snapshot, scope, "city-in-disorder", (city_ref,),
-                    ("cities.{}.disorder".format(city_id),), fingerprints))
-            if city.had_famine is True:
-                records.append(self._base(
-                    snapshot, scope, "city-famine-recorded", (city_ref,),
-                    ("cities.{}.had_famine".format(city_id),), fingerprints))
-            if city.governor_enabled is True:
-                records.append(self._base(
-                    snapshot, scope, "city-governor-active",
-                    (city_ref, SymbolRef(
-                        "governor-policy", "server-current")),
-                    ("cities.{}.governor.enabled".format(city_id),),
-                    fingerprints))
-            for building in city.buildings:
-                records.append(self._base(
-                    snapshot, scope, "city-has-building",
-                    (city_ref, EntityRef("building-type", building.name)),
-                    ("cities.{}.buildings".format(city_id),), fingerprints))
-
-            food = self.groundings.evaluate(
-                "city.food-surplus", snapshot, city.city_id)
-            if food.available:
-                predicate = (
-                    "city-food-secure"
-                    if int(food.value) >= self.policy.food_surplus_reserve
-                    else "city-food-deficit")
-                records.append(self._derived(
-                    scope, predicate, (city_ref, food_policy), (food,),
-                    (policy_refs[0],), {
-                        "minimum": self.policy.food_surplus_reserve,
-                        "observed": food.value,
-                    }))
-            disorder = self.groundings.evaluate(
-                "city.disorder-active", snapshot, city.city_id)
-            if disorder.available:
-                records.append(self._derived(
-                    scope,
-                    "city-order-deficit" if disorder.value
-                    else "city-order-stable",
-                    (city_ref,), (disorder,), witness={
-                        "closed_field": "city.disorder",
-                        "observed": disorder.value,
-                    }))
-            shields = self.groundings.evaluate(
-                "city.shield-surplus", snapshot, city.city_id)
-            if shields.available:
-                records.append(self._derived(
-                    scope,
-                    "city-production-active" if int(shields.value) > 0
-                    else "city-production-stalled",
-                    (city_ref,), (shields,), witness={
-                        "observed_shields_per_turn": shields.value,
-                    }))
-
-            current = self._current_production(city)
-            if current is not None and self.ruleset_digest is not None:
-                target_kind, target_name = current
-                eta = self.groundings.evaluate(
-                    "city.production-eta", snapshot, city.city_id,
-                    target_kind, target_name)
-                gold = self.groundings.evaluate(
-                    "economy.gold-stockpile", snapshot, snapshot.player_id)
-                net = self.groundings.evaluate(
-                    "economy.net-gpt", snapshot, snapshot.player_id)
-                upkeep = self.groundings.evaluate(
-                    "economy.turn-start-upkeep-reserve", snapshot,
-                    snapshot.player_id)
-                food_upkeep, gold_upkeep = self._target_upkeep(
-                    target_kind, target_name)
-                inputs_available = all(value.available for value in (
-                    eta, gold, net, upkeep, food))
-                reserve = max(
-                    self.policy.treasury_minimum_gold,
-                    (int(upkeep.value) + gold_upkeep)
-                    * self.policy.treasury_reserve_turns,
-                ) if inputs_available else None
-                eta_value = eta.value if eta.available else None
-                funded = bool(
-                    inputs_available
-                    and eta_value is not None
-                    and int(food.value) - food_upkeep
-                    >= self.policy.food_surplus_reserve
-                    and int(gold.value) + int(net.value) * int(eta_value)
-                    >= reserve)
-                records.append(self._derived(
-                    scope,
-                    "city-queue-funded" if funded
-                    else "city-queue-unfunded",
-                    (city_ref, EntityRef(
-                        "production-target", target_name)),
-                    (eta, gold, net, upkeep, food),
-                    policy_refs,
-                    {
-                        "completion_eta": eta_value,
-                        "food_surplus_after_upkeep": (
-                            int(food.value) - food_upkeep
-                            if food.available else None),
-                        "gold_upkeep": gold_upkeep,
-                        "reserve_at_completion": reserve,
-                        "target_kind": target_kind,
-                        "target_name": target_name,
-                    }))
-
         gold = self.groundings.evaluate(
             "economy.gold-stockpile", snapshot, snapshot.player_id)
         net = self.groundings.evaluate(
@@ -530,4 +445,143 @@ class CityEconomyProjector(object):
                 (player,), (beakers,), witness={
                     "observed_beakers_per_turn": beakers.value,
                 }))
+        return tuple(records)
+
+    def _project_city(self, snapshot, city, scope, fingerprints):
+        records = []
+        city_id = str(city.city_id)
+        city_ref = EntityRef("city", city_id)
+        if city.disorder is True:
+            records.append(self._base(
+                snapshot, scope, "city-in-disorder", (city_ref,),
+                ("cities.{}.disorder".format(city_id),), fingerprints))
+        if city.had_famine is True:
+            records.append(self._base(
+                snapshot, scope, "city-famine-recorded", (city_ref,),
+                ("cities.{}.had_famine".format(city_id),), fingerprints))
+        if city.governor_enabled is True:
+            records.append(self._base(
+                snapshot, scope, "city-governor-active",
+                (city_ref, SymbolRef(
+                    "governor-policy", "server-current")),
+                ("cities.{}.governor.enabled".format(city_id),),
+                fingerprints))
+        for building in city.buildings:
+            records.append(self._base(
+                snapshot, scope, "city-has-building",
+                (city_ref, EntityRef("building-type", building.name)),
+                ("cities.{}.buildings".format(city_id),), fingerprints))
+
+        policy_refs = self.policy.dependency_refs()
+        food_policy = SymbolRef("food-policy", self.policy.food_policy_id)
+        food = self.groundings.evaluate(
+            "city.food-surplus", snapshot, city.city_id)
+        if food.available:
+            predicate = (
+                "city-food-secure"
+                if int(food.value) >= self.policy.food_surplus_reserve
+                else "city-food-deficit")
+            records.append(self._derived(
+                scope, predicate, (city_ref, food_policy), (food,),
+                (policy_refs[0],), {
+                    "minimum": self.policy.food_surplus_reserve,
+                    "observed": food.value,
+                }))
+        disorder = self.groundings.evaluate(
+            "city.disorder-active", snapshot, city.city_id)
+        if disorder.available:
+            records.append(self._derived(
+                scope,
+                "city-order-deficit" if disorder.value
+                else "city-order-stable",
+                (city_ref,), (disorder,), witness={
+                    "closed_field": "city.disorder",
+                    "observed": disorder.value,
+                }))
+        shields = self.groundings.evaluate(
+            "city.shield-surplus", snapshot, city.city_id)
+        if shields.available:
+            records.append(self._derived(
+                scope,
+                "city-production-active" if int(shields.value) > 0
+                else "city-production-stalled",
+                (city_ref,), (shields,), witness={
+                    "observed_shields_per_turn": shields.value,
+                }))
+
+        current = self._current_production(city)
+        if current is not None and self.ruleset_digest is not None:
+            target_kind, target_name = current
+            eta = self.groundings.evaluate(
+                "city.production-eta", snapshot, city.city_id,
+                target_kind, target_name)
+            gold = self.groundings.evaluate(
+                "economy.gold-stockpile", snapshot, snapshot.player_id)
+            net = self.groundings.evaluate(
+                "economy.net-gpt", snapshot, snapshot.player_id)
+            upkeep = self.groundings.evaluate(
+                "economy.turn-start-upkeep-reserve", snapshot,
+                snapshot.player_id)
+            food_upkeep, gold_upkeep = self._target_upkeep(
+                target_kind, target_name)
+            inputs_available = all(value.available for value in (
+                eta, gold, net, upkeep, food))
+            reserve = max(
+                self.policy.treasury_minimum_gold,
+                (int(upkeep.value) + gold_upkeep)
+                * self.policy.treasury_reserve_turns,
+            ) if inputs_available else None
+            eta_value = eta.value if eta.available else None
+            funded = bool(
+                inputs_available
+                and eta_value is not None
+                and int(food.value) - food_upkeep
+                >= self.policy.food_surplus_reserve
+                and int(gold.value) + int(net.value) * int(eta_value)
+                >= reserve)
+            records.append(self._derived(
+                scope,
+                "city-queue-funded" if funded
+                else "city-queue-unfunded",
+                (city_ref, EntityRef(
+                    "production-target", target_name)),
+                (eta, gold, net, upkeep, food),
+                policy_refs,
+                {
+                    "completion_eta": eta_value,
+                    "food_surplus_after_upkeep": (
+                        int(food.value) - food_upkeep
+                        if food.available else None),
+                    "gold_upkeep": gold_upkeep,
+                    "reserve_at_completion": reserve,
+                    "target_kind": target_kind,
+                    "target_name": target_name,
+                }))
+        return tuple(records)
+
+    def project_shard(self, shard_id, snapshot, scopes, fingerprints):
+        self.groundings.prime(snapshot, fingerprints)
+        empire, city_scopes = _scope_map(scopes)
+        if shard_id == "empire":
+            records = self._project_empire(snapshot, empire, fingerprints)
+        elif str(shard_id).startswith("city:"):
+            city_id = str(shard_id).split(":", 1)[1]
+            city = snapshot.city(city_id)
+            if city is None or city_id not in city_scopes:
+                raise ValueError(
+                    "city projection shard has no current city scope")
+            records = self._project_city(
+                snapshot, city, city_scopes[city_id], fingerprints)
+        else:
+            raise ValueError("unknown city/economy projection shard")
+        return tuple(sorted(records, key=lambda value: value.atom_id))
+
+    def project(self, snapshot, scopes, fingerprints):
+        self.groundings.prime(snapshot, fingerprints)
+        empire, city_scopes = _scope_map(scopes)
+        records = list(self._project_empire(
+            snapshot, empire, fingerprints))
+        for city in sorted(snapshot.cities, key=lambda value: value.city_id):
+            records.extend(self._project_city(
+                snapshot, city, city_scopes[str(city.city_id)], fingerprints))
         return tuple(sorted(records, key=lambda value: value.atom_id))
