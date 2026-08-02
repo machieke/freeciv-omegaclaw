@@ -55,8 +55,10 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     ImpactTurnBudget,
                                     ControlEventEmitter,
                                     DecisionEpisodeStore,
+                                    DURABLE_CITY_COVERAGE_TARGET,
                                     EpisodeControlPrediction,
                                     FdasDefenseEpisodeRecorder,
+                                    FdasDefenseDurabilityLabeler,
                                     FdasEpisodeInductionShadow,
                                     FdasEpisodeLearningAdapter,
                                     FdasExpansionOperationAdapter,
@@ -64,6 +66,7 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     FdasObservationExecutionBridge,
                                     FounderTransportOperationAssembler,
                                     FounderTransportOperationLifecycle,
+                                    EpisodeInductionOutcomeLabelStore,
                                     OperationStore,
                                     declared_transport_intents)
 from freeciv_agent.rulesets.compiler import compile_ruleset
@@ -2690,6 +2693,40 @@ async def _play(run_dir, manifest, context):
     fdas_episode_recorder = None
     fdas_episode_learning = None
     fdas_episode_induction = None
+    fdas_outcome_label_path = os.path.join(
+        run_dir, "fdas-induction-outcome-labels.json")
+    fdas_outcome_label_store = None
+    fdas_durability_labeler = None
+    delayed_outcome_capability = fdas_manifest["capabilities"].get(
+        "delayed_induction_outcome_labels")
+    delayed_outcome_diagnostic = fdas_manifest.get(
+        "delayed_induction_outcome_diagnostic")
+    fdas_delayed_outcome_shadow = bool(
+        delayed_outcome_capability is not None
+        or delayed_outcome_diagnostic is not None)
+    expected_delayed_outcome_diagnostic = {
+        "induced_rule_readout": False,
+        "observation_window_turns": 8,
+        "policy_authority": False,
+        "target_id": DURABLE_CITY_COVERAGE_TARGET,
+    }
+    if fdas_delayed_outcome_shadow:
+        if delayed_outcome_capability != "shadow-live":
+            raise RuntimeError(
+                "FDAS delayed outcome labels require shadow-live manifest")
+        if (delayed_outcome_diagnostic
+                != expected_delayed_outcome_diagnostic):
+            raise RuntimeError(
+                "FDAS delayed outcome diagnostic declaration differs")
+        if not fdas_learning_config["episode_attribution_enabled"]:
+            raise RuntimeError(
+                "FDAS delayed outcome labels require episode attribution")
+        if not fdas_learning_config["induction_enabled"]:
+            raise RuntimeError(
+                "FDAS delayed outcome labels require induction shadow")
+        if fdas_learning_config["induced_rule_readout_enabled"]:
+            raise RuntimeError(
+                "FDAS delayed outcome labels cannot feed live rule readout")
     if fdas_learning_config["episode_attribution_enabled"]:
         fdas_episode_identity = structural_hash([
             manifest["manifest_identity"], manifest["attempt_id"],
@@ -2739,6 +2776,44 @@ async def _play(run_dir, manifest, context):
             if fdas_induction_ledger.promoted_rules():
                 raise RuntimeError(
                     "FDAS induction shadow loaded promoted rule authority")
+        if fdas_delayed_outcome_shadow:
+            fdas_outcome_label_identity = structural_hash([
+                fdas_episode_identity,
+                FdasDefenseDurabilityLabeler.LABELER_IDENTITY,
+                DURABLE_CITY_COVERAGE_TARGET,
+            ])
+            fdas_outcome_label_store = (
+                EpisodeInductionOutcomeLabelStore.load(
+                    fdas_outcome_label_path,
+                    fdas_outcome_label_identity))
+            if fdas_outcome_label_store.quarantined:
+                raise RuntimeError(
+                    "FDAS delayed outcome-label store is quarantined: {}"
+                    .format(fdas_outcome_label_store.quarantine_reason))
+            fdas_durability_labeler = FdasDefenseDurabilityLabeler(
+                fdas_outcome_label_store,
+                observation_window_turns=8)
+            for existing_episode in fdas_episode_store.episodes():
+                if (existing_episode.outcome_status
+                        != "goal-relief-observed"
+                        or fdas_outcome_label_store.for_episode(
+                            existing_episode.episode_id,
+                            DURABLE_CITY_COVERAGE_TARGET) is not None):
+                    continue
+                relief_turn = (
+                    existing_episode.observed_delta or {}).get(
+                        "observed_turn")
+                if (isinstance(relief_turn, bool)
+                        or not isinstance(relief_turn, int)):
+                    raise RuntimeError(
+                        "FDAS delayed label recovery lacks relief turn")
+                fdas_durability_labeler.open(
+                    existing_episode,
+                    relief_turn,
+                    existing_episode.after_revision_id)
+            # Persist even an empty store so zero-label evidence is durable and
+            # its activation/identity can be audited independently of events.
+            fdas_outcome_label_store.save(fdas_outcome_label_path)
     def fdas_operation_records():
         rows = tuple(control_event_emitter.fdas_operation_records(
             manifest["game_id"]))
@@ -2951,6 +3026,25 @@ async def _play(run_dir, manifest, context):
         "fdas_induction_proposals_quarantined": 0,
         "fdas_induction_duplicate_proposals": 0,
         "fdas_induction_promoted_rules": 0,
+        "fdas_delayed_outcome_labels_opened": (
+            len(fdas_outcome_label_store.labels())
+            if fdas_outcome_label_store is not None else 0),
+        "fdas_delayed_outcome_labels_observed": (
+            sum(value.status == "observed"
+                for value in fdas_outcome_label_store.labels())
+            if fdas_outcome_label_store is not None else 0),
+        "fdas_delayed_outcome_labels_pending": (
+            sum(value.status == "pending"
+                for value in fdas_outcome_label_store.labels())
+            if fdas_outcome_label_store is not None else 0),
+        "fdas_delayed_outcome_positive": (
+            sum(value.outcome is True
+                for value in fdas_outcome_label_store.labels())
+            if fdas_outcome_label_store is not None else 0),
+        "fdas_delayed_outcome_negative": (
+            sum(value.outcome is False
+                for value in fdas_outcome_label_store.labels())
+            if fdas_outcome_label_store is not None else 0),
         "fdas_conductance_samples": 0,
         "fdas_expansion_action_matches": 0,
         "fdas_expansion_completions": 0,
@@ -3625,16 +3719,22 @@ async def _play(run_dir, manifest, context):
             """Observe pending accepted actions without granting policy power."""
             if fdas_episode_store is None:
                 return cause
+            current_revision = fdas_store.current_dependent_revision(
+                manifest["game_id"], player_id)
+            if current_revision is None:
+                raise RuntimeError(
+                    "FDAS episode reconciliation lacks current revision")
             pending = tuple(
                 episode for episode in fdas_episode_store.episodes()
                 if episode.outcome_status in (
                     "accepted-by-server", "delayed-effect-pending",
                     "immediate-effect-observed"))
             for prior_episode in pending:
+                current_revision = fdas_store.current_dependent_revision(
+                    manifest["game_id"], player_id)
                 updated = fdas_episode_recorder.observe(
                     prior_episode.episode_id, current,
-                    fdas_store.current_dependent_revision(
-                        manifest["game_id"], player_id).revision_id,
+                    current_revision.revision_id,
                     observation_window_closed=observation_window_closed)
                 if updated == prior_episode:
                     continue
@@ -3667,6 +3767,25 @@ async def _play(run_dir, manifest, context):
                         }, caused_by=(cause,))
                     cause = event["event_id"]
                     decision_stats["fdas_episode_relief_attributed"] += 1
+                    if fdas_durability_labeler is not None:
+                        label = fdas_durability_labeler.open(
+                            updated,
+                            updated.observed_delta["observed_turn"],
+                            updated.after_revision_id)
+                        fdas_outcome_label_store.save(
+                            fdas_outcome_label_path)
+                        event = fdas_runtime.emit_episode_component(
+                            writer, current, "episode_outcome_label_opened", {
+                                "label": label.to_dict(),
+                                "policy_authority": False,
+                                "readout_enabled": False,
+                                "truth_mutated": False,
+                            }, caused_by=(cause,))
+                        cause = event["event_id"]
+                        decision_stats[
+                            "fdas_delayed_outcome_labels_opened"] += 1
+                        decision_stats[
+                            "fdas_delayed_outcome_labels_pending"] += 1
                 decision_stats["fdas_episode_no_effect"] += int(
                     updated.outcome_status == "no-effect-observed")
                 decision_stats["fdas_episode_confounded"] += int(
@@ -3765,6 +3884,42 @@ async def _play(run_dir, manifest, context):
                         proposals=len(induction.proposals),
                         result_hash=induction.result_hash,
                         truth_mutated=False)
+            if fdas_durability_labeler is not None:
+                for prior_label in tuple(
+                        label for label in fdas_outcome_label_store.labels()
+                        if label.status == "pending"
+                        and current.turn >= label.due_turn):
+                    episode = fdas_episode_store.get(prior_label.episode_id)
+                    if episode is None:
+                        raise RuntimeError(
+                            "FDAS delayed label references missing episode")
+                    current_revision = (
+                        fdas_store.current_dependent_revision(
+                            manifest["game_id"], player_id))
+                    observed_label = fdas_durability_labeler.observe(
+                        episode, current, current_revision.revision_id)
+                    if observed_label == prior_label:
+                        continue
+                    fdas_outcome_label_store.save(
+                        fdas_outcome_label_path)
+                    event = fdas_runtime.emit_episode_component(
+                        writer, current, "episode_outcome_label_observed", {
+                            "label": observed_label.to_dict(),
+                            "policy_authority": False,
+                            "readout_enabled": False,
+                            "truth_mutated": False,
+                        }, caused_by=(cause,))
+                    cause = event["event_id"]
+                    decision_stats[
+                        "fdas_delayed_outcome_labels_observed"] += 1
+                    decision_stats[
+                        "fdas_delayed_outcome_labels_pending"] -= 1
+                    decision_stats[
+                        "fdas_delayed_outcome_positive"] += int(
+                            observed_label.outcome is True)
+                    decision_stats[
+                        "fdas_delayed_outcome_negative"] += int(
+                            observed_label.outcome is False)
             return cause
 
         def prepare_fdas_observation_action(current, action, cause):
@@ -5833,6 +5988,16 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_induction_duplicate_proposals"]),
         ("fdas_induction_promoted_rules",
          decision_stats["fdas_induction_promoted_rules"]),
+        ("fdas_delayed_outcome_labels_opened",
+         decision_stats["fdas_delayed_outcome_labels_opened"]),
+        ("fdas_delayed_outcome_labels_observed",
+         decision_stats["fdas_delayed_outcome_labels_observed"]),
+        ("fdas_delayed_outcome_labels_pending",
+         decision_stats["fdas_delayed_outcome_labels_pending"]),
+        ("fdas_delayed_outcome_positive",
+         decision_stats["fdas_delayed_outcome_positive"]),
+        ("fdas_delayed_outcome_negative",
+         decision_stats["fdas_delayed_outcome_negative"]),
         ("fdas_conductance_samples",
          decision_stats["fdas_conductance_samples"]),
         ("fdas_expansion_action_matches",
@@ -6302,6 +6467,16 @@ async def _play(run_dir, manifest, context):
                 decision_stats["fdas_induction_duplicate_proposals"]),
             "fdas_induction_promoted_rules": (
                 decision_stats["fdas_induction_promoted_rules"]),
+            "fdas_delayed_outcome_labels_opened": (
+                decision_stats["fdas_delayed_outcome_labels_opened"]),
+            "fdas_delayed_outcome_labels_observed": (
+                decision_stats["fdas_delayed_outcome_labels_observed"]),
+            "fdas_delayed_outcome_labels_pending": (
+                decision_stats["fdas_delayed_outcome_labels_pending"]),
+            "fdas_delayed_outcome_positive": (
+                decision_stats["fdas_delayed_outcome_positive"]),
+            "fdas_delayed_outcome_negative": (
+                decision_stats["fdas_delayed_outcome_negative"]),
             "fdas_conductance_samples": (
                 decision_stats["fdas_conductance_samples"]),
             "fdas_expansion_action_matches": (
@@ -6639,6 +6814,16 @@ async def _play(run_dir, manifest, context):
             decision_stats["fdas_induction_duplicate_proposals"]),
         "fdas_induction_promoted_rules": (
             decision_stats["fdas_induction_promoted_rules"]),
+        "fdas_delayed_outcome_labels_opened": (
+            decision_stats["fdas_delayed_outcome_labels_opened"]),
+        "fdas_delayed_outcome_labels_observed": (
+            decision_stats["fdas_delayed_outcome_labels_observed"]),
+        "fdas_delayed_outcome_labels_pending": (
+            decision_stats["fdas_delayed_outcome_labels_pending"]),
+        "fdas_delayed_outcome_positive": (
+            decision_stats["fdas_delayed_outcome_positive"]),
+        "fdas_delayed_outcome_negative": (
+            decision_stats["fdas_delayed_outcome_negative"]),
         "fdas_conductance_samples": (
             decision_stats["fdas_conductance_samples"]),
         "fdas_expansion_action_matches": (

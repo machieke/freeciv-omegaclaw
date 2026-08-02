@@ -569,6 +569,7 @@ class FdasDefenseEpisodeRecorder(object):
             relief = ()
             delta = {
                 "actor_present_after": False,
+                "observed_turn": after_snapshot.turn,
                 "reason": "actor-disappeared-without-attributable-cause",
             }
         else:
@@ -608,6 +609,7 @@ class FdasDefenseEpisodeRecorder(object):
                 "actor_present_after": True,
                 "actor_tile_after": actor.tile,
                 "actor_tile_before": before_tile,
+                "observed_turn": after_snapshot.turn,
                 "target_tile": target_tile,
             }
         updated = replace(

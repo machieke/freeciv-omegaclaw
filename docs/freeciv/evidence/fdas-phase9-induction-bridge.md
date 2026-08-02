@@ -70,6 +70,19 @@ revisions, observed value, and provenance survive atomic restart. Labels state
 episode digest match and status is `observed`. Delayed target identity enters
 the induction context and the combined episode/label artifact hashes enter any
 promotion approval. Component train/holdout fixtures exercise a stable delayed
-promotion with generalizable feature-v2 inputs. Engine scheduling and a live
-delayed outcome population remain a separate gate; the capability status is
-therefore still `component-only`.
+promotion with generalizable feature-v2 inputs.
+
+Engine scheduling is now available only through the dedicated
+`dependent_atomspace_defense_delayed_induction_shadow.yaml` profile and its
+matching manifest. Activation requires the exact target ID, eight-turn window,
+`policy_authority=false`, `induced_rule_readout=false`, and the
+`delayed_induction_outcome_labels=shadow-live` capability. The live loop opens
+one persistent label after authoritative immediate goal relief, resolves only
+pending labels at or after their due turn from current authoritative own city
+and unit state, and emits schema-validated lifecycle events and counters. A
+separate auditor rejects identity/hash drift, early observation, missing
+episode links, counter/event disagreement, source contamination, incomplete
+horizons, or authority escape. This changes no candidate selection and does not
+feed the label into engine rule mining or readout. A fresh clean engine cohort
+is still required before the capability can be claimed as empirically
+confirmed `shadow-live`.

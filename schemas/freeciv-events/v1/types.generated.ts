@@ -1065,6 +1065,10 @@ export type EpisodeEffectObserved = AtomspaceEvent;
 
 export type EpisodeReliefAttributed = AtomspaceEvent;
 
+export type EpisodeOutcomeLabelOpened = AtomspaceEvent;
+
+export type EpisodeOutcomeLabelObserved = AtomspaceEvent;
+
 export type ConductanceSampleRecorded = AtomspaceEvent;
 
 export type InducedRuleQuarantined = AtomspaceEvent;

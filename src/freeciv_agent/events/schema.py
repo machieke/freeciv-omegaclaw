@@ -108,6 +108,8 @@ KNOWN_EVENT_TYPES = (
     "episode_opened",
     "episode_effect_observed",
     "episode_relief_attributed",
+    "episode_outcome_label_opened",
+    "episode_outcome_label_observed",
     "conductance_sample_recorded",
     "induced_rule_quarantined",
     "induced_rule_promoted",
