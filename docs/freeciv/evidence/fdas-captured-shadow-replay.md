@@ -4,7 +4,7 @@ Date: 2026-08-02
 Branch: `experimental/functional-dependent-atomspace`
 Machine scope: local diagnostic replay
 Machine-readable report: `fdas-captured-shadow-replay.json`
-Report hash: `f16629c3fd06f296e8ff49c7ac23ba69075802bf3b2454bbd241a3618f720f58`
+Report hash: `6428f7edce1501d48b6dd9b6759bc1d0b78aa0f2c61b7213fcc4dd1e86f37a9b`
 
 ## Corpus and strictness
 
@@ -25,12 +25,12 @@ revision; all 37 were canonically equivalent.
 
 | Measurement | Result |
 |---|---:|
-| Cold projection p50 / p95 / max | 211.65 / 418.10 / 438.07 ms |
-| Shadow readout p50 / p95 / max | 15.37 / 77.85 / 80.39 ms |
-| Combined cold FDAS p50 / p95 / max | 240.79 / 476.83 / 500.42 ms |
-| Strict incremental plus cold verification p50 / p95 / max | 531.25 / 911.40 / 1,059.81 ms |
-| Incremental recomputation ratio mean / p50 / p95 | 0.255 / 0.215 / 0.482 |
-| Maximum atoms / scopes / supports | 2,610 / 80 / 1,388 |
+| Cold projection p50 / p95 / max | 192.23 / 395.05 / 422.77 ms |
+| Shadow readout p50 / p95 / max | 15.07 / 77.94 / 81.17 ms |
+| Combined cold FDAS p50 / p95 / max | 219.62 / 445.62 / 465.10 ms |
+| Strict incremental plus cold verification p50 / p95 / max | 382.83 / 712.83 / 841.10 ms |
+| Incremental recomputation ratio mean / p50 / p95 | 0.253 / 0.215 / 0.444 |
+| Maximum atoms / scopes / supports | 2,420 / 80 / 1,388 |
 | Maximum dependency keys | 2,002 |
 | Local goals / FDAS candidates | 116 / 855 |
 | Relevant legacy candidates | 139 |
@@ -44,27 +44,27 @@ revision; all 37 were canonically equivalent.
 | Maximum serialized decision explanation | 16,980 bytes |
 
 The 500 ms production-safe gate is a p95 gate. Cold projection measured
-418.10 ms p95 and projection plus shadow readout measured 476.83 ms p95, so
+395.05 ms p95 and projection plus shadow readout measured 445.62 ms p95, so
 this diagnostic stress cohort passes the broad controller-inclusive gate.
-Shadow readout measured 77.85 ms p95 and passes the proposed 150 ms ordinary
+Shadow readout measured 77.94 ms p95 and passes the proposed 150 ms ordinary
 FDAS contribution target. A single local replay is not a live latency promotion
 cohort; the evidence supports bounded diagnostic shadow operation, not
 unrestricted activation or authority.
 
 | Shadow stage p50 / p95 / max | Result |
 |---|---:|
-| Candidate instantiation | 5.50 / 45.72 / 47.09 ms |
-| Pressure evaluation | 4.40 / 33.44 / 34.85 ms |
-| Goal instantiation | 1.02 / 1.58 / 1.74 ms |
-| Decision explanation | 0.38 / 0.51 / 0.57 ms |
-| Legacy comparison | 0.11 / 0.37 / 0.45 ms |
-| Revision query | 0.02 / 0.02 / 0.02 ms |
+| Candidate instantiation | 5.53 / 45.16 / 46.21 ms |
+| Pressure evaluation | 4.45 / 34.12 / 34.89 ms |
+| Goal instantiation | 1.04 / 1.66 / 1.80 ms |
+| Decision explanation | 0.37 / 0.53 / 0.58 ms |
+| Legacy comparison | 0.12 / 0.40 / 0.47 ms |
+| Revision query | 0.02 / 0.02 / 0.04 ms |
 
 The strict incremental timing is diagnostic rather than a live-controller
 timing: every transition prepares an incremental revision and a second,
 independent cold revision before publishing the already-verified incremental
 revision. All 37 transitions were equivalent. Fine-grained stable legal-action
-shards reduce mean recomputation from 76.8% to 25.5% in this sparse corpus.
+shards reduce mean recomputation from 76.8% to 25.3% in this sparse corpus.
 It records three region and four combat-projector cache hits whose reused
 outputs are empty. Entity sharding reuses 29,330 non-empty rich records:
 28,586 records across 14,293 stable legal-action shard instances, 12 empire
@@ -84,7 +84,7 @@ and selected scheduler row. A gap route explicitly records
 diagnostic blockers. All 76 cold and incremental explanation hashes and the
 top-level report hash were independently recomputed successfully. The bundle
 retains only selected-operation scheduler evidence and keeps the largest
-individual explanation at 16,980 bytes. The complete report is 5,867,668 bytes
+individual explanation at 16,980 bytes. The complete report is 5,886,969 bytes
 because it also retains exact high-cardinality action-shard reuse/recompute
 identities and stage timings; it remains well below the rejected 13.7 MB
 full-schedule draft.
@@ -142,6 +142,14 @@ predictive goal semantics before treating these candidates as causal.
   repeated serialization of overlapping dependency maps. Reuse/recompute
   projector IDs, record counts, and the recomputation ratio are emitted in
   materialization metrics and captured by this report.
+- Incremental/cold verification freezes one immutable scope, delta, and
+  dependency-fingerprint input set for both builds. The composite projector
+  reuses that exact mapping's prefix index for the paired build while still
+  independently materializing and comparing both revisions.
+- Exact tile adjacency and terrain are emitted once in the world scope and
+  imported into overlapping city regions. Region membership and threat
+  evidence remain local, removing duplicate graph atoms without weakening
+  scope, authority, or dependency semantics.
 - City/economy and unit/defense output use conservative shards. Legal actions
   share the empire scope but have explicit disjoint record ownership and exact
   per-action dependencies; added/removed actions cannot invalidate survivors.
@@ -153,19 +161,20 @@ predictive goal semantics before treating these candidates as causal.
   immutable snapshot, legal-action shards skip unused grounding initialization,
   and private shard cache signatures compare exact dependency rows. These
   changes recover the initial high-cardinality latency regression: strict mean
-  / p95 measured 533.53 / 911.40 ms versus the pushed
-  535.14 / 950.43 ms baseline while recomputation fell by 51.3 percentage
-  points.
+  / p95 now measures 395.38 / 712.83 ms versus the pushed
+  535.14 / 950.43 ms baseline while recomputation remains 25.3% on average.
 - Shadow evaluation suppresses cyclic GC only within an exception-safe,
   serialized bounded readout transaction, then restores the prior GC state.
   A repeated 82-candidate case fell from 55.72 ms mean / 142.91 ms max to
   48.96 / 73.65 ms; the strict cohort's readout p95 fell from 376.75 to
-  77.85 ms. Every readout emits per-stage timings for future attribution.
+  77.94 ms. Every readout emits per-stage timings for future attribution.
 
 ## Non-claims
 
 This diagnostic replay does not measure game score, win rate, action quality,
 or outcome improvement. It does not promote the capability manifest beyond
 `component-only`, authorize an FDAS candidate, close the nine historical data
-gaps, or prove the 150 ms aspirational contribution target. The separately
-recorded engine smoke validates live integration at one seed only.
+gaps, or by itself prove the 150 ms live contribution target. The separately
+recorded paired engine cohort validates live integration and the frozen
+150/500 ms p95 gates across three seeds, still without gameplay authority or a
+score-improvement claim.

@@ -4,6 +4,10 @@ Date: 2026-08-01
 Branch: `experimental/functional-dependent-atomspace`  
 Claim scope: one-seed engine integration and observability only
 
+Historical checkpoint: this smoke remains valid at its stated scope but is
+superseded for current empirical disposition by
+`fdas-engine-shadow-cohort.md`.
+
 ## Configuration
 
 - Harness: `profile/freeciv_harness.yaml`
@@ -54,6 +58,8 @@ captures in this smoke.
 
 It does not prove score or win-rate improvement, selection parity across a
 cohort, bounded authority safety, or long-horizon stability. The run lost and
-was not designed as an outcome comparison. Manifest promotion beyond
-`component-only` remains blocked on broader engine evidence and on closing the
-remaining explained candidate/latency gaps in captured replay.
+was not designed as an outcome comparison. At this checkpoint, manifest
+promotion beyond `component-only` remained blocked on broader engine evidence
+and on closing the remaining explained candidate/latency gaps in captured
+replay; the later paired cohort closes the declared component-level engine
+gate without promoting authority.

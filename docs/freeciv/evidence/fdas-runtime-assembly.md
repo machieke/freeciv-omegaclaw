@@ -46,8 +46,10 @@ path instead of being assembled only by tests:
   Revision-start events are
   causally linked to the authoritative `state_snapshot` event. The readout
   returns no executable action.
-- Deterministically sampled incremental/cold verification fails the runtime
-  closed on any canonical mismatch.
+- Deterministically sampled incremental/cold verification uses stable
+  game/player/turn identity and fails the runtime closed on any canonical
+  mismatch. Proxy source-sequence and transport timing cannot alter the sample
+  schedule.
 - A successful sampled check publishes the already-verified incremental
   revision through an optimistic prior-revision guard. It no longer discards
   that revision and performs a third projection before publication.
@@ -76,39 +78,41 @@ base harness; the resolved declaration and hash are part of run identity.
 
 ## Verification
 
-- Focused FDAS suite: `187 passed in 38.27s` (bounded-readout checkpoint).
-- Configuration, runtime, and harness integration: `140 passed in 297.14s`.
-- Complete FreeCiv acceptance suite: `1,284 passed in 377.89s`.
+- Focused FDAS suite: `195 passed in 38.32s`.
+- Harness integration suite: `106 passed in 296.38s`.
+- Complete FreeCiv acceptance suite: `1,292 passed in 380.72s`.
 - Enabled checked projector assembly was exercised against the compiled
   Civ2Civ3 ruleset and authoritative contract fixture.
 - Strict captured replay exercised 38 snapshots and 37 transitions with 100%
   cold verification and no mismatches.
 - The schema-1.1 diagnostic replay retained 37/37 equivalence. Its strict
-  incremental-plus-cold projection measured 533.53 ms mean and 911.40 ms p95;
+  incremental-plus-cold projection measured 395.38 ms mean and 712.83 ms p95;
   this path includes both builds by design and is not a live-controller timing.
 - Exact legal-action sharding reused 28,586 action records and reduced mean
-  rich recomputation from 76.8% to 25.5% without regressing that strict timing.
+  rich recomputation from 76.8% to 25.3%.
 - All 38 replayed shadow decisions carry bounded canonical explanations; 76/76
   cold and incremental explanation hashes and the report hash were recomputed.
 - Exception-safe cyclic-GC suppression reduced shadow readout p95 from
-  376.75 ms to 77.85 ms. Combined cold projection plus readout measured
-  476.83 ms p95 in this diagnostic cohort; both the 500 ms combined gate and
+  376.75 ms to 77.94 ms. Combined cold projection plus readout measured
+  445.62 ms p95 in this diagnostic cohort; both the 500 ms combined gate and
   150 ms contribution target pass here without changing candidate semantics.
-- One predeclared engine-live shadow game completed 30 turns with 52 rich
-  revisions and 51 non-authorizing shadow decisions.
+- The paired engine-live cohort completed three 30-turn seeds with exact action,
+  result, and completion parity. All five sampled cold proofs passed; FDAS
+  contribution measured 147.31 ms p95 and full-controller latency measured
+  444.41 ms p95.
 - `git diff --check`: clean.
 
-## Remaining empirical gates
+## Empirical-gate disposition
 
-This wiring does not promote the manifest to `shadow-live`. The diagnostic
-captured run and one engine smoke demonstrate the seam, but promotion still
-requires broader engine evidence that demonstrates:
+This wiring does not promote the manifest to `shadow-live`; that remains a
+separate deployment decision. The diagnostic replay and accepted paired engine
+cohort now demonstrate the component-level requirements:
 
-1. ordinary-turn and tail projection latency within the controller gate;
-2. stable atom, support, scope, grounding, and event volumes;
+1. ordinary-turn and tail projection latency within the frozen controller gate;
+2. bounded atom, support, scope, grounding, and event volumes;
 3. zero cold/incremental mismatches and stale-dependency attempts;
 4. complete candidate/safety divergence reports for each activated slice; and
 5. no action-selection or execution-gate change while authority is disabled.
 
-No score, win-rate, gameplay-improvement, bounded-authority, or engine-live
+No score, win-rate, gameplay-improvement, bounded-authority, or policy-authority
 claim is made by this component acceptance.

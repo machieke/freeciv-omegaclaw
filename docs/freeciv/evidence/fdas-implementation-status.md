@@ -20,14 +20,22 @@ Plan: `agent-instructions/functional-dependent-atomspace-implementation-plan.md`
 All phases are implemented and verified at the declared `component-only`
 boundary. The rich construction path is now wired into reproducible harness
 manifests and the engine adapter, with the checked profile still disabled; see
-`fdas-runtime-assembly.md`. Captured replay and a one-seed engine-live shadow
-smoke now exercise that seam, including post-legacy candidate protection,
-bounded PF-v2 readout, and causal evidence. The versioned manifest remains
-`component-only`: the empirical work is diagnostic validation, not action
-authority or a gameplay-improvement claim.
+`fdas-runtime-assembly.md`. Captured replay and an accepted paired three-seed
+engine-live cohort now exercise that seam, including post-legacy candidate
+protection, bounded PF-v2 readout, stable sampled cold verification, and causal
+evidence. The versioned manifest remains `component-only`: the empirical work
+is diagnostic validation, not action authority or a gameplay-improvement
+claim.
 
 The strict captured replay additionally proves 37/37 incremental/cold
 equivalence and validates canonical revision-bound explanations for all 38
 shadow readouts. Grounded, gap, and not-applicable routes are explicit; this
 closes the component-level selected-operation explanation requirement without
 granting those explanations control authority.
+
+The fresh engine cohort closes the declared component-level empirical gate:
+188/188 actions and results were exact control matches, all five sampled cold
+proofs were equivalent, FDAS contribution measured 147.31 ms p95 against the
+150 ms gate, and full-controller latency measured 444.41 ms p95 against the
+500 ms gate. See `fdas-engine-shadow-cohort.md` for the frozen design,
+hardening trail, hashes, limitations, and non-claims.
