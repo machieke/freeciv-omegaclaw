@@ -414,6 +414,14 @@ paired_impact:
           pressure_signed_channels_enabled: true
           pressure_transport_operations_enabled: true
           production_strategy: horizon_score
+    fdas_belief_shadow_diagnostic_v1:
+      purpose: diagnostic
+      claim_eligible: false
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 30
+      planned_pairs: 1
+      seeds: [271828]
     diagnostic_unitless_city_v1:
       purpose: development
       claim_eligible: false

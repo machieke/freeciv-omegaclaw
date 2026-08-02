@@ -40,7 +40,7 @@ from freeciv.harness.engine_live import (  # noqa: E402
     _impact_refresh_timeout,
     _decision_state_fingerprint, _decision_state_ready, _global_state_ready,
     _global_state, _parse_scorelog_scores, _player_eliminated,
-    _fdas_transport_event,
+    _emit_fdas_belief_decay, _fdas_transport_event,
     _release_configuration_active, _state,
     _retain_terminal_predictions, _selection_target_rules, _target_rules,
     _validate_compact_goal_proposal,
@@ -49,6 +49,8 @@ from freeciv.harness import engine_live  # noqa: E402
 from freeciv_agent.events.schema import canonical_json_bytes, structural_hash  # noqa: E402
 from freeciv_agent.events.validator import validate_file  # noqa: E402
 from freeciv_agent.events.writer import EventWriter  # noqa: E402
+from freeciv_agent.beliefs import BeliefKey, BeliefStore, Evidence  # noqa: E402
+from freeciv_agent.config import belief_config  # noqa: E402
 from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 
 
@@ -96,6 +98,35 @@ def test_fdas_transport_lifecycle_events_are_closed_schema_valid(tmp_path):
         assert event["payload"]["policy_authority"] is False
         assert event["payload"]["shadow_only"] is True
         assert event["seq"] == index
+
+
+def test_fdas_belief_decay_is_explicit_current_and_idempotent(tmp_path):
+    store = BeliefStore(belief_config())
+    belief, _ = store.observe(Evidence(
+        "visible-opponent", "game-1", 1, None, "visible-roster",
+        BeliefKey("opponent-present", ("1",)),
+        1.0, 0.8, "1", "civ2civ3", "opponent-model/1.0"))
+    writer = EventWriter(
+        str(tmp_path / "events.jsonl"), "game-1", durable=False)
+    root = writer.emit("run_started", 0, {
+        "condition_id": "test",
+        "manifest_identity": "a" * 64,
+    })
+
+    parent, revisions = _emit_fdas_belief_decay(
+        store, SimpleNamespace(turn=2), writer, root["event_id"])
+    repeated_parent, repeated = _emit_fdas_belief_decay(
+        store, SimpleNamespace(turn=2), writer, parent)
+
+    assert len(revisions) == 1
+    assert revisions[0][0].confidence < belief.confidence
+    assert revisions[0][0].last_revised_turn == 2
+    assert repeated == ()
+    assert repeated_parent == parent
+    rows = [json.loads(line) for line in (
+        tmp_path / "events.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert rows[-1]["type"] == "revision"
+    assert rows[-1]["payload"]["operation"] == "decay"
 
 
 def test_config_accepts_the_versioned_960_turn_horizon():
@@ -293,6 +324,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "path_persistence_pilot_v1": 30,
             "fdas_transport_shadow_diagnostic_v1": 1,
             "fdas_transport_operation_shadow_diagnostic_v1": 1,
+            "fdas_belief_shadow_diagnostic_v1": 1,
         }
     seed_sets = [
         set(row["seeds"]) for row in paired["cohorts"].values()

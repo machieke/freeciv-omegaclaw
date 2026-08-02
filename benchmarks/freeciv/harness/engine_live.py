@@ -234,6 +234,25 @@ def _fdas_transport_event(spec, step, context, update, action=None):
     }
 
 
+def _emit_fdas_belief_decay(store, snapshot, writer, parent):
+    """Advance uncertain belief time explicitly before FDAS projection."""
+    if store is None:
+        return parent, ()
+    revisions = store.decay_to(snapshot.turn)
+    for belief, revision in revisions:
+        event = writer.emit("revision", snapshot.turn, {
+            "evidence_tv": revision.evidence_tv,
+            "formula": revision.formula,
+            "operation": revision.operation,
+            "posterior_tv": revision.posterior_tv,
+            "prior_tv": revision.prior_tv,
+            "provenance_id": revision.revision_id,
+            "target_atom": belief.atom(),
+        }, caused_by=[parent])
+        parent = event["event_id"]
+    return parent, revisions
+
+
 def _emit_belief_configuration(writer, parent, manifest):
     """Put every confidence-affecting release parameter in the event stream."""
     beliefs = manifest["beliefs"]
@@ -2088,6 +2107,16 @@ async def _play(run_dir, manifest, context):
     control_event_emitter = ControlEventEmitter()
     fdas_projection_config = manifest["dependent_atomspace"]["config"][
         "projection"]
+    fdas_manifest = manifest["dependent_atomspace"]["manifest"]
+    fdas_belief_shadow = bool(fdas_projection_config["beliefs"])
+    if (fdas_belief_shadow
+            and fdas_manifest["capabilities"].get(
+                "belief_domain_projection") != "shadow-live"):
+        raise RuntimeError(
+            "engine-live FDAS belief projection requires shadow-live manifest")
+    if (fdas_belief_shadow
+            and fdas_manifest.get("policy_authority") is not False):
+        raise RuntimeError("FDAS belief shadow cannot grant policy authority")
     fdas_expansion_shadow = bool(
         fdas_projection_config["settlement_sites"]
         or fdas_projection_config["population_recovery"])
@@ -2119,7 +2148,6 @@ async def _play(run_dir, manifest, context):
     fdas_transport_intents = ()
     pending_fdas_transport_transitions = []
     fdas_transport_recovered = [False]
-    fdas_manifest = manifest["dependent_atomspace"]["manifest"]
     fdas_transport_shadow = bool(
         transport_operations_enabled
         and fdas_projection_config["operations"]
@@ -2402,6 +2430,8 @@ async def _play(run_dir, manifest, context):
         "fdas_expansion_expirations": 0,
         "fdas_expansion_failures": 0,
         "fdas_expansion_reconciliations": 0,
+        "fdas_belief_decay_revisions": 0,
+        "fdas_belief_rematerializations": 0,
         "fdas_transport_action_matches": 0,
         "fdas_transport_completions": 0,
         "fdas_transport_failures": 0,
@@ -2411,6 +2441,35 @@ async def _play(run_dir, manifest, context):
         "production_persistence_guard_excluded_actions": 0,
         "production_persistence_guard_opportunities": 0,
     }
+
+    def advance_fdas_beliefs(current, cause):
+        if not fdas_belief_shadow:
+            return cause
+        cause, revisions = _emit_fdas_belief_decay(
+            belief_store, current, writer, cause)
+        _retain_terminal_predictions(
+            predictions, tuple(value[0] for value in revisions))
+        decision_stats["fdas_belief_decay_revisions"] += len(revisions)
+        return cause
+
+    def rematerialize_fdas_beliefs(current, cause):
+        if not fdas_belief_shadow:
+            return cause
+        prior_revision = fdas_store.current_dependent_revision(
+            manifest["game_id"], player_id)
+        update = fdas_runtime.rematerialize(
+            manifest["game_id"], player_id)
+        events = fdas_runtime.emit_current(
+            writer, current, caused_by=(cause,),
+            prior_revision=prior_revision)
+        decision_stats["fdas_belief_rematerializations"] += 1
+        parent_id = events[-1]["event_id"] if events else cause
+        return _metric(
+            writer, current.turn, parent_id,
+            "fdas_belief_rematerialization_latency_ms",
+            update.latency_ms, manifest,
+            atoms=update.atom_count,
+            scopes=update.scope_count)
     fdas_episode_open_event_ids = {}
     pending_impact_outcomes = DeferredImpactOutcomeLedger()
     action_type_counts = {}
@@ -2652,6 +2711,7 @@ async def _play(run_dir, manifest, context):
             include_movement_routes=movement_routes_enabled,
             include_combat_probabilities=(
                 combat_probabilities_enabled))
+        parent = advance_fdas_beliefs(snapshot, parent)
         prior_fdas_revision = fdas_store.current_dependent_revision(
             manifest["game_id"], player_id)
         if store is not fdas_store:
@@ -2947,6 +3007,7 @@ async def _play(run_dir, manifest, context):
             if (current_revision is not None
                     and current_revision.snapshot_id == current.snapshot_id):
                 return cause
+            cause = advance_fdas_beliefs(current, cause)
             update = fdas_runtime.replace(current)
             events = fdas_runtime.emit_current(
                 writer, current, caused_by=(cause,),
@@ -2993,6 +3054,7 @@ async def _play(run_dir, manifest, context):
             if (current_revision is not None
                     and current_revision.snapshot_id == current.snapshot_id):
                 return cause
+            cause = advance_fdas_beliefs(current, cause)
             update = fdas_runtime.replace(current)
             events = fdas_runtime.emit_current(
                 writer,
@@ -3102,6 +3164,8 @@ async def _play(run_dir, manifest, context):
         if context.capabilities["uncertain_beliefs"]:
             monitor_belief, parent = _emit_opponent_presence(
                 raw, snapshot, manifest, belief_store, writer, parent, player_id)
+            if monitor_belief is not None:
+                parent = rematerialize_fdas_beliefs(snapshot, parent)
 
         async def refresh_after_action(current, cause, predicate=None, timeout=15.0):
             nonlocal action_refresh_event_latency_ms
@@ -3142,6 +3206,8 @@ async def _play(run_dir, manifest, context):
                 defer_fdas_refresh = bool(
                     fdas_turn_sampled
                     or (fdas_authority_scoped and not pending_fdas_episode))
+                if not defer_fdas_refresh:
+                    cause = advance_fdas_beliefs(next_snapshot, cause)
                 fdas_update = (
                     None if defer_fdas_refresh
                     else fdas_runtime.replace(next_snapshot))
@@ -3272,6 +3338,7 @@ async def _play(run_dir, manifest, context):
                     manifest["game_id"], player_id)
                 if store is not fdas_store:
                     store.replace(snapshot)
+                parent = advance_fdas_beliefs(snapshot, parent)
                 fdas_update = fdas_runtime.replace(snapshot)
                 state_event = writer.emit(
                     "state_snapshot", snapshot.turn, snapshot.event_payload(),
@@ -3383,9 +3450,12 @@ async def _play(run_dir, manifest, context):
             reconcile_deferred_impact_outcomes(snapshot)
             if context.capabilities["uncertain_beliefs"]:
                 context.use("uncertain_beliefs")
+                prior_belief_hash = belief_store.artifact_hash
                 rows, parent = _emit_observations(
                     snapshot, manifest, belief_store, inference, writer, parent, seen)
                 _retain_terminal_predictions(predictions, rows)
+                if belief_store.artifact_hash != prior_belief_hash:
+                    parent = rematerialize_fdas_beliefs(snapshot, parent)
             if _game_terminal(snapshot):
                 terminal_game_over = snapshot.game_over
                 terminal_player_elimination = _player_eliminated(snapshot)
@@ -3695,6 +3765,7 @@ async def _play(run_dir, manifest, context):
                                 or current_fdas_revision.snapshot_id
                                 != snapshot.snapshot_id):
                             prior_fdas_revision = current_fdas_revision
+                            parent = advance_fdas_beliefs(snapshot, parent)
                             fdas_update = fdas_runtime.replace(snapshot)
                             fdas_events = fdas_runtime.emit_current(
                                 writer, snapshot, caused_by=(parent,),
@@ -4813,6 +4884,10 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_expansion_failures"]),
         ("fdas_expansion_reconciliations",
          decision_stats["fdas_expansion_reconciliations"]),
+        ("fdas_belief_decay_revisions",
+         decision_stats["fdas_belief_decay_revisions"]),
+        ("fdas_belief_rematerializations",
+         decision_stats["fdas_belief_rematerializations"]),
         ("fdas_transport_action_matches",
          decision_stats["fdas_transport_action_matches"]),
         ("fdas_transport_completions",
@@ -5242,6 +5317,10 @@ async def _play(run_dir, manifest, context):
                 decision_stats["fdas_expansion_failures"]),
             "fdas_expansion_reconciliations": (
                 decision_stats["fdas_expansion_reconciliations"]),
+            "fdas_belief_decay_revisions": (
+                decision_stats["fdas_belief_decay_revisions"]),
+            "fdas_belief_rematerializations": (
+                decision_stats["fdas_belief_rematerializations"]),
             "fdas_transport_action_matches": (
                 decision_stats["fdas_transport_action_matches"]),
             "fdas_transport_completions": (
@@ -5537,6 +5616,10 @@ async def _play(run_dir, manifest, context):
             decision_stats["fdas_expansion_failures"]),
         "fdas_expansion_reconciliations": (
             decision_stats["fdas_expansion_reconciliations"]),
+        "fdas_belief_decay_revisions": (
+            decision_stats["fdas_belief_decay_revisions"]),
+        "fdas_belief_rematerializations": (
+            decision_stats["fdas_belief_rematerializations"]),
         "fdas_transport_action_matches": (
             decision_stats["fdas_transport_action_matches"]),
         "fdas_transport_completions": (

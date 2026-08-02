@@ -192,6 +192,23 @@ def test_belief_store_rematerializes_against_same_snapshot():
     assert rematerialized.scopes == cold.scopes
 
 
+def test_expired_observation_retracts_belief_without_inventing_absence():
+    store = BeliefStore(belief_config())
+    store.observe(_evidence("visible-navigation"))
+    expiry_turn = 1 + belief_config()["decay"]["default"]["window_turns"]
+    store.decay_to(expiry_turn)
+
+    revision = DependentAtomSpaceStore(
+        domain_projector=BeliefProjector(store)).build(
+            _snapshot(expiry_turn, 906))
+    records = _belief_records(revision)
+
+    assert records == ()
+    assert not any(
+        "absent" in value.key.predicate or "lacks" in value.key.predicate
+        for value in revision.records)
+
+
 def test_belief_catalog_matches_component_registry():
     with open(os.path.join(REPO, "profile", "fdas_catalog.json"),
               encoding="utf-8") as stream:
