@@ -876,6 +876,7 @@ def build_runtime(declaration, ruleset_ir=None, belief_store=None,
         revision_retention=config.revision_retention,
         domain_projector=activated,
         maximum_atoms=materialization["maximum_atoms_global"],
+        include_legacy_projection=projection["legacy_compatibility"],
     )
     ruleset_revision = (
         RulesetAtomSpaceStore().build(ruleset_ir)

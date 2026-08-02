@@ -201,6 +201,12 @@ def test_checked_defense_authority_runtime_installs_only_defense_adapter():
         "fdas-operation-projector",
         "fdas-episode-projector",
     )
+    update = runtime.replace(_snapshot())
+    legacy = runtime.snapshot_store.current_atomspaces("fdas-runtime", 0)
+    assert update.atom_count > 0
+    assert not legacy.authoritative
+    assert not legacy.visible
+    assert not legacy.uncertain
 
 
 def test_route_corridor_shadow_projection_can_be_activated_independently():

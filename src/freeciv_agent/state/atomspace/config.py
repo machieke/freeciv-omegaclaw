@@ -54,7 +54,8 @@ class DependentAtomSpaceConfig:
         "shadow_refresh_policy", "store_backend"))
     PROJECTION_KEYS = frozenset((
         "beliefs", "city", "combat", "economy", "empire", "operations",
-        "population_recovery", "region", "research", "route_corridors",
+        "legacy_compatibility", "population_recovery", "region", "research",
+        "route_corridors",
         "ruleset", "settlement_sites", "transport", "unit", "world"))
     MATERIALIZATION_KEYS = frozenset((
         "focused_scope_ttl_turns", "maximum_atoms_global",
@@ -236,6 +237,7 @@ class DependentAtomSpaceConfig:
                 "settlement_sites": "settlement_site_projection",
                 "transport": "transport_capability_projection",
                 "unit": "unit_domain_projection",
+                "legacy_compatibility": "legacy_integration_facade",
             }
             for projection, capability in projection_capabilities.items():
                 if config["projection"][projection]:

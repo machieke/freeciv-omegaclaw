@@ -92,6 +92,7 @@ def test_checked_defense_shadow_profile_is_narrow_and_non_authoritative():
         "combat": False,
         "economy": True,
         "empire": True,
+        "legacy_compatibility": True,
         "operations": True,
         "population_recovery": False,
         "region": True,
@@ -131,6 +132,7 @@ def test_checked_defense_authority_profile_requires_exact_bounded_stack():
     assert config.section("projection")["city"] is False
     assert config.section("projection")["economy"] is False
     assert config.section("projection")["region"] is False
+    assert config.section("projection")["legacy_compatibility"] is False
     assert config.section("events")["support_level"] == "none"
     assert config.section("domain_authority") == {
         "city_defense": True,

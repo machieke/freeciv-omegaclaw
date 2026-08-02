@@ -12,6 +12,7 @@ dependent_atomspace:
     ruleset: true
     world: true
     empire: true
+    legacy_compatibility: true
     economy: true
     research: false
     city: true

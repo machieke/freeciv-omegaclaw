@@ -174,7 +174,8 @@ class DependentAtomSpaceStore(object):
     """Prepare, publish, retain, and verify immutable dependent revisions."""
 
     def __init__(self, predicate_registry=None, revision_retention=4,
-                 lock=None, domain_projector=None, maximum_atoms=None):
+                 lock=None, domain_projector=None, maximum_atoms=None,
+                 include_legacy_projection=True):
         if (isinstance(revision_retention, bool)
                 or not isinstance(revision_retention, int)
                 or revision_retention < 1):
@@ -194,6 +195,9 @@ class DependentAtomSpaceStore(object):
             predicate_registry or legacy_predicate_registry())
         self.revision_retention = revision_retention
         self.maximum_atoms = maximum_atoms
+        if not isinstance(include_legacy_projection, bool):
+            raise TypeError("legacy projection flag must be boolean")
+        self.include_legacy_projection = include_legacy_projection
         self._lock = lock or threading.RLock()
         self._revisions = {}
         self._current = {}
@@ -303,7 +307,14 @@ class DependentAtomSpaceStore(object):
             raise ValueError("FDAS prepared inputs do not match snapshots")
         _snapshot_id, _prior_snapshot_id, scopes, delta, fingerprints = (
             prepared)
-        if cold or prior_revision is None:
+        if not self.include_legacy_projection:
+            records = ()
+            projection_metrics = {
+                "recomputed_records": 0,
+                "refreshed_records": 0,
+                "removed_records": 0,
+            }
+        elif cold or prior_revision is None:
             records = project_legacy_records(
                 snapshot, scopes, fingerprints)
             projection_metrics = {

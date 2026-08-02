@@ -50,7 +50,10 @@ pressure, resource/packet, and exact-commit capabilities needed by this slice
 to `bounded-authority`. The live authority profile materializes only unit,
 operation, and episode domain projectors; unused city/economy and region views
 remain available as substrate capabilities but are not paid for on every
-action refresh. Support provenance remains in each immutable revision while
+action refresh. Its explicit `legacy_compatibility: false` switch also omits
+the duplicate flat compatibility atoms; every default, shadow, city-authority,
+and rollback profile retains that facade. Support provenance remains in each
+immutable revision while
 redundant per-support event expansion is disabled. Episode attribution and
 contextual control learning are `shadow-live`, while contextual conductance
 authority remains disabled. Removing the overrides returns to the default
@@ -76,7 +79,7 @@ python3 scripts/freeciv/run_fdas_bounded_authority_replay.py \
 | Explicit fallbacks | 25 |
 | Policy winner changes | 0 |
 | Replay failures | 0 |
-| Authority readout p50 / p95 | 0.740 / 3.368 ms |
+| Authority readout p50 / p95 | 0.615 / 2.502 ms |
 
 All twelve gates passed in two deterministic runs. Every authorization was an
 exact legacy-selected `unit_fortify`, received the exact actor resource and
@@ -85,9 +88,9 @@ retained `execution_authority: false`. The 25 fallbacks were all legacy winners
 outside the city-defense category.
 
 The report hash is
-`f215c81c0aae925b3ccd6db517622229feeee26fc8e7883036b8cbff13122a94`;
+`7cf94ff875b7f308d19ce140da56a160a299d038db987dec8cc6be5bd947acdf`;
 its implementation digest is
-`bea32a942bbe9aa53d1448b20f20b91ca4c17f2f1d1eb72d8565616f3fe65b1f`.
+`a151e4beab3d826120dba9775ad9bdfc7c17b6d186e317c778b7dbe173b6e7e7`.
 
 ## Episode boundary
 
