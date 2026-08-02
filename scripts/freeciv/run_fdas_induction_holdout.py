@@ -76,6 +76,8 @@ def _load_source(path):
         with open(engine_paths["status.json"], encoding="utf-8") as stream:
             status = json.load(stream)
         validation = validate_file(engine_paths["events.jsonl"])
+        validation_value = validation.to_dict()
+        validation_value.pop("bytes_by_turn", None)
         engine_checks = {
             "completed": status.get("completed") is True,
             "event_ledger_valid_without_warnings": (
@@ -89,7 +91,7 @@ def _load_source(path):
             "events": {
                 "path": _logical(engine_paths["events.jsonl"]),
                 "sha256": _sha256(engine_paths["events.jsonl"]),
-                "validation": validation.to_dict(),
+                "validation": validation_value,
             },
             "horizon_reached": status.get("horizon_reached") is True,
             "manifest": {
