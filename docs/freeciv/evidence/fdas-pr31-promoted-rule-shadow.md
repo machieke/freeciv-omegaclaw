@@ -39,10 +39,12 @@ of those selections or actions.
 | Conditional Brier improvement | at least 0 | +0.00771 | pass |
 | Truth/readout/policy/action authority | none | none | pass |
 
-One fortification episode had no matching approved rule because the frozen
-rules were scoped to the defender-movement operation. It abstained explicitly.
-All 19 matching episodes produced a prediction, and overlapping same-direction
-maximal rules resolved conservatively without conflict.
+One fortification episode had no matching approved feature pattern: its city
+was producing an improvement, had size band `5-8`, and the empire had negative
+operating gold, so neither the production, small-city, nor positive-gold rule
+applied. It abstained explicitly. All 19 matching episodes produced a
+prediction, and overlapping same-direction maximal rules resolved
+conservatively without conflict.
 
 ## Predictive result
 
