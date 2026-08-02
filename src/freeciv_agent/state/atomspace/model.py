@@ -8,6 +8,10 @@ from functools import cached_property
 from ...events.schema import structural_hash
 
 
+_JOINED_LENGTH_PREFIXES = tuple(
+    str(value).encode("ascii") + b":" for value in range(256))
+
+
 def _required_text(value, name):
     if not isinstance(value, str) or not value:
         raise ValueError("{} must be a non-empty string".format(name))
@@ -24,12 +28,16 @@ def _optional_nonnegative_integer(value, name):
 
 def joined_identity_hash(values):
     """Hash already-canonical scalar identities without JSON re-encoding."""
-    encoded_values = []
+    encoded_values = bytearray()
     for value in values:
         encoded = str(value).encode("utf-8")
-        encoded_values.append(
-            str(len(encoded)).encode("ascii") + b":" + encoded)
-    return hashlib.sha256(b"".join(encoded_values)).hexdigest()
+        length = len(encoded)
+        encoded_values.extend(
+            _JOINED_LENGTH_PREFIXES[length]
+            if length < len(_JOINED_LENGTH_PREFIXES) else
+            str(length).encode("ascii") + b":")
+        encoded_values.extend(encoded)
+    return hashlib.sha256(encoded_values).hexdigest()
 
 
 class AtomNamespace(str, Enum):
