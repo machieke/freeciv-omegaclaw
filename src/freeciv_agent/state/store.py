@@ -65,6 +65,46 @@ class SnapshotStore(object):
                 self._dependent_revisions[key] = revision
         return snapshot
 
+    def replace_prepared(self, snapshot, revision,
+                         expected_prior_revision_id=None):
+        """Atomically publish a prevalidated dependent revision.
+
+        The optimistic prior identity prevents a parity build prepared outside
+        the coordinator lock from overwriting a concurrently advanced pair.
+        """
+        key = self._key(snapshot)
+        with self._lock:
+            prior = self._snapshots.get(key)
+            prior_revision = self._dependent_revisions.get(key)
+            observed_prior_id = (
+                None if prior_revision is None else prior_revision.revision_id)
+            if observed_prior_id != expected_prior_revision_id:
+                raise SnapshotConflict(
+                    "prepared revision prior changed before publication")
+            if prior is not None:
+                if snapshot.turn < prior.turn:
+                    raise SnapshotConflict("turn regression")
+                if (snapshot.turn == prior.turn
+                        and snapshot.identity.source_seq
+                        <= prior.identity.source_seq):
+                    if snapshot.snapshot_id == prior.snapshot_id:
+                        return prior
+                    raise SnapshotConflict(
+                        "source_seq must increase within a turn")
+            if revision.snapshot_id != snapshot.snapshot_id:
+                raise SnapshotConflict(
+                    "prepared revision does not match snapshot")
+            try:
+                self._dependent_store.publish(snapshot, revision)
+            except ValueError as error:
+                raise SnapshotConflict(
+                    "dependent publication rejected snapshot: {}".format(
+                        error))
+            self._snapshots[key] = snapshot
+            self._atomspaces[key] = legacy_view_from_revision(revision)
+            self._dependent_revisions[key] = revision
+        return snapshot
+
     def current(self, game_id, player_id):
         with self._lock:
             return self._snapshots.get((str(game_id), int(player_id)))

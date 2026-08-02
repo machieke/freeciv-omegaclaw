@@ -147,6 +147,35 @@ def test_runtime_rematerialization_keeps_snapshot_pair_coherent():
     assert update.revision_id == after[1].revision_id
 
 
+def test_sampled_parity_publishes_verified_incremental_without_third_build():
+    declaration = _enabled_city_declaration()
+    declaration["config"]["cold_verify_sample_rate"] = 1.0
+    semantic = dict(declaration)
+    semantic.pop("declaration_hash")
+    from freeciv_agent.events.schema import structural_hash
+    declaration["declaration_hash"] = structural_hash(semantic)
+    runtime = build_runtime(declaration)
+    first = _snapshot(seq=431)
+    second = _snapshot(seq=432)
+    runtime.replace(first)
+    prepare = runtime.dependent_store.prepare
+    calls = []
+
+    def recording_prepare(*args, **kwargs):
+        calls.append(bool(kwargs.get("cold")))
+        return prepare(*args, **kwargs)
+
+    runtime.dependent_store.prepare = recording_prepare
+    update = runtime.replace(second)
+    current = runtime.snapshot_store.current_pair(
+        second.identity.game_id, second.player_id)
+
+    assert calls == [False, True]
+    assert update.cold_verification.equivalent
+    assert current[0] is second
+    assert current[1].revision_id == update.revision_id
+
+
 def test_enabled_runtime_requires_world_and_empire_projection():
     declaration = _enabled_city_declaration()
     declaration["config"]["projection"]["world"] = False

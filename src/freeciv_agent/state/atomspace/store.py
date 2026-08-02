@@ -374,7 +374,9 @@ class DependentAtomSpaceStore(object):
             snapshot, prior_snapshot, prior_revision, cold=False)
         return self.publish(snapshot, revision)
 
-    def verify_incremental(self, snapshot, prior_snapshot, prior_revision):
+    def prepare_verified_incremental(
+            self, snapshot, prior_snapshot, prior_revision):
+        """Return the already-built incremental revision and parity proof."""
         incremental = self.prepare(
             snapshot, prior_snapshot, prior_revision, cold=False)
         cold = self.prepare(
@@ -390,13 +392,19 @@ class DependentAtomSpaceStore(object):
             "incremental_revision_id": incremental.revision_id,
             "mismatch_categories": mismatches,
         }
-        return DifferentialVerification(
+        verification = DifferentialVerification(
             not mismatches,
             incremental.revision_id,
             cold.revision_id,
             tuple(mismatches),
             structural_hash(semantic),
         )
+        return incremental, verification
+
+    def verify_incremental(self, snapshot, prior_snapshot, prior_revision):
+        _incremental, verification = self.prepare_verified_incremental(
+            snapshot, prior_snapshot, prior_revision)
+        return verification
 
     def current(self, game_id, player_id):
         with self._lock:

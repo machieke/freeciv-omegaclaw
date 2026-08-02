@@ -40,6 +40,9 @@ path instead of being assembled only by tests:
   `state_snapshot` event. The readout returns no executable action.
 - Deterministically sampled incremental/cold verification fails the runtime
   closed on any canonical mismatch.
+- A successful sampled check publishes the already-verified incremental
+  revision through an optimistic prior-revision guard. It no longer discards
+  that revision and performs a third projection before publication.
 
 ## Checked default
 
@@ -72,6 +75,10 @@ base harness; the resolved declaration and hash are part of run identity.
   Civ2Civ3 ruleset and authoritative contract fixture.
 - Strict captured replay exercised 38 snapshots and 37 transitions with 100%
   cold verification and no mismatches.
+- After prepared-revision publication, a diagnostic 100%-verification replay
+  retained 37/37 equivalence while reducing projection p95 from 1,119.24 ms to
+  756.69 ms and mean latency from 605.10 ms to 412.44 ms. This path still
+  includes both incremental and cold builds by design.
 - One predeclared engine-live shadow game completed 30 turns with 52 rich
   revisions and 51 non-authorizing shadow decisions.
 - `git diff --check`: clean.

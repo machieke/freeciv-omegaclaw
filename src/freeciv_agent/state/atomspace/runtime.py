@@ -293,15 +293,23 @@ class FdasRuntime(object):
         prior_snapshot, prior_revision = self.snapshot_store.current_pair(
             snapshot.identity.game_id, snapshot.player_id)
         verification = None
+        prepared_revision = None
         if (self.enabled and prior_snapshot is not None
                 and self._sample_cold_verification(snapshot)):
-            verification = self.dependent_store.verify_incremental(
+            prepared_revision, verification = (
+                self.dependent_store.prepare_verified_incremental(
                 snapshot, prior_snapshot, prior_revision)
+            )
             if not verification.equivalent:
                 raise RuntimeError(
                     "FDAS incremental/cold mismatch: {}".format(
                         verification.mismatch_categories))
-        self.snapshot_store.replace(snapshot)
+        if prepared_revision is None:
+            self.snapshot_store.replace(snapshot)
+        else:
+            self.snapshot_store.replace_prepared(
+                snapshot, prepared_revision,
+                expected_prior_revision_id=prior_revision.revision_id)
         revision = self.snapshot_store.current_dependent_revision(
             snapshot.identity.game_id, snapshot.player_id)
         return FdasRuntimeUpdate(
