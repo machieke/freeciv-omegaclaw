@@ -185,8 +185,11 @@ Configuration ownership is deliberate:
 | proxy endpoints, token, container, source discovery | environment variables above |
 
 The impact policy also versions a 0.3-second accepted-action refresh deadline
-and a 50 ms two-sample stability interval. A changed fingerprint resets the
-sample count; the interval is not a single-sample shortcut.
+and a 20 ms source-sequence quiet interval. The proxy builds under the packet
+and projection lock and returns a settled marker only when that exact revision
+remains unchanged; the client treats the marker as the second identical
+sample. A changed fingerprint resets the sample count, and candidate-specific
+effect predicates still fail closed.
 
 The configured evaluation model is `qwen3-coder-next:latest`, temperature `0`, with
 Ollama thinking mode explicitly disabled and a 30-second whole-turn budget. The task

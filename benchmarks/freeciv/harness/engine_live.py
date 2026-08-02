@@ -642,8 +642,8 @@ async def _state(ws, game_id, minimum_turn=1, minimum_source_seq=None, timeout=2
     if (isinstance(stable_samples, bool) or not isinstance(stable_samples, int)
             or not 1 <= stable_samples <= 5):
         raise ValueError("stable_samples must be in 1..5")
-    if not 0.05 <= float(poll_interval) <= 1.0:
-        raise ValueError("poll_interval must be in [0.05,1]")
+    if not 0.02 <= float(poll_interval) <= 1.0:
+        raise ValueError("poll_interval must be in [0.02,1]")
     call_started = time.perf_counter()
 
     def record(name, value):

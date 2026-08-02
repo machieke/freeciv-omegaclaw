@@ -74,7 +74,10 @@ impact_policy:
   normal_science_rate: 60
   refresh_timeout_seconds: 0.3
   terminal_refresh_timeout_seconds: 1.0
-  refresh_stability_interval_seconds: 0.05
+  # The proxy holds the packet/projection lock, waits for this exact
+  # source-sequence quiet interval, and returns a settled marker accepted as
+  # the second identical sample. Effect predicates still fail closed.
+  refresh_stability_interval_seconds: 0.02
   no_effect_retry_limit: 1
   max_no_effect_failovers_per_scope: 4
   preserve_city_defenders: true

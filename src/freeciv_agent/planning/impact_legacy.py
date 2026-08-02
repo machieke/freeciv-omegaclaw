@@ -500,9 +500,9 @@ class GroundedImpactPlanner(object):
             raise ValueError(
                 "terminal_refresh_timeout_seconds cannot be shorter than "
                 "refresh_timeout_seconds")
-        if not 0.05 <= self.refresh_stability_interval_seconds <= 0.5:
+        if not 0.02 <= self.refresh_stability_interval_seconds <= 0.5:
             raise ValueError(
-                "refresh_stability_interval_seconds must be in [0.05,0.5]")
+                "refresh_stability_interval_seconds must be in [0.02,0.5]")
         if not 1 <= self.no_effect_retry_limit <= 8:
             raise ValueError("no_effect_retry_limit must be in 1..8")
         if not 0 <= self.max_no_effect_failovers_per_scope <= 8:

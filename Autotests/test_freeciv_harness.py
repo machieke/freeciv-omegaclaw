@@ -145,7 +145,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     assert config["impact_policy"]["refresh_timeout_seconds"] == 0.3
     assert config[
         "impact_policy"]["terminal_refresh_timeout_seconds"] == 1.0
-    assert config["impact_policy"]["refresh_stability_interval_seconds"] == 0.05
+    assert config["impact_policy"]["refresh_stability_interval_seconds"] == 0.02
     assert config["impact_policy"]["production_strategy"] == "horizon_score"
     assert config["impact_policy"]["pressure_learning_enabled"] is True
     assert config[
@@ -256,6 +256,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "grounded_production_persistence_pilot_v1": 30,
             "grounded_production_persistence_snapshot_pilot_v2": 30,
             "path_persistence_pilot_v1": 30,
+            "fdas_transport_shadow_diagnostic_v1": 1,
         }
     seed_sets = [
         set(row["seeds"]) for row in paired["cohorts"].values()
@@ -3115,12 +3116,12 @@ def test_state_accepts_exact_proxy_settled_full_sample(monkeypatch):
     assert diagnostics["settled_responses"] == 1
 
 
-def test_action_state_accepts_proxy_settled_full_sample_without_second_transfer(
+def test_action_state_accepts_20ms_proxy_settled_sample_without_second_transfer(
         monkeypatch):
     raw = _ready_raw(source_seq=45, turn=12)
     raw["authoritative"]["stability"] = {
         "policy": "source-seq-quiet-v1",
-        "quiet_interval_ms": 50,
+        "quiet_interval_ms": 20,
         "source_seq": 45,
     }
     calls = []
@@ -3133,7 +3134,7 @@ def test_action_state_accepts_proxy_settled_full_sample_without_second_transfer(
     monkeypatch.setattr(engine_live.turncycle, "get_state", source_state)
     returned, snapshot = asyncio.run(_state(
         object(), "settled-action-state-test", minimum_turn=12,
-        minimum_source_seq=45, stable_samples=2, poll_interval=0.05,
+        minimum_source_seq=45, stable_samples=2, poll_interval=0.02,
         timeout=0.5, settle_first_projection=True,
         diagnostics=diagnostics))
 
@@ -3143,7 +3144,7 @@ def test_action_state_accepts_proxy_settled_full_sample_without_second_transfer(
     assert calls == [{
         "after_source_seq": 44,
         "wait_timeout_ms": pytest.approx(450, abs=2),
-        "settle_quiet_ms": 50,
+        "settle_quiet_ms": 20,
     }]
     assert diagnostics["queries"] == 1
     assert diagnostics["settled_responses"] == 1
