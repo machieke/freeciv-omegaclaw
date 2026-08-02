@@ -110,6 +110,38 @@ def test_checked_default_declaration_is_disabled_and_manifest_safe():
     assert runtime.activation_payload()["policy_authority"] is False
 
 
+def test_checked_city_stability_authority_runtime_assembles_explicitly():
+    declaration = load_runtime_declaration(
+        os.path.join(
+            REPO, "profile",
+            "dependent_atomspace_city_stability_authority.yaml"),
+        os.path.join(
+            REPO, "profile",
+            "fdas_manifest_city_stability_authority.json"),
+    )
+    ir = compile_ruleset(_ruleset_root(), "civ2civ3")
+
+    runtime = build_runtime(
+        declaration,
+        ruleset_ir=ir,
+        operation_records_source=lambda: ())
+
+    assert runtime.enabled is True
+    assert runtime.config.authority_enabled is True
+    assert runtime.config.section("domain_authority") == {
+        "city_defense": False,
+        "city_production": False,
+        "city_stability": True,
+        "combat": False,
+        "expansion": False,
+        "local_movement": False,
+        "research": False,
+        "transport": False,
+    }
+    assert runtime._authority_adapter is not None
+    assert runtime.activation_payload()["policy_authority"] is True
+
+
 def test_route_corridor_shadow_projection_can_be_activated_independently():
     runtime = build_runtime(_enabled_corridor_only_declaration())
 

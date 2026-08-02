@@ -38,6 +38,37 @@ def test_default_configuration_is_strict_shadow_only_and_manifest_valid():
     assert config.to_dict() == value
 
 
+def test_checked_city_stability_authority_profile_is_narrow_and_explicit():
+    with open(os.path.join(
+            REPO, "profile",
+            "dependent_atomspace_city_stability_authority.yaml"),
+            encoding="utf-8") as stream:
+        value = yaml.safe_load(stream)["dependent_atomspace"]
+    with open(os.path.join(
+            REPO, "profile",
+            "fdas_manifest_city_stability_authority.json"),
+            encoding="utf-8") as stream:
+        manifest = json.load(stream)
+
+    config = DependentAtomSpaceConfig.from_dict(value, manifest)
+
+    assert config.enabled is True
+    assert config.authority_enabled is True
+    assert config.shadow_refresh_policy == "every-snapshot"
+    assert config.section("domain_authority") == {
+        "city_defense": False,
+        "city_production": False,
+        "city_stability": True,
+        "combat": False,
+        "expansion": False,
+        "local_movement": False,
+        "research": False,
+        "transport": False,
+    }
+    assert manifest["status"] == "bounded-authority"
+    assert manifest["policy_authority"] is True
+
+
 def test_unknown_configuration_fields_and_invalid_budgets_fail_closed():
     value, manifest = _values()
     unknown = copy.deepcopy(value)

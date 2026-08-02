@@ -1,0 +1,1884 @@
+{
+  "claim_scope": "bounded-city-stability-pass-through-authority; no-gameplay-improvement-claim",
+  "config": {
+    "declaration_hash": "af268306a7631a9d09f53ef19c621fefcec07e3721f7d97ba8986dcfc578a6f4",
+    "manifest_path": "profile/fdas_manifest_city_stability_authority.json",
+    "profile_path": "profile/dependent_atomspace_city_stability_authority.yaml",
+    "rollback_declaration_hash": "c022676c8829f76236da2a831cefcc9c379fb648f5cfda644e246bbb6ba9d0d5",
+    "rollback_profile_path": "profile/dependent_atomspace.yaml"
+  },
+  "corpus": {
+    "capture_completeness": 0.8085106382978723,
+    "data_gaps": [
+      {
+        "diagnostic": "state snapshot lacks replayable grounded legal actions",
+        "path": "benchmarks/gdo/captured_snapshots/city_defense/turn-105-dd4dc4a9b7576127.json"
+      },
+      {
+        "diagnostic": "state snapshot lacks replayable grounded legal actions",
+        "path": "benchmarks/gdo/captured_snapshots/city_defense/turn-107-7c65d3b5807277fd.json"
+      },
+      {
+        "diagnostic": "state snapshot lacks replayable grounded legal actions",
+        "path": "benchmarks/gdo/captured_snapshots/city_defense/turn-115-33cec663f917e714.json"
+      },
+      {
+        "diagnostic": "state snapshot lacks replayable grounded legal actions",
+        "path": "benchmarks/gdo/captured_snapshots/city_defense/turn-126-b1b76772023a5e91.json"
+      },
+      {
+        "diagnostic": "state snapshot lacks replayable grounded legal actions",
+        "path": "benchmarks/gdo/captured_snapshots/city_defense/turn-132-ddd08d621970ccb3.json"
+      },
+      {
+        "diagnostic": "state snapshot lacks replayable grounded legal actions",
+        "path": "benchmarks/gdo/captured_snapshots/city_defense/turn-133-2b58af7c8f8344af.json"
+      },
+      {
+        "diagnostic": "state snapshot lacks replayable grounded legal actions",
+        "path": "benchmarks/gdo/captured_snapshots/city_defense/turn-134-d32bd3350c7dd596.json"
+      },
+      {
+        "diagnostic": "state snapshot lacks replayable grounded legal actions",
+        "path": "benchmarks/gdo/captured_snapshots/city_defense/turn-46-bf9fb77e2ccae3ba.json"
+      },
+      {
+        "diagnostic": "state snapshot lacks replayable grounded legal actions",
+        "path": "benchmarks/gdo/captured_snapshots/city_defense/turn-48-c091728e59add329.json"
+      }
+    ],
+    "manifests": [
+      {
+        "fixture_count": 13,
+        "manifest_hash": "dd134dd8f0505e5365be37f9d17fe0248731e59bcefcaf711afe7aec8ff87f50",
+        "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160_manifest.json"
+      },
+      {
+        "fixture_count": 17,
+        "manifest_hash": "f7d4596d2c6195017a22cf1bfa9c6dbd4559ad58111281990f0672e1cd14a4b8",
+        "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160_manifest.json"
+      },
+      {
+        "fixture_count": 8,
+        "manifest_hash": "20d99b20620da127847000705018d51d663b1f68dc7286e5b62524d2de08c082",
+        "path": "benchmarks/gdo/captured_snapshots/city_defense_native_160_manifest.json"
+      },
+      {
+        "fixture_count": 9,
+        "manifest_hash": "2aab935624c4760e18f566f555f66c675fac2aea795323d43919a8c8e5c6fc8a",
+        "path": "benchmarks/gdo/captured_snapshots/city_defense_replay_manifest.json"
+      },
+      {
+        "fixture_count": 0,
+        "manifest_hash": "8113c7a061f4fc2cd1f859387ecf901aada855682e0658e06c590e8f14660901",
+        "path": "benchmarks/gdo/captured_snapshots/combat_operations_native_160_manifest.json"
+      }
+    ],
+    "replayable_fixture_count": 38,
+    "unique_fixture_count": 47
+  },
+  "failures": [],
+  "fallback_reason_counts": {
+    "legacy-winner-has-no-unique-fdas-food-route": 34
+  },
+  "gates": {
+    "authority_profile_is_narrow_city_stability": true,
+    "default_profile_rolls_back_all_fdas_authority": true,
+    "deterministic_readouts": true,
+    "every_replay_has_explicit_authority_or_fallback": true,
+    "exact_legacy_winner_pass_through": true,
+    "final_execution_gate_remains_authoritative": true,
+    "no_replay_failures": true,
+    "positive_captured_authority_coverage": true,
+    "pressure_route_selected_every_authorized_action": true,
+    "resource_and_packet_schedule_complete": true,
+    "zero_policy_winner_changes": true
+  },
+  "generated_at": "2026-08-02T10:18:11.125395+00:00",
+  "latency": {
+    "count": 38,
+    "maximum_ms": 1.7502587288618088,
+    "mean_ms": 0.29847710883538975,
+    "p50_ms": 0.04869233816862106,
+    "p95_ms": 1.5878481790423393
+  },
+  "readouts": [
+    {
+      "action_key": "{\"action_type\":\"city_production\",\"city_id\":101,\"production_kind\":6,\"production_value\":0,\"target\":{\"production_type\":\"Settlers\"}}",
+      "authority_latency_ms": 0.06488664075732231,
+      "legacy_action_key": "{\"action_type\":\"city_production\",\"city_id\":101,\"production_kind\":6,\"production_value\":0,\"target\":{\"production_type\":\"Settlers\"}}",
+      "legacy_category": "production_expansion",
+      "legacy_operation_id": "pf-impact-op:00000000:f1b3583e7c1b08abff69",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-1-6870-9531d66bf53cf635.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"city_production\",\"city_id\":101,\"production_kind\":6,\"production_value\":0,\"target\":{\"production_type\":\"Settlers\"}}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "48f5d48a52c1f6065d52d43c81116ce60012ce9bb937b1ebc526bf1e1ac02997",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-2159b6805affbef44aee8def8b334e35",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:1:6870:9531d66bf53cf635",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:1:6870:9531d66bf53cf635",
+      "turn": 1
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":102,\"settlement_site_eligible\":false,\"target\":{\"x\":12,\"y\":5}}",
+      "authority_latency_ms": 0.045318156480789185,
+      "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":102,\"settlement_site_eligible\":false,\"target\":{\"x\":12,\"y\":5}}",
+      "legacy_category": "expansion_move",
+      "legacy_operation_id": "pf-impact-op:00000000:a665bb1d885810e1dfa4",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-1-6878-0ba043e59e81330b.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":102,\"settlement_site_eligible\":false,\"target\":{\"x\":12,\"y\":5}}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "f5815eba7955c5630356cf4361a34cc26b665eeaccb4aba9f602d8c398a85e7a",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-21965140e9678d4dadbfa00904f48a93",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:1:6878:0ba043e59e81330b",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:1:6878:0ba043e59e81330b",
+      "turn": 1
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":106}",
+      "authority_latency_ms": 0.038525089621543884,
+      "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":106}",
+      "legacy_category": "city_defense",
+      "legacy_operation_id": "pf-impact-op:00000000:d94b522128fbc23738e0",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-1-6889-ad01aee0dd0de1a0.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":106}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "6df6049c70bd54219c963a3fd2b280859bfb0ba9fbb63ec0b4db33c70f704c21",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-57d9a95be3706248c6e2d2f956976332",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:1:6889:ad01aee0dd0de1a0",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:1:6889:ad01aee0dd0de1a0",
+      "turn": 1
+    },
+    {
+      "action_key": "{\"action_type\":\"city_production\",\"city_id\":101,\"production_kind\":6,\"production_value\":11,\"target\":{\"production_type\":\"Alpine Troops\"}}",
+      "authority_latency_ms": 0.04268297925591469,
+      "legacy_action_key": "{\"action_type\":\"city_production\",\"city_id\":101,\"production_kind\":6,\"production_value\":11,\"target\":{\"production_type\":\"Alpine Troops\"}}",
+      "legacy_category": "production_defense",
+      "legacy_operation_id": "pf-impact-op:00000001:5b5e4b865083e646c95b",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-12-7964-d2046321a6cfd875.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"city_production\",\"city_id\":101,\"production_kind\":6,\"production_value\":11,\"target\":{\"production_type\":\"Alpine Troops\"}}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "72c7ed04b35a26d16a1631349979dcabe596ef78cdbb2f8ac896eef5cae789c1",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-37afc7b69cbd358c53faa0ed8dc2f2ed",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:12:7964:d2046321a6cfd875",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:12:7964:d2046321a6cfd875",
+      "turn": 12
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":111}",
+      "authority_latency_ms": 0.041120219975709915,
+      "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":111}",
+      "legacy_category": "city_defense",
+      "legacy_operation_id": "pf-impact-op:00000000:d3a8f145dbf810d5166e",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-12-7972-5748605bb9321ef8.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":111}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "d2f6d0a1deddca2a93633210eb552db5cd0d06d0b7bfa9b5332fa559a89b7a95",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-cbf4b97a003b9345dd79c5faa7e87f52",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:12:7972:5748605bb9321ef8",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:12:7972:5748605bb9321ef8",
+      "turn": 12
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":115}",
+      "authority_latency_ms": 0.04288880154490471,
+      "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":115}",
+      "legacy_category": "city_defense",
+      "legacy_operation_id": "pf-impact-op:00000000:9f335467a78751f09aa7",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-20-8764-63a8328b34ff1b16.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":115}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "8e264b4bad59329576fa31a544eead206aa0c13028e9a03530d8058339f0cb34",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-d30b8cadc047d4e751d1d1430e169a5b",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:20:8764:63a8328b34ff1b16",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:20:8764:63a8328b34ff1b16",
+      "turn": 20
+    },
+    {
+      "action_key": "{\"action_type\":\"city_production\",\"city_id\":109,\"production_kind\":6,\"production_value\":10,\"target\":{\"production_type\":\"Riflemen\"}}",
+      "authority_latency_ms": 0.04447111859917641,
+      "legacy_action_key": "{\"action_type\":\"city_production\",\"city_id\":109,\"production_kind\":6,\"production_value\":10,\"target\":{\"production_type\":\"Riflemen\"}}",
+      "legacy_category": "production_defense",
+      "legacy_operation_id": "pf-impact-op:00000001:6547a108ca96757a7654",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-24-9179-825ca79757519911.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"city_production\",\"city_id\":109,\"production_kind\":6,\"production_value\":10,\"target\":{\"production_type\":\"Riflemen\"}}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "5108348111e3e41d6bb9ce813b3ba6562e5b59d0477724e57d04ee8fa51bb8af",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-0fbb5e3cc79db87279cf080a5f2ec5a8",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:24:9179:825ca79757519911",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:24:9179:825ca79757519911",
+      "turn": 24
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":117}",
+      "authority_latency_ms": 0.04229368641972542,
+      "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":117}",
+      "legacy_category": "city_defense",
+      "legacy_operation_id": "pf-impact-op:00000000:073e14dc436fe68e1327",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-24-9187-5c0048e213e1c34f.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":117}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "70de66c7b9b2c35109b8bf3d651d7b21f798f15ef11ee47ec2cca2f72e6a0bbc",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-a01a38f1e1c204c8c0146fa80199ba4f",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:24:9187:5c0048e213e1c34f",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:24:9187:5c0048e213e1c34f",
+      "turn": 24
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":119}",
+      "authority_latency_ms": 0.043857842683792114,
+      "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":119}",
+      "legacy_category": "city_defense",
+      "legacy_operation_id": "pf-impact-op:00000002:06dd45d378447ff0639d",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-26-9437-9d538467e8bf7c8e.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":119}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "45c7d7b92a2a2106a46bc574c9913164dd62fdf44a65406e2a7d11d3f45323e8",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-17c334c487951890c23ad9c2a5ebf897",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:26:9437:9d538467e8bf7c8e",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:26:9437:9d538467e8bf7c8e",
+      "turn": 26
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":129}",
+      "authority_latency_ms": 0.05046278238296509,
+      "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":129}",
+      "legacy_category": "city_defense",
+      "legacy_operation_id": "pf-impact-op:00000015:75a07c71024c0939e25b",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-37-11130-a9cf247e1c1b9a63.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":129}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "b5e4de2eaceabc316e98fcd49c3ab0fb72deba7221f094dd202df376e80681b3",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-4a73796b911cc93c01ed63ae6ef93852",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:37:11130:a9cf247e1c1b9a63",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:37:11130:a9cf247e1c1b9a63",
+      "turn": 37
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":133}",
+      "authority_latency_ms": 0.04477798938751221,
+      "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":133}",
+      "legacy_category": "city_defense",
+      "legacy_operation_id": "pf-impact-op:00000000:00ecea019a7d2cadd1db",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-40-11774-687e6c950a3ec8d6.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":133}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "c146bc86e6085c4c492eb767d9f57405b934a014b1fbbee18492c9e745e0a93a",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-5721a7e74d62952dd862358da8005e4c",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:40:11774:687e6c950a3ec8d6",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:40:11774:687e6c950a3ec8d6",
+      "turn": 40
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":115,\"target\":{\"x\":12,\"y\":5}}",
+      "authority_latency_ms": 0.05171680822968483,
+      "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":115,\"target\":{\"x\":12,\"y\":5}}",
+      "legacy_category": "city_garrison_move",
+      "legacy_operation_id": "pf-impact-op:00000000:f39559e34bee1562a63e",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-46-2c4269b48ef94baa.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":115,\"target\":{\"x\":12,\"y\":5}}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "00d604e444fdead024863e41b2b5d3df8e157de44a6df3ac3a056f78265ee232",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-6dcdf8fcb83b499cef01b53aaee91aec",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:46:11645:2c4269b48ef94baa",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:46:11645:2c4269b48ef94baa",
+      "turn": 46
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":115,\"movement_cost\":2,\"target\":{\"x\":12,\"y\":5},\"transport_required\":false}",
+      "authority_latency_ms": 0.04616333171725273,
+      "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":115,\"movement_cost\":2,\"target\":{\"x\":12,\"y\":5},\"transport_required\":false}",
+      "legacy_category": "city_garrison_move",
+      "legacy_operation_id": "pf-impact-op:00000000:640ceac82873cc6622ab",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_native_160/turn-46-c1c4f57ca9636773.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":115,\"movement_cost\":2,\"target\":{\"x\":12,\"y\":5},\"transport_required\":false}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "3ee19eb13c5325f7363a77f78e6171f7deb6640f92ecfbb01c8c3bf19c0cdf07",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-2d50d3b6bfca0d9e4f5fd248733bf203",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:46:13081:c1c4f57ca9636773",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:46:13081:c1c4f57ca9636773",
+      "turn": 46
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":138}",
+      "authority_latency_ms": 0.04331301897764206,
+      "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":138}",
+      "legacy_category": "city_defense",
+      "legacy_operation_id": "pf-impact-op:00000000:cde300e2a9ff97d98daa",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-46-13107-3d648a9a23914ba4.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":138}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "e917fb89afb35775743d9d6ce5f52e5a0a040bfa1026e173352243747fa4bf30",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-a4919b192a822f52a8062af206efb88e",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:46:13107:3d648a9a23914ba4",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:46:13107:3d648a9a23914ba4",
+      "turn": 46
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":115,\"target\":{\"x\":10,\"y\":6}}",
+      "authority_latency_ms": 0.04822341725230217,
+      "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":115,\"target\":{\"x\":10,\"y\":6}}",
+      "legacy_category": "city_garrison_move",
+      "legacy_operation_id": "pf-impact-op:00000000:df16dbc3e8363c7fa605",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-48-b0cf57c147ec1499.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":115,\"target\":{\"x\":10,\"y\":6}}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "69e98ef5bf59006ae083135440d0a80f0beecae9aebd8d23343f52435ce045ae",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-b96581d12ae92018cea264ea0eb9de62",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:48:12066:b0cf57c147ec1499",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:48:12066:b0cf57c147ec1499",
+      "turn": 48
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":115,\"movement_cost\":2,\"target\":{\"x\":10,\"y\":6},\"transport_required\":false}",
+      "authority_latency_ms": 0.04638172686100006,
+      "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":115,\"movement_cost\":2,\"target\":{\"x\":10,\"y\":6},\"transport_required\":false}",
+      "legacy_category": "city_garrison_move",
+      "legacy_operation_id": "pf-impact-op:00000000:f2a8d6a1f5995418ac9e",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_native_160/turn-48-1a4c3886245dce08.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":115,\"movement_cost\":2,\"target\":{\"x\":10,\"y\":6},\"transport_required\":false}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "0406a3f26105be02dffbd5031eb5a53a984c24ab7a6dc4eb45ed071cd19dd21f",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-b2121acec2a34264cc0e16245f10697e",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:48:13676:1a4c3886245dce08",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:48:13676:1a4c3886245dce08",
+      "turn": 48
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":146}",
+      "authority_latency_ms": 0.04524644464254379,
+      "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":146}",
+      "legacy_category": "city_defense",
+      "legacy_operation_id": "pf-impact-op:00000025:574cc727663bd55bf59a",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-51-14406-76bb82d9fb15dce2.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":146}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "d7b73788aad7a8ce4f79eb54ded36da086ff17728a914e87f791166bc492d457",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-5606e4427051212302c7b745ad7b2780",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:51:14406:76bb82d9fb15dce2",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:51:14406:76bb82d9fb15dce2",
+      "turn": 51
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":151}",
+      "authority_latency_ms": 0.04615494981408119,
+      "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":151}",
+      "legacy_category": "city_defense",
+      "legacy_operation_id": "pf-impact-op:00000000:46c94327728a84aaa16e",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-55-15445-dcc706c6aa8b83c3.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":151}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "b9f160f5ed4d88ae4051fe7afc74654d772364eb77066d61c08e716d1eb69af7",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-0da7f9b178c944fc29887ffebc11d45f",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:55:15445:dcc706c6aa8b83c3",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:55:15445:dcc706c6aa8b83c3",
+      "turn": 55
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":161}",
+      "authority_latency_ms": 0.0460590235888958,
+      "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":161}",
+      "legacy_category": "city_defense",
+      "legacy_operation_id": "pf-impact-op:00000010:463c337ce5978e8a1bad",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-64-17510-1a50d7b695be9399.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":161}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "8d35d453f4f93a6e2460c0e8228cd48634e8e8ca600640abd4d478788a9eae26",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-82ab5879052c23d7745f6a3a9c690e2f",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:64:17510:1a50d7b695be9399",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:64:17510:1a50d7b695be9399",
+      "turn": 64
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":176}",
+      "authority_latency_ms": 0.045596156269311905,
+      "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":176}",
+      "legacy_category": "city_defense",
+      "legacy_operation_id": "pf-impact-op:00000000:3af070514b4749b0ece0",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-75-20079-80fff8ca8add1161.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":176}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "3f3886f62d2b09350358063575b811b0c29c80b66da8e68f524e6a4b4ee33bba",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-f9ce9b7de1cce523539c87f246fe0bf3",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:75:20079:80fff8ca8add1161",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:75:20079:80fff8ca8add1161",
+      "turn": 75
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":186}",
+      "authority_latency_ms": 0.04396121948957443,
+      "legacy_action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":186}",
+      "legacy_category": "city_defense",
+      "legacy_operation_id": "pf-impact-op:00000000:912c1c9c9992d320b6bf",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-87-23158-1a197d9de0b58cc6.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":186}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "9e04263749ed8c2d3cf0a6a04f5e0b5bc506e456dfde7c6dc882c2e4ab5579ea",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-95ab8c046eaad7e11a684a404cc7297c",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:87:23158:1a197d9de0b58cc6",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:87:23158:1a197d9de0b58cc6",
+      "turn": 87
+    },
+    {
+      "action_key": "{\"action_type\":\"city_governor\",\"city_id\":127,\"target\":{\"food_surplus_reserve\":1}}",
+      "authority_latency_ms": 1.7502587288618088,
+      "legacy_action_key": "{\"action_type\":\"city_governor\",\"city_id\":127,\"target\":{\"food_surplus_reserve\":1}}",
+      "legacy_category": "city_food_governor",
+      "legacy_operation_id": "pf-impact-op:00000000:975e315df833e6b2dfe7",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_native_160/turn-98-dfb69f2e859e1120.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"city_governor\",\"city_id\":127,\"target\":{\"food_surplus_reserve\":1}}",
+        "authority_pressure": {
+          "evaluation_hash": "a0f259a1b0e03cc48c1d6ff5e4e75b82cec3cfec91b974eb63359ada09c217ca",
+          "schedule_hash": "c8ba50fc680693ab63cc561cfe118f3b6644cd1c11ffab6bea5f3edf31dc2d6b",
+          "selected_operation_id": "operation-5cf15f635cebaa4c8d5c50ba51f28d19",
+          "status": "complete"
+        },
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding",
+          "bounded-city-stability-contract",
+          "authority-pressure-readout",
+          "resource-and-packet-schedule",
+          "exact-fdas-commit-validation"
+        ],
+        "commit_validation": {
+          "binding_hash": "35dcc5941656a9855daafd44f45700400e56a4d03ec92aae8c41d1e4e6d8685b",
+          "checks": [
+            "snapshot-and-legal-action-refresh",
+            "fdas-revision-identity",
+            "fdas-source-supports",
+            "fdas-candidate-identity",
+            "server-legal-action-membership",
+            "causal-effect-and-requirement-firewall",
+            "domain-authority-gate"
+          ],
+          "current_revision_id": "fdas-revision-876a442faf9f513d0915d6742a76b446",
+          "current_snapshot_id": "m7-main-e_full_loop-4543804-00:98:26897:dfb69f2e859e1120",
+          "disposition": "commit",
+          "execution_authority": false,
+          "plan_materialization_authorized": true,
+          "reason": null,
+          "result_hash": "e614472eb7488a42f9e79e39eb4bcb1d85cec0df64c6fa0a82c25d9252062241",
+          "validator_identity": "fdas-commit-validator/1.0"
+        },
+        "operation_id": "operation-5cf15f635cebaa4c8d5c50ba51f28d19",
+        "policy_authority": true,
+        "readout_hash": "b52aa397fcb09db6b4bfec9933e30cb0b6bff3d7767872f3c51c519f1bf02181",
+        "reason": null,
+        "revision_id": "fdas-revision-876a442faf9f513d0915d6742a76b446",
+        "scheduling": {
+          "artifact_hash": "d0d8fd56951a0abfb1f6a60a1cc35134c031d3176002e7bfbb9740dfb05b22ae",
+          "diagnostics": [],
+          "joint_selected_operation_ids": [
+            "operation-5cf15f635cebaa4c8d5c50ba51f28d19"
+          ],
+          "packet_schedule": {
+            "accounting": {
+              "action": {
+                "consumed": 1,
+                "declared": 1,
+                "stranded": 0
+              },
+              "cpu": {
+                "consumed": 1,
+                "declared": 1,
+                "stranded": 0
+              }
+            },
+            "budgets": [
+              {
+                "available": 1,
+                "resource": "action"
+              },
+              {
+                "available": 1,
+                "resource": "cpu"
+              }
+            ],
+            "committed_operation_ids": [
+              "operation-5cf15f635cebaa4c8d5c50ba51f28d19"
+            ],
+            "committed_value": 0.42499999978749997,
+            "conserved": true,
+            "integrality_gap": 0.0,
+            "relaxed_value": 0.42499999978749997,
+            "reservations": [
+              {
+                "costs": [
+                  {
+                    "quanta": 1,
+                    "resource": "action"
+                  },
+                  {
+                    "quanta": 1,
+                    "resource": "cpu"
+                  }
+                ],
+                "operation_id": "operation-5cf15f635cebaa4c8d5c50ba51f28d19",
+                "reason": null,
+                "requirement_set_id": null,
+                "reserved": [
+                  {
+                    "quanta": 1,
+                    "resource": "action"
+                  },
+                  {
+                    "quanta": 1,
+                    "resource": "cpu"
+                  }
+                ],
+                "state": "committed"
+              }
+            ],
+            "scheduler_identity": "pf-pln-packet-scheduler/2.0",
+            "stranded_quanta": []
+          },
+          "policy_authority": false,
+          "resource_schedule": {
+            "capacities": [
+              {
+                "authority": "server-legal-action-identity",
+                "quantity": 1,
+                "resource": {
+                  "kind": "city_worker_assignment",
+                  "owner_id": "127",
+                  "scope": "city:127",
+                  "subresource": "governor"
+                },
+                "snapshot_id": "m7-main-e_full_loop-4543804-00:98:26897:dfb69f2e859e1120",
+                "window": {
+                  "end_turn_exclusive": 99,
+                  "start_turn": 98
+                }
+              }
+            ],
+            "decision_digest": "8feb2404bc3bd234ec8e0423b8b436dce626e2d9cb8984a54aab99eea0204a6a",
+            "entries": [
+              {
+                "bid": 0.42499999978749997,
+                "conflict_resource_ids": [],
+                "conflicting_operation_ids": [],
+                "operation_id": "operation-5cf15f635cebaa4c8d5c50ba51f28d19",
+                "reason": null,
+                "selected": true
+              }
+            ],
+            "explored_nodes": 3,
+            "fallback_reason": null,
+            "node_budget": 100000,
+            "objective_value": 0.42499999978749997,
+            "policy_authority": false,
+            "requests": [
+              {
+                "bid": 0.42499999978749997,
+                "claims": [
+                  {
+                    "exclusive": true,
+                    "hardness": "hard_current",
+                    "quantity": 1,
+                    "resource": {
+                      "kind": "city_worker_assignment",
+                      "owner_id": "127",
+                      "scope": "city:127",
+                      "subresource": "governor"
+                    },
+                    "source_operation_id": "operation-5cf15f635cebaa4c8d5c50ba51f28d19",
+                    "source_step_id": "step-966856bd0ddb80cd12b899e3d7d7",
+                    "window": {
+                      "end_turn_exclusive": 99,
+                      "start_turn": 98
+                    }
+                  }
+                ],
+                "operation_id": "operation-5cf15f635cebaa4c8d5c50ba51f28d19",
+                "requirement_set_id": null
+              }
+            ],
+            "scheduler_identity": "freeciv-bounded-exact-resource-scheduler/1.0",
+            "selected_operation_ids": [
+              "operation-5cf15f635cebaa4c8d5c50ba51f28d19"
+            ],
+            "shadow_only": true,
+            "status": "exact"
+          }
+        },
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:98:26897:dfb69f2e859e1120",
+        "status": "authorized"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:98:26897:dfb69f2e859e1120",
+      "turn": 98
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":106,\"movement_cost\":2,\"target\":{\"x\":10,\"y\":6},\"transport_required\":false}",
+      "authority_latency_ms": 0.08968636393547058,
+      "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":106,\"movement_cost\":2,\"target\":{\"x\":10,\"y\":6},\"transport_required\":false}",
+      "legacy_category": "city_garrison_move",
+      "legacy_operation_id": "pf-impact-op:00000000:77104fef3f4566b620a9",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_native_160/turn-98-10eb3d1db326d221.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":106,\"movement_cost\":2,\"target\":{\"x\":10,\"y\":6},\"transport_required\":false}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "019bc88f620dd812322aad968d37a1988841baec4ff1d65a581bc84b103b7ac0",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-fa73992886d5eb071e71950e0cda3a4b",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:98:26908:10eb3d1db326d221",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:98:26908:10eb3d1db326d221",
+      "turn": 98
+    },
+    {
+      "action_key": "{\"action_type\":\"city_governor\",\"city_id\":127,\"target\":{\"food_surplus_reserve\":1}}",
+      "authority_latency_ms": 1.5618521720170975,
+      "legacy_action_key": "{\"action_type\":\"city_governor\",\"city_id\":127,\"target\":{\"food_surplus_reserve\":1}}",
+      "legacy_category": "city_food_governor",
+      "legacy_operation_id": "pf-impact-op:00000000:975e315df833e6b2dfe7",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-108-b1372bd519d5c1fd.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"city_governor\",\"city_id\":127,\"target\":{\"food_surplus_reserve\":1}}",
+        "authority_pressure": {
+          "evaluation_hash": "e51c957455ccf76e31f429db5e56b8242e88cf00578056f324702d3b61a1f690",
+          "schedule_hash": "0794b9d2c2749414986c373bb346fe6887df3a33f68db8fe27a4ed19455e2bd5",
+          "selected_operation_id": "operation-1b2bd4d1031fcf48ef2f18deaeee1991",
+          "status": "complete"
+        },
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding",
+          "bounded-city-stability-contract",
+          "authority-pressure-readout",
+          "resource-and-packet-schedule",
+          "exact-fdas-commit-validation"
+        ],
+        "commit_validation": {
+          "binding_hash": "b3c8e66b53dfea13c9a0cf81944c4686cc5b233639cf5a6418ac07fd0941dc6a",
+          "checks": [
+            "snapshot-and-legal-action-refresh",
+            "fdas-revision-identity",
+            "fdas-source-supports",
+            "fdas-candidate-identity",
+            "server-legal-action-membership",
+            "causal-effect-and-requirement-firewall",
+            "domain-authority-gate"
+          ],
+          "current_revision_id": "fdas-revision-c5dade0516916b4b5a384b5d0acdfaa6",
+          "current_snapshot_id": "m7-main-e_full_loop-4543804-00:108:20701:b1372bd519d5c1fd",
+          "disposition": "commit",
+          "execution_authority": false,
+          "plan_materialization_authorized": true,
+          "reason": null,
+          "result_hash": "b84a41ae7c8d4dddfbdab88c33e4b94366df8add226a8fac72a8b987e1bec856",
+          "validator_identity": "fdas-commit-validator/1.0"
+        },
+        "operation_id": "operation-1b2bd4d1031fcf48ef2f18deaeee1991",
+        "policy_authority": true,
+        "readout_hash": "2c165af64fb49f2a72117c7293e9991fd093f69495c4146495ae01a3b3b05580",
+        "reason": null,
+        "revision_id": "fdas-revision-c5dade0516916b4b5a384b5d0acdfaa6",
+        "scheduling": {
+          "artifact_hash": "facf6c3598a01afbc6e17c41e17ab11f4521672fbe955f2efb76a1dfff398303",
+          "diagnostics": [],
+          "joint_selected_operation_ids": [
+            "operation-1b2bd4d1031fcf48ef2f18deaeee1991"
+          ],
+          "packet_schedule": {
+            "accounting": {
+              "action": {
+                "consumed": 1,
+                "declared": 1,
+                "stranded": 0
+              },
+              "cpu": {
+                "consumed": 1,
+                "declared": 1,
+                "stranded": 0
+              }
+            },
+            "budgets": [
+              {
+                "available": 1,
+                "resource": "action"
+              },
+              {
+                "available": 1,
+                "resource": "cpu"
+              }
+            ],
+            "committed_operation_ids": [
+              "operation-1b2bd4d1031fcf48ef2f18deaeee1991"
+            ],
+            "committed_value": 0.42499999978749997,
+            "conserved": true,
+            "integrality_gap": 0.0,
+            "relaxed_value": 0.42499999978749997,
+            "reservations": [
+              {
+                "costs": [
+                  {
+                    "quanta": 1,
+                    "resource": "action"
+                  },
+                  {
+                    "quanta": 1,
+                    "resource": "cpu"
+                  }
+                ],
+                "operation_id": "operation-1b2bd4d1031fcf48ef2f18deaeee1991",
+                "reason": null,
+                "requirement_set_id": null,
+                "reserved": [
+                  {
+                    "quanta": 1,
+                    "resource": "action"
+                  },
+                  {
+                    "quanta": 1,
+                    "resource": "cpu"
+                  }
+                ],
+                "state": "committed"
+              }
+            ],
+            "scheduler_identity": "pf-pln-packet-scheduler/2.0",
+            "stranded_quanta": []
+          },
+          "policy_authority": false,
+          "resource_schedule": {
+            "capacities": [
+              {
+                "authority": "server-legal-action-identity",
+                "quantity": 1,
+                "resource": {
+                  "kind": "city_worker_assignment",
+                  "owner_id": "127",
+                  "scope": "city:127",
+                  "subresource": "governor"
+                },
+                "snapshot_id": "m7-main-e_full_loop-4543804-00:108:20701:b1372bd519d5c1fd",
+                "window": {
+                  "end_turn_exclusive": 109,
+                  "start_turn": 108
+                }
+              }
+            ],
+            "decision_digest": "4d7bc7bc5f3926da79c74cc19ab3bb09f25f3e0b70e36674096ec854f73a8679",
+            "entries": [
+              {
+                "bid": 0.42499999978749997,
+                "conflict_resource_ids": [],
+                "conflicting_operation_ids": [],
+                "operation_id": "operation-1b2bd4d1031fcf48ef2f18deaeee1991",
+                "reason": null,
+                "selected": true
+              }
+            ],
+            "explored_nodes": 3,
+            "fallback_reason": null,
+            "node_budget": 100000,
+            "objective_value": 0.42499999978749997,
+            "policy_authority": false,
+            "requests": [
+              {
+                "bid": 0.42499999978749997,
+                "claims": [
+                  {
+                    "exclusive": true,
+                    "hardness": "hard_current",
+                    "quantity": 1,
+                    "resource": {
+                      "kind": "city_worker_assignment",
+                      "owner_id": "127",
+                      "scope": "city:127",
+                      "subresource": "governor"
+                    },
+                    "source_operation_id": "operation-1b2bd4d1031fcf48ef2f18deaeee1991",
+                    "source_step_id": "step-c838fefe806d015d0e1102dda0d1",
+                    "window": {
+                      "end_turn_exclusive": 109,
+                      "start_turn": 108
+                    }
+                  }
+                ],
+                "operation_id": "operation-1b2bd4d1031fcf48ef2f18deaeee1991",
+                "requirement_set_id": null
+              }
+            ],
+            "scheduler_identity": "freeciv-bounded-exact-resource-scheduler/1.0",
+            "selected_operation_ids": [
+              "operation-1b2bd4d1031fcf48ef2f18deaeee1991"
+            ],
+            "shadow_only": true,
+            "status": "exact"
+          }
+        },
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:108:20701:b1372bd519d5c1fd",
+        "status": "authorized"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:108:20701:b1372bd519d5c1fd",
+      "turn": 108
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":117,\"target\":{\"x\":10,\"y\":3}}",
+      "authority_latency_ms": 0.04869233816862106,
+      "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":117,\"target\":{\"x\":10,\"y\":3}}",
+      "legacy_category": "city_garrison_move",
+      "legacy_operation_id": "pf-impact-op:00000000:bc0174dd84f32a20cdde",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-108-3b0f790ced40052d.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":117,\"target\":{\"x\":10,\"y\":3}}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "9cc21eafa82ea7ef286320c6b9f23914f6c110502b205cdf210f1e776ccce018",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-8e684e658a0eebde491732593a38af2c",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:108:20710:3b0f790ced40052d",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:108:20710:3b0f790ced40052d",
+      "turn": 108
+    },
+    {
+      "action_key": "{\"action_type\":\"player_rates\",\"actor_id\":0,\"target\":{\"luxury_rate\":0,\"science_rate\":40,\"tax_rate\":60}}",
+      "authority_latency_ms": 0.6533563137054443,
+      "legacy_action_key": "{\"action_type\":\"player_rates\",\"actor_id\":0,\"target\":{\"luxury_rate\":0,\"science_rate\":40,\"tax_rate\":60}}",
+      "legacy_category": "treasury_tax_shift",
+      "legacy_operation_id": "pf-impact-op:00000001:e10b527589c1b611fd9d",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_native_160/turn-125-263820b9c840fc7d.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"player_rates\",\"actor_id\":0,\"target\":{\"luxury_rate\":0,\"science_rate\":40,\"tax_rate\":60}}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "6be2680183c63730204db6345454bb3db616908f945fb9222ae1ea8b7cf40114",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-ae7eccedfb72451ce5ee23964ba097f2",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:125:36273:263820b9c840fc7d",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:125:36273:263820b9c840fc7d",
+      "turn": 125
+    },
+    {
+      "action_key": "{\"action_type\":\"player_rates\",\"actor_id\":0,\"target\":{\"luxury_rate\":0,\"science_rate\":50,\"tax_rate\":50}}",
+      "authority_latency_ms": 0.8224551565945148,
+      "legacy_action_key": "{\"action_type\":\"player_rates\",\"actor_id\":0,\"target\":{\"luxury_rate\":0,\"science_rate\":50,\"tax_rate\":50}}",
+      "legacy_category": "treasury_tax_shift",
+      "legacy_operation_id": "pf-impact-op:00000000:5040f7da575670737efb",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-130-53e17615bdbbb5bb.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"player_rates\",\"actor_id\":0,\"target\":{\"luxury_rate\":0,\"science_rate\":50,\"tax_rate\":50}}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "deab9e2d8067eadb4777a7874f48fe7cadb4c1d0df30e50421c4e7b2c94de0b5",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-f661401b706babd3cf4601b5fdf1d49b",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:130:25251:53e17615bdbbb5bb",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:130:25251:53e17615bdbbb5bb",
+      "turn": 130
+    },
+    {
+      "action_key": "{\"action_type\":\"city_production\",\"city_id\":131,\"production_kind\":3,\"production_value\":72,\"target\":{\"production_type\":\"Coinage\"}}",
+      "authority_latency_ms": 0.3351629711687565,
+      "legacy_action_key": "{\"action_type\":\"city_production\",\"city_id\":131,\"production_kind\":3,\"production_value\":72,\"target\":{\"production_type\":\"Coinage\"}}",
+      "legacy_category": "production_treasury_stabilization",
+      "legacy_operation_id": "pf-impact-op:00000001:0afa8f4ef1ec973af8bf",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-130-fadfa06a8304c53b.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"city_production\",\"city_id\":131,\"production_kind\":3,\"production_value\":72,\"target\":{\"production_type\":\"Coinage\"}}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "39b7ea530ea45b7cfb2ad9796edc140f26941c4028f36220316a8d13312452f6",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-0a4bd8b0a4cf1f4e6fb0b430ca91dc61",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:130:25280:fadfa06a8304c53b",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:130:25280:fadfa06a8304c53b",
+      "turn": 130
+    },
+    {
+      "action_key": "{\"action_type\":\"city_production\",\"city_id\":109,\"production_kind\":3,\"production_value\":72,\"target\":{\"production_type\":\"Coinage\"}}",
+      "authority_latency_ms": 0.3095450811088085,
+      "legacy_action_key": "{\"action_type\":\"city_production\",\"city_id\":109,\"production_kind\":3,\"production_value\":72,\"target\":{\"production_type\":\"Coinage\"}}",
+      "legacy_category": "production_treasury_stabilization",
+      "legacy_operation_id": "pf-impact-op:00000000:d2b805ced2a37209888c",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_native_160/turn-149-dffd017e1a17ba0b.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"city_production\",\"city_id\":109,\"production_kind\":3,\"production_value\":72,\"target\":{\"production_type\":\"Coinage\"}}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "17b544379c706c65c8271f3d9d227ce3d4b8b6bf4a3756ab9aa5842045cb94c1",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-c9094a8097be8837e5cb4e91a9658bae",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:149:43479:dffd017e1a17ba0b",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:149:43479:dffd017e1a17ba0b",
+      "turn": 149
+    },
+    {
+      "action_key": "{\"action_type\":\"city_governor\",\"city_id\":127,\"target\":{\"food_surplus_reserve\":1}}",
+      "authority_latency_ms": 0.256597064435482,
+      "legacy_action_key": "{\"action_type\":\"city_governor\",\"city_id\":127,\"target\":{\"food_surplus_reserve\":1}}",
+      "legacy_category": "city_food_governor",
+      "legacy_operation_id": "pf-impact-op:00000000:975e315df833e6b2dfe7",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_native_160/turn-150-a422bb3274326fc7.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"city_governor\",\"city_id\":127,\"target\":{\"food_surplus_reserve\":1}}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "682a60aba66af9631c5b7699dc96cb722748ba012ee681bcffbbe47a83fc9791",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-8c357d5f70df998a2723b8b0221a998d",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:150:43948:a422bb3274326fc7",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:150:43948:a422bb3274326fc7",
+      "turn": 150
+    },
+    {
+      "action_key": "{\"action_type\":\"city_production\",\"city_id\":182,\"production_kind\":3,\"production_value\":18,\"target\":{\"production_type\":\"Marketplace\"}}",
+      "authority_latency_ms": 0.28181588277220726,
+      "legacy_action_key": "{\"action_type\":\"city_production\",\"city_id\":182,\"production_kind\":3,\"production_value\":18,\"target\":{\"production_type\":\"Marketplace\"}}",
+      "legacy_category": "production_treasury_stabilization",
+      "legacy_operation_id": "pf-impact-op:00000001:5960499a08de9ae09977",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_native_160/turn-150-6238ef9d08c16721.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"city_production\",\"city_id\":182,\"production_kind\":3,\"production_value\":18,\"target\":{\"production_type\":\"Marketplace\"}}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "9c49e2eb40ab2d5907fafe541d4ca165b88f2420103294fab3cfa1f49f48930c",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-47488a9d428050a885c52961b6f46b9a",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:150:43960:6238ef9d08c16721",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:150:43960:6238ef9d08c16721",
+      "turn": 150
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":106,\"target\":{\"x\":10,\"y\":3}}",
+      "authority_latency_ms": 0.12054713442921638,
+      "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":106,\"target\":{\"x\":10,\"y\":3}}",
+      "legacy_category": "city_garrison_move",
+      "legacy_operation_id": "pf-impact-op:00000000:0e0237c0613b2984e153",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-151-2f3cf86fcf86c1d5.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":106,\"target\":{\"x\":10,\"y\":3}}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "8ab10709811b118ffb3017d5e2d1811129f3d44dd3f5492f34e31ccabb74e88b",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-7ecb5d3303194f3527847b5752832161",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:151:28195:2f3cf86fcf86c1d5",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:151:28195:2f3cf86fcf86c1d5",
+      "turn": 151
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":117,\"target\":{\"x\":10,\"y\":4}}",
+      "authority_latency_ms": 0.10996591299772263,
+      "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":117,\"target\":{\"x\":10,\"y\":4}}",
+      "legacy_category": "city_garrison_move",
+      "legacy_operation_id": "pf-impact-op:00000000:d5a223bf4fe21f06cb32",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-151-f07349a78e6dc7da.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":117,\"target\":{\"x\":10,\"y\":4}}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "9e59ab32fa5ed1b98aab3592ab966f101bf82fcb3f44dac4928ef5a97e6d15dc",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-edd15c55e90f4b20872108c741c64ef6",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:151:28206:f07349a78e6dc7da",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:151:28206:f07349a78e6dc7da",
+      "turn": 151
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":117,\"target\":{\"x\":10,\"y\":3}}",
+      "authority_latency_ms": 0.111360102891922,
+      "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":117,\"target\":{\"x\":10,\"y\":3}}",
+      "legacy_category": "city_garrison_move",
+      "legacy_operation_id": "pf-impact-op:00000000:bc0174dd84f32a20cdde",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-152-5b3cc7605265cd26.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":117,\"target\":{\"x\":10,\"y\":3}}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "ab61117ef749773a4219dede3e61090bf20fab9f3efa28e41993eaae04109e6a",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-c284e5d3f6f4cc581167d93d90f6934d",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:152:28505:5b3cc7605265cd26",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:152:28505:5b3cc7605265cd26",
+      "turn": 152
+    },
+    {
+      "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":106,\"target\":{\"x\":10,\"y\":3}}",
+      "authority_latency_ms": 0.11325627565383911,
+      "legacy_action_key": "{\"action_type\":\"unit_move\",\"actor_id\":106,\"target\":{\"x\":10,\"y\":3}}",
+      "legacy_category": "city_garrison_move",
+      "legacy_operation_id": "pf-impact-op:00000000:0e0237c0613b2984e153",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-153-201813e66ed0eb66.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"unit_move\",\"actor_id\":106,\"target\":{\"x\":10,\"y\":3}}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "d7b9ebec5e1ed7e5e8ca63b628eade4bca433e09260dc0362661706b55078de9",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-2136a7f1987359a209c7f84709f4657b",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:153:28747:201813e66ed0eb66",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:153:28747:201813e66ed0eb66",
+      "turn": 153
+    },
+    {
+      "action_key": "{\"action_type\":\"city_governor\",\"city_id\":182,\"target\":{\"food_surplus_reserve\":1}}",
+      "authority_latency_ms": 1.5878481790423393,
+      "legacy_action_key": "{\"action_type\":\"city_governor\",\"city_id\":182,\"target\":{\"food_surplus_reserve\":1}}",
+      "legacy_category": "city_food_governor",
+      "legacy_operation_id": "pf-impact-op:00000000:d34173464d841527817c",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-157-fae284e7cb110bb1.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"city_governor\",\"city_id\":182,\"target\":{\"food_surplus_reserve\":1}}",
+        "authority_pressure": {
+          "evaluation_hash": "cbb3cde9bc8f7411a298a34abf397609adf256499e90ef78267a26c987c650da",
+          "schedule_hash": "20373ff0813d67d671edce83a8939e08d932a3ea31971b7cbd1ac1cd20f3be62",
+          "selected_operation_id": "operation-b31d4c8de0a4aa4ac02cbcd8c34ca9a2",
+          "status": "complete"
+        },
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding",
+          "bounded-city-stability-contract",
+          "authority-pressure-readout",
+          "resource-and-packet-schedule",
+          "exact-fdas-commit-validation"
+        ],
+        "commit_validation": {
+          "binding_hash": "0aa30eb37baf9b37ca7974fca49a94be4413f0fa6b1b2c55581ba71574dd5474",
+          "checks": [
+            "snapshot-and-legal-action-refresh",
+            "fdas-revision-identity",
+            "fdas-source-supports",
+            "fdas-candidate-identity",
+            "server-legal-action-membership",
+            "causal-effect-and-requirement-firewall",
+            "domain-authority-gate"
+          ],
+          "current_revision_id": "fdas-revision-5c273ea56f90643b332d8799940749ab",
+          "current_snapshot_id": "m7-main-e_full_loop-4543804-00:157:29662:fae284e7cb110bb1",
+          "disposition": "commit",
+          "execution_authority": false,
+          "plan_materialization_authorized": true,
+          "reason": null,
+          "result_hash": "6215488ac63617f0fd5d2d69a49d882912c833c708fd621c40208a3ddb83d458",
+          "validator_identity": "fdas-commit-validator/1.0"
+        },
+        "operation_id": "operation-b31d4c8de0a4aa4ac02cbcd8c34ca9a2",
+        "policy_authority": true,
+        "readout_hash": "5d61af13138a2d5d83b279ff1c385a761d246311ace85a62c8bfef936143dfcf",
+        "reason": null,
+        "revision_id": "fdas-revision-5c273ea56f90643b332d8799940749ab",
+        "scheduling": {
+          "artifact_hash": "406f1509cfe88e193be5c47e68ec2525e10faac7af3dd172dd88903d9611ef52",
+          "diagnostics": [],
+          "joint_selected_operation_ids": [
+            "operation-b31d4c8de0a4aa4ac02cbcd8c34ca9a2"
+          ],
+          "packet_schedule": {
+            "accounting": {
+              "action": {
+                "consumed": 1,
+                "declared": 1,
+                "stranded": 0
+              },
+              "cpu": {
+                "consumed": 1,
+                "declared": 1,
+                "stranded": 0
+              }
+            },
+            "budgets": [
+              {
+                "available": 1,
+                "resource": "action"
+              },
+              {
+                "available": 1,
+                "resource": "cpu"
+              }
+            ],
+            "committed_operation_ids": [
+              "operation-b31d4c8de0a4aa4ac02cbcd8c34ca9a2"
+            ],
+            "committed_value": 0.42499999978749997,
+            "conserved": true,
+            "integrality_gap": 0.0,
+            "relaxed_value": 0.42499999978749997,
+            "reservations": [
+              {
+                "costs": [
+                  {
+                    "quanta": 1,
+                    "resource": "action"
+                  },
+                  {
+                    "quanta": 1,
+                    "resource": "cpu"
+                  }
+                ],
+                "operation_id": "operation-b31d4c8de0a4aa4ac02cbcd8c34ca9a2",
+                "reason": null,
+                "requirement_set_id": null,
+                "reserved": [
+                  {
+                    "quanta": 1,
+                    "resource": "action"
+                  },
+                  {
+                    "quanta": 1,
+                    "resource": "cpu"
+                  }
+                ],
+                "state": "committed"
+              }
+            ],
+            "scheduler_identity": "pf-pln-packet-scheduler/2.0",
+            "stranded_quanta": []
+          },
+          "policy_authority": false,
+          "resource_schedule": {
+            "capacities": [
+              {
+                "authority": "server-legal-action-identity",
+                "quantity": 1,
+                "resource": {
+                  "kind": "city_worker_assignment",
+                  "owner_id": "182",
+                  "scope": "city:182",
+                  "subresource": "governor"
+                },
+                "snapshot_id": "m7-main-e_full_loop-4543804-00:157:29662:fae284e7cb110bb1",
+                "window": {
+                  "end_turn_exclusive": 158,
+                  "start_turn": 157
+                }
+              }
+            ],
+            "decision_digest": "ff8acb7b115d86b4f5dfcb3c4bd350c85234d20ba5710b6cab223e7173e67c24",
+            "entries": [
+              {
+                "bid": 0.42499999978749997,
+                "conflict_resource_ids": [],
+                "conflicting_operation_ids": [],
+                "operation_id": "operation-b31d4c8de0a4aa4ac02cbcd8c34ca9a2",
+                "reason": null,
+                "selected": true
+              }
+            ],
+            "explored_nodes": 3,
+            "fallback_reason": null,
+            "node_budget": 100000,
+            "objective_value": 0.42499999978749997,
+            "policy_authority": false,
+            "requests": [
+              {
+                "bid": 0.42499999978749997,
+                "claims": [
+                  {
+                    "exclusive": true,
+                    "hardness": "hard_current",
+                    "quantity": 1,
+                    "resource": {
+                      "kind": "city_worker_assignment",
+                      "owner_id": "182",
+                      "scope": "city:182",
+                      "subresource": "governor"
+                    },
+                    "source_operation_id": "operation-b31d4c8de0a4aa4ac02cbcd8c34ca9a2",
+                    "source_step_id": "step-cbac01ebc3d84393140146820239",
+                    "window": {
+                      "end_turn_exclusive": 158,
+                      "start_turn": 157
+                    }
+                  }
+                ],
+                "operation_id": "operation-b31d4c8de0a4aa4ac02cbcd8c34ca9a2",
+                "requirement_set_id": null
+              }
+            ],
+            "scheduler_identity": "freeciv-bounded-exact-resource-scheduler/1.0",
+            "selected_operation_ids": [
+              "operation-b31d4c8de0a4aa4ac02cbcd8c34ca9a2"
+            ],
+            "shadow_only": true,
+            "status": "exact"
+          }
+        },
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:157:29662:fae284e7cb110bb1",
+        "status": "authorized"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:157:29662:fae284e7cb110bb1",
+      "turn": 157
+    },
+    {
+      "action_key": "{\"action_type\":\"player_rates\",\"actor_id\":0,\"target\":{\"luxury_rate\":0,\"science_rate\":40,\"tax_rate\":60}}",
+      "authority_latency_ms": 0.5591432563960552,
+      "legacy_action_key": "{\"action_type\":\"player_rates\",\"actor_id\":0,\"target\":{\"luxury_rate\":0,\"science_rate\":40,\"tax_rate\":60}}",
+      "legacy_category": "treasury_tax_shift",
+      "legacy_operation_id": "pf-impact-op:00000001:e10b527589c1b611fd9d",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-158-a9ce0c6feb07e08b.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"player_rates\",\"actor_id\":0,\"target\":{\"luxury_rate\":0,\"science_rate\":40,\"tax_rate\":60}}",
+        "authority_pressure": null,
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding"
+        ],
+        "commit_validation": null,
+        "operation_id": null,
+        "policy_authority": false,
+        "readout_hash": "fa99a8ef85297a17ee9455f8f9206c49d52f7e16e349df2df8714fd2b269b2df",
+        "reason": "legacy-winner-has-no-unique-fdas-food-route",
+        "revision_id": "fdas-revision-848b1dccd425c4d21f5dce2928643359",
+        "scheduling": null,
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:158:29868:a9ce0c6feb07e08b",
+        "status": "fallback"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:158:29868:a9ce0c6feb07e08b",
+      "turn": 158
+    },
+    {
+      "action_key": "{\"action_type\":\"city_governor\",\"city_id\":109,\"target\":{\"food_surplus_reserve\":1}}",
+      "authority_latency_ms": 1.6664857976138592,
+      "legacy_action_key": "{\"action_type\":\"city_governor\",\"city_id\":109,\"target\":{\"food_surplus_reserve\":1}}",
+      "legacy_category": "city_food_governor",
+      "legacy_operation_id": "pf-impact-op:00000000:3a1d4953244ec66d04f8",
+      "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-158-a8fa9bcbf3ebe7fc.json",
+      "readout": {
+        "action_key": "{\"action_type\":\"city_governor\",\"city_id\":109,\"target\":{\"food_surplus_reserve\":1}}",
+        "authority_pressure": {
+          "evaluation_hash": "324ba8ac94e96961405b7e48e9c193a6dddbac9ea6a65c65dc7a0ddbfae30ff7",
+          "schedule_hash": "0f2958afbaab1041c07f8514ba3e935543d3182fb1b57f525573d0499e16fd6c",
+          "selected_operation_id": "operation-68f6c8b1886bcf289aa76576d606530a",
+          "status": "complete"
+        },
+        "authority_slice": "fdas-bounded-city-stability/1.0",
+        "checks": [
+          "domain-authority-gate",
+          "revision-current-evaluation",
+          "legacy-winner-fdas-route-binding",
+          "bounded-city-stability-contract",
+          "authority-pressure-readout",
+          "resource-and-packet-schedule",
+          "exact-fdas-commit-validation"
+        ],
+        "commit_validation": {
+          "binding_hash": "db30f98ba85e7f948c5c144cc5bfa760274aeec3ffcae7a444691fc67b86f5af",
+          "checks": [
+            "snapshot-and-legal-action-refresh",
+            "fdas-revision-identity",
+            "fdas-source-supports",
+            "fdas-candidate-identity",
+            "server-legal-action-membership",
+            "causal-effect-and-requirement-firewall",
+            "domain-authority-gate"
+          ],
+          "current_revision_id": "fdas-revision-cb720c3ff153b299d86d6ccbd6360dc4",
+          "current_snapshot_id": "m7-main-e_full_loop-4543804-00:158:29897:a8fa9bcbf3ebe7fc",
+          "disposition": "commit",
+          "execution_authority": false,
+          "plan_materialization_authorized": true,
+          "reason": null,
+          "result_hash": "a27212ea52ed0fdb4c6031d76f90c5f053e130dd134cf06aa12685304a1e54ed",
+          "validator_identity": "fdas-commit-validator/1.0"
+        },
+        "operation_id": "operation-68f6c8b1886bcf289aa76576d606530a",
+        "policy_authority": true,
+        "readout_hash": "fb531a59f28ad5e031378917d3b47d827414ecf99ade33dd20c2b8b1761c6f6b",
+        "reason": null,
+        "revision_id": "fdas-revision-cb720c3ff153b299d86d6ccbd6360dc4",
+        "scheduling": {
+          "artifact_hash": "e1e79fa8443c3473c55f7e90b92bfd43b05d375abca8ab16bc08b29bbd797cd3",
+          "diagnostics": [],
+          "joint_selected_operation_ids": [
+            "operation-68f6c8b1886bcf289aa76576d606530a"
+          ],
+          "packet_schedule": {
+            "accounting": {
+              "action": {
+                "consumed": 1,
+                "declared": 1,
+                "stranded": 0
+              },
+              "cpu": {
+                "consumed": 1,
+                "declared": 1,
+                "stranded": 0
+              }
+            },
+            "budgets": [
+              {
+                "available": 1,
+                "resource": "action"
+              },
+              {
+                "available": 1,
+                "resource": "cpu"
+              }
+            ],
+            "committed_operation_ids": [
+              "operation-68f6c8b1886bcf289aa76576d606530a"
+            ],
+            "committed_value": 0.42499999978749997,
+            "conserved": true,
+            "integrality_gap": 0.0,
+            "relaxed_value": 0.42499999978749997,
+            "reservations": [
+              {
+                "costs": [
+                  {
+                    "quanta": 1,
+                    "resource": "action"
+                  },
+                  {
+                    "quanta": 1,
+                    "resource": "cpu"
+                  }
+                ],
+                "operation_id": "operation-68f6c8b1886bcf289aa76576d606530a",
+                "reason": null,
+                "requirement_set_id": null,
+                "reserved": [
+                  {
+                    "quanta": 1,
+                    "resource": "action"
+                  },
+                  {
+                    "quanta": 1,
+                    "resource": "cpu"
+                  }
+                ],
+                "state": "committed"
+              }
+            ],
+            "scheduler_identity": "pf-pln-packet-scheduler/2.0",
+            "stranded_quanta": []
+          },
+          "policy_authority": false,
+          "resource_schedule": {
+            "capacities": [
+              {
+                "authority": "server-legal-action-identity",
+                "quantity": 1,
+                "resource": {
+                  "kind": "city_worker_assignment",
+                  "owner_id": "109",
+                  "scope": "city:109",
+                  "subresource": "governor"
+                },
+                "snapshot_id": "m7-main-e_full_loop-4543804-00:158:29897:a8fa9bcbf3ebe7fc",
+                "window": {
+                  "end_turn_exclusive": 159,
+                  "start_turn": 158
+                }
+              }
+            ],
+            "decision_digest": "1d873706b029868415d73f495ce5c73a6d848ef3971bada111dd567baf595649",
+            "entries": [
+              {
+                "bid": 0.42499999978749997,
+                "conflict_resource_ids": [],
+                "conflicting_operation_ids": [],
+                "operation_id": "operation-68f6c8b1886bcf289aa76576d606530a",
+                "reason": null,
+                "selected": true
+              }
+            ],
+            "explored_nodes": 3,
+            "fallback_reason": null,
+            "node_budget": 100000,
+            "objective_value": 0.42499999978749997,
+            "policy_authority": false,
+            "requests": [
+              {
+                "bid": 0.42499999978749997,
+                "claims": [
+                  {
+                    "exclusive": true,
+                    "hardness": "hard_current",
+                    "quantity": 1,
+                    "resource": {
+                      "kind": "city_worker_assignment",
+                      "owner_id": "109",
+                      "scope": "city:109",
+                      "subresource": "governor"
+                    },
+                    "source_operation_id": "operation-68f6c8b1886bcf289aa76576d606530a",
+                    "source_step_id": "step-ad6d8cca4c2d2f7b03358d728031",
+                    "window": {
+                      "end_turn_exclusive": 159,
+                      "start_turn": 158
+                    }
+                  }
+                ],
+                "operation_id": "operation-68f6c8b1886bcf289aa76576d606530a",
+                "requirement_set_id": null
+              }
+            ],
+            "scheduler_identity": "freeciv-bounded-exact-resource-scheduler/1.0",
+            "selected_operation_ids": [
+              "operation-68f6c8b1886bcf289aa76576d606530a"
+            ],
+            "shadow_only": true,
+            "status": "exact"
+          }
+        },
+        "snapshot_id": "m7-main-e_full_loop-4543804-00:158:29897:a8fa9bcbf3ebe7fc",
+        "status": "authorized"
+      },
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:158:29897:a8fa9bcbf3ebe7fc",
+      "turn": 158
+    }
+  ],
+  "report_hash": "05e49c14641aa9c099aa8b7b2a55fc6d0fc5f9a4525911e873f2766f2063eff6",
+  "result": {
+    "authorized_count": 4,
+    "fallback_count": 34,
+    "passed": true,
+    "policy_winner_change_count": 0
+  },
+  "ruleset": "civ2civ3",
+  "schema_version": "1.0",
+  "source": {
+    "files": {
+      "benchmarks/freeciv/harness/engine_live.py": "0fe456739ec84f53a6525d8fe42e24daae065a03cdc7f1144c3a8a01c1c166d6",
+      "profile/dependent_atomspace_city_stability_authority.yaml": "2827c637c52c8dd976aa70125f3061974da8f50376a956507e8aba7add8c820a",
+      "profile/fdas_manifest_city_stability_authority.json": "96d542fddf70a7e83fa2b690721d0263c4b9c8464894d90757f74573e5730e4f",
+      "src/freeciv_agent/planning/fdas.py": "26f629e938d4e6a30bb588e7da70f722e37cfc55166fadf724afd6c45683cf02",
+      "src/freeciv_agent/planning/fdas_authority.py": "5e159cf56bf87edb4a583cd5ced5ce78530bd8b152f3c0bc6e99e85c6a604ad8",
+      "src/freeciv_agent/planning/fdas_commit.py": "62d3a7900b8176e2506578f20ef206a212deaaf821ab915b619ae2b9e9e0f6cc",
+      "src/freeciv_agent/pressure/fdas_adapter.py": "61a3643745f5e2e0e5950575cdc1daee885097bc753819d307caca4c97c341ec",
+      "src/freeciv_agent/pressure/fdas_resources.py": "5ce75db8546a38c99b5314a963f5ebf1de51d9fe5ea7ad05a4d477a451d0075c",
+      "src/freeciv_agent/state/atomspace/runtime.py": "00b1e97576e95b01b62fefc33972cd9a9b556a9d8d0a515a93955221ec69514c"
+    },
+    "implementation_digest": "05a9c3aa64795756999ab9c293afa58121363b26c0359d1a125ed22bb3ad2472"
+  }
+}

@@ -1313,6 +1313,12 @@ def load(path=None):
             raise ValueError("FREECIV_FDAS_CONFIG_PATH cannot be empty")
         fdas_paths = dict(fdas_paths)
         fdas_paths["config_path"] = fdas_config_override
+    fdas_manifest_override = os.environ.get("FREECIV_FDAS_MANIFEST_PATH")
+    if fdas_manifest_override is not None:
+        if not fdas_manifest_override.strip():
+            raise ValueError("FREECIV_FDAS_MANIFEST_PATH cannot be empty")
+        fdas_paths = dict(fdas_paths)
+        fdas_paths["manifest_path"] = fdas_manifest_override
     if (not isinstance(fdas_paths, dict)
             or set(fdas_paths) != {"config_path", "manifest_path"}
             or any(not isinstance(fdas_paths[name], str)

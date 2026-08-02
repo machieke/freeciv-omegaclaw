@@ -2063,6 +2063,9 @@ async def _play(run_dir, manifest, context):
         "operation_authority_opportunities": 0,
         "operation_authority_actions": 0,
         "operation_authority_winner_changes": 0,
+        "fdas_authority_opportunities": 0,
+        "fdas_authority_actions": 0,
+        "fdas_authority_fallbacks": 0,
         "production_persistence_guard_applications": 0,
         "production_persistence_guard_excluded_actions": 0,
         "production_persistence_guard_opportunities": 0,
@@ -3005,6 +3008,21 @@ async def _play(run_dir, manifest, context):
                             status=fdas_shadow.pressure.status)
                         if fdas_turn_sampled:
                             fdas_shadow_evaluated_turns.add(snapshot.turn)
+                        fdas_authority = fdas_runtime.evaluate_authority(
+                            snapshot, fdas_shadow, decision.candidate)
+                        if fdas_authority is not None:
+                            decision_stats[
+                                "fdas_authority_opportunities"] += 1
+                            decision_stats["fdas_authority_actions"] += int(
+                                fdas_authority.authorized)
+                            decision_stats[
+                                "fdas_authority_fallbacks"] += int(
+                                    not fdas_authority.authorized)
+                            authority_event = fdas_runtime.emit_authority(
+                                writer, snapshot, fdas_authority,
+                                caused_by=(parent,))
+                            if authority_event is not None:
+                                parent = authority_event["event_id"]
                     # Identity-resource scheduling is observational in GDO-3.
                     # Dispatch it only after the complete live planning
                     # boundary has stopped its latency clock.
@@ -4001,6 +4019,12 @@ async def _play(run_dir, manifest, context):
          decision_stats["operation_authority_actions"]),
         ("operation_authority_winner_changes",
          decision_stats["operation_authority_winner_changes"]),
+        ("fdas_authority_opportunities",
+         decision_stats["fdas_authority_opportunities"]),
+        ("fdas_authority_actions",
+         decision_stats["fdas_authority_actions"]),
+        ("fdas_authority_fallbacks",
+         decision_stats["fdas_authority_fallbacks"]),
         ("production_persistence_guard_opportunities",
          decision_stats[
              "production_persistence_guard_opportunities"]),
@@ -4393,6 +4417,12 @@ async def _play(run_dir, manifest, context):
             "operation_authority_winner_changes": (
                 decision_stats[
                     "operation_authority_winner_changes"]),
+            "fdas_authority_opportunities": (
+                decision_stats["fdas_authority_opportunities"]),
+            "fdas_authority_actions": (
+                decision_stats["fdas_authority_actions"]),
+            "fdas_authority_fallbacks": (
+                decision_stats["fdas_authority_fallbacks"]),
             "production_persistence_guard_applications": (
                 decision_stats[
                     "production_persistence_guard_applications"]),
@@ -4651,6 +4681,12 @@ async def _play(run_dir, manifest, context):
         "operation_authority_winner_changes": (
             decision_stats[
                 "operation_authority_winner_changes"]),
+        "fdas_authority_opportunities": (
+            decision_stats["fdas_authority_opportunities"]),
+        "fdas_authority_actions": (
+            decision_stats["fdas_authority_actions"]),
+        "fdas_authority_fallbacks": (
+            decision_stats["fdas_authority_fallbacks"]),
         "production_persistence_guard_applications": (
             decision_stats[
                 "production_persistence_guard_applications"]),

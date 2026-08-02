@@ -17,6 +17,7 @@ from freeciv_agent.planning import (  # noqa: E402
     CandidateOperationFactory,
     FDASCommitBinding,
     FDASCommitValidator,
+    FdasBoundedCityAuthority,
     GoalFactory,
     ImpactCandidate,
     ValidationDisposition,
@@ -36,6 +37,7 @@ from freeciv_agent.state.atomspace import (  # noqa: E402
     CityEconomyProjector,
     DependentAtomSpaceStore,
     FdasRuntime,
+    FdasShadowEvaluation,
     RevisionQueryContext,
     ruleset_digest,
 )
@@ -113,6 +115,62 @@ def _case(ir, seq=440):
     candidates = CandidateOperationFactory(ir, digest).instantiate(
         snapshot, goals)
     return snapshot, revision, goals, candidates
+
+
+def _authority_case(ir, seq=442):
+    payload = _payload()
+    payload["cities"]["3"]["disorder"] = False
+    payload["cities"]["3"]["governor"] = {
+        "allow_disorder": False,
+        "allow_specialists": True,
+        "available": True,
+        "enabled": False,
+        "factor": [6, 2, 2, 1, 1, 2],
+        "happy_factor": 0,
+        "max_growth": False,
+        "minimal_surplus": [0, 0, 0, 0, 0, 0],
+        "require_happy": False,
+    }
+    payload["legal_actions"] = [
+        value for value in payload["legal_actions"]
+        if value.get("type") != "city_governor"]
+    payload["legal_actions"].append({
+        "type": "city_governor",
+        "city_id": 3,
+        "target": {"food_surplus_reserve": 1},
+        "is_valid": True,
+    })
+    snapshot = ProxyStateDTO.parse(
+        "fdas-authority", seq, payload).to_snapshot()
+    digest = ruleset_digest(ir)
+    store = DependentAtomSpaceStore(
+        domain_projector=CityEconomyProjector(ir, digest))
+    revision = store.build(snapshot)
+    goals = GoalFactory().instantiate(
+        revision,
+        store.query_current(snapshot.identity.game_id, snapshot.player_id))
+    food_goal = next(
+        value for value in goals
+        if value.deficit_predicate == "city-food-deficit")
+    candidates = CandidateOperationFactory(ir, digest).instantiate(
+        snapshot, (food_goal,), revision=revision)
+    source = next(
+        value for value in candidates
+        if value.action.get("action_type") == "city_governor")
+    pressure = DependentAtomPressureAdapter().evaluate(
+        revision, (food_goal,), (source,))
+    instantiation = CandidateInstantiation(
+        (source,), 0, (), (), structural_hash(source.candidate_hash))
+    explanation = FdasRuntime.explain_shadow_decision(
+        revision, RevisionQueryContext(revision), (food_goal,), (source,),
+        instantiation, pressure)
+    evaluation = FdasShadowEvaluation(
+        snapshot.snapshot_id, revision.revision_id, (food_goal,), (source,),
+        instantiation, pressure, None, explanation, (), 0.0)
+    legacy = ImpactCandidate(
+        source.action, "city_food_governor", 1.0,
+        "legacy-selected exact food reserve")
+    return snapshot, revision, evaluation, legacy
 
 
 def test_pressure_shadow_is_deterministic_read_only_and_explainable(ir):
@@ -518,3 +576,65 @@ def test_commit_binding_rejects_changed_revision_and_candidate(ir):
         binding, revision, snapshot, changed_candidate)
     assert changed.disposition == ValidationDisposition.REGENERATE
     assert changed.reason == "fdas-candidate-changed"
+
+
+def test_bounded_city_authority_passes_through_exact_legacy_winner(ir):
+    snapshot, revision, evaluation, legacy = _authority_case(ir)
+
+    readout = FdasBoundedCityAuthority().evaluate(
+        snapshot, revision, evaluation, legacy,
+        authority_enabled=True, city_stability_enabled=True)
+
+    assert readout.authorized
+    assert readout.policy_authority
+    assert readout.reason is None
+    assert readout.action_key == legacy.action_key
+    assert readout.authority_pressure["selected_operation_id"] == (
+        readout.operation_id)
+    assert readout.checks == (
+        "domain-authority-gate",
+        "revision-current-evaluation",
+        "legacy-winner-fdas-route-binding",
+        "bounded-city-stability-contract",
+        "authority-pressure-readout",
+        "resource-and-packet-schedule",
+        "exact-fdas-commit-validation",
+    )
+    assert readout.scheduling["joint_selected_operation_ids"] == [
+        readout.operation_id]
+    assert readout.commit_validation[
+        "plan_materialization_authorized"] is True
+    assert readout.commit_validation["execution_authority"] is False
+
+
+def test_bounded_city_authority_rolls_back_and_falls_back_fail_closed(ir):
+    snapshot, revision, evaluation, legacy = _authority_case(ir)
+    authority = FdasBoundedCityAuthority()
+
+    disabled = authority.evaluate(
+        snapshot, revision, evaluation, legacy,
+        authority_enabled=False, city_stability_enabled=False)
+    assert disabled.status == "disabled"
+    assert disabled.reason == "fdas-city-stability-authority-disabled"
+    assert disabled.action_key is None
+
+    different = replace(
+        legacy,
+        action={
+            "action_type": "city_governor",
+            "city_id": 3,
+            "target": {"food_surplus_reserve": 2},
+        })
+    mismatch = authority.evaluate(
+        snapshot, revision, evaluation, different,
+        authority_enabled=True, city_stability_enabled=True)
+    assert mismatch.status == "fallback"
+    assert mismatch.reason == (
+        "legacy-winner-has-no-unique-fdas-food-route")
+
+    stale = authority.evaluate(
+        snapshot, revision,
+        replace(evaluation, revision_id="stale-fdas-revision"), legacy,
+        authority_enabled=True, city_stability_enabled=True)
+    assert stale.status == "fallback"
+    assert stale.reason == "fdas-evaluation-not-current"

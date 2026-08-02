@@ -115,6 +115,19 @@ settlement, recovery, transport, and combat projection flags, so changing one
 of those shadow slices changes the manifest identity without activating the
 others.
 
+The experimental bounded city-stability slice requires an explicit matched
+profile and manifest pair:
+
+```bash
+export FREECIV_FDAS_CONFIG_PATH=profile/dependent_atomspace_city_stability_authority.yaml
+export FREECIV_FDAS_MANIFEST_PATH=profile/fdas_manifest_city_stability_authority.json
+```
+
+Setting only one override fails closed. Unsetting both immediately restores
+the default component-disabled, non-authoritative path. The bounded slice is
+an exact legacy-winner pass-through and does not make a gameplay-improvement
+claim.
+
 Only one engine-live controller may run at once. It owns
 `artifacts/freeciv/.engine-live.lock`; its workers receive fixed ports within
 6001-6009 and each worker serializes its own games. Induction games are globally

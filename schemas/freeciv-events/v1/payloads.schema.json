@@ -1454,6 +1454,7 @@
     "operation_candidate_rejected": {"$ref": "#/$defs/atomspaceEvent"},
     "pressure_graph_built": {"$ref": "#/$defs/atomspaceEvent"},
     "atomspace_shadow_decision": {"$ref": "#/$defs/atomspaceEvent"},
+    "atomspace_authority_decision": {"$ref": "#/$defs/atomspaceEvent"},
     "episode_opened": {"$ref": "#/$defs/atomspaceEvent"},
     "episode_effect_observed": {"$ref": "#/$defs/atomspaceEvent"},
     "episode_relief_attributed": {"$ref": "#/$defs/atomspaceEvent"},

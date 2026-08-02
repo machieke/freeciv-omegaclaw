@@ -39,3 +39,14 @@ proofs were equivalent, FDAS contribution measured 147.31 ms p95 against the
 150 ms gate, and full-controller latency measured 444.41 ms p95 against the
 500 ms gate. See `fdas-engine-shadow-cohort.md` for the frozen design,
 hardening trail, hashes, limitations, and non-claims.
+
+## Post-substrate bounded authority
+
+PR 13 now has a separate, default-off city-stability activation declaration.
+The bounded readout can authorize only a byte-identical city-governor action
+already selected by the legacy controller and backed by a current FDAS food
+deficit. Captured replay exercised four authorized pass-through actions and 34
+explicit fallbacks with zero winner changes and no replay failures. The
+checked default manifest remains `component-only`; see
+`fdas-bounded-city-authority.md` for the activation, rollback, exact commit,
+and non-claim boundary.

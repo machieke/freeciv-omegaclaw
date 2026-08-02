@@ -29,6 +29,7 @@ FDAS_EVENT_TYPES = frozenset((
     "operation_candidate_rejected",
     "pressure_graph_built",
     "atomspace_shadow_decision",
+    "atomspace_authority_decision",
     "episode_opened",
     "episode_effect_observed",
     "episode_relief_attributed",
@@ -363,3 +364,20 @@ class AtomSpaceEventEmitter(object):
             "status": pressure.status,
         }, (pressure_event["event_id"],))
         return tuple(emitted)
+
+    def emit_authority_readout(
+            self, writer, turn, revision, readout,
+            ruleset_digest=None, caused_by=()):
+        """Emit the exact FDAS authority or legacy-fallback decision."""
+        if not isinstance(revision, DependentAtomSpaceRevision):
+            raise TypeError("authority readout requires immutable revision")
+        if (getattr(readout, "revision_id", None) != revision.revision_id
+                or getattr(readout, "snapshot_id", None)
+                != revision.snapshot_id):
+            raise ValueError("authority readout is not revision-current")
+        return self.emit_component(
+            writer, "atomspace_authority_decision", turn, revision,
+            readout.to_dict(), caused_by=tuple(caused_by),
+            ruleset_digest=ruleset_digest,
+            component_id="fdas-bounded-city-authority",
+            component_version="1.0")

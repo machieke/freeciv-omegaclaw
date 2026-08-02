@@ -66,7 +66,22 @@ class ShadowOperationCandidate:
         object.__setattr__(self, "blockers", tuple(self.blockers))
         object.__setattr__(self, "provenance", tuple(self.provenance))
         if self.authority_eligible:
-            raise ValueError("Phase 4 shadow operation cannot carry authority")
+            target = self.action.get("target")
+            reserve = (
+                target.get("food_surplus_reserve")
+                if isinstance(target, dict) else None)
+            if (
+                    not self.legal_bound
+                    or self.blockers
+                    or self.action.get("action_type") != "city_governor"
+                    or isinstance(reserve, bool)
+                    or not isinstance(reserve, int)
+                    or not 1 <= reserve <= 10
+                    or "fdas-bounded-city-stability/1.0"
+                    not in self.provenance):
+                raise ValueError(
+                    "FDAS authority candidate violates the bounded city "
+                    "stability contract")
 
     def to_dict(self):
         return {

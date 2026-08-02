@@ -2,6 +2,7 @@ import json
 import os
 import sys
 from dataclasses import replace
+from types import SimpleNamespace
 
 import pytest
 
@@ -119,6 +120,7 @@ def test_fdas_event_vocabulary_is_complete_and_unknown_type_fails():
         "goal_instantiated", "goal_resolved", "operation_projected",
         "operation_candidate_instantiated", "operation_candidate_rejected",
         "pressure_graph_built", "atomspace_shadow_decision",
+        "atomspace_authority_decision",
         "episode_opened", "episode_effect_observed",
         "episode_relief_attributed", "conductance_sample_recorded",
         "induced_rule_quarantined", "induced_rule_promoted",
@@ -129,6 +131,38 @@ def test_fdas_event_vocabulary_is_complete_and_unknown_type_fails():
     with pytest.raises(ValueError, match="unknown FDAS"):
         emitter.emit_component(
             object(), "invented", 4, _revision(), {})
+
+
+def test_authority_readout_event_is_revision_bound_and_schema_valid(tmp_path):
+    revision = _revision()
+    path = os.path.join(str(tmp_path), "authority-events.jsonl")
+    writer = EventWriter(path, "fdas-authority", durable=False)
+    readout = SimpleNamespace(
+        revision_id=revision.revision_id,
+        snapshot_id=revision.snapshot_id,
+        to_dict=lambda: {
+            "action_key": None,
+            "authority_slice": "fdas-bounded-city-stability/1.0",
+            "checks": ["domain-authority-gate"],
+            "policy_authority": False,
+            "reason": "legacy-fallback",
+            "status": "fallback",
+        })
+
+    event = AtomSpaceEventEmitter().emit_authority_readout(
+        writer, 4, revision, readout)
+
+    assert event["type"] == "atomspace_authority_decision"
+    assert event["payload"]["details"]["status"] == "fallback"
+    assert validate_file(path).valid
+
+    with pytest.raises(ValueError, match="not revision-current"):
+        AtomSpaceEventEmitter().emit_authority_readout(
+            writer, 4, revision,
+            SimpleNamespace(
+                revision_id=revision.revision_id,
+                snapshot_id="stale-snapshot",
+                to_dict=readout.to_dict))
 
 
 def test_revision_events_do_not_report_validity_refresh_as_rederivation(

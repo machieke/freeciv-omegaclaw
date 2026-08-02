@@ -181,6 +181,7 @@ Configuration ownership is deliberate:
 | ruleset, seeds, opponent, statistics, model budget | `profile/freeciv_harness.yaml` |
 | provider endpoint/model mapping | `profile/llm_providers.yaml` |
 | optional manifest-bound FDAS experiment profile | `FREECIV_FDAS_CONFIG_PATH` |
+| optional matched FDAS activation manifest | `FREECIV_FDAS_MANIFEST_PATH` |
 | proxy endpoints, token, container, source discovery | environment variables above |
 
 The impact policy also versions a 0.3-second accepted-action refresh deadline

@@ -100,6 +100,29 @@ def test_config_accepts_manifest_bound_fdas_shadow_profile_override(
         "policy_authority"] is False
 
 
+def test_config_requires_explicit_profile_and_manifest_for_fdas_authority(
+        monkeypatch):
+    config_path = os.path.join(
+        REPO, "profile",
+        "dependent_atomspace_city_stability_authority.yaml")
+    manifest_path = os.path.join(
+        REPO, "profile",
+        "fdas_manifest_city_stability_authority.json")
+    monkeypatch.setenv("FREECIV_FDAS_CONFIG_PATH", config_path)
+    monkeypatch.setenv("FREECIV_FDAS_MANIFEST_PATH", manifest_path)
+
+    config = load()
+    declaration = config["dependent_atomspace"]
+
+    assert declaration["config"]["authority_enabled"] is True
+    assert declaration["config"]["domain_authority"][
+        "city_stability"] is True
+    assert declaration["manifest"]["status"] == "bounded-authority"
+    assert declaration["manifest"]["policy_authority"] is True
+    assert declaration["manifest_source"] == (
+        "profile/fdas_manifest_city_stability_authority.json")
+
+
 def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     config = load()
     assert len(config["seeds"]) == 30 == len(set(config["seeds"]))

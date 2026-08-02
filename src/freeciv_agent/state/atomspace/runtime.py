@@ -368,6 +368,7 @@ class FdasRuntime(object):
         self._goal_factory = None
         self._candidate_factory = None
         self._pressure_adapter = None
+        self._authority_adapter = None
         self._last_cold_verification_turn = {}
 
     @property
@@ -473,6 +474,17 @@ class FdasRuntime(object):
         self._goal_factory = goal_factory
         self._candidate_factory = candidate_factory
         self._pressure_adapter = pressure_adapter
+        return self
+
+    def configure_authority(self, authority_adapter):
+        """Install the separately gated bounded authority readout."""
+        if not self.enabled or not self.config.authority_enabled:
+            raise FdasRuntimeConfigurationError(
+                "FDAS authority adapter requires enabled authority config")
+        if authority_adapter is None:
+            raise FdasRuntimeConfigurationError(
+                "FDAS authority adapter is required")
+        self._authority_adapter = authority_adapter
         return self
 
     @staticmethod
@@ -666,6 +678,25 @@ class FdasRuntime(object):
             instantiation, pressure, comparison, decision_explanation,
             tuple(stage_latency), (now - started) * 1000.0)
 
+    def evaluate_authority(self, snapshot, shadow_evaluation,
+                           legacy_candidate):
+        """Evaluate the configured authority slice or return no readout."""
+        if not self.config.authority_enabled:
+            return None
+        if self._authority_adapter is None:
+            raise FdasRuntimeConfigurationError(
+                "enabled FDAS authority is not configured")
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        if revision is None or revision.snapshot_id != snapshot.snapshot_id:
+            raise RuntimeError(
+                "FDAS authority requires the current revision")
+        domains = self.config.section("domain_authority")
+        return self._authority_adapter.evaluate(
+            snapshot, revision, shadow_evaluation, legacy_candidate,
+            authority_enabled=self.config.authority_enabled,
+            city_stability_enabled=domains["city_stability"])
+
     def emit_current(self, writer, snapshot, caused_by=(), prior_revision=None):
         """Emit bounded causal evidence for the current rich revision."""
         if not self.enabled or self.event_emitter is None:
@@ -702,6 +733,20 @@ class FdasRuntime(object):
                 "FDAS shadow evidence is not revision-current")
         return self.event_emitter.emit_shadow_evaluation(
             writer, snapshot.turn, revision, evaluation,
+            ruleset_digest=self.ruleset_digest,
+            caused_by=tuple(caused_by))
+
+    def emit_authority(self, writer, snapshot, readout, caused_by=()):
+        """Emit a revision-bound authority/fallback event."""
+        if readout is None or self.event_emitter is None:
+            return None
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        if revision is None or revision.revision_id != readout.revision_id:
+            raise RuntimeError(
+                "FDAS authority evidence is not revision-current")
+        return self.event_emitter.emit_authority_readout(
+            writer, snapshot.turn, revision, readout,
             ruleset_digest=self.ruleset_digest,
             caused_by=tuple(caused_by))
 
@@ -813,4 +858,7 @@ def build_runtime(declaration, ruleset_ir=None, belief_store=None,
         runtime.configure_shadow_evaluation(
             GoalFactory(), CandidateOperationFactory(ruleset_ir, digest),
             DependentAtomPressureAdapter())
+        if config.authority_enabled:
+            from ...planning import FdasBoundedCityAuthority
+            runtime.configure_authority(FdasBoundedCityAuthority())
     return runtime

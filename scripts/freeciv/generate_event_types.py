@@ -156,6 +156,7 @@ def generate(envelope, payloads):
         "goal_resolved", "operation_projected",
         "operation_candidate_instantiated", "operation_candidate_rejected",
         "pressure_graph_built", "atomspace_shadow_decision",
+        "atomspace_authority_decision",
         "episode_opened", "episode_effect_observed",
         "episode_relief_attributed", "conductance_sample_recorded",
         "induced_rule_quarantined", "induced_rule_promoted",
