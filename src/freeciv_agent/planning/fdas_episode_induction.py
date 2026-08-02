@@ -3,7 +3,11 @@
 from dataclasses import dataclass
 
 from ..events.schema import structural_hash
-from ..pressure.induction import InductionEpisode
+from ..pressure.induction import (
+    InductionEpisode,
+    InductionLedger,
+    PatternMiner,
+)
 from .fdas_episodes import DecisionEpisodeStore
 
 
@@ -172,3 +176,120 @@ class FdasEpisodeInductionAdapter(object):
             episode.episode_id, True,
             "attributable-episode-encoded-for-quarantined-induction",
             induction_episode)
+
+
+@dataclass(frozen=True)
+class EpisodeInductionShadowResult:
+    """One idempotent, non-authorizing evaluation of durable episodes."""
+
+    encoding_results: tuple
+    proposals: tuple
+    newly_quarantined_proposal_ids: tuple
+    duplicate_proposal_ids: tuple
+    mining_reason: str
+    ledger_hash: str
+    truth_mutated: bool
+    policy_authority: bool
+    result_hash: str
+
+    def to_dict(self):
+        return {
+            "duplicate_proposal_ids": list(self.duplicate_proposal_ids),
+            "encoding_results": [
+                value.to_dict() for value in self.encoding_results],
+            "ledger_hash": self.ledger_hash,
+            "mining_reason": self.mining_reason,
+            "newly_quarantined_proposal_ids": list(
+                self.newly_quarantined_proposal_ids),
+            "policy_authority": bool(self.policy_authority),
+            "proposals": [value.to_dict() for value in self.proposals],
+            "result_hash": self.result_hash,
+            "truth_mutated": bool(self.truth_mutated),
+        }
+
+
+class FdasEpisodeInductionShadow(object):
+    """Mine only quarantined rules from live durable episode evidence."""
+
+    SHADOW_IDENTITY = "fdas-episode-induction-shadow/1.0"
+
+    def __init__(self, episode_store, ledger, miner=None):
+        if not isinstance(episode_store, DecisionEpisodeStore):
+            raise TypeError("episode induction shadow requires episode store")
+        if not isinstance(ledger, InductionLedger):
+            raise TypeError("episode induction shadow requires induction ledger")
+        if miner is not None and not isinstance(miner, PatternMiner):
+            raise TypeError("episode induction shadow requires PatternMiner")
+        self.episode_store = episode_store
+        self.adapter = FdasEpisodeInductionAdapter(episode_store)
+        self.ledger = ledger
+        self.miner = miner or PatternMiner(
+            minimum_support=4,
+            maximum_antecedents=2,
+            minimum_residual=0.05,
+            maximum_candidates=32)
+
+    @staticmethod
+    def _spec(episode):
+        return EpisodeInductionSpec(
+            episode.episode_id,
+            ("operation_type",),
+            ("actor_tile_before", "target_tile"))
+
+    def evaluate(self):
+        if self.episode_store.quarantined:
+            raise ValueError("quarantined episode store cannot feed induction")
+        if self.ledger.promoted_rules():
+            raise ValueError(
+                "shadow induction ledger cannot contain promoted rules")
+        encodings = tuple(
+            self.adapter.encode(self._spec(episode))
+            for episode in self.episode_store.episodes())
+        rows = tuple(
+            value.induction_episode for value in encodings
+            if value.accepted)
+        proposals = ()
+        if len(rows) < self.miner.minimum_support:
+            mining_reason = "insufficient-attributable-episode-support"
+        else:
+            try:
+                proposals = self.miner.mine(
+                    rows, "defense-operation-relieves-goal")
+                mining_reason = (
+                    "quarantined-proposals-mined"
+                    if proposals else
+                    "no-pattern-cleared-residual-gate")
+            except ValueError as error:
+                if "not independent" not in str(error):
+                    raise
+                proposals = ()
+                mining_reason = "training-provenance-not-independent"
+        new_ids = []
+        duplicate_ids = []
+        for proposal in proposals:
+            target = new_ids if self.ledger.propose(proposal) else duplicate_ids
+            target.append(proposal.proposal_id)
+        if self.ledger.promoted_rules():
+            raise RuntimeError("live shadow induction escaped quarantine")
+        semantic = {
+            "adapter_identity": self.adapter.ADAPTER_IDENTITY,
+            "duplicate_proposal_ids": sorted(duplicate_ids),
+            "encoding_results": [value.to_dict() for value in encodings],
+            "ledger_hash": self.ledger.state_hash,
+            "mining_reason": mining_reason,
+            "newly_quarantined_proposal_ids": sorted(new_ids),
+            "policy_authority": False,
+            "proposals": [value.to_dict() for value in proposals],
+            "shadow_identity": self.SHADOW_IDENTITY,
+            "truth_mutated": False,
+        }
+        return EpisodeInductionShadowResult(
+            encodings,
+            proposals,
+            tuple(sorted(new_ids)),
+            tuple(sorted(duplicate_ids)),
+            mining_reason,
+            self.ledger.state_hash,
+            False,
+            False,
+            structural_hash(semantic))

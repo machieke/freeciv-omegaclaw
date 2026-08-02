@@ -15,6 +15,7 @@ from freeciv_agent.planning import (  # noqa: E402
     EPISODE_SCHEMA_VERSION,
     EpisodeInductionSpec,
     FdasEpisodeInductionAdapter,
+    FdasEpisodeInductionShadow,
 )
 from freeciv_agent.pressure import (  # noqa: E402
     InductionLedger,
@@ -23,7 +24,7 @@ from freeciv_agent.pressure import (  # noqa: E402
 )
 
 
-def _episode(index, status, cohort="train", event_id=None):
+def _episode(index, status, cohort="train", event_id=None, tile="10"):
     terminal = status in (
         "goal-relief-observed", "effect-without-goal-relief",
         "no-effect-observed", "confounded-unattributable")
@@ -39,7 +40,9 @@ def _episode(index, status, cohort="train", event_id=None):
         "after-{}-{}".format(cohort, index) if terminal else None,
         ("pf-impact:survival",),
         (("era", "ancient"),
+         ("actor_tile_before", str(tile)),
          ("operation_type", "move_defender_to_city"),
+         ("target_tile", "10"),
          ("terrain", "land")),
         ("atom-defense-route",),
         ("support-{}-{}".format(cohort, index),),
@@ -169,3 +172,61 @@ def test_encoded_training_and_disjoint_holdout_obey_quarantine_lifecycle():
         assert ledger.promoted_rules() == (proposal,)
     else:
         assert ledger.promoted_rules() == ()
+
+
+def test_live_shadow_mines_only_quarantined_rules_and_replay_is_idempotent():
+    episodes = tuple(
+        _episode(
+            index,
+            "goal-relief-observed" if index < 2 else "no-effect-observed",
+            tile="10" if index < 2 else "20")
+        for index in range(4))
+    store = DecisionEpisodeStore("fdas-induction-shadow", episodes)
+    ledger = InductionLedger(identity="fdas-induction-shadow")
+    shadow = FdasEpisodeInductionShadow(
+        store,
+        ledger,
+        PatternMiner(
+            minimum_support=2,
+            maximum_antecedents=1,
+            minimum_residual=0.05))
+
+    first = shadow.evaluate()
+    first_hash = ledger.state_hash
+    second = shadow.evaluate()
+
+    assert first.proposals
+    assert first.newly_quarantined_proposal_ids
+    assert not first.duplicate_proposal_ids
+    assert all(
+        ledger.status(proposal_id) == "quarantined"
+        for proposal_id in first.newly_quarantined_proposal_ids)
+    assert ledger.promoted_rules() == ()
+    assert first.truth_mutated is False
+    assert first.policy_authority is False
+    assert second.newly_quarantined_proposal_ids == ()
+    assert second.duplicate_proposal_ids == tuple(
+        sorted(value.proposal_id for value in first.proposals))
+    assert ledger.state_hash == first_hash
+
+
+def test_live_shadow_abstains_when_training_lineage_is_not_independent():
+    episodes = tuple(
+        _episode(
+            index,
+            "goal-relief-observed" if index < 2 else "no-effect-observed",
+            event_id="shared-execution",
+            tile="10" if index < 2 else "20")
+        for index in range(4))
+    ledger = InductionLedger(identity="fdas-induction-shadow")
+    result = FdasEpisodeInductionShadow(
+        DecisionEpisodeStore("fdas-induction-shadow", episodes),
+        ledger,
+        PatternMiner(
+            minimum_support=2,
+            maximum_antecedents=1,
+            minimum_residual=0.05)).evaluate()
+
+    assert result.mining_reason == "training-provenance-not-independent"
+    assert result.proposals == ()
+    assert ledger.snapshot()["proposals"] == {}

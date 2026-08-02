@@ -39,6 +39,7 @@ from freeciv_agent.pressure import (
     BoundedDecision,
     CostVector,
     Hypothesis,
+    InductionLedger,
     ObservationOutcome,
     ObservationTest,
     PacketBudget,
@@ -56,6 +57,7 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     DecisionEpisodeStore,
                                     EpisodeControlPrediction,
                                     FdasDefenseEpisodeRecorder,
+                                    FdasEpisodeInductionShadow,
                                     FdasEpisodeLearningAdapter,
                                     FdasExpansionOperationAdapter,
                                     FdasFounderTransportProjectionAdapter,
@@ -2401,6 +2403,7 @@ async def _play(run_dir, manifest, context):
     fdas_episode_store = None
     fdas_episode_recorder = None
     fdas_episode_learning = None
+    fdas_episode_induction = None
     if fdas_learning_config["episode_attribution_enabled"]:
         fdas_episode_identity = structural_hash([
             manifest["manifest_identity"], manifest["attempt_id"],
@@ -2433,6 +2436,20 @@ async def _play(run_dir, manifest, context):
                         "effect-without-goal-relief",
                         "no-effect-observed"):
                     fdas_episode_learning.apply(existing_episode.episode_id)
+        if fdas_learning_config["induction_enabled"]:
+            fdas_induction_identity = structural_hash([
+                fdas_episode_identity,
+                "fdas-episode-induction-shadow/1.0",
+            ])
+            fdas_induction_ledger = InductionLedger(
+                os.path.join(run_dir, "fdas-induction-ledger.json"),
+                identity=fdas_induction_identity)
+            fdas_episode_induction = FdasEpisodeInductionShadow(
+                fdas_episode_store,
+                fdas_induction_ledger)
+            if fdas_induction_ledger.promoted_rules():
+                raise RuntimeError(
+                    "FDAS induction shadow loaded promoted rule authority")
     def fdas_operation_records():
         rows = tuple(control_event_emitter.fdas_operation_records(
             manifest["game_id"]))
@@ -2639,6 +2656,11 @@ async def _play(run_dir, manifest, context):
         "fdas_episode_relief_attributed": 0,
         "fdas_episode_no_effect": 0,
         "fdas_episode_confounded": 0,
+        "fdas_induction_episodes_encoded": 0,
+        "fdas_induction_episode_abstentions": 0,
+        "fdas_induction_proposals_quarantined": 0,
+        "fdas_induction_duplicate_proposals": 0,
+        "fdas_induction_promoted_rules": 0,
         "fdas_conductance_samples": 0,
         "fdas_expansion_action_matches": 0,
         "fdas_expansion_completions": 0,
@@ -2689,6 +2711,7 @@ async def _play(run_dir, manifest, context):
             atoms=update.atom_count,
             scopes=update.scope_count)
     fdas_episode_open_event_ids = {}
+    fdas_induction_seen_episode_ids = set()
     pending_impact_outcomes = DeferredImpactOutcomeLedger()
     action_type_counts = {}
     impact_turns = set()
@@ -3371,6 +3394,77 @@ async def _play(run_dir, manifest, context):
                     cause = event["event_id"]
                     decision_stats["fdas_conductance_samples"] += int(
                         learning.applied)
+                if fdas_episode_induction is not None:
+                    induction_started = time.perf_counter()
+                    induction = fdas_episode_induction.evaluate()
+                    new_encodings = tuple(
+                        value for value in induction.encoding_results
+                        if value.episode_id
+                        not in fdas_induction_seen_episode_ids
+                        and (
+                            value.accepted
+                            or fdas_episode_store.get(
+                                value.episode_id).outcome_status in (
+                                    "confounded-unattributable",
+                                    "contradicted",
+                                    "expired-unresolved")))
+                    fdas_induction_seen_episode_ids.update(
+                        value.episode_id for value in new_encodings)
+                    decision_stats["fdas_induction_episodes_encoded"] += sum(
+                        value.accepted for value in new_encodings)
+                    decision_stats[
+                        "fdas_induction_episode_abstentions"] += sum(
+                            not value.accepted for value in new_encodings)
+                    decision_stats[
+                        "fdas_induction_duplicate_proposals"] += len(
+                            induction.duplicate_proposal_ids)
+                    proposal_by_id = dict(
+                        (value.proposal_id, value)
+                        for value in induction.proposals)
+                    for proposal_id in (
+                            induction.newly_quarantined_proposal_ids):
+                        event = fdas_runtime.emit_episode_component(
+                            writer,
+                            current,
+                            "induced_rule_quarantined",
+                            {
+                                "induction_result_hash":
+                                    induction.result_hash,
+                                "ledger_hash": induction.ledger_hash,
+                                "policy_authority": False,
+                                "proposal": proposal_by_id[
+                                    proposal_id].to_dict(),
+                                "proposal_id": proposal_id,
+                                "status": "quarantined",
+                                "truth_mutated": False,
+                            },
+                            caused_by=(cause,))
+                        cause = event["event_id"]
+                        decision_stats[
+                            "fdas_induction_proposals_quarantined"] += 1
+                    promoted = len(
+                        fdas_episode_induction.ledger.promoted_rules())
+                    decision_stats["fdas_induction_promoted_rules"] = promoted
+                    if promoted:
+                        raise RuntimeError(
+                            "FDAS live induction escaped quarantine")
+                    cause = _metric(
+                        writer,
+                        current.turn,
+                        cause,
+                        "fdas_episode_induction_latency_ms",
+                        (time.perf_counter() - induction_started) * 1000.0,
+                        manifest,
+                        accepted_encodings=sum(
+                            value.accepted for value in new_encodings),
+                        abstained_encodings=sum(
+                            not value.accepted for value in new_encodings),
+                        ledger_hash=induction.ledger_hash,
+                        mining_reason=induction.mining_reason,
+                        policy_authority=False,
+                        proposals=len(induction.proposals),
+                        result_hash=induction.result_hash,
+                        truth_mutated=False)
             return cause
 
         distance = _enemy_distance(
@@ -5111,6 +5205,16 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_episode_no_effect"]),
         ("fdas_episode_confounded",
          decision_stats["fdas_episode_confounded"]),
+        ("fdas_induction_episodes_encoded",
+         decision_stats["fdas_induction_episodes_encoded"]),
+        ("fdas_induction_episode_abstentions",
+         decision_stats["fdas_induction_episode_abstentions"]),
+        ("fdas_induction_proposals_quarantined",
+         decision_stats["fdas_induction_proposals_quarantined"]),
+        ("fdas_induction_duplicate_proposals",
+         decision_stats["fdas_induction_duplicate_proposals"]),
+        ("fdas_induction_promoted_rules",
+         decision_stats["fdas_induction_promoted_rules"]),
         ("fdas_conductance_samples",
          decision_stats["fdas_conductance_samples"]),
         ("fdas_expansion_action_matches",
@@ -5550,6 +5654,16 @@ async def _play(run_dir, manifest, context):
                 decision_stats["fdas_episode_no_effect"]),
             "fdas_episode_confounded": (
                 decision_stats["fdas_episode_confounded"]),
+            "fdas_induction_episodes_encoded": (
+                decision_stats["fdas_induction_episodes_encoded"]),
+            "fdas_induction_episode_abstentions": (
+                decision_stats["fdas_induction_episode_abstentions"]),
+            "fdas_induction_proposals_quarantined": (
+                decision_stats["fdas_induction_proposals_quarantined"]),
+            "fdas_induction_duplicate_proposals": (
+                decision_stats["fdas_induction_duplicate_proposals"]),
+            "fdas_induction_promoted_rules": (
+                decision_stats["fdas_induction_promoted_rules"]),
             "fdas_conductance_samples": (
                 decision_stats["fdas_conductance_samples"]),
             "fdas_expansion_action_matches": (
@@ -5856,6 +5970,16 @@ async def _play(run_dir, manifest, context):
             decision_stats["fdas_episode_no_effect"]),
         "fdas_episode_confounded": (
             decision_stats["fdas_episode_confounded"]),
+        "fdas_induction_episodes_encoded": (
+            decision_stats["fdas_induction_episodes_encoded"]),
+        "fdas_induction_episode_abstentions": (
+            decision_stats["fdas_induction_episode_abstentions"]),
+        "fdas_induction_proposals_quarantined": (
+            decision_stats["fdas_induction_proposals_quarantined"]),
+        "fdas_induction_duplicate_proposals": (
+            decision_stats["fdas_induction_duplicate_proposals"]),
+        "fdas_induction_promoted_rules": (
+            decision_stats["fdas_induction_promoted_rules"]),
         "fdas_conductance_samples": (
             decision_stats["fdas_conductance_samples"]),
         "fdas_expansion_action_matches": (
