@@ -2,6 +2,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 from dataclasses import replace
 
 import pytest
@@ -26,6 +27,8 @@ from freeciv_agent.planning import (  # noqa: E402
     FdasEpisodeInductionHeldoutGate,
     FdasEpisodeInductionShadow,
     FdasDefenseEpisodeRecorder,
+    FdasCandidateChoiceSetRecorder,
+    FdasCandidateChoiceSetStore,
     FdasPromotedRuleCandidateImpactShadow,
     OperationParticipant,
     OperationSpec,
@@ -344,6 +347,10 @@ def test_live_candidate_impact_is_category_scoped_and_action_preserving():
     assert evaluated.to_dict()["truth_mutated"] is False
     assert evaluated.to_dict()["policy_authority"] is False
     assert evaluated.to_dict()["readout_authority"] is False
+    assert evaluated.impact.rows[0].feature_query.to_dict() == (
+        evaluated.impact.rows[0].to_dict()["feature_query"])
+    assert "outcome" not in evaluated.impact.rows[0].to_dict()[
+        "feature_query"]
 
     outside_spec = replace(
         candidate.operation, operation_type="fdas-shadow:other:unit_fortify")
@@ -354,6 +361,105 @@ def test_live_candidate_impact_is_category_scoped_and_action_preserving():
     assert abstained.reason == (
         "no_admissible_candidate_in_approved_action_category")
     assert abstained.impact is None
+
+
+def test_candidate_choice_set_censors_nonselected_and_labels_only_selected():
+    snapshot, candidate, score, evaluator = _candidate_impact_fixture()
+    alternative_spec = replace(
+        candidate.operation,
+        operation_id="candidate-fortify-alternative",
+        participants=(OperationParticipant(
+            "actor", "unit:8", "unit", True),))
+    alternative_action = {"action_type": "unit_fortify", "actor_id": 8}
+    alternative = replace(
+        candidate,
+        operation=alternative_spec,
+        action=alternative_action,
+        action_key=json.dumps(
+            alternative_action, sort_keys=True, separators=(",", ":")),
+        candidate_hash="candidate-hash-alternative")
+    alternative_score = replace(
+        score,
+        operation=replace(
+            score.operation,
+            operation_id=alternative_spec.operation_id,
+            atom_id="candidate-atom-alternative"),
+        priority=0.9,
+        value=0.9)
+    evaluated = evaluator.evaluate(
+        snapshot, (candidate, alternative), (score, alternative_score),
+        candidate.operation.operation_id)
+    store = FdasCandidateChoiceSetStore("choice-set-test")
+    recorder = FdasCandidateChoiceSetRecorder(store)
+
+    choice_set = recorder.capture(
+        evaluated, (candidate, alternative), snapshot, "revision-before",
+        candidate.action_key, ("approved-artifact-hash",))
+    rows = dict((row.operation_id, row) for row in choice_set.choices)
+
+    assert choice_set.selected_operation_id == candidate.operation.operation_id
+    assert rows[candidate.operation.operation_id].selection_role == "selected"
+    assert rows[alternative.operation.operation_id].selection_role == (
+        "nonselected-censored")
+    assert all("outcome" not in row.feature_query.to_dict()
+               for row in choice_set.choices)
+    assert choice_set.observed_outcome is None
+
+    linked = recorder.record_execution(
+        choice_set.choice_set_id, True, "execution-event", "episode-selected")
+    material = {
+        "due_turn": 44,
+        "episode_digest": "episode-digest",
+        "episode_id": "episode-selected",
+        "game_id": snapshot.identity.game_id,
+        "player_id": snapshot.player_id,
+        "relief_revision_id": "relief-revision",
+        "relief_turn": 12,
+        "schema_version": 1,
+        "target_id": DURABLE_ACTOR_CITY_DEFENSE_TARGET,
+    }
+    label = EpisodeInductionOutcomeLabel(
+        1, "outcome-label-" + structural_hash(material)[:24],
+        "episode-selected", "episode-digest", snapshot.identity.game_id,
+        snapshot.player_id, DURABLE_ACTOR_CITY_DEFENSE_TARGET,
+        12, 44, "relief-revision", "observed", 44,
+        "observed-revision", True,
+        (("actor_present", True),), "selected-candidate-observed",
+        ("label-provenance",))
+    observed = recorder.observe_outcome("episode-selected", label)
+
+    assert linked.outcome_status == "pending-observation"
+    assert observed.outcome_status == "observed"
+    assert observed.observed_outcome is True
+    assert dict((row.operation_id, row.selection_role)
+                for row in observed.choices)[alternative.operation.operation_id] == (
+                    "nonselected-censored")
+
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "choices.json")
+        store.save(path)
+        loaded = FdasCandidateChoiceSetStore.load(path, "choice-set-test")
+        assert loaded.store_digest == store.store_digest
+        assert loaded.get(choice_set.choice_set_id) == observed
+
+
+def test_candidate_choice_set_without_in_scope_selection_is_all_censored():
+    snapshot, candidate, score, evaluator = _candidate_impact_fixture()
+    evaluated = evaluator.evaluate(
+        snapshot, (candidate,), (score,), candidate.operation.operation_id)
+    recorder = FdasCandidateChoiceSetRecorder(
+        FdasCandidateChoiceSetStore("choice-set-no-selection"))
+
+    choice_set = recorder.capture(
+        evaluated, (candidate,), snapshot, "revision-before",
+        '{"action_type":"city_production","city_id":3}')
+
+    assert choice_set.selected_operation_id is None
+    assert choice_set.execution_status == "not-applicable"
+    assert choice_set.outcome_status == "censored-no-selection"
+    assert all(row.selection_role == "nonselected-censored"
+               for row in choice_set.choices)
+    assert choice_set.observed_outcome is None
 
 
 def test_context_and_evidence_features_must_be_linked_to_episode():

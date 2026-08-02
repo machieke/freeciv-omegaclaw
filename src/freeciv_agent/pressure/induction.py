@@ -1465,6 +1465,7 @@ class PromotedRuleCandidateImpactRow:
 
     operation_id: str
     query_id: object
+    feature_query: object
     admissible: bool
     baseline_rank: object
     shadow_rank: object
@@ -1484,6 +1485,9 @@ class PromotedRuleCandidateImpactRow:
             "baseline_priority": float(self.baseline_priority),
             "baseline_rank": self.baseline_rank,
             "estimated": bool(self.estimated),
+            "feature_query": (
+                None if self.feature_query is None
+                else self.feature_query.to_dict()),
             "operation_id": self.operation_id,
             "population_baseline_priority": float(
                 self.population_baseline_priority),
@@ -1703,6 +1707,7 @@ class PromotedRuleCandidateImpactAnalyzer(object):
             PromotedRuleCandidateImpactRow(
                 value["score"].operation_id,
                 None if value["query"] is None else value["query"].query_id,
+                value["query"],
                 value["score"].admissible,
                 baseline_ranks.get(value["score"].operation_id),
                 shadow_ranks.get(value["score"].operation_id),

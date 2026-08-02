@@ -152,6 +152,13 @@ from .fdas_episode_induction import (
     causal_induction_feature_query,
     combine_episode_stores,
 )
+from .fdas_candidate_choices import (
+    CANDIDATE_CHOICE_SCHEMA_VERSION,
+    FdasCandidateChoice,
+    FdasCandidateChoiceSet,
+    FdasCandidateChoiceSetRecorder,
+    FdasCandidateChoiceSetStore,
+)
 from .fdas_induction_labels import (
     DURABLE_ACTOR_CITY_DEFENSE_TARGET,
     DURABLE_CITY_COVERAGE_TARGET,
@@ -274,6 +281,9 @@ __all__ = [
     "FdasPromotedRuleCandidateImpactEvaluation",
     "FdasPromotedRuleCandidateImpactShadow",
     "causal_induction_feature_query", "combine_episode_stores",
+    "CANDIDATE_CHOICE_SCHEMA_VERSION",
+    "FdasCandidateChoice", "FdasCandidateChoiceSet",
+    "FdasCandidateChoiceSetRecorder", "FdasCandidateChoiceSetStore",
     "DURABLE_ACTOR_CITY_DEFENSE_TARGET", "DURABLE_CITY_COVERAGE_TARGET",
     "LABEL_SCHEMA_VERSION",
     "EpisodeInductionOutcomeLabel", "EpisodeInductionOutcomeLabelStore",
