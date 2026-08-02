@@ -126,6 +126,9 @@ class ActivatedDomainProjector(object):
         if not any(value.scope_kind == "empire" for value in selected):
             raise ValueError("focused projection cannot omit empire scope")
         self._builds[snapshot.snapshot_id] = (all_scopes, state)
+        if len(self._builds) > 8:
+            for snapshot_id in tuple(self._builds)[:-8]:
+                self._builds.pop(snapshot_id, None)
         return selected
 
     def activation(self, snapshot_id):

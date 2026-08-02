@@ -578,6 +578,7 @@ class GroundedImpactPlanner(object):
         self._control_adapter = None
         self.last_control_query = None
         self.last_control_decision = None
+        self.last_candidate_catalog = ()
         self.last_control_outcome_query = None
         self.last_control_outcome_decision = None
         self.last_control_outcome_record = None
@@ -6884,6 +6885,7 @@ class GroundedImpactPlanner(object):
             diagnostics=diagnostics,
             operation_authority=(
                 operation_authority))
+        self.last_candidate_catalog = tuple(rows)
         candidate_latency_ms = (
             time.perf_counter() - candidate_started) * 1000.0
         if diagnostics is not None:

@@ -116,13 +116,6 @@ class CityRegionProjector(object):
         if (snapshot.map_wrap_x is None or snapshot.map_wrap_y is None
                 or snapshot.map_width <= 0 or snapshot.map_height <= 0):
             return ()
-        routes = tuple(
-            route for route in snapshot.movement_routes
-            if (route.reachable
-                and route.authority == "freeciv-server-pathfinder"
-                and route.schema_version == "1.0"
-                and route.turn == snapshot.turn
-                and route.source_seq <= snapshot.identity.source_seq))
         rows = []
         for city in sorted(snapshot.cities, key=lambda value: value.city_id):
             if None in (city.tile, city.x, city.y):
@@ -133,17 +126,11 @@ class CityRegionProjector(object):
                 if distance is not None and distance <= self.policy.radius:
                     threats.append(enemy)
             threats = tuple(threats)
-            destination_routes = tuple(
-                route for route in routes
-                if route.destination_tile == city.tile)
             reasons = []
             if threats:
                 reasons.append("visible-threat")
-            if destination_routes:
-                reasons.append("native-route-destination")
             if reasons:
-                rows.append((
-                    city, tuple(reasons), threats, destination_routes))
+                rows.append((city, tuple(reasons), threats))
         rows.sort(key=lambda value: (
             0 if "visible-threat" in value[1] else 1,
             value[0].city_id))
@@ -153,7 +140,7 @@ class CityRegionProjector(object):
         scopes = list(unit_defense_scopes(snapshot))
         empire = next(value for value in scopes if value.scope_kind == "empire")
         predicates = region_predicate_registry().predicates
-        for city, _reasons, _threats, _routes in self._activations(snapshot):
+        for city, _reasons, _threats in self._activations(snapshot):
             region_id = "city-{}:r{}:v{}".format(
                 city.city_id, self.policy.radius, self.policy.schema_version)
             city_scope_id = "{}:city:{}:facts".format(
@@ -192,10 +179,10 @@ class CityRegionProjector(object):
 
     @staticmethod
     def _record(scope, namespace, predicate, arguments, authority,
-                dependencies, witness, truth=None):
+                dependencies, witness, truth=None, support=None):
         truth = truth or _CRISP
         key = AtomKey(namespace, predicate, tuple(arguments), scope.scope_id)
-        support = SupportRecord.create(
+        support = support or SupportRecord.create(
             "fdas-city-region-shadow", "1.0", key.to_dict(),
             tuple(sorted(set(dependencies))), witness,
             ("fdas-city-region-shadow",))
@@ -259,7 +246,7 @@ class CityRegionProjector(object):
             for value in snapshot.map_tiles
             if isinstance(value, dict) and value.get("index") is not None)
         records = []
-        for city, reasons, threats, routes in self._activations(snapshot):
+        for city, reasons, threats in self._activations(snapshot):
             city_id = str(city.city_id)
             scope = scope_by_city[city_id]
             region_ref = scope.root_entities[0]
@@ -280,17 +267,19 @@ class CityRegionProjector(object):
                         snapshot,
                         "visible_enemy_units.{}.{}".format(
                             enemy.unit_id, field), fingerprints))
-            for route in routes:
-                prefix = "movement_routes.{}:{}".format(
-                    route.unit_id, route.destination_tile)
-                for field in (
-                        "authority", "destination_tile", "reachable",
-                        "schema_version", "source_seq", "turn", "unit_id"):
-                    activation_dependencies.append(snapshot_dependency_ref(
-                        snapshot, "{}.{}".format(prefix, field), fingerprints))
             activation_dependencies = tuple(sorted(set(
                 activation_dependencies)))
             geometry_dependencies = tuple(sorted(set(base_dependencies)))
+            geometry_support = SupportRecord.create(
+                "fdas-city-region-geometry", self.version,
+                {
+                    "city_id": city.city_id,
+                    "region_id": region_ref.entity_id,
+                }, geometry_dependencies, {
+                    "city_id": city.city_id,
+                    "policy": self.policy.policy_id,
+                    "radius": self.policy.radius,
+                }, (self.projector_id,))
             records.append(self._record(
                 scope, AtomNamespace.DERIVED, "region-centered-on",
                 (region_ref, city_ref), AuthorityClass.DETERMINISTIC_DERIVED,
@@ -319,7 +308,7 @@ class CityRegionProjector(object):
                     geometry_dependencies, {
                         "radius": self.policy.radius,
                         "tile": tile,
-                    }))
+                    }, support=geometry_support))
                 terrain = terrain_by_tile.get(tile)
                 if terrain is not None and terrain.get("terrain") is not None:
                     terrain_dependency = snapshot_dependency_ref(
@@ -342,7 +331,7 @@ class CityRegionProjector(object):
                         geometry_dependencies, {
                             "from": tile,
                             "to": neighbor,
-                        }))
+                        }, support=geometry_support))
             for enemy in threats:
                 enemy_paths = (
                     "visible_enemy_units.{}.x".format(enemy.unit_id),

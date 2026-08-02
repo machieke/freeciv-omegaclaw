@@ -244,3 +244,96 @@ class AtomSpaceEventEmitter(object):
             "support_count": len(supports),
         }, (projected["event_id"],))
         return tuple(emitted)
+
+    def emit_shadow_evaluation(
+            self, writer, turn, revision, evaluation,
+            ruleset_digest=None, caused_by=()):
+        """Emit bounded goal/candidate/pressure evidence after legacy readout."""
+        if not isinstance(revision, DependentAtomSpaceRevision):
+            raise TypeError("shadow evaluation requires immutable revision")
+        if (getattr(evaluation, "revision_id", None) != revision.revision_id
+                or getattr(evaluation, "snapshot_id", None)
+                != revision.snapshot_id):
+            raise ValueError("shadow evaluation is not revision-current")
+        emitted = []
+        parent_ids = tuple(caused_by)
+        detail_count = 0
+        omitted_count = 0
+
+        def emit(event_type, details, parents=None):
+            event = self.emit_component(
+                writer, event_type, turn, revision, details,
+                caused_by=parent_ids if parents is None else tuple(parents),
+                ruleset_digest=ruleset_digest,
+                component_id="fdas-goal-pressure-shadow",
+                component_version="1.0")
+            emitted.append(event)
+            return event
+
+        for goal in evaluation.goals:
+            if detail_count >= max(0, self.maximum_detail_events - 2):
+                omitted_count += 1
+                continue
+            emit("goal_instantiated", {
+                "deficit_atom_id": goal.deficit_atom_id,
+                "deficit_predicate": goal.deficit_predicate,
+                "explanation_hash": goal.explanation_hash,
+                "goal_id": goal.goal.goal_id,
+                "scope_id": goal.scope_id,
+            })
+            detail_count += 1
+        for candidate in evaluation.candidates:
+            if detail_count >= max(0, self.maximum_detail_events - 2):
+                omitted_count += 1
+                continue
+            emit(
+                "operation_candidate_rejected" if candidate.blockers
+                else "operation_candidate_instantiated", {
+                    "action_key": candidate.action_key,
+                    "authority_eligible": False,
+                    "blockers": list(candidate.blockers),
+                    "candidate_hash": candidate.candidate_hash,
+                    "legal_bound": candidate.legal_bound,
+                    "operation_id": candidate.operation.operation_id,
+                })
+            detail_count += 1
+        pressure = evaluation.pressure
+        pressure_event = emit("pressure_graph_built", {
+            "candidate_atom_count": len(
+                pressure.context.candidate_atom_ids),
+            "diagnostics": list(pressure.context.diagnostics),
+            "evaluation_hash": pressure.evaluation_hash,
+            "gap_atom_count": len(pressure.context.gap_atom_ids),
+            "goal_count": len(pressure.context.goals),
+            "graph_hash": pressure.context.graph.artifact_hash,
+            "operation_count": len(pressure.context.operations),
+            "policy_authority": False,
+            "status": pressure.status,
+            "truncated": pressure.context.truncated,
+        })
+        comparison = evaluation.comparison
+        comparison_details = None if comparison is None else {
+            "authority_violations": list(comparison.authority_violations),
+            "comparison_hash": comparison.comparison_hash,
+            "extra_fdas_count": len(comparison.extra_fdas),
+            "fdas_candidate_count": comparison.fdas_candidate_count,
+            "legal_binding_failures": list(
+                comparison.legal_binding_failures),
+            "legacy_candidate_count": comparison.legacy_candidate_count,
+            "missing_legacy_count": len(comparison.missing_legacy),
+            "overlap_count": len(comparison.overlapping_action_keys),
+            "safety_downgrades": list(comparison.safety_downgrades),
+        }
+        emit("atomspace_shadow_decision", {
+            "authority_eligible": False,
+            "comparison": comparison_details,
+            "evaluation_hash": pressure.evaluation_hash,
+            "latency_ms": evaluation.latency_ms,
+            "omitted_detail_event_count": omitted_count,
+            "reason": pressure.reason,
+            "schedule_hash": pressure.schedule.get("structural_hash"),
+            "selected_operation_id": pressure.schedule.get(
+                "selected_operation_id"),
+            "status": pressure.status,
+        }, (pressure_event["event_id"],))
+        return tuple(emitted)

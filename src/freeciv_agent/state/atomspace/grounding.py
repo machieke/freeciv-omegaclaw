@@ -371,9 +371,12 @@ class TypedGroundingRegistry(object):
         """Reuse the transaction's canonical snapshot fingerprints."""
         self._fingerprint_cache[snapshot.snapshot_id] = dict(fingerprints)
         if len(self._fingerprint_cache) > 8:
-            evicted = tuple(sorted(self._fingerprint_cache)[:-8])
+            evicted = tuple(self._fingerprint_cache)[:-8]
             for snapshot_id in evicted:
                 self._fingerprint_cache.pop(snapshot_id, None)
+            self._cache = dict(
+                (key, value) for key, value in self._cache.items()
+                if key[3] not in evicted)
             self._path_dependency_cache = dict(
                 (key, value)
                 for key, value in self._path_dependency_cache.items()

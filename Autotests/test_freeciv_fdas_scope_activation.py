@@ -145,3 +145,34 @@ def test_activated_projector_publishes_only_funded_scope_records():
         "city:1", "empire", "region:high", "world"}
     assert wrapper.activation(snapshot.snapshot_id).active_scope_ids == (
         "city:1", "empire", "region:high", "world")
+
+
+def test_activation_cache_evicts_by_insertion_not_lexical_snapshot_id():
+    class Projector(object):
+        predicate_registry = legacy_predicate_registry()
+
+        @staticmethod
+        def scopes(_snapshot):
+            return _scopes()
+
+        @staticmethod
+        def extend_fingerprints(fingerprints):
+            return dict(fingerprints)
+
+        @staticmethod
+        def project(_snapshot, _scopes, _fingerprints):
+            return ()
+
+    wrapper = ActivatedDomainProjector(
+        Projector(), ScopeActivator(), lambda _snapshot, _scopes: ())
+    snapshot_ids = (
+        "snapshot-90", "snapshot-91", "snapshot-92", "snapshot-93",
+        "snapshot-94", "snapshot-95", "snapshot-96", "snapshot-97",
+        "snapshot-10",
+    )
+    for turn, snapshot_id in enumerate(snapshot_ids):
+        wrapper.scopes(SimpleNamespace(snapshot_id=snapshot_id, turn=turn))
+
+    assert wrapper.activation("snapshot-10").turn == 8
+    with pytest.raises(KeyError, match="no scope activation"):
+        wrapper.activation("snapshot-90")

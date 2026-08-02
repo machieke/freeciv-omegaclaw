@@ -211,6 +211,30 @@ class FdasRuntimeUpdate:
         }
 
 
+@dataclass(frozen=True)
+class FdasShadowEvaluation:
+    snapshot_id: str
+    revision_id: str
+    goals: tuple
+    candidates: tuple
+    pressure: object
+    comparison: object
+    latency_ms: float
+
+    def to_dict(self):
+        return {
+            "candidate_count": len(self.candidates),
+            "comparison": (
+                None if self.comparison is None
+                else self.comparison.to_dict()),
+            "goal_count": len(self.goals),
+            "latency_ms": self.latency_ms,
+            "pressure": self.pressure.to_dict(),
+            "revision_id": self.revision_id,
+            "snapshot_id": self.snapshot_id,
+        }
+
+
 class FdasRuntime(object):
     """Coordinated, read-only rich projection runtime."""
 
@@ -228,6 +252,9 @@ class FdasRuntime(object):
         self.event_emitter = event_emitter
         self.projector_ids = tuple(projector_ids)
         self.ruleset_digest = ruleset_digest_value
+        self._goal_factory = None
+        self._candidate_factory = None
+        self._pressure_adapter = None
 
     @property
     def enabled(self):
@@ -295,6 +322,53 @@ class FdasRuntime(object):
             (time.perf_counter() - started) * 1000.0,
         )
 
+    def configure_shadow_evaluation(
+            self, goal_factory, candidate_factory, pressure_adapter):
+        """Install the non-authorizing goal/candidate/pressure readout."""
+        if not self.enabled:
+            raise FdasRuntimeConfigurationError(
+                "disabled FDAS cannot configure shadow evaluation")
+        if any(value is None for value in (
+                goal_factory, candidate_factory, pressure_adapter)):
+            raise FdasRuntimeConfigurationError(
+                "FDAS shadow evaluation requires all factories")
+        self._goal_factory = goal_factory
+        self._candidate_factory = candidate_factory
+        self._pressure_adapter = pressure_adapter
+        return self
+
+    def evaluate_shadow(self, snapshot, legacy_candidates=()):
+        """Evaluate local FDAS routes without returning an executable action."""
+        if not self.enabled:
+            return None
+        if any(value is None for value in (
+                self._goal_factory, self._candidate_factory,
+                self._pressure_adapter)):
+            raise FdasRuntimeConfigurationError(
+                "FDAS shadow evaluation is not configured")
+        started = time.perf_counter()
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        if revision is None or revision.snapshot_id != snapshot.snapshot_id:
+            raise RuntimeError(
+                "FDAS shadow evaluation requires the current revision")
+        query = self.dependent_store.query_current(
+            snapshot.identity.game_id, snapshot.player_id)
+        goals = self._goal_factory.instantiate(revision, query)
+        candidates = self._candidate_factory.instantiate(
+            snapshot, goals, revision=revision)
+        pressure = self._pressure_adapter.evaluate(
+            revision, goals, candidates)
+        comparison = None
+        if legacy_candidates is not None:
+            from ...planning import compare_shadow_candidates
+            comparison = compare_shadow_candidates(
+                snapshot, tuple(legacy_candidates), candidates)
+        return FdasShadowEvaluation(
+            snapshot.snapshot_id, revision.revision_id, goals, candidates,
+            pressure, comparison,
+            (time.perf_counter() - started) * 1000.0)
+
     def emit_current(self, writer, snapshot, caused_by=(), prior_revision=None):
         """Emit bounded causal evidence for the current rich revision."""
         if not self.enabled or self.event_emitter is None:
@@ -314,6 +388,25 @@ class FdasRuntime(object):
             caused_by=tuple(caused_by),
         )
         return events
+
+    def emit_shadow(self, writer, snapshot, evaluation, caused_by=()):
+        """Emit bounded causal evidence for a read-only shadow decision."""
+        if not self.enabled or self.event_emitter is None:
+            return ()
+        if (not isinstance(evaluation, FdasShadowEvaluation)
+                or evaluation.snapshot_id != snapshot.snapshot_id):
+            raise RuntimeError(
+                "FDAS shadow evidence is not snapshot-current")
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        if (revision is None
+                or revision.revision_id != evaluation.revision_id):
+            raise RuntimeError(
+                "FDAS shadow evidence is not revision-current")
+        return self.event_emitter.emit_shadow_evaluation(
+            writer, snapshot.turn, revision, evaluation,
+            ruleset_digest=self.ruleset_digest,
+            caused_by=tuple(caused_by))
 
 
 def build_runtime(declaration, ruleset_ir=None, belief_store=None,
@@ -401,7 +494,7 @@ def build_runtime(declaration, ruleset_ir=None, belief_store=None,
             2000,
             materialization["maximum_atoms_global"]),
     )
-    return FdasRuntime(
+    runtime = FdasRuntime(
         declaration,
         SnapshotStore(dependent_atomspace_store=dependent_store),
         dependent_store,
@@ -411,3 +504,10 @@ def build_runtime(declaration, ruleset_ir=None, belief_store=None,
         projector_ids=tuple(value.projector_id for value in projectors),
         ruleset_digest_value=digest,
     )
+    if ruleset_ir is not None:
+        from ...planning import CandidateOperationFactory, GoalFactory
+        from ...pressure import DependentAtomPressureAdapter
+        runtime.configure_shadow_evaluation(
+            GoalFactory(), CandidateOperationFactory(ruleset_ir, digest),
+            DependentAtomPressureAdapter())
+    return runtime

@@ -172,7 +172,7 @@ def test_region_activation_limit_is_deterministic(ir):
     assert center.key.arguments[1].entity_id == "3"
 
 
-def test_native_reinforcement_route_activates_destination_region(ir):
+def test_native_route_uses_corridor_and_does_not_open_city_region(ir):
     payload = _payload()
     payload["map"].update({"wrap_x": True, "wrap_y": True})
     payload["units"]["7"]["transported"] = False
@@ -200,18 +200,11 @@ def test_native_reinforcement_route_activates_destination_region(ir):
         "unit_id": 7,
     }]
     revision = _store(ir).build(_snapshot(payload, 475))
-    center = next(
-        value for value in revision.records
-        if value.key.predicate == "region-centered-on")
-    activation = next(
-        value for value in revision.records
-        if value.key.predicate == "region-activation-reason")
-
-    assert center.key.arguments[1].entity_id == "4"
-    assert activation.key.arguments[1].symbol == "native-route-destination"
-    assert any(
-        value.key.path == "movement_routes.7:84.destination_tile"
-        for value in activation.supports[0].dependencies)
+    assert not tuple(
+        value for value in revision.scopes if value.scope_kind == "region")
+    assert not any(
+        value.key.predicate == "region-activation-reason"
+        for value in revision.records)
 
 
 def test_threat_removal_retracts_focused_region_and_matches_cold(ir):

@@ -350,21 +350,31 @@ class CityEconomyProjector(object):
                 ("government.current_name",), fingerprints))
         for action_json in snapshot.legal_action_json:
             action = json.loads(action_json)
+            action_hash = structural_hash(action_json)
             action_ref = EntityRef(
-                "action", "legal-" + structural_hash(action_json)[:24])
+                "action", "legal-" + action_hash[:24])
             dependency_path = "legal_actions.{}".format(
-                structural_hash(action_json))
-            records.extend((
-                self._base(
-                    snapshot, empire, "legal-action-for",
-                    (action_ref, self._legal_actor(action, snapshot.player_id)),
-                    (dependency_path,), fingerprints),
-                self._base(
-                    snapshot, empire, "legal-action-type",
-                    (action_ref, SymbolRef(
-                        "action-type", str(action.get("action_type")))),
-                    (dependency_path,), fingerprints),
-            ))
+                action_hash)
+            actor = self._legal_actor(action, snapshot.player_id)
+            action_type = SymbolRef(
+                "action-type", str(action.get("action_type")))
+            dependency = self._snapshot_dep(
+                snapshot, dependency_path, fingerprints)
+            support = SupportRecord.from_hashes(
+                self.projector_id, self.version, action_hash, (dependency,),
+                structural_hash({
+                    "action": action_ref.to_dict(),
+                    "actor": actor.to_dict(),
+                    "action_type": action_type.to_dict(),
+                }), (self.projector_id,))
+            for predicate, arguments in (
+                    ("legal-action-for", (action_ref, actor)),
+                    ("legal-action-type", (action_ref, action_type))):
+                records.append(_record(
+                    empire, AtomNamespace.AUTHORITATIVE, predicate,
+                    arguments, AuthorityClass.ENGINE_AUTHORITATIVE,
+                    empire.validity, support, self.projector_id,
+                    (("domain", "city-economy-shadow"),)))
 
         policy_refs = self.policy.dependency_refs()
         food_policy = SymbolRef("food-policy", self.policy.food_policy_id)

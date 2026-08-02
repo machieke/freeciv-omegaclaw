@@ -138,6 +138,7 @@ from .events import AtomSpaceEventEmitter, FDAS_EVENT_TYPES
 from .runtime import (
     FdasRuntime,
     FdasRuntimeConfigurationError,
+    FdasShadowEvaluation,
     FdasRuntimeUpdate,
     build_runtime,
     load_runtime_declaration,
@@ -177,6 +178,7 @@ __all__ = (
     "FDAS_EVENT_TYPES",
     "FdasRuntime",
     "FdasRuntimeConfigurationError",
+    "FdasShadowEvaluation",
     "FdasRuntimeUpdate",
     "GroundingAuthority",
     "GroundingResult",

@@ -2913,6 +2913,22 @@ async def _play(run_dir, manifest, context):
                     impact_planning_latency_ms += (
                         time.perf_counter() - impact_planning_started) * 1000.0
                     impact_planning_calls += 1
+                    fdas_shadow = fdas_runtime.evaluate_shadow(
+                        snapshot,
+                        impact_planner.last_candidate_catalog)
+                    if fdas_shadow is not None:
+                        fdas_shadow_events = fdas_runtime.emit_shadow(
+                            writer, snapshot, fdas_shadow,
+                            caused_by=(parent,))
+                        if fdas_shadow_events:
+                            parent = fdas_shadow_events[-1]["event_id"]
+                        parent = _metric(
+                            writer, snapshot.turn, parent,
+                            "fdas_shadow_evaluation_latency_ms",
+                            fdas_shadow.latency_ms, manifest,
+                            candidates=len(fdas_shadow.candidates),
+                            goals=len(fdas_shadow.goals),
+                            status=fdas_shadow.pressure.status)
                     # Identity-resource scheduling is observational in GDO-3.
                     # Dispatch it only after the complete live planning
                     # boundary has stopped its latency clock.

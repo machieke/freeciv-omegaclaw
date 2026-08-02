@@ -1,4 +1,5 @@
 import copy
+from dataclasses import replace
 import json
 import os
 import sys
@@ -174,7 +175,8 @@ def test_configured_global_atom_budget_is_enforced_before_publication():
         None, None)
 
 
-def test_full_checked_projector_set_assembles_with_read_only_operations():
+def test_full_checked_projector_set_assembles_with_read_only_operations(
+        tmp_path):
     declaration = load_runtime_declaration()
     declaration = copy.deepcopy(declaration)
     declaration["config"]["enabled"] = True
@@ -192,9 +194,36 @@ def test_full_checked_projector_set_assembles_with_read_only_operations():
             "fdas-runtime"),
     )
 
-    update = runtime.replace(_snapshot())
+    snapshot = _snapshot()
+    update = runtime.replace(snapshot)
     assert runtime.projector_ids == (
         "fdas-city-economy-shadow", "fdas-operation-projector")
     assert runtime.ruleset_revision is not None
     assert update.atom_count <= declaration["config"]["materialization"][
         "maximum_atoms_global"]
+
+    evaluation = runtime.evaluate_shadow(snapshot, ())
+    assert evaluation.snapshot_id == snapshot.snapshot_id
+    assert evaluation.revision_id == update.revision_id
+    assert evaluation.comparison.legacy_candidate_count == 0
+    assert evaluation.pressure.context.policy_authority is False
+    assert not any(
+        candidate.authority_eligible for candidate in evaluation.candidates)
+
+    path = os.path.join(str(tmp_path), "shadow-events.jsonl")
+    writer = EventWriter(
+        path, snapshot.identity.game_id, durable=False,
+        clock=lambda: "2026-08-01T00:00:00Z")
+    parent = writer.emit(
+        "state_snapshot", snapshot.turn, snapshot.event_payload())
+    events = runtime.emit_shadow(
+        writer, snapshot, evaluation, caused_by=(parent["event_id"],))
+    assert events[-2]["type"] == "pressure_graph_built"
+    assert events[-1]["type"] == "atomspace_shadow_decision"
+    assert events[-1]["payload"]["details"]["authority_eligible"] is False
+    assert validate_file(path).valid
+
+    with pytest.raises(RuntimeError, match="revision-current"):
+        runtime.emit_shadow(
+            writer, snapshot,
+            replace(evaluation, revision_id="fdas-revision-stale"))

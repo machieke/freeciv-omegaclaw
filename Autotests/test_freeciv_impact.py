@@ -229,6 +229,14 @@ def test_candidate_enumeration_skips_unplanned_production_projection():
         [_unit(1, "Settlers"), _unit(11, "Alpine Troops")], actions))
 
     assert decision.candidate.action["target"]["production_type"] == "Library"
+    assert isinstance(planner.last_candidate_catalog, tuple)
+    assert decision.candidate in planner.last_candidate_catalog
+    assert {
+        candidate.action_key for candidate in planner.last_candidate_catalog
+    } == {
+        candidate.action_key for candidate in planner.candidates(_snapshot(
+            [_unit(1, "Settlers"), _unit(11, "Alpine Troops")], actions))
+    }
     assert "Pyramids" not in projected
 
 

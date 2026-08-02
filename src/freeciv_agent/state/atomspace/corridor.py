@@ -160,10 +160,11 @@ class RouteCorridorProjector(object):
                         fingerprints)))
         return matches[0] if len(matches) == 1 else None
 
-    def _record(self, scope, predicate, arguments, dependencies, witness):
+    def _record(self, scope, predicate, arguments, dependencies, witness,
+                support=None):
         key = AtomKey(
             AtomNamespace.DERIVED, predicate, tuple(arguments), scope.scope_id)
-        support = SupportRecord.create(
+        support = support or SupportRecord.create(
             self.projector_id, self.version, key.to_dict(), dependencies,
             witness, (self.projector_id, "freeciv-server-pathfinder"))
         return AtomRecord.create(
@@ -184,14 +185,21 @@ class RouteCorridorProjector(object):
             dependencies = self._route_dependencies(
                 snapshot, route, fingerprints)
             witness = corridor.to_dict()
+            route_support = SupportRecord.create(
+                self.projector_id, self.version,
+                {"corridor_digest": corridor.corridor_digest},
+                dependencies, witness,
+                (self.projector_id, "freeciv-server-pathfinder"))
 
-            def add(predicate, argument=None, extra_dependencies=()):
+            def add(predicate, argument=None, extra_dependencies=(),
+                    shared=True):
                 arguments = (
                     (corridor_ref,) if argument is None
                     else (corridor_ref, argument))
                 records.append(self._record(
                     scope, predicate, arguments,
-                    dependencies + tuple(extra_dependencies), witness))
+                    dependencies + tuple(extra_dependencies), witness,
+                    route_support if shared and not extra_dependencies else None))
 
             add("route-corridor-for", EntityRef("unit", str(route.unit_id)))
             add("route-corridor-origin", EntityRef(
@@ -207,5 +215,5 @@ class RouteCorridorProjector(object):
             if legal is not None:
                 add("route-corridor-current-legal-step", EntityRef(
                     "action", "legal-" + structural_hash(
-                        legal[0])[:24]), (legal[1],))
+                        legal[0])[:24]), (legal[1],), shared=False)
         return tuple(sorted(records, key=lambda value: value.atom_id))
