@@ -1029,6 +1029,233 @@ class PromotedRuleConsolidator(object):
             tuple(suppressions))
 
 
+@dataclass(frozen=True)
+class PromotedRuleShadowPrediction:
+    """One bounded training estimate exposed only as a shadow diagnostic."""
+
+    proposal_id: str
+    probability: float
+    baseline_probability: float
+    interval_lower: float
+    interval_upper: float
+    support: int
+    positives: int
+
+    def __post_init__(self):
+        if not isinstance(self.proposal_id, str) or not self.proposal_id:
+            raise ValueError("shadow prediction requires a proposal ID")
+        for name in (
+                "probability", "baseline_probability", "interval_lower",
+                "interval_upper"):
+            _unit(getattr(self, name), name)
+        if self.interval_lower > self.interval_upper:
+            raise ValueError("shadow prediction interval is inverted")
+        if int(self.support) < 1:
+            raise ValueError("shadow prediction support must be positive")
+        if int(self.positives) < 0 or int(self.positives) > int(self.support):
+            raise ValueError("shadow prediction positives are invalid")
+
+    def to_dict(self):
+        return {
+            "baseline_probability": float(self.baseline_probability),
+            "interval": {
+                "confidence": 0.95,
+                "lower": float(self.interval_lower),
+                "method": "wilson-score/1.0",
+                "upper": float(self.interval_upper),
+            },
+            "positives": int(self.positives),
+            "probability": float(self.probability),
+            "proposal_id": self.proposal_id,
+            "support": int(self.support),
+        }
+
+
+@dataclass(frozen=True)
+class PromotedRuleShadowResult:
+    """Outcome-blind diagnostic readout with explicit abstention."""
+
+    episode_id: str
+    consequent: str
+    accepted: bool
+    reason: str
+    matching_rule_ids: tuple
+    maximal_rule_ids: tuple
+    predictions: tuple
+    selected_probability: object
+    selected_baseline_probability: object
+    prediction_direction: object
+    truth_mutated: bool
+    policy_authority: bool
+    readout_authority: bool
+    action_selection_changed: bool
+    result_hash: str
+
+    def to_dict(self):
+        return {
+            "accepted": bool(self.accepted),
+            "action_selection_changed": bool(self.action_selection_changed),
+            "consequent": self.consequent,
+            "episode_id": self.episode_id,
+            "matching_rule_ids": list(self.matching_rule_ids),
+            "maximal_rule_ids": list(self.maximal_rule_ids),
+            "policy_authority": bool(self.policy_authority),
+            "prediction_direction": self.prediction_direction,
+            "predictions": [value.to_dict() for value in self.predictions],
+            "readout_authority": bool(self.readout_authority),
+            "reason": self.reason,
+            "result_hash": self.result_hash,
+            "selected_baseline_probability": (
+                None if self.selected_baseline_probability is None
+                else float(self.selected_baseline_probability)),
+            "selected_probability": (
+                None if self.selected_probability is None
+                else float(self.selected_probability)),
+            "truth_mutated": bool(self.truth_mutated),
+        }
+
+
+class PromotedRuleShadowReadout(object):
+    """Read an approved consolidated rule basis without control authority."""
+
+    READOUT_IDENTITY = "fdas-promoted-rule-shadow-readout/1.0"
+
+    def __init__(
+            self, proposals, validations, approvals, consolidation):
+        if not isinstance(consolidation, PromotedRuleConsolidation):
+            raise TypeError("shadow readout requires typed consolidation")
+        proposals = tuple(proposals)
+        expected = PromotedRuleConsolidator().consolidate(
+            proposals, validations, approvals)
+        if expected.to_dict() != consolidation.to_dict():
+            raise ValueError(
+                "shadow readout consolidation does not match approvals")
+        retained_ids = set(consolidation.retained_rule_ids)
+        rules = tuple(sorted(
+            (value for value in proposals
+             if value.proposal_id in retained_ids),
+            key=lambda row: row.proposal_id))
+        if not rules:
+            raise ValueError("shadow readout requires a nonempty rule basis")
+        if len(set(value.consequent for value in rules)) != 1:
+            raise ValueError("shadow readout requires one consequent")
+        if len(set(value.context for value in rules)) != 1:
+            raise ValueError("shadow readout requires one scoped context")
+        self.rules = rules
+        self.consolidation = consolidation
+        self.consequent = rules[0].consequent
+
+    @staticmethod
+    def _interval(proposal):
+        count = float(proposal.support)
+        observed = float(proposal.positives) / count
+        z = 1.959963984540054
+        z_squared = z * z
+        denominator = 1.0 + z_squared / count
+        center = (observed + z_squared / (2.0 * count)) / denominator
+        radius = z * math.sqrt(
+            observed * (1.0 - observed) / count
+            + z_squared / (4.0 * count * count)) / denominator
+        return max(0.0, center - radius), min(1.0, center + radius)
+
+    @classmethod
+    def _prediction(cls, proposal):
+        lower, upper = cls._interval(proposal)
+        return PromotedRuleShadowPrediction(
+            proposal.proposal_id,
+            proposal.probability,
+            proposal.baseline_probability,
+            lower,
+            upper,
+            proposal.support,
+            proposal.positives)
+
+    @staticmethod
+    def _prediction_signature(proposal):
+        return (
+            float(proposal.probability),
+            float(proposal.baseline_probability),
+            int(proposal.support),
+            int(proposal.positives),
+        )
+
+    def _result(
+            self, episode, accepted, reason, matching=(), maximal=(),
+            probability=None, baseline=None):
+        predictions = tuple(
+            self._prediction(value)
+            for value in sorted(maximal, key=lambda row: row.proposal_id))
+        if probability is None:
+            direction = None
+        elif probability > baseline:
+            direction = "above_baseline"
+        elif probability < baseline:
+            direction = "below_baseline"
+        else:
+            direction = "at_baseline"
+        semantic = {
+            "accepted": bool(accepted),
+            "action_selection_changed": False,
+            "consequent": self.consequent,
+            "consolidation_id": self.consolidation.consolidation_id,
+            "episode_id": episode.episode_id,
+            "matching_rule_ids": sorted(
+                value.proposal_id for value in matching),
+            "maximal_rule_ids": sorted(
+                value.proposal_id for value in maximal),
+            "policy_authority": False,
+            "prediction_direction": direction,
+            "predictions": [value.to_dict() for value in predictions],
+            "readout_authority": False,
+            "readout_identity": self.READOUT_IDENTITY,
+            "reason": str(reason),
+            "selected_baseline_probability": baseline,
+            "selected_probability": probability,
+            "truth_mutated": False,
+        }
+        return PromotedRuleShadowResult(
+            episode.episode_id,
+            self.consequent,
+            bool(accepted),
+            str(reason),
+            tuple(semantic["matching_rule_ids"]),
+            tuple(semantic["maximal_rule_ids"]),
+            predictions,
+            probability,
+            baseline,
+            direction,
+            False,
+            False,
+            False,
+            False,
+            structural_hash(semantic))
+
+    def read(self, episode):
+        if not isinstance(episode, InductionEpisode):
+            raise TypeError("shadow readout requires InductionEpisode")
+        matching = tuple(
+            value for value in self.rules if value.applies(episode))
+        if not matching:
+            return self._result(
+                episode, False, "no_approved_rule_matches")
+        maximal = tuple(
+            candidate for candidate in matching
+            if not any(
+                set(candidate.antecedent) < set(other.antecedent)
+                for other in matching))
+        signatures = set(
+            self._prediction_signature(value) for value in maximal)
+        if len(signatures) != 1:
+            return self._result(
+                episode, False, "ambiguous_maximal_predictions",
+                matching, maximal)
+        selected = min(maximal, key=lambda row: row.proposal_id)
+        return self._result(
+            episode, True, "approved_shadow_prediction_available",
+            matching, maximal, selected.probability,
+            selected.baseline_probability)
+
+
 class ReplayValidator(object):
     """Deterministic out-of-sample calibration and contradiction gate."""
 
