@@ -303,6 +303,7 @@ export type ModelProvenance = {
   "model_id": string;
   "model_version": string;
   "source_kind": "simulator";
+  "validity_scope"?: Array<string>;
 };
 
 export type Atom = {

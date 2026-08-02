@@ -461,7 +461,7 @@ def test_simulator_observation_event_records_policy_and_model_provenance():
         model = ModelProvenance(
             "simulator", "freeciv-forward-model", "1.0",
             structural_hash({"model": "freeciv-forward-model/1.0"}),
-            False, 0.6)
+            False, 0.6, ("civ2civ3", "one-step"))
         policy = ObservationPolicy(
             "resolve-conflict", "observe", priority=0.7, propensity=0.5)
         evidence = Evidence(
@@ -474,6 +474,8 @@ def test_simulator_observation_event_records_policy_and_model_provenance():
         report = validate_file(path)
         assert observation["payload"]["selection_policy"] == policy.to_dict()
         assert observation["payload"]["model_provenance"] == model.to_dict()
+        assert observation["payload"]["model_provenance"][
+            "validity_scope"] == ["civ2civ3", "one-step"]
         assert revision["payload"]["posterior_tv"]["confidence"] == 0.3
         assert belief.confidence == 0.3
         assert report.valid, report.to_dict()
