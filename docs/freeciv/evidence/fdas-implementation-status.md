@@ -58,3 +58,14 @@ the terminal counters matched the event inventory, and all seventeen live
 safety gates passed. This promotes PR 13's evidence from captured replay to
 fresh bounded-authority engine execution, but it does not broaden the checked
 default, change a legacy winner, or establish a score-improvement claim.
+
+## Post-substrate defense shadow
+
+PR 14 now has a defense-focused `shadow-live` config/manifest pair over the
+existing unit, city-centered region, native-route, persistent operation, and
+requirement substrate. A clean paired 30-turn engine check matched all 52
+ordered actions and results plus terminal behavior, completed one sampled cold
+verification, emitted no authority event, and passed the 150 ms FDAS and 500 ms
+controller p95 gates. See `fdas-pr14-defense-shadow.md`. PR 15 bounded defense
+authority and live episode attribution remain separate and are not implied by
+this promotion.

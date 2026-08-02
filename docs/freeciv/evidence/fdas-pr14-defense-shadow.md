@@ -3,6 +3,7 @@
 Date: 2026-08-02
 Branch: `experimental/functional-dependent-atomspace`
 Status: declared `shadow-live`; policy authority disabled
+Machine-readable engine evidence: `fdas-pr14-defense-shadow-engine.json`
 
 ## Acceptance boundary
 
@@ -46,9 +47,65 @@ The defense shadow declaration is acceptable when:
 6. no FDAS authority event or FDAS-authorized action occurs;
 7. rollback to the checked default profile remains configuration-only.
 
-The fresh engine result is appended only after it is run from a clean pinned
-commit. Until then this document records activation implementation, not live
-acceptance.
+## Fresh paired engine confirmation
+
+The activation was committed before execution, then compared with the checked
+legacy-control profile on the same pinned seed and source commit
+`f00a13cd4c4ec3d498088780b022263f86fc095e`:
+
+```bash
+FREECIV_RULESET_ROOT=/path/to/freeciv/data \
+FREECIV_FDAS_CONFIG_PATH=profile/dependent_atomspace_defense_shadow.yaml \
+FREECIV_FDAS_MANIFEST_PATH=profile/fdas_manifest_defense_shadow.json \
+python3 scripts/freeciv/run_harness.py \
+  --out artifacts/freeciv/fdas-pr14-defense-shadow-live-v1 \
+  --backend engine-live --workers 1 --base-port 6001 \
+  --limit-seeds 1 --condition e_full_loop --main-only --no-resume
+
+FREECIV_FDAS_CONFIG_PATH=profile/dependent_atomspace.yaml \
+FREECIV_FDAS_MANIFEST_PATH=profile/fdas_manifest.json \
+python3 scripts/freeciv/run_harness.py \
+  --out artifacts/freeciv/fdas-pr14-defense-control-live-v1 \
+  --backend engine-live --workers 1 --base-port 6001 \
+  --limit-seeds 1 --condition e_full_loop --main-only --no-resume
+
+python3 scripts/freeciv/audit_fdas_engine_shadow_cohort.py \
+  --control artifacts/freeciv/fdas-pr14-defense-control-live-v1 \
+  --shadow artifacts/freeciv/fdas-pr14-defense-shadow-live-v1 \
+  --minimum-pairs 1 \
+  --output docs/freeciv/evidence/fdas-pr14-defense-shadow-engine.json
+```
+
+Results on seed `104729`:
+
+| Measure | Result |
+|---|---:|
+| Paired arms completed / audit failures | 2 / 0 |
+| Exact ordered action/result matches | 52 / 52 |
+| Exact behavioral completion match | yes |
+| Shadow decisions / explained legacy candidates | 30 / 21 |
+| Missing legacy / extra FDAS candidates | 0 / 0 |
+| Authority violations / eligible actions / authority events | 0 / 0 / 0 |
+| Sampled cold verifications / failures | 1 / 0 |
+| Maximum atoms / scopes / supports | 609 / 7 / 424 |
+| FDAS contribution p50 / p95 | 75.80 / 127.98 ms |
+| Full controller p50 / p95 | 25.31 / 443.21 ms |
+
+Both declared latency gates passed: FDAS p95 remained at or below 150 ms and
+full-controller p95 remained below 500 ms. The run manifest recorded clean
+source, the pinned commit above, and implementation hash
+`d560ee98c1c225f23c00f1f217666fdedb9ca8c533a32c46b3dad4d350a21277`.
+The deterministic audit structural hash is
+`986a3081c99b799e685d39e45ccb8c41b5bd8cf30998f1b92a055c62d21ba9d6`.
+
+This one-pair cohort is a mechanism and behavior-preservation confirmation,
+not an outcome experiment. It is sufficient for the narrowly declared PR 14
+shadow activation because the checked action path is unchanged; it is not
+large enough for a gameplay efficacy claim.
+
+The focused configuration/runtime/unit/region/operation/lifecycle suite passed
+81 tests. The complete FDAS suite passed 205 tests after this activation was
+added.
 
 ## Claim boundary
 

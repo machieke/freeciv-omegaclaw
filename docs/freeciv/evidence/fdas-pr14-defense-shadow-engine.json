@@ -1,0 +1,830 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "failure_count": 0,
+    "latency_targets": {
+      "controller_p95_below_500_ms": true,
+      "fdas_turn_p95_at_or_below_150_ms": true
+    },
+    "minimum_pairs": 1
+  },
+  "aggregate": {
+    "controller_latency_ms": {
+      "count": 30,
+      "maximum_ms": 684.9087756127119,
+      "mean_ms": 120.7844153046608,
+      "p50_ms": 25.31076641753316,
+      "p95_ms": 443.21391079574823
+    },
+    "fdas_projection_latency_ms": {
+      "count": 31,
+      "maximum_ms": 160.4181402362883,
+      "mean_ms": 76.30862693692887,
+      "p50_ms": 73.65046488121152,
+      "p95_ms": 95.07671976462007
+    },
+    "fdas_shadow_latency_ms": {
+      "count": 30,
+      "maximum_ms": 2.379835117608309,
+      "mean_ms": 1.555689920981725,
+      "p50_ms": 1.1883038096129894,
+      "p95_ms": 2.2809230722486973
+    },
+    "fdas_turn_contribution_ms": {
+      "count": 30,
+      "maximum_ms": 161.49938758462667,
+      "mean_ms": 80.40793775580823,
+      "p50_ms": 75.79925889149308,
+      "p95_ms": 127.98134703189135
+    },
+    "maximum_volume": {
+      "atoms": 609,
+      "events": 5120,
+      "scopes": 7,
+      "supports": 424
+    },
+    "totals": {
+      "cold_verification_count": 1,
+      "decision_count": 30,
+      "explained_legacy_count": 21,
+      "extra_fdas_count": 0,
+      "revision_count": 31
+    }
+  },
+  "failures": [],
+  "inputs": {
+    "control_root": "/home/purplezky/work/takopi/freeciv-omegaclaw/artifacts/freeciv/fdas-pr14-defense-control-live-v1",
+    "shadow_root": "/home/purplezky/work/takopi/freeciv-omegaclaw/artifacts/freeciv/fdas-pr14-defense-shadow-live-v1"
+  },
+  "pairs": [
+    {
+      "action_count": 52,
+      "action_trace_match": true,
+      "behavioral_completion_match": true,
+      "control": {
+        "completion": {
+          "actions": 52,
+          "decision_impact_actions": 21,
+          "horizon_reached": true,
+          "meaningful_actions": 22,
+          "opponent_score": 109.0,
+          "score": 108.0,
+          "score_lead": false,
+          "score_margin": -1.0,
+          "terminal_game_over": false,
+          "terminal_player_elimination": false,
+          "won": false
+        },
+        "event_count": 860,
+        "manifest_identity": "e677ac97e2caf321819fbb23e431cc0d9e7946a4dfc586b7ca1134a7c5ed9d5c"
+      },
+      "failures": [],
+      "result_trace_match": true,
+      "seed": 104729,
+      "shadow": {
+        "actions": [
+          {
+            "action": {
+              "action_type": "tech_research",
+              "actor_id": 0,
+              "target": {
+                "tech_name": "Engineering"
+              }
+            },
+            "turn": 1
+          },
+          {
+            "action": {
+              "action_type": "city_production",
+              "city_id": 101,
+              "production_kind": 3,
+              "production_value": 39,
+              "target": {
+                "production_type": "Supermarket"
+              }
+            },
+            "turn": 1
+          },
+          {
+            "action": {
+              "action_type": "unit_move",
+              "actor_id": 105,
+              "target": {
+                "x": 18,
+                "y": 17
+              }
+            },
+            "turn": 1
+          },
+          {
+            "action": {
+              "action_type": "unit_move",
+              "actor_id": 102,
+              "settlement_site_eligible": false,
+              "target": {
+                "x": 18,
+                "y": 18
+              }
+            },
+            "turn": 1
+          },
+          {
+            "action": {
+              "action_type": "unit_fortify",
+              "actor_id": 106
+            },
+            "turn": 1
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 1
+          },
+          {
+            "action": {
+              "action_type": "unit_move",
+              "actor_id": 105,
+              "target": {
+                "x": 18,
+                "y": 16
+              }
+            },
+            "turn": 2
+          },
+          {
+            "action": {
+              "action_type": "unit_move",
+              "actor_id": 102,
+              "settlement_site_eligible": false,
+              "target": {
+                "x": 17,
+                "y": 18
+              }
+            },
+            "turn": 2
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 2
+          },
+          {
+            "action": {
+              "action_type": "unit_move",
+              "actor_id": 102,
+              "settlement_site_eligible": true,
+              "target": {
+                "x": 16,
+                "y": 18
+              }
+            },
+            "turn": 3
+          },
+          {
+            "action": {
+              "action_type": "unit_move",
+              "actor_id": 105,
+              "target": {
+                "x": 17,
+                "y": 17
+              }
+            },
+            "turn": 3
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 3
+          },
+          {
+            "action": {
+              "action_type": "unit_build_city",
+              "actor_id": 102
+            },
+            "turn": 4
+          },
+          {
+            "action": {
+              "action_type": "city_production",
+              "city_id": 109,
+              "production_kind": 6,
+              "production_value": 11,
+              "target": {
+                "production_type": "Alpine Troops"
+              }
+            },
+            "turn": 4
+          },
+          {
+            "action": {
+              "action_type": "unit_move",
+              "actor_id": 105,
+              "target": {
+                "x": 16,
+                "y": 18
+              }
+            },
+            "turn": 4
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 4
+          },
+          {
+            "action": {
+              "action_type": "unit_move",
+              "actor_id": 105,
+              "target": {
+                "x": 16,
+                "y": 19
+              }
+            },
+            "turn": 5
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 5
+          },
+          {
+            "action": {
+              "action_type": "unit_move",
+              "actor_id": 105,
+              "target": {
+                "x": 17,
+                "y": 20
+              }
+            },
+            "turn": 6
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 6
+          },
+          {
+            "action": {
+              "action_type": "unit_move",
+              "actor_id": 105,
+              "target": {
+                "x": 16,
+                "y": 21
+              }
+            },
+            "turn": 7
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 7
+          },
+          {
+            "action": {
+              "action_type": "unit_move",
+              "actor_id": 105,
+              "target": {
+                "x": 17,
+                "y": 21
+              }
+            },
+            "turn": 8
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 8
+          },
+          {
+            "action": {
+              "action_type": "unit_move",
+              "actor_id": 105,
+              "target": {
+                "x": 16,
+                "y": 20
+              }
+            },
+            "turn": 9
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 9
+          },
+          {
+            "action": {
+              "action_type": "unit_move",
+              "actor_id": 105,
+              "target": {
+                "x": 15,
+                "y": 20
+              }
+            },
+            "turn": 10
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 10
+          },
+          {
+            "action": {
+              "action_type": "unit_move",
+              "actor_id": 105,
+              "target": {
+                "x": 15,
+                "y": 19
+              }
+            },
+            "turn": 11
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 11
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 12
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 13
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 14
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 15
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 16
+          },
+          {
+            "action": {
+              "action_type": "city_production",
+              "city_id": 101,
+              "production_kind": 3,
+              "production_value": 14,
+              "target": {
+                "production_type": "Granary"
+              }
+            },
+            "turn": 17
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 17
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 18
+          },
+          {
+            "action": {
+              "action_type": "city_production",
+              "city_id": 109,
+              "production_kind": 3,
+              "production_value": 15,
+              "target": {
+                "production_type": "Harbor"
+              }
+            },
+            "turn": 19
+          },
+          {
+            "action": {
+              "action_type": "unit_fortify",
+              "actor_id": 111
+            },
+            "turn": 19
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 19
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 20
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 21
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 22
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 23
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 24
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 25
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 26
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 27
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 28
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 29
+          },
+          {
+            "action": {
+              "action_type": "end_turn"
+            },
+            "turn": 30
+          }
+        ],
+        "cold_verification_count": 1,
+        "cold_verification_failure_count": 0,
+        "completion": {
+          "actions": 52,
+          "decision_impact_actions": 21,
+          "horizon_reached": true,
+          "meaningful_actions": 22,
+          "opponent_score": 109.0,
+          "score": 108.0,
+          "score_lead": false,
+          "score_margin": -1.0,
+          "terminal_game_over": false,
+          "terminal_player_elimination": false,
+          "won": false
+        },
+        "controller_latency_ms": {
+          "count": 30,
+          "maximum_ms": 684.9087756127119,
+          "mean_ms": 120.7844153046608,
+          "p50_ms": 25.31076641753316,
+          "p95_ms": 443.21391079574823
+        },
+        "event_validation_error_count": 0,
+        "event_validation_valid": true,
+        "fdas_turn_contribution_ms": {
+          "count": 30,
+          "maximum_ms": 161.49938758462667,
+          "mean_ms": 80.40793775580823,
+          "p50_ms": 75.79925889149308,
+          "p95_ms": 127.98134703189135
+        },
+        "projection_latency_ms": {
+          "count": 31,
+          "maximum_ms": 160.4181402362883,
+          "mean_ms": 76.30862693692887,
+          "p50_ms": 73.65046488121152,
+          "p95_ms": 95.07671976462007
+        },
+        "results": [
+          {
+            "status": "accepted",
+            "turn": 1
+          },
+          {
+            "status": "accepted",
+            "turn": 1
+          },
+          {
+            "status": "accepted",
+            "turn": 1
+          },
+          {
+            "status": "accepted",
+            "turn": 1
+          },
+          {
+            "status": "accepted",
+            "turn": 1
+          },
+          {
+            "status": "accepted",
+            "turn": 1
+          },
+          {
+            "status": "accepted",
+            "turn": 2
+          },
+          {
+            "status": "accepted",
+            "turn": 2
+          },
+          {
+            "status": "accepted",
+            "turn": 2
+          },
+          {
+            "status": "accepted",
+            "turn": 3
+          },
+          {
+            "status": "accepted",
+            "turn": 3
+          },
+          {
+            "status": "accepted",
+            "turn": 3
+          },
+          {
+            "status": "accepted",
+            "turn": 4
+          },
+          {
+            "status": "accepted",
+            "turn": 4
+          },
+          {
+            "status": "accepted",
+            "turn": 4
+          },
+          {
+            "status": "accepted",
+            "turn": 4
+          },
+          {
+            "status": "accepted",
+            "turn": 5
+          },
+          {
+            "status": "accepted",
+            "turn": 5
+          },
+          {
+            "status": "accepted",
+            "turn": 6
+          },
+          {
+            "status": "accepted",
+            "turn": 6
+          },
+          {
+            "status": "accepted",
+            "turn": 7
+          },
+          {
+            "status": "accepted",
+            "turn": 7
+          },
+          {
+            "status": "accepted",
+            "turn": 8
+          },
+          {
+            "status": "accepted",
+            "turn": 8
+          },
+          {
+            "status": "accepted",
+            "turn": 9
+          },
+          {
+            "status": "accepted",
+            "turn": 9
+          },
+          {
+            "status": "accepted",
+            "turn": 10
+          },
+          {
+            "status": "accepted",
+            "turn": 10
+          },
+          {
+            "status": "accepted",
+            "turn": 11
+          },
+          {
+            "status": "accepted",
+            "turn": 11
+          },
+          {
+            "status": "accepted",
+            "turn": 12
+          },
+          {
+            "status": "accepted",
+            "turn": 13
+          },
+          {
+            "status": "accepted",
+            "turn": 14
+          },
+          {
+            "status": "accepted",
+            "turn": 15
+          },
+          {
+            "status": "accepted",
+            "turn": 16
+          },
+          {
+            "status": "accepted",
+            "turn": 17
+          },
+          {
+            "status": "accepted",
+            "turn": 17
+          },
+          {
+            "status": "accepted",
+            "turn": 18
+          },
+          {
+            "status": "accepted",
+            "turn": 19
+          },
+          {
+            "status": "accepted",
+            "turn": 19
+          },
+          {
+            "status": "accepted",
+            "turn": 19
+          },
+          {
+            "status": "accepted",
+            "turn": 20
+          },
+          {
+            "status": "accepted",
+            "turn": 21
+          },
+          {
+            "status": "accepted",
+            "turn": 22
+          },
+          {
+            "status": "accepted",
+            "turn": 23
+          },
+          {
+            "status": "accepted",
+            "turn": 24
+          },
+          {
+            "status": "accepted",
+            "turn": 25
+          },
+          {
+            "status": "accepted",
+            "turn": 26
+          },
+          {
+            "status": "accepted",
+            "turn": 27
+          },
+          {
+            "status": "accepted",
+            "turn": 28
+          },
+          {
+            "status": "accepted",
+            "turn": 29
+          },
+          {
+            "status": "accepted",
+            "turn": 30
+          }
+        ],
+        "shadow": {
+          "authority_eligible_count": 0,
+          "authority_violation_count": 0,
+          "decision_count": 30,
+          "detail_omission_count": 0,
+          "explained_legacy_count": 21,
+          "extra_fdas_count": 0,
+          "legal_binding_failure_count": 0,
+          "missing_legacy_count": 0,
+          "safety_downgrade_count": 0,
+          "stage_latency_ms": {
+            "candidate_instantiation": {
+              "count": 30,
+              "maximum_ms": 0.746970996260643,
+              "mean_ms": 0.6368885282427073,
+              "p50_ms": 0.6393017247319221,
+              "p95_ms": 0.726690050214529
+            },
+            "decision_explanation": {
+              "count": 30,
+              "maximum_ms": 0.2723298966884613,
+              "mean_ms": 0.13374422366420427,
+              "p50_ms": 0.0345669686794281,
+              "p95_ms": 0.2611931413412094
+            },
+            "goal_instantiation": {
+              "count": 30,
+              "maximum_ms": 0.483968760818243,
+              "mean_ms": 0.30089762682716054,
+              "p50_ms": 0.29384298250079155,
+              "p95_ms": 0.45268330723047256
+            },
+            "legacy_comparison": {
+              "count": 30,
+              "maximum_ms": 0.12639909982681274,
+              "mean_ms": 0.04108313781519731,
+              "p50_ms": 0.03664987161755562,
+              "p95_ms": 0.11948496103286743
+            },
+            "pressure_evaluation": {
+              "count": 30,
+              "maximum_ms": 0.8748467080295086,
+              "mean_ms": 0.42714372587700683,
+              "p50_ms": 0.07651699706912041,
+              "p95_ms": 0.8679316379129887
+            },
+            "revision_query": {
+              "count": 30,
+              "maximum_ms": 0.01933099702000618,
+              "mean_ms": 0.01593267855544885,
+              "p50_ms": 0.015547964721918106,
+              "p95_ms": 0.018689781427383423
+            }
+          }
+        },
+        "shadow_latency_ms": {
+          "count": 30,
+          "maximum_ms": 2.379835117608309,
+          "mean_ms": 1.555689920981725,
+          "p50_ms": 1.1883038096129894,
+          "p95_ms": 2.2809230722486973
+        },
+        "volume": {
+          "event_count": 5120,
+          "maximum_atom_count": 609,
+          "maximum_scope_count": 7,
+          "maximum_support_count": 424,
+          "revision_count": 31
+        }
+      },
+      "shadow_manifest_identity": "25722f96b5fcad8bd3aef28e9bc3efcb6bed543dc2cc605753447acf38cc2618"
+    }
+  ],
+  "schema_version": "fdas-engine-shadow-cohort/1.0",
+  "structural_hash": "986a3081c99b799e685d39e45ccb8c41b5bd8cf30998f1b92a055c62d21ba9d6",
+  "thresholds": {
+    "controller_p95_ms": 500.0,
+    "fdas_turn_p95_ms": 150.0
+  }
+}
