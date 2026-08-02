@@ -16,7 +16,13 @@
       "bounded_policy_authority_is_explicit": true,
       "clean_pinned_source": true,
       "completed_exactly_once_without_run_failure": true,
-      "horizon_reached": true,
+      "conductance_samples_are_read_only_truth_free": true,
+      "episode_counters_match_terminal_summary": true,
+      "episode_effect_and_relief_match_durable_outcome": true,
+      "episode_event_chains_are_causal": true,
+      "episode_store_is_durable_unquarantined_and_valid": true,
+      "episodes_bind_one_authorized_action_and_complete_event_chain": true,
+      "fixed_horizon_or_absorbing_terminal": true,
       "positive_authority_observed": true,
       "zero_rejected_engine_actions": true
     },
@@ -26,9 +32,9 @@
     {
       "action_id": "engine-action-ecfe8d8beaaea5d3dec4",
       "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":106}",
-      "action_result_event_id": "ae693b19c7054d3a9dff361ef56c11f7",
+      "action_result_event_id": "91896977e274467ba3616d8c5e9ddc25",
       "action_result_status": "accepted",
-      "action_sent_event_id": "e55419dda02042b0874d14d8cab7c91d",
+      "action_sent_event_id": "94c26da3d1024f54966e309fe2749db8",
       "authority_checks": [
         "domain-authority-gate",
         "legacy-defense-category-gate",
@@ -39,7 +45,7 @@
         "resource-and-packet-schedule",
         "exact-fdas-commit-validation"
       ],
-      "authority_event_id": "f6e439671d174ed28d5a31e8b331b1a5",
+      "authority_event_id": "938e673b910645599fa9cb6f6f45622a",
       "authority_pressure_status": "complete",
       "authority_slice": "fdas-bounded-defense-fortification/1.0",
       "authority_to_send_distance": 136,
@@ -191,11 +197,11 @@
         "causal-effect-and-requirement-firewall",
         "domain-authority-gate"
       ],
-      "commit_current_revision_id": "fdas-revision-9fff7bbd450173dc8962c89bc740e709",
+      "commit_current_revision_id": "fdas-revision-f312ec2331c79496e6db974c7310a0d6",
       "commit_current_snapshot_id": "m7-main-e_full_loop-4543804-00:1:6889:ad01aee0dd0de1a0",
       "commit_disposition": "commit",
       "commit_execution_authority": false,
-      "event_revision_id": "fdas-revision-9fff7bbd450173dc8962c89bc740e709",
+      "event_revision_id": "fdas-revision-f312ec2331c79496e6db974c7310a0d6",
       "event_snapshot_id": "m7-main-e_full_loop-4543804-00:1:6889:ad01aee0dd0de1a0",
       "operation_id": "operation-c6ad782b009ef81da93e1dabc445ae48",
       "packet_conserved": true,
@@ -206,18 +212,18 @@
       "resource_shadow_only": true,
       "resource_status": "exact",
       "result_causal_distance": 1,
-      "revision_id": "fdas-revision-9fff7bbd450173dc8962c89bc740e709",
+      "revision_id": "fdas-revision-f312ec2331c79496e6db974c7310a0d6",
       "scheduling_policy_authority": false,
       "snapshot_id": "m7-main-e_full_loop-4543804-00:1:6889:ad01aee0dd0de1a0",
       "turn": 1,
       "within_bounded_action_shape": true
     },
     {
-      "action_id": "engine-action-18e5a178098da4217dd6",
+      "action_id": "engine-action-d1126170ececc1875f9e",
       "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":118}",
-      "action_result_event_id": "6901250fadd344ccb01bfd91648a0d5f",
+      "action_result_event_id": "f9432f6cfa864c4fbfd02f75d1feb038",
       "action_result_status": "accepted",
-      "action_sent_event_id": "d50b995d25df434dbb3795d898e8b1e2",
+      "action_sent_event_id": "fc26b11d934842958cdf209fdfa9e0dd",
       "authority_checks": [
         "domain-authority-gate",
         "legacy-defense-category-gate",
@@ -228,7 +234,7 @@
         "resource-and-packet-schedule",
         "exact-fdas-commit-validation"
       ],
-      "authority_event_id": "ead317338c764a70bdd24c64318bc466",
+      "authority_event_id": "7fb60841790645f58903353e3e2626b0",
       "authority_pressure_status": "complete",
       "authority_slice": "fdas-bounded-defense-fortification/1.0",
       "authority_to_send_distance": 21,
@@ -265,13 +271,13 @@
         "causal-effect-and-requirement-firewall",
         "domain-authority-gate"
       ],
-      "commit_current_revision_id": "fdas-revision-9f4e32db977d8ee6d0ffd0b7021c6363",
-      "commit_current_snapshot_id": "m7-main-e_full_loop-4543804-00:24:9514:eac18cca2914ef47",
+      "commit_current_revision_id": "fdas-revision-49794d53bf1e387bd8e3bcf36c0b739c",
+      "commit_current_snapshot_id": "m7-main-e_full_loop-4543804-00:24:9516:6f0005fb6c53f276",
       "commit_disposition": "commit",
       "commit_execution_authority": false,
-      "event_revision_id": "fdas-revision-9f4e32db977d8ee6d0ffd0b7021c6363",
-      "event_snapshot_id": "m7-main-e_full_loop-4543804-00:24:9514:eac18cca2914ef47",
-      "operation_id": "operation-ae28c1c16d51acc810aa130a56f4ed6d",
+      "event_revision_id": "fdas-revision-49794d53bf1e387bd8e3bcf36c0b739c",
+      "event_snapshot_id": "m7-main-e_full_loop-4543804-00:24:9516:6f0005fb6c53f276",
+      "operation_id": "operation-64076dff6276cedf640d959552e464f7",
       "packet_conserved": true,
       "packet_policy_authority": null,
       "plan_materialization_authorized": true,
@@ -280,18 +286,18 @@
       "resource_shadow_only": true,
       "resource_status": "exact",
       "result_causal_distance": 1,
-      "revision_id": "fdas-revision-9f4e32db977d8ee6d0ffd0b7021c6363",
+      "revision_id": "fdas-revision-49794d53bf1e387bd8e3bcf36c0b739c",
       "scheduling_policy_authority": false,
-      "snapshot_id": "m7-main-e_full_loop-4543804-00:24:9514:eac18cca2914ef47",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:24:9516:6f0005fb6c53f276",
       "turn": 24,
       "within_bounded_action_shape": true
     },
     {
-      "action_id": "engine-action-918d923f0f57a91bc308",
+      "action_id": "engine-action-6ffca1e7d7612219a854",
       "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":128}",
-      "action_result_event_id": "4fd41eb30f914ad2a7396c3759c33b2a",
+      "action_result_event_id": "9ea72b57a5c447018ff0bed67cbe65f3",
       "action_result_status": "accepted",
-      "action_sent_event_id": "30259e63de22465b861c8d5cd6254fd9",
+      "action_sent_event_id": "b139f4587c6c4dcfb03133517df08ef9",
       "authority_checks": [
         "domain-authority-gate",
         "legacy-defense-category-gate",
@@ -302,7 +308,7 @@
         "resource-and-packet-schedule",
         "exact-fdas-commit-validation"
       ],
-      "authority_event_id": "8699a97e9d784ac8809bd2ee55638fb9",
+      "authority_event_id": "947c874ee55c4d8e9920f5e59998d59e",
       "authority_pressure_status": "complete",
       "authority_slice": "fdas-bounded-defense-fortification/1.0",
       "authority_to_send_distance": 141,
@@ -459,13 +465,13 @@
         "causal-effect-and-requirement-firewall",
         "domain-authority-gate"
       ],
-      "commit_current_revision_id": "fdas-revision-1e0bf7168573313a13b77a2618dd907e",
-      "commit_current_snapshot_id": "m7-main-e_full_loop-4543804-00:32:11233:05e42a6121047aa7",
+      "commit_current_revision_id": "fdas-revision-d5204673ff3b04bd71a21b9064426ef9",
+      "commit_current_snapshot_id": "m7-main-e_full_loop-4543804-00:32:11245:b887622b3304ff23",
       "commit_disposition": "commit",
       "commit_execution_authority": false,
-      "event_revision_id": "fdas-revision-1e0bf7168573313a13b77a2618dd907e",
-      "event_snapshot_id": "m7-main-e_full_loop-4543804-00:32:11233:05e42a6121047aa7",
-      "operation_id": "operation-7b1c8c5d6aec831629563c1ef18d9539",
+      "event_revision_id": "fdas-revision-d5204673ff3b04bd71a21b9064426ef9",
+      "event_snapshot_id": "m7-main-e_full_loop-4543804-00:32:11245:b887622b3304ff23",
+      "operation_id": "operation-acacd33496da4710fba141f51d5d9efd",
       "packet_conserved": true,
       "packet_policy_authority": null,
       "plan_materialization_authorized": true,
@@ -474,18 +480,18 @@
       "resource_shadow_only": true,
       "resource_status": "exact",
       "result_causal_distance": 1,
-      "revision_id": "fdas-revision-1e0bf7168573313a13b77a2618dd907e",
+      "revision_id": "fdas-revision-d5204673ff3b04bd71a21b9064426ef9",
       "scheduling_policy_authority": false,
-      "snapshot_id": "m7-main-e_full_loop-4543804-00:32:11233:05e42a6121047aa7",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:32:11245:b887622b3304ff23",
       "turn": 32,
       "within_bounded_action_shape": true
     },
     {
-      "action_id": "engine-action-125763a2f6ef235b767e",
+      "action_id": "engine-action-48b59b1af337ae8a3f51",
       "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":131}",
-      "action_result_event_id": "7f54be83eb3b4fda87b2dd6d2da75541",
+      "action_result_event_id": "abf764f2289a4902b84ed486e674bc0a",
       "action_result_status": "accepted",
-      "action_sent_event_id": "23b6052cb2f84b24a78d1fca8c159d1c",
+      "action_sent_event_id": "4d5631ff5a7748fe88d1e34c01b424e3",
       "authority_checks": [
         "domain-authority-gate",
         "legacy-defense-category-gate",
@@ -496,7 +502,7 @@
         "resource-and-packet-schedule",
         "exact-fdas-commit-validation"
       ],
-      "authority_event_id": "880b3f01cc9545a0a5dba149f160d8b8",
+      "authority_event_id": "d5e8385c57e847eab985377a3a31b49c",
       "authority_pressure_status": "complete",
       "authority_slice": "fdas-bounded-defense-fortification/1.0",
       "authority_to_send_distance": 115,
@@ -627,13 +633,13 @@
         "causal-effect-and-requirement-firewall",
         "domain-authority-gate"
       ],
-      "commit_current_revision_id": "fdas-revision-3af3de3e18def57a9442f8166a38b8b9",
-      "commit_current_snapshot_id": "m7-main-e_full_loop-4543804-00:38:12379:3059893abe42c9bb",
+      "commit_current_revision_id": "fdas-revision-34f4597195592ec2324bc5b9cf3d3f1a",
+      "commit_current_snapshot_id": "m7-main-e_full_loop-4543804-00:38:12389:bca5db09433f5199",
       "commit_disposition": "commit",
       "commit_execution_authority": false,
-      "event_revision_id": "fdas-revision-3af3de3e18def57a9442f8166a38b8b9",
-      "event_snapshot_id": "m7-main-e_full_loop-4543804-00:38:12379:3059893abe42c9bb",
-      "operation_id": "operation-92e9bab55fd6bed01e908335767a3557",
+      "event_revision_id": "fdas-revision-34f4597195592ec2324bc5b9cf3d3f1a",
+      "event_snapshot_id": "m7-main-e_full_loop-4543804-00:38:12389:bca5db09433f5199",
+      "operation_id": "operation-cca0bbdaf9fad5fa58b3c5b9c4fcd686",
       "packet_conserved": true,
       "packet_policy_authority": null,
       "plan_materialization_authorized": true,
@@ -642,18 +648,18 @@
       "resource_shadow_only": true,
       "resource_status": "exact",
       "result_causal_distance": 1,
-      "revision_id": "fdas-revision-3af3de3e18def57a9442f8166a38b8b9",
+      "revision_id": "fdas-revision-34f4597195592ec2324bc5b9cf3d3f1a",
       "scheduling_policy_authority": false,
-      "snapshot_id": "m7-main-e_full_loop-4543804-00:38:12379:3059893abe42c9bb",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:38:12389:bca5db09433f5199",
       "turn": 38,
       "within_bounded_action_shape": true
     },
     {
-      "action_id": "engine-action-592ae25c8cf31e1a76ec",
+      "action_id": "engine-action-e094367590ed00f9e0da",
       "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":141}",
-      "action_result_event_id": "2b09d2216c9745a78e90f00433948f0f",
+      "action_result_event_id": "14536ab18a5146ee8f6affb48cad74c1",
       "action_result_status": "accepted",
-      "action_sent_event_id": "8e06e457c6cc464e9d92e6d46762afbe",
+      "action_sent_event_id": "7d20ecc240f341c494359748279d8839",
       "authority_checks": [
         "domain-authority-gate",
         "legacy-defense-category-gate",
@@ -664,7 +670,7 @@
         "resource-and-packet-schedule",
         "exact-fdas-commit-validation"
       ],
-      "authority_event_id": "2bb961f1200a4ba680accf56270f33e2",
+      "authority_event_id": "3f6108349efa44cebaad89a24d71dfc5",
       "authority_pressure_status": "complete",
       "authority_slice": "fdas-bounded-defense-fortification/1.0",
       "authority_to_send_distance": 75,
@@ -755,13 +761,13 @@
         "causal-effect-and-requirement-firewall",
         "domain-authority-gate"
       ],
-      "commit_current_revision_id": "fdas-revision-09e4b017d15990175642aa6fda33c73b",
-      "commit_current_snapshot_id": "m7-main-e_full_loop-4543804-00:47:14591:c0e716c6fe4e4668",
+      "commit_current_revision_id": "fdas-revision-b10f8e0be3e302257126110584c2f164",
+      "commit_current_snapshot_id": "m7-main-e_full_loop-4543804-00:47:14627:12b3d5a514b67f71",
       "commit_disposition": "commit",
       "commit_execution_authority": false,
-      "event_revision_id": "fdas-revision-09e4b017d15990175642aa6fda33c73b",
-      "event_snapshot_id": "m7-main-e_full_loop-4543804-00:47:14591:c0e716c6fe4e4668",
-      "operation_id": "operation-1cf0b1982c5942d0e254d020ac1f2767",
+      "event_revision_id": "fdas-revision-b10f8e0be3e302257126110584c2f164",
+      "event_snapshot_id": "m7-main-e_full_loop-4543804-00:47:14627:12b3d5a514b67f71",
+      "operation_id": "operation-3be22d77b430cf049d8861fa8c366828",
       "packet_conserved": true,
       "packet_policy_authority": null,
       "plan_materialization_authorized": true,
@@ -770,53 +776,159 @@
       "resource_shadow_only": true,
       "resource_status": "exact",
       "result_causal_distance": 1,
-      "revision_id": "fdas-revision-09e4b017d15990175642aa6fda33c73b",
+      "revision_id": "fdas-revision-b10f8e0be3e302257126110584c2f164",
       "scheduling_policy_authority": false,
-      "snapshot_id": "m7-main-e_full_loop-4543804-00:47:14591:c0e716c6fe4e4668",
+      "snapshot_id": "m7-main-e_full_loop-4543804-00:47:14627:12b3d5a514b67f71",
       "turn": 47,
       "within_bounded_action_shape": true
     }
   ],
+  "episodes": [
+    {
+      "attributed_effects_match": true,
+      "authority_bindings": 1,
+      "causal": {
+        "action_result_to_open": true,
+        "effect_to_relief": true,
+        "open_to_effect": true,
+        "relief_to_sample": true
+      },
+      "episode_id": "episode-47e798fa01587167cddc760f381b9659",
+      "event_counts": {
+        "conductance_sample_recorded": 1,
+        "episode_effect_observed": 1,
+        "episode_opened": 1,
+        "episode_relief_attributed": 1
+      },
+      "goal_relief_matches": true,
+      "outcome_status": "goal-relief-observed",
+      "read_only_sample": true
+    },
+    {
+      "attributed_effects_match": true,
+      "authority_bindings": 1,
+      "causal": {
+        "action_result_to_open": true,
+        "effect_to_relief": true,
+        "open_to_effect": true,
+        "relief_to_sample": true
+      },
+      "episode_id": "episode-5ec5140c9bec0f7f0d16baad50f308f7",
+      "event_counts": {
+        "conductance_sample_recorded": 1,
+        "episode_effect_observed": 1,
+        "episode_opened": 1,
+        "episode_relief_attributed": 1
+      },
+      "goal_relief_matches": true,
+      "outcome_status": "goal-relief-observed",
+      "read_only_sample": true
+    },
+    {
+      "attributed_effects_match": true,
+      "authority_bindings": 1,
+      "causal": {
+        "action_result_to_open": true,
+        "effect_to_relief": true,
+        "open_to_effect": true,
+        "relief_to_sample": true
+      },
+      "episode_id": "episode-5f3105ec2904f154da9a68e03ca3e6b8",
+      "event_counts": {
+        "conductance_sample_recorded": 1,
+        "episode_effect_observed": 1,
+        "episode_opened": 1,
+        "episode_relief_attributed": 1
+      },
+      "goal_relief_matches": true,
+      "outcome_status": "goal-relief-observed",
+      "read_only_sample": true
+    },
+    {
+      "attributed_effects_match": true,
+      "authority_bindings": 1,
+      "causal": {
+        "action_result_to_open": true,
+        "effect_to_relief": true,
+        "open_to_effect": true,
+        "relief_to_sample": true
+      },
+      "episode_id": "episode-e661efb12b7d294ba3364448ebc53a39",
+      "event_counts": {
+        "conductance_sample_recorded": 1,
+        "episode_effect_observed": 1,
+        "episode_opened": 1,
+        "episode_relief_attributed": 1
+      },
+      "goal_relief_matches": true,
+      "outcome_status": "goal-relief-observed",
+      "read_only_sample": true
+    },
+    {
+      "attributed_effects_match": true,
+      "authority_bindings": 1,
+      "causal": {
+        "action_result_to_open": true,
+        "effect_to_relief": true,
+        "open_to_effect": true,
+        "relief_to_sample": true
+      },
+      "episode_id": "episode-ef3f29655af5f5eaeda3f3a0ce699e1a",
+      "event_counts": {
+        "conductance_sample_recorded": 1,
+        "episode_effect_observed": 1,
+        "episode_opened": 1,
+        "episode_relief_attributed": 1
+      },
+      "goal_relief_matches": true,
+      "outcome_status": "goal-relief-observed",
+      "read_only_sample": true
+    }
+  ],
   "evidence": {
+    "episodes": {
+      "path": "artifacts/freeciv/fdas-defense-domain-refresh-live-160-v1/games/main/e_full_loop/4543804-00/fdas-decision-episodes.json",
+      "sha256": "5b2083928586a4902dd2309937b8b704dc44e785ecda16edb1ed4640d4ed0e12",
+      "store_digest": "f6f44669beef89f63460c66ee2cf4c3dd11a0cf7b8234049ad986f045f54d7ca"
+    },
     "events": {
-      "path": "artifacts/freeciv/fdas-defense-authority-live-160-v2/games/main/e_full_loop/4543804-00/events.jsonl",
-      "sha256": "dff69641317bf288a1af5346ee1dbf25cfc80d35fb21e02256cb21dd39ab440d"
+      "path": "artifacts/freeciv/fdas-defense-domain-refresh-live-160-v1/games/main/e_full_loop/4543804-00/events.jsonl",
+      "sha256": "b0db09a7bfbcafe1a740eaad41009090f41aac50c50cbeeaaf995368bf157dd1"
     },
     "manifest": {
-      "path": "artifacts/freeciv/fdas-defense-authority-live-160-v2/games/main/e_full_loop/4543804-00/manifest.json",
-      "sha256": "b939bda9ce0cd616f8b8a42da14c13f0733d38ac0703c4bb228b10debd0b41a7"
+      "path": "artifacts/freeciv/fdas-defense-domain-refresh-live-160-v1/games/main/e_full_loop/4543804-00/manifest.json",
+      "sha256": "4d0ad0f89e5a28abed6f8d0897f98a3ddac7a7dcbb7e8a4f7a60242f031f65f3"
     },
     "status": {
-      "path": "artifacts/freeciv/fdas-defense-authority-live-160-v2/games/main/e_full_loop/4543804-00/status.json",
-      "sha256": "ca24bf9b42da9f357218399983ab44a3f470c3b7ee1e284dbf8e84f9df1abfed"
+      "path": "artifacts/freeciv/fdas-defense-domain-refresh-live-160-v1/games/main/e_full_loop/4543804-00/status.json",
+      "sha256": "7588cd6579620ef5519f99ea044fbed54a23cc6cfd29780381b299cf00b0d5aa"
     }
   },
   "fallback_reasons": {
-    "legacy-selected-candidate-unavailable": 159,
-    "legacy-winner-has-no-unique-fdas-fortification-route": 1,
-    "legacy-winner-is-not-city-defense": 199
+    "legacy-winner-has-no-unique-fdas-fortification-route": 1
   },
   "identity": {
-    "configuration_hash": "52e0e9000ff46d684287415c3bdd7fd744d710335c9f897d8bf8fb71f80ad7f6",
+    "configuration_hash": "42830e706b675d0cafc09c4e18b60d672a54b9126d84305507ae00bbc546dac8",
     "fdas_config_source": "profile/dependent_atomspace_defense_authority.yaml",
-    "fdas_declaration_hash": "5faa68f0b481889d118be09f745b8a95ce1264c813b9f44428cce2f4c27fbf9b",
+    "fdas_declaration_hash": "7c50b965eff68e8d772e779694451f59e8723f63d50148015b3892f76353429e",
     "fdas_manifest_source": "profile/fdas_manifest_defense_authority.json",
     "game_id": "m7-main-e_full_loop-4543804-00",
-    "implementation_sha256": "84966631e538be147617a8ef6f23427b74127ae24d38ce0969bd8d3e0f942faf",
+    "implementation_sha256": "1577ff0a673d4a9b28e06b6986f86c48853babe3caed180ccaa5e1818e048b18",
     "seed": 4543804,
-    "source_commit": "f37b8aa821c1287550abb36203abc5c1df905596",
+    "source_commit": "c101bf9c50df2d12891d8a7a933633d71bb0842a",
     "source_dirty": false,
     "turn_limit": 160
   },
-  "schema_version": "1.0",
-  "structural_hash": "86f9ee062de1442d591509a66b86cf2333c917da32956e9b7bd784a2c25419af",
+  "schema_version": "1.1",
+  "structural_hash": "65bfde91ffcfc8cf033ff348106af2d3f0c1b77150511e8acfd4aea9f3a5a2a0",
   "summary": {
     "action_results": 367,
     "actions_sent": 367,
-    "authority_opportunities": 364,
+    "authority_opportunities": 6,
     "authorized": 5,
-    "event_count": 140864,
-    "fallbacks": 359,
+    "episodes": 5,
+    "event_count": 31009,
+    "fallbacks": 1,
     "max_turn": 160,
     "run_completed": 1,
     "run_failed": 0
@@ -824,10 +936,16 @@
   "terminal_summary": {
     "actions": 367,
     "fdas_authority_actions": 5,
-    "fdas_authority_fallbacks": 359,
-    "fdas_authority_opportunities": 364,
+    "fdas_authority_fallbacks": 1,
+    "fdas_authority_opportunities": 6,
+    "fdas_conductance_samples": 5,
+    "fdas_episode_effect_observed": 5,
+    "fdas_episode_opened": 5,
+    "fdas_episode_relief_attributed": 5,
     "horizon_reached": true,
     "opponent_score": 400.0,
-    "score": 124.0
+    "score": 124.0,
+    "terminal_game_over": false,
+    "terminal_player_elimination": false
   }
 }

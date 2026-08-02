@@ -117,82 +117,101 @@ contextual conductance sample in an isolated control store. That sample is
 explicitly read-only: it has no policy authority and cannot mutate truth.
 Prediction identities are reconstructable from durable episode fields so a
 retry can rebuild the same isolated control state. Fresh engine confirmation
-of this wiring is still required before it becomes an accepted live claim.
+now confirms that boundary with five independent accepted fortifications.
 
-The complete explicit FDAS suite passes 213 tests with the live episode and
+The complete explicit FDAS suite passes 219 tests with the live episode and
 read-only learning bridge implementation; the replay reports were regenerated
 against the exact current source.
 
 ## Fresh engine-backed safety confirmation
 
-The authority implementation and incremental-projection repair were committed
-before a fresh 160-turn run on pinned seed `4543804`. The run used clean source
-commit `f37b8aa821c1287550abb36203abc5c1df905596`:
+The authority, episode, dependency-bounded preparation, legacy compatibility
+switch, and domain-scoped refresh implementations were committed before two
+fresh engine runs. Both used clean source commit
+`c101bf9c50df2d12891d8a7a933633d71bb0842a`.
 
 ```bash
 FREECIV_RULESET_ROOT=/path/to/freeciv/data \
 FREECIV_FDAS_CONFIG_PATH=profile/dependent_atomspace_defense_authority.yaml \
 FREECIV_FDAS_MANIFEST_PATH=profile/fdas_manifest_defense_authority.json \
 python3 scripts/freeciv/run_harness.py \
+  --out artifacts/freeciv/fdas-defense-domain-refresh-live-30-v1 \
+  --backend engine-live --workers 1 --base-port 6001 \
+  --limit-seeds 1 --condition e_full_loop --main-only --no-resume
+
+python3 scripts/freeciv/run_harness.py \
   --config profile/freeciv_harness_gdo5_160_turn.yaml \
-  --out artifacts/freeciv/fdas-defense-authority-live-160-v2 \
+  --out artifacts/freeciv/fdas-defense-domain-refresh-live-160-v1 \
   --backend engine-live --workers 1 --base-port 6001 \
   --limit-seeds 1 --condition e_full_loop --main-only --no-resume
 
 python3 scripts/freeciv/audit_fdas_authority_live.py \
-  --game-dir artifacts/freeciv/fdas-defense-authority-live-160-v2/games/main/e_full_loop/4543804-00 \
+  --game-dir artifacts/freeciv/fdas-defense-domain-refresh-live-160-v1/games/main/e_full_loop/4543804-00 \
   --output docs/freeciv/evidence/fdas-bounded-defense-authority-engine-live.json
 ```
+
+### Ordinary 30-turn latency cohort
+
+| Measure | Result |
+|---|---:|
+| Horizon / completed games / run failures | 30 / 1 / 0 |
+| Domain authority opportunities / authorized / fallback | 2 / 2 / 0 |
+| Engine actions / results / rejections | 52 / 52 / 0 |
+| Complete episode chains / conductance samples | 2 / 2 |
+| Deterministic live-audit gates | 23 / 23 |
+| FDAS projection p50 / p95 | 22.40 / 27.00 ms |
+| FDAS shadow readout p50 / p95 | 2.12 / 2.28 ms |
+| Full-loop p50 / p95 | 26.76 / 447.32 ms |
+| Event count | 1,814 |
+
+This cohort passes both proposed ordinary gates: FDAS is below 150 ms p95 and
+the complete existing controller is below 500 ms p95. Its deterministic audit
+is `fdas-bounded-defense-authority-engine-live-30.json`, with structural hash
+`fdb7b5527e2a14278d8aef719ebc5aedf988e2ae5aae03bd52bde6bab2f774d5`
+and file SHA-256
+`03f3b052fda6cbcdc2941687882e65387470adf0846e6b0c1492ea36d8432859`.
+
+### 160-turn late-game stress cohort
 
 | Measure | Result |
 |---|---:|
 | Horizon / completed games / run failures | 160 / 1 / 0 |
-| Authority opportunities | 364 |
-| Authorized exact fortifications | 5 |
+| Domain authority opportunities / authorized / fallback | 6 / 5 / 1 |
 | Authorization turns | 1, 24, 32, 38, 47 |
-| Explicit fallbacks | 359 |
 | Engine actions / results / rejections | 367 / 367 / 0 |
+| Complete episode chains / conductance samples | 5 / 5 |
 | Sampled cold verifications / mismatches | 8 / 0 |
-| Deterministic live-audit gates | 17 / 17 |
-| FDAS projection p50 / p95 | 195.57 / 284.31 ms |
-| FDAS shadow readout p50 / p95 | 48.03 / 85.57 ms |
-| Full-loop p50 / p95 | 503.86 / 3233.09 ms |
+| Deterministic live-audit gates | 23 / 23 |
+| FDAS projection p50 / p95 | 57.85 / 101.16 ms |
+| FDAS shadow readout p50 / p95 | 44.47 / 82.64 ms |
+| Full-loop p50 / p95 | 264.02 / 1,348.97 ms |
+| Event count | 31,009 |
 
 Every authorized readout ran all eight declared authority checks and all seven
 commit checks. Each exact actor-resource schedule and action/CPU packet
 schedule was conserved and non-authoritative; every commit retained
 `execution_authority: false`; and each authority event had exactly one causal
-`action_sent` followed by an accepted `action_result`. Fallbacks were fully
-classified: 199 winners outside city defense, 159 snapshots without a selected
-candidate, and one winner without a unique fortification route.
+`action_sent` followed by an accepted `action_result`. The one evaluated
+in-domain fallback retained the legacy winner; out-of-domain winners bypassed
+rich materialization by construction and remained under the existing exact
+execution gate.
 
 The deterministic audit structural hash is
-`86f9ee062de1442d591509a66b86cf2333c917da32956e9b7bd784a2c25419af`
+`65bfde91ffcfc8cf033ff348106af2d3f0c1b77150511e8acfd4aea9f3a5a2a0`
 and its file SHA-256 is
-`62f943a968b3395f58d55cd42fe0f884c9edacd6d446ebe658bf783bd36b70db`.
+`64a6091fb9115b7a984e9e9220bc0078281e1fcf9e3bb4eebeb8ec2035e35d46`.
 The run manifest records implementation SHA-256
-`84966631e538be147617a8ef6f23427b74127ae24d38ce0969bd8d3e0f942faf`.
+`1577ff0a673d4a9b28e06b6986f86c48853babe3caed180ccaa5e1818e048b18`.
 
-The run also exposed and then confirmed a corrected incremental-projection
-invariant. `terrain-kind` previously hashed an undeclared whole-tile witness
-even though its support depended only on exact terrain. A sampled cold build
-therefore disagreed when owner/resource/worked state changed without a terrain
-change. The witness is now restricted to tile and terrain, differential
-verification reports bounded atom-level diagnostics, and a separate unit
-grounding fix prevents fortification support from referring to the final unit
-visited by the projector. The complete FDAS suite now passes 212 tests.
-
-This is an engine-backed causal and safety confirmation, not a production
-latency promotion. The late-game every-snapshot profile exceeded the proposed
-150 ms FDAS and 500 ms full-controller p95 targets. Those measurements require
-optimization and a clean paired confirmation before the profile can be called
-production-safe.
+The stress cohort keeps FDAS itself below 150 ms p95, but the complete
+late-game controller remains above 500 ms p95. This is therefore an ordinary
+bounded-slice latency promotion, not evidence that all late-game controller
+workloads satisfy the production envelope.
 
 ## Claim boundary
 
 This evidence supports one default-off, non-divergent fortification authority
 slice and fresh clean-source execution of that slice. It does not support
 reinforcement movement authority, policy winner changes, conductance-based
-policy changes, a score/win-rate claim, a production-latency claim, acceptance
-of the newly wired live episodes before fresh confirmation, or promotion of
-the default manifest.
+policy changes, a score/win-rate claim, a universal late-game latency claim, or
+promotion of the default manifest.

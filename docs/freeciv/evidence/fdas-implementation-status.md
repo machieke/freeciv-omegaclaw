@@ -82,15 +82,19 @@ the authoritative fortified effect and realized goal relief. See
 `fdas-bounded-defense-authority.md`.
 
 Fresh clean-source engine execution now exercises five causally complete
-authorized fortifications and 359 explicit fallbacks over a 160-turn horizon.
-All 367 engine actions received results, zero were rejected, eight sampled
-cold verifications were equivalent, terminal counters matched, and all 17
-live safety gates passed. This closes the PR 15 engine-safety gap without a
-score claim or default activation.
+authorized fortifications and one evaluated in-domain fallback over a
+160-turn horizon. All 367 engine actions received results, zero were rejected,
+eight sampled cold verifications were equivalent, five durable episode chains
+produced five isolated read-only conductance samples, terminal counters
+matched, and all 23 live safety gates passed. Out-of-domain winners remain on
+the exact legacy path without paying for an unused rich refresh.
 
-PR 15 is not yet production-promoted. The late-game every-snapshot profile
-measured 284.31 ms FDAS projection p95 and 3233.09 ms full-loop p95, above the
-proposed 150/500 ms targets. Durable episode event wiring and isolated,
-read-only route-conductance sample capture are implemented and component
-verified, but still need a fresh engine-backed confirmation. See
-`fdas-bounded-defense-authority.md` for the exact hashes and claim boundary.
+PR 15 now passes the ordinary production-latency boundary in a separate clean
+30-turn cohort: 27.00 ms FDAS projection p95 and 447.32 ms full-controller p95,
+with two complete authorized episode chains and all 23 audit gates. The
+160-turn stress cohort keeps FDAS below its budget at 101.16 ms p95, while the
+broader late-game controller still measures 1,348.97 ms p95. This closes PR
+15's implementation, safety, causal learning, and ordinary latency gates, but
+does not establish a universal late-game latency or score claim and does not
+activate the default profile. See `fdas-bounded-defense-authority.md` for exact
+hashes and claim boundaries.

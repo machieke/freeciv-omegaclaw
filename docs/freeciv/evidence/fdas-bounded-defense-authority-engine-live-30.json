@@ -1,0 +1,250 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "all_authorizations_bind_one_causal_action_and_result": true,
+      "all_authorized_actions_accepted": true,
+      "all_commit_and_event_identities_are_current": true,
+      "all_commit_validations_are_materialization_only": true,
+      "all_declared_authority_and_commit_checks_ran": true,
+      "all_packet_schedules_are_conserved_non_authoritative": true,
+      "all_pressure_readouts_complete": true,
+      "all_readouts_are_classified": true,
+      "all_resource_schedules_are_exact_shadow": true,
+      "authority_counters_match_terminal_summary": true,
+      "bounded_action_shape_is_not_broadened": true,
+      "bounded_policy_authority_is_explicit": true,
+      "clean_pinned_source": true,
+      "completed_exactly_once_without_run_failure": true,
+      "conductance_samples_are_read_only_truth_free": true,
+      "episode_counters_match_terminal_summary": true,
+      "episode_effect_and_relief_match_durable_outcome": true,
+      "episode_event_chains_are_causal": true,
+      "episode_store_is_durable_unquarantined_and_valid": true,
+      "episodes_bind_one_authorized_action_and_complete_event_chain": true,
+      "fixed_horizon_or_absorbing_terminal": true,
+      "positive_authority_observed": true,
+      "zero_rejected_engine_actions": true
+    },
+    "failures": []
+  },
+  "authorizations": [
+    {
+      "action_id": "engine-action-a33875cb16daad866607",
+      "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":106}",
+      "action_result_event_id": "cfc3c30575474f94bb961dc19f815fbb",
+      "action_result_status": "accepted",
+      "action_sent_event_id": "52f51509478e4bcfb2bb12090b0fed87",
+      "authority_checks": [
+        "domain-authority-gate",
+        "legacy-defense-category-gate",
+        "revision-current-evaluation",
+        "legacy-winner-fdas-fortification-route-binding",
+        "bounded-defense-fortification-contract",
+        "authority-pressure-readout",
+        "resource-and-packet-schedule",
+        "exact-fdas-commit-validation"
+      ],
+      "authority_event_id": "26c9ede7d7384d4ca3b8f436c5def1bf",
+      "authority_pressure_status": "complete",
+      "authority_slice": "fdas-bounded-defense-fortification/1.0",
+      "authority_to_send_distance": 4,
+      "authority_to_send_path_types": [
+        "atomspace_authority_decision",
+        "pressure_propagated",
+        "operation_scored",
+        "plan_created",
+        "action_sent"
+      ],
+      "commit_checks": [
+        "snapshot-and-legal-action-refresh",
+        "fdas-revision-identity",
+        "fdas-source-supports",
+        "fdas-candidate-identity",
+        "server-legal-action-membership",
+        "causal-effect-and-requirement-firewall",
+        "domain-authority-gate"
+      ],
+      "commit_current_revision_id": "fdas-revision-240009dcf7f7209789ea773bd5b2d271",
+      "commit_current_snapshot_id": "m7-main-e_full_loop-104729-00:1:6897:e863fd72a31f98a3",
+      "commit_disposition": "commit",
+      "commit_execution_authority": false,
+      "event_revision_id": "fdas-revision-240009dcf7f7209789ea773bd5b2d271",
+      "event_snapshot_id": "m7-main-e_full_loop-104729-00:1:6897:e863fd72a31f98a3",
+      "operation_id": "operation-ced095bc433fa80c141473e6bcfa34bb",
+      "packet_conserved": true,
+      "packet_policy_authority": null,
+      "plan_materialization_authorized": true,
+      "policy_authority": true,
+      "resource_policy_authority": false,
+      "resource_shadow_only": true,
+      "resource_status": "exact",
+      "result_causal_distance": 1,
+      "revision_id": "fdas-revision-240009dcf7f7209789ea773bd5b2d271",
+      "scheduling_policy_authority": false,
+      "snapshot_id": "m7-main-e_full_loop-104729-00:1:6897:e863fd72a31f98a3",
+      "turn": 1,
+      "within_bounded_action_shape": true
+    },
+    {
+      "action_id": "engine-action-2e91cb083d5590c847fc",
+      "action_key": "{\"action_type\":\"unit_fortify\",\"actor_id\":111}",
+      "action_result_event_id": "1942642289214730b37154c410bdd566",
+      "action_result_status": "accepted",
+      "action_sent_event_id": "dfcb3e5d110e473a93823166f2c2505e",
+      "authority_checks": [
+        "domain-authority-gate",
+        "legacy-defense-category-gate",
+        "revision-current-evaluation",
+        "legacy-winner-fdas-fortification-route-binding",
+        "bounded-defense-fortification-contract",
+        "authority-pressure-readout",
+        "resource-and-packet-schedule",
+        "exact-fdas-commit-validation"
+      ],
+      "authority_event_id": "83b40414934d4a4c9360918899ab548b",
+      "authority_pressure_status": "complete",
+      "authority_slice": "fdas-bounded-defense-fortification/1.0",
+      "authority_to_send_distance": 4,
+      "authority_to_send_path_types": [
+        "atomspace_authority_decision",
+        "pressure_propagated",
+        "operation_scored",
+        "plan_created",
+        "action_sent"
+      ],
+      "commit_checks": [
+        "snapshot-and-legal-action-refresh",
+        "fdas-revision-identity",
+        "fdas-source-supports",
+        "fdas-candidate-identity",
+        "server-legal-action-membership",
+        "causal-effect-and-requirement-firewall",
+        "domain-authority-gate"
+      ],
+      "commit_current_revision_id": "fdas-revision-d9120ce2d329d3e69a13e129c88a76d1",
+      "commit_current_snapshot_id": "m7-main-e_full_loop-104729-00:19:8352:ff37d7d482131137",
+      "commit_disposition": "commit",
+      "commit_execution_authority": false,
+      "event_revision_id": "fdas-revision-d9120ce2d329d3e69a13e129c88a76d1",
+      "event_snapshot_id": "m7-main-e_full_loop-104729-00:19:8352:ff37d7d482131137",
+      "operation_id": "operation-d3a8ed4089e000be1707878d5dfd1936",
+      "packet_conserved": true,
+      "packet_policy_authority": null,
+      "plan_materialization_authorized": true,
+      "policy_authority": true,
+      "resource_policy_authority": false,
+      "resource_shadow_only": true,
+      "resource_status": "exact",
+      "result_causal_distance": 1,
+      "revision_id": "fdas-revision-d9120ce2d329d3e69a13e129c88a76d1",
+      "scheduling_policy_authority": false,
+      "snapshot_id": "m7-main-e_full_loop-104729-00:19:8352:ff37d7d482131137",
+      "turn": 19,
+      "within_bounded_action_shape": true
+    }
+  ],
+  "episodes": [
+    {
+      "attributed_effects_match": true,
+      "authority_bindings": 1,
+      "causal": {
+        "action_result_to_open": true,
+        "effect_to_relief": true,
+        "open_to_effect": true,
+        "relief_to_sample": true
+      },
+      "episode_id": "episode-8b4707a402e016169b0bc977ea62beec",
+      "event_counts": {
+        "conductance_sample_recorded": 1,
+        "episode_effect_observed": 1,
+        "episode_opened": 1,
+        "episode_relief_attributed": 1
+      },
+      "goal_relief_matches": true,
+      "outcome_status": "goal-relief-observed",
+      "read_only_sample": true
+    },
+    {
+      "attributed_effects_match": true,
+      "authority_bindings": 1,
+      "causal": {
+        "action_result_to_open": true,
+        "effect_to_relief": true,
+        "open_to_effect": true,
+        "relief_to_sample": true
+      },
+      "episode_id": "episode-b7dd9ebafdb50bc151d7330a06307d77",
+      "event_counts": {
+        "conductance_sample_recorded": 1,
+        "episode_effect_observed": 1,
+        "episode_opened": 1,
+        "episode_relief_attributed": 1
+      },
+      "goal_relief_matches": true,
+      "outcome_status": "goal-relief-observed",
+      "read_only_sample": true
+    }
+  ],
+  "evidence": {
+    "episodes": {
+      "path": "artifacts/freeciv/fdas-defense-domain-refresh-live-30-v1/games/main/e_full_loop/104729-00/fdas-decision-episodes.json",
+      "sha256": "303f5ee43404d1e0722e869d90c8e18982d144c3115739588cdd7b99d585bda3",
+      "store_digest": "4559596007be2c26fb5f8cd1649e3369008f9597c2a3fb63ddf136dac4fd7278"
+    },
+    "events": {
+      "path": "artifacts/freeciv/fdas-defense-domain-refresh-live-30-v1/games/main/e_full_loop/104729-00/events.jsonl",
+      "sha256": "a66133c66d1fb3f867d22219d9e4899ab0ead0b49523bfea162a640a57eaddff"
+    },
+    "manifest": {
+      "path": "artifacts/freeciv/fdas-defense-domain-refresh-live-30-v1/games/main/e_full_loop/104729-00/manifest.json",
+      "sha256": "9251b59fbf15dca82fe733503753712646df93bbc59774b231d7e47feae5b342"
+    },
+    "status": {
+      "path": "artifacts/freeciv/fdas-defense-domain-refresh-live-30-v1/games/main/e_full_loop/104729-00/status.json",
+      "sha256": "a6442961ec9e3a0fbb8c0c79debb24c215b036baeacea715f0d88eebd8bc03f0"
+    }
+  },
+  "fallback_reasons": {},
+  "identity": {
+    "configuration_hash": "c6a8b73469d7eadaf77e244c221b3d1bf348c0d1755e65e478e0785c3f478075",
+    "fdas_config_source": "profile/dependent_atomspace_defense_authority.yaml",
+    "fdas_declaration_hash": "7c50b965eff68e8d772e779694451f59e8723f63d50148015b3892f76353429e",
+    "fdas_manifest_source": "profile/fdas_manifest_defense_authority.json",
+    "game_id": "m7-main-e_full_loop-104729-00",
+    "implementation_sha256": "1577ff0a673d4a9b28e06b6986f86c48853babe3caed180ccaa5e1818e048b18",
+    "seed": 104729,
+    "source_commit": "c101bf9c50df2d12891d8a7a933633d71bb0842a",
+    "source_dirty": false,
+    "turn_limit": 30
+  },
+  "schema_version": "1.1",
+  "structural_hash": "fdb7b5527e2a14278d8aef719ebc5aedf988e2ae5aae03bd52bde6bab2f774d5",
+  "summary": {
+    "action_results": 52,
+    "actions_sent": 52,
+    "authority_opportunities": 2,
+    "authorized": 2,
+    "episodes": 2,
+    "event_count": 1814,
+    "fallbacks": 0,
+    "max_turn": 30,
+    "run_completed": 1,
+    "run_failed": 0
+  },
+  "terminal_summary": {
+    "actions": 52,
+    "fdas_authority_actions": 2,
+    "fdas_authority_fallbacks": 0,
+    "fdas_authority_opportunities": 2,
+    "fdas_conductance_samples": 2,
+    "fdas_episode_effect_observed": 2,
+    "fdas_episode_opened": 2,
+    "fdas_episode_relief_attributed": 2,
+    "horizon_reached": true,
+    "opponent_score": 109.0,
+    "score": 108.0,
+    "terminal_game_over": false,
+    "terminal_player_elimination": false
+  }
+}
