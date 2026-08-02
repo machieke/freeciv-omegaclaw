@@ -505,10 +505,16 @@ def _validate_paired_impact(value):
             "release_game_config", {})
         if (not isinstance(release_game_config, dict)
                 or set(release_game_config)
-                - {"startunits"}):
+                - {"fogofwar", "startunits"}):
             raise ValueError(
-                "{}.release_game_config may override only startunits"
+                "{}.release_game_config may override only startunits or "
+                "fogofwar"
                 .format(prefix))
+        fogofwar = release_game_config.get("fogofwar")
+        if fogofwar is not None and not isinstance(fogofwar, bool):
+            raise ValueError(
+                "{}.release_game_config.fogofwar must be boolean".format(
+                    prefix))
         startunits = release_game_config.get(
             "startunits")
         if (

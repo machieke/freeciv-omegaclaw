@@ -114,6 +114,35 @@ def test_checked_defense_shadow_profile_is_narrow_and_non_authoritative():
         "shadow-live")
 
 
+def test_checked_observation_execution_profile_requires_authoritative_return():
+    with open(os.path.join(
+            REPO, "profile",
+            "dependent_atomspace_observation_execution_shadow.yaml"),
+            encoding="utf-8") as stream:
+        value = yaml.safe_load(stream)["dependent_atomspace"]
+    with open(os.path.join(
+            REPO, "profile",
+            "fdas_manifest_observation_execution_shadow.json"),
+            encoding="utf-8") as stream:
+        manifest = json.load(stream)
+
+    config = DependentAtomSpaceConfig.from_dict(value, manifest)
+
+    assert config.enabled is True
+    assert config.authority_enabled is False
+    assert config.section("projection")["beliefs"] is True
+    assert config.section("inference")[
+        "uncertain_assessment_enabled"] is True
+    assert not any(config.section("domain_authority").values())
+    assert manifest["policy_authority"] is False
+    assert manifest["observation_execution"] == {
+        "authoritative_return_required": True,
+        "evidence_target": "visibility-frontier-expanded",
+        "mode": "legacy-selected-visibility-return-shadow",
+        "policy_authority": False,
+    }
+
+
 def test_checked_expansion_shadow_profile_is_live_and_non_authoritative():
     with open(os.path.join(
             REPO, "profile", "dependent_atomspace_expansion_shadow.yaml"),

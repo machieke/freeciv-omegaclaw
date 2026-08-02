@@ -61,6 +61,7 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     FdasEpisodeLearningAdapter,
                                     FdasExpansionOperationAdapter,
                                     FdasFounderTransportProjectionAdapter,
+                                    FdasObservationExecutionBridge,
                                     FounderTransportOperationAssembler,
                                     FounderTransportOperationLifecycle,
                                     OperationStore,
@@ -359,20 +360,123 @@ def _fdas_observation_pressure_decision(belief, manifest):
         ))
 
 
+def _fdas_visibility_observation_decision(snapshot, action, manifest):
+    """Plan one bounded test of whether a legal move expands visibility."""
+    if (action.get("action_type") != "unit_move"
+            or not isinstance(action.get("target"), dict)):
+        return None
+    tile_count = int(snapshot.map_width) * int(snapshot.map_height)
+    visible_count = len(set(snapshot.visible_tile_ids))
+    unseen_count = max(0, tile_count - visible_count)
+    if tile_count < 1 or unseen_count < 1:
+        return None
+    visible_fraction = float(visible_count) / float(tile_count)
+    # This is explicitly a bounded inexact control model.  It estimates only
+    # frontier expansion, never enemy absence or safety.
+    expansion_probability = min(
+        0.75, max(0.5, 0.5 + 0.25 * (1.0 - visible_fraction)))
+    expands_id = "frontier-expands"
+    stalls_id = "frontier-stalls"
+    hypotheses = (
+        Hypothesis(expands_id, expansion_probability),
+        Hypothesis(stalls_id, 1.0 - expansion_probability),
+    )
+    action_digest = structural_hash(action)
+    atom_id = "belief-visibility-frontier-" + structural_hash({
+        "action": action,
+        "snapshot_id": snapshot.snapshot_id,
+        "visible_tile_ids": list(snapshot.visible_tile_ids),
+    })[:20]
+    decision = BoundedDecision(
+        "continue-frontier-scouting:{}".format(action_digest[:16]),
+        expands_id,
+        0.7,
+        "replan-scout-route",
+        "continue-scout-route")
+    likelihood = 0.85
+    model_material = {
+        "action": action,
+        "bounded_decision": decision.to_dict(),
+        "likelihood": likelihood,
+        "model": "fdas-visibility-frontier-refresh/1.0",
+        "ruleset": manifest["ruleset"],
+        "visible_fraction": visible_fraction,
+    }
+    model = ModelProvenance(
+        "simulator",
+        "fdas-visibility-frontier-refresh",
+        "1.0",
+        structural_hash(model_material),
+        False,
+        float(manifest["beliefs"]["simulation_confidence_cap"]),
+        (manifest["ruleset"], "tile-visibility", "one-legal-move"))
+    test = ObservationTest(
+        test_id="visibility-frontier:{}:{}".format(
+            snapshot.snapshot_id, action_digest[:16]),
+        atom_id=atom_id,
+        outcomes=(
+            ObservationOutcome(
+                "visibility-expanded",
+                ((expands_id, likelihood),
+                 (stalls_id, 1.0 - likelihood))),
+            ObservationOutcome(
+                "no-visibility-expansion",
+                ((expands_id, 1.0 - likelihood),
+                 (stalls_id, likelihood))),
+        ),
+        cost=CostVector(compute=0.01),
+        model_provenance=model,
+        decision_sensitivity=1.0,
+        evidence_overlap=0.0,
+        execution_kind="observation")
+    atom = AtomState(
+        atom_id,
+        TruthState(
+            expansion_probability,
+            0.5,
+            ("snapshot-visibility:{}".format(snapshot.snapshot_id),),
+            crisp=False),
+        expression={
+            "action": action,
+            "predicate": "visibility-frontier-expands",
+            "visible_fraction": visible_fraction,
+        })
+    return ValueOfInformationPlanner(
+        engine_live=True).packet_decision_for_uncertainty(
+            atom,
+            decision,
+            hypotheses,
+            (test,),
+            (
+                PacketBudget(ResourceKind.CPU, 1),
+                PacketBudget(ResourceKind.OBSERVATION, 1),
+            ))
+
+
 def _emit_fdas_observation_pressure(
-        belief, snapshot, manifest, store, writer, parent):
+        belief, snapshot, manifest, store, writer, parent,
+        decision=None,
+        mechanism="fdas-observation-pressure-shadow/1.0"):
     """Emit a closed-schema shadow decision without executing or observing."""
     started = time.perf_counter()
     evidence_before = len(store.evidence)
     store_hash_before = store.artifact_hash
-    decision = _fdas_observation_pressure_decision(belief, manifest)
+    decision = (
+        _fdas_observation_pressure_decision(belief, manifest)
+        if decision is None else decision)
+    selected_operations = tuple(
+        value for value in decision["operations"]
+        if value.operation_id in decision["selected_operation_ids"])
+    if len(selected_operations) != 1:
+        raise ValueError("FDAS observation emission requires one selection")
+    observation_atom_id = selected_operations[0].atom_id
     pressure = decision["pressure"]
     pressure_payload = pressure.to_dict()
     pressure_id = "pressure-" + pressure.artifact_hash[:24]
     propagated = writer.emit("pressure_propagated", snapshot.turn, {
         "config": {
             **pressure_payload["config"],
-            "mechanism": "fdas-observation-pressure-shadow/1.0",
+            "mechanism": mechanism,
             "policy_authority": False,
             "teleology_semantics": pressure_payload[
                 "teleology_semantics"],
@@ -412,7 +516,7 @@ def _emit_fdas_observation_pressure(
         "evidence_store_hash_before_planning": store_hash_before,
         "evidence_write_authorized": False,
         "information_values": information_values,
-        "mechanism": "fdas-observation-pressure-shadow/1.0",
+        "mechanism": mechanism,
         "omitted_tests": list(decision["omitted_tests"]),
         "packet_schedule": packet_schedule,
         "policy_authority": False,
@@ -430,7 +534,7 @@ def _emit_fdas_observation_pressure(
         "truth_mutated": False,
     }
     query_id = "observation-query-" + structural_hash({
-        "belief_atom_id": belief.atom_id,
+        "belief_atom_id": observation_atom_id,
         "game_id": manifest["game_id"],
         "snapshot_id": snapshot.snapshot_id,
     })[:24]
@@ -2314,6 +2418,11 @@ async def _play(run_dir, manifest, context):
     fdas_belief_shadow = bool(fdas_projection_config["beliefs"])
     fdas_observation_pressure_shadow = bool(
         fdas_inference_config["uncertain_assessment_enabled"])
+    fdas_observation_execution_config = fdas_manifest.get(
+        "observation_execution", {})
+    fdas_observation_execution_shadow = bool(
+        fdas_observation_execution_config.get("mode")
+        == "legacy-selected-visibility-return-shadow")
     if (fdas_belief_shadow
             and fdas_manifest["capabilities"].get(
                 "belief_domain_projection") != "shadow-live"):
@@ -2334,6 +2443,21 @@ async def _play(run_dir, manifest, context):
         if fdas_manifest.get("policy_authority") is not False:
             raise RuntimeError(
                 "FDAS observation pressure shadow cannot grant policy authority")
+    if fdas_observation_execution_shadow:
+        if not fdas_observation_pressure_shadow:
+            raise RuntimeError(
+                "FDAS observation execution requires observation pressure")
+        if fdas_observation_execution_config.get(
+                "policy_authority") is not False:
+            raise RuntimeError(
+                "legacy-bound observation execution cannot grant policy authority")
+        if fdas_observation_execution_config.get(
+                "authoritative_return_required") is not True:
+            raise RuntimeError(
+                "observation execution must require authoritative return")
+    fdas_observation_execution = (
+        FdasObservationExecutionBridge()
+        if fdas_observation_execution_shadow else None)
     fdas_expansion_shadow = bool(
         fdas_projection_config["settlement_sites"]
         or fdas_projection_config["population_recovery"])
@@ -2675,6 +2799,12 @@ async def _play(run_dir, manifest, context):
         "fdas_observation_pressure_decisions": 0,
         "fdas_observation_pressure_packet_commits": 0,
         "fdas_observation_pressure_selected": 0,
+        "fdas_observation_action_bindings": 0,
+        "fdas_observation_commit_revalidations": 0,
+        "fdas_observation_authoritative_returns": 0,
+        "fdas_observation_evidence_write_throughs": 0,
+        "fdas_observation_visibility_expansions": 0,
+        "fdas_observation_visibility_unchanged": 0,
         "fdas_transport_action_matches": 0,
         "fdas_transport_completions": 0,
         "fdas_transport_failures": 0,
@@ -3470,6 +3600,163 @@ async def _play(run_dir, manifest, context):
                         truth_mutated=False)
             return cause
 
+        def prepare_fdas_observation_action(current, action, cause):
+            """Bind one selected test to the exact legacy-selected move."""
+            if (fdas_observation_execution is None
+                    or action.get("action_type") != "unit_move"):
+                return cause, None, None
+            observation_decision = _fdas_visibility_observation_decision(
+                current, action, manifest)
+            if observation_decision is None:
+                return cause, None, None
+            cause, observation_decision = _emit_fdas_observation_pressure(
+                None,
+                current,
+                manifest,
+                belief_store,
+                writer,
+                cause,
+                decision=observation_decision,
+                mechanism="fdas-visibility-observation-execution/1.0")
+            decision_stats["fdas_observation_pressure_decisions"] += 1
+            selected = len(observation_decision["selected_operation_ids"])
+            decision_stats["fdas_observation_pressure_selected"] += selected
+            decision_stats[
+                "fdas_observation_pressure_packet_commits"] += sum(
+                    value.state == "committed"
+                    for value in observation_decision[
+                        "packet_schedule"].reservations)
+            binding = fdas_observation_execution.bind(
+                observation_decision, current, action)
+            decision_stats["fdas_observation_action_bindings"] += 1
+            validation = fdas_observation_execution.revalidate(
+                binding, current, action)
+            if not validation.committed:
+                raise RuntimeError(
+                    "legacy-selected observation failed commit: {}".format(
+                        validation.reason))
+            decision_stats[
+                "fdas_observation_commit_revalidations"] += 1
+            summary = {
+                "binding": binding.to_dict(),
+                "commit_validation": validation.to_dict(),
+                "legacy_action_changed": False,
+                "policy_authority": False,
+                "truth_mutated": False,
+            }
+            event = writer.emit("candidate_revalidated", current.turn, {
+                "artifact_hash": structural_hash(summary),
+                "config_digest": structural_hash({
+                    "declaration": manifest["dependent_atomspace"][
+                        "declaration_hash"],
+                    "mode": "legacy-selected-visibility-return-shadow",
+                }),
+                "controller_decision_hash": binding.binding_hash,
+                "event_schema_version": "1.0",
+                "parent_event_ids": [cause],
+                "query_id": "observation-bind-{}".format(
+                    binding.binding_hash[:24]),
+                "semantic_epoch": int(current.turn),
+                "summary": summary,
+                "topology_generation": int(current.identity.source_seq),
+            }, caused_by=[cause])
+            return event["event_id"], binding, validation
+
+        def complete_fdas_observation_action(
+                before, after, outcome, action_result_event_id, cause,
+                binding, validation, authoritative_refresh):
+            """Register selected evidence only after an authoritative delta."""
+            if binding is None:
+                return cause
+            if not authoritative_refresh:
+                raise RuntimeError(
+                    "selected observation produced no authoritative return")
+            token_count_before = len(
+                fdas_observation_execution.evidence_ledger.tokens)
+            belief_count_before = len(belief_store.evidence)
+            result = fdas_observation_execution.authoritative_return(
+                binding,
+                validation,
+                before,
+                after,
+                {
+                    "event_id": action_result_event_id,
+                    "status": outcome.status,
+                })
+            token_count_after = len(
+                fdas_observation_execution.evidence_ledger.tokens)
+            if token_count_after != token_count_before + 1:
+                raise RuntimeError(
+                    "authoritative observation token was not registered once")
+            summary = {
+                "authoritative_return": result.to_dict(),
+                "belief_evidence_count_before": belief_count_before,
+                "evidence_token_count_after": token_count_after,
+                "evidence_token_count_before": token_count_before,
+                "policy_authority": False,
+                "selection_effect_widening": {
+                    "configured_unknown_propensity_discount": float(
+                        manifest["beliefs"]["selection_unknown_discount"]),
+                    "propensity": (
+                        result.evidence_token.observation_policy.propensity),
+                },
+                "truth_mutated_only_after_authoritative_return": True,
+            }
+            parents = tuple(dict.fromkeys((
+                cause, str(action_result_event_id))))
+            event = writer.emit("packet_returned", after.turn, {
+                "artifact_hash": structural_hash(summary),
+                "config_digest": structural_hash({
+                    "declaration": manifest["dependent_atomspace"][
+                        "declaration_hash"],
+                    "mode": "legacy-selected-visibility-return-shadow",
+                }),
+                "controller_decision_hash": binding.binding_hash,
+                "event_schema_version": "1.0",
+                "parent_event_ids": list(parents),
+                "query_id": "observation-return-{}".format(
+                    result.return_hash[:24]),
+                "semantic_epoch": int(after.turn),
+                "summary": summary,
+                "topology_generation": int(after.identity.source_seq),
+            }, caused_by=parents)
+            token = result.evidence_token
+            evidence = Evidence(
+                token.token_id,
+                manifest["game_id"],
+                after.turn,
+                {"new_visible_tile_ids": list(
+                    result.new_visible_tile_ids)},
+                token.source,
+                BeliefKey(
+                    "visibility-frontier-expanded",
+                    (str(binding.action["actor_id"]),
+                     binding.binding_hash[:16])),
+                token.strength,
+                manifest["beliefs"]["observation_confidence"],
+                "visibility-frontier",
+                manifest["ruleset"],
+                manifest["model"],
+                selection_policy=token.observation_policy)
+            _belief, observation, revision = belief_store.emit_observation(
+                evidence, writer, caused_by=[event["event_id"]])
+            cause = (revision or observation)["event_id"]
+            if len(belief_store.evidence) != belief_count_before + 1:
+                raise RuntimeError(
+                    "observation belief evidence was not written exactly once")
+            cause = rematerialize_fdas_beliefs(after, cause)
+            decision_stats[
+                "fdas_observation_authoritative_returns"] += 1
+            decision_stats[
+                "fdas_observation_evidence_write_throughs"] += 1
+            decision_stats[
+                "fdas_observation_visibility_expansions"] += int(
+                    bool(result.new_visible_tile_ids))
+            decision_stats[
+                "fdas_observation_visibility_unchanged"] += int(
+                    not result.new_visible_tile_ids)
+            return cause
+
         distance = _enemy_distance(
             raw, global_state, player_id, snapshot.map_width, snapshot.map_height)
         if distance is not None:
@@ -3481,7 +3768,8 @@ async def _play(run_dir, manifest, context):
                 raw, snapshot, manifest, belief_store, writer, parent, player_id)
             if monitor_belief is not None:
                 parent = rematerialize_fdas_beliefs(snapshot, parent)
-                if fdas_observation_pressure_shadow:
+                if (fdas_observation_pressure_shadow
+                        and not fdas_observation_execution_shadow):
                     parent, observation_decision = (
                         _emit_fdas_observation_pressure(
                             monitor_belief,
@@ -4365,11 +4653,19 @@ async def _play(run_dir, manifest, context):
                     if enabling_events:
                         parent = enabling_events[
                             -1]["event_id"]
+                    (parent,
+                     observation_binding,
+                     observation_validation) = (
+                        prepare_fdas_observation_action(
+                            action_snapshot, impact_action, parent))
                     execution_started = time.perf_counter()
                     outcome, parent = await _execute_action(
                         gate, manifest["game_id"], player_id, snapshot,
                         impact_action, parent, attempted_count, decision.plan,
                         diagnostics=impact_execution_diagnostics)
+                    observation_action_result_event_id = (
+                        outcome.action_result_event_id
+                        or outcome.result_event_id or parent)
                     parent = commit_fdas_expansion_action(
                         action_snapshot, impact_action, outcome, parent)
                     parent = commit_fdas_transport_action(
@@ -4557,6 +4853,15 @@ async def _play(run_dir, manifest, context):
                                     "city_production", "unit_build_city",
                                     "unit_join_city")
                                 else None)))
+                    parent = complete_fdas_observation_action(
+                        action_snapshot,
+                        snapshot,
+                        outcome,
+                        observation_action_result_event_id,
+                        parent,
+                        observation_binding,
+                        observation_validation,
+                        authoritative_refresh)
                     confirmation_latency_ms = (
                         time.perf_counter() - confirmation_started) * 1000.0
                     effect_confirmation_latencies.append(confirmation_latency_ms)
@@ -4627,9 +4932,17 @@ async def _play(run_dir, manifest, context):
                 prior_scout = (
                     action["actor_id"], source["x"], source["y"],
                     action["target"]["x"], action["target"]["y"])
+                scout_snapshot = snapshot
+                (parent,
+                 observation_binding,
+                 observation_validation) = prepare_fdas_observation_action(
+                    scout_snapshot, action, parent)
                 outcome, parent = await _execute_action(
                     gate, manifest["game_id"], player_id, snapshot, action,
                     parent, attempted_count)
+                observation_action_result_event_id = (
+                    outcome.action_result_event_id
+                    or outcome.result_event_id or parent)
                 attempted_count += 1
                 action_count += int(outcome.submitted)
                 rejected += int(outcome.submitted and outcome.status != "accepted")
@@ -4637,6 +4950,15 @@ async def _play(run_dir, manifest, context):
                     raise RuntimeError("scout action failed: {}".format(outcome.reason))
                 record_meaningful_action(action)
                 raw, snapshot, parent = await refresh_after_action(snapshot, parent)
+                parent = complete_fdas_observation_action(
+                    scout_snapshot,
+                    snapshot,
+                    outcome,
+                    observation_action_result_event_id,
+                    parent,
+                    observation_binding,
+                    observation_validation,
+                    True)
             control_plan = None
             if (context.capabilities["assumption_monitor"] and monitor_belief
                     and zombie_blocked == 0):
@@ -5240,6 +5562,18 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_observation_pressure_packet_commits"]),
         ("fdas_observation_pressure_selected",
          decision_stats["fdas_observation_pressure_selected"]),
+        ("fdas_observation_action_bindings",
+         decision_stats["fdas_observation_action_bindings"]),
+        ("fdas_observation_commit_revalidations",
+         decision_stats["fdas_observation_commit_revalidations"]),
+        ("fdas_observation_authoritative_returns",
+         decision_stats["fdas_observation_authoritative_returns"]),
+        ("fdas_observation_evidence_write_throughs",
+         decision_stats["fdas_observation_evidence_write_throughs"]),
+        ("fdas_observation_visibility_expansions",
+         decision_stats["fdas_observation_visibility_expansions"]),
+        ("fdas_observation_visibility_unchanged",
+         decision_stats["fdas_observation_visibility_unchanged"]),
         ("fdas_transport_action_matches",
          decision_stats["fdas_transport_action_matches"]),
         ("fdas_transport_completions",
@@ -5690,6 +6024,19 @@ async def _play(run_dir, manifest, context):
                     "fdas_observation_pressure_packet_commits"]),
             "fdas_observation_pressure_selected": (
                 decision_stats["fdas_observation_pressure_selected"]),
+            "fdas_observation_action_bindings": (
+                decision_stats["fdas_observation_action_bindings"]),
+            "fdas_observation_commit_revalidations": (
+                decision_stats["fdas_observation_commit_revalidations"]),
+            "fdas_observation_authoritative_returns": (
+                decision_stats["fdas_observation_authoritative_returns"]),
+            "fdas_observation_evidence_write_throughs": (
+                decision_stats[
+                    "fdas_observation_evidence_write_throughs"]),
+            "fdas_observation_visibility_expansions": (
+                decision_stats["fdas_observation_visibility_expansions"]),
+            "fdas_observation_visibility_unchanged": (
+                decision_stats["fdas_observation_visibility_unchanged"]),
             "fdas_transport_action_matches": (
                 decision_stats["fdas_transport_action_matches"]),
             "fdas_transport_completions": (
@@ -6005,6 +6352,18 @@ async def _play(run_dir, manifest, context):
             decision_stats["fdas_observation_pressure_packet_commits"]),
         "fdas_observation_pressure_selected": (
             decision_stats["fdas_observation_pressure_selected"]),
+        "fdas_observation_action_bindings": (
+            decision_stats["fdas_observation_action_bindings"]),
+        "fdas_observation_commit_revalidations": (
+            decision_stats["fdas_observation_commit_revalidations"]),
+        "fdas_observation_authoritative_returns": (
+            decision_stats["fdas_observation_authoritative_returns"]),
+        "fdas_observation_evidence_write_throughs": (
+            decision_stats["fdas_observation_evidence_write_throughs"]),
+        "fdas_observation_visibility_expansions": (
+            decision_stats["fdas_observation_visibility_expansions"]),
+        "fdas_observation_visibility_unchanged": (
+            decision_stats["fdas_observation_visibility_unchanged"]),
         "fdas_transport_action_matches": (
             decision_stats["fdas_transport_action_matches"]),
         "fdas_transport_completions": (

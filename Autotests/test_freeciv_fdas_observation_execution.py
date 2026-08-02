@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from freeciv.harness.engine_live import _fdas_visibility_observation_decision
 from freeciv_agent.beliefs import ModelProvenance
 from freeciv_agent.events.schema import canonical_json_bytes, structural_hash
 from freeciv_agent.planning import FdasObservationExecutionBridge
@@ -94,6 +95,30 @@ def _decision():
             PacketBudget(ResourceKind.CPU, 1),
             PacketBudget(ResourceKind.OBSERVATION, 1),
         ))
+
+
+def _manifest():
+    return {
+        "beliefs": {"simulation_confidence_cap": 0.6},
+        "ruleset": "civ2civ3",
+    }
+
+
+def test_engine_visibility_planner_selects_only_with_unseen_tiles():
+    partial = Snapshot("snapshot-partial", 10, (1, 2), 0)
+    complete = Snapshot("snapshot-complete", 10, tuple(range(100)), 0)
+
+    decision = _fdas_visibility_observation_decision(
+        partial, ACTION, _manifest())
+
+    assert len(decision["selected_operation_ids"]) == 1
+    assert decision["packet_schedule"].conserved
+    assert {
+        row.outcome_id
+        for row in decision["information_values"][0].test.outcomes
+    } == {"visibility-expanded", "no-visibility-expansion"}
+    assert _fdas_visibility_observation_decision(
+        complete, ACTION, _manifest()) is None
 
 
 def test_exact_legacy_scout_binding_registers_only_fresh_authoritative_return():

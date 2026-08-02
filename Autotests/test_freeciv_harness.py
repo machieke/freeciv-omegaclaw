@@ -326,6 +326,7 @@ def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
             "fdas_transport_operation_shadow_diagnostic_v1": 1,
             "fdas_belief_shadow_diagnostic_v1": 1,
             "fdas_observation_pressure_shadow_diagnostic_v1": 1,
+            "fdas_observation_execution_shadow_diagnostic_v1": 1,
         }
     seed_sets = [
         set(row["seeds"]) for row in paired["cohorts"].values()
@@ -1698,7 +1699,7 @@ def test_combat_scenario_override_is_manifested_and_rejects_seed_drift():
             stream.write(source)
         with pytest.raises(
                 ValueError,
-                match="may override only startunits"):
+                match="may override only startunits or fogofwar"):
             load(path)
 
     unsupported = open(os.path.join(
