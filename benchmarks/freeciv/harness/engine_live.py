@@ -75,6 +75,7 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     FdasEpisodeLearningAdapter,
                                     FdasPromotedRuleCandidateImpactShadow,
                                     causal_induction_feature_query,
+                                    unambiguous_defense_choice_surface_candidates,
                                     INDUCTION_FEATURE_SCHEMA,
                                     FdasExpansionOperationAdapter,
                                     FdasFounderTransportProjectionAdapter,
@@ -5313,15 +5314,23 @@ async def _play(run_dir, manifest, context):
                             score_by_id = dict(
                                 (value.operation_id, value)
                                 for value in typed_scores)
+                            (surface_candidates,
+                             ambiguous_surface_action_keys) = (
+                                unambiguous_defense_choice_surface_candidates(
+                                    fdas_shadow.candidates,
+                                    snapshot.legal_action_json))
                             surface_candidates = tuple(
-                                value for value in fdas_shadow.candidates
-                                if (value.operation.operation_type
-                                    in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES
-                                    and value.legal_bound
-                                    and value.action_key
-                                    in snapshot.legal_action_json
-                                    and value.operation.operation_id
-                                    in score_by_id))
+                                value for value in surface_candidates
+                                if value.operation.operation_id in score_by_id)
+                            if ambiguous_surface_action_keys:
+                                parent = _metric(
+                                    writer, snapshot.turn, parent,
+                                    "fdas_candidate_choice_ambiguous_"
+                                    "action_keys_omitted",
+                                    len(ambiguous_surface_action_keys),
+                                    manifest,
+                                    ambiguous_set_hash=structural_hash(
+                                        ambiguous_surface_action_keys))
                             if (surface_candidates
                                     and any(score_by_id[
                                         value.operation.operation_id]
@@ -5380,6 +5389,12 @@ async def _play(run_dir, manifest, context):
                                                     "declaration_hash"],
                                             "legacy-selection-action-key:" +
                                             decision.candidate.action_key,
+                                            "ambiguous-action-key-count:" +
+                                            str(len(
+                                                ambiguous_surface_action_keys)),
+                                            "ambiguous-action-keys-hash:" +
+                                            structural_hash(
+                                                ambiguous_surface_action_keys),
                                         )))
                                 choice_is_new = (
                                     candidate_choice_set.choice_set_id

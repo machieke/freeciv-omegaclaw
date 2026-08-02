@@ -41,6 +41,7 @@ from freeciv_agent.planning import (  # noqa: E402
     combine_candidate_choice_stores,
     combine_outcome_label_stores,
     export_candidate_choice_calibration,
+    unambiguous_defense_choice_surface_candidates,
 )
 from freeciv_agent.pressure import (  # noqa: E402
     CostVector,
@@ -597,6 +598,19 @@ def test_defense_choice_surface_captures_move_and_fortify_without_estimates():
     assert no_selection.outcome_status == "censored-no-selection"
     assert all(row.selection_role == "nonselected-censored"
                for row in no_selection.choices)
+
+    duplicate_move = replace(
+        move,
+        operation=replace(
+            move.operation, operation_id="candidate-garrison-move-duplicate"),
+        candidate_hash="candidate-hash-move-duplicate")
+    unambiguous, ambiguous = (
+        unambiguous_defense_choice_surface_candidates(
+            (move, duplicate_move, fortify),
+            legal_snapshot.legal_action_json))
+    assert tuple(value.operation.operation_id for value in unambiguous) == (
+        fortify.operation.operation_id,)
+    assert ambiguous == (move.action_key,)
 
 
 def test_context_and_evidence_features_must_be_linked_to_episode():

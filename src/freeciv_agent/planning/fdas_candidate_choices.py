@@ -53,6 +53,33 @@ def _query_from_dict(value):
         tuple(value["features"]), tuple(value.get("provenance_ids", ())))
 
 
+def unambiguous_defense_choice_surface_candidates(
+        candidates, legal_action_json):
+    """Return exact surface bindings whose action maps to one operation."""
+    candidates = tuple(candidates)
+    if any(not isinstance(value, ShadowOperationCandidate)
+           for value in candidates):
+        raise TypeError("defense surface requires shadow candidates")
+    legal_action_json = frozenset(legal_action_json)
+    scoped = tuple(
+        value for value in candidates
+        if (value.operation.operation_type
+            in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES
+            and value.legal_bound
+            and value.action_key in legal_action_json))
+    action_key_counts = {}
+    for candidate in scoped:
+        action_key_counts[candidate.action_key] = (
+            action_key_counts.get(candidate.action_key, 0) + 1)
+    ambiguous = tuple(sorted(
+        key for key, count in action_key_counts.items() if count > 1))
+    unique = tuple(sorted(
+        (value for value in scoped
+         if action_key_counts[value.action_key] == 1),
+        key=lambda value: value.operation.operation_id))
+    return unique, ambiguous
+
+
 @dataclass(frozen=True)
 class FdasCandidateChoice:
     """One offered candidate; nonselected rows are explicitly censored."""
@@ -583,13 +610,9 @@ class FdasCandidateChoiceSetRecorder(object):
         score_by_id = dict((value.operation_id, value) for value in scores)
         if len(score_by_id) != len(scores):
             raise ValueError("defense surface score IDs overlap")
-        legal_actions = snapshot.legal_action_json
-        scoped = tuple(
-            value for value in candidates
-            if (value.operation.operation_type
-                in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES
-                and value.legal_bound
-                and value.action_key in legal_actions))
+        scoped, _ambiguous = (
+            unambiguous_defense_choice_surface_candidates(
+                candidates, snapshot.legal_action_json))
         if not scoped:
             raise ValueError("defense surface has no exact legal candidates")
         if any(value.operation.operation_id not in score_by_id
