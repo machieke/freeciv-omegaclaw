@@ -39,6 +39,14 @@ def _sha256(path):
     return digest.hexdigest()
 
 
+def _logical(path):
+    absolute = os.path.abspath(path)
+    relative = os.path.relpath(absolute, REPO)
+    if relative != os.pardir and not relative.startswith(os.pardir + os.sep):
+        return relative.replace(os.sep, "/")
+    return absolute
+
+
 def _load_source(path):
     path = os.path.abspath(path)
     with open(path, encoding="utf-8") as stream:
@@ -52,7 +60,7 @@ def _load_source(path):
         raise ValueError("episode store failed verification: {}: {}".format(
             path, store.quarantine_reason))
     source = {
-        "path": path,
+        "path": _logical(path),
         "sha256": _sha256(path),
         "store_digest": store.store_digest,
         "persistence_identity": store.persistence_identity,
@@ -79,18 +87,18 @@ def _load_source(path):
             "accepted": all(engine_checks.values()),
             "checks": engine_checks,
             "events": {
-                "path": engine_paths["events.jsonl"],
+                "path": _logical(engine_paths["events.jsonl"]),
                 "sha256": _sha256(engine_paths["events.jsonl"]),
                 "validation": validation.to_dict(),
             },
             "horizon_reached": status.get("horizon_reached") is True,
             "manifest": {
-                "path": engine_paths["manifest.json"],
+                "path": _logical(engine_paths["manifest.json"]),
                 "sha256": _sha256(engine_paths["manifest.json"]),
                 "source": manifest.get("source"),
             },
             "status": {
-                "path": engine_paths["status.json"],
+                "path": _logical(engine_paths["status.json"]),
                 "sha256": _sha256(engine_paths["status.json"]),
             },
         }
@@ -215,7 +223,7 @@ def run(arguments):
         "holdout_sources": list(holdout_sources),
         "ledger": {
             "identity": ledger_identity,
-            "path": os.path.abspath(arguments.ledger),
+            "path": _logical(arguments.ledger),
             "state_hash": ledger.state_hash,
         },
         "result": result_value,
