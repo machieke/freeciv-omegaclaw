@@ -123,6 +123,12 @@ revision metrics, and 37/37 captured rich transitions match independent cold
 builds. This remains a component-level optimization, not per-city or per-unit
 derivation scheduling.
 
+Recomputed rich projectors receive a read-only access-recording snapshot view.
+Any semantic top-level read outside the projector's declared incremental roots
+rejects the revision before publication. This catches declaration drift during
+ordinary tests instead of relying exclusively on sampled cold verification;
+the cold builder remains the final output-equivalence oracle.
+
 At the Phase 2 boundary this remained a compatibility-only materialized view;
 no generic domain rule, goal, candidate, pressure, or execution path consumed
 FDAS.

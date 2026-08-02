@@ -18,6 +18,7 @@ from freeciv_agent.planning import ControlEventEmitter  # noqa: E402
 from freeciv_agent.rulesets.compiler import compile_ruleset  # noqa: E402
 from freeciv_agent.state import ProxyStateDTO, SnapshotConflict  # noqa: E402
 from freeciv_agent.state.atomspace import (  # noqa: E402
+    CityEconomyProjector,
     FdasRuntimeConfigurationError,
     build_runtime,
     load_runtime_declaration,
@@ -205,6 +206,23 @@ def test_declared_city_input_change_recomputes_rich_component():
     assert update.materialization_metrics.reused_projector_ids == ()
     assert update.materialization_metrics.rich_recomputed_records > 0
     assert update.materialization_metrics.rich_reused_records == 0
+
+
+def test_rich_projector_undeclared_snapshot_read_fails_closed(monkeypatch):
+    monkeypatch.setattr(
+        CityEconomyProjector,
+        "incremental_dependency_roots",
+        CityEconomyProjector.incremental_dependency_roots.difference(
+            ("cities",)),
+    )
+    runtime = build_runtime(_enabled_city_declaration())
+
+    with pytest.raises(
+            SnapshotConflict,
+            match=(
+                "fdas-city-economy-shadow read undeclared snapshot roots: "
+                "cities")):
+        runtime.replace(_snapshot())
 
 
 def test_enabled_runtime_requires_world_and_empire_projection():

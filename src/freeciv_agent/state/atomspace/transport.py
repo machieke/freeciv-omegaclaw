@@ -65,8 +65,8 @@ class TransportCapabilityProjector(object):
     projector_id = "fdas-transport-capability-projector"
     version = "1.0"
     incremental_dependency_roots = frozenset((
-        "legal_actions", "map_width", "player_id", "source_seq", "turn",
-        "units",
+        "cities", "economy", "legal_actions", "map_width", "player_id",
+        "research", "source_seq", "turn", "units",
     ))
     incremental_dependency_kinds = frozenset(("ruleset-digest",))
 

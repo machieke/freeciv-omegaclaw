@@ -8,6 +8,61 @@ from .model import AtomRecord
 from .predicates import PredicateRegistry
 
 
+class _SnapshotIdentityAccessRecorder(object):
+    _ALIASES = {
+        "game_id": (),
+        "snapshot_id": ("source_seq", "turn"),
+        "source_seq": ("source_seq",),
+        "state_hash": ("source_seq", "turn"),
+        "turn": ("turn",),
+    }
+
+    def __init__(self, identity, accessed_roots):
+        object.__setattr__(self, "_identity", identity)
+        object.__setattr__(self, "_accessed_roots", accessed_roots)
+
+    def __getattr__(self, name):
+        roots = self._ALIASES.get(str(name), (str(name),))
+        self._accessed_roots.update(roots)
+        return getattr(self._identity, name)
+
+    def __setattr__(self, name, _value):
+        raise AttributeError(
+            "projectors cannot mutate snapshot identity {}".format(name))
+
+
+class _SnapshotAccessRecorder(object):
+    """Record semantic top-level reads without changing snapshot behavior."""
+
+    _ALIASES = {
+        "city": ("cities",),
+        "legal_action_json": ("legal_actions",),
+        "movement_route": ("movement_routes",),
+        # Direct snapshot_id reads are transaction/cache plumbing. Projectors
+        # whose output semantically embeds it must declare turn/source_seq;
+        # nested identity reads below remain audited.
+        "snapshot_id": (),
+        "unit": ("units",),
+        "visible_enemy_unit": ("visible_enemy_units",),
+    }
+
+    def __init__(self, snapshot):
+        object.__setattr__(self, "_snapshot", snapshot)
+        object.__setattr__(self, "accessed_roots", set())
+
+    def __getattr__(self, name):
+        if name == "identity":
+            return _SnapshotIdentityAccessRecorder(
+                self._snapshot.identity, self.accessed_roots)
+        roots = self._ALIASES.get(str(name), (str(name),))
+        self.accessed_roots.update(roots)
+        return getattr(self._snapshot, name)
+
+    def __setattr__(self, name, _value):
+        raise AttributeError(
+            "projectors cannot mutate snapshot attribute {}".format(name))
+
+
 def merge_predicate_registries(*registries):
     """Merge registries while rejecting incompatible duplicate predicates."""
     by_name = {}
@@ -136,6 +191,19 @@ class CompositeDomainProjector(object):
                 record.tags))
         return tuple(refreshed)
 
+    @staticmethod
+    def _project_checked(projector, snapshot, scopes, fingerprints):
+        tracked = _SnapshotAccessRecorder(snapshot)
+        records = tuple(projector.project(tracked, scopes, fingerprints))
+        declared = frozenset(getattr(
+            projector, "incremental_dependency_roots", ()))
+        undeclared = sorted(tracked.accessed_roots.difference(declared))
+        if undeclared:
+            raise ValueError(
+                "projector {} read undeclared snapshot roots: {}".format(
+                    projector.projector_id, ", ".join(undeclared)))
+        return records
+
     def scopes(self, snapshot):
         by_id = {}
         component_scopes = {}
@@ -194,8 +262,8 @@ class CompositeDomainProjector(object):
         fingerprint_index = self._fingerprint_index(
             fingerprints, self._incremental_roots, self._incremental_kinds)
         for projector in self.projectors:
-            projected = tuple(projector.project(
-                snapshot, scopes, fingerprints))
+            projected = self._project_checked(
+                projector, snapshot, scopes, fingerprints)
             dependency_keys = tuple(sorted(set(
                 dependency.key
                 for record in projected for support in record.supports
@@ -247,8 +315,8 @@ class CompositeDomainProjector(object):
                 reused.append(projector_id)
                 reused_record_count += len(projected)
             else:
-                projected = tuple(projector.project(
-                    snapshot, scopes, fingerprints))
+                projected = self._project_checked(
+                    projector, snapshot, scopes, fingerprints)
                 dependency_keys = tuple(sorted(set(
                     dependency.key
                     for record in projected for support in record.supports

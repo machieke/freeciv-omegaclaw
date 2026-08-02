@@ -60,8 +60,8 @@ class RouteCorridorProjector(object):
     projector_id = "fdas-route-corridor-projector"
     version = "1.0"
     incremental_dependency_roots = frozenset((
-        "legal_actions", "map_width", "movement_routes", "player_id",
-        "source_seq", "units", "visible_tile_ids",
+        "legal_actions", "map_tiles", "map_width", "movement_routes",
+        "player_id", "source_seq", "turn", "units", "visible_tile_ids",
     ))
     incremental_dependency_kinds = frozenset()
 

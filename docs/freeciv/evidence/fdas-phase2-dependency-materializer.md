@@ -132,3 +132,18 @@ with zero failures. Focused tests prove both non-empty reuse on an unchanged
 same-turn input and forced recomputation on a declared city-surplus mutation.
 Materialization metrics now expose recomputed/reused projector IDs and record
 counts plus the total recomputation ratio. All authority flags remain false.
+
+Rich projection is also guarded by a fail-closed top-level access audit. The
+composite supplies a read-only recording view to every recomputed projector and
+rejects publication if the projector reads a semantic snapshot root absent
+from its incremental declaration. Direct `snapshot_id` use as a cache key is
+treated as transaction plumbing; nested identity reads remain audited, while
+scope validity, support dependencies, conservative declarations, and cold
+parity protect output identity. A regression deliberately removes `cities`
+from the city/economy declaration and confirms that the snapshot is rejected.
+
+The audit exposed two previously implicit transitive inputs before activation:
+transport capacity extraction reads city/economy/research capacity sources,
+and route-corridor visibility reads map tiles and turn state. Those inputs are
+now declared. After correction, the audited full-rich captured cohort again
+passed 37/37 differential transitions with zero failures.
