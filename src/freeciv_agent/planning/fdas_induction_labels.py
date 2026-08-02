@@ -12,6 +12,8 @@ from .fdas_episodes import DecisionEpisode
 
 LABEL_SCHEMA_VERSION = 1
 DURABLE_CITY_COVERAGE_TARGET = "durable-own-unit-city-coverage/8-turn/1.0"
+DURABLE_ACTOR_CITY_DEFENSE_TARGET = (
+    "durable-attributed-actor-city-defense/32-turn/1.0")
 _LABEL_STATES = frozenset(("pending", "observed", "confounded", "expired"))
 _TERMINAL_LABEL_STATES = frozenset(("observed", "confounded", "expired"))
 
@@ -21,6 +23,23 @@ def _strings(values, name):
     if any(not value for value in result) or len(result) != len(set(result)):
         raise ValueError("{} must be unique non-empty strings".format(name))
     return result
+
+
+def delayed_outcome_episode_eligible(episode, target_id):
+    """Return exact target-specific eligibility without creating a label."""
+    if (not isinstance(episode, DecisionEpisode)
+            or episode.outcome_status != "goal-relief-observed"):
+        return False
+    if target_id == DURABLE_CITY_COVERAGE_TARGET:
+        return True
+    if target_id == DURABLE_ACTOR_CITY_DEFENSE_TARGET:
+        context = dict(episode.context_signature)
+        observed = episode.observed_delta or {}
+        return bool(
+            context.get("operation_type", "").endswith("unit_fortify")
+            and str(observed.get("actor_activity_after", "")).lower()
+            in ("fortify", "fortified", "fortifying"))
+    return False
 
 
 def combine_outcome_label_stores(stores, persistence_identity):
@@ -318,19 +337,27 @@ class FdasDefenseDurabilityLabeler(object):
     """Observe bounded delayed city coverage from authoritative own state."""
 
     LABELER_IDENTITY = "fdas-defense-durability-labeler/1.0"
+    TARGET_ID = DURABLE_CITY_COVERAGE_TARGET
+    OBSERVATION_WINDOW_TURNS = 8
 
     def __init__(self, store, observation_window_turns=8):
         if not isinstance(store, EpisodeInductionOutcomeLabelStore):
             raise TypeError("durability labeler requires outcome-label store")
         self.store = store
         self.observation_window_turns = int(observation_window_turns)
-        if self.observation_window_turns != 8:
-            raise ValueError("durability target requires its declared 8 turns")
+        if self.observation_window_turns != self.OBSERVATION_WINDOW_TURNS:
+            raise ValueError(
+                "durability target requires its declared {} turns".format(
+                    self.OBSERVATION_WINDOW_TURNS))
+
+    @classmethod
+    def eligible_episode(cls, episode):
+        return delayed_outcome_episode_eligible(episode, cls.TARGET_ID)
 
     def open(self, episode, relief_turn, relief_revision_id):
         if not isinstance(episode, DecisionEpisode):
             raise TypeError("durability label requires decision episode")
-        if episode.outcome_status != "goal-relief-observed":
+        if not self.eligible_episode(episode):
             raise ValueError("durability label requires observed immediate relief")
         if episode.after_revision_id != str(relief_revision_id):
             raise ValueError("durability label relief revision mismatch")
@@ -345,7 +372,7 @@ class FdasDefenseDurabilityLabeler(object):
             "relief_revision_id": str(relief_revision_id),
             "relief_turn": relief_turn,
             "schema_version": LABEL_SCHEMA_VERSION,
-            "target_id": DURABLE_CITY_COVERAGE_TARGET,
+            "target_id": self.TARGET_ID,
         }
         label = EpisodeInductionOutcomeLabel(
             LABEL_SCHEMA_VERSION,
@@ -354,7 +381,7 @@ class FdasDefenseDurabilityLabeler(object):
             episode.immutable_digest,
             episode.game_id,
             episode.player_id,
-            DURABLE_CITY_COVERAGE_TARGET,
+            self.TARGET_ID,
             relief_turn,
             due_turn,
             str(relief_revision_id),
@@ -370,7 +397,7 @@ class FdasDefenseDurabilityLabeler(object):
                 "relief-revision:" + str(relief_revision_id),
             ))
         existing = self.store.for_episode(
-            episode.episode_id, DURABLE_CITY_COVERAGE_TARGET)
+            episode.episode_id, self.TARGET_ID)
         if existing is not None:
             if existing.identity_material != label.identity_material:
                 raise ValueError("durability label identity collision")
@@ -383,7 +410,7 @@ class FdasDefenseDurabilityLabeler(object):
         if not isinstance(snapshot, AuthoritativeSnapshot):
             raise TypeError("durability observation requires snapshot")
         label = self.store.for_episode(
-            episode.episode_id, DURABLE_CITY_COVERAGE_TARGET)
+            episode.episode_id, self.TARGET_ID)
         if label is None:
             raise KeyError("episode has no durability outcome label")
         if label.episode_digest != episode.immutable_digest:
@@ -398,12 +425,30 @@ class FdasDefenseDurabilityLabeler(object):
             return label
         if snapshot.turn < label.due_turn:
             return label
+        outcome, observed_value, reason = self._assessment(episode, snapshot)
+        resolved = replace(
+            label,
+            status="observed",
+            observed_turn=snapshot.turn,
+            observed_revision_id=str(revision_id),
+            outcome=outcome,
+            observed_value=tuple(sorted(observed_value.items())),
+            reason=reason,
+            provenance_ids=tuple(sorted(set(
+                label.provenance_ids + (
+                    "assessment-revision:" + str(revision_id),))))
+        )
+        return self.store.record(resolved)
+
+    @staticmethod
+    def _assessment(episode, snapshot):
         context = dict(episode.context_signature)
         city_id = int(context["city_id"])
         city = snapshot.city(city_id)
         own_units = tuple(
             value for value in snapshot.units
             if city is not None and value.tile == city.tile
+            and value.owner == snapshot.player_id
             and value.transported is not True)
         outcome = bool(city is not None and own_units)
         if city is None:
@@ -412,20 +457,66 @@ class FdasDefenseDurabilityLabeler(object):
             reason = "authoritative-own-unit-coverage-observed-at-due-turn"
         else:
             reason = "authoritative-own-unit-coverage-absent-at-due-turn"
-        resolved = replace(
-            label,
-            status="observed",
-            observed_turn=snapshot.turn,
-            observed_revision_id=str(revision_id),
-            outcome=outcome,
-            observed_value=tuple(sorted({
-                "city_id": city_id,
-                "city_owned_and_present": city is not None,
-                "own_unit_count_at_city": len(own_units),
-            }.items())),
-            reason=reason,
-            provenance_ids=tuple(sorted(set(
-                label.provenance_ids + (
-                    "assessment-revision:" + str(revision_id),))))
-        )
-        return self.store.record(resolved)
+        return outcome, {
+            "city_id": city_id,
+            "city_owned_and_present": city is not None,
+            "own_unit_count_at_city": len(own_units),
+        }, reason
+
+
+class FdasDefenseActorPersistenceLabeler(FdasDefenseDurabilityLabeler):
+    """Observe whether the attributed actor still supplies city defense."""
+
+    LABELER_IDENTITY = "fdas-defense-actor-persistence-labeler/1.0"
+    TARGET_ID = DURABLE_ACTOR_CITY_DEFENSE_TARGET
+    OBSERVATION_WINDOW_TURNS = 32
+
+    def __init__(self, store, observation_window_turns=32):
+        super().__init__(store, observation_window_turns)
+
+    @staticmethod
+    def _assessment(episode, snapshot):
+        context = dict(episode.context_signature)
+        city_id = int(context["city_id"])
+        actor_ref = context.get("actor_id", "")
+        if not actor_ref.startswith("unit:"):
+            raise ValueError(
+                "actor-persistence target requires unit actor context")
+        actor_id = int(actor_ref.split(":", 1)[1])
+        city = snapshot.city(city_id)
+        actor = snapshot.unit(actor_id)
+        actor_at_city = bool(
+            city is not None and actor is not None
+            and actor.owner == snapshot.player_id
+            and actor.tile == city.tile)
+        actor_nontransported = bool(
+            actor is not None and actor.transported is not True)
+        activity = (
+            None if actor is None else str(actor.activity or "").lower())
+        fortified = activity in ("fortify", "fortified", "fortifying")
+        outcome = bool(
+            city is not None and actor_at_city
+            and actor_nontransported and fortified)
+        if city is None:
+            reason = "city-no-longer-owned-or-present-at-due-turn"
+        elif actor is None:
+            reason = "attributed-actor-no-longer-present-at-due-turn"
+        elif not actor_at_city:
+            reason = "attributed-actor-not-at-city-at-due-turn"
+        elif not actor_nontransported:
+            reason = "attributed-actor-transported-at-due-turn"
+        elif not fortified:
+            reason = "attributed-actor-not-fortified-at-due-turn"
+        else:
+            reason = (
+                "attributed-actor-persistent-city-defense-observed-at-"
+                "due-turn")
+        return outcome, {
+            "actor_activity": activity,
+            "actor_at_city": actor_at_city,
+            "actor_id": actor_id,
+            "actor_nontransported": actor_nontransported,
+            "actor_present": actor is not None,
+            "city_id": city_id,
+            "city_owned_and_present": city is not None,
+        }, reason

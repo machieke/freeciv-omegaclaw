@@ -3591,6 +3591,17 @@ def test_smoke_filters_use_a_seed_prefix_and_selected_condition_only():
         "condition": "e_full_loop", "seed": runner.config["seeds"][0],
         "track": "main", "sequence": 0}]
 
+    offset = HarnessRunner(
+        "unused", seed_limit=2, seed_offset=3,
+        conditions=("e_full_loop",))
+    offset_jobs = offset._jobs(
+        include_induction=False, include_grading=False)
+    assert [value["seed"] for value in offset_jobs] == (
+        offset.config["seeds"][3:5])
+
+    with pytest.raises(ValueError, match="seed offset"):
+        HarnessRunner("unused", seed_offset=-1)
+
 
 def test_paired_impact_jobs_alternate_order_and_override_only_declared_policy():
     runner = HarnessRunner(

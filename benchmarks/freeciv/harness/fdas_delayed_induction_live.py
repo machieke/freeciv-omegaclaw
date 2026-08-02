@@ -7,17 +7,26 @@ import os
 from freeciv_agent.events.schema import structural_hash
 from freeciv_agent.events.validator import validate_file
 from freeciv_agent.planning import (
+    DURABLE_ACTOR_CITY_DEFENSE_TARGET,
     DURABLE_CITY_COVERAGE_TARGET,
     DecisionEpisodeStore,
     EpisodeInductionOutcomeLabelStore,
+    delayed_outcome_episode_eligible,
 )
 
 
-CONFIG_SOURCE = (
-    "profile/dependent_atomspace_defense_delayed_induction_shadow.yaml")
-MANIFEST_SOURCE = (
-    "profile/fdas_manifest_defense_delayed_induction_shadow.json")
-OBSERVATION_WINDOW_TURNS = 8
+ACTIVATION_TARGETS = {
+    (
+        "profile/dependent_atomspace_defense_delayed_induction_shadow.yaml",
+        "profile/fdas_manifest_defense_delayed_induction_shadow.json",
+    ): (DURABLE_CITY_COVERAGE_TARGET, 8),
+    (
+        "profile/"
+        "dependent_atomspace_defense_actor_persistence_induction_shadow.yaml",
+        "profile/"
+        "fdas_manifest_defense_actor_persistence_induction_shadow.json",
+    ): (DURABLE_ACTOR_CITY_DEFENSE_TARGET, 32),
+}
 
 
 def _load(path):
@@ -94,17 +103,22 @@ def audit_fdas_delayed_induction_live(game_dir, repo=None):
     activation = declaration.get("manifest", {})
     capabilities = activation.get("capabilities", {})
     diagnostic = activation.get("delayed_induction_outcome_diagnostic")
+    activation_sources = (
+        declaration.get("config_source"),
+        declaration.get("manifest_source"))
+    expected_target, observation_window_turns = ACTIVATION_TARGETS.get(
+        activation_sources, ("unrecognized-delayed-outcome-target", 0))
     expected_diagnostic = {
         "induced_rule_readout": False,
-        "observation_window_turns": OBSERVATION_WINDOW_TURNS,
+        "observation_window_turns": observation_window_turns,
         "policy_authority": False,
-        "target_id": DURABLE_CITY_COVERAGE_TARGET,
+        "target_id": expected_target,
     }
     episodes = episode_store.episodes()
     labels = label_store.labels()
     relief_episodes = tuple(
         value for value in episodes
-        if value.outcome_status == "goal-relief-observed")
+        if delayed_outcome_episode_eligible(value, expected_target))
     observed_labels = tuple(
         value for value in labels if value.status == "observed")
     pending_labels = tuple(
@@ -128,8 +142,7 @@ def audit_fdas_delayed_induction_live(game_dir, repo=None):
         for value in open_events + observed_events)
     checks = {
         "activation_is_exact_default_off_shadow_target": (
-            declaration.get("config_source") == CONFIG_SOURCE
-            and declaration.get("manifest_source") == MANIFEST_SOURCE
+            activation_sources in ACTIVATION_TARGETS
             and capabilities.get("delayed_induction_outcome_labels")
             == "shadow-live"
             and diagnostic == expected_diagnostic
@@ -151,7 +164,7 @@ def audit_fdas_delayed_induction_live(game_dir, repo=None):
             and set(label_by_episode)
             == {value.episode_id for value in relief_episodes}
             and all(
-                label.target_id == DURABLE_CITY_COVERAGE_TARGET
+                label.target_id == expected_target
                 and label.episode_digest == episode.immutable_digest
                 and label.relief_revision_id == episode.after_revision_id
                 and label.relief_turn
@@ -162,7 +175,7 @@ def audit_fdas_delayed_induction_live(game_dir, repo=None):
             bool(observed_labels)
             and all(
                 value.due_turn
-                == value.relief_turn + OBSERVATION_WINDOW_TURNS
+                == value.relief_turn + observation_window_turns
                 and (value.status != "observed"
                      or value.observed_turn >= value.due_turn)
                 for value in labels)),
@@ -206,10 +219,11 @@ def audit_fdas_delayed_induction_live(game_dir, repo=None):
         "acceptance": {"accepted": all(checks.values()), "checks": checks},
         "claim_scope": (
             "engine-live authoritative immediate relief opens one durable "
-            "eight-turn own-unit city-coverage label; due-turn authoritative "
-            "own state resolves it with zero truth mutation, policy authority, "
-            "or induced-rule readout; no causal, score, or gameplay-improvement "
-            "claim"),
+            "revision-bound delayed label for target {}; due-turn authoritative "
+            "own state resolves it after exactly {} turns with zero truth "
+            "mutation, policy authority, or induced-rule readout; no causal, "
+            "score, or gameplay-improvement claim".format(
+                expected_target, observation_window_turns)),
         "evidence": dict(
             (name, {"path": _logical(path, repo), "sha256": _sha256(path)})
             for name, path in sorted(paths.items())),
@@ -223,7 +237,9 @@ def audit_fdas_delayed_induction_live(game_dir, repo=None):
             "labels_pending": len(pending_labels),
             "labels_positive": sum(
                 value.outcome is True for value in observed_labels),
+            "observation_window_turns": observation_window_turns,
             "relief_episodes": len(relief_episodes),
+            "target_id": expected_target,
         },
     }
     report["structural_hash"] = structural_hash(report)

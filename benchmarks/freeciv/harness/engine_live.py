@@ -55,8 +55,10 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     ImpactTurnBudget,
                                     ControlEventEmitter,
                                     DecisionEpisodeStore,
+                                    DURABLE_ACTOR_CITY_DEFENSE_TARGET,
                                     DURABLE_CITY_COVERAGE_TARGET,
                                     EpisodeControlPrediction,
+                                    FdasDefenseActorPersistenceLabeler,
                                     FdasDefenseEpisodeRecorder,
                                     FdasDefenseDurabilityLabeler,
                                     FdasEpisodeInductionShadow,
@@ -2704,18 +2706,31 @@ async def _play(run_dir, manifest, context):
     fdas_delayed_outcome_shadow = bool(
         delayed_outcome_capability is not None
         or delayed_outcome_diagnostic is not None)
-    expected_delayed_outcome_diagnostic = {
-        "induced_rule_readout": False,
-        "observation_window_turns": 8,
-        "policy_authority": False,
-        "target_id": DURABLE_CITY_COVERAGE_TARGET,
+    delayed_outcome_labelers = {
+        DURABLE_CITY_COVERAGE_TARGET: FdasDefenseDurabilityLabeler,
+        DURABLE_ACTOR_CITY_DEFENSE_TARGET:
+            FdasDefenseActorPersistenceLabeler,
     }
+    delayed_outcome_target = (
+        delayed_outcome_diagnostic.get("target_id")
+        if isinstance(delayed_outcome_diagnostic, dict) else None)
+    delayed_outcome_labeler_type = delayed_outcome_labelers.get(
+        delayed_outcome_target)
     if fdas_delayed_outcome_shadow:
         if delayed_outcome_capability != "shadow-live":
             raise RuntimeError(
                 "FDAS delayed outcome labels require shadow-live manifest")
-        if (delayed_outcome_diagnostic
-                != expected_delayed_outcome_diagnostic):
+        if delayed_outcome_labeler_type is None:
+            raise RuntimeError(
+                "FDAS delayed outcome target is not implemented")
+        expected_delayed_outcome_diagnostic = {
+            "induced_rule_readout": False,
+            "observation_window_turns": (
+                delayed_outcome_labeler_type.OBSERVATION_WINDOW_TURNS),
+            "policy_authority": False,
+            "target_id": delayed_outcome_labeler_type.TARGET_ID,
+        }
+        if delayed_outcome_diagnostic != expected_delayed_outcome_diagnostic:
             raise RuntimeError(
                 "FDAS delayed outcome diagnostic declaration differs")
         if not fdas_learning_config["episode_attribution_enabled"]:
@@ -2779,8 +2794,8 @@ async def _play(run_dir, manifest, context):
         if fdas_delayed_outcome_shadow:
             fdas_outcome_label_identity = structural_hash([
                 fdas_episode_identity,
-                FdasDefenseDurabilityLabeler.LABELER_IDENTITY,
-                DURABLE_CITY_COVERAGE_TARGET,
+                delayed_outcome_labeler_type.LABELER_IDENTITY,
+                delayed_outcome_target,
             ])
             fdas_outcome_label_store = (
                 EpisodeInductionOutcomeLabelStore.load(
@@ -2790,15 +2805,17 @@ async def _play(run_dir, manifest, context):
                 raise RuntimeError(
                     "FDAS delayed outcome-label store is quarantined: {}"
                     .format(fdas_outcome_label_store.quarantine_reason))
-            fdas_durability_labeler = FdasDefenseDurabilityLabeler(
+            fdas_durability_labeler = delayed_outcome_labeler_type(
                 fdas_outcome_label_store,
-                observation_window_turns=8)
+                observation_window_turns=(
+                    delayed_outcome_labeler_type
+                    .OBSERVATION_WINDOW_TURNS))
             for existing_episode in fdas_episode_store.episodes():
-                if (existing_episode.outcome_status
-                        != "goal-relief-observed"
+                if (not fdas_durability_labeler.eligible_episode(
+                            existing_episode)
                         or fdas_outcome_label_store.for_episode(
                             existing_episode.episode_id,
-                            DURABLE_CITY_COVERAGE_TARGET) is not None):
+                            delayed_outcome_target) is not None):
                     continue
                 relief_turn = (
                     existing_episode.observed_delta or {}).get(
@@ -3767,7 +3784,9 @@ async def _play(run_dir, manifest, context):
                         }, caused_by=(cause,))
                     cause = event["event_id"]
                     decision_stats["fdas_episode_relief_attributed"] += 1
-                    if fdas_durability_labeler is not None:
+                    if (fdas_durability_labeler is not None
+                            and fdas_durability_labeler.eligible_episode(
+                                updated)):
                         label = fdas_durability_labeler.open(
                             updated,
                             updated.observed_delta["observed_turn"],

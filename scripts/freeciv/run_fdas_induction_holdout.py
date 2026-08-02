@@ -25,6 +25,7 @@ from freeciv_agent.planning import (  # noqa: E402
     IMMEDIATE_GOAL_RELIEF_TARGET,
     combine_episode_stores,
     combine_outcome_label_stores,
+    delayed_outcome_episode_eligible,
 )
 from freeciv_agent.pressure import (  # noqa: E402
     InductionLedger,
@@ -154,6 +155,16 @@ def _outcome_label_partition(paths, label):
         label,
         structural_hash(sorted(value.store_digest for value in stores)))
     return combine_outcome_label_stores(stores, identity), sources
+
+
+def _outcome_labels_match_partition(episode_store, label_store, target_id):
+    for label in label_store.labels():
+        episode = episode_store.get(label.episode_id)
+        if (episode is None
+                or not delayed_outcome_episode_eligible(episode, target_id)
+                or label.episode_digest != episode.immutable_digest):
+            return False
+    return True
 
 
 def _write(path, value):
@@ -286,13 +297,18 @@ def run(arguments):
                     (training, training_outcomes),
                     (holdout, holdout_outcomes))
                 for episode in episode_store.episodes()
-                if episode.outcome_status == "goal-relief-observed")),
+                if delayed_outcome_episode_eligible(
+                    episode, arguments.outcome_target))),
         "outcome_label_target_requirement_met": (
             not delayed_target
             or all(
-                value.target_id == arguments.outcome_target
-                for store in (training_outcomes, holdout_outcomes)
-                for value in store.labels())),
+                all(value.target_id == arguments.outcome_target
+                    for value in outcome_store.labels())
+                and _outcome_labels_match_partition(
+                    episode_store, outcome_store, arguments.outcome_target)
+                for episode_store, outcome_store in (
+                    (training, training_outcomes),
+                    (holdout, holdout_outcomes)))),
         "outcome_population_requirement_met": (
             (any(value.accepted
                  for value in result.training_encoding_results)

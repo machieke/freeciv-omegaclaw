@@ -11,7 +11,10 @@ from ..pressure.induction import (
     ReplayValidator,
 )
 from .fdas_episodes import DecisionEpisodeStore, INDUCTION_FEATURE_SCHEMA
-from .fdas_induction_labels import EpisodeInductionOutcomeLabelStore
+from .fdas_induction_labels import (
+    EpisodeInductionOutcomeLabelStore,
+    delayed_outcome_episode_eligible,
+)
 
 
 IMMEDIATE_GOAL_RELIEF_TARGET = "immediate-goal-relief/1.0"
@@ -185,6 +188,11 @@ class FdasEpisodeInductionAdapter(object):
             accepted_reason = (
                 "attributable-episode-encoded-for-quarantined-induction")
         else:
+            if not delayed_outcome_episode_eligible(
+                    episode, spec.outcome_target):
+                return self._result(
+                    episode.episode_id, False,
+                    "episode-not-eligible-for-outcome-target")
             if self.outcome_label_store is None:
                 return self._result(
                     episode.episode_id, False,

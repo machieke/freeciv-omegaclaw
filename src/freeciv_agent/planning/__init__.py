@@ -146,12 +146,15 @@ from .fdas_episode_induction import (
     combine_episode_stores,
 )
 from .fdas_induction_labels import (
+    DURABLE_ACTOR_CITY_DEFENSE_TARGET,
     DURABLE_CITY_COVERAGE_TARGET,
     LABEL_SCHEMA_VERSION,
     EpisodeInductionOutcomeLabel,
     EpisodeInductionOutcomeLabelStore,
+    FdasDefenseActorPersistenceLabeler,
     FdasDefenseDurabilityLabeler,
     combine_outcome_label_stores,
+    delayed_outcome_episode_eligible,
 )
 from .fdas_observation import (
     FdasObservationActionBinding,
@@ -259,9 +262,11 @@ __all__ = [
     "EpisodeInductionSpec", "FdasEpisodeInductionAdapter",
     "FdasEpisodeInductionHeldoutGate", "FdasEpisodeInductionShadow",
     "combine_episode_stores",
-    "DURABLE_CITY_COVERAGE_TARGET", "LABEL_SCHEMA_VERSION",
+    "DURABLE_ACTOR_CITY_DEFENSE_TARGET", "DURABLE_CITY_COVERAGE_TARGET",
+    "LABEL_SCHEMA_VERSION",
     "EpisodeInductionOutcomeLabel", "EpisodeInductionOutcomeLabelStore",
-    "FdasDefenseDurabilityLabeler", "combine_outcome_label_stores",
+    "FdasDefenseActorPersistenceLabeler", "FdasDefenseDurabilityLabeler",
+    "combine_outcome_label_stores", "delayed_outcome_episode_eligible",
     "FdasObservationActionBinding",
     "FdasObservationAuthoritativeReturn",
     "FdasObservationCommitValidation",

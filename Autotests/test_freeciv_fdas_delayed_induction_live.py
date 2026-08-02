@@ -8,6 +8,7 @@ from freeciv_agent.events.schema import structural_hash
 from freeciv_agent.events.synthetic import DeterministicIds, fixed_clock
 from freeciv_agent.events.writer import EventWriter
 from freeciv_agent.planning import (
+    DURABLE_ACTOR_CITY_DEFENSE_TARGET,
     DURABLE_CITY_COVERAGE_TARGET,
     DecisionEpisode,
     DecisionEpisodeStore,
@@ -32,7 +33,10 @@ def _episode():
         "revision-before",
         "revision-relief",
         ("pf-impact:survival",),
-        (("city_id", "4"), ("actor_unit_type", "Riflemen")),
+        (("actor_id", "unit:7"), ("actor_unit_type", "Riflemen"),
+         ("city_id", "4"),
+         ("operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify")),
         ("atom-defense",),
         ("support-defense",),
         ("grounding-route",),
@@ -40,7 +44,8 @@ def _episode():
         ("claim-unit",),
         "validation-hash",
         "execution-event",
-        {"observed_turn": 14, "actor_present_after": True},
+        {"observed_turn": 14, "actor_activity_after": "fortifying",
+         "actor_present_after": True},
         ({"effect": "actor-arrived-at-target"},),
         (("pf-impact:survival", 1.0),),
         "goal-relief-observed",
@@ -48,9 +53,10 @@ def _episode():
     )
 
 
-def _labels(episode):
+def _labels(episode, target_id=DURABLE_CITY_COVERAGE_TARGET, window=8):
+    due_turn = 14 + window
     material = {
-        "due_turn": 22,
+        "due_turn": due_turn,
         "episode_digest": episode.immutable_digest,
         "episode_id": episode.episode_id,
         "game_id": episode.game_id,
@@ -58,7 +64,7 @@ def _labels(episode):
         "relief_revision_id": episode.after_revision_id,
         "relief_turn": 14,
         "schema_version": LABEL_SCHEMA_VERSION,
-        "target_id": DURABLE_CITY_COVERAGE_TARGET,
+        "target_id": target_id,
     }
     pending = EpisodeInductionOutcomeLabel(
         LABEL_SCHEMA_VERSION,
@@ -67,9 +73,9 @@ def _labels(episode):
         episode.immutable_digest,
         episode.game_id,
         episode.player_id,
-        DURABLE_CITY_COVERAGE_TARGET,
+        target_id,
         14,
-        22,
+        due_turn,
         episode.after_revision_id,
         "pending",
         None,
@@ -79,26 +85,47 @@ def _labels(episode):
         None,
         ("labeler",),
     )
+    observed_value = (
+        (("actor_at_city", False), ("actor_id", 7),
+         ("actor_present", False), ("city_id", 4))
+        if target_id == DURABLE_ACTOR_CITY_DEFENSE_TARGET else
+        (("city_id", 4), ("own_unit_count_at_city", 0)))
+    reason = (
+        "attributed-actor-no-longer-present-at-due-turn"
+        if target_id == DURABLE_ACTOR_CITY_DEFENSE_TARGET else
+        "authoritative-own-unit-coverage-absent-at-due-turn")
     observed = replace(
         pending,
         status="observed",
-        observed_turn=22,
+        observed_turn=due_turn,
         observed_revision_id="revision-due",
         outcome=False,
-        observed_value=(("city_id", 4), ("own_unit_count_at_city", 0)),
-        reason="authoritative-own-unit-coverage-absent-at-due-turn",
+        observed_value=observed_value,
+        reason=reason,
     )
     return pending, observed
 
 
-def _fixture(tmp_path):
+def _fixture(
+        tmp_path, target_id=DURABLE_CITY_COVERAGE_TARGET, window=8):
     episode = _episode()
-    pending, observed = _labels(episode)
+    pending, observed = _labels(episode, target_id, window)
     episode_store = DecisionEpisodeStore("episode-store", (episode,))
     episode_store.save(str(tmp_path / "fdas-decision-episodes.json"))
     label_store = EpisodeInductionOutcomeLabelStore(
         "label-store", (observed,))
     label_store.save(str(tmp_path / "fdas-induction-outcome-labels.json"))
+    actor_target = target_id == DURABLE_ACTOR_CITY_DEFENSE_TARGET
+    config_source = (
+        "profile/"
+        "dependent_atomspace_defense_actor_persistence_induction_shadow.yaml"
+        if actor_target else
+        "profile/dependent_atomspace_defense_delayed_induction_shadow.yaml")
+    manifest_source = (
+        "profile/"
+        "fdas_manifest_defense_actor_persistence_induction_shadow.json"
+        if actor_target else
+        "profile/fdas_manifest_defense_delayed_induction_shadow.json")
     _write_json(tmp_path / "manifest.json", {
         "dependent_atomspace": {
             "config": {"learning": {
@@ -106,23 +133,19 @@ def _fixture(tmp_path):
                 "induced_rule_readout_enabled": False,
                 "induction_enabled": True,
             }},
-            "config_source": (
-                "profile/"
-                "dependent_atomspace_defense_delayed_induction_shadow.yaml"),
+            "config_source": config_source,
             "manifest": {
                 "capabilities": {
                     "delayed_induction_outcome_labels": "shadow-live",
                 },
                 "delayed_induction_outcome_diagnostic": {
                     "induced_rule_readout": False,
-                    "observation_window_turns": 8,
+                    "observation_window_turns": window,
                     "policy_authority": False,
-                    "target_id": DURABLE_CITY_COVERAGE_TARGET,
+                    "target_id": target_id,
                 },
             },
-            "manifest_source": (
-                "profile/"
-                "fdas_manifest_defense_delayed_induction_shadow.json"),
+            "manifest_source": manifest_source,
         },
         "source": {"commit": "a" * 40, "dirty": False},
     })
@@ -167,7 +190,7 @@ def _fixture(tmp_path):
     )
     writer.emit(
         "episode_outcome_label_observed",
-        22,
+        14 + window,
         dict(atomspace, details={
             "label": observed.to_dict(),
             "policy_authority": False,
@@ -187,6 +210,21 @@ def test_delayed_induction_live_audit_accepts_exact_non_authorizing_lifecycle(
     assert report["acceptance"]["accepted"] is True
     assert report["summary"]["labels_observed"] == 1
     assert report["summary"]["labels_negative"] == 1
+
+
+def test_delayed_induction_live_audit_accepts_actor_persistence_target(
+        tmp_path):
+    _fixture(
+        tmp_path,
+        target_id=DURABLE_ACTOR_CITY_DEFENSE_TARGET,
+        window=32)
+
+    report = audit_fdas_delayed_induction_live(str(tmp_path))
+
+    assert report["acceptance"]["accepted"] is True
+    assert report["summary"]["target_id"] == (
+        DURABLE_ACTOR_CITY_DEFENSE_TARGET)
+    assert report["summary"]["observation_window_turns"] == 32
 
 
 def test_delayed_induction_live_audit_rejects_early_event_observation(tmp_path):

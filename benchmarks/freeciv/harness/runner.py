@@ -99,6 +99,7 @@ def _run_process_isolated_impact_bucket(spec):
         workers=spec["workers"],
         base_port=spec["base_port"],
         seed_limit=spec["seed_limit"],
+        seed_offset=spec["seed_offset"],
         conditions=spec["conditions"],
         impact_cohort=spec["impact_cohort"],
         server_ports=spec["server_ports"])
@@ -124,7 +125,7 @@ def _run_process_isolated_impact_bucket(spec):
 class HarnessRunner(object):
     def __init__(self, out, config_path=None, backend="representative",
                  workers=1, base_port=6100, seed_limit=None, conditions=None,
-                 impact_cohort=None, server_ports=None):
+                 impact_cohort=None, server_ports=None, seed_offset=0):
         self.out = os.path.abspath(out)
         self.config_path = (
             None
@@ -136,6 +137,11 @@ class HarnessRunner(object):
         self.workers = max(1, int(workers))
         self.base_port = int(base_port)
         self.seed_limit = None if seed_limit is None else max(1, int(seed_limit))
+        if isinstance(seed_offset, bool) or int(seed_offset) < 0:
+            raise ValueError("seed offset must be a non-negative integer")
+        self.seed_offset = int(seed_offset)
+        if self.seed_offset >= len(self.config["seeds"]):
+            raise ValueError("seed offset exceeds the configured seed list")
         self.conditions = tuple(conditions or self.config["conditions"])
         self.source_identity = _source_identity()
         paired = self.config.get("paired_impact", {})
@@ -163,7 +169,10 @@ class HarnessRunner(object):
 
     def _jobs(self, include_induction=True, include_grading=True):
         jobs = []
-        seeds = self.config["seeds"][:self.seed_limit]
+        stop = (
+            None if self.seed_limit is None
+            else self.seed_offset + self.seed_limit)
+        seeds = self.config["seeds"][self.seed_offset:stop]
         for condition in self.conditions:
             for seed in seeds:
                 jobs.append({"condition": condition, "seed": seed, "track": "main", "sequence": 0})
@@ -192,7 +201,12 @@ class HarnessRunner(object):
         if paired is None:
             raise ValueError("configuration does not declare paired_impact")
         cohort = paired["cohorts"][self.impact_cohort]
-        seeds = cohort["seeds"][:self.seed_limit]
+        stop = (
+            None if self.seed_limit is None
+            else self.seed_offset + self.seed_limit)
+        seeds = cohort["seeds"][self.seed_offset:stop]
+        if not seeds:
+            raise ValueError("seed offset exceeds the impact cohort seed list")
         jobs = []
         for pair_index, seed in enumerate(seeds):
             order = (("baseline", "treatment") if pair_index % 2 == 0
@@ -529,6 +543,8 @@ class HarnessRunner(object):
                     "resume": bool(resume),
                     "seed_limit":
                         self.seed_limit,
+                    "seed_offset":
+                        self.seed_offset,
                     "server_ports":
                         self.server_ports,
                     "source_identity":

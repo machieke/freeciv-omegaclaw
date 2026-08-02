@@ -106,3 +106,14 @@ positive, and rejected only its required proposal gate. See
 This establishes that the eight-turn “any own unit coverage” target is too weak
 for discovery in the measured regime; it does not justify weakening the
 residual gate or manufacturing negative examples.
+
+The next target is separately versioned as
+`durable-attributed-actor-city-defense/32-turn/1.0` and has its own default-off
+profile/manifest pair. It is eligible only for an attributable fortification
+episode and resolves true only when, 32 turns after immediate relief, the same
+actor remains present, owned, non-transported, on the still-owned city tile,
+and in a fortified activity. Actor disappearance, reassignment, transport, or
+loss of fortified state are distinct observed negative reasons. This target was
+chosen from the explicitly exploratory window analysis in PR24; its component
+implementation does not reuse those rows as confirmation and still has zero
+live mining/readout authority.

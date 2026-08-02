@@ -12,6 +12,7 @@ if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
 from freeciv_agent.planning import (  # noqa: E402
+    DURABLE_ACTOR_CITY_DEFENSE_TARGET,
     DURABLE_CITY_COVERAGE_TARGET,
     DecisionEpisode,
     DecisionEpisodeStore,
@@ -222,6 +223,24 @@ def test_context_and_evidence_features_must_be_linked_to_episode():
     assert not unlinked_evidence.accepted
     assert unlinked_evidence.reason.startswith(
         "episode-feature-evidence-unlinked")
+
+
+def test_actor_persistence_target_abstains_for_non_fortification_episode():
+    episode = _episode(
+        0, "goal-relief-observed",
+        feature_schema="defense-episode-features/2.0")
+    base = FdasEpisodeInductionShadow._spec(episode)
+    result = FdasEpisodeInductionAdapter(
+        DecisionEpisodeStore("actor-target-ineligible", (episode,))).encode(
+            EpisodeInductionSpec(
+                base.episode_id,
+                base.context_keys,
+                base.feature_context_keys,
+                base.linked_features,
+                DURABLE_ACTOR_CITY_DEFENSE_TARGET))
+
+    assert result.accepted is False
+    assert result.reason == "episode-not-eligible-for-outcome-target"
 
 
 def test_shared_execution_lineage_rejects_independent_training_claim():

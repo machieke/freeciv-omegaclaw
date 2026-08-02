@@ -26,6 +26,8 @@ def main(argv=None):
     parser.add_argument("--base-port", type=int, default=6001)
     parser.add_argument("--limit-seeds", type=int,
                         help="smoke-only prefix of the pinned seed list")
+    parser.add_argument("--seed-offset", type=int, default=0,
+                        help="skip this many pinned seeds before limiting")
     parser.add_argument("--condition", action="append", choices=(
         "a_stock_llm", "b_state_oracle", "c_dependency_scheduler",
         "d_uncertain_monitor", "e_full_loop"),
@@ -54,7 +56,8 @@ def main(argv=None):
     if not args.aggregate_only:
         runner_summary = HarnessRunner(
             args.out, args.config, args.backend, args.workers, args.base_port,
-            args.limit_seeds, args.condition).run(
+            args.limit_seeds, args.condition,
+            seed_offset=args.seed_offset).run(
                 resume=not args.no_resume,
                 include_induction=not args.main_only,
                 include_grading=not args.main_only)
