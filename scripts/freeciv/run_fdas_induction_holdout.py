@@ -20,8 +20,11 @@ from freeciv_agent.events.schema import structural_hash  # noqa: E402
 from freeciv_agent.events.validator import validate_file  # noqa: E402
 from freeciv_agent.planning import (  # noqa: E402
     DecisionEpisodeStore,
+    EpisodeInductionOutcomeLabelStore,
     FdasEpisodeInductionHeldoutGate,
+    IMMEDIATE_GOAL_RELIEF_TARGET,
     combine_episode_stores,
+    combine_outcome_label_stores,
 )
 from freeciv_agent.pressure import (  # noqa: E402
     InductionLedger,
@@ -117,6 +120,42 @@ def _partition(paths, label):
     return combine_episode_stores(stores, identity), sources
 
 
+def _load_outcome_label_source(path):
+    path = os.path.abspath(path)
+    with open(path, encoding="utf-8") as stream:
+        raw = json.load(stream)
+    identity = raw.get("persistence_identity")
+    if not isinstance(identity, str) or not identity:
+        raise ValueError(
+            "outcome-label store has no persistence identity: {}".format(
+                path))
+    store = EpisodeInductionOutcomeLabelStore.load(path, identity)
+    if store.quarantined:
+        raise ValueError(
+            "outcome-label store failed verification: {}: {}".format(
+                path, store.quarantine_reason))
+    return store, {
+        "labels": len(store.labels()),
+        "observed_labels": sum(
+            value.status == "observed" for value in store.labels()),
+        "path": _logical(path),
+        "persistence_identity": store.persistence_identity,
+        "sha256": _sha256(path),
+        "store_digest": store.store_digest,
+        "targets": sorted(set(value.target_id for value in store.labels())),
+    }
+
+
+def _outcome_label_partition(paths, label):
+    loaded = tuple(_load_outcome_label_source(path) for path in paths)
+    stores = tuple(value[0] for value in loaded)
+    sources = tuple(value[1] for value in loaded)
+    identity = "fdas-{}-outcome-label-cohort:{}".format(
+        label,
+        structural_hash(sorted(value.store_digest for value in stores)))
+    return combine_outcome_label_stores(stores, identity), sources
+
+
 def _write(path, value):
     parent = os.path.dirname(os.path.abspath(path))
     if parent:
@@ -135,6 +174,28 @@ def run(arguments):
         arguments.training_store, "training")
     holdout, holdout_sources = _partition(
         arguments.holdout_store, "holdout")
+    delayed_target = (
+        arguments.outcome_target != IMMEDIATE_GOAL_RELIEF_TARGET)
+    supplied_outcome_labels = bool(
+        arguments.training_outcome_label_store
+        or arguments.holdout_outcome_label_store)
+    if delayed_target:
+        if (not arguments.training_outcome_label_store
+                or not arguments.holdout_outcome_label_store):
+            raise ValueError(
+                "delayed outcome target requires both label partitions")
+        training_outcomes, training_outcome_sources = (
+            _outcome_label_partition(
+                arguments.training_outcome_label_store, "training"))
+        holdout_outcomes, holdout_outcome_sources = (
+            _outcome_label_partition(
+                arguments.holdout_outcome_label_store, "holdout"))
+    else:
+        if supplied_outcome_labels:
+            raise ValueError(
+                "immediate outcome target cannot accept delayed labels")
+        training_outcomes = holdout_outcomes = None
+        training_outcome_sources = holdout_outcome_sources = ()
     configuration = {
         "contradiction_threshold": arguments.contradiction_threshold,
         "contradiction_tolerance": arguments.contradiction_tolerance,
@@ -147,11 +208,18 @@ def run(arguments):
         "minimum_residual": arguments.minimum_residual,
         "minimum_samples": arguments.minimum_samples,
         "minimum_support": arguments.minimum_support,
+        "outcome_target": arguments.outcome_target,
     }
     ledger_identity = "fdas-heldout-ledger:{}".format(structural_hash({
         "configuration": configuration,
         "holdout_store_digest": holdout.store_digest,
         "training_store_digest": training.store_digest,
+        "holdout_outcome_label_store_digest": (
+            None if holdout_outcomes is None
+            else holdout_outcomes.store_digest),
+        "training_outcome_label_store_digest": (
+            None if training_outcomes is None
+            else training_outcomes.store_digest),
     }))
     ledger = InductionLedger(
         arguments.ledger, identity=ledger_identity)
@@ -174,7 +242,10 @@ def run(arguments):
             minimum_calibration_improvement=(
                 arguments.minimum_calibration_improvement),
             contradiction_tolerance=arguments.contradiction_tolerance,
-            contradiction_threshold=arguments.contradiction_threshold))
+            contradiction_threshold=arguments.contradiction_threshold),
+        outcome_target=arguments.outcome_target,
+        training_outcome_label_store=training_outcomes,
+        holdout_outcome_label_store=holdout_outcomes)
     result = gate.evaluate()
     result_value = result.to_dict()
     execution_source = dict(
@@ -206,6 +277,27 @@ def run(arguments):
             result.truth_mutated is False
             and result.policy_authority is False
             and result.readout_authority is False),
+        "outcome_label_coverage_requirement_met": (
+            not delayed_target
+            or all(
+                store.for_episode(
+                    episode.episode_id, arguments.outcome_target) is not None
+                for episode_store, store in (
+                    (training, training_outcomes),
+                    (holdout, holdout_outcomes))
+                for episode in episode_store.episodes()
+                if episode.outcome_status == "goal-relief-observed")),
+        "outcome_label_target_requirement_met": (
+            not delayed_target
+            or all(
+                value.target_id == arguments.outcome_target
+                for store in (training_outcomes, holdout_outcomes)
+                for value in store.labels())),
+        "outcome_population_requirement_met": (
+            (any(value.accepted
+                 for value in result.training_encoding_results)
+             and any(value.accepted
+                     for value in result.holdout_encoding_results))),
         "proposal_requirement_met": (
             not arguments.require_proposal or bool(result.proposals)),
         "promotion_requirement_met": (
@@ -217,11 +309,13 @@ def run(arguments):
     report = {
         "acceptance": {"accepted": all(checks.values()), "checks": checks},
         "claim_scope": (
-            "verified FDAS episode-store partitioning, bounded pattern mining, "
-            "disjoint held-out validation, versioned promotion approval, and "
-            "zero truth/policy/readout authority; no live discovery quality, "
+            "verified FDAS episode-store and optional revision-bound delayed "
+            "outcome-label partitioning, bounded pattern mining, disjoint "
+            "held-out validation, versioned promotion approval, and zero "
+            "truth/policy/readout authority; no live discovery quality, "
             "score, gameplay, or win-rate claim"),
         "configuration": configuration,
+        "holdout_outcome_label_sources": list(holdout_outcome_sources),
         "holdout_sources": list(holdout_sources),
         "ledger": {
             "identity": ledger_identity,
@@ -231,6 +325,7 @@ def run(arguments):
         "result": result_value,
         "schema_version": "1.0",
         "source": execution_source,
+        "training_outcome_label_sources": list(training_outcome_sources),
         "training_sources": list(training_sources),
     }
     report["structural_hash"] = structural_hash(report)
@@ -243,6 +338,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--training-store", action="append", required=True)
     parser.add_argument("--holdout-store", action="append", required=True)
+    parser.add_argument("--training-outcome-label-store", action="append")
+    parser.add_argument("--holdout-outcome-label-store", action="append")
+    parser.add_argument(
+        "--outcome-target", default=IMMEDIATE_GOAL_RELIEF_TARGET)
     parser.add_argument("--ledger", required=True)
     parser.add_argument("--output")
     parser.add_argument("--minimum-support", type=int, default=4)

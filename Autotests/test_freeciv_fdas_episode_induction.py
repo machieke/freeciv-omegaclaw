@@ -1,4 +1,6 @@
+import json
 import os
+import subprocess
 import sys
 
 import pytest
@@ -21,6 +23,7 @@ from freeciv_agent.planning import (  # noqa: E402
     FdasEpisodeInductionHeldoutGate,
     FdasEpisodeInductionShadow,
     combine_episode_stores,
+    combine_outcome_label_stores,
 )
 from freeciv_agent.pressure import (  # noqa: E402
     InductionLedger,
@@ -472,3 +475,82 @@ def test_episode_cohort_rejects_duplicate_source_identity_and_episode_ids():
         combine_episode_stores((left, same_identity), "combined-cohort")
     with pytest.raises(ValueError, match="IDs overlap"):
         combine_episode_stores((left, duplicate_episodes), "combined-cohort")
+
+
+def test_outcome_label_cohort_combines_only_verified_disjoint_sources():
+    _left_episodes, left_labels = _delayed_population("labels-left")
+    _right_episodes, right_labels = _delayed_population("labels-right")
+    left = EpisodeInductionOutcomeLabelStore(
+        "labels-source-left", left_labels)
+    right = EpisodeInductionOutcomeLabelStore(
+        "labels-source-right", right_labels)
+
+    combined = combine_outcome_label_stores(
+        (left, right), "labels-combined")
+
+    assert len(combined.labels()) == len(left_labels) + len(right_labels)
+    assert combined.quarantined is False
+    with pytest.raises(ValueError, match="source identities overlap"):
+        combine_outcome_label_stores(
+            (left, EpisodeInductionOutcomeLabelStore(
+                "labels-source-left", right_labels)),
+            "labels-duplicate-source")
+
+
+def test_holdout_runner_consumes_explicit_delayed_label_partitions(tmp_path):
+    training_episodes, training_labels = _delayed_population("cli-training")
+    holdout_episodes, holdout_labels = _delayed_population("cli-holdout")
+    paths = {
+        "training": tmp_path / "training-episodes.json",
+        "holdout": tmp_path / "holdout-episodes.json",
+        "training_labels": tmp_path / "training-labels.json",
+        "holdout_labels": tmp_path / "holdout-labels.json",
+        "ledger": tmp_path / "ledger.json",
+        "report": tmp_path / "report.json",
+    }
+    DecisionEpisodeStore(
+        "cli-training-episodes", training_episodes).save(
+            str(paths["training"]))
+    DecisionEpisodeStore(
+        "cli-holdout-episodes", holdout_episodes).save(
+            str(paths["holdout"]))
+    EpisodeInductionOutcomeLabelStore(
+        "cli-training-labels", training_labels).save(
+            str(paths["training_labels"]))
+    EpisodeInductionOutcomeLabelStore(
+        "cli-holdout-labels", holdout_labels).save(
+            str(paths["holdout_labels"]))
+    command = [
+        sys.executable,
+        os.path.join(REPO, "scripts", "freeciv",
+                     "run_fdas_induction_holdout.py"),
+        "--training-store", str(paths["training"]),
+        "--holdout-store", str(paths["holdout"]),
+        "--training-outcome-label-store", str(paths["training_labels"]),
+        "--holdout-outcome-label-store", str(paths["holdout_labels"]),
+        "--outcome-target", DURABLE_CITY_COVERAGE_TARGET,
+        "--ledger", str(paths["ledger"]),
+        "--output", str(paths["report"]),
+        "--minimum-samples", "4",
+        "--minimum-activations", "2",
+    ]
+
+    result = subprocess.run(
+        command, cwd=REPO, text=True, capture_output=True, timeout=30)
+    report = json.loads(paths["report"].read_text(encoding="utf-8"))
+
+    assert result.returncode == 0, result.stderr
+    assert report["acceptance"]["accepted"] is True
+    assert report["configuration"]["outcome_target"] == (
+        DURABLE_CITY_COVERAGE_TARGET)
+    assert report["training_outcome_label_sources"][0]["observed_labels"]
+    assert report["holdout_outcome_label_sources"][0]["observed_labels"]
+    assert report["result"]["promoted_rule_ids"]
+
+    holdout_label_index = command.index("--holdout-outcome-label-store")
+    outcome_target_index = command.index("--outcome-target")
+    missing_partition = subprocess.run(
+        command[:holdout_label_index] + command[outcome_target_index:],
+        cwd=REPO, text=True, capture_output=True, timeout=30)
+    assert missing_partition.returncode != 0
+    assert "requires both label partitions" in missing_partition.stderr

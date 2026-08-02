@@ -151,6 +151,7 @@ from .fdas_induction_labels import (
     EpisodeInductionOutcomeLabel,
     EpisodeInductionOutcomeLabelStore,
     FdasDefenseDurabilityLabeler,
+    combine_outcome_label_stores,
 )
 from .fdas_observation import (
     FdasObservationActionBinding,
@@ -260,7 +261,7 @@ __all__ = [
     "combine_episode_stores",
     "DURABLE_CITY_COVERAGE_TARGET", "LABEL_SCHEMA_VERSION",
     "EpisodeInductionOutcomeLabel", "EpisodeInductionOutcomeLabelStore",
-    "FdasDefenseDurabilityLabeler",
+    "FdasDefenseDurabilityLabeler", "combine_outcome_label_stores",
     "FdasObservationActionBinding",
     "FdasObservationAuthoritativeReturn",
     "FdasObservationCommitValidation",

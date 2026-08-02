@@ -23,6 +23,37 @@ def _strings(values, name):
     return result
 
 
+def combine_outcome_label_stores(stores, persistence_identity):
+    """Combine verified delayed-label artifacts without losing provenance."""
+    stores = tuple(stores)
+    if not stores:
+        raise ValueError("outcome-label cohort requires a source store")
+    if not isinstance(persistence_identity, str) or not persistence_identity:
+        raise ValueError("outcome-label cohort identity is required")
+    if any(not isinstance(value, EpisodeInductionOutcomeLabelStore)
+           for value in stores):
+        raise TypeError(
+            "outcome-label cohort accepts typed outcome-label stores")
+    if any(value.quarantined for value in stores):
+        raise ValueError(
+            "quarantined outcome-label source cannot enter cohort")
+    identities = [value.persistence_identity for value in stores]
+    digests = [value.store_digest for value in stores]
+    if len(identities) != len(set(identities)):
+        raise ValueError("outcome-label cohort source identities overlap")
+    if len(digests) != len(set(digests)):
+        raise ValueError("outcome-label cohort source artifacts overlap")
+    labels = tuple(label for store in stores for label in store.labels())
+    label_ids = [value.label_id for value in labels]
+    episode_targets = [
+        (value.episode_id, value.target_id) for value in labels]
+    if len(label_ids) != len(set(label_ids)):
+        raise ValueError("outcome-label cohort IDs overlap")
+    if len(episode_targets) != len(set(episode_targets)):
+        raise ValueError("outcome-label cohort episode targets overlap")
+    return EpisodeInductionOutcomeLabelStore(persistence_identity, labels)
+
+
 @dataclass(frozen=True)
 class EpisodeInductionOutcomeLabel:
     """One revision-bound delayed predictive label for an immutable episode."""

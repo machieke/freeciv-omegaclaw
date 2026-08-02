@@ -89,3 +89,13 @@ subsequently confirmed five exact due-turn observations with a schema-valid
 [`fdas-pr23-delayed-induction-live.md`](fdas-pr23-delayed-induction-live.md).
 All five delayed outcomes remained positive, so the lifecycle is empirically
 confirmed `shadow-live` but discriminative delayed induction remains unproven.
+
+The offline `run_fdas_induction_holdout.py` runner now accepts an explicit
+`--outcome-target` plus independently repeated training/holdout outcome-label
+stores. Delayed targets require both label partitions; immediate targets reject
+label arguments. Source stores are hash-verified before they are combined, and
+the runner rejects overlapping identities, artifacts, label IDs, episode-target
+pairs, missing goal-relief labels, target drift, or empty accepted train/holdout
+populations. The label artifact digests and target are included in the ledger
+identity and any promotion approval. This exposes the delayed component gate
+without activating live mining or readout.
