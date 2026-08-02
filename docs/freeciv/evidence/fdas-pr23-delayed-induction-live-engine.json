@@ -1,0 +1,55 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "activation_is_exact_default_off_shadow_target": true,
+      "event_ledger_is_schema_valid_without_warnings": true,
+      "events_match_durable_lifecycle": true,
+      "every_relief_episode_has_exactly_one_target_label": true,
+      "label_window_and_observation_timing_are_exact": true,
+      "labels_have_zero_truth_policy_or_readout_authority": true,
+      "source_is_clean_and_horizon_completed": true,
+      "status_counters_match_durable_labels": true,
+      "stores_are_hash_valid_and_not_quarantined": true
+    }
+  },
+  "claim_scope": "engine-live authoritative immediate relief opens one durable eight-turn own-unit city-coverage label; due-turn authoritative own state resolves it with zero truth mutation, policy authority, or induced-rule readout; no causal, score, or gameplay-improvement claim",
+  "evidence": {
+    "events.jsonl": {
+      "path": "artifacts/freeciv/fdas-delayed-induction-live-160-v3/games/main/e_full_loop/4543804-00/events.jsonl",
+      "sha256": "7c6193a9b12241c11d98d501d1c7ab6900c5c920e90b53fad63e10bf5f0b16b7"
+    },
+    "fdas-decision-episodes.json": {
+      "path": "artifacts/freeciv/fdas-delayed-induction-live-160-v3/games/main/e_full_loop/4543804-00/fdas-decision-episodes.json",
+      "sha256": "d05aec760f8c1ae733897b7a7738cf40c74d25feea00619a957f1b641a143e49"
+    },
+    "fdas-induction-outcome-labels.json": {
+      "path": "artifacts/freeciv/fdas-delayed-induction-live-160-v3/games/main/e_full_loop/4543804-00/fdas-induction-outcome-labels.json",
+      "sha256": "e695fa24b7dd124a6fd8ccbd9dee06f3c6bb1b5f78d80695c6a950358e2433ec"
+    },
+    "manifest.json": {
+      "path": "artifacts/freeciv/fdas-delayed-induction-live-160-v3/games/main/e_full_loop/4543804-00/manifest.json",
+      "sha256": "c4ace2dacbd82d545ad749dc7d29f2e48ad903385113dd39d24441383123274f"
+    },
+    "status.json": {
+      "path": "artifacts/freeciv/fdas-delayed-induction-live-160-v3/games/main/e_full_loop/4543804-00/status.json",
+      "sha256": "2f37778b99fa2a221a83a8a8e7c4ede9b77eb126d0803e049c0b107f673f1810"
+    }
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "8808be55232ede49519a427951eca6d9671eb893",
+    "dirty": false,
+    "implementation_sha256": "b979cd99b877fff5a9c9e26e03dbfe7b52b44c33ea005b73e706e6957724b14b",
+    "source_files": 273
+  },
+  "structural_hash": "3997cf83ffaa5032f2de907bfd43037b5ff14f2619b1a48a12d200cdfe144bb5",
+  "summary": {
+    "labels_negative": 0,
+    "labels_observed": 5,
+    "labels_opened": 5,
+    "labels_pending": 0,
+    "labels_positive": 5,
+    "relief_episodes": 5
+  }
+}

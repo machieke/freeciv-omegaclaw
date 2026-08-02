@@ -83,6 +83,9 @@ and unit state, and emits schema-validated lifecycle events and counters. A
 separate auditor rejects identity/hash drift, early observation, missing
 episode links, counter/event disagreement, source contamination, incomplete
 horizons, or authority escape. This changes no candidate selection and does not
-feed the label into engine rule mining or readout. A fresh clean engine cohort
-is still required before the capability can be claimed as empirically
-confirmed `shadow-live`.
+feed the label into engine rule mining or readout. A fresh clean 160-turn cohort
+subsequently confirmed five exact due-turn observations with a schema-valid
+31,066-event ledger and all audit gates accepted; see
+[`fdas-pr23-delayed-induction-live.md`](fdas-pr23-delayed-induction-live.md).
+All five delayed outcomes remained positive, so the lifecycle is empirically
+confirmed `shadow-live` but discriminative delayed induction remains unproven.
