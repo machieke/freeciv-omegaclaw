@@ -99,6 +99,7 @@ from .induction import (
     PromotedRuleCandidateImpactAnalyzer,
     PromotedRuleCandidateImpactResult,
     PromotedRuleCandidateImpactRow,
+    PromotedRuleShadowArtifactBundle,
     PromotedRuleShadowPrediction,
     PromotedRuleShadowReadout,
     PromotedRuleShadowResult,
@@ -110,6 +111,7 @@ from .induction import (
     SimilarityLink,
     StructuralAnalogy,
     implied_similarity,
+    load_promoted_rule_shadow_artifacts,
 )
 from .observation import (
     BoundedDecision,

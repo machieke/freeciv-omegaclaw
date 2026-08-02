@@ -2,6 +2,7 @@ import json
 import os
 import subprocess
 import sys
+from dataclasses import replace
 
 import pytest
 
@@ -24,17 +25,35 @@ from freeciv_agent.planning import (  # noqa: E402
     FdasEpisodeInductionAdapter,
     FdasEpisodeInductionHeldoutGate,
     FdasEpisodeInductionShadow,
+    FdasDefenseEpisodeRecorder,
+    FdasPromotedRuleCandidateImpactShadow,
+    OperationParticipant,
+    OperationSpec,
+    OperationStep,
+    ShadowOperationCandidate,
     causal_induction_feature_query,
     combine_episode_stores,
     combine_outcome_label_stores,
 )
 from freeciv_agent.pressure import (  # noqa: E402
+    CostVector,
+    GoalEffect,
     InductionLedger,
     InductionPromotionApproval,
     PatternMiner,
+    Operation,
+    OperationScore,
+    PromotedRuleCandidateImpactAnalyzer,
     ReplayValidator,
+    load_promoted_rule_shadow_artifacts,
 )
 from freeciv_agent.events.schema import structural_hash  # noqa: E402
+from freeciv_agent.state import ProxyStateDTO  # noqa: E402
+
+
+FIXTURE = os.path.join(
+    REPO, "contracts", "freeciv-proxy", "v2",
+    "authoritative-state.fixture.json")
 
 
 def _episode(
@@ -264,6 +283,77 @@ def test_causal_candidate_query_matches_episode_features_without_outcome():
     assert query.features == encoded.induction_episode.features
     assert query.provenance_ids == ("candidate-hash", "snapshot-id")
     assert "outcome" not in query.to_dict()
+
+
+def _candidate_impact_fixture():
+    with open(FIXTURE, encoding="utf-8") as stream:
+        snapshot = ProxyStateDTO.parse(
+            "fdas-candidate-impact", 901, json.load(stream)).to_snapshot()
+    operation_type = (
+        "fdas-shadow:unit-fortification-opportunity:unit_fortify")
+    spec = OperationSpec(
+        1, "candidate-fortify", operation_type, ("goal-defense",),
+        (OperationParticipant("actor", "unit:7", "unit", True),),
+        "city:3",
+        (OperationStep(
+            "candidate-step", "unit_fortify", "actor", "city:3",
+            "candidate-requirements", "candidate-complete", 1),),
+        snapshot.turn, snapshot.turn + 1, 0.0,
+        ("candidate-impact-test",), "ruleset-test")
+    action = {"action_type": "unit_fortify", "actor_id": 7}
+    action_key = json.dumps(
+        action, sort_keys=True, separators=(",", ":"))
+    candidate = ShadowOperationCandidate(
+        spec, action, action_key, ("unit:7",), True, False, (),
+        ("candidate-impact-test",), "candidate-hash-fortify")
+    pressure_operation = Operation(
+        spec.operation_id, "candidate-atom", "act",
+        CostVector(compute=1.0), causal_kind="causal")
+    score = OperationScore(
+        pressure_operation, True, None, 1.0, 1.0, 1.0, 0.0,
+        (GoalEffect("goal-defense", 1.0, 1.0, 1.0, 1.0),))
+    bundle = load_promoted_rule_shadow_artifacts(
+        os.path.join(REPO, "docs", "freeciv", "evidence",
+                     "fdas-pr29-causal-induction-holdout-engine.json"),
+        os.path.join(REPO, "docs", "freeciv", "evidence",
+                     "fdas-pr30-promoted-rule-consolidation.json"))
+    recorder = FdasDefenseEpisodeRecorder(
+        DecisionEpisodeStore("candidate-impact-test"),
+        induction_feature_schema=CAUSAL_INDUCTION_FEATURE_SCHEMA)
+    evaluator = FdasPromotedRuleCandidateImpactShadow(
+        recorder,
+        PromotedRuleCandidateImpactAnalyzer(bundle.readout),
+        DURABLE_ACTOR_CITY_DEFENSE_TARGET)
+    return snapshot, candidate, score, evaluator
+
+
+def test_live_candidate_impact_is_category_scoped_and_action_preserving():
+    snapshot, candidate, score, evaluator = _candidate_impact_fixture()
+
+    evaluated = evaluator.evaluate(
+        snapshot, (candidate,), (score,), candidate.operation.operation_id)
+
+    assert evaluated.status == "evaluated"
+    assert evaluated.scoped_candidate_count == 1
+    assert evaluated.impact.complete_prediction_coverage is True
+    assert evaluated.impact.actual_selected_operation_id == (
+        candidate.operation.operation_id)
+    assert evaluated.global_baseline_selected_operation_id == (
+        candidate.operation.operation_id)
+    assert evaluated.to_dict()["action_selection_changed"] is False
+    assert evaluated.to_dict()["truth_mutated"] is False
+    assert evaluated.to_dict()["policy_authority"] is False
+    assert evaluated.to_dict()["readout_authority"] is False
+
+    outside_spec = replace(
+        candidate.operation, operation_type="fdas-shadow:other:unit_fortify")
+    outside = replace(candidate, operation=outside_spec)
+    abstained = evaluator.evaluate(
+        snapshot, (outside,), (score,), outside.operation.operation_id)
+    assert abstained.status == "abstained"
+    assert abstained.reason == (
+        "no_admissible_candidate_in_approved_action_category")
+    assert abstained.impact is None
 
 
 def test_context_and_evidence_features_must_be_linked_to_episode():

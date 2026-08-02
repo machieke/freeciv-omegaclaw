@@ -7,6 +7,7 @@ out-of-sample replay has accepted it.
 """
 
 import itertools
+import hashlib
 import json
 import math
 import os
@@ -1342,6 +1343,123 @@ class PromotedRuleShadowReadout(object):
 
 
 @dataclass(frozen=True)
+class PromotedRuleShadowArtifactBundle:
+    """Hash-bound approved reports plus their non-authorizing readout."""
+
+    readout: object
+    approved_report_sha256: str
+    approved_report_structural_hash: str
+    consolidation_report_sha256: str
+    consolidation_report_structural_hash: str
+
+    def __post_init__(self):
+        if not isinstance(self.readout, PromotedRuleShadowReadout):
+            raise TypeError("artifact bundle requires promoted-rule readout")
+        for value, name in (
+                (self.approved_report_sha256, "approved report SHA-256"),
+                (self.approved_report_structural_hash,
+                 "approved report structural hash"),
+                (self.consolidation_report_sha256,
+                 "consolidation report SHA-256"),
+                (self.consolidation_report_structural_hash,
+                 "consolidation report structural hash")):
+            if (not isinstance(value, str) or len(value) != 64
+                    or any(character not in "0123456789abcdef"
+                           for character in value)):
+                raise ValueError("{} is invalid".format(name))
+
+    def to_dict(self):
+        return {
+            "approved_report_sha256": self.approved_report_sha256,
+            "approved_report_structural_hash": (
+                self.approved_report_structural_hash),
+            "consolidation_id": (
+                self.readout.consolidation.consolidation_id),
+            "consolidation_report_sha256": (
+                self.consolidation_report_sha256),
+            "consolidation_report_structural_hash": (
+                self.consolidation_report_structural_hash),
+            "policy_authority": False,
+            "readout_authority": False,
+            "retained_rule_ids": list(
+                self.readout.consolidation.retained_rule_ids),
+            "truth_mutated": False,
+        }
+
+
+def _report_sha256(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _load_accepted_report(path, label):
+    with open(path, encoding="utf-8") as stream:
+        report = json.load(stream)
+    expected = report.get("structural_hash")
+    material = dict(report)
+    material.pop("structural_hash", None)
+    if expected != structural_hash(material):
+        raise ValueError("{} structural hash mismatch".format(label))
+    if report.get("acceptance", {}).get("accepted") is not True:
+        raise ValueError("{} is not accepted".format(label))
+    return report
+
+
+def load_promoted_rule_shadow_artifacts(
+        approved_report_path, consolidation_report_path):
+    """Load one exact approved/consolidated cohort or fail closed."""
+    approved_path = os.path.abspath(approved_report_path)
+    consolidation_path = os.path.abspath(consolidation_report_path)
+    approved = _load_accepted_report(approved_path, "approved rule report")
+    consolidation_report = _load_accepted_report(
+        consolidation_path, "promoted-rule consolidation report")
+    approved_sha256 = _report_sha256(approved_path)
+    source = consolidation_report.get("source_report", {})
+    if source.get("sha256") != approved_sha256:
+        raise ValueError(
+            "promoted-rule consolidation is not bound to approved report")
+    if source.get("structural_hash") != approved.get("structural_hash"):
+        raise ValueError(
+            "promoted-rule consolidation source identity mismatch")
+    result = approved.get("result", {})
+    if (result.get("truth_mutated") is not False
+            or result.get("policy_authority") is not False
+            or result.get("readout_authority") is not False):
+        raise ValueError("approved rule report grants forbidden authority")
+    promoted_ids = set(result.get("promoted_rule_ids", ()))
+    proposals = tuple(
+        InducedRuleProposal.from_dict(value)
+        for value in result.get("proposals", ())
+        if value.get("proposal_id") in promoted_ids)
+    validations = tuple(
+        ReplayValidation.from_dict(value)
+        for value in result.get("validations", ())
+        if value.get("proposal_id") in promoted_ids)
+    approvals = tuple(
+        InductionPromotionApproval.from_dict(value)
+        for value in result.get("approvals", ()))
+    if not promoted_ids or not (
+            promoted_ids
+            == set(value.proposal_id for value in proposals)
+            == set(value.proposal_id for value in validations)
+            == set(value.proposal_id for value in approvals)):
+        raise ValueError("approved rule report artifacts are incomplete")
+    consolidation = PromotedRuleConsolidation.from_dict(
+        consolidation_report["consolidation"])
+    readout = PromotedRuleShadowReadout(
+        proposals, validations, approvals, consolidation)
+    return PromotedRuleShadowArtifactBundle(
+        readout,
+        approved_sha256,
+        approved["structural_hash"],
+        _report_sha256(consolidation_path),
+        consolidation_report["structural_hash"])
+
+
+@dataclass(frozen=True)
 class PromotedRuleCandidateImpactRow:
     """One action-preserving counterfactual candidate score."""
 
@@ -1355,6 +1473,7 @@ class PromotedRuleCandidateImpactRow:
     shadow_priority: float
     priority_delta: float
     positive_goal_effect: float
+    goal_relief_basis: str
     estimated: bool
     reason: str
     prediction: object
@@ -1369,6 +1488,7 @@ class PromotedRuleCandidateImpactRow:
             "population_baseline_priority": float(
                 self.population_baseline_priority),
             "positive_goal_effect": float(self.positive_goal_effect),
+            "goal_relief_basis": self.goal_relief_basis,
             "prediction": (
                 None if self.prediction is None
                 else self.prediction.to_dict()),
@@ -1427,7 +1547,9 @@ class PromotedRuleCandidateImpactAnalyzer(object):
         self.readout = readout
         self.config = config or PressureConfig()
 
-    def _calibrated_priority(self, score, positive_effect, probability):
+    def _calibrated_priority(
+            self, score, positive_effect, probability,
+            replace_existing_component):
         if not score.admissible or positive_effect <= 0.0:
             return float(score.priority)
         operation = score.operation
@@ -1440,7 +1562,9 @@ class PromotedRuleCandidateImpactAnalyzer(object):
             - operation.redundancy - operation.contradiction_risk)
         calibrated_value = (
             score.value - positive_effect
-            + positive_effect * float(probability))
+            + positive_effect * float(probability)
+            if replace_existing_component else
+            score.value + positive_effect * float(probability))
         calibrated_formula = (
             calibrated_value * multiplier
             - operation.redundancy - operation.contradiction_risk)
@@ -1485,9 +1609,34 @@ class PromotedRuleCandidateImpactAnalyzer(object):
 
         intermediate = []
         for score in scores:
-            positive_effect = sum(
+            weighted_effect = sum(
                 max(0.0, float(value.weighted_effect))
                 for value in score.goal_effects)
+            operation_payload = score.operation.payload or {}
+            blockers = tuple(operation_payload.get("blockers", ()))
+            diagnostic_effect_eligible = bool(
+                weighted_effect <= 0.0
+                and score.operation.mode == "expand"
+                and operation_payload.get("shadow_only") is True
+                and isinstance(operation_payload.get("action"), dict)
+                and operation_payload.get("action_key")
+                and blockers == ("uncompiled-action-effect",))
+            diagnostic_effect = (
+                sum(max(
+                    0.0,
+                    float(value.pressure) * float(value.effect))
+                    for value in score.goal_effects)
+                if diagnostic_effect_eligible else 0.0)
+            positive_effect = (
+                weighted_effect if weighted_effect > 0.0
+                else diagnostic_effect)
+            relief_basis = (
+                "weighted_goal_relief"
+                if weighted_effect > 0.0 else
+                "diagnostic_pressure_times_declared_effect"
+                if diagnostic_effect > 0.0 else
+                "unavailable")
+            replace_existing = weighted_effect > 0.0
             query = queries.get(score.operation_id)
             prediction = (
                 None if query is None else self.readout.read(query))
@@ -1510,17 +1659,20 @@ class PromotedRuleCandidateImpactAnalyzer(object):
             population_priority = (
                 self._calibrated_priority(
                     score, positive_effect,
-                    prediction.selected_baseline_probability)
+                    prediction.selected_baseline_probability,
+                    replace_existing)
                 if estimated else float(score.priority))
             shadow_priority = (
                 self._calibrated_priority(
                     score, positive_effect,
-                    prediction.selected_probability)
+                    prediction.selected_probability,
+                    replace_existing)
                 if estimated else float(score.priority))
             intermediate.append({
                 "estimated": estimated,
                 "population_priority": population_priority,
                 "positive_effect": positive_effect,
+                "relief_basis": relief_basis,
                 "prediction": prediction,
                 "query": query,
                 "reason": reason,
@@ -1559,6 +1711,7 @@ class PromotedRuleCandidateImpactAnalyzer(object):
                 value["shadow_priority"],
                 value["shadow_priority"] - value["score"].priority,
                 value["positive_effect"],
+                value["relief_basis"],
                 value["estimated"],
                 value["reason"],
                 value["prediction"])

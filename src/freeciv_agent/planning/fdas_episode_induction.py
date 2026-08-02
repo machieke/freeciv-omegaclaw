@@ -9,11 +9,13 @@ from ..pressure.induction import (
     InductionLedger,
     InductionPromotionApproval,
     PatternMiner,
+    PromotedRuleCandidateImpactAnalyzer,
     ReplayValidator,
 )
 from .fdas_episodes import (
     CAUSAL_INDUCTION_FEATURE_SCHEMA,
     DecisionEpisodeStore,
+    FdasDefenseEpisodeRecorder,
     INDUCTION_FEATURE_SCHEMA,
 )
 from .fdas_induction_labels import (
@@ -72,6 +74,155 @@ def causal_induction_feature_query(
         tuple("context:{}={}".format(key, context[key])
               for key in CAUSAL_INDUCTION_FEATURE_KEYS),
         tuple(provenance_ids))
+
+
+@dataclass(frozen=True)
+class FdasPromotedRuleCandidateImpactEvaluation:
+    """Snapshot-bound candidate impact diagnostic or explicit abstention."""
+
+    snapshot_id: str
+    status: str
+    reason: str
+    operation_type: str
+    outcome_target: str
+    global_baseline_selected_operation_id: object
+    baseline_selected_operation_id: object
+    scoped_candidate_count: int
+    impact: object
+    result_hash: str
+
+    def __post_init__(self):
+        if self.status not in ("evaluated", "abstained"):
+            raise ValueError("invalid candidate impact evaluation status")
+        if self.status == "evaluated" and self.impact is None:
+            raise ValueError("evaluated candidate impact requires a result")
+        if self.status == "abstained" and self.impact is not None:
+            raise ValueError("abstained candidate impact cannot have a result")
+
+    def to_dict(self):
+        return {
+            "action_selection_changed": False,
+            "baseline_selected_operation_id": (
+                self.baseline_selected_operation_id),
+            "global_baseline_selected_operation_id": (
+                self.global_baseline_selected_operation_id),
+            "impact": (
+                None if self.impact is None else self.impact.to_dict()),
+            "operation_type": self.operation_type,
+            "outcome_target": self.outcome_target,
+            "policy_authority": False,
+            "readout_authority": False,
+            "reason": self.reason,
+            "result_hash": self.result_hash,
+            "scoped_candidate_count": int(self.scoped_candidate_count),
+            "snapshot_id": self.snapshot_id,
+            "status": self.status,
+            "truth_mutated": False,
+        }
+
+
+class FdasPromotedRuleCandidateImpactShadow(object):
+    """Apply one approved rule basis only inside its action category."""
+
+    EVALUATOR_IDENTITY = "fdas-promoted-rule-candidate-impact-live/1.0"
+
+    def __init__(self, recorder, analyzer, outcome_target):
+        if not isinstance(recorder, FdasDefenseEpisodeRecorder):
+            raise TypeError("candidate impact requires defense feature recorder")
+        if not isinstance(analyzer, PromotedRuleCandidateImpactAnalyzer):
+            raise TypeError("candidate impact requires typed analyzer")
+        if analyzer.readout.consequent != str(outcome_target):
+            raise ValueError("candidate impact outcome target differs from rules")
+        contexts = set(value.context for value in analyzer.readout.rules)
+        if len(contexts) != 1:
+            raise ValueError("candidate impact rules require one context")
+        rule_context = dict(next(iter(contexts)))
+        if rule_context.get("induction_feature_schema") != (
+                CAUSAL_INDUCTION_FEATURE_SCHEMA):
+            raise ValueError("candidate impact requires causal feature schema")
+        operation_type = rule_context.get("operation_type")
+        if not isinstance(operation_type, str) or not operation_type:
+            raise ValueError("candidate impact rule operation type is absent")
+        self.recorder = recorder
+        self.analyzer = analyzer
+        self.outcome_target = str(outcome_target)
+        self.operation_type = operation_type
+
+    def _evaluation(
+            self, snapshot_id, status, reason, global_selected_id,
+            scoped_selected_id, scoped_candidate_count, impact=None):
+        semantic = {
+            "action_selection_changed": False,
+            "baseline_selected_operation_id": scoped_selected_id,
+            "evaluator_identity": self.EVALUATOR_IDENTITY,
+            "impact": None if impact is None else impact.to_dict(),
+            "global_baseline_selected_operation_id": global_selected_id,
+            "operation_type": self.operation_type,
+            "outcome_target": self.outcome_target,
+            "policy_authority": False,
+            "readout_authority": False,
+            "reason": reason,
+            "scoped_candidate_count": int(scoped_candidate_count),
+            "snapshot_id": snapshot_id,
+            "status": status,
+            "truth_mutated": False,
+        }
+        return FdasPromotedRuleCandidateImpactEvaluation(
+            snapshot_id, status, reason, self.operation_type,
+            self.outcome_target, global_selected_id, scoped_selected_id,
+            scoped_candidate_count, impact, structural_hash(semantic))
+
+    def evaluate(self, snapshot, candidates, scores,
+                 baseline_selected_operation_id):
+        candidates = tuple(candidates)
+        candidate_by_id = {}
+        for candidate in candidates:
+            operation_id = candidate.operation.operation_id
+            if operation_id in candidate_by_id:
+                raise ValueError("candidate impact operation IDs are not unique")
+            candidate_by_id[operation_id] = candidate
+        global_selected_id = (
+            None if baseline_selected_operation_id is None
+            else str(baseline_selected_operation_id))
+        scoped_scores = tuple(
+            score for score in scores
+            if (score.operation_id in candidate_by_id
+                and candidate_by_id[
+                    score.operation_id].operation.operation_type
+                == self.operation_type))
+        scoped_selected_id = next(
+            (score.operation_id for score in scoped_scores
+             if score.admissible), None)
+        if scoped_selected_id is None:
+            return self._evaluation(
+                snapshot.snapshot_id, "abstained",
+                "no_admissible_candidate_in_approved_action_category",
+                global_selected_id, None, len(scoped_scores))
+        queries = {}
+        for score in scoped_scores:
+            candidate = candidate_by_id[score.operation_id]
+            context = self.recorder.context_for_operation(
+                candidate.operation, snapshot)
+            query_id = "candidate-query-" + structural_hash({
+                "candidate_hash": candidate.candidate_hash,
+                "consolidation_id": (
+                    self.analyzer.readout.consolidation.consolidation_id),
+                "outcome_target": self.outcome_target,
+                "snapshot_id": snapshot.snapshot_id,
+            })[:24]
+            queries[score.operation_id] = causal_induction_feature_query(
+                query_id, context, self.outcome_target,
+                (candidate.candidate_hash, snapshot.snapshot_id))
+        impact = self.analyzer.analyze(
+            scoped_scores, queries, scoped_selected_id)
+        return self._evaluation(
+            snapshot.snapshot_id, "evaluated",
+            ("approved_category_candidate_impact_available"
+             if global_selected_id == scoped_selected_id else
+             "approved_category_candidate_impact_available_"
+             "global_winner_outside_category"),
+            global_selected_id, scoped_selected_id,
+            len(scoped_scores), impact)
 
 
 def combine_episode_stores(stores, persistence_identity):

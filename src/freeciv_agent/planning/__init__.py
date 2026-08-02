@@ -147,6 +147,8 @@ from .fdas_episode_induction import (
     FdasEpisodeInductionAdapter,
     FdasEpisodeInductionHeldoutGate,
     FdasEpisodeInductionShadow,
+    FdasPromotedRuleCandidateImpactEvaluation,
+    FdasPromotedRuleCandidateImpactShadow,
     causal_induction_feature_query,
     combine_episode_stores,
 )
@@ -269,6 +271,8 @@ __all__ = [
     "EpisodeInductionResult", "EpisodeInductionShadowResult",
     "EpisodeInductionSpec", "FdasEpisodeInductionAdapter",
     "FdasEpisodeInductionHeldoutGate", "FdasEpisodeInductionShadow",
+    "FdasPromotedRuleCandidateImpactEvaluation",
+    "FdasPromotedRuleCandidateImpactShadow",
     "causal_induction_feature_query", "combine_episode_stores",
     "DURABLE_ACTOR_CITY_DEFENSE_TARGET", "DURABLE_CITY_COVERAGE_TARGET",
     "LABEL_SCHEMA_VERSION",

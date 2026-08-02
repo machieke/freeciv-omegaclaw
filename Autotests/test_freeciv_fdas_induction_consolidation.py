@@ -4,6 +4,7 @@ import sys
 import json
 import copy
 import subprocess
+from dataclasses import replace
 
 import pytest
 
@@ -28,6 +29,7 @@ from freeciv_agent.pressure import (  # noqa: E402
     PromotedRuleShadowReadout,
     ReplayMetrics,
     ReplayValidation,
+    load_promoted_rule_shadow_artifacts,
 )
 
 
@@ -198,6 +200,43 @@ def test_consolidation_runner_reduces_frozen_pr29_to_four_rule_basis(tmp_path):
     assert len(report["consolidation"]["retained_rule_ids"]) == 4
     assert len(report["consolidation"]["suppressions"]) == 9
     assert report["consolidation"]["readout_authority"] is False
+
+
+def test_hash_bound_loader_reconstructs_frozen_promoted_rule_basis():
+    bundle = load_promoted_rule_shadow_artifacts(
+        os.path.join(REPO, "docs", "freeciv", "evidence",
+                     "fdas-pr29-causal-induction-holdout-engine.json"),
+        os.path.join(REPO, "docs", "freeciv", "evidence",
+                     "fdas-pr30-promoted-rule-consolidation.json"))
+    value = bundle.to_dict()
+
+    assert len(value["retained_rule_ids"]) == 4
+    assert value["consolidation_id"].startswith("consolidation-")
+    assert value["truth_mutated"] is False
+    assert value["policy_authority"] is False
+    assert value["readout_authority"] is False
+
+
+def test_hash_bound_loader_rejects_unbound_consolidation(tmp_path):
+    approved = os.path.join(
+        REPO, "docs", "freeciv", "evidence",
+        "fdas-pr29-causal-induction-holdout-engine.json")
+    consolidation_path = os.path.join(
+        REPO, "docs", "freeciv", "evidence",
+        "fdas-pr30-promoted-rule-consolidation.json")
+    consolidation = json.loads(
+        open(consolidation_path, encoding="utf-8").read())
+    consolidation["source_report"]["sha256"] = "0" * 64
+    material = dict(consolidation)
+    material.pop("structural_hash")
+    from freeciv_agent.events.schema import structural_hash
+    consolidation["structural_hash"] = structural_hash(material)
+    tampered = tmp_path / "unbound-consolidation.json"
+    tampered.write_text(
+        json.dumps(consolidation, sort_keys=True), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="not bound"):
+        load_promoted_rule_shadow_artifacts(approved, str(tampered))
 
 
 def _readout(proposals):
@@ -389,6 +428,52 @@ def test_candidate_impact_withholds_winner_without_complete_coverage():
     assert rows["operation-unobserved"].reason == (
         "candidate_feature_query_missing")
     assert rows["operation-blocked"].reason == "candidate_inadmissible"
+
+
+def test_candidate_impact_bridges_only_exact_uncompiled_action_effect():
+    analyzer = PromotedRuleCandidateImpactAnalyzer(
+        _readout((_proposal("rule", ("feature:a",)),)))
+    operation = Operation(
+        "operation-diagnostic", "atom-diagnostic", "expand",
+        CostVector(compute=1.0), causal_kind="diagnostic",
+        success_probability=0.0, relief_scale=0.0,
+        goal_effects=(("goal-defense", 1.0),),
+        payload={
+            "action": {"action_type": "unit_fortify", "actor_id": 7},
+            "action_key": '{"action_type":"unit_fortify","actor_id":7}',
+            "blockers": ["uncompiled-action-effect"],
+            "shadow_only": True,
+        })
+    score = OperationScore(
+        operation, True, None, 0.0, 0.0, 1.0, 0.0,
+        (GoalEffect("goal-defense", 0.4, 0.0, 1.0, 0.0),))
+
+    result = analyzer.analyze(
+        (score,),
+        {score.operation_id: _query("query-diagnostic", "feature:a")},
+        score.operation_id)
+    row = result.rows[0]
+
+    assert result.complete_prediction_coverage is True
+    assert result.counterfactual_selected_operation_id == score.operation_id
+    assert row.positive_goal_effect == pytest.approx(0.4)
+    assert row.goal_relief_basis == (
+        "diagnostic_pressure_times_declared_effect")
+    assert row.population_baseline_priority > 0.0
+    assert row.shadow_priority > row.population_baseline_priority
+    assert row.priority_delta > 0.0
+
+    unsafe = replace(
+        operation,
+        payload=dict(operation.payload, blockers=["protected-garrison"]))
+    unsafe_score = replace(score, operation=unsafe)
+    abstained = analyzer.analyze(
+        (unsafe_score,),
+        {unsafe_score.operation_id: _query("query-unsafe", "feature:a")},
+        unsafe_score.operation_id)
+    assert abstained.complete_prediction_coverage is False
+    assert abstained.rows[0].goal_relief_basis == "unavailable"
+    assert abstained.rows[0].reason == "candidate_has_no_positive_goal_effect"
 
 
 def test_candidate_impact_rejects_outcome_bearing_query_surface():

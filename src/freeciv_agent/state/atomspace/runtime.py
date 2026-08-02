@@ -382,6 +382,13 @@ class FdasRuntime(object):
     def enabled(self):
         return self.config.enabled
 
+    @property
+    def shadow_pressure_config(self):
+        if self._pressure_adapter is None:
+            raise FdasRuntimeConfigurationError(
+                "FDAS shadow pressure adapter is not configured")
+        return self._pressure_adapter.config
+
     def activation_payload(self):
         return {
             "authority_enabled": self.config.authority_enabled,
@@ -711,6 +718,29 @@ class FdasRuntime(object):
             instantiation, pressure, comparison, decision_explanation,
             tuple(stage_latency), (now - started) * 1000.0)
 
+    def shadow_operation_scores(self, evaluation):
+        """Reconstruct exact typed scores behind one shadow artifact."""
+        if not isinstance(evaluation, FdasShadowEvaluation):
+            raise TypeError("FDAS typed scores require shadow evaluation")
+        if self._pressure_adapter is None:
+            raise FdasRuntimeConfigurationError(
+                "FDAS shadow pressure adapter is not configured")
+        pressure = evaluation.pressure
+        if pressure.status != "complete":
+            return ()
+        scores = self._pressure_adapter.scheduler.score_all(
+            pressure.context.operations, pressure.pressure_result)
+        if [value.to_dict() for value in scores] != pressure.schedule.get(
+                "scores"):
+            raise RuntimeError(
+                "typed FDAS scores differ from emitted schedule")
+        selected = next(
+            (value.operation_id for value in scores if value.admissible), None)
+        if selected != pressure.schedule.get("selected_operation_id"):
+            raise RuntimeError(
+                "typed FDAS score winner differs from emitted schedule")
+        return scores
+
     def evaluate_authority(self, snapshot, shadow_evaluation,
                            legacy_candidate):
         """Evaluate the configured authority slice or return no readout."""
@@ -824,6 +854,23 @@ class FdasRuntime(object):
             writer, event_type, snapshot.turn, revision, details,
             caused_by=tuple(caused_by), ruleset_digest=self.ruleset_digest,
             component_id="fdas-episode-control-learning",
+            component_version="1.0")
+
+    def emit_induced_rule_candidate_impact(
+            self, writer, snapshot, details, caused_by=()):
+        """Emit a revision-bound, explicitly non-authorizing impact readout."""
+        if self.event_emitter is None:
+            return None
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        if revision is None or revision.snapshot_id != snapshot.snapshot_id:
+            raise RuntimeError(
+                "FDAS candidate impact evidence is not snapshot-current")
+        return self.event_emitter.emit_component(
+            writer, "atomspace_shadow_decision", snapshot.turn, revision,
+            details, caused_by=tuple(caused_by),
+            ruleset_digest=self.ruleset_digest,
+            component_id="fdas-induced-rule-candidate-impact",
             component_version="1.0")
 
 

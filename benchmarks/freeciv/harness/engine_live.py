@@ -43,9 +43,11 @@ from freeciv_agent.pressure import (
     ObservationOutcome,
     ObservationTest,
     PacketBudget,
+    PromotedRuleCandidateImpactAnalyzer,
     ResourceKind,
     TruthState,
     ValueOfInformationPlanner,
+    load_promoted_rule_shadow_artifacts,
     pressure_dependency_view,
 )
 from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
@@ -64,6 +66,7 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     FdasDefenseDurabilityLabeler,
                                     FdasEpisodeInductionShadow,
                                     FdasEpisodeLearningAdapter,
+                                    FdasPromotedRuleCandidateImpactShadow,
                                     INDUCTION_FEATURE_SCHEMA,
                                     FdasExpansionOperationAdapter,
                                     FdasFounderTransportProjectionAdapter,
@@ -2697,6 +2700,12 @@ async def _play(run_dir, manifest, context):
     fdas_episode_recorder = None
     fdas_episode_learning = None
     fdas_episode_induction = None
+    fdas_candidate_impact_bundle = None
+    fdas_candidate_impact_shadow = None
+    candidate_impact_capability = fdas_manifest["capabilities"].get(
+        "induced_rule_candidate_impact_shadow")
+    candidate_impact_diagnostic = fdas_manifest.get(
+        "induced_rule_candidate_impact_diagnostic")
     fdas_outcome_label_path = os.path.join(
         run_dir, "fdas-induction-outcome-labels.json")
     fdas_outcome_label_store = None
@@ -2853,6 +2862,71 @@ async def _play(run_dir, manifest, context):
             # Persist even an empty store so zero-label evidence is durable and
             # its activation/identity can be audited independently of events.
             fdas_outcome_label_store.save(fdas_outcome_label_path)
+    if (candidate_impact_capability is not None
+            or candidate_impact_diagnostic is not None):
+        if candidate_impact_capability != "shadow-live":
+            raise RuntimeError(
+                "FDAS candidate impact requires shadow-live manifest")
+        expected_keys = {
+            "action_selection_changed",
+            "approved_report_path",
+            "approved_report_sha256",
+            "approved_report_structural_hash",
+            "consolidation_report_path",
+            "consolidation_report_sha256",
+            "consolidation_report_structural_hash",
+            "outcome_target",
+            "policy_authority",
+            "readout_authority",
+            "truth_mutated",
+        }
+        if (not isinstance(candidate_impact_diagnostic, dict)
+                or set(candidate_impact_diagnostic) != expected_keys):
+            raise RuntimeError(
+                "FDAS candidate impact diagnostic declaration is incomplete")
+        if any(candidate_impact_diagnostic[name] is not False for name in (
+                "action_selection_changed", "policy_authority",
+                "readout_authority", "truth_mutated")):
+            raise RuntimeError(
+                "FDAS candidate impact diagnostic cannot grant authority")
+        if (fdas_episode_recorder is None
+                or not fdas_learning_config["induction_enabled"]
+                or fdas_learning_config["induced_rule_readout_enabled"]):
+            raise RuntimeError(
+                "FDAS candidate impact requires outcome-only induction shadow")
+        if candidate_impact_diagnostic["outcome_target"] != (
+                delayed_outcome_target):
+            raise RuntimeError(
+                "FDAS candidate impact target differs from outcome labels")
+
+        def declared_candidate_impact_path(name):
+            relative = candidate_impact_diagnostic[name]
+            if (not isinstance(relative, str) or not relative
+                    or os.path.isabs(relative)):
+                raise RuntimeError(
+                    "FDAS candidate impact artifact path must be repository-relative")
+            absolute = os.path.abspath(os.path.join(REPO_ROOT, relative))
+            if os.path.commonpath((REPO_ROOT, absolute)) != REPO_ROOT:
+                raise RuntimeError(
+                    "FDAS candidate impact artifact escapes repository")
+            return absolute
+
+        fdas_candidate_impact_bundle = (
+            load_promoted_rule_shadow_artifacts(
+                declared_candidate_impact_path("approved_report_path"),
+                declared_candidate_impact_path(
+                    "consolidation_report_path")))
+        loaded_artifacts = fdas_candidate_impact_bundle.to_dict()
+        for name in (
+                "approved_report_sha256",
+                "approved_report_structural_hash",
+                "consolidation_report_sha256",
+                "consolidation_report_structural_hash"):
+            if loaded_artifacts[name] != candidate_impact_diagnostic[name]:
+                raise RuntimeError(
+                    "FDAS candidate impact {} differs from manifest".format(
+                        name))
+
     def fdas_operation_records():
         rows = tuple(control_event_emitter.fdas_operation_records(
             manifest["game_id"]))
@@ -2904,6 +2978,14 @@ async def _play(run_dir, manifest, context):
             else fdas_operation_requirement_contexts),
         episode_source=fdas_episode_store,
     )
+    if fdas_candidate_impact_bundle is not None:
+        fdas_candidate_impact_shadow = (
+            FdasPromotedRuleCandidateImpactShadow(
+                fdas_episode_recorder,
+                PromotedRuleCandidateImpactAnalyzer(
+                    fdas_candidate_impact_bundle.readout,
+                    fdas_runtime.shadow_pressure_config),
+                candidate_impact_diagnostic["outcome_target"]))
     reconcile_fdas_expansion = None
     if fdas_expansion_adapter is not None:
         def reconcile_fdas_expansion(current, revision):
@@ -3065,6 +3147,10 @@ async def _play(run_dir, manifest, context):
         "fdas_induction_proposals_quarantined": 0,
         "fdas_induction_duplicate_proposals": 0,
         "fdas_induction_promoted_rules": 0,
+        "fdas_candidate_impact_evaluations": 0,
+        "fdas_candidate_impact_abstentions": 0,
+        "fdas_candidate_impact_complete_coverages": 0,
+        "fdas_candidate_impact_counterfactual_winner_changes": 0,
         "fdas_delayed_outcome_labels_opened": (
             len(fdas_outcome_label_store.labels())
             if fdas_outcome_label_store is not None else 0),
@@ -4919,6 +5005,64 @@ async def _play(run_dir, manifest, context):
                                 fdas_shadow.candidate_instantiation
                                 .omitted_unprotected_count),
                             status=fdas_shadow.pressure.status)
+                        if fdas_candidate_impact_shadow is not None:
+                            candidate_impact_started = time.perf_counter()
+                            typed_scores = (
+                                fdas_runtime.shadow_operation_scores(
+                                    fdas_shadow))
+                            candidate_impact = (
+                                fdas_candidate_impact_shadow.evaluate(
+                                    snapshot,
+                                    fdas_shadow.candidates,
+                                    typed_scores,
+                                    fdas_shadow.pressure.schedule.get(
+                                        "selected_operation_id")))
+                            decision_stats[
+                                "fdas_candidate_impact_evaluations"] += 1
+                            decision_stats[
+                                "fdas_candidate_impact_abstentions"] += int(
+                                    candidate_impact.status == "abstained")
+                            if candidate_impact.impact is not None:
+                                decision_stats[
+                                    "fdas_candidate_impact_complete_coverages"
+                                ] += int(
+                                    candidate_impact.impact
+                                    .complete_prediction_coverage)
+                                decision_stats[
+                                    "fdas_candidate_impact_counterfactual_"
+                                    "winner_changes"] += int(
+                                        candidate_impact.impact
+                                        .counterfactual_winner_changed is True)
+                            candidate_impact_details = (
+                                candidate_impact.to_dict())
+                            candidate_impact_details["artifacts"] = (
+                                fdas_candidate_impact_bundle.to_dict())
+                            candidate_impact_details["declaration_hash"] = (
+                                manifest["dependent_atomspace"][
+                                    "declaration_hash"])
+                            impact_event = (
+                                fdas_runtime
+                                .emit_induced_rule_candidate_impact(
+                                    writer, snapshot,
+                                    candidate_impact_details,
+                                    caused_by=(parent,)))
+                            if impact_event is not None:
+                                parent = impact_event["event_id"]
+                            parent = _metric(
+                                writer, snapshot.turn, parent,
+                                "fdas_candidate_impact_latency_ms",
+                                (time.perf_counter()
+                                 - candidate_impact_started) * 1000.0,
+                                manifest,
+                                complete_prediction_coverage=bool(
+                                    candidate_impact.impact is not None
+                                    and candidate_impact.impact
+                                    .complete_prediction_coverage),
+                                counterfactual_winner_changed=bool(
+                                    candidate_impact.impact is not None
+                                    and candidate_impact.impact
+                                    .counterfactual_winner_changed is True),
+                                status=candidate_impact.status)
                         if fdas_turn_sampled:
                             fdas_shadow_evaluated_turns.add(snapshot.turn)
                         fdas_authority = fdas_runtime.evaluate_authority(
@@ -6029,6 +6173,15 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_induction_duplicate_proposals"]),
         ("fdas_induction_promoted_rules",
          decision_stats["fdas_induction_promoted_rules"]),
+        ("fdas_candidate_impact_evaluations",
+         decision_stats["fdas_candidate_impact_evaluations"]),
+        ("fdas_candidate_impact_abstentions",
+         decision_stats["fdas_candidate_impact_abstentions"]),
+        ("fdas_candidate_impact_complete_coverages",
+         decision_stats["fdas_candidate_impact_complete_coverages"]),
+        ("fdas_candidate_impact_counterfactual_winner_changes",
+         decision_stats[
+             "fdas_candidate_impact_counterfactual_winner_changes"]),
         ("fdas_delayed_outcome_labels_opened",
          decision_stats["fdas_delayed_outcome_labels_opened"]),
         ("fdas_delayed_outcome_labels_observed",
@@ -6508,6 +6661,16 @@ async def _play(run_dir, manifest, context):
                 decision_stats["fdas_induction_duplicate_proposals"]),
             "fdas_induction_promoted_rules": (
                 decision_stats["fdas_induction_promoted_rules"]),
+            "fdas_candidate_impact_evaluations": (
+                decision_stats["fdas_candidate_impact_evaluations"]),
+            "fdas_candidate_impact_abstentions": (
+                decision_stats["fdas_candidate_impact_abstentions"]),
+            "fdas_candidate_impact_complete_coverages": (
+                decision_stats[
+                    "fdas_candidate_impact_complete_coverages"]),
+            "fdas_candidate_impact_counterfactual_winner_changes": (
+                decision_stats[
+                    "fdas_candidate_impact_counterfactual_winner_changes"]),
             "fdas_delayed_outcome_labels_opened": (
                 decision_stats["fdas_delayed_outcome_labels_opened"]),
             "fdas_delayed_outcome_labels_observed": (
@@ -6855,6 +7018,15 @@ async def _play(run_dir, manifest, context):
             decision_stats["fdas_induction_duplicate_proposals"]),
         "fdas_induction_promoted_rules": (
             decision_stats["fdas_induction_promoted_rules"]),
+        "fdas_candidate_impact_evaluations": (
+            decision_stats["fdas_candidate_impact_evaluations"]),
+        "fdas_candidate_impact_abstentions": (
+            decision_stats["fdas_candidate_impact_abstentions"]),
+        "fdas_candidate_impact_complete_coverages": (
+            decision_stats["fdas_candidate_impact_complete_coverages"]),
+        "fdas_candidate_impact_counterfactual_winner_changes": (
+            decision_stats[
+                "fdas_candidate_impact_counterfactual_winner_changes"]),
         "fdas_delayed_outcome_labels_opened": (
             decision_stats["fdas_delayed_outcome_labels_opened"]),
         "fdas_delayed_outcome_labels_observed": (
