@@ -94,7 +94,9 @@ class PopulationRecoveryProjector(object):
             target = action.get("target")
             if (action.get("action_type") != "unit_join_city"
                     or not isinstance(target, dict)
-                    or not isinstance(target.get("city_id"), int)):
+                    or not isinstance(target.get("city_id"), int)
+                    or isinstance(action.get("actor_id"), bool)
+                    or not isinstance(action.get("actor_id"), int)):
                 continue
             founder = snapshot.unit(action.get("actor_id"))
             city = snapshot.city(target["city_id"])

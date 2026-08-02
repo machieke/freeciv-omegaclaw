@@ -281,14 +281,16 @@ class CityRegionProjector(object):
                         "visible_enemy_units.{}.{}".format(
                             enemy.unit_id, field), fingerprints))
             for route in routes:
-                prefix = "movement_routes.{}:{}.".format(
+                prefix = "movement_routes.{}:{}".format(
                     route.unit_id, route.destination_tile)
-                activation_dependencies.extend(
-                    snapshot_dependency_ref(snapshot, key.path, fingerprints)
-                    for key in sorted(fingerprints)
-                    if key.path.startswith(prefix))
+                for field in (
+                        "authority", "destination_tile", "reachable",
+                        "schema_version", "source_seq", "turn", "unit_id"):
+                    activation_dependencies.append(snapshot_dependency_ref(
+                        snapshot, "{}.{}".format(prefix, field), fingerprints))
             activation_dependencies = tuple(sorted(set(
                 activation_dependencies)))
+            geometry_dependencies = tuple(sorted(set(base_dependencies)))
             records.append(self._record(
                 scope, AtomNamespace.DERIVED, "region-centered-on",
                 (region_ref, city_ref), AuthorityClass.DETERMINISTIC_DERIVED,
@@ -314,7 +316,7 @@ class CityRegionProjector(object):
                     scope, AtomNamespace.DERIVED, "tile-in-region",
                     (tile_ref, region_ref),
                     AuthorityClass.DETERMINISTIC_DERIVED,
-                    activation_dependencies, {
+                    geometry_dependencies, {
                         "radius": self.policy.radius,
                         "tile": tile,
                     }))
@@ -328,7 +330,7 @@ class CityRegionProjector(object):
                         (tile_ref, SymbolRef(
                             "terrain", str(terrain["terrain"]))),
                         AuthorityClass.ENGINE_AUTHORITATIVE,
-                        activation_dependencies + (terrain_dependency,),
+                        geometry_dependencies + (terrain_dependency,),
                         terrain))
                 for neighbor in self._adjacent(tile, snapshot):
                     if neighbor not in tile_set:
@@ -337,7 +339,7 @@ class CityRegionProjector(object):
                         scope, AtomNamespace.DERIVED, "tile-adjacent",
                         (tile_ref, EntityRef("tile", str(neighbor))),
                         AuthorityClass.DETERMINISTIC_DERIVED,
-                        activation_dependencies, {
+                        geometry_dependencies, {
                             "from": tile,
                             "to": neighbor,
                         }))

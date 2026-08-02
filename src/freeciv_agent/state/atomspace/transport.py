@@ -188,6 +188,8 @@ class TransportCapabilityProjector(object):
         for action_key in snapshot.legal_action_json:
             action = json.loads(action_key)
             actor_id = action.get("actor_id")
+            if isinstance(actor_id, bool) or not isinstance(actor_id, int):
+                continue
             cargo = snapshot.unit(actor_id)
             cargo_profile = profiles.get(actor_id)
             if cargo is None or cargo_profile is None:

@@ -9,6 +9,7 @@ from .snapshot import (AuthoritativeSnapshot, CityState, EconomicState,
                        MovementRouteState, ResearchState, SnapshotIdentity,
                        ResearchOptionState, UnitState)
 from .store import SnapshotConflict, SnapshotStore
+from .replay import SnapshotReplayError, snapshot_from_event
 from .summary import QueryStateSummary, StateSummaryService
 
 __all__ = [
@@ -18,5 +19,6 @@ __all__ = [
     "MovementRouteState", "ProxyStateDTO",
     "QueryStateSummary", "ResearchOptionState", "ResearchState", "SnapshotAtomspaces",
     "SnapshotConflict", "SnapshotIdentity", "SnapshotStore",
+    "SnapshotReplayError", "snapshot_from_event",
     "StateSummaryService", "UnitState", "build_atomspaces",
 ]

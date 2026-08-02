@@ -226,14 +226,19 @@ class CityEconomyProjector(object):
                 if rule.target_kind == "building":
                     kinds += ("improvement",)
                 for kind in kinds:
-                    key = DependencyKey(
-                        "ruleset-digest", self.ruleset_digest,
-                        "target:{}:{}".format(kind, rule.rule_name))
-                    result[key] = structural_hash({
-                        "ruleset_digest": self.ruleset_digest,
-                        "target_kind": kind,
-                        "target": rule.rule_name,
-                    })
+                    for label in {
+                            rule.rule_name,
+                            getattr(rule, "display_name", None)}:
+                        if not label:
+                            continue
+                        key = DependencyKey(
+                            "ruleset-digest", self.ruleset_digest,
+                            "target:{}:{}".format(kind, label))
+                        result[key] = structural_hash({
+                            "ruleset_digest": self.ruleset_digest,
+                            "target_kind": kind,
+                            "target": label,
+                        })
         return result
 
     @staticmethod
@@ -293,7 +298,8 @@ class CityEconomyProjector(object):
         target_kind = "building" if kind == "improvement" else kind
         rules = tuple(
             rule for rule in (self.ruleset_ir.rules if self.ruleset_ir else ())
-            if rule.target_kind == target_kind and rule.rule_name == target)
+            if rule.target_kind == target_kind and target in {
+                rule.rule_name, getattr(rule, "display_name", None)})
         if not rules:
             return 0, 0
 
@@ -383,12 +389,11 @@ class CityEconomyProjector(object):
                         "governor-policy", "server-current")),
                     ("cities.{}.governor.enabled".format(city_id),),
                     fingerprints))
-            for building_index, building in enumerate(city.buildings):
+            for building in city.buildings:
                 records.append(self._base(
                     snapshot, scope, "city-has-building",
                     (city_ref, EntityRef("building-type", building.name)),
-                    ("cities.{}.buildings.{}".format(
-                        city_id, building_index),), fingerprints))
+                    ("cities.{}.buildings".format(city_id),), fingerprints))
 
             food = self.groundings.evaluate(
                 "city.food-surplus", snapshot, city.city_id)

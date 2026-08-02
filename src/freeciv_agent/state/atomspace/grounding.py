@@ -3,6 +3,7 @@
 import math
 from dataclasses import dataclass
 from enum import Enum
+from fnmatch import fnmatchcase
 
 from ...events.schema import structural_hash
 from .delta import snapshot_dependency_fingerprints, snapshot_dependency_ref
@@ -182,7 +183,8 @@ UNIT_DEFENSE_GROUNDING_SPECS = (
            "cities.{city}.citizen_mood.angry"),
           GroundingAuthority.DETERMINISTIC_DERIVED),
     _spec("city.local-garrison-count", ("city",), "integer", "units",
-          ("cities.{city}.tile", "units"),
+          ("cities.{city}.tile", "units.__members__",
+           "units.*.tile", "units.*.type"),
           GroundingAuthority.DETERMINISTIC_DERIVED),
     _spec("movement.shortest-route", ("unit", "destination-tile"),
           "route-or-unknown", None,
@@ -207,7 +209,12 @@ UNIT_DEFENSE_GROUNDING_SPECS = (
     ),
     _spec("defense.removal-deficit", ("unit", "policy-limit"),
           "removal-deficit", "units",
-          ("units.{unit}.tile", "cities", "units"),
+          ("units.{unit}.tile", "cities.__members__",
+           "cities.*.tile", "cities.*.disorder", "cities.*.size",
+           "cities.*.citizen_mood.happy",
+           "cities.*.citizen_mood.unhappy",
+           "cities.*.citizen_mood.angry",
+           "units.__members__", "units.*.tile", "units.*.type"),
           GroundingAuthority.DETERMINISTIC_DERIVED),
 )
 
@@ -228,7 +235,8 @@ def persistent_defender_type(ruleset_ir, unit_type):
         return True
     rows = tuple(
         value for value in (ruleset_ir.rules if ruleset_ir is not None else ())
-        if value.target_kind == "unit" and value.rule_name == str(unit_type))
+        if value.target_kind == "unit" and str(unit_type) in {
+            value.rule_name, getattr(value, "display_name", None)})
     if len(rows) != 1:
         return False
     rule = rows[0]
@@ -261,13 +269,18 @@ class TypedGroundingRegistry(object):
             raise ValueError("duplicate typed grounding ID")
         self._cache = {}
         self._fingerprint_cache = {}
+        self._path_dependency_cache = {}
         self._evaluations = 0
         self._cache_hits = 0
         self._rules = {}
+        self._persistent_defender_cache = {}
         if ruleset_ir is not None:
             for rule in ruleset_ir.rules:
-                self._rules.setdefault(
-                    (rule.target_kind, rule.rule_name), []).append(rule)
+                for label in {
+                        rule.rule_name, getattr(rule, "display_name", None)}:
+                    if label:
+                        self._rules.setdefault(
+                            (rule.target_kind, label), []).append(rule)
 
     @staticmethod
     def _normalized_type(value):
@@ -305,7 +318,11 @@ class TypedGroundingRegistry(object):
         }
 
     def _persistent_defender(self, unit_type):
-        return persistent_defender_type(self.ruleset_ir, unit_type)
+        key = str(unit_type)
+        if key not in self._persistent_defender_cache:
+            self._persistent_defender_cache[key] = persistent_defender_type(
+                self.ruleset_ir, unit_type)
+        return self._persistent_defender_cache[key]
 
     @staticmethod
     def _city_mood_margin(city):
@@ -354,8 +371,13 @@ class TypedGroundingRegistry(object):
         """Reuse the transaction's canonical snapshot fingerprints."""
         self._fingerprint_cache[snapshot.snapshot_id] = dict(fingerprints)
         if len(self._fingerprint_cache) > 8:
-            for snapshot_id in sorted(self._fingerprint_cache)[:-8]:
+            evicted = tuple(sorted(self._fingerprint_cache)[:-8])
+            for snapshot_id in evicted:
                 self._fingerprint_cache.pop(snapshot_id, None)
+            self._path_dependency_cache = dict(
+                (key, value)
+                for key, value in self._path_dependency_cache.items()
+                if key[0] not in evicted)
 
     @property
     def metrics(self):
@@ -691,22 +713,37 @@ class TypedGroundingRegistry(object):
             raise KeyError("grounding dependency is unavailable: {}".format(
                 path))
 
-        for path in self._resolved_paths(spec, args):
-            if path.endswith(".*"):
+        def path_dependencies(path):
+            cache_key = (snapshot.snapshot_id, path)
+            cached = self._path_dependency_cache.get(cache_key)
+            if cached is not None:
+                return cached
+            if "*" in path and not path.endswith(".*"):
+                keys = tuple(
+                    key for key in sorted(fingerprints)
+                    if fnmatchcase(key.path, path))
+            elif path.endswith(".*"):
                 prefix = path[:-1]
-                dependencies.extend(
-                    snapshot_dependency_ref(snapshot, key.path, fingerprints)
-                    for key in sorted(fingerprints)
+                keys = tuple(
+                    key for key in sorted(fingerprints)
                     if key.path.startswith(prefix))
-                continue
-            if path in ("cities", "units"):
+            elif path in ("cities", "units"):
                 prefix = path + "."
-                dependencies.extend(
-                    snapshot_dependency_ref(snapshot, key.path, fingerprints)
-                    for key in sorted(fingerprints)
+                keys = tuple(
+                    key for key in sorted(fingerprints)
                     if key.path.startswith(prefix))
             else:
-                dependencies.append(source_reference(path))
+                result = (source_reference(path),)
+                self._path_dependency_cache[cache_key] = result
+                return result
+            result = tuple(
+                snapshot_dependency_ref(snapshot, key.path, fingerprints)
+                for key in keys)
+            self._path_dependency_cache[cache_key] = result
+            return result
+
+        for path in self._resolved_paths(spec, args):
+            dependencies.extend(path_dependencies(path))
         if grounding_id in (
                 "city.production-cost", "city.production-eta",
                 "unit.combat-profile", "unit.persistent-defender",

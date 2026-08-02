@@ -608,6 +608,7 @@ class AuthoritativeSnapshot:
                 ],
                 "map_topology":
                     map_topology,
+                "phase": self.phase,
                 "own_units": [
                     unit.grounded_dict()
                     for unit in

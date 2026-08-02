@@ -170,8 +170,12 @@ class UnitDefenseProjector(object):
         # Per-type keys are also added lazily by ``project`` validation below;
         # add the complete compiled catalog here so any current unit is covered.
         unit_types.update(
-            value.rule_name for value in self.ruleset_ir.rules
-            if value.target_kind == "unit")
+            label
+            for value in self.ruleset_ir.rules
+            if value.target_kind == "unit"
+            for label in {
+                value.rule_name, getattr(value, "display_name", None)}
+            if label)
         unit_types.add("defender-catalog")
         for unit_type in sorted(unit_types):
             key = DependencyKey(

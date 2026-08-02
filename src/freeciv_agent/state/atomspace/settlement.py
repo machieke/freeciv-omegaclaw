@@ -138,6 +138,8 @@ class SettlementSiteProjector(object):
         for action_key in snapshot.legal_action_json:
             action = json.loads(action_key)
             actor_id = action.get("actor_id")
+            if isinstance(actor_id, bool) or not isinstance(actor_id, int):
+                continue
             actor = snapshot.unit(actor_id)
             if actor is None:
                 continue
