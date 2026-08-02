@@ -44,7 +44,8 @@ _NAMESPACE_AUTHORITIES = {
 
 
 class AtomSpaceTransaction(object):
-    def __init__(self, snapshot_id, predicate_registry, scopes, records=()):
+    def __init__(self, snapshot_id, predicate_registry, scopes, records=(),
+                 maximum_atoms=None):
         if not isinstance(snapshot_id, str) or not snapshot_id:
             raise ValueError("transaction snapshot ID is required")
         if not isinstance(predicate_registry, PredicateRegistry):
@@ -54,6 +55,11 @@ class AtomSpaceTransaction(object):
             raise TypeError("transaction scopes must be ScopeSpec values")
         if len({value.scope_id for value in scopes}) != len(scopes):
             raise ValueError("transaction scope IDs must be unique")
+        if (maximum_atoms is not None
+                and (isinstance(maximum_atoms, bool)
+                     or not isinstance(maximum_atoms, int)
+                     or maximum_atoms < 1)):
+            raise ValueError("transaction global atom budget must be positive")
         self.snapshot_id = snapshot_id
         self.predicate_registry = predicate_registry
         self._scopes = dict((value.scope_id, value) for value in scopes)
@@ -61,6 +67,7 @@ class AtomSpaceTransaction(object):
         self._closed = False
         self._revision_id = None
         self._dependency_index = None
+        self.maximum_atoms = maximum_atoms
         for record in records:
             self.apply(record)
 
@@ -184,6 +191,9 @@ class AtomSpaceTransaction(object):
 
     def validate(self):
         self._require_open()
+        if (self.maximum_atoms is not None
+                and len(self._records) > self.maximum_atoms):
+            raise ValueError("global atom budget exceeded")
         counts = dict((scope_id, 0) for scope_id in self._scopes)
         for record in self._records.values():
             counts[record.key.scope_id] += 1

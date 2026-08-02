@@ -18,7 +18,9 @@ Plan: `agent-instructions/functional-dependent-atomspace-implementation-plan.md`
 | 10 | Legacy audit, facades, focused scopes, operator tooling, causal events, rollback, hardening | `fdas-phase10-acceptance.md` |
 
 All phases are implemented and verified at the declared `component-only`
-boundary. This is a complete safe substrate, not an activation or gameplay
-claim. The checked profile deliberately keeps rich FDAS and all authority flags
-off. Promotion must follow the plan's shadow/captured/engine evidence sequence
-and update the versioned manifest only after those independent gates pass.
+boundary. The rich construction path is now wired into reproducible harness
+manifests and the engine adapter, with the checked profile still disabled; see
+`fdas-runtime-assembly.md`. This is a complete safe substrate and default-off
+runtime seam, not an activation or gameplay claim. Promotion must follow the
+plan's shadow/captured/engine evidence sequence and update the versioned
+manifest only after those independent gates pass.

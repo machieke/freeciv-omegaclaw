@@ -43,7 +43,8 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     ImpactTurnBudget,
                                     ControlEventEmitter)
 from freeciv_agent.rulesets.compiler import compile_ruleset
-from freeciv_agent.state import ProxyStateDTO, SnapshotStore, StateSummaryService
+from freeciv_agent.state import ProxyStateDTO, StateSummaryService
+from freeciv_agent.state.atomspace import build_runtime as build_fdas_runtime
 from .domain_observability import DomainObservabilityEmitter
 
 
@@ -1974,7 +1975,6 @@ async def _play(run_dir, manifest, context):
         manifest.get(
             "release_game_config",
             {}))
-    store = SnapshotStore()
     belief_store = (BeliefStore(manifest["beliefs"])
                     if context.capabilities["uncertain_beliefs"] else None)
     inference = (UncertainInference(ir, belief_store)
@@ -1993,6 +1993,15 @@ async def _play(run_dir, manifest, context):
         pressure_state_identity=pressure_state_identity)
         if context.capabilities["scheduler"] else None)
     control_event_emitter = ControlEventEmitter()
+    fdas_runtime = build_fdas_runtime(
+        manifest["dependent_atomspace"],
+        ruleset_ir=observability_ir,
+        belief_store=belief_store,
+        operation_records_source=lambda: (
+            control_event_emitter.fdas_operation_records(
+                manifest["game_id"])),
+    )
+    store = fdas_runtime.snapshot_store
     memory = None
     induction_prediction = None
     induction_estimate = None
@@ -2188,12 +2197,26 @@ async def _play(run_dir, manifest, context):
             include_movement_routes=movement_routes_enabled,
             include_combat_probabilities=(
                 combat_probabilities_enabled))
-        store.replace(snapshot)
+        prior_fdas_revision = store.current_dependent_revision(
+            manifest["game_id"], player_id)
+        fdas_update = fdas_runtime.replace(snapshot)
         state_event = writer.emit("state_snapshot", snapshot.turn, snapshot.event_payload(),
                                   caused_by=[parent])
+        fdas_events = fdas_runtime.emit_current(
+            writer, snapshot, caused_by=(state_event["event_id"],),
+            prior_revision=prior_fdas_revision)
         domain_observability.emit_snapshot(
             snapshot, state_event["event_id"], raw=raw)
-        parent = state_event["event_id"]
+        parent = (
+            fdas_events[-1]["event_id"]
+            if fdas_events else state_event["event_id"])
+        if fdas_runtime.enabled:
+            parent = _metric(
+                writer, snapshot.turn, parent,
+                "fdas_projection_latency_ms", fdas_update.latency_ms,
+                manifest,
+                atoms=fdas_update.atom_count,
+                scopes=fdas_update.scope_count)
         if combat_operations_enabled:
             combat_events = (
                 control_event_emitter
@@ -2381,7 +2404,9 @@ async def _play(run_dir, manifest, context):
                     minimum_seq = next_snapshot.identity.source_seq + 1
                     await asyncio.sleep(0.05)
                     continue
-                store.replace(next_snapshot)
+                prior_fdas_revision = store.current_dependent_revision(
+                    manifest["game_id"], player_id)
+                fdas_update = fdas_runtime.replace(next_snapshot)
                 observer_started = time.perf_counter()
                 observe_impact_snapshot(next_snapshot)
                 action_refresh_observer_latency_ms += (
@@ -2390,8 +2415,21 @@ async def _play(run_dir, manifest, context):
                 event = writer.emit(
                     "state_snapshot", next_snapshot.turn, next_snapshot.event_payload(),
                     caused_by=[cause])
+                fdas_events = fdas_runtime.emit_current(
+                    writer, next_snapshot, caused_by=(event["event_id"],),
+                    prior_revision=prior_fdas_revision)
                 domain_observability.emit_snapshot(
                     next_snapshot, event["event_id"], raw=next_raw)
+                fdas_parent = (
+                    fdas_events[-1]["event_id"]
+                    if fdas_events else event["event_id"])
+                if fdas_runtime.enabled:
+                    fdas_parent = _metric(
+                        writer, next_snapshot.turn, fdas_parent,
+                        "fdas_projection_latency_ms",
+                        fdas_update.latency_ms, manifest,
+                        atoms=fdas_update.atom_count,
+                        scopes=fdas_update.scope_count)
                 enabling_events = (
                     control_event_emitter
                     .resolve_grounded_enabling_operations(
@@ -2402,7 +2440,7 @@ async def _play(run_dir, manifest, context):
                         research_enabled=(
                             research_operations_enabled),
                         caused_by=(
-                            event["event_id"],))
+                            fdas_parent,))
                     if (
                         production_operations_enabled
                         or research_operations_enabled)
@@ -2410,7 +2448,7 @@ async def _play(run_dir, manifest, context):
                 enabling_parent = (
                     enabling_events[-1]["event_id"]
                     if enabling_events
-                    else event["event_id"])
+                    else fdas_parent)
                 operation_events = (
                     control_event_emitter
                     .resolve_city_defense_operations(
@@ -2422,7 +2460,7 @@ async def _play(run_dir, manifest, context):
                     operation_events[
                         -1]["event_id"]
                     if operation_events
-                    else event["event_id"])
+                    else enabling_parent)
                 combat_lifecycle_events = (
                     control_event_emitter
                     .resolve_combat_operations(
@@ -2479,12 +2517,27 @@ async def _play(run_dir, manifest, context):
                     include_movement_routes=movement_routes_enabled,
                     include_combat_probabilities=(
                         combat_probabilities_enabled))
-                store.replace(snapshot)
+                prior_fdas_revision = store.current_dependent_revision(
+                    manifest["game_id"], player_id)
+                fdas_update = fdas_runtime.replace(snapshot)
                 state_event = writer.emit(
                     "state_snapshot", snapshot.turn, snapshot.event_payload(),
                     caused_by=[parent])
+                fdas_events = fdas_runtime.emit_current(
+                    writer, snapshot, caused_by=(state_event["event_id"],),
+                    prior_revision=prior_fdas_revision)
                 domain_observability.emit_snapshot(
                     snapshot, state_event["event_id"], raw=raw)
+                fdas_parent = (
+                    fdas_events[-1]["event_id"]
+                    if fdas_events else state_event["event_id"])
+                if fdas_runtime.enabled:
+                    fdas_parent = _metric(
+                        writer, snapshot.turn, fdas_parent,
+                        "fdas_projection_latency_ms",
+                        fdas_update.latency_ms, manifest,
+                        atoms=fdas_update.atom_count,
+                        scopes=fdas_update.scope_count)
                 enabling_events = (
                     control_event_emitter
                     .resolve_grounded_enabling_operations(
@@ -2495,7 +2548,7 @@ async def _play(run_dir, manifest, context):
                         research_enabled=(
                             research_operations_enabled),
                         caused_by=(
-                            state_event["event_id"],))
+                            fdas_parent,))
                     if (
                         production_operations_enabled
                         or research_operations_enabled)
@@ -2503,7 +2556,7 @@ async def _play(run_dir, manifest, context):
                 enabling_parent = (
                     enabling_events[-1]["event_id"]
                     if enabling_events
-                    else state_event["event_id"])
+                    else fdas_parent)
                 operation_events = (
                     control_event_emitter
                     .resolve_city_defense_operations(
@@ -2514,8 +2567,7 @@ async def _play(run_dir, manifest, context):
                     operation_events[
                         -1]["event_id"]
                     if operation_events
-                    else state_event[
-                        "event_id"])
+                    else fdas_parent)
                 combat_lifecycle_events = (
                     control_event_emitter
                     .resolve_combat_operations(

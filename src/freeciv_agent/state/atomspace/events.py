@@ -105,7 +105,7 @@ class AtomSpaceEventEmitter(object):
         return records, supports
 
     def emit_revision(self, writer, turn, revision, prior_revision=None,
-                      activation=None, ruleset_digest=None):
+                      activation=None, ruleset_digest=None, caused_by=()):
         if not isinstance(revision, DependentAtomSpaceRevision):
             raise TypeError("revision emission requires immutable FDAS revision")
         if (prior_revision is not None
@@ -130,7 +130,7 @@ class AtomSpaceEventEmitter(object):
                 else bool(revision.metrics.cold_build)),
             "prior_revision_id": (
                 None if prior_revision is None else prior_revision.revision_id),
-        })
+        }, tuple(caused_by))
         delta = emit("snapshot_delta_computed", {
             "delta": None if revision.delta is None else revision.delta.to_dict(),
             "metrics": (

@@ -146,7 +146,7 @@ class DependentAtomSpaceStore(object):
     """Prepare, publish, retain, and verify immutable dependent revisions."""
 
     def __init__(self, predicate_registry=None, revision_retention=4,
-                 lock=None, domain_projector=None):
+                 lock=None, domain_projector=None, maximum_atoms=None):
         if (isinstance(revision_retention, bool)
                 or not isinstance(revision_retention, int)
                 or revision_retention < 1):
@@ -154,12 +154,18 @@ class DependentAtomSpaceStore(object):
         if domain_projector is not None and predicate_registry is not None:
             raise ValueError(
                 "domain projector owns the combined predicate registry")
+        if (maximum_atoms is not None
+                and (isinstance(maximum_atoms, bool)
+                     or not isinstance(maximum_atoms, int)
+                     or maximum_atoms < 1)):
+            raise ValueError("global atom budget must be positive")
         self.domain_projector = domain_projector
         self.predicate_registry = (
             domain_projector.predicate_registry
             if domain_projector is not None else
             predicate_registry or legacy_predicate_registry())
         self.revision_retention = revision_retention
+        self.maximum_atoms = maximum_atoms
         self._lock = lock or threading.RLock()
         self._revisions = {}
         self._current = {}
@@ -240,7 +246,8 @@ class DependentAtomSpaceStore(object):
             records = tuple(records) + tuple(domain_records)
             projection_metrics["recomputed_records"] += len(domain_records)
         transaction = AtomSpaceTransaction(
-            snapshot.snapshot_id, self.predicate_registry, scopes)
+            snapshot.snapshot_id, self.predicate_registry, scopes,
+            maximum_atoms=self.maximum_atoms)
         for record in records:
             transaction.apply(record)
         revision_id = transaction.commit()

@@ -135,6 +135,14 @@ from .store import (
 from .transaction import AtomSpaceTransaction
 from .diagnostics import AtomSpaceDiagnostics
 from .events import AtomSpaceEventEmitter, FDAS_EVENT_TYPES
+from .runtime import (
+    FdasRuntime,
+    FdasRuntimeConfigurationError,
+    FdasRuntimeUpdate,
+    build_runtime,
+    load_runtime_declaration,
+    validate_runtime_declaration,
+)
 
 
 __all__ = (
@@ -167,6 +175,9 @@ __all__ = (
     "DifferentialVerification",
     "EntityRef",
     "FDAS_EVENT_TYPES",
+    "FdasRuntime",
+    "FdasRuntimeConfigurationError",
+    "FdasRuntimeUpdate",
     "GroundingAuthority",
     "GroundingResult",
     "GroundingSpec",
@@ -192,10 +203,12 @@ __all__ = (
     "StaleAtomSpaceRevision",
     "ValidityInterval",
     "build_compatible_atomspaces",
+    "build_runtime",
     "city_economy_predicate_registry",
     "city_economy_scopes",
     "legacy_predicate_registry",
     "legacy_view_from_revision",
+    "load_runtime_declaration",
     "merge_predicate_registries",
     "operation_predicate_registry",
     "project_ruleset_records",
@@ -220,4 +233,5 @@ __all__ = (
     "unit_defense_predicate_registry",
     "unit_defense_scopes",
     "persistent_defender_type",
+    "validate_runtime_declaration",
 )

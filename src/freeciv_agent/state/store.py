@@ -84,6 +84,31 @@ class SnapshotStore(object):
         with self._lock:
             return self._snapshots.get(key), self._dependent_revisions.get(key)
 
+    def rematerialize_dependent(self, game_id, player_id):
+        """Atomically refresh operation/belief/episode-backed projection.
+
+        The authoritative snapshot identity is unchanged.  This method exists
+        for durable stores that can advance between engine snapshot packets;
+        legacy rollback mode intentionally has no dependent revision to refresh.
+        """
+        key = (str(game_id), int(player_id))
+        with self._lock:
+            if self.atomspace_mode == "legacy":
+                raise SnapshotConflict(
+                    "legacy atomspace mode cannot rematerialize FDAS")
+            snapshot = self._snapshots.get(key)
+            if snapshot is None:
+                raise SnapshotConflict("no current snapshot to rematerialize")
+            try:
+                revision = self._dependent_store.rematerialize(snapshot)
+            except ValueError as error:
+                raise SnapshotConflict(
+                    "dependent rematerialization rejected sources: {}".format(
+                        error))
+            self._dependent_revisions[key] = revision
+            self._atomspaces[key] = legacy_view_from_revision(revision)
+            return revision
+
     def lease_dependent_revision(self, game_id, player_id):
         with self._lock:
             revision = self._dependent_revisions.get(

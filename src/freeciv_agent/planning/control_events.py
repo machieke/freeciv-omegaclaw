@@ -222,6 +222,40 @@ class ControlEventEmitter:
                 game_id] = store
         return store
 
+    def fdas_operation_records(self, game_id):
+        """Return one immutable, deduplicated view of durable operations.
+
+        FDAS projection is a read-only consumer.  Asking for this view never
+        creates a lifecycle or operation store and therefore cannot change
+        planner behavior merely because shadow projection is enabled.
+        """
+        game_id = str(game_id)
+        stores = []
+        direct = self._operation_stores.get(game_id)
+        if direct is not None:
+            stores.append(direct)
+        for lifecycles in (
+                self._combat_lifecycles,
+                self._production_lifecycles,
+                self._research_lifecycles):
+            lifecycle = lifecycles.get(game_id)
+            if lifecycle is not None:
+                stores.append(lifecycle.store)
+        records = {}
+        for store in stores:
+            if store.quarantined:
+                raise ValueError(
+                    "quarantined operation source cannot enter FDAS")
+            for record in store.records():
+                operation_id = record.spec.operation_id
+                prior = records.get(operation_id)
+                if prior is not None and prior != record:
+                    raise ValueError(
+                        "conflicting durable operation identity: {}".format(
+                            operation_id))
+                records[operation_id] = record
+        return tuple(records[key] for key in sorted(records))
+
     def _combat_lifecycle_for(
             self, writer):
         game_id = str(

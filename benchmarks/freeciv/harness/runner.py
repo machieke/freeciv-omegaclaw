@@ -281,6 +281,7 @@ class HarnessRunner(object):
             "final_score_source":
                 final_score_source,
             "engine": self.config["engine"], "game_id": game_id,
+            "dependent_atomspace": self.config["dependent_atomspace"],
             "impact_policy": impact_policy,
             "machine_profile": self.config["machine_profile"],
             "model": self.config["model"]["name"], "model_config": self.config["model"],

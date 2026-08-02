@@ -20,6 +20,7 @@ from freeciv_agent.pf_runtime import (
     PFRuntimeConfigurationError,
     validate_controller_policy,
 )
+from freeciv_agent.state.atomspace import load_runtime_declaration
 
 from .statistics import paired_win_design_power
 
@@ -1302,6 +1303,22 @@ def load(path=None):
         value = yaml.safe_load(stream)
     if value.get("schema_version") != "1.0":
         raise ValueError("harness schema_version must be 1.0")
+    fdas_paths = value.get("dependent_atomspace", {
+        "config_path": "profile/dependent_atomspace.yaml",
+        "manifest_path": "profile/fdas_manifest.json",
+    })
+    if (not isinstance(fdas_paths, dict)
+            or set(fdas_paths) != {"config_path", "manifest_path"}
+            or any(not isinstance(fdas_paths[name], str)
+                   or not fdas_paths[name].strip()
+                   for name in ("config_path", "manifest_path"))):
+        raise ValueError(
+            "dependent_atomspace must declare config_path and manifest_path")
+    def fdas_path(name):
+        candidate = fdas_paths[name]
+        return candidate if os.path.isabs(candidate) else repo_path(candidate)
+    value["dependent_atomspace"] = load_runtime_declaration(
+        fdas_path("config_path"), fdas_path("manifest_path"))
     if tuple(value.get("conditions", ())) != CONDITION_ORDER:
         raise ValueError("harness condition order must match capability matrix")
     seeds = value.get("seeds")

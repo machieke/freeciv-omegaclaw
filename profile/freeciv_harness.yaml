@@ -8,6 +8,9 @@ live:
   api_token_env: FREECIV_API_TOKEN
   ruleset_root_env: FREECIV_RULESET_ROOT
   server_container_env: FREECIV_SERVER_CONTAINER
+dependent_atomspace:
+  config_path: profile/dependent_atomspace.yaml
+  manifest_path: profile/fdas_manifest.json
 opponent:
   id: builtin-ai-experimental
   difficulty: experimental
