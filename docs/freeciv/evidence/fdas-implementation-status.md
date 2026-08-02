@@ -317,3 +317,16 @@ ranking. The smoke was intentionally treated as claim-ineligible because
 regenerated replay reports made its source worktree dirty; a fresh
 preregistered clean-source yield cohort remains the next gate. See
 `fdas-pr35-defense-choice-surface-smoke.md`.
+
+PR36 froze and executed three fresh clean 160-turn seeds before inspecting
+their outcomes. All 52,666 events and all store/non-authority checks passed,
+and the cohort contained real 9/2 delayed positive/negative contrast. The
+scientific progression gate nevertheless failed: it produced 11 rather than
+12 observed outcomes, only two rather than three mixed-action sets, and zero
+selected garrison moves. RCA found nine legal move alternatives but all were
+censored; surface sampling was incorrectly coupled to the narrow legacy
+candidate category. PR35's ten selected moves were also one actor's sequential
+relocation in one seed, not broad independent support. The next bounded
+correction is exact selected-action-family sampling plus later
+game/actor/lifecycle grouping. No transition model may be fitted on PR36. See
+`fdas-pr36-defense-choice-surface-yield.md`.
