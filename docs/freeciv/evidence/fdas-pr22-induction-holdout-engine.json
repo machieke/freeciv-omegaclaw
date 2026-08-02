@@ -1,0 +1,637 @@
+{
+  "acceptance": {
+    "accepted": false,
+    "checks": {
+      "all_candidates_received_heldout_verdict": true,
+      "engine_source_requirement_met": true,
+      "every_promotion_has_versioned_approval": true,
+      "execution_source_requirement_met": true,
+      "horizon_requirement_met": true,
+      "ledger_is_persisted_and_hash_bound": true,
+      "no_truth_policy_or_readout_authority": true,
+      "promotion_requirement_met": true,
+      "proposal_requirement_met": false,
+      "source_partitions_are_nonempty": true
+    }
+  },
+  "claim_scope": "verified FDAS episode-store partitioning, bounded pattern mining, disjoint held-out validation, versioned promotion approval, and zero truth/policy/readout authority; no live discovery quality, score, gameplay, or win-rate claim",
+  "configuration": {
+    "contradiction_threshold": 0.7,
+    "contradiction_tolerance": 0.0,
+    "maximum_antecedents": 2,
+    "maximum_candidates": 32,
+    "minimum_activations": 4,
+    "minimum_brier_improvement": 0.001,
+    "minimum_calibration_improvement": 0.0,
+    "minimum_residual": 0.05,
+    "minimum_samples": 8,
+    "minimum_support": 4
+  },
+  "holdout_sources": [
+    {
+      "engine_evidence": {
+        "accepted": true,
+        "checks": {
+          "completed": true,
+          "event_ledger_valid_without_warnings": true,
+          "source_is_clean": true
+        },
+        "events": {
+          "path": "artifacts/freeciv/fdas-induction-population-live-160-v1/games/main/e_full_loop/104759-00/events.jsonl",
+          "sha256": "d1a28df09d12c43e3e200db2d84ed9b1a8e86a0f8301bf37231ccc8d3ad7fceb",
+          "validation": {
+            "errors": [],
+            "event_count": 25421,
+            "game_id": "m7-main-e_full_loop-104759-00",
+            "schema_version": "1.0",
+            "valid": true,
+            "warnings": []
+          }
+        },
+        "horizon_reached": true,
+        "manifest": {
+          "path": "artifacts/freeciv/fdas-induction-population-live-160-v1/games/main/e_full_loop/104759-00/manifest.json",
+          "sha256": "42c47e2bf57943378211d5a3aad77e2f23565eaa0f4127156d65ea720a04f453",
+          "source": {
+            "commit": "4c31f88f6013885d49c156f9fd1ac50d3ac51960",
+            "dirty": false,
+            "implementation_sha256": "88939f653010cedbe4cd5a473f7ad0c78a1868044e3bdf1968e7880436f41681",
+            "source_files": 271
+          }
+        },
+        "status": {
+          "path": "artifacts/freeciv/fdas-induction-population-live-160-v1/games/main/e_full_loop/104759-00/status.json",
+          "sha256": "3aa34c2ba3dae55bea2c24216ec064c839dcb5b1a61b98870224b9cfa27dbb33"
+        }
+      },
+      "episodes": 7,
+      "path": "artifacts/freeciv/fdas-induction-population-live-160-v1/games/main/e_full_loop/104759-00/fdas-decision-episodes.json",
+      "persistence_identity": "eee81a5faa2af492691cef7fd12b4785dae2d55f95db477311e503e61f1ba07e",
+      "sha256": "514d4284eedb992ab923dc657c34ae25e0cbe78e0c947c8dc293b035505fae0e",
+      "store_digest": "d3ff0fabab2913d98a2bb199e5c1d2f1c89fa8597902e84877115f04bb8de791"
+    }
+  ],
+  "ledger": {
+    "identity": "fdas-heldout-ledger:965fa20ac30a2bbec791ccd7f6a7370ba7e791e81ba59a8ab022284aca63807c",
+    "path": "artifacts/freeciv/fdas-induction-population-live-160-v1/fdas-pr22-heldout-ledger.json",
+    "state_hash": "9494d084d6bb3b8190f3c3d30933e0d2dfa2b3ea7e16566c4e9e24c97aa809e8"
+  },
+  "result": {
+    "approvals": [],
+    "demoted_rule_ids": [],
+    "duplicate_proposal_ids": [],
+    "duplicate_validation_ids": [],
+    "holdout_encoding_results": [
+      {
+        "accepted": true,
+        "episode_id": "episode-0867a1452e618654906a8e43c472169f",
+        "induction_episode": {
+          "context": [
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ]
+          ],
+          "episode_id": "episode-0867a1452e618654906a8e43c472169f",
+          "features": [
+            "context:actor_tile_before=354",
+            "context:target_tile=354"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:f462dfadc6d44ba295eb1207c29d3fdc",
+            "fdas-episode:5048b9d4d21b95bfe521ddf5308f7dfdb015291c09bd53d579c1e6647d8ac245"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "attributable-episode-encoded-for-quarantined-induction",
+        "result_hash": "f1d019d9bbfbd03feb22db071f137d5d964e73a1ee2c8b6e143d727ca79d3a72",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-0b923f0149f99b04032572c426d776a5",
+        "induction_episode": {
+          "context": [
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ]
+          ],
+          "episode_id": "episode-0b923f0149f99b04032572c426d776a5",
+          "features": [
+            "context:actor_tile_before=253",
+            "context:target_tile=253"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:316fc300effb49b7b29fef48ac6b4417",
+            "fdas-episode:131b99c6722df711111f4065c842db0d2e2ccb27e50bedb9b1d45049e2ceaee1"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "attributable-episode-encoded-for-quarantined-induction",
+        "result_hash": "dfecedf2f0a417e358764d42b9d447ce90980d3ba2451c1386743f986aead799",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-12213f3cf48b64df972a7e4fa5d3811f",
+        "induction_episode": {
+          "context": [
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ]
+          ],
+          "episode_id": "episode-12213f3cf48b64df972a7e4fa5d3811f",
+          "features": [
+            "context:actor_tile_before=276",
+            "context:target_tile=276"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:990a0e760bfc4528b67d801715e0db1b",
+            "fdas-episode:2794c1cbb62ce464d265e2eb149487e7cba6cc072ff2f1de0badee61b7b574cb"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "attributable-episode-encoded-for-quarantined-induction",
+        "result_hash": "1ecf3e0eba37bafcfcb40a644b9b4e8c909fabeb0d719ca4e90e93134cd8d3ad",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-1bdd9806ef3a7da9f25d1e2f7d760bc9",
+        "induction_episode": {
+          "context": [
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ]
+          ],
+          "episode_id": "episode-1bdd9806ef3a7da9f25d1e2f7d760bc9",
+          "features": [
+            "context:actor_tile_before=253",
+            "context:target_tile=253"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:602e3249e58c414b9638e34f7e88e436",
+            "fdas-episode:32884156f89844c16cab038f4a84108a12c89e68fe2ea811f1e4617f7cf90fb8"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "attributable-episode-encoded-for-quarantined-induction",
+        "result_hash": "4e677fc3232e9b9c94d0009a3816aad0d803e02bcaa1842c8344c240398c4734",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-6e37bcb501c54b5f9247a2d9331d5cfb",
+        "induction_episode": {
+          "context": [
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ]
+          ],
+          "episode_id": "episode-6e37bcb501c54b5f9247a2d9331d5cfb",
+          "features": [
+            "context:actor_tile_before=331",
+            "context:target_tile=331"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:11cd7320610f4c50932871fe4c244953",
+            "fdas-episode:c03390e9b7eacd74c2f5776d2d9f88da39cdbe249acd413e558b542f715a94a9"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "attributable-episode-encoded-for-quarantined-induction",
+        "result_hash": "33515e7570afaa0d95babd1ced8ca31270d89b1127462698290ecaab754084a9",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-ba3fb180cc2424501186889cf1c6ecd9",
+        "induction_episode": {
+          "context": [
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ]
+          ],
+          "episode_id": "episode-ba3fb180cc2424501186889cf1c6ecd9",
+          "features": [
+            "context:actor_tile_before=334",
+            "context:target_tile=334"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:ce34e06b02d24062b8c46dc3ba0b4627",
+            "fdas-episode:6f9033dc46627bcfcc8b8cb43e03331b838904ab2b492b67d2aaeb1ec3e1f1e8"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "attributable-episode-encoded-for-quarantined-induction",
+        "result_hash": "026012a23c1e9200b6a7cfa38df659c2827cbe83a25d7d82ef283292f5db4e71",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-c7701ef0069046d36fa47013070b436f",
+        "induction_episode": {
+          "context": [
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ]
+          ],
+          "episode_id": "episode-c7701ef0069046d36fa47013070b436f",
+          "features": [
+            "context:actor_tile_before=253",
+            "context:target_tile=253"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:5452b0aa2fdb4f60a10234c644d16178",
+            "fdas-episode:cf2c6704a432367bcef147667c2a4a27f858bbd185a6df927ff135223e26c39e"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "attributable-episode-encoded-for-quarantined-induction",
+        "result_hash": "c562860e923d98f32d248c24131a7a17b512dc4d22170e4ca8d77924c4310dca",
+        "truth_mutated": false
+      }
+    ],
+    "ledger_hash": "9494d084d6bb3b8190f3c3d30933e0d2dfa2b3ea7e16566c4e9e24c97aa809e8",
+    "mining_reason": "no-pattern-cleared-residual-gate",
+    "newly_quarantined_proposal_ids": [],
+    "newly_validated_ids": [],
+    "policy_authority": false,
+    "promoted_rule_ids": [],
+    "proposals": [],
+    "readout_authority": false,
+    "result_hash": "fb8b51efec6076216ea2b78045dca117498eaafac05263c18a4cb8ab0d4ce046",
+    "training_encoding_results": [
+      {
+        "accepted": true,
+        "episode_id": "episode-1ef118a776f07b84010140921ceea6ef",
+        "induction_episode": {
+          "context": [
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ]
+          ],
+          "episode_id": "episode-1ef118a776f07b84010140921ceea6ef",
+          "features": [
+            "context:actor_tile_before=246",
+            "context:target_tile=246"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:22278671eb794a58bf737a126639a117",
+            "fdas-episode:9cc268c8e4a9ea8ed94f909483d96b49ec530f4fa630ac24b948df01a8f07fd4"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "attributable-episode-encoded-for-quarantined-induction",
+        "result_hash": "1e412567cca7c10c73eac806737a2803eeafd9f0d8a3c89bbe199838a31132c8",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-245f8b9d8cbb794438ba6fabb317dae3",
+        "induction_episode": {
+          "context": [
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ]
+          ],
+          "episode_id": "episode-245f8b9d8cbb794438ba6fabb317dae3",
+          "features": [
+            "context:actor_tile_before=299",
+            "context:target_tile=299"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:d95dcc87f2164726b9eebff4a4588a7b",
+            "fdas-episode:e4f1a623545f4bfc37ef86ebd08ccd1a0d0b3e59832d143bb82255346e70a1e0"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "attributable-episode-encoded-for-quarantined-induction",
+        "result_hash": "5c937f0f04b77fd7bd2f353adcc8f1fc0bbcdf78ec0dda88517681002b1df17d",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-29c8fc6f1a427225a8631ca24a6e8333",
+        "induction_episode": {
+          "context": [
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ]
+          ],
+          "episode_id": "episode-29c8fc6f1a427225a8631ca24a6e8333",
+          "features": [
+            "context:actor_tile_before=377",
+            "context:target_tile=377"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:7b3f35e8027841eea13183d0c5cc5fee",
+            "fdas-episode:9f419cde06e2c955b7f153a645a7c420fdc277793cabf4515e3ebf0f3fbe35b0"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "attributable-episode-encoded-for-quarantined-induction",
+        "result_hash": "ffc5899603617e91486a2affd905ae5d10a17073afc870c4b2861c75d371f49a",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-306b395568c2636683affe28374d4536",
+        "induction_episode": {
+          "context": [
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ]
+          ],
+          "episode_id": "episode-306b395568c2636683affe28374d4536",
+          "features": [
+            "context:actor_tile_before=166",
+            "context:target_tile=166"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:1f21a13320934a3689f42932619083e4",
+            "fdas-episode:31e219d85b4459e06a36b60f8bf3caaa733d490aaf7e57c3d639a275a1555a1d"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "attributable-episode-encoded-for-quarantined-induction",
+        "result_hash": "4da6c0efbb958ba2f82e5c6b22e3e25d60283ecab7a854ac69754f5f3305af76",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-78031452c88e74f204435d95672cee71",
+        "induction_episode": {
+          "context": [
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ]
+          ],
+          "episode_id": "episode-78031452c88e74f204435d95672cee71",
+          "features": [
+            "context:actor_tile_before=88",
+            "context:target_tile=88"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:a48fda01eeac45aabdb0ad5630b8da48",
+            "fdas-episode:92180d96fe46770c946e9f0a5194a1834d73297deaa69ecda430b9b405bc5701"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "attributable-episode-encoded-for-quarantined-induction",
+        "result_hash": "5473b3f5cd8b1dfcdddeaea5f7a7ecce375a82baf73deb9595d93758a63d4fd0",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-7a3e73bcce6090805bc326cade128eef",
+        "induction_episode": {
+          "context": [
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ]
+          ],
+          "episode_id": "episode-7a3e73bcce6090805bc326cade128eef",
+          "features": [
+            "context:actor_tile_before=88",
+            "context:target_tile=88"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:cdca0dcf805d4cd9ab85f3dc38c224c9",
+            "fdas-episode:cb98c613b1022200eb9054836b3ed9ab38d3c890193278302e2d26a647de8b24"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "attributable-episode-encoded-for-quarantined-induction",
+        "result_hash": "5df7dbff11db90ba7c3c9caf56607e2ed4ea582e22b833ddca290d43ca76eca0",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-9dff6dea0b1fe8fd81842d21ab159848",
+        "induction_episode": {
+          "context": [
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ]
+          ],
+          "episode_id": "episode-9dff6dea0b1fe8fd81842d21ab159848",
+          "features": [
+            "context:actor_tile_before=348",
+            "context:target_tile=348"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:fff87bfe92d3432ba94a31b4a420ee77",
+            "fdas-episode:b075fec06baf15564d99e203d4d12019b81755cece9c965f97918658bb9fb5c8"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "attributable-episode-encoded-for-quarantined-induction",
+        "result_hash": "cf5a7dc7058fc2ba56ed949070585b0bed321a57e6f390ec2cc8c6e50947ca6c",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-bcd0ef92ef7993643eb0738f4c02829f",
+        "induction_episode": {
+          "context": [
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ]
+          ],
+          "episode_id": "episode-bcd0ef92ef7993643eb0738f4c02829f",
+          "features": [
+            "context:actor_tile_before=454",
+            "context:target_tile=454"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:bde2159a23734ee8b5a971c1feba56c7",
+            "fdas-episode:f1adb7549e1470b6219e05edacc8393487706e8f3c6026e48f90b0ec30fd4bfd"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "attributable-episode-encoded-for-quarantined-induction",
+        "result_hash": "205da033bec711c768edc1e783a5a777b89006da5219ae14541e84e10c984518",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-e0fc2793cdd0fee479821eea49ee0b52",
+        "induction_episode": {
+          "context": [
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ]
+          ],
+          "episode_id": "episode-e0fc2793cdd0fee479821eea49ee0b52",
+          "features": [
+            "context:actor_tile_before=299",
+            "context:target_tile=299"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:d6a7fe85047c4b0992fb56b53a8411ef",
+            "fdas-episode:8c454c7a671f4f78cd0425bcf977f73d34041b23d9795760b2a104632f848ec3"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "attributable-episode-encoded-for-quarantined-induction",
+        "result_hash": "60d808d71c86c07b13613a4ad1c7ade1e76072201d3134cc64fa288e491848f0",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-ef3f29655af5f5eaeda3f3a0ce699e1a",
+        "induction_episode": {
+          "context": [
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ]
+          ],
+          "episode_id": "episode-ef3f29655af5f5eaeda3f3a0ce699e1a",
+          "features": [
+            "context:actor_tile_before=169",
+            "context:target_tile=169"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:8e6d7e3196ed4d0185c0260a686dbe93",
+            "fdas-episode:f7e8065020c76178c9c347d36f4cd36373a032796c3a58327584bc39e819ff02"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "attributable-episode-encoded-for-quarantined-induction",
+        "result_hash": "a34f7c5607868505ea9b850a512c194709ef10b5b82eb89ea6e970c698b97574",
+        "truth_mutated": false
+      }
+    ],
+    "truth_mutated": false,
+    "validations": []
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "361de168665fe8d0e0b1714b20f0f7d0e95b3821",
+    "dirty": false,
+    "implementation_sha256": "251d4eab782511221858c37e810933c9301a12948d2ff11bd3a6113dfc253493",
+    "runner_sha256": "bc2d7e46128889280290aeac83ef6f80c3ab42d289f8b48e66b5c807abaeb1cb",
+    "source_files": 271
+  },
+  "structural_hash": "22fad0d15cb2384bd0518573d2fc4a8b37f7b9872092ab286f41bcd9ddbceba1",
+  "training_sources": [
+    {
+      "engine_evidence": {
+        "accepted": true,
+        "checks": {
+          "completed": true,
+          "event_ledger_valid_without_warnings": true,
+          "source_is_clean": true
+        },
+        "events": {
+          "path": "artifacts/freeciv/fdas-induction-population-live-160-v1/games/main/e_full_loop/4543804-00/events.jsonl",
+          "sha256": "0200d7b8f4d1369ee41faea61dfca0a4b99fe02a947c5655eec917a5021551f7",
+          "validation": {
+            "errors": [],
+            "event_count": 31051,
+            "game_id": "m7-main-e_full_loop-4543804-00",
+            "schema_version": "1.0",
+            "valid": true,
+            "warnings": []
+          }
+        },
+        "horizon_reached": true,
+        "manifest": {
+          "path": "artifacts/freeciv/fdas-induction-population-live-160-v1/games/main/e_full_loop/4543804-00/manifest.json",
+          "sha256": "9fd0f7bf3ca0f6efc8d14d82bac5cba5820825762bd350b2de8d943251a86f4b",
+          "source": {
+            "commit": "4c31f88f6013885d49c156f9fd1ac50d3ac51960",
+            "dirty": false,
+            "implementation_sha256": "88939f653010cedbe4cd5a473f7ad0c78a1868044e3bdf1968e7880436f41681",
+            "source_files": 271
+          }
+        },
+        "status": {
+          "path": "artifacts/freeciv/fdas-induction-population-live-160-v1/games/main/e_full_loop/4543804-00/status.json",
+          "sha256": "318bb1046c0de8f0c55136dc090bf1edc8dcf5433b9a8b71807142f76e9ea7c4"
+        }
+      },
+      "episodes": 5,
+      "path": "artifacts/freeciv/fdas-induction-population-live-160-v1/games/main/e_full_loop/4543804-00/fdas-decision-episodes.json",
+      "persistence_identity": "8fe19792b7aaf249cebcfaf10e9b5f9900c1e6cc3301c5667cc9de9d1b626f52",
+      "sha256": "5a674f184b9167934f00ea75b53c611dd84d10534f2df7fd5149e74f897122e6",
+      "store_digest": "cf0f63c2d28e8eb00baba32a887655ff64d2bbeb79e57fd1222657c621d08a3d"
+    },
+    {
+      "engine_evidence": {
+        "accepted": true,
+        "checks": {
+          "completed": true,
+          "event_ledger_valid_without_warnings": true,
+          "source_is_clean": true
+        },
+        "events": {
+          "path": "artifacts/freeciv/fdas-induction-population-live-160-v1/games/main/e_full_loop/104743-00/events.jsonl",
+          "sha256": "d8c67d4ce67f568d426ec9143f0f4be5141cd215ae5ff468235d1dd66f000ce1",
+          "validation": {
+            "errors": [],
+            "event_count": 22730,
+            "game_id": "m7-main-e_full_loop-104743-00",
+            "schema_version": "1.0",
+            "valid": true,
+            "warnings": []
+          }
+        },
+        "horizon_reached": true,
+        "manifest": {
+          "path": "artifacts/freeciv/fdas-induction-population-live-160-v1/games/main/e_full_loop/104743-00/manifest.json",
+          "sha256": "e1f825ca6548f4b9045f19f27beb632898bf412fc617f0886a45f38742718f37",
+          "source": {
+            "commit": "4c31f88f6013885d49c156f9fd1ac50d3ac51960",
+            "dirty": false,
+            "implementation_sha256": "88939f653010cedbe4cd5a473f7ad0c78a1868044e3bdf1968e7880436f41681",
+            "source_files": 271
+          }
+        },
+        "status": {
+          "path": "artifacts/freeciv/fdas-induction-population-live-160-v1/games/main/e_full_loop/104743-00/status.json",
+          "sha256": "1344b904b5805199ec60bc88617e0330da122ff849a1ad75da2731bef750f92f"
+        }
+      },
+      "episodes": 5,
+      "path": "artifacts/freeciv/fdas-induction-population-live-160-v1/games/main/e_full_loop/104743-00/fdas-decision-episodes.json",
+      "persistence_identity": "66494ffff9839fc09ff73cd8baf791a6ac4ace4278171f905fcef2fce9df2cfb",
+      "sha256": "7212bfa29146b6ed0b47f42be2fa505d97012572e1cc444aa95f2feaf6f471ff",
+      "store_digest": "0b6b21e8e9d796553eb4ca3b5f62d7c9ee5c6da7889aa20e44331f418e0cd59a"
+    }
+  ]
+}

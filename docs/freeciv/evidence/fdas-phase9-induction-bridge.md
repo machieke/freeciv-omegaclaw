@@ -49,3 +49,10 @@ available and the bounded result was zero proposals and zero promotions. See
 Coverage is in `Autotests/test_freeciv_fdas_episode_induction.py`,
 `Autotests/test_freeciv_fdas_induction_live.py`, and the existing
 `Autotests/test_freeciv_pressure_induction.py` lifecycle suite.
+
+The operational multi-store runner is
+`scripts/freeciv/run_fdas_induction_holdout.py`. Its first strict engine-backed
+split passed all mechanism and source gates but rejected the scientific
+proposal gate because all 17 eligible outcomes were positive. See
+[`fdas-pr22-induction-holdout.md`](fdas-pr22-induction-holdout.md). Held-out
+promotion/readout therefore remains `component-only`.

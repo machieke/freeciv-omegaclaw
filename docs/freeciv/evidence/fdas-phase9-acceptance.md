@@ -64,6 +64,13 @@ held-out gate hardening adds focused promotion, demotion, overlap, persistence,
 and replay-idempotence coverage; fresh aggregate counts should be recorded
 with the next engine-backed induction cohort.
 
+PR22 subsequently operationalized the artifact-bound train/holdout gate and
+ran it against three clean, horizon-complete engine stores. All source,
+durability, disjointness, event-validation, and non-authority checks passed,
+but the strict scientific gate rejected the population because all 17 eligible
+episodes were positive and no candidate residual existed. See
+[`fdas-pr22-induction-holdout.md`](fdas-pr22-induction-holdout.md).
+
 ## Non-claims
 
 The checked default manifest remains `component-only`. Dedicated manifests now
@@ -71,8 +78,10 @@ declare live episode attribution, truth-free contextual conductance, and the
 quarantine-only induction bridge at `shadow-live`; they do not declare
 held-out promotion or induced-rule readout live. The default profile disables
 episode learning, conductance authority, induction, and induced-rule readout.
-The accepted run produced five uniformly positive episodes and therefore no
-candidate rule; it makes no discovery-quality, calibrated-authority, replay
-impact, score-improvement, or win-rate claim. Promotion still requires a
-frozen model, disjoint held-out evidence, live replay/safety validation, and
-an explicit manifest status change. No legacy action path is removed.
+The original accepted run produced five uniformly positive episodes; the
+later frozen PR22 split contained 17/17 positive outcomes and explicitly
+failed its nonzero-proposal gate. Neither result makes a discovery-quality,
+calibrated-authority, replay-impact, score-improvement, or win-rate claim.
+Promotion still requires a genuinely contrasting frozen population, disjoint
+held-out evidence, live replay/safety validation, and an explicit manifest
+status change. No legacy action path is removed.

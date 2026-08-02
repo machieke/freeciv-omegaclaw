@@ -88,7 +88,7 @@ python3 scripts/freeciv/audit_fdas_induction_live.py \
 The environment also needs the existing FreeCiv proxy URL/WebSocket, server
 container, ruleset root, Ollama OpenAI-compatible base URL, and API token.
 
-## Claim boundary and next gate
+## Claim boundary and continuation
 
 This closes engine-live attributable episode encoding and durable
 quarantine-only induction for the bounded defense slice. Held-out replay and
@@ -98,3 +98,10 @@ both goal-relief and no-relief outcomes. It must first show that the miner
 produces stable residual-gated candidates, then validate calibration and
 contradiction behavior on disjoint provenance before any separate,
 default-off readout experiment can be considered.
+
+PR22 subsequently implemented that fail-closed multi-store gate and froze a
+three-game engine split. The split remained 17/17 positive and therefore
+failed its required nonzero-proposal gate; see
+[`fdas-pr22-induction-holdout.md`](fdas-pr22-induction-holdout.md). This confirms
+that more immediate-fortification episodes alone do not supply the missing
+scientific contrast.

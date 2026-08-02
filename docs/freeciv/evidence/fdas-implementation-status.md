@@ -210,3 +210,13 @@ contextual residual existed and the correct result was zero proposals. This
 closes live episode encoding and quarantine persistence, not useful discovery,
 held-out promotion, or induced-rule readout. See
 `fdas-pr19-induction-shadow.md`.
+
+PR 22 adds a fail-closed multi-store train/holdout runner and requires a
+versioned, artifact-bound, explicitly non-authorizing approval for every
+promotion. Its first frozen live split used 10 training and seven holdout
+episodes from three clean horizon-complete games. All 17 outcomes were goal
+relief, so the strict nonzero-proposal gate correctly failed with zero
+candidates or promotions. See `fdas-pr22-induction-holdout.md`. More runs of
+the same immediate-fortification target are unlikely to fix the missing
+contrast; a non-tautological delayed outcome and generalizable features remain
+the next Phase 9 scientific gate.
