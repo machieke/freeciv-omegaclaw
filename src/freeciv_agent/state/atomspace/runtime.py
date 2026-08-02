@@ -368,6 +368,7 @@ class FdasRuntime(object):
         self._goal_factory = None
         self._candidate_factory = None
         self._pressure_adapter = None
+        self._last_cold_verification_turn = {}
 
     @property
     def enabled(self):
@@ -394,10 +395,22 @@ class FdasRuntime(object):
         rate = self.config.cold_verify_sample_rate
         if rate <= 0.0:
             return False
+        if rate >= 1.0:
+            return True
+        game_key = (
+            str(snapshot.identity.game_id), int(snapshot.player_id))
+        if self._last_cold_verification_turn.get(game_key) == snapshot.turn:
+            return False
         sample = int(structural_hash([
-            "fdas-cold-verification/1.0", snapshot.snapshot_id,
+            "fdas-cold-verification/2.0",
+            snapshot.identity.game_id,
+            snapshot.player_id,
+            snapshot.turn,
         ])[:13], 16) / float(16 ** 13)
-        return sample < rate
+        selected = sample < rate
+        if selected:
+            self._last_cold_verification_turn[game_key] = snapshot.turn
+        return selected
 
     def replace(self, snapshot):
         """Install one snapshot and sample incremental/cold parity."""

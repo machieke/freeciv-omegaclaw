@@ -218,6 +218,32 @@ def test_sampled_parity_publishes_verified_incremental_without_third_build():
     assert current[1].revision_id == update.revision_id
 
 
+def test_sample_schedule_uses_stable_turn_identity_and_deduplicates():
+    first = _snapshot(game_id="fdas-stable-sample", seq=431)
+    second = _snapshot(game_id="fdas-stable-sample", seq=999)
+    assert first.snapshot_id != second.snapshot_id
+    assert first.turn == second.turn
+    from freeciv_agent.events.schema import structural_hash
+    sample = int(structural_hash([
+        "fdas-cold-verification/2.0",
+        first.identity.game_id,
+        first.player_id,
+        first.turn,
+    ])[:13], 16) / float(16 ** 13)
+    declaration = _enabled_city_declaration()
+    declaration["config"]["cold_verify_sample_rate"] = (sample + 1.0) / 2.0
+    semantic = dict(declaration)
+    semantic.pop("declaration_hash")
+    declaration["declaration_hash"] = structural_hash(semantic)
+    first_runtime = build_runtime(declaration)
+    second_runtime = build_runtime(declaration)
+
+    assert first_runtime._sample_cold_verification(first)
+    assert second_runtime._sample_cold_verification(second)
+    assert not first_runtime._sample_cold_verification(second)
+    assert not second_runtime._sample_cold_verification(first)
+
+
 def test_declared_city_input_change_recomputes_rich_component():
     declaration = _enabled_city_declaration()
     declaration["config"]["cold_verify_sample_rate"] = 1.0
