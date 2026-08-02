@@ -20,7 +20,8 @@ Plan: `agent-instructions/functional-dependent-atomspace-implementation-plan.md`
 All phases are implemented and verified at the declared `component-only`
 boundary. The rich construction path is now wired into reproducible harness
 manifests and the engine adapter, with the checked profile still disabled; see
-`fdas-runtime-assembly.md`. This is a complete safe substrate and default-off
-runtime seam, not an activation or gameplay claim. Promotion must follow the
-plan's shadow/captured/engine evidence sequence and update the versioned
-manifest only after those independent gates pass.
+`fdas-runtime-assembly.md`. Captured replay and a one-seed engine-live shadow
+smoke now exercise that seam, including post-legacy candidate protection,
+bounded PF-v2 readout, and causal evidence. The versioned manifest remains
+`component-only`: the empirical work is diagnostic validation, not action
+authority or a gameplay-improvement claim.

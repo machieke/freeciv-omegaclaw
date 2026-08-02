@@ -2,7 +2,7 @@
 
 Date: 2026-08-01  
 Branch: `experimental/functional-dependent-atomspace`  
-Activation level: component-only; checked profile disabled; no policy authority
+Activation level: component-only manifest; checked default disabled; no policy authority
 
 ## Realized boundary
 
@@ -34,9 +34,10 @@ path instead of being assembled only by tests:
   operation, belief, or episode sources advance without a new engine packet.
 - Planner operation stores expose one immutable, deduplicated read-only record
   view. Reading it cannot create a lifecycle or alter planner behavior.
-- Enabled engine runs publish bounded causal revision events and atom/scope
-  counts plus projection latency. Revision-start events are causally linked to
-  the authoritative `state_snapshot` event.
+- Enabled engine runs publish bounded causal revision and post-legacy shadow
+  decision events, atom/scope counts, projection latency, and shadow-readout
+  latency. Revision-start events are causally linked to the authoritative
+  `state_snapshot` event. The readout returns no executable action.
 - Deterministically sampled incremental/cold verification fails the runtime
   closed on any canonical mismatch.
 
@@ -56,21 +57,30 @@ Consequently, ordinary checked runs retain the legacy decision path and do not
 emit rich FDAS revision events. The runtime seam is present and manifest-bound,
 but activation remains an explicit experiment/deployment step.
 
+`profile/dependent_atomspace_shadow_sampled.yaml` is the explicit engine
+experiment profile. It enables all implemented rich projectors, verifies a
+deterministic 5% transition sample against cold projection, and keeps every
+authority flag false. `FREECIV_FDAS_CONFIG_PATH` selects it without editing the
+base harness; the resolved declaration and hash are part of run identity.
+
 ## Verification
 
-- Complete FreeCiv suite: `1,258 passed in 377.13s`.
-- All FDAS tests: `166 passed in 38.29s`.
-- Runtime, events, configuration, state bridge, and harness integration:
-  `166 passed in 296.84s`.
-- Focused runtime/store/event regression: `61 passed in 20.94s`.
+- Current FDAS, operation, harness, and planner integration surface:
+  `288 passed in 319.02s`.
+- Complete FreeCiv acceptance suite: `1,266 passed in 378.04s`.
 - Enabled checked projector assembly was exercised against the compiled
   Civ2Civ3 ruleset and authoritative contract fixture.
+- Strict captured replay exercised 38 snapshots and 37 transitions with 100%
+  cold verification and no mismatches.
+- One predeclared engine-live shadow game completed 30 turns with 52 rich
+  revisions and 51 non-authorizing shadow decisions.
 - `git diff --check`: clean.
 
 ## Remaining empirical gates
 
-This wiring does not promote the manifest to `shadow-live`. Promotion still
-requires an enabled captured/engine run that demonstrates:
+This wiring does not promote the manifest to `shadow-live`. The diagnostic
+captured run and one engine smoke demonstrate the seam, but promotion still
+requires broader engine evidence that demonstrates:
 
 1. ordinary-turn and tail projection latency within the controller gate;
 2. stable atom, support, scope, grounding, and event volumes;

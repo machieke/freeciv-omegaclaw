@@ -219,8 +219,13 @@ def operation_transition_allowed(current, target):
 def operation_id_from_components(
         operation_type, goal_ids,
         participants, target_ref,
-        ruleset_digest, creation_epoch):
-    """Return stable identity without incorporating a volatile score."""
+        ruleset_digest, creation_epoch, binding_identity=None):
+    """Return stable identity without incorporating a volatile score.
+
+    ``binding_identity`` distinguishes simultaneous grounded alternatives for
+    the same goal, actor, and target.  It is optional so durable lifecycle
+    operations retain their original identity contract.
+    """
     material = {
         "creation_epoch": int(
             creation_epoch),
@@ -255,6 +260,9 @@ def operation_id_from_components(
                 "ruleset digest"),
         "target_ref": target_ref,
     }
+    if binding_identity is not None:
+        material["binding_identity"] = _required_text(
+            binding_identity, "binding identity")
     if (target_ref is not None
             and (not isinstance(
                 target_ref, str)

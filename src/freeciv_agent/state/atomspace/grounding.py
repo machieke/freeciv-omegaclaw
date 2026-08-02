@@ -1,5 +1,6 @@
 """Typed dependency-declaring groundings for rich FDAS domain scopes."""
 
+from bisect import bisect_left
 import math
 from dataclasses import dataclass
 from enum import Enum
@@ -145,10 +146,13 @@ CITY_ECONOMY_GROUNDING_SPECS = (
     _spec("economy.net-gpt", ("player",), "integer", "gold/turn",
           ("economy.gold_per_turn", "economy.gold_upkeep_style",
            "economy.city_gold_surplus_per_turn", "economy.unit_gold_upkeep",
-           "cities", "units"), GroundingAuthority.DETERMINISTIC_DERIVED),
+           "cities.__members__", "cities.*.surplus.3",
+           "units.__members__", "units.*.upkeep.3"),
+          GroundingAuthority.DETERMINISTIC_DERIVED),
     _spec("economy.turn-start-upkeep-reserve", ("player",), "integer",
           "gold", ("economy.gold_upkeep_reserve",
-                   "economy.unit_gold_upkeep", "units"),
+                   "economy.unit_gold_upkeep", "units.__members__",
+                   "units.*.upkeep.3"),
           GroundingAuthority.DETERMINISTIC_DERIVED),
     _spec("economy.operating-runway", ("player",), "number-or-unbounded",
           "turns", ("economy.gold", "economy.operating_gold_per_turn"),
@@ -269,6 +273,8 @@ class TypedGroundingRegistry(object):
             raise ValueError("duplicate typed grounding ID")
         self._cache = {}
         self._fingerprint_cache = {}
+        self._fingerprint_path_keys = {}
+        self._fingerprint_paths = {}
         self._path_dependency_cache = {}
         self._evaluations = 0
         self._cache_hits = 0
@@ -369,11 +375,20 @@ class TypedGroundingRegistry(object):
 
     def prime(self, snapshot, fingerprints):
         """Reuse the transaction's canonical snapshot fingerprints."""
-        self._fingerprint_cache[snapshot.snapshot_id] = dict(fingerprints)
+        snapshot_id = snapshot.snapshot_id
+        copied = dict(fingerprints)
+        self._fingerprint_cache[snapshot_id] = copied
+        ordered = tuple(sorted(
+            copied, key=lambda key: (key.path, key.kind, key.owner_id)))
+        self._fingerprint_path_keys[snapshot_id] = ordered
+        self._fingerprint_paths[snapshot_id] = tuple(
+            key.path for key in ordered)
         if len(self._fingerprint_cache) > 8:
             evicted = tuple(self._fingerprint_cache)[:-8]
             for snapshot_id in evicted:
                 self._fingerprint_cache.pop(snapshot_id, None)
+                self._fingerprint_path_keys.pop(snapshot_id, None)
+                self._fingerprint_paths.pop(snapshot_id, None)
             self._cache = dict(
                 (key, value) for key, value in self._cache.items()
                 if key[3] not in evicted)
@@ -672,7 +687,26 @@ class TypedGroundingRegistry(object):
         return int(value)
 
     @staticmethod
-    def _resolved_paths(spec, args):
+    def _resolved_paths(spec, snapshot, args):
+        if spec.grounding_id == "economy.net-gpt":
+            economy = snapshot.economy
+            paths = ["economy.gold_upkeep_style"]
+            if (economy.gold_per_turn is not None
+                    and economy.gold_upkeep_style is not None):
+                paths.append("economy.gold_per_turn")
+                return tuple(paths)
+            if economy.city_gold_surplus_per_turn is not None:
+                paths.append("economy.city_gold_surplus_per_turn")
+            else:
+                paths.extend((
+                    "cities.__members__", "cities.*.surplus.3"))
+            if economy.gold_upkeep_style != "City":
+                if economy.unit_gold_upkeep is not None:
+                    paths.append("economy.unit_gold_upkeep")
+                # The safe fallback deliberately takes the maximum of the
+                # declared aggregate and observed per-unit upkeep.
+                paths.extend(("units.__members__", "units.*.upkeep.3"))
+            return tuple(paths)
         city = str(args[0]) if args and spec.grounding_id.startswith("city.") else None
         unit = str(args[0]) if args and spec.grounding_id.startswith("unit.") else None
         route = (
@@ -721,20 +755,27 @@ class TypedGroundingRegistry(object):
             cached = self._path_dependency_cache.get(cache_key)
             if cached is not None:
                 return cached
+            paths = self._fingerprint_paths[snapshot.snapshot_id]
+            path_keys = self._fingerprint_path_keys[snapshot.snapshot_id]
+
+            def prefixed(prefix):
+                lower = bisect_left(paths, prefix)
+                upper = bisect_left(paths, prefix + chr(0x10ffff))
+                return path_keys[lower:upper]
+
             if "*" in path and not path.endswith(".*"):
+                prefix = path.split("*", 1)[0]
                 keys = tuple(
-                    key for key in sorted(fingerprints)
+                    key for key in prefixed(prefix)
                     if fnmatchcase(key.path, path))
             elif path.endswith(".*"):
                 prefix = path[:-1]
                 keys = tuple(
-                    key for key in sorted(fingerprints)
-                    if key.path.startswith(prefix))
+                    prefixed(prefix))
             elif path in ("cities", "units"):
                 prefix = path + "."
                 keys = tuple(
-                    key for key in sorted(fingerprints)
-                    if key.path.startswith(prefix))
+                    prefixed(prefix))
             else:
                 result = (source_reference(path),)
                 self._path_dependency_cache[cache_key] = result
@@ -745,7 +786,7 @@ class TypedGroundingRegistry(object):
             self._path_dependency_cache[cache_key] = result
             return result
 
-        for path in self._resolved_paths(spec, args):
+        for path in self._resolved_paths(spec, snapshot, args):
             dependencies.extend(path_dependencies(path))
         if grounding_id in (
                 "city.production-cost", "city.production-eta",

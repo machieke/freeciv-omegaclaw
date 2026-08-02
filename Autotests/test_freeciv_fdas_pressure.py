@@ -17,7 +17,9 @@ from freeciv_agent.planning import (  # noqa: E402
     FDASCommitBinding,
     FDASCommitValidator,
     GoalFactory,
+    ImpactCandidate,
     ValidationDisposition,
+    legacy_shadow_goal_routes,
 )
 from freeciv_agent.pressure import (  # noqa: E402
     DependentAtomPressureAdapter,
@@ -113,6 +115,10 @@ def test_pressure_shadow_is_deterministic_read_only_and_explainable(ir):
     _snapshot_value, revision, goals, candidates = _case(ir)
     before = revision.to_dict()
 
+    assert len({
+        candidate.operation.operation_id for candidate in candidates
+    }) == len(candidates)
+
     first = DependentAtomPressureAdapter().evaluate(
         revision, goals, candidates)
     second = DependentAtomPressureAdapter().evaluate(
@@ -132,6 +138,94 @@ def test_pressure_shadow_is_deterministic_read_only_and_explainable(ir):
         and rule.source["explanation_hash"]
         and rule.source["revision_id"] == revision.revision_id
         for rule in first.context.graph.rules)
+
+
+def test_candidate_budget_preserves_protected_legacy_binding(ir):
+    payload = _payload()
+    payload["legal_actions"].extend({
+        "type": "city_governor",
+        "city_id": 3,
+        "target": {"food_surplus_reserve": reserve},
+        "is_valid": True,
+    } for reserve in (2, 3, 4))
+    snapshot = ProxyStateDTO.parse(
+        "fdas-pressure-budget", 441, payload).to_snapshot()
+    digest = ruleset_digest(ir)
+    store = DependentAtomSpaceStore(
+        domain_projector=CityEconomyProjector(ir, digest))
+    revision = store.build(snapshot)
+    goals = GoalFactory().instantiate(
+        revision,
+        store.query_current(snapshot.identity.game_id, snapshot.player_id))
+    uncapped = CandidateOperationFactory(
+        ir, digest,
+        maximum_unprotected_candidates_per_goal=1000).instantiate(
+            snapshot, goals, revision=revision)
+    by_goal = {}
+    for candidate in uncapped:
+        for goal_id in candidate.operation.goal_ids:
+            by_goal.setdefault(goal_id, []).append(candidate)
+    alternatives = next(
+        sorted(values, key=lambda value: value.action_key)
+        for values in by_goal.values() if len(values) > 2)
+    protected = alternatives[-1].action_key
+
+    report = CandidateOperationFactory(
+        ir, digest,
+        maximum_unprotected_candidates_per_goal=1).instantiate_report(
+            snapshot, goals, revision=revision,
+            protected_action_keys=(protected,))
+
+    assert protected in {
+        candidate.action_key for candidate in report.candidates}
+    assert report.omitted_unprotected_count > 0
+    assert report.diagnostics == (
+        "unprotected-candidate-budget-exhausted:{}".format(
+            report.omitted_unprotected_count),)
+    assert report.instantiation_hash
+
+
+def test_legacy_category_route_is_projected_but_remains_noncausal(ir):
+    snapshot, revision, goals, _candidates = _case(ir)
+    food_goal = next(
+        goal for goal in goals
+        if goal.deficit_predicate == "city-food-deficit")
+    action = next(
+        json.loads(action_key) for action_key in snapshot.legal_action_json
+        if json.loads(action_key).get("action_type") == "city_production")
+    legacy = ImpactCandidate(
+        action, "production_food_stabilization", 1.0,
+        "frozen legacy comparison route")
+    routes = legacy_shadow_goal_routes((legacy,))
+
+    report = CandidateOperationFactory(ir, ruleset_digest(ir)).instantiate_report(
+        snapshot, goals, revision=revision,
+        protected_action_keys=(legacy.action_key,),
+        protected_goal_routes=routes)
+    projected = next(
+        candidate for candidate in report.candidates
+        if (candidate.action_key == legacy.action_key
+            and food_goal.goal.goal_id in candidate.operation.goal_ids))
+
+    assert routes == ((legacy.action_key, "city-food-deficit"),)
+    assert "legacy-shadow-control-route-uncompiled" in projected.blockers
+    assert projected.authority_eligible is False
+    assert "legacy-impact-control-route/1.0" in projected.provenance
+
+    defense_goal = replace(
+        food_goal, deficit_predicate="city-garrison-deficit")
+    defense_legacy = replace(legacy, category="production_defense")
+    defense_report = CandidateOperationFactory(
+        ir, ruleset_digest(ir)).instantiate_report(
+            snapshot, (defense_goal,), revision=revision,
+            protected_action_keys=(defense_legacy.action_key,),
+            protected_goal_routes=legacy_shadow_goal_routes((
+                defense_legacy,)))
+    defense = next(
+        candidate for candidate in defense_report.candidates
+        if candidate.action_key == defense_legacy.action_key)
+    assert "uncompiled-action-effect" in defense.blockers
+    assert "legacy-shadow-control-route-uncompiled" in defense.blockers
 
 
 def test_unknown_effects_can_expand_but_never_receive_act_pressure(ir):

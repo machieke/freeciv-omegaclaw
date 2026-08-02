@@ -102,6 +102,15 @@ pilot, 100-pair score-confirmatory, and 450-pair joint-confirmatory cohorts. See
 [paired-impact-evaluation.md](paired-impact-evaluation.md) for endpoint semantics,
 fresh-seed derivation, clean-source gates, power declarations, and claim rules.
 
+## FDAS shadow selection
+
+The default harness remains on `profile/dependent_atomspace.yaml`, where the
+rich runtime is disabled. A shadow experiment can select
+`profile/dependent_atomspace_shadow_sampled.yaml` through
+`FREECIV_FDAS_CONFIG_PATH`. Configuration loading resolves and hashes that
+profile into the behavioral manifest; an empty override fails validation.
+Neither the override nor the sampled profile enables policy authority.
+
 Only one engine-live controller may run at once. It owns
 `artifacts/freeciv/.engine-live.lock`; its workers receive fixed ports within
 6001-6009 and each worker serializes its own games. Induction games are globally

@@ -298,15 +298,21 @@ class AtomSpaceEventEmitter(object):
                 })
             detail_count += 1
         pressure = evaluation.pressure
+        instantiation = evaluation.candidate_instantiation
         pressure_event = emit("pressure_graph_built", {
             "candidate_atom_count": len(
                 pressure.context.candidate_atom_ids),
-            "diagnostics": list(pressure.context.diagnostics),
+            "candidate_instantiation_hash": (
+                instantiation.instantiation_hash),
+            "diagnostics": list(sorted(set(
+                pressure.context.diagnostics + instantiation.diagnostics))),
             "evaluation_hash": pressure.evaluation_hash,
             "gap_atom_count": len(pressure.context.gap_atom_ids),
             "goal_count": len(pressure.context.goals),
             "graph_hash": pressure.context.graph.artifact_hash,
             "operation_count": len(pressure.context.operations),
+            "omitted_unprotected_candidate_count": (
+                instantiation.omitted_unprotected_count),
             "policy_authority": False,
             "status": pressure.status,
             "truncated": pressure.context.truncated,
@@ -328,6 +334,8 @@ class AtomSpaceEventEmitter(object):
             "authority_eligible": False,
             "comparison": comparison_details,
             "evaluation_hash": pressure.evaluation_hash,
+            "candidate_instantiation_hash": (
+                instantiation.instantiation_hash),
             "latency_ms": evaluation.latency_ms,
             "omitted_detail_event_count": omitted_count,
             "reason": pressure.reason,

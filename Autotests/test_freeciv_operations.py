@@ -106,6 +106,18 @@ def test_operation_identity_excludes_volatile_score_and_is_order_stable():
     assert left.startswith(
         "operation-")
 
+    first_binding = operation_id_from_components(
+        "ferry_founder", ("expansion", "survival"), (first, second),
+        "tile:8", "ruleset-proof", 20,
+        binding_identity='{"action_type":"unit_move","x":1}')
+    second_binding = operation_id_from_components(
+        "ferry_founder", ("expansion", "survival"), (first, second),
+        "tile:8", "ruleset-proof", 20,
+        binding_identity='{"action_type":"unit_move","x":2}')
+
+    assert first_binding != second_binding
+    assert first_binding != left
+
 
 def test_operation_spec_round_trip_verifies_its_digest():
     expected = _spec()

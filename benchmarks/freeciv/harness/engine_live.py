@@ -2216,6 +2216,10 @@ async def _play(run_dir, manifest, context):
                 "fdas_projection_latency_ms", fdas_update.latency_ms,
                 manifest,
                 atoms=fdas_update.atom_count,
+                cold_equivalent=bool(
+                    fdas_update.cold_verification is not None
+                    and fdas_update.cold_verification.equivalent),
+                cold_verified=fdas_update.cold_verification is not None,
                 scopes=fdas_update.scope_count)
         if combat_operations_enabled:
             combat_events = (
@@ -2429,6 +2433,11 @@ async def _play(run_dir, manifest, context):
                         "fdas_projection_latency_ms",
                         fdas_update.latency_ms, manifest,
                         atoms=fdas_update.atom_count,
+                        cold_equivalent=bool(
+                            fdas_update.cold_verification is not None
+                            and fdas_update.cold_verification.equivalent),
+                        cold_verified=(
+                            fdas_update.cold_verification is not None),
                         scopes=fdas_update.scope_count)
                 enabling_events = (
                     control_event_emitter
@@ -2537,6 +2546,11 @@ async def _play(run_dir, manifest, context):
                         "fdas_projection_latency_ms",
                         fdas_update.latency_ms, manifest,
                         atoms=fdas_update.atom_count,
+                        cold_equivalent=bool(
+                            fdas_update.cold_verification is not None
+                            and fdas_update.cold_verification.equivalent),
+                        cold_verified=(
+                            fdas_update.cold_verification is not None),
                         scopes=fdas_update.scope_count)
                 enabling_events = (
                     control_event_emitter
@@ -2928,6 +2942,9 @@ async def _play(run_dir, manifest, context):
                             fdas_shadow.latency_ms, manifest,
                             candidates=len(fdas_shadow.candidates),
                             goals=len(fdas_shadow.goals),
+                            omitted_unprotected_candidates=(
+                                fdas_shadow.candidate_instantiation
+                                .omitted_unprotected_count),
                             status=fdas_shadow.pressure.status)
                     # Identity-resource scheduling is observational in GDO-3.
                     # Dispatch it only after the complete live planning

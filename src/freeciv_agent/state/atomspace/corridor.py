@@ -137,28 +137,28 @@ class RouteCorridorProjector(object):
             for value in paths)
 
     @staticmethod
-    def _legal_step(snapshot, route, fingerprints):
-        if snapshot.map_width <= 0:
-            return None
-        first_x = route.first_step_tile % snapshot.map_width
-        first_y = route.first_step_tile // snapshot.map_width
-        matches = []
+    def _legal_steps(snapshot, fingerprints):
+        """Index canonical move bindings once for all route corridors."""
+        matches = {}
         for action_key in snapshot.legal_action_json:
             action = json.loads(action_key)
             target = action.get("target")
             if (action.get("action_type") == "unit_move"
-                    and int(action.get("actor_id", -1)) == route.unit_id
                     and isinstance(target, dict)
-                    and target.get("x") == first_x
-                    and target.get("y") == first_y):
-                matches.append((
+                    and None not in (target.get("x"), target.get("y"))):
+                identity = (
+                    int(action.get("actor_id", -1)),
+                    int(target["x"]), int(target["y"]))
+                matches.setdefault(identity, []).append((
                     action_key,
                     snapshot_dependency_ref(
                         snapshot,
                         "legal_actions.{}".format(
                             structural_hash(action_key)),
                         fingerprints)))
-        return matches[0] if len(matches) == 1 else None
+        return dict(
+            (key, values[0] if len(values) == 1 else None)
+            for key, values in matches.items())
 
     def _record(self, scope, predicate, arguments, dependencies, witness,
                 support=None):
@@ -179,6 +179,7 @@ class RouteCorridorProjector(object):
             (value.root_entities[0].entity_id, value)
             for value in scopes if value.scope_kind == "route-corridor")
         records = []
+        legal_steps = self._legal_steps(snapshot, fingerprints)
         for route, corridor in self._corridors(snapshot):
             scope = scope_by_corridor[corridor.corridor_digest]
             corridor_ref = scope.root_entities[0]
@@ -211,7 +212,12 @@ class RouteCorridorProjector(object):
             add("route-corridor-reachable")
             add("route-corridor-visibility", SymbolRef(
                 "visibility-status", corridor.visibility))
-            legal = self._legal_step(snapshot, route, fingerprints)
+            legal = None
+            if snapshot.map_width > 0:
+                legal = legal_steps.get((
+                    route.unit_id,
+                    route.first_step_tile % snapshot.map_width,
+                    route.first_step_tile // snapshot.map_width))
             if legal is not None:
                 add("route-corridor-current-legal-step", EntityRef(
                     "action", "legal-" + structural_hash(

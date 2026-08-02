@@ -18,6 +18,7 @@ if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
 from freeciv_agent.events.schema import structural_hash  # noqa: E402
+from freeciv_agent.planning import ImpactCandidate  # noqa: E402
 from freeciv_agent.rulesets.compiler import compile_ruleset  # noqa: E402
 from freeciv_agent.state import (  # noqa: E402
     SnapshotReplayError,
@@ -32,6 +33,20 @@ from freeciv_agent.state.atomspace import (  # noqa: E402
 DEFAULT_CAPTURE_GLOB = os.path.join(
     REPO, "benchmarks", "gdo", "captured_snapshots", "*_manifest.json")
 DEFAULT_CONFIG = os.path.join(REPO, "profile", "dependent_atomspace_shadow.yaml")
+
+
+def _legacy_candidates(captured):
+    """Rebuild only the immutable comparison contract from frozen evidence."""
+    result = []
+    for row in captured.get("candidates", ()):
+        if not isinstance(row, dict):
+            raise ValueError("captured candidate must be an object")
+        result.append(ImpactCandidate(
+            dict(row["action"]), str(row["category"]),
+            float(row["utility"]), str(row["rationale"]),
+            None if row.get("projection") is None
+            else dict(row["projection"])))
+    return tuple(result)
 
 
 def _percentile(values, fraction):
@@ -106,7 +121,7 @@ def _load_corpus(patterns):
                     "fixture hash mismatch: expected {}, observed {}".format(
                         expected, observed))
             snapshot = snapshot_from_event(captured["snapshot_event"])
-            snapshots.append((relative, snapshot))
+            snapshots.append((relative, snapshot, _legacy_candidates(captured)))
         except SnapshotReplayError as error:
             gaps.append({
                 "diagnostic": str(error),
@@ -149,7 +164,7 @@ def _revision_counts(runtime, snapshot):
 def _cold_replay(snapshots, declaration, ruleset_ir):
     samples = []
     failures = []
-    for relative, snapshot in snapshots:
+    for relative, snapshot, legacy_candidates in snapshots:
         runtime = build_runtime(
             declaration,
             ruleset_ir=ruleset_ir,
@@ -158,12 +173,30 @@ def _cold_replay(snapshots, declaration, ruleset_ir):
         try:
             update = runtime.replace(snapshot)
             elapsed = (time.perf_counter() - started) * 1000.0
+            evaluation = runtime.evaluate_shadow(snapshot, legacy_candidates)
             sample = {
+                "fdas_total_latency_ms": elapsed + evaluation.latency_ms,
                 "latency_ms": elapsed,
                 "path": relative,
                 "revision_id": update.revision_id,
                 "snapshot_id": snapshot.snapshot_id,
                 "source_seq": snapshot.identity.source_seq,
+                "shadow_evaluation": {
+                    "authority_eligible_count": sum(
+                        candidate.authority_eligible
+                        for candidate in evaluation.candidates),
+                    "candidate_count": len(evaluation.candidates),
+                    "candidate_instantiation": (
+                        evaluation.candidate_instantiation.to_dict()),
+                    "comparison": evaluation.comparison.to_dict(),
+                    "evaluation_hash": evaluation.pressure.evaluation_hash,
+                    "goal_count": len(evaluation.goals),
+                    "latency_ms": evaluation.latency_ms,
+                    "pressure_reason": evaluation.pressure.reason,
+                    "pressure_status": evaluation.pressure.status,
+                    "selected_operation_id": evaluation.pressure.schedule.get(
+                        "selected_operation_id"),
+                },
                 "turn": snapshot.turn,
             }
             sample.update(_revision_counts(runtime, snapshot))
@@ -185,18 +218,36 @@ def _incremental_replay(snapshots, declaration, ruleset_ir):
         declaration,
         ruleset_ir=ruleset_ir,
         operation_records_source=lambda: ())
-    for relative, snapshot in snapshots:
+    for relative, snapshot, legacy_candidates in snapshots:
         started = time.perf_counter()
         try:
             update = runtime.replace(snapshot)
             elapsed = (time.perf_counter() - started) * 1000.0
+            evaluation = runtime.evaluate_shadow(snapshot, legacy_candidates)
             samples.append({
                 "cold_verification": (
                     None if update.cold_verification is None
                     else update.cold_verification.to_dict()),
+                "fdas_total_latency_ms": elapsed + evaluation.latency_ms,
                 "latency_ms": elapsed,
                 "path": relative,
                 "revision_id": update.revision_id,
+                "shadow_evaluation": {
+                    "authority_eligible_count": sum(
+                        candidate.authority_eligible
+                        for candidate in evaluation.candidates),
+                    "candidate_count": len(evaluation.candidates),
+                    "candidate_instantiation": (
+                        evaluation.candidate_instantiation.to_dict()),
+                    "comparison": evaluation.comparison.to_dict(),
+                    "evaluation_hash": evaluation.pressure.evaluation_hash,
+                    "goal_count": len(evaluation.goals),
+                    "latency_ms": evaluation.latency_ms,
+                    "pressure_reason": evaluation.pressure.reason,
+                    "pressure_status": evaluation.pressure.status,
+                    "selected_operation_id": evaluation.pressure.schedule.get(
+                        "selected_operation_id"),
+                },
                 "snapshot_id": snapshot.snapshot_id,
                 "source_seq": snapshot.identity.source_seq,
                 "turn": snapshot.turn,
@@ -251,6 +302,47 @@ def main(argv=None):
         if row["cold_verification"] is not None)
     failures = tuple(
         corpus_failures + cold_failures + incremental_failures)
+
+    def shadow_summary(samples):
+        comparisons = tuple(
+            row["shadow_evaluation"]["comparison"] for row in samples)
+        return {
+            "authority_eligible_count": sum(
+                row["shadow_evaluation"]["authority_eligible_count"]
+                for row in samples),
+            "authority_violation_count": sum(
+                len(row["authority_violations"]) for row in comparisons),
+            "candidate_count": sum(
+                row["shadow_evaluation"]["candidate_count"]
+                for row in samples),
+            "extra_fdas_count": sum(
+                len(row["extra_fdas"]) for row in comparisons),
+            "goal_count": sum(
+                row["shadow_evaluation"]["goal_count"]
+                for row in samples),
+            "latency": _summary(
+                row["shadow_evaluation"]["latency_ms"]
+                for row in samples),
+            "legacy_candidate_count": sum(
+                row["legacy_candidate_count"] for row in comparisons),
+            "legal_binding_failure_count": sum(
+                len(row["legal_binding_failures"])
+                for row in comparisons),
+            "missing_legacy_count": sum(
+                len(row["missing_legacy"]) for row in comparisons),
+            "omitted_unprotected_candidate_count": sum(
+                row["shadow_evaluation"]["candidate_instantiation"][
+                    "omitted_unprotected_count"]
+                for row in samples),
+            "overlap_count": sum(
+                len(row["overlapping_action_keys"])
+                for row in comparisons),
+            "pressure_status_counts": dict(sorted(Counter(
+                row["shadow_evaluation"]["pressure_status"]
+                for row in samples).items())),
+            "safety_downgrade_count": sum(
+                len(row["safety_downgrades"]) for row in comparisons),
+        }
     report = {
         "claim_scope": "diagnostic-shadow-replay-only",
         "config": {
@@ -272,6 +364,8 @@ def main(argv=None):
             "cold": {
                 "latency": _summary(
                     row["latency_ms"] for row in cold_samples),
+                "fdas_total_latency": _summary(
+                    row["fdas_total_latency_ms"] for row in cold_samples),
                 "maximum_atom_count": max(
                     (row["atom_count"] for row in cold_samples), default=0),
                 "maximum_dependency_key_count": max(
@@ -282,6 +376,7 @@ def main(argv=None):
                 "maximum_support_count": max(
                     (row["support_count"] for row in cold_samples), default=0),
                 "samples": cold_samples,
+                "shadow_evaluation": shadow_summary(cold_samples),
             },
             "incremental": {
                 "cold_verification_count": len(verifications),
@@ -289,7 +384,11 @@ def main(argv=None):
                     bool(row["equivalent"]) for row in verifications),
                 "latency": _summary(
                     row["latency_ms"] for row in incremental_samples),
+                "fdas_total_latency": _summary(
+                    row["fdas_total_latency_ms"]
+                    for row in incremental_samples),
                 "samples": incremental_samples,
+                "shadow_evaluation": shadow_summary(incremental_samples),
             },
         },
         "ruleset": args.ruleset,

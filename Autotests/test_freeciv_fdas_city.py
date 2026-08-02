@@ -127,7 +127,11 @@ def test_typed_city_economy_groundings_match_authoritative_fields(ir):
         "economy.gold-stockpile", snapshot, 0).value == 37
     # The capture predates the explicit upkeep-style contract, so parity with
     # Impact uses city gold surplus minus nation-paid unit upkeep.
-    assert registry.evaluate("economy.net-gpt", snapshot, 0).value == 1
+    net = registry.evaluate("economy.net-gpt", snapshot, 0)
+    assert net.value == 1
+    net_paths = {value.key.path for value in net.dependencies}
+    assert "units.7.upkeep.3" in net_paths
+    assert "units.7.hp" not in net_paths
     assert registry.evaluate(
         "economy.rate-tuple", snapshot, 0).value == (30, 60, 10)
     assert registry.evaluate("research.progress", snapshot, 0).value == 24

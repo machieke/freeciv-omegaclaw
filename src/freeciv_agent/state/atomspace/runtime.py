@@ -217,6 +217,7 @@ class FdasShadowEvaluation:
     revision_id: str
     goals: tuple
     candidates: tuple
+    candidate_instantiation: object
     pressure: object
     comparison: object
     latency_ms: float
@@ -224,6 +225,7 @@ class FdasShadowEvaluation:
     def to_dict(self):
         return {
             "candidate_count": len(self.candidates),
+            "candidate_instantiation": self.candidate_instantiation.to_dict(),
             "comparison": (
                 None if self.comparison is None
                 else self.comparison.to_dict()),
@@ -355,18 +357,28 @@ class FdasRuntime(object):
         query = self.dependent_store.query_current(
             snapshot.identity.game_id, snapshot.player_id)
         goals = self._goal_factory.instantiate(revision, query)
-        candidates = self._candidate_factory.instantiate(
-            snapshot, goals, revision=revision)
+        legacy_candidates = (
+            None if legacy_candidates is None else tuple(legacy_candidates))
+        from ...planning import legacy_shadow_goal_routes
+        instantiation = self._candidate_factory.instantiate_report(
+            snapshot, goals, revision=revision,
+            protected_action_keys=(
+                () if legacy_candidates is None else tuple(
+                    candidate.action_key for candidate in legacy_candidates)),
+            protected_goal_routes=(
+                () if legacy_candidates is None else
+                legacy_shadow_goal_routes(legacy_candidates)))
+        candidates = instantiation.candidates
         pressure = self._pressure_adapter.evaluate(
             revision, goals, candidates)
         comparison = None
         if legacy_candidates is not None:
             from ...planning import compare_shadow_candidates
             comparison = compare_shadow_candidates(
-                snapshot, tuple(legacy_candidates), candidates)
+                snapshot, legacy_candidates, candidates)
         return FdasShadowEvaluation(
             snapshot.snapshot_id, revision.revision_id, goals, candidates,
-            pressure, comparison,
+            instantiation, pressure, comparison,
             (time.perf_counter() - started) * 1000.0)
 
     def emit_current(self, writer, snapshot, caused_by=(), prior_revision=None):

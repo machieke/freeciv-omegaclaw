@@ -83,6 +83,41 @@ class ShadowOperationCandidate:
 
 
 @dataclass(frozen=True)
+class CandidateInstantiation:
+    candidates: tuple
+    omitted_unprotected_count: int
+    protected_action_keys: tuple
+    diagnostics: tuple
+    instantiation_hash: str
+
+    def to_dict(self):
+        return {
+            "candidate_count": len(self.candidates),
+            "diagnostics": list(self.diagnostics),
+            "instantiation_hash": self.instantiation_hash,
+            "omitted_unprotected_count": self.omitted_unprotected_count,
+            "protected_action_keys": list(self.protected_action_keys),
+        }
+
+
+_LEGACY_CATEGORY_GOAL_ROUTES = {
+    "production_defense": ("city-garrison-deficit",),
+    "production_food_stabilization": ("city-food-deficit",),
+    "production_repurpose": ("city-production-stalled",),
+    "production_treasury_stabilization": ("treasury-below-reserve",),
+}
+
+
+def legacy_shadow_goal_routes(legacy_candidates):
+    """Describe legacy-only control routes without asserting causal truth."""
+    return tuple(sorted(set(
+        (candidate.action_key, deficit_predicate)
+        for candidate in legacy_candidates
+        for deficit_predicate in _LEGACY_CATEGORY_GOAL_ROUTES.get(
+            candidate.category, ()))))
+
+
+@dataclass(frozen=True)
 class ShadowCandidateComparison:
     snapshot_id: str
     legacy_candidate_count: int
@@ -253,9 +288,18 @@ class CandidateOperationFactory(object):
     }
     _GARRISON_POLICY_LIMIT = 3
 
-    def __init__(self, ruleset_ir, ruleset_digest):
+    def __init__(self, ruleset_ir, ruleset_digest,
+                 maximum_unprotected_candidates_per_goal=8):
+        if (isinstance(maximum_unprotected_candidates_per_goal, bool)
+                or not isinstance(
+                    maximum_unprotected_candidates_per_goal, int)
+                or maximum_unprotected_candidates_per_goal < 1):
+            raise ValueError(
+                "maximum unprotected candidates per goal must be positive")
         self.ruleset_ir = ruleset_ir
         self.ruleset_digest = str(ruleset_digest)
+        self.maximum_unprotected_candidates_per_goal = (
+            maximum_unprotected_candidates_per_goal)
         self._schemas = dict(
             (schema.action_type, schema)
             for schema in ruleset_ir.action_schemas)
@@ -348,6 +392,11 @@ class CandidateOperationFactory(object):
     def _route_blockers(self, goal, action, snapshot):
         blockers = list(self._effect_blockers(action.get("action_type")))
         if goal.deficit_predicate != "city-garrison-deficit":
+            return tuple(blockers)
+        if action.get("action_type") != "unit_move":
+            # Legacy production-defense candidates are protected comparison
+            # routes, not unit-removal operations.  Their uncompiled causal
+            # effect remains explicit and cannot authorize an action.
             return tuple(blockers)
         actor = snapshot.unit(action.get("actor_id"))
         if actor is None:
@@ -445,7 +494,7 @@ class CandidateOperationFactory(object):
                 operation_id = operation_id_from_components(
                     operation_type, (goal.goal.goal_id,), participants,
                     "city:{}".format(target_city_id), self.ruleset_digest,
-                    snapshot.turn)
+                    snapshot.turn, binding_identity=action_key)
                 source_requirement = "requirements-" + structural_hash({
                     "coordinated_atom_id": relation.atom_id,
                     "operation_id": operation_id,
@@ -534,19 +583,52 @@ class CandidateOperationFactory(object):
                     False, blockers, provenance, structural_hash(semantic)))
         return tuple(result)
 
-    def instantiate(self, snapshot, goal_contexts, revision=None):
+    def instantiate_report(self, snapshot, goal_contexts, revision=None,
+                           protected_action_keys=(),
+                           protected_goal_routes=()):
+        protected_action_keys = tuple(sorted(set(
+            str(value) for value in protected_action_keys)))
+        protected = frozenset(protected_action_keys)
+        protected_goal_routes = frozenset(
+            (str(action_key), str(predicate))
+            for action_key, predicate in protected_goal_routes)
         legal = tuple(
             (json.loads(value), value) for value in snapshot.legal_action_json)
         candidates = []
+        omitted_unprotected_count = 0
         for goal in goal_contexts:
             accepted_types = self._ACTION_TYPES.get(
                 goal.deficit_predicate, frozenset())
+            matching = []
             for action, action_key in legal:
                 action_type = str(action.get("action_type"))
-                if (action_type not in accepted_types
-                        or not self._action_matches(
-                            goal, action, snapshot.player_id, snapshot)):
+                control_routed = (
+                    action_key, goal.deficit_predicate
+                ) in protected_goal_routes
+                native_routed = (
+                    action_type in accepted_types
+                    and self._action_matches(
+                        goal, action, snapshot.player_id, snapshot))
+                if control_routed:
+                    city_id = self._city_id(goal)
+                    control_routed = bool(
+                        city_id is None
+                        or str(action.get("city_id")) == city_id)
+                if not native_routed and not control_routed:
                     continue
+                matching.append((action, action_key, control_routed))
+            matching = tuple(sorted(matching, key=lambda value: value[1]))
+            protected_matching = tuple(
+                value for value in matching if value[1] in protected)
+            optional = tuple(
+                value for value in matching if value[1] not in protected)
+            selected = protected_matching + optional[
+                :self.maximum_unprotected_candidates_per_goal]
+            omitted_unprotected_count += max(
+                0, len(optional)
+                - self.maximum_unprotected_candidates_per_goal)
+            for action, action_key, control_routed in selected:
+                action_type = str(action.get("action_type"))
                 city_id = self._city_id(goal)
                 unit_action = str(action_type).startswith("unit_")
                 actor_id = (
@@ -569,6 +651,7 @@ class CandidateOperationFactory(object):
                     target_ref,
                     self.ruleset_digest,
                     snapshot.turn,
+                    binding_identity=action_key,
                 )
                 requirement_id = "requirements-" + structural_hash({
                     "action_key": action_key,
@@ -607,6 +690,9 @@ class CandidateOperationFactory(object):
                     self.ruleset_digest,
                 )
                 blockers = self._route_blockers(goal, action, snapshot)
+                if control_routed:
+                    blockers = tuple(sorted(set(blockers).union((
+                        "legacy-shadow-control-route-uncompiled",))))
                 semantic = {
                     "action_key": action_key,
                     "blockers": list(blockers),
@@ -626,12 +712,42 @@ class CandidateOperationFactory(object):
                     (
                         "fdas-city-economy-shadow/1.0",
                         "ruleset-ir-action-schema/2.0",
-                    ),
+                    ) + (("legacy-impact-control-route/1.0",)
+                         if control_routed else ()),
                     structural_hash(semantic),
                 ))
         candidates.extend(self._coordinated_replacement_candidates(
             snapshot, goal_contexts, revision))
-        return tuple(sorted(
+        candidates = tuple(sorted(
             candidates,
             key=lambda value: (
                 value.operation.operation_id, value.action_key)))
+        diagnostics = (() if not omitted_unprotected_count else (
+            "unprotected-candidate-budget-exhausted:{}".format(
+                omitted_unprotected_count),))
+        control_route_count = sum(
+            "legacy-shadow-control-route-uncompiled" in candidate.blockers
+            for candidate in candidates)
+        if control_route_count:
+            diagnostics += (
+                "legacy-shadow-control-routes:{}".format(
+                    control_route_count),)
+        semantic = {
+            "candidate_hashes": [
+                value.candidate_hash for value in candidates],
+            "diagnostics": list(diagnostics),
+            "omitted_unprotected_count": omitted_unprotected_count,
+            "protected_action_keys": list(protected_action_keys),
+            "protected_goal_routes": [
+                list(value) for value in sorted(protected_goal_routes)],
+            "snapshot_id": snapshot.snapshot_id,
+        }
+        return CandidateInstantiation(
+            candidates, omitted_unprotected_count, protected_action_keys,
+            diagnostics, structural_hash(semantic))
+
+    def instantiate(self, snapshot, goal_contexts, revision=None,
+                    protected_action_keys=(), protected_goal_routes=()):
+        return self.instantiate_report(
+            snapshot, goal_contexts, revision,
+            protected_action_keys, protected_goal_routes).candidates

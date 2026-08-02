@@ -158,6 +158,19 @@ export FREECIV_SERVER_CONTAINER=fciv-net
 export OLLAMA_OPENAI_BASE_URL=http://127.0.0.1:11434/v1
 ```
 
+To run the rich Functional Dependent AtomSpace as a read-only shadow, keep the
+checked default unchanged and select the versioned sampled profile for that
+process only:
+
+```bash
+export FREECIV_FDAS_CONFIG_PATH=profile/dependent_atomspace_shadow_sampled.yaml
+```
+
+The harness embeds the resolved declaration, source path, capability manifest,
+and structural hash in every run manifest. This profile verifies a deterministic
+5% sample against a cold build and leaves aggregate and per-domain action
+authority disabled.
+
 Configuration ownership is deliberate:
 
 | Setting | Source |
@@ -165,6 +178,7 @@ Configuration ownership is deliberate:
 | capabilities, belief confidence/decay, sweeps, PF-PLN runtime support | `profile/freeciv_agent.yaml` |
 | ruleset, seeds, opponent, statistics, model budget | `profile/freeciv_harness.yaml` |
 | provider endpoint/model mapping | `profile/llm_providers.yaml` |
+| optional manifest-bound FDAS experiment profile | `FREECIV_FDAS_CONFIG_PATH` |
 | proxy endpoints, token, container, source discovery | environment variables above |
 
 The impact policy also versions a 0.3-second accepted-action refresh deadline

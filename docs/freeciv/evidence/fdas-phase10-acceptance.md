@@ -38,13 +38,19 @@ Acceptance level: component-only; default runtime and policy authority disabled
 | No removed behavior lacks a replacement test | Passed vacuously and enforced prospectively: no semantic branch was removed |
 | Live profiles declare exact slices | Passed for checked state: default flags are off and manifest is `component-only`; no live claim is made |
 | Rollback remains available | Passed with explicit `legacy` SnapshotStore mode and versioned rollback profile |
-| Cold/incremental, safety, replay, and latency gates | Component/captured gates pass; live empirical promotion remains intentionally unclaimed |
+| Cold/incremental, safety, replay, and latency gates | Component and captured shadow gates pass at the declared diagnostic scope; one engine smoke passes, but empirical promotion remains unclaimed |
 | Compatibility files are integration facades | `planning/impact.py`: 75 lines; `state/atoms.py`: 87 lines |
 
 ## Verification
 
-- Complete FreeCiv suite: `1,251 passed in 370.17s`.
-- Aggregate FDAS/supporting suite: `632 passed in 40.59s`.
+- Current FDAS, operation, harness, and planner integration surface:
+  `288 passed in 319.02s`.
+- Complete FreeCiv acceptance suite: `1,266 passed in 378.04s`.
+- Captured rich replay: 38 replayable snapshots, 37/37 transition
+  cold-equivalence checks, zero runtime failures, zero binding/authority/safety
+  violations.
+- Engine-live rich shadow smoke: one predeclared 30-turn seed completed with
+  52 revisions, 51 shadow decisions, and zero FDAS authority actions.
 - Generated event types: current.
 - Frozen Phase 0 semantic baseline: reproduced as
   `e688acb0b5074310ad793424979b2643a3780e8e439ea18872d3dee64eb2695f`.
@@ -60,7 +66,7 @@ surface used here.
 
 This report does not promote any capability to `shadow-live`,
 `bounded-authority`, or `engine-live`. It does not claim score or win-rate
-improvement. Rich runtime activation, paired engine replay, latency sampling,
-and empirical promotion are deployment/evidence gates, not facts that can be
-created by component tests. The strict manifest prevents those missing claims
-from escaping into policy authority.
+improvement. The captured corpus has nine old fixtures that cannot be strictly
+replayed, and the single live game is integration evidence rather than an
+outcome cohort. The strict manifest prevents those limitations from escaping
+into policy authority.

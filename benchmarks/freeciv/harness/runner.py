@@ -10,6 +10,7 @@ import platform
 import shutil
 import subprocess
 import threading
+import traceback
 
 from freeciv_agent.events.schema import structural_hash
 from freeciv_agent.events.validator import validate_file
@@ -428,7 +429,9 @@ class HarnessRunner(object):
         except Exception as exc:
             status = {"status": "infrastructure_failure", "completed": False,
                       "infrastructure_failure": True,
-                      "error": "{}: {}".format(type(exc).__name__, str(exc)[:1000])}
+                      "error": "{}: {}".format(
+                          type(exc).__name__, str(exc)[:1000]),
+                      "traceback": traceback.format_exc()[-8000:]}
         manifest["runtime"]["ended_at"] = _utc_now()
         persisted_manifest["runtime"]["ended_at"] = manifest["runtime"]["ended_at"]
         _atomic_json(os.path.join(run_dir, "manifest.json"), persisted_manifest)

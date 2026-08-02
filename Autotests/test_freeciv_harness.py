@@ -81,6 +81,23 @@ def test_config_accepts_the_versioned_2000_turn_horizon():
     assert config["impact_policy"]["horizon_turn"] == 2000
 
 
+def test_config_accepts_manifest_bound_fdas_shadow_profile_override(
+        monkeypatch):
+    path = os.path.join(
+        REPO, "profile", "dependent_atomspace_shadow_sampled.yaml")
+    monkeypatch.setenv("FREECIV_FDAS_CONFIG_PATH", path)
+
+    config = load()
+
+    assert config["dependent_atomspace"]["config"]["enabled"] is True
+    assert config["dependent_atomspace"]["config"][
+        "cold_verify_sample_rate"] == 0.05
+    assert config["dependent_atomspace"]["config_source"] == (
+        "profile/dependent_atomspace_shadow_sampled.yaml")
+    assert config["dependent_atomspace"]["manifest"][
+        "policy_authority"] is False
+
+
 def test_config_predeclares_identical_30_seed_matrix_and_20_game_induction():
     config = load()
     assert len(config["seeds"]) == 30 == len(set(config["seeds"]))

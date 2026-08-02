@@ -106,12 +106,14 @@ from .operation_store import (
     OperationTransitionError,
 )
 from .fdas import (
+    CandidateInstantiation,
     CandidateOperationFactory,
     GoalFactory,
     LocalGoalContext,
     ShadowCandidateComparison,
     ShadowOperationCandidate,
     compare_shadow_candidates,
+    legacy_shadow_goal_routes,
 )
 from .fdas_defense import (
     FdasCityDefenseOperationAdapter,
@@ -212,7 +214,8 @@ __all__ = [
     "CombatOperationReadout", "ConditionalProbabilityInterval",
     "CityWorkerMacroAssembler", "CityWorkerMacroAssembly",
     "CityWorkerMacroIntent", "CityWorkerMacroResult",
-    "CandidateOperationFactory", "GoalFactory", "LocalGoalContext",
+    "CandidateInstantiation", "CandidateOperationFactory", "GoalFactory",
+    "LocalGoalContext",
     "FdasCityDefenseOperationAdapter",
     "FdasDefenseActionBinding", "FdasDefenseLifecycleUpdate",
     "FdasDefenseRequirementContext",
@@ -232,7 +235,7 @@ __all__ = [
     "LegacyConsolidationAudit", "LegacyConsolidationReport",
     "LegacyReplacementDecision", "LegacyReplacementSpec",
     "ShadowCandidateComparison", "ShadowOperationCandidate",
-    "compare_shadow_candidates",
+    "compare_shadow_candidates", "legacy_shadow_goal_routes",
     "CombatLifecycleUpdate", "CombatOperationLifecycle",
     "combat_target_capacities", "conditional_success_interval",
     "FounderTransportIntent",
