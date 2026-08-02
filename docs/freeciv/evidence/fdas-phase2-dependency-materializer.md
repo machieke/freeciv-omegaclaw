@@ -165,3 +165,18 @@ corpus again passed 37/37 differential transitions with zero failures. It
 reused 81 rich records through five partial city/economy projector updates;
 the corpus remains a sparse catch-up stress set and is not presented as an
 ordinary-turn latency claim.
+
+Unit/defense projection now uses the same fail-closed shard protocol for world
+observations, individual unit factual scopes, and the coupled city-defense
+graph. The defense shard intentionally retains whole-city, whole-unit, route,
+legal-action, topology, and visible-threat inputs because replacement and
+garrison safety cross entity boundaries. A two-unit mutation rebuilt the
+changed unit and defense shards, reused three non-empty capability records for
+the unchanged unit, and matched the cold builder.
+
+In the strict captured corpus, city and unit sharding reused 732 non-empty rich
+records while all 37 transitions remained cold-equivalent: 81 city records and
+651 unit/defense records. Aggregate metrics now publish exact recomputed and
+reused record counts per shard, not only shard IDs. Mean recomputation fell
+from the component-only 78.1% reference to 76.8%; the sparse corpus still does
+not establish an ordinary-turn latency improvement.

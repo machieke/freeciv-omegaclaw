@@ -372,6 +372,13 @@ def main(argv=None):
         values = tuple(
             row["materialization_metrics"] for row in samples
             if row.get("materialization_metrics") is not None)
+
+        def shard_record_counts(field):
+            counts = Counter()
+            for row in values:
+                counts.update(row.get(field, {}))
+            return dict(sorted(counts.items()))
+
         return {
             "incremental_recomputation_ratio": _ratio_summary(
                 row["incremental_recomputation_ratio"] for row in values),
@@ -383,12 +390,16 @@ def main(argv=None):
                 shard_id for row in values
                 for shard_id in row.get(
                     "recomputed_shard_ids", ())).items())),
+            "recomputed_shard_record_counts": shard_record_counts(
+                "recomputed_shard_records"),
             "reused_projector_counts": dict(sorted(Counter(
                 projector_id for row in values
                 for projector_id in row["reused_projector_ids"]).items())),
             "reused_shard_counts": dict(sorted(Counter(
                 shard_id for row in values
                 for shard_id in row.get("reused_shard_ids", ())).items())),
+            "reused_shard_record_counts": shard_record_counts(
+                "reused_shard_records"),
             "rich_recomputed_record_count": sum(
                 row["rich_recomputed_records"] for row in values),
             "rich_reused_record_count": sum(

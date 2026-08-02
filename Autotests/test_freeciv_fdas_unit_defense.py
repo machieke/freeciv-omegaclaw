@@ -227,6 +227,34 @@ def test_defender_removal_creates_deficit_and_incremental_matches_cold(ir):
         if value.scope_kind == "unit-facts")
 
 
+def test_unit_mutation_reuses_unchanged_unit_entity_shard(ir):
+    first_payload = _payload()
+    second_unit = copy.deepcopy(first_payload["units"]["7"])
+    second_unit.update({"id": 8, "tile": 81, "x": 1, "y": 2})
+    first_payload["units"]["8"] = second_unit
+    first = _snapshot(first_payload, 462)
+    second_payload = copy.deepcopy(first_payload)
+    second_payload["units"]["7"]["hp"] = 9
+    second_payload["authoritative"]["source_seq"] = 463
+    second = _snapshot(second_payload, 463)
+    store = _store(ir)
+    prior = store.build(first)
+
+    incremental, verification = store.prepare_verified_incremental(
+        second, first, prior)
+    metrics = incremental.metrics
+
+    assert verification.equivalent, verification.to_dict()
+    assert "fdas-unit-defense-shadow/unit:7" in (
+        metrics.recomputed_shard_ids)
+    assert "fdas-unit-defense-shadow/city-defense" in (
+        metrics.recomputed_shard_ids)
+    assert "fdas-unit-defense-shadow/unit:8" in metrics.reused_shard_ids
+    assert dict(metrics.reused_shard_records)[
+        "fdas-unit-defense-shadow/unit:8"] == 3
+    assert metrics.rich_reused_records >= 3
+
+
 def test_visible_threat_requires_explicit_topology_and_never_proves_absence(ir):
     payload = _payload()
     payload["units"]["8"] = {

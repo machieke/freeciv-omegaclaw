@@ -487,6 +487,8 @@ class CompositeDomainProjector(object):
         recomputed = []
         reused_shards = []
         recomputed_shards = []
+        reused_shard_records = []
+        recomputed_shard_records = []
         reused_record_count = 0
         recomputed_record_count = 0
         for projector in self.projectors:
@@ -514,12 +516,15 @@ class CompositeDomainProjector(object):
                         values = self._refresh(
                             prior_shard["records"], scopes)
                         reused_shards.append(metric_id)
+                        reused_shard_records.append((metric_id, len(values)))
                         reused_record_count += len(values)
                         projector_reused = True
                     else:
                         values = self._project_shard_checked(
                             projector, spec, snapshot, scopes, fingerprints)
                         recomputed_shards.append(metric_id)
+                        recomputed_shard_records.append(
+                            (metric_id, len(values)))
                         recomputed_record_count += len(values)
                         projector_recomputed = True
                     shard_records.extend(values)
@@ -571,7 +576,9 @@ class CompositeDomainProjector(object):
             "reused_projector_ids": tuple(reused),
             "reused_record_count": reused_record_count,
             "recomputed_shard_ids": tuple(recomputed_shards),
+            "recomputed_shard_records": tuple(recomputed_shard_records),
             "reused_shard_ids": tuple(reused_shards),
+            "reused_shard_records": tuple(reused_shard_records),
         }
         self._trim(self._incremental_metrics)
         return tuple(sorted(records, key=lambda value: value.atom_id))
@@ -583,7 +590,9 @@ class CompositeDomainProjector(object):
             "reused_projector_ids": (),
             "reused_record_count": 0,
             "recomputed_shard_ids": (),
+            "recomputed_shard_records": (),
             "reused_shard_ids": (),
+            "reused_shard_records": (),
         }))
 
 
@@ -681,5 +690,7 @@ class ActivatedDomainProjector(object):
             "reused_projector_ids": (),
             "reused_record_count": 0,
             "recomputed_shard_ids": (),
+            "recomputed_shard_records": (),
             "reused_shard_ids": (),
+            "reused_shard_records": (),
         }

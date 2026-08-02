@@ -7,7 +7,7 @@ Plan: `agent-instructions/functional-dependent-atomspace-implementation-plan.md`
 |---|---|---|
 | 0 | Contract/catalog freeze and reproducible baseline | `fdas-phase0-baseline.md` |
 | 1 | Typed atoms, predicates, scopes, transactions, compatibility facade | `fdas-phase1-typed-core.md` |
-| 2 | Dependency indexes, support-aware invalidation, compatibility-record, rich-component, and city-entity incrementality, incremental/cold parity, leases | `fdas-phase2-dependency-materializer.md` |
+| 2 | Dependency indexes, support-aware invalidation, compatibility-record, rich-component, and city/unit entity incrementality, incremental/cold parity, leases | `fdas-phase2-dependency-materializer.md` |
 | 3 | Ruleset IR 2.0, capability projection, typed grounding, bounded generic proof parity | `fdas-phase3-ruleset-proof-foundation.md` |
 | 4 | City/economy/research projection, local goals, shadow candidates | `fdas-phase4-city-economy-shadow.md` |
 | 5 | FDAS pressure routes, exact resources/packets, commit revalidation and authority gates | `fdas-phase5-pressure-shadow.md`, `fdas-phase5-operation-resource-commit.md` |

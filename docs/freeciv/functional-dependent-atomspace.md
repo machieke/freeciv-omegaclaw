@@ -122,13 +122,16 @@ inputs recompute fail-closed. Reuse/recompute counts and ratios are part of the
 revision metrics, and 37/37 captured rich transitions match independent cold
 builds.
 
-City/economy projection additionally has conservative entity shards. The
-empire summary and each city factual microspace declare independent snapshot
-prefixes, durable dependency kinds, and output scopes. A changed city rebuilds
-its own shard; unaffected city records can be reused even when the shared
-projector also rebuilds its empire shard. The runtime rejects undeclared shard
-reads, support dependencies, overlapping output scopes, missing current
-scopes, and cold-build divergence. Shard reuse/recompute IDs are emitted in
+City/economy and unit/defense projection additionally have conservative entity
+shards. The empire summary and each city factual microspace are independent.
+Unit projection separates world observations, each unit factual microspace,
+and one deliberately coupled city-defense graph whose garrison, replacement,
+route, legal-action, and threat dependencies span entities. A changed city or
+unit can therefore reuse unaffected local records without pretending the
+cross-entity defense graph is independent. The runtime rejects undeclared
+shard reads and support dependencies, overlapping or missing output scopes,
+declarations broader than the parent projector, and cold-build divergence.
+Shard reuse/recompute IDs and exact record counts are emitted in
 materialization metrics. Other rich projectors remain at the coarser component
 boundary; this is not yet universal per-entity derivation scheduling.
 

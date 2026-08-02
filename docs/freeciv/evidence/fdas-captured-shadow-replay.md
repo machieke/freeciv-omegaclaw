@@ -4,7 +4,7 @@ Date: 2026-08-02
 Branch: `experimental/functional-dependent-atomspace`
 Machine scope: local diagnostic replay
 Machine-readable report: `fdas-captured-shadow-replay.json`
-Report hash: `7eea020650511ef3c67a07e1fbc6ff0f788d561bef85539d1e4a62fcb6549fd3`
+Report hash: `cb2d62ae7bd58f61a9041a6703e53b38c487e9d8af5de96cd6dc5f2df0302f3b`
 
 ## Corpus and strictness
 
@@ -25,11 +25,11 @@ revision; all 37 were canonically equivalent.
 
 | Measurement | Result |
 |---|---:|
-| Cold projection p50 / p95 / max | 201.30 / 396.63 / 433.57 ms |
-| Shadow readout p50 / p95 / max | 17.97 / 187.79 / 211.83 ms |
-| Combined cold FDAS p50 / p95 / max | 257.33 / 543.77 / 603.03 ms |
-| Strict incremental plus cold verification p50 / p95 / max | 499.21 / 924.66 / 1,057.23 ms |
-| Incremental recomputation ratio mean / p50 / p95 | 0.779 / 0.755 / 0.888 |
+| Cold projection p50 / p95 / max | 207.06 / 410.24 / 433.35 ms |
+| Shadow readout p50 / p95 / max | 20.40 / 204.36 / 220.55 ms |
+| Combined cold FDAS p50 / p95 / max | 277.53 / 548.92 / 610.69 ms |
+| Strict incremental plus cold verification p50 / p95 / max | 521.59 / 954.51 / 1,087.64 ms |
+| Incremental recomputation ratio mean / p50 / p95 | 0.768 / 0.739 / 0.874 |
 | Maximum atoms / scopes / supports | 2,610 / 80 / 1,388 |
 | Maximum dependency keys | 2,002 |
 | Local goals / FDAS candidates | 116 / 855 |
@@ -41,7 +41,7 @@ revision; all 37 were canonically equivalent.
 | Safety downgrades | 0 |
 
 The 500 ms production-safe gate is a p95 gate. Cold projection alone remains
-below it at 396.63 ms, but projection plus shadow readout is 543.77 ms p95 and
+below it at 410.24 ms, but projection plus shadow readout is 548.92 ms p95 and
 therefore does not pass the controller-inclusive gate in this stress corpus.
 The proposed 150 ms ordinary FDAS contribution target is also not met here.
 The evidence supports bounded diagnostic shadow operation, not unrestricted
@@ -51,12 +51,14 @@ The strict incremental timing is diagnostic rather than a live-controller
 timing: every transition prepares an incremental revision and a second,
 independent cold revision before publishing the already-verified incremental
 revision. All 37 transitions were equivalent. The sparse corpus changes most
-domain roots between captures, so it recomputes 77.9% of records on average.
+domain roots between captures, so it recomputes 76.8% of records on average.
 It records three region and four combat-projector cache hits whose reused
-outputs are empty. Entity sharding additionally reuses 81 non-empty
-city/economy records across five partial projector updates: city 101 four
-times, city 109 four times, city 127 twice, city 131 three times, and city 182
-once.
+outputs are empty. Entity sharding reuses 732 non-empty rich records: 81 city
+records across 14 city-shard instances and 651 unit/defense records across 254
+shard instances. The latter includes 38 world-observation records across 20
+instances; the remaining 613 records come from independently reusable unit
+factual scopes. The coupled city-defense shard is deliberately not reused in
+this corpus because its complete city/unit/route/legal/threat inputs changed.
 
 A separate same-turn full-rich fixture provides the positive ordinary-update
 check. It reused city/economy, region, combat, and population-recovery output,
@@ -108,10 +110,11 @@ predictive goal semantics before treating these candidates as causal.
   repeated serialization of overlapping dependency maps. Reuse/recompute
   projector IDs, record counts, and the recomputation ratio are emitted in
   materialization metrics and captured by this report.
-- City/economy output is split into exclusive empire and per-city shards with
-  conservative prefix/kind fingerprints. Runtime access, support dependencies,
-  scope ownership, and cold equivalence are checked fail-closed; shard IDs are
-  included in per-snapshot and aggregate replay metrics.
+- City/economy and unit/defense output use exclusive conservative shards. The
+  latter separates world observations, each unit factual scope, and the
+  cross-entity city-defense graph. Runtime access, support dependencies, scope
+  ownership, and cold equivalence are checked fail-closed; shard IDs and exact
+  record counts are included in per-snapshot and aggregate replay metrics.
 
 ## Non-claims
 

@@ -211,7 +211,9 @@ class _ConfiguredBudgetProjector(object):
             "reused_projector_ids": (),
             "reused_record_count": 0,
             "recomputed_shard_ids": (),
+            "recomputed_shard_records": (),
             "reused_shard_ids": (),
+            "reused_shard_records": (),
         }
 
 

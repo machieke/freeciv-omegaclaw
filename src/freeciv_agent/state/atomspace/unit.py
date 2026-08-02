@@ -5,6 +5,7 @@ from dataclasses import dataclass, replace
 
 from ...events.schema import structural_hash
 from .city import city_economy_predicate_registry, city_economy_scopes
+from .composite import ProjectionShardSpec
 from .delta import snapshot_dependency_ref
 from .grounding import TypedGroundingRegistry
 from .model import (
@@ -168,6 +169,39 @@ class UnitDefenseProjector(object):
     def scopes(self, snapshot):
         return unit_defense_scopes(snapshot)
 
+    def projection_shards(self, scopes):
+        """Separate world observations, unit facts, and coupled defense."""
+        world, city_scopes, unit_scopes = self._scope_maps(scopes)
+        kinds = self.incremental_dependency_kinds
+        shards = [ProjectionShardSpec(
+            "world",
+            ("player_id", "visible_enemy_units"),
+            kinds,
+            (world.scope_id,),
+        )]
+        shards.extend(
+            ProjectionShardSpec(
+                "unit:{}".format(unit_id),
+                ("player_id", "units.{}".format(unit_id)),
+                kinds,
+                (scope.scope_id,),
+            )
+            for unit_id, scope in sorted(unit_scopes.items()))
+        if city_scopes:
+            shards.append(ProjectionShardSpec(
+                "city-defense",
+                (
+                    "cities", "legal_actions", "map_height", "map_width",
+                    "map_wrap_x", "map_wrap_y", "movement_routes",
+                    "player_id", "source_seq", "turn", "units",
+                    "visible_enemy_units",
+                ),
+                kinds,
+                tuple(scope.scope_id for _, scope in sorted(
+                    city_scopes.items())),
+            ))
+        return tuple(shards)
+
     def extend_fingerprints(self, fingerprints):
         result = dict(fingerprints)
         for dependency in self.policy.dependency_refs():
@@ -295,16 +329,22 @@ class UnitDefenseProjector(object):
             dy = min(dy, snapshot.map_height - dy)
         return max(dx, dy)
 
-    def project(self, snapshot, scopes, fingerprints):
+    def _project_selected(
+            self, snapshot, scopes, fingerprints, selected_shard=None):
         self.groundings.prime(snapshot, fingerprints)
         world, city_scopes, unit_scopes = self._scope_maps(scopes)
         policy_refs = self.policy.dependency_refs()
-        player = EntityRef("player", str(snapshot.player_id))
         policy = SymbolRef("defense-policy", self.policy.policy_id)
         records = []
 
+        world_enemies = (
+            snapshot.visible_enemy_units
+            if selected_shard in (None, "world") else ())
+        player = (
+            EntityRef("player", str(snapshot.player_id))
+            if selected_shard in (None, "world") else None)
         for enemy in sorted(
-                snapshot.visible_enemy_units, key=lambda value: value.unit_id):
+                world_enemies, key=lambda value: value.unit_id):
             enemy_ref = EntityRef("unit", str(enemy.unit_id))
             exists = snapshot_dependency_ref(
                 snapshot,
@@ -325,16 +365,32 @@ class UnitDefenseProjector(object):
                     AuthorityClass.PACKET_OBSERVATION,
                     (exists, tile), enemy.grounded_dict()))
 
+        if selected_shard == "world":
+            return tuple(sorted(records, key=lambda value: value.atom_id))
+        selected_unit_id = (
+            str(selected_shard).split(":", 1)[1]
+            if str(selected_shard).startswith("unit:") else None)
+        need_defense = selected_shard in (None, "city-defense")
+        if (selected_shard is not None and selected_unit_id is None
+                and not need_defense):
+            raise ValueError("unknown unit/defense projection shard")
+
         defender_by_id = {}
         for unit in sorted(snapshot.units, key=lambda value: value.unit_id):
             unit_id = str(unit.unit_id)
+            if selected_unit_id is not None and unit_id != selected_unit_id:
+                continue
             scope = unit_scopes[unit_id]
             defender = self.groundings.evaluate(
                 "unit.persistent-defender", snapshot, unit.unit_id)
-            profile = self.groundings.evaluate(
-                "unit.combat-profile", snapshot, unit.unit_id)
-            if profile.available and (profile.value["attack"] > 0
-                                      or profile.value["defense"] > 0):
+            emit_unit = selected_shard is None or selected_unit_id == unit_id
+            profile = (
+                self.groundings.evaluate(
+                    "unit.combat-profile", snapshot, unit.unit_id)
+                if emit_unit else None)
+            if (profile is not None and profile.available
+                    and (profile.value["attack"] > 0
+                         or profile.value["defense"] > 0)):
                 records.append(self._record(
                     scope, AtomNamespace.DERIVED, "unit-has-capability",
                     (EntityRef("unit", unit_id),
@@ -342,22 +398,30 @@ class UnitDefenseProjector(object):
                     AuthorityClass.DETERMINISTIC_DERIVED,
                     profile.dependencies, profile.witness))
             if defender.available and defender.value is True:
-                defender_by_id[unit_id] = unit
-                records.extend((
-                    self._record(
-                        scope, AtomNamespace.DERIVED,
-                        "unit-has-capability",
-                        (EntityRef("unit", unit_id), SymbolRef(
-                            "capability", "persistent-land-defense")),
-                        AuthorityClass.DETERMINISTIC_DERIVED,
-                        defender.dependencies, defender.witness),
-                    self._record(
-                        scope, AtomNamespace.DERIVED,
-                        "unit-persistent-defender",
-                        (EntityRef("unit", unit_id),),
-                        AuthorityClass.DETERMINISTIC_DERIVED,
-                        defender.dependencies, defender.witness),
-                ))
+                if need_defense:
+                    defender_by_id[unit_id] = unit
+                if emit_unit:
+                    records.extend((
+                        self._record(
+                            scope, AtomNamespace.DERIVED,
+                            "unit-has-capability",
+                            (EntityRef("unit", unit_id), SymbolRef(
+                                "capability", "persistent-land-defense")),
+                            AuthorityClass.DETERMINISTIC_DERIVED,
+                            defender.dependencies, defender.witness),
+                        self._record(
+                            scope, AtomNamespace.DERIVED,
+                            "unit-persistent-defender",
+                            (EntityRef("unit", unit_id),),
+                            AuthorityClass.DETERMINISTIC_DERIVED,
+                            defender.dependencies, defender.witness),
+                    ))
+
+        if not need_defense:
+            if selected_unit_id not in unit_scopes:
+                raise ValueError(
+                    "unit projection shard has no current unit scope")
+            return tuple(sorted(records, key=lambda value: value.atom_id))
 
         legal_fortify = {}
         legal_moves = {}
@@ -600,3 +664,10 @@ class UnitDefenseProjector(object):
                                 scope, city_ref, enemy, defender_id,
                                 eta, defense_eta))
         return tuple(sorted(records, key=lambda value: value.atom_id))
+
+    def project_shard(self, shard_id, snapshot, scopes, fingerprints):
+        return self._project_selected(
+            snapshot, scopes, fingerprints, selected_shard=str(shard_id))
+
+    def project(self, snapshot, scopes, fingerprints):
+        return self._project_selected(snapshot, scopes, fingerprints)
