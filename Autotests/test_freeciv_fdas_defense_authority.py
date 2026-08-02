@@ -212,6 +212,20 @@ def test_authorized_fortification_episode_separates_acceptance_and_relief(ir):
         evaluation.candidate_instantiation.instantiation_hash,)
     assert automatic.outcome_status == "accepted-by-server"
 
+    observed_store = DecisionEpisodeStore(
+        "fdas-defense-observed-selection-episodes")
+    observed = FdasDefenseEpisodeRecorder(
+        observed_store).begin_observed_selection(
+            evaluation.candidates[0], evaluation, snapshot, revision,
+            "action-result-observed", "choice-set-selection-evidence")
+    assert observed.action_key == evaluation.candidates[0].action_key
+    assert observed.prediction_ids == ()
+    assert "fdas-observed-legacy-defense-selection/1.0" in (
+        observed.provenance_ids)
+    assert "policy-authority:false" in observed.provenance_ids
+    assert "selection-evidence:choice-set-selection-evidence" in (
+        observed.provenance_ids)
+
     operations = OperationStore("fdas-defense-authority-episode-operations")
     record = operations.propose(
         promoted.operation, snapshot.snapshot_id, snapshot.turn)

@@ -536,6 +536,7 @@ class FdasDefenseEpisodeRecorder(object):
               execution_event_id=None, source_atom_ids=(),
               source_support_ids=(), grounding_result_ids=(),
               prediction_ids=(), resource_claim_ids=(),
+              extra_provenance_ids=(),
               outcome_status="accepted-by-server"):
         if not isinstance(binding, FdasDefenseActionBinding):
             raise TypeError("defense episode requires exact action binding")
@@ -569,7 +570,8 @@ class FdasDefenseEpisodeRecorder(object):
             tuple(resource_claim_ids), str(validation_result_hash),
             execution_event_id,
             None, (), (), outcome_status,
-            (self.RECORDER_IDENTITY,) + tuple(spec.provenance),
+            (self.RECORDER_IDENTITY,) + tuple(spec.provenance)
+            + tuple(extra_provenance_ids),
         )
         existing = self.store.get(episode.episode_id)
         if existing is not None:
@@ -657,6 +659,79 @@ class FdasDefenseEpisodeRecorder(object):
             resource_claim_ids=resource_claim_ids,
         )
 
+    def begin_observed_selection(
+            self, candidate, shadow_evaluation, before_snapshot,
+            before_revision, execution_event_id, selection_evidence_hash):
+        """Open a non-authorizing episode for one accepted legacy selection."""
+        if not isinstance(candidate, ShadowOperationCandidate):
+            raise TypeError("observed episode requires shadow candidate")
+        if (shadow_evaluation.snapshot_id != before_snapshot.snapshot_id
+                or shadow_evaluation.revision_id
+                != before_revision.revision_id):
+            raise ValueError("observed episode shadow evidence is stale")
+        if (not isinstance(selection_evidence_hash, str)
+                or not selection_evidence_hash):
+            raise ValueError("observed episode requires selection evidence")
+        action = candidate.action
+        operation_type = candidate.operation.operation_type
+        supported = {
+            ("unit_fortify",
+             "fdas-shadow:unit-fortification-opportunity:unit_fortify"),
+            ("unit_move", "fdas-shadow:city-garrison-deficit:unit_move"),
+        }
+        if ((action.get("action_type"), operation_type) not in supported
+                or not candidate.legal_bound
+                or candidate.action_key
+                not in before_snapshot.legal_action_json):
+            raise ValueError(
+                "observed episode is outside exact defense choice surface")
+        operation_store = OperationStore(
+            "fdas-observed-defense-episode-operation:{}".format(
+                candidate.operation.operation_id))
+        operation_record = operation_store.propose(
+            candidate.operation, before_snapshot.snapshot_id,
+            before_snapshot.turn)
+        binding_material = {
+            "action": action,
+            "action_key": candidate.action_key,
+            "domain_operation_id": candidate.operation.operation_id,
+            "legal_actions_digest": before_snapshot.legal_actions_digest,
+            "legal_bound": True,
+            "operation_id": candidate.operation.operation_id,
+            "snapshot_id": before_snapshot.snapshot_id,
+        }
+        binding = FdasDefenseActionBinding(
+            candidate.operation.operation_id,
+            candidate.operation.operation_id,
+            before_snapshot.snapshot_id,
+            before_snapshot.legal_actions_digest,
+            action,
+            candidate.action_key,
+            True,
+            structural_hash(binding_material),
+        )
+        goal_ids = frozenset(candidate.operation.goal_ids)
+        source_atom_ids = tuple(sorted(
+            value.deficit_atom_id for value in shadow_evaluation.goals
+            if value.goal.goal_id in goal_ids))
+        source_support_ids = tuple(sorted({
+            support.support_id
+            for atom_id in source_atom_ids
+            for support in before_revision.record(atom_id).supports
+        }))
+        return self.begin(
+            binding, operation_record, before_snapshot,
+            before_revision.revision_id, selection_evidence_hash,
+            execution_event_id=execution_event_id,
+            source_atom_ids=source_atom_ids,
+            source_support_ids=source_support_ids,
+            grounding_result_ids=(candidate.candidate_hash,),
+            extra_provenance_ids=(
+                "fdas-observed-legacy-defense-selection/1.0",
+                "selection-evidence:" + selection_evidence_hash,
+                "policy-authority:false",
+            ))
+
     def observe(self, episode_id, after_snapshot, after_revision_id,
                 observation_window_closed=False):
         prior = self.store.get(episode_id)
@@ -697,7 +772,10 @@ class FdasDefenseEpisodeRecorder(object):
                 "fortify", "fortified", "fortifying")
             operation_type = context["operation_type"]
             relieved = bool(
-                (operation_type == "move_defender_to_city" and reached)
+                (operation_type in (
+                    "move_defender_to_city",
+                    "fdas-shadow:city-garrison-deficit:unit_move")
+                 and reached)
                 or (operation_type in (
                         "fortify_existing_defender",
                         "fdas-shadow:unit-fortification-opportunity:unit_fortify")

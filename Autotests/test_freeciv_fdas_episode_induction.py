@@ -17,6 +17,8 @@ from freeciv_agent.planning import (  # noqa: E402
     CAUSAL_INDUCTION_FEATURE_SCHEMA,
     DURABLE_ACTOR_CITY_DEFENSE_TARGET,
     DURABLE_CITY_COVERAGE_TARGET,
+    DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET,
+    DEFENSE_CANDIDATE_CHOICE_SURFACE,
     DecisionEpisode,
     DecisionEpisodeStore,
     EPISODE_SCHEMA_VERSION,
@@ -507,6 +509,71 @@ def test_candidate_choice_set_without_in_scope_selection_is_all_censored():
     assert all(row.selection_role == "nonselected-censored"
                for row in choice_set.choices)
     assert choice_set.observed_outcome is None
+
+
+def test_defense_choice_surface_captures_move_and_fortify_without_estimates():
+    snapshot, fortify, fortify_score, evaluator = _candidate_impact_fixture()
+    move_action = {
+        "action_type": "unit_move", "actor_id": 7,
+        "target": {"direction": "e", "x": 3, "y": 2}}
+    move_action_key = json.dumps(
+        move_action, sort_keys=True, separators=(",", ":"))
+    move_spec = replace(
+        fortify.operation,
+        operation_id="candidate-garrison-move",
+        operation_type="fdas-shadow:city-garrison-deficit:unit_move",
+        steps=(replace(
+            fortify.operation.steps[0], step_id="candidate-move-step",
+            action_type="unit_move"),))
+    move = replace(
+        fortify, operation=move_spec, action=move_action,
+        action_key=move_action_key, candidate_hash="candidate-hash-move")
+    move_score = replace(
+        fortify_score,
+        operation=replace(
+            fortify_score.operation,
+            operation_id=move_spec.operation_id,
+            atom_id="candidate-atom-move"),
+        priority=1.2, value=1.2)
+    legal_snapshot = replace(
+        snapshot,
+        legal_action_json=tuple(sorted(
+            snapshot.legal_action_json
+            + (fortify.action_key, move.action_key))))
+    queries = {}
+    for candidate in (move, fortify):
+        context = evaluator.recorder.context_for_operation(
+            candidate.operation, legal_snapshot)
+        queries[candidate.operation.operation_id] = (
+            causal_induction_feature_query(
+                "query-" + candidate.operation.operation_id,
+                context, DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET,
+                (candidate.candidate_hash, legal_snapshot.snapshot_id)))
+    recorder = FdasCandidateChoiceSetRecorder(
+        FdasCandidateChoiceSetStore("defense-choice-surface-test"))
+
+    choice_set = recorder.capture_defense_surface(
+        (move, fortify), (move_score, fortify_score), legal_snapshot,
+        "surface-revision", fortify.action_key,
+        DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET, queries,
+        global_baseline_selected_operation_id=move.operation.operation_id,
+        provenance_ids=("declaration-hash:test",))
+    rows = dict((row.operation_id, row) for row in choice_set.choices)
+
+    assert choice_set.operation_type == DEFENSE_CANDIDATE_CHOICE_SURFACE
+    assert choice_set.selected_operation_id == fortify.operation.operation_id
+    assert choice_set.category_baseline_selected_operation_id == (
+        move.operation.operation_id)
+    assert len(choice_set.choices) == 2
+    assert rows[fortify.operation.operation_id].selection_role == "selected"
+    assert rows[move.operation.operation_id].selection_role == (
+        "nonselected-censored")
+    assert all(row.estimated is False for row in choice_set.choices)
+    assert all(row.priority_delta == 0.0 for row in choice_set.choices)
+    assert all(row.estimate_reason == "unmodeled-action-stratum"
+               for row in choice_set.choices)
+    assert all("outcome" not in row.feature_query.to_dict()
+               for row in choice_set.choices)
 
 
 def test_context_and_evidence_features_must_be_linked_to_episode():

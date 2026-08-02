@@ -14,6 +14,8 @@ LABEL_SCHEMA_VERSION = 1
 DURABLE_CITY_COVERAGE_TARGET = "durable-own-unit-city-coverage/8-turn/1.0"
 DURABLE_ACTOR_CITY_DEFENSE_TARGET = (
     "durable-attributed-actor-city-defense/32-turn/1.0")
+DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET = (
+    "durable-selected-actor-city-defense/32-turn/2.0")
 _LABEL_STATES = frozenset(("pending", "observed", "confounded", "expired"))
 _TERMINAL_LABEL_STATES = frozenset(("observed", "confounded", "expired"))
 
@@ -39,6 +41,17 @@ def delayed_outcome_episode_eligible(episode, target_id):
             context.get("operation_type", "").endswith("unit_fortify")
             and str(observed.get("actor_activity_after", "")).lower()
             in ("fortify", "fortified", "fortifying"))
+    if target_id == DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET:
+        context = dict(episode.context_signature)
+        observed = episode.observed_delta or {}
+        return bool(
+            context.get("operation_type") in (
+                "fdas-shadow:city-garrison-deficit:unit_move",
+                "fdas-shadow:unit-fortification-opportunity:unit_fortify",
+            )
+            and observed.get("actor_present_after") is True
+            and observed.get("actor_tile_after")
+            == observed.get("target_tile"))
     return False
 
 
@@ -511,6 +524,57 @@ class FdasDefenseActorPersistenceLabeler(FdasDefenseDurabilityLabeler):
             reason = (
                 "attributed-actor-persistent-city-defense-observed-at-"
                 "due-turn")
+        return outcome, {
+            "actor_activity": activity,
+            "actor_at_city": actor_at_city,
+            "actor_id": actor_id,
+            "actor_nontransported": actor_nontransported,
+            "actor_present": actor is not None,
+            "city_id": city_id,
+            "city_owned_and_present": city is not None,
+        }, reason
+
+
+class FdasSelectedDefenseActorPersistenceLabeler(
+        FdasDefenseActorPersistenceLabeler):
+    """Observe selected move/fortify actors still defending the target city."""
+
+    LABELER_IDENTITY = (
+        "fdas-selected-defense-actor-persistence-labeler/1.0")
+    TARGET_ID = DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET
+    OBSERVATION_WINDOW_TURNS = 32
+
+    @staticmethod
+    def _assessment(episode, snapshot):
+        context = dict(episode.context_signature)
+        city_id = int(context["city_id"])
+        actor_ref = context.get("actor_id", "")
+        if not actor_ref.startswith("unit:"):
+            raise ValueError(
+                "selected-defense target requires unit actor context")
+        actor_id = int(actor_ref.split(":", 1)[1])
+        city = snapshot.city(city_id)
+        actor = snapshot.unit(actor_id)
+        actor_at_city = bool(
+            city is not None and actor is not None
+            and actor.owner == snapshot.player_id
+            and actor.tile == city.tile)
+        actor_nontransported = bool(
+            actor is not None and actor.transported is not True)
+        activity = (
+            None if actor is None else str(actor.activity or "").lower())
+        outcome = bool(
+            city is not None and actor_at_city and actor_nontransported)
+        if city is None:
+            reason = "city-no-longer-owned-or-present-at-due-turn"
+        elif actor is None:
+            reason = "selected-actor-no-longer-present-at-due-turn"
+        elif not actor_at_city:
+            reason = "selected-actor-not-at-city-at-due-turn"
+        elif not actor_nontransported:
+            reason = "selected-actor-transported-at-due-turn"
+        else:
+            reason = "selected-actor-city-defense-observed-at-due-turn"
         return outcome, {
             "actor_activity": activity,
             "actor_at_city": actor_at_city,

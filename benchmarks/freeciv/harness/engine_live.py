@@ -60,15 +60,20 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     DecisionEpisodeStore,
                                     FdasCandidateChoiceSetRecorder,
                                     FdasCandidateChoiceSetStore,
+                                    DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES,
+                                    DEFENSE_CANDIDATE_CHOICE_SURFACE,
                                     DURABLE_ACTOR_CITY_DEFENSE_TARGET,
                                     DURABLE_CITY_COVERAGE_TARGET,
+                                    DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET,
                                     EpisodeControlPrediction,
                                     FdasDefenseActorPersistenceLabeler,
                                     FdasDefenseEpisodeRecorder,
                                     FdasDefenseDurabilityLabeler,
+                                    FdasSelectedDefenseActorPersistenceLabeler,
                                     FdasEpisodeInductionShadow,
                                     FdasEpisodeLearningAdapter,
                                     FdasPromotedRuleCandidateImpactShadow,
+                                    causal_induction_feature_query,
                                     INDUCTION_FEATURE_SCHEMA,
                                     FdasExpansionOperationAdapter,
                                     FdasFounderTransportProjectionAdapter,
@@ -2712,6 +2717,13 @@ async def _play(run_dir, manifest, context):
         "induced_rule_candidate_impact_shadow")
     candidate_impact_diagnostic = fdas_manifest.get(
         "induced_rule_candidate_impact_diagnostic")
+    defense_choice_surface_capability = fdas_manifest["capabilities"].get(
+        "defense_candidate_choice_surface")
+    defense_choice_surface_diagnostic = fdas_manifest.get(
+        "defense_candidate_choice_surface_diagnostic")
+    fdas_defense_choice_surface = bool(
+        defense_choice_surface_capability is not None
+        or defense_choice_surface_diagnostic is not None)
     fdas_outcome_label_path = os.path.join(
         run_dir, "fdas-induction-outcome-labels.json")
     fdas_outcome_label_store = None
@@ -2727,6 +2739,8 @@ async def _play(run_dir, manifest, context):
         DURABLE_CITY_COVERAGE_TARGET: FdasDefenseDurabilityLabeler,
         DURABLE_ACTOR_CITY_DEFENSE_TARGET:
             FdasDefenseActorPersistenceLabeler,
+        DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET:
+            FdasSelectedDefenseActorPersistenceLabeler,
     }
     delayed_outcome_target = (
         delayed_outcome_diagnostic.get("target_id")
@@ -2868,6 +2882,67 @@ async def _play(run_dir, manifest, context):
             # Persist even an empty store so zero-label evidence is durable and
             # its activation/identity can be audited independently of events.
             fdas_outcome_label_store.save(fdas_outcome_label_path)
+    if fdas_defense_choice_surface:
+        expected_surface_diagnostic = {
+            "action_selection_changed": False,
+            "operation_types": list(
+                DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES),
+            "outcome_target": DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET,
+            "policy_authority": False,
+            "readout_authority": False,
+            "truth_mutated": False,
+        }
+        if defense_choice_surface_capability != "shadow-live":
+            raise RuntimeError(
+                "FDAS defense choice surface requires shadow-live manifest")
+        if defense_choice_surface_diagnostic != expected_surface_diagnostic:
+            raise RuntimeError(
+                "FDAS defense choice surface declaration differs")
+        if (candidate_impact_capability is not None
+                or candidate_impact_diagnostic is not None):
+            raise RuntimeError(
+                "FDAS defense choice surface cannot share candidate-impact "
+                "model scope")
+        if (fdas_episode_recorder is None
+                or fdas_outcome_label_store is None
+                or delayed_outcome_target
+                != DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET
+                or not fdas_learning_config["induction_enabled"]
+                or fdas_learning_config["induced_rule_readout_enabled"]
+                or fdas_learning_config["contextual_conductance_enabled"]
+                or fdas_learning_config[
+                    "contextual_conductance_authority_enabled"]):
+            raise RuntimeError(
+                "FDAS defense choice surface requires outcome-only, "
+                "non-authorizing induction")
+        fdas_candidate_choice_identity = structural_hash([
+            fdas_episode_identity,
+            "fdas-defense-choice-surface-store/1.0",
+            DEFENSE_CANDIDATE_CHOICE_SURFACE,
+            delayed_outcome_target,
+            list(DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES),
+            manifest["dependent_atomspace"]["declaration_hash"],
+        ])
+        fdas_candidate_choice_store = FdasCandidateChoiceSetStore.load(
+            fdas_candidate_choice_path, fdas_candidate_choice_identity)
+        if fdas_candidate_choice_store.quarantined:
+            raise RuntimeError(
+                "FDAS candidate choice store is quarantined: {}".format(
+                    fdas_candidate_choice_store.quarantine_reason))
+        fdas_candidate_choice_recorder = FdasCandidateChoiceSetRecorder(
+            fdas_candidate_choice_store)
+        for prior_choice in fdas_candidate_choice_store.choice_sets():
+            if (prior_choice.outcome_status != "pending-observation"
+                    or prior_choice.selected_episode_id is None):
+                continue
+            recovered_label = fdas_outcome_label_store.for_episode(
+                prior_choice.selected_episode_id,
+                prior_choice.outcome_target)
+            if (recovered_label is not None
+                    and recovered_label.status == "observed"):
+                fdas_candidate_choice_recorder.observe_outcome(
+                    prior_choice.selected_episode_id, recovered_label)
+        fdas_candidate_choice_store.save(fdas_candidate_choice_path)
     if (candidate_impact_capability is not None
             or candidate_impact_diagnostic is not None):
         if candidate_impact_capability != "shadow-live":
@@ -5024,13 +5099,20 @@ async def _play(run_dir, manifest, context):
                     fdas_authority = None
                     candidate_impact = None
                     candidate_choice_set = None
+                    typed_scores = None
+                    defense_choice_surface_relevant = bool(
+                        fdas_defense_choice_surface
+                        and decision is not None
+                        and decision.candidate.category in (
+                            "city_defense", "city_garrison_move"))
                     evaluate_fdas_shadow = bool(
                         (not fdas_turn_sampled
                          or snapshot.turn not in fdas_shadow_evaluated_turns)
                         and (not fdas_authority_scoped
                              or fdas_runtime.authority_relevant(
                                  None if decision is None
-                                 else decision.candidate)))
+                                 else decision.candidate)
+                             or defense_choice_surface_relevant))
                     if (evaluate_fdas_shadow
                             and (fdas_turn_sampled
                                  or fdas_authority_scoped)):
@@ -5082,11 +5164,13 @@ async def _play(run_dir, manifest, context):
                                 fdas_shadow.candidate_instantiation
                                 .omitted_unprotected_count),
                             status=fdas_shadow.pressure.status)
-                        if fdas_candidate_impact_shadow is not None:
-                            candidate_impact_started = time.perf_counter()
+                        if (fdas_candidate_impact_shadow is not None
+                                or fdas_defense_choice_surface):
                             typed_scores = (
                                 fdas_runtime.shadow_operation_scores(
                                     fdas_shadow))
+                        if fdas_candidate_impact_shadow is not None:
+                            candidate_impact_started = time.perf_counter()
                             candidate_impact = (
                                 fdas_candidate_impact_shadow.evaluate(
                                     snapshot,
@@ -5214,6 +5298,110 @@ async def _play(run_dir, manifest, context):
                                         caused_by=(parent,)))
                                 if choice_event is not None:
                                     parent = choice_event["event_id"]
+                        if (fdas_defense_choice_surface
+                                and defense_choice_surface_relevant):
+                            score_by_id = dict(
+                                (value.operation_id, value)
+                                for value in typed_scores)
+                            surface_candidates = tuple(
+                                value for value in fdas_shadow.candidates
+                                if (value.operation.operation_type
+                                    in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES
+                                    and value.legal_bound
+                                    and value.action_key
+                                    in snapshot.legal_action_json
+                                    and value.operation.operation_id
+                                    in score_by_id))
+                            if (surface_candidates
+                                    and any(score_by_id[
+                                        value.operation.operation_id]
+                                        .admissible
+                                        for value in surface_candidates)):
+                                choice_revision = (
+                                    fdas_store.current_dependent_revision(
+                                        manifest["game_id"], player_id))
+                                surface_queries = {}
+                                for candidate in surface_candidates:
+                                    context_signature = (
+                                        fdas_episode_recorder
+                                        .context_for_operation(
+                                            candidate.operation, snapshot))
+                                    query_id = "fdas-defense-choice-query-" + (
+                                        structural_hash({
+                                            "candidate_hash": (
+                                                candidate.candidate_hash),
+                                            "outcome_target": (
+                                                delayed_outcome_target),
+                                            "revision_id": (
+                                                choice_revision.revision_id),
+                                        })[:32])
+                                    surface_queries[
+                                        candidate.operation.operation_id] = (
+                                            causal_induction_feature_query(
+                                                query_id,
+                                                context_signature,
+                                                delayed_outcome_target,
+                                                (
+                                                    "candidate-hash:" +
+                                                    candidate.candidate_hash,
+                                                    "revision-id:" +
+                                                    choice_revision.revision_id,
+                                                    "snapshot-id:" +
+                                                    snapshot.snapshot_id,
+                                                )))
+                                prior_choice_ids = frozenset(
+                                    value.choice_set_id for value in
+                                    fdas_candidate_choice_store.choice_sets())
+                                candidate_choice_set = (
+                                    fdas_candidate_choice_recorder
+                                    .capture_defense_surface(
+                                        surface_candidates,
+                                        typed_scores, snapshot,
+                                        choice_revision.revision_id,
+                                        decision.candidate.action_key,
+                                        delayed_outcome_target,
+                                        surface_queries,
+                                        global_baseline_selected_operation_id=(
+                                            fdas_shadow.pressure.schedule.get(
+                                                "selected_operation_id")),
+                                        provenance_ids=(
+                                            "declaration-hash:" + manifest[
+                                                "dependent_atomspace"][
+                                                    "declaration_hash"],
+                                            "legacy-selection-action-key:" +
+                                            decision.candidate.action_key,
+                                        )))
+                                choice_is_new = (
+                                    candidate_choice_set.choice_set_id
+                                    not in prior_choice_ids)
+                                fdas_candidate_choice_store.save(
+                                    fdas_candidate_choice_path)
+                                if choice_is_new:
+                                    decision_stats[
+                                        "fdas_candidate_choice_sets"] += 1
+                                    decision_stats[
+                                        "fdas_candidate_choices"] += len(
+                                            candidate_choice_set.choices)
+                                    decision_stats[
+                                        "fdas_candidate_choices_selected"
+                                    ] += int(
+                                        candidate_choice_set
+                                        .selected_operation_id is not None)
+                                    decision_stats[
+                                        "fdas_candidate_choices_censored"
+                                    ] += sum(
+                                        row.selection_role
+                                        == "nonselected-censored"
+                                        for row in
+                                        candidate_choice_set.choices)
+                                    choice_event = (
+                                        fdas_runtime
+                                        .emit_induced_rule_candidate_choice_set(
+                                            writer, snapshot,
+                                            candidate_choice_set, "captured",
+                                            caused_by=(parent,)))
+                                    if choice_event is not None:
+                                        parent = choice_event["event_id"]
                     # Identity-resource scheduling is observational in GDO-3.
                     # Dispatch it only after the complete live planning
                     # boundary has stopped its latency clock.
@@ -5514,7 +5702,50 @@ async def _play(run_dir, manifest, context):
                         raise RuntimeError(
                             "impact plan action failed: {}".format(outcome.reason))
                     selected_episode_id = None
-                    if (fdas_authority is not None
+                    if (fdas_defense_choice_surface
+                            and candidate_choice_set is not None
+                            and candidate_choice_set
+                            .selected_operation_id is not None):
+                        episode_revision = (
+                            fdas_store.current_dependent_revision(
+                                manifest["game_id"], player_id))
+                        episode_candidates = tuple(
+                            value for value in fdas_shadow.candidates
+                            if (value.operation.operation_id
+                                == candidate_choice_set
+                                .selected_operation_id
+                                and value.action_key
+                                == decision.candidate.action_key))
+                        if len(episode_candidates) != 1:
+                            raise RuntimeError(
+                                "FDAS defense choice selection lacks exact "
+                                "candidate")
+                        selection_evidence_hash = structural_hash({
+                            "choice_set_id": (
+                                candidate_choice_set.choice_set_id),
+                            "evaluation_result_hash": (
+                                candidate_choice_set
+                                .evaluation_result_hash),
+                            "execution_event_id": (
+                                outcome.action_result_event_id
+                                or outcome.result_event_id or parent),
+                            "selected_operation_id": (
+                                candidate_choice_set
+                                .selected_operation_id),
+                        })
+                        episode = (
+                            fdas_episode_recorder.begin_observed_selection(
+                                episode_candidates[0], fdas_shadow,
+                                action_snapshot, episode_revision,
+                                outcome.action_result_event_id
+                                or outcome.result_event_id or parent,
+                                selection_evidence_hash))
+                        parent = publish_fdas_episode_revision(
+                            action_snapshot, parent,
+                            opened_episode_id=episode.episode_id)
+                        selected_episode_id = episode.episode_id
+                        decision_stats["fdas_episode_opened"] += 1
+                    elif (fdas_authority is not None
                             and fdas_authority.authorized):
                         episode_revision = (
                             fdas_store.current_dependent_revision(

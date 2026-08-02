@@ -8,6 +8,7 @@ import tempfile
 
 from ..events.schema import canonical_json_bytes, structural_hash
 from ..pressure.induction import InductionEpisode, InductionFeatureQuery
+from ..pressure.scheduler import OperationScore
 from .fdas import ShadowOperationCandidate
 from .fdas_episode_induction import (
     FdasPromotedRuleCandidateImpactEvaluation,
@@ -15,6 +16,11 @@ from .fdas_episode_induction import (
 
 
 CANDIDATE_CHOICE_SCHEMA_VERSION = 1
+DEFENSE_CANDIDATE_CHOICE_SURFACE = "fdas-defense-choice-surface/1.0"
+DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES = (
+    "fdas-shadow:city-garrison-deficit:unit_move",
+    "fdas-shadow:unit-fortification-opportunity:unit_fortify",
+)
 _SELECTION_ROLES = frozenset(("selected", "nonselected-censored"))
 _EXECUTION_STATES = frozenset((
     "pending", "accepted", "rejected", "not-applicable"))
@@ -554,6 +560,117 @@ class FdasCandidateChoiceSetRecorder(object):
              else "censored-no-selection"),
             None, None, None,
             (self.RECORDER_IDENTITY,) + tuple(provenance_ids))
+        return self.store.record(result)
+
+    def capture_defense_surface(
+            self, candidates, scores, snapshot, revision_id,
+            selected_action_key, outcome_target, feature_queries,
+            global_baseline_selected_operation_id=None, provenance_ids=()):
+        """Capture exact legal move/fortify choices without scoring claims."""
+        candidates = tuple(candidates)
+        scores = tuple(scores)
+        if any(not isinstance(value, ShadowOperationCandidate)
+               for value in candidates):
+            raise TypeError("defense surface requires shadow candidates")
+        if any(not isinstance(value, OperationScore) for value in scores):
+            raise TypeError("defense surface requires typed operation scores")
+        if not isinstance(outcome_target, str) or not outcome_target:
+            raise ValueError("defense surface requires an outcome target")
+        if not isinstance(feature_queries, dict):
+            raise TypeError("defense surface requires feature-query mapping")
+        score_by_id = dict((value.operation_id, value) for value in scores)
+        if len(score_by_id) != len(scores):
+            raise ValueError("defense surface score IDs overlap")
+        legal_actions = snapshot.legal_action_json
+        scoped = tuple(
+            value for value in candidates
+            if (value.operation.operation_type
+                in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES
+                and value.legal_bound
+                and value.action_key in legal_actions))
+        if not scoped:
+            raise ValueError("defense surface has no exact legal candidates")
+        if any(value.operation.operation_id not in score_by_id
+               for value in scoped):
+            raise ValueError("defense surface candidate lacks score")
+        if any(value.operation.operation_id not in feature_queries
+               for value in scoped):
+            raise ValueError("defense surface candidate lacks feature query")
+        ranked = tuple(sorted(
+            scoped,
+            key=lambda value: (
+                not score_by_id[value.operation.operation_id].admissible,
+                -score_by_id[value.operation.operation_id].priority,
+                value.operation.operation_id)))
+        admissible = tuple(
+            value for value in ranked
+            if score_by_id[value.operation.operation_id].admissible)
+        if not admissible:
+            raise ValueError("defense surface has no admissible candidates")
+        baseline_rank = dict(
+            (value.operation.operation_id, index + 1)
+            for index, value in enumerate(admissible))
+        selected_matches = tuple(
+            value.operation.operation_id for value in scoped
+            if (selected_action_key is not None
+                and value.action_key == selected_action_key))
+        if len(selected_matches) > 1:
+            raise ValueError("selected action matches multiple candidates")
+        selected_operation_id = (
+            selected_matches[0] if selected_matches else None)
+        choices = []
+        for candidate in ranked:
+            operation_id = candidate.operation.operation_id
+            score = score_by_id[operation_id]
+            query = feature_queries[operation_id]
+            if not isinstance(query, InductionFeatureQuery):
+                raise TypeError("defense surface requires typed feature query")
+            if query.to_dict().get("outcome") is not None:
+                raise ValueError("defense surface query cannot carry outcome")
+            choices.append(FdasCandidateChoice(
+                operation_id, candidate.action_key,
+                candidate.candidate_hash, query, score.admissible,
+                baseline_rank.get(operation_id),
+                baseline_rank.get(operation_id), score.priority,
+                score.priority, score.priority, 0.0, False,
+                "unmodeled-action-stratum", None,
+                ("selected" if operation_id == selected_operation_id
+                 else "nonselected-censored")))
+        evaluation_material = {
+            "candidate_hashes": [
+                value.candidate_hash for value in ranked],
+            "global_baseline_selected_operation_id": (
+                global_baseline_selected_operation_id),
+            "operation_type": DEFENSE_CANDIDATE_CHOICE_SURFACE,
+            "outcome_target": outcome_target,
+            "revision_id": str(revision_id),
+            "score_rows": [score_by_id[value.operation.operation_id].to_dict()
+                           for value in ranked],
+            "snapshot_id": snapshot.snapshot_id,
+        }
+        evaluation_hash = structural_hash(evaluation_material)
+        choice_set_id = "choice-set-" + structural_hash({
+            "evaluation_result_hash": evaluation_hash,
+            "revision_id": str(revision_id),
+            "schema_version": CANDIDATE_CHOICE_SCHEMA_VERSION,
+            "selected_operation_id": selected_operation_id,
+        })[:32]
+        result = FdasCandidateChoiceSet(
+            CANDIDATE_CHOICE_SCHEMA_VERSION, choice_set_id,
+            snapshot.identity.game_id, snapshot.player_id, snapshot.turn,
+            snapshot.snapshot_id, str(revision_id), evaluation_hash,
+            DEFENSE_CANDIDATE_CHOICE_SURFACE, outcome_target,
+            global_baseline_selected_operation_id,
+            admissible[0].operation.operation_id,
+            selected_operation_id, tuple(choices),
+            "pending" if selected_operation_id is not None else "not-applicable",
+            None, None,
+            ("pending-execution" if selected_operation_id is not None
+             else "censored-no-selection"),
+            None, None, None,
+            (self.RECORDER_IDENTITY,
+             "fdas-defense-choice-surface-recorder/1.0")
+            + tuple(provenance_ids))
         return self.store.record(result)
 
     def record_execution(self, choice_set_id, accepted, execution_event_id,

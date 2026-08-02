@@ -18,11 +18,13 @@ from freeciv_agent.planning import (  # noqa: E402
     DecisionEpisodeStore,
     DURABLE_ACTOR_CITY_DEFENSE_TARGET,
     DURABLE_CITY_COVERAGE_TARGET,
+    DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET,
     EpisodeInductionSpec,
     EpisodeInductionOutcomeLabelStore,
     FdasCityDefenseOperationAdapter,
     FdasDefenseActorPersistenceLabeler,
     FdasDefenseDurabilityLabeler,
+    FdasSelectedDefenseActorPersistenceLabeler,
     FdasEpisodeInductionAdapter,
     FdasEpisodeInductionShadow,
     FdasDefenseEpisodeRecorder,
@@ -348,6 +350,48 @@ def test_actor_city_defense_target_records_real_32_turn_persistence():
     assert negative.reason == "attributed-actor-not-at-city-at-due-turn"
     assert negative.to_dict()["policy_authority"] is False
     assert negative.to_dict()["truth_mutated"] is False
+
+
+def test_selected_defense_target_supports_move_without_requiring_fortify():
+    recorder, _episode_store, episode = _begin_episode()
+    relief_payload = _payload(
+        turn=14, unit_tile=84, unit_x=4, legal_target_x=4)
+    relief_payload["units"]["7"]["activity"] = "idle"
+    relieved = recorder.observe(
+        episode.episode_id,
+        _snapshot(relief_payload, 533),
+        "fdas-selected-defense-relief-revision")
+    context = dict(relieved.context_signature)
+    context["operation_type"] = (
+        "fdas-shadow:city-garrison-deficit:unit_move")
+    attributed = replace(
+        relieved, context_signature=tuple(sorted(context.items())))
+
+    old_labeler = FdasDefenseActorPersistenceLabeler(
+        EpisodeInductionOutcomeLabelStore("old-fortify-only-target"))
+    with pytest.raises(ValueError, match="observed immediate relief"):
+        old_labeler.open(
+            attributed, 14, "fdas-selected-defense-relief-revision")
+
+    store = EpisodeInductionOutcomeLabelStore(
+        "selected-defense-persistence")
+    labeler = FdasSelectedDefenseActorPersistenceLabeler(store)
+    pending = labeler.open(
+        attributed, 14, "fdas-selected-defense-relief-revision")
+    due_payload = _payload(
+        turn=46, unit_tile=84, unit_x=4, legal_target_x=4)
+    due_payload["units"]["7"]["activity"] = "idle"
+    observed = labeler.observe(
+        attributed, _snapshot(due_payload, 534),
+        "fdas-selected-defense-due-revision")
+
+    assert pending.target_id == DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET
+    assert pending.due_turn == 46
+    assert observed.outcome is True
+    assert observed.reason == (
+        "selected-actor-city-defense-observed-at-due-turn")
+    assert dict(observed.observed_value)["actor_activity"] == "idle"
+    assert observed.to_dict()["policy_authority"] is False
 
 
 def test_no_update_is_pending_until_window_closes_then_no_effect():
