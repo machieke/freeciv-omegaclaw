@@ -104,6 +104,24 @@ class OperationResourceRequest:
                 self.requirement_set_id,
         }
 
+    @classmethod
+    def from_dict(cls, value):
+        if not isinstance(value, dict):
+            raise TypeError("resource request must be an object")
+        try:
+            return cls(
+                operation_id=value["operation_id"],
+                bid=value["bid"],
+                claims=tuple(
+                    ResourceClaim.from_dict(row)
+                    for row in value["claims"]),
+                requirement_set_id=value.get("requirement_set_id"),
+            )
+        except KeyError as error:
+            raise ValueError(
+                "resource request field is missing: {}".format(
+                    error.args[0]))
+
 
 @dataclass(frozen=True)
 class ResourceScheduleEntry:

@@ -28,6 +28,34 @@ RequirementSet premises and roles, typed resource identities/windows, and the
 current legal binding. Existing exact scheduling remains authoritative over
 reservations; FDAS remains an inspectable shadow projection.
 
+## Durable restart boundary
+
+The lifecycle is now stored as one atomic, digest-verified bundle containing
+the `OperationStore`, canonical founder/ferry assemblies, the bounded repair
+count, and pending settlement-retention observations. Assembly serialization
+round-trips the immutable operation specification, stable intent,
+RequirementSet, initial grounded readout, native corridors, and typed resource
+request, with nested spec, corridor, and assembly digest verification.
+
+Resource reservations are deliberately excluded from persistence because they
+are facts about one exact authoritative snapshot. On restart:
+
+- a reserved operation on the identical snapshot must reproduce the exact
+  legal action, resource claims, and capacity schedule before its reservation
+  and FDAS binding are reconstructed;
+- an active operation on the identical snapshot remains unbound while waiting
+  for a newer authoritative effect;
+- a newer snapshot is passed through normal effect observation, step
+  advancement, blocking, and re-estimation;
+- partially transitioned (`proposed` or `reservable`) persisted state fails
+  closed;
+- identity, schema, authority-boundary, digest, record/assembly, or repair
+  metadata corruption quarantines the entire lifecycle without rewriting the
+  source file.
+
+This closes restart reconstruction for the component. It does not add intent
+discovery, live runtime wiring, action authority, or a gameplay claim.
+
 Boundaries of this increment:
 
 - intent discovery and settlement-site ranking are not implemented here;
@@ -39,8 +67,11 @@ Verification:
 
 ```text
 pytest -q Autotests/test_freeciv_transport_operations.py \
-  Autotests/test_freeciv_fdas_operations.py \
-  Autotests/test_freeciv_fdas_replacement_lifecycle.py
+  Autotests/test_freeciv_operations.py \
+  Autotests/test_freeciv_fdas_corridor.py \
+  Autotests/test_freeciv_resource_claims.py \
+  Autotests/test_freeciv_identity_resource_shadow.py \
+  Autotests/test_freeciv_fdas_operations.py
 
-19 passed
+45 passed
 ```

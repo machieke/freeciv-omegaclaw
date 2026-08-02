@@ -1,8 +1,11 @@
 """Persistent shadow lifecycle for grounded founder/ferry operations."""
 
 from dataclasses import dataclass
+import json
+import os
+import tempfile
 
-from ..events.schema import canonical_json_bytes
+from ..events.schema import canonical_json_bytes, structural_hash
 from ..pressure.resource_capacity import (
     ResourceCapacityExtractor,
 )
@@ -12,7 +15,7 @@ from ..pressure.resource_ledger import (
 from ..pressure.resource_scheduler import (
     BoundedExactScheduler,
 )
-from .operation_store import OperationStore
+from .operation_store import OperationStore, OperationStoreError
 from .operations import (
     OperationState,
     TERMINAL_OPERATION_STATES,
@@ -22,6 +25,9 @@ from .transport_operations import (
     FounderTransportOperationAssembler,
     FounderTransportOperationAssembly,
 )
+
+
+TRANSPORT_LIFECYCLE_SCHEMA_VERSION = 1
 
 
 @dataclass(frozen=True)
@@ -268,6 +274,69 @@ class SettlementRetentionTracker:
                 operation_id]
         return tuple(results)
 
+    def to_dict(self):
+        return {
+            "horizon_turns": self.horizon_turns,
+            "pending": [
+                {
+                    "city_id": value["city_id"],
+                    "completion_turn": value["completion_turn"],
+                    "operation_id": operation_id,
+                    "owner_id": value["owner_id"],
+                    "settlement_tile_id": value["settlement_tile_id"],
+                }
+                for operation_id, value in sorted(self._pending.items())
+            ],
+            "tracker_identity":
+                "freeciv-settlement-retention-tracker/1.0",
+        }
+
+    @classmethod
+    def from_dict(cls, value):
+        if not isinstance(value, dict):
+            raise TypeError("settlement retention state must be an object")
+        if value.get("tracker_identity") != (
+                "freeciv-settlement-retention-tracker/1.0"):
+            raise ValueError("settlement retention identity mismatch")
+        try:
+            tracker = cls(value["horizon_turns"])
+            pending = tuple(value["pending"])
+        except KeyError as error:
+            raise ValueError(
+                "settlement retention field is missing: {}".format(
+                    error.args[0]))
+        for row in pending:
+            if not isinstance(row, dict):
+                raise TypeError(
+                    "settlement retention entry must be an object")
+            try:
+                operation_id = row["operation_id"]
+                values = {
+                    name: row[name]
+                    for name in (
+                        "city_id", "completion_turn", "owner_id",
+                        "settlement_tile_id")
+                }
+            except KeyError as error:
+                raise ValueError(
+                    "settlement retention field is missing: {}".format(
+                        error.args[0]))
+            if not isinstance(operation_id, str) or not operation_id:
+                raise ValueError(
+                    "settlement retention operation ID is required")
+            if operation_id in tracker._pending:
+                raise ValueError(
+                    "duplicate settlement retention operation")
+            if any(
+                    isinstance(item, bool)
+                    or not isinstance(item, int)
+                    or item < 0
+                    for item in values.values()):
+                raise ValueError(
+                    "settlement retention values must be non-negative integers")
+            tracker._pending[operation_id] = values
+        return tracker
+
 
 class FounderTransportOperationLifecycle:
     """Persist, reserve, revalidate, and resolve transport steps."""
@@ -277,7 +346,11 @@ class FounderTransportOperationLifecycle:
 
     def __init__(
             self, identity,
-            ruleset_ir):
+            ruleset_ir,
+            operation_store=None,
+            assemblies=(),
+            repair_counts=(),
+            retention=None):
         if not isinstance(
                 identity, str
                 ) or not identity:
@@ -285,21 +358,231 @@ class FounderTransportOperationLifecycle:
                 "transport lifecycle identity is required")
         self.identity = identity
         self.ruleset_ir = ruleset_ir
-        self.store = OperationStore(
+        persistence_identity = (
             "transport:{}".format(
                 identity))
+        if operation_store is None:
+            operation_store = OperationStore(
+                persistence_identity)
+        if not isinstance(
+                operation_store,
+                OperationStore):
+            raise TypeError(
+                "transport lifecycle requires OperationStore")
+        if operation_store.persistence_identity != (
+                persistence_identity):
+            raise ValueError(
+                "transport operation persistence identity mismatch")
+        self.store = operation_store
         self.ledger = (
             ResourceReservationLedger(
-                "transport:{}".format(
-                    identity)))
-        self.retention = (
-            SettlementRetentionTracker())
-        self._assemblies = {}
-        self._repair_counts = {}
+                persistence_identity))
+        if retention is None:
+            retention = SettlementRetentionTracker()
+        if not isinstance(
+                retention,
+                SettlementRetentionTracker):
+            raise TypeError(
+                "transport lifecycle requires retention tracker")
+        self.retention = retention
+        assembly_rows = tuple(assemblies)
+        if any(
+                not isinstance(
+                    row,
+                    FounderTransportOperationAssembly)
+                for row in assembly_rows):
+            raise TypeError(
+                "transport lifecycle assemblies have the wrong type")
+        self._assemblies = {
+            row.spec.operation_id: row
+            for row in assembly_rows}
+        if len(self._assemblies) != len(assembly_rows):
+            raise ValueError(
+                "transport lifecycle assemblies contain duplicate IDs")
+        repair_rows = tuple(repair_counts)
+        if any(
+                not isinstance(operation_id, str)
+                or not operation_id
+                or isinstance(count, bool)
+                or not isinstance(count, int)
+                or not 0 <= count <= 1
+                for operation_id, count in repair_rows):
+            raise ValueError(
+                "transport lifecycle repair counts are invalid")
+        self._repair_counts = dict(repair_rows)
+        if len(self._repair_counts) != len(repair_rows):
+            raise ValueError(
+                "transport lifecycle repair counts contain duplicate IDs")
+        if not self.store.quarantined:
+            record_by_id = {
+                row.spec.operation_id: row
+                for row in self.store.records()}
+            if set(record_by_id) != set(self._assemblies):
+                raise ValueError(
+                    "transport operation records and assemblies disagree")
+            if any(
+                    record_by_id[operation_id].spec.spec_digest
+                        != assembly.spec.spec_digest
+                    for operation_id, assembly
+                    in self._assemblies.items()):
+                raise ValueError(
+                    "transport operation record and assembly digest mismatch")
+            if not set(self._repair_counts).issubset(record_by_id):
+                raise ValueError(
+                    "transport repair count lacks an operation")
+
+    @property
+    def quarantined(self):
+        return self.store.quarantined
+
+    def to_dict(self, include_digest=True):
+        value = {
+            "assemblies": [
+                self._assemblies[key].to_dict()
+                for key in sorted(self._assemblies)],
+            "controller_identity": self.CONTROLLER_IDENTITY,
+            "operation_store": self.store.to_dict(),
+            "persistence_identity": self.store.persistence_identity,
+            "policy_authority": False,
+            "repair_counts": dict(sorted(self._repair_counts.items())),
+            "retention": self.retention.to_dict(),
+            "schema_version": TRANSPORT_LIFECYCLE_SCHEMA_VERSION,
+            "shadow_only": True,
+        }
+        if include_digest:
+            value["lifecycle_digest"] = structural_hash(value)
+        return value
+
+    def save(self, path):
+        if self.quarantined:
+            raise OperationStoreError(
+                "transport lifecycle is quarantined: {}".format(
+                    self.store.quarantine_reason))
+        path = os.path.abspath(path)
+        directory = os.path.dirname(path)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+        descriptor, temporary = tempfile.mkstemp(
+            prefix=".transport-lifecycle-",
+            suffix=".json",
+            dir=directory or None)
+        try:
+            with os.fdopen(descriptor, "wb") as stream:
+                stream.write(canonical_json_bytes(self.to_dict()))
+                stream.write(b"\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temporary, path)
+        finally:
+            if os.path.exists(temporary):
+                os.unlink(temporary)
+
+    @classmethod
+    def from_dict(cls, value, identity, ruleset_ir):
+        if not isinstance(value, dict):
+            raise TypeError("transport lifecycle root is not an object")
+        if value.get("schema_version") != TRANSPORT_LIFECYCLE_SCHEMA_VERSION:
+            raise ValueError("unsupported transport lifecycle schema")
+        if value.get("controller_identity") != cls.CONTROLLER_IDENTITY:
+            raise ValueError("transport lifecycle controller mismatch")
+        expected_identity = "transport:{}".format(identity)
+        if value.get("persistence_identity") != expected_identity:
+            raise ValueError("transport lifecycle persistence mismatch")
+        digest = value.get("lifecycle_digest")
+        unsigned = dict(value)
+        unsigned.pop("lifecycle_digest", None)
+        if not isinstance(digest, str) or digest != structural_hash(unsigned):
+            raise ValueError("transport lifecycle digest mismatch")
+        repair_counts = value.get("repair_counts", {})
+        if not isinstance(repair_counts, dict):
+            raise TypeError("transport repair counts must be an object")
+        if value.get("shadow_only") is not True or value.get(
+                "policy_authority") is not False:
+            raise ValueError("transport lifecycle authority boundary changed")
+        return cls(
+            identity,
+            ruleset_ir,
+            operation_store=OperationStore.from_dict(
+                value["operation_store"], expected_identity),
+            assemblies=tuple(
+                FounderTransportOperationAssembly.from_dict(row)
+                for row in value.get("assemblies", ())),
+            repair_counts=tuple(sorted(repair_counts.items())),
+            retention=SettlementRetentionTracker.from_dict(
+                value["retention"]),
+        )
+
+    @classmethod
+    def load(cls, path, identity, ruleset_ir):
+        path = os.path.abspath(path)
+        if not os.path.exists(path):
+            return cls(identity, ruleset_ir)
+        try:
+            with open(path, encoding="utf-8") as stream:
+                value = json.load(stream)
+            return cls.from_dict(value, identity, ruleset_ir)
+        except (
+                OSError, TypeError, ValueError, KeyError,
+                json.JSONDecodeError) as error:
+            persistence_identity = "transport:{}".format(identity)
+            return cls(
+                identity,
+                ruleset_ir,
+                operation_store=OperationStore(
+                    persistence_identity,
+                    quarantine_reason="load-failed:{}".format(
+                        type(error).__name__)))
 
     def assembly(self, operation_id):
         return self._assemblies.get(
             str(operation_id))
+
+    def recover(self, snapshot):
+        """Rebuild only exact current reservations after a clean restart."""
+        if self.quarantined:
+            raise OperationStoreError(
+                "transport lifecycle is quarantined: {}".format(
+                    self.store.quarantine_reason))
+        updates = []
+        for record in self.store.nonterminal_records():
+            if record.progress.last_snapshot_id != snapshot.snapshot_id:
+                continue
+            assembly = self._assemblies[record.spec.operation_id]
+            if record.progress.state == OperationState.RESERVED:
+                readout, request = (
+                    FounderTransportOperationAssembler
+                    .current_step_resource_request(
+                        assembly,
+                        snapshot,
+                        record.progress.current_step_index))
+                if request is None or readout.disposition != "reservable":
+                    raise OperationStoreError(
+                        "transport reservation cannot be reconstructed")
+                _, schedule, reservation, _ = self._reserve(
+                    assembly,
+                    snapshot,
+                    record.progress.current_step_index,
+                    request=request)
+                if reservation is None:
+                    raise OperationStoreError(
+                        "transport reservation reconstruction failed closed")
+                updates.append(self._update(
+                    record,
+                    record.progress.state,
+                    "reservation_reconstructed",
+                    "exact-current-transport-reservation-reconstructed",
+                    snapshot,
+                    phase=readout.phase,
+                    next_action=readout.next_action,
+                    schedule=schedule,
+                    reservation=reservation))
+            elif record.progress.state in (
+                    OperationState.PROPOSED,
+                    OperationState.RESERVABLE):
+                raise OperationStoreError(
+                    "transport lifecycle persisted an incomplete transition")
+        updates.extend(self.observe(snapshot))
+        return tuple(updates)
 
     @staticmethod
     def _action_key(action):

@@ -595,6 +595,16 @@ class OperationStore:
         return store
 
     @classmethod
+    def from_dict(
+            cls, value,
+            expected_identity):
+        if not isinstance(value, dict):
+            raise TypeError(
+                "operation store root is not an object")
+        return cls._from_dict(
+            value, expected_identity)
+
+    @classmethod
     def load(
             cls, path,
             expected_identity):
@@ -609,11 +619,7 @@ class OperationStore:
                     encoding="utf-8") as stream:
                 value = json.load(
                     stream)
-            if not isinstance(
-                    value, dict):
-                raise ValueError(
-                    "operation store root is not an object")
-            return cls._from_dict(
+            return cls.from_dict(
                 value,
                 expected_identity)
         except (

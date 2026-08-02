@@ -212,6 +212,11 @@ class FdasFounderTransportProjectionAdapter(object):
         self.refresh(snapshot)
         return updates
 
+    def recover(self, snapshot):
+        updates = self.lifecycle.recover(snapshot)
+        self.refresh(snapshot)
+        return updates
+
     def commit_matching_action(self, snapshot, action, accepted, reason=None):
         updates = self.lifecycle.commit_matching_action(
             snapshot, action, accepted, reason=reason)

@@ -176,6 +176,31 @@ class FounderTransportIntent:
                 self.target_ref,
         }
 
+    @classmethod
+    def from_dict(cls, value):
+        if not isinstance(value, dict):
+            raise TypeError("transport intent must be an object")
+        try:
+            intent = cls(
+                founder_unit_id=value["founder_unit_id"],
+                ferry_unit_id=value["ferry_unit_id"],
+                pickup_tile_id=value["pickup_tile_id"],
+                landing_carrier_tile_id=value["landing_carrier_tile_id"],
+                landing_tile_id=value["landing_tile_id"],
+                settlement_tile_id=value["settlement_tile_id"],
+                rendezvous_deadline_turn=value["rendezvous_deadline_turn"],
+                settlement_deadline_turn=value["settlement_deadline_turn"],
+                escort_unit_id=value.get("escort_unit_id"),
+            )
+        except KeyError as error:
+            raise ValueError(
+                "transport intent field is missing: {}".format(
+                    error.args[0]))
+        target_ref = value.get("target_ref")
+        if target_ref is not None and target_ref != intent.target_ref:
+            raise ValueError("transport intent target reference mismatch")
+        return intent
+
 
 @dataclass(frozen=True)
 class TransportOperationReadout:
@@ -226,6 +251,41 @@ class TransportOperationReadout:
         ):
             raise TypeError(
                 "transport corridor has the wrong type")
+
+    def to_dict(self):
+        return {
+            "corridor": (
+                None
+                if self.corridor is None
+                else self.corridor.to_dict()),
+            "disposition": self.disposition,
+            "next_action": self.next_action,
+            "phase": self.phase,
+            "reason": self.reason,
+            "step_index": self.step_index,
+        }
+
+    @classmethod
+    def from_dict(cls, value):
+        if not isinstance(value, dict):
+            raise TypeError("transport readout must be an object")
+        try:
+            corridor = value.get("corridor")
+            return cls(
+                disposition=value["disposition"],
+                phase=value["phase"],
+                step_index=value["step_index"],
+                reason=value["reason"],
+                next_action=value.get("next_action"),
+                corridor=(
+                    None
+                    if corridor is None
+                    else NativeRouteCorridor.from_dict(corridor)),
+            )
+        except KeyError as error:
+            raise ValueError(
+                "transport readout field is missing: {}".format(
+                    error.args[0]))
 
 
 @dataclass(frozen=True)
@@ -357,8 +417,35 @@ class FounderTransportOperationAssembly:
             raise ValueError(
                 "initial transport operations are shadow-only")
 
-    def to_dict(self):
-        return {
+        if (
+                self.spec.operation_type
+                    != "founder_transport_operation"
+                or self.spec.target_ref
+                    != self.intent.target_ref
+                or self.spec.expiry_turn
+                    != self.intent.settlement_deadline_turn
+        ):
+            raise ValueError(
+                "transport assembly spec and intent disagree")
+        participant_by_role = {
+            row.role: row.actor_id
+            for row in self.spec.participants}
+        if participant_by_role != {
+                "founder": "unit:{}".format(
+                    self.intent.founder_unit_id),
+                "ferry": "unit:{}".format(
+                    self.intent.ferry_unit_id),
+        }:
+            raise ValueError(
+                "transport assembly participants and intent disagree")
+
+    @property
+    def assembly_digest(self):
+        return structural_hash(
+            self.to_dict(include_digest=False))
+
+    def to_dict(self, include_digest=True):
+        value = {
             "initial_corridors": [
                 row.to_dict()
                 for row in
@@ -374,29 +461,9 @@ class FounderTransportOperationAssembly:
             "initial_premise_packets":
                 dict(
                     self.initial_premise_packets),
-            "initial_readout": {
-                "corridor": (
-                    None
-                    if self.initial_readout
-                        .corridor is None
-                    else self.initial_readout
-                        .corridor.to_dict()),
-                "disposition":
-                    self.initial_readout
-                    .disposition,
-                "next_action":
-                    self.initial_readout
-                    .next_action,
-                "phase":
-                    self.initial_readout
-                    .phase,
-                "reason":
-                    self.initial_readout
-                    .reason,
-                "step_index":
-                    self.initial_readout
-                    .step_index,
-            },
+            "initial_readout":
+                self.initial_readout
+                .to_dict(),
             "initial_step_index":
                 self.initial_step_index,
             "intent": self.intent.to_dict(),
@@ -412,6 +479,59 @@ class FounderTransportOperationAssembly:
             "shadow_only": True,
             "spec": self.spec.to_dict(),
         }
+        if include_digest:
+            value["assembly_digest"] = (
+                self.assembly_digest)
+        return value
+
+    @classmethod
+    def from_dict(cls, value):
+        if not isinstance(value, dict):
+            raise TypeError("transport assembly must be an object")
+        try:
+            profiles = tuple(sorted(
+                (
+                    row["unit_type"],
+                    row["transport_capacity"],
+                )
+                for row in value["compatible_carrier_profiles"]))
+            packets = value["initial_premise_packets"]
+            if not isinstance(packets, dict):
+                raise TypeError(
+                    "transport premise packets must be an object")
+            assembly = cls(
+                spec=OperationSpec.from_dict(value["spec"]),
+                intent=FounderTransportIntent.from_dict(value["intent"]),
+                requirement_set=RequirementSet.from_dict(
+                    value["requirement_set"]),
+                initial_premise_packets=tuple(sorted(packets.items())),
+                initial_step_index=value["initial_step_index"],
+                initial_readout=TransportOperationReadout.from_dict(
+                    value["initial_readout"]),
+                resource_request=OperationResourceRequest.from_dict(
+                    value["resource_request"]),
+                rendezvous_eta_turns=value["rendezvous_eta_turns"],
+                initial_corridors=tuple(sorted(
+                    (
+                        NativeRouteCorridor.from_dict(row)
+                        for row in value["initial_corridors"]
+                    ),
+                    key=lambda row: (
+                        row.actor_id,
+                        row.destination_tile,
+                        row.corridor_digest))),
+                compatible_carrier_profiles=profiles,
+                shadow_only=value.get("shadow_only", True),
+                policy_authority=value.get("policy_authority", False),
+            )
+        except KeyError as error:
+            raise ValueError(
+                "transport assembly field is missing: {}".format(
+                    error.args[0]))
+        digest = value.get("assembly_digest")
+        if not isinstance(digest, str) or digest != assembly.assembly_digest:
+            raise ValueError("transport assembly digest mismatch")
+        return assembly
 
 
 @dataclass(frozen=True)

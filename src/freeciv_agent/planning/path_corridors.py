@@ -96,7 +96,6 @@ class PathCorridor:
             "visibility": self.visibility,
         }
 
-
 def adjacent_action_corridor(snapshot, legal_action):
     """Build the exact one-edge corridor declared by a legal move action."""
     if not isinstance(legal_action, dict):
@@ -290,6 +289,33 @@ class NativeRouteCorridor:
                 self.total_movement_cost,
             "visibility": self.visibility,
         }
+
+    @classmethod
+    def from_dict(cls, value):
+        if not isinstance(value, dict):
+            raise TypeError("native route corridor must be an object")
+        try:
+            corridor = cls(
+                schema_version=value["schema_version"],
+                actor_id=value["actor_id"],
+                origin_tile=value["origin_tile"],
+                destination_tile=value["destination_tile"],
+                first_step_tile=value["first_step_tile"],
+                path_directions=tuple(value["path_directions"]),
+                path_length=value["path_length"],
+                estimated_turns=value["estimated_turns"],
+                total_movement_cost=value["total_movement_cost"],
+                snapshot_id=value["snapshot_id"],
+                visibility=value["visibility"],
+            )
+        except KeyError as error:
+            raise ValueError(
+                "native route corridor field is missing: {}".format(
+                    error.args[0]))
+        digest = value.get("corridor_digest")
+        if not isinstance(digest, str) or digest != corridor.corridor_digest:
+            raise ValueError("native route corridor digest mismatch")
+        return corridor
 
 
 def native_route_corridor(

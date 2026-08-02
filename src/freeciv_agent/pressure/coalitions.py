@@ -68,6 +68,29 @@ class RequirementSet:
             "rule_id": self.rule_id,
         }
 
+    @classmethod
+    def from_dict(cls, value):
+        if not isinstance(value, dict):
+            raise TypeError("requirement set must be an object")
+        try:
+            thresholds = value.get("packet_thresholds", {})
+            if not isinstance(thresholds, dict):
+                raise TypeError(
+                    "requirement set packet thresholds must be an object")
+            return cls(
+                requirement_set_id=value["requirement_set_id"],
+                rule_id=value["rule_id"],
+                premise_ids=tuple(value["premise_ids"]),
+                role_ids=tuple(value["role_ids"]),
+                context_digest=value["context_digest"],
+                completion_policy=value.get("completion_policy", "all"),
+                packet_thresholds=tuple(sorted(thresholds.items())),
+            )
+        except KeyError as error:
+            raise ValueError(
+                "requirement set field is missing: {}".format(
+                    error.args[0]))
+
 
 @dataclass(frozen=True)
 class FactorDemand:

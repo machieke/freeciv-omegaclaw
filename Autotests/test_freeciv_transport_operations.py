@@ -7,6 +7,8 @@ import sys
 from dataclasses import replace
 from types import SimpleNamespace
 
+import pytest
+
 
 REPO = os.path.dirname(
     os.path.dirname(
@@ -24,6 +26,7 @@ from freeciv_agent.planning import (  # noqa: E402
     FounderTransportIntent,
     FounderTransportOperationAssembler,
     FounderTransportOperationLifecycle,
+    OperationStoreError,
     OperationState,
     SettlementRetentionTracker,
 )
@@ -1199,3 +1202,158 @@ def test_blocked_operation_adopts_only_grounded_margin_improving_replacement():
         OperationState.RESERVED)
     assert repaired.registration_updates[
         0].phase == "embark"
+
+
+def test_transport_assembly_round_trip_rejects_digest_mismatch():
+    initial = _snapshot()
+    assembly = (
+        FounderTransportOperationAssembler()
+        .assemble(initial, _ruleset(), "ruleset-proof", _intent())
+        .assembly)
+
+    restored = type(assembly).from_dict(assembly.to_dict())
+
+    assert restored == assembly
+    corrupted = copy.deepcopy(assembly.to_dict())
+    corrupted["rendezvous_eta_turns"] += 1
+    with pytest.raises(ValueError, match="digest mismatch"):
+        type(assembly).from_dict(corrupted)
+
+
+def test_transport_lifecycle_restart_reconstructs_exact_reservation_and_binding(
+        tmp_path):
+    initial = _snapshot(embark=True)
+    ruleset = _ruleset()
+    assembly = (
+        FounderTransportOperationAssembler()
+        .assemble(initial, ruleset, "ruleset-proof", _intent())
+        .assembly)
+    path = tmp_path / "transport-lifecycle.json"
+    lifecycle = FounderTransportOperationLifecycle(
+        "restart-proof", ruleset)
+    lifecycle.register(assembly, initial)
+    lifecycle.save(str(path))
+
+    restarted = FounderTransportOperationLifecycle.load(
+        str(path), "restart-proof", ruleset)
+    adapter = FdasFounderTransportProjectionAdapter(
+        restarted, "ruleset-proof")
+    updates = adapter.recover(initial)
+
+    operation_id = assembly.spec.operation_id
+    assert [row.disposition for row in updates] == [
+        "reservation_reconstructed"]
+    assert restarted.store.get(operation_id).progress.state == (
+        OperationState.RESERVED)
+    assert restarted.ledger.reservation(operation_id).active
+    assert adapter.binding(operation_id).action == (
+        assembly.initial_readout.next_action)
+    assert adapter.requirement_context(
+        operation_id).blocked_premises == ()
+
+
+def test_transport_lifecycle_restart_advances_only_from_new_authoritative_state(
+        tmp_path):
+    initial = _snapshot(embark=True)
+    ruleset = _ruleset()
+    assembly = (
+        FounderTransportOperationAssembler()
+        .assemble(initial, ruleset, "ruleset-proof", _intent())
+        .assembly)
+    path = tmp_path / "transport-lifecycle.json"
+    lifecycle = FounderTransportOperationLifecycle(
+        "advance-restart-proof", ruleset)
+    lifecycle.register(assembly, initial)
+    lifecycle.commit_matching_action(
+        initial, assembly.initial_readout.next_action, accepted=True)
+    lifecycle.save(str(path))
+
+    founder = replace(
+        initial.unit(102), transported=True, transported_by=200,
+        tile=201, x=9, y=4)
+    ferry = replace(initial.unit(200), cargo_count=1)
+    action = _move(200, 202)
+    carried = _revision(
+        initial, 2, (founder, ferry), (action,),
+        routes=(_route(200, 201, 300, 202, 3, source_seq=2),))
+    restarted = FounderTransportOperationLifecycle.load(
+        str(path), "advance-restart-proof", ruleset)
+    adapter = FdasFounderTransportProjectionAdapter(
+        restarted, "ruleset-proof")
+
+    assert adapter.recover(initial) == ()
+    updates = adapter.recover(carried)
+
+    assert [row.disposition for row in updates] == [
+        "step_completed", "step_reestimated"]
+    operation_id = assembly.spec.operation_id
+    assert restarted.store.get(
+        operation_id).progress.current_step_index == 3
+    assert adapter.binding(operation_id).action == action
+    assert restarted.ledger.reservation(operation_id).active
+
+
+def test_transport_lifecycle_load_quarantines_corruption_and_wrong_identity(
+        tmp_path):
+    initial = _snapshot(embark=True)
+    ruleset = _ruleset()
+    assembly = (
+        FounderTransportOperationAssembler()
+        .assemble(initial, ruleset, "ruleset-proof", _intent())
+        .assembly)
+    path = tmp_path / "transport-lifecycle.json"
+    lifecycle = FounderTransportOperationLifecycle(
+        "quarantine-proof", ruleset)
+    lifecycle.register(assembly, initial)
+    lifecycle.save(str(path))
+    original = path.read_bytes()
+
+    wrong_identity = FounderTransportOperationLifecycle.load(
+        str(path), "different-proof", ruleset)
+    assert wrong_identity.quarantined
+    assert path.read_bytes() == original
+
+    payload = json.loads(original.decode("utf-8"))
+    payload["assemblies"][0]["intent"]["ferry_unit_id"] = 201
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    corrupted = FounderTransportOperationLifecycle.load(
+        str(path), "quarantine-proof", ruleset)
+
+    assert corrupted.quarantined
+    with pytest.raises(OperationStoreError, match="quarantined"):
+        corrupted.recover(initial)
+
+
+def test_transport_lifecycle_bundle_preserves_retention_and_repair_budget(
+        tmp_path):
+    initial = _snapshot(embark=True)
+    ruleset = _ruleset()
+    assembly = (
+        FounderTransportOperationAssembler()
+        .assemble(initial, ruleset, "ruleset-proof", _intent())
+        .assembly)
+    lifecycle = FounderTransportOperationLifecycle(
+        "metadata-proof", ruleset)
+    lifecycle.register(assembly, initial)
+    lifecycle._repair_counts[assembly.spec.operation_id] = 1
+    city = CityState(
+        city_id=900, owner=0, name="Landing", tile=302,
+        x=14, y=6, size=1, production_kind=None,
+        production_value=None, food_stock=0, shield_stock=0,
+        surplus=(), production=(), buildability_available=False,
+        buildable=())
+    completed = _revision(
+        initial, 9, (initial.unit(200),), (), cities=(city,))
+    lifecycle.retention.register_completion(assembly, completed)
+    path = tmp_path / "transport-lifecycle.json"
+    lifecycle.save(str(path))
+
+    restarted = FounderTransportOperationLifecycle.load(
+        str(path), "metadata-proof", ruleset)
+    serialized = restarted.to_dict()
+    retained = restarted.retention.observe(_with_turn(completed, 19))
+
+    assert serialized["repair_counts"] == {
+        assembly.spec.operation_id: 1}
+    assert retained[0].retained
+    assert retained[0].operation_id == assembly.spec.operation_id

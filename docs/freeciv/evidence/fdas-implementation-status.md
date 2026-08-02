@@ -139,3 +139,13 @@ checks. See `fdas-pr16-transport-capability-shadow.md`. Transport operation
 intent, lifecycle activation, replay/rollback, and bounded authority remain
 `component-only`; this acceptance does not imply embark execution or gameplay
 improvement.
+
+The component-only transport lifecycle now also survives restart through one
+atomic digest-verified bundle covering progress, canonical assemblies, the
+one-repair budget, and pending settlement retention. Exact resource
+reservations are never trusted across restart: the current authoritative
+snapshot must reproduce the byte-identical legal step, claims, and capacity
+before the reservation and binding return. Corruption or partially persisted
+transitions quarantine/fail closed. This removes the persistence prerequisite
+for a future live shadow operation, but grounded intent discovery and runtime
+activation are still open.
