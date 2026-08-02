@@ -30,42 +30,42 @@
         },
         "performance_observation": {
           "full_controller_p95_target_ms": 500.0,
-          "full_controller_p95_within_target": false
+          "full_controller_p95_within_target": true
         }
       },
       "arm": "baseline",
       "evidence": {
         "events.jsonl": {
-          "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v3/games/impact_pair/fdas_transport_shadow_diagnostic_v1/baseline/e_full_loop/104729-00/events.jsonl",
-          "sha256": "5a60a6355315c0035e4c6fb3333a0043c75b4dd4dbde59f5adcb493f0170dd19"
+          "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v5/games/impact_pair/fdas_transport_shadow_diagnostic_v1/baseline/e_full_loop/104729-00/events.jsonl",
+          "sha256": "a9e9e19e9fc963780699c03306cfd8c04b9b99c07643f5c7d9eef71ef0d1f539"
         },
         "manifest.json": {
-          "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v3/games/impact_pair/fdas_transport_shadow_diagnostic_v1/baseline/e_full_loop/104729-00/manifest.json",
-          "sha256": "ce885766bf8e914251e91efb7296de9fe542d00ec584436cdf5db310b9712586"
+          "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v5/games/impact_pair/fdas_transport_shadow_diagnostic_v1/baseline/e_full_loop/104729-00/manifest.json",
+          "sha256": "5032bec1202db681e4cd671d1dad79f1f448c6df27606c98762ff13d6c5f68c5"
         },
         "status.json": {
-          "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v3/games/impact_pair/fdas_transport_shadow_diagnostic_v1/baseline/e_full_loop/104729-00/status.json",
-          "sha256": "8ae2fac42338f0304fb51bce8f9b403882d76c232a74d8ef096e350469a5189f"
+          "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v5/games/impact_pair/fdas_transport_shadow_diagnostic_v1/baseline/e_full_loop/104729-00/status.json",
+          "sha256": "10e0a19aa86bbf38eab958cc71332369bf1845806a6192b78dc1ad1e274cbc9d"
         }
       },
       "latency": {
         "fdas_projection": {
           "count": 31,
-          "maximum_ms": 31.87399823218584,
-          "p50_ms": 25.47798166051507,
-          "p95_ms": 29.387658927589655
+          "maximum_ms": 34.5032038167119,
+          "p50_ms": 25.59340000152588,
+          "p95_ms": 30.431800056248903
         },
         "fdas_shadow_evaluation": {
           "count": 30,
-          "maximum_ms": 18.579949159175158,
-          "p50_ms": 1.9292221404612064,
-          "p95_ms": 18.355132080614567
+          "maximum_ms": 18.29939428716898,
+          "p50_ms": 1.9053881987929344,
+          "p95_ms": 18.267191015183926
         },
         "full_controller": {
           "count": 30,
-          "maximum_ms": 672.1439338289201,
-          "p50_ms": 165.59380805119872,
-          "p95_ms": 508.5890041664243
+          "maximum_ms": 527.5699328631163,
+          "p50_ms": 132.90685880929232,
+          "p95_ms": 412.67993208020926
         }
       },
       "predicates": {
@@ -78,10 +78,10 @@
         "unit-ruleset-founder-capable": 1
       },
       "source": {
-        "commit": "e79d6fa6c02d97c9895ec72338db99f957941b8d",
+        "commit": "f80b307d4e97623bce03cadb9761b2689d2e60af",
         "dirty": false,
-        "implementation_sha256": "da92409dd64b24831e6b074ca86920a4375c1217271a630b2a6d6d47d053f8d5",
-        "source_files": 263
+        "implementation_sha256": "1958cf4ea3e84e457c1e6334d3d6e42506b69019d43307574a664ea7f6f194b2",
+        "source_files": 264
       },
       "summary": {
         "accepted_action_results": 75,
@@ -111,42 +111,42 @@
         },
         "performance_observation": {
           "full_controller_p95_target_ms": 500.0,
-          "full_controller_p95_within_target": false
+          "full_controller_p95_within_target": true
         }
       },
       "arm": "treatment",
       "evidence": {
         "events.jsonl": {
-          "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v3/games/impact_pair/fdas_transport_shadow_diagnostic_v1/treatment/e_full_loop/104729-00/events.jsonl",
-          "sha256": "57eefcb1769c92b459266e6e52f3661249f26c197da738bd5a9e60a8567edfc2"
+          "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v5/games/impact_pair/fdas_transport_shadow_diagnostic_v1/treatment/e_full_loop/104729-00/events.jsonl",
+          "sha256": "926511b90f30ab65993b8e79464c8ae3a9c38042ed43c8610f502a7fa1d533e7"
         },
         "manifest.json": {
-          "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v3/games/impact_pair/fdas_transport_shadow_diagnostic_v1/treatment/e_full_loop/104729-00/manifest.json",
-          "sha256": "3806431cbea3cee488e722c1ebf9499cda2dfc202ad9eb083a4f8df31988c328"
+          "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v5/games/impact_pair/fdas_transport_shadow_diagnostic_v1/treatment/e_full_loop/104729-00/manifest.json",
+          "sha256": "f2226a7034fd3d69240903af4b3c41430f004dc1054f192169f53cfadfb53d4d"
         },
         "status.json": {
-          "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v3/games/impact_pair/fdas_transport_shadow_diagnostic_v1/treatment/e_full_loop/104729-00/status.json",
-          "sha256": "fbb75e1ec246bd8e438cac219b54ce9499723c3b8194918c4005cf99eb7578ae"
+          "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v5/games/impact_pair/fdas_transport_shadow_diagnostic_v1/treatment/e_full_loop/104729-00/status.json",
+          "sha256": "01af14719dc6334c40394b0e9ee27f2044fdeff4b98a3673c412d3e711025e84"
         }
       },
       "latency": {
         "fdas_projection": {
           "count": 31,
-          "maximum_ms": 40.79722473397851,
-          "p50_ms": 27.184133883565664,
-          "p95_ms": 30.757197178900242
+          "maximum_ms": 41.85568215325475,
+          "p50_ms": 26.905366219580173,
+          "p95_ms": 31.558827962726355
         },
         "fdas_shadow_evaluation": {
           "count": 30,
-          "maximum_ms": 18.056830391287804,
-          "p50_ms": 1.9120099022984505,
-          "p95_ms": 3.106355667114258
+          "maximum_ms": 18.421092070639133,
+          "p50_ms": 1.906056422740221,
+          "p95_ms": 3.0829450115561485
         },
         "full_controller": {
           "count": 30,
-          "maximum_ms": 728.3401833847165,
-          "p50_ms": 166.43659817054868,
-          "p95_ms": 706.4969521015882
+          "maximum_ms": 512.6823862083256,
+          "p50_ms": 131.51068426668644,
+          "p95_ms": 449.85948503017426
         }
       },
       "predicates": {
@@ -159,10 +159,10 @@
         "unit-ruleset-founder-capable": 1
       },
       "source": {
-        "commit": "e79d6fa6c02d97c9895ec72338db99f957941b8d",
+        "commit": "f80b307d4e97623bce03cadb9761b2689d2e60af",
         "dirty": false,
-        "implementation_sha256": "da92409dd64b24831e6b074ca86920a4375c1217271a630b2a6d6d47d053f8d5",
-        "source_files": 263
+        "implementation_sha256": "1958cf4ea3e84e457c1e6334d3d6e42506b69019d43307574a664ea7f6f194b2",
+        "source_files": 264
       },
       "summary": {
         "accepted_action_results": 75,
@@ -176,20 +176,20 @@
   "cohort": "fdas_transport_shadow_diagnostic_v1",
   "evidence": {
     "impact_aggregate": {
-      "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v3/impact-aggregate.json",
-      "sha256": "80f1ed753c293d4b1b8a2332bf07acf089fee2321e37311d686e41db06bf01aa"
+      "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v5/impact-aggregate.json",
+      "sha256": "b2d60ea68389c411060e2f6a829badce2c36a8647cba00e16c45f0ce305f56d6"
     },
     "impact_run_summary": {
-      "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v3/impact-run-summary.json",
-      "sha256": "c53f46fa932734852f6d5425e361fb0e37a9039c9ca57dad90c3d3cceb59d439"
+      "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v5/impact-run-summary.json",
+      "sha256": "4b19843424394540f45635fef49e5086173bcb345fc06c6197c3da717347fd67"
     }
   },
   "schema_version": "1.0",
   "source": {
-    "commit": "e79d6fa6c02d97c9895ec72338db99f957941b8d",
-    "implementation_sha256": "da92409dd64b24831e6b074ca86920a4375c1217271a630b2a6d6d47d053f8d5"
+    "commit": "f80b307d4e97623bce03cadb9761b2689d2e60af",
+    "implementation_sha256": "1958cf4ea3e84e457c1e6334d3d6e42506b69019d43307574a664ea7f6f194b2"
   },
-  "structural_hash": "6822bb5b1b17455f4d53d1c0075877384882869b1b6aa972d716e881a96231d3",
+  "structural_hash": "205e15978199aa035e4ea648f6e496b47c9dc30c5bde03493b8ca3f8a6a4fb3d",
   "summary": {
     "accepted_action_results": 150,
     "actions": 150,

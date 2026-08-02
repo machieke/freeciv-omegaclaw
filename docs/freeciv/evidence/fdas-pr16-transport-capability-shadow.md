@@ -44,11 +44,20 @@ and, when relations are complete, equal to the derived count. The ruleset and
 proxy legality checks use the same relation semantics. Regression coverage
 includes empty, partially loaded, full, contradictory, and incomplete states.
 
-## Fresh paired confirmation
+## Fresh paired confirmation and latency closure
 
-The semantic repair was committed before execution. The clean cohort used
-source commit `e79d6fa6c02d97c9895ec72338db99f957941b8d`, pinned seed `104729`,
-the corrected proxy patch-series identity
+The semantic repair was committed before execution. Two clean 50 ms cohorts
+confirmed the capability result but missed the 500 ms full-controller p95
+target in both arms. Latency decomposition identified the accepted-action
+authoritative refresh barrier, repeated three or four times on multi-action
+turns, as the dominant avoidable cost. The barrier retained its exact
+source-sequence lock, proxy-settled marker, two-sample equivalence,
+candidate-specific effect predicate, and fail-closed retry while its quiet
+interval was reduced from 50 ms to 20 ms.
+
+The clean confirmation cohort used source commit
+`f80b307d4e97623bce03cadb9761b2689d2e60af`, pinned seed `104729`, the
+corrected proxy patch-series identity
 `d8f586ad5741106beb23b24c3e5f599fd74cb8e1b0f0a33961f2c966e66fe7d4`,
 and this command shape:
 
@@ -56,13 +65,13 @@ and this command shape:
 FREECIV_FDAS_CONFIG_PATH=profile/dependent_atomspace_transport_shadow.yaml \
 FREECIV_FDAS_MANIFEST_PATH=profile/fdas_manifest_transport_shadow.json \
 PYTHONPATH=src:benchmarks python3 scripts/freeciv/run_impact_evaluation.py \
-  --out artifacts/freeciv/fdas-transport-capability-shadow-live-30-v3 \
+  --out artifacts/freeciv/fdas-transport-capability-shadow-live-30-v5 \
   --config profile/freeciv_harness.yaml --backend engine-live \
   --workers 1 --server-ports 6001 \
   --cohort fdas_transport_shadow_diagnostic_v1 --no-resume
 
 PYTHONPATH=src:benchmarks python3 scripts/freeciv/audit_fdas_transport_live.py \
-  --cohort-root artifacts/freeciv/fdas-transport-capability-shadow-live-30-v3 \
+  --cohort-root artifacts/freeciv/fdas-transport-capability-shadow-live-30-v5 \
   --output docs/freeciv/evidence/fdas-pr16-transport-capability-shadow-engine.json
 ```
 
@@ -75,9 +84,9 @@ Results:
 | Seat-resource projections | 31 | 31 |
 | Seat-available projections | 31 | 31 |
 | Sampled cold verifications / failures | 1 / 0 | 3 / 0 |
-| FDAS projection p50 / p95 | 25.48 / 29.39 ms | 27.18 / 30.76 ms |
-| FDAS shadow p50 / p95 | 1.93 / 18.36 ms | 1.91 / 3.11 ms |
-| Full-controller p50 / p95 | 165.59 / 508.59 ms | 166.44 / 706.50 ms |
+| FDAS projection p50 / p95 | 25.59 / 30.43 ms | 26.91 / 31.56 ms |
+| FDAS shadow p50 / p95 | 1.91 / 18.27 ms | 1.91 / 3.08 ms |
+| Full-controller p50 / p95 | 132.91 / 412.68 ms | 131.51 / 449.86 ms |
 | FDAS authority events / actions | 0 / 0 | 0 / 0 |
 | Transport operation events | 0 | 0 |
 
@@ -86,16 +95,19 @@ FDAS contribution gates passed. The audit requires the seat-resource and
 seat-available record counts to equal the number of materialized transport
 scopes, and it rejects an at-capacity contradiction for this empty ferry.
 
-The branch-wide 500 ms full-controller p95 target was not met in this short
-pair. FDAS itself remained well inside its 150 ms contribution budget; the
-controller observation is retained as an open performance item rather than
-being hidden inside capability acceptance. A later ordinary-latency cohort or
-optimization must close that global definition-of-done item.
+Both arms now meet the branch-wide 500 ms full-controller p95 target. Against
+the two preceding 50 ms cohorts, full-controller p95 moved from
+508.59/706.50 ms and 669.81/586.80 ms to 412.68/449.86 ms. Median controller
+latency fell from roughly 166--173 ms to 132 ms, while FDAS projection p95
+remained stable near 30--32 ms. This is evidence that the improvement came
+from the authoritative refresh path, not from suppressing FDAS work. All 150
+action results remained accepted and all four sampled cold checks remained
+equivalent.
 
 The deterministic report structural hash is
-`6822bb5b1b17455f4d53d1c0075877384882869b1b6aa972d716e881a96231d3`.
+`205e15978199aa035e4ea648f6e496b47c9dc30c5bde03493b8ca3f8a6a4fb3d`.
 The tracked report file SHA-256 is
-`5735eafc43e99650776a86c79fe5c1fd7e4492e27c7acecfa656a319ecc239a6`.
+`0fad19ca6cc50a7d1b5a714437ba8209ad7d51792ab5c58e64b5e44792a391ca`.
 
 ## Claim boundary and next gate
 

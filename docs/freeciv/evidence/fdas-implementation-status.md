@@ -128,10 +128,14 @@ own-unit `transported_by` relations. In the clean paired 30-turn confirmation,
 both arms materialized an empty Trireme scope on every FDAS refresh and emitted
 62 total seat-resource plus 62 seat-available records. All 150 actions were
 accepted, four sampled cold checks were equivalent, no authority or transport
-operation event occurred, and FDAS projection p95 remained below 31 ms.
+operation event occurred, and FDAS projection p95 remained below 32 ms.
 
-See `fdas-pr16-transport-capability-shadow.md`. The global full-controller p95
-target was not met in this short pair and remains an explicit open performance
-item. Transport operation intent, lifecycle activation, replay/rollback, and
-bounded authority remain `component-only`; this acceptance does not imply
-embark execution or gameplay improvement.
+The accepted-action refresh quiet interval was then reduced from 50 ms to
+20 ms without weakening the source-sequence lock, two-sample stability proof,
+effect predicate, or fail-closed retry. A clean paired rerun brought
+full-controller p95 to 412.68 ms baseline and 449.86 ms treatment, closing the
+500 ms ordinary-latency gate while preserving all action and cold-parity
+checks. See `fdas-pr16-transport-capability-shadow.md`. Transport operation
+intent, lifecycle activation, replay/rollback, and bounded authority remain
+`component-only`; this acceptance does not imply embark execution or gameplay
+improvement.
