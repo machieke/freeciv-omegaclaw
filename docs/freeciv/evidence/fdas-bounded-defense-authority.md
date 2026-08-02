@@ -104,10 +104,75 @@ The focused authority/config/runtime/unit/replay suite passed 82 tests before
 the episode link was added. The complete FDAS suite passed 211 tests with the
 final support and episode hardening.
 
+## Fresh engine-backed safety confirmation
+
+The authority implementation and incremental-projection repair were committed
+before a fresh 160-turn run on pinned seed `4543804`. The run used clean source
+commit `f37b8aa821c1287550abb36203abc5c1df905596`:
+
+```bash
+FREECIV_RULESET_ROOT=/path/to/freeciv/data \
+FREECIV_FDAS_CONFIG_PATH=profile/dependent_atomspace_defense_authority.yaml \
+FREECIV_FDAS_MANIFEST_PATH=profile/fdas_manifest_defense_authority.json \
+python3 scripts/freeciv/run_harness.py \
+  --config profile/freeciv_harness_gdo5_160_turn.yaml \
+  --out artifacts/freeciv/fdas-defense-authority-live-160-v2 \
+  --backend engine-live --workers 1 --base-port 6001 \
+  --limit-seeds 1 --condition e_full_loop --main-only --no-resume
+
+python3 scripts/freeciv/audit_fdas_authority_live.py \
+  --game-dir artifacts/freeciv/fdas-defense-authority-live-160-v2/games/main/e_full_loop/4543804-00 \
+  --output docs/freeciv/evidence/fdas-bounded-defense-authority-engine-live.json
+```
+
+| Measure | Result |
+|---|---:|
+| Horizon / completed games / run failures | 160 / 1 / 0 |
+| Authority opportunities | 364 |
+| Authorized exact fortifications | 5 |
+| Authorization turns | 1, 24, 32, 38, 47 |
+| Explicit fallbacks | 359 |
+| Engine actions / results / rejections | 367 / 367 / 0 |
+| Sampled cold verifications / mismatches | 8 / 0 |
+| Deterministic live-audit gates | 17 / 17 |
+| FDAS projection p50 / p95 | 195.57 / 284.31 ms |
+| FDAS shadow readout p50 / p95 | 48.03 / 85.57 ms |
+| Full-loop p50 / p95 | 503.86 / 3233.09 ms |
+
+Every authorized readout ran all eight declared authority checks and all seven
+commit checks. Each exact actor-resource schedule and action/CPU packet
+schedule was conserved and non-authoritative; every commit retained
+`execution_authority: false`; and each authority event had exactly one causal
+`action_sent` followed by an accepted `action_result`. Fallbacks were fully
+classified: 199 winners outside city defense, 159 snapshots without a selected
+candidate, and one winner without a unique fortification route.
+
+The deterministic audit structural hash is
+`86f9ee062de1442d591509a66b86cf2333c917da32956e9b7bd784a2c25419af`
+and its file SHA-256 is
+`62f943a968b3395f58d55cd42fe0f884c9edacd6d446ebe658bf783bd36b70db`.
+The run manifest records implementation SHA-256
+`84966631e538be147617a8ef6f23427b74127ae24d38ce0969bd8d3e0f942faf`.
+
+The run also exposed and then confirmed a corrected incremental-projection
+invariant. `terrain-kind` previously hashed an undeclared whole-tile witness
+even though its support depended only on exact terrain. A sampled cold build
+therefore disagreed when owner/resource/worked state changed without a terrain
+change. The witness is now restricted to tile and terrain, differential
+verification reports bounded atom-level diagnostics, and a separate unit
+grounding fix prevents fortification support from referring to the final unit
+visited by the projector. The complete FDAS suite now passes 212 tests.
+
+This is an engine-backed causal and safety confirmation, not a production
+latency promotion. The late-game every-snapshot profile exceeded the proposed
+150 ms FDAS and 500 ms full-controller p95 targets. Those measurements require
+optimization and a clean paired confirmation before the profile can be called
+production-safe.
+
 ## Claim boundary
 
 This evidence supports one default-off, non-divergent fortification authority
-slice. It does not support reinforcement movement authority, policy winner
-changes, online conductance updates, a score/win-rate claim, or promotion of
-the default manifest. Fresh clean-source engine confirmation is still
-required before PR 15 authority is considered live-accepted.
+slice and fresh clean-source execution of that slice. It does not support
+reinforcement movement authority, policy winner changes, online conductance
+updates, a score/win-rate claim, a production-latency claim, durable live
+episode attribution, or promotion of the default manifest.

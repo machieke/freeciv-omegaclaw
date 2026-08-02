@@ -81,6 +81,15 @@ or replay failures. A linked episode fixture separates server acceptance from
 the authoritative fortified effect and realized goal relief. See
 `fdas-bounded-defense-authority.md`.
 
-This is not yet an engine-live promotion: fresh clean-source execution and
-durable episode event wiring remain open, and the default manifest is
-unchanged.
+Fresh clean-source engine execution now exercises five causally complete
+authorized fortifications and 359 explicit fallbacks over a 160-turn horizon.
+All 367 engine actions received results, zero were rejected, eight sampled
+cold verifications were equivalent, terminal counters matched, and all 17
+live safety gates passed. This closes the PR 15 engine-safety gap without a
+score claim or default activation.
+
+PR 15 is not yet production-promoted. The late-game every-snapshot profile
+measured 284.31 ms FDAS projection p95 and 3233.09 ms full-loop p95, above the
+proposed 150/500 ms targets. Durable live episode event wiring and read-only
+route-conductance sample capture also remain open. See
+`fdas-bounded-defense-authority.md` for the exact hashes and claim boundary.
