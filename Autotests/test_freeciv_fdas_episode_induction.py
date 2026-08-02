@@ -27,11 +27,31 @@ from freeciv_agent.pressure import (  # noqa: E402
 )
 
 
-def _episode(index, status, cohort="train", event_id=None, tile="10"):
+def _episode(
+        index, status, cohort="train", event_id=None, tile="10",
+        feature_schema=None):
     terminal = status in (
         "goal-relief-observed", "effect-without-goal-relief",
         "no-effect-observed", "confounded-unattributable")
     relieved = status == "goal-relief-observed"
+    context = {
+        "era": "ancient",
+        "actor_tile_before": str(tile),
+        "operation_type": "move_defender_to_city",
+        "target_tile": "10",
+        "terrain": "land",
+    }
+    if feature_schema is not None:
+        context.update({
+            "actor_moves_band": "one",
+            "actor_unit_type": "Warrior",
+            "actor_veteran_band": "none",
+            "city_disorder": "false",
+            "city_size_band": "2-4",
+            "induction_feature_schema": feature_schema,
+            "other_own_units_at_target_band": "0",
+            "own_units_at_target_band": "1",
+        })
     return DecisionEpisode(
         EPISODE_SCHEMA_VERSION,
         "episode-{}-{}".format(cohort, index),
@@ -42,11 +62,7 @@ def _episode(index, status, cohort="train", event_id=None, tile="10"):
         "before-{}-{}".format(cohort, index),
         "after-{}-{}".format(cohort, index) if terminal else None,
         ("pf-impact:survival",),
-        (("era", "ancient"),
-         ("actor_tile_before", str(tile)),
-         ("operation_type", "move_defender_to_city"),
-         ("target_tile", "10"),
-         ("terrain", "land")),
+        tuple(sorted(context.items())),
         ("atom-defense-route",),
         ("support-{}-{}".format(cohort, index),),
         ("grounding-route",),
@@ -113,6 +129,27 @@ def test_only_attributable_terminal_episode_is_encoded_without_authority():
     assert positive.policy_authority is False
     assert not any(value.accepted for value in abstentions)
     assert all(value.induction_episode is None for value in abstentions)
+
+
+def test_shadow_induction_uses_bounded_cross_game_features_when_available():
+    episode = _episode(
+        0, "goal-relief-observed",
+        feature_schema="defense-episode-features/2.0")
+    store = DecisionEpisodeStore("fdas-feature-v2", (episode,))
+    shadow = FdasEpisodeInductionShadow(
+        store, InductionLedger(identity="fdas-feature-v2"))
+
+    encoded = shadow.adapter.encode(shadow._spec(episode))
+
+    assert encoded.accepted is True
+    assert encoded.induction_episode.context == (
+        ("induction_feature_schema", "defense-episode-features/2.0"),
+        ("operation_type", "move_defender_to_city"),
+    )
+    assert "context:actor_unit_type=Warrior" in (
+        encoded.induction_episode.features)
+    assert not any(
+        "tile" in value for value in encoded.induction_episode.features)
 
 
 def test_context_and_evidence_features_must_be_linked_to_episode():

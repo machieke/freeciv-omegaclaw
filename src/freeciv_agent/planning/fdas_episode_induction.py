@@ -10,7 +10,7 @@ from ..pressure.induction import (
     PatternMiner,
     ReplayValidator,
 )
-from .fdas_episodes import DecisionEpisodeStore
+from .fdas_episodes import DecisionEpisodeStore, INDUCTION_FEATURE_SCHEMA
 
 
 def combine_episode_stores(stores, persistence_identity):
@@ -258,6 +258,20 @@ class FdasEpisodeInductionShadow(object):
 
     @staticmethod
     def _spec(episode):
+        context = dict(episode.context_signature)
+        if context.get("induction_feature_schema") == INDUCTION_FEATURE_SCHEMA:
+            return EpisodeInductionSpec(
+                episode.episode_id,
+                ("induction_feature_schema", "operation_type"),
+                (
+                    "actor_moves_band",
+                    "actor_unit_type",
+                    "actor_veteran_band",
+                    "city_disorder",
+                    "city_size_band",
+                    "other_own_units_at_target_band",
+                    "own_units_at_target_band",
+                ))
         return EpisodeInductionSpec(
             episode.episode_id,
             ("operation_type",),

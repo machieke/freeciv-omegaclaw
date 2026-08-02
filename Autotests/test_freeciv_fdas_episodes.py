@@ -112,6 +112,14 @@ def test_acceptance_effect_and_goal_relief_are_separate_idempotent_states():
     recorder, store, episode = _begin_episode()
 
     assert episode.outcome_status == "accepted-by-server"
+    context = dict(episode.context_signature)
+    assert context["induction_feature_schema"] == (
+        "defense-episode-features/2.0")
+    assert context["actor_unit_type"] != "unknown"
+    assert context["city_size_band"] in ("1", "2-4", "5-8", "9+")
+    assert context["own_units_at_target_band"] in ("0", "1", "2", "3+")
+    assert context["other_own_units_at_target_band"] in (
+        "0", "1", "2", "3+")
     assert episode.after_revision_id is None
     assert not episode.attributed_effects
     assert not episode.realized_goal_relief

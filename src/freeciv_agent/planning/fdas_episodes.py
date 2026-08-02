@@ -34,6 +34,43 @@ _STATE_RANK = {
         "immediate-effect-observed", "goal-relief-observed"))
 }
 
+INDUCTION_FEATURE_SCHEMA = "defense-episode-features/2.0"
+
+
+def _count_band(value):
+    value = max(0, int(value))
+    return str(value) if value < 3 else "3+"
+
+
+def _city_size_band(value):
+    if value is None:
+        return "unknown"
+    value = int(value)
+    if value <= 1:
+        return "1"
+    if value <= 4:
+        return "2-4"
+    if value <= 8:
+        return "5-8"
+    return "9+"
+
+
+def _optional_band(value):
+    if value is None:
+        return "unknown"
+    value = int(value)
+    if value <= 0:
+        return "none"
+    if value == 1:
+        return "one"
+    return "2+"
+
+
+def _optional_boolean(value):
+    if value is None:
+        return "unknown"
+    return "true" if value else "false"
+
 
 def _strings(values, name, unique=True):
     values = tuple(values)
@@ -364,11 +401,32 @@ class FdasDefenseEpisodeRecorder(object):
             if normalized_actor_ref.startswith("unit:") else None)
         city_id = int(spec.target_ref.split(":", 1)[1])
         city = before_snapshot.city(city_id)
+        target_units = tuple(
+            value for value in before_snapshot.units
+            if city is not None and value.tile == city.tile
+            and value.transported is not True)
+        other_target_units = tuple(
+            value for value in target_units
+            if actor is None or value.unit_id != actor.unit_id)
         context = tuple(sorted({
             "actor_id": normalized_actor_ref,
+            "actor_moves_band": _optional_band(
+                None if actor is None else actor.moves_left),
             "actor_tile_before": str(None if actor is None else actor.tile),
+            "actor_unit_type": (
+                "unknown" if actor is None else str(actor.unit_type)),
+            "actor_veteran_band": _optional_band(
+                None if actor is None else actor.veteran),
             "city_id": str(city_id),
+            "city_disorder": _optional_boolean(
+                None if city is None else city.disorder),
+            "city_size_band": _city_size_band(
+                None if city is None else city.size),
+            "induction_feature_schema": INDUCTION_FEATURE_SCHEMA,
             "operation_type": spec.operation_type,
+            "other_own_units_at_target_band": _count_band(
+                len(other_target_units)),
+            "own_units_at_target_band": _count_band(len(target_units)),
             "target_tile": str(None if city is None else city.tile),
         }.items()))
         material = {
