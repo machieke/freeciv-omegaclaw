@@ -20,6 +20,9 @@ from .model import CostVector, Operation
 SCHEMA_VERSION = "1.0"
 PROMOTION_APPROVAL_SCHEMA_VERSION = "1.0"
 PROMOTION_GATE_ID = "fdas-heldout-induction-promotion/1.0"
+PROMOTED_RULE_CONSOLIDATION_SCHEMA_VERSION = "1.0"
+PROMOTED_RULE_CONSOLIDATION_ALGORITHM_ID = (
+    "fdas-promoted-rule-structural-subsumption/1.0")
 PROPOSAL_SOURCES = frozenset(("pattern", "generalization", "analogy"))
 VALIDATION_VERDICTS = frozenset(("promoted", "demoted"))
 
@@ -818,6 +821,212 @@ class InductionPromotionApproval:
         if not all(checks):
             raise ValueError("induction approval does not match validation")
         return True
+
+
+@dataclass(frozen=True)
+class PromotedRuleSuppression:
+    """One deterministic, training-only structural redundancy witness."""
+
+    proposal_id: str
+    retained_proposal_id: str
+    retained_antecedent: tuple
+    removed_antecedents: tuple
+    reason: str = "strict_antecedent_subsumption_same_prediction"
+
+    def __post_init__(self):
+        for value, name in (
+                (self.proposal_id, "suppressed proposal ID"),
+                (self.retained_proposal_id, "retained proposal ID")):
+            if not isinstance(value, str) or not value:
+                raise ValueError("{} is required".format(name))
+        if self.proposal_id == self.retained_proposal_id:
+            raise ValueError("a proposal cannot suppress itself")
+        object.__setattr__(
+            self, "retained_antecedent",
+            _canonical_strings(self.retained_antecedent, "retained antecedent"))
+        object.__setattr__(
+            self, "removed_antecedents",
+            _canonical_strings(self.removed_antecedents, "removed antecedent"))
+        if not self.retained_antecedent or not self.removed_antecedents:
+            raise ValueError("structural suppression must remove an antecedent")
+        if self.reason != "strict_antecedent_subsumption_same_prediction":
+            raise ValueError("unknown promoted-rule suppression reason")
+
+    def to_dict(self):
+        return {
+            "proposal_id": self.proposal_id,
+            "reason": self.reason,
+            "removed_antecedents": list(self.removed_antecedents),
+            "retained_antecedent": list(self.retained_antecedent),
+            "retained_proposal_id": self.retained_proposal_id,
+        }
+
+
+@dataclass(frozen=True)
+class PromotedRuleConsolidation:
+    """A non-authorizing minimal basis for approved promoted rules."""
+
+    input_rule_ids: tuple
+    retained_rule_ids: tuple
+    suppressions: tuple
+
+    def __post_init__(self):
+        object.__setattr__(
+            self, "input_rule_ids",
+            _canonical_strings(self.input_rule_ids, "input rule"))
+        object.__setattr__(
+            self, "retained_rule_ids",
+            _canonical_strings(self.retained_rule_ids, "retained rule"))
+        suppressions = tuple(self.suppressions)
+        if any(not isinstance(row, PromotedRuleSuppression)
+               for row in suppressions):
+            raise TypeError(
+                "consolidation suppressions require structural witnesses")
+        suppressions = tuple(sorted(
+            suppressions, key=lambda row: row.proposal_id))
+        object.__setattr__(self, "suppressions", suppressions)
+        suppressed_ids = tuple(row.proposal_id for row in suppressions)
+        if len(suppressed_ids) != len(set(suppressed_ids)):
+            raise ValueError("suppressed proposal IDs must be unique")
+        if set(self.retained_rule_ids) & set(suppressed_ids):
+            raise ValueError("retained and suppressed rules overlap")
+        if set(self.input_rule_ids) != (
+                set(self.retained_rule_ids) | set(suppressed_ids)):
+            raise ValueError(
+                "retained and suppressed rules must partition the input")
+        if any(row.retained_proposal_id not in self.retained_rule_ids
+               for row in suppressions):
+            raise ValueError("suppression must point to a retained rule")
+
+    def _material(self):
+        return {
+            "algorithm_id": PROMOTED_RULE_CONSOLIDATION_ALGORITHM_ID,
+            "input_rule_ids": list(self.input_rule_ids),
+            "retained_rule_ids": list(self.retained_rule_ids),
+            "schema_version": PROMOTED_RULE_CONSOLIDATION_SCHEMA_VERSION,
+            "suppressions": [row.to_dict() for row in self.suppressions],
+        }
+
+    @property
+    def consolidation_id(self):
+        return "consolidation-" + structural_hash(self._material())[:24]
+
+    @property
+    def result_hash(self):
+        return structural_hash(self._value_without_hash())
+
+    def _value_without_hash(self):
+        value = self._material()
+        value.update({
+            "consolidation_id": self.consolidation_id,
+            "policy_authority": False,
+            "readout_authority": False,
+            "truth_mutated": False,
+        })
+        return value
+
+    def to_dict(self):
+        value = self._value_without_hash()
+        value["result_hash"] = structural_hash(value)
+        return value
+
+
+class PromotedRuleConsolidator(object):
+    """Remove only provably redundant approved rule conjunctions.
+
+    The algorithm never examines held-out outcomes or validation metrics.  A
+    more-specific rule is redundant only when an already retained strict
+    antecedent subset was trained on the same population and has the same
+    calibrated prediction semantics.  Matching approvals are mandatory, but
+    promotion grants no readout or policy authority.
+    """
+
+    @staticmethod
+    def _prediction_signature(proposal):
+        return (
+            proposal.consequent,
+            proposal.context,
+            float(proposal.probability),
+            float(proposal.baseline_probability),
+            int(proposal.support),
+            int(proposal.positives),
+            proposal.training_episode_ids,
+            proposal.provenance_ids,
+            proposal.source,
+            proposal.source_proposal_ids,
+            float(proposal.prediction_residual),
+            float(proposal.expected_generalization),
+            float(proposal.transfer_uncertainty),
+        )
+
+    @staticmethod
+    def _indexed(values, expected_type, label, identifier):
+        values = tuple(values)
+        if any(not isinstance(value, expected_type) for value in values):
+            raise TypeError("{} have wrong type".format(label))
+        result = {}
+        for value in values:
+            key = str(getattr(value, identifier))
+            if key in result:
+                raise ValueError("{} IDs must be unique".format(label))
+            result[key] = value
+        return result
+
+    def consolidate(self, proposals, validations, approvals):
+        proposal_by_id = self._indexed(
+            proposals, InducedRuleProposal, "consolidation proposals",
+            "proposal_id")
+        validation_by_proposal = self._indexed(
+            validations, ReplayValidation, "consolidation validations",
+            "proposal_id")
+        approval_by_proposal = self._indexed(
+            approvals, InductionPromotionApproval,
+            "consolidation approvals", "proposal_id")
+        proposal_ids = set(proposal_by_id)
+        if (set(validation_by_proposal) != proposal_ids
+                or set(approval_by_proposal) != proposal_ids):
+            raise ValueError(
+                "consolidation requires one validation and approval per rule")
+        cohort_identities = set()
+        for proposal_id in sorted(proposal_by_id):
+            proposal = proposal_by_id[proposal_id]
+            validation = validation_by_proposal[proposal_id]
+            approval = approval_by_proposal[proposal_id]
+            approval.validate(proposal, validation)
+            cohort_identities.add((
+                approval.gate_id,
+                approval.training_artifact_hash,
+                approval.holdout_artifact_hash))
+        if len(cohort_identities) > 1:
+            raise ValueError(
+                "consolidation inputs must share one approved cohort")
+
+        ordered = tuple(sorted(proposal_by_id.values(), key=lambda row: (
+            len(row.antecedent), row.antecedent, row.proposal_id)))
+        retained = []
+        suppressions = []
+        for proposal in ordered:
+            signature = self._prediction_signature(proposal)
+            antecedent = set(proposal.antecedent)
+            subsumers = tuple(
+                candidate for candidate in retained
+                if self._prediction_signature(candidate) == signature
+                and set(candidate.antecedent) < antecedent)
+            if not subsumers:
+                retained.append(proposal)
+                continue
+            retained_proposal = min(subsumers, key=lambda row: (
+                len(row.antecedent), row.antecedent, row.proposal_id))
+            suppressions.append(PromotedRuleSuppression(
+                proposal.proposal_id,
+                retained_proposal.proposal_id,
+                retained_proposal.antecedent,
+                tuple(sorted(
+                    antecedent - set(retained_proposal.antecedent)))))
+        return PromotedRuleConsolidation(
+            tuple(proposal_by_id),
+            tuple(row.proposal_id for row in retained),
+            tuple(suppressions))
 
 
 class ReplayValidator(object):
