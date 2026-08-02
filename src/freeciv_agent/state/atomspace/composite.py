@@ -153,6 +153,11 @@ class CompositeDomainProjector(object):
     def component_projector_ids(self):
         return tuple(value.projector_id for value in self.projectors)
 
+    @property
+    def incremental_dependency_roots(self):
+        """Return the access-audited snapshot preparation boundary."""
+        return self._incremental_roots
+
     @staticmethod
     def _trim(cache):
         while len(cache) > 8:
@@ -764,6 +769,11 @@ class ActivatedDomainProjector(object):
     def component_projector_ids(self):
         return tuple(getattr(
             self.projector, "component_projector_ids", ()))
+
+    @property
+    def incremental_dependency_roots(self):
+        return frozenset(getattr(
+            self.projector, "incremental_dependency_roots", ()))
 
     def extend_fingerprints(self, fingerprints):
         return self.projector.extend_fingerprints(fingerprints)

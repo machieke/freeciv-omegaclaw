@@ -207,6 +207,10 @@ def test_checked_defense_authority_runtime_installs_only_defense_adapter():
     assert not legacy.authoritative
     assert not legacy.visible
     assert not legacy.uncertain
+    assert runtime.dependent_store.snapshot_dependency_roots
+    assert "units" in runtime.dependent_store.snapshot_dependency_roots
+    assert "map_tiles" not in runtime.dependent_store.snapshot_dependency_roots
+    assert "research" not in runtime.dependent_store.snapshot_dependency_roots
 
 
 def test_route_corridor_shadow_projection_can_be_activated_independently():

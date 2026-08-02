@@ -198,6 +198,14 @@ class DependentAtomSpaceStore(object):
         if not isinstance(include_legacy_projection, bool):
             raise TypeError("legacy projection flag must be boolean")
         self.include_legacy_projection = include_legacy_projection
+        self.snapshot_dependency_roots = None
+        if not include_legacy_projection:
+            roots = frozenset(getattr(
+                domain_projector, "incremental_dependency_roots", ()))
+            if not roots:
+                raise ValueError(
+                    "rich-only projection requires declared snapshot roots")
+            self.snapshot_dependency_roots = roots
         self._lock = lock or threading.RLock()
         self._revisions = {}
         self._current = {}
@@ -217,7 +225,8 @@ class DependentAtomSpaceStore(object):
     def _snapshot_document(self, snapshot):
         value = self._snapshot_documents.get(snapshot.snapshot_id)
         if value is None:
-            value = snapshot_document(snapshot)
+            value = snapshot_document(
+                snapshot, roots=self.snapshot_dependency_roots)
             self._snapshot_documents[snapshot.snapshot_id] = value
             self._trim_snapshot_inputs()
         return value

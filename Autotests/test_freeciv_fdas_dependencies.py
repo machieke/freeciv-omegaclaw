@@ -36,6 +36,7 @@ from freeciv_agent.state.atomspace import (  # noqa: E402
     snapshot_dependency_fingerprints,
     snapshot_scopes,
 )
+from freeciv_agent.state.atomspace.delta import snapshot_document  # noqa: E402
 
 
 FIXTURE = os.path.join(
@@ -146,6 +147,20 @@ def test_closed_collection_membership_is_fingerprinted_and_invalidated():
     assert "visible_enemy_units.__members__" in paths
     assert "visible_enemy_units.__members__" in changed
     assert "visible_enemy_units.90.__exists__" in changed
+
+
+def test_audited_snapshot_document_omits_unselected_dependency_roots():
+    snapshot = _snapshot()
+    roots = frozenset(("player_id", "source_seq", "units"))
+    document = snapshot_document(snapshot, roots=roots)
+    filtered = snapshot_dependency_fingerprints(snapshot, document)
+    complete = snapshot_dependency_fingerprints(snapshot)
+
+    assert set(document) == roots
+    assert filtered
+    assert set(filtered).issubset(complete)
+    assert all(complete[key] == value for key, value in filtered.items())
+    assert {key.path.split(".", 1)[0] for key in filtered} == roots
 
 
 def test_incremental_projection_matches_cold_and_recomputes_changed_relation():

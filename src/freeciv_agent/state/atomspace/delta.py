@@ -86,28 +86,55 @@ def _collection(snapshot, name, id_spec):
     return result
 
 
-def snapshot_document(snapshot):
-    """Return stable semantic fields without revision-only identity material."""
-    document = dict((name, _canonical(getattr(snapshot, name, None)))
-                    for name in _SCALAR_FIELDS)
-    document["turn"] = int(snapshot.turn)
-    document["source_seq"] = int(snapshot.identity.source_seq)
+def snapshot_document(snapshot, roots=None):
+    """Return stable semantic fields without revision-only identity material.
+
+    ``roots`` is an optional, audited top-level dependency boundary.  A rich
+    projector may use it to avoid canonicalizing unrelated snapshot domains;
+    the unbounded default remains the exact legacy/full-snapshot document.
+    """
+    selected = (
+        None if roots is None
+        else frozenset(str(value) for value in roots))
+
+    def wanted(name):
+        return selected is None or name in selected
+
+    document = dict(
+        (name, _canonical(getattr(snapshot, name, None)))
+        for name in _SCALAR_FIELDS if wanted(name))
+    if wanted("turn"):
+        document["turn"] = int(snapshot.turn)
+    if wanted("source_seq"):
+        document["source_seq"] = int(snapshot.identity.source_seq)
     for name in _OBJECT_FIELDS:
+        if not wanted(name):
+            continue
         document[name] = _canonical(getattr(snapshot, name, None))
     for name, id_spec in _COLLECTIONS:
+        if not wanted(name):
+            continue
         document[name] = _collection(snapshot, name, id_spec)
-    document["visible_tile_ids"] = dict(
-        (str(value), True)
-        for value in sorted(set(getattr(snapshot, "visible_tile_ids", ()) or ())))
-    document["known_hut_tile_ids"] = dict(
-        (str(value), True)
-        for value in sorted(set(getattr(snapshot, "known_hut_tile_ids", ()) or ())))
-    known_techs = getattr(getattr(snapshot, "research", None), "known_techs", ())
-    document["known_techs"] = dict(
-        (str(value), True) for value in sorted(set(known_techs or ())))
-    document["legal_actions"] = dict(
-        (structural_hash(value), str(value))
-        for value in tuple(getattr(snapshot, "legal_action_json", ()) or ()))
+    if wanted("visible_tile_ids"):
+        document["visible_tile_ids"] = dict(
+            (str(value), True)
+            for value in sorted(set(
+                getattr(snapshot, "visible_tile_ids", ()) or ())))
+    if wanted("known_hut_tile_ids"):
+        document["known_hut_tile_ids"] = dict(
+            (str(value), True)
+            for value in sorted(set(
+                getattr(snapshot, "known_hut_tile_ids", ()) or ())))
+    if wanted("known_techs"):
+        known_techs = getattr(
+            getattr(snapshot, "research", None), "known_techs", ())
+        document["known_techs"] = dict(
+            (str(value), True) for value in sorted(set(known_techs or ())))
+    if wanted("legal_actions"):
+        document["legal_actions"] = dict(
+            (structural_hash(value), str(value))
+            for value in tuple(
+                getattr(snapshot, "legal_action_json", ()) or ()))
     return document
 
 
@@ -137,11 +164,12 @@ def snapshot_dependency_fingerprints(snapshot, document=None):
     """Map stable dependency keys to canonical field/entity fingerprints."""
     owner_id = _owner(snapshot)
     flattened = {}
-    document = document or snapshot_document(snapshot)
+    document = (
+        snapshot_document(snapshot) if document is None else document)
     for key, value in sorted(document.items()):
         _flatten(key, value, flattened)
     collection_names = set(name for name, _ in _COLLECTIONS)
-    for name in collection_names:
+    for name in sorted(collection_names.intersection(document)):
         # A closed collection needs an explicit membership fingerprint.  A
         # per-entity dependency can prove presence, but cannot support a
         # deterministic absence claim or invalidate that claim when a new
@@ -151,9 +179,9 @@ def snapshot_dependency_fingerprints(snapshot, document=None):
         for entity_id in document[name]:
             flattened["{}.{}.__exists__".format(name, entity_id)] = (
                 structural_hash(True))
-    for name in (
+    for name in sorted(set((
             "visible_tile_ids", "known_hut_tile_ids", "known_techs",
-            "legal_actions"):
+            "legal_actions")).intersection(document)):
         flattened["{}.__members__".format(name)] = structural_hash(
             tuple(sorted(document[name])))
     return dict(

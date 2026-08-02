@@ -52,7 +52,10 @@ operation, and episode domain projectors; unused city/economy and region views
 remain available as substrate capabilities but are not paid for on every
 action refresh. Its explicit `legacy_compatibility: false` switch also omits
 the duplicate flat compatibility atoms; every default, shadow, city-authority,
-and rollback profile retains that facade. Support provenance remains in each
+and rollback profile retains that facade. With that switch off, snapshot
+preparation is bounded to the union of access-audited projector dependency
+roots, so unrelated map, research, economy, and belief fields are not
+canonicalized for this defense-only slice. Support provenance remains in each
 immutable revision while
 redundant per-support event expansion is disabled. Episode attribution and
 contextual control learning are `shadow-live`, while contextual conductance
@@ -79,7 +82,7 @@ python3 scripts/freeciv/run_fdas_bounded_authority_replay.py \
 | Explicit fallbacks | 25 |
 | Policy winner changes | 0 |
 | Replay failures | 0 |
-| Authority readout p50 / p95 | 0.615 / 2.502 ms |
+| Authority readout p50 / p95 | 0.634 / 2.388 ms |
 
 All twelve gates passed in two deterministic runs. Every authorization was an
 exact legacy-selected `unit_fortify`, received the exact actor resource and
@@ -88,9 +91,9 @@ retained `execution_authority: false`. The 25 fallbacks were all legacy winners
 outside the city-defense category.
 
 The report hash is
-`7cf94ff875b7f308d19ce140da56a160a299d038db987dec8cc6be5bd947acdf`;
+`bd809f9312205e3521385eb7a09a4faa0db1efc62983c550cae631bb5c9f028b`;
 its implementation digest is
-`a151e4beab3d826120dba9775ad9bdfc7c17b6d186e317c778b7dbe173b6e7e7`.
+`521c825ef56a6e741601253c71e2a42a895986f54be1d18d0dd05d00f7efc90d`.
 
 ## Episode boundary
 

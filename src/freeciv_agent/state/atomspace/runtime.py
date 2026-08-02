@@ -173,6 +173,11 @@ class _ConfiguredBudgetProjector(object):
         return tuple(getattr(
             self.projector, "component_projector_ids", ()))
 
+    @property
+    def incremental_dependency_roots(self):
+        return frozenset(getattr(
+            self.projector, "incremental_dependency_roots", ()))
+
     def scopes(self, snapshot):
         scopes = []
         for scope in self.projector.scopes(snapshot):
