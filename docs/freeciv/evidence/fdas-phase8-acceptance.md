@@ -1,8 +1,9 @@
 # FDAS Phase 8 aggregate acceptance report
 
-Date: 2026-08-01  
-Branch: `experimental/functional-dependent-atomspace`  
-Acceptance level: component-only / shadow-capable; disabled in the default profile
+Date: 2026-08-02
+Branch: `experimental/functional-dependent-atomspace`
+Acceptance level: belief projection and observation-pressure planning are
+engine shadow-live in dedicated profiles; disabled in the default profile
 
 ## Realized wiring
 
@@ -14,36 +15,43 @@ Acceptance level: component-only / shadow-capable; disabled in the default profi
 - Active conflicts remain uncertain belief atoms. Conflict lineages and
   context quarantines are diagnostic/control atoms and cannot become
   authoritative or operation atoms.
-- Value-of-information planning omits tests that cannot change a declared
-  bounded decision.
+- Value-of-information planning derives decision sensitivity from posterior
+  counterfactual action readouts and omits tests that cannot change the bounded
+  decision.
 - Engine-live observation/simulation operations use atomic CPU plus matching
   observation/simulation packet budgets. Evidence enters the ledger only
   through the existing selected-authoritative-return gate.
 - Pressure and scheduling consume truth/readouts but do not call belief
   revision, decay, conflict, or quarantine mutation methods.
+- Fresh engine cohorts cover explicit belief decay/rematerialization and a
+  one-shot observation-pressure packet decision. The latter records identical
+  evidence-store hashes before and after planning and has no authority.
 
 ## Exit-criterion disposition
 
-| Criterion | Component evidence |
+| Criterion | Evidence |
 |---|---|
 | Uncertain facts never authoritative | namespace/authority transaction constraints plus belief projection tests |
 | Pressure cannot revise beliefs | read-only projector and VOI conflict scheduling; belief formulas remain solely in `BeliefStore` |
 | No hidden absence inference | projector consumes only explicit belief revisions/evidence and emits no snapshot-derived negatives |
-| Observe only for decision-sensitive gaps | hard VOI eligibility gate; zero sensitivity/gain/feasibility/success/deadline fit is omitted |
+| Observe only for decision-sensitive gaps | posterior outcome readouts must cross an explicit action threshold; the fresh PR18 cohort selected exactly one qualifying operation per arm |
 | Quarantine cannot authorize | quarantine is diagnostic-only; no legal binding or operation relation is emitted |
 | Activation matrix is accurate | belief projection requires its component; uncertain assessment requires belief+observation at `shadow-live`; authority using uncertainty requires both at `bounded-authority` |
 
 ## Verification
 
-The combined FDAS, belief, observation, pressure, packet, resource, and domain
-lifecycle and activation regression passed `357` tests. Focused configuration
-tests cover the new component, shadow-live, and bounded-authority thresholds.
+The component evidence remains covered by the combined FDAS regression. Fresh
+engine evidence is recorded in
+[`fdas-pr17-belief-shadow.md`](fdas-pr17-belief-shadow.md) and
+[`fdas-pr18-observation-pressure-shadow.md`](fdas-pr18-observation-pressure-shadow.md).
+Both PR18 event logs pass full schema validation with zero warnings.
 
 ## Non-claims
 
 The checked-in default keeps `projection.beliefs=false` and
-`uncertain_assessment_enabled=false`. The manifest declares only
-`component-only`; it does not claim live shadow integration, action authority,
-engine score improvement, calibration, or win-rate impact. Promotion requires
-fresh runtime wiring and replay/safety evidence, followed by an explicit
-capability-status change.
+`uncertain_assessment_enabled=false`. Dedicated profiles declare the proven
+shadow-live subset; they do not claim observation execution, authoritative
+return, action authority, engine score improvement, calibration, or win-rate
+impact. Promotion requires a legal observation-action binding, commit
+revalidation, authoritative return through the evidence gate, and fresh
+replay/safety evidence.

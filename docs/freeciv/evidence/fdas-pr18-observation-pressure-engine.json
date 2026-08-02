@@ -1,0 +1,141 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "both_arms_pass_observation_acceptance": true,
+      "cohort_completed_without_failures": true,
+      "cohort_is_predeclared_and_claim_ineligible": true,
+      "paired_source_is_clean_and_stable": true
+    }
+  },
+  "arms": [
+    {
+      "acceptance": {
+        "accepted": true,
+        "checks": {
+          "action_results_are_complete_and_accepted": true,
+          "bounded_decision_can_change": true,
+          "causal_pressure_score_packet_chain_is_complete": true,
+          "evidence_firewall_remained_closed": true,
+          "manifest_binds_shadow_only_activation": true,
+          "no_policy_or_action_authority": true,
+          "observation_planning_latency_within_budget": true,
+          "packet_commit_is_atomic_and_conserved": true,
+          "selection_widening_and_model_cap_are_recorded": true,
+          "source_is_clean": true,
+          "status_counters_match_shadow_artifacts": true
+        }
+      },
+      "arm": "baseline",
+      "evidence": {
+        "events.jsonl": {
+          "path": "artifacts/freeciv/fdas-observation-pressure-live-30-v2/games/impact_pair/fdas_observation_pressure_shadow_diagnostic_v1/baseline/e_full_loop/314159-00/events.jsonl",
+          "sha256": "58fe19870da6f3de6d967644f01f40b63d1d89a3883fcb85a92c54a6ef684092"
+        },
+        "manifest.json": {
+          "path": "artifacts/freeciv/fdas-observation-pressure-live-30-v2/games/impact_pair/fdas_observation_pressure_shadow_diagnostic_v1/baseline/e_full_loop/314159-00/manifest.json",
+          "sha256": "35206a1aef0de14d5c7d9ca851ec415dc9b25fabf72ceb86edda8916bc6aceb5"
+        },
+        "status.json": {
+          "path": "artifacts/freeciv/fdas-observation-pressure-live-30-v2/games/impact_pair/fdas_observation_pressure_shadow_diagnostic_v1/baseline/e_full_loop/314159-00/status.json",
+          "sha256": "8159ebe4f6d0173ef6c99855d7dbe0b3d4759e7426da4633fb3fd69fe3d2eed1"
+        }
+      },
+      "latency": {
+        "observation_pressure": {
+          "count": 1,
+          "maximum_ms": 3.9071529172360897
+        }
+      },
+      "source": {
+        "commit": "80cf43b0d5c27fc57a99cb191509c0edd5b1bb1b",
+        "dirty": false,
+        "implementation_sha256": "9c2913603f46c69c66ed6d4f7faf6224067d08ec1da0b03911521a1b262de8e6",
+        "source_files": 267
+      },
+      "summary": {
+        "actions": 72,
+        "decision_change_probability": 0.14,
+        "observation_pressure_decisions": 1,
+        "packet_commits": 1,
+        "selected_evidence_write_throughs": 0
+      }
+    },
+    {
+      "acceptance": {
+        "accepted": true,
+        "checks": {
+          "action_results_are_complete_and_accepted": true,
+          "bounded_decision_can_change": true,
+          "causal_pressure_score_packet_chain_is_complete": true,
+          "evidence_firewall_remained_closed": true,
+          "manifest_binds_shadow_only_activation": true,
+          "no_policy_or_action_authority": true,
+          "observation_planning_latency_within_budget": true,
+          "packet_commit_is_atomic_and_conserved": true,
+          "selection_widening_and_model_cap_are_recorded": true,
+          "source_is_clean": true,
+          "status_counters_match_shadow_artifacts": true
+        }
+      },
+      "arm": "treatment",
+      "evidence": {
+        "events.jsonl": {
+          "path": "artifacts/freeciv/fdas-observation-pressure-live-30-v2/games/impact_pair/fdas_observation_pressure_shadow_diagnostic_v1/treatment/e_full_loop/314159-00/events.jsonl",
+          "sha256": "99c74d994bd4555ee5a05c225598fa882db0c7b0bf9dcf9e6859d2f6859def6c"
+        },
+        "manifest.json": {
+          "path": "artifacts/freeciv/fdas-observation-pressure-live-30-v2/games/impact_pair/fdas_observation_pressure_shadow_diagnostic_v1/treatment/e_full_loop/314159-00/manifest.json",
+          "sha256": "ed63cdd76d83ccb64465294248b9034e7d0abc58e20a3db4eb231c6dace2bd55"
+        },
+        "status.json": {
+          "path": "artifacts/freeciv/fdas-observation-pressure-live-30-v2/games/impact_pair/fdas_observation_pressure_shadow_diagnostic_v1/treatment/e_full_loop/314159-00/status.json",
+          "sha256": "aee288765a5bdc59c6c26ed2658b6a0260e237ef061632c9021c9626319a438c"
+        }
+      },
+      "latency": {
+        "observation_pressure": {
+          "count": 1,
+          "maximum_ms": 2.4215509183704853
+        }
+      },
+      "source": {
+        "commit": "80cf43b0d5c27fc57a99cb191509c0edd5b1bb1b",
+        "dirty": false,
+        "implementation_sha256": "9c2913603f46c69c66ed6d4f7faf6224067d08ec1da0b03911521a1b262de8e6",
+        "source_files": 267
+      },
+      "summary": {
+        "actions": 63,
+        "decision_change_probability": 0.14,
+        "observation_pressure_decisions": 1,
+        "packet_commits": 1,
+        "selected_evidence_write_throughs": 0
+      }
+    }
+  ],
+  "claim_scope": "manifest-bound decision-sensitive observation-pressure planning, scalar-v2 epistemic routing, atomic shadow packet accounting, model provenance, selection widening, and evidence non-mutation; no executed observation, evidence return, policy authority, score, or gameplay improvement claim",
+  "cohort": "fdas_observation_pressure_shadow_diagnostic_v1",
+  "evidence": {
+    "impact_aggregate": {
+      "path": "artifacts/freeciv/fdas-observation-pressure-live-30-v2/impact-aggregate.json",
+      "sha256": "c25f70566c0ba0195575202513d967d07b060cd5cfea8b7b30cb8a2e9cbbf3c8"
+    },
+    "impact_run_summary": {
+      "path": "artifacts/freeciv/fdas-observation-pressure-live-30-v2/impact-run-summary.json",
+      "sha256": "98f4f15806c271cba5be6b28fa2c7dff2e92cc150f2fc94565dbe22377e9c913"
+    }
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "80cf43b0d5c27fc57a99cb191509c0edd5b1bb1b",
+    "implementation_sha256": "9c2913603f46c69c66ed6d4f7faf6224067d08ec1da0b03911521a1b262de8e6"
+  },
+  "structural_hash": "efa66278c31a71f4d9e0dcdecc5b703edf21ab29387d6c701c9928c497427967",
+  "summary": {
+    "actions": 135,
+    "observation_pressure_decisions": 2,
+    "packet_commits": 2,
+    "selected_evidence_write_throughs": 0
+  }
+}

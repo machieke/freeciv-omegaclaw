@@ -1,6 +1,6 @@
 # FDAS Phase 8 decision-safe observation planning evidence
 
-Status: component-only, shadow-only, no action authority.
+Status: engine shadow-live in a dedicated profile, no action authority.
 
 The existing value-of-information planner now has a hard decision-eligibility
 boundary. A test is omitted—not merely ranked last—when decision sensitivity,
@@ -23,5 +23,8 @@ propensity, and evidence-overlap discount remain serialized in the operation
 and resulting evidence path. Neither pressure nor packet scheduling revises a
 belief.
 
-Coverage is in `Autotests/test_freeciv_observation_live.py` together with the
-existing belief, pressure, and packet scheduler suites.
+Coverage is in `Autotests/test_freeciv_observation_live.py` and
+`Autotests/test_freeciv_fdas_observation_live.py` together with the existing
+belief, pressure, and packet scheduler suites. Fresh engine evidence and the
+remaining authority boundary are documented in
+[`fdas-pr18-observation-pressure-shadow.md`](fdas-pr18-observation-pressure-shadow.md).

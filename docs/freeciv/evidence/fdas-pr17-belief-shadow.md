@@ -115,9 +115,10 @@ This is mechanism, epistemic-separation, decay, support-invalidation,
 behavior-preservation, and latency evidence. The paired cohort was deliberately
 claim-ineligible and supports no score or win-rate claim.
 
-Observation pressure remains the next independent Phase 8 gate. It must consume
-only explicit decision-sensitive gaps, rank tests by expected decision value,
-reserve whole CPU/observation or CPU/simulation packets, preserve simulator
-identity and confidence caps, log deterministic selection propensity, and write
-evidence only after an authoritative observation return. A selected test must
-still have no direct path to authoritative or crisp FDAS truth.
+Observation-pressure selection has since passed its independent shadow-live
+gate in
+[`fdas-pr18-observation-pressure-shadow.md`](fdas-pr18-observation-pressure-shadow.md).
+The remaining gate is execution and authoritative return: bind a selected test
+to a current legal observation action, commit-revalidate it, and allow evidence
+registration only through the authoritative-return firewall. A selected test
+still has no direct path to authoritative or crisp FDAS truth.
