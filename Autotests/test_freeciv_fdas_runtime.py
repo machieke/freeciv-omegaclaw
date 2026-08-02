@@ -18,6 +18,7 @@ from freeciv_agent.events.writer import EventWriter  # noqa: E402
 from freeciv_agent.planning import (  # noqa: E402
     ControlEventEmitter,
     DecisionEpisodeStore,
+    ImpactCandidate,
 )
 from freeciv_agent.rulesets.compiler import compile_ruleset  # noqa: E402
 from freeciv_agent.state import ProxyStateDTO, SnapshotConflict  # noqa: E402
@@ -208,9 +209,35 @@ def test_checked_defense_authority_runtime_installs_only_defense_adapter():
     assert not legacy.visible
     assert not legacy.uncertain
     assert runtime.dependent_store.snapshot_dependency_roots
+    assert runtime.config.shadow_refresh_policy == (
+        "authority-domain-before-readout")
     assert "units" in runtime.dependent_store.snapshot_dependency_roots
     assert "map_tiles" not in runtime.dependent_store.snapshot_dependency_roots
     assert "research" not in runtime.dependent_store.snapshot_dependency_roots
+
+
+def test_defense_authority_domain_gate_is_available_before_materialization():
+    declaration = load_runtime_declaration(
+        os.path.join(
+            REPO, "profile", "dependent_atomspace_defense_authority.yaml"),
+        os.path.join(
+            REPO, "profile", "fdas_manifest_defense_authority.json"),
+    )
+    runtime = build_runtime(
+        declaration,
+        ruleset_ir=compile_ruleset(_ruleset_root(), "civ2civ3"),
+        operation_records_source=(),
+        episode_source=DecisionEpisodeStore("fdas-runtime-domain-gate"),
+    )
+
+    assert not runtime.authority_relevant(None)
+    assert runtime.authority_relevant(ImpactCandidate(
+        {"action_type": "unit_fortify", "actor_id": 7},
+        "city_defense", 1.0, "test defense winner"))
+    assert not runtime.authority_relevant(ImpactCandidate(
+        {"action_type": "unit_move", "actor_id": 7,
+         "target": {"x": 2, "y": 2}},
+        "unit_movement", 1.0, "test movement winner"))
 
 
 def test_route_corridor_shadow_projection_can_be_activated_independently():

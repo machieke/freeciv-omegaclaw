@@ -2076,6 +2076,10 @@ async def _play(run_dir, manifest, context):
         fdas_runtime.enabled
         and fdas_runtime.config.shadow_refresh_policy
         == "turn-boundary-before-readout")
+    fdas_authority_scoped = bool(
+        fdas_runtime.enabled
+        and fdas_runtime.config.shadow_refresh_policy
+        == "authority-domain-before-readout")
     if fdas_turn_sampled and fdas_runtime.config.authority_enabled:
         raise RuntimeError(
             "turn-sampled FDAS cannot be used with action authority")
@@ -2085,7 +2089,7 @@ async def _play(run_dir, manifest, context):
     # at its most recent sampled snapshot and is advanced before readout.
     store = (
         SnapshotStore(atomspace_mode="legacy")
-        if fdas_turn_sampled else fdas_store)
+        if fdas_turn_sampled or fdas_authority_scoped else fdas_store)
     fdas_shadow_evaluated_turns = set()
     memory = None
     induction_prediction = None
@@ -2615,8 +2619,18 @@ async def _play(run_dir, manifest, context):
                     manifest["game_id"], player_id)
                 if store is not fdas_store:
                     store.replace(next_snapshot)
+                pending_fdas_episode = bool(
+                    fdas_episode_store is not None
+                    and any(
+                        episode.outcome_status in (
+                            "accepted-by-server", "delayed-effect-pending",
+                            "immediate-effect-observed")
+                        for episode in fdas_episode_store.episodes()))
+                defer_fdas_refresh = bool(
+                    fdas_turn_sampled
+                    or (fdas_authority_scoped and not pending_fdas_episode))
                 fdas_update = (
-                    None if fdas_turn_sampled
+                    None if defer_fdas_refresh
                     else fdas_runtime.replace(next_snapshot))
                 observer_started = time.perf_counter()
                 observe_impact_snapshot(next_snapshot)
@@ -3148,10 +3162,15 @@ async def _play(run_dir, manifest, context):
                     fdas_shadow = None
                     fdas_authority = None
                     evaluate_fdas_shadow = bool(
-                        not fdas_turn_sampled
-                        or snapshot.turn
-                        not in fdas_shadow_evaluated_turns)
-                    if evaluate_fdas_shadow and fdas_turn_sampled:
+                        (not fdas_turn_sampled
+                         or snapshot.turn not in fdas_shadow_evaluated_turns)
+                        and (not fdas_authority_scoped
+                             or fdas_runtime.authority_relevant(
+                                 None if decision is None
+                                 else decision.candidate)))
+                    if (evaluate_fdas_shadow
+                            and (fdas_turn_sampled
+                                 or fdas_authority_scoped)):
                         current_fdas_revision = (
                             fdas_store.current_dependent_revision(
                                 manifest["game_id"], player_id))

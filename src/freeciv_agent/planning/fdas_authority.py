@@ -88,6 +88,16 @@ class FdasBoundedCityAuthority(object):
         self.commit_validator = commit_validator or FDASCommitValidator()
 
     @staticmethod
+    def relevant(legacy_candidate):
+        """Return whether this bounded slice can affect the legacy winner."""
+        if not isinstance(legacy_candidate, ImpactCandidate):
+            return False
+        action = legacy_candidate.action
+        return bool(
+            action.get("action_type") == "city_governor"
+            and action.get("target") == {"food_surplus_reserve": 1})
+
+    @staticmethod
     def _readout(status, reason, snapshot, revision, operation_id=None,
                  action_key=None, checks=(), scheduling=None,
                  validation=None, authority_pressure=None):
@@ -304,6 +314,13 @@ class FdasBoundedDefenseAuthority(object):
         self.scheduling_bridge = (
             scheduling_bridge or DependentAtomSchedulingBridge())
         self.commit_validator = commit_validator or FDASCommitValidator()
+
+    @staticmethod
+    def relevant(legacy_candidate):
+        """Return whether the winner belongs to the defense authority domain."""
+        return bool(
+            isinstance(legacy_candidate, ImpactCandidate)
+            and legacy_candidate.category == "city_defense")
 
     @staticmethod
     def _readout(status, reason, snapshot, revision, operation_id=None,

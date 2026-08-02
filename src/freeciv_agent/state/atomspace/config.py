@@ -89,7 +89,8 @@ class DependentAtomSpaceConfig:
         if value["store_backend"] != "memory":
             raise ValueError("unsupported dependent AtomSpace store backend")
         if value["shadow_refresh_policy"] not in (
-                "every-snapshot", "turn-boundary-before-readout"):
+                "authority-domain-before-readout", "every-snapshot",
+                "turn-boundary-before-readout"):
             raise ValueError("unsupported FDAS shadow refresh policy")
         sample_rate = float(value["cold_verify_sample_rate"])
         if not 0.0 <= sample_rate <= 1.0:
@@ -128,9 +129,15 @@ class DependentAtomSpaceConfig:
         if value["authority_enabled"] and not value["enabled"]:
             raise ValueError("FDAS authority requires the core to be enabled")
         if (value["authority_enabled"]
-                and value["shadow_refresh_policy"] != "every-snapshot"):
+                and value["shadow_refresh_policy"]
+                == "turn-boundary-before-readout"):
             raise ValueError(
-                "FDAS authority requires every-snapshot materialization")
+                "FDAS authority cannot use turn-sampled materialization")
+        if (value["shadow_refresh_policy"]
+                == "authority-domain-before-readout"
+                and not value["authority_enabled"]):
+            raise ValueError(
+                "domain-scoped materialization requires FDAS authority")
         if any(authority.values()) and not value["authority_enabled"]:
             raise ValueError("domain authority requires the authority gate")
         if (learning["contextual_conductance_enabled"]

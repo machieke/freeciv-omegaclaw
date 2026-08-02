@@ -718,6 +718,12 @@ class FdasRuntime(object):
         raise FdasRuntimeConfigurationError(
             "configured FDAS authority domain has no runtime adapter")
 
+    def authority_relevant(self, legacy_candidate):
+        """Test the configured domain gate before rich materialization."""
+        if not self.config.authority_enabled or self._authority_adapter is None:
+            return False
+        return bool(self._authority_adapter.relevant(legacy_candidate))
+
     def authority_candidate(self, snapshot, shadow_evaluation, readout):
         """Return the exact candidate bound by a current authority readout."""
         if self._authority_domain != "city_defense":

@@ -128,7 +128,8 @@ def test_checked_defense_authority_profile_requires_exact_bounded_stack():
 
     assert config.enabled is True
     assert config.authority_enabled is True
-    assert config.shadow_refresh_policy == "every-snapshot"
+    assert config.shadow_refresh_policy == (
+        "authority-domain-before-readout")
     assert config.section("projection")["city"] is False
     assert config.section("projection")["economy"] is False
     assert config.section("projection")["region"] is False
@@ -504,7 +505,16 @@ def test_turn_sampled_shadow_cannot_be_combined_with_authority():
         "shadow_refresh_policy": "turn-boundary-before-readout",
     })
 
-    with pytest.raises(ValueError, match="every-snapshot materialization"):
+    with pytest.raises(ValueError, match="turn-sampled materialization"):
+        DependentAtomSpaceConfig.from_dict(value, manifest)
+
+
+def test_domain_scoped_refresh_requires_authority():
+    value, manifest = _values()
+    value = copy.deepcopy(value)
+    value["shadow_refresh_policy"] = "authority-domain-before-readout"
+
+    with pytest.raises(ValueError, match="requires FDAS authority"):
         DependentAtomSpaceConfig.from_dict(value, manifest)
 
 
