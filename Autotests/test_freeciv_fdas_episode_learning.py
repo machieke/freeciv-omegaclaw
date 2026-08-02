@@ -1,6 +1,8 @@
 import os
 import sys
 
+import pytest
+
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(REPO, "src")
@@ -103,6 +105,21 @@ def test_goal_relief_credits_contextual_route_once_without_truth_authority():
     assert second.applied is False
     assert second.reason == "duplicate-episode-control-update"
     assert second.conductance_update.value == first.conductance_update.value
+
+
+def test_live_prediction_registration_is_idempotent_and_collision_safe():
+    adapter, _conductance = _adapter(())
+    prediction = EpisodeControlPrediction(
+        "prediction-live", "operation-live", "route:live", "defense-live",
+        1.0, 1.0, (("action", 1.0),), 1.0, "frontier:live", 0)
+
+    assert adapter.register_prediction(prediction) == prediction
+    assert adapter.register_prediction(prediction) == prediction
+    with pytest.raises(ValueError, match="collision"):
+        adapter.register_prediction(EpisodeControlPrediction(
+            "prediction-live", "operation-other", "route:live",
+            "defense-live", 1.0, 1.0, (("action", 1.0),), 1.0,
+            "frontier:live", 0))
 
 
 def test_no_effect_and_effect_without_relief_are_distinct_no_progress_samples():

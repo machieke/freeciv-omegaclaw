@@ -48,9 +48,10 @@ The checked defaults remain non-authoritative. Activation requires both:
 The manifest promotes only the unit, operation, defense requirement,
 pressure, resource/packet, and exact-commit capabilities needed by this slice
 to `bounded-authority`. Region and the remaining defense substrate stay
-`shadow-live`; episodes remain component-only. Removing the overrides returns
-to the default legacy path, and a one-sided or partially promoted declaration
-fails validation.
+`shadow-live`. Episode attribution and contextual control learning are also
+`shadow-live`, while contextual conductance authority remains disabled.
+Removing the overrides returns to the default legacy path, and a one-sided or
+partially promoted declaration fails validation.
 
 ## Captured replay
 
@@ -71,7 +72,7 @@ python3 scripts/freeciv/run_fdas_bounded_authority_replay.py \
 | Explicit fallbacks | 25 |
 | Policy winner changes | 0 |
 | Replay failures | 0 |
-| Authority readout p50 / p95 | 0.532 / 18.145 ms |
+| Authority readout p50 / p95 | 0.552 / 18.695 ms |
 
 All twelve gates passed in two deterministic runs. Every authorization was an
 exact legacy-selected `unit_fortify`, received the exact actor resource and
@@ -80,14 +81,14 @@ retained `execution_authority: false`. The 25 fallbacks were all legacy winners
 outside the city-defense category.
 
 The report hash is
-`101ed7730fb1ea3786c2813f23b2ccdf3fea1a3e5683c03b592f4f5c5b431099`;
+`6941b95de2ddd9b346b40a774c0a7c265e1acb9befec8f64a11a7b6d0e7c0a41`;
 its implementation digest is
-`0d4c0029153728c029a9a10b6301a4da51586fb731afbe5fc2ffe0d8f1568e33`.
+`e31be2a2b6f74fcb5384013eb935cf3fbecde4d980c1dfb1068905e82c035e5f`.
 
 ## Episode boundary
 
-The authorized operation is now compatible with the existing defense episode
-recorder. A deterministic acceptance fixture proves three separate states:
+The authorized operation is now wired to a durable compact defense episode
+store. A deterministic acceptance fixture proves three separate states:
 
 1. server acceptance records no effect and no goal relief;
 2. an authoritative after-snapshot showing `fortifying` records the exact
@@ -95,14 +96,18 @@ recorder. A deterministic acceptance fixture proves three separate states:
 3. only that after-state records realized relief for the bound fortification
    goal.
 
-The episode recorder also normalizes generic FDAS unit participants to the
-same `unit:<id>` identity used by durable defense operations. This is an exact
-replay/component bridge; persistence and engine event wiring remain required
-before `episode_attribution` can be promoted from `component-only`.
+The engine opens an episode only after server acceptance, persists it with an
+atomic replacement, projects it into an episode scope, and observes subsequent
+revision-current snapshots. Terminal attributable outcomes create a
+contextual conductance sample in an isolated control store. That sample is
+explicitly read-only: it has no policy authority and cannot mutate truth.
+Prediction identities are reconstructable from durable episode fields so a
+retry can rebuild the same isolated control state. Fresh engine confirmation
+of this wiring is still required before it becomes an accepted live claim.
 
-The focused authority/config/runtime/unit/replay suite passed 82 tests before
-the episode link was added. The complete FDAS suite passed 211 tests with the
-final support and episode hardening.
+The complete explicit FDAS suite passes 213 tests with the live episode and
+read-only learning bridge implementation; the replay reports were regenerated
+against the exact current source.
 
 ## Fresh engine-backed safety confirmation
 
@@ -173,6 +178,7 @@ production-safe.
 
 This evidence supports one default-off, non-divergent fortification authority
 slice and fresh clean-source execution of that slice. It does not support
-reinforcement movement authority, policy winner changes, online conductance
-updates, a score/win-rate claim, a production-latency claim, durable live
-episode attribution, or promotion of the default manifest.
+reinforcement movement authority, policy winner changes, conductance-based
+policy changes, a score/win-rate claim, a production-latency claim, acceptance
+of the newly wired live episodes before fresh confirmation, or promotion of
+the default manifest.

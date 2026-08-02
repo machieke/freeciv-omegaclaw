@@ -188,6 +188,18 @@ class FdasEpisodeLearningAdapter(object):
         self.conductance_store = (
             conductance_store or ContextualConductanceStore())
 
+    def register_prediction(self, prediction):
+        """Register one live pre-action prediction without changing policy."""
+        if not isinstance(prediction, EpisodeControlPrediction):
+            raise TypeError("episode learning prediction has the wrong type")
+        prior = self.predictions.get(prediction.prediction_id)
+        if prior is not None:
+            if prior != prediction:
+                raise ValueError("episode learning prediction ID collision")
+            return prior
+        self.predictions[prediction.prediction_id] = prediction
+        return prediction
+
     @staticmethod
     def _result(episode, applied, reason, record=None, update=None):
         semantic = {

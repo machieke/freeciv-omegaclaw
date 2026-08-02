@@ -90,6 +90,7 @@ score claim or default activation.
 
 PR 15 is not yet production-promoted. The late-game every-snapshot profile
 measured 284.31 ms FDAS projection p95 and 3233.09 ms full-loop p95, above the
-proposed 150/500 ms targets. Durable live episode event wiring and read-only
-route-conductance sample capture also remain open. See
+proposed 150/500 ms targets. Durable episode event wiring and isolated,
+read-only route-conductance sample capture are implemented and component
+verified, but still need a fresh engine-backed confirmation. See
 `fdas-bounded-defense-authority.md` for the exact hashes and claim boundary.

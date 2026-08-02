@@ -138,7 +138,13 @@ def test_checked_defense_authority_profile_requires_exact_bounded_stack():
         "research": False,
         "transport": False,
     }
-    assert not any(config.section("learning").values())
+    assert config.section("learning") == {
+        "contextual_conductance_authority_enabled": False,
+        "contextual_conductance_enabled": True,
+        "episode_attribution_enabled": True,
+        "induced_rule_readout_enabled": False,
+        "induction_enabled": False,
+    }
     assert manifest["status"] == "bounded-authority"
     assert manifest["policy_authority"] is True
     for capability in (
@@ -150,6 +156,13 @@ def test_checked_defense_authority_profile_requires_exact_bounded_stack():
             "operation_atom_projection",
             "unit_domain_projection"):
         assert manifest["capabilities"][capability] == "bounded-authority"
+
+    for capability in (
+            "contextual_conductance_learning",
+            "episode_attribution",
+            "episode_control_learning_bridge",
+            "fdas_learning_diagnostics"):
+        assert manifest["capabilities"][capability] == "shadow-live"
 
     for capability in (
             "defense_operation_reconciliation",

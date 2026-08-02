@@ -22,6 +22,7 @@ for path in (SRC, SCRIPT_DIR):
 import run_fdas_captured_replay as captured_replay  # noqa: E402
 
 from freeciv_agent.events.schema import structural_hash  # noqa: E402
+from freeciv_agent.planning import DecisionEpisodeStore  # noqa: E402
 from freeciv_agent.rulesets.compiler import compile_ruleset  # noqa: E402
 from freeciv_agent.state.atomspace import (  # noqa: E402
     build_runtime,
@@ -113,10 +114,16 @@ def _selected_legacy(relative, candidates):
 
 
 def _run_once(snapshots, declaration, ruleset_ir):
+    episode_source = (
+        DecisionEpisodeStore("fdas-bounded-authority-replay")
+        if declaration["config"]["learning"][
+            "episode_attribution_enabled"]
+        else None)
     runtime = build_runtime(
         declaration,
         ruleset_ir=ruleset_ir,
-        operation_records_source=lambda: ())
+        operation_records_source=lambda: (),
+        episode_source=episode_source)
     rows = []
     failures = []
     for relative, snapshot, legacy_candidates in snapshots:

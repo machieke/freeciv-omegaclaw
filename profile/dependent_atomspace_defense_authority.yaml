@@ -43,8 +43,8 @@ dependent_atomspace:
     uncertain_assessment_enabled: false
 
   learning:
-    episode_attribution_enabled: false
-    contextual_conductance_enabled: false
+    episode_attribution_enabled: true
+    contextual_conductance_enabled: true
     contextual_conductance_authority_enabled: false
     induction_enabled: false
     induced_rule_readout_enabled: false

@@ -547,3 +547,48 @@ class FdasBoundedDefenseAuthority(object):
             operation_id=selected_id, action_key=candidate.action_key,
             checks=checks, scheduling=scheduling, validation=validation,
             authority_pressure=authority_pressure_value)
+
+    def candidate_from_readout(
+            self, snapshot, revision, shadow_evaluation, readout):
+        """Recover the exact promoted candidate behind an authorized readout.
+
+        This is deliberately stricter than a lookup by action key.  Episode
+        attribution may bind only to the same snapshot, revision, operation,
+        action, and fresh commit result that crossed the authority boundary.
+        """
+        if not isinstance(readout, FdasAuthorityReadout):
+            raise TypeError("defense authority readout has the wrong type")
+        if (not readout.authorized
+                or readout.authority_slice != self.AUTHORITY_IDENTITY):
+            raise ValueError("defense episode requires authorized readout")
+        if (readout.snapshot_id != snapshot.snapshot_id
+                or readout.revision_id != revision.revision_id
+                or shadow_evaluation.snapshot_id != snapshot.snapshot_id
+                or shadow_evaluation.revision_id != revision.revision_id):
+            raise ValueError("defense authority evidence is not current")
+        sources = tuple(
+            value for value in shadow_evaluation.candidates
+            if (value.operation.operation_id == readout.operation_id
+                and value.action_key == readout.action_key))
+        if len(sources) != 1:
+            raise ValueError("authorized defense route is not unique")
+        candidate, reason = self._promote(
+            sources[0], snapshot, revision, shadow_evaluation.goals)
+        if candidate is None:
+            raise ValueError(
+                "authorized defense route no longer satisfies contract: {}"
+                .format(reason))
+        goal_ids = frozenset(candidate.operation.goal_ids)
+        route_goals = tuple(
+            value for value in shadow_evaluation.goals
+            if value.goal.goal_id in goal_ids)
+        binding = FDASCommitBinding.create(
+            revision, snapshot, candidate, route_goals)
+        validation = self.commit_validator.validate(
+            binding, revision, snapshot, candidate,
+            authority_enabled=True)
+        expected_hash = (readout.commit_validation or {}).get("result_hash")
+        if (not validation.plan_materialization_authorized
+                or validation.result_hash != expected_hash):
+            raise ValueError("authorized defense commit evidence changed")
+        return candidate

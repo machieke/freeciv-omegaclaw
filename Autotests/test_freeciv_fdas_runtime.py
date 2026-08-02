@@ -15,7 +15,10 @@ if SRC not in sys.path:
 
 from freeciv_agent.events.validator import validate_file  # noqa: E402
 from freeciv_agent.events.writer import EventWriter  # noqa: E402
-from freeciv_agent.planning import ControlEventEmitter  # noqa: E402
+from freeciv_agent.planning import (  # noqa: E402
+    ControlEventEmitter,
+    DecisionEpisodeStore,
+)
 from freeciv_agent.rulesets.compiler import compile_ruleset  # noqa: E402
 from freeciv_agent.state import ProxyStateDTO, SnapshotConflict  # noqa: E402
 from freeciv_agent.state.atomspace import (  # noqa: E402
@@ -185,7 +188,9 @@ def test_checked_defense_authority_runtime_installs_only_defense_adapter():
     runtime = build_runtime(
         declaration,
         ruleset_ir=ir,
-        operation_records_source=lambda: ())
+        operation_records_source=lambda: (),
+        episode_source=DecisionEpisodeStore(
+            "fdas-defense-authority-runtime-test"))
 
     assert runtime.config.authority_enabled is True
     assert runtime._authority_domain == "city_defense"
@@ -196,6 +201,7 @@ def test_checked_defense_authority_runtime_installs_only_defense_adapter():
         "fdas-unit-defense-shadow",
         "fdas-city-region-shadow",
         "fdas-operation-projector",
+        "fdas-episode-projector",
     )
 
 

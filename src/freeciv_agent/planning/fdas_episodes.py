@@ -7,8 +7,10 @@ import os
 import tempfile
 
 from ..events.schema import canonical_json_bytes, structural_hash
+from .fdas import ShadowOperationCandidate
+from .fdas_authority import FdasAuthorityReadout
 from .fdas_defense import FdasDefenseActionBinding
-from .operation_store import OperationRecord
+from .operation_store import OperationRecord, OperationStore
 
 
 EPISODE_SCHEMA_VERSION = 1
@@ -399,6 +401,85 @@ class FdasDefenseEpisodeRecorder(object):
                 raise ValueError("decision episode identity collision")
             return existing
         return self.store.record(episode)
+
+    def begin_authorized(
+            self, candidate, readout, shadow_evaluation, before_snapshot,
+            before_revision, execution_event_id, prediction_ids=()):
+        """Open an episode from one exact accepted defense authority action."""
+        if not isinstance(candidate, ShadowOperationCandidate):
+            raise TypeError("authorized episode requires shadow candidate")
+        if not isinstance(readout, FdasAuthorityReadout):
+            raise TypeError("authorized episode requires authority readout")
+        if (not readout.authorized
+                or readout.authority_slice
+                != "fdas-bounded-defense-fortification/1.0"
+                or readout.snapshot_id != before_snapshot.snapshot_id
+                or readout.revision_id != before_revision.revision_id
+                or readout.operation_id != candidate.operation.operation_id
+                or readout.action_key != candidate.action_key):
+            raise ValueError("authorized episode evidence is inconsistent")
+        if (shadow_evaluation.snapshot_id != before_snapshot.snapshot_id
+                or shadow_evaluation.revision_id
+                != before_revision.revision_id):
+            raise ValueError("authorized episode shadow evidence is stale")
+        validation_hash = (readout.commit_validation or {}).get("result_hash")
+        if not validation_hash:
+            raise ValueError("authorized episode lacks commit validation")
+        action = candidate.action
+        if (action.get("action_type") != "unit_fortify"
+                or candidate.action_key
+                not in before_snapshot.legal_action_json):
+            raise ValueError("authorized episode is outside defense slice")
+        operation_store = OperationStore(
+            "fdas-defense-episode-operation:{}".format(
+                candidate.operation.operation_id))
+        operation_record = operation_store.propose(
+            candidate.operation, before_snapshot.snapshot_id,
+            before_snapshot.turn)
+        binding_material = {
+            "action": action,
+            "action_key": candidate.action_key,
+            "domain_operation_id": candidate.operation.operation_id,
+            "legal_actions_digest": before_snapshot.legal_actions_digest,
+            "legal_bound": True,
+            "operation_id": candidate.operation.operation_id,
+            "snapshot_id": before_snapshot.snapshot_id,
+        }
+        binding = FdasDefenseActionBinding(
+            candidate.operation.operation_id,
+            candidate.operation.operation_id,
+            before_snapshot.snapshot_id,
+            before_snapshot.legal_actions_digest,
+            action,
+            candidate.action_key,
+            True,
+            structural_hash(binding_material),
+        )
+        goal_ids = frozenset(candidate.operation.goal_ids)
+        source_atom_ids = tuple(sorted(
+            value.deficit_atom_id for value in shadow_evaluation.goals
+            if value.goal.goal_id in goal_ids))
+        source_support_ids = tuple(sorted({
+            support.support_id
+            for atom_id in source_atom_ids
+            for support in before_revision.record(atom_id).supports
+        }))
+        resource_claim_ids = tuple(sorted(
+            structural_hash(claim)
+            for request in readout.scheduling["resource_schedule"]["requests"]
+            for claim in request["claims"]))
+        instantiation_hash = (
+            shadow_evaluation.candidate_instantiation.instantiation_hash)
+        return self.begin(
+            binding, operation_record, before_snapshot,
+            before_revision.revision_id, validation_hash,
+            execution_event_id=execution_event_id,
+            source_atom_ids=source_atom_ids,
+            source_support_ids=source_support_ids,
+            grounding_result_ids=(instantiation_hash,),
+            prediction_ids=tuple(prediction_ids),
+            resource_claim_ids=resource_claim_ids,
+        )
 
     def observe(self, episode_id, after_snapshot, after_revision_id,
                 observation_window_closed=False):

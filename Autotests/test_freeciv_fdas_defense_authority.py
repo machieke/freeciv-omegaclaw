@@ -196,6 +196,21 @@ def test_authorized_fortification_episode_separates_acceptance_and_relief(ir):
         evaluation.candidates[0], snapshot, revision, evaluation.goals)
     assert reason is None
     assert readout.authorized
+    assert authority.candidate_from_readout(
+        snapshot, revision, evaluation, readout) == promoted
+
+    automatic_store = DecisionEpisodeStore(
+        "fdas-defense-authority-automatic-episodes")
+    automatic = FdasDefenseEpisodeRecorder(
+        automatic_store).begin_authorized(
+            promoted, readout, evaluation, snapshot, revision,
+            "action-result-automatic")
+    assert automatic.operation_id == promoted.operation.operation_id
+    assert automatic.source_atom_ids == (
+        evaluation.goals[0].deficit_atom_id,)
+    assert automatic.grounding_result_ids == (
+        evaluation.candidate_instantiation.instantiation_hash,)
+    assert automatic.outcome_status == "accepted-by-server"
 
     operations = OperationStore("fdas-defense-authority-episode-operations")
     record = operations.propose(

@@ -713,6 +713,19 @@ class FdasRuntime(object):
         raise FdasRuntimeConfigurationError(
             "configured FDAS authority domain has no runtime adapter")
 
+    def authority_candidate(self, snapshot, shadow_evaluation, readout):
+        """Return the exact candidate bound by a current authority readout."""
+        if self._authority_domain != "city_defense":
+            raise FdasRuntimeConfigurationError(
+                "authority candidate recovery is limited to city defense")
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        if revision is None or revision.snapshot_id != snapshot.snapshot_id:
+            raise RuntimeError(
+                "FDAS authority candidate requires the current revision")
+        return self._authority_adapter.candidate_from_readout(
+            snapshot, revision, shadow_evaluation, readout)
+
     def emit_current(self, writer, snapshot, caused_by=(), prior_revision=None):
         """Emit bounded causal evidence for the current rich revision."""
         if not self.enabled or self.event_emitter is None:
@@ -765,6 +778,22 @@ class FdasRuntime(object):
             writer, snapshot.turn, revision, readout,
             ruleset_digest=self.ruleset_digest,
             caused_by=tuple(caused_by))
+
+    def emit_episode_component(
+            self, writer, snapshot, event_type, details, caused_by=()):
+        """Emit one learning event bound to the current FDAS revision."""
+        if self.event_emitter is None:
+            return None
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        if revision is None or revision.snapshot_id != snapshot.snapshot_id:
+            raise RuntimeError(
+                "FDAS episode evidence is not snapshot-current")
+        return self.event_emitter.emit_component(
+            writer, event_type, snapshot.turn, revision, details,
+            caused_by=tuple(caused_by), ruleset_digest=self.ruleset_digest,
+            component_id="fdas-episode-control-learning",
+            component_version="1.0")
 
 
 def build_runtime(declaration, ruleset_ir=None, belief_store=None,

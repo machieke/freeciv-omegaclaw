@@ -41,7 +41,11 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     ResourceLedger, GroundedImpactPlanner,
                                     DeferredImpactOutcomeLedger,
                                     ImpactTurnBudget,
-                                    ControlEventEmitter)
+                                    ControlEventEmitter,
+                                    DecisionEpisodeStore,
+                                    EpisodeControlPrediction,
+                                    FdasDefenseEpisodeRecorder,
+                                    FdasEpisodeLearningAdapter)
 from freeciv_agent.rulesets.compiler import compile_ruleset
 from freeciv_agent.state import ProxyStateDTO, SnapshotStore, StateSummaryService
 from freeciv_agent.state.atomspace import build_runtime as build_fdas_runtime
@@ -143,6 +147,32 @@ def _metric(writer, turn, parent, name, value, manifest, **labels):
         "value": float(value),
     }, caused_by=[parent])
     return event["event_id"]
+
+
+def _fdas_defense_episode_prediction(
+        operation_id, action_key, before_revision_id):
+    """Create the reconstructable pre-action prior for the bounded slice."""
+    material = {
+        "action_key": str(action_key),
+        "authority_slice": "fdas-bounded-defense-fortification/1.0",
+        "before_revision_id": str(before_revision_id),
+        "operation_id": str(operation_id),
+    }
+    return EpisodeControlPrediction(
+        "prediction-" + structural_hash(material)[:32],
+        str(operation_id),
+        "fdas-bounded-defense-fortification/1.0",
+        "fdas-defense-fortification-live-v1",
+        1.0,
+        1.0,
+        (("action", 1.0), ("cpu", 1.0)),
+        1.0,
+        "frontier-" + structural_hash({
+            "action_key": str(action_key),
+            "operation_id": str(operation_id),
+        })[:32],
+        0,
+    )
 
 
 def _emit_belief_configuration(writer, parent, manifest):
@@ -1993,6 +2023,45 @@ async def _play(run_dir, manifest, context):
         pressure_state_identity=pressure_state_identity)
         if context.capabilities["scheduler"] else None)
     control_event_emitter = ControlEventEmitter()
+    fdas_learning_config = manifest["dependent_atomspace"]["config"][
+        "learning"]
+    fdas_episode_path = os.path.join(
+        run_dir, "fdas-decision-episodes.json")
+    fdas_episode_store = None
+    fdas_episode_recorder = None
+    fdas_episode_learning = None
+    if fdas_learning_config["episode_attribution_enabled"]:
+        fdas_episode_identity = structural_hash([
+            manifest["manifest_identity"], manifest["attempt_id"],
+            manifest["game_id"],
+            "fdas-defense-decision-episodes/1.0",
+        ])
+        fdas_episode_store = DecisionEpisodeStore.load(
+            fdas_episode_path, fdas_episode_identity)
+        if fdas_episode_store.quarantined:
+            raise RuntimeError(
+                "FDAS decision episode store is quarantined: {}".format(
+                    fdas_episode_store.quarantine_reason))
+        fdas_episode_recorder = FdasDefenseEpisodeRecorder(
+            fdas_episode_store)
+        if fdas_learning_config["contextual_conductance_enabled"]:
+            fdas_episode_learning = FdasEpisodeLearningAdapter(
+                fdas_episode_store, ())
+            for existing_episode in fdas_episode_store.episodes():
+                prediction = _fdas_defense_episode_prediction(
+                    existing_episode.operation_id,
+                    existing_episode.action_key,
+                    existing_episode.before_revision_id)
+                if existing_episode.prediction_ids != (
+                        prediction.prediction_id,):
+                    raise RuntimeError(
+                        "FDAS episode prediction identity is not reconstructable")
+                fdas_episode_learning.register_prediction(prediction)
+                if existing_episode.outcome_status in (
+                        "goal-relief-observed",
+                        "effect-without-goal-relief",
+                        "no-effect-observed"):
+                    fdas_episode_learning.apply(existing_episode.episode_id)
     fdas_runtime = build_fdas_runtime(
         manifest["dependent_atomspace"],
         ruleset_ir=observability_ir,
@@ -2000,6 +2069,7 @@ async def _play(run_dir, manifest, context):
         operation_records_source=lambda: (
             control_event_emitter.fdas_operation_records(
                 manifest["game_id"])),
+        episode_source=fdas_episode_store,
     )
     fdas_store = fdas_runtime.snapshot_store
     fdas_turn_sampled = bool(
@@ -2066,6 +2136,12 @@ async def _play(run_dir, manifest, context):
         "fdas_authority_opportunities": 0,
         "fdas_authority_actions": 0,
         "fdas_authority_fallbacks": 0,
+        "fdas_episode_opened": 0,
+        "fdas_episode_effect_observed": 0,
+        "fdas_episode_relief_attributed": 0,
+        "fdas_episode_no_effect": 0,
+        "fdas_episode_confounded": 0,
+        "fdas_conductance_samples": 0,
         "production_persistence_guard_applications": 0,
         "production_persistence_guard_excluded_actions": 0,
         "production_persistence_guard_opportunities": 0,
@@ -2393,6 +2469,92 @@ async def _play(run_dir, manifest, context):
                     resolution.after_snapshot, resolution.effect_observed,
                     deferred=True, feedback_id=resolution.feedback_id)
 
+        def publish_fdas_episode_revision(current, cause):
+            """Persist and project the compact episode source atomically."""
+            if fdas_episode_store is None:
+                return cause
+            prior_revision = fdas_store.current_dependent_revision(
+                manifest["game_id"], player_id)
+            fdas_episode_store.save(fdas_episode_path)
+            update = fdas_runtime.rematerialize(
+                manifest["game_id"], player_id)
+            events = fdas_runtime.emit_current(
+                writer, current, caused_by=(cause,),
+                prior_revision=prior_revision)
+            result = events[-1]["event_id"] if events else cause
+            return _metric(
+                writer, current.turn, result,
+                "fdas_episode_projection_latency_ms", update.latency_ms,
+                manifest, atoms=update.atom_count, scopes=update.scope_count)
+
+        def reconcile_fdas_decision_episodes(
+                current, cause, observation_window_closed=False):
+            """Observe pending accepted actions without granting policy power."""
+            if fdas_episode_store is None:
+                return cause
+            pending = tuple(
+                episode for episode in fdas_episode_store.episodes()
+                if episode.outcome_status in (
+                    "accepted-by-server", "delayed-effect-pending",
+                    "immediate-effect-observed"))
+            for prior_episode in pending:
+                updated = fdas_episode_recorder.observe(
+                    prior_episode.episode_id, current,
+                    fdas_store.current_dependent_revision(
+                        manifest["game_id"], player_id).revision_id,
+                    observation_window_closed=observation_window_closed)
+                if updated == prior_episode:
+                    continue
+                cause = publish_fdas_episode_revision(current, cause)
+                if updated.attributed_effects:
+                    event = fdas_runtime.emit_episode_component(
+                        writer, current, "episode_effect_observed", {
+                            "attributed_effects": list(
+                                updated.attributed_effects),
+                            "episode_id": updated.episode_id,
+                            "outcome_status": updated.outcome_status,
+                            "policy_authority": False,
+                            "truth_mutated": False,
+                        }, caused_by=(cause,))
+                    cause = event["event_id"]
+                    decision_stats["fdas_episode_effect_observed"] += 1
+                if updated.realized_goal_relief:
+                    event = fdas_runtime.emit_episode_component(
+                        writer, current, "episode_relief_attributed", {
+                            "episode_id": updated.episode_id,
+                            "outcome_status": updated.outcome_status,
+                            "policy_authority": False,
+                            "realized_goal_relief": dict(
+                                updated.realized_goal_relief),
+                            "truth_mutated": False,
+                        }, caused_by=(cause,))
+                    cause = event["event_id"]
+                    decision_stats["fdas_episode_relief_attributed"] += 1
+                decision_stats["fdas_episode_no_effect"] += int(
+                    updated.outcome_status == "no-effect-observed")
+                decision_stats["fdas_episode_confounded"] += int(
+                    updated.outcome_status == "confounded-unattributable")
+                if (fdas_episode_learning is not None
+                        and updated.outcome_status in (
+                            "goal-relief-observed",
+                            "effect-without-goal-relief",
+                            "no-effect-observed")):
+                    learning = fdas_episode_learning.apply(
+                        updated.episode_id,
+                        realized_cost=(("action", 1.0), ("cpu", 1.0)))
+                    event = fdas_runtime.emit_episode_component(
+                        writer, current, "conductance_sample_recorded", {
+                            "episode_id": updated.episode_id,
+                            "learning": learning.to_dict(),
+                            "policy_authority": False,
+                            "read_only": True,
+                            "truth_mutated": False,
+                        }, caused_by=(cause,))
+                    cause = event["event_id"]
+                    decision_stats["fdas_conductance_samples"] += int(
+                        learning.applied)
+            return cause
+
         distance = _enemy_distance(
             raw, global_state, player_id, snapshot.map_width, snapshot.map_height)
         if distance is not None:
@@ -2466,6 +2628,9 @@ async def _play(run_dir, manifest, context):
                         cold_verified=(
                             fdas_update.cold_verification is not None),
                         scopes=fdas_update.scope_count)
+                fdas_parent = reconcile_fdas_decision_episodes(
+                    next_snapshot, fdas_parent,
+                    observation_window_closed=False)
                 enabling_events = (
                     control_event_emitter
                     .resolve_grounded_enabling_operations(
@@ -2581,6 +2746,9 @@ async def _play(run_dir, manifest, context):
                         cold_verified=(
                             fdas_update.cold_verification is not None),
                         scopes=fdas_update.scope_count)
+                fdas_parent = reconcile_fdas_decision_episodes(
+                    snapshot, fdas_parent,
+                    observation_window_closed=True)
                 enabling_events = (
                     control_event_emitter
                     .resolve_grounded_enabling_operations(
@@ -2956,6 +3124,8 @@ async def _play(run_dir, manifest, context):
                     impact_planning_latency_ms += (
                         time.perf_counter() - impact_planning_started) * 1000.0
                     impact_planning_calls += 1
+                    fdas_shadow = None
+                    fdas_authority = None
                     evaluate_fdas_shadow = bool(
                         not fdas_turn_sampled
                         or snapshot.turn
@@ -3286,6 +3456,32 @@ async def _play(run_dir, manifest, context):
                     if outcome.status != "accepted":
                         raise RuntimeError(
                             "impact plan action failed: {}".format(outcome.reason))
+                    if (fdas_authority is not None
+                            and fdas_authority.authorized):
+                        episode_revision = (
+                            fdas_store.current_dependent_revision(
+                                manifest["game_id"], player_id))
+                        episode_candidate = fdas_runtime.authority_candidate(
+                            action_snapshot, fdas_shadow, fdas_authority)
+                        if (episode_candidate.action_key
+                                != decision.candidate.action_key):
+                            raise RuntimeError(
+                                "FDAS authority episode changed legacy winner")
+                        prediction = _fdas_defense_episode_prediction(
+                            episode_candidate.operation.operation_id,
+                            episode_candidate.action_key,
+                            episode_revision.revision_id)
+                        if fdas_episode_learning is not None:
+                            fdas_episode_learning.register_prediction(
+                                prediction)
+                        episode = fdas_episode_recorder.begin_authorized(
+                            episode_candidate, fdas_authority, fdas_shadow,
+                            action_snapshot, episode_revision,
+                            outcome.result_event_id or parent,
+                            prediction_ids=(prediction.prediction_id,))
+                        parent = publish_fdas_episode_revision(
+                            action_snapshot, parent)
+                        decision_stats["fdas_episode_opened"] += 1
                     planned_actions += 1
                     record_meaningful_action(
                         impact_action, impact=True,
@@ -4026,6 +4222,18 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_authority_actions"]),
         ("fdas_authority_fallbacks",
          decision_stats["fdas_authority_fallbacks"]),
+        ("fdas_episode_opened",
+         decision_stats["fdas_episode_opened"]),
+        ("fdas_episode_effect_observed",
+         decision_stats["fdas_episode_effect_observed"]),
+        ("fdas_episode_relief_attributed",
+         decision_stats["fdas_episode_relief_attributed"]),
+        ("fdas_episode_no_effect",
+         decision_stats["fdas_episode_no_effect"]),
+        ("fdas_episode_confounded",
+         decision_stats["fdas_episode_confounded"]),
+        ("fdas_conductance_samples",
+         decision_stats["fdas_conductance_samples"]),
         ("production_persistence_guard_opportunities",
          decision_stats[
              "production_persistence_guard_opportunities"]),
@@ -4424,6 +4632,17 @@ async def _play(run_dir, manifest, context):
                 decision_stats["fdas_authority_actions"]),
             "fdas_authority_fallbacks": (
                 decision_stats["fdas_authority_fallbacks"]),
+            "fdas_episode_opened": decision_stats["fdas_episode_opened"],
+            "fdas_episode_effect_observed": (
+                decision_stats["fdas_episode_effect_observed"]),
+            "fdas_episode_relief_attributed": (
+                decision_stats["fdas_episode_relief_attributed"]),
+            "fdas_episode_no_effect": (
+                decision_stats["fdas_episode_no_effect"]),
+            "fdas_episode_confounded": (
+                decision_stats["fdas_episode_confounded"]),
+            "fdas_conductance_samples": (
+                decision_stats["fdas_conductance_samples"]),
             "production_persistence_guard_applications": (
                 decision_stats[
                     "production_persistence_guard_applications"]),
@@ -4688,6 +4907,17 @@ async def _play(run_dir, manifest, context):
             decision_stats["fdas_authority_actions"]),
         "fdas_authority_fallbacks": (
             decision_stats["fdas_authority_fallbacks"]),
+        "fdas_episode_opened": decision_stats["fdas_episode_opened"],
+        "fdas_episode_effect_observed": (
+            decision_stats["fdas_episode_effect_observed"]),
+        "fdas_episode_relief_attributed": (
+            decision_stats["fdas_episode_relief_attributed"]),
+        "fdas_episode_no_effect": (
+            decision_stats["fdas_episode_no_effect"]),
+        "fdas_episode_confounded": (
+            decision_stats["fdas_episode_confounded"]),
+        "fdas_conductance_samples": (
+            decision_stats["fdas_conductance_samples"]),
         "production_persistence_guard_applications": (
             decision_stats[
                 "production_persistence_guard_applications"]),
