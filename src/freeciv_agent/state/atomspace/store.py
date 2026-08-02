@@ -252,15 +252,8 @@ class DependentAtomSpaceStore(object):
                 and snapshot.snapshot_id != prior.snapshot_id):
             raise ValueError("FDAS source sequence must increase within turn")
 
-    @_without_cyclic_gc
-    def prepare(self, snapshot, prior_snapshot=None, prior_revision=None,
-                cold=False):
-        """Build a revision without changing the store's visible current pair."""
-        from .compatibility import (
-            project_legacy_records,
-            project_legacy_records_incremental,
-        )
-
+    def _prepare_inputs(self, snapshot, prior_snapshot):
+        """Freeze pure projection inputs once for a paired parity build."""
         self._validate_order(prior_snapshot, snapshot)
         scopes = (
             self.domain_projector.scopes(snapshot)
@@ -280,6 +273,34 @@ class DependentAtomSpaceStore(object):
         if self.domain_projector is not None:
             fingerprints = self.domain_projector.extend_fingerprints(
                 fingerprints)
+        return (
+            snapshot.snapshot_id,
+            None if prior_snapshot is None else prior_snapshot.snapshot_id,
+            scopes,
+            delta,
+            fingerprints,
+        )
+
+    @_without_cyclic_gc
+    def prepare(self, snapshot, prior_snapshot=None, prior_revision=None,
+                cold=False, _prepared_inputs=None):
+        """Build a revision without changing the store's visible current pair."""
+        from .compatibility import (
+            project_legacy_records,
+            project_legacy_records_incremental,
+        )
+
+        prepared = (
+            self._prepare_inputs(snapshot, prior_snapshot)
+            if _prepared_inputs is None else _prepared_inputs)
+        expected = (
+            snapshot.snapshot_id,
+            None if prior_snapshot is None else prior_snapshot.snapshot_id,
+        )
+        if tuple(prepared[:2]) != expected:
+            raise ValueError("FDAS prepared inputs do not match snapshots")
+        _snapshot_id, _prior_snapshot_id, scopes, delta, fingerprints = (
+            prepared)
         if cold or prior_revision is None:
             records = project_legacy_records(
                 snapshot, scopes, fingerprints)
@@ -472,13 +493,17 @@ class DependentAtomSpaceStore(object):
             snapshot, prior_snapshot, prior_revision, cold=False)
         return self.publish(snapshot, revision)
 
+    @_without_cyclic_gc
     def prepare_verified_incremental(
             self, snapshot, prior_snapshot, prior_revision):
         """Return the already-built incremental revision and parity proof."""
+        prepared_inputs = self._prepare_inputs(snapshot, prior_snapshot)
         incremental = self.prepare(
-            snapshot, prior_snapshot, prior_revision, cold=False)
+            snapshot, prior_snapshot, prior_revision, cold=False,
+            _prepared_inputs=prepared_inputs)
         cold = self.prepare(
-            snapshot, prior_snapshot, prior_revision, cold=True)
+            snapshot, prior_snapshot, prior_revision, cold=True,
+            _prepared_inputs=prepared_inputs)
         mismatches = []
         for name in (
                 "revision_id", "build_hash", "records", "scopes",

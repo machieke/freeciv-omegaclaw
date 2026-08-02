@@ -139,6 +139,7 @@ class CompositeDomainProjector(object):
         self._component_scopes = {}
         self._projections = {}
         self._incremental_metrics = {}
+        self._fingerprint_index_cache = None
         self._incremental_roots = frozenset(
             root for projector in self.projectors
             for root in getattr(
@@ -214,6 +215,21 @@ class CompositeDomainProjector(object):
                 (prefix, tuple(sorted(rows)))
                 for prefix, rows in prefix_rows.items()),
         }
+
+    def _cached_fingerprint_index(self, fingerprints, wanted_prefixes):
+        """Reuse one immutable preparation index across parity projections."""
+        prefixes = tuple(wanted_prefixes)
+        cached = self._fingerprint_index_cache
+        if (cached is not None and cached[0] is fingerprints
+                and cached[1] == prefixes):
+            return cached[2]
+        index = self._fingerprint_index(
+            fingerprints, self._incremental_roots,
+            self._incremental_kinds, prefixes)
+        # Retaining the mapping itself makes an object-ID reuse impossible;
+        # the next different preparation replaces this single bounded entry.
+        self._fingerprint_index_cache = (fingerprints, prefixes, index)
+        return index
 
     @staticmethod
     def _matches_prefix(path, prefix):
@@ -544,8 +560,8 @@ class CompositeDomainProjector(object):
             (projector.projector_id,
              self._shard_specs(projector, snapshot, scopes))
             for projector in self.projectors)
-        fingerprint_index = self._fingerprint_index(
-            fingerprints, self._incremental_roots, self._incremental_kinds,
+        fingerprint_index = self._cached_fingerprint_index(
+            fingerprints,
             tuple(
                 prefix for specs in specs_by_projector.values()
                 for spec in specs for prefix in spec.snapshot_prefixes))
@@ -574,8 +590,8 @@ class CompositeDomainProjector(object):
             (projector.projector_id,
              self._shard_specs(projector, snapshot, scopes))
             for projector in self.projectors)
-        fingerprint_index = self._fingerprint_index(
-            fingerprints, self._incremental_roots, self._incremental_kinds,
+        fingerprint_index = self._cached_fingerprint_index(
+            fingerprints,
             tuple(
                 prefix for specs in specs_by_projector.values()
                 for spec in specs for prefix in spec.snapshot_prefixes))
