@@ -3744,7 +3744,29 @@ async def _play(run_dir, manifest, context):
             if len(belief_store.evidence) != belief_count_before + 1:
                 raise RuntimeError(
                     "observation belief evidence was not written exactly once")
-            cause = rematerialize_fdas_beliefs(after, cause)
+            # The authoritative action refresh advanced the snapshot.  Commit
+            # that snapshot and the gated belief evidence in one replacement;
+            # same-snapshot rematerialization would mix the old FDAS revision
+            # with the new proxy snapshot and must fail closed.
+            prior_revision = fdas_store.current_dependent_revision(
+                manifest["game_id"], player_id)
+            update = fdas_runtime.replace(after)
+            events = fdas_runtime.emit_current(
+                writer,
+                after,
+                caused_by=(cause,),
+                prior_revision=prior_revision)
+            cause = events[-1]["event_id"] if events else cause
+            cause = _metric(
+                writer,
+                after.turn,
+                cause,
+                "fdas_observation_return_projection_latency_ms",
+                update.latency_ms,
+                manifest,
+                atoms=update.atom_count,
+                scopes=update.scope_count,
+                snapshot_replaced=True)
             decision_stats[
                 "fdas_observation_authoritative_returns"] += 1
             decision_stats[
