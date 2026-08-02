@@ -176,7 +176,7 @@ def _fixture(tmp_path):
                 "retained_provenance_ids": ["visible"],
                 "target_atom_id": "belief-alphabet",
                 "turn": 1,
-            }, caused_by=("e8",)),
+            }, caused_by=("e7",)),
         ]
         seq = 10
         for predicate in sorted(REQUIRED_PREDICATES):
@@ -258,6 +258,22 @@ def test_conflict_live_audit_rejects_partial_context_quarantine(tmp_path):
     rows = [json.loads(line) for line in path.read_text(
         encoding="utf-8").splitlines()]
     rows = [row for row in rows if row["event_id"] != "e9"]
+    path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
+        encoding="utf-8")
+
+    report = audit_fdas_belief_conflict_live(str(tmp_path))
+
+    assert report["acceptance"]["accepted"] is False
+
+
+def test_conflict_live_audit_rejects_transitive_quarantine_cause(tmp_path):
+    _fixture(tmp_path)
+    path = (tmp_path / "games" / "impact_pair" / COHORT / "baseline"
+            / "e_full_loop" / "161803-00" / "events.jsonl")
+    rows = [json.loads(line) for line in path.read_text(
+        encoding="utf-8").splitlines()]
+    rows[8]["caused_by"] = ["e8"]
     path.write_text(
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
         encoding="utf-8")

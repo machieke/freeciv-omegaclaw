@@ -168,8 +168,7 @@ def _audit_arm(root, arm, repo=None):
                 len(matching_quarantines) == len(value.get("context_ids", ()))
                 and quarantine_contexts == set(value.get("context_ids", ()))
                 and partitions
-                and all(_is_ancestor(
-                    event["event_id"], row, by_id)
+                and all(event["event_id"] in row.get("caused_by", ())
                         for row in matching_quarantines)),
             "explicit_independent_source_lineages": (
                 len(source_lineages) == 2

@@ -2051,6 +2051,7 @@ def _emit_new_fdas_belief_conflicts(
         event = store.emit_conflict(
             conflict.conflict_id, writer, caused_by=[parent])
         parent = event["event_id"]
+        conflict_event_id = event["event_id"]
         emitted_conflict_ids.add(conflict.conflict_id)
         conflicts_emitted += 1
         if not apply_context_quarantine:
@@ -2059,7 +2060,7 @@ def _emit_new_fdas_belief_conflicts(
             conflict.conflict_id, turn)
         for operation in operations:
             event = store.emit_context_quarantine(
-                operation, writer, caused_by=[parent])
+                operation, writer, caused_by=[conflict_event_id])
             parent = event["event_id"]
             quarantines_emitted += 1
     return parent, conflicts_emitted, quarantines_emitted
