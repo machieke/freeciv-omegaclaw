@@ -135,6 +135,40 @@ def test_induction_live_audit_accepts_quarantine_only_evidence(tmp_path):
     assert report["summary"]["rules_promoted"] == 0
 
 
+def test_induction_live_audit_accepts_hash_bound_zero_proposal_run(tmp_path):
+    _fixture(tmp_path)
+    ledger = _ledger()
+    ledger["proposals"] = {}
+    ledger["state_hash"] = structural_hash(dict(
+        (key, value) for key, value in ledger.items()
+        if key != "state_hash"))
+    _write_json(tmp_path / "fdas-induction-ledger.json", ledger)
+    _write_json(tmp_path / "status.json", {
+        "completed": True,
+        "engine_actions": 1,
+        "fdas_induction_duplicate_proposals": 0,
+        "fdas_induction_episode_abstentions": 0,
+        "fdas_induction_episodes_encoded": 2,
+        "fdas_induction_promoted_rules": 0,
+        "fdas_induction_proposals_quarantined": 0,
+        "horizon_reached": True,
+        "rejected_actions": 0,
+    })
+    path = tmp_path / "events.jsonl"
+    rows = [json.loads(line) for line in path.read_text(
+        encoding="utf-8").splitlines()]
+    path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows
+                if row["type"] != "induced_rule_quarantined"),
+        encoding="utf-8")
+
+    report = audit_fdas_induction_live(str(tmp_path))
+
+    assert report["acceptance"]["accepted"] is True
+    assert report["summary"]["proposals_quarantined"] == 0
+    assert report["summary"]["rules_promoted"] == 0
+
+
 def test_induction_live_audit_rejects_promoted_rule(tmp_path):
     _fixture(tmp_path)
     _write_json(tmp_path / "fdas-induction-ledger.json", _ledger("promoted"))

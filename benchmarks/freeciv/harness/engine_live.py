@@ -2444,6 +2444,9 @@ async def _play(run_dir, manifest, context):
             fdas_induction_ledger = InductionLedger(
                 os.path.join(run_dir, "fdas-induction-ledger.json"),
                 identity=fdas_induction_identity)
+            # Persist even the empty ledger so a zero-proposal run has a
+            # durable, hash-bound quarantine/promotion claim surface.
+            fdas_induction_ledger.save()
             fdas_episode_induction = FdasEpisodeInductionShadow(
                 fdas_episode_store,
                 fdas_induction_ledger)
