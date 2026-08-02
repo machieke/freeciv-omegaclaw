@@ -145,6 +145,36 @@ def test_checked_expansion_shadow_profile_is_live_and_non_authoritative():
         assert manifest["capabilities"][capability] == "shadow-live"
 
 
+def test_checked_transport_shadow_profile_is_capability_only_and_safe():
+    with open(os.path.join(
+            REPO, "profile", "dependent_atomspace_transport_shadow.yaml"),
+            encoding="utf-8") as stream:
+        value = yaml.safe_load(stream)["dependent_atomspace"]
+    with open(os.path.join(
+            REPO, "profile", "fdas_manifest_transport_shadow.json"),
+            encoding="utf-8") as stream:
+        manifest = json.load(stream)
+
+    config = DependentAtomSpaceConfig.from_dict(value, manifest)
+
+    assert config.enabled is True
+    assert config.shadow_enabled is True
+    assert config.authority_enabled is False
+    assert config.shadow_refresh_policy == "turn-boundary-before-readout"
+    assert config.section("projection")["transport"] is True
+    assert config.section("projection")["unit"] is True
+    for name in (
+            "beliefs", "city", "combat", "economy", "operations",
+            "population_recovery", "region", "research", "route_corridors",
+            "settlement_sites"):
+        assert config.section("projection")[name] is False
+    assert not any(config.section("domain_authority").values())
+    assert manifest["capabilities"][
+        "transport_capability_projection"] == "shadow-live"
+    assert manifest["capabilities"][
+        "transport_operation_projection"] == "component-only"
+
+
 def test_checked_defense_authority_profile_requires_exact_bounded_stack():
     with open(os.path.join(
             REPO, "profile", "dependent_atomspace_defense_authority.yaml"),

@@ -348,6 +348,20 @@ paired_impact:
         - 105907
         - 105913
         - 105929
+    fdas_transport_shadow_diagnostic_v1:
+      purpose: diagnostic
+      claim_eligible: false
+      require_clean_source: true
+      endpoints: [score_turn_n, score_lead_turn_n]
+      horizon_turn: 30
+      planned_pairs: 1
+      seeds: [104729]
+      reused_seeds_from: [development]
+      reused_seed_reason: >-
+        Mechanism-only carrier projection uses the established smoke seed and
+        cannot support a gameplay claim.
+      release_game_config:
+        startunits: csdf
     diagnostic_unitless_city_v1:
       purpose: development
       claim_eligible: false

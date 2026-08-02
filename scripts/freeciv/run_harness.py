@@ -30,6 +30,9 @@ def main(argv=None):
         "a_stock_llm", "b_state_oracle", "c_dependency_scheduler",
         "d_uncertain_monitor", "e_full_loop"),
         help="smoke-only condition subset; repeat for more than one")
+    parser.add_argument(
+        "--impact-cohort",
+        help="named paired-impact cohort from the selected harness config")
     parser.add_argument("--no-resume", action="store_true")
     parser.add_argument("--main-only", action="store_true")
     parser.add_argument("--aggregate-only", action="store_true")
@@ -54,7 +57,8 @@ def main(argv=None):
     if not args.aggregate_only:
         runner_summary = HarnessRunner(
             args.out, args.config, args.backend, args.workers, args.base_port,
-            args.limit_seeds, args.condition).run(
+            args.limit_seeds, args.condition,
+            impact_cohort=args.impact_cohort).run(
                 resume=not args.no_resume,
                 include_induction=not args.main_only,
                 include_grading=not args.main_only)
