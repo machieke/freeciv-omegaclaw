@@ -200,6 +200,11 @@ class CityEconomyProjector(object):
 
     projector_id = "fdas-city-economy-shadow"
     version = "1.0"
+    incremental_dependency_roots = frozenset((
+        "cities", "economy", "government", "legal_actions", "player_id",
+        "research", "turn", "units",
+    ))
+    incremental_dependency_kinds = frozenset(("policy", "ruleset-digest"))
 
     def __init__(self, ruleset_ir=None, ruleset_digest=None, policy=None):
         self.ruleset_ir = ruleset_ir

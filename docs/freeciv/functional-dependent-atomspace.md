@@ -113,6 +113,16 @@ recomputation and measured 20.3 ms mean and 37.1 ms p95; they are retained as
 worst-case catch-up evidence rather than represented as ordinary single-turn
 updates.
 
+The assembled rich runtime subsequently gained conservative component-level
+incrementality. City/economy, unit/defense, region, corridor, settlement,
+transport, combat, recovery, operation, belief, and episode projectors declare
+their snapshot-root and durable-source dependencies. Unchanged component
+outputs are refreshed to the current validity interval; changed or undeclared
+inputs recompute fail-closed. Reuse/recompute counts and ratios are part of the
+revision metrics, and 37/37 captured rich transitions match independent cold
+builds. This remains a component-level optimization, not per-city or per-unit
+derivation scheduling.
+
 At the Phase 2 boundary this remained a compatibility-only materialized view;
 no generic domain rule, goal, candidate, pressure, or execution path consumed
 FDAS.

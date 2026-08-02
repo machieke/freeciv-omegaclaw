@@ -78,6 +78,11 @@ class BeliefProjector(object):
 
     projector_id = "fdas-belief-projector"
     version = "1.0"
+    incremental_dependency_roots = frozenset(("player_id", "turn"))
+    incremental_dependency_kinds = frozenset((
+        "belief-conflict", "belief-evidence", "belief-quarantine",
+        "belief-revision",
+    ))
 
     def __init__(self, belief_store, confidence_floor=0.0):
         from ...beliefs import BeliefStore

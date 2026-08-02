@@ -148,6 +148,11 @@ class _ConfiguredBudgetProjector(object):
         self.materialization = dict(materialization)
         self.predicate_registry = projector.predicate_registry
 
+    @property
+    def component_projector_ids(self):
+        return tuple(getattr(
+            self.projector, "component_projector_ids", ()))
+
     def scopes(self, snapshot):
         scopes = []
         for scope in self.projector.scopes(snapshot):
@@ -188,6 +193,25 @@ class _ConfiguredBudgetProjector(object):
     def project(self, snapshot, scopes, fingerprints):
         return self.projector.project(snapshot, scopes, fingerprints)
 
+    def project_incremental(
+            self, snapshot, scopes, fingerprints, prior_snapshot,
+            prior_revision):
+        if hasattr(self.projector, "project_incremental"):
+            return self.projector.project_incremental(
+                snapshot, scopes, fingerprints, prior_snapshot,
+                prior_revision)
+        return self.project(snapshot, scopes, fingerprints)
+
+    def incremental_metrics(self, snapshot_id):
+        if hasattr(self.projector, "incremental_metrics"):
+            return self.projector.incremental_metrics(snapshot_id)
+        return {
+            "recomputed_projector_ids": (),
+            "recomputed_record_count": 0,
+            "reused_projector_ids": (),
+            "reused_record_count": 0,
+        }
+
 
 @dataclass(frozen=True)
 class FdasRuntimeUpdate:
@@ -197,6 +221,7 @@ class FdasRuntimeUpdate:
     scope_count: int
     latency_ms: float
     cold_verification: object = None
+    materialization_metrics: object = None
 
     def to_dict(self):
         return {
@@ -205,6 +230,9 @@ class FdasRuntimeUpdate:
                 None if self.cold_verification is None
                 else self.cold_verification.to_dict()),
             "latency_ms": self.latency_ms,
+            "materialization_metrics": (
+                None if self.materialization_metrics is None
+                else self.materialization_metrics.to_dict()),
             "revision_id": self.revision_id,
             "scope_count": self.scope_count,
             "snapshot_id": self.snapshot_id,
@@ -319,6 +347,7 @@ class FdasRuntime(object):
             0 if revision is None else len(revision.scopes),
             (time.perf_counter() - started) * 1000.0,
             verification,
+            None if revision is None else revision.metrics,
         )
 
     def rematerialize(self, game_id, player_id):
@@ -330,6 +359,8 @@ class FdasRuntime(object):
             revision.snapshot_id, revision.revision_id,
             len(revision.records), len(revision.scopes),
             (time.perf_counter() - started) * 1000.0,
+            None,
+            revision.metrics,
         )
 
     def configure_shadow_evaluation(

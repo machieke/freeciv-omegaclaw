@@ -93,6 +93,12 @@ class SettlementSiteProjector(object):
 
     projector_id = "fdas-settlement-site-projector"
     version = "1.0"
+    incremental_dependency_roots = frozenset((
+        "cities", "legal_actions", "map_height", "map_width", "map_wrap_x",
+        "map_wrap_y", "movement_routes", "player_id", "source_seq", "turn",
+        "units", "visible_enemy_units", "visible_tile_ids",
+    ))
+    incremental_dependency_kinds = frozenset(("policy", "ruleset-digest"))
 
     def __init__(self, ruleset_ir=None, ruleset_digest=None, policy=None):
         if ruleset_ir is not None and not ruleset_digest:

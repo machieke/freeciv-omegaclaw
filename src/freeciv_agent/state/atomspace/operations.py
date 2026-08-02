@@ -127,6 +127,13 @@ class OperationProjector(object):
 
     projector_id = "fdas-operation-projector"
     version = "1.0"
+    incremental_dependency_roots = frozenset((
+        "legal_actions", "legal_actions_digest", "player_id", "source_seq",
+        "turn",
+    ))
+    incremental_dependency_kinds = frozenset((
+        "operation-binding", "operation-requirements", "operation-revision",
+    ))
 
     def __init__(self, records_source, bindings_source=None,
                  requirement_contexts_source=None):

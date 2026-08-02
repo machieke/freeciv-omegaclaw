@@ -1,10 +1,10 @@
 # FDAS captured rich-shadow replay
 
-Date: 2026-08-01  
-Branch: `experimental/functional-dependent-atomspace`  
-Machine scope: local diagnostic replay  
-Machine-readable report: `fdas-captured-shadow-replay.json`  
-Report hash: `8d40c308a2edeb4fae0be153907388961b27f816ebd4735a1b9ad23ca880ae90`
+Date: 2026-08-02
+Branch: `experimental/functional-dependent-atomspace`
+Machine scope: local diagnostic replay
+Machine-readable report: `fdas-captured-shadow-replay.json`
+Report hash: `3f1370dfe79ae1caf5a4b752375cbb335e635e80bdffaac6c1d79fd75ca74671`
 
 ## Corpus and strictness
 
@@ -24,9 +24,11 @@ revision; all 37 were canonically equivalent.
 
 | Measurement | Result |
 |---|---:|
-| Cold projection p50 / p95 / max | 150.74 / 314.69 / 411.37 ms |
-| Shadow readout p50 / p95 / max | 17.54 / 146.02 / 165.39 ms |
-| Combined cold FDAS p50 / p95 / max | 181.16 / 410.16 / 504.80 ms |
+| Cold projection p50 / p95 / max | 183.41 / 374.83 / 395.64 ms |
+| Shadow readout p50 / p95 / max | 18.07 / 174.58 / 207.77 ms |
+| Combined cold FDAS p50 / p95 / max | 257.08 / 434.66 / 583.59 ms |
+| Strict incremental plus cold verification p50 / p95 / max | 454.98 / 845.04 / 963.93 ms |
+| Incremental recomputation ratio mean / p50 / p95 | 0.781 / 0.756 / 0.888 |
 | Maximum atoms / scopes / supports | 2,610 / 80 / 1,388 |
 | Maximum dependency keys | 2,002 |
 | Local goals / FDAS candidates | 116 / 855 |
@@ -37,11 +39,27 @@ revision; all 37 were canonically equivalent.
 | Authority-eligible candidates / violations | 0 / 0 |
 | Safety downgrades | 0 |
 
-The 500 ms production-safe gate is a p95 gate: combined captured p95 is
-410.16 ms. The single worst capture is 504.80 ms and the proposed 150 ms
+The 500 ms production-safe gate is a p95 gate: combined cold captured p95 is
+434.66 ms. The single worst cold capture is 583.59 ms and the proposed 150 ms
 ordinary FDAS contribution target is not met across this stress corpus. The
 evidence therefore supports bounded shadow operation, not unrestricted
 activation or authority.
+
+The strict incremental timing is diagnostic rather than a live-controller
+timing: every transition prepares an incremental revision and a second,
+independent cold revision before publishing the already-verified incremental
+revision. All 37 transitions were equivalent. The sparse corpus changes most
+domain roots between captures, so it recomputes 78.1% of records on average.
+It records three region and four combat-projector cache hits, but those
+projectors emitted no records in the reused captures; this corpus therefore
+does not support a non-empty reuse performance claim.
+
+A separate same-turn full-rich fixture provides the positive ordinary-update
+check. It reused city/economy, region, combat, and population-recovery output,
+including 11 non-empty rich records; recomputed 7 of 30 total records; matched
+the independent cold revision; and completed the strict two-build check in
+24.32 ms. A declared city-surplus mutation instead recomputes the city/economy
+projector and also remains cold-equivalent.
 
 ## Candidate interpretation
 
@@ -77,6 +95,14 @@ predictive goal semantics before treating these candidates as causal.
   binding, preventing collisions between simultaneous legal alternatives.
 - Optional candidates are capped per goal while protected legacy comparison
   bindings remain lossless and omission counts remain observable.
+- Rich projectors declare conservative snapshot-root and durable-source
+  dependencies. The component cache reuses output only when its complete input
+  digest and scope set match, refreshes exact revision validity, and otherwise
+  recomputes fail-closed.
+- Root and durable-kind digests are indexed once and boundedly cached, avoiding
+  repeated serialization of overlapping dependency maps. Reuse/recompute
+  projector IDs, record counts, and the recomputation ratio are emitted in
+  materialization metrics and captured by this report.
 
 ## Non-claims
 

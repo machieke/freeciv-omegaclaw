@@ -59,6 +59,11 @@ class RouteCorridorProjector(object):
 
     projector_id = "fdas-route-corridor-projector"
     version = "1.0"
+    incremental_dependency_roots = frozenset((
+        "legal_actions", "map_width", "movement_routes", "player_id",
+        "source_seq", "units", "visible_tile_ids",
+    ))
+    incremental_dependency_kinds = frozenset()
 
     def __init__(self):
         self.predicate_registry = route_corridor_predicate_registry()

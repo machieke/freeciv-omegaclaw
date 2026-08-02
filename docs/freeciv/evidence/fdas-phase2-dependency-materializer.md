@@ -108,3 +108,27 @@ component_enabled = true
 policy_authority = false
 all domain/policy capabilities = not-built
 ```
+
+## Rich-projector follow-on hardening
+
+The later rich runtime now applies the same dependent-view principle at a
+coarse component boundary. Each rich projector declares conservative snapshot
+roots and durable dependency kinds. The composite stores a bounded eight-
+revision component cache and may reuse a prior output only when:
+
+- the declared input digest is identical;
+- every previously observed support dependency outside that declaration is
+  still identical; and
+- the projector's complete scope-ID set is identical.
+
+Reused atoms are reconstructed with the current scope validity; the prior
+record object is never published as current. Missing cache state, an absent
+declaration, a scope change, or an input change falls back to full component
+projection. Sampled verification publishes the already-verified incremental
+revision, while the independent cold build remains the canonical oracle.
+
+The full captured rich-shadow cohort passed 37/37 differential transitions
+with zero failures. Focused tests prove both non-empty reuse on an unchanged
+same-turn input and forced recomputation on a declared city-surplus mutation.
+Materialization metrics now expose recomputed/reused projector IDs and record
+counts plus the total recomputation ratio. All authority flags remain false.

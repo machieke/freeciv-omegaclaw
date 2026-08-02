@@ -82,6 +82,24 @@ def _summary(values):
     }
 
 
+def _ratio_summary(values):
+    values = tuple(float(value) for value in values)
+    if not values:
+        return {
+            "count": 0, "maximum": None, "mean": None, "minimum": None,
+            "p50": None, "p95": None, "p99": None,
+        }
+    return {
+        "count": len(values),
+        "maximum": max(values),
+        "mean": statistics.mean(values),
+        "minimum": min(values),
+        "p50": _percentile(values, 0.50),
+        "p95": _percentile(values, 0.95),
+        "p99": _percentile(values, 0.99),
+    }
+
+
 def _load_corpus(patterns):
     manifest_paths = sorted(set(
         path for pattern in patterns for path in glob.glob(pattern)))
@@ -177,6 +195,9 @@ def _cold_replay(snapshots, declaration, ruleset_ir):
             sample = {
                 "fdas_total_latency_ms": elapsed + evaluation.latency_ms,
                 "latency_ms": elapsed,
+                "materialization_metrics": (
+                    None if update.materialization_metrics is None
+                    else update.materialization_metrics.to_dict()),
                 "path": relative,
                 "revision_id": update.revision_id,
                 "snapshot_id": snapshot.snapshot_id,
@@ -230,6 +251,9 @@ def _incremental_replay(snapshots, declaration, ruleset_ir):
                     else update.cold_verification.to_dict()),
                 "fdas_total_latency_ms": elapsed + evaluation.latency_ms,
                 "latency_ms": elapsed,
+                "materialization_metrics": (
+                    None if update.materialization_metrics is None
+                    else update.materialization_metrics.to_dict()),
                 "path": relative,
                 "revision_id": update.revision_id,
                 "shadow_evaluation": {
@@ -343,6 +367,27 @@ def main(argv=None):
             "safety_downgrade_count": sum(
                 len(row["safety_downgrades"]) for row in comparisons),
         }
+
+    def materialization_summary(samples):
+        values = tuple(
+            row["materialization_metrics"] for row in samples
+            if row.get("materialization_metrics") is not None)
+        return {
+            "incremental_recomputation_ratio": _ratio_summary(
+                row["incremental_recomputation_ratio"] for row in values),
+            "recomputed_projector_counts": dict(sorted(Counter(
+                projector_id for row in values
+                for projector_id in row[
+                    "recomputed_projector_ids"]).items())),
+            "reused_projector_counts": dict(sorted(Counter(
+                projector_id for row in values
+                for projector_id in row["reused_projector_ids"]).items())),
+            "rich_recomputed_record_count": sum(
+                row["rich_recomputed_records"] for row in values),
+            "rich_reused_record_count": sum(
+                row["rich_reused_records"] for row in values),
+            "sample_count": len(values),
+        }
     report = {
         "claim_scope": "diagnostic-shadow-replay-only",
         "config": {
@@ -375,6 +420,7 @@ def main(argv=None):
                     (row["scope_count"] for row in cold_samples), default=0),
                 "maximum_support_count": max(
                     (row["support_count"] for row in cold_samples), default=0),
+                "materialization": materialization_summary(cold_samples),
                 "samples": cold_samples,
                 "shadow_evaluation": shadow_summary(cold_samples),
             },
@@ -387,6 +433,8 @@ def main(argv=None):
                 "fdas_total_latency": _summary(
                     row["fdas_total_latency_ms"]
                     for row in incremental_samples),
+                "materialization": materialization_summary(
+                    incremental_samples),
                 "samples": incremental_samples,
                 "shadow_evaluation": shadow_summary(incremental_samples),
             },

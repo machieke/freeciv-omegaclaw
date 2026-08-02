@@ -45,6 +45,16 @@ class MaterializationMetrics:
     affected_atoms: int
     unsupported_atoms: int
     delta_hash: str
+    recomputed_projector_ids: tuple = ()
+    reused_projector_ids: tuple = ()
+    rich_recomputed_records: int = 0
+    rich_reused_records: int = 0
+
+    @property
+    def incremental_recomputation_ratio(self):
+        if self.total_records <= 0:
+            return 0.0
+        return float(self.recomputed_records) / float(self.total_records)
 
     def to_dict(self):
         return {
@@ -52,9 +62,16 @@ class MaterializationMetrics:
             "cold_build": self.cold_build,
             "delta_hash": self.delta_hash,
             "invalidated_supports": self.invalidated_supports,
+            "incremental_recomputation_ratio": (
+                self.incremental_recomputation_ratio),
             "recomputed_records": self.recomputed_records,
+            "recomputed_projector_ids": list(
+                self.recomputed_projector_ids),
             "refreshed_records": self.refreshed_records,
             "removed_records": self.removed_records,
+            "reused_projector_ids": list(self.reused_projector_ids),
+            "rich_recomputed_records": self.rich_recomputed_records,
+            "rich_reused_records": self.rich_reused_records,
             "total_records": self.total_records,
             "unsupported_atoms": self.unsupported_atoms,
         }
@@ -241,10 +258,41 @@ class DependentAtomSpaceStore(object):
             records, projection_metrics = project_legacy_records_incremental(
                 snapshot, scopes, prior_revision, fingerprints)
         if self.domain_projector is not None:
-            domain_records = self.domain_projector.project(
-                snapshot, scopes, fingerprints)
+            used_incremental_domain = bool(
+                not cold and prior_snapshot is not None
+                and prior_revision is not None
+                and hasattr(self.domain_projector, "project_incremental"))
+            if used_incremental_domain:
+                domain_records = self.domain_projector.project_incremental(
+                    snapshot, scopes, fingerprints, prior_snapshot,
+                    prior_revision)
+            else:
+                domain_records = self.domain_projector.project(
+                    snapshot, scopes, fingerprints)
             records = tuple(records) + tuple(domain_records)
-            projection_metrics["recomputed_records"] += len(domain_records)
+            component_metrics = (
+                self.domain_projector.incremental_metrics(
+                    snapshot.snapshot_id)
+                if used_incremental_domain and hasattr(
+                    self.domain_projector, "incremental_metrics") else {
+                        "recomputed_projector_ids": tuple(getattr(
+                            self.domain_projector,
+                            "component_projector_ids", ())),
+                        "recomputed_record_count": len(domain_records),
+                        "reused_projector_ids": (),
+                        "reused_record_count": 0,
+                    })
+            projection_metrics["recomputed_records"] += component_metrics[
+                "recomputed_record_count"]
+            projection_metrics["refreshed_records"] += component_metrics[
+                "reused_record_count"]
+        else:
+            component_metrics = {
+                "recomputed_projector_ids": (),
+                "recomputed_record_count": 0,
+                "reused_projector_ids": (),
+                "reused_record_count": 0,
+            }
         transaction = AtomSpaceTransaction(
             snapshot.snapshot_id, self.predicate_registry, scopes,
             maximum_atoms=self.maximum_atoms)
@@ -286,6 +334,10 @@ class DependentAtomSpaceStore(object):
             len(invalidation.affected_atom_ids) if invalidation else 0,
             len(invalidation.unsupported_atom_ids) if invalidation else 0,
             delta.delta_hash,
+            tuple(component_metrics["recomputed_projector_ids"]),
+            tuple(component_metrics["reused_projector_ids"]),
+            int(component_metrics["recomputed_record_count"]),
+            int(component_metrics["reused_record_count"]),
         )
         build_hash = revision_id[len("fdas-revision-"):]
         return DependentAtomSpaceRevision(

@@ -172,8 +172,39 @@ def test_sampled_parity_publishes_verified_incremental_without_third_build():
 
     assert calls == [False, True]
     assert update.cold_verification.equivalent
+    assert update.materialization_metrics.recomputed_projector_ids == ()
+    assert update.materialization_metrics.reused_projector_ids == (
+        "fdas-city-economy-shadow",)
+    assert update.materialization_metrics.rich_recomputed_records == 0
+    assert update.materialization_metrics.rich_reused_records > 0
     assert current[0] is second
     assert current[1].revision_id == update.revision_id
+
+
+def test_declared_city_input_change_recomputes_rich_component():
+    declaration = _enabled_city_declaration()
+    declaration["config"]["cold_verify_sample_rate"] = 1.0
+    semantic = dict(declaration)
+    semantic.pop("declaration_hash")
+    from freeciv_agent.events.schema import structural_hash
+    declaration["declaration_hash"] = structural_hash(semantic)
+    runtime = build_runtime(declaration)
+    first = _snapshot(seq=431)
+    with open(FIXTURE, encoding="utf-8") as stream:
+        payload = json.load(stream)
+    payload["cities"]["3"]["surplus"][0] += 1
+    second = ProxyStateDTO.parse(
+        "fdas-runtime", 432, payload).to_snapshot()
+
+    runtime.replace(first)
+    update = runtime.replace(second)
+
+    assert update.cold_verification.equivalent
+    assert update.materialization_metrics.recomputed_projector_ids == (
+        "fdas-city-economy-shadow",)
+    assert update.materialization_metrics.reused_projector_ids == ()
+    assert update.materialization_metrics.rich_recomputed_records > 0
+    assert update.materialization_metrics.rich_reused_records == 0
 
 
 def test_enabled_runtime_requires_world_and_empire_projection():

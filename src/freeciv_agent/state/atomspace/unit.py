@@ -150,6 +150,12 @@ class UnitDefenseProjector(object):
 
     projector_id = "fdas-unit-defense-shadow"
     version = "1.0"
+    incremental_dependency_roots = frozenset((
+        "cities", "legal_actions", "map_height", "map_width", "map_wrap_x",
+        "map_wrap_y", "movement_routes", "player_id", "source_seq", "turn",
+        "units", "visible_enemy_units",
+    ))
+    incremental_dependency_kinds = frozenset(("policy", "ruleset-digest"))
 
     def __init__(self, ruleset_ir, ruleset_digest, policy=None):
         self.ruleset_ir = ruleset_ir

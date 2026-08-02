@@ -93,6 +93,11 @@ class CityRegionProjector(object):
 
     projector_id = "fdas-city-region-shadow"
     version = "1.0"
+    incremental_dependency_roots = frozenset((
+        "cities", "map_height", "map_tiles", "map_width", "map_wrap_x",
+        "map_wrap_y", "player_id", "visible_enemy_units",
+    ))
+    incremental_dependency_kinds = frozenset(("policy",))
 
     def __init__(self, policy=None):
         self.policy = policy or CityRegionPolicy()

@@ -75,28 +75,54 @@
     "unique_fixture_count": 47
   },
   "failures": [],
-  "generated_at": "2026-08-02T02:11:59.336517+00:00",
+  "generated_at": "2026-08-02T02:50:34.215816+00:00",
   "mode": "all",
-  "report_hash": "8d40c308a2edeb4fae0be153907388961b27f816ebd4735a1b9ad23ca880ae90",
+  "report_hash": "3f1370dfe79ae1caf5a4b752375cbb335e635e80bdffaac6c1d79fd75ca74671",
   "results": {
     "cold": {
       "fdas_total_latency": {
         "count": 38,
-        "maximum_ms": 504.79771196842194,
-        "mean_ms": 204.12579684910415,
-        "minimum_ms": 42.41078021004796,
-        "p50_ms": 181.16332963109016,
-        "p95_ms": 410.1642081514001,
-        "p99_ms": 504.79771196842194
+        "maximum_ms": 583.5936069488525,
+        "mean_ms": 254.83466436057105,
+        "minimum_ms": 49.466411117464304,
+        "p50_ms": 257.07877054810524,
+        "p95_ms": 434.65589405968785,
+        "p99_ms": 583.5936069488525
       },
       "latency": {
         "count": 38,
-        "maximum_ms": 411.3655351102352,
-        "mean_ms": 169.4236932886078,
-        "minimum_ms": 41.841944213956594,
-        "p50_ms": 150.744522921741,
-        "p95_ms": 314.6893591620028,
-        "p99_ms": 411.3655351102352
+        "maximum_ms": 395.6377259455621,
+        "mean_ms": 201.93584273128133,
+        "minimum_ms": 48.912838101387024,
+        "p50_ms": 183.4079260006547,
+        "p95_ms": 374.8296401463449,
+        "p99_ms": 395.6377259455621
+      },
+      "materialization": {
+        "incremental_recomputation_ratio": {
+          "count": 38,
+          "maximum": 1.0,
+          "mean": 1.0,
+          "minimum": 1.0,
+          "p50": 1.0,
+          "p95": 1.0,
+          "p99": 1.0
+        },
+        "recomputed_projector_counts": {
+          "fdas-city-economy-shadow": 38,
+          "fdas-city-region-shadow": 38,
+          "fdas-combat-task-force-projector": 38,
+          "fdas-operation-projector": 38,
+          "fdas-population-recovery-projector": 38,
+          "fdas-route-corridor-projector": 38,
+          "fdas-settlement-site-projector": 38,
+          "fdas-transport-capability-projector": 38,
+          "fdas-unit-defense-shadow": 38
+        },
+        "reused_projector_counts": {},
+        "rich_recomputed_record_count": 42039,
+        "rich_reused_record_count": 0,
+        "sample_count": 38
       },
       "maximum_atom_count": 2610,
       "maximum_dependency_key_count": 2002,
@@ -106,8 +132,34 @@
         {
           "atom_count": 410,
           "dependency_key_count": 262,
-          "fdas_total_latency_ms": 48.24741277843714,
-          "latency_ms": 47.56987700238824,
+          "fdas_total_latency_ms": 59.22504421323538,
+          "latency_ms": 58.5569879040122,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-70321a57d1f18de437606314abb2b6bb",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 410,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 272,
+            "rich_reused_records": 0,
+            "total_records": 410,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 352,
             "derived": 21,
@@ -203,7 +255,7 @@
             },
             "evaluation_hash": "809f3eea031e6e4bc1d5ee0d044b5383e000f1e493056ffe0bfcb41c52825ed6",
             "goal_count": 0,
-            "latency_ms": 0.6775357760488987,
+            "latency_ms": 0.668056309223175,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -216,8 +268,34 @@
         {
           "atom_count": 410,
           "dependency_key_count": 261,
-          "fdas_total_latency_ms": 46.18720477446914,
-          "latency_ms": 45.51528859883547,
+          "fdas_total_latency_ms": 53.52387297898531,
+          "latency_ms": 52.831645123660564,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-e78c63b52df6aca9265101330edb7ccf",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 410,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 272,
+            "rich_reused_records": 0,
+            "total_records": 410,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 352,
             "derived": 21,
@@ -306,7 +384,7 @@
             },
             "evaluation_hash": "d1e104ce1b4c9946198295fa0ed279c7478aa02b1a7d2634338582fdb1e8ac00",
             "goal_count": 0,
-            "latency_ms": 0.6719161756336689,
+            "latency_ms": 0.6922278553247452,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -319,8 +397,34 @@
         {
           "atom_count": 368,
           "dependency_key_count": 243,
-          "fdas_total_latency_ms": 42.41078021004796,
-          "latency_ms": 41.841944213956594,
+          "fdas_total_latency_ms": 49.466411117464304,
+          "latency_ms": 48.912838101387024,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-8b9c3c1f2cf158979aa49d99ac8c4abc",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 368,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 230,
+            "rich_reused_records": 0,
+            "total_records": 368,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 316,
             "derived": 15,
@@ -394,7 +498,7 @@
             },
             "evaluation_hash": "cf4df93647a4ece90a9d4faac2b06f78e0d77d60c37328f9191500800d08c633",
             "goal_count": 0,
-            "latency_ms": 0.5688359960913658,
+            "latency_ms": 0.55357301607728,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -407,8 +511,34 @@
         {
           "atom_count": 659,
           "dependency_key_count": 450,
-          "fdas_total_latency_ms": 89.66163825243711,
-          "latency_ms": 72.02307693660259,
+          "fdas_total_latency_ms": 109.47313392534852,
+          "latency_ms": 91.39883983880281,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-8599a39e6599b0bbd2022c1f52183f6c",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 659,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 440,
+            "rich_reused_records": 0,
+            "total_records": 659,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 535,
             "derived": 51,
@@ -514,7 +644,7 @@
             },
             "evaluation_hash": "b4fb4eaa6e1ffebd798a8cfebe55697159caedeccfbee3a8bfb3271844ad8edd",
             "goal_count": 1,
-            "latency_ms": 17.638561315834522,
+            "latency_ms": 18.074294086545706,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-a5c3a8614249b52878aadb8d06f6d1c4"
@@ -527,8 +657,34 @@
         {
           "atom_count": 659,
           "dependency_key_count": 450,
-          "fdas_total_latency_ms": 88.24195992201567,
-          "latency_ms": 70.699417963624,
+          "fdas_total_latency_ms": 100.69316951557994,
+          "latency_ms": 83.1650192849338,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-c10bbcc068f68f842099ec894ea7a880",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 659,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 440,
+            "rich_reused_records": 0,
+            "total_records": 659,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 535,
             "derived": 51,
@@ -621,7 +777,7 @@
             },
             "evaluation_hash": "a352823e4262ffd8301d79980f3a819e315e772458e83d0a0047c0145fc7e31e",
             "goal_count": 1,
-            "latency_ms": 17.542541958391666,
+            "latency_ms": 17.528150230646133,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-aeb2dc9808da4ceb6cb21199ee677b49"
@@ -634,8 +790,34 @@
         {
           "atom_count": 754,
           "dependency_key_count": 521,
-          "fdas_total_latency_ms": 98.34002982825041,
-          "latency_ms": 80.71450609713793,
+          "fdas_total_latency_ms": 129.64371824637055,
+          "latency_ms": 109.46627706289291,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-8696bbec0e73de6a0c4247760d9ed6bf",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 754,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 522,
+            "rich_reused_records": 0,
+            "total_records": 754,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 609,
             "derived": 63,
@@ -734,7 +916,7 @@
             },
             "evaluation_hash": "6a3182fe56ef0cd8bdabdbce2fa1d3fc4725103f74a4e1ad51aa8ae07bf7e172",
             "goal_count": 1,
-            "latency_ms": 17.62552373111248,
+            "latency_ms": 20.17744118347764,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-185daba30fb0e219cb39e90affe141a8"
@@ -747,8 +929,34 @@
         {
           "atom_count": 845,
           "dependency_key_count": 581,
-          "fdas_total_latency_ms": 96.56646102666855,
-          "latency_ms": 95.19381308928132,
+          "fdas_total_latency_ms": 121.67823920026422,
+          "latency_ms": 120.38087798282504,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-fc4bf93ce0c11d7934a36b3289aac738",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 845,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 598,
+            "rich_reused_records": 0,
+            "total_records": 845,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 673,
             "derived": 79,
@@ -845,7 +1053,7 @@
             },
             "evaluation_hash": "8dcc453589c997876720452a9db3b2a6a1690db7b6f4efb658b336fe1b20ee23",
             "goal_count": 0,
-            "latency_ms": 1.372647937387228,
+            "latency_ms": 1.2973612174391747,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -858,8 +1066,34 @@
         {
           "atom_count": 845,
           "dependency_key_count": 581,
-          "fdas_total_latency_ms": 96.40646632760763,
-          "latency_ms": 95.07937310263515,
+          "fdas_total_latency_ms": 119.06958650797606,
+          "latency_ms": 116.77790572866797,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-ef5ef44ba7ca2329b3c41420c2351b4b",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 845,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 598,
+            "rich_reused_records": 0,
+            "total_records": 845,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 673,
             "derived": 79,
@@ -943,7 +1177,7 @@
             },
             "evaluation_hash": "af454599fc4f78ea21a91ff10fc7a9cee21fd06a0609ad19bc8162ecd5dfd5a7",
             "goal_count": 0,
-            "latency_ms": 1.3270932249724865,
+            "latency_ms": 2.2916807793080807,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -956,8 +1190,34 @@
         {
           "atom_count": 944,
           "dependency_key_count": 662,
-          "fdas_total_latency_ms": 107.77465207502246,
-          "latency_ms": 106.30788514390588,
+          "fdas_total_latency_ms": 136.44188223406672,
+          "latency_ms": 135.07451210170984,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-5bd110ff28596e98de67f0f48c45e0e0",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 944,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 685,
+            "rich_reused_records": 0,
+            "total_records": 944,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 745,
             "derived": 98,
@@ -1047,7 +1307,7 @@
             },
             "evaluation_hash": "c40554833ec70aded085bf741ba18b8c5bd6155335e3be06e6452c33fc68862f",
             "goal_count": 0,
-            "latency_ms": 1.466766931116581,
+            "latency_ms": 1.367370132356882,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -1060,8 +1320,34 @@
         {
           "atom_count": 1304,
           "dependency_key_count": 959,
-          "fdas_total_latency_ms": 181.16332963109016,
-          "latency_ms": 146.04935282841325,
+          "fdas_total_latency_ms": 218.79464387893677,
+          "latency_ms": 183.4079260006547,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-7c88d7d78593c2870ef6a7166eeec914",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1304,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 959,
+            "rich_reused_records": 0,
+            "total_records": 1304,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 978,
             "derived": 192,
@@ -1255,7 +1541,7 @@
             },
             "evaluation_hash": "ac1df74b26e36e2e549d5b078fc7c12e208bdbcef02bba305b97261e6127f1fa",
             "goal_count": 1,
-            "latency_ms": 35.113976802676916,
+            "latency_ms": 35.38671787828207,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-54ff9821c77677ecbeddff0c2c97b285"
@@ -1268,8 +1554,34 @@
         {
           "atom_count": 1462,
           "dependency_key_count": 1140,
-          "fdas_total_latency_ms": 210.45111399143934,
-          "latency_ms": 165.24185705929995,
+          "fdas_total_latency_ms": 257.07877054810524,
+          "latency_ms": 217.98899583518505,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-ee320b9aa10445c3efa2d2d2ba764662",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1462,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1062,
+            "rich_reused_records": 0,
+            "total_records": 1462,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1101,
             "derived": 217,
@@ -1428,7 +1740,7 @@
             },
             "evaluation_hash": "4f13204338c5d06cf22cfe4fedf650053f13abeea4e2f06875cfd3420a421603",
             "goal_count": 2,
-            "latency_ms": 45.2092569321394,
+            "latency_ms": 39.08977471292019,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-08c8df739186ea49b883e635df1f2dd6"
@@ -1441,8 +1753,34 @@
         {
           "atom_count": 1438,
           "dependency_key_count": 802,
-          "fdas_total_latency_ms": 151.5456852503121,
-          "latency_ms": 147.92330423370004,
+          "fdas_total_latency_ms": 189.26370097324252,
+          "latency_ms": 185.523493681103,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-b92a2edffbb7163b823dc59f9381f5b1",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1438,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1039,
+            "rich_reused_records": 0,
+            "total_records": 1438,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1233,
             "derived": 59,
@@ -1532,7 +1870,7 @@
             },
             "evaluation_hash": "b59582f2f8618c3c5ac195ea942ce399fbbe93b3ab4a1b349181e4a232ca4898",
             "goal_count": 1,
-            "latency_ms": 3.622381016612053,
+            "latency_ms": 3.74020729213953,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-a4738e2f003b8f641979dc902c81"
@@ -1545,8 +1883,34 @@
         {
           "atom_count": 1628,
           "dependency_key_count": 1268,
-          "fdas_total_latency_ms": 232.74159897118807,
-          "latency_ms": 190.54262526333332,
+          "fdas_total_latency_ms": 337.5034909695387,
+          "latency_ms": 216.64417488500476,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-98c3e8ba5549bc965488b6cbe4357061",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1628,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1229,
+            "rich_reused_records": 0,
+            "total_records": 1628,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1233,
             "derived": 249,
@@ -1753,7 +2117,7 @@
             },
             "evaluation_hash": "b200730522ce7241d688eef4489146cfcb3dce4031dc9a4893c27eff11b6d0c3",
             "goal_count": 1,
-            "latency_ms": 42.19897370785475,
+            "latency_ms": 120.85931608453393,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-30a6bb17a40f98057a29c04e98f6c3c0"
@@ -1766,8 +2130,34 @@
         {
           "atom_count": 2404,
           "dependency_key_count": 1372,
-          "fdas_total_latency_ms": 302.5903571397066,
-          "latency_ms": 249.5830962434411,
+          "fdas_total_latency_ms": 434.65589405968785,
+          "latency_ms": 296.91788693889976,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-36b49dad569be83e08be6676bdbb6a25",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 2404,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 2005,
+            "rich_reused_records": 0,
+            "total_records": 2404,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1322,
             "belief": 8,
@@ -1966,7 +2356,7 @@
             },
             "evaluation_hash": "440accc336c4e7b74be14f6b4dedd258cc3236ef535160d95d25b749d5b9d0a8",
             "goal_count": 1,
-            "latency_ms": 53.00726089626551,
+            "latency_ms": 137.7380071207881,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-0d2cad34a9a6ef04ab478300699834c9"
@@ -1979,8 +2369,34 @@
         {
           "atom_count": 1434,
           "dependency_key_count": 801,
-          "fdas_total_latency_ms": 145.85683727636933,
-          "latency_ms": 142.34553510323167,
+          "fdas_total_latency_ms": 181.71732826158404,
+          "latency_ms": 178.1784170307219,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-27b9a7152d4e63f895b2ac48e2f27188",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1434,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1035,
+            "rich_reused_records": 0,
+            "total_records": 1434,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1231,
             "derived": 57,
@@ -2053,7 +2469,7 @@
             },
             "evaluation_hash": "4b23eae5723910443a0f63e89f36b70265f51aaf5e39ba6e5444e5f45a431743",
             "goal_count": 1,
-            "latency_ms": 3.511302173137665,
+            "latency_ms": 3.5389112308621407,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-ad5a6dad5f1d2955b0a5891552cf"
@@ -2066,8 +2482,34 @@
         {
           "atom_count": 1631,
           "dependency_key_count": 1279,
-          "fdas_total_latency_ms": 228.61123969778419,
-          "latency_ms": 192.1664709225297,
+          "fdas_total_latency_ms": 259.73717775195837,
+          "latency_ms": 217.31569292023778,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-17d03c645d00d7fddb561f327799073a",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1631,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1232,
+            "rich_reused_records": 0,
+            "total_records": 1631,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1231,
             "derived": 254,
@@ -2257,7 +2699,7 @@
             },
             "evaluation_hash": "40d11b26b7b6218a934a77d02d512c807319f2695cf6fa18dd30a7cf410f7806",
             "goal_count": 1,
-            "latency_ms": 36.44476877525449,
+            "latency_ms": 42.42148483172059,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-135cfe9850ae9a9cd682e40cdf444357"
@@ -2270,8 +2712,34 @@
         {
           "atom_count": 1775,
           "dependency_key_count": 1365,
-          "fdas_total_latency_ms": 237.04007407650352,
-          "latency_ms": 192.70222401246428,
+          "fdas_total_latency_ms": 283.7341991253197,
+          "latency_ms": 239.5295430906117,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-3f72014ba13e3e7cb2dcbfe4b054f4f2",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1775,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1369,
+            "rich_reused_records": 0,
+            "total_records": 1775,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1337,
             "derived": 294,
@@ -2547,7 +3015,7 @@
             },
             "evaluation_hash": "e48509f6093674e093f12ac91bb259466d208dff2e7acc8a4ba2aea944bb2250",
             "goal_count": 1,
-            "latency_ms": 44.33785006403923,
+            "latency_ms": 44.20465603470802,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-17545dad789ce996cba0f5f0390863a0"
@@ -2560,8 +3028,34 @@
         {
           "atom_count": 2610,
           "dependency_key_count": 1344,
-          "fdas_total_latency_ms": 250.47436356544495,
-          "latency_ms": 246.9532280229032,
+          "fdas_total_latency_ms": 288.32617588341236,
+          "latency_ms": 284.8567278124392,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-5f43153b09889b87b9c2a4f10e073b60",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 2610,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 2205,
+            "rich_reused_records": 0,
+            "total_records": 2610,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1455,
             "belief": 2,
@@ -2645,7 +3139,7 @@
             },
             "evaluation_hash": "b0ea6525834762042e6168f6122994ee2d4fd82c9afec53d548a2edeea8f3353",
             "goal_count": 0,
-            "latency_ms": 3.5211355425417423,
+            "latency_ms": 3.469448070973158,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -2658,8 +3152,34 @@
         {
           "atom_count": 2258,
           "dependency_key_count": 1472,
-          "fdas_total_latency_ms": 267.44415797293186,
-          "latency_ms": 264.103455003351,
+          "fdas_total_latency_ms": 322.0382137224078,
+          "latency_ms": 310.0711777806282,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-7760f85a26cfe34232e36144f02da8d6",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 2258,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1853,
+            "rich_reused_records": 0,
+            "total_records": 2258,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1463,
             "belief": 1,
@@ -2809,7 +3329,7 @@
             },
             "evaluation_hash": "865620b7a17a085114c59c2795dce47d22309fa89722ab56ed1a24a6acd21fd0",
             "goal_count": 0,
-            "latency_ms": 3.3407029695808887,
+            "latency_ms": 11.967035941779613,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -2822,8 +3342,34 @@
         {
           "atom_count": 1999,
           "dependency_key_count": 1502,
-          "fdas_total_latency_ms": 257.00253481045365,
-          "latency_ms": 254.00159694254398,
+          "fdas_total_latency_ms": 410.9611981548369,
+          "latency_ms": 306.6273182630539,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-df67f213b49e001a6e35975a6b7c4ae5",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1999,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1595,
+            "rich_reused_records": 0,
+            "total_records": 1999,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1486,
             "derived": 369,
@@ -2900,7 +3446,7 @@
             },
             "evaluation_hash": "fe8f5608dfb1abccb755093c4340d49755232927ffdc0de514fda2532f93902f",
             "goal_count": 0,
-            "latency_ms": 3.00093786790967,
+            "latency_ms": 104.333879891783,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -2913,8 +3459,34 @@
         {
           "atom_count": 2239,
           "dependency_key_count": 1878,
-          "fdas_total_latency_ms": 385.20228397101164,
-          "latency_ms": 314.6893591620028,
+          "fdas_total_latency_ms": 434.1795742511749,
+          "latency_ms": 374.8296401463449,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-b25f39fa59cdc4c9a4b8e9965452f370",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 2239,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1798,
+            "rich_reused_records": 0,
+            "total_records": 2239,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1605,
             "derived": 490,
@@ -3140,7 +3712,7 @@
             },
             "evaluation_hash": "cfef4d737761fb40b3885e86f4527f47e107db18ba6e30423daf2abcfdbfce8f",
             "goal_count": 1,
-            "latency_ms": 70.51292480900884,
+            "latency_ms": 59.34993410483003,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-03c7f76eefbc09f4394f4fce58b94571"
@@ -3153,8 +3725,34 @@
         {
           "atom_count": 2305,
           "dependency_key_count": 2002,
-          "fdas_total_latency_ms": 504.79771196842194,
-          "latency_ms": 339.4051641225815,
+          "fdas_total_latency_ms": 583.5936069488525,
+          "latency_ms": 395.6377259455621,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-7f2a4a57be515773e4583a6ac587f250",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 2305,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1866,
+            "rich_reused_records": 0,
+            "total_records": 2305,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1583,
             "derived": 576,
@@ -3529,7 +4127,7 @@
             },
             "evaluation_hash": "e4f3751e3f160870dacbf56ec66d85a499949dfe25edaf25d0465d7c466b0b4f",
             "goal_count": 4,
-            "latency_ms": 165.39254784584045,
+            "latency_ms": 187.95588100329041,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-00d854081bee48f480a070ba9a8458a7"
@@ -3542,8 +4140,34 @@
         {
           "atom_count": 2302,
           "dependency_key_count": 2001,
-          "fdas_total_latency_ms": 471.2363788858056,
-          "latency_ms": 411.3655351102352,
+          "fdas_total_latency_ms": 459.94370989501476,
+          "latency_ms": 391.71056589111686,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-97d2ed23d05536f9e729d6e631dd7c17",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 2302,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1863,
+            "rich_reused_records": 0,
+            "total_records": 2302,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1580,
             "derived": 576,
@@ -3856,7 +4480,7 @@
             },
             "evaluation_hash": "74ffb3fa2180247e90bcf4dd92b44445ba4a6771b36d9115e06982d38230f4f1",
             "goal_count": 2,
-            "latency_ms": 59.87084377557039,
+            "latency_ms": 68.2331440038979,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-0a0e6335cb33d355445ddfb3e8d52fbc"
@@ -3869,8 +4493,34 @@
         {
           "atom_count": 1928,
           "dependency_key_count": 1050,
-          "fdas_total_latency_ms": 223.32624904811382,
-          "latency_ms": 214.7405119612813,
+          "fdas_total_latency_ms": 266.0404061898589,
+          "latency_ms": 257.37904803827405,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-5b5fc3ea08afa2c5d29f724fdab16d43",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1928,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1492,
+            "rich_reused_records": 0,
+            "total_records": 1928,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1645,
             "derived": 135,
@@ -4014,7 +4664,7 @@
             },
             "evaluation_hash": "aa9739639a71557f97de09dc2c827e18c75a463ef357cd3a64ae65ee83d5f459",
             "goal_count": 2,
-            "latency_ms": 8.585737086832523,
+            "latency_ms": 8.661358151584864,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-589f90490b35392b7f538235bc2f"
@@ -4027,8 +4677,34 @@
         {
           "atom_count": 1927,
           "dependency_key_count": 1050,
-          "fdas_total_latency_ms": 218.93594693392515,
-          "latency_ms": 214.4695781171322,
+          "fdas_total_latency_ms": 260.84837270900607,
+          "latency_ms": 250.29903510585427,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-2ce1108847c076efe2805f7ef467cb5c",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1927,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1491,
+            "rich_reused_records": 0,
+            "total_records": 1927,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1644,
             "derived": 135,
@@ -4108,7 +4784,7 @@
             },
             "evaluation_hash": "f42ea870b75d9d560390810a76c06e08f30f10b3a18ffe3beb22ebeea2aa2f6f",
             "goal_count": 1,
-            "latency_ms": 4.466368816792965,
+            "latency_ms": 10.549337603151798,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-cd45af36b8c1c6ceb41a0d0d9d2e"
@@ -4121,8 +4797,34 @@
         {
           "atom_count": 1983,
           "dependency_key_count": 1669,
-          "fdas_total_latency_ms": 410.1642081514001,
-          "latency_ms": 263.27519305050373,
+          "fdas_total_latency_ms": 395.17051773145795,
+          "latency_ms": 312.3487806878984,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-5b3ab17559bd31a72f4d06f700d2dfae",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1983,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1579,
+            "rich_reused_records": 0,
+            "total_records": 1983,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1376,
             "derived": 455,
@@ -4612,7 +5314,7 @@
             },
             "evaluation_hash": "3e7ac9a61edc12850a8f94f847a74e1b1a0dd423fddd2bfe7c478f752e2bac41",
             "goal_count": 6,
-            "latency_ms": 146.88901510089636,
+            "latency_ms": 82.82173704355955,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-04d3e91e456dc2463a5f356929065de2"
@@ -4625,8 +5327,34 @@
         {
           "atom_count": 1472,
           "dependency_key_count": 822,
-          "fdas_total_latency_ms": 198.8011784851551,
-          "latency_ms": 154.55866744741797,
+          "fdas_total_latency_ms": 356.5245270729065,
+          "latency_ms": 190.733821131289,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-fb6a83b0feb467703c4b1a914b53c84e",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1472,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1076,
+            "rich_reused_records": 0,
+            "total_records": 1472,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1225,
             "derived": 101,
@@ -5042,7 +5770,7 @@
             },
             "evaluation_hash": "06156b053ed7c29937c0f9b784cdc955639b451d703f1359c19e43390695e973",
             "goal_count": 9,
-            "latency_ms": 44.24251103773713,
+            "latency_ms": 165.7907059416175,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-0e95390c16c8a4857061910eb96e"
@@ -5055,8 +5783,34 @@
         {
           "atom_count": 1474,
           "dependency_key_count": 823,
-          "fdas_total_latency_ms": 200.8772944100201,
-          "latency_ms": 156.1095342040062,
+          "fdas_total_latency_ms": 221.868725027889,
+          "latency_ms": 182.0435831323266,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-0c6888416f557e43215a97a477f42f20",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1474,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1078,
+            "rich_reused_records": 0,
+            "total_records": 1474,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1227,
             "derived": 101,
@@ -5484,7 +6238,7 @@
             },
             "evaluation_hash": "e51c99eee044087c33dd1cb4c453834dfcf75c47d73e2200515bbb36b5f9fee0",
             "goal_count": 9,
-            "latency_ms": 44.76776020601392,
+            "latency_ms": 39.82514189556241,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-4dfaec9b1e185b1a2bc010afe935"
@@ -5497,8 +6251,34 @@
         {
           "atom_count": 1595,
           "dependency_key_count": 1370,
-          "fdas_total_latency_ms": 284.0845393948257,
-          "latency_ms": 198.1438552029431,
+          "fdas_total_latency_ms": 324.48121905326843,
+          "latency_ms": 246.10444903373718,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-5a8abf773ae6bb6dffd25cbc970b8cd6",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1595,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1223,
+            "rich_reused_records": 0,
+            "total_records": 1595,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1107,
             "derived": 332,
@@ -6020,7 +6800,7 @@
             },
             "evaluation_hash": "a422d3f6658ebf5416022e7da97e8831a47303507e8c232cf0ef3cfc4b7eb784",
             "goal_count": 9,
-            "latency_ms": 85.94068419188261,
+            "latency_ms": 78.37677001953125,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-03c8cd77ac689a84997325acaf0ba554"
@@ -6033,8 +6813,34 @@
         {
           "atom_count": 1499,
           "dependency_key_count": 1264,
-          "fdas_total_latency_ms": 266.4462779648602,
-          "latency_ms": 183.62849112600088,
+          "fdas_total_latency_ms": 307.7906030230224,
+          "latency_ms": 224.44908088073134,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-c24d0f62f396da62d4eda6149ff2cc2d",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1499,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1132,
+            "rich_reused_records": 0,
+            "total_records": 1499,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1043,
             "derived": 294,
@@ -6592,7 +7398,7 @@
             },
             "evaluation_hash": "e23f247438a3e736ae12db13aed9b0830a43cc7d850fc3f8cfa375fdf059a179",
             "goal_count": 12,
-            "latency_ms": 82.81778683885932,
+            "latency_ms": 83.34152214229107,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-026fe50fd395bbd7f17d83ae6d18c84b"
@@ -6605,8 +7411,34 @@
         {
           "atom_count": 1499,
           "dependency_key_count": 1264,
-          "fdas_total_latency_ms": 327.6538751088083,
-          "latency_ms": 181.6340908408165,
+          "fdas_total_latency_ms": 433.7676581926644,
+          "latency_ms": 225.99987592548132,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-731a02abaa6dd3c3427cc698a1ceb7f4",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1499,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1132,
+            "rich_reused_records": 0,
+            "total_records": 1499,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1043,
             "derived": 294,
@@ -7157,7 +7989,7 @@
             },
             "evaluation_hash": "4d98605d34d15bdbf3357108282530567e12f5a09d21191c4345253c04fd2ab4",
             "goal_count": 12,
-            "latency_ms": 146.01978426799178,
+            "latency_ms": 207.76778226718307,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-04528c92f757d83003d61848e3319257"
@@ -7170,8 +8002,34 @@
         {
           "atom_count": 1401,
           "dependency_key_count": 799,
-          "fdas_total_latency_ms": 156.36871894821525,
-          "latency_ms": 144.7776979766786,
+          "fdas_total_latency_ms": 191.85716193169355,
+          "latency_ms": 180.32533675432205,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-8e88d6d2154cc5383474f6faffe6d6b7",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1401,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1029,
+            "rich_reused_records": 0,
+            "total_records": 1401,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1160,
             "derived": 93,
@@ -7370,7 +8228,7 @@
             },
             "evaluation_hash": "5ba1695df5a6c02c68c300183641ce8d0f1f562d5fce4b695128f12786044b73",
             "goal_count": 4,
-            "latency_ms": 11.591020971536636,
+            "latency_ms": 11.531825177371502,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-262a4c429996ecf484dd0386d927"
@@ -7383,8 +8241,34 @@
         {
           "atom_count": 1401,
           "dependency_key_count": 798,
-          "fdas_total_latency_ms": 157.97711070626974,
-          "latency_ms": 141.59220596775413,
+          "fdas_total_latency_ms": 179.2976795695722,
+          "latency_ms": 167.90302377194166,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-37e09c330dcc9233a3b0d721a68994b9",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1401,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1029,
+            "rich_reused_records": 0,
+            "total_records": 1401,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1158,
             "derived": 95,
@@ -7587,7 +8471,7 @@
             },
             "evaluation_hash": "fef7f5fd21404eb9d94bdf4f785c3b2e284be99d0a44e966408529df24e0cf9b",
             "goal_count": 4,
-            "latency_ms": 16.384904738515615,
+            "latency_ms": 11.394655797630548,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-35d6d39398200c70b53f881733dd"
@@ -7600,8 +8484,34 @@
         {
           "atom_count": 1403,
           "dependency_key_count": 800,
-          "fdas_total_latency_ms": 157.6765337958932,
-          "latency_ms": 141.99294988065958,
+          "fdas_total_latency_ms": 186.35241780430079,
+          "latency_ms": 174.7735058888793,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-d051a2a9cf3d4ac7c3366c7ae80cd8c3",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1403,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1031,
+            "rich_reused_records": 0,
+            "total_records": 1403,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1162,
             "derived": 93,
@@ -7793,7 +8703,7 @@
             },
             "evaluation_hash": "f8b845940f4f2bab95061f242a20fd96915106b73323686f4340e53b45d53241",
             "goal_count": 4,
-            "latency_ms": 15.683583915233612,
+            "latency_ms": 11.578911915421486,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-6d4140b1c172cda0701d7136dc4e"
@@ -7806,8 +8716,34 @@
         {
           "atom_count": 1401,
           "dependency_key_count": 798,
-          "fdas_total_latency_ms": 162.42052288725972,
-          "latency_ms": 150.744522921741,
+          "fdas_total_latency_ms": 186.48438900709152,
+          "latency_ms": 174.9535109847784,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-2d8928014fb4617ccee4c25154b227f3",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1401,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1029,
+            "rich_reused_records": 0,
+            "total_records": 1401,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1162,
             "derived": 93,
@@ -8001,7 +8937,7 @@
             },
             "evaluation_hash": "aec4e502bd8df3298d66184d0eb1ef4087bff1bf7c0e08334cbcda9a78a619b2",
             "goal_count": 4,
-            "latency_ms": 11.675999965518713,
+            "latency_ms": 11.530878022313118,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-60e7024d24a80601c963dcc7d538"
@@ -8014,8 +8950,34 @@
         {
           "atom_count": 1263,
           "dependency_key_count": 730,
-          "fdas_total_latency_ms": 146.71123307198286,
-          "latency_ms": 135.0310822017491,
+          "fdas_total_latency_ms": 185.3314395993948,
+          "latency_ms": 168.49257377907634,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-d0c08c74f9737a9348fb39ccdbc55cba",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1263,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 899,
+            "rich_reused_records": 0,
+            "total_records": 1263,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 1029,
             "derived": 84,
@@ -8210,7 +9172,7 @@
             },
             "evaluation_hash": "fad1194f71fd28c53ad6415da532169a9fb137ed6a4de855b147bcb2f047230a",
             "goal_count": 4,
-            "latency_ms": 11.680150870233774,
+            "latency_ms": 16.83886582031846,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-2bff02ee7720cc764cf90b658b9d"
@@ -8223,8 +9185,34 @@
         {
           "atom_count": 1187,
           "dependency_key_count": 689,
-          "fdas_total_latency_ms": 155.18121933564544,
-          "latency_ms": 121.85259023681283,
+          "fdas_total_latency_ms": 322.01425125822425,
+          "latency_ms": 147.43901416659355,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-7f3ef0e79a1e55d34206de7dc04b8967",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1187,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 827,
+            "rich_reused_records": 0,
+            "total_records": 1187,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 966,
             "derived": 75,
@@ -8568,7 +9556,7 @@
             },
             "evaluation_hash": "2e98ab32b01ee7d50e9396cbeba409812551782612ad5c3d8fd2edd41fbbcf6c",
             "goal_count": 9,
-            "latency_ms": 33.32862909883261,
+            "latency_ms": 174.5752370916307,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-493ea780ec6198c0e79914cc4622"
@@ -8581,8 +9569,34 @@
         {
           "atom_count": 1185,
           "dependency_key_count": 688,
-          "fdas_total_latency_ms": 150.16109962016344,
-          "latency_ms": 123.53138765320182,
+          "fdas_total_latency_ms": 325.14513516798615,
+          "latency_ms": 154.5131951570511,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-a4f896da6f7c36d23229f0784f9c8170",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1185,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 825,
+            "rich_reused_records": 0,
+            "total_records": 1185,
+            "unsupported_atoms": 0
+          },
           "namespace_counts": {
             "authoritative": 964,
             "derived": 75,
@@ -8890,7 +9904,7 @@
             },
             "evaluation_hash": "8461c727b541b44665533bc4bb4da6aefe139c80fe069a5b0446be9dd69b786f",
             "goal_count": 8,
-            "latency_ms": 26.629711966961622,
+            "latency_ms": 170.63194001093507,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-3ff7499b2e4a41844c448bc82105"
@@ -8909,12 +9923,12 @@
         "goal_count": 116,
         "latency": {
           "count": 38,
-          "maximum_ms": 165.39254784584045,
-          "mean_ms": 34.70210356049632,
-          "minimum_ms": 0.5688359960913658,
-          "p50_ms": 17.542541958391666,
-          "p95_ms": 146.01978426799178,
-          "p99_ms": 165.39254784584045
+          "maximum_ms": 207.76778226718307,
+          "mean_ms": 52.898821629289735,
+          "minimum_ms": 0.55357301607728,
+          "p50_ms": 18.074294086545706,
+          "p95_ms": 174.5752370916307,
+          "p99_ms": 207.76778226718307
         },
         "legacy_candidate_count": 139,
         "legal_binding_failure_count": 0,
@@ -8933,27 +9947,82 @@
       "equivalent_count": 37,
       "fdas_total_latency": {
         "count": 38,
-        "maximum_ms": 1530.4592936299741,
-        "mean_ms": 653.3694409544727,
-        "minimum_ms": 45.90470716357231,
-        "p50_ms": 609.386351890862,
-        "p95_ms": 1190.9784101881087,
-        "p99_ms": 1530.4592936299741
+        "maximum_ms": 1241.2443147040904,
+        "mean_ms": 532.2239432655471,
+        "minimum_ms": 53.16720763221383,
+        "p50_ms": 466.9944569468498,
+        "p95_ms": 1052.8102861717343,
+        "p99_ms": 1241.2443147040904
       },
       "latency": {
         "count": 38,
-        "maximum_ms": 1310.6276872567832,
-        "mean_ms": 605.1021740453219,
-        "minimum_ms": 45.226532965898514,
-        "p50_ms": 596.9913909211755,
-        "p95_ms": 1119.2415012046695,
-        "p99_ms": 1310.6276872567832
+        "maximum_ms": 963.9294161461294,
+        "mean_ms": 464.7845682369447,
+        "minimum_ms": 52.46494524180889,
+        "p50_ms": 454.9834351055324,
+        "p95_ms": 845.0384982861578,
+        "p99_ms": 963.9294161461294
+      },
+      "materialization": {
+        "incremental_recomputation_ratio": {
+          "count": 38,
+          "maximum": 1.0,
+          "mean": 0.7807828130666776,
+          "minimum": 0.6277173913043478,
+          "p50": 0.7559109874826148,
+          "p95": 0.8878963823135329,
+          "p99": 1.0
+        },
+        "recomputed_projector_counts": {
+          "fdas-city-economy-shadow": 38,
+          "fdas-city-region-shadow": 35,
+          "fdas-combat-task-force-projector": 34,
+          "fdas-operation-projector": 38,
+          "fdas-population-recovery-projector": 38,
+          "fdas-route-corridor-projector": 38,
+          "fdas-settlement-site-projector": 38,
+          "fdas-transport-capability-projector": 38,
+          "fdas-unit-defense-shadow": 38
+        },
+        "reused_projector_counts": {
+          "fdas-city-region-shadow": 3,
+          "fdas-combat-task-force-projector": 4
+        },
+        "rich_recomputed_record_count": 42039,
+        "rich_reused_record_count": 0,
+        "sample_count": 38
       },
       "samples": [
         {
           "cold_verification": null,
-          "fdas_total_latency_ms": 45.90470716357231,
-          "latency_ms": 45.226532965898514,
+          "fdas_total_latency_ms": 53.16720763221383,
+          "latency_ms": 52.46494524180889,
+          "materialization_metrics": {
+            "affected_atoms": 0,
+            "cold_build": true,
+            "delta_hash": "snapshot-delta-70321a57d1f18de437606314abb2b6bb",
+            "incremental_recomputation_ratio": 1.0,
+            "invalidated_supports": 0,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 410,
+            "refreshed_records": 0,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 272,
+            "rich_reused_records": 0,
+            "total_records": 410,
+            "unsupported_atoms": 0
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-1-6870-9531d66bf53cf635.json",
           "revision_id": "fdas-revision-05722ed572dd243e61aa3f0dbbe34d27",
           "shadow_evaluation": {
@@ -9005,7 +10074,7 @@
             },
             "evaluation_hash": "809f3eea031e6e4bc1d5ee0d044b5383e000f1e493056ffe0bfcb41c52825ed6",
             "goal_count": 0,
-            "latency_ms": 0.6781741976737976,
+            "latency_ms": 0.7022623904049397,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -9022,8 +10091,35 @@
             "mismatch_categories": [],
             "verification_hash": "70e045d04afda48cded9d2d8438aa837b981acd70f5d748727c1fa2231e13af2"
           },
-          "fdas_total_latency_ms": 144.21928860247135,
-          "latency_ms": 143.56016740202904,
+          "fdas_total_latency_ms": 113.30105038359761,
+          "latency_ms": 112.64332802966237,
+          "materialization_metrics": {
+            "affected_atoms": 1,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-1ff0357a7177b7265914b07c81386d53",
+            "incremental_recomputation_ratio": 0.6658536585365854,
+            "invalidated_supports": 1,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 273,
+            "refreshed_records": 137,
+            "removed_records": 1,
+            "reused_projector_ids": [
+              "fdas-combat-task-force-projector"
+            ],
+            "rich_recomputed_records": 272,
+            "rich_reused_records": 0,
+            "total_records": 410,
+            "unsupported_atoms": 1
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-1-6878-0ba043e59e81330b.json",
           "revision_id": "fdas-revision-5b1bd2d1c9e2e6ef656aff7f4780d70a",
           "shadow_evaluation": {
@@ -9068,7 +10164,7 @@
             },
             "evaluation_hash": "d1e104ce1b4c9946198295fa0ed279c7478aa02b1a7d2634338582fdb1e8ac00",
             "goal_count": 0,
-            "latency_ms": 0.6591212004423141,
+            "latency_ms": 0.6577223539352417,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -9085,8 +10181,35 @@
             "mismatch_categories": [],
             "verification_hash": "35cba815c420b898f3847e37af9d55bdefe1a525941a168d9b23bde0122dc6ed"
           },
-          "fdas_total_latency_ms": 137.42217421531677,
-          "latency_ms": 136.81990234181285,
+          "fdas_total_latency_ms": 106.3512503169477,
+          "latency_ms": 105.8006202802062,
+          "materialization_metrics": {
+            "affected_atoms": 48,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-a437f3a719109a711920001b6560f65c",
+            "incremental_recomputation_ratio": 0.6277173913043478,
+            "invalidated_supports": 30,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 231,
+            "refreshed_records": 137,
+            "removed_records": 1,
+            "reused_projector_ids": [
+              "fdas-city-region-shadow"
+            ],
+            "rich_recomputed_records": 230,
+            "rich_reused_records": 0,
+            "total_records": 368,
+            "unsupported_atoms": 48
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-1-6889-ad01aee0dd0de1a0.json",
           "revision_id": "fdas-revision-cbda53f0b132e73ef7631ab2cec11f85",
           "shadow_evaluation": {
@@ -9122,7 +10245,7 @@
             },
             "evaluation_hash": "cf4df93647a4ece90a9d4faac2b06f78e0d77d60c37328f9191500800d08c633",
             "goal_count": 0,
-            "latency_ms": 0.6022718735039234,
+            "latency_ms": 0.5506300367414951,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -9139,8 +10262,34 @@
             "mismatch_categories": [],
             "verification_hash": "fc518933bb5900de54f733c94be2805fd7919d767a29d4e9b118cdf04d83137d"
           },
-          "fdas_total_latency_ms": 330.3291476331651,
-          "latency_ms": 313.37006390094757,
+          "fdas_total_latency_ms": 414.7796598263085,
+          "latency_ms": 238.99271478876472,
+          "materialization_metrics": {
+            "affected_atoms": 38,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-fac090fcbfb8db27e579a33db30ebbba",
+            "incremental_recomputation_ratio": 0.8012139605462822,
+            "invalidated_supports": 28,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 528,
+            "refreshed_records": 131,
+            "removed_records": 7,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 440,
+            "rich_reused_records": 0,
+            "total_records": 659,
+            "unsupported_atoms": 38
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-12-7964-d2046321a6cfd875.json",
           "revision_id": "fdas-revision-4d6c23980e926acaed696047fed4a71c",
           "shadow_evaluation": {
@@ -9201,7 +10350,7 @@
             },
             "evaluation_hash": "b4fb4eaa6e1ffebd798a8cfebe55697159caedeccfbee3a8bfb3271844ad8edd",
             "goal_count": 1,
-            "latency_ms": 16.95908373221755,
+            "latency_ms": 175.78694503754377,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-a5c3a8614249b52878aadb8d06f6d1c4"
@@ -9218,8 +10367,35 @@
             "mismatch_categories": [],
             "verification_hash": "d42443daf24d0063f650837b66a482dee3be2cb769435724408c5cc10ca21f8e"
           },
-          "fdas_total_latency_ms": 250.45477971434593,
-          "latency_ms": 232.59821999818087,
+          "fdas_total_latency_ms": 203.43535719439387,
+          "latency_ms": 185.69231498986483,
+          "materialization_metrics": {
+            "affected_atoms": 31,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-ac46ede8b112e81d98e9d0c5249663b8",
+            "incremental_recomputation_ratio": 0.669195751138088,
+            "invalidated_supports": 11,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 441,
+            "refreshed_records": 218,
+            "removed_records": 1,
+            "reused_projector_ids": [
+              "fdas-combat-task-force-projector"
+            ],
+            "rich_recomputed_records": 440,
+            "rich_reused_records": 0,
+            "total_records": 659,
+            "unsupported_atoms": 31
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-12-7972-5748605bb9321ef8.json",
           "revision_id": "fdas-revision-1f076cc6add3825aabcef66ee93ed95b",
           "shadow_evaluation": {
@@ -9267,7 +10443,7 @@
             },
             "evaluation_hash": "a352823e4262ffd8301d79980f3a819e315e772458e83d0a0047c0145fc7e31e",
             "goal_count": 1,
-            "latency_ms": 17.856559716165066,
+            "latency_ms": 17.743042204529047,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-aeb2dc9808da4ceb6cb21199ee677b49"
@@ -9284,8 +10460,34 @@
             "mismatch_categories": [],
             "verification_hash": "3b4cc5aeadcdc09c86d5f73a57a4b0aba34aa3f404483b5cd5f429ea633783cf"
           },
-          "fdas_total_latency_ms": 305.73531007394195,
-          "latency_ms": 286.797066219151,
+          "fdas_total_latency_ms": 245.57173904031515,
+          "latency_ms": 225.26615299284458,
+          "materialization_metrics": {
+            "affected_atoms": 55,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-3f1af014b15f96af7a9d4bd40af2e84d",
+            "incremental_recomputation_ratio": 0.7122015915119363,
+            "invalidated_supports": 30,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 537,
+            "refreshed_records": 217,
+            "removed_records": 2,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 522,
+            "rich_reused_records": 0,
+            "total_records": 754,
+            "unsupported_atoms": 55
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-20-8764-63a8328b34ff1b16.json",
           "revision_id": "fdas-revision-3d2b04b3fae0c89b2f0ba7c4297c99a1",
           "shadow_evaluation": {
@@ -9339,7 +10541,7 @@
             },
             "evaluation_hash": "6a3182fe56ef0cd8bdabdbce2fa1d3fc4725103f74a4e1ad51aa8ae07bf7e172",
             "goal_count": 1,
-            "latency_ms": 18.938243854790926,
+            "latency_ms": 20.30558604747057,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-185daba30fb0e219cb39e90affe141a8"
@@ -9356,8 +10558,34 @@
             "mismatch_categories": [],
             "verification_hash": "d40937252d78625f6586b329c0316ab26d7a813902e9895e643bcb7efe504356"
           },
-          "fdas_total_latency_ms": 334.8301756195724,
-          "latency_ms": 333.49830470979214,
+          "fdas_total_latency_ms": 263.5221811942756,
+          "latency_ms": 262.22811127081513,
+          "materialization_metrics": {
+            "affected_atoms": 70,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-b97d4717d2e78883e98968c432465949",
+            "incremental_recomputation_ratio": 0.727810650887574,
+            "invalidated_supports": 36,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 615,
+            "refreshed_records": 230,
+            "removed_records": 2,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 598,
+            "rich_reused_records": 0,
+            "total_records": 845,
+            "unsupported_atoms": 70
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-24-9179-825ca79757519911.json",
           "revision_id": "fdas-revision-3deacd54a47b1f04fd4141e34f39b889",
           "shadow_evaluation": {
@@ -9406,7 +10634,7 @@
             },
             "evaluation_hash": "8dcc453589c997876720452a9db3b2a6a1690db7b6f4efb658b336fe1b20ee23",
             "goal_count": 0,
-            "latency_ms": 1.331870909780264,
+            "latency_ms": 1.2940699234604836,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -9423,8 +10651,35 @@
             "mismatch_categories": [],
             "verification_hash": "d43144e4694b9492af49d9654db8f75e5cb16f19e9e994b0ba87b4a8349c87a8"
           },
-          "fdas_total_latency_ms": 319.17347479611635,
-          "latency_ms": 317.849547136575,
+          "fdas_total_latency_ms": 244.731817394495,
+          "latency_ms": 243.45222301781178,
+          "materialization_metrics": {
+            "affected_atoms": 49,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-bcb7ea9936f7b765c0a74cb739c74891",
+            "incremental_recomputation_ratio": 0.7088757396449704,
+            "invalidated_supports": 19,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 599,
+            "refreshed_records": 246,
+            "removed_records": 1,
+            "reused_projector_ids": [
+              "fdas-combat-task-force-projector"
+            ],
+            "rich_recomputed_records": 598,
+            "rich_reused_records": 0,
+            "total_records": 845,
+            "unsupported_atoms": 49
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-24-9187-5c0048e213e1c34f.json",
           "revision_id": "fdas-revision-dc2da05feb7557cf384b2d01c234cb1e",
           "shadow_evaluation": {
@@ -9460,7 +10715,7 @@
             },
             "evaluation_hash": "af454599fc4f78ea21a91ff10fc7a9cee21fd06a0609ad19bc8162ecd5dfd5a7",
             "goal_count": 0,
-            "latency_ms": 1.3239276595413685,
+            "latency_ms": 1.2795943766832352,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -9477,8 +10732,34 @@
             "mismatch_categories": [],
             "verification_hash": "ea7c6b58be21c88d5a499415d1238babf5167c3055245f8a362a219ea2170f84"
           },
-          "fdas_total_latency_ms": 382.3210168629885,
-          "latency_ms": 380.8384397998452,
+          "fdas_total_latency_ms": 299.2739384062588,
+          "latency_ms": 297.86225920543075,
+          "materialization_metrics": {
+            "affected_atoms": 131,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-0039323c3e323742fec28d0d815af9c6",
+            "incremental_recomputation_ratio": 0.7425847457627118,
+            "invalidated_supports": 68,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 701,
+            "refreshed_records": 243,
+            "removed_records": 4,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 685,
+            "rich_reused_records": 0,
+            "total_records": 944,
+            "unsupported_atoms": 131
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-26-9437-9d538467e8bf7c8e.json",
           "revision_id": "fdas-revision-6e44beea61055d978c8d845f3e108aa5",
           "shadow_evaluation": {
@@ -9520,7 +10801,7 @@
             },
             "evaluation_hash": "c40554833ec70aded085bf741ba18b8c5bd6155335e3be06e6452c33fc68862f",
             "goal_count": 0,
-            "latency_ms": 1.4825770631432533,
+            "latency_ms": 1.4116792008280754,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -9537,8 +10818,34 @@
             "mismatch_categories": [],
             "verification_hash": "0145f240c16c69ab4d73432db00d9704085e601936c21a2e6f49035165460d1f"
           },
-          "fdas_total_latency_ms": 734.7186305560172,
-          "latency_ms": 595.5694788135588,
+          "fdas_total_latency_ms": 499.62342204526067,
+          "latency_ms": 468.1648351252079,
+          "materialization_metrics": {
+            "affected_atoms": 158,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-fa44328100ee270e833778f503aa3c7c",
+            "incremental_recomputation_ratio": 0.8052147239263804,
+            "invalidated_supports": 81,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1050,
+            "refreshed_records": 254,
+            "removed_records": 5,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 959,
+            "rich_reused_records": 0,
+            "total_records": 1304,
+            "unsupported_atoms": 158
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-37-11130-a9cf247e1c1b9a63.json",
           "revision_id": "fdas-revision-8494ac487a2e7a90f36d7ff3f291b5c1",
           "shadow_evaluation": {
@@ -9681,7 +10988,7 @@
             },
             "evaluation_hash": "ac1df74b26e36e2e549d5b078fc7c12e208bdbcef02bba305b97261e6127f1fa",
             "goal_count": 1,
-            "latency_ms": 139.14915174245834,
+            "latency_ms": 31.458586920052767,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-54ff9821c77677ecbeddff0c2c97b285"
@@ -9698,8 +11005,34 @@
             "mismatch_categories": [],
             "verification_hash": "ce2830fbdc39f413a9e1e2e3835a3bb22d99f3350cdd8f5c46a1fa01e3a72169"
           },
-          "fdas_total_latency_ms": 656.4638703130186,
-          "latency_ms": 612.9489652812481,
+          "fdas_total_latency_ms": 527.9966248199344,
+          "latency_ms": 480.4751477204263,
+          "materialization_metrics": {
+            "affected_atoms": 278,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-24d87ae8dc24882661e076cae7f5d72f",
+            "incremental_recomputation_ratio": 0.7688098495212038,
+            "invalidated_supports": 135,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1124,
+            "refreshed_records": 338,
+            "removed_records": 7,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1062,
+            "rich_reused_records": 0,
+            "total_records": 1462,
+            "unsupported_atoms": 278
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-40-11774-687e6c950a3ec8d6.json",
           "revision_id": "fdas-revision-e1a91ebfbb93f92453639ae34061c7eb",
           "shadow_evaluation": {
@@ -9813,7 +11146,7 @@
             },
             "evaluation_hash": "4f13204338c5d06cf22cfe4fedf650053f13abeea4e2f06875cfd3420a421603",
             "goal_count": 2,
-            "latency_ms": 43.51490503177047,
+            "latency_ms": 47.52147709950805,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-08c8df739186ea49b883e635df1f2dd6"
@@ -9830,8 +11163,34 @@
             "mismatch_categories": [],
             "verification_hash": "1dad4f2b51219df01b87c661ea6fff1bb70760a2f3665cb7c90a9f59df233a27"
           },
-          "fdas_total_latency_ms": 607.3708804324269,
-          "latency_ms": 603.6604540422559,
+          "fdas_total_latency_ms": 448.43651819974184,
+          "latency_ms": 444.6952659636736,
+          "materialization_metrics": {
+            "affected_atoms": 278,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-9e40e9350a3b0b6d72bd8d25e48b51a2",
+            "incremental_recomputation_ratio": 0.7559109874826148,
+            "invalidated_supports": 148,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1087,
+            "refreshed_records": 351,
+            "removed_records": 8,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1039,
+            "rich_reused_records": 0,
+            "total_records": 1438,
+            "unsupported_atoms": 278
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-46-2c4269b48ef94baa.json",
           "revision_id": "fdas-revision-185d74212e679098789ae99970c2d0e3",
           "shadow_evaluation": {
@@ -9879,7 +11238,7 @@
             },
             "evaluation_hash": "b59582f2f8618c3c5ac195ea942ce399fbbe93b3ab4a1b349181e4a232ca4898",
             "goal_count": 1,
-            "latency_ms": 3.710426390171051,
+            "latency_ms": 3.7412522360682487,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-a4738e2f003b8f641979dc902c81"
@@ -9896,8 +11255,35 @@
             "mismatch_categories": [],
             "verification_hash": "61ebff0567ccb258f8f41d3231245ceb2ae687126d67a36df675c025d7042339"
           },
-          "fdas_total_latency_ms": 683.8739509694278,
-          "latency_ms": 634.4610578380525,
+          "fdas_total_latency_ms": 760.3976922109723,
+          "latency_ms": 485.842342954129,
+          "materialization_metrics": {
+            "affected_atoms": 38,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-0677dee34fa325d073f0e4a77785ffc2",
+            "incremental_recomputation_ratio": 0.754914004914005,
+            "invalidated_supports": 19,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1229,
+            "refreshed_records": 399,
+            "removed_records": 0,
+            "reused_projector_ids": [
+              "fdas-city-region-shadow"
+            ],
+            "rich_recomputed_records": 1229,
+            "rich_reused_records": 0,
+            "total_records": 1628,
+            "unsupported_atoms": 38
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_native_160/turn-46-c1c4f57ca9636773.json",
           "revision_id": "fdas-revision-7d90db032629473323cb684ea8936934",
           "shadow_evaluation": {
@@ -10052,7 +11438,7 @@
             },
             "evaluation_hash": "b200730522ce7241d688eef4489146cfcb3dce4031dc9a4893c27eff11b6d0c3",
             "goal_count": 1,
-            "latency_ms": 49.41289313137531,
+            "latency_ms": 274.55534925684333,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-30a6bb17a40f98057a29c04e98f6c3c0"
@@ -10069,8 +11455,34 @@
             "mismatch_categories": [],
             "verification_hash": "b20e5b206bcac383ac6f5445d15c36199cc9f4c787f42295ed0eb17d8a4e2be2"
           },
-          "fdas_total_latency_ms": 933.4709160029888,
-          "latency_ms": 883.2166190259159,
+          "fdas_total_latency_ms": 730.3666546940804,
+          "latency_ms": 672.094389796257,
+          "materialization_metrics": {
+            "affected_atoms": 259,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-c713100bc513bb05f22ea88f397fcaa0",
+            "incremental_recomputation_ratio": 0.8348585690515807,
+            "invalidated_supports": 114,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 2007,
+            "refreshed_records": 397,
+            "removed_records": 2,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 2005,
+            "rich_reused_records": 0,
+            "total_records": 2404,
+            "unsupported_atoms": 259
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-46-13107-3d648a9a23914ba4.json",
           "revision_id": "fdas-revision-b1d31a4d57b0f0ca09cbd7d24a735328",
           "shadow_evaluation": {
@@ -10206,7 +11618,7 @@
             },
             "evaluation_hash": "440accc336c4e7b74be14f6b4dedd258cc3236ef535160d95d25b749d5b9d0a8",
             "goal_count": 1,
-            "latency_ms": 50.254296977072954,
+            "latency_ms": 58.272264897823334,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-0d2cad34a9a6ef04ab478300699834c9"
@@ -10223,8 +11635,34 @@
             "mismatch_categories": [],
             "verification_hash": "dcacc443e7f1e3e1d849a84acb7878fc801e703234399ab1c2be34a2cefcecf7"
           },
-          "fdas_total_latency_ms": 591.5676252916455,
-          "latency_ms": 587.9207686521113,
+          "fdas_total_latency_ms": 448.8893481902778,
+          "latency_ms": 445.1232091523707,
+          "materialization_metrics": {
+            "affected_atoms": 1067,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-6f05f3e7a1e071b7d5bc423a69d44c0f",
+            "incremental_recomputation_ratio": 0.7231520223152023,
+            "invalidated_supports": 244,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1037,
+            "refreshed_records": 397,
+            "removed_records": 2,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1035,
+            "rich_reused_records": 0,
+            "total_records": 1434,
+            "unsupported_atoms": 1067
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-48-b0cf57c147ec1499.json",
           "revision_id": "fdas-revision-ff35fdbf35695dbf73e950ea165f2624",
           "shadow_evaluation": {
@@ -10255,7 +11693,7 @@
             },
             "evaluation_hash": "4b23eae5723910443a0f63e89f36b70265f51aaf5e39ba6e5444e5f45a431743",
             "goal_count": 1,
-            "latency_ms": 3.646856639534235,
+            "latency_ms": 3.7661390379071236,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-ad5a6dad5f1d2955b0a5891552cf"
@@ -10272,8 +11710,35 @@
             "mismatch_categories": [],
             "verification_hash": "03644c2a2692138016dec9a8cf6e8dcc7ecc61b12ecd4e5f6d39cc3d7533918b"
           },
-          "fdas_total_latency_ms": 813.6391257867217,
-          "latency_ms": 644.0946580842137,
+          "fdas_total_latency_ms": 542.2370890155435,
+          "latency_ms": 494.64110005646944,
+          "materialization_metrics": {
+            "affected_atoms": 40,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-e949e94ada80421500cfd1c476bd128d",
+            "incremental_recomputation_ratio": 0.7553648068669528,
+            "invalidated_supports": 20,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1232,
+            "refreshed_records": 399,
+            "removed_records": 0,
+            "reused_projector_ids": [
+              "fdas-city-region-shadow"
+            ],
+            "rich_recomputed_records": 1232,
+            "rich_reused_records": 0,
+            "total_records": 1631,
+            "unsupported_atoms": 40
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_native_160/turn-48-1a4c3886245dce08.json",
           "revision_id": "fdas-revision-0de22349bc8803d02b18988b13453031",
           "shadow_evaluation": {
@@ -10411,7 +11876,7 @@
             },
             "evaluation_hash": "40d11b26b7b6218a934a77d02d512c807319f2695cf6fa18dd30a7cf410f7806",
             "goal_count": 1,
-            "latency_ms": 169.54446770250797,
+            "latency_ms": 47.59598895907402,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-135cfe9850ae9a9cd682e40cdf444357"
@@ -10428,8 +11893,34 @@
             "mismatch_categories": [],
             "verification_hash": "9f3d608d35930b448cfcc7ca420d36f75fc2ff189659fb4a906302115a96431c"
           },
-          "fdas_total_latency_ms": 794.5927581749856,
-          "latency_ms": 748.9898698404431,
+          "fdas_total_latency_ms": 621.0020361468196,
+          "latency_ms": 569.7102542035282,
+          "materialization_metrics": {
+            "affected_atoms": 358,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-aca016d0521ae59e97d8854d5ab93fa4",
+            "incremental_recomputation_ratio": 0.8011267605633803,
+            "invalidated_supports": 188,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1422,
+            "refreshed_records": 353,
+            "removed_records": 5,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1369,
+            "rich_reused_records": 0,
+            "total_records": 1775,
+            "unsupported_atoms": 358
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-51-14406-76bb82d9fb15dce2.json",
           "revision_id": "fdas-revision-a02183e35717e37dc88ad1509230ad10",
           "shadow_evaluation": {
@@ -10653,7 +12144,7 @@
             },
             "evaluation_hash": "e48509f6093674e093f12ac91bb259466d208dff2e7acc8a4ba2aea944bb2250",
             "goal_count": 1,
-            "latency_ms": 45.60288833454251,
+            "latency_ms": 51.291781943291426,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-17545dad789ce996cba0f5f0390863a0"
@@ -10670,8 +12161,34 @@
             "mismatch_categories": [],
             "verification_hash": "3b79f9c0d8c736120b80dddad08905ee1422c42e2f6beb0c22259cad766de094"
           },
-          "fdas_total_latency_ms": 874.6554721146822,
-          "latency_ms": 870.6820607185364,
+          "fdas_total_latency_ms": 653.3803925849497,
+          "latency_ms": 649.5015127584338,
+          "materialization_metrics": {
+            "affected_atoms": 405,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-ee8b665691cace134b5a443dc4a1c6d6",
+            "incremental_recomputation_ratio": 0.8636015325670499,
+            "invalidated_supports": 203,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 2254,
+            "refreshed_records": 356,
+            "removed_records": 10,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 2205,
+            "rich_reused_records": 0,
+            "total_records": 2610,
+            "unsupported_atoms": 405
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-55-15445-dcc706c6aa8b83c3.json",
           "revision_id": "fdas-revision-9f557b94ed6b0b185012e74cd725c814",
           "shadow_evaluation": {
@@ -10700,7 +12217,7 @@
             },
             "evaluation_hash": "b0ea6525834762042e6168f6122994ee2d4fd82c9afec53d548a2edeea8f3353",
             "goal_count": 0,
-            "latency_ms": 3.9734113961458206,
+            "latency_ms": 3.878879826515913,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -10717,8 +12234,34 @@
             "mismatch_categories": [],
             "verification_hash": "e342c672ef3c66c7e0cac6eff5895951912afc80c50df5aa0d9754f039a82072"
           },
-          "fdas_total_latency_ms": 909.6932453103364,
-          "latency_ms": 906.0180080123246,
+          "fdas_total_latency_ms": 719.1533916629851,
+          "latency_ms": 680.102972779423,
+          "materialization_metrics": {
+            "affected_atoms": 385,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-1d6e46052f782a1f34b370143494b04a",
+            "incremental_recomputation_ratio": 0.8737821080602303,
+            "invalidated_supports": 230,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1973,
+            "refreshed_records": 285,
+            "removed_records": 8,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1853,
+            "rich_reused_records": 0,
+            "total_records": 2258,
+            "unsupported_atoms": 385
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-64-17510-1a50d7b695be9399.json",
           "revision_id": "fdas-revision-50de9fbd9f4c7f587f6561d657ab9949",
           "shadow_evaluation": {
@@ -10808,7 +12351,7 @@
             },
             "evaluation_hash": "865620b7a17a085114c59c2795dce47d22309fa89722ab56ed1a24a6acd21fd0",
             "goal_count": 0,
-            "latency_ms": 3.67523729801178,
+            "latency_ms": 39.05041888356209,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -10825,8 +12368,34 @@
             "mismatch_categories": [],
             "verification_hash": "9ea48d1bff3061383c50df02d9d5664a0166c79215fb1bb3d2d52a740c890021"
           },
-          "fdas_total_latency_ms": 919.3988484330475,
-          "latency_ms": 883.3956383168697,
+          "fdas_total_latency_ms": 679.382567293942,
+          "latency_ms": 676.0873151943088,
+          "materialization_metrics": {
+            "affected_atoms": 445,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-a5394be93e6d84ebeb4d6a881cd6e6cd",
+            "incremental_recomputation_ratio": 0.8569284642321161,
+            "invalidated_supports": 273,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1713,
+            "refreshed_records": 286,
+            "removed_records": 9,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1595,
+            "rich_reused_records": 0,
+            "total_records": 1999,
+            "unsupported_atoms": 445
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-75-20079-80fff8ca8add1161.json",
           "revision_id": "fdas-revision-488be1e59f1ea611fe9b78ac9f7f3d50",
           "shadow_evaluation": {
@@ -10855,7 +12424,7 @@
             },
             "evaluation_hash": "fe8f5608dfb1abccb755093c4340d49755232927ffdc0de514fda2532f93902f",
             "goal_count": 0,
-            "latency_ms": 36.0032101161778,
+            "latency_ms": 3.295252099633217,
             "pressure_reason": "no-active-local-goals",
             "pressure_status": "not-applicable",
             "selected_operation_id": null
@@ -10872,8 +12441,34 @@
             "mismatch_categories": [],
             "verification_hash": "2ab6060cd303da3480682c5732aafedcde4e747e21299bc87f237d0a398ca58e"
           },
-          "fdas_total_latency_ms": 1190.9784101881087,
-          "latency_ms": 1119.2415012046695,
+          "fdas_total_latency_ms": 1241.2443147040904,
+          "latency_ms": 851.9116169773042,
+          "materialization_metrics": {
+            "affected_atoms": 576,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-ac8fa1e35179fc2f2d45aa83a0c71823",
+            "incremental_recomputation_ratio": 0.8878963823135329,
+            "invalidated_supports": 350,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1988,
+            "refreshed_records": 251,
+            "removed_records": 10,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1798,
+            "rich_reused_records": 0,
+            "total_records": 2239,
+            "unsupported_atoms": 576
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_known_terrain_160/turn-87-23158-1a197d9de0b58cc6.json",
           "revision_id": "fdas-revision-aa6bb50714566649766a90f9a82b89f9",
           "shadow_evaluation": {
@@ -11049,7 +12644,7 @@
             },
             "evaluation_hash": "cfef4d737761fb40b3885e86f4527f47e107db18ba6e30423daf2abcfdbfce8f",
             "goal_count": 1,
-            "latency_ms": 71.7369089834392,
+            "latency_ms": 389.33269772678614,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-03c7f76eefbc09f4394f4fce58b94571"
@@ -11066,8 +12661,34 @@
             "mismatch_categories": [],
             "verification_hash": "a30f173456678bd8184336a96cacc3905f9e046f13c36c61f6e9ae78dcebd001"
           },
-          "fdas_total_latency_ms": 1530.4592936299741,
-          "latency_ms": 1310.6276872567832,
+          "fdas_total_latency_ms": 1052.8102861717343,
+          "latency_ms": 963.9294161461294,
+          "materialization_metrics": {
+            "affected_atoms": 924,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-3346c4b7ac4e3f53348e5024b413eb44",
+            "incremental_recomputation_ratio": 0.8950108459869848,
+            "invalidated_supports": 552,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 2063,
+            "refreshed_records": 242,
+            "removed_records": 28,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1866,
+            "rich_reused_records": 0,
+            "total_records": 2305,
+            "unsupported_atoms": 924
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_native_160/turn-98-dfb69f2e859e1120.json",
           "revision_id": "fdas-revision-00293f68f2aa3de0ef5222f870511ad6",
           "shadow_evaluation": {
@@ -11379,7 +13000,7 @@
             },
             "evaluation_hash": "e4f3751e3f160870dacbf56ec66d85a499949dfe25edaf25d0465d7c466b0b4f",
             "goal_count": 4,
-            "latency_ms": 219.83160637319088,
+            "latency_ms": 88.88087002560496,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-00d854081bee48f480a070ba9a8458a7"
@@ -11396,8 +13017,34 @@
             "mismatch_categories": [],
             "verification_hash": "f666644e75bf69e5a6a7a3577fcaf17bf9ebd7f1969fa5c65f544bdd6f8a850c"
           },
-          "fdas_total_latency_ms": 1195.255212020129,
-          "latency_ms": 1124.7525359503925,
+          "fdas_total_latency_ms": 925.2409324981272,
+          "latency_ms": 845.0384982861578,
+          "materialization_metrics": {
+            "affected_atoms": 471,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-2c210d0191969f356763a5295465e9bb",
+            "incremental_recomputation_ratio": 0.8092962641181581,
+            "invalidated_supports": 185,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1863,
+            "refreshed_records": 439,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1863,
+            "rich_reused_records": 0,
+            "total_records": 2302,
+            "unsupported_atoms": 471
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_native_160/turn-98-10eb3d1db326d221.json",
           "revision_id": "fdas-revision-fe1fcaeefa568868c7ba3ab8b2261480",
           "shadow_evaluation": {
@@ -11650,7 +13297,7 @@
             },
             "evaluation_hash": "74ffb3fa2180247e90bcf4dd92b44445ba4a6771b36d9115e06982d38230f4f1",
             "goal_count": 2,
-            "latency_ms": 70.50267606973648,
+            "latency_ms": 80.20243421196938,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-0a0e6335cb33d355445ddfb3e8d52fbc"
@@ -11667,8 +13314,34 @@
             "mismatch_categories": [],
             "verification_hash": "fa14ac9a1ee12b003396b8de9cacff6f69203bac30a2a6ee9e7ac30d8f1054a1"
           },
-          "fdas_total_latency_ms": 886.4269834011793,
-          "latency_ms": 877.1738172508776,
+          "fdas_total_latency_ms": 655.5905542336404,
+          "latency_ms": 646.6253763064742,
+          "materialization_metrics": {
+            "affected_atoms": 884,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-bb81657de0b58495a1792df3c882170e",
+            "incremental_recomputation_ratio": 0.8651452282157677,
+            "invalidated_supports": 499,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1668,
+            "refreshed_records": 260,
+            "removed_records": 15,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1492,
+            "rich_reused_records": 0,
+            "total_records": 1928,
+            "unsupported_atoms": 884
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-108-b1372bd519d5c1fd.json",
           "revision_id": "fdas-revision-3d373619d89a3b5ffb1b0afca9b8e26f",
           "shadow_evaluation": {
@@ -11762,7 +13435,7 @@
             },
             "evaluation_hash": "aa9739639a71557f97de09dc2c827e18c75a463ef357cd3a64ae65ee83d5f459",
             "goal_count": 2,
-            "latency_ms": 9.253166150301695,
+            "latency_ms": 8.965177927166224,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-589f90490b35392b7f538235bc2f"
@@ -11779,8 +13452,34 @@
             "mismatch_categories": [],
             "verification_hash": "828cf0d1581f7ab8b69397696dccde6d2861229263a7602c0f580f23dead5b5b"
           },
-          "fdas_total_latency_ms": 716.0286162979901,
-          "latency_ms": 710.7589701190591,
+          "fdas_total_latency_ms": 558.0609403550625,
+          "latency_ms": 553.0020100995898,
+          "materialization_metrics": {
+            "affected_atoms": 5,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-845c967f3b975fcf12a0cf4c72a9204d",
+            "incremental_recomputation_ratio": 0.7737415672029061,
+            "invalidated_supports": 4,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1491,
+            "refreshed_records": 436,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1491,
+            "rich_reused_records": 0,
+            "total_records": 1927,
+            "unsupported_atoms": 5
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-108-3b0f790ced40052d.json",
           "revision_id": "fdas-revision-8afffdb5088f272932bbbbd520628ff7",
           "shadow_evaluation": {
@@ -11812,7 +13511,7 @@
             },
             "evaluation_hash": "f42ea870b75d9d560390810a76c06e08f30f10b3a18ffe3beb22ebeea2aa2f6f",
             "goal_count": 1,
-            "latency_ms": 5.269646178930998,
+            "latency_ms": 5.05893025547266,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-cd45af36b8c1c6ceb41a0d0d9d2e"
@@ -11829,8 +13528,34 @@
             "mismatch_categories": [],
             "verification_hash": "9d1fec2da891f4db97e659d44fd8e44da535606c3996f54b31da7865a81d6be5"
           },
-          "fdas_total_latency_ms": 1112.2478544712067,
-          "latency_ms": 1032.2089372202754,
+          "fdas_total_latency_ms": 1188.11078928411,
+          "latency_ms": 756.0715950094163,
+          "materialization_metrics": {
+            "affected_atoms": 635,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-483ab503dcd18af7f7bc309078024af5",
+            "incremental_recomputation_ratio": 0.8729198184568835,
+            "invalidated_supports": 454,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1731,
+            "refreshed_records": 252,
+            "removed_records": 52,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1579,
+            "rich_reused_records": 0,
+            "total_records": 1983,
+            "unsupported_atoms": 635
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_native_160/turn-125-263820b9c840fc7d.json",
           "revision_id": "fdas-revision-ace8ea81d7395d133bad778317d4adfc",
           "shadow_evaluation": {
@@ -12262,7 +13987,7 @@
             },
             "evaluation_hash": "3e7ac9a61edc12850a8f94f847a74e1b1a0dd423fddd2bfe7c478f752e2bac41",
             "goal_count": 6,
-            "latency_ms": 80.03891725093126,
+            "latency_ms": 432.0391942746937,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-04d3e91e456dc2463a5f356929065de2"
@@ -12279,8 +14004,34 @@
             "mismatch_categories": [],
             "verification_hash": "58184d485f789f583962113e9a43e9455443a71c800d7ee36dde658352e172fe"
           },
-          "fdas_total_latency_ms": 851.6682139597833,
-          "latency_ms": 655.4522961378098,
+          "fdas_total_latency_ms": 551.9666210748255,
+          "latency_ms": 502.2852080874145,
+          "materialization_metrics": {
+            "affected_atoms": 842,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-7e5c23d634aa225542d0c5efaecd7d59",
+            "incremental_recomputation_ratio": 0.8355978260869565,
+            "invalidated_supports": 492,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1230,
+            "refreshed_records": 242,
+            "removed_records": 20,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1076,
+            "rich_reused_records": 0,
+            "total_records": 1472,
+            "unsupported_atoms": 842
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-130-53e17615bdbbb5bb.json",
           "revision_id": "fdas-revision-7e117973c63684564c0f16f75ef2761c",
           "shadow_evaluation": {
@@ -12645,7 +14396,7 @@
             },
             "evaluation_hash": "06156b053ed7c29937c0f9b784cdc955639b451d703f1359c19e43390695e973",
             "goal_count": 9,
-            "latency_ms": 196.21591782197356,
+            "latency_ms": 49.68141298741102,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-0e95390c16c8a4857061910eb96e"
@@ -12662,8 +14413,34 @@
             "mismatch_categories": [],
             "verification_hash": "c585b0987d6b282070976ccd13b5405dc144c946df72ec9e34a596868a341197"
           },
-          "fdas_total_latency_ms": 571.4551699347794,
-          "latency_ms": 525.1895650289953,
+          "fdas_total_latency_ms": 463.8644941151142,
+          "latency_ms": 413.08386716991663,
+          "materialization_metrics": {
+            "affected_atoms": 11,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-b5e81580591abcb17545b5a4080ef267",
+            "incremental_recomputation_ratio": 0.7313432835820896,
+            "invalidated_supports": 9,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1078,
+            "refreshed_records": 396,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1078,
+            "rich_reused_records": 0,
+            "total_records": 1474,
+            "unsupported_atoms": 11
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-130-fadfa06a8304c53b.json",
           "revision_id": "fdas-revision-3c37d5992d681a94b94b07010bb1658a",
           "shadow_evaluation": {
@@ -13040,7 +14817,7 @@
             },
             "evaluation_hash": "e51c99eee044087c33dd1cb4c453834dfcf75c47d73e2200515bbb36b5f9fee0",
             "goal_count": 9,
-            "latency_ms": 46.26560490578413,
+            "latency_ms": 50.78062694519758,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-4dfaec9b1e185b1a2bc010afe935"
@@ -13057,8 +14834,34 @@
             "mismatch_categories": [],
             "verification_hash": "db719f19f6f4fbacd4a52ab8ede62fe6cb8860901821d5a373859d739d539847"
           },
-          "fdas_total_latency_ms": 856.2091616913676,
-          "latency_ms": 766.6157996281981,
+          "fdas_total_latency_ms": 686.2469054758549,
+          "latency_ms": 589.5700142718852,
+          "materialization_metrics": {
+            "affected_atoms": 515,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-10f2bddb4ad5d7b2d7e07742f58a2c24",
+            "incremental_recomputation_ratio": 0.8545454545454545,
+            "invalidated_supports": 379,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1363,
+            "refreshed_records": 232,
+            "removed_records": 39,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1223,
+            "rich_reused_records": 0,
+            "total_records": 1595,
+            "unsupported_atoms": 515
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_native_160/turn-149-dffd017e1a17ba0b.json",
           "revision_id": "fdas-revision-ac9f498efaed2c5679eb57861abcfbf3",
           "shadow_evaluation": {
@@ -13518,7 +15321,7 @@
             },
             "evaluation_hash": "a422d3f6658ebf5416022e7da97e8831a47303507e8c232cf0ef3cfc4b7eb784",
             "goal_count": 9,
-            "latency_ms": 89.59336206316948,
+            "latency_ms": 96.67689120396972,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-03c8cd77ac689a84997325acaf0ba554"
@@ -13535,8 +15338,34 @@
             "mismatch_categories": [],
             "verification_hash": "1e0b12e539936a12f72294f0428a0b50ddd347ee959dabb52abb8803360c0aed"
           },
-          "fdas_total_latency_ms": 732.3290812782943,
-          "latency_ms": 646.3065482676029,
+          "fdas_total_latency_ms": 598.462974652648,
+          "latency_ms": 507.06212874501944,
+          "materialization_metrics": {
+            "affected_atoms": 383,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-47d056c741d444f8e538847d68994330",
+            "incremental_recomputation_ratio": 0.7751834556370913,
+            "invalidated_supports": 191,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1162,
+            "refreshed_records": 337,
+            "removed_records": 7,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1132,
+            "rich_reused_records": 0,
+            "total_records": 1499,
+            "unsupported_atoms": 383
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_native_160/turn-150-a422bb3274326fc7.json",
           "revision_id": "fdas-revision-e66adc35985857837dbf56daed1c78de",
           "shadow_evaluation": {
@@ -14031,7 +15860,7 @@
             },
             "evaluation_hash": "e23f247438a3e736ae12db13aed9b0830a43cc7d850fc3f8cfa375fdf059a179",
             "goal_count": 12,
-            "latency_ms": 86.0225330106914,
+            "latency_ms": 91.40084590762854,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-026fe50fd395bbd7f17d83ae6d18c84b"
@@ -14048,8 +15877,35 @@
             "mismatch_categories": [],
             "verification_hash": "5b5e59451fc56adc7aa233c06e4c9cd92333b2b34fcecb426cd6953bde453633"
           },
-          "fdas_total_latency_ms": 844.4767999462783,
-          "latency_ms": 625.776135828346,
+          "fdas_total_latency_ms": 855.686305090785,
+          "latency_ms": 491.1307208240032,
+          "materialization_metrics": {
+            "affected_atoms": 219,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-0c95eebda1e7c3eea61331f4df8bff77",
+            "incremental_recomputation_ratio": 0.7551701134089392,
+            "invalidated_supports": 79,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1132,
+            "refreshed_records": 367,
+            "removed_records": 0,
+            "reused_projector_ids": [
+              "fdas-combat-task-force-projector"
+            ],
+            "rich_recomputed_records": 1132,
+            "rich_reused_records": 0,
+            "total_records": 1499,
+            "unsupported_atoms": 219
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_native_160/turn-150-6238ef9d08c16721.json",
           "revision_id": "fdas-revision-a6634f588d493eef638faba45edea9bd",
           "shadow_evaluation": {
@@ -14537,7 +16393,7 @@
             },
             "evaluation_hash": "4d98605d34d15bdbf3357108282530567e12f5a09d21191c4345253c04fd2ab4",
             "goal_count": 12,
-            "latency_ms": 218.70066411793232,
+            "latency_ms": 364.5555842667818,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "operation-04528c92f757d83003d61848e3319257"
@@ -14554,8 +16410,34 @@
             "mismatch_categories": [],
             "verification_hash": "25c8c19ead407b7787c9c5261d2067812053493bf7e1e497f87afc1097a8e534"
           },
-          "fdas_total_latency_ms": 609.386351890862,
-          "latency_ms": 596.9913909211755,
+          "fdas_total_latency_ms": 466.9944569468498,
+          "latency_ms": 454.9834351055324,
+          "materialization_metrics": {
+            "affected_atoms": 550,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-c3d070bee0fe7f1f8cadd615e940a52c",
+            "incremental_recomputation_ratio": 0.8344039971448965,
+            "invalidated_supports": 352,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1169,
+            "refreshed_records": 232,
+            "removed_records": 17,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1029,
+            "rich_reused_records": 0,
+            "total_records": 1401,
+            "unsupported_atoms": 550
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-151-2f3cf86fcf86c1d5.json",
           "revision_id": "fdas-revision-e25e2d1ada6dde040d8aa878a140a632",
           "shadow_evaluation": {
@@ -14707,7 +16589,7 @@
             },
             "evaluation_hash": "5ba1695df5a6c02c68c300183641ce8d0f1f562d5fce4b695128f12786044b73",
             "goal_count": 4,
-            "latency_ms": 12.394960969686508,
+            "latency_ms": 12.011021841317415,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-262a4c429996ecf484dd0386d927"
@@ -14724,8 +16606,34 @@
             "mismatch_categories": [],
             "verification_hash": "89905acc0fbc059a76a36f02983376785dca89c87c75affd0d18bc2dd8eb70b3"
           },
-          "fdas_total_latency_ms": 505.29260421171784,
-          "latency_ms": 493.33696626126766,
+          "fdas_total_latency_ms": 406.52824798598886,
+          "latency_ms": 394.24370788037777,
+          "materialization_metrics": {
+            "affected_atoms": 47,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-dacbc910d1a8c824f88ffbf973a5e2da",
+            "incremental_recomputation_ratio": 0.7351891506067095,
+            "invalidated_supports": 31,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1030,
+            "refreshed_records": 371,
+            "removed_records": 1,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1029,
+            "rich_reused_records": 0,
+            "total_records": 1401,
+            "unsupported_atoms": 47
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-151-f07349a78e6dc7da.json",
           "revision_id": "fdas-revision-d2c39b6da11cb992dd9e34049080d518",
           "shadow_evaluation": {
@@ -14881,7 +16789,7 @@
             },
             "evaluation_hash": "fef7f5fd21404eb9d94bdf4f785c3b2e284be99d0a44e966408529df24e0cf9b",
             "goal_count": 4,
-            "latency_ms": 11.955637950450182,
+            "latency_ms": 12.284540105611086,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-35d6d39398200c70b53f881733dd"
@@ -14898,8 +16806,34 @@
             "mismatch_categories": [],
             "verification_hash": "2733d60d26036a06f18b7e8ee736b96b0f99ebddd21ecdf452c03ad74bbfc3f7"
           },
-          "fdas_total_latency_ms": 526.5553877688944,
-          "latency_ms": 504.1814399883151,
+          "fdas_total_latency_ms": 439.7292290814221,
+          "latency_ms": 427.06003319472075,
+          "materialization_metrics": {
+            "affected_atoms": 62,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-815e5fca568ab4d99eb244da8a5d1dcf",
+            "incremental_recomputation_ratio": 0.7355666429080542,
+            "invalidated_supports": 45,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1032,
+            "refreshed_records": 371,
+            "removed_records": 1,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1031,
+            "rich_reused_records": 0,
+            "total_records": 1403,
+            "unsupported_atoms": 62
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-152-5b3cc7605265cd26.json",
           "revision_id": "fdas-revision-988231744c5a2619dbbf40552e94c211",
           "shadow_evaluation": {
@@ -15044,7 +16978,7 @@
             },
             "evaluation_hash": "f8b845940f4f2bab95061f242a20fd96915106b73323686f4340e53b45d53241",
             "goal_count": 4,
-            "latency_ms": 22.37394778057933,
+            "latency_ms": 12.669195886701345,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-6d4140b1c172cda0701d7136dc4e"
@@ -15061,8 +16995,34 @@
             "mismatch_categories": [],
             "verification_hash": "67db7cc5703429501b69d7232e9850c748283e086e8012b5677160d296372503"
           },
-          "fdas_total_latency_ms": 507.01501313596964,
-          "latency_ms": 495.04055408760905,
+          "fdas_total_latency_ms": 402.0767053589225,
+          "latency_ms": 389.97425930574536,
+          "materialization_metrics": {
+            "affected_atoms": 90,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-64d23730ef2d8234797b416590a34866",
+            "incremental_recomputation_ratio": 0.7359029264810849,
+            "invalidated_supports": 59,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 1031,
+            "refreshed_records": 370,
+            "removed_records": 2,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 1029,
+            "rich_reused_records": 0,
+            "total_records": 1401,
+            "unsupported_atoms": 90
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-153-201813e66ed0eb66.json",
           "revision_id": "fdas-revision-a50dd1fd7b357b311c0cb272d9be8ebc",
           "shadow_evaluation": {
@@ -15209,7 +17169,7 @@
             },
             "evaluation_hash": "aec4e502bd8df3298d66184d0eb1ef4087bff1bf7c0e08334cbcda9a78a619b2",
             "goal_count": 4,
-            "latency_ms": 11.974459048360586,
+            "latency_ms": 12.102446053177118,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-60e7024d24a80601c963dcc7d538"
@@ -15226,8 +17186,34 @@
             "mismatch_categories": [],
             "verification_hash": "71aadf171a569aa399d7442f109852c4f9ffce20e56f6f8ae80d02347cb808b2"
           },
-          "fdas_total_latency_ms": 503.82425216957927,
-          "latency_ms": 481.6294224001467,
+          "fdas_total_latency_ms": 390.31888311728835,
+          "latency_ms": 378.220371901989,
+          "materialization_metrics": {
+            "affected_atoms": 232,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-a3a571da392468e5742e7fcb38fba5a1",
+            "incremental_recomputation_ratio": 0.730799683293745,
+            "invalidated_supports": 153,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 923,
+            "refreshed_records": 340,
+            "removed_records": 11,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 899,
+            "rich_reused_records": 0,
+            "total_records": 1263,
+            "unsupported_atoms": 232
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-157-fae284e7cb110bb1.json",
           "revision_id": "fdas-revision-b37b5720eae8865151a17fbbedf87ced",
           "shadow_evaluation": {
@@ -15373,7 +17359,7 @@
             },
             "evaluation_hash": "fad1194f71fd28c53ad6415da532169a9fb137ed6a4de855b147bcb2f047230a",
             "goal_count": 4,
-            "latency_ms": 22.194829769432545,
+            "latency_ms": 12.098511215299368,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-2bff02ee7720cc764cf90b658b9d"
@@ -15390,8 +17376,34 @@
             "mismatch_categories": [],
             "verification_hash": "e53f333a6b927ab26a8c6758f8f30577977299d19b897596a6dd62c576d8ca41"
           },
-          "fdas_total_latency_ms": 464.7350967861712,
-          "latency_ms": 435.5153958313167,
+          "fdas_total_latency_ms": 399.9522468075156,
+          "latency_ms": 370.3882312402129,
+          "materialization_metrics": {
+            "affected_atoms": 102,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-881fcf829f2392077b206c1e90f0c7cf",
+            "incremental_recomputation_ratio": 0.6967144060657119,
+            "invalidated_supports": 71,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 827,
+            "refreshed_records": 360,
+            "removed_records": 4,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 827,
+            "rich_reused_records": 0,
+            "total_records": 1187,
+            "unsupported_atoms": 102
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-158-a9ce0c6feb07e08b.json",
           "revision_id": "fdas-revision-0b0030880c2610525e700126828a4408",
           "shadow_evaluation": {
@@ -15685,7 +17697,7 @@
             },
             "evaluation_hash": "2e98ab32b01ee7d50e9396cbeba409812551782612ad5c3d8fd2edd41fbbcf6c",
             "goal_count": 9,
-            "latency_ms": 29.21970095485449,
+            "latency_ms": 29.564015567302704,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-493ea780ec6198c0e79914cc4622"
@@ -15702,8 +17714,34 @@
             "mismatch_categories": [],
             "verification_hash": "c4c2d238df1395757aab6f26a98140e8b59484a5baa7d87b778864906b2b1cf2"
           },
-          "fdas_total_latency_ms": 453.85985542088747,
-          "latency_ms": 431.5678272396326,
+          "fdas_total_latency_ms": 366.6250188834965,
+          "latency_ms": 336.392086930573,
+          "materialization_metrics": {
+            "affected_atoms": 13,
+            "cold_build": false,
+            "delta_hash": "snapshot-delta-4a3964058d2f826a3c502aa5e9017f4c",
+            "incremental_recomputation_ratio": 0.6962025316455697,
+            "invalidated_supports": 10,
+            "recomputed_projector_ids": [
+              "fdas-city-economy-shadow",
+              "fdas-unit-defense-shadow",
+              "fdas-city-region-shadow",
+              "fdas-route-corridor-projector",
+              "fdas-settlement-site-projector",
+              "fdas-transport-capability-projector",
+              "fdas-combat-task-force-projector",
+              "fdas-population-recovery-projector",
+              "fdas-operation-projector"
+            ],
+            "recomputed_records": 825,
+            "refreshed_records": 360,
+            "removed_records": 0,
+            "reused_projector_ids": [],
+            "rich_recomputed_records": 825,
+            "rich_reused_records": 0,
+            "total_records": 1185,
+            "unsupported_atoms": 13
+          },
           "path": "benchmarks/gdo/captured_snapshots/city_defense_grounded_160/turn-158-a8fa9bcbf3ebe7fc.json",
           "revision_id": "fdas-revision-07b512302f6a6a308d244575be453908",
           "shadow_evaluation": {
@@ -15961,7 +17999,7 @@
             },
             "evaluation_hash": "8461c727b541b44665533bc4bb4da6aefe139c80fe069a5b0446be9dd69b786f",
             "goal_count": 8,
-            "latency_ms": 22.292028181254864,
+            "latency_ms": 30.232931952923536,
             "pressure_reason": null,
             "pressure_status": "complete",
             "selected_operation_id": "fdas-expand-gap:fdas-goal-3ff7499b2e4a41844c448bc82105"
@@ -15979,12 +18017,12 @@
         "goal_count": 116,
         "latency": {
           "count": 38,
-          "maximum_ms": 219.83160637319088,
-          "mean_ms": 48.2672669091507,
-          "minimum_ms": 0.6022718735039234,
-          "p50_ms": 22.194829769432545,
-          "p95_ms": 196.21591782197356,
-          "p99_ms": 219.83160637319088
+          "maximum_ms": 432.0391942746937,
+          "mean_ms": 67.43937502860238,
+          "minimum_ms": 0.5506300367414951,
+          "p50_ms": 20.30558604747057,
+          "p95_ms": 364.5555842667818,
+          "p99_ms": 432.0391942746937
         },
         "legacy_candidate_count": 139,
         "legal_binding_failure_count": 0,

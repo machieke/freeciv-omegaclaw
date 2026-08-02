@@ -74,6 +74,11 @@ class CombatTaskForceProjector(object):
 
     projector_id = "fdas-combat-task-force-projector"
     version = "1.0"
+    incremental_dependency_roots = frozenset((
+        "combat_probabilities", "legal_actions", "map_width", "player_id",
+        "units", "visible_enemy_units",
+    ))
+    incremental_dependency_kinds = frozenset(("ruleset-digest",))
 
     def __init__(self, ruleset_ir, ruleset_digest):
         if ruleset_ir is None:

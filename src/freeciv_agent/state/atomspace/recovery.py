@@ -54,6 +54,10 @@ class PopulationRecoveryProjector(object):
 
     projector_id = "fdas-population-recovery-projector"
     version = "1.0"
+    incremental_dependency_roots = frozenset((
+        "cities", "legal_actions", "player_id", "units",
+    ))
+    incremental_dependency_kinds = frozenset(("ruleset-digest",))
 
     def __init__(self, ruleset_ir, ruleset_digest):
         if ruleset_ir is None:

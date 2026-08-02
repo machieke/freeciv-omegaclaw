@@ -44,5 +44,8 @@ unchanged.
 
 The before values are from the final captured report at `5fc41ff`; the after
 values are from the same checked corpus and configuration after the correction.
-This is not yet fine-grained rich projector incrementality: it removes a
-duplicate publication build while retaining the mandatory cold comparison.
+At this checkpoint this was not yet rich projector incrementality: it removed
+a duplicate publication build while retaining the mandatory cold comparison.
+The subsequent component-materialization slice adds conservative rich
+projector reuse; see `fdas-captured-shadow-replay.md` and
+`fdas-phase2-dependency-materializer.md`.

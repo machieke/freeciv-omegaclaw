@@ -62,6 +62,8 @@ def episode_predicate_registry():
 class EpisodeProjector(object):
     projector_id = "fdas-episode-projector"
     version = "1.0"
+    incremental_dependency_roots = frozenset(("player_id",))
+    incremental_dependency_kinds = frozenset(("episode-revision",))
 
     def __init__(self, episodes_source):
         self.episodes_source = episodes_source
