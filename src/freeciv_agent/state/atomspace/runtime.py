@@ -429,8 +429,10 @@ class FdasRuntime(object):
             )
             if not verification.equivalent:
                 raise RuntimeError(
-                    "FDAS incremental/cold mismatch: {}".format(
-                        verification.mismatch_categories))
+                    "FDAS incremental/cold mismatch: {}; diagnostics: {}"
+                    .format(
+                        verification.mismatch_categories,
+                        dict(verification.diagnostics)))
         if prepared_revision is None:
             self.snapshot_store.replace(snapshot)
         else:

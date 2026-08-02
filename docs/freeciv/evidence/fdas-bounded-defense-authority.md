@@ -71,7 +71,7 @@ python3 scripts/freeciv/run_fdas_bounded_authority_replay.py \
 | Explicit fallbacks | 25 |
 | Policy winner changes | 0 |
 | Replay failures | 0 |
-| Authority readout p50 / p95 | 0.535 / 18.628 ms |
+| Authority readout p50 / p95 | 0.532 / 18.145 ms |
 
 All twelve gates passed in two deterministic runs. Every authorization was an
 exact legacy-selected `unit_fortify`, received the exact actor resource and
@@ -80,9 +80,9 @@ retained `execution_authority: false`. The 25 fallbacks were all legacy winners
 outside the city-defense category.
 
 The report hash is
-`365fd5f73836ec6c564248297a18cc26e43c5298d383facec7fd634502138f70`;
+`101ed7730fb1ea3786c2813f23b2ccdf3fea1a3e5683c03b592f4f5c5b431099`;
 its implementation digest is
-`4b3556d5016113fc26185bf190c19357d8fba3155d1f70d159459110d868f5be`.
+`0d4c0029153728c029a9a10b6301a4da51586fb731afbe5fc2ffe0d8f1568e33`.
 
 ## Episode boundary
 

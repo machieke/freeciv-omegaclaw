@@ -132,6 +132,7 @@ class DifferentialVerification:
     cold_revision_id: str
     mismatch_categories: tuple
     verification_hash: str
+    diagnostics: tuple = ()
 
     def to_dict(self):
         return {
@@ -139,6 +140,7 @@ class DifferentialVerification:
             "equivalent": self.equivalent,
             "incremental_revision_id": self.incremental_revision_id,
             "mismatch_categories": list(self.mismatch_categories),
+            "diagnostics": dict(self.diagnostics),
             "verification_hash": self.verification_hash,
         }
 
@@ -510,8 +512,33 @@ class DependentAtomSpaceStore(object):
                 "dependency_index"):
             if getattr(incremental, name) != getattr(cold, name):
                 mismatches.append(name)
+        incremental_records = dict(
+            (value.atom_id, value) for value in incremental.records)
+        cold_records = dict((value.atom_id, value) for value in cold.records)
+        common_record_ids = set(incremental_records).intersection(
+            cold_records)
+        changed_record_ids = tuple(sorted(
+            atom_id for atom_id in common_record_ids
+            if incremental_records[atom_id] != cold_records[atom_id]))
+        added_record_ids = tuple(sorted(
+            set(incremental_records).difference(cold_records)))
+        missing_record_ids = tuple(sorted(
+            set(cold_records).difference(incremental_records)))
+        diagnostic_limit = 20
+        diagnostics = tuple(sorted({
+            "incremental_only_atom_count": len(added_record_ids),
+            "incremental_only_atom_ids": list(
+                added_record_ids[:diagnostic_limit]),
+            "missing_from_incremental_atom_count": len(missing_record_ids),
+            "missing_from_incremental_atom_ids": list(
+                missing_record_ids[:diagnostic_limit]),
+            "changed_atom_count": len(changed_record_ids),
+            "changed_atom_ids": list(
+                changed_record_ids[:diagnostic_limit]),
+        }.items()))
         semantic = {
             "cold_revision_id": cold.revision_id,
+            "diagnostics": dict(diagnostics),
             "incremental_revision_id": incremental.revision_id,
             "mismatch_categories": mismatches,
         }
@@ -521,6 +548,7 @@ class DependentAtomSpaceStore(object):
             cold.revision_id,
             tuple(mismatches),
             structural_hash(semantic),
+            diagnostics,
         )
         return incremental, verification
 

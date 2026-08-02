@@ -378,6 +378,7 @@ class UnitDefenseProjector(object):
             raise ValueError("unknown unit/defense projection shard")
 
         defender_by_id = {}
+        defender_grounding_by_id = {}
         for unit in sorted(snapshot.units, key=lambda value: value.unit_id):
             unit_id = str(unit.unit_id)
             if selected_unit_id is not None and unit_id != selected_unit_id:
@@ -402,6 +403,7 @@ class UnitDefenseProjector(object):
             if defender.available and defender.value is True:
                 if need_defense:
                     defender_by_id[unit_id] = unit
+                    defender_grounding_by_id[unit_id] = defender
                 if emit_unit:
                     records.extend((
                         self._record(
@@ -546,7 +548,9 @@ class UnitDefenseProjector(object):
                         "unit-fortification-opportunity",
                         (unit_ref, city_ref),
                         AuthorityClass.DETERMINISTIC_DERIVED,
-                        defender.dependencies + current.dependencies
+                        defender_grounding_by_id[
+                            str(unit.unit_id)].dependencies
+                        + current.dependencies
                         + (fortify[1],),
                         {
                             "action_key": fortify[0],

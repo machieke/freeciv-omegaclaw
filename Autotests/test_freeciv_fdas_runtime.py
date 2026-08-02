@@ -298,6 +298,14 @@ def test_sampled_parity_publishes_verified_incremental_without_third_build():
 
     assert calls == [False, True]
     assert update.cold_verification.equivalent
+    assert update.cold_verification.to_dict()["diagnostics"] == {
+        "changed_atom_count": 0,
+        "changed_atom_ids": [],
+        "incremental_only_atom_count": 0,
+        "incremental_only_atom_ids": [],
+        "missing_from_incremental_atom_count": 0,
+        "missing_from_incremental_atom_ids": [],
+    }
     assert update.materialization_metrics.recomputed_projector_ids == ()
     assert update.materialization_metrics.reused_projector_ids == (
         "fdas-city-economy-shadow",)

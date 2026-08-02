@@ -75,7 +75,7 @@ Results:
 | Explicit legacy fallbacks | 34 |
 | Policy winner changes | 0 |
 | Replay failures | 0 |
-| Authority readout p50 / p95 | 0.046 / 1.615 ms |
+| Authority readout p50 / p95 | 0.049 / 1.613 ms |
 
 All eleven acceptance gates passed. The two complete runs produced identical
 semantic readouts. Every authorized action matched the legacy winner exactly,
@@ -85,9 +85,9 @@ commit record retained `execution_authority: false`, proving that the final
 execution gate remains downstream.
 
 The report hash is
-`dde11f4efdb98b5d9a457b9d0a1c2614b6e9c1d6cb841c1bd8ae516a3815f89a`;
+`1610d2c9fb8b19cf74aa7ff5f2c7217becb20082747092fbf923100ce7e4b71a`;
 its implementation digest is
-`9a96315599b71d16f933edca2a3146dcfb356517b1f6a13b1a66fceb8dd77eab`.
+`5e8e4d4b0ac67d4774760ca11f0a2cfb6cdfc1ecba28110b5c13e7f341d2e3a4`.
 
 The 34 fallbacks report
 `legacy-winner-has-no-unique-fdas-food-route`. This is intentional: actions

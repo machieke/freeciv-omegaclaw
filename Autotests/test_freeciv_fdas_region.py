@@ -12,6 +12,7 @@ if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
 from freeciv_agent.rulesets.compiler import compile_ruleset  # noqa: E402
+from freeciv_agent.events.schema import structural_hash  # noqa: E402
 from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 from freeciv_agent.state.atomspace import (  # noqa: E402
     AtomNamespace,
@@ -305,3 +306,32 @@ def test_moving_threat_reuses_stable_region_geometry_and_matches_cold(ir):
     assert sum(
         count for shard_id, count in metrics.reused_shard_records
         if "/topology|" in shard_id) > 100
+
+
+def test_nonsemantic_tile_change_reuses_terrain_atoms_and_matches_cold(ir):
+    first_payload = _payload()
+    first_payload["map"].update({"wrap_x": True, "wrap_y": True})
+    _enemy(first_payload, x=3, y=2)
+    first = _snapshot(first_payload, 479)
+    second_payload = copy.deepcopy(first_payload)
+    second_payload["map"]["tiles"][0]["known"] = 1
+    second_payload["authoritative"]["source_seq"] = 480
+    second = _snapshot(second_payload, 480)
+    store = _store(ir)
+    store.build(first)
+
+    incremental = store.update(second)
+    cold = _store(ir).build(second)
+
+    assert incremental.records == cold.records
+    assert incremental.dependency_index == cold.dependency_index
+    assert any(
+        "/terrain|" in shard_id
+        for shard_id in incremental.metrics.reused_shard_ids)
+    terrain = next(
+        value for value in incremental.records
+        if value.key.predicate == "terrain-kind")
+    assert terrain.supports[0].witness_hash == structural_hash({
+        "terrain": int(terrain.key.arguments[1].symbol),
+        "tile": int(terrain.key.arguments[0].entity_id),
+    })

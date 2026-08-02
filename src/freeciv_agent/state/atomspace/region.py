@@ -486,7 +486,10 @@ class CityRegionProjector(object):
                         "terrain", str(terrain["terrain"]))),
                     AuthorityClass.ENGINE_AUTHORITATIVE,
                     geometry_dependencies + (terrain_dependency,),
-                    terrain))
+                    {
+                        "terrain": terrain["terrain"],
+                        "tile": tile,
+                    }))
         return tuple(sorted(records, key=lambda value: value.atom_id))
 
     def project_shard(self, shard_id, snapshot, scopes, fingerprints):

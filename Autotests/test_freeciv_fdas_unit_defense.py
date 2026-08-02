@@ -190,6 +190,10 @@ def test_garrison_projection_is_factual_supported_and_legacy_exact(ir):
 
 def test_fortification_opportunity_does_not_create_defense_deficit(ir):
     payload = _payload()
+    other = copy.deepcopy(payload["units"]["7"])
+    other.update({"id": 8, "tile": 83, "type": "Riflemen", "type_id": 10,
+                  "x": 3, "y": 2})
+    payload["units"]["8"] = other
     payload["legal_actions"].append({
         "type": "unit_fortify", "unit_id": 7, "is_valid": True})
     snapshot = _snapshot(payload, 461)
@@ -206,6 +210,12 @@ def test_fortification_opportunity_does_not_create_defense_deficit(ir):
     assert any(
         dependency.key.path.startswith("legal_actions.")
         for dependency in opportunity.supports[0].dependencies)
+    defender_type_dependencies = tuple(
+        dependency.key.path
+        for dependency in opportunity.supports[0].dependencies
+        if dependency.key.kind == "ruleset-digest"
+        and dependency.key.path != "target:unit:defender-catalog")
+    assert defender_type_dependencies == ("target:unit:Warriors",)
 
 
 def test_defender_removal_creates_deficit_and_incremental_matches_cold(ir):
