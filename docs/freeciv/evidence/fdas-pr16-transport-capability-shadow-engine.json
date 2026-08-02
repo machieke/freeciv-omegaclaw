@@ -1,0 +1,199 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "both_arms_pass_capability_acceptance": true,
+      "cohort_completed_without_failures": true,
+      "cohort_is_predeclared_and_claim_ineligible": true,
+      "paired_source_is_clean_and_stable": true
+    }
+  },
+  "arms": [
+    {
+      "acceptance": {
+        "accepted": true,
+        "checks": {
+          "action_results_are_complete_and_accepted": true,
+          "cold_verification_is_equivalent": true,
+          "engine_run_completed_at_horizon": true,
+          "event_ids_are_complete_and_unique": true,
+          "fdas_projection_p95_within_budget": true,
+          "ferry_start_condition_is_declared": true,
+          "manifest_is_transport_capability_shadow_only": true,
+          "no_capacity_contradiction": true,
+          "no_fdas_authority": true,
+          "no_transport_operation_was_fabricated": true,
+          "proxy_contract_includes_transport_semantic_fix": true,
+          "required_transport_predicates_are_live": true,
+          "seat_capacity_is_present_for_every_transport_scope": true,
+          "source_is_clean": true
+        },
+        "performance_observation": {
+          "full_controller_p95_target_ms": 500.0,
+          "full_controller_p95_within_target": false
+        }
+      },
+      "arm": "baseline",
+      "evidence": {
+        "events.jsonl": {
+          "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v3/games/impact_pair/fdas_transport_shadow_diagnostic_v1/baseline/e_full_loop/104729-00/events.jsonl",
+          "sha256": "5a60a6355315c0035e4c6fb3333a0043c75b4dd4dbde59f5adcb493f0170dd19"
+        },
+        "manifest.json": {
+          "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v3/games/impact_pair/fdas_transport_shadow_diagnostic_v1/baseline/e_full_loop/104729-00/manifest.json",
+          "sha256": "ce885766bf8e914251e91efb7296de9fe542d00ec584436cdf5db310b9712586"
+        },
+        "status.json": {
+          "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v3/games/impact_pair/fdas_transport_shadow_diagnostic_v1/baseline/e_full_loop/104729-00/status.json",
+          "sha256": "8ae2fac42338f0304fb51bce8f9b403882d76c232a74d8ef096e350469a5189f"
+        }
+      },
+      "latency": {
+        "fdas_projection": {
+          "count": 31,
+          "maximum_ms": 31.87399823218584,
+          "p50_ms": 25.47798166051507,
+          "p95_ms": 29.387658927589655
+        },
+        "fdas_shadow_evaluation": {
+          "count": 30,
+          "maximum_ms": 18.579949159175158,
+          "p50_ms": 1.9292221404612064,
+          "p95_ms": 18.355132080614567
+        },
+        "full_controller": {
+          "count": 30,
+          "maximum_ms": 672.1439338289201,
+          "p50_ms": 165.59380805119872,
+          "p95_ms": 508.5890041664243
+        }
+      },
+      "predicates": {
+        "transport-accepts-unit-class": 3,
+        "transport-backed-by-unit": 1,
+        "transport-cargo-compatible": 3,
+        "transport-compatible-founder": 1,
+        "transport-seat-available": 31,
+        "transport-seat-resource": 31,
+        "unit-ruleset-founder-capable": 1
+      },
+      "source": {
+        "commit": "e79d6fa6c02d97c9895ec72338db99f957941b8d",
+        "dirty": false,
+        "implementation_sha256": "da92409dd64b24831e6b074ca86920a4375c1217271a630b2a6d6d47d053f8d5",
+        "source_files": 263
+      },
+      "summary": {
+        "accepted_action_results": 75,
+        "actions": 75,
+        "cold_verifications": 1,
+        "transport_scopes": 31
+      }
+    },
+    {
+      "acceptance": {
+        "accepted": true,
+        "checks": {
+          "action_results_are_complete_and_accepted": true,
+          "cold_verification_is_equivalent": true,
+          "engine_run_completed_at_horizon": true,
+          "event_ids_are_complete_and_unique": true,
+          "fdas_projection_p95_within_budget": true,
+          "ferry_start_condition_is_declared": true,
+          "manifest_is_transport_capability_shadow_only": true,
+          "no_capacity_contradiction": true,
+          "no_fdas_authority": true,
+          "no_transport_operation_was_fabricated": true,
+          "proxy_contract_includes_transport_semantic_fix": true,
+          "required_transport_predicates_are_live": true,
+          "seat_capacity_is_present_for_every_transport_scope": true,
+          "source_is_clean": true
+        },
+        "performance_observation": {
+          "full_controller_p95_target_ms": 500.0,
+          "full_controller_p95_within_target": false
+        }
+      },
+      "arm": "treatment",
+      "evidence": {
+        "events.jsonl": {
+          "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v3/games/impact_pair/fdas_transport_shadow_diagnostic_v1/treatment/e_full_loop/104729-00/events.jsonl",
+          "sha256": "57eefcb1769c92b459266e6e52f3661249f26c197da738bd5a9e60a8567edfc2"
+        },
+        "manifest.json": {
+          "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v3/games/impact_pair/fdas_transport_shadow_diagnostic_v1/treatment/e_full_loop/104729-00/manifest.json",
+          "sha256": "3806431cbea3cee488e722c1ebf9499cda2dfc202ad9eb083a4f8df31988c328"
+        },
+        "status.json": {
+          "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v3/games/impact_pair/fdas_transport_shadow_diagnostic_v1/treatment/e_full_loop/104729-00/status.json",
+          "sha256": "fbb75e1ec246bd8e438cac219b54ce9499723c3b8194918c4005cf99eb7578ae"
+        }
+      },
+      "latency": {
+        "fdas_projection": {
+          "count": 31,
+          "maximum_ms": 40.79722473397851,
+          "p50_ms": 27.184133883565664,
+          "p95_ms": 30.757197178900242
+        },
+        "fdas_shadow_evaluation": {
+          "count": 30,
+          "maximum_ms": 18.056830391287804,
+          "p50_ms": 1.9120099022984505,
+          "p95_ms": 3.106355667114258
+        },
+        "full_controller": {
+          "count": 30,
+          "maximum_ms": 728.3401833847165,
+          "p50_ms": 166.43659817054868,
+          "p95_ms": 706.4969521015882
+        }
+      },
+      "predicates": {
+        "transport-accepts-unit-class": 3,
+        "transport-backed-by-unit": 1,
+        "transport-cargo-compatible": 4,
+        "transport-compatible-founder": 1,
+        "transport-seat-available": 31,
+        "transport-seat-resource": 31,
+        "unit-ruleset-founder-capable": 1
+      },
+      "source": {
+        "commit": "e79d6fa6c02d97c9895ec72338db99f957941b8d",
+        "dirty": false,
+        "implementation_sha256": "da92409dd64b24831e6b074ca86920a4375c1217271a630b2a6d6d47d053f8d5",
+        "source_files": 263
+      },
+      "summary": {
+        "accepted_action_results": 75,
+        "actions": 75,
+        "cold_verifications": 3,
+        "transport_scopes": 31
+      }
+    }
+  ],
+  "claim_scope": "transport-capability-shadow-and-corrected-seat-readout; no-operation-authority-or-gameplay-improvement-claim",
+  "cohort": "fdas_transport_shadow_diagnostic_v1",
+  "evidence": {
+    "impact_aggregate": {
+      "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v3/impact-aggregate.json",
+      "sha256": "80f1ed753c293d4b1b8a2332bf07acf089fee2321e37311d686e41db06bf01aa"
+    },
+    "impact_run_summary": {
+      "path": "artifacts/freeciv/fdas-transport-capability-shadow-live-30-v3/impact-run-summary.json",
+      "sha256": "c53f46fa932734852f6d5425e361fb0e37a9039c9ca57dad90c3d3cceb59d439"
+    }
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "e79d6fa6c02d97c9895ec72338db99f957941b8d",
+    "implementation_sha256": "da92409dd64b24831e6b074ca86920a4375c1217271a630b2a6d6d47d053f8d5"
+  },
+  "structural_hash": "6822bb5b1b17455f4d53d1c0075877384882869b1b6aa972d716e881a96231d3",
+  "summary": {
+    "accepted_action_results": 150,
+    "actions": 150,
+    "cold_verifications": 4,
+    "transport_scopes": 62
+  }
+}

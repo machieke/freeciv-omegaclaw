@@ -117,3 +117,21 @@ projection p95 and 490.65 ms full-controller p95. See
 `fdas-pr16-expansion-shadow.md`. This is a mechanism and preservation result,
 not expansion authority or a gameplay-improvement claim; transport and combat
 remain separate PR 16+ increments.
+
+## Post-substrate transport capability shadow
+
+The transport-capability sub-slice of PR 16 now has its own capability-only
+`shadow-live` profile and accepted paired engine evidence. Protocol review
+corrected a material state-contract error: FreeCiv's packet `carrying` member
+is trade-goods metadata, while passenger load must be derived from complete
+own-unit `transported_by` relations. In the clean paired 30-turn confirmation,
+both arms materialized an empty Trireme scope on every FDAS refresh and emitted
+62 total seat-resource plus 62 seat-available records. All 150 actions were
+accepted, four sampled cold checks were equivalent, no authority or transport
+operation event occurred, and FDAS projection p95 remained below 31 ms.
+
+See `fdas-pr16-transport-capability-shadow.md`. The global full-controller p95
+target was not met in this short pair and remains an explicit open performance
+item. Transport operation intent, lifecycle activation, replay/rollback, and
+bounded authority remain `component-only`; this acceptance does not imply
+embark execution or gameplay improvement.
