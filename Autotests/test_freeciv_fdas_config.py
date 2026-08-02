@@ -143,6 +143,36 @@ def test_checked_observation_execution_profile_requires_authoritative_return():
     }
 
 
+def test_checked_belief_conflict_profile_is_lineage_explicit_and_shadow_only():
+    with open(os.path.join(
+            REPO, "profile",
+            "dependent_atomspace_belief_conflict_shadow.yaml"),
+            encoding="utf-8") as stream:
+        value = yaml.safe_load(stream)["dependent_atomspace"]
+    with open(os.path.join(
+            REPO, "profile",
+            "fdas_manifest_belief_conflict_shadow.json"),
+            encoding="utf-8") as stream:
+        manifest = json.load(stream)
+
+    config = DependentAtomSpaceConfig.from_dict(value, manifest)
+    diagnostic = manifest["belief_conflict_diagnostic"]
+
+    assert config.enabled is True
+    assert config.authority_enabled is False
+    assert config.section("projection")["beliefs"] is True
+    assert not any(config.section("domain_authority").values())
+    assert manifest["policy_authority"] is False
+    assert manifest["capabilities"][
+        "belief_conflict_quarantine"] == "shadow-live"
+    assert diagnostic["mode"] == (
+        "model-prior-versus-visible-tech-shadow")
+    assert diagnostic["prior_confidence"] <= 0.6
+    assert diagnostic["conflict_min_confidence"] <= diagnostic[
+        "prior_confidence"]
+    assert diagnostic["apply_all_context_quarantines"] is True
+
+
 def test_checked_expansion_shadow_profile_is_live_and_non_authoritative():
     with open(os.path.join(
             REPO, "profile", "dependent_atomspace_expansion_shadow.yaml"),

@@ -84,8 +84,13 @@ class BeliefStore(object):
                 eligible.append((provenance_id, contribution, confidence))
         for index, (left_id, left, left_confidence) in enumerate(eligible):
             for right_id, right, right_confidence in eligible[index + 1:]:
-                # Each contribution is rooted in exactly one immutable token, so
-                # distinct IDs have zero overlap by construction.
+                left_lineage = self._evidence[left_id].lineage_id
+                right_lineage = self._evidence[right_id].lineage_id
+                # Token identity is not evidence-source independence. Multiple
+                # immutable observations from one declared lineage cannot
+                # manufacture a conflict merely by changing token IDs.
+                if left_lineage == right_lineage:
+                    continue
                 overlap = 0.0
                 severity = (
                     left_confidence * right_confidence
@@ -96,7 +101,9 @@ class BeliefStore(object):
                 material = {
                     "key": [key.predicate, list(key.arguments)],
                     "left": [left_id],
+                    "left_source_lineage": [left_lineage],
                     "right": [right_id],
+                    "right_source_lineage": [right_lineage],
                 }
                 conflict_id = "conflict-" + structural_hash(material)[:20]
                 contexts = tuple(sorted({
@@ -122,6 +129,8 @@ class BeliefStore(object):
                     context_ids=contexts,
                     detected_turn=(
                         int(turn) if prior is None else prior.detected_turn),
+                    left_source_lineage_ids=(left_lineage,),
+                    right_source_lineage_ids=(right_lineage,),
                 )
 
     def _recompute(self, key, turn, operation, evidence_tv, formula):
@@ -447,6 +456,8 @@ class BeliefStore(object):
                 else copy.deepcopy(evidence.selection_policy))
         if evidence.model_provenance is not None:
             payload["model_provenance"] = evidence.model_provenance.to_dict()
+        if evidence.source_lineage_id is not None:
+            payload["source_lineage_id"] = evidence.source_lineage_id
         observation = writer.emit(
             "observation", evidence.turn, payload, caused_by=caused_by)
         revision_event = None

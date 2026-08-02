@@ -116,6 +116,8 @@ def test_independent_disagreement_materializes_conflict_and_context_partitions()
     assert conflict.provenance_ids == ("left", "right")
     assert conflict.overlap == 0.0
     assert conflict.severity == 0.64
+    assert conflict.left_source_lineage_ids == ("left",)
+    assert conflict.right_source_lineage_ids == ("right",)
     assert conflict.atom()["predicate"] == "Conflict"
     assert aggregate.strength == 0.5
 
@@ -136,6 +138,65 @@ def test_independent_disagreement_materializes_conflict_and_context_partitions()
     object.__setattr__(forged, "target_atom_id", "belief-forged")
     with pytest.raises(ContextQuarantineConflict):
         store.apply_context_quarantine(forged)
+
+
+def test_distinct_tokens_from_one_declared_source_lineage_do_not_conflict():
+    store = _store()
+    key = BeliefKey("enemy-route", ("enemy", "north"))
+    left = Evidence(
+        "left-token", "game-1", 1, (3, 4), "visible-map", key,
+        1.0, 0.8, "fixed-ai", "civ2civ3", "opponent-model/1.0",
+        source_lineage_id="shared-sensor-session")
+    right = Evidence(
+        "right-token", "game-1", 1, (8, 9), "visible-map", key,
+        0.0, 0.8, "fixed-ai", "civ2civ3", "opponent-model/1.0",
+        source_lineage_id="shared-sensor-session")
+
+    store.observe(left)
+    store.observe(right)
+
+    assert store.conflicts() == ()
+
+
+def test_declared_independent_source_lineages_are_exposed_in_events():
+    with tempfile.TemporaryDirectory() as directory:
+        path = os.path.join(directory, "events.jsonl")
+        writer = EventWriter(path, "lineage-test", durable=False)
+        root = writer.emit("run_started", 0, {
+            "condition_id": "d_uncertain_monitor",
+            "manifest_identity": "m"})
+        config = belief_config()
+        config["conflict_min_confidence"] = 0.5
+        store = BeliefStore(config)
+        key = BeliefKey("enemy-route", ("enemy", "north"))
+        left = Evidence(
+            "left-token", "game-1", 1, (3, 4), "visible-map", key,
+            1.0, 0.8, "fixed-ai", "civ2civ3", "opponent-model/1.0",
+            source_lineage_id="visible-unit-packet-session")
+        right = Evidence(
+            "right-token", "game-1", 1, None, "simulator", key,
+            0.0, 0.6, "fixed-ai", "civ2civ3", "opponent-model/1.0",
+            model_provenance=ModelProvenance(
+                "simulator", "route-prior", "1.0",
+                structural_hash({"model": "route-prior/1.0"}),
+                False, 0.6),
+            source_lineage_id="route-prior-model")
+        _, left_event, left_revision = store.emit_observation(
+            left, writer, [root["event_id"]])
+        _, right_event, right_revision = store.emit_observation(
+            right, writer, [(left_revision or left_event)["event_id"]])
+        conflict = store.conflicts()[0]
+        event = store.emit_conflict(
+            conflict.conflict_id, writer,
+            [(right_revision or right_event)["event_id"]])
+
+        report = validate_file(path)
+
+        assert event["payload"]["left_source_lineage_ids"] == [
+            "visible-unit-packet-session"]
+        assert event["payload"]["right_source_lineage_ids"] == [
+            "route-prior-model"]
+        assert report.valid, report.to_dict()
 
 
 def test_correlated_duplicate_benchmark_has_zero_overlap_errors():

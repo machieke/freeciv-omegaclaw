@@ -81,6 +81,7 @@ class Evidence:
     model_version: str
     selection_policy: object = None
     model_provenance: object = None
+    source_lineage_id: object = None
 
     def __post_init__(self):
         _bounded(self.strength, "strength")
@@ -99,6 +100,16 @@ class Evidence:
                 and self.confidence > self.model_provenance.confidence_cap):
             raise ValueError(
                 "simulator evidence exceeds its declared confidence cap")
+        if (self.source_lineage_id is not None
+                and (not isinstance(self.source_lineage_id, str)
+                     or not self.source_lineage_id)):
+            raise ValueError(
+                "evidence source lineage must be a nonempty string")
+
+    @property
+    def lineage_id(self):
+        """Declared independent source root, with legacy token fallback."""
+        return self.source_lineage_id or self.provenance_id
 
     @property
     def context_id(self):
@@ -112,7 +123,7 @@ class Evidence:
         })[:20]
 
     def to_dict(self):
-        return {
+        value = {
             "confidence": self.confidence, "game_id": self.game_id,
             "location": self.location, "model_version": self.model_version,
             "observed_atom": {
@@ -132,6 +143,9 @@ class Evidence:
                 else self.model_provenance.to_dict()),
             "strength": self.strength, "turn": self.turn,
         }
+        if self.source_lineage_id is not None:
+            value["source_lineage_id"] = self.source_lineage_id
+        return value
 
 
 @dataclass(frozen=True)
@@ -220,6 +234,8 @@ class ConflictAtom:
     severity: float
     context_ids: tuple
     detected_turn: int
+    left_source_lineage_ids: tuple = ()
+    right_source_lineage_ids: tuple = ()
 
     def __post_init__(self):
         left = set(self.left_provenance_ids)
@@ -228,6 +244,14 @@ class ConflictAtom:
             raise ValueError("conflict requires an ID and two nonempty lineages")
         if left & right:
             raise ValueError("conflict lineages must be provenance-distinct")
+        left_sources = set(self.left_source_lineage_ids)
+        right_sources = set(self.right_source_lineage_ids)
+        if left_sources & right_sources:
+            raise ValueError(
+                "conflict source lineages must be independent")
+        if bool(left_sources) != bool(right_sources):
+            raise ValueError(
+                "conflict source lineage declarations must be complete")
         _bounded(self.overlap, "overlap")
         _bounded(self.severity, "severity")
         if int(self.detected_turn) < 0:
@@ -240,7 +264,7 @@ class ConflictAtom:
     def atom(self):
         confidence = min(
             float(self.left_tv["confidence"]), float(self.right_tv["confidence"]))
-        return {
+        value = {
             "args": [
                 self.key.atom_id,
                 list(self.left_provenance_ids),
@@ -252,9 +276,10 @@ class ConflictAtom:
             "provenance_ids": list(self.provenance_ids),
             "tv": {"confidence": confidence, "strength": float(self.severity)},
         }
+        return value
 
     def to_dict(self):
-        return {
+        value = {
             "conflict_atom": self.atom(),
             "conflict_id": self.conflict_id,
             "context_ids": list(self.context_ids),
@@ -267,6 +292,12 @@ class ConflictAtom:
             "severity": float(self.severity),
             "target_atom_id": self.key.atom_id,
         }
+        if self.left_source_lineage_ids:
+            value["left_source_lineage_ids"] = list(
+                self.left_source_lineage_ids)
+            value["right_source_lineage_ids"] = list(
+                self.right_source_lineage_ids)
+        return value
 
 
 @dataclass(frozen=True)

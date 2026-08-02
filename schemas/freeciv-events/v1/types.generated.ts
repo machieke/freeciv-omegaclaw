@@ -662,6 +662,7 @@ export type Observation = {
   "provenance_id": string;
   "selection_policy"?: ObservationPolicy;
   "source": string;
+  "source_lineage_id"?: string;
 };
 
 export type Revision = {
@@ -686,9 +687,11 @@ export type BeliefConflict = {
   "context_ids": Array<string>;
   "detected_turn": number;
   "left_provenance_ids": Array<string>;
+  "left_source_lineage_ids"?: Array<string>;
   "left_tv": TruthValue;
   "overlap": number;
   "right_provenance_ids": Array<string>;
+  "right_source_lineage_ids"?: Array<string>;
   "right_tv": TruthValue;
   "severity": number;
   "target_atom_id": string;

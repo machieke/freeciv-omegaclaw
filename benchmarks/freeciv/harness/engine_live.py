@@ -269,13 +269,25 @@ def _emit_fdas_belief_decay(store, snapshot, writer, parent):
 
 def _emit_belief_configuration(writer, parent, manifest):
     """Put every confidence-affecting release parameter in the event stream."""
-    beliefs = manifest["beliefs"]
+    beliefs = dict(manifest["beliefs"])
+    conflict = manifest.get("dependent_atomspace", {}).get(
+        "manifest", {}).get("belief_conflict_diagnostic", {})
+    diagnostic_override_keys = set()
+    if conflict.get("mode") == "model-prior-versus-visible-tech-shadow":
+        for key in (
+                "conflict_min_confidence",
+                "conflict_severity_threshold"):
+            beliefs[key] = conflict[key]
+            diagnostic_override_keys.add(key)
     for key, value in sorted(beliefs.items()):
         if key in ("decay", "schema_version", "sweep"):
             continue
         parent = _metric(
             writer, 0, parent, "belief_{}".format(key), value, manifest,
-            declaration="release_configuration")
+            declaration=(
+                "fdas_diagnostic_override"
+                if key in diagnostic_override_keys
+                else "release_configuration"))
     for predicate, schedule in sorted(beliefs["decay"].items()):
         parent = _metric(
             writer, 0, parent, "belief_decay_window_turns",
@@ -1956,7 +1968,10 @@ def _emit_observations(snapshot, manifest, store, inference, writer, parent, see
             {"x": unit.x, "y": unit.y}, "player-visible-unit-packet",
             BeliefKey("observed-unit", (str(unit.owner), rule.rule_name)),
             beliefs["observation_strength"], beliefs["observation_confidence"],
-            str(unit.owner), manifest["ruleset"], manifest["model"])
+            str(unit.owner), manifest["ruleset"], manifest["model"],
+            source_lineage_id=(
+                "player-visible-unit-packet:{}:{}".format(
+                    manifest["game_id"], unit.unit_id)))
         _, observation, revision = store.emit_observation(
             evidence, writer, caused_by=[parent])
         parent = (revision or observation)["event_id"]
@@ -1977,6 +1992,78 @@ def _emit_observations(snapshot, manifest, store, inference, writer, parent, see
             parent = event["event_id"]
             predictions.append(belief)
     return predictions, parent
+
+
+def _emit_fdas_conflict_model_prior(
+        snapshot, manifest, store, writer, parent, opponent_id, config):
+    """Emit the pre-observation, capped model side of a diagnostic conflict."""
+    target_technology = str(config["target_technology"])
+    model_material = {
+        "model_id": str(config["model_id"]),
+        "model_version": str(config["model_version"]),
+        "prior_strength": float(config["prior_strength"]),
+        "target_predicate": "has-tech",
+        "target_technology": target_technology,
+        "validity_scope": [
+            manifest["ruleset"], "pre-observation", target_technology],
+    }
+    model_hash = structural_hash(model_material)
+    lineage_id = "simulator-model:{}:{}".format(
+        model_hash[:24], str(opponent_id))
+    provenance = "fdas-conflict-prior-" + structural_hash([
+        manifest["game_id"], str(opponent_id), model_hash,
+    ])[:20]
+    model = ModelProvenance(
+        "simulator",
+        model_material["model_id"],
+        model_material["model_version"],
+        model_hash,
+        False,
+        float(config["prior_confidence"]),
+        tuple(model_material["validity_scope"]))
+    evidence = Evidence(
+        provenance,
+        manifest["game_id"],
+        snapshot.turn,
+        {"diagnostic_context": "pre-observation-model-prior"},
+        "simulator",
+        BeliefKey("has-tech", (str(opponent_id), target_technology)),
+        float(config["prior_strength"]),
+        float(config["prior_confidence"]),
+        str(opponent_id),
+        manifest["ruleset"],
+        manifest["model"],
+        model_provenance=model,
+        source_lineage_id=lineage_id)
+    belief, observation, revision = store.emit_observation(
+        evidence, writer, caused_by=[parent])
+    return belief, (revision or observation)["event_id"], evidence
+
+
+def _emit_new_fdas_belief_conflicts(
+        store, writer, parent, turn, emitted_conflict_ids,
+        apply_context_quarantine=False):
+    """Emit each active conflict once and optionally partition all contexts."""
+    conflicts_emitted = 0
+    quarantines_emitted = 0
+    for conflict in store.conflicts():
+        if conflict.conflict_id in emitted_conflict_ids:
+            continue
+        event = store.emit_conflict(
+            conflict.conflict_id, writer, caused_by=[parent])
+        parent = event["event_id"]
+        emitted_conflict_ids.add(conflict.conflict_id)
+        conflicts_emitted += 1
+        if not apply_context_quarantine:
+            continue
+        operations = store.context_quarantine_operations(
+            conflict.conflict_id, turn)
+        for operation in operations:
+            event = store.emit_context_quarantine(
+                operation, writer, caused_by=[parent])
+            parent = event["event_id"]
+            quarantines_emitted += 1
+    return parent, conflicts_emitted, quarantines_emitted
 
 
 def _retain_terminal_predictions(predictions, revisions):
@@ -2004,7 +2091,10 @@ def _emit_opponent_presence(raw, snapshot, manifest, store, writer, parent, play
         BeliefKey("opponent-present", (opponent_id,)),
         manifest["beliefs"]["observation_strength"],
         manifest["beliefs"]["observation_confidence"],
-        opponent_id, manifest["ruleset"], manifest["model"])
+        opponent_id, manifest["ruleset"], manifest["model"],
+        source_lineage_id=(
+            "player-visible-roster-packet:{}:{}".format(
+                manifest["game_id"], opponent_id)))
     belief, observation, revision = store.emit_observation(
         evidence, writer, caused_by=[parent])
     return belief, (revision or observation)["event_id"]
@@ -2392,7 +2482,69 @@ async def _play(run_dir, manifest, context):
         manifest.get(
             "release_game_config",
             {}))
-    belief_store = (BeliefStore(manifest["beliefs"])
+    fdas_manifest = manifest["dependent_atomspace"]["manifest"]
+    fdas_belief_conflict_config = fdas_manifest.get(
+        "belief_conflict_diagnostic", {})
+    fdas_belief_conflict_shadow = bool(
+        fdas_belief_conflict_config.get("mode")
+        == "model-prior-versus-visible-tech-shadow")
+    belief_store_config = dict(manifest["beliefs"])
+    if fdas_belief_conflict_shadow:
+        expected_conflict_keys = {
+            "apply_all_context_quarantines",
+            "conflict_min_confidence",
+            "conflict_severity_threshold",
+            "mode",
+            "model_id",
+            "model_version",
+            "policy_authority",
+            "prior_confidence",
+            "prior_strength",
+            "target_technology",
+        }
+        if set(fdas_belief_conflict_config) != expected_conflict_keys:
+            raise RuntimeError(
+                "FDAS belief conflict diagnostic declaration is incomplete")
+        if fdas_belief_conflict_config["policy_authority"] is not False:
+            raise RuntimeError(
+                "FDAS belief conflict diagnostic cannot grant policy authority")
+        if fdas_belief_conflict_config[
+                "apply_all_context_quarantines"] is not True:
+            raise RuntimeError(
+                "FDAS belief conflict diagnostic must quarantine all contexts")
+        for name in (
+                "conflict_min_confidence", "conflict_severity_threshold",
+                "prior_confidence", "prior_strength"):
+            value = fdas_belief_conflict_config[name]
+            if (isinstance(value, bool)
+                    or not isinstance(value, (int, float))
+                    or not 0.0 <= float(value) <= 1.0):
+                raise RuntimeError(
+                    "FDAS belief conflict {} must be in [0,1]".format(name))
+        if (float(fdas_belief_conflict_config["prior_confidence"])
+                > float(manifest["beliefs"]["simulation_confidence_cap"])):
+            raise RuntimeError(
+                "FDAS belief conflict prior exceeds simulator confidence cap")
+        if (float(fdas_belief_conflict_config["prior_confidence"])
+                < float(fdas_belief_conflict_config[
+                    "conflict_min_confidence"])):
+            raise RuntimeError(
+                "FDAS belief conflict prior is below diagnostic threshold")
+        if any(
+                not isinstance(fdas_belief_conflict_config[name], str)
+                or not fdas_belief_conflict_config[name]
+                for name in (
+                    "model_id", "model_version", "target_technology")):
+            raise RuntimeError(
+                "FDAS belief conflict diagnostic identity is incomplete")
+        belief_store_config.update({
+            "conflict_min_confidence": float(
+                fdas_belief_conflict_config["conflict_min_confidence"]),
+            "conflict_severity_threshold": float(
+                fdas_belief_conflict_config[
+                    "conflict_severity_threshold"]),
+        })
+    belief_store = (BeliefStore(belief_store_config)
                     if context.capabilities["uncertain_beliefs"] else None)
     inference = (UncertainInference(ir, belief_store)
                  if context.capabilities["uncertain_beliefs"] else None)
@@ -2414,7 +2566,6 @@ async def _play(run_dir, manifest, context):
         "projection"]
     fdas_inference_config = manifest["dependent_atomspace"]["config"][
         "inference"]
-    fdas_manifest = manifest["dependent_atomspace"]["manifest"]
     fdas_belief_shadow = bool(fdas_projection_config["beliefs"])
     fdas_observation_pressure_shadow = bool(
         fdas_inference_config["uncertain_assessment_enabled"])
@@ -2431,6 +2582,14 @@ async def _play(run_dir, manifest, context):
     if (fdas_belief_shadow
             and fdas_manifest.get("policy_authority") is not False):
         raise RuntimeError("FDAS belief shadow cannot grant policy authority")
+    if fdas_belief_conflict_shadow:
+        if not fdas_belief_shadow:
+            raise RuntimeError(
+                "FDAS belief conflict diagnostic requires belief projection")
+        if fdas_manifest["capabilities"].get(
+                "belief_conflict_quarantine") != "shadow-live":
+            raise RuntimeError(
+                "FDAS belief conflict diagnostic requires shadow-live manifest")
     if fdas_observation_pressure_shadow:
         if not fdas_belief_shadow:
             raise RuntimeError(
@@ -2752,6 +2911,7 @@ async def _play(run_dir, manifest, context):
     predictions = {}
     monitor_belief = None
     seen = set()
+    emitted_belief_conflict_ids = set()
     blocked_moves = set()
     prior_scout = None
     action_count = attempted_count = rejected = zombie_blocked = 0
@@ -2796,6 +2956,9 @@ async def _play(run_dir, manifest, context):
         "fdas_expansion_reconciliations": 0,
         "fdas_belief_decay_revisions": 0,
         "fdas_belief_rematerializations": 0,
+        "fdas_belief_conflict_model_priors": 0,
+        "fdas_belief_conflicts_detected": 0,
+        "fdas_belief_context_quarantines": 0,
         "fdas_observation_pressure_decisions": 0,
         "fdas_observation_pressure_packet_commits": 0,
         "fdas_observation_pressure_selected": 0,
@@ -3797,7 +3960,10 @@ async def _play(run_dir, manifest, context):
                 "visibility-frontier",
                 manifest["ruleset"],
                 manifest["model"],
-                selection_policy=token.observation_policy)
+                selection_policy=token.observation_policy,
+                source_lineage_id=(
+                    "authoritative-visibility-return:{}:{}".format(
+                        manifest["game_id"], binding.binding_hash[:24])))
             _belief, observation, revision = belief_store.emit_observation(
                 evidence, writer, caused_by=[event["event_id"]])
             cause = (revision or observation)["event_id"]
@@ -3846,6 +4012,25 @@ async def _play(run_dir, manifest, context):
                 writer, snapshot.turn, parent, "initial_enemy_distance", distance, manifest)
 
         if context.capabilities["uncertain_beliefs"]:
+            if fdas_belief_conflict_shadow:
+                opponents = [
+                    row for row in raw.get("players", {}).values()
+                    if int(row.get("id", player_id)) != player_id]
+                if not opponents:
+                    raise RuntimeError(
+                        "FDAS belief conflict diagnostic lacks opponent roster")
+                _prior, parent, _prior_evidence = (
+                    _emit_fdas_conflict_model_prior(
+                        snapshot,
+                        manifest,
+                        belief_store,
+                        writer,
+                        parent,
+                        str(opponents[0]["id"]),
+                        fdas_belief_conflict_config))
+                decision_stats[
+                    "fdas_belief_conflict_model_priors"] += 1
+                parent = rematerialize_fdas_beliefs(snapshot, parent)
             monitor_belief, parent = _emit_opponent_presence(
                 raw, snapshot, manifest, belief_store, writer, parent, player_id)
             if monitor_belief is not None:
@@ -4160,6 +4345,19 @@ async def _play(run_dir, manifest, context):
                 rows, parent = _emit_observations(
                     snapshot, manifest, belief_store, inference, writer, parent, seen)
                 _retain_terminal_predictions(predictions, rows)
+                parent, conflict_count, quarantine_count = (
+                    _emit_new_fdas_belief_conflicts(
+                        belief_store,
+                        writer,
+                        parent,
+                        snapshot.turn,
+                        emitted_belief_conflict_ids,
+                        apply_context_quarantine=(
+                            fdas_belief_conflict_shadow)))
+                decision_stats[
+                    "fdas_belief_conflicts_detected"] += conflict_count
+                decision_stats[
+                    "fdas_belief_context_quarantines"] += quarantine_count
                 if belief_store.artifact_hash != prior_belief_hash:
                     parent = rematerialize_fdas_beliefs(snapshot, parent)
             if _game_terminal(snapshot):
@@ -5638,6 +5836,12 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_belief_decay_revisions"]),
         ("fdas_belief_rematerializations",
          decision_stats["fdas_belief_rematerializations"]),
+        ("fdas_belief_conflict_model_priors",
+         decision_stats["fdas_belief_conflict_model_priors"]),
+        ("fdas_belief_conflicts_detected",
+         decision_stats["fdas_belief_conflicts_detected"]),
+        ("fdas_belief_context_quarantines",
+         decision_stats["fdas_belief_context_quarantines"]),
         ("fdas_observation_pressure_decisions",
          decision_stats["fdas_observation_pressure_decisions"]),
         ("fdas_observation_pressure_packet_commits",
@@ -6101,6 +6305,12 @@ async def _play(run_dir, manifest, context):
                 decision_stats["fdas_belief_decay_revisions"]),
             "fdas_belief_rematerializations": (
                 decision_stats["fdas_belief_rematerializations"]),
+            "fdas_belief_conflict_model_priors": (
+                decision_stats["fdas_belief_conflict_model_priors"]),
+            "fdas_belief_conflicts_detected": (
+                decision_stats["fdas_belief_conflicts_detected"]),
+            "fdas_belief_context_quarantines": (
+                decision_stats["fdas_belief_context_quarantines"]),
             "fdas_observation_pressure_decisions": (
                 decision_stats["fdas_observation_pressure_decisions"]),
             "fdas_observation_pressure_packet_commits": (
@@ -6432,6 +6642,12 @@ async def _play(run_dir, manifest, context):
             decision_stats["fdas_belief_decay_revisions"]),
         "fdas_belief_rematerializations": (
             decision_stats["fdas_belief_rematerializations"]),
+        "fdas_belief_conflict_model_priors": (
+            decision_stats["fdas_belief_conflict_model_priors"]),
+        "fdas_belief_conflicts_detected": (
+            decision_stats["fdas_belief_conflicts_detected"]),
+        "fdas_belief_context_quarantines": (
+            decision_stats["fdas_belief_context_quarantines"]),
         "fdas_observation_pressure_decisions": (
             decision_stats["fdas_observation_pressure_decisions"]),
         "fdas_observation_pressure_packet_commits": (
