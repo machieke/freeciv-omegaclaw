@@ -25,6 +25,9 @@ adapter; see `fdas-runtime-assembly.md`. Captured replay and engine-live
 cohorts exercise post-legacy candidate protection, bounded PF-v2 readout,
 sampled cold verification, causal episode attribution, uncertain belief
 projection, observation-pressure selection, and quarantine-only induction.
+The visibility-frontier continuation additionally binds packet-committed tests
+to legacy-selected legal moves, revalidates them, and registers only fresh
+authoritative returns through a no-write censoring firewall.
 Each evidence report states its own authority and non-claim boundary; none of
 these mechanism results alone establishes gameplay improvement.
 
@@ -177,6 +180,16 @@ decision-sensitive selections and two atomic CPU/observation packet commits
 with zero evidence writes and zero policy authority. It did not execute an
 observation or process an authoritative return. See
 `fdas-pr18-observation-pressure-shadow.md`.
+
+PR 20 closes a separate legacy-bound visibility execution path. A clean paired
+30-turn cohort accepted all 149 actions, revalidated 72 exact scout-move
+bindings, registered 70 fresh authoritative visibility returns, and censored
+two accepted moves whose actors were no longer provable at the endpoint. The
+censored returns wrote no evidence; all 13,892 events validated with zero
+warnings and no policy authority. See `fdas-pr20-observation-return.md`.
+This does not grant FDAS scouting choice or turn frontier visibility into
+opponent-absence evidence. Live contradictory lineage/quarantine remains the
+next Phase 8 empirical gate.
 
 ## Post-substrate episode induction shadow
 

@@ -2,8 +2,9 @@
 
 Date: 2026-08-02
 Branch: `experimental/functional-dependent-atomspace`
-Acceptance level: belief projection and observation-pressure planning are
-engine shadow-live in dedicated profiles; disabled in the default profile
+Acceptance level: belief projection, observation-pressure planning, and
+legacy-bound visibility return are engine shadow-live in dedicated profiles;
+disabled in the default profile
 
 ## Realized wiring
 
@@ -26,6 +27,11 @@ engine shadow-live in dedicated profiles; disabled in the default profile
 - Fresh engine cohorts cover explicit belief decay/rematerialization and a
   one-shot observation-pressure packet decision. The latter records identical
   evidence-store hashes before and after planning and has no authority.
+- A separate visibility-frontier profile binds a selected test only to the
+  byte-identical move already selected by legacy, exact-revalidates the move,
+  and accepts evidence only from a fresh authoritative visibility delta.
+  Accepted moves without a provable endpoint actor are explicitly censored and
+  write no evidence.
 
 ## Exit-criterion disposition
 
@@ -37,6 +43,7 @@ engine shadow-live in dedicated profiles; disabled in the default profile
 | Observe only for decision-sensitive gaps | posterior outcome readouts must cross an explicit action threshold; the fresh PR18 cohort selected exactly one qualifying operation per arm |
 | Quarantine cannot authorize | quarantine is diagnostic-only; no legal binding or operation relation is emitted |
 | Activation matrix is accurate | belief projection requires its component; uncertain assessment requires belief+observation at `shadow-live`; authority using uncertainty requires both at `bounded-authority` |
+| Return cannot fabricate evidence | 72 exact bindings produced 70 authoritative evidence returns and two causally complete no-write abstentions in the PR20 cohort |
 
 ## Verification
 
@@ -44,14 +51,16 @@ The component evidence remains covered by the combined FDAS regression. Fresh
 engine evidence is recorded in
 [`fdas-pr17-belief-shadow.md`](fdas-pr17-belief-shadow.md) and
 [`fdas-pr18-observation-pressure-shadow.md`](fdas-pr18-observation-pressure-shadow.md).
-Both PR18 event logs pass full schema validation with zero warnings.
+The execution continuation is recorded in
+[`fdas-pr20-observation-return.md`](fdas-pr20-observation-return.md). Both PR18
+and both PR20 event logs pass full schema validation with zero warnings.
 
 ## Non-claims
 
 The checked-in default keeps `projection.beliefs=false` and
 `uncertain_assessment_enabled=false`. Dedicated profiles declare the proven
-shadow-live subset; they do not claim observation execution, authoritative
-return, action authority, engine score improvement, calibration, or win-rate
-impact. Promotion requires a legal observation-action binding, commit
-revalidation, authoritative return through the evidence gate, and fresh
-replay/safety evidence.
+shadow-live subset; they do not claim authoritative return for opponent
+presence, FDAS action choice, engine score improvement, calibration, or
+win-rate impact. PR20 proves only a visibility-frontier return bound to a
+legacy-selected move. Live contradictory lineage/quarantine and any
+FDAS-selected observation action require separate evidence and activation.

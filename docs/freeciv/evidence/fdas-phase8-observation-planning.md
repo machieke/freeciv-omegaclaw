@@ -28,3 +28,7 @@ Coverage is in `Autotests/test_freeciv_observation_live.py` and
 belief, pressure, and packet scheduler suites. Fresh engine evidence and the
 remaining authority boundary are documented in
 [`fdas-pr18-observation-pressure-shadow.md`](fdas-pr18-observation-pressure-shadow.md).
+The later non-authorizing execution continuation is documented in
+[`fdas-pr20-observation-return.md`](fdas-pr20-observation-return.md): selected
+visibility tests bind to exact legacy-selected moves and register evidence only
+after a fresh authoritative return, while unprovable returns are censored.

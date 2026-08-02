@@ -1,0 +1,126 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "at_least_one_authoritative_evidence_return": true,
+      "both_arms_pass_return_acceptance": true,
+      "cohort_completed_without_failures": true,
+      "cohort_is_predeclared_and_claim_ineligible": true,
+      "paired_source_is_clean_and_stable": true
+    }
+  },
+  "arms": [
+    {
+      "acceptance": {
+        "accepted": true,
+        "checks": {
+          "actions_complete_and_accepted": true,
+          "every_binding_commit_return_is_complete": true,
+          "manifest_binds_legacy_selected_return_mode": true,
+          "no_enemy_absence_or_policy_authority": true,
+          "planning_firewall_stays_closed_until_return": true,
+          "source_is_clean_and_horizon_completed": true,
+          "status_counters_match_return_artifacts": true
+        }
+      },
+      "arm": "baseline",
+      "evidence": {
+        "events.jsonl": {
+          "path": "artifacts/freeciv/fdas-observation-return-live-30-v3/games/impact_pair/fdas_observation_execution_shadow_diagnostic_v1/baseline/e_full_loop/173205-00/events.jsonl",
+          "sha256": "118a3aa50670f187cf89baa6c081d5423e4a6404c894310d85d375f418100f11"
+        },
+        "manifest.json": {
+          "path": "artifacts/freeciv/fdas-observation-return-live-30-v3/games/impact_pair/fdas_observation_execution_shadow_diagnostic_v1/baseline/e_full_loop/173205-00/manifest.json",
+          "sha256": "2b01c52ce9f3b6ff00500868d19c28612b2083ac01d3bd546165c60a37650588"
+        },
+        "status.json": {
+          "path": "artifacts/freeciv/fdas-observation-return-live-30-v3/games/impact_pair/fdas_observation_execution_shadow_diagnostic_v1/baseline/e_full_loop/173205-00/status.json",
+          "sha256": "815b09a8a14348ecd7a7293dbd8c0c6462dd0563fe4da6086ccd3748c6919026"
+        }
+      },
+      "source": {
+        "commit": "eea9e53bcfc34b9ee19678508b13c1cc531687e1",
+        "dirty": false,
+        "implementation_sha256": "681ba9fee7dcd26dc8d5a5fe0170cefc49cc04aea4df94e7605670bb5aec9c54",
+        "source_files": 270
+      },
+      "summary": {
+        "actions": 78,
+        "bindings": 40,
+        "evidence_returns": 38,
+        "return_abstentions": 2,
+        "visibility_expansions": 27,
+        "visibility_unchanged": 11
+      }
+    },
+    {
+      "acceptance": {
+        "accepted": true,
+        "checks": {
+          "actions_complete_and_accepted": true,
+          "every_binding_commit_return_is_complete": true,
+          "manifest_binds_legacy_selected_return_mode": true,
+          "no_enemy_absence_or_policy_authority": true,
+          "planning_firewall_stays_closed_until_return": true,
+          "source_is_clean_and_horizon_completed": true,
+          "status_counters_match_return_artifacts": true
+        }
+      },
+      "arm": "treatment",
+      "evidence": {
+        "events.jsonl": {
+          "path": "artifacts/freeciv/fdas-observation-return-live-30-v3/games/impact_pair/fdas_observation_execution_shadow_diagnostic_v1/treatment/e_full_loop/173205-00/events.jsonl",
+          "sha256": "c55734b498da6b57c01342d86429a88c02de39e33c56625b0b9fb1ccd70553fa"
+        },
+        "manifest.json": {
+          "path": "artifacts/freeciv/fdas-observation-return-live-30-v3/games/impact_pair/fdas_observation_execution_shadow_diagnostic_v1/treatment/e_full_loop/173205-00/manifest.json",
+          "sha256": "b53601ebfdd8fb21dc36f16b749f65497cc5c1b0068423a4d9d9c309048eac4d"
+        },
+        "status.json": {
+          "path": "artifacts/freeciv/fdas-observation-return-live-30-v3/games/impact_pair/fdas_observation_execution_shadow_diagnostic_v1/treatment/e_full_loop/173205-00/status.json",
+          "sha256": "fabd2647792fb81806ac1d8c98b173bccdf4b5542b75c6faea8012815b253e3e"
+        }
+      },
+      "source": {
+        "commit": "eea9e53bcfc34b9ee19678508b13c1cc531687e1",
+        "dirty": false,
+        "implementation_sha256": "681ba9fee7dcd26dc8d5a5fe0170cefc49cc04aea4df94e7605670bb5aec9c54",
+        "source_files": 270
+      },
+      "summary": {
+        "actions": 71,
+        "bindings": 32,
+        "evidence_returns": 32,
+        "return_abstentions": 0,
+        "visibility_expansions": 28,
+        "visibility_unchanged": 4
+      }
+    }
+  ],
+  "claim_scope": "packet-budgeted visibility observation bound only to a byte-identical legacy-selected move, exact commit revalidation, fresh authoritative visibility return, selection-adjusted evidence registration, and zero policy authority; no FDAS action choice, with accepted-but-unproven moves censored as explicit no-write returns; no enemy-absence, score, or gameplay-improvement claim",
+  "cohort": "fdas_observation_execution_shadow_diagnostic_v1",
+  "evidence": {
+    "impact_aggregate": {
+      "path": "artifacts/freeciv/fdas-observation-return-live-30-v3/impact-aggregate.json",
+      "sha256": "32788cec7ec01b43f0fceeaa2f10177180f8aec024da84c80aea0425ed52ffce"
+    },
+    "impact_run_summary": {
+      "path": "artifacts/freeciv/fdas-observation-return-live-30-v3/impact-run-summary.json",
+      "sha256": "c2661c051e650f8d0cfa82c732e194ace4baeb662d76124a2efbc92fb0142ab0"
+    }
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "eea9e53bcfc34b9ee19678508b13c1cc531687e1",
+    "implementation_sha256": "681ba9fee7dcd26dc8d5a5fe0170cefc49cc04aea4df94e7605670bb5aec9c54"
+  },
+  "structural_hash": "bc846133d3b65d4998a5699027156f8a7ffed7e4937f6620e0d26748103ec7e1",
+  "summary": {
+    "actions": 149,
+    "bindings": 72,
+    "evidence_returns": 70,
+    "return_abstentions": 2,
+    "visibility_expansions": 55,
+    "visibility_unchanged": 15
+  }
+}

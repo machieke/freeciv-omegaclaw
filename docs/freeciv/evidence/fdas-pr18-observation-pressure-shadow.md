@@ -115,11 +115,17 @@ server container, ruleset root, Ollama OpenAI-compatible base URL, and API token
 ## Claim boundary and next gate
 
 This closes the Phase 8 shadow-live observation-selection mechanism for a real
-belief and bounded decision. It does not close the authority path. A later,
-separately gated slice must bind a selected operation to a byte-identical legal
-scout/observation action, reserve real execution resources, revalidate it at
-commit, receive an authoritative server-visible result, and pass that result
-through `ObservationEvidenceGate` before evidence registration. It also needs
-live contradictory lineages to exercise conflict and quarantine behavior,
-plus broader decision gaps beyond opponent-presence retention. Until those
-tests pass, observation pressure remains non-authorizing.
+belief and bounded decision. It does not close an FDAS authority path. The
+later [`fdas-pr20-observation-return.md`](fdas-pr20-observation-return.md)
+increment closes the non-authorizing execution firewall for a separate
+visibility-frontier test: it binds only to a byte-identical legacy-selected
+move, exact-revalidates it, and accepts fresh visibility evidence through
+`ObservationEvidenceGate`, with explicit no-write censoring when the move
+cannot be proven at the endpoint.
+
+PR20 does not treat visibility expansion as direct opponent-presence evidence
+and does not let FDAS choose the move. Live contradictory lineages still need
+to exercise conflict and quarantine behavior, and broader decision gaps or an
+FDAS-selected observation action need separate calibration, safety, and
+activation evidence. Until those tests pass, observation pressure remains
+non-authorizing.
