@@ -1,0 +1,2351 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "all_candidates_received_heldout_verdict": true,
+      "engine_source_requirement_met": true,
+      "every_promotion_has_versioned_approval": true,
+      "execution_source_requirement_met": true,
+      "horizon_requirement_met": true,
+      "ledger_is_persisted_and_hash_bound": true,
+      "no_truth_policy_or_readout_authority": true,
+      "outcome_label_coverage_requirement_met": true,
+      "outcome_label_target_requirement_met": true,
+      "outcome_population_requirement_met": true,
+      "promotion_requirement_met": true,
+      "proposal_requirement_met": true,
+      "source_partitions_are_nonempty": true
+    }
+  },
+  "claim_scope": "verified FDAS episode-store and optional revision-bound delayed outcome-label partitioning, bounded pattern mining, disjoint held-out validation, versioned promotion approval, and zero truth/policy/readout authority; no live discovery quality, score, gameplay, or win-rate claim",
+  "configuration": {
+    "contradiction_threshold": 0.7,
+    "contradiction_tolerance": 0.0,
+    "maximum_antecedents": 2,
+    "maximum_candidates": 32,
+    "minimum_activations": 4,
+    "minimum_brier_improvement": 0.001,
+    "minimum_calibration_improvement": 0.0,
+    "minimum_residual": 0.05,
+    "minimum_samples": 8,
+    "minimum_support": 4,
+    "outcome_target": "durable-attributed-actor-city-defense/32-turn/1.0"
+  },
+  "holdout_outcome_label_sources": [
+    {
+      "labels": 2,
+      "observed_labels": 2,
+      "path": "artifacts/freeciv/fdas-actor-persistence-replacement-live-160-v1/games/main/e_full_loop/104789-00/fdas-induction-outcome-labels.json",
+      "persistence_identity": "4bb983d7567050ee8cc9b6f00b809c83160c8e68fa906c064aba61f5eabdf00f",
+      "sha256": "5bf322d479cb32993dd7887926fbfb9d87e3de0b11c2bf7b9f1f02a5e2e032a0",
+      "store_digest": "505b5aaf40698b5c1bd471bb63810fb69b8f61b1b87dcd3aa361409f9ef5263c",
+      "targets": [
+        "durable-attributed-actor-city-defense/32-turn/1.0"
+      ]
+    },
+    {
+      "labels": 5,
+      "observed_labels": 5,
+      "path": "artifacts/freeciv/fdas-actor-persistence-holdout-extension-live-160-v1/games/main/e_full_loop/104801-00/fdas-induction-outcome-labels.json",
+      "persistence_identity": "a2d575f6b5182ffe9414dd1eaddb881e87c0c4ebf51433587010ca9b95649f9d",
+      "sha256": "41ebcbbfccbfb4d047cc9da754ac4273ee4825d4c35ff6f4eee0416ba9f0f371",
+      "store_digest": "b0afce27f1d7824d9ff195cc1db7a1204c0ebe641321e86b63793ef50deb74f4",
+      "targets": [
+        "durable-attributed-actor-city-defense/32-turn/1.0"
+      ]
+    },
+    {
+      "labels": 3,
+      "observed_labels": 3,
+      "path": "artifacts/freeciv/fdas-actor-persistence-holdout-extension-live-160-v1/games/main/e_full_loop/104803-00/fdas-induction-outcome-labels.json",
+      "persistence_identity": "693ae0d32520b10bfe4c75cc8dfb0e9a68aca117ae7ae86fefcf4e503267dc09",
+      "sha256": "a6bb41ceccf5ff607fcf75503b2ca59543ae89b8c56d859d14a08b7b02a4deff",
+      "store_digest": "80ea4fa4bcc7420f364c2535f5e353ae159003ff08b67f817fa077fa72f47c8d",
+      "targets": [
+        "durable-attributed-actor-city-defense/32-turn/1.0"
+      ]
+    },
+    {
+      "labels": 5,
+      "observed_labels": 5,
+      "path": "artifacts/freeciv/fdas-actor-persistence-holdout-extension-live-160-v1/games/main/e_full_loop/104827-00/fdas-induction-outcome-labels.json",
+      "persistence_identity": "001408f7aaa56a433ba909bd00dc4199e9a991d44b05d87e6c980e10f564bb67",
+      "sha256": "f2efccadccc614253ccadfff061f68a971e67de02ed4bb51ca7640dae06f7a91",
+      "store_digest": "2539f9f077df20ee4de660b9c1449e49ad02d1b2995b9a3746e3e7acda99c71d",
+      "targets": [
+        "durable-attributed-actor-city-defense/32-turn/1.0"
+      ]
+    }
+  ],
+  "holdout_sources": [
+    {
+      "engine_evidence": {
+        "accepted": true,
+        "checks": {
+          "completed": true,
+          "event_ledger_valid_without_warnings": true,
+          "source_is_clean": true
+        },
+        "events": {
+          "path": "artifacts/freeciv/fdas-actor-persistence-replacement-live-160-v1/games/main/e_full_loop/104789-00/events.jsonl",
+          "sha256": "be7f8b8d6292c1d79050a08598b5ad47fe2a3fe1484e7529ac40d3352c9876f4",
+          "validation": {
+            "errors": [],
+            "event_count": 14461,
+            "game_id": "m7-main-e_full_loop-104789-00",
+            "schema_version": "1.0",
+            "valid": true,
+            "warnings": []
+          }
+        },
+        "horizon_reached": true,
+        "manifest": {
+          "path": "artifacts/freeciv/fdas-actor-persistence-replacement-live-160-v1/games/main/e_full_loop/104789-00/manifest.json",
+          "sha256": "c01b53b8b07c833685692193cea521e873b630df96e1697e1ee1f3c6f0bf017d",
+          "source": {
+            "commit": "5dc84b89d88800f695a31246bc3fd78e7e1c06e3",
+            "dirty": false,
+            "implementation_sha256": "072f5dfed2b2d40289a9fb5e726867c5fd41c0538899c4c76230dd391a535d67",
+            "source_files": 273
+          }
+        },
+        "status": {
+          "path": "artifacts/freeciv/fdas-actor-persistence-replacement-live-160-v1/games/main/e_full_loop/104789-00/status.json",
+          "sha256": "28b926811a4114ebe451a7a61301e95162164cdcb4cec82cf441be761b3fdd3e"
+        }
+      },
+      "episodes": 2,
+      "path": "artifacts/freeciv/fdas-actor-persistence-replacement-live-160-v1/games/main/e_full_loop/104789-00/fdas-decision-episodes.json",
+      "persistence_identity": "52ec3d71ec2e4a91e437d79cd83f3664ed79abe5e291cea79d707f604f4a14be",
+      "sha256": "db765602ee1939e862729cce5d8072a9049772f854594ba6382daaa765ae7fdc",
+      "store_digest": "5a4de89aedc79333c0a7ed9e710f914702310deb4df7fe78bec2010cb61038e9"
+    },
+    {
+      "engine_evidence": {
+        "accepted": true,
+        "checks": {
+          "completed": true,
+          "event_ledger_valid_without_warnings": true,
+          "source_is_clean": true
+        },
+        "events": {
+          "path": "artifacts/freeciv/fdas-actor-persistence-holdout-extension-live-160-v1/games/main/e_full_loop/104801-00/events.jsonl",
+          "sha256": "ec919f8d55fc042892ac5e83a73ebdee107dc8d4ded77cbbff2bf3b75951ec60",
+          "validation": {
+            "errors": [],
+            "event_count": 25662,
+            "game_id": "m7-main-e_full_loop-104801-00",
+            "schema_version": "1.0",
+            "valid": true,
+            "warnings": []
+          }
+        },
+        "horizon_reached": true,
+        "manifest": {
+          "path": "artifacts/freeciv/fdas-actor-persistence-holdout-extension-live-160-v1/games/main/e_full_loop/104801-00/manifest.json",
+          "sha256": "ad2947331026bd24cfba2fefe01ef22cd72b9702b0511e0890e3b2515fa54aee",
+          "source": {
+            "commit": "846f426a08ba7d0c861ae1c2482af715b50be3b6",
+            "dirty": false,
+            "implementation_sha256": "072f5dfed2b2d40289a9fb5e726867c5fd41c0538899c4c76230dd391a535d67",
+            "source_files": 273
+          }
+        },
+        "status": {
+          "path": "artifacts/freeciv/fdas-actor-persistence-holdout-extension-live-160-v1/games/main/e_full_loop/104801-00/status.json",
+          "sha256": "1f772647990df2db935fed92965be84b8f98ec0c192ad5cc89abd0b0f3ab21b8"
+        }
+      },
+      "episodes": 5,
+      "path": "artifacts/freeciv/fdas-actor-persistence-holdout-extension-live-160-v1/games/main/e_full_loop/104801-00/fdas-decision-episodes.json",
+      "persistence_identity": "26571d30221a2e93b841205c7d5f4c4b806140cbef822a87406137c3cbd95d8a",
+      "sha256": "71a20f0a35c9f6095363418046f3ebce36fad90fb736a17d99c5f3eb8ae830a0",
+      "store_digest": "cf1a43bfcc4d4b43949f46adc3013613ff927732482988f676bd6f3beb3d582d"
+    },
+    {
+      "engine_evidence": {
+        "accepted": true,
+        "checks": {
+          "completed": true,
+          "event_ledger_valid_without_warnings": true,
+          "source_is_clean": true
+        },
+        "events": {
+          "path": "artifacts/freeciv/fdas-actor-persistence-holdout-extension-live-160-v1/games/main/e_full_loop/104803-00/events.jsonl",
+          "sha256": "8df2cdd28c955bf952042e9e1e5355c102a08f0733a1ce657dd953312345567c",
+          "validation": {
+            "errors": [],
+            "event_count": 10636,
+            "game_id": "m7-main-e_full_loop-104803-00",
+            "schema_version": "1.0",
+            "valid": true,
+            "warnings": []
+          }
+        },
+        "horizon_reached": true,
+        "manifest": {
+          "path": "artifacts/freeciv/fdas-actor-persistence-holdout-extension-live-160-v1/games/main/e_full_loop/104803-00/manifest.json",
+          "sha256": "fee67c63e7415b5359f6c9b78224d301db502ec8783c7da5ba35582026dc56a0",
+          "source": {
+            "commit": "846f426a08ba7d0c861ae1c2482af715b50be3b6",
+            "dirty": false,
+            "implementation_sha256": "072f5dfed2b2d40289a9fb5e726867c5fd41c0538899c4c76230dd391a535d67",
+            "source_files": 273
+          }
+        },
+        "status": {
+          "path": "artifacts/freeciv/fdas-actor-persistence-holdout-extension-live-160-v1/games/main/e_full_loop/104803-00/status.json",
+          "sha256": "1eae6840d013bc8a4f8d37a3147f9cf462065e05b03d9d44a20f198b84072096"
+        }
+      },
+      "episodes": 3,
+      "path": "artifacts/freeciv/fdas-actor-persistence-holdout-extension-live-160-v1/games/main/e_full_loop/104803-00/fdas-decision-episodes.json",
+      "persistence_identity": "ee8d2c21199d551ef824ac92bf3b3e59b839f9a71b380c38fce252906ea9bed7",
+      "sha256": "73e39ae95cabed6a409596ac81ec0a7b7b15f55c827fd352d5c384767d4f2505",
+      "store_digest": "95cad791e178ed17c36cf94c26a86afbbd131546bbab0fdcabec0ce9cc45a229"
+    },
+    {
+      "engine_evidence": {
+        "accepted": true,
+        "checks": {
+          "completed": true,
+          "event_ledger_valid_without_warnings": true,
+          "source_is_clean": true
+        },
+        "events": {
+          "path": "artifacts/freeciv/fdas-actor-persistence-holdout-extension-live-160-v1/games/main/e_full_loop/104827-00/events.jsonl",
+          "sha256": "ba5d03ae1ddafe88fc056d08dfe65426d0318f0171c70b619a72d374cbe3af41",
+          "validation": {
+            "errors": [],
+            "event_count": 16536,
+            "game_id": "m7-main-e_full_loop-104827-00",
+            "schema_version": "1.0",
+            "valid": true,
+            "warnings": []
+          }
+        },
+        "horizon_reached": true,
+        "manifest": {
+          "path": "artifacts/freeciv/fdas-actor-persistence-holdout-extension-live-160-v1/games/main/e_full_loop/104827-00/manifest.json",
+          "sha256": "989118487c9049354ff0b3e1576ea116adc5e34c6ead4ad0abef552f7d34e657",
+          "source": {
+            "commit": "846f426a08ba7d0c861ae1c2482af715b50be3b6",
+            "dirty": false,
+            "implementation_sha256": "072f5dfed2b2d40289a9fb5e726867c5fd41c0538899c4c76230dd391a535d67",
+            "source_files": 273
+          }
+        },
+        "status": {
+          "path": "artifacts/freeciv/fdas-actor-persistence-holdout-extension-live-160-v1/games/main/e_full_loop/104827-00/status.json",
+          "sha256": "e80d0f7ed397a15b1df0672539670ba7383d46b5367ea905978a3c1b90b4efe2"
+        }
+      },
+      "episodes": 5,
+      "path": "artifacts/freeciv/fdas-actor-persistence-holdout-extension-live-160-v1/games/main/e_full_loop/104827-00/fdas-decision-episodes.json",
+      "persistence_identity": "725219d1942482fa2522fa0904dabf11a9c806f1e6067d274c66b8aabf9f46ac",
+      "sha256": "4700cbd2b09d51ddc1509442248d114f8ab1137ee26ad102e3b767c227e792fd",
+      "store_digest": "805fc01322c1aecab1365e4e355c6caac1856547de18c77b93c99e62d0f23950"
+    }
+  ],
+  "ledger": {
+    "identity": "fdas-heldout-ledger:3316741ec8325503e57944e0baa52d749c86690640ee088dba7cc2700e9c6215",
+    "path": "artifacts/freeciv/fdas-actor-persistence-holdout-v2/actor-persistence-holdout-ledger.json",
+    "state_hash": "1f988dcef2dd1746898db78e82e7de878e3e0066fe49afe329f3d6350ad1bb2a"
+  },
+  "result": {
+    "approvals": [],
+    "demoted_rule_ids": [
+      "induced-1d849b56382cbb72e68ffebf",
+      "induced-38bdc567d67e1a14fa79e800",
+      "induced-40093f0b9e630561b2889691",
+      "induced-aa80b3934dd800e65891cf8c",
+      "induced-b198f88e49b37a2e5a22b61e",
+      "induced-d415ea85da34520ed8884596",
+      "induced-e2d15d325daf3aaf9b2ee036",
+      "induced-e2f00e6adfd1efa8831bdcb1"
+    ],
+    "duplicate_proposal_ids": [],
+    "duplicate_validation_ids": [],
+    "holdout_encoding_results": [
+      {
+        "accepted": true,
+        "episode_id": "episode-0d72da7dcb711e4bd6f2ac4eee23e8da",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-0d72da7dcb711e4bd6f2ac4eee23e8da",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Riflemen",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=5-8",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:d809b2edbd4a47d29ef1571d48a67384",
+            "fdas-episode:629d40dd2687531a07183ca9d741090dce49622741ad7d7665437f7c0c571991",
+            "outcome-label:543173ffba890367cb2b29c862b639c1bc9b72f56dcde0c2bde562d74b90de3b"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "ebc2a8547f487cc916aec970afac5656cca7ac7d95a108447c888a719b3ea959",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-2fe460c257e14e1fd3183c9a9f4671cc",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-2fe460c257e14e1fd3183c9a9f4671cc",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Riflemen",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=2-4",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:e62c1ce5819b4e24a3d8ec7e3afeadae",
+            "fdas-episode:fd37cc4e0038fd1bd6ea07459b54583ccd76b30cbbc9df32118e0f15e6a70f95",
+            "outcome-label:a3649087986a43aa471740344cc16b9b16b82767a8daf795e76342ca5861268c"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "d85887705a08ee1e96a952f53ace395a32ecc39725e5428dcf44d97aa25f808f",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-53bc0900f7e7ea316c099d2da73535b1",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-53bc0900f7e7ea316c099d2da73535b1",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Alpine Troops",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=2-4",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:b73942ef5e704d0ba4158fc0af92a98a",
+            "fdas-episode:ed03e43c765aac5ef4e67b1b7b6dbbe25afcced6d7bbde84923bde8beeaf8bed",
+            "outcome-label:3d4fe3c9b2e143576d7442de43937f305ca5590444946f2a22e20adbf7503893"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "8ebebed85e1312730498d7fbea65690f7212a2faf3284eab8be40f1c93440903",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-626550ef61afb463759072c7c519c1b4",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-626550ef61afb463759072c7c519c1b4",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Riflemen",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=2-4",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": false,
+          "provenance_ids": [
+            "execution-event:d8c22cf276f941e5a2cf120e2d0d8412",
+            "fdas-episode:2e1fc7378976d40bc28bee6f2d9b607e2e52c0f1c2e921de569310a16b381661",
+            "outcome-label:fb5e3ef90ae9eaf2ca745da0fae2e5457a54f5f3f7c2ff680d45104a8aff8bb4"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "6b0862de7f0e27eb842638ff8704e7de25e856cc0f390aa72e29e5c507a0e55a",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-7a52903b73cae5b51c89764e81613a54",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-7a52903b73cae5b51c89764e81613a54",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Alpine Troops",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=1",
+            "context:other_own_units_at_target_band=1",
+            "context:own_units_at_target_band=2"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:77a517c8131f45038ae8248b379d89df",
+            "fdas-episode:dad7fbf729ecd574ad2e6c66d39b022d7527a9c6e30fcf30e642ac361201faa2",
+            "outcome-label:067f81684682f85cfd6a48843a2daae39e19987f33a7c216e05cc5c4a7326bc8"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "100ae3b7c0101556c1be814b80e517141db75090a7877afc44c0f57ab99b0f07",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-8a4c28510ab2c7622fe531c1b31ad126",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-8a4c28510ab2c7622fe531c1b31ad126",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Alpine Troops",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=5-8",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:43adce38cae64bd99e357fe43fe3a987",
+            "fdas-episode:d3d5875c63e90ab6647d049cd8927a1c23fc051a140dee0af546081d17baa729",
+            "outcome-label:defd6eef60956b26b5f383ebc8b91d4334dccf11a0a0757fbbcc9acd02ef1a9f"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "36307523be666385e1d74c4f363273b2ad3e1c4399459e267f3cea39fea9c6a0",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-9c05c54d8af89c3b633cf2d0f589a531",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-9c05c54d8af89c3b633cf2d0f589a531",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Riflemen",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=2-4",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": false,
+          "provenance_ids": [
+            "execution-event:0a79796f990b4194a5509e49d94abc9d",
+            "fdas-episode:a50dbc22ba63f3e81c2edc6386e832748d35aee0d55ccc8f545c823f34494300",
+            "outcome-label:fbf9dd9507f76d420c28c7f56b06ffd4d45503eb52325ee2109c0c8ff8e1d628"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "7bce2567f5743b38c4b41d76d5adc9125b0b2b35767ed07475e87c915784d7bb",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-ab2bf4342fa971e46c2f6a9fa5a4d395",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-ab2bf4342fa971e46c2f6a9fa5a4d395",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Riflemen",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=2-4",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:7d2d8a71b4cb4714b9899ca8d60fe199",
+            "fdas-episode:7b26b9a6630ba35bdc7a6e5699ffb77281f2b1e7a7cb4f7d476f21d6f48ca39e",
+            "outcome-label:b27e557aa0578d5b74dc2654312c9518f101ca5b0646b0238cbe967d94200065"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "4d058fe81f10778466542a02eba5ccf69c090cfbaede6455d86318aeb248e299",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-ab585ed3921f14556157deabc7c32559",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-ab585ed3921f14556157deabc7c32559",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Riflemen",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=5-8",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:5cad6201710b4c78a80d7cbd6ad43106",
+            "fdas-episode:9620598979c21185ba5789f7fa93f178c16e43201856b1f4c35efc1abed9e70a",
+            "outcome-label:04fc437384d6bedb3466bd61e862df19e08563d49c14653b95279cc00d2f0d98"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "2363ca9388cad38e8ab01a5b2fa6a1d5f36c3795a224530cbc2349b8175bb943",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-bd2d618b48f35337252b18228dc86d32",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-bd2d618b48f35337252b18228dc86d32",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Warriors",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=1",
+            "context:other_own_units_at_target_band=1",
+            "context:own_units_at_target_band=2"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:53144c1276b9414381aeeb6aecb3840e",
+            "fdas-episode:ed894474c26417bf798f7d9e29997a840df00fadac527c2ce9176a2e569feb31",
+            "outcome-label:343f27a9915cc604dcee79cd62df150bea84f54565dffaef0b79842bd1057f4a"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "f3f9e6afbb151c9abf88b0be3a829de6b226c48f291b123bdc6db279b0562591",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-d876f3c35c47302eaf259001636f7182",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-d876f3c35c47302eaf259001636f7182",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Riflemen",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=5-8",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": false,
+          "provenance_ids": [
+            "execution-event:92e98e35c28e46478de771550e3ffd4d",
+            "fdas-episode:d0130367dc95a6050e8566bb37f524e7f25fe7a522fbf7ddaaeb40de19ffc3bd",
+            "outcome-label:850569b4276151e640841194109ab9d30251aae0dae0b917482d842e88f24259"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "dea0eb80afec8aff48da2cd36687ba63b1f610d131bc0df0feabcb758c346ffd",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-e1ef60d0dd5b72967fc5526ebb8c58d3",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-e1ef60d0dd5b72967fc5526ebb8c58d3",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Riflemen",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=5-8",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:a45d6649cae34394a6e43042c9860d08",
+            "fdas-episode:19cf1c72aaa9b2ba5437f2f484ee0b00b58209616a3c7203047e22d92e48f139",
+            "outcome-label:efc64ff562bb066ca10a6ded470906b3c1b08188cfeb9aca420a0735514325a7"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "f0703fe3fbee9bedb77b5dc40f02609ccd03ea3e1bb127825c44279bd1b7f291",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-f3828b8d779670b977e2bd939cc31211",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-f3828b8d779670b977e2bd939cc31211",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Alpine Troops",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=1",
+            "context:other_own_units_at_target_band=1",
+            "context:own_units_at_target_band=2"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:51a4d1c99b394f5a835fd1822b5d13ed",
+            "fdas-episode:4a5727267f13f58e510cf7f746ca4bee5d53b208b11e6968eae108d3791f9576",
+            "outcome-label:d2cea9283fc4e259ce4544f05358a8d79ccf3a696dda9730251a75d7ede1f5c9"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "4d04104d4791f335125015a60b003a796e54541fb2ac539efe6bd7479f4fa2f2",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-f7cfd7f985c94d00b5e0f6ad110ba8da",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-f7cfd7f985c94d00b5e0f6ad110ba8da",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Warriors",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=1",
+            "context:other_own_units_at_target_band=1",
+            "context:own_units_at_target_band=2"
+          ],
+          "outcome": false,
+          "provenance_ids": [
+            "execution-event:0d5738586cba4083adcf3c6bc5cfa14e",
+            "fdas-episode:96f8ed75b38012adddb51696ce2399695033ce39beef03faa1c1d90e07fe538a",
+            "outcome-label:27f9c3ed9a3b037e23d790d890fcc543678376efbaaac9b6d177ceee9f91bd96"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "ca06659980ba9999244b0d6646642f771edc944d5cdd203590265ad30c197a50",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-fa81aeb3b7a6bb0e59e2283454dd198b",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-fa81aeb3b7a6bb0e59e2283454dd198b",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Alpine Troops",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=2-4",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:aabd6a823d424b51a31ab91e3fe41d86",
+            "fdas-episode:11396dbc2d9f0cd63539f524101663b5930b796446872d534fd32d8d30acaac0",
+            "outcome-label:630b2beb3e6acd191cb93d48bf93a9688090c0e8a274188f4813bfe06bac38ce"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "62dd3be3a574886fc343b2bb2eb1300a0265fa8b982c66aaf28f2b64ed20c0a8",
+        "truth_mutated": false
+      }
+    ],
+    "ledger_hash": "1f988dcef2dd1746898db78e82e7de878e3e0066fe49afe329f3d6350ad1bb2a",
+    "mining_reason": "heldout-candidates-mined",
+    "newly_quarantined_proposal_ids": [
+      "induced-1d849b56382cbb72e68ffebf",
+      "induced-38bdc567d67e1a14fa79e800",
+      "induced-40093f0b9e630561b2889691",
+      "induced-aa80b3934dd800e65891cf8c",
+      "induced-b198f88e49b37a2e5a22b61e",
+      "induced-d415ea85da34520ed8884596",
+      "induced-e2d15d325daf3aaf9b2ee036",
+      "induced-e2f00e6adfd1efa8831bdcb1"
+    ],
+    "newly_validated_ids": [
+      "validation-04a19121920192d553ed145b",
+      "validation-4dea4c9df322ac11b15fc057",
+      "validation-500e13f61ee99a44c095df3c",
+      "validation-84951e6d0b7ba20c3a589eae",
+      "validation-8f6ae9a4d8ba0afe791c130b",
+      "validation-a83844cb34f16e96489d80a1",
+      "validation-cefdaf3194e3540c548dd266",
+      "validation-e5d5ea9fb6d2f3ca701ee739"
+    ],
+    "policy_authority": false,
+    "promoted_rule_ids": [],
+    "proposals": [
+      {
+        "antecedent": [
+          "context:actor_unit_type=Musketeers"
+        ],
+        "baseline_probability": 0.7272727272727273,
+        "compression_gain": 0.8333333333333334,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "context": [
+          [
+            "induction_feature_schema",
+            "defense-episode-features/2.0"
+          ],
+          [
+            "operation_type",
+            "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+          ],
+          [
+            "outcome_target",
+            "durable-attributed-actor-city-defense/32-turn/1.0"
+          ]
+        ],
+        "expected_gain": 0.08522727272727275,
+        "expected_generalization": 1.0,
+        "overfit_risk": 0.16666666666666666,
+        "positives": 4,
+        "prediction_residual": 0.10227272727272729,
+        "probability": 0.625,
+        "proposal_id": "induced-1d849b56382cbb72e68ffebf",
+        "provenance_ids": [
+          "execution-event:211532100ee44b898232ec95c7a1f777",
+          "execution-event:5a08206d62a6430ea645ce87999c2ee8",
+          "execution-event:6654665221f044dda82781625f1b68d2",
+          "execution-event:8717fc33a98542cc9990a96384b6816f",
+          "execution-event:8758abcca48d4700a456cbd59ff5e4b6",
+          "execution-event:88c6afa7d25549f7be21188f32270fc3",
+          "execution-event:b7c77f9b2de44f6887b4d841fcbb6dd7",
+          "execution-event:d31c334e8f0641e1b18cd25dbf33e020",
+          "execution-event:f2d10fe49f564d4dbda8985c244b3169",
+          "fdas-episode:166ca9161a4cb1c4ec536ed2f5e1de42cb48da527df5b32a299f2ea00eb0e1ec",
+          "fdas-episode:324bf5207f9d6641c483c2be45d68154e2d7d65e87a210c0cef0c7304b683214",
+          "fdas-episode:8dd26ef1a7a4ab9976994d6c0081ca03e173b61e7cfe763453b0886447475005",
+          "fdas-episode:9360c4513c1a8286459e6ffd8efabc404ec66f9f5ad40e1557f478876c1ccd0c",
+          "fdas-episode:9ba4665c48bc9ed5d450624e59e6ac64b50508dc80b7810110216362cd0d8f87",
+          "fdas-episode:a13cf75648ff98e63415c911166d696e7cdb23653ef755bb77c9520d8e81a959",
+          "fdas-episode:af252eaa992c596d2d52eb01d6832041c03675e46387e75a238feb35ffaee7a1",
+          "fdas-episode:b2d2884f67ba957b8283df750ce0764ed97f4538e4808df5bb77664c3f9a7315",
+          "fdas-episode:b6877769a6d636fffba4d982e24150e50eeccd8275374037229fb9964a9da71c",
+          "outcome-label:043a8a01b1bd095fbd474393bcda1df10dc0b7d8642b39376a9687936337acf1",
+          "outcome-label:326802b5cd8c88d44bfa8d23a56708a382f6eb8d2459ce8f47b74d3398cdcd6b",
+          "outcome-label:51c84fd95c53f499bdda8aa83e6bfeeb17760ce26fe95ef32d0ef6066e5356b4",
+          "outcome-label:5828c103a1f5fa1f3b5110003cc68120057643c11cd8bfed6719a08412277cbf",
+          "outcome-label:81cdbd582e8fff93934006bb5d4e0cbbc58e2d9ef517e79cf41b257b8837bb18",
+          "outcome-label:9e33ca105c00c47198bae7fa31d0ffac91b632fe6faac8e99be577f22f697fe9",
+          "outcome-label:bcc0425b6e88458fd60e7fa2d9430ffbb96b8c5372ad533337aa2e49ad05cfe6",
+          "outcome-label:c9d1fdd273e90d46538cb7f542b5bc11c03e73de043404593dd4ddb6656c1eb2",
+          "outcome-label:f5ae6a1d65f0941ed938612f1fa33da9ff21bcee0eb9c3956a1d126f553a7116"
+        ],
+        "source": "pattern",
+        "source_proposal_ids": [],
+        "support": 6,
+        "training_episode_ids": [
+          "episode-15562d2c42411016a52b88eba5aa2028",
+          "episode-316780435080e3793739d43dd51a2c45",
+          "episode-37516d14c6103fed06c7fbfb136f8391",
+          "episode-44d6a54f90e963ef2b95ef6e9c8a8dd4",
+          "episode-85a4305a12912012785f77f37a571686",
+          "episode-9258215a1f6eeb437556136f16a0d356",
+          "episode-aecabf00955863c97c343f0c07af1444",
+          "episode-c794981f9dd929ed288efb95e72fda16",
+          "episode-f09595ab50d9d7b4fa5e16ea6a482049"
+        ],
+        "transfer_uncertainty": 0.0,
+        "trigger_pressure": 0.42613636363636376
+      },
+      {
+        "antecedent": [
+          "context:actor_unit_type=Musketeers",
+          "context:city_disorder=false"
+        ],
+        "baseline_probability": 0.7272727272727273,
+        "compression_gain": 0.6666666666666666,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "context": [
+          [
+            "induction_feature_schema",
+            "defense-episode-features/2.0"
+          ],
+          [
+            "operation_type",
+            "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+          ],
+          [
+            "outcome_target",
+            "durable-attributed-actor-city-defense/32-turn/1.0"
+          ]
+        ],
+        "expected_gain": 0.0681818181818182,
+        "expected_generalization": 1.0,
+        "overfit_risk": 0.3333333333333333,
+        "positives": 4,
+        "prediction_residual": 0.10227272727272729,
+        "probability": 0.625,
+        "proposal_id": "induced-40093f0b9e630561b2889691",
+        "provenance_ids": [
+          "execution-event:211532100ee44b898232ec95c7a1f777",
+          "execution-event:5a08206d62a6430ea645ce87999c2ee8",
+          "execution-event:6654665221f044dda82781625f1b68d2",
+          "execution-event:8717fc33a98542cc9990a96384b6816f",
+          "execution-event:8758abcca48d4700a456cbd59ff5e4b6",
+          "execution-event:88c6afa7d25549f7be21188f32270fc3",
+          "execution-event:b7c77f9b2de44f6887b4d841fcbb6dd7",
+          "execution-event:d31c334e8f0641e1b18cd25dbf33e020",
+          "execution-event:f2d10fe49f564d4dbda8985c244b3169",
+          "fdas-episode:166ca9161a4cb1c4ec536ed2f5e1de42cb48da527df5b32a299f2ea00eb0e1ec",
+          "fdas-episode:324bf5207f9d6641c483c2be45d68154e2d7d65e87a210c0cef0c7304b683214",
+          "fdas-episode:8dd26ef1a7a4ab9976994d6c0081ca03e173b61e7cfe763453b0886447475005",
+          "fdas-episode:9360c4513c1a8286459e6ffd8efabc404ec66f9f5ad40e1557f478876c1ccd0c",
+          "fdas-episode:9ba4665c48bc9ed5d450624e59e6ac64b50508dc80b7810110216362cd0d8f87",
+          "fdas-episode:a13cf75648ff98e63415c911166d696e7cdb23653ef755bb77c9520d8e81a959",
+          "fdas-episode:af252eaa992c596d2d52eb01d6832041c03675e46387e75a238feb35ffaee7a1",
+          "fdas-episode:b2d2884f67ba957b8283df750ce0764ed97f4538e4808df5bb77664c3f9a7315",
+          "fdas-episode:b6877769a6d636fffba4d982e24150e50eeccd8275374037229fb9964a9da71c",
+          "outcome-label:043a8a01b1bd095fbd474393bcda1df10dc0b7d8642b39376a9687936337acf1",
+          "outcome-label:326802b5cd8c88d44bfa8d23a56708a382f6eb8d2459ce8f47b74d3398cdcd6b",
+          "outcome-label:51c84fd95c53f499bdda8aa83e6bfeeb17760ce26fe95ef32d0ef6066e5356b4",
+          "outcome-label:5828c103a1f5fa1f3b5110003cc68120057643c11cd8bfed6719a08412277cbf",
+          "outcome-label:81cdbd582e8fff93934006bb5d4e0cbbc58e2d9ef517e79cf41b257b8837bb18",
+          "outcome-label:9e33ca105c00c47198bae7fa31d0ffac91b632fe6faac8e99be577f22f697fe9",
+          "outcome-label:bcc0425b6e88458fd60e7fa2d9430ffbb96b8c5372ad533337aa2e49ad05cfe6",
+          "outcome-label:c9d1fdd273e90d46538cb7f542b5bc11c03e73de043404593dd4ddb6656c1eb2",
+          "outcome-label:f5ae6a1d65f0941ed938612f1fa33da9ff21bcee0eb9c3956a1d126f553a7116"
+        ],
+        "source": "pattern",
+        "source_proposal_ids": [],
+        "support": 6,
+        "training_episode_ids": [
+          "episode-15562d2c42411016a52b88eba5aa2028",
+          "episode-316780435080e3793739d43dd51a2c45",
+          "episode-37516d14c6103fed06c7fbfb136f8391",
+          "episode-44d6a54f90e963ef2b95ef6e9c8a8dd4",
+          "episode-85a4305a12912012785f77f37a571686",
+          "episode-9258215a1f6eeb437556136f16a0d356",
+          "episode-aecabf00955863c97c343f0c07af1444",
+          "episode-c794981f9dd929ed288efb95e72fda16",
+          "episode-f09595ab50d9d7b4fa5e16ea6a482049"
+        ],
+        "transfer_uncertainty": 0.0,
+        "trigger_pressure": 0.2727272727272728
+      },
+      {
+        "antecedent": [
+          "context:actor_moves_band=2+",
+          "context:actor_unit_type=Musketeers"
+        ],
+        "baseline_probability": 0.7272727272727273,
+        "compression_gain": 0.6666666666666666,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "context": [
+          [
+            "induction_feature_schema",
+            "defense-episode-features/2.0"
+          ],
+          [
+            "operation_type",
+            "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+          ],
+          [
+            "outcome_target",
+            "durable-attributed-actor-city-defense/32-turn/1.0"
+          ]
+        ],
+        "expected_gain": 0.0681818181818182,
+        "expected_generalization": 1.0,
+        "overfit_risk": 0.3333333333333333,
+        "positives": 4,
+        "prediction_residual": 0.10227272727272729,
+        "probability": 0.625,
+        "proposal_id": "induced-d415ea85da34520ed8884596",
+        "provenance_ids": [
+          "execution-event:211532100ee44b898232ec95c7a1f777",
+          "execution-event:5a08206d62a6430ea645ce87999c2ee8",
+          "execution-event:6654665221f044dda82781625f1b68d2",
+          "execution-event:8717fc33a98542cc9990a96384b6816f",
+          "execution-event:8758abcca48d4700a456cbd59ff5e4b6",
+          "execution-event:88c6afa7d25549f7be21188f32270fc3",
+          "execution-event:b7c77f9b2de44f6887b4d841fcbb6dd7",
+          "execution-event:d31c334e8f0641e1b18cd25dbf33e020",
+          "execution-event:f2d10fe49f564d4dbda8985c244b3169",
+          "fdas-episode:166ca9161a4cb1c4ec536ed2f5e1de42cb48da527df5b32a299f2ea00eb0e1ec",
+          "fdas-episode:324bf5207f9d6641c483c2be45d68154e2d7d65e87a210c0cef0c7304b683214",
+          "fdas-episode:8dd26ef1a7a4ab9976994d6c0081ca03e173b61e7cfe763453b0886447475005",
+          "fdas-episode:9360c4513c1a8286459e6ffd8efabc404ec66f9f5ad40e1557f478876c1ccd0c",
+          "fdas-episode:9ba4665c48bc9ed5d450624e59e6ac64b50508dc80b7810110216362cd0d8f87",
+          "fdas-episode:a13cf75648ff98e63415c911166d696e7cdb23653ef755bb77c9520d8e81a959",
+          "fdas-episode:af252eaa992c596d2d52eb01d6832041c03675e46387e75a238feb35ffaee7a1",
+          "fdas-episode:b2d2884f67ba957b8283df750ce0764ed97f4538e4808df5bb77664c3f9a7315",
+          "fdas-episode:b6877769a6d636fffba4d982e24150e50eeccd8275374037229fb9964a9da71c",
+          "outcome-label:043a8a01b1bd095fbd474393bcda1df10dc0b7d8642b39376a9687936337acf1",
+          "outcome-label:326802b5cd8c88d44bfa8d23a56708a382f6eb8d2459ce8f47b74d3398cdcd6b",
+          "outcome-label:51c84fd95c53f499bdda8aa83e6bfeeb17760ce26fe95ef32d0ef6066e5356b4",
+          "outcome-label:5828c103a1f5fa1f3b5110003cc68120057643c11cd8bfed6719a08412277cbf",
+          "outcome-label:81cdbd582e8fff93934006bb5d4e0cbbc58e2d9ef517e79cf41b257b8837bb18",
+          "outcome-label:9e33ca105c00c47198bae7fa31d0ffac91b632fe6faac8e99be577f22f697fe9",
+          "outcome-label:bcc0425b6e88458fd60e7fa2d9430ffbb96b8c5372ad533337aa2e49ad05cfe6",
+          "outcome-label:c9d1fdd273e90d46538cb7f542b5bc11c03e73de043404593dd4ddb6656c1eb2",
+          "outcome-label:f5ae6a1d65f0941ed938612f1fa33da9ff21bcee0eb9c3956a1d126f553a7116"
+        ],
+        "source": "pattern",
+        "source_proposal_ids": [],
+        "support": 6,
+        "training_episode_ids": [
+          "episode-15562d2c42411016a52b88eba5aa2028",
+          "episode-316780435080e3793739d43dd51a2c45",
+          "episode-37516d14c6103fed06c7fbfb136f8391",
+          "episode-44d6a54f90e963ef2b95ef6e9c8a8dd4",
+          "episode-85a4305a12912012785f77f37a571686",
+          "episode-9258215a1f6eeb437556136f16a0d356",
+          "episode-aecabf00955863c97c343f0c07af1444",
+          "episode-c794981f9dd929ed288efb95e72fda16",
+          "episode-f09595ab50d9d7b4fa5e16ea6a482049"
+        ],
+        "transfer_uncertainty": 0.0,
+        "trigger_pressure": 0.2727272727272728
+      },
+      {
+        "antecedent": [
+          "context:actor_unit_type=Musketeers",
+          "context:actor_veteran_band=none"
+        ],
+        "baseline_probability": 0.7272727272727273,
+        "compression_gain": 0.6666666666666666,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "context": [
+          [
+            "induction_feature_schema",
+            "defense-episode-features/2.0"
+          ],
+          [
+            "operation_type",
+            "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+          ],
+          [
+            "outcome_target",
+            "durable-attributed-actor-city-defense/32-turn/1.0"
+          ]
+        ],
+        "expected_gain": 0.0681818181818182,
+        "expected_generalization": 1.0,
+        "overfit_risk": 0.3333333333333333,
+        "positives": 4,
+        "prediction_residual": 0.10227272727272729,
+        "probability": 0.625,
+        "proposal_id": "induced-e2f00e6adfd1efa8831bdcb1",
+        "provenance_ids": [
+          "execution-event:211532100ee44b898232ec95c7a1f777",
+          "execution-event:5a08206d62a6430ea645ce87999c2ee8",
+          "execution-event:6654665221f044dda82781625f1b68d2",
+          "execution-event:8717fc33a98542cc9990a96384b6816f",
+          "execution-event:8758abcca48d4700a456cbd59ff5e4b6",
+          "execution-event:88c6afa7d25549f7be21188f32270fc3",
+          "execution-event:b7c77f9b2de44f6887b4d841fcbb6dd7",
+          "execution-event:d31c334e8f0641e1b18cd25dbf33e020",
+          "execution-event:f2d10fe49f564d4dbda8985c244b3169",
+          "fdas-episode:166ca9161a4cb1c4ec536ed2f5e1de42cb48da527df5b32a299f2ea00eb0e1ec",
+          "fdas-episode:324bf5207f9d6641c483c2be45d68154e2d7d65e87a210c0cef0c7304b683214",
+          "fdas-episode:8dd26ef1a7a4ab9976994d6c0081ca03e173b61e7cfe763453b0886447475005",
+          "fdas-episode:9360c4513c1a8286459e6ffd8efabc404ec66f9f5ad40e1557f478876c1ccd0c",
+          "fdas-episode:9ba4665c48bc9ed5d450624e59e6ac64b50508dc80b7810110216362cd0d8f87",
+          "fdas-episode:a13cf75648ff98e63415c911166d696e7cdb23653ef755bb77c9520d8e81a959",
+          "fdas-episode:af252eaa992c596d2d52eb01d6832041c03675e46387e75a238feb35ffaee7a1",
+          "fdas-episode:b2d2884f67ba957b8283df750ce0764ed97f4538e4808df5bb77664c3f9a7315",
+          "fdas-episode:b6877769a6d636fffba4d982e24150e50eeccd8275374037229fb9964a9da71c",
+          "outcome-label:043a8a01b1bd095fbd474393bcda1df10dc0b7d8642b39376a9687936337acf1",
+          "outcome-label:326802b5cd8c88d44bfa8d23a56708a382f6eb8d2459ce8f47b74d3398cdcd6b",
+          "outcome-label:51c84fd95c53f499bdda8aa83e6bfeeb17760ce26fe95ef32d0ef6066e5356b4",
+          "outcome-label:5828c103a1f5fa1f3b5110003cc68120057643c11cd8bfed6719a08412277cbf",
+          "outcome-label:81cdbd582e8fff93934006bb5d4e0cbbc58e2d9ef517e79cf41b257b8837bb18",
+          "outcome-label:9e33ca105c00c47198bae7fa31d0ffac91b632fe6faac8e99be577f22f697fe9",
+          "outcome-label:bcc0425b6e88458fd60e7fa2d9430ffbb96b8c5372ad533337aa2e49ad05cfe6",
+          "outcome-label:c9d1fdd273e90d46538cb7f542b5bc11c03e73de043404593dd4ddb6656c1eb2",
+          "outcome-label:f5ae6a1d65f0941ed938612f1fa33da9ff21bcee0eb9c3956a1d126f553a7116"
+        ],
+        "source": "pattern",
+        "source_proposal_ids": [],
+        "support": 6,
+        "training_episode_ids": [
+          "episode-15562d2c42411016a52b88eba5aa2028",
+          "episode-316780435080e3793739d43dd51a2c45",
+          "episode-37516d14c6103fed06c7fbfb136f8391",
+          "episode-44d6a54f90e963ef2b95ef6e9c8a8dd4",
+          "episode-85a4305a12912012785f77f37a571686",
+          "episode-9258215a1f6eeb437556136f16a0d356",
+          "episode-aecabf00955863c97c343f0c07af1444",
+          "episode-c794981f9dd929ed288efb95e72fda16",
+          "episode-f09595ab50d9d7b4fa5e16ea6a482049"
+        ],
+        "transfer_uncertainty": 0.0,
+        "trigger_pressure": 0.2727272727272728
+      },
+      {
+        "antecedent": [
+          "context:city_size_band=1"
+        ],
+        "baseline_probability": 0.7272727272727273,
+        "compression_gain": 0.75,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "context": [
+          [
+            "induction_feature_schema",
+            "defense-episode-features/2.0"
+          ],
+          [
+            "operation_type",
+            "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+          ],
+          [
+            "outcome_target",
+            "durable-attributed-actor-city-defense/32-turn/1.0"
+          ]
+        ],
+        "expected_gain": 0.07070707070707072,
+        "expected_generalization": 0.8888888888888888,
+        "overfit_risk": 0.25,
+        "positives": 4,
+        "prediction_residual": 0.10606060606060608,
+        "probability": 0.8333333333333334,
+        "proposal_id": "induced-b198f88e49b37a2e5a22b61e",
+        "provenance_ids": [
+          "execution-event:211532100ee44b898232ec95c7a1f777",
+          "execution-event:5a08206d62a6430ea645ce87999c2ee8",
+          "execution-event:6654665221f044dda82781625f1b68d2",
+          "execution-event:8717fc33a98542cc9990a96384b6816f",
+          "execution-event:8758abcca48d4700a456cbd59ff5e4b6",
+          "execution-event:88c6afa7d25549f7be21188f32270fc3",
+          "execution-event:b7c77f9b2de44f6887b4d841fcbb6dd7",
+          "execution-event:d31c334e8f0641e1b18cd25dbf33e020",
+          "execution-event:f2d10fe49f564d4dbda8985c244b3169",
+          "fdas-episode:166ca9161a4cb1c4ec536ed2f5e1de42cb48da527df5b32a299f2ea00eb0e1ec",
+          "fdas-episode:324bf5207f9d6641c483c2be45d68154e2d7d65e87a210c0cef0c7304b683214",
+          "fdas-episode:8dd26ef1a7a4ab9976994d6c0081ca03e173b61e7cfe763453b0886447475005",
+          "fdas-episode:9360c4513c1a8286459e6ffd8efabc404ec66f9f5ad40e1557f478876c1ccd0c",
+          "fdas-episode:9ba4665c48bc9ed5d450624e59e6ac64b50508dc80b7810110216362cd0d8f87",
+          "fdas-episode:a13cf75648ff98e63415c911166d696e7cdb23653ef755bb77c9520d8e81a959",
+          "fdas-episode:af252eaa992c596d2d52eb01d6832041c03675e46387e75a238feb35ffaee7a1",
+          "fdas-episode:b2d2884f67ba957b8283df750ce0764ed97f4538e4808df5bb77664c3f9a7315",
+          "fdas-episode:b6877769a6d636fffba4d982e24150e50eeccd8275374037229fb9964a9da71c",
+          "outcome-label:043a8a01b1bd095fbd474393bcda1df10dc0b7d8642b39376a9687936337acf1",
+          "outcome-label:326802b5cd8c88d44bfa8d23a56708a382f6eb8d2459ce8f47b74d3398cdcd6b",
+          "outcome-label:51c84fd95c53f499bdda8aa83e6bfeeb17760ce26fe95ef32d0ef6066e5356b4",
+          "outcome-label:5828c103a1f5fa1f3b5110003cc68120057643c11cd8bfed6719a08412277cbf",
+          "outcome-label:81cdbd582e8fff93934006bb5d4e0cbbc58e2d9ef517e79cf41b257b8837bb18",
+          "outcome-label:9e33ca105c00c47198bae7fa31d0ffac91b632fe6faac8e99be577f22f697fe9",
+          "outcome-label:bcc0425b6e88458fd60e7fa2d9430ffbb96b8c5372ad533337aa2e49ad05cfe6",
+          "outcome-label:c9d1fdd273e90d46538cb7f542b5bc11c03e73de043404593dd4ddb6656c1eb2",
+          "outcome-label:f5ae6a1d65f0941ed938612f1fa33da9ff21bcee0eb9c3956a1d126f553a7116"
+        ],
+        "source": "pattern",
+        "source_proposal_ids": [],
+        "support": 4,
+        "training_episode_ids": [
+          "episode-15562d2c42411016a52b88eba5aa2028",
+          "episode-316780435080e3793739d43dd51a2c45",
+          "episode-37516d14c6103fed06c7fbfb136f8391",
+          "episode-44d6a54f90e963ef2b95ef6e9c8a8dd4",
+          "episode-85a4305a12912012785f77f37a571686",
+          "episode-9258215a1f6eeb437556136f16a0d356",
+          "episode-aecabf00955863c97c343f0c07af1444",
+          "episode-c794981f9dd929ed288efb95e72fda16",
+          "episode-f09595ab50d9d7b4fa5e16ea6a482049"
+        ],
+        "transfer_uncertainty": 0.0,
+        "trigger_pressure": 0.21212121212121215
+      },
+      {
+        "antecedent": [
+          "context:actor_moves_band=2+",
+          "context:city_size_band=1"
+        ],
+        "baseline_probability": 0.7272727272727273,
+        "compression_gain": 0.5,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "context": [
+          [
+            "induction_feature_schema",
+            "defense-episode-features/2.0"
+          ],
+          [
+            "operation_type",
+            "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+          ],
+          [
+            "outcome_target",
+            "durable-attributed-actor-city-defense/32-turn/1.0"
+          ]
+        ],
+        "expected_gain": 0.047138047138047146,
+        "expected_generalization": 0.8888888888888888,
+        "overfit_risk": 0.5,
+        "positives": 4,
+        "prediction_residual": 0.10606060606060608,
+        "probability": 0.8333333333333334,
+        "proposal_id": "induced-38bdc567d67e1a14fa79e800",
+        "provenance_ids": [
+          "execution-event:211532100ee44b898232ec95c7a1f777",
+          "execution-event:5a08206d62a6430ea645ce87999c2ee8",
+          "execution-event:6654665221f044dda82781625f1b68d2",
+          "execution-event:8717fc33a98542cc9990a96384b6816f",
+          "execution-event:8758abcca48d4700a456cbd59ff5e4b6",
+          "execution-event:88c6afa7d25549f7be21188f32270fc3",
+          "execution-event:b7c77f9b2de44f6887b4d841fcbb6dd7",
+          "execution-event:d31c334e8f0641e1b18cd25dbf33e020",
+          "execution-event:f2d10fe49f564d4dbda8985c244b3169",
+          "fdas-episode:166ca9161a4cb1c4ec536ed2f5e1de42cb48da527df5b32a299f2ea00eb0e1ec",
+          "fdas-episode:324bf5207f9d6641c483c2be45d68154e2d7d65e87a210c0cef0c7304b683214",
+          "fdas-episode:8dd26ef1a7a4ab9976994d6c0081ca03e173b61e7cfe763453b0886447475005",
+          "fdas-episode:9360c4513c1a8286459e6ffd8efabc404ec66f9f5ad40e1557f478876c1ccd0c",
+          "fdas-episode:9ba4665c48bc9ed5d450624e59e6ac64b50508dc80b7810110216362cd0d8f87",
+          "fdas-episode:a13cf75648ff98e63415c911166d696e7cdb23653ef755bb77c9520d8e81a959",
+          "fdas-episode:af252eaa992c596d2d52eb01d6832041c03675e46387e75a238feb35ffaee7a1",
+          "fdas-episode:b2d2884f67ba957b8283df750ce0764ed97f4538e4808df5bb77664c3f9a7315",
+          "fdas-episode:b6877769a6d636fffba4d982e24150e50eeccd8275374037229fb9964a9da71c",
+          "outcome-label:043a8a01b1bd095fbd474393bcda1df10dc0b7d8642b39376a9687936337acf1",
+          "outcome-label:326802b5cd8c88d44bfa8d23a56708a382f6eb8d2459ce8f47b74d3398cdcd6b",
+          "outcome-label:51c84fd95c53f499bdda8aa83e6bfeeb17760ce26fe95ef32d0ef6066e5356b4",
+          "outcome-label:5828c103a1f5fa1f3b5110003cc68120057643c11cd8bfed6719a08412277cbf",
+          "outcome-label:81cdbd582e8fff93934006bb5d4e0cbbc58e2d9ef517e79cf41b257b8837bb18",
+          "outcome-label:9e33ca105c00c47198bae7fa31d0ffac91b632fe6faac8e99be577f22f697fe9",
+          "outcome-label:bcc0425b6e88458fd60e7fa2d9430ffbb96b8c5372ad533337aa2e49ad05cfe6",
+          "outcome-label:c9d1fdd273e90d46538cb7f542b5bc11c03e73de043404593dd4ddb6656c1eb2",
+          "outcome-label:f5ae6a1d65f0941ed938612f1fa33da9ff21bcee0eb9c3956a1d126f553a7116"
+        ],
+        "source": "pattern",
+        "source_proposal_ids": [],
+        "support": 4,
+        "training_episode_ids": [
+          "episode-15562d2c42411016a52b88eba5aa2028",
+          "episode-316780435080e3793739d43dd51a2c45",
+          "episode-37516d14c6103fed06c7fbfb136f8391",
+          "episode-44d6a54f90e963ef2b95ef6e9c8a8dd4",
+          "episode-85a4305a12912012785f77f37a571686",
+          "episode-9258215a1f6eeb437556136f16a0d356",
+          "episode-aecabf00955863c97c343f0c07af1444",
+          "episode-c794981f9dd929ed288efb95e72fda16",
+          "episode-f09595ab50d9d7b4fa5e16ea6a482049"
+        ],
+        "transfer_uncertainty": 0.0,
+        "trigger_pressure": 0.09427609427609429
+      },
+      {
+        "antecedent": [
+          "context:city_disorder=false",
+          "context:city_size_band=1"
+        ],
+        "baseline_probability": 0.7272727272727273,
+        "compression_gain": 0.5,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "context": [
+          [
+            "induction_feature_schema",
+            "defense-episode-features/2.0"
+          ],
+          [
+            "operation_type",
+            "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+          ],
+          [
+            "outcome_target",
+            "durable-attributed-actor-city-defense/32-turn/1.0"
+          ]
+        ],
+        "expected_gain": 0.047138047138047146,
+        "expected_generalization": 0.8888888888888888,
+        "overfit_risk": 0.5,
+        "positives": 4,
+        "prediction_residual": 0.10606060606060608,
+        "probability": 0.8333333333333334,
+        "proposal_id": "induced-aa80b3934dd800e65891cf8c",
+        "provenance_ids": [
+          "execution-event:211532100ee44b898232ec95c7a1f777",
+          "execution-event:5a08206d62a6430ea645ce87999c2ee8",
+          "execution-event:6654665221f044dda82781625f1b68d2",
+          "execution-event:8717fc33a98542cc9990a96384b6816f",
+          "execution-event:8758abcca48d4700a456cbd59ff5e4b6",
+          "execution-event:88c6afa7d25549f7be21188f32270fc3",
+          "execution-event:b7c77f9b2de44f6887b4d841fcbb6dd7",
+          "execution-event:d31c334e8f0641e1b18cd25dbf33e020",
+          "execution-event:f2d10fe49f564d4dbda8985c244b3169",
+          "fdas-episode:166ca9161a4cb1c4ec536ed2f5e1de42cb48da527df5b32a299f2ea00eb0e1ec",
+          "fdas-episode:324bf5207f9d6641c483c2be45d68154e2d7d65e87a210c0cef0c7304b683214",
+          "fdas-episode:8dd26ef1a7a4ab9976994d6c0081ca03e173b61e7cfe763453b0886447475005",
+          "fdas-episode:9360c4513c1a8286459e6ffd8efabc404ec66f9f5ad40e1557f478876c1ccd0c",
+          "fdas-episode:9ba4665c48bc9ed5d450624e59e6ac64b50508dc80b7810110216362cd0d8f87",
+          "fdas-episode:a13cf75648ff98e63415c911166d696e7cdb23653ef755bb77c9520d8e81a959",
+          "fdas-episode:af252eaa992c596d2d52eb01d6832041c03675e46387e75a238feb35ffaee7a1",
+          "fdas-episode:b2d2884f67ba957b8283df750ce0764ed97f4538e4808df5bb77664c3f9a7315",
+          "fdas-episode:b6877769a6d636fffba4d982e24150e50eeccd8275374037229fb9964a9da71c",
+          "outcome-label:043a8a01b1bd095fbd474393bcda1df10dc0b7d8642b39376a9687936337acf1",
+          "outcome-label:326802b5cd8c88d44bfa8d23a56708a382f6eb8d2459ce8f47b74d3398cdcd6b",
+          "outcome-label:51c84fd95c53f499bdda8aa83e6bfeeb17760ce26fe95ef32d0ef6066e5356b4",
+          "outcome-label:5828c103a1f5fa1f3b5110003cc68120057643c11cd8bfed6719a08412277cbf",
+          "outcome-label:81cdbd582e8fff93934006bb5d4e0cbbc58e2d9ef517e79cf41b257b8837bb18",
+          "outcome-label:9e33ca105c00c47198bae7fa31d0ffac91b632fe6faac8e99be577f22f697fe9",
+          "outcome-label:bcc0425b6e88458fd60e7fa2d9430ffbb96b8c5372ad533337aa2e49ad05cfe6",
+          "outcome-label:c9d1fdd273e90d46538cb7f542b5bc11c03e73de043404593dd4ddb6656c1eb2",
+          "outcome-label:f5ae6a1d65f0941ed938612f1fa33da9ff21bcee0eb9c3956a1d126f553a7116"
+        ],
+        "source": "pattern",
+        "source_proposal_ids": [],
+        "support": 4,
+        "training_episode_ids": [
+          "episode-15562d2c42411016a52b88eba5aa2028",
+          "episode-316780435080e3793739d43dd51a2c45",
+          "episode-37516d14c6103fed06c7fbfb136f8391",
+          "episode-44d6a54f90e963ef2b95ef6e9c8a8dd4",
+          "episode-85a4305a12912012785f77f37a571686",
+          "episode-9258215a1f6eeb437556136f16a0d356",
+          "episode-aecabf00955863c97c343f0c07af1444",
+          "episode-c794981f9dd929ed288efb95e72fda16",
+          "episode-f09595ab50d9d7b4fa5e16ea6a482049"
+        ],
+        "transfer_uncertainty": 0.0,
+        "trigger_pressure": 0.09427609427609429
+      },
+      {
+        "antecedent": [
+          "context:actor_veteran_band=none",
+          "context:city_size_band=1"
+        ],
+        "baseline_probability": 0.7272727272727273,
+        "compression_gain": 0.5,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "context": [
+          [
+            "induction_feature_schema",
+            "defense-episode-features/2.0"
+          ],
+          [
+            "operation_type",
+            "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+          ],
+          [
+            "outcome_target",
+            "durable-attributed-actor-city-defense/32-turn/1.0"
+          ]
+        ],
+        "expected_gain": 0.047138047138047146,
+        "expected_generalization": 0.8888888888888888,
+        "overfit_risk": 0.5,
+        "positives": 4,
+        "prediction_residual": 0.10606060606060608,
+        "probability": 0.8333333333333334,
+        "proposal_id": "induced-e2d15d325daf3aaf9b2ee036",
+        "provenance_ids": [
+          "execution-event:211532100ee44b898232ec95c7a1f777",
+          "execution-event:5a08206d62a6430ea645ce87999c2ee8",
+          "execution-event:6654665221f044dda82781625f1b68d2",
+          "execution-event:8717fc33a98542cc9990a96384b6816f",
+          "execution-event:8758abcca48d4700a456cbd59ff5e4b6",
+          "execution-event:88c6afa7d25549f7be21188f32270fc3",
+          "execution-event:b7c77f9b2de44f6887b4d841fcbb6dd7",
+          "execution-event:d31c334e8f0641e1b18cd25dbf33e020",
+          "execution-event:f2d10fe49f564d4dbda8985c244b3169",
+          "fdas-episode:166ca9161a4cb1c4ec536ed2f5e1de42cb48da527df5b32a299f2ea00eb0e1ec",
+          "fdas-episode:324bf5207f9d6641c483c2be45d68154e2d7d65e87a210c0cef0c7304b683214",
+          "fdas-episode:8dd26ef1a7a4ab9976994d6c0081ca03e173b61e7cfe763453b0886447475005",
+          "fdas-episode:9360c4513c1a8286459e6ffd8efabc404ec66f9f5ad40e1557f478876c1ccd0c",
+          "fdas-episode:9ba4665c48bc9ed5d450624e59e6ac64b50508dc80b7810110216362cd0d8f87",
+          "fdas-episode:a13cf75648ff98e63415c911166d696e7cdb23653ef755bb77c9520d8e81a959",
+          "fdas-episode:af252eaa992c596d2d52eb01d6832041c03675e46387e75a238feb35ffaee7a1",
+          "fdas-episode:b2d2884f67ba957b8283df750ce0764ed97f4538e4808df5bb77664c3f9a7315",
+          "fdas-episode:b6877769a6d636fffba4d982e24150e50eeccd8275374037229fb9964a9da71c",
+          "outcome-label:043a8a01b1bd095fbd474393bcda1df10dc0b7d8642b39376a9687936337acf1",
+          "outcome-label:326802b5cd8c88d44bfa8d23a56708a382f6eb8d2459ce8f47b74d3398cdcd6b",
+          "outcome-label:51c84fd95c53f499bdda8aa83e6bfeeb17760ce26fe95ef32d0ef6066e5356b4",
+          "outcome-label:5828c103a1f5fa1f3b5110003cc68120057643c11cd8bfed6719a08412277cbf",
+          "outcome-label:81cdbd582e8fff93934006bb5d4e0cbbc58e2d9ef517e79cf41b257b8837bb18",
+          "outcome-label:9e33ca105c00c47198bae7fa31d0ffac91b632fe6faac8e99be577f22f697fe9",
+          "outcome-label:bcc0425b6e88458fd60e7fa2d9430ffbb96b8c5372ad533337aa2e49ad05cfe6",
+          "outcome-label:c9d1fdd273e90d46538cb7f542b5bc11c03e73de043404593dd4ddb6656c1eb2",
+          "outcome-label:f5ae6a1d65f0941ed938612f1fa33da9ff21bcee0eb9c3956a1d126f553a7116"
+        ],
+        "source": "pattern",
+        "source_proposal_ids": [],
+        "support": 4,
+        "training_episode_ids": [
+          "episode-15562d2c42411016a52b88eba5aa2028",
+          "episode-316780435080e3793739d43dd51a2c45",
+          "episode-37516d14c6103fed06c7fbfb136f8391",
+          "episode-44d6a54f90e963ef2b95ef6e9c8a8dd4",
+          "episode-85a4305a12912012785f77f37a571686",
+          "episode-9258215a1f6eeb437556136f16a0d356",
+          "episode-aecabf00955863c97c343f0c07af1444",
+          "episode-c794981f9dd929ed288efb95e72fda16",
+          "episode-f09595ab50d9d7b4fa5e16ea6a482049"
+        ],
+        "transfer_uncertainty": 0.0,
+        "trigger_pressure": 0.09427609427609429
+      }
+    ],
+    "readout_authority": false,
+    "result_hash": "26b6586c698f46fda491f9a847ecde68d383d5b6fc646973f3fc982f7761bde2",
+    "training_encoding_results": [
+      {
+        "accepted": true,
+        "episode_id": "episode-15562d2c42411016a52b88eba5aa2028",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-15562d2c42411016a52b88eba5aa2028",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Musketeers",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=5-8",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:211532100ee44b898232ec95c7a1f777",
+            "fdas-episode:b2d2884f67ba957b8283df750ce0764ed97f4538e4808df5bb77664c3f9a7315",
+            "outcome-label:bcc0425b6e88458fd60e7fa2d9430ffbb96b8c5372ad533337aa2e49ad05cfe6"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "0c98999980d5622bf49a3e2cab54807a96a4f2adc7297e600bc58a739cc744d9",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-316780435080e3793739d43dd51a2c45",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-316780435080e3793739d43dd51a2c45",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Musketeers",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=1",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:8758abcca48d4700a456cbd59ff5e4b6",
+            "fdas-episode:9ba4665c48bc9ed5d450624e59e6ac64b50508dc80b7810110216362cd0d8f87",
+            "outcome-label:9e33ca105c00c47198bae7fa31d0ffac91b632fe6faac8e99be577f22f697fe9"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "44aee9383bf8a45c469e57586763c53f23605ac641db772339d3ce605571aec9",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-37516d14c6103fed06c7fbfb136f8391",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-37516d14c6103fed06c7fbfb136f8391",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Musketeers",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=2-4",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": false,
+          "provenance_ids": [
+            "execution-event:8717fc33a98542cc9990a96384b6816f",
+            "fdas-episode:166ca9161a4cb1c4ec536ed2f5e1de42cb48da527df5b32a299f2ea00eb0e1ec",
+            "outcome-label:51c84fd95c53f499bdda8aa83e6bfeeb17760ce26fe95ef32d0ef6066e5356b4"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "a47dcad2ba102ea9b3bcce5a23e3409356e657450d060e0f9f899f740ab19d41",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-44d6a54f90e963ef2b95ef6e9c8a8dd4",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-44d6a54f90e963ef2b95ef6e9c8a8dd4",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Musketeers",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=2-4",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:b7c77f9b2de44f6887b4d841fcbb6dd7",
+            "fdas-episode:324bf5207f9d6641c483c2be45d68154e2d7d65e87a210c0cef0c7304b683214",
+            "outcome-label:5828c103a1f5fa1f3b5110003cc68120057643c11cd8bfed6719a08412277cbf"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "e77cd78b595cd31f45a9790f7d5a6ddca30cfe8751e7acf279d059256829d818",
+        "truth_mutated": false
+      },
+      {
+        "accepted": false,
+        "episode_id": "episode-64cae700cb9d8f29624561525b9e490a",
+        "induction_episode": null,
+        "policy_authority": false,
+        "reason": "episode-outcome-label-not-observed:pending",
+        "result_hash": "58a90b809df484af0b2acebf4e9840caac0e8b577eb304cc44ff2143f4178621",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-85a4305a12912012785f77f37a571686",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-85a4305a12912012785f77f37a571686",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Alpine Troops",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=1",
+            "context:other_own_units_at_target_band=1",
+            "context:own_units_at_target_band=2"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:6654665221f044dda82781625f1b68d2",
+            "fdas-episode:b6877769a6d636fffba4d982e24150e50eeccd8275374037229fb9964a9da71c",
+            "outcome-label:326802b5cd8c88d44bfa8d23a56708a382f6eb8d2459ce8f47b74d3398cdcd6b"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "11e2e6b3f09de4cffcc6f415456ec320506f9aebedc4bc0fd2cc16fbdd015ff8",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-9258215a1f6eeb437556136f16a0d356",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-9258215a1f6eeb437556136f16a0d356",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Musketeers",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=1",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:88c6afa7d25549f7be21188f32270fc3",
+            "fdas-episode:9360c4513c1a8286459e6ffd8efabc404ec66f9f5ad40e1557f478876c1ccd0c",
+            "outcome-label:81cdbd582e8fff93934006bb5d4e0cbbc58e2d9ef517e79cf41b257b8837bb18"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "f2c89455127b0cfa31dba1b9d029a81876a86efc3b75e4701b79fc088d0dc883",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-aecabf00955863c97c343f0c07af1444",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-aecabf00955863c97c343f0c07af1444",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Musketeers",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=5-8",
+            "context:other_own_units_at_target_band=1",
+            "context:own_units_at_target_band=2"
+          ],
+          "outcome": false,
+          "provenance_ids": [
+            "execution-event:f2d10fe49f564d4dbda8985c244b3169",
+            "fdas-episode:a13cf75648ff98e63415c911166d696e7cdb23653ef755bb77c9520d8e81a959",
+            "outcome-label:c9d1fdd273e90d46538cb7f542b5bc11c03e73de043404593dd4ddb6656c1eb2"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "1c53564db1c80d640999bba7ea0953f5f53a72c4f5b5fb65d9d468c5dc982c3e",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-c794981f9dd929ed288efb95e72fda16",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-c794981f9dd929ed288efb95e72fda16",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Alpine Troops",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=2-4",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:5a08206d62a6430ea645ce87999c2ee8",
+            "fdas-episode:8dd26ef1a7a4ab9976994d6c0081ca03e173b61e7cfe763453b0886447475005",
+            "outcome-label:f5ae6a1d65f0941ed938612f1fa33da9ff21bcee0eb9c3956a1d126f553a7116"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "bd258e4e809e3901fa131a0d519d6644145a34a489d35b112007390a9779708d",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-f09595ab50d9d7b4fa5e16ea6a482049",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-attributed-actor-city-defense/32-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-f09595ab50d9d7b4fa5e16ea6a482049",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Warriors",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=1",
+            "context:other_own_units_at_target_band=1",
+            "context:own_units_at_target_band=2"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:d31c334e8f0641e1b18cd25dbf33e020",
+            "fdas-episode:af252eaa992c596d2d52eb01d6832041c03675e46387e75a238feb35ffaee7a1",
+            "outcome-label:043a8a01b1bd095fbd474393bcda1df10dc0b7d8642b39376a9687936337acf1"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "832bd51bc10184de39b8e5744bab12cd384e2c23f4540f816d8a623542013601",
+        "truth_mutated": false
+      }
+    ],
+    "truth_mutated": false,
+    "validations": [
+      {
+        "configuration": {
+          "contradiction_threshold": 0.7,
+          "contradiction_tolerance": 0.0,
+          "minimum_activations": 4,
+          "minimum_brier_improvement": 0.001,
+          "minimum_calibration_improvement": 0.0,
+          "minimum_samples": 8
+        },
+        "metrics": {
+          "activations": 0,
+          "baseline_brier": 0.1955922865013774,
+          "baseline_calibration_error": 0.7272727272727273,
+          "baseline_contradiction_rate": 0.26666666666666666,
+          "baseline_log_loss": 0.5800081985883282,
+          "brier_improvement": 0.0,
+          "calibration_improvement": 0.10227272727272729,
+          "candidate_brier": 0.1955922865013774,
+          "candidate_calibration_error": 0.625,
+          "candidate_contradiction_rate": 0.26666666666666666,
+          "candidate_log_loss": 0.5800081985883282,
+          "samples": 15
+        },
+        "proposal_id": "induced-1d849b56382cbb72e68ffebf",
+        "reason": "insufficient_rule_activations",
+        "validation_episode_ids": [
+          "episode-0d72da7dcb711e4bd6f2ac4eee23e8da",
+          "episode-2fe460c257e14e1fd3183c9a9f4671cc",
+          "episode-53bc0900f7e7ea316c099d2da73535b1",
+          "episode-626550ef61afb463759072c7c519c1b4",
+          "episode-7a52903b73cae5b51c89764e81613a54",
+          "episode-8a4c28510ab2c7622fe531c1b31ad126",
+          "episode-9c05c54d8af89c3b633cf2d0f589a531",
+          "episode-ab2bf4342fa971e46c2f6a9fa5a4d395",
+          "episode-ab585ed3921f14556157deabc7c32559",
+          "episode-bd2d618b48f35337252b18228dc86d32",
+          "episode-d876f3c35c47302eaf259001636f7182",
+          "episode-e1ef60d0dd5b72967fc5526ebb8c58d3",
+          "episode-f3828b8d779670b977e2bd939cc31211",
+          "episode-f7cfd7f985c94d00b5e0f6ad110ba8da",
+          "episode-fa81aeb3b7a6bb0e59e2283454dd198b"
+        ],
+        "validation_id": "validation-cefdaf3194e3540c548dd266",
+        "verdict": "demoted"
+      },
+      {
+        "configuration": {
+          "contradiction_threshold": 0.7,
+          "contradiction_tolerance": 0.0,
+          "minimum_activations": 4,
+          "minimum_brier_improvement": 0.001,
+          "minimum_calibration_improvement": 0.0,
+          "minimum_samples": 8
+        },
+        "metrics": {
+          "activations": 0,
+          "baseline_brier": 0.1955922865013774,
+          "baseline_calibration_error": 0.7272727272727273,
+          "baseline_contradiction_rate": 0.26666666666666666,
+          "baseline_log_loss": 0.5800081985883282,
+          "brier_improvement": 0.0,
+          "calibration_improvement": 0.10227272727272729,
+          "candidate_brier": 0.1955922865013774,
+          "candidate_calibration_error": 0.625,
+          "candidate_contradiction_rate": 0.26666666666666666,
+          "candidate_log_loss": 0.5800081985883282,
+          "samples": 15
+        },
+        "proposal_id": "induced-40093f0b9e630561b2889691",
+        "reason": "insufficient_rule_activations",
+        "validation_episode_ids": [
+          "episode-0d72da7dcb711e4bd6f2ac4eee23e8da",
+          "episode-2fe460c257e14e1fd3183c9a9f4671cc",
+          "episode-53bc0900f7e7ea316c099d2da73535b1",
+          "episode-626550ef61afb463759072c7c519c1b4",
+          "episode-7a52903b73cae5b51c89764e81613a54",
+          "episode-8a4c28510ab2c7622fe531c1b31ad126",
+          "episode-9c05c54d8af89c3b633cf2d0f589a531",
+          "episode-ab2bf4342fa971e46c2f6a9fa5a4d395",
+          "episode-ab585ed3921f14556157deabc7c32559",
+          "episode-bd2d618b48f35337252b18228dc86d32",
+          "episode-d876f3c35c47302eaf259001636f7182",
+          "episode-e1ef60d0dd5b72967fc5526ebb8c58d3",
+          "episode-f3828b8d779670b977e2bd939cc31211",
+          "episode-f7cfd7f985c94d00b5e0f6ad110ba8da",
+          "episode-fa81aeb3b7a6bb0e59e2283454dd198b"
+        ],
+        "validation_id": "validation-4dea4c9df322ac11b15fc057",
+        "verdict": "demoted"
+      },
+      {
+        "configuration": {
+          "contradiction_threshold": 0.7,
+          "contradiction_tolerance": 0.0,
+          "minimum_activations": 4,
+          "minimum_brier_improvement": 0.001,
+          "minimum_calibration_improvement": 0.0,
+          "minimum_samples": 8
+        },
+        "metrics": {
+          "activations": 0,
+          "baseline_brier": 0.1955922865013774,
+          "baseline_calibration_error": 0.7272727272727273,
+          "baseline_contradiction_rate": 0.26666666666666666,
+          "baseline_log_loss": 0.5800081985883282,
+          "brier_improvement": 0.0,
+          "calibration_improvement": 0.10227272727272729,
+          "candidate_brier": 0.1955922865013774,
+          "candidate_calibration_error": 0.625,
+          "candidate_contradiction_rate": 0.26666666666666666,
+          "candidate_log_loss": 0.5800081985883282,
+          "samples": 15
+        },
+        "proposal_id": "induced-d415ea85da34520ed8884596",
+        "reason": "insufficient_rule_activations",
+        "validation_episode_ids": [
+          "episode-0d72da7dcb711e4bd6f2ac4eee23e8da",
+          "episode-2fe460c257e14e1fd3183c9a9f4671cc",
+          "episode-53bc0900f7e7ea316c099d2da73535b1",
+          "episode-626550ef61afb463759072c7c519c1b4",
+          "episode-7a52903b73cae5b51c89764e81613a54",
+          "episode-8a4c28510ab2c7622fe531c1b31ad126",
+          "episode-9c05c54d8af89c3b633cf2d0f589a531",
+          "episode-ab2bf4342fa971e46c2f6a9fa5a4d395",
+          "episode-ab585ed3921f14556157deabc7c32559",
+          "episode-bd2d618b48f35337252b18228dc86d32",
+          "episode-d876f3c35c47302eaf259001636f7182",
+          "episode-e1ef60d0dd5b72967fc5526ebb8c58d3",
+          "episode-f3828b8d779670b977e2bd939cc31211",
+          "episode-f7cfd7f985c94d00b5e0f6ad110ba8da",
+          "episode-fa81aeb3b7a6bb0e59e2283454dd198b"
+        ],
+        "validation_id": "validation-04a19121920192d553ed145b",
+        "verdict": "demoted"
+      },
+      {
+        "configuration": {
+          "contradiction_threshold": 0.7,
+          "contradiction_tolerance": 0.0,
+          "minimum_activations": 4,
+          "minimum_brier_improvement": 0.001,
+          "minimum_calibration_improvement": 0.0,
+          "minimum_samples": 8
+        },
+        "metrics": {
+          "activations": 0,
+          "baseline_brier": 0.1955922865013774,
+          "baseline_calibration_error": 0.7272727272727273,
+          "baseline_contradiction_rate": 0.26666666666666666,
+          "baseline_log_loss": 0.5800081985883282,
+          "brier_improvement": 0.0,
+          "calibration_improvement": 0.10227272727272729,
+          "candidate_brier": 0.1955922865013774,
+          "candidate_calibration_error": 0.625,
+          "candidate_contradiction_rate": 0.26666666666666666,
+          "candidate_log_loss": 0.5800081985883282,
+          "samples": 15
+        },
+        "proposal_id": "induced-e2f00e6adfd1efa8831bdcb1",
+        "reason": "insufficient_rule_activations",
+        "validation_episode_ids": [
+          "episode-0d72da7dcb711e4bd6f2ac4eee23e8da",
+          "episode-2fe460c257e14e1fd3183c9a9f4671cc",
+          "episode-53bc0900f7e7ea316c099d2da73535b1",
+          "episode-626550ef61afb463759072c7c519c1b4",
+          "episode-7a52903b73cae5b51c89764e81613a54",
+          "episode-8a4c28510ab2c7622fe531c1b31ad126",
+          "episode-9c05c54d8af89c3b633cf2d0f589a531",
+          "episode-ab2bf4342fa971e46c2f6a9fa5a4d395",
+          "episode-ab585ed3921f14556157deabc7c32559",
+          "episode-bd2d618b48f35337252b18228dc86d32",
+          "episode-d876f3c35c47302eaf259001636f7182",
+          "episode-e1ef60d0dd5b72967fc5526ebb8c58d3",
+          "episode-f3828b8d779670b977e2bd939cc31211",
+          "episode-f7cfd7f985c94d00b5e0f6ad110ba8da",
+          "episode-fa81aeb3b7a6bb0e59e2283454dd198b"
+        ],
+        "validation_id": "validation-a83844cb34f16e96489d80a1",
+        "verdict": "demoted"
+      },
+      {
+        "configuration": {
+          "contradiction_threshold": 0.7,
+          "contradiction_tolerance": 0.0,
+          "minimum_activations": 4,
+          "minimum_brier_improvement": 0.001,
+          "minimum_calibration_improvement": 0.0,
+          "minimum_samples": 8
+        },
+        "metrics": {
+          "activations": 4,
+          "baseline_brier": 0.1955922865013774,
+          "baseline_calibration_error": 0.022727272727272707,
+          "baseline_contradiction_rate": 0.26666666666666666,
+          "baseline_log_loss": 0.5800081985883282,
+          "brier_improvement": -0.0017141108050199028,
+          "calibration_improvement": -0.06060606060606066,
+          "candidate_brier": 0.1973063973063973,
+          "candidate_calibration_error": 0.08333333333333337,
+          "candidate_contradiction_rate": 0.26666666666666666,
+          "candidate_log_loss": 0.5856135293965985,
+          "samples": 15
+        },
+        "proposal_id": "induced-b198f88e49b37a2e5a22b61e",
+        "reason": "no_out_of_sample_improvement",
+        "validation_episode_ids": [
+          "episode-0d72da7dcb711e4bd6f2ac4eee23e8da",
+          "episode-2fe460c257e14e1fd3183c9a9f4671cc",
+          "episode-53bc0900f7e7ea316c099d2da73535b1",
+          "episode-626550ef61afb463759072c7c519c1b4",
+          "episode-7a52903b73cae5b51c89764e81613a54",
+          "episode-8a4c28510ab2c7622fe531c1b31ad126",
+          "episode-9c05c54d8af89c3b633cf2d0f589a531",
+          "episode-ab2bf4342fa971e46c2f6a9fa5a4d395",
+          "episode-ab585ed3921f14556157deabc7c32559",
+          "episode-bd2d618b48f35337252b18228dc86d32",
+          "episode-d876f3c35c47302eaf259001636f7182",
+          "episode-e1ef60d0dd5b72967fc5526ebb8c58d3",
+          "episode-f3828b8d779670b977e2bd939cc31211",
+          "episode-f7cfd7f985c94d00b5e0f6ad110ba8da",
+          "episode-fa81aeb3b7a6bb0e59e2283454dd198b"
+        ],
+        "validation_id": "validation-500e13f61ee99a44c095df3c",
+        "verdict": "demoted"
+      },
+      {
+        "configuration": {
+          "contradiction_threshold": 0.7,
+          "contradiction_tolerance": 0.0,
+          "minimum_activations": 4,
+          "minimum_brier_improvement": 0.001,
+          "minimum_calibration_improvement": 0.0,
+          "minimum_samples": 8
+        },
+        "metrics": {
+          "activations": 4,
+          "baseline_brier": 0.1955922865013774,
+          "baseline_calibration_error": 0.022727272727272707,
+          "baseline_contradiction_rate": 0.26666666666666666,
+          "baseline_log_loss": 0.5800081985883282,
+          "brier_improvement": -0.0017141108050199028,
+          "calibration_improvement": -0.06060606060606066,
+          "candidate_brier": 0.1973063973063973,
+          "candidate_calibration_error": 0.08333333333333337,
+          "candidate_contradiction_rate": 0.26666666666666666,
+          "candidate_log_loss": 0.5856135293965985,
+          "samples": 15
+        },
+        "proposal_id": "induced-38bdc567d67e1a14fa79e800",
+        "reason": "no_out_of_sample_improvement",
+        "validation_episode_ids": [
+          "episode-0d72da7dcb711e4bd6f2ac4eee23e8da",
+          "episode-2fe460c257e14e1fd3183c9a9f4671cc",
+          "episode-53bc0900f7e7ea316c099d2da73535b1",
+          "episode-626550ef61afb463759072c7c519c1b4",
+          "episode-7a52903b73cae5b51c89764e81613a54",
+          "episode-8a4c28510ab2c7622fe531c1b31ad126",
+          "episode-9c05c54d8af89c3b633cf2d0f589a531",
+          "episode-ab2bf4342fa971e46c2f6a9fa5a4d395",
+          "episode-ab585ed3921f14556157deabc7c32559",
+          "episode-bd2d618b48f35337252b18228dc86d32",
+          "episode-d876f3c35c47302eaf259001636f7182",
+          "episode-e1ef60d0dd5b72967fc5526ebb8c58d3",
+          "episode-f3828b8d779670b977e2bd939cc31211",
+          "episode-f7cfd7f985c94d00b5e0f6ad110ba8da",
+          "episode-fa81aeb3b7a6bb0e59e2283454dd198b"
+        ],
+        "validation_id": "validation-e5d5ea9fb6d2f3ca701ee739",
+        "verdict": "demoted"
+      },
+      {
+        "configuration": {
+          "contradiction_threshold": 0.7,
+          "contradiction_tolerance": 0.0,
+          "minimum_activations": 4,
+          "minimum_brier_improvement": 0.001,
+          "minimum_calibration_improvement": 0.0,
+          "minimum_samples": 8
+        },
+        "metrics": {
+          "activations": 4,
+          "baseline_brier": 0.1955922865013774,
+          "baseline_calibration_error": 0.022727272727272707,
+          "baseline_contradiction_rate": 0.26666666666666666,
+          "baseline_log_loss": 0.5800081985883282,
+          "brier_improvement": -0.0017141108050199028,
+          "calibration_improvement": -0.06060606060606066,
+          "candidate_brier": 0.1973063973063973,
+          "candidate_calibration_error": 0.08333333333333337,
+          "candidate_contradiction_rate": 0.26666666666666666,
+          "candidate_log_loss": 0.5856135293965985,
+          "samples": 15
+        },
+        "proposal_id": "induced-aa80b3934dd800e65891cf8c",
+        "reason": "no_out_of_sample_improvement",
+        "validation_episode_ids": [
+          "episode-0d72da7dcb711e4bd6f2ac4eee23e8da",
+          "episode-2fe460c257e14e1fd3183c9a9f4671cc",
+          "episode-53bc0900f7e7ea316c099d2da73535b1",
+          "episode-626550ef61afb463759072c7c519c1b4",
+          "episode-7a52903b73cae5b51c89764e81613a54",
+          "episode-8a4c28510ab2c7622fe531c1b31ad126",
+          "episode-9c05c54d8af89c3b633cf2d0f589a531",
+          "episode-ab2bf4342fa971e46c2f6a9fa5a4d395",
+          "episode-ab585ed3921f14556157deabc7c32559",
+          "episode-bd2d618b48f35337252b18228dc86d32",
+          "episode-d876f3c35c47302eaf259001636f7182",
+          "episode-e1ef60d0dd5b72967fc5526ebb8c58d3",
+          "episode-f3828b8d779670b977e2bd939cc31211",
+          "episode-f7cfd7f985c94d00b5e0f6ad110ba8da",
+          "episode-fa81aeb3b7a6bb0e59e2283454dd198b"
+        ],
+        "validation_id": "validation-8f6ae9a4d8ba0afe791c130b",
+        "verdict": "demoted"
+      },
+      {
+        "configuration": {
+          "contradiction_threshold": 0.7,
+          "contradiction_tolerance": 0.0,
+          "minimum_activations": 4,
+          "minimum_brier_improvement": 0.001,
+          "minimum_calibration_improvement": 0.0,
+          "minimum_samples": 8
+        },
+        "metrics": {
+          "activations": 4,
+          "baseline_brier": 0.1955922865013774,
+          "baseline_calibration_error": 0.022727272727272707,
+          "baseline_contradiction_rate": 0.26666666666666666,
+          "baseline_log_loss": 0.5800081985883282,
+          "brier_improvement": -0.0017141108050199028,
+          "calibration_improvement": -0.06060606060606066,
+          "candidate_brier": 0.1973063973063973,
+          "candidate_calibration_error": 0.08333333333333337,
+          "candidate_contradiction_rate": 0.26666666666666666,
+          "candidate_log_loss": 0.5856135293965985,
+          "samples": 15
+        },
+        "proposal_id": "induced-e2d15d325daf3aaf9b2ee036",
+        "reason": "no_out_of_sample_improvement",
+        "validation_episode_ids": [
+          "episode-0d72da7dcb711e4bd6f2ac4eee23e8da",
+          "episode-2fe460c257e14e1fd3183c9a9f4671cc",
+          "episode-53bc0900f7e7ea316c099d2da73535b1",
+          "episode-626550ef61afb463759072c7c519c1b4",
+          "episode-7a52903b73cae5b51c89764e81613a54",
+          "episode-8a4c28510ab2c7622fe531c1b31ad126",
+          "episode-9c05c54d8af89c3b633cf2d0f589a531",
+          "episode-ab2bf4342fa971e46c2f6a9fa5a4d395",
+          "episode-ab585ed3921f14556157deabc7c32559",
+          "episode-bd2d618b48f35337252b18228dc86d32",
+          "episode-d876f3c35c47302eaf259001636f7182",
+          "episode-e1ef60d0dd5b72967fc5526ebb8c58d3",
+          "episode-f3828b8d779670b977e2bd939cc31211",
+          "episode-f7cfd7f985c94d00b5e0f6ad110ba8da",
+          "episode-fa81aeb3b7a6bb0e59e2283454dd198b"
+        ],
+        "validation_id": "validation-84951e6d0b7ba20c3a589eae",
+        "verdict": "demoted"
+      }
+    ]
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "846f426a08ba7d0c861ae1c2482af715b50be3b6",
+    "dirty": false,
+    "implementation_sha256": "072f5dfed2b2d40289a9fb5e726867c5fd41c0538899c4c76230dd391a535d67",
+    "runner_sha256": "0df0feee10b1ef4af255726a6a9f256716412d04ecce1c07f3b7d6d80fceb75c",
+    "source_files": 273
+  },
+  "structural_hash": "0cb683db4a7bf2a300c081afd71c1f00b31185c4bdaaab63f217f1bea41ade65",
+  "training_outcome_label_sources": [
+    {
+      "labels": 2,
+      "observed_labels": 2,
+      "path": "artifacts/freeciv/fdas-actor-persistence-population-live-160-v1/games/main/e_full_loop/104773-00/fdas-induction-outcome-labels.json",
+      "persistence_identity": "9647d495e188591a846e7cd26a9387b23eddcb196f75b276ae105c1bb21b63ca",
+      "sha256": "b077855524df75b2b26aae987d74427350c84f5798aaa0e43762d75cad012b55",
+      "store_digest": "a1183443637d36022f351111f2d001c74a020e5fde37e0dd2fc7fd06539bd536",
+      "targets": [
+        "durable-attributed-actor-city-defense/32-turn/1.0"
+      ]
+    },
+    {
+      "labels": 8,
+      "observed_labels": 7,
+      "path": "artifacts/freeciv/fdas-actor-persistence-population-live-160-v1/games/main/e_full_loop/104779-00/fdas-induction-outcome-labels.json",
+      "persistence_identity": "a58fb8631e5a741a12f001b080f0d9bc15b20a4da745fd163e1a5a750075f184",
+      "sha256": "848d5209152a63043b5087a00220221b4f64c43577352a38142ee8ad3b539302",
+      "store_digest": "babf6cdd0c7ea1ce27ed22346696d220f6dbbad5d888a8792bbe0e323c0ddaa4",
+      "targets": [
+        "durable-attributed-actor-city-defense/32-turn/1.0"
+      ]
+    }
+  ],
+  "training_sources": [
+    {
+      "engine_evidence": {
+        "accepted": true,
+        "checks": {
+          "completed": true,
+          "event_ledger_valid_without_warnings": true,
+          "source_is_clean": true
+        },
+        "events": {
+          "path": "artifacts/freeciv/fdas-actor-persistence-population-live-160-v1/games/main/e_full_loop/104773-00/events.jsonl",
+          "sha256": "950955af9ca19792f0104e381fd6df5dc66c88a3aa1ecf0a55b72ad8ce1a8ffe",
+          "validation": {
+            "errors": [],
+            "event_count": 12243,
+            "game_id": "m7-main-e_full_loop-104773-00",
+            "schema_version": "1.0",
+            "valid": true,
+            "warnings": []
+          }
+        },
+        "horizon_reached": true,
+        "manifest": {
+          "path": "artifacts/freeciv/fdas-actor-persistence-population-live-160-v1/games/main/e_full_loop/104773-00/manifest.json",
+          "sha256": "c079df3d7c960dedbefd0a9e7531f3f4074713d6cf22522c7f020ccf4733e208",
+          "source": {
+            "commit": "5dc84b89d88800f695a31246bc3fd78e7e1c06e3",
+            "dirty": false,
+            "implementation_sha256": "072f5dfed2b2d40289a9fb5e726867c5fd41c0538899c4c76230dd391a535d67",
+            "source_files": 273
+          }
+        },
+        "status": {
+          "path": "artifacts/freeciv/fdas-actor-persistence-population-live-160-v1/games/main/e_full_loop/104773-00/status.json",
+          "sha256": "98fae5c059fe08205c9f652f8f78323b4c1cfd4bd3f5787210601d7ff0af72f7"
+        }
+      },
+      "episodes": 2,
+      "path": "artifacts/freeciv/fdas-actor-persistence-population-live-160-v1/games/main/e_full_loop/104773-00/fdas-decision-episodes.json",
+      "persistence_identity": "d6e31943e7c609edddfdad942af6d0f9f8192d52fb40f124efc7b5cb1e30de67",
+      "sha256": "cc8c5ab56b39354dcbc147ddd43461102bfb5cfc54af4ff4fe2e4e8f22a300fc",
+      "store_digest": "a64d3c7c875e8e7b0551c3e9f486439249d9363b40ff4bdcfad5bf2aeafe8518"
+    },
+    {
+      "engine_evidence": {
+        "accepted": true,
+        "checks": {
+          "completed": true,
+          "event_ledger_valid_without_warnings": true,
+          "source_is_clean": true
+        },
+        "events": {
+          "path": "artifacts/freeciv/fdas-actor-persistence-population-live-160-v1/games/main/e_full_loop/104779-00/events.jsonl",
+          "sha256": "29a76ee9d48f9b2688022528f73c61e016908d1042849f65ea79a4c98e9e4157",
+          "validation": {
+            "errors": [],
+            "event_count": 25959,
+            "game_id": "m7-main-e_full_loop-104779-00",
+            "schema_version": "1.0",
+            "valid": true,
+            "warnings": []
+          }
+        },
+        "horizon_reached": true,
+        "manifest": {
+          "path": "artifacts/freeciv/fdas-actor-persistence-population-live-160-v1/games/main/e_full_loop/104779-00/manifest.json",
+          "sha256": "0371f938bfb04a2dce744034d9cef44258ab2c7877be7fe1e61d7b6a5f00a3f0",
+          "source": {
+            "commit": "5dc84b89d88800f695a31246bc3fd78e7e1c06e3",
+            "dirty": false,
+            "implementation_sha256": "072f5dfed2b2d40289a9fb5e726867c5fd41c0538899c4c76230dd391a535d67",
+            "source_files": 273
+          }
+        },
+        "status": {
+          "path": "artifacts/freeciv/fdas-actor-persistence-population-live-160-v1/games/main/e_full_loop/104779-00/status.json",
+          "sha256": "71905c2f16444f83acefe3b4ce7ce2c20d2cfa2ea770f4ce1070516b61ca7b85"
+        }
+      },
+      "episodes": 8,
+      "path": "artifacts/freeciv/fdas-actor-persistence-population-live-160-v1/games/main/e_full_loop/104779-00/fdas-decision-episodes.json",
+      "persistence_identity": "7d81f11344ff8edd9141c0daa0143767b40f8ac9e9e69de0e14f414f4a1073fe",
+      "sha256": "acc70f3adf0ab04a9e881bc6b0dcd74911645f69ee18e42b8457c22b7516d076",
+      "store_digest": "ace221347221daebf7b620da7e406a2cbe9ff33e4b47fe96c1d86d9d98daec25"
+    }
+  ]
+}
