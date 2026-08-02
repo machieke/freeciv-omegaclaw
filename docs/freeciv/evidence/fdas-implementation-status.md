@@ -50,3 +50,11 @@ explicit fallbacks with zero winner changes and no replay failures. The
 checked default manifest remains `component-only`; see
 `fdas-bounded-city-authority.md` for the activation, rollback, exact commit,
 and non-claim boundary.
+
+A clean-source 160-turn engine confirmation on pinned seed `4543804` then
+exercised 28 causally complete authorized pass-throughs and 336 explicit
+fallbacks. All 367 engine actions received results, no action was rejected,
+the terminal counters matched the event inventory, and all seventeen live
+safety gates passed. This promotes PR 13's evidence from captured replay to
+fresh bounded-authority engine execution, but it does not broaden the checked
+default, change a legacy winner, or establish a score-improvement claim.
