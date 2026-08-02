@@ -142,6 +142,37 @@ def test_checked_city_stability_authority_runtime_assembles_explicitly():
     assert runtime.activation_payload()["policy_authority"] is True
 
 
+def test_checked_defense_shadow_runtime_assembles_only_declared_projectors():
+    declaration = load_runtime_declaration(
+        os.path.join(
+            REPO, "profile", "dependent_atomspace_defense_shadow.yaml"),
+        os.path.join(
+            REPO, "profile", "fdas_manifest_defense_shadow.json"),
+    )
+    ir = compile_ruleset(_ruleset_root(), "civ2civ3")
+
+    runtime = build_runtime(
+        declaration,
+        ruleset_ir=ir,
+        operation_records_source=lambda: ())
+
+    assert runtime.enabled is True
+    assert runtime.config.shadow_enabled is True
+    assert runtime.config.authority_enabled is False
+    assert runtime.projector_ids == (
+        "fdas-city-economy-shadow",
+        "fdas-unit-defense-shadow",
+        "fdas-city-region-shadow",
+        "fdas-operation-projector",
+    )
+    assert runtime._authority_adapter is None
+    activation = runtime.activation_payload()
+    assert activation["manifest_status"] == "shadow-live"
+    assert activation["policy_authority"] is False
+    assert activation["shadow_refresh_policy"] == (
+        "turn-boundary-before-readout")
+
+
 def test_route_corridor_shadow_projection_can_be_activated_independently():
     runtime = build_runtime(_enabled_corridor_only_declaration())
 

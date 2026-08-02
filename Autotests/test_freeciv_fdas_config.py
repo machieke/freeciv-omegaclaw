@@ -69,6 +69,50 @@ def test_checked_city_stability_authority_profile_is_narrow_and_explicit():
     assert manifest["policy_authority"] is True
 
 
+def test_checked_defense_shadow_profile_is_narrow_and_non_authoritative():
+    with open(os.path.join(
+            REPO, "profile", "dependent_atomspace_defense_shadow.yaml"),
+            encoding="utf-8") as stream:
+        value = yaml.safe_load(stream)["dependent_atomspace"]
+    with open(os.path.join(
+            REPO, "profile", "fdas_manifest_defense_shadow.json"),
+            encoding="utf-8") as stream:
+        manifest = json.load(stream)
+
+    config = DependentAtomSpaceConfig.from_dict(value, manifest)
+
+    assert config.enabled is True
+    assert config.shadow_enabled is True
+    assert config.authority_enabled is False
+    assert config.shadow_refresh_policy == "turn-boundary-before-readout"
+    assert config.cold_verify_sample_rate == 0.05
+    assert config.section("projection") == {
+        "beliefs": False,
+        "city": True,
+        "combat": False,
+        "economy": True,
+        "empire": True,
+        "operations": True,
+        "population_recovery": False,
+        "region": True,
+        "research": False,
+        "route_corridors": False,
+        "ruleset": True,
+        "settlement_sites": False,
+        "transport": False,
+        "unit": True,
+        "world": True,
+    }
+    assert not any(config.section("domain_authority").values())
+    assert not any(config.section("learning").values())
+    assert manifest["status"] == "shadow-live"
+    assert manifest["policy_authority"] is False
+    assert manifest["capabilities"]["unit_domain_projection"] == (
+        "shadow-live")
+    assert manifest["capabilities"]["defense_operation_reconciliation"] == (
+        "shadow-live")
+
+
 def test_unknown_configuration_fields_and_invalid_budgets_fail_closed():
     value, manifest = _values()
     unknown = copy.deepcopy(value)
