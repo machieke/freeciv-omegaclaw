@@ -2,6 +2,7 @@ import os
 import sys
 
 import json
+import copy
 import subprocess
 
 import pytest
@@ -127,6 +128,14 @@ def test_consolidation_is_order_invariant_and_retained_basis_is_idempotent():
     assert second.retained_rule_ids == first.retained_rule_ids
     assert second.suppressions == ()
 
+    restored = PromotedRuleConsolidation.from_dict(first.to_dict())
+    assert restored.to_dict() == first.to_dict()
+
+    tampered = copy.deepcopy(first.to_dict())
+    tampered["readout_authority"] = True
+    with pytest.raises(ValueError, match="cannot grant authority"):
+        PromotedRuleConsolidation.from_dict(tampered)
+
 
 def test_consolidation_requires_exact_matching_approved_cohort():
     first = _proposal("rule-first", ("feature:a",))
@@ -225,7 +234,7 @@ def test_shadow_readout_prefers_unique_more_specific_prediction():
     assert value["action_selection_changed"] is False
 
 
-def test_shadow_readout_abstains_on_incomparable_maximal_predictions():
+def test_shadow_readout_combines_compatible_maxima_conservatively():
     left = _proposal(
         "rule-left", ("feature:a", "feature:b"),
         probability=0.7, positives=6)
@@ -235,11 +244,29 @@ def test_shadow_readout_abstains_on_incomparable_maximal_predictions():
     result = _readout((left, right)).read(
         _induction_episode(("feature:a", "feature:b", "feature:c")))
 
-    assert result.accepted is False
-    assert result.reason == "ambiguous_maximal_predictions"
-    assert result.selected_probability is None
+    assert result.accepted is True
+    assert result.reason == (
+        "compatible_maximal_predictions_conservative_above_baseline")
+    assert result.selected_rule_id == "rule-left"
+    assert result.selected_probability == 0.7
     assert result.maximal_rule_ids == ("rule-left", "rule-right")
     assert len(result.predictions) == 2
+
+
+def test_shadow_readout_abstains_on_opposite_direction_maxima():
+    positive = _proposal(
+        "rule-positive", ("feature:a", "feature:b"),
+        probability=0.8, positives=7)
+    negative = _proposal(
+        "rule-negative", ("feature:a", "feature:c"),
+        probability=0.2, positives=1)
+    result = _readout((positive, negative)).read(
+        _induction_episode(("feature:a", "feature:b", "feature:c")))
+
+    assert result.accepted is False
+    assert result.reason == "ambiguous_maximal_predictions"
+    assert result.selected_rule_id is None
+    assert result.selected_probability is None
 
 
 def test_shadow_readout_is_outcome_blind_and_explicitly_abstains_on_no_match():

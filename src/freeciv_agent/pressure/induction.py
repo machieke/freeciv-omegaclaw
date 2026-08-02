@@ -861,6 +861,15 @@ class PromotedRuleSuppression:
             "retained_proposal_id": self.retained_proposal_id,
         }
 
+    @classmethod
+    def from_dict(cls, value):
+        return cls(
+            value["proposal_id"],
+            value["retained_proposal_id"],
+            tuple(value["retained_antecedent"]),
+            tuple(value["removed_antecedents"]),
+            value["reason"])
+
 
 @dataclass(frozen=True)
 class PromotedRuleConsolidation:
@@ -929,6 +938,29 @@ class PromotedRuleConsolidation:
         value = self._value_without_hash()
         value["result_hash"] = structural_hash(value)
         return value
+
+    @classmethod
+    def from_dict(cls, value):
+        if (value.get("policy_authority") is not False
+                or value.get("readout_authority") is not False
+                or value.get("truth_mutated") is not False):
+            raise ValueError("promoted-rule consolidation cannot grant authority")
+        if value.get("schema_version") != (
+                PROMOTED_RULE_CONSOLIDATION_SCHEMA_VERSION):
+            raise ValueError("unsupported promoted-rule consolidation schema")
+        if value.get("algorithm_id") != (
+                PROMOTED_RULE_CONSOLIDATION_ALGORITHM_ID):
+            raise ValueError("unsupported promoted-rule consolidation algorithm")
+        result = cls(
+            tuple(value["input_rule_ids"]),
+            tuple(value["retained_rule_ids"]),
+            tuple(PromotedRuleSuppression.from_dict(row)
+                  for row in value["suppressions"]))
+        expected = result.to_dict()
+        if (value.get("consolidation_id") != expected["consolidation_id"]
+                or value.get("result_hash") != expected["result_hash"]):
+            raise ValueError("promoted-rule consolidation identity mismatch")
+        return result
 
 
 class PromotedRuleConsolidator(object):
@@ -1082,6 +1114,7 @@ class PromotedRuleShadowResult:
     matching_rule_ids: tuple
     maximal_rule_ids: tuple
     predictions: tuple
+    selected_rule_id: object
     selected_probability: object
     selected_baseline_probability: object
     prediction_direction: object
@@ -1111,6 +1144,7 @@ class PromotedRuleShadowResult:
             "selected_probability": (
                 None if self.selected_probability is None
                 else float(self.selected_probability)),
+            "selected_rule_id": self.selected_rule_id,
             "truth_mutated": bool(self.truth_mutated),
         }
 
@@ -1171,28 +1205,26 @@ class PromotedRuleShadowReadout(object):
             proposal.positives)
 
     @staticmethod
-    def _prediction_signature(proposal):
-        return (
-            float(proposal.probability),
-            float(proposal.baseline_probability),
-            int(proposal.support),
-            int(proposal.positives),
-        )
+    def _direction(proposal):
+        if proposal.probability > proposal.baseline_probability:
+            return "above_baseline"
+        if proposal.probability < proposal.baseline_probability:
+            return "below_baseline"
+        return "at_baseline"
 
     def _result(
             self, episode, accepted, reason, matching=(), maximal=(),
-            probability=None, baseline=None):
+            selected=None):
         predictions = tuple(
             self._prediction(value)
             for value in sorted(maximal, key=lambda row: row.proposal_id))
-        if probability is None:
+        probability = None if selected is None else selected.probability
+        baseline = (
+            None if selected is None else selected.baseline_probability)
+        if selected is None:
             direction = None
-        elif probability > baseline:
-            direction = "above_baseline"
-        elif probability < baseline:
-            direction = "below_baseline"
         else:
-            direction = "at_baseline"
+            direction = self._direction(selected)
         semantic = {
             "accepted": bool(accepted),
             "action_selection_changed": False,
@@ -1211,6 +1243,8 @@ class PromotedRuleShadowReadout(object):
             "reason": str(reason),
             "selected_baseline_probability": baseline,
             "selected_probability": probability,
+            "selected_rule_id": (
+                None if selected is None else selected.proposal_id),
             "truth_mutated": False,
         }
         return PromotedRuleShadowResult(
@@ -1221,6 +1255,7 @@ class PromotedRuleShadowReadout(object):
             tuple(semantic["matching_rule_ids"]),
             tuple(semantic["maximal_rule_ids"]),
             predictions,
+            semantic["selected_rule_id"],
             probability,
             baseline,
             direction,
@@ -1243,17 +1278,29 @@ class PromotedRuleShadowReadout(object):
             if not any(
                 set(candidate.antecedent) < set(other.antecedent)
                 for other in matching))
-        signatures = set(
-            self._prediction_signature(value) for value in maximal)
-        if len(signatures) != 1:
+        directions = set(self._direction(value) for value in maximal)
+        intervals = tuple(self._interval(value) for value in maximal)
+        common_interval = (
+            max(value[0] for value in intervals)
+            <= min(value[1] for value in intervals))
+        if len(directions) != 1 or not common_interval:
             return self._result(
                 episode, False, "ambiguous_maximal_predictions",
                 matching, maximal)
-        selected = min(maximal, key=lambda row: row.proposal_id)
+        direction = next(iter(directions))
+        selected = min(maximal, key=lambda row: (
+            abs(row.probability - row.baseline_probability),
+            row.proposal_id))
         return self._result(
-            episode, True, "approved_shadow_prediction_available",
-            matching, maximal, selected.probability,
-            selected.baseline_probability)
+            episode,
+            True,
+            ("approved_shadow_prediction_available"
+             if len(maximal) == 1 else
+             "compatible_maximal_predictions_conservative_{}".format(
+                 direction)),
+            matching,
+            maximal,
+            selected)
 
 
 class ReplayValidator(object):
