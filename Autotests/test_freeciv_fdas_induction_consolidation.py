@@ -1,6 +1,9 @@
 import os
 import sys
 
+import json
+import subprocess
+
 import pytest
 
 
@@ -156,3 +159,24 @@ def test_consolidation_does_not_merge_different_context_or_training_sample():
     assert set(result.retained_rule_ids) == set(
         value.proposal_id for value in proposals)
     assert result.suppressions == ()
+
+
+def test_consolidation_runner_reduces_frozen_pr29_to_four_rule_basis(tmp_path):
+    output = tmp_path / "consolidation.json"
+    result = subprocess.run([
+        sys.executable,
+        os.path.join(REPO, "scripts", "freeciv",
+                     "consolidate_fdas_promoted_rules.py"),
+        "--input",
+        os.path.join(REPO, "docs", "freeciv", "evidence",
+                     "fdas-pr29-causal-induction-holdout-engine.json"),
+        "--output", str(output),
+    ], cwd=REPO, text=True, capture_output=True, timeout=30)
+    report = json.loads(output.read_text(encoding="utf-8"))
+
+    assert result.returncode == 0, result.stderr
+    assert report["acceptance"]["accepted"] is True
+    assert len(report["consolidation"]["input_rule_ids"]) == 13
+    assert len(report["consolidation"]["retained_rule_ids"]) == 4
+    assert len(report["consolidation"]["suppressions"]) == 9
+    assert report["consolidation"]["readout_authority"] is False
