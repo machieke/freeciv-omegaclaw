@@ -110,6 +110,23 @@ def test_contextual_pattern_mining_is_deterministic_and_scoped():
     assert not proposal.applies(_population("charlie", "held")[0])
 
 
+def test_pattern_miner_rejects_single_class_smoothing_residual():
+    rows = tuple(
+        _episode(
+            index,
+            "alpha",
+            ("frequent",) if index < 8 else ("rare-{}".format(index),),
+            True)
+        for index in range(12))
+
+    proposals = PatternMiner(
+        minimum_support=4,
+        maximum_antecedents=1,
+        minimum_residual=0.0).mine(rows, "goal-relief")
+
+    assert proposals == ()
+
+
 def test_expand_pressure_and_expected_value_gate_validation_work():
     proposal = _proposal()
     gate = ExpansionGate(

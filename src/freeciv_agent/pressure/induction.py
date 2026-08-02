@@ -273,6 +273,12 @@ class PatternMiner(object):
         candidates = []
         for context in sorted(populations):
             population = tuple(populations[context])
+            population_positives = sum(row.outcome for row in population)
+            if population_positives in (0, len(population)):
+                # Support-dependent smoothing alone can otherwise create an
+                # apparent subgroup residual in a single-class population.
+                # There is no observed contrast from which to induce a rule.
+                continue
             universe = sorted(set(
                 feature for row in population for feature in row.features))
             for width in range(1, min(
