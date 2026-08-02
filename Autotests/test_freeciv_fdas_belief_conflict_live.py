@@ -61,13 +61,13 @@ def _fixture(tmp_path):
                         "apply_all_context_quarantines": True,
                         "conflict_min_confidence": 0.5,
                         "conflict_severity_threshold": 0.25,
-                        "mode": "model-prior-versus-visible-tech-shadow",
-                        "model_id": "fdas-opponent-tech-prior",
+                        "mode": "model-prior-versus-visible-roster-shadow",
+                        "model_id": "fdas-opponent-presence-prior",
                         "model_version": "1.0",
                         "policy_authority": False,
                         "prior_confidence": 0.6,
                         "prior_strength": 0.0,
-                        "target_technology": "Alphabet",
+                        "target_predicate": "opponent-present",
                     },
                     "capabilities": {
                         "belief_conflict_quarantine": "shadow-live"},
@@ -79,13 +79,12 @@ def _fixture(tmp_path):
             "source": source,
         })
         prior_atom = _atom(
-            "has-tech", ("prior",), 0.0, 0.6, ("1", "Alphabet"))
+            "opponent-present", ("prior",), 0.0, 0.6, ("any",))
         observed_atom = _atom(
-            "observed-unit", ("visible",), 1.0, 0.9,
-            ("1", "Diplomat"))
+            "opponent-present", ("visible",), 1.0, 0.9, ("any",))
         aggregate_atom = _atom(
-            "has-tech", ("prior", "visible"), 0.58, 0.9,
-            ("1", "Alphabet"))
+            "opponent-present", ("prior", "visible"), 0.58, 0.9,
+            ("any",))
         events = [
             _event(1, "metric_sample", {
                 "labels": {"declaration": "fdas_diagnostic_override"},
@@ -102,7 +101,7 @@ def _fixture(tmp_path):
                     "confidence_cap": 0.6,
                     "exact": False,
                     "model_hash": "c" * 64,
-                    "model_id": "fdas-opponent-tech-prior",
+                    "model_id": "fdas-opponent-presence-prior",
                     "model_version": "1.0",
                     "source_kind": "simulator",
                 },
@@ -125,15 +124,15 @@ def _fixture(tmp_path):
                 "atom": observed_atom,
                 "observation_id": "visible-observation",
                 "provenance_id": "visible",
-                "source": "player-visible-unit-packet",
-                "source_lineage_id": "player-visible-unit-packet:game:7",
+                "source": "player-visible-roster-packet",
+                "source_lineage_id": "player-visible-roster-packet:game:2",
             }, caused_by=("e4",)),
             _event(6, "revision", {
-                "evidence_tv": {"confidence": 0.81, "strength": 0.95},
+                "evidence_tv": {"confidence": 0.9, "strength": 1.0},
                 "formula": {"inputs": {
-                    "rule_id": "abduce:unit:Diplomat->Alphabet",
-                    "support_ids": ["visible"],
-                }, "name": "uncertain-deduction"},
+                    "selection_factor": 1,
+                    "unique_provenance": 2,
+                }, "name": "provenance-union"},
                 "operation": "apply",
                 "posterior_tv": {"confidence": 0.9, "strength": 0.58},
                 "prior_tv": {"confidence": 0.6, "strength": 0.0},
@@ -153,8 +152,8 @@ def _fixture(tmp_path):
                 "overlap": 0.0,
                 "right_provenance_ids": ["visible"],
                 "right_source_lineage_ids": [
-                    "player-visible-unit-packet:game:7"],
-                "right_tv": {"confidence": 0.81, "strength": 0.95},
+                    "player-visible-roster-packet:game:2"],
+                "right_tv": {"confidence": 0.9, "strength": 1.0},
                 "severity": 0.46,
                 "target_atom_id": "belief-alphabet",
             }, caused_by=("e6",)),

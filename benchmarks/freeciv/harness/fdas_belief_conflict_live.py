@@ -9,9 +9,9 @@ from freeciv_agent.events.schema import structural_hash
 
 
 COHORT = "fdas_belief_conflict_shadow_diagnostic_v1"
-MODE = "model-prior-versus-visible-tech-shadow"
-MODEL_ID = "fdas-opponent-tech-prior"
-TARGET_TECHNOLOGY = "Alphabet"
+MODE = "model-prior-versus-visible-roster-shadow"
+MODEL_ID = "fdas-opponent-presence-prior"
+TARGET_PREDICATE = "opponent-present"
 REQUIRED_PREDICATES = frozenset((
     "belief-conflict-lineage",
     "belief-conflict-target",
@@ -130,23 +130,20 @@ def _audit_arm(root, arm, repo=None):
             row for row in matching_observations
             if (row["payload"].get("source") == "simulator"
                 and row["payload"].get("atom", {}).get("predicate")
-                == "has-tech"
-                and row["payload"].get("atom", {}).get("args", ())[-1:]
-                == [TARGET_TECHNOLOGY]))
+                == TARGET_PREDICATE))
         visible = tuple(
             row for row in matching_observations
             if row["payload"].get("source")
-            == "player-visible-unit-packet")
+            == "player-visible-roster-packet")
         positive_revisions = tuple(
             row for row in revisions
-            if (row["payload"].get("provenance_id") in provenance_ids
+            if (row["payload"].get("provenance_id") in {
+                    value["payload"].get("provenance_id")
+                    for value in visible}
                 and row["payload"].get("target_atom", {}).get("atom_id")
                 == value.get("target_atom_id")
                 and row["payload"].get("formula", {}).get("name")
-                == "uncertain-deduction"
-                and str(row["payload"].get("formula", {}).get(
-                    "inputs", {}).get("rule_id", "")).endswith(
-                        "->{}".format(TARGET_TECHNOLOGY))))
+                == "provenance-union"))
         matching_quarantines = tuple(
             row for row in quarantines
             if row["payload"].get("conflict_id") == value.get("conflict_id"))
@@ -161,7 +158,7 @@ def _audit_arm(root, arm, repo=None):
                 & set(row["payload"].get("retained_provenance_ids", ())))
             for row in matching_quarantines)
         conflict_rows.append({
-            "causal_visible_prerequisite": (
+            "causal_visible_roster_observation": (
                 len(visible) == 1 and len(positive_revisions) == 1
                 and _is_ancestor(
                     visible[0]["event_id"], positive_revisions[0], by_id)
@@ -178,7 +175,7 @@ def _audit_arm(root, arm, repo=None):
                 len(source_lineages) == 2
                 and any(row.startswith("simulator-model:")
                         for row in source_lineages)
-                and any(row.startswith("player-visible-unit-packet:")
+                and any(row.startswith("player-visible-roster-packet:")
                         for row in source_lineages)
                 and value.get("overlap") == 0.0),
             "model_prior_is_capped_and_non_crisp": (
@@ -224,7 +221,7 @@ def _audit_arm(root, arm, repo=None):
             and diagnostic.get("mode") == MODE
             and diagnostic.get("policy_authority") is False
             and diagnostic.get("apply_all_context_quarantines") is True
-            and diagnostic.get("target_technology") == TARGET_TECHNOLOGY),
+            and diagnostic.get("target_predicate") == TARGET_PREDICATE),
         "effective_conflict_thresholds_are_logged": (
             len(threshold_metrics) == 2
             and all(row["payload"].get("labels", {}).get("declaration")
@@ -277,12 +274,16 @@ def _audit_arm(root, arm, repo=None):
                 and row["payload"].get("model_provenance", {}).get(
                     "model_id") == MODEL_ID
                 for row in observations),
-            "visible_prerequisite_revisions": sum(
+            "visible_roster_revisions": sum(
                 row["payload"].get("formula", {}).get("name")
-                == "uncertain-deduction"
-                and str(row["payload"].get("formula", {}).get(
-                    "inputs", {}).get("rule_id", "")).endswith(
-                        "->{}".format(TARGET_TECHNOLOGY))
+                == "provenance-union"
+                and row["payload"].get("target_atom", {}).get("predicate")
+                == TARGET_PREDICATE
+                and row["payload"].get("provenance_id") in {
+                    value["payload"].get("provenance_id")
+                    for value in observations
+                    if value["payload"].get("source")
+                    == "player-visible-roster-packet"}
                 for row in revisions),
         },
     }
@@ -324,8 +325,8 @@ def audit_fdas_belief_conflict_live(root, repo=None):
         "acceptance": {"accepted": all(checks.values()), "checks": checks},
         "arms": arms,
         "claim_scope": (
-            "live capped model-prior versus player-visible ruleset-"
-            "prerequisite conflict, explicit independent source lineages, "
+            "live capped model-prior versus player-visible roster conflict, "
+            "explicit independent source lineages, "
             "context-local quarantine projection, and zero authority; no "
             "model accuracy, opponent absence, score, or gameplay-improvement "
             "claim"),
@@ -349,7 +350,7 @@ def audit_fdas_belief_conflict_live(root, repo=None):
             (name, sum(row["summary"][name] for row in arms))
             for name in (
                 "actions", "conflicts", "context_quarantines",
-                "model_priors", "visible_prerequisite_revisions")),
+                "model_priors", "visible_roster_revisions")),
     }
     report["structural_hash"] = structural_hash(report)
     return report

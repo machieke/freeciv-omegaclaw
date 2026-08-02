@@ -7,13 +7,13 @@
     "apply_all_context_quarantines": true,
     "conflict_min_confidence": 0.5,
     "conflict_severity_threshold": 0.25,
-    "mode": "model-prior-versus-visible-tech-shadow",
-    "model_id": "fdas-opponent-tech-prior",
+    "mode": "model-prior-versus-visible-roster-shadow",
+    "model_id": "fdas-opponent-presence-prior",
     "model_version": "1.0",
     "policy_authority": false,
     "prior_confidence": 0.6,
     "prior_strength": 0.0,
-    "target_technology": "Alphabet"
+    "target_predicate": "opponent-present"
   },
   "capabilities": {
     "belief_conflict_quarantine": "shadow-live",

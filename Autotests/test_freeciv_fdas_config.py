@@ -166,7 +166,8 @@ def test_checked_belief_conflict_profile_is_lineage_explicit_and_shadow_only():
     assert manifest["capabilities"][
         "belief_conflict_quarantine"] == "shadow-live"
     assert diagnostic["mode"] == (
-        "model-prior-versus-visible-tech-shadow")
+        "model-prior-versus-visible-roster-shadow")
+    assert diagnostic["target_predicate"] == "opponent-present"
     assert diagnostic["prior_confidence"] <= 0.6
     assert diagnostic["conflict_min_confidence"] <= diagnostic[
         "prior_confidence"]
