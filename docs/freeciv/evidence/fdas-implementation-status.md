@@ -287,3 +287,17 @@ had no in-scope selection and remained censored. The seed had neither outcome
 contrast nor multi-candidate live decisions, so candidate-specific calibration
 and rank improvement remain open. See
 `fdas-pr33-candidate-choice-calibration.md`.
+
+PR34 preregistered three clean 160-turn games to measure whether that exact
+fortification slice yields usable candidate competition. All 62,676 events,
+stores, censorship rules, and non-authority checks passed, with 15 observed
+selected outcomes and real 11/4 positive/negative contrast. The pilot still
+failed mechanically because one seed was eliminated at turn 153, and it failed
+the scientific progression gate because all 15 choice sets contained exactly
+one candidate. Live graph RCA found no truncation: each exact `(unit, city)`
+fortification-opportunity atom admitted one matching legal action while other
+defense operations were garrison moves outside the frozen rule scope. More
+sampling cannot create an actor-ranking comparison in this sequential slice;
+the next bounded target is an action-stratified competitive defense choice
+surface with observational episodes for accepted legacy-selected actions. See
+`fdas-pr34-candidate-choice-yield-pilot.md`.
