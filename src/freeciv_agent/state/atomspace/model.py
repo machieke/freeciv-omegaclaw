@@ -28,6 +28,19 @@ def _optional_nonnegative_integer(value, name):
 
 def joined_identity_hash(values):
     """Hash already-canonical scalar identities without JSON re-encoding."""
+    if not hasattr(values, "__len__"):
+        values = tuple(values)
+    if len(values) <= 64:
+        encoded_values = []
+        for value in values:
+            encoded = str(value).encode("utf-8")
+            length = len(encoded)
+            prefix = (
+                _JOINED_LENGTH_PREFIXES[length]
+                if length < len(_JOINED_LENGTH_PREFIXES) else
+                str(length).encode("ascii") + b":")
+            encoded_values.append(prefix + encoded)
+        return hashlib.sha256(b"".join(encoded_values)).hexdigest()
     encoded_values = bytearray()
     for value in values:
         encoded = str(value).encode("utf-8")
@@ -281,7 +294,6 @@ class SupportRecord:
     @classmethod
     def create(cls, derivation_id, derivation_version, binding,
                dependencies, witness, provenance_ids, confidence_cap=None):
-        dependencies = tuple(sorted(dependencies))
         binding_hash = structural_hash(binding)
         witness_hash = structural_hash(witness)
         return cls.from_hashes(
@@ -292,7 +304,11 @@ class SupportRecord:
     def from_hashes(cls, derivation_id, derivation_version, binding_hash,
                     dependencies, witness_hash, provenance_ids,
                     confidence_cap=None):
-        dependencies = tuple(sorted(dependencies))
+        dependencies = tuple(dependencies)
+        if (len(dependencies) > 1
+                and any(dependencies[index] > dependencies[index + 1]
+                        for index in range(len(dependencies) - 1))):
+            dependencies = tuple(sorted(dependencies))
         identity_parts = [
             derivation_id,
             derivation_version,
@@ -348,8 +364,14 @@ class AtomRecord:
             object.__setattr__(self, "authority", AuthorityClass(self.authority))
         if not isinstance(self.validity, ValidityInterval):
             raise TypeError("atom record requires ValidityInterval")
-        object.__setattr__(self, "supports", tuple(sorted(
-            self.supports, key=lambda value: value.support_id)))
+        supports = tuple(self.supports)
+        if (len(supports) > 1
+                and any(supports[index].support_id
+                        > supports[index + 1].support_id
+                        for index in range(len(supports) - 1))):
+            supports = tuple(sorted(
+                supports, key=lambda value: value.support_id))
+        object.__setattr__(self, "supports", supports)
         object.__setattr__(self, "provenance_ids", tuple(self.provenance_ids))
         object.__setattr__(self, "tags", tuple(self.tags))
         if not self.supports:
@@ -362,9 +384,19 @@ class AtomRecord:
     @classmethod
     def create(cls, key, authority, truth, validity, supports,
                provenance_ids, lifecycle="active", tags=(), truth_hash=None):
-        supports = tuple(sorted(supports, key=lambda value: value.support_id))
-        provenance_ids = tuple(sorted(set(provenance_ids)))
-        tags = tuple(sorted(tags))
+        supports = tuple(supports)
+        if (len(supports) > 1
+                and any(supports[index].support_id
+                        > supports[index + 1].support_id
+                        for index in range(len(supports) - 1))):
+            supports = tuple(sorted(
+                supports, key=lambda value: value.support_id))
+        provenance_ids = tuple(provenance_ids)
+        if len(provenance_ids) > 1:
+            provenance_ids = tuple(sorted(set(provenance_ids)))
+        tags = tuple(tags)
+        if len(tags) > 1:
+            tags = tuple(sorted(tags))
         truth_hash = truth_hash or structural_hash(truth)
         materialization_key = joined_identity_hash((
             key.atom_id,
