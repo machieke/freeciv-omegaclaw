@@ -99,3 +99,10 @@ pairs, missing goal-relief labels, target drift, or empty accepted train/holdout
 populations. The label artifact digests and target are included in the ledger
 identity and any promotion approval. This exposes the delayed component gate
 without activating live mining or readout.
+
+The first strict delayed held-out split then encoded 17 engine-backed rows, all
+positive, and rejected only its required proposal gate. See
+[`fdas-pr24-delayed-induction-holdout.md`](fdas-pr24-delayed-induction-holdout.md).
+This establishes that the eight-turn “any own unit coverage” target is too weak
+for discovery in the measured regime; it does not justify weakening the
+residual gate or manufacturing negative examples.

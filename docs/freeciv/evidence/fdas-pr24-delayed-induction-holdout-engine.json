@@ -1,0 +1,916 @@
+{
+  "acceptance": {
+    "accepted": false,
+    "checks": {
+      "all_candidates_received_heldout_verdict": true,
+      "engine_source_requirement_met": true,
+      "every_promotion_has_versioned_approval": true,
+      "execution_source_requirement_met": true,
+      "horizon_requirement_met": true,
+      "ledger_is_persisted_and_hash_bound": true,
+      "no_truth_policy_or_readout_authority": true,
+      "outcome_label_coverage_requirement_met": true,
+      "outcome_label_target_requirement_met": true,
+      "outcome_population_requirement_met": true,
+      "promotion_requirement_met": true,
+      "proposal_requirement_met": false,
+      "source_partitions_are_nonempty": true
+    }
+  },
+  "claim_scope": "verified FDAS episode-store and optional revision-bound delayed outcome-label partitioning, bounded pattern mining, disjoint held-out validation, versioned promotion approval, and zero truth/policy/readout authority; no live discovery quality, score, gameplay, or win-rate claim",
+  "configuration": {
+    "contradiction_threshold": 0.7,
+    "contradiction_tolerance": 0.0,
+    "maximum_antecedents": 2,
+    "maximum_candidates": 32,
+    "minimum_activations": 4,
+    "minimum_brier_improvement": 0.001,
+    "minimum_calibration_improvement": 0.0,
+    "minimum_residual": 0.05,
+    "minimum_samples": 8,
+    "minimum_support": 4,
+    "outcome_target": "durable-own-unit-city-coverage/8-turn/1.0"
+  },
+  "holdout_outcome_label_sources": [
+    {
+      "labels": 7,
+      "observed_labels": 7,
+      "path": "artifacts/freeciv/fdas-delayed-induction-population-live-160-v1/games/main/e_full_loop/104759-00/fdas-induction-outcome-labels.json",
+      "persistence_identity": "08394fe9fd068b2799e8703cf28dd0fa50012e92d17a2168f2f8b355930f6703",
+      "sha256": "5335759439c00c53c667cd5bbd86fa646a1930461e7f4b5fad98c8df94a6dfe6",
+      "store_digest": "b857597595e69f8f1dd3b9bd8adc37e980d6079f7588d56fa1c3635e7641cb97",
+      "targets": [
+        "durable-own-unit-city-coverage/8-turn/1.0"
+      ]
+    }
+  ],
+  "holdout_sources": [
+    {
+      "engine_evidence": {
+        "accepted": true,
+        "checks": {
+          "completed": true,
+          "event_ledger_valid_without_warnings": true,
+          "source_is_clean": true
+        },
+        "events": {
+          "path": "artifacts/freeciv/fdas-delayed-induction-population-live-160-v1/games/main/e_full_loop/104759-00/events.jsonl",
+          "sha256": "0c7db9f786cf9207c0ac99baaff81ffc25848c2a8cc5599eaf0df752082a8f78",
+          "validation": {
+            "errors": [],
+            "event_count": 25449,
+            "game_id": "m7-main-e_full_loop-104759-00",
+            "schema_version": "1.0",
+            "valid": true,
+            "warnings": []
+          }
+        },
+        "horizon_reached": true,
+        "manifest": {
+          "path": "artifacts/freeciv/fdas-delayed-induction-population-live-160-v1/games/main/e_full_loop/104759-00/manifest.json",
+          "sha256": "a6238d3708de8e7876676c2ff49f827fa6612f21b00108e3005c566d2780f972",
+          "source": {
+            "commit": "23c05a489b02e5bbc0c681844a9ecc168e33aaf7",
+            "dirty": false,
+            "implementation_sha256": "bd9de366b52870bfde1e0f69f5ea43b3de90383bfff3f9b5413135ad7620d636",
+            "source_files": 273
+          }
+        },
+        "status": {
+          "path": "artifacts/freeciv/fdas-delayed-induction-population-live-160-v1/games/main/e_full_loop/104759-00/status.json",
+          "sha256": "d23bb3828f7b70823d87e818fe46d6c638f15736c4835c2629872391ee3c440c"
+        }
+      },
+      "episodes": 7,
+      "path": "artifacts/freeciv/fdas-delayed-induction-population-live-160-v1/games/main/e_full_loop/104759-00/fdas-decision-episodes.json",
+      "persistence_identity": "c1849e03e272bc83209370d7929d30591644bb9f373c44d3adb58e5477241672",
+      "sha256": "e45cf5d7be4389c6d9dedbaf22aa5c26ac0310b80977feb91c10ac9e4b879c11",
+      "store_digest": "9086e0f1ad091bca39115c525b5457ae0dd798ae3ac3aa2fc5e650f10b2d7595"
+    }
+  ],
+  "ledger": {
+    "identity": "fdas-heldout-ledger:434942582cb3b95e05def0c768847017d27291f13ca5a384f3cd30d26782f40c",
+    "path": "artifacts/freeciv/fdas-delayed-induction-population-live-160-v1/delayed-holdout-ledger.json",
+    "state_hash": "94f352cbad7ac48b1ee5711bd333c6feec9b441260e20c6c06675b1e5d7bfed9"
+  },
+  "result": {
+    "approvals": [],
+    "demoted_rule_ids": [],
+    "duplicate_proposal_ids": [],
+    "duplicate_validation_ids": [],
+    "holdout_encoding_results": [
+      {
+        "accepted": true,
+        "episode_id": "episode-4c06116960b10f89c3e2f41ff3a57fa1",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-own-unit-city-coverage/8-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-4c06116960b10f89c3e2f41ff3a57fa1",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Musketeers",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=5-8",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:d86016488d3846dd8f42f4ae1689f266",
+            "fdas-episode:0cfd7e4ee8979a3edd081fba87398b2e5f0f06ed51ed4f89f6899bb8b0308513",
+            "outcome-label:626f2adc15f238940f1adee2f9bccff41a8425b701ca947a4e6d617503c9ef7d"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "424c162509e1e0a7bcfd3cc1854ba78dfe4e0358518a7ea5b1a9e4ade03cf2b2",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-6815c52cf6d981af235c96e3b77abfef",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-own-unit-city-coverage/8-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-6815c52cf6d981af235c96e3b77abfef",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Musketeers",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=9+",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:8dfc4cf068e64b0aa3babc58cb301554",
+            "fdas-episode:e7d3d5339905d5a0c80851e88ba642bd7a336e6e086477064ae0cb3a644412aa",
+            "outcome-label:b6f2def6aff6600db8ec255227b14e7d84840ee6d345c87328b4efb4c92daaf3"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "b056e6526f0f5d5bf638c2ca24732ad253eb7f74872cf58b04dc41e4dcb9f09f",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-b57bc950fa7231fa0e9976b16a87b376",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-own-unit-city-coverage/8-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-b57bc950fa7231fa0e9976b16a87b376",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Musketeers",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=2-4",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:2f5131e2b2fa4a5dbd33b0c91e4b9209",
+            "fdas-episode:8b7112c8a78386a6291f5ff804446505f6eda8c08c49df1455b5f6216fd4ade2",
+            "outcome-label:e96b7353bd22425cb52e8b48794af4611a35d758c852ddee304cb0dd18f74fc8"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "b36ce3e335d6533886c47ef51e71ce12010fc5ac520d48bf66158ffff64a47e5",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-c7701ef0069046d36fa47013070b436f",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-own-unit-city-coverage/8-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-c7701ef0069046d36fa47013070b436f",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Warriors",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=1",
+            "context:other_own_units_at_target_band=1",
+            "context:own_units_at_target_band=2"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:b69926ff5d8540259c5661f4fb9401ea",
+            "fdas-episode:ffd03c696a1498f21012ef143319ec3426ff70c10a45a0a2a5b32a0f8e1f3dd4",
+            "outcome-label:f2276d6c0db6b59e64659db041ceefc7d027a5fb3279e50bb1e983107a07de48"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "ad244599a9416d8a996cf133bf808c457d011eb052323c47a1349464a3538891",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-d400f3d5b399afae596bd2de9952e79c",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-own-unit-city-coverage/8-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-d400f3d5b399afae596bd2de9952e79c",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Musketeers",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=2-4",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:130b1bcfb825422d8f56ffd639fcb725",
+            "fdas-episode:bdcf2e67e15df6126fadb802b42e16247a475085c82e9ed6493b979408267afa",
+            "outcome-label:81d93cb2d525d3d63b9bbdd0a68354020426c5ffff790545e56c460a73931d67"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "d663b622388debe1bdca576537e7482a0a499d8e8f94d888e5d0b9de2af92c2a",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-fbe661244180e5d92bd653115b33926d",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-own-unit-city-coverage/8-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-fbe661244180e5d92bd653115b33926d",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Musketeers",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=2-4",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:d7f87df3a4ef48e2a3aa04f8f72da5f5",
+            "fdas-episode:0f14ebcaf3e6cd7c25bb325f2e2e543cf35fa664ec0b137d95e4c9581d00a5a9",
+            "outcome-label:4eb9e8f3ea3b621f5be59588eda337402631d9e52bde42df85a90e14335a933a"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "55a03f771fc35125ae20d15c39f3f62144e79937fbef43f713c5e5a0061d5316",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-fd4c5a2e4d4cfc9b892e8dd607ce193d",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-own-unit-city-coverage/8-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-fd4c5a2e4d4cfc9b892e8dd607ce193d",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Musketeers",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=9+",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:72ae60b58a274a8fb4e208c38abe5af1",
+            "fdas-episode:3983c701192b1d37fb4be8404726cab2e7007a00401aa23890de11fe2f33e3e9",
+            "outcome-label:2220336c05f6bfd79b1f906b3e39904e424aa6767c55cadf278f0fce1c9fb3f7"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "f761b8d0c28a70929a7318ca3066d00ab3d36494c42c439d89678868704a098a",
+        "truth_mutated": false
+      }
+    ],
+    "ledger_hash": "94f352cbad7ac48b1ee5711bd333c6feec9b441260e20c6c06675b1e5d7bfed9",
+    "mining_reason": "no-pattern-cleared-residual-gate",
+    "newly_quarantined_proposal_ids": [],
+    "newly_validated_ids": [],
+    "policy_authority": false,
+    "promoted_rule_ids": [],
+    "proposals": [],
+    "readout_authority": false,
+    "result_hash": "66612ddbde35bb775ace4d8d69d2b94c8ee2630e74af22d35a04b309bd69a299",
+    "training_encoding_results": [
+      {
+        "accepted": true,
+        "episode_id": "episode-0bbf1db31c45c8f7ab7b4a7eac4d9d54",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-own-unit-city-coverage/8-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-0bbf1db31c45c8f7ab7b4a7eac4d9d54",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Riflemen",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=5-8",
+            "context:other_own_units_at_target_band=1",
+            "context:own_units_at_target_band=2"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:a9ff26e2a13d43358633c1c832860d36",
+            "fdas-episode:960f366c9b889d4ef38f8901add1a6b666ed7967db21dbdffaff26a1e6c15ba0",
+            "outcome-label:f55cdb133de3487abdbff33833514075abb0477be78bd61211d4193c16ef599f"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "1251f9babc7cfe957b04987747224b62d5060357ef025b87cd7e885303be6635",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-29c8fc6f1a427225a8631ca24a6e8333",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-own-unit-city-coverage/8-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-29c8fc6f1a427225a8631ca24a6e8333",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Alpine Troops",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=1",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:a73e8a8ee1684414a3a90a156db088c4",
+            "fdas-episode:ba6af8af5a04f9814eb24e3243b769e48496b0f24f2c98e03e75713d7df0e324",
+            "outcome-label:299177a8c603e28eb374f9ff165b8f43941adac24b27047c37e2bc4f867936fd"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "51ba3bc5a655cd48fcd8848858490bfead51101cfef1b13db95f1e613ea84f63",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-3348240c5497a3f76f676bcc5fc23397",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-own-unit-city-coverage/8-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-3348240c5497a3f76f676bcc5fc23397",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Alpine Troops",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=5-8",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:b94a1eca03ae4065b79ad9916e94dd12",
+            "fdas-episode:3257c8202b815fa94c6c7b92dfe9aae212f382ecc415973dec0e0bb91138c144",
+            "outcome-label:8f926c32b45aa07b085f0c8a80a37c0df03e2cfc174fb8c610cdcb3551d42a03"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "2a018dd2d90692e1354feb1458e12f90aeb73e351a603f0742e225d0f7313af7",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-40a15568a75af7e189fa502d406f0d86",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-own-unit-city-coverage/8-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-40a15568a75af7e189fa502d406f0d86",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Alpine Troops",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=5-8",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:774746b920f543ba90682f45fa4a18aa",
+            "fdas-episode:8079b52808c8aced32807f15e134dad1ebaaad0fcc57dee2989bb2d6344a32f2",
+            "outcome-label:f61121f60e723c31ec7578a0e8f5ee9cbd7244595206518492d85043ee6c0a9e"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "52f6f5423be4308d0d72c8eea740392662a6c12ef37157828163c4400f884da1",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-b36eb330a989b0dd18e11b31065fecfc",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-own-unit-city-coverage/8-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-b36eb330a989b0dd18e11b31065fecfc",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Alpine Troops",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=5-8",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:1edf0a734d984ca5bbb44f3a62494148",
+            "fdas-episode:52cc46c46d7fc81d1cf3e0921bf905cc693e9d26494c492cc325b163412c4831",
+            "outcome-label:8a501ed62d120f3b04d2537226ff56042a66cf376def939f9615e071c03f1d62"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "8cca6d9f56a6e6df9af68de3e1fe3290a6c63eb0a0872d4a0f56bed213443805",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-b52ba76ff66825ec79c9654bfe14f9a3",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-own-unit-city-coverage/8-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-b52ba76ff66825ec79c9654bfe14f9a3",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Alpine Troops",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=2-4",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:7ee42b2b2d4741ac895d0eb8504649b0",
+            "fdas-episode:3153faca4cd74c3aa651c943bfdfa238c94170d7b0b41bd98abeee0f65014ac9",
+            "outcome-label:3c1cc20b24d44deb69b0c75bee40d382b2028386910f02970f683d36796422a8"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "3f1fd322a24f7142d8663a2c4ca364b7ad5a7c874c11faecef416f917290b594",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-de6a2aa1d2aed2093b4800292d02981e",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-own-unit-city-coverage/8-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-de6a2aa1d2aed2093b4800292d02981e",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Alpine Troops",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=2-4",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:9363f41ed1014f449e82792566665111",
+            "fdas-episode:5504abefa3b83cb3378ab13f4962f67701873f1f7f75b94bf5151dd531dd170e",
+            "outcome-label:1edede5e37e10e952bdf33013a6fba1c783c9fd84468f62dfe74ee8d92e558e0"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "9ceadc4ec606247b21674a560b8afc486bab4c97058fceeba7cac8dd28c8253b",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-e32c39e5b62e4c7ea7bc0cf27b4a0ae4",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-own-unit-city-coverage/8-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-e32c39e5b62e4c7ea7bc0cf27b4a0ae4",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Alpine Troops",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=2-4",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:1fe68a800b4747079441ba67d8586bb1",
+            "fdas-episode:d688d41a63d1cdf214f71eb48f27a3e65cc314f826f1d875c600ccd121cb05de",
+            "outcome-label:9835f214710099c2980f65ac1099d5fc4182b78a5d7fffb630f923ddb38662c6"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "837c4c1ccbd1ad9e56134d5bd220a5617c8d42a64f591f74012b3eb7c4e24838",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-ef3f29655af5f5eaeda3f3a0ce699e1a",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-own-unit-city-coverage/8-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-ef3f29655af5f5eaeda3f3a0ce699e1a",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Alpine Troops",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=1",
+            "context:other_own_units_at_target_band=1",
+            "context:own_units_at_target_band=2"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:b7f57f2c6d354c5fa922a1f77cc5fb5c",
+            "fdas-episode:fec51848ebeab4d76fd1c7ad6bbbcd72ac6817853f50c78ae1bedb1b961c88b4",
+            "outcome-label:83969852cb8ab5a4ce4a053c3ff476e1a37f71ef0c49ffa843ae166c296c0bf0"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "57a3e912524cf2d332e4c30cc7b6ed83a0f2f79e7de2abf12836ccca95febf5d",
+        "truth_mutated": false
+      },
+      {
+        "accepted": true,
+        "episode_id": "episode-f3cdd2164d3285aa5989ea6721107057",
+        "induction_episode": {
+          "context": [
+            [
+              "induction_feature_schema",
+              "defense-episode-features/2.0"
+            ],
+            [
+              "operation_type",
+              "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+            ],
+            [
+              "outcome_target",
+              "durable-own-unit-city-coverage/8-turn/1.0"
+            ]
+          ],
+          "episode_id": "episode-f3cdd2164d3285aa5989ea6721107057",
+          "features": [
+            "context:actor_moves_band=2+",
+            "context:actor_unit_type=Alpine Troops",
+            "context:actor_veteran_band=none",
+            "context:city_disorder=false",
+            "context:city_size_band=2-4",
+            "context:other_own_units_at_target_band=0",
+            "context:own_units_at_target_band=1"
+          ],
+          "outcome": true,
+          "provenance_ids": [
+            "execution-event:ab192abb1bf844688ae50cbed412ec35",
+            "fdas-episode:54e8035c25fb4ca4a4b9b55094031b2f6665369e8ea4757bb43d89d004bcda96",
+            "outcome-label:9095ee8385b1e5731bf5f23ac42004b8ce00fcf9390b359a4b4d568b9ae78bc1"
+          ]
+        },
+        "policy_authority": false,
+        "reason": "revision-bound-delayed-outcome-encoded-for-quarantined-induction",
+        "result_hash": "f6e58c510aa848f13e1249182739a31db3abe80f9e092ddcf89d61553db17d27",
+        "truth_mutated": false
+      }
+    ],
+    "truth_mutated": false,
+    "validations": []
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "23c05a489b02e5bbc0c681844a9ecc168e33aaf7",
+    "dirty": false,
+    "implementation_sha256": "bd9de366b52870bfde1e0f69f5ea43b3de90383bfff3f9b5413135ad7620d636",
+    "runner_sha256": "b124fc90809f3d1d057ef27023b419ee11087c0b3edf800dcc03de37cd85233c",
+    "source_files": 273
+  },
+  "structural_hash": "9f322dfb54a30b3468fbb780fe965dd57c8e802e775c8f0f465e7afe304e6950",
+  "training_outcome_label_sources": [
+    {
+      "labels": 5,
+      "observed_labels": 5,
+      "path": "artifacts/freeciv/fdas-delayed-induction-population-live-160-v1/games/main/e_full_loop/4543804-00/fdas-induction-outcome-labels.json",
+      "persistence_identity": "45a3c455a23ac789bea3af4efef0bb437b0f946de5f1f167a1dbea0b7ce95158",
+      "sha256": "bcd1752623df0af4b2150e6c26c22f20da7e148495f3d19d7ace17a7eb916178",
+      "store_digest": "480cf4488a694a8875219262982b444a363d3d5be55ab664b472a47c66e1910e",
+      "targets": [
+        "durable-own-unit-city-coverage/8-turn/1.0"
+      ]
+    },
+    {
+      "labels": 5,
+      "observed_labels": 5,
+      "path": "artifacts/freeciv/fdas-delayed-induction-population-live-160-v1/games/main/e_full_loop/104743-00/fdas-induction-outcome-labels.json",
+      "persistence_identity": "d4338cdbc6e011076ded30740c9ae60903520a965c85483f358ba952f8d6bc38",
+      "sha256": "a203e974434022a51daf54d2bc9ecc6a7b03bf0899334779263d9545b7b5de1e",
+      "store_digest": "578f920b23eb3c2c2ab9cc2eaef33d284fd0c9e2b67ffd8d5b7e322878c0fdfa",
+      "targets": [
+        "durable-own-unit-city-coverage/8-turn/1.0"
+      ]
+    }
+  ],
+  "training_sources": [
+    {
+      "engine_evidence": {
+        "accepted": true,
+        "checks": {
+          "completed": true,
+          "event_ledger_valid_without_warnings": true,
+          "source_is_clean": true
+        },
+        "events": {
+          "path": "artifacts/freeciv/fdas-delayed-induction-population-live-160-v1/games/main/e_full_loop/4543804-00/events.jsonl",
+          "sha256": "01a37777b2b01b4188096d38a3d7acb48ad11c52ea5bfb8cadaf906931bf692c",
+          "validation": {
+            "errors": [],
+            "event_count": 30997,
+            "game_id": "m7-main-e_full_loop-4543804-00",
+            "schema_version": "1.0",
+            "valid": true,
+            "warnings": []
+          }
+        },
+        "horizon_reached": true,
+        "manifest": {
+          "path": "artifacts/freeciv/fdas-delayed-induction-population-live-160-v1/games/main/e_full_loop/4543804-00/manifest.json",
+          "sha256": "63dc6d0c27e2bf7b5b99abc8018d646528914ef45a3acae4f09622545d171cd6",
+          "source": {
+            "commit": "23c05a489b02e5bbc0c681844a9ecc168e33aaf7",
+            "dirty": false,
+            "implementation_sha256": "bd9de366b52870bfde1e0f69f5ea43b3de90383bfff3f9b5413135ad7620d636",
+            "source_files": 273
+          }
+        },
+        "status": {
+          "path": "artifacts/freeciv/fdas-delayed-induction-population-live-160-v1/games/main/e_full_loop/4543804-00/status.json",
+          "sha256": "0ca1560ec502fd5eb5bde93c0c10608b5c4a8d1ab491ca04d017202941f39a1b"
+        }
+      },
+      "episodes": 5,
+      "path": "artifacts/freeciv/fdas-delayed-induction-population-live-160-v1/games/main/e_full_loop/4543804-00/fdas-decision-episodes.json",
+      "persistence_identity": "e702417f78c7b28361205a60dc88b69e1cb578269417106c138f749722cc8c99",
+      "sha256": "bdefea3654a7c85a498a6a798a278d755fa4f9c49e6acf79668e110da2dae8c8",
+      "store_digest": "e04de65740fd09612111a7e1be2fab9bad012d740d507ccb1567b23de4b35e51"
+    },
+    {
+      "engine_evidence": {
+        "accepted": true,
+        "checks": {
+          "completed": true,
+          "event_ledger_valid_without_warnings": true,
+          "source_is_clean": true
+        },
+        "events": {
+          "path": "artifacts/freeciv/fdas-delayed-induction-population-live-160-v1/games/main/e_full_loop/104743-00/events.jsonl",
+          "sha256": "da0ea4ca30a67271d3f506524237df5f0048970443e7453a72e55c23f8d14883",
+          "validation": {
+            "errors": [],
+            "event_count": 22747,
+            "game_id": "m7-main-e_full_loop-104743-00",
+            "schema_version": "1.0",
+            "valid": true,
+            "warnings": []
+          }
+        },
+        "horizon_reached": true,
+        "manifest": {
+          "path": "artifacts/freeciv/fdas-delayed-induction-population-live-160-v1/games/main/e_full_loop/104743-00/manifest.json",
+          "sha256": "744b49b34c38137446e8bb366745cea530caaac10b4f0d317ae0340ae4b1d1a3",
+          "source": {
+            "commit": "23c05a489b02e5bbc0c681844a9ecc168e33aaf7",
+            "dirty": false,
+            "implementation_sha256": "bd9de366b52870bfde1e0f69f5ea43b3de90383bfff3f9b5413135ad7620d636",
+            "source_files": 273
+          }
+        },
+        "status": {
+          "path": "artifacts/freeciv/fdas-delayed-induction-population-live-160-v1/games/main/e_full_loop/104743-00/status.json",
+          "sha256": "594323e656ffc760576cf9e18014d9aae5b882adf4289b6fb6413a2331584c79"
+        }
+      },
+      "episodes": 5,
+      "path": "artifacts/freeciv/fdas-delayed-induction-population-live-160-v1/games/main/e_full_loop/104743-00/fdas-decision-episodes.json",
+      "persistence_identity": "88c73a047b000df5f4d0f74601498cb3cfafd5834c65f5689272865b5f475b3b",
+      "sha256": "ff6e29f94837691a1d44bcffcf490743d84cf8f16697769b935eb84ea769c43e",
+      "store_digest": "0a919eeca43b128cf4e829ea64c837c2fce47dcb56381c3bd3f4cf55e155b820"
+    }
+  ]
+}
