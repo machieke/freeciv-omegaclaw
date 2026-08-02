@@ -7,10 +7,12 @@ import os
 from freeciv_agent.events.schema import structural_hash
 from freeciv_agent.events.validator import validate_file
 from freeciv_agent.planning import (
+    CAUSAL_INDUCTION_FEATURE_SCHEMA,
     DURABLE_ACTOR_CITY_DEFENSE_TARGET,
     DURABLE_CITY_COVERAGE_TARGET,
     DecisionEpisodeStore,
     EpisodeInductionOutcomeLabelStore,
+    INDUCTION_FEATURE_SCHEMA,
     delayed_outcome_episode_eligible,
 )
 
@@ -19,13 +21,25 @@ ACTIVATION_TARGETS = {
     (
         "profile/dependent_atomspace_defense_delayed_induction_shadow.yaml",
         "profile/fdas_manifest_defense_delayed_induction_shadow.json",
-    ): (DURABLE_CITY_COVERAGE_TARGET, 8),
+    ): (DURABLE_CITY_COVERAGE_TARGET, 8, None),
     (
         "profile/"
         "dependent_atomspace_defense_actor_persistence_induction_shadow.yaml",
         "profile/"
         "fdas_manifest_defense_actor_persistence_induction_shadow.json",
-    ): (DURABLE_ACTOR_CITY_DEFENSE_TARGET, 32),
+    ): (DURABLE_ACTOR_CITY_DEFENSE_TARGET, 32, None),
+    (
+        "profile/"
+        "dependent_atomspace_defense_actor_persistence_causal_"
+        "induction_shadow.yaml",
+        "profile/"
+        "fdas_manifest_defense_actor_persistence_causal_"
+        "induction_shadow.json",
+    ): (
+        DURABLE_ACTOR_CITY_DEFENSE_TARGET,
+        32,
+        CAUSAL_INDUCTION_FEATURE_SCHEMA,
+    ),
 }
 
 
@@ -106,14 +120,19 @@ def audit_fdas_delayed_induction_live(game_dir, repo=None):
     activation_sources = (
         declaration.get("config_source"),
         declaration.get("manifest_source"))
-    expected_target, observation_window_turns = ACTIVATION_TARGETS.get(
-        activation_sources, ("unrecognized-delayed-outcome-target", 0))
+    expected_target, observation_window_turns, expected_feature_schema = (
+        ACTIVATION_TARGETS.get(
+            activation_sources,
+            ("unrecognized-delayed-outcome-target", 0, None)))
     expected_diagnostic = {
         "induced_rule_readout": False,
         "observation_window_turns": observation_window_turns,
         "policy_authority": False,
         "target_id": expected_target,
     }
+    if expected_feature_schema is not None:
+        expected_diagnostic[
+            "induction_feature_schema"] = expected_feature_schema
     episodes = episode_store.episodes()
     labels = label_store.labels()
     relief_episodes = tuple(
@@ -145,6 +164,10 @@ def audit_fdas_delayed_induction_live(game_dir, repo=None):
             activation_sources in ACTIVATION_TARGETS
             and capabilities.get("delayed_induction_outcome_labels")
             == "shadow-live"
+            and (
+                expected_feature_schema is None
+                or capabilities.get("causal_episode_feature_schema")
+                == "shadow-live")
             and diagnostic == expected_diagnostic
             and config.get("learning", {}).get(
                 "episode_attribution_enabled") is True
@@ -158,6 +181,13 @@ def audit_fdas_delayed_induction_live(game_dir, repo=None):
             and label_store.quarantined is False
             and episode_raw.get("store_digest") == episode_store.store_digest
             and label_raw.get("store_digest") == label_store.store_digest),
+        "episode_feature_schema_matches_activation": (
+            bool(relief_episodes)
+            and all(
+                dict(value.context_signature).get(
+                    "induction_feature_schema")
+                == (expected_feature_schema or INDUCTION_FEATURE_SCHEMA)
+                for value in relief_episodes)),
         "every_relief_episode_has_exactly_one_target_label": (
             bool(relief_episodes)
             and len(label_by_episode) == len(labels) == len(relief_episodes)
@@ -237,6 +267,8 @@ def audit_fdas_delayed_induction_live(game_dir, repo=None):
             "labels_pending": len(pending_labels),
             "labels_positive": sum(
                 value.outcome is True for value in observed_labels),
+            "induction_feature_schema": (
+                expected_feature_schema or INDUCTION_FEATURE_SCHEMA),
             "observation_window_turns": observation_window_turns,
             "relief_episodes": len(relief_episodes),
             "target_id": expected_target,

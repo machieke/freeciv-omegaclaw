@@ -14,6 +14,7 @@ if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
 from freeciv_agent.planning import (  # noqa: E402
+    CAUSAL_INDUCTION_FEATURE_SCHEMA,
     DecisionEpisodeStore,
     DURABLE_ACTOR_CITY_DEFENSE_TARGET,
     DURABLE_CITY_COVERAGE_TARGET,
@@ -96,7 +97,9 @@ def _operation(action, operation_id="episode-route"):
     }
 
 
-def _begin_episode(store=None, operation_id="episode-route"):
+def _begin_episode(
+        store=None, operation_id="episode-route",
+        feature_schema="defense-episode-features/2.0"):
     before = _snapshot(_payload(), 490)
     operations = OperationStore("fdas-episode-operations")
     adapter = FdasCityDefenseOperationAdapter(operations, "ruleset-proof")
@@ -104,7 +107,8 @@ def _begin_episode(store=None, operation_id="episode-route"):
         before, (_operation(_move(before), operation_id),))[0]
     record = operations.get(update.operation_id)
     episode_store = store or DecisionEpisodeStore("fdas-episode-proof")
-    recorder = FdasDefenseEpisodeRecorder(episode_store)
+    recorder = FdasDefenseEpisodeRecorder(
+        episode_store, induction_feature_schema=feature_schema)
     episode = recorder.begin(
         adapter.binding(update.operation_id), record, before,
         "fdas-revision-before", "validation-proof",
@@ -115,6 +119,38 @@ def _begin_episode(store=None, operation_id="episode-route"):
         resource_claim_ids=("claim-unit-7",),
     )
     return recorder, episode_store, episode
+
+
+def test_causal_feature_schema_records_bounded_transferable_context():
+    _recorder, _store, episode = _begin_episode(
+        feature_schema=CAUSAL_INDUCTION_FEATURE_SCHEMA)
+
+    context = dict(episode.context_signature)
+
+    assert context["induction_feature_schema"] == (
+        CAUSAL_INDUCTION_FEATURE_SCHEMA)
+    assert context["actor_homecity_relation"] in (
+        "none", "other", "target", "unknown")
+    assert context["city_production_class"] in (
+        "improvement", "other", "unit", "unknown")
+    assert context["economy_operating_gold_band"] in (
+        "negative", "positive", "unknown", "zero")
+    assert context["empire_city_count_band"] in ("0", "1", "2", "3+")
+    assert context["other_fortified_units_at_target_band"] in (
+        "0", "1", "2", "3+")
+    assert context["turn_phase_band"] == "0-31"
+    assert context["visible_enemy_count_near_city_band"] in (
+        "0", "1", "2", "3+", "unknown")
+    assert context["visible_enemy_proximity_band"] in (
+        "adjacent", "distant", "near", "none-visible", "regional",
+        "unknown")
+
+
+def test_episode_recorder_rejects_unknown_induction_feature_schema():
+    with pytest.raises(ValueError, match="unsupported defense induction"):
+        FdasDefenseEpisodeRecorder(
+            DecisionEpisodeStore("unsupported-feature-schema"),
+            induction_feature_schema="defense-episode-features/999.0")
 
 
 def test_acceptance_effect_and_goal_relief_are_separate_idempotent_states():

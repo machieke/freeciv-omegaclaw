@@ -49,6 +49,7 @@ from freeciv_agent.pressure import (
     pressure_dependency_view,
 )
 from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
+                                    CAUSAL_INDUCTION_FEATURE_SCHEMA,
                                     PlanStep, PlanningSnapshot, ProofScheduler,
                                     ResourceLedger, GroundedImpactPlanner,
                                     DeferredImpactOutcomeLedger,
@@ -63,6 +64,7 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     FdasDefenseDurabilityLabeler,
                                     FdasEpisodeInductionShadow,
                                     FdasEpisodeLearningAdapter,
+                                    INDUCTION_FEATURE_SCHEMA,
                                     FdasExpansionOperationAdapter,
                                     FdasFounderTransportProjectionAdapter,
                                     FdasObservationExecutionBridge,
@@ -2716,6 +2718,11 @@ async def _play(run_dir, manifest, context):
         if isinstance(delayed_outcome_diagnostic, dict) else None)
     delayed_outcome_labeler_type = delayed_outcome_labelers.get(
         delayed_outcome_target)
+    delayed_outcome_feature_schema = (
+        delayed_outcome_diagnostic.get(
+            "induction_feature_schema", INDUCTION_FEATURE_SCHEMA)
+        if isinstance(delayed_outcome_diagnostic, dict)
+        else INDUCTION_FEATURE_SCHEMA)
     if fdas_delayed_outcome_shadow:
         if delayed_outcome_capability != "shadow-live":
             raise RuntimeError(
@@ -2730,6 +2737,14 @@ async def _play(run_dir, manifest, context):
             "policy_authority": False,
             "target_id": delayed_outcome_labeler_type.TARGET_ID,
         }
+        if "induction_feature_schema" in delayed_outcome_diagnostic:
+            if delayed_outcome_feature_schema not in (
+                    INDUCTION_FEATURE_SCHEMA,
+                    CAUSAL_INDUCTION_FEATURE_SCHEMA):
+                raise RuntimeError(
+                    "FDAS delayed outcome feature schema is not implemented")
+            expected_delayed_outcome_diagnostic[
+                "induction_feature_schema"] = delayed_outcome_feature_schema
         if delayed_outcome_diagnostic != expected_delayed_outcome_diagnostic:
             raise RuntimeError(
                 "FDAS delayed outcome diagnostic declaration differs")
@@ -2742,6 +2757,12 @@ async def _play(run_dir, manifest, context):
         if fdas_learning_config["induced_rule_readout_enabled"]:
             raise RuntimeError(
                 "FDAS delayed outcome labels cannot feed live rule readout")
+        if (delayed_outcome_feature_schema
+                == CAUSAL_INDUCTION_FEATURE_SCHEMA
+                and fdas_manifest["capabilities"].get(
+                    "causal_episode_feature_schema") != "shadow-live"):
+            raise RuntimeError(
+                "FDAS causal episode features require shadow-live manifest")
     if fdas_learning_config["episode_attribution_enabled"]:
         fdas_episode_identity = structural_hash([
             manifest["manifest_identity"], manifest["attempt_id"],
@@ -2755,7 +2776,8 @@ async def _play(run_dir, manifest, context):
                 "FDAS decision episode store is quarantined: {}".format(
                     fdas_episode_store.quarantine_reason))
         fdas_episode_recorder = FdasDefenseEpisodeRecorder(
-            fdas_episode_store)
+            fdas_episode_store,
+            induction_feature_schema=delayed_outcome_feature_schema)
         if fdas_learning_config["contextual_conductance_enabled"]:
             fdas_episode_learning = FdasEpisodeLearningAdapter(
                 fdas_episode_store, ())

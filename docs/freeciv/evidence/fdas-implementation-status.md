@@ -220,3 +220,19 @@ candidates or promotions. See `fdas-pr22-induction-holdout.md`. More runs of
 the same immediate-fortification target are unlikely to fix the missing
 contrast; a non-tautological delayed outcome and generalizable features remain
 the next Phase 9 scientific gate.
+
+PRs 23–26 add revision-bound delayed outcomes and close two complete discovery
+cycles. The original 8-turn city-coverage target produced 17/17 positives and
+was rejected as non-discriminating. The replacement 32-turn exact-actor target
+produced real contrast and eight quarantined proposals. An expanded untouched
+15-example holdout demoted all eight: four never activated and four worsened
+out-of-sample Brier score and calibration. This proves fail-closed held-out
+adjudication, not useful learned rules; see `fdas-pr23-*` through
+`fdas-pr26-*`.
+
+PR 27 introduces the opt-in `defense-episode-features/3.0` discovery schema.
+It removes exact unit type from mined features and adds bounded lifecycle,
+local redundancy, economy, production-class, and explicitly visible-threat
+context. Existing `2.0` profiles are unchanged, schema/profile mismatches fail
+closed, and induced readout remains disabled. All earlier inspected cohorts
+are excluded from confirmation; see `fdas-pr27-causal-induction-features.md`.

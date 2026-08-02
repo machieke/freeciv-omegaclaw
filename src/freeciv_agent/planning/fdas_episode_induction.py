@@ -10,7 +10,11 @@ from ..pressure.induction import (
     PatternMiner,
     ReplayValidator,
 )
-from .fdas_episodes import DecisionEpisodeStore, INDUCTION_FEATURE_SCHEMA
+from .fdas_episodes import (
+    CAUSAL_INDUCTION_FEATURE_SCHEMA,
+    DecisionEpisodeStore,
+    INDUCTION_FEATURE_SCHEMA,
+)
 from .fdas_induction_labels import (
     EpisodeInductionOutcomeLabelStore,
     delayed_outcome_episode_eligible,
@@ -314,6 +318,27 @@ class FdasEpisodeInductionShadow(object):
     @staticmethod
     def _spec(episode):
         context = dict(episode.context_signature)
+        if context.get(
+                "induction_feature_schema") == CAUSAL_INDUCTION_FEATURE_SCHEMA:
+            return EpisodeInductionSpec(
+                episode.episode_id,
+                ("induction_feature_schema", "operation_type"),
+                (
+                    "actor_homecity_relation",
+                    "actor_moves_band",
+                    "actor_veteran_band",
+                    "city_disorder",
+                    "city_production_class",
+                    "city_size_band",
+                    "economy_operating_gold_band",
+                    "empire_city_count_band",
+                    "other_fortified_units_at_target_band",
+                    "other_own_units_at_target_band",
+                    "own_units_at_target_band",
+                    "turn_phase_band",
+                    "visible_enemy_count_near_city_band",
+                    "visible_enemy_proximity_band",
+                ))
         if context.get("induction_feature_schema") == INDUCTION_FEATURE_SCHEMA:
             return EpisodeInductionSpec(
                 episode.episode_id,

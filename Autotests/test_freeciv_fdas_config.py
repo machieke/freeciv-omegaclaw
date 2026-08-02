@@ -114,6 +114,29 @@ def test_checked_defense_shadow_profile_is_narrow_and_non_authoritative():
         "shadow-live")
 
 
+def test_causal_induction_profile_is_explicit_and_readout_disabled():
+    with open(os.path.join(
+            REPO, "profile",
+            "dependent_atomspace_defense_actor_persistence_causal_"
+            "induction_shadow.yaml"), encoding="utf-8") as stream:
+        value = yaml.safe_load(stream)["dependent_atomspace"]
+    with open(os.path.join(
+            REPO, "profile",
+            "fdas_manifest_defense_actor_persistence_causal_"
+            "induction_shadow.json"), encoding="utf-8") as stream:
+        manifest = json.load(stream)
+
+    config = DependentAtomSpaceConfig.from_dict(value, manifest)
+
+    assert config.section("learning")["episode_attribution_enabled"] is True
+    assert config.section("learning")["induction_enabled"] is True
+    assert config.section("learning")["induced_rule_readout_enabled"] is False
+    assert manifest["capabilities"]["causal_episode_feature_schema"] == (
+        "shadow-live")
+    assert manifest["delayed_induction_outcome_diagnostic"][
+        "induction_feature_schema"] == "defense-episode-features/3.0"
+
+
 def test_checked_observation_execution_profile_requires_authoritative_return():
     with open(os.path.join(
             REPO, "profile",

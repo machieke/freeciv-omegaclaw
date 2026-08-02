@@ -122,7 +122,9 @@ from .fdas_defense import (
     FdasDefenseRequirementContext,
 )
 from .fdas_episodes import (
+    CAUSAL_INDUCTION_FEATURE_SCHEMA,
     EPISODE_SCHEMA_VERSION,
+    INDUCTION_FEATURE_SCHEMA,
     DecisionEpisode,
     DecisionEpisodeStore,
     FdasDefenseEpisodeRecorder,
@@ -251,7 +253,9 @@ __all__ = [
     "FdasCityDefenseOperationAdapter",
     "FdasDefenseActionBinding", "FdasDefenseLifecycleUpdate",
     "FdasDefenseRequirementContext",
-    "EPISODE_SCHEMA_VERSION", "DecisionEpisode", "DecisionEpisodeStore",
+    "CAUSAL_INDUCTION_FEATURE_SCHEMA",
+    "EPISODE_SCHEMA_VERSION", "INDUCTION_FEATURE_SCHEMA",
+    "DecisionEpisode", "DecisionEpisodeStore",
     "FdasDefenseEpisodeRecorder",
     "EpisodeControlPrediction", "EpisodeLearningExplanation",
     "EpisodeLearningMetrics", "EpisodeLearningResult",

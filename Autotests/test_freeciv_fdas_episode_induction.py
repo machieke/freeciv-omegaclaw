@@ -12,6 +12,7 @@ if SRC not in sys.path:
     sys.path.insert(0, SRC)
 
 from freeciv_agent.planning import (  # noqa: E402
+    CAUSAL_INDUCTION_FEATURE_SCHEMA,
     DURABLE_ACTOR_CITY_DEFENSE_TARGET,
     DURABLE_CITY_COVERAGE_TARGET,
     DecisionEpisode,
@@ -59,6 +60,17 @@ def _episode(
             "induction_feature_schema": feature_schema,
             "other_own_units_at_target_band": "0",
             "own_units_at_target_band": "1",
+        })
+    if feature_schema == CAUSAL_INDUCTION_FEATURE_SCHEMA:
+        context.update({
+            "actor_homecity_relation": "target",
+            "city_production_class": "unit",
+            "economy_operating_gold_band": "positive",
+            "empire_city_count_band": "3+",
+            "other_fortified_units_at_target_band": "0",
+            "turn_phase_band": "32-63",
+            "visible_enemy_count_near_city_band": "1",
+            "visible_enemy_proximity_band": "near",
         })
     return DecisionEpisode(
         EPISODE_SCHEMA_VERSION,
@@ -205,6 +217,31 @@ def test_shadow_induction_uses_bounded_cross_game_features_when_available():
         encoded.induction_episode.features)
     assert not any(
         "tile" in value for value in encoded.induction_episode.features)
+
+
+def test_causal_schema_excludes_exact_actor_type_and_uses_lifecycle_features():
+    episode = _episode(
+        0, "goal-relief-observed",
+        feature_schema=CAUSAL_INDUCTION_FEATURE_SCHEMA,
+        unit_type="One-off Ruleset Unit")
+    shadow = FdasEpisodeInductionShadow(
+        DecisionEpisodeStore("fdas-causal-features", (episode,)),
+        InductionLedger(identity="fdas-causal-features"))
+
+    encoded = shadow.adapter.encode(shadow._spec(episode))
+
+    assert encoded.accepted is True
+    assert encoded.induction_episode.context == (
+        ("induction_feature_schema", CAUSAL_INDUCTION_FEATURE_SCHEMA),
+        ("operation_type", "move_defender_to_city"),
+    )
+    assert "context:actor_homecity_relation=target" in (
+        encoded.induction_episode.features)
+    assert "context:visible_enemy_proximity_band=near" in (
+        encoded.induction_episode.features)
+    assert not any(
+        "actor_unit_type" in value
+        for value in encoded.induction_episode.features)
 
 
 def test_context_and_evidence_features_must_be_linked_to_episode():

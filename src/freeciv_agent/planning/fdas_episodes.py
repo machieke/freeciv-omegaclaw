@@ -35,6 +35,11 @@ _STATE_RANK = {
 }
 
 INDUCTION_FEATURE_SCHEMA = "defense-episode-features/2.0"
+CAUSAL_INDUCTION_FEATURE_SCHEMA = "defense-episode-features/3.0"
+_INDUCTION_FEATURE_SCHEMAS = frozenset((
+    INDUCTION_FEATURE_SCHEMA,
+    CAUSAL_INDUCTION_FEATURE_SCHEMA,
+))
 
 
 def _count_band(value):
@@ -70,6 +75,82 @@ def _optional_boolean(value):
     if value is None:
         return "unknown"
     return "true" if value else "false"
+
+
+def _turn_phase_band(value):
+    value = max(0, int(value))
+    if value <= 31:
+        return "0-31"
+    if value <= 63:
+        return "32-63"
+    if value <= 95:
+        return "64-95"
+    return "96+"
+
+
+def _homecity_relation(actor, city):
+    if actor is None or actor.homecity is None or city is None:
+        return "unknown"
+    if int(actor.homecity) <= 0:
+        return "none"
+    return "target" if int(actor.homecity) == int(city.city_id) else "other"
+
+
+def _production_class(city):
+    if city is None or city.production_kind is None:
+        return "unknown"
+    return {6: "unit", 3: "improvement"}.get(
+        int(city.production_kind), "other")
+
+
+def _operating_gold_band(economy):
+    value = economy.operating_gold_per_turn
+    if value is None:
+        value = economy.gold_per_turn
+    if value is None:
+        return "unknown"
+    if int(value) < 0:
+        return "negative"
+    if int(value) == 0:
+        return "zero"
+    return "positive"
+
+
+def _wrapped_city_enemy_distance(snapshot, city, enemy):
+    if (city is None
+            or None in (
+                city.x, city.y, enemy.x, enemy.y,
+                snapshot.map_wrap_x, snapshot.map_wrap_y)
+            or snapshot.map_width <= 0 or snapshot.map_height <= 0):
+        return None
+    dx = abs(int(city.x) - int(enemy.x))
+    dy = abs(int(city.y) - int(enemy.y))
+    if snapshot.map_wrap_x:
+        dx = min(dx, int(snapshot.map_width) - dx)
+    if snapshot.map_wrap_y:
+        dy = min(dy, int(snapshot.map_height) - dy)
+    return max(dx, dy)
+
+
+def _visible_threat_context(snapshot, city):
+    enemies = tuple(snapshot.visible_enemy_units)
+    if not enemies:
+        return "none-visible", "0"
+    distances = tuple(
+        _wrapped_city_enemy_distance(snapshot, city, enemy)
+        for enemy in enemies)
+    if any(value is None for value in distances):
+        return "unknown", "unknown"
+    nearest = min(distances)
+    if nearest <= 1:
+        proximity = "adjacent"
+    elif nearest <= 3:
+        proximity = "near"
+    elif nearest <= 6:
+        proximity = "regional"
+    else:
+        proximity = "distant"
+    return proximity, _count_band(sum(value <= 3 for value in distances))
 
 
 def _strings(values, name, unique=True):
@@ -370,10 +451,13 @@ class DecisionEpisodeStore(object):
 class FdasDefenseEpisodeRecorder(object):
     RECORDER_IDENTITY = "fdas-defense-episode-recorder/1.0"
 
-    def __init__(self, store):
+    def __init__(self, store, induction_feature_schema=INDUCTION_FEATURE_SCHEMA):
         if not isinstance(store, DecisionEpisodeStore):
             raise TypeError("defense episode recorder requires episode store")
+        if induction_feature_schema not in _INDUCTION_FEATURE_SCHEMAS:
+            raise ValueError("unsupported defense induction feature schema")
         self.store = store
+        self.induction_feature_schema = induction_feature_schema
 
     def begin(self, binding, operation_record, before_snapshot,
               before_revision_id, validation_result_hash,
@@ -408,7 +492,7 @@ class FdasDefenseEpisodeRecorder(object):
         other_target_units = tuple(
             value for value in target_units
             if actor is None or value.unit_id != actor.unit_id)
-        context = tuple(sorted({
+        context = {
             "actor_id": normalized_actor_ref,
             "actor_moves_band": _optional_band(
                 None if actor is None else actor.moves_left),
@@ -422,13 +506,36 @@ class FdasDefenseEpisodeRecorder(object):
                 None if city is None else city.disorder),
             "city_size_band": _city_size_band(
                 None if city is None else city.size),
-            "induction_feature_schema": INDUCTION_FEATURE_SCHEMA,
+            "induction_feature_schema": self.induction_feature_schema,
             "operation_type": spec.operation_type,
             "other_own_units_at_target_band": _count_band(
                 len(other_target_units)),
             "own_units_at_target_band": _count_band(len(target_units)),
             "target_tile": str(None if city is None else city.tile),
-        }.items()))
+        }
+        if self.induction_feature_schema == CAUSAL_INDUCTION_FEATURE_SCHEMA:
+            fortified_activities = frozenset((
+                "fortify", "fortified", "fortifying"))
+            other_fortified_units = tuple(
+                value for value in other_target_units
+                if str(value.activity or "").lower()
+                in fortified_activities)
+            threat_proximity, nearby_threat_count = (
+                _visible_threat_context(before_snapshot, city))
+            context.update({
+                "actor_homecity_relation": _homecity_relation(actor, city),
+                "city_production_class": _production_class(city),
+                "empire_city_count_band": _count_band(
+                    len(before_snapshot.cities)),
+                "economy_operating_gold_band": _operating_gold_band(
+                    before_snapshot.economy),
+                "other_fortified_units_at_target_band": _count_band(
+                    len(other_fortified_units)),
+                "turn_phase_band": _turn_phase_band(before_snapshot.turn),
+                "visible_enemy_count_near_city_band": nearby_threat_count,
+                "visible_enemy_proximity_band": threat_proximity,
+            })
+        context = tuple(sorted(context.items()))
         material = {
             "action_key": binding.action_key,
             "before_revision_id": before_revision_id,

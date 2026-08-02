@@ -8,6 +8,7 @@ from freeciv_agent.events.schema import structural_hash
 from freeciv_agent.events.synthetic import DeterministicIds, fixed_clock
 from freeciv_agent.events.writer import EventWriter
 from freeciv_agent.planning import (
+    CAUSAL_INDUCTION_FEATURE_SCHEMA,
     DURABLE_ACTOR_CITY_DEFENSE_TARGET,
     DURABLE_CITY_COVERAGE_TARGET,
     DecisionEpisode,
@@ -22,7 +23,7 @@ def _write_json(path, value):
     path.write_text(json.dumps(value, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def _episode():
+def _episode(feature_schema="defense-episode-features/2.0"):
     return DecisionEpisode(
         1,
         "episode-delayed-live",
@@ -35,6 +36,7 @@ def _episode():
         ("pf-impact:survival",),
         (("actor_id", "unit:7"), ("actor_unit_type", "Riflemen"),
          ("city_id", "4"),
+         ("induction_feature_schema", feature_schema),
          ("operation_type",
           "fdas-shadow:unit-fortification-opportunity:unit_fortify")),
         ("atom-defense",),
@@ -107,8 +109,9 @@ def _labels(episode, target_id=DURABLE_CITY_COVERAGE_TARGET, window=8):
 
 
 def _fixture(
-        tmp_path, target_id=DURABLE_CITY_COVERAGE_TARGET, window=8):
-    episode = _episode()
+        tmp_path, target_id=DURABLE_CITY_COVERAGE_TARGET, window=8,
+        feature_schema=None):
+    episode = _episode(feature_schema or "defense-episode-features/2.0")
     pending, observed = _labels(episode, target_id, window)
     episode_store = DecisionEpisodeStore("episode-store", (episode,))
     episode_store.save(str(tmp_path / "fdas-decision-episodes.json"))
@@ -116,12 +119,21 @@ def _fixture(
         "label-store", (observed,))
     label_store.save(str(tmp_path / "fdas-induction-outcome-labels.json"))
     actor_target = target_id == DURABLE_ACTOR_CITY_DEFENSE_TARGET
+    causal_features = feature_schema == CAUSAL_INDUCTION_FEATURE_SCHEMA
     config_source = (
+        "profile/"
+        "dependent_atomspace_defense_actor_persistence_causal_"
+        "induction_shadow.yaml"
+        if causal_features else
         "profile/"
         "dependent_atomspace_defense_actor_persistence_induction_shadow.yaml"
         if actor_target else
         "profile/dependent_atomspace_defense_delayed_induction_shadow.yaml")
     manifest_source = (
+        "profile/"
+        "fdas_manifest_defense_actor_persistence_causal_"
+        "induction_shadow.json"
+        if causal_features else
         "profile/"
         "fdas_manifest_defense_actor_persistence_induction_shadow.json"
         if actor_target else
@@ -137,9 +149,13 @@ def _fixture(
             "manifest": {
                 "capabilities": {
                     "delayed_induction_outcome_labels": "shadow-live",
+                    **({"causal_episode_feature_schema": "shadow-live"}
+                       if causal_features else {}),
                 },
                 "delayed_induction_outcome_diagnostic": {
                     "induced_rule_readout": False,
+                    **({"induction_feature_schema": feature_schema}
+                       if causal_features else {}),
                     "observation_window_turns": window,
                     "policy_authority": False,
                     "target_id": target_id,
@@ -225,6 +241,20 @@ def test_delayed_induction_live_audit_accepts_actor_persistence_target(
     assert report["summary"]["target_id"] == (
         DURABLE_ACTOR_CITY_DEFENSE_TARGET)
     assert report["summary"]["observation_window_turns"] == 32
+
+
+def test_delayed_induction_live_audit_accepts_causal_feature_schema(tmp_path):
+    _fixture(
+        tmp_path,
+        target_id=DURABLE_ACTOR_CITY_DEFENSE_TARGET,
+        window=32,
+        feature_schema=CAUSAL_INDUCTION_FEATURE_SCHEMA)
+
+    report = audit_fdas_delayed_induction_live(str(tmp_path))
+
+    assert report["acceptance"]["accepted"] is True
+    assert report["summary"]["induction_feature_schema"] == (
+        CAUSAL_INDUCTION_FEATURE_SCHEMA)
 
 
 def test_delayed_induction_live_audit_rejects_early_event_observation(tmp_path):

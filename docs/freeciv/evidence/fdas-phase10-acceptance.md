@@ -55,7 +55,7 @@ Acceptance level: component-only; default runtime and policy authority disabled
   controller p95.
 - Generated event types: current.
 - Frozen Phase 0 semantic baseline: reproduced as
-  `e688acb0b5074310ad793424979b2643a3780e8e439ea18872d3dee64eb2695f`.
+  `beb5c88ecd312784da3129ade47c3dc948203d18bc05cf61299a2b5a23b08e07`.
 - `git diff --check`: clean at each committed slice.
 
 The unscoped `pytest -q Autotests` command is not a valid monolithic harness:
