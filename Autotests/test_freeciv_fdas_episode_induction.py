@@ -37,6 +37,7 @@ from freeciv_agent.planning import (  # noqa: E402
     causal_induction_feature_query,
     combine_episode_stores,
     combine_outcome_label_stores,
+    export_candidate_choice_calibration,
 )
 from freeciv_agent.pressure import (  # noqa: E402
     CostVector,
@@ -435,12 +436,36 @@ def test_candidate_choice_set_censors_nonselected_and_labels_only_selected():
                 for row in observed.choices)[alternative.operation.operation_id] == (
                     "nonselected-censored")
 
+    exported = export_candidate_choice_calibration(
+        store, evaluated.operation_type, evaluated.outcome_target)
+    assert len(exported.examples) == 1
+    assert exported.examples[0].outcome is True
+    assert exported.nonselected_censored_count == 1
+    assert exported.selected_pending_or_censored_count == 0
+    assert exported.to_dict()["policy_authority"] is False
+    assert exported.to_dict()["readout_authority"] is False
+    assert exported.to_dict()["truth_mutated"] is False
+    assert all(
+        alternative.operation.operation_id not in value.provenance_ids
+        for value in exported.examples)
+
     with tempfile.TemporaryDirectory() as directory:
         path = os.path.join(directory, "choices.json")
         store.save(path)
         loaded = FdasCandidateChoiceSetStore.load(path, "choice-set-test")
         assert loaded.store_digest == store.store_digest
         assert loaded.get(choice_set.choice_set_id) == observed
+        with open(path, encoding="utf-8") as stream:
+            corrupted = json.load(stream)
+        corrupted["choice_sets"][0]["choices"][1][
+            "selection_role"] = "selected"
+        with open(path, "w", encoding="utf-8") as stream:
+            json.dump(corrupted, stream)
+        quarantined = FdasCandidateChoiceSetStore.load(
+            path, "choice-set-test")
+        assert quarantined.quarantined is True
+        assert quarantined.quarantine_reason.startswith(
+            "candidate-choice-store-load-failed:")
 
 
 def test_candidate_choice_set_without_in_scope_selection_is_all_censored():

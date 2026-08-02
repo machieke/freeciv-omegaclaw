@@ -58,6 +58,8 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     ImpactTurnBudget,
                                     ControlEventEmitter,
                                     DecisionEpisodeStore,
+                                    FdasCandidateChoiceSetRecorder,
+                                    FdasCandidateChoiceSetStore,
                                     DURABLE_ACTOR_CITY_DEFENSE_TARGET,
                                     DURABLE_CITY_COVERAGE_TARGET,
                                     EpisodeControlPrediction,
@@ -2702,6 +2704,10 @@ async def _play(run_dir, manifest, context):
     fdas_episode_induction = None
     fdas_candidate_impact_bundle = None
     fdas_candidate_impact_shadow = None
+    fdas_candidate_choice_path = os.path.join(
+        run_dir, "fdas-candidate-choice-sets.json")
+    fdas_candidate_choice_store = None
+    fdas_candidate_choice_recorder = None
     candidate_impact_capability = fdas_manifest["capabilities"].get(
         "induced_rule_candidate_impact_shadow")
     candidate_impact_diagnostic = fdas_manifest.get(
@@ -2926,6 +2932,34 @@ async def _play(run_dir, manifest, context):
                 raise RuntimeError(
                     "FDAS candidate impact {} differs from manifest".format(
                         name))
+        fdas_candidate_choice_identity = structural_hash([
+            fdas_episode_identity,
+            "fdas-candidate-choice-sets/1.0",
+            candidate_impact_diagnostic["outcome_target"],
+            loaded_artifacts["approved_report_sha256"],
+            loaded_artifacts["consolidation_report_sha256"],
+        ])
+        fdas_candidate_choice_store = FdasCandidateChoiceSetStore.load(
+            fdas_candidate_choice_path, fdas_candidate_choice_identity)
+        if fdas_candidate_choice_store.quarantined:
+            raise RuntimeError(
+                "FDAS candidate choice store is quarantined: {}".format(
+                    fdas_candidate_choice_store.quarantine_reason))
+        fdas_candidate_choice_recorder = FdasCandidateChoiceSetRecorder(
+            fdas_candidate_choice_store)
+        if fdas_outcome_label_store is not None:
+            for prior_choice in fdas_candidate_choice_store.choice_sets():
+                if (prior_choice.outcome_status != "pending-observation"
+                        or prior_choice.selected_episode_id is None):
+                    continue
+                recovered_label = fdas_outcome_label_store.for_episode(
+                    prior_choice.selected_episode_id,
+                    prior_choice.outcome_target)
+                if (recovered_label is not None
+                        and recovered_label.status == "observed"):
+                    fdas_candidate_choice_recorder.observe_outcome(
+                        prior_choice.selected_episode_id, recovered_label)
+        fdas_candidate_choice_store.save(fdas_candidate_choice_path)
 
     def fdas_operation_records():
         rows = tuple(control_event_emitter.fdas_operation_records(
@@ -3151,6 +3185,26 @@ async def _play(run_dir, manifest, context):
         "fdas_candidate_impact_abstentions": 0,
         "fdas_candidate_impact_complete_coverages": 0,
         "fdas_candidate_impact_counterfactual_winner_changes": 0,
+        "fdas_candidate_choice_sets": (
+            len(fdas_candidate_choice_store.choice_sets())
+            if fdas_candidate_choice_store is not None else 0),
+        "fdas_candidate_choices": (
+            sum(len(value.choices)
+                for value in fdas_candidate_choice_store.choice_sets())
+            if fdas_candidate_choice_store is not None else 0),
+        "fdas_candidate_choices_selected": (
+            sum(value.selected_operation_id is not None
+                for value in fdas_candidate_choice_store.choice_sets())
+            if fdas_candidate_choice_store is not None else 0),
+        "fdas_candidate_choices_censored": (
+            sum(row.selection_role == "nonselected-censored"
+                for value in fdas_candidate_choice_store.choice_sets()
+                for row in value.choices)
+            if fdas_candidate_choice_store is not None else 0),
+        "fdas_candidate_choice_outcomes_observed": (
+            sum(value.outcome_status == "observed"
+                for value in fdas_candidate_choice_store.choice_sets())
+            if fdas_candidate_choice_store is not None else 0),
         "fdas_delayed_outcome_labels_opened": (
             len(fdas_outcome_label_store.labels())
             if fdas_outcome_label_store is not None else 0),
@@ -4047,6 +4101,27 @@ async def _play(run_dir, manifest, context):
                     decision_stats[
                         "fdas_delayed_outcome_negative"] += int(
                             observed_label.outcome is False)
+                    if fdas_candidate_choice_store is not None:
+                        prior_choice = fdas_candidate_choice_store.for_episode(
+                            episode.episode_id)
+                        if (prior_choice is not None
+                                and prior_choice.outcome_status != "observed"):
+                            observed_choice = (
+                                fdas_candidate_choice_recorder.observe_outcome(
+                                    episode.episode_id, observed_label))
+                            fdas_candidate_choice_store.save(
+                                fdas_candidate_choice_path)
+                            choice_event = (
+                                fdas_runtime
+                                .emit_induced_rule_candidate_choice_set(
+                                    writer, current, observed_choice,
+                                    "selected-outcome-observed",
+                                    caused_by=(cause,)))
+                            if choice_event is not None:
+                                cause = choice_event["event_id"]
+                            decision_stats[
+                                "fdas_candidate_choice_outcomes_observed"
+                            ] += 1
             return cause
 
         def prepare_fdas_observation_action(current, action, cause):
@@ -4947,6 +5022,8 @@ async def _play(run_dir, manifest, context):
                     impact_planning_calls += 1
                     fdas_shadow = None
                     fdas_authority = None
+                    candidate_impact = None
+                    candidate_choice_set = None
                     evaluate_fdas_shadow = bool(
                         (not fdas_turn_sampled
                          or snapshot.turn not in fdas_shadow_evaluated_turns)
@@ -5081,6 +5158,62 @@ async def _play(run_dir, manifest, context):
                                 caused_by=(parent,))
                             if authority_event is not None:
                                 parent = authority_event["event_id"]
+                        if (candidate_impact is not None
+                                and candidate_impact.status == "evaluated"):
+                            choice_revision = (
+                                fdas_store.current_dependent_revision(
+                                    manifest["game_id"], player_id))
+                            prior_choice_ids = frozenset(
+                                value.choice_set_id for value in
+                                fdas_candidate_choice_store.choice_sets())
+                            candidate_choice_set = (
+                                fdas_candidate_choice_recorder.capture(
+                                    candidate_impact,
+                                    fdas_shadow.candidates,
+                                    snapshot,
+                                    choice_revision.revision_id,
+                                    (None if decision is None else
+                                     decision.candidate.action_key),
+                                    (
+                                        "approved-report-sha256:" +
+                                        fdas_candidate_impact_bundle
+                                        .approved_report_sha256,
+                                        "consolidation-report-sha256:" +
+                                        fdas_candidate_impact_bundle
+                                        .consolidation_report_sha256,
+                                        "declaration-hash:" + manifest[
+                                            "dependent_atomspace"][
+                                                "declaration_hash"],
+                                    )))
+                            choice_is_new = (
+                                candidate_choice_set.choice_set_id
+                                not in prior_choice_ids)
+                            fdas_candidate_choice_store.save(
+                                fdas_candidate_choice_path)
+                            if choice_is_new:
+                                decision_stats[
+                                    "fdas_candidate_choice_sets"] += 1
+                                decision_stats[
+                                    "fdas_candidate_choices"] += len(
+                                        candidate_choice_set.choices)
+                                decision_stats[
+                                    "fdas_candidate_choices_selected"] += int(
+                                        candidate_choice_set
+                                        .selected_operation_id is not None)
+                                decision_stats[
+                                    "fdas_candidate_choices_censored"] += sum(
+                                        row.selection_role
+                                        == "nonselected-censored"
+                                        for row in
+                                        candidate_choice_set.choices)
+                                choice_event = (
+                                    fdas_runtime
+                                    .emit_induced_rule_candidate_choice_set(
+                                        writer, snapshot,
+                                        candidate_choice_set, "captured",
+                                        caused_by=(parent,)))
+                                if choice_event is not None:
+                                    parent = choice_event["event_id"]
                     # Identity-resource scheduling is observational in GDO-3.
                     # Dispatch it only after the complete live planning
                     # boundary has stopped its latency clock.
@@ -5357,8 +5490,30 @@ async def _play(run_dir, manifest, context):
                                 -1][
                                     "event_id"])
                     if outcome.status != "accepted":
+                        if (candidate_choice_set is not None
+                                and candidate_choice_set
+                                .selected_operation_id is not None):
+                            rejected_choice = (
+                                fdas_candidate_choice_recorder
+                                .record_execution(
+                                    candidate_choice_set.choice_set_id,
+                                    False,
+                                    outcome.action_result_event_id
+                                    or outcome.result_event_id or parent))
+                            fdas_candidate_choice_store.save(
+                                fdas_candidate_choice_path)
+                            choice_event = (
+                                fdas_runtime
+                                .emit_induced_rule_candidate_choice_set(
+                                    writer, action_snapshot,
+                                    rejected_choice,
+                                    "execution-rejected",
+                                    caused_by=(parent,)))
+                            if choice_event is not None:
+                                parent = choice_event["event_id"]
                         raise RuntimeError(
                             "impact plan action failed: {}".format(outcome.reason))
+                    selected_episode_id = None
                     if (fdas_authority is not None
                             and fdas_authority.authorized):
                         episode_revision = (
@@ -5386,7 +5541,30 @@ async def _play(run_dir, manifest, context):
                         parent = publish_fdas_episode_revision(
                             action_snapshot, parent,
                             opened_episode_id=episode.episode_id)
+                        selected_episode_id = episode.episode_id
                         decision_stats["fdas_episode_opened"] += 1
+                    if (candidate_choice_set is not None
+                            and candidate_choice_set
+                            .selected_operation_id is not None):
+                        executed_choice = (
+                            fdas_candidate_choice_recorder.record_execution(
+                                candidate_choice_set.choice_set_id,
+                                True,
+                                outcome.action_result_event_id
+                                or outcome.result_event_id or parent,
+                                episode_id=selected_episode_id))
+                        fdas_candidate_choice_store.save(
+                            fdas_candidate_choice_path)
+                        choice_event = (
+                            fdas_runtime
+                            .emit_induced_rule_candidate_choice_set(
+                                writer, action_snapshot, executed_choice,
+                                ("execution-accepted-episode-linked"
+                                 if selected_episode_id is not None else
+                                 "execution-accepted-outcome-censored"),
+                                caused_by=(parent,)))
+                        if choice_event is not None:
+                            parent = choice_event["event_id"]
                     planned_actions += 1
                     record_meaningful_action(
                         impact_action, impact=True,
@@ -6182,6 +6360,16 @@ async def _play(run_dir, manifest, context):
         ("fdas_candidate_impact_counterfactual_winner_changes",
          decision_stats[
              "fdas_candidate_impact_counterfactual_winner_changes"]),
+        ("fdas_candidate_choice_sets",
+         decision_stats["fdas_candidate_choice_sets"]),
+        ("fdas_candidate_choices",
+         decision_stats["fdas_candidate_choices"]),
+        ("fdas_candidate_choices_selected",
+         decision_stats["fdas_candidate_choices_selected"]),
+        ("fdas_candidate_choices_censored",
+         decision_stats["fdas_candidate_choices_censored"]),
+        ("fdas_candidate_choice_outcomes_observed",
+         decision_stats["fdas_candidate_choice_outcomes_observed"]),
         ("fdas_delayed_outcome_labels_opened",
          decision_stats["fdas_delayed_outcome_labels_opened"]),
         ("fdas_delayed_outcome_labels_observed",
@@ -6671,6 +6859,17 @@ async def _play(run_dir, manifest, context):
             "fdas_candidate_impact_counterfactual_winner_changes": (
                 decision_stats[
                     "fdas_candidate_impact_counterfactual_winner_changes"]),
+            "fdas_candidate_choice_sets": (
+                decision_stats["fdas_candidate_choice_sets"]),
+            "fdas_candidate_choices": (
+                decision_stats["fdas_candidate_choices"]),
+            "fdas_candidate_choices_selected": (
+                decision_stats["fdas_candidate_choices_selected"]),
+            "fdas_candidate_choices_censored": (
+                decision_stats["fdas_candidate_choices_censored"]),
+            "fdas_candidate_choice_outcomes_observed": (
+                decision_stats[
+                    "fdas_candidate_choice_outcomes_observed"]),
             "fdas_delayed_outcome_labels_opened": (
                 decision_stats["fdas_delayed_outcome_labels_opened"]),
             "fdas_delayed_outcome_labels_observed": (
@@ -7027,6 +7226,16 @@ async def _play(run_dir, manifest, context):
         "fdas_candidate_impact_counterfactual_winner_changes": (
             decision_stats[
                 "fdas_candidate_impact_counterfactual_winner_changes"]),
+        "fdas_candidate_choice_sets": (
+            decision_stats["fdas_candidate_choice_sets"]),
+        "fdas_candidate_choices": (
+            decision_stats["fdas_candidate_choices"]),
+        "fdas_candidate_choices_selected": (
+            decision_stats["fdas_candidate_choices_selected"]),
+        "fdas_candidate_choices_censored": (
+            decision_stats["fdas_candidate_choices_censored"]),
+        "fdas_candidate_choice_outcomes_observed": (
+            decision_stats["fdas_candidate_choice_outcomes_observed"]),
         "fdas_delayed_outcome_labels_opened": (
             decision_stats["fdas_delayed_outcome_labels_opened"]),
         "fdas_delayed_outcome_labels_observed": (

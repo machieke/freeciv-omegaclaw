@@ -873,6 +873,32 @@ class FdasRuntime(object):
             component_id="fdas-induced-rule-candidate-impact",
             component_version="1.0")
 
+    def emit_induced_rule_candidate_choice_set(
+            self, writer, snapshot, choice_set, transition, caused_by=()):
+        """Emit one revision-bound, censored-alternative choice artifact."""
+        if self.event_emitter is None:
+            return None
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        if revision is None or revision.snapshot_id != snapshot.snapshot_id:
+            raise RuntimeError(
+                "FDAS candidate choice evidence is not snapshot-current")
+        details = {
+            "action_selection_changed": False,
+            "candidate_choice_set": choice_set.to_dict(),
+            "nonselected_outcome_semantics": "censored-not-negative",
+            "policy_authority": False,
+            "readout_authority": False,
+            "transition": str(transition),
+            "truth_mutated": False,
+        }
+        return self.event_emitter.emit_component(
+            writer, "atomspace_shadow_decision", snapshot.turn, revision,
+            details, caused_by=tuple(caused_by),
+            ruleset_digest=self.ruleset_digest,
+            component_id="fdas-induced-rule-candidate-choice-set",
+            component_version="1.0")
+
 
 def build_runtime(declaration, ruleset_ir=None, belief_store=None,
                   operation_records_source=None,

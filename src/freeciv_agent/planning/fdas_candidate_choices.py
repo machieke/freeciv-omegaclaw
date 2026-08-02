@@ -7,7 +7,7 @@ import os
 import tempfile
 
 from ..events.schema import canonical_json_bytes, structural_hash
-from ..pressure.induction import InductionFeatureQuery
+from ..pressure.induction import InductionEpisode, InductionFeatureQuery
 from .fdas import ShadowOperationCandidate
 from .fdas_episode_induction import (
     FdasPromotedRuleCandidateImpactEvaluation,
@@ -556,3 +556,128 @@ class FdasCandidateChoiceSetRecorder(object):
             outcome_label_id=label.label_id,
             observed_outcome=bool(label.outcome),
             observed_revision_id=label.observed_revision_id))
+
+
+@dataclass(frozen=True)
+class FdasCandidateChoiceCalibrationExport:
+    """Selected-only examples plus explicit censor accounting."""
+
+    operation_type: str
+    outcome_target: str
+    source_store_digest: str
+    examples: tuple
+    choice_set_count: int
+    nonselected_censored_count: int
+    selected_pending_or_censored_count: int
+    no_in_scope_selection_count: int
+    result_hash: str
+
+    def __post_init__(self):
+        for value, name in (
+                (self.operation_type, "operation type"),
+                (self.outcome_target, "outcome target"),
+                (self.source_store_digest, "source store digest"),
+                (self.result_hash, "result hash")):
+            if not isinstance(value, str) or not value:
+                raise ValueError("calibration export {} is required".format(
+                    name))
+        if any(not isinstance(value, InductionEpisode)
+               for value in self.examples):
+            raise TypeError("calibration export requires induction examples")
+        for name in (
+                "choice_set_count", "nonselected_censored_count",
+                "selected_pending_or_censored_count",
+                "no_in_scope_selection_count"):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise ValueError("calibration export count is invalid")
+        if len({value.episode_id for value in self.examples}) != len(
+                self.examples):
+            raise ValueError("calibration export example IDs overlap")
+
+    def to_dict(self):
+        return {
+            "choice_set_count": self.choice_set_count,
+            "examples": [value.to_dict() for value in self.examples],
+            "no_in_scope_selection_count": self.no_in_scope_selection_count,
+            "nonselected_censored_count": self.nonselected_censored_count,
+            "operation_type": self.operation_type,
+            "outcome_target": self.outcome_target,
+            "policy_authority": False,
+            "readout_authority": False,
+            "result_hash": self.result_hash,
+            "selected_observed_count": len(self.examples),
+            "selected_pending_or_censored_count": (
+                self.selected_pending_or_censored_count),
+            "source_store_digest": self.source_store_digest,
+            "truth_mutated": False,
+        }
+
+
+def export_candidate_choice_calibration(
+        store, operation_type, outcome_target):
+    """Export only observed selected candidates; alternatives stay censored."""
+    if not isinstance(store, FdasCandidateChoiceSetStore):
+        raise TypeError("candidate calibration requires a typed choice store")
+    if store.quarantined:
+        raise ValueError("quarantined choice store cannot be calibrated")
+    operation_type = str(operation_type)
+    outcome_target = str(outcome_target)
+    if not operation_type or not outcome_target:
+        raise ValueError("candidate calibration scope is required")
+    scoped = tuple(
+        value for value in store.choice_sets()
+        if (value.operation_type == operation_type
+            and value.outcome_target == outcome_target))
+    if len(scoped) != len(store.choice_sets()):
+        raise ValueError("candidate calibration store contains mixed scope")
+    examples = []
+    for choice_set in scoped:
+        if choice_set.outcome_status != "observed":
+            continue
+        selected = tuple(
+            row for row in choice_set.choices
+            if row.selection_role == "selected")
+        if len(selected) != 1:
+            raise ValueError("observed choice set lacks exact selected row")
+        row = selected[0]
+        examples.append(InductionEpisode(
+            "candidate-example-" + choice_set.choice_set_id,
+            row.feature_query.context,
+            row.feature_query.features,
+            choice_set.observed_outcome,
+            tuple(sorted(set(
+                row.feature_query.provenance_ids + (
+                    "choice-set:" + choice_set.choice_set_id,
+                    "outcome-label:" + choice_set.outcome_label_id,
+                    "selected-operation:" + row.operation_id,
+                    "selected-episode:" + choice_set.selected_episode_id,
+                ))))))
+    examples = tuple(sorted(examples, key=lambda value: value.episode_id))
+    semantic = {
+        "choice_set_count": len(scoped),
+        "examples": [value.to_dict() for value in examples],
+        "no_in_scope_selection_count": sum(
+            value.selected_operation_id is None for value in scoped),
+        "nonselected_censored_count": sum(
+            row.selection_role == "nonselected-censored"
+            for value in scoped for row in value.choices),
+        "operation_type": operation_type,
+        "outcome_target": outcome_target,
+        "policy_authority": False,
+        "readout_authority": False,
+        "selected_observed_count": len(examples),
+        "selected_pending_or_censored_count": sum(
+            value.selected_operation_id is not None
+            and value.outcome_status != "observed"
+            for value in scoped),
+        "source_store_digest": store.store_digest,
+        "truth_mutated": False,
+    }
+    return FdasCandidateChoiceCalibrationExport(
+        operation_type, outcome_target, store.store_digest, examples,
+        semantic["choice_set_count"],
+        semantic["nonselected_censored_count"],
+        semantic["selected_pending_or_censored_count"],
+        semantic["no_in_scope_selection_count"],
+        structural_hash(semantic))

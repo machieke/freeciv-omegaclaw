@@ -274,3 +274,16 @@ candidates, but none changed the category-local winner because the retained
 rules do not differentiate actors within those choice sets. The live
 capability remains shadow-only and changes no truth, schedule, authority, or
 action. See `fdas-pr32-candidate-impact-shadow.md`.
+
+PR33 makes those category-local choice sets durable and outcome-safe. Exact
+outcome-free queries, priorities, ranks, legal action keys, and the actual
+in-scope selection are hash-bound per decision. Only a selected, executed,
+episode-linked candidate may receive its delayed label; every nonselected,
+out-of-scope, rejected, or unlinked row remains explicitly censored and cannot
+be exported as a negative training example. A 160-turn diagnostic smoke
+completed 367 actions with zero rejections, validated all 31,103 events, and
+resolved five selected positive outcomes across six choice sets; the sixth set
+had no in-scope selection and remained censored. The seed had neither outcome
+contrast nor multi-candidate live decisions, so candidate-specific calibration
+and rank improvement remain open. See
+`fdas-pr33-candidate-choice-calibration.md`.
