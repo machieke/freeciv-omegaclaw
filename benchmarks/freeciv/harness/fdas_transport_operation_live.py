@@ -138,6 +138,10 @@ def _audit_arm(root, arm, repo=None):
     record = records[0] if len(records) == 1 else {}
     assembly = assemblies[0] if len(assemblies) == 1 else {}
     operation_id = record.get("spec", {}).get("operation_id")
+    fdas_projection_latency = _latency(
+        events, "fdas_projection_latency_ms")
+    full_controller_latency = _latency(
+        events, "turn_full_loop_latency_ms")
     checks = {
         "action_results_are_complete_and_accepted": (
             len(sent) == len(results) == status.get("engine_actions")
@@ -156,6 +160,9 @@ def _audit_arm(root, arm, repo=None):
             len(completed) == 1 and not failed
             and status.get("completed") is True
             and status.get("horizon_reached") is True),
+        "fdas_projection_p95_within_budget": (
+            fdas_projection_latency["p95_ms"] is not None
+            and fdas_projection_latency["p95_ms"] <= 150.0),
         "lifecycle_bundle_is_canonical_and_unquarantined": (
             lifecycle.get("schema_version") == 1
             and lifecycle.get("controller_identity")
@@ -223,15 +230,24 @@ def _audit_arm(root, arm, repo=None):
         "source_is_clean": manifest.get("source", {}).get("dirty") is False,
     }
     return {
-        "acceptance": {"accepted": all(checks.values()), "checks": checks},
+        "acceptance": {
+            "accepted": all(checks.values()),
+            "checks": checks,
+            "performance_observation": {
+                "full_controller_p95_target_ms": 500.0,
+                "full_controller_p95_within_target": bool(
+                    full_controller_latency["p95_ms"] is not None
+                    and full_controller_latency["p95_ms"] <= 500.0),
+            },
+        },
         "arm": arm,
         "evidence": dict(
             (name, {"path": _logical_path(path, repo), "sha256": _sha256(path)})
             for name, path in sorted(paths.items())),
         "event_counts": dict(sorted(event_counts.items())),
         "latency": {
-            "fdas_projection": _latency(events, "fdas_projection_latency_ms"),
-            "full_controller": _latency(events, "turn_full_loop_latency_ms"),
+            "fdas_projection": fdas_projection_latency,
+            "full_controller": full_controller_latency,
         },
         "operation_id": operation_id,
         "resource_kinds": sorted(value for value in resource_kinds if value),

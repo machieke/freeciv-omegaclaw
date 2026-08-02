@@ -1,0 +1,207 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "both_arms_pass_operation_acceptance": true,
+      "cohort_completed_without_failures": true,
+      "cohort_is_predeclared_and_claim_ineligible": true,
+      "operation_identity_is_deterministic_across_pair": true,
+      "paired_source_is_clean_and_stable": true
+    }
+  },
+  "arms": [
+    {
+      "acceptance": {
+        "accepted": true,
+        "checks": {
+          "action_results_are_complete_and_accepted": true,
+          "configured_intent_is_diagnostic_only": true,
+          "engine_run_completed_at_horizon": true,
+          "fdas_projection_p95_within_budget": true,
+          "lifecycle_bundle_is_canonical_and_unquarantined": true,
+          "manifest_is_transport_operation_shadow_only": true,
+          "operation_is_durably_resolved_from_authoritative_change": true,
+          "operation_projection_matches_lifecycle": true,
+          "operation_resource_contract_is_complete": true,
+          "operation_shadow_events_are_non_authorizing": true,
+          "registration_reestimation_and_resolution_are_observed": true,
+          "source_is_clean": true,
+          "transition_events_have_existing_causal_parents": true,
+          "transport_status_counters_match_events": true
+        },
+        "performance_observation": {
+          "full_controller_p95_target_ms": 500.0,
+          "full_controller_p95_within_target": false
+        }
+      },
+      "arm": "baseline",
+      "event_counts": {
+        "operation_abandoned": 1,
+        "operation_reserved": 1,
+        "operation_step_selected": 7
+      },
+      "evidence": {
+        "events.jsonl": {
+          "path": "artifacts/freeciv/fdas-transport-operation-shadow-live-30-v4/games/impact_pair/fdas_transport_operation_shadow_diagnostic_v1/baseline/e_full_loop/104729-00/events.jsonl",
+          "sha256": "9f1f0e90e76d158029855b143ad7b3d612d0db3755aad6921416a3d79a94a13b"
+        },
+        "fdas-transport-lifecycle.json": {
+          "path": "artifacts/freeciv/fdas-transport-operation-shadow-live-30-v4/games/impact_pair/fdas_transport_operation_shadow_diagnostic_v1/baseline/e_full_loop/104729-00/fdas-transport-lifecycle.json",
+          "sha256": "e5e1e751c7b2ac5092689bb3c476379aeaf137f5193987cbca2c53b8e3ec867e"
+        },
+        "manifest.json": {
+          "path": "artifacts/freeciv/fdas-transport-operation-shadow-live-30-v4/games/impact_pair/fdas_transport_operation_shadow_diagnostic_v1/baseline/e_full_loop/104729-00/manifest.json",
+          "sha256": "10bb614ffd285f99d49851be58c946c28bab41e97034b8cd1b0f528b01090848"
+        },
+        "status.json": {
+          "path": "artifacts/freeciv/fdas-transport-operation-shadow-live-30-v4/games/impact_pair/fdas_transport_operation_shadow_diagnostic_v1/baseline/e_full_loop/104729-00/status.json",
+          "sha256": "88ce80592217cacbebf4d594692e350a6c98b665c4910bc74fe9cb731938654a"
+        }
+      },
+      "latency": {
+        "fdas_projection": {
+          "count": 33,
+          "maximum_ms": 169.80234486982226,
+          "p50_ms": 79.17859824374318,
+          "p95_ms": 139.09689616411924
+        },
+        "full_controller": {
+          "count": 30,
+          "maximum_ms": 1116.2552377209067,
+          "p50_ms": 198.72082816436887,
+          "p95_ms": 582.6479061506689
+        }
+      },
+      "operation_id": "operation-cbab632a9679037fe0c6e50b0b239c4b",
+      "resource_kinds": [
+        "action_budget",
+        "actor",
+        "move_points",
+        "tile_occupancy",
+        "transport_seat"
+      ],
+      "source": {
+        "commit": "c4cb94c1591f7604edada573dd9dcac627ef38d6",
+        "dirty": false,
+        "implementation_sha256": "5820731c2eb90b5293f02272bf318820fb1d27f908fe470dbf7ab06a136c8fc3",
+        "source_files": 265
+      },
+      "summary": {
+        "accepted_action_results": 74,
+        "action_matches": 0,
+        "actions": 74,
+        "operations": 1,
+        "reconciliations": 9
+      }
+    },
+    {
+      "acceptance": {
+        "accepted": true,
+        "checks": {
+          "action_results_are_complete_and_accepted": true,
+          "configured_intent_is_diagnostic_only": true,
+          "engine_run_completed_at_horizon": true,
+          "fdas_projection_p95_within_budget": true,
+          "lifecycle_bundle_is_canonical_and_unquarantined": true,
+          "manifest_is_transport_operation_shadow_only": true,
+          "operation_is_durably_resolved_from_authoritative_change": true,
+          "operation_projection_matches_lifecycle": true,
+          "operation_resource_contract_is_complete": true,
+          "operation_shadow_events_are_non_authorizing": true,
+          "registration_reestimation_and_resolution_are_observed": true,
+          "source_is_clean": true,
+          "transition_events_have_existing_causal_parents": true,
+          "transport_status_counters_match_events": true
+        },
+        "performance_observation": {
+          "full_controller_p95_target_ms": 500.0,
+          "full_controller_p95_within_target": false
+        }
+      },
+      "arm": "treatment",
+      "event_counts": {
+        "operation_abandoned": 1,
+        "operation_reserved": 1,
+        "operation_step_selected": 6
+      },
+      "evidence": {
+        "events.jsonl": {
+          "path": "artifacts/freeciv/fdas-transport-operation-shadow-live-30-v4/games/impact_pair/fdas_transport_operation_shadow_diagnostic_v1/treatment/e_full_loop/104729-00/events.jsonl",
+          "sha256": "956a93cb52bcd8586d6c4ab3e351e37a896e7665cf19df0af02859e682423091"
+        },
+        "fdas-transport-lifecycle.json": {
+          "path": "artifacts/freeciv/fdas-transport-operation-shadow-live-30-v4/games/impact_pair/fdas_transport_operation_shadow_diagnostic_v1/treatment/e_full_loop/104729-00/fdas-transport-lifecycle.json",
+          "sha256": "9f3f7a4553bcd0b8dc053da7de726d47b95388a048de9017c1956774e160e2c2"
+        },
+        "manifest.json": {
+          "path": "artifacts/freeciv/fdas-transport-operation-shadow-live-30-v4/games/impact_pair/fdas_transport_operation_shadow_diagnostic_v1/treatment/e_full_loop/104729-00/manifest.json",
+          "sha256": "413fb5f89461bec840ee9e59ab169407c765ece7cecc32c77d898f6abddb8965"
+        },
+        "status.json": {
+          "path": "artifacts/freeciv/fdas-transport-operation-shadow-live-30-v4/games/impact_pair/fdas_transport_operation_shadow_diagnostic_v1/treatment/e_full_loop/104729-00/status.json",
+          "sha256": "5fb2e2895bc5697d5434975229e6907cfba5473a503699e6a4a15a3ae17e154a"
+        }
+      },
+      "latency": {
+        "fdas_projection": {
+          "count": 33,
+          "maximum_ms": 153.92974810674787,
+          "p50_ms": 83.29649595543742,
+          "p95_ms": 130.56451361626387
+        },
+        "full_controller": {
+          "count": 30,
+          "maximum_ms": 1123.2246020808816,
+          "p50_ms": 205.57911088690162,
+          "p95_ms": 748.4626183286309
+        }
+      },
+      "operation_id": "operation-cbab632a9679037fe0c6e50b0b239c4b",
+      "resource_kinds": [
+        "action_budget",
+        "actor",
+        "move_points",
+        "tile_occupancy",
+        "transport_seat"
+      ],
+      "source": {
+        "commit": "c4cb94c1591f7604edada573dd9dcac627ef38d6",
+        "dirty": false,
+        "implementation_sha256": "5820731c2eb90b5293f02272bf318820fb1d27f908fe470dbf7ab06a136c8fc3",
+        "source_files": 265
+      },
+      "summary": {
+        "accepted_action_results": 77,
+        "action_matches": 0,
+        "actions": 77,
+        "operations": 1,
+        "reconciliations": 8
+      }
+    }
+  ],
+  "claim_scope": "configured founder/ferry operation assembly, durable projection, resource contract, re-estimation, and fail-closed abandonment; no action-match, operation-completion, authority, score, or gameplay improvement claim",
+  "cohort": "fdas_transport_operation_shadow_diagnostic_v1",
+  "evidence": {
+    "impact_aggregate": {
+      "path": "artifacts/freeciv/fdas-transport-operation-shadow-live-30-v4/impact-aggregate.json",
+      "sha256": "848ec04dec71eb25d505e020254bdd1af971011d2dfe05c9986a17264875a457"
+    },
+    "impact_run_summary": {
+      "path": "artifacts/freeciv/fdas-transport-operation-shadow-live-30-v4/impact-run-summary.json",
+      "sha256": "63e3ec8fc30f53fc03603e02dbe9b2e51b55ba61a7e3239145fb75df2119c5b9"
+    }
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "c4cb94c1591f7604edada573dd9dcac627ef38d6",
+    "implementation_sha256": "5820731c2eb90b5293f02272bf318820fb1d27f908fe470dbf7ab06a136c8fc3"
+  },
+  "structural_hash": "b88e492421816603a3d98ce17d9e41915523537dbe5b7892fec34bf9d4b0d9ad",
+  "summary": {
+    "accepted_action_results": 151,
+    "action_matches": 0,
+    "actions": 151,
+    "operations": 2,
+    "reconciliations": 17
+  }
+}
