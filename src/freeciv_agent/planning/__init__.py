@@ -146,6 +146,7 @@ from .fdas_observation import (
     FdasObservationAuthoritativeReturn,
     FdasObservationCommitValidation,
     FdasObservationExecutionBridge,
+    FdasObservationReturnAbstention,
 )
 from .fdas_replacement import FdasCoordinatedReplacementAdapter
 from .fdas_transport import (
@@ -247,6 +248,7 @@ __all__ = [
     "FdasObservationAuthoritativeReturn",
     "FdasObservationCommitValidation",
     "FdasObservationExecutionBridge",
+    "FdasObservationReturnAbstention",
     "FdasCoordinatedReplacementAdapter",
     "FdasFounderTransportProjectionAdapter",
     "declared_transport_intents",

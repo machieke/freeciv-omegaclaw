@@ -34,6 +34,7 @@ def main(argv=None):
     print(json.dumps({
         "accepted": report["acceptance"]["accepted"],
         "evidence_returns": report["summary"]["evidence_returns"],
+        "return_abstentions": report["summary"]["return_abstentions"],
         "output": output,
         "structural_hash": report["structural_hash"],
     }, sort_keys=True))

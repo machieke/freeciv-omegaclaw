@@ -139,6 +139,7 @@ def _fixture(tmp_path):
             "fdas_observation_authoritative_returns": 1,
             "fdas_observation_commit_revalidations": 1,
             "fdas_observation_evidence_write_throughs": 1,
+            "fdas_observation_return_abstentions": 0,
             "fdas_observation_visibility_expansions": 1,
             "fdas_observation_visibility_unchanged": 0,
             "horizon_reached": True,
@@ -203,3 +204,53 @@ def test_observation_return_audit_rejects_unlinked_action_result(tmp_path):
     report = audit_fdas_observation_return_live(str(tmp_path))
 
     assert report["acceptance"]["accepted"] is False
+
+
+def test_observation_return_audit_accepts_explicit_censored_no_write(tmp_path):
+    _fixture(tmp_path)
+    directory = (tmp_path / "games" / "impact_pair" / COHORT / "baseline"
+                 / "e_full_loop" / "173205-00")
+    event_path = directory / "events.jsonl"
+    rows = [json.loads(line) for line in event_path.read_text(
+        encoding="utf-8").splitlines()]
+    rows[5]["payload"]["summary"] = {
+        "belief_evidence_count_after": 1,
+        "belief_evidence_count_before": 1,
+        "evidence_token_count_after": 0,
+        "evidence_token_count_before": 0,
+        "return_abstention": {
+            "abstention_hash": "e" * 64,
+            "action_event_id": "e5",
+            "after_snapshot_id": "snapshot-after",
+            "before_snapshot_id": "snapshot-before",
+            "binding_hash": "c" * 64,
+            "evidence_registered": False,
+            "observed_visible_tile_ids": [1, 2, 3],
+            "operation_id": "observe:visibility-frontier",
+            "policy_authority": False,
+            "reason": "actor-removed-before-observation-proof",
+            "truth_mutated": False,
+        },
+        "truth_mutated": False,
+    }
+    rows = rows[:6]
+    event_path.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
+        encoding="utf-8")
+    status_path = directory / "status.json"
+    status = json.loads(status_path.read_text(encoding="utf-8"))
+    status.update({
+        "fdas_observation_authoritative_returns": 0,
+        "fdas_observation_evidence_write_throughs": 0,
+        "fdas_observation_return_abstentions": 1,
+        "fdas_observation_visibility_expansions": 0,
+    })
+    _write_json(status_path, status)
+
+    report = audit_fdas_observation_return_live(str(tmp_path))
+
+    assert report["acceptance"]["accepted"] is True
+    baseline = next(row for row in report["arms"]
+                    if row["arm"] == "baseline")
+    assert baseline["summary"]["evidence_returns"] == 0
+    assert baseline["summary"]["return_abstentions"] == 1

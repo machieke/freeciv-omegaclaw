@@ -152,6 +152,34 @@ class FdasObservationAuthoritativeReturn:
         }
 
 
+@dataclass(frozen=True)
+class FdasObservationReturnAbstention:
+    operation_id: str
+    binding_hash: str
+    before_snapshot_id: str
+    after_snapshot_id: str
+    action_event_id: str
+    reason: str
+    observed_visible_tile_ids: tuple
+    abstention_hash: str
+
+    def to_dict(self):
+        return {
+            "abstention_hash": self.abstention_hash,
+            "action_event_id": self.action_event_id,
+            "after_snapshot_id": self.after_snapshot_id,
+            "before_snapshot_id": self.before_snapshot_id,
+            "binding_hash": self.binding_hash,
+            "evidence_registered": False,
+            "observed_visible_tile_ids": list(
+                self.observed_visible_tile_ids),
+            "operation_id": self.operation_id,
+            "policy_authority": False,
+            "reason": self.reason,
+            "truth_mutated": False,
+        }
+
+
 class FdasObservationExecutionBridge(object):
     """Bind selected visibility tests to legacy moves and gate their return."""
 
@@ -361,3 +389,58 @@ class FdasObservationExecutionBridge(object):
             registered,
             return_hash)
         return result
+
+    @staticmethod
+    def abstain_return(
+            binding, validation, before_snapshot, after_snapshot,
+            action_result, reason):
+        """Record a fresh but unattributable return without evidence."""
+        allowed = frozenset((
+            "actor-removed-before-observation-proof",
+            "action-endpoint-not-reached",
+        ))
+        if reason not in allowed:
+            raise ValueError("unknown observation return abstention")
+        if not isinstance(binding, FdasObservationActionBinding):
+            raise TypeError("observation abstention requires binding")
+        if (not isinstance(validation, FdasObservationCommitValidation)
+                or not validation.committed
+                or validation.binding_hash != binding.binding_hash):
+            raise ValueError("observation abstention lacks committed validation")
+        if (before_snapshot.snapshot_id != binding.snapshot_id
+                or str(_identity_value(before_snapshot, "game_id"))
+                != binding.game_id
+                or int(before_snapshot.player_id) != binding.player_id
+                or int(_identity_value(before_snapshot, "source_seq"))
+                != binding.source_seq):
+            raise ValueError("observation abstention before authority mismatch")
+        if (str(_identity_value(after_snapshot, "game_id")) != binding.game_id
+                or int(after_snapshot.player_id) != binding.player_id
+                or int(_identity_value(after_snapshot, "source_seq"))
+                <= binding.source_seq):
+            raise ValueError("observation abstention lacks fresh authority")
+        if (not isinstance(action_result, dict)
+                or action_result.get("status") != "accepted"
+                or not str(action_result.get("event_id") or "")):
+            raise ValueError(
+                "observation abstention requires accepted action result")
+        material = {
+            "action_event_id": str(action_result["event_id"]),
+            "after_snapshot_id": after_snapshot.snapshot_id,
+            "before_snapshot_id": before_snapshot.snapshot_id,
+            "binding_hash": binding.binding_hash,
+            "observed_visible_tile_ids": list(
+                after_snapshot.visible_tile_ids),
+            "operation_id": binding.operation_id,
+            "reason": reason,
+            "source_seq": int(_identity_value(after_snapshot, "source_seq")),
+        }
+        return FdasObservationReturnAbstention(
+            binding.operation_id,
+            binding.binding_hash,
+            before_snapshot.snapshot_id,
+            after_snapshot.snapshot_id,
+            str(action_result["event_id"]),
+            reason,
+            tuple(sorted(set(after_snapshot.visible_tile_ids))),
+            structural_hash(material))

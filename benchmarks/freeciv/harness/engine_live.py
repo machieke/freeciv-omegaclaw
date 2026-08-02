@@ -2802,6 +2802,7 @@ async def _play(run_dir, manifest, context):
         "fdas_observation_action_bindings": 0,
         "fdas_observation_commit_revalidations": 0,
         "fdas_observation_authoritative_returns": 0,
+        "fdas_observation_return_abstentions": 0,
         "fdas_observation_evidence_write_throughs": 0,
         "fdas_observation_visibility_expansions": 0,
         "fdas_observation_visibility_unchanged": 0,
@@ -3674,6 +3675,65 @@ async def _play(run_dir, manifest, context):
             token_count_before = len(
                 fdas_observation_execution.evidence_ledger.tokens)
             belief_count_before = len(belief_store.evidence)
+            target = binding.action["target"]
+            target_tile = (
+                int(target["y"]) * int(after.map_width)
+                + int(target["x"]))
+            actor = after.unit(binding.action["actor_id"])
+            abstention_reason = None
+            if actor is None:
+                abstention_reason = "actor-removed-before-observation-proof"
+            elif actor.tile != target_tile:
+                abstention_reason = "action-endpoint-not-reached"
+            if abstention_reason is not None:
+                result = fdas_observation_execution.abstain_return(
+                    binding,
+                    validation,
+                    before,
+                    after,
+                    {
+                        "event_id": action_result_event_id,
+                        "status": outcome.status,
+                    },
+                    abstention_reason)
+                token_count_after = len(
+                    fdas_observation_execution.evidence_ledger.tokens)
+                belief_count_after = len(belief_store.evidence)
+                if (token_count_after != token_count_before
+                        or belief_count_after != belief_count_before):
+                    raise RuntimeError(
+                        "censored observation return registered evidence")
+                summary = {
+                    "belief_evidence_count_after": belief_count_after,
+                    "belief_evidence_count_before": belief_count_before,
+                    "evidence_token_count_after": token_count_after,
+                    "evidence_token_count_before": token_count_before,
+                    "policy_authority": False,
+                    "return_abstention": result.to_dict(),
+                    "truth_mutated": False,
+                }
+                parents = tuple(dict.fromkeys((
+                    cause, str(action_result_event_id))))
+                event = writer.emit("packet_returned", after.turn, {
+                    "artifact_hash": structural_hash(summary),
+                    "config_digest": structural_hash({
+                        "declaration": manifest["dependent_atomspace"][
+                            "declaration_hash"],
+                        "mode": (
+                            "legacy-selected-visibility-return-shadow"),
+                    }),
+                    "controller_decision_hash": binding.binding_hash,
+                    "event_schema_version": "1.0",
+                    "parent_event_ids": list(parents),
+                    "query_id": "observation-abstention-{}".format(
+                        result.abstention_hash[:24]),
+                    "semantic_epoch": int(after.turn),
+                    "summary": summary,
+                    "topology_generation": int(after.identity.source_seq),
+                }, caused_by=parents)
+                decision_stats[
+                    "fdas_observation_return_abstentions"] += 1
+                return event["event_id"]
             result = fdas_observation_execution.authoritative_return(
                 binding,
                 validation,
@@ -5590,6 +5650,8 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_observation_commit_revalidations"]),
         ("fdas_observation_authoritative_returns",
          decision_stats["fdas_observation_authoritative_returns"]),
+        ("fdas_observation_return_abstentions",
+         decision_stats["fdas_observation_return_abstentions"]),
         ("fdas_observation_evidence_write_throughs",
          decision_stats["fdas_observation_evidence_write_throughs"]),
         ("fdas_observation_visibility_expansions",
@@ -6052,6 +6114,8 @@ async def _play(run_dir, manifest, context):
                 decision_stats["fdas_observation_commit_revalidations"]),
             "fdas_observation_authoritative_returns": (
                 decision_stats["fdas_observation_authoritative_returns"]),
+            "fdas_observation_return_abstentions": (
+                decision_stats["fdas_observation_return_abstentions"]),
             "fdas_observation_evidence_write_throughs": (
                 decision_stats[
                     "fdas_observation_evidence_write_throughs"]),
@@ -6380,6 +6444,8 @@ async def _play(run_dir, manifest, context):
             decision_stats["fdas_observation_commit_revalidations"]),
         "fdas_observation_authoritative_returns": (
             decision_stats["fdas_observation_authoritative_returns"]),
+        "fdas_observation_return_abstentions": (
+            decision_stats["fdas_observation_return_abstentions"]),
         "fdas_observation_evidence_write_throughs": (
             decision_stats["fdas_observation_evidence_write_throughs"]),
         "fdas_observation_visibility_expansions": (

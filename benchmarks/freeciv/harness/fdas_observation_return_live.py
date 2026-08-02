@@ -92,6 +92,14 @@ def _audit_arm(root, arm, repo=None):
         and row["payload"].get("summary", {}).get(
             "authoritative_return", {}).get(
                 "evidence_token", {}).get("source") == RETURN_SOURCE)
+    abstentions = tuple(
+        row for row in events
+        if row["type"] == "packet_returned"
+        and row["payload"].get("summary", {}).get(
+            "return_abstention", {}).get(
+                "operation_id", "").startswith("observe:"))
+    returned_packets = tuple(sorted(
+        returns + abstentions, key=lambda row: position[row["event_id"]]))
     observations = tuple(
         row for row in events
         if (row["type"] == "observation"
@@ -167,6 +175,74 @@ def _audit_arm(root, arm, repo=None):
             "visibility_delta_count": len(value.get(
                 "new_visible_tile_ids", ())),
         })
+    allowed_abstention_reasons = frozenset((
+        "actor-removed-before-observation-proof",
+        "action-endpoint-not-reached",
+    ))
+    abstention_rows = []
+    for returned in abstentions:
+        summary = returned["payload"]["summary"]
+        value = summary["return_abstention"]
+        binding_hash = value.get("binding_hash")
+        operation_id = value.get("operation_id")
+        matching_revalidations = tuple(
+            row for row in revalidations
+            if (row["payload"]["summary"]["binding"].get("binding_hash")
+                == binding_hash
+                and row["payload"]["summary"]["binding"].get("operation_id")
+                == operation_id))
+        revalidated = (
+            matching_revalidations[0]
+            if len(matching_revalidations) == 1 else None)
+        binding = (
+            revalidated["payload"]["summary"]["binding"]
+            if revalidated is not None else {})
+        validation = (
+            revalidated["payload"]["summary"]["commit_validation"]
+            if revalidated is not None else {})
+        matching_sent = tuple(
+            row for row in sent
+            if (row["payload"].get("action") == binding.get("action")
+                and revalidated is not None
+                and position[row["event_id"]] > position[
+                    revalidated["event_id"]]
+                and position[row["event_id"]] < position[returned["event_id"]]))
+        action_sent = matching_sent[0] if len(matching_sent) == 1 else None
+        matching_results = tuple(
+            row for row in results
+            if (action_sent is not None
+                and action_sent["event_id"] in row.get("caused_by", ())))
+        action_result = (
+            matching_results[0] if len(matching_results) == 1 else None)
+        abstention_rows.append({
+            "action_result_accepted_and_causal": (
+                action_result is not None
+                and action_result["payload"].get("status") == "accepted"
+                and action_result["event_id"] in returned.get("caused_by", ())),
+            "binding_is_exact_non_authorizing_move": (
+                binding.get("action", {}).get("action_type") == "unit_move"
+                and binding.get("action_key")
+                and binding.get("policy_authority") is False
+                and binding.get("selection_record", {}).get("selected") is True),
+            "commit_is_exact_and_non_authorizing": (
+                validation.get("status") == "committed"
+                and validation.get("reason") is None
+                and validation.get("policy_authority") is False),
+            "censored_return_is_explicit_no_write": (
+                value.get("reason") in allowed_abstention_reasons
+                and value.get("evidence_registered") is False
+                and value.get("truth_mutated") is False
+                and value.get("policy_authority") is False
+                and value.get("before_snapshot_id")
+                != value.get("after_snapshot_id")
+                and summary.get("evidence_token_count_before")
+                == summary.get("evidence_token_count_after")
+                and summary.get("belief_evidence_count_before")
+                == summary.get("belief_evidence_count_after")
+                and summary.get("truth_mutated") is False),
+            "operation_id": operation_id,
+            "reason": value.get("reason"),
+        })
     planning_closed = all(
         row["payload"]["summary"].get("truth_mutated") is False
         and row["payload"]["summary"].get("evidence_count_before_planning")
@@ -201,13 +277,25 @@ def _audit_arm(root, arm, repo=None):
             bool(packets) and len(pressures) == len(packets)
             and planning_closed),
         "every_binding_commit_return_is_complete": (
-            bool(returns)
-            and len(revalidations) == len(returns) == len(observations)
+            bool(returned_packets)
+            and len(revalidations) == len(returned_packets)
+            and len(returns) == len(observations)
+            and sorted(
+                row["payload"]["summary"]["binding"].get("binding_hash")
+                for row in revalidations)
+            == sorted(
+                (row["payload"]["summary"].get("authoritative_return")
+                 or row["payload"]["summary"].get("return_abstention")
+                 or {}).get("binding_hash")
+                for row in returned_packets)
             and all(all(value for key, value in row.items()
                         if key not in (
                             "operation_id", "outcome_id",
                             "visibility_delta_count"))
-                    for row in return_rows)),
+                    for row in return_rows)
+            and all(all(value for key, value in row.items()
+                        if key not in ("operation_id", "reason"))
+                    for row in abstention_rows)),
         "status_counters_match_return_artifacts": (
             status.get("fdas_observation_action_bindings")
             == len(revalidations)
@@ -215,6 +303,8 @@ def _audit_arm(root, arm, repo=None):
             == len(revalidations)
             and status.get("fdas_observation_authoritative_returns")
             == len(returns)
+            and status.get("fdas_observation_return_abstentions")
+            == len(abstentions)
             and status.get("fdas_observation_evidence_write_throughs")
             == len(observations)
             and status.get("fdas_observation_visibility_expansions")
@@ -246,6 +336,7 @@ def _audit_arm(root, arm, repo=None):
             "actions": len(sent),
             "bindings": len(revalidations),
             "evidence_returns": len(returns),
+            "return_abstentions": len(abstentions),
             "visibility_expansions": sum(
                 row["visibility_delta_count"] > 0 for row in return_rows),
             "visibility_unchanged": sum(
@@ -270,6 +361,8 @@ def audit_fdas_observation_return_live(root, repo=None):
     checks = {
         "both_arms_pass_return_acceptance": all(
             row["acceptance"]["accepted"] for row in arms),
+        "at_least_one_authoritative_evidence_return": sum(
+            row["summary"]["evidence_returns"] for row in arms) > 0,
         "cohort_completed_without_failures": (
             aggregate.get("complete_pairs") == 1
             and not aggregate.get("failures")
@@ -294,7 +387,8 @@ def audit_fdas_observation_return_live(root, repo=None):
             "identical legacy-selected move, exact commit revalidation, fresh "
             "authoritative visibility return, selection-adjusted evidence "
             "registration, and zero policy authority; no FDAS action choice, "
-            "enemy-absence, score, or gameplay-improvement claim"),
+            "with accepted-but-unproven moves censored as explicit no-write "
+            "returns; no enemy-absence, score, or gameplay-improvement claim"),
         "cohort": COHORT,
         "evidence": {
             "impact_aggregate": {
@@ -315,7 +409,8 @@ def audit_fdas_observation_return_live(root, repo=None):
             (name, sum(row["summary"][name] for row in arms))
             for name in (
                 "actions", "bindings", "evidence_returns",
-                "visibility_expansions", "visibility_unchanged")),
+                "return_abstentions", "visibility_expansions",
+                "visibility_unchanged")),
     }
     report["structural_hash"] = structural_hash(report)
     return report

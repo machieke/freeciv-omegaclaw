@@ -192,6 +192,49 @@ def test_return_rejects_stale_snapshot_or_unproven_move_without_evidence():
     assert bridge.evidence_ledger.tokens == ()
 
 
+def test_removed_actor_is_censored_without_registering_evidence():
+    before = Snapshot("snapshot-before", 10, (1, 2), 0)
+    after = Snapshot("snapshot-after", 11, (1, 2, 3), None, turn=5)
+    bridge = FdasObservationExecutionBridge()
+    binding = bridge.bind(_decision(), before, ACTION)
+    validation = bridge.revalidate(binding, before, ACTION)
+
+    result = bridge.abstain_return(
+        binding,
+        validation,
+        before,
+        after,
+        {"event_id": "action-result-7", "status": "accepted"},
+        "actor-removed-before-observation-proof")
+
+    assert result.reason == "actor-removed-before-observation-proof"
+    assert result.observed_visible_tile_ids == (1, 2, 3)
+    assert result.to_dict()["evidence_registered"] is False
+    assert result.to_dict()["truth_mutated"] is False
+    assert result.to_dict()["policy_authority"] is False
+    assert bridge.evidence_ledger.tokens == ()
+
+
+def test_observation_abstention_rejects_unknown_or_unaccepted_return():
+    before = Snapshot("snapshot-before", 10, (1, 2), 0)
+    after = Snapshot("snapshot-after", 11, (1, 2, 3), None, turn=5)
+    bridge = FdasObservationExecutionBridge()
+    binding = bridge.bind(_decision(), before, ACTION)
+    validation = bridge.revalidate(binding, before, ACTION)
+
+    with pytest.raises(ValueError, match="unknown observation"):
+        bridge.abstain_return(
+            binding, validation, before, after,
+            {"event_id": "action-result-7", "status": "accepted"},
+            "unknown")
+    with pytest.raises(ValueError, match="accepted action result"):
+        bridge.abstain_return(
+            binding, validation, before, after,
+            {"event_id": "action-result-7", "status": "rejected"},
+            "actor-removed-before-observation-proof")
+    assert bridge.evidence_ledger.tokens == ()
+
+
 def test_authoritative_no_expansion_is_not_enemy_absence_evidence():
     before = Snapshot("snapshot-before", 10, (1, 2), 0)
     after = Snapshot("snapshot-after", 11, (1, 2), 11, turn=5)
