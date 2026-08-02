@@ -2,7 +2,9 @@
 
 Date: 2026-08-01  
 Branch: `experimental/functional-dependent-atomspace`  
-Acceptance level: component-only; learning and policy readout disabled by default
+Acceptance level: episode attribution, contextual conductance, and
+quarantine-only induction `shadow-live` in dedicated profiles; held-out
+promotion/readout `component-only` and disabled by default
 
 ## Realized wiring
 
@@ -23,6 +25,10 @@ Acceptance level: component-only; learning and policy readout disabled by defaul
 - The existing bounded induction engine mines immutable proposals into
   quarantine. Disjoint held-out replay controls promotion; structural
   promotion additionally requires committed validation packets.
+- A dedicated engine-live shadow bridge now encodes durable defense episodes,
+  evaluates the bounded miner, persists even an empty hash-bound ledger, and
+  fails closed if any promoted rule appears. It has no truth or policy
+  authority and no rule readout.
 - Read-only metrics expose outcome counts, attributable/confounded totals,
   sample and route-context counts, relief MAE, success Brier score, and a
   deterministic conductance hash. Per-episode explanations expose prediction,
@@ -39,22 +45,25 @@ Acceptance level: component-only; learning and policy readout disabled by defaul
 | Acceptance, effect, and relief are distinct | terminal state model and delayed defense observation tests |
 | Route conductance is truth-free | typed control-only calibration target; adapter reports `truth_mutated=false` and has no AtomSpace transaction |
 | Context estimates are gated | contextual estimator tests cover sample count, uncertainty width, context/ruleset/policy identity, calibration, disjoint holdout, and supported-context regression |
-| Induced rules have zero quarantine escape | ledger exposes only held-out-promoted rules; structural promotion requires validation and committed packets |
+| Induced rules have zero quarantine escape | component lifecycle tests plus a clean 160-turn engine run with a durable hash-valid ledger, zero validation/readout events, and zero promoted rules |
 | Authority is opt-in and versioned | all learning flags default false; shadow and authority flags require exact manifest capabilities at `shadow-live` or `bounded-authority` |
 
 ## Verification
 
-The aggregate FDAS, belief, observation, pressure, packet, calibration,
-contextual transition, induction, operation, resource, movement, transport,
-combat, configuration, and structural-operation regression passed `410`
-tests.
+The original aggregate component regression passed `410` tests. The live
+induction increment additionally passes 99 focused configuration, runtime,
+episode, learning, induction, and evidence-audit tests; its final durability
+correction passes the 18 focused induction/audit tests.
 
 ## Non-claims
 
-The checked-in manifest declares all Phase 9 capabilities only
-`component-only`; it does not claim shadow-live use, calibrated authority,
-engine-live behavior, replay impact, score improvement, or win-rate impact.
-The default profile disables episode learning, conductance authority,
-induction, and induced-rule readout. Promotion requires a frozen model,
-disjoint held-out evidence, live replay/safety validation, and an explicit
-manifest status change. No legacy action path is removed by this phase.
+The checked default manifest remains `component-only`. Dedicated manifests now
+declare live episode attribution, truth-free contextual conductance, and the
+quarantine-only induction bridge at `shadow-live`; they do not declare
+held-out promotion or induced-rule readout live. The default profile disables
+episode learning, conductance authority, induction, and induced-rule readout.
+The accepted run produced five uniformly positive episodes and therefore no
+candidate rule; it makes no discovery-quality, calibrated-authority, replay
+impact, score-improvement, or win-rate claim. Promotion still requires a
+frozen model, disjoint held-out evidence, live replay/safety validation, and
+an explicit manifest status change. No legacy action path is removed.

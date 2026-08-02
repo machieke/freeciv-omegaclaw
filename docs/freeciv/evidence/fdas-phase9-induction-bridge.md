@@ -1,6 +1,7 @@
 # FDAS Phase 9 episode/induction bridge evidence
 
-Status: component-only, shadow-only, no policy authority.
+Status: episode encoding and quarantine lifecycle `shadow-live`; held-out
+validation and rule readout `component-only`; no induction policy authority.
 
 `FdasEpisodeInductionAdapter` is the fail-closed seam between durable FDAS
 decision episodes and the existing bounded induction engine. It accepts only
@@ -20,5 +21,15 @@ held-out replay records a promotion verdict. Exact prerequisites, legal-action
 binding, resource claims, commit validation, and downstream execution remain
 outside and downstream of this learning bridge.
 
-Coverage is in `Autotests/test_freeciv_fdas_episode_induction.py` and the
-existing `Autotests/test_freeciv_pressure_induction.py` lifecycle suite.
+`FdasEpisodeInductionShadow` now runs this seam over durable engine episodes.
+It emits causal encoding/mining latency and durable quarantine events, rejects
+any promoted ledger state, and persists an empty hash-bound ledger when no
+candidate clears the support/residual gate. The clean 160-turn confirmation
+encoded five independent attributable outcomes in five evaluations at 0.502
+ms maximum latency. All outcomes were positive, so no contextual residual was
+available and the bounded result was zero proposals and zero promotions. See
+`fdas-pr19-induction-shadow.md`.
+
+Coverage is in `Autotests/test_freeciv_fdas_episode_induction.py`,
+`Autotests/test_freeciv_fdas_induction_live.py`, and the existing
+`Autotests/test_freeciv_pressure_induction.py` lifecycle suite.

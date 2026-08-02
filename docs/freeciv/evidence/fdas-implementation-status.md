@@ -17,15 +17,16 @@ Plan: `agent-instructions/functional-dependent-atomspace-implementation-plan.md`
 | 9 | Delayed attribution, contextual conductance, bounded induction, diagnostics, activation gates | `fdas-phase9-acceptance.md` |
 | 10 | Legacy audit, facades, focused scopes, operator tooling, causal events, rollback, hardening | `fdas-phase10-acceptance.md` |
 
-All phases are implemented and verified at the declared `component-only`
-boundary. The rich construction path is now wired into reproducible harness
-manifests and the engine adapter, with the checked profile still disabled; see
-`fdas-runtime-assembly.md`. Captured replay and an accepted paired three-seed
-engine-live cohort now exercise that seam, including post-legacy candidate
-protection, bounded PF-v2 readout, stable sampled cold verification, and causal
-evidence. The versioned manifest remains `component-only`: the empirical work
-is diagnostic validation, not action authority or a gameplay-improvement
-claim.
+All phases have a verified `component-only` substrate. Dedicated, default-off
+profiles have since promoted selected slices to `shadow-live` or narrowly
+bounded authority without broadening the checked default profile. The rich
+construction path is wired into reproducible harness manifests and the engine
+adapter; see `fdas-runtime-assembly.md`. Captured replay and engine-live
+cohorts exercise post-legacy candidate protection, bounded PF-v2 readout,
+sampled cold verification, causal episode attribution, uncertain belief
+projection, observation-pressure selection, and quarantine-only induction.
+Each evidence report states its own authority and non-claim boundary; none of
+these mechanism results alone establishes gameplay improvement.
 
 The strict captured replay additionally proves 37/37 incremental/cold
 equivalence and validates canonical revision-bound explanations for all 38
@@ -147,5 +148,44 @@ reservations are never trusted across restart: the current authoritative
 snapshot must reproduce the byte-identical legal step, claims, and capacity
 before the reservation and binding return. Corruption or partially persisted
 transitions quarantine/fail closed. This removes the persistence prerequisite
-for a future live shadow operation, but grounded intent discovery and runtime
-activation are still open.
+for live shadow operation activation.
+
+## Post-substrate transport operation shadow
+
+The founder/ferry operation is now grounded and `shadow-live` in a dedicated
+profile. A clean paired 30-turn cohort produced the same durable operation in
+both arms, including a current legal ferry move, all five resource kinds,
+same-step re-estimation, structural projection, and fail-closed abandonment
+when the legacy path removed the founder. It produced no exact legacy-action
+match, commit, completion, or authority event. See
+`fdas-pr16-transport-operation-shadow.md`. Bounded transport authority and
+completed embark/disembark lifecycle evidence remain open.
+
+## Post-substrate uncertain belief and observation pressure
+
+PR 17 now projects real opponent observations and explicit confidence decay
+into scoped, non-crisp AtomSpace revisions. Its clean paired 30-turn cohort
+kept every live belief non-authoritative, invalidated expired supports instead
+of inventing absence, preserved sampled cold parity, accepted all 135 actions,
+and remained inside the 500 ms controller gate. No contradictory lineage
+occurred in that cohort, so live conflict/quarantine remains a separate gate.
+See `fdas-pr17-belief-shadow.md`.
+
+PR 18 routes one real opponent-presence uncertainty gap through bounded
+value-of-information planning. A clean paired 30-turn cohort made two
+decision-sensitive selections and two atomic CPU/observation packet commits
+with zero evidence writes and zero policy authority. It did not execute an
+observation or process an authoritative return. See
+`fdas-pr18-observation-pressure-shadow.md`.
+
+## Post-substrate episode induction shadow
+
+PR 19 now feeds durable attributable defense episodes into the bounded miner
+in a dedicated `shadow-live` profile. A clean 160-turn run accepted all 353
+actions, encoded five independent goal-relief episodes in five causal
+evaluations, persisted a hash-valid ledger, and produced zero promotions at
+0.502 ms maximum induction latency. Because every outcome was positive, no
+contextual residual existed and the correct result was zero proposals. This
+closes live episode encoding and quarantine persistence, not useful discovery,
+held-out promotion, or induced-rule readout. See
+`fdas-pr19-induction-shadow.md`.

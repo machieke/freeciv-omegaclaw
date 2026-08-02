@@ -1,0 +1,55 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "actions_are_complete_and_accepted": true,
+      "activation_is_manifest_bound_shadow_induction": true,
+      "durable_episode_population_is_attributable": true,
+      "induction_evaluations_are_causal_and_bounded": true,
+      "ledger_is_hash_valid_and_quarantine_only": true,
+      "no_holdout_or_promotion_is_fabricated": true,
+      "proposal_events_match_durable_quarantine": true,
+      "source_is_clean_and_horizon_completed": true,
+      "status_encoding_counters_match_events": true
+    }
+  },
+  "claim_scope": "live durable defense episodes encoded into bounded induction, independence/residual gates, durable quarantine, and zero rule readout; no held-out promotion, induced-rule authority, score, or gameplay-improvement claim",
+  "evidence": {
+    "events.jsonl": {
+      "path": "artifacts/freeciv/fdas-induction-shadow-live-160-v2/games/main/e_full_loop/4543804-00/events.jsonl",
+      "sha256": "ec267e9ea17d6d1a2d52f04658103631ea16431055add8aab6a8833bf2a934a8"
+    },
+    "fdas-decision-episodes.json": {
+      "path": "artifacts/freeciv/fdas-induction-shadow-live-160-v2/games/main/e_full_loop/4543804-00/fdas-decision-episodes.json",
+      "sha256": "fd1cd2a86e089940604844565a0843c2e181f9341644c929fc52a7b03cfa3d48"
+    },
+    "fdas-induction-ledger.json": {
+      "path": "artifacts/freeciv/fdas-induction-shadow-live-160-v2/games/main/e_full_loop/4543804-00/fdas-induction-ledger.json",
+      "sha256": "e499f24ebac3851a376c93a5627242e8604e4282fc99f49cbb1c7d57c7cd43d4"
+    },
+    "manifest.json": {
+      "path": "artifacts/freeciv/fdas-induction-shadow-live-160-v2/games/main/e_full_loop/4543804-00/manifest.json",
+      "sha256": "89d36b703ca3ad74e9c7e34c2eaaf5ce8a75d1dcea29af689129c293e15f6fcf"
+    },
+    "status.json": {
+      "path": "artifacts/freeciv/fdas-induction-shadow-live-160-v2/games/main/e_full_loop/4543804-00/status.json",
+      "sha256": "e018ae93108ddb77a7800fa8f4361c1c28243972836226a99eba4815ea13d590"
+    }
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "60f97e944a2bbb911a17a7c1d90576a9e95314ae",
+    "dirty": false,
+    "implementation_sha256": "36d2f15c99bc68e05479f88c7d71d07904cd6138427c971577d0036eaeddec11",
+    "source_files": 268
+  },
+  "structural_hash": "4f9405dd5a7c36e935e9e1ad36acc6bf7a165e7cb534fe49a4f4b30c4ab22bf8",
+  "summary": {
+    "accepted_actions": 353,
+    "attributable_episodes": 5,
+    "induction_evaluations": 5,
+    "maximum_induction_latency_ms": 0.5015549249947071,
+    "proposals_quarantined": 0,
+    "rules_promoted": 0
+  }
+}
