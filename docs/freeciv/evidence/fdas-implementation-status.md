@@ -254,3 +254,13 @@ Different predictions and incomparable rules remain distinct. Because the
 policy was designed after PR29, this is a retrospective mechanics audit, not a
 readout or gameplay confirmation; truth, policy, and induced-rule readout
 authority remain false. See `fdas-pr30-promoted-rule-consolidation.md`.
+
+PR31 adds an outcome-blind, uncertainty-aware shadow readout and evaluates it
+on six preregistered fresh 160-turn games. All 20 delayed labels and source
+audits passed; 19 episodes received predictions, one abstained for no matching
+operation scope, and none conflicted. Conditional Brier score improved by
+`0.00771` and log loss by `0.02081`, but the paired 95% Brier-improvement
+interval `[-0.01402, +0.02530]` crosses zero. This repeats the directional
+point improvement without establishing statistical superiority, intervention
+value, gameplay impact, score, or win rate. Induced readout remains entirely
+non-authorizing. See `fdas-pr31-promoted-rule-shadow.md`.

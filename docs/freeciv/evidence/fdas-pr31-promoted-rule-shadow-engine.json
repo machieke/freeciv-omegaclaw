@@ -1,0 +1,3585 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "ambiguity_rate_within_gate": true,
+      "brier_improvement_gate_met": true,
+      "brier_lower_bound_gate_met": true,
+      "encoded_population_gate_met": true,
+      "engine_source_requirement_met": true,
+      "execution_source_requirement_met": true,
+      "horizon_requirement_met": true,
+      "no_truth_policy_readout_or_action_authority": true,
+      "readout_population_gate_met": true,
+      "source_artifact_chain_is_valid": true
+    }
+  },
+  "artifacts": {
+    "approved_report": {
+      "path": "docs/freeciv/evidence/fdas-pr29-causal-induction-holdout-engine.json",
+      "sha256": "a7d48e881babe9ae209fca46db4a8e67a477f03baa79e6f8cd81db040fb096c1",
+      "structural_hash": "3793db47ed8aa058d78d28ff68d621fafebcc1de4b7504bf3395ac8d66c10a37"
+    },
+    "consolidation_report": {
+      "path": "docs/freeciv/evidence/fdas-pr30-promoted-rule-consolidation.json",
+      "sha256": "52d872a182ecfef978bc99540f9ff25fc3e7b1c18628c413ce267f917f25d5ff",
+      "structural_hash": "1b9ace13af86dddc0afeb4161de5a68e0d239a38955f0ea538f82889d6926dc8"
+    }
+  },
+  "claim_scope": "outcome-blind, non-authorizing readout coverage and predictive calibration on an explicit episode cohort; no action selection, causal-intervention, gameplay, score, or win-rate claim",
+  "configuration": {
+    "maximum_ambiguity_rate": 0.2,
+    "minimum_brier_improvement": 0.0,
+    "minimum_brier_lower_bound": -1.0,
+    "minimum_encoded": 20,
+    "minimum_readouts": 12,
+    "outcome_target": "durable-attributed-actor-city-defense/32-turn/1.0"
+  },
+  "counts": {
+    "ambiguous_readouts": 0,
+    "encoded": 20,
+    "encoding_abstentions": 0,
+    "no_matching_rule": 1,
+    "readouts": 19
+  },
+  "episode_sources": [
+    {
+      "engine_evidence": {
+        "accepted": true,
+        "checks": {
+          "completed": true,
+          "event_ledger_valid_without_warnings": true,
+          "source_is_clean": true
+        },
+        "events": {
+          "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104911-00/events.jsonl",
+          "sha256": "fc238acb2d495f22025312013cd7f4565e39c34da6878647cda7a130efb9313b",
+          "validation": {
+            "errors": [],
+            "event_count": 16734,
+            "game_id": "m7-main-e_full_loop-104911-00",
+            "schema_version": "1.0",
+            "valid": true,
+            "warnings": []
+          }
+        },
+        "horizon_reached": true,
+        "manifest": {
+          "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104911-00/manifest.json",
+          "sha256": "57e54c173156dde595d97dda90babf4004b871bb9c3502e7261ab8d14cdcdcfc",
+          "source": {
+            "commit": "188ebc195a26e00ce21848172dea97b96650ce67",
+            "dirty": false,
+            "implementation_sha256": "29396a2354e68c6af637384814c8334afbeb18e2cad334e151fb0365a89fdf45",
+            "source_files": 273
+          }
+        },
+        "status": {
+          "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104911-00/status.json",
+          "sha256": "64c08332fe1c5055348a2268595b1e688d61e19b52b248079553f9e7eb981150"
+        }
+      },
+      "episodes": 4,
+      "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104911-00/fdas-decision-episodes.json",
+      "persistence_identity": "fed266d3f9d0aae68a29f8bf1a346416db08c5d0a0a1db91a6d1f001fc473f3a",
+      "sha256": "a9288d704b1216f413ee13e24a800422f468679fc98d2c895eb78dca1a714932",
+      "store_digest": "17e945685e993803c8328010f3d38371f73ebe42849f773379a579a29db9f8ad"
+    },
+    {
+      "engine_evidence": {
+        "accepted": true,
+        "checks": {
+          "completed": true,
+          "event_ledger_valid_without_warnings": true,
+          "source_is_clean": true
+        },
+        "events": {
+          "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104917-00/events.jsonl",
+          "sha256": "09990c4bcb2c7c28c7fa05c6b97c6ea06735ac35325f60002fe2485f37e4417b",
+          "validation": {
+            "errors": [],
+            "event_count": 22457,
+            "game_id": "m7-main-e_full_loop-104917-00",
+            "schema_version": "1.0",
+            "valid": true,
+            "warnings": []
+          }
+        },
+        "horizon_reached": true,
+        "manifest": {
+          "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104917-00/manifest.json",
+          "sha256": "17b6bc72a736c14e2cebd7d154a929a41b1a8b9d6a922c2d2c4b981bf2059def",
+          "source": {
+            "commit": "188ebc195a26e00ce21848172dea97b96650ce67",
+            "dirty": false,
+            "implementation_sha256": "29396a2354e68c6af637384814c8334afbeb18e2cad334e151fb0365a89fdf45",
+            "source_files": 273
+          }
+        },
+        "status": {
+          "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104917-00/status.json",
+          "sha256": "6e50ae34e2e72e8d5450badab7eca1ad8b0ff1d5613cb45f64e05c7d671d8238"
+        }
+      },
+      "episodes": 5,
+      "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104917-00/fdas-decision-episodes.json",
+      "persistence_identity": "019c45a81a8bb0aeec3f400a07acd64152f5715055d5191613109822c1c45c07",
+      "sha256": "db8bb4e2d2ca4b9eacf4de950abc3b15fe66b6f3910e3592c79aff1c083fb6b5",
+      "store_digest": "ac4e6f4677b750007e6e570b4afcc3b131467ebd69f1a8ec3b2a158cc180c453"
+    },
+    {
+      "engine_evidence": {
+        "accepted": true,
+        "checks": {
+          "completed": true,
+          "event_ledger_valid_without_warnings": true,
+          "source_is_clean": true
+        },
+        "events": {
+          "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104933-00/events.jsonl",
+          "sha256": "0158bd6c38ca3eac212f9340139d20e03e2c7c4cd998c61a802160708f3da093",
+          "validation": {
+            "errors": [],
+            "event_count": 11303,
+            "game_id": "m7-main-e_full_loop-104933-00",
+            "schema_version": "1.0",
+            "valid": true,
+            "warnings": []
+          }
+        },
+        "horizon_reached": true,
+        "manifest": {
+          "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104933-00/manifest.json",
+          "sha256": "175e2d22ff9a52ce98d8bbf70f118ec42bc119f28f05ed8436151060a41e5030",
+          "source": {
+            "commit": "188ebc195a26e00ce21848172dea97b96650ce67",
+            "dirty": false,
+            "implementation_sha256": "29396a2354e68c6af637384814c8334afbeb18e2cad334e151fb0365a89fdf45",
+            "source_files": 273
+          }
+        },
+        "status": {
+          "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104933-00/status.json",
+          "sha256": "7f6e47956d70c4f6e1db7d4501a22aca29b9267ced1b9fb1d63765c9721e4f81"
+        }
+      },
+      "episodes": 2,
+      "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104933-00/fdas-decision-episodes.json",
+      "persistence_identity": "a100ee812f30cf0c8ebdf287beac6cb4c621590ca5695cde1166bb115b6f604d",
+      "sha256": "22ff2175f14d6d742b22447abd1aa4271204dac28baacc859a71fa5ec0c03cd9",
+      "store_digest": "f5275a42c3ddb51a9312a8014cf74caebb3da467020536e13f30be14a9b35a58"
+    },
+    {
+      "engine_evidence": {
+        "accepted": true,
+        "checks": {
+          "completed": true,
+          "event_ledger_valid_without_warnings": true,
+          "source_is_clean": true
+        },
+        "events": {
+          "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104947-00/events.jsonl",
+          "sha256": "13cdc09cc2563afd0f49b7291dd94f325720c0f3e577cded5f310061168159e6",
+          "validation": {
+            "errors": [],
+            "event_count": 22933,
+            "game_id": "m7-main-e_full_loop-104947-00",
+            "schema_version": "1.0",
+            "valid": true,
+            "warnings": []
+          }
+        },
+        "horizon_reached": true,
+        "manifest": {
+          "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104947-00/manifest.json",
+          "sha256": "ed62c938130cd1e6a940dee9484272985ebae670971b9ef973209486a8ac4005",
+          "source": {
+            "commit": "188ebc195a26e00ce21848172dea97b96650ce67",
+            "dirty": false,
+            "implementation_sha256": "29396a2354e68c6af637384814c8334afbeb18e2cad334e151fb0365a89fdf45",
+            "source_files": 273
+          }
+        },
+        "status": {
+          "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104947-00/status.json",
+          "sha256": "496d9ad0f45c474201f6f8de506ab21de4b2dae09c7b0716bf7a90560f5eaaea"
+        }
+      },
+      "episodes": 3,
+      "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104947-00/fdas-decision-episodes.json",
+      "persistence_identity": "72d8e491ad3291eac8f3f3baee7719deaff60b16ff33669cedfa7aad6dd6cd99",
+      "sha256": "3fa21554d74504e87f3db8637c301c3e569da7c60c9e9c6b4e9631fd8e3678da",
+      "store_digest": "a86db9b2bfa3fda0064b8c0423bba885fc1eccbe27ba4a862f3dd487928f89a4"
+    },
+    {
+      "engine_evidence": {
+        "accepted": true,
+        "checks": {
+          "completed": true,
+          "event_ledger_valid_without_warnings": true,
+          "source_is_clean": true
+        },
+        "events": {
+          "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104953-00/events.jsonl",
+          "sha256": "d452d1cf67c0c777434576f7da5d86c5c4eb7cb552e58890d2f2c8f4cda85831",
+          "validation": {
+            "errors": [],
+            "event_count": 28745,
+            "game_id": "m7-main-e_full_loop-104953-00",
+            "schema_version": "1.0",
+            "valid": true,
+            "warnings": []
+          }
+        },
+        "horizon_reached": true,
+        "manifest": {
+          "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104953-00/manifest.json",
+          "sha256": "020e8c4d0c6f4aee9c4be8c232b0c37bd8064f9d5bb55a6d17510c0ca1872c4d",
+          "source": {
+            "commit": "188ebc195a26e00ce21848172dea97b96650ce67",
+            "dirty": false,
+            "implementation_sha256": "29396a2354e68c6af637384814c8334afbeb18e2cad334e151fb0365a89fdf45",
+            "source_files": 273
+          }
+        },
+        "status": {
+          "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104953-00/status.json",
+          "sha256": "90e1b0c19d8a69bdfa5f6c4932cefec47db6493726d514f896db399d363a9238"
+        }
+      },
+      "episodes": 3,
+      "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104953-00/fdas-decision-episodes.json",
+      "persistence_identity": "aa8d5b597c891e4d202d908cc590f2ec3fcab36d042d4036c35e8b1532d64ca2",
+      "sha256": "df638364fb9bb7d70c7781111dfd218f3a78fcbc5edd782e1f1b06e5a57105a5",
+      "store_digest": "90b5a0d9406e1544d51670ba88067135070266a0973efd66993ce891eedb823a"
+    },
+    {
+      "engine_evidence": {
+        "accepted": true,
+        "checks": {
+          "completed": true,
+          "event_ledger_valid_without_warnings": true,
+          "source_is_clean": true
+        },
+        "events": {
+          "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104959-00/events.jsonl",
+          "sha256": "c7d34bc1d29dad7c1da4611d2fe64b060075188a917b64d0948b0053d1c04baf",
+          "validation": {
+            "errors": [],
+            "event_count": 17432,
+            "game_id": "m7-main-e_full_loop-104959-00",
+            "schema_version": "1.0",
+            "valid": true,
+            "warnings": []
+          }
+        },
+        "horizon_reached": true,
+        "manifest": {
+          "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104959-00/manifest.json",
+          "sha256": "f364db9eff3a35e12abb95e8089f806d0312a67933a4cf20932537e4ff99dc35",
+          "source": {
+            "commit": "188ebc195a26e00ce21848172dea97b96650ce67",
+            "dirty": false,
+            "implementation_sha256": "29396a2354e68c6af637384814c8334afbeb18e2cad334e151fb0365a89fdf45",
+            "source_files": 273
+          }
+        },
+        "status": {
+          "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104959-00/status.json",
+          "sha256": "83210ed832257b7a536a4a980d418c84d41f5ae872d1f870e5cf867ede0020b0"
+        }
+      },
+      "episodes": 3,
+      "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104959-00/fdas-decision-episodes.json",
+      "persistence_identity": "da7c6b3cce1f359e1f69f056c89f005a65af4ae0d151f820b3561faea8d8729f",
+      "sha256": "04d96349d7688b906f3a8d405177285fd59f7bfc276957d44b12bb1de89364ae",
+      "store_digest": "06a51060f54dd432ead43cd6e0a08d314c0db6305653f5916a0f0fe18fbc83c6"
+    }
+  ],
+  "evaluations": [
+    {
+      "context": [
+        [
+          "actor_homecity_relation",
+          "target"
+        ],
+        [
+          "actor_id",
+          "unit:115"
+        ],
+        [
+          "actor_moves_band",
+          "2+"
+        ],
+        [
+          "actor_tile_before",
+          "371"
+        ],
+        [
+          "actor_unit_type",
+          "Alpine Troops"
+        ],
+        [
+          "actor_veteran_band",
+          "none"
+        ],
+        [
+          "city_disorder",
+          "false"
+        ],
+        [
+          "city_id",
+          "110"
+        ],
+        [
+          "city_production_class",
+          "improvement"
+        ],
+        [
+          "city_size_band",
+          "2-4"
+        ],
+        [
+          "economy_operating_gold_band",
+          "positive"
+        ],
+        [
+          "empire_city_count_band",
+          "2"
+        ],
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "other_fortified_units_at_target_band",
+          "0"
+        ],
+        [
+          "other_own_units_at_target_band",
+          "0"
+        ],
+        [
+          "own_units_at_target_band",
+          "1"
+        ],
+        [
+          "target_tile",
+          "371"
+        ],
+        [
+          "turn_phase_band",
+          "0-31"
+        ],
+        [
+          "visible_enemy_count_near_city_band",
+          "0"
+        ],
+        [
+          "visible_enemy_proximity_band",
+          "none-visible"
+        ]
+      ],
+      "episode_id": "episode-0440e3176bc9100eccd48fbefb71dc9d",
+      "outcome": true,
+      "readout": {
+        "accepted": true,
+        "action_selection_changed": false,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "episode_id": "episode-0440e3176bc9100eccd48fbefb71dc9d",
+        "matching_rule_ids": [
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-d5de08f722d027a22834708f"
+        ],
+        "maximal_rule_ids": [
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-d5de08f722d027a22834708f"
+        ],
+        "policy_authority": false,
+        "prediction_direction": "above_baseline",
+        "predictions": [
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5481455128483065,
+              "method": "wilson-score/1.0",
+              "upper": 0.9295245065301844
+            },
+            "positives": 12,
+            "probability": 0.7647058823529411,
+            "proposal_id": "induced-9c9f57f72039edaeda5c39d2",
+            "support": 15
+          },
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5650002944233439,
+              "method": "wilson-score/1.0",
+              "upper": 0.9801091123614551
+            },
+            "positives": 8,
+            "probability": 0.8181818181818182,
+            "proposal_id": "induced-d5de08f722d027a22834708f",
+            "support": 9
+          }
+        ],
+        "readout_authority": false,
+        "reason": "compatible_maximal_predictions_conservative_above_baseline",
+        "result_hash": "ec5d7cf116dd2f6464e299e1e11f6458fc2a4b281cd86d300c374412f82bfc16",
+        "selected_baseline_probability": 0.7142857142857143,
+        "selected_probability": 0.7647058823529411,
+        "selected_rule_id": "induced-9c9f57f72039edaeda5c39d2",
+        "truth_mutated": false
+      }
+    },
+    {
+      "context": [
+        [
+          "actor_homecity_relation",
+          "none"
+        ],
+        [
+          "actor_id",
+          "unit:108"
+        ],
+        [
+          "actor_moves_band",
+          "2+"
+        ],
+        [
+          "actor_tile_before",
+          "420"
+        ],
+        [
+          "actor_unit_type",
+          "Alpine Troops"
+        ],
+        [
+          "actor_veteran_band",
+          "none"
+        ],
+        [
+          "city_disorder",
+          "false"
+        ],
+        [
+          "city_id",
+          "103"
+        ],
+        [
+          "city_production_class",
+          "unit"
+        ],
+        [
+          "city_size_band",
+          "1"
+        ],
+        [
+          "economy_operating_gold_band",
+          "zero"
+        ],
+        [
+          "empire_city_count_band",
+          "1"
+        ],
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "other_fortified_units_at_target_band",
+          "0"
+        ],
+        [
+          "other_own_units_at_target_band",
+          "0"
+        ],
+        [
+          "own_units_at_target_band",
+          "1"
+        ],
+        [
+          "target_tile",
+          "420"
+        ],
+        [
+          "turn_phase_band",
+          "0-31"
+        ],
+        [
+          "visible_enemy_count_near_city_band",
+          "0"
+        ],
+        [
+          "visible_enemy_proximity_band",
+          "none-visible"
+        ]
+      ],
+      "episode_id": "episode-0b8142acf199d0f5f4ff565f701c8a12",
+      "outcome": true,
+      "readout": {
+        "accepted": true,
+        "action_selection_changed": false,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "episode_id": "episode-0b8142acf199d0f5f4ff565f701c8a12",
+        "matching_rule_ids": [
+          "induced-71713b363a8df8a01533c120",
+          "induced-c9cde0196bcee691f8b4efee"
+        ],
+        "maximal_rule_ids": [
+          "induced-c9cde0196bcee691f8b4efee"
+        ],
+        "policy_authority": false,
+        "prediction_direction": "above_baseline",
+        "predictions": [
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5519691377470266,
+              "method": "wilson-score/1.0",
+              "upper": 0.9530348578161463
+            },
+            "positives": 10,
+            "probability": 0.7857142857142857,
+            "proposal_id": "induced-c9cde0196bcee691f8b4efee",
+            "support": 12
+          }
+        ],
+        "readout_authority": false,
+        "reason": "approved_shadow_prediction_available",
+        "result_hash": "b378cf910ea7c825c6cbe9d92d044c242795431d102c40b6d3a7d66e5dcbc88e",
+        "selected_baseline_probability": 0.7142857142857143,
+        "selected_probability": 0.7857142857142857,
+        "selected_rule_id": "induced-c9cde0196bcee691f8b4efee",
+        "truth_mutated": false
+      }
+    },
+    {
+      "context": [
+        [
+          "actor_homecity_relation",
+          "target"
+        ],
+        [
+          "actor_id",
+          "unit:128"
+        ],
+        [
+          "actor_moves_band",
+          "2+"
+        ],
+        [
+          "actor_tile_before",
+          "382"
+        ],
+        [
+          "actor_unit_type",
+          "Musketeers"
+        ],
+        [
+          "actor_veteran_band",
+          "none"
+        ],
+        [
+          "city_disorder",
+          "false"
+        ],
+        [
+          "city_id",
+          "120"
+        ],
+        [
+          "city_production_class",
+          "unit"
+        ],
+        [
+          "city_size_band",
+          "5-8"
+        ],
+        [
+          "economy_operating_gold_band",
+          "positive"
+        ],
+        [
+          "empire_city_count_band",
+          "3+"
+        ],
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "other_fortified_units_at_target_band",
+          "0"
+        ],
+        [
+          "other_own_units_at_target_band",
+          "0"
+        ],
+        [
+          "own_units_at_target_band",
+          "1"
+        ],
+        [
+          "target_tile",
+          "382"
+        ],
+        [
+          "turn_phase_band",
+          "32-63"
+        ],
+        [
+          "visible_enemy_count_near_city_band",
+          "0"
+        ],
+        [
+          "visible_enemy_proximity_band",
+          "none-visible"
+        ]
+      ],
+      "episode_id": "episode-28ef78a874c75757ecdaf706da897a83",
+      "outcome": true,
+      "readout": {
+        "accepted": true,
+        "action_selection_changed": false,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "episode_id": "episode-28ef78a874c75757ecdaf706da897a83",
+        "matching_rule_ids": [
+          "induced-71713b363a8df8a01533c120",
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-c9cde0196bcee691f8b4efee"
+        ],
+        "maximal_rule_ids": [
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-c9cde0196bcee691f8b4efee"
+        ],
+        "policy_authority": false,
+        "prediction_direction": "above_baseline",
+        "predictions": [
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5481455128483065,
+              "method": "wilson-score/1.0",
+              "upper": 0.9295245065301844
+            },
+            "positives": 12,
+            "probability": 0.7647058823529411,
+            "proposal_id": "induced-9c9f57f72039edaeda5c39d2",
+            "support": 15
+          },
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5519691377470266,
+              "method": "wilson-score/1.0",
+              "upper": 0.9530348578161463
+            },
+            "positives": 10,
+            "probability": 0.7857142857142857,
+            "proposal_id": "induced-c9cde0196bcee691f8b4efee",
+            "support": 12
+          }
+        ],
+        "readout_authority": false,
+        "reason": "compatible_maximal_predictions_conservative_above_baseline",
+        "result_hash": "4f96e6ac361813257b993855b0c8a8fe53eb1eaf63471af5f131953a8cdd93e4",
+        "selected_baseline_probability": 0.7142857142857143,
+        "selected_probability": 0.7647058823529411,
+        "selected_rule_id": "induced-9c9f57f72039edaeda5c39d2",
+        "truth_mutated": false
+      }
+    },
+    {
+      "context": [
+        [
+          "actor_homecity_relation",
+          "target"
+        ],
+        [
+          "actor_id",
+          "unit:125"
+        ],
+        [
+          "actor_moves_band",
+          "2+"
+        ],
+        [
+          "actor_tile_before",
+          "382"
+        ],
+        [
+          "actor_unit_type",
+          "Musketeers"
+        ],
+        [
+          "actor_veteran_band",
+          "none"
+        ],
+        [
+          "city_disorder",
+          "false"
+        ],
+        [
+          "city_id",
+          "120"
+        ],
+        [
+          "city_production_class",
+          "unit"
+        ],
+        [
+          "city_size_band",
+          "2-4"
+        ],
+        [
+          "economy_operating_gold_band",
+          "positive"
+        ],
+        [
+          "empire_city_count_band",
+          "3+"
+        ],
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "other_fortified_units_at_target_band",
+          "0"
+        ],
+        [
+          "other_own_units_at_target_band",
+          "0"
+        ],
+        [
+          "own_units_at_target_band",
+          "1"
+        ],
+        [
+          "target_tile",
+          "382"
+        ],
+        [
+          "turn_phase_band",
+          "32-63"
+        ],
+        [
+          "visible_enemy_count_near_city_band",
+          "0"
+        ],
+        [
+          "visible_enemy_proximity_band",
+          "none-visible"
+        ]
+      ],
+      "episode_id": "episode-2ed83f464c20384a2be328c8f8e275a9",
+      "outcome": false,
+      "readout": {
+        "accepted": true,
+        "action_selection_changed": false,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "episode_id": "episode-2ed83f464c20384a2be328c8f8e275a9",
+        "matching_rule_ids": [
+          "induced-71713b363a8df8a01533c120",
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-c9cde0196bcee691f8b4efee",
+          "induced-d5de08f722d027a22834708f"
+        ],
+        "maximal_rule_ids": [
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-c9cde0196bcee691f8b4efee",
+          "induced-d5de08f722d027a22834708f"
+        ],
+        "policy_authority": false,
+        "prediction_direction": "above_baseline",
+        "predictions": [
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5481455128483065,
+              "method": "wilson-score/1.0",
+              "upper": 0.9295245065301844
+            },
+            "positives": 12,
+            "probability": 0.7647058823529411,
+            "proposal_id": "induced-9c9f57f72039edaeda5c39d2",
+            "support": 15
+          },
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5519691377470266,
+              "method": "wilson-score/1.0",
+              "upper": 0.9530348578161463
+            },
+            "positives": 10,
+            "probability": 0.7857142857142857,
+            "proposal_id": "induced-c9cde0196bcee691f8b4efee",
+            "support": 12
+          },
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5650002944233439,
+              "method": "wilson-score/1.0",
+              "upper": 0.9801091123614551
+            },
+            "positives": 8,
+            "probability": 0.8181818181818182,
+            "proposal_id": "induced-d5de08f722d027a22834708f",
+            "support": 9
+          }
+        ],
+        "readout_authority": false,
+        "reason": "compatible_maximal_predictions_conservative_above_baseline",
+        "result_hash": "f9e9a4a59a27db6ef964ea44f8dc7953eed514c2b5a83e23dda50050e85f7bc8",
+        "selected_baseline_probability": 0.7142857142857143,
+        "selected_probability": 0.7647058823529411,
+        "selected_rule_id": "induced-9c9f57f72039edaeda5c39d2",
+        "truth_mutated": false
+      }
+    },
+    {
+      "context": [
+        [
+          "actor_homecity_relation",
+          "target"
+        ],
+        [
+          "actor_id",
+          "unit:121"
+        ],
+        [
+          "actor_moves_band",
+          "2+"
+        ],
+        [
+          "actor_tile_before",
+          "430"
+        ],
+        [
+          "actor_unit_type",
+          "Alpine Troops"
+        ],
+        [
+          "actor_veteran_band",
+          "none"
+        ],
+        [
+          "city_disorder",
+          "false"
+        ],
+        [
+          "city_id",
+          "115"
+        ],
+        [
+          "city_production_class",
+          "unit"
+        ],
+        [
+          "city_size_band",
+          "2-4"
+        ],
+        [
+          "economy_operating_gold_band",
+          "positive"
+        ],
+        [
+          "empire_city_count_band",
+          "3+"
+        ],
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "other_fortified_units_at_target_band",
+          "0"
+        ],
+        [
+          "other_own_units_at_target_band",
+          "0"
+        ],
+        [
+          "own_units_at_target_band",
+          "1"
+        ],
+        [
+          "target_tile",
+          "430"
+        ],
+        [
+          "turn_phase_band",
+          "32-63"
+        ],
+        [
+          "visible_enemy_count_near_city_band",
+          "0"
+        ],
+        [
+          "visible_enemy_proximity_band",
+          "none-visible"
+        ]
+      ],
+      "episode_id": "episode-329243ffb945a37f4942bdddab6e8e68",
+      "outcome": true,
+      "readout": {
+        "accepted": true,
+        "action_selection_changed": false,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "episode_id": "episode-329243ffb945a37f4942bdddab6e8e68",
+        "matching_rule_ids": [
+          "induced-71713b363a8df8a01533c120",
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-c9cde0196bcee691f8b4efee",
+          "induced-d5de08f722d027a22834708f"
+        ],
+        "maximal_rule_ids": [
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-c9cde0196bcee691f8b4efee",
+          "induced-d5de08f722d027a22834708f"
+        ],
+        "policy_authority": false,
+        "prediction_direction": "above_baseline",
+        "predictions": [
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5481455128483065,
+              "method": "wilson-score/1.0",
+              "upper": 0.9295245065301844
+            },
+            "positives": 12,
+            "probability": 0.7647058823529411,
+            "proposal_id": "induced-9c9f57f72039edaeda5c39d2",
+            "support": 15
+          },
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5519691377470266,
+              "method": "wilson-score/1.0",
+              "upper": 0.9530348578161463
+            },
+            "positives": 10,
+            "probability": 0.7857142857142857,
+            "proposal_id": "induced-c9cde0196bcee691f8b4efee",
+            "support": 12
+          },
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5650002944233439,
+              "method": "wilson-score/1.0",
+              "upper": 0.9801091123614551
+            },
+            "positives": 8,
+            "probability": 0.8181818181818182,
+            "proposal_id": "induced-d5de08f722d027a22834708f",
+            "support": 9
+          }
+        ],
+        "readout_authority": false,
+        "reason": "compatible_maximal_predictions_conservative_above_baseline",
+        "result_hash": "2269415ffb56596681e7f883fc3d1d987599d234ca4ca353e5657ae5f15a383c",
+        "selected_baseline_probability": 0.7142857142857143,
+        "selected_probability": 0.7647058823529411,
+        "selected_rule_id": "induced-9c9f57f72039edaeda5c39d2",
+        "truth_mutated": false
+      }
+    },
+    {
+      "context": [
+        [
+          "actor_homecity_relation",
+          "none"
+        ],
+        [
+          "actor_id",
+          "unit:108"
+        ],
+        [
+          "actor_moves_band",
+          "2+"
+        ],
+        [
+          "actor_tile_before",
+          "429"
+        ],
+        [
+          "actor_unit_type",
+          "Warriors"
+        ],
+        [
+          "actor_veteran_band",
+          "none"
+        ],
+        [
+          "city_disorder",
+          "false"
+        ],
+        [
+          "city_id",
+          "103"
+        ],
+        [
+          "city_production_class",
+          "unit"
+        ],
+        [
+          "city_size_band",
+          "1"
+        ],
+        [
+          "economy_operating_gold_band",
+          "positive"
+        ],
+        [
+          "empire_city_count_band",
+          "1"
+        ],
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "other_fortified_units_at_target_band",
+          "0"
+        ],
+        [
+          "other_own_units_at_target_band",
+          "0"
+        ],
+        [
+          "own_units_at_target_band",
+          "1"
+        ],
+        [
+          "target_tile",
+          "429"
+        ],
+        [
+          "turn_phase_band",
+          "0-31"
+        ],
+        [
+          "visible_enemy_count_near_city_band",
+          "0"
+        ],
+        [
+          "visible_enemy_proximity_band",
+          "none-visible"
+        ]
+      ],
+      "episode_id": "episode-6c92b9af9fea63007357050d7b62e846",
+      "outcome": true,
+      "readout": {
+        "accepted": true,
+        "action_selection_changed": false,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "episode_id": "episode-6c92b9af9fea63007357050d7b62e846",
+        "matching_rule_ids": [
+          "induced-71713b363a8df8a01533c120",
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-c9cde0196bcee691f8b4efee"
+        ],
+        "maximal_rule_ids": [
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-c9cde0196bcee691f8b4efee"
+        ],
+        "policy_authority": false,
+        "prediction_direction": "above_baseline",
+        "predictions": [
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5481455128483065,
+              "method": "wilson-score/1.0",
+              "upper": 0.9295245065301844
+            },
+            "positives": 12,
+            "probability": 0.7647058823529411,
+            "proposal_id": "induced-9c9f57f72039edaeda5c39d2",
+            "support": 15
+          },
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5519691377470266,
+              "method": "wilson-score/1.0",
+              "upper": 0.9530348578161463
+            },
+            "positives": 10,
+            "probability": 0.7857142857142857,
+            "proposal_id": "induced-c9cde0196bcee691f8b4efee",
+            "support": 12
+          }
+        ],
+        "readout_authority": false,
+        "reason": "compatible_maximal_predictions_conservative_above_baseline",
+        "result_hash": "358a1b0744e047af1c8403c34d74604e54fa5fec2a85e06c504389d1535e754c",
+        "selected_baseline_probability": 0.7142857142857143,
+        "selected_probability": 0.7647058823529411,
+        "selected_rule_id": "induced-9c9f57f72039edaeda5c39d2",
+        "truth_mutated": false
+      }
+    },
+    {
+      "context": [
+        [
+          "actor_homecity_relation",
+          "none"
+        ],
+        [
+          "actor_id",
+          "unit:106"
+        ],
+        [
+          "actor_moves_band",
+          "2+"
+        ],
+        [
+          "actor_tile_before",
+          "509"
+        ],
+        [
+          "actor_unit_type",
+          "Alpine Troops"
+        ],
+        [
+          "actor_veteran_band",
+          "none"
+        ],
+        [
+          "city_disorder",
+          "false"
+        ],
+        [
+          "city_id",
+          "101"
+        ],
+        [
+          "city_production_class",
+          "improvement"
+        ],
+        [
+          "city_size_band",
+          "1"
+        ],
+        [
+          "economy_operating_gold_band",
+          "positive"
+        ],
+        [
+          "empire_city_count_band",
+          "1"
+        ],
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "other_fortified_units_at_target_band",
+          "0"
+        ],
+        [
+          "other_own_units_at_target_band",
+          "0"
+        ],
+        [
+          "own_units_at_target_band",
+          "1"
+        ],
+        [
+          "target_tile",
+          "509"
+        ],
+        [
+          "turn_phase_band",
+          "0-31"
+        ],
+        [
+          "visible_enemy_count_near_city_band",
+          "0"
+        ],
+        [
+          "visible_enemy_proximity_band",
+          "none-visible"
+        ]
+      ],
+      "episode_id": "episode-6e3d464de71ad1229fdf2e28663cab8c",
+      "outcome": true,
+      "readout": {
+        "accepted": true,
+        "action_selection_changed": false,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "episode_id": "episode-6e3d464de71ad1229fdf2e28663cab8c",
+        "matching_rule_ids": [
+          "induced-9c9f57f72039edaeda5c39d2"
+        ],
+        "maximal_rule_ids": [
+          "induced-9c9f57f72039edaeda5c39d2"
+        ],
+        "policy_authority": false,
+        "prediction_direction": "above_baseline",
+        "predictions": [
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5481455128483065,
+              "method": "wilson-score/1.0",
+              "upper": 0.9295245065301844
+            },
+            "positives": 12,
+            "probability": 0.7647058823529411,
+            "proposal_id": "induced-9c9f57f72039edaeda5c39d2",
+            "support": 15
+          }
+        ],
+        "readout_authority": false,
+        "reason": "approved_shadow_prediction_available",
+        "result_hash": "59e1e406d2a3d25596c0d8617e84d15f3d408cf2915a3d88bc67179d065f3f28",
+        "selected_baseline_probability": 0.7142857142857143,
+        "selected_probability": 0.7647058823529411,
+        "selected_rule_id": "induced-9c9f57f72039edaeda5c39d2",
+        "truth_mutated": false
+      }
+    },
+    {
+      "context": [
+        [
+          "actor_homecity_relation",
+          "target"
+        ],
+        [
+          "actor_id",
+          "unit:123"
+        ],
+        [
+          "actor_moves_band",
+          "2+"
+        ],
+        [
+          "actor_tile_before",
+          "423"
+        ],
+        [
+          "actor_unit_type",
+          "Riflemen"
+        ],
+        [
+          "actor_veteran_band",
+          "none"
+        ],
+        [
+          "city_disorder",
+          "false"
+        ],
+        [
+          "city_id",
+          "115"
+        ],
+        [
+          "city_production_class",
+          "improvement"
+        ],
+        [
+          "city_size_band",
+          "5-8"
+        ],
+        [
+          "economy_operating_gold_band",
+          "negative"
+        ],
+        [
+          "empire_city_count_band",
+          "3+"
+        ],
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "other_fortified_units_at_target_band",
+          "0"
+        ],
+        [
+          "other_own_units_at_target_band",
+          "0"
+        ],
+        [
+          "own_units_at_target_band",
+          "1"
+        ],
+        [
+          "target_tile",
+          "423"
+        ],
+        [
+          "turn_phase_band",
+          "64-95"
+        ],
+        [
+          "visible_enemy_count_near_city_band",
+          "0"
+        ],
+        [
+          "visible_enemy_proximity_band",
+          "none-visible"
+        ]
+      ],
+      "episode_id": "episode-719777514983016ba4952f42895a2e03",
+      "outcome": true,
+      "readout": {
+        "accepted": false,
+        "action_selection_changed": false,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "episode_id": "episode-719777514983016ba4952f42895a2e03",
+        "matching_rule_ids": [],
+        "maximal_rule_ids": [],
+        "policy_authority": false,
+        "prediction_direction": null,
+        "predictions": [],
+        "readout_authority": false,
+        "reason": "no_approved_rule_matches",
+        "result_hash": "2afad22ec92ef857db483245d05ff79ac08247c56c084741cfb87eed6f98ff76",
+        "selected_baseline_probability": null,
+        "selected_probability": null,
+        "selected_rule_id": null,
+        "truth_mutated": false
+      }
+    },
+    {
+      "context": [
+        [
+          "actor_homecity_relation",
+          "target"
+        ],
+        [
+          "actor_id",
+          "unit:126"
+        ],
+        [
+          "actor_moves_band",
+          "2+"
+        ],
+        [
+          "actor_tile_before",
+          "477"
+        ],
+        [
+          "actor_unit_type",
+          "Alpine Troops"
+        ],
+        [
+          "actor_veteran_band",
+          "none"
+        ],
+        [
+          "city_disorder",
+          "false"
+        ],
+        [
+          "city_id",
+          "122"
+        ],
+        [
+          "city_production_class",
+          "improvement"
+        ],
+        [
+          "city_size_band",
+          "1"
+        ],
+        [
+          "economy_operating_gold_band",
+          "positive"
+        ],
+        [
+          "empire_city_count_band",
+          "3+"
+        ],
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "other_fortified_units_at_target_band",
+          "0"
+        ],
+        [
+          "other_own_units_at_target_band",
+          "0"
+        ],
+        [
+          "own_units_at_target_band",
+          "1"
+        ],
+        [
+          "target_tile",
+          "477"
+        ],
+        [
+          "turn_phase_band",
+          "32-63"
+        ],
+        [
+          "visible_enemy_count_near_city_band",
+          "0"
+        ],
+        [
+          "visible_enemy_proximity_band",
+          "none-visible"
+        ]
+      ],
+      "episode_id": "episode-7c0728fbfdeff1045b56d7fc7e5c85c7",
+      "outcome": true,
+      "readout": {
+        "accepted": true,
+        "action_selection_changed": false,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "episode_id": "episode-7c0728fbfdeff1045b56d7fc7e5c85c7",
+        "matching_rule_ids": [
+          "induced-9c9f57f72039edaeda5c39d2"
+        ],
+        "maximal_rule_ids": [
+          "induced-9c9f57f72039edaeda5c39d2"
+        ],
+        "policy_authority": false,
+        "prediction_direction": "above_baseline",
+        "predictions": [
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5481455128483065,
+              "method": "wilson-score/1.0",
+              "upper": 0.9295245065301844
+            },
+            "positives": 12,
+            "probability": 0.7647058823529411,
+            "proposal_id": "induced-9c9f57f72039edaeda5c39d2",
+            "support": 15
+          }
+        ],
+        "readout_authority": false,
+        "reason": "approved_shadow_prediction_available",
+        "result_hash": "183f6d437d6b940d90511bfe229c681b7eb4c20bdf25e88c349904c846d2ded3",
+        "selected_baseline_probability": 0.7142857142857143,
+        "selected_probability": 0.7647058823529411,
+        "selected_rule_id": "induced-9c9f57f72039edaeda5c39d2",
+        "truth_mutated": false
+      }
+    },
+    {
+      "context": [
+        [
+          "actor_homecity_relation",
+          "none"
+        ],
+        [
+          "actor_id",
+          "unit:106"
+        ],
+        [
+          "actor_moves_band",
+          "2+"
+        ],
+        [
+          "actor_tile_before",
+          "353"
+        ],
+        [
+          "actor_unit_type",
+          "Warriors"
+        ],
+        [
+          "actor_veteran_band",
+          "none"
+        ],
+        [
+          "city_disorder",
+          "false"
+        ],
+        [
+          "city_id",
+          "101"
+        ],
+        [
+          "city_production_class",
+          "unit"
+        ],
+        [
+          "city_size_band",
+          "1"
+        ],
+        [
+          "economy_operating_gold_band",
+          "zero"
+        ],
+        [
+          "empire_city_count_band",
+          "1"
+        ],
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "other_fortified_units_at_target_band",
+          "0"
+        ],
+        [
+          "other_own_units_at_target_band",
+          "0"
+        ],
+        [
+          "own_units_at_target_band",
+          "1"
+        ],
+        [
+          "target_tile",
+          "353"
+        ],
+        [
+          "turn_phase_band",
+          "0-31"
+        ],
+        [
+          "visible_enemy_count_near_city_band",
+          "0"
+        ],
+        [
+          "visible_enemy_proximity_band",
+          "none-visible"
+        ]
+      ],
+      "episode_id": "episode-80b6f6d95abee81adddb94ea1d75935d",
+      "outcome": true,
+      "readout": {
+        "accepted": true,
+        "action_selection_changed": false,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "episode_id": "episode-80b6f6d95abee81adddb94ea1d75935d",
+        "matching_rule_ids": [
+          "induced-71713b363a8df8a01533c120",
+          "induced-c9cde0196bcee691f8b4efee"
+        ],
+        "maximal_rule_ids": [
+          "induced-c9cde0196bcee691f8b4efee"
+        ],
+        "policy_authority": false,
+        "prediction_direction": "above_baseline",
+        "predictions": [
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5519691377470266,
+              "method": "wilson-score/1.0",
+              "upper": 0.9530348578161463
+            },
+            "positives": 10,
+            "probability": 0.7857142857142857,
+            "proposal_id": "induced-c9cde0196bcee691f8b4efee",
+            "support": 12
+          }
+        ],
+        "readout_authority": false,
+        "reason": "approved_shadow_prediction_available",
+        "result_hash": "f29040989ff2cfd673e10b22514e9e62cd81e4ef27967c8eaf28d1e02b458540",
+        "selected_baseline_probability": 0.7142857142857143,
+        "selected_probability": 0.7857142857142857,
+        "selected_rule_id": "induced-c9cde0196bcee691f8b4efee",
+        "truth_mutated": false
+      }
+    },
+    {
+      "context": [
+        [
+          "actor_homecity_relation",
+          "target"
+        ],
+        [
+          "actor_id",
+          "unit:112"
+        ],
+        [
+          "actor_moves_band",
+          "2+"
+        ],
+        [
+          "actor_tile_before",
+          "374"
+        ],
+        [
+          "actor_unit_type",
+          "Riflemen"
+        ],
+        [
+          "actor_veteran_band",
+          "none"
+        ],
+        [
+          "city_disorder",
+          "false"
+        ],
+        [
+          "city_id",
+          "110"
+        ],
+        [
+          "city_production_class",
+          "improvement"
+        ],
+        [
+          "city_size_band",
+          "2-4"
+        ],
+        [
+          "economy_operating_gold_band",
+          "positive"
+        ],
+        [
+          "empire_city_count_band",
+          "2"
+        ],
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "other_fortified_units_at_target_band",
+          "0"
+        ],
+        [
+          "other_own_units_at_target_band",
+          "0"
+        ],
+        [
+          "own_units_at_target_band",
+          "1"
+        ],
+        [
+          "target_tile",
+          "374"
+        ],
+        [
+          "turn_phase_band",
+          "0-31"
+        ],
+        [
+          "visible_enemy_count_near_city_band",
+          "0"
+        ],
+        [
+          "visible_enemy_proximity_band",
+          "none-visible"
+        ]
+      ],
+      "episode_id": "episode-8f5ba40cb97b65e0e4bf1bbf8d9af43b",
+      "outcome": true,
+      "readout": {
+        "accepted": true,
+        "action_selection_changed": false,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "episode_id": "episode-8f5ba40cb97b65e0e4bf1bbf8d9af43b",
+        "matching_rule_ids": [
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-d5de08f722d027a22834708f"
+        ],
+        "maximal_rule_ids": [
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-d5de08f722d027a22834708f"
+        ],
+        "policy_authority": false,
+        "prediction_direction": "above_baseline",
+        "predictions": [
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5481455128483065,
+              "method": "wilson-score/1.0",
+              "upper": 0.9295245065301844
+            },
+            "positives": 12,
+            "probability": 0.7647058823529411,
+            "proposal_id": "induced-9c9f57f72039edaeda5c39d2",
+            "support": 15
+          },
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5650002944233439,
+              "method": "wilson-score/1.0",
+              "upper": 0.9801091123614551
+            },
+            "positives": 8,
+            "probability": 0.8181818181818182,
+            "proposal_id": "induced-d5de08f722d027a22834708f",
+            "support": 9
+          }
+        ],
+        "readout_authority": false,
+        "reason": "compatible_maximal_predictions_conservative_above_baseline",
+        "result_hash": "7be7cbed1e41f67b374bfac96cb9f417d3f358abd81ae7470b1b90ec3a5e9f48",
+        "selected_baseline_probability": 0.7142857142857143,
+        "selected_probability": 0.7647058823529411,
+        "selected_rule_id": "induced-9c9f57f72039edaeda5c39d2",
+        "truth_mutated": false
+      }
+    },
+    {
+      "context": [
+        [
+          "actor_homecity_relation",
+          "target"
+        ],
+        [
+          "actor_id",
+          "unit:111"
+        ],
+        [
+          "actor_moves_band",
+          "2+"
+        ],
+        [
+          "actor_tile_before",
+          "350"
+        ],
+        [
+          "actor_unit_type",
+          "Musketeers"
+        ],
+        [
+          "actor_veteran_band",
+          "none"
+        ],
+        [
+          "city_disorder",
+          "false"
+        ],
+        [
+          "city_id",
+          "109"
+        ],
+        [
+          "city_production_class",
+          "unit"
+        ],
+        [
+          "city_size_band",
+          "2-4"
+        ],
+        [
+          "economy_operating_gold_band",
+          "positive"
+        ],
+        [
+          "empire_city_count_band",
+          "2"
+        ],
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "other_fortified_units_at_target_band",
+          "0"
+        ],
+        [
+          "other_own_units_at_target_band",
+          "0"
+        ],
+        [
+          "own_units_at_target_band",
+          "1"
+        ],
+        [
+          "target_tile",
+          "350"
+        ],
+        [
+          "turn_phase_band",
+          "0-31"
+        ],
+        [
+          "visible_enemy_count_near_city_band",
+          "0"
+        ],
+        [
+          "visible_enemy_proximity_band",
+          "none-visible"
+        ]
+      ],
+      "episode_id": "episode-9233bcccc390e17b8332d8c3a1db3df5",
+      "outcome": false,
+      "readout": {
+        "accepted": true,
+        "action_selection_changed": false,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "episode_id": "episode-9233bcccc390e17b8332d8c3a1db3df5",
+        "matching_rule_ids": [
+          "induced-71713b363a8df8a01533c120",
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-c9cde0196bcee691f8b4efee",
+          "induced-d5de08f722d027a22834708f"
+        ],
+        "maximal_rule_ids": [
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-c9cde0196bcee691f8b4efee",
+          "induced-d5de08f722d027a22834708f"
+        ],
+        "policy_authority": false,
+        "prediction_direction": "above_baseline",
+        "predictions": [
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5481455128483065,
+              "method": "wilson-score/1.0",
+              "upper": 0.9295245065301844
+            },
+            "positives": 12,
+            "probability": 0.7647058823529411,
+            "proposal_id": "induced-9c9f57f72039edaeda5c39d2",
+            "support": 15
+          },
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5519691377470266,
+              "method": "wilson-score/1.0",
+              "upper": 0.9530348578161463
+            },
+            "positives": 10,
+            "probability": 0.7857142857142857,
+            "proposal_id": "induced-c9cde0196bcee691f8b4efee",
+            "support": 12
+          },
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5650002944233439,
+              "method": "wilson-score/1.0",
+              "upper": 0.9801091123614551
+            },
+            "positives": 8,
+            "probability": 0.8181818181818182,
+            "proposal_id": "induced-d5de08f722d027a22834708f",
+            "support": 9
+          }
+        ],
+        "readout_authority": false,
+        "reason": "compatible_maximal_predictions_conservative_above_baseline",
+        "result_hash": "9c031a581b5d344c97dd6c5b3e538c6dfd75c1857fb4b0b8c274f92925143b4e",
+        "selected_baseline_probability": 0.7142857142857143,
+        "selected_probability": 0.7647058823529411,
+        "selected_rule_id": "induced-9c9f57f72039edaeda5c39d2",
+        "truth_mutated": false
+      }
+    },
+    {
+      "context": [
+        [
+          "actor_homecity_relation",
+          "none"
+        ],
+        [
+          "actor_id",
+          "unit:106"
+        ],
+        [
+          "actor_moves_band",
+          "2+"
+        ],
+        [
+          "actor_tile_before",
+          "397"
+        ],
+        [
+          "actor_unit_type",
+          "Alpine Troops"
+        ],
+        [
+          "actor_veteran_band",
+          "none"
+        ],
+        [
+          "city_disorder",
+          "false"
+        ],
+        [
+          "city_id",
+          "101"
+        ],
+        [
+          "city_production_class",
+          "unit"
+        ],
+        [
+          "city_size_band",
+          "1"
+        ],
+        [
+          "economy_operating_gold_band",
+          "positive"
+        ],
+        [
+          "empire_city_count_band",
+          "1"
+        ],
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "other_fortified_units_at_target_band",
+          "0"
+        ],
+        [
+          "other_own_units_at_target_band",
+          "0"
+        ],
+        [
+          "own_units_at_target_band",
+          "1"
+        ],
+        [
+          "target_tile",
+          "397"
+        ],
+        [
+          "turn_phase_band",
+          "0-31"
+        ],
+        [
+          "visible_enemy_count_near_city_band",
+          "0"
+        ],
+        [
+          "visible_enemy_proximity_band",
+          "none-visible"
+        ]
+      ],
+      "episode_id": "episode-b1eac1ae37180f23bb8ba0f4be352209",
+      "outcome": false,
+      "readout": {
+        "accepted": true,
+        "action_selection_changed": false,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "episode_id": "episode-b1eac1ae37180f23bb8ba0f4be352209",
+        "matching_rule_ids": [
+          "induced-71713b363a8df8a01533c120",
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-c9cde0196bcee691f8b4efee"
+        ],
+        "maximal_rule_ids": [
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-c9cde0196bcee691f8b4efee"
+        ],
+        "policy_authority": false,
+        "prediction_direction": "above_baseline",
+        "predictions": [
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5481455128483065,
+              "method": "wilson-score/1.0",
+              "upper": 0.9295245065301844
+            },
+            "positives": 12,
+            "probability": 0.7647058823529411,
+            "proposal_id": "induced-9c9f57f72039edaeda5c39d2",
+            "support": 15
+          },
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5519691377470266,
+              "method": "wilson-score/1.0",
+              "upper": 0.9530348578161463
+            },
+            "positives": 10,
+            "probability": 0.7857142857142857,
+            "proposal_id": "induced-c9cde0196bcee691f8b4efee",
+            "support": 12
+          }
+        ],
+        "readout_authority": false,
+        "reason": "compatible_maximal_predictions_conservative_above_baseline",
+        "result_hash": "d03571a620601943ef67c3ab45b804508939a8babf6e22f1205e920b69a2b64c",
+        "selected_baseline_probability": 0.7142857142857143,
+        "selected_probability": 0.7647058823529411,
+        "selected_rule_id": "induced-9c9f57f72039edaeda5c39d2",
+        "truth_mutated": false
+      }
+    },
+    {
+      "context": [
+        [
+          "actor_homecity_relation",
+          "target"
+        ],
+        [
+          "actor_id",
+          "unit:126"
+        ],
+        [
+          "actor_moves_band",
+          "2+"
+        ],
+        [
+          "actor_tile_before",
+          "428"
+        ],
+        [
+          "actor_unit_type",
+          "Musketeers"
+        ],
+        [
+          "actor_veteran_band",
+          "none"
+        ],
+        [
+          "city_disorder",
+          "false"
+        ],
+        [
+          "city_id",
+          "121"
+        ],
+        [
+          "city_production_class",
+          "unit"
+        ],
+        [
+          "city_size_band",
+          "2-4"
+        ],
+        [
+          "economy_operating_gold_band",
+          "zero"
+        ],
+        [
+          "empire_city_count_band",
+          "3+"
+        ],
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "other_fortified_units_at_target_band",
+          "0"
+        ],
+        [
+          "other_own_units_at_target_band",
+          "0"
+        ],
+        [
+          "own_units_at_target_band",
+          "1"
+        ],
+        [
+          "target_tile",
+          "428"
+        ],
+        [
+          "turn_phase_band",
+          "32-63"
+        ],
+        [
+          "visible_enemy_count_near_city_band",
+          "0"
+        ],
+        [
+          "visible_enemy_proximity_band",
+          "distant"
+        ]
+      ],
+      "episode_id": "episode-b9b610782becbba718aa4e04b1752cb6",
+      "outcome": true,
+      "readout": {
+        "accepted": true,
+        "action_selection_changed": false,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "episode_id": "episode-b9b610782becbba718aa4e04b1752cb6",
+        "matching_rule_ids": [
+          "induced-71713b363a8df8a01533c120",
+          "induced-c9cde0196bcee691f8b4efee",
+          "induced-d5de08f722d027a22834708f"
+        ],
+        "maximal_rule_ids": [
+          "induced-c9cde0196bcee691f8b4efee",
+          "induced-d5de08f722d027a22834708f"
+        ],
+        "policy_authority": false,
+        "prediction_direction": "above_baseline",
+        "predictions": [
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5519691377470266,
+              "method": "wilson-score/1.0",
+              "upper": 0.9530348578161463
+            },
+            "positives": 10,
+            "probability": 0.7857142857142857,
+            "proposal_id": "induced-c9cde0196bcee691f8b4efee",
+            "support": 12
+          },
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5650002944233439,
+              "method": "wilson-score/1.0",
+              "upper": 0.9801091123614551
+            },
+            "positives": 8,
+            "probability": 0.8181818181818182,
+            "proposal_id": "induced-d5de08f722d027a22834708f",
+            "support": 9
+          }
+        ],
+        "readout_authority": false,
+        "reason": "compatible_maximal_predictions_conservative_above_baseline",
+        "result_hash": "b77440f325e45d4f11acb4addbd9dde161d96f6ea5a3508e48439da713951cae",
+        "selected_baseline_probability": 0.7142857142857143,
+        "selected_probability": 0.7857142857142857,
+        "selected_rule_id": "induced-c9cde0196bcee691f8b4efee",
+        "truth_mutated": false
+      }
+    },
+    {
+      "context": [
+        [
+          "actor_homecity_relation",
+          "other"
+        ],
+        [
+          "actor_id",
+          "unit:115"
+        ],
+        [
+          "actor_moves_band",
+          "2+"
+        ],
+        [
+          "actor_tile_before",
+          "428"
+        ],
+        [
+          "actor_unit_type",
+          "Musketeers"
+        ],
+        [
+          "actor_veteran_band",
+          "none"
+        ],
+        [
+          "city_disorder",
+          "false"
+        ],
+        [
+          "city_id",
+          "121"
+        ],
+        [
+          "city_production_class",
+          "unit"
+        ],
+        [
+          "city_size_band",
+          "1"
+        ],
+        [
+          "economy_operating_gold_band",
+          "positive"
+        ],
+        [
+          "empire_city_count_band",
+          "3+"
+        ],
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "other_fortified_units_at_target_band",
+          "0"
+        ],
+        [
+          "other_own_units_at_target_band",
+          "0"
+        ],
+        [
+          "own_units_at_target_band",
+          "1"
+        ],
+        [
+          "target_tile",
+          "428"
+        ],
+        [
+          "turn_phase_band",
+          "32-63"
+        ],
+        [
+          "visible_enemy_count_near_city_band",
+          "0"
+        ],
+        [
+          "visible_enemy_proximity_band",
+          "none-visible"
+        ]
+      ],
+      "episode_id": "episode-bd3ab25e38a565ee2d63162a5aa605ad",
+      "outcome": false,
+      "readout": {
+        "accepted": true,
+        "action_selection_changed": false,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "episode_id": "episode-bd3ab25e38a565ee2d63162a5aa605ad",
+        "matching_rule_ids": [
+          "induced-71713b363a8df8a01533c120",
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-c9cde0196bcee691f8b4efee"
+        ],
+        "maximal_rule_ids": [
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-c9cde0196bcee691f8b4efee"
+        ],
+        "policy_authority": false,
+        "prediction_direction": "above_baseline",
+        "predictions": [
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5481455128483065,
+              "method": "wilson-score/1.0",
+              "upper": 0.9295245065301844
+            },
+            "positives": 12,
+            "probability": 0.7647058823529411,
+            "proposal_id": "induced-9c9f57f72039edaeda5c39d2",
+            "support": 15
+          },
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5519691377470266,
+              "method": "wilson-score/1.0",
+              "upper": 0.9530348578161463
+            },
+            "positives": 10,
+            "probability": 0.7857142857142857,
+            "proposal_id": "induced-c9cde0196bcee691f8b4efee",
+            "support": 12
+          }
+        ],
+        "readout_authority": false,
+        "reason": "compatible_maximal_predictions_conservative_above_baseline",
+        "result_hash": "436fa9ae91aa0a63ed375c9c1075a0ed87c5514296db80080daad81742376ff0",
+        "selected_baseline_probability": 0.7142857142857143,
+        "selected_probability": 0.7647058823529411,
+        "selected_rule_id": "induced-9c9f57f72039edaeda5c39d2",
+        "truth_mutated": false
+      }
+    },
+    {
+      "context": [
+        [
+          "actor_homecity_relation",
+          "target"
+        ],
+        [
+          "actor_id",
+          "unit:118"
+        ],
+        [
+          "actor_moves_band",
+          "2+"
+        ],
+        [
+          "actor_tile_before",
+          "368"
+        ],
+        [
+          "actor_unit_type",
+          "Alpine Troops"
+        ],
+        [
+          "actor_veteran_band",
+          "none"
+        ],
+        [
+          "city_disorder",
+          "false"
+        ],
+        [
+          "city_id",
+          "110"
+        ],
+        [
+          "city_production_class",
+          "unit"
+        ],
+        [
+          "city_size_band",
+          "5-8"
+        ],
+        [
+          "economy_operating_gold_band",
+          "positive"
+        ],
+        [
+          "empire_city_count_band",
+          "3+"
+        ],
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "other_fortified_units_at_target_band",
+          "0"
+        ],
+        [
+          "other_own_units_at_target_band",
+          "0"
+        ],
+        [
+          "own_units_at_target_band",
+          "1"
+        ],
+        [
+          "target_tile",
+          "368"
+        ],
+        [
+          "turn_phase_band",
+          "0-31"
+        ],
+        [
+          "visible_enemy_count_near_city_band",
+          "1"
+        ],
+        [
+          "visible_enemy_proximity_band",
+          "near"
+        ]
+      ],
+      "episode_id": "episode-d9d3024c59b3193110f16582e44ce482",
+      "outcome": true,
+      "readout": {
+        "accepted": true,
+        "action_selection_changed": false,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "episode_id": "episode-d9d3024c59b3193110f16582e44ce482",
+        "matching_rule_ids": [
+          "induced-71713b363a8df8a01533c120"
+        ],
+        "maximal_rule_ids": [
+          "induced-71713b363a8df8a01533c120"
+        ],
+        "policy_authority": false,
+        "prediction_direction": "above_baseline",
+        "predictions": [
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5481455128483065,
+              "method": "wilson-score/1.0",
+              "upper": 0.9295245065301844
+            },
+            "positives": 12,
+            "probability": 0.7647058823529411,
+            "proposal_id": "induced-71713b363a8df8a01533c120",
+            "support": 15
+          }
+        ],
+        "readout_authority": false,
+        "reason": "approved_shadow_prediction_available",
+        "result_hash": "bb4fb5b4783fe8e422bd51f1916a37bfa0313580d46e8f9200b23f660076989f",
+        "selected_baseline_probability": 0.7142857142857143,
+        "selected_probability": 0.7647058823529411,
+        "selected_rule_id": "induced-71713b363a8df8a01533c120",
+        "truth_mutated": false
+      }
+    },
+    {
+      "context": [
+        [
+          "actor_homecity_relation",
+          "target"
+        ],
+        [
+          "actor_id",
+          "unit:116"
+        ],
+        [
+          "actor_moves_band",
+          "2+"
+        ],
+        [
+          "actor_tile_before",
+          "350"
+        ],
+        [
+          "actor_unit_type",
+          "Musketeers"
+        ],
+        [
+          "actor_veteran_band",
+          "none"
+        ],
+        [
+          "city_disorder",
+          "false"
+        ],
+        [
+          "city_id",
+          "109"
+        ],
+        [
+          "city_production_class",
+          "unit"
+        ],
+        [
+          "city_size_band",
+          "2-4"
+        ],
+        [
+          "economy_operating_gold_band",
+          "positive"
+        ],
+        [
+          "empire_city_count_band",
+          "3+"
+        ],
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "other_fortified_units_at_target_band",
+          "0"
+        ],
+        [
+          "other_own_units_at_target_band",
+          "0"
+        ],
+        [
+          "own_units_at_target_band",
+          "1"
+        ],
+        [
+          "target_tile",
+          "350"
+        ],
+        [
+          "turn_phase_band",
+          "0-31"
+        ],
+        [
+          "visible_enemy_count_near_city_band",
+          "0"
+        ],
+        [
+          "visible_enemy_proximity_band",
+          "regional"
+        ]
+      ],
+      "episode_id": "episode-db37f145e2ff67fbe6781f43747a49f2",
+      "outcome": true,
+      "readout": {
+        "accepted": true,
+        "action_selection_changed": false,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "episode_id": "episode-db37f145e2ff67fbe6781f43747a49f2",
+        "matching_rule_ids": [
+          "induced-71713b363a8df8a01533c120",
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-c9cde0196bcee691f8b4efee",
+          "induced-d5de08f722d027a22834708f"
+        ],
+        "maximal_rule_ids": [
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-c9cde0196bcee691f8b4efee",
+          "induced-d5de08f722d027a22834708f"
+        ],
+        "policy_authority": false,
+        "prediction_direction": "above_baseline",
+        "predictions": [
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5481455128483065,
+              "method": "wilson-score/1.0",
+              "upper": 0.9295245065301844
+            },
+            "positives": 12,
+            "probability": 0.7647058823529411,
+            "proposal_id": "induced-9c9f57f72039edaeda5c39d2",
+            "support": 15
+          },
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5519691377470266,
+              "method": "wilson-score/1.0",
+              "upper": 0.9530348578161463
+            },
+            "positives": 10,
+            "probability": 0.7857142857142857,
+            "proposal_id": "induced-c9cde0196bcee691f8b4efee",
+            "support": 12
+          },
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5650002944233439,
+              "method": "wilson-score/1.0",
+              "upper": 0.9801091123614551
+            },
+            "positives": 8,
+            "probability": 0.8181818181818182,
+            "proposal_id": "induced-d5de08f722d027a22834708f",
+            "support": 9
+          }
+        ],
+        "readout_authority": false,
+        "reason": "compatible_maximal_predictions_conservative_above_baseline",
+        "result_hash": "275cc3315b3db9f55e97aaf1d6825118382dc341c769fb4de28ccdf5c4abb413",
+        "selected_baseline_probability": 0.7142857142857143,
+        "selected_probability": 0.7647058823529411,
+        "selected_rule_id": "induced-9c9f57f72039edaeda5c39d2",
+        "truth_mutated": false
+      }
+    },
+    {
+      "context": [
+        [
+          "actor_homecity_relation",
+          "target"
+        ],
+        [
+          "actor_id",
+          "unit:113"
+        ],
+        [
+          "actor_moves_band",
+          "2+"
+        ],
+        [
+          "actor_tile_before",
+          "532"
+        ],
+        [
+          "actor_unit_type",
+          "Alpine Troops"
+        ],
+        [
+          "actor_veteran_band",
+          "none"
+        ],
+        [
+          "city_disorder",
+          "false"
+        ],
+        [
+          "city_id",
+          "109"
+        ],
+        [
+          "city_production_class",
+          "improvement"
+        ],
+        [
+          "city_size_band",
+          "2-4"
+        ],
+        [
+          "economy_operating_gold_band",
+          "positive"
+        ],
+        [
+          "empire_city_count_band",
+          "2"
+        ],
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "other_fortified_units_at_target_band",
+          "0"
+        ],
+        [
+          "other_own_units_at_target_band",
+          "0"
+        ],
+        [
+          "own_units_at_target_band",
+          "1"
+        ],
+        [
+          "target_tile",
+          "532"
+        ],
+        [
+          "turn_phase_band",
+          "0-31"
+        ],
+        [
+          "visible_enemy_count_near_city_band",
+          "0"
+        ],
+        [
+          "visible_enemy_proximity_band",
+          "none-visible"
+        ]
+      ],
+      "episode_id": "episode-de4a90274309240564750291773302ba",
+      "outcome": true,
+      "readout": {
+        "accepted": true,
+        "action_selection_changed": false,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "episode_id": "episode-de4a90274309240564750291773302ba",
+        "matching_rule_ids": [
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-d5de08f722d027a22834708f"
+        ],
+        "maximal_rule_ids": [
+          "induced-9c9f57f72039edaeda5c39d2",
+          "induced-d5de08f722d027a22834708f"
+        ],
+        "policy_authority": false,
+        "prediction_direction": "above_baseline",
+        "predictions": [
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5481455128483065,
+              "method": "wilson-score/1.0",
+              "upper": 0.9295245065301844
+            },
+            "positives": 12,
+            "probability": 0.7647058823529411,
+            "proposal_id": "induced-9c9f57f72039edaeda5c39d2",
+            "support": 15
+          },
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5650002944233439,
+              "method": "wilson-score/1.0",
+              "upper": 0.9801091123614551
+            },
+            "positives": 8,
+            "probability": 0.8181818181818182,
+            "proposal_id": "induced-d5de08f722d027a22834708f",
+            "support": 9
+          }
+        ],
+        "readout_authority": false,
+        "reason": "compatible_maximal_predictions_conservative_above_baseline",
+        "result_hash": "f3d76d3bac86940f1b0b9e36ebd391bea06c59ca99358c3468e6eadf60204b62",
+        "selected_baseline_probability": 0.7142857142857143,
+        "selected_probability": 0.7647058823529411,
+        "selected_rule_id": "induced-9c9f57f72039edaeda5c39d2",
+        "truth_mutated": false
+      }
+    },
+    {
+      "context": [
+        [
+          "actor_homecity_relation",
+          "none"
+        ],
+        [
+          "actor_id",
+          "unit:106"
+        ],
+        [
+          "actor_moves_band",
+          "2+"
+        ],
+        [
+          "actor_tile_before",
+          "431"
+        ],
+        [
+          "actor_unit_type",
+          "Warriors"
+        ],
+        [
+          "actor_veteran_band",
+          "none"
+        ],
+        [
+          "city_disorder",
+          "false"
+        ],
+        [
+          "city_id",
+          "101"
+        ],
+        [
+          "city_production_class",
+          "unit"
+        ],
+        [
+          "city_size_band",
+          "1"
+        ],
+        [
+          "economy_operating_gold_band",
+          "positive"
+        ],
+        [
+          "empire_city_count_band",
+          "1"
+        ],
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "other_fortified_units_at_target_band",
+          "0"
+        ],
+        [
+          "other_own_units_at_target_band",
+          "2"
+        ],
+        [
+          "own_units_at_target_band",
+          "3+"
+        ],
+        [
+          "target_tile",
+          "431"
+        ],
+        [
+          "turn_phase_band",
+          "0-31"
+        ],
+        [
+          "visible_enemy_count_near_city_band",
+          "1"
+        ],
+        [
+          "visible_enemy_proximity_band",
+          "adjacent"
+        ]
+      ],
+      "episode_id": "episode-e1b8d6ee3031e048988250f43efb2f3d",
+      "outcome": true,
+      "readout": {
+        "accepted": true,
+        "action_selection_changed": false,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "episode_id": "episode-e1b8d6ee3031e048988250f43efb2f3d",
+        "matching_rule_ids": [
+          "induced-71713b363a8df8a01533c120"
+        ],
+        "maximal_rule_ids": [
+          "induced-71713b363a8df8a01533c120"
+        ],
+        "policy_authority": false,
+        "prediction_direction": "above_baseline",
+        "predictions": [
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5481455128483065,
+              "method": "wilson-score/1.0",
+              "upper": 0.9295245065301844
+            },
+            "positives": 12,
+            "probability": 0.7647058823529411,
+            "proposal_id": "induced-71713b363a8df8a01533c120",
+            "support": 15
+          }
+        ],
+        "readout_authority": false,
+        "reason": "approved_shadow_prediction_available",
+        "result_hash": "d9062145cfc56f4b3e9fb90b32ff3e29f51a98f802f842fd5853bfaa97861044",
+        "selected_baseline_probability": 0.7142857142857143,
+        "selected_probability": 0.7647058823529411,
+        "selected_rule_id": "induced-71713b363a8df8a01533c120",
+        "truth_mutated": false
+      }
+    },
+    {
+      "context": [
+        [
+          "actor_homecity_relation",
+          "target"
+        ],
+        [
+          "actor_id",
+          "unit:139"
+        ],
+        [
+          "actor_moves_band",
+          "2+"
+        ],
+        [
+          "actor_tile_before",
+          "351"
+        ],
+        [
+          "actor_unit_type",
+          "Riflemen"
+        ],
+        [
+          "actor_veteran_band",
+          "none"
+        ],
+        [
+          "city_disorder",
+          "false"
+        ],
+        [
+          "city_id",
+          "117"
+        ],
+        [
+          "city_production_class",
+          "improvement"
+        ],
+        [
+          "city_size_band",
+          "2-4"
+        ],
+        [
+          "economy_operating_gold_band",
+          "negative"
+        ],
+        [
+          "empire_city_count_band",
+          "3+"
+        ],
+        [
+          "induction_feature_schema",
+          "defense-episode-features/3.0"
+        ],
+        [
+          "operation_type",
+          "fdas-shadow:unit-fortification-opportunity:unit_fortify"
+        ],
+        [
+          "other_fortified_units_at_target_band",
+          "0"
+        ],
+        [
+          "other_own_units_at_target_band",
+          "0"
+        ],
+        [
+          "own_units_at_target_band",
+          "1"
+        ],
+        [
+          "target_tile",
+          "351"
+        ],
+        [
+          "turn_phase_band",
+          "96+"
+        ],
+        [
+          "visible_enemy_count_near_city_band",
+          "0"
+        ],
+        [
+          "visible_enemy_proximity_band",
+          "none-visible"
+        ]
+      ],
+      "episode_id": "episode-e1f63d5bee0722077f78b765282c258d",
+      "outcome": true,
+      "readout": {
+        "accepted": true,
+        "action_selection_changed": false,
+        "consequent": "durable-attributed-actor-city-defense/32-turn/1.0",
+        "episode_id": "episode-e1f63d5bee0722077f78b765282c258d",
+        "matching_rule_ids": [
+          "induced-d5de08f722d027a22834708f"
+        ],
+        "maximal_rule_ids": [
+          "induced-d5de08f722d027a22834708f"
+        ],
+        "policy_authority": false,
+        "prediction_direction": "above_baseline",
+        "predictions": [
+          {
+            "baseline_probability": 0.7142857142857143,
+            "interval": {
+              "confidence": 0.95,
+              "lower": 0.5650002944233439,
+              "method": "wilson-score/1.0",
+              "upper": 0.9801091123614551
+            },
+            "positives": 8,
+            "probability": 0.8181818181818182,
+            "proposal_id": "induced-d5de08f722d027a22834708f",
+            "support": 9
+          }
+        ],
+        "readout_authority": false,
+        "reason": "approved_shadow_prediction_available",
+        "result_hash": "78e5a27b7f3efba7758afde2d66d1f6d2ab52cb99d280adea4fd63ec3e9990a5",
+        "selected_baseline_probability": 0.7142857142857143,
+        "selected_probability": 0.8181818181818182,
+        "selected_rule_id": "induced-d5de08f722d027a22834708f",
+        "truth_mutated": false
+      }
+    }
+  ],
+  "metrics": {
+    "by_actor_homecity_relation": {
+      "none": {
+        "baseline_brier": 0.15306122448979592,
+        "baseline_log_loss": 0.4891873586002388,
+        "brier_improvement": 0.012610926723630622,
+        "brier_improvement_interval": {
+          "confidence": 0.95,
+          "lower": -0.02257667772991549,
+          "method": "paired-percentile-bootstrap/1.0",
+          "samples": 10000,
+          "seed": 7717,
+          "upper": 0.032565967563495966
+        },
+        "candidate_brier": 0.1404502977661653,
+        "candidate_log_loss": 0.4556725093923566,
+        "exact_prediction_ece": 0.08123249299719885,
+        "negative": 1,
+        "outcome_rate": 0.8333333333333334,
+        "outcome_rate_interval": {
+          "confidence": 0.95,
+          "lower": 0.43649717781352987,
+          "method": "wilson-score/1.0",
+          "upper": 0.9699466302516935
+        },
+        "positive": 5,
+        "samples": 6
+      },
+      "other": {
+        "baseline_brier": 0.5102040816326531,
+        "baseline_log_loss": 1.252762968495368,
+        "brier_improvement": -0.0745710048725372,
+        "brier_improvement_interval": {
+          "confidence": 0.95,
+          "lower": -0.0745710048725372,
+          "method": "paired-percentile-bootstrap/1.0",
+          "samples": 10000,
+          "seed": 7717,
+          "upper": -0.0745710048725372
+        },
+        "candidate_brier": 0.5847750865051903,
+        "candidate_log_loss": 1.4469189829363251,
+        "exact_prediction_ece": 0.7647058823529411,
+        "negative": 1,
+        "outcome_rate": 0.0,
+        "outcome_rate_interval": {
+          "confidence": 0.95,
+          "lower": 0.0,
+          "method": "wilson-score/1.0",
+          "upper": 0.7934506856227626
+        },
+        "positive": 0,
+        "samples": 1
+      },
+      "target": {
+        "baseline_brier": 0.15306122448979595,
+        "baseline_log_loss": 0.4891873586002388,
+        "brier_improvement": 0.012108477323841571,
+        "brier_improvement_interval": {
+          "confidence": 0.95,
+          "lower": -0.013888686247469329,
+          "method": "paired-percentile-bootstrap/1.0",
+          "samples": 10000,
+          "seed": 7717,
+          "upper": 0.030773989226220363
+        },
+        "candidate_brier": 0.14095274716595438,
+        "candidate_log_loss": 0.45681521757576027,
+        "exact_prediction_ece": 0.06242042271454044,
+        "negative": 2,
+        "outcome_rate": 0.8333333333333334,
+        "outcome_rate_interval": {
+          "confidence": 0.95,
+          "lower": 0.5519691377470266,
+          "method": "wilson-score/1.0",
+          "upper": 0.9530348578161463
+        },
+        "positive": 10,
+        "samples": 12
+      }
+    },
+    "by_city_production_class": {
+      "improvement": {
+        "baseline_brier": 0.08163265306122448,
+        "baseline_log_loss": 0.3364722366212129,
+        "brier_improvement": 0.029986909688522925,
+        "brier_improvement_interval": {
+          "confidence": 0.95,
+          "lower": 0.0262693312619165,
+          "method": "paired-percentile-bootstrap/1.0",
+          "samples": 10000,
+          "seed": 7717,
+          "upper": 0.03742206654173579
+        },
+        "candidate_brier": 0.05164574337270156,
+        "candidate_log_loss": 0.2569984380725914,
+        "exact_prediction_ece": 0.22638146167557935,
+        "negative": 0,
+        "outcome_rate": 1.0,
+        "outcome_rate_interval": {
+          "confidence": 0.95,
+          "lower": 0.6096657120978346,
+          "method": "wilson-score/1.0",
+          "upper": 1.0
+        },
+        "positive": 6,
+        "samples": 6
+      },
+      "unit": {
+        "baseline_brier": 0.21350078492935637,
+        "baseline_log_loss": 0.6184078464286452,
+        "brier_improvement": -0.0025788595981378615,
+        "brier_improvement_interval": {
+          "confidence": 0.95,
+          "lower": -0.028029311272020112,
+          "method": "paired-percentile-bootstrap/1.0",
+          "samples": 10000,
+          "seed": 7717,
+          "upper": 0.0214185221599952
+        },
+        "candidate_brier": 0.21607964452749423,
+        "candidate_log_loss": 0.6246727709049262,
+        "exact_prediction_ece": 0.17614738202973496,
+        "negative": 4,
+        "outcome_rate": 0.6923076923076923,
+        "outcome_rate_interval": {
+          "confidence": 0.95,
+          "lower": 0.42369343180549035,
+          "method": "wilson-score/1.0",
+          "upper": 0.8731929634428948
+        },
+        "positive": 9,
+        "samples": 13
+      }
+    },
+    "by_readout_rules": {
+      "induced-71713b363a8df8a01533c120": {
+        "baseline_brier": 0.08163265306122448,
+        "baseline_log_loss": 0.3364722366212129,
+        "brier_improvement": 0.026269331261916502,
+        "brier_improvement_interval": {
+          "confidence": 0.95,
+          "lower": 0.026269331261916502,
+          "method": "paired-percentile-bootstrap/1.0",
+          "samples": 10000,
+          "seed": 7717,
+          "upper": 0.026269331261916502
+        },
+        "candidate_brier": 0.05536332179930798,
+        "candidate_log_loss": 0.2682639865946794,
+        "exact_prediction_ece": 0.23529411764705888,
+        "negative": 0,
+        "outcome_rate": 1.0,
+        "outcome_rate_interval": {
+          "confidence": 0.95,
+          "lower": 0.34238022750665303,
+          "method": "wilson-score/1.0",
+          "upper": 1.0
+        },
+        "positive": 2,
+        "samples": 2
+      },
+      "induced-9c9f57f72039edaeda5c39d2": {
+        "baseline_brier": 0.08163265306122448,
+        "baseline_log_loss": 0.3364722366212129,
+        "brier_improvement": 0.026269331261916502,
+        "brier_improvement_interval": {
+          "confidence": 0.95,
+          "lower": 0.026269331261916502,
+          "method": "paired-percentile-bootstrap/1.0",
+          "samples": 10000,
+          "seed": 7717,
+          "upper": 0.026269331261916502
+        },
+        "candidate_brier": 0.05536332179930798,
+        "candidate_log_loss": 0.2682639865946794,
+        "exact_prediction_ece": 0.23529411764705888,
+        "negative": 0,
+        "outcome_rate": 1.0,
+        "outcome_rate_interval": {
+          "confidence": 0.95,
+          "lower": 0.34238022750665303,
+          "method": "wilson-score/1.0",
+          "upper": 1.0
+        },
+        "positive": 2,
+        "samples": 2
+      },
+      "induced-9c9f57f72039edaeda5c39d2+induced-c9cde0196bcee691f8b4efee": {
+        "baseline_brier": 0.29591836734693877,
+        "baseline_log_loss": 0.7946176025582905,
+        "brier_improvement": -0.024150836805310383,
+        "brier_improvement_interval": {
+          "confidence": 0.95,
+          "lower": -0.0745710048725372,
+          "method": "paired-percentile-bootstrap/1.0",
+          "samples": 10000,
+          "seed": 7717,
+          "upper": 0.026269331261916502
+        },
+        "candidate_brier": 0.32006920415224915,
+        "candidate_log_loss": 0.8575914847655023,
+        "exact_prediction_ece": 0.2647058823529411,
+        "negative": 2,
+        "outcome_rate": 0.5,
+        "outcome_rate_interval": {
+          "confidence": 0.95,
+          "lower": 0.15003898915214947,
+          "method": "wilson-score/1.0",
+          "upper": 0.8499610108478506
+        },
+        "positive": 2,
+        "samples": 4
+      },
+      "induced-9c9f57f72039edaeda5c39d2+induced-c9cde0196bcee691f8b4efee+induced-d5de08f722d027a22834708f": {
+        "baseline_brier": 0.29591836734693877,
+        "baseline_log_loss": 0.7946176025582905,
+        "brier_improvement": -0.024150836805310383,
+        "brier_improvement_interval": {
+          "confidence": 0.95,
+          "lower": -0.0745710048725372,
+          "method": "paired-percentile-bootstrap/1.0",
+          "samples": 10000,
+          "seed": 7717,
+          "upper": 0.026269331261916502
+        },
+        "candidate_brier": 0.32006920415224915,
+        "candidate_log_loss": 0.8575914847655023,
+        "exact_prediction_ece": 0.2647058823529411,
+        "negative": 2,
+        "outcome_rate": 0.5,
+        "outcome_rate_interval": {
+          "confidence": 0.95,
+          "lower": 0.15003898915214947,
+          "method": "wilson-score/1.0",
+          "upper": 0.8499610108478506
+        },
+        "positive": 2,
+        "samples": 4
+      },
+      "induced-9c9f57f72039edaeda5c39d2+induced-d5de08f722d027a22834708f": {
+        "baseline_brier": 0.08163265306122448,
+        "baseline_log_loss": 0.3364722366212129,
+        "brier_improvement": 0.026269331261916502,
+        "brier_improvement_interval": {
+          "confidence": 0.95,
+          "lower": 0.026269331261916506,
+          "method": "paired-percentile-bootstrap/1.0",
+          "samples": 10000,
+          "seed": 7717,
+          "upper": 0.026269331261916506
+        },
+        "candidate_brier": 0.05536332179930798,
+        "candidate_log_loss": 0.2682639865946794,
+        "exact_prediction_ece": 0.23529411764705888,
+        "negative": 0,
+        "outcome_rate": 1.0,
+        "outcome_rate_interval": {
+          "confidence": 0.95,
+          "lower": 0.4385029682449546,
+          "method": "wilson-score/1.0",
+          "upper": 1.0
+        },
+        "positive": 3,
+        "samples": 3
+      },
+      "induced-c9cde0196bcee691f8b4efee": {
+        "baseline_brier": 0.08163265306122448,
+        "baseline_log_loss": 0.3364722366212129,
+        "brier_improvement": 0.0357142857142857,
+        "brier_improvement_interval": {
+          "confidence": 0.95,
+          "lower": 0.0357142857142857,
+          "method": "paired-percentile-bootstrap/1.0",
+          "samples": 10000,
+          "seed": 7717,
+          "upper": 0.0357142857142857
+        },
+        "candidate_brier": 0.045918367346938785,
+        "candidate_log_loss": 0.2411620568168881,
+        "exact_prediction_ece": 0.2142857142857143,
+        "negative": 0,
+        "outcome_rate": 1.0,
+        "outcome_rate_interval": {
+          "confidence": 0.95,
+          "lower": 0.34238022750665303,
+          "method": "wilson-score/1.0",
+          "upper": 1.0
+        },
+        "positive": 2,
+        "samples": 2
+      },
+      "induced-c9cde0196bcee691f8b4efee+induced-d5de08f722d027a22834708f": {
+        "baseline_brier": 0.08163265306122448,
+        "baseline_log_loss": 0.3364722366212129,
+        "brier_improvement": 0.0357142857142857,
+        "brier_improvement_interval": {
+          "confidence": 0.95,
+          "lower": 0.0357142857142857,
+          "method": "paired-percentile-bootstrap/1.0",
+          "samples": 10000,
+          "seed": 7717,
+          "upper": 0.0357142857142857
+        },
+        "candidate_brier": 0.045918367346938785,
+        "candidate_log_loss": 0.2411620568168881,
+        "exact_prediction_ece": 0.2142857142857143,
+        "negative": 0,
+        "outcome_rate": 1.0,
+        "outcome_rate_interval": {
+          "confidence": 0.95,
+          "lower": 0.20654931437723745,
+          "method": "wilson-score/1.0",
+          "upper": 1.0
+        },
+        "positive": 1,
+        "samples": 1
+      },
+      "induced-d5de08f722d027a22834708f": {
+        "baseline_brier": 0.08163265306122448,
+        "baseline_log_loss": 0.3364722366212129,
+        "brier_improvement": 0.04857480182155508,
+        "brier_improvement_interval": {
+          "confidence": 0.95,
+          "lower": 0.04857480182155508,
+          "method": "paired-percentile-bootstrap/1.0",
+          "samples": 10000,
+          "seed": 7717,
+          "upper": 0.04857480182155508
+        },
+        "candidate_brier": 0.0330578512396694,
+        "candidate_log_loss": 0.2006706954621511,
+        "exact_prediction_ece": 0.18181818181818177,
+        "negative": 0,
+        "outcome_rate": 1.0,
+        "outcome_rate_interval": {
+          "confidence": 0.95,
+          "lower": 0.20654931437723745,
+          "method": "wilson-score/1.0",
+          "upper": 1.0
+        },
+        "positive": 1,
+        "samples": 1
+      }
+    },
+    "by_turn_phase": {
+      "0-31": {
+        "baseline_brier": 0.15306122448979595,
+        "baseline_log_loss": 0.4891873586002388,
+        "brier_improvement": 0.011036767648235801,
+        "brier_improvement_interval": {
+          "confidence": 0.95,
+          "lower": -0.01496039592307511,
+          "method": "paired-percentile-bootstrap/1.0",
+          "samples": 10000,
+          "seed": 7717,
+          "upper": 0.0286305698750088
+        },
+        "candidate_brier": 0.14202445684156015,
+        "candidate_log_loss": 0.4601894976886551,
+        "exact_prediction_ece": 0.06512605042016816,
+        "negative": 2,
+        "outcome_rate": 0.8333333333333334,
+        "outcome_rate_interval": {
+          "confidence": 0.95,
+          "lower": 0.5519691377470266,
+          "method": "wilson-score/1.0",
+          "upper": 0.9530348578161463
+        },
+        "positive": 10,
+        "samples": 12
+      },
+      "32-63": {
+        "baseline_brier": 0.22448979591836735,
+        "baseline_log_loss": 0.6419024805792647,
+        "brier_improvement": -0.005769955040839908,
+        "brier_improvement_interval": {
+          "confidence": 0.95,
+          "lower": -0.040957559494385974,
+          "method": "paired-percentile-bootstrap/1.0",
+          "samples": 10000,
+          "seed": 7717,
+          "upper": 0.029417649412706234
+        },
+        "candidate_brier": 0.23025975095920725,
+        "candidate_log_loss": 0.6566319970789295,
+        "exact_prediction_ece": 0.17296918767507,
+        "negative": 2,
+        "outcome_rate": 0.6666666666666666,
+        "outcome_rate_interval": {
+          "confidence": 0.95,
+          "lower": 0.299993315138392,
+          "method": "wilson-score/1.0",
+          "upper": 0.9032285888942195
+        },
+        "positive": 4,
+        "samples": 6
+      },
+      "96+": {
+        "baseline_brier": 0.08163265306122448,
+        "baseline_log_loss": 0.3364722366212129,
+        "brier_improvement": 0.04857480182155508,
+        "brier_improvement_interval": {
+          "confidence": 0.95,
+          "lower": 0.04857480182155508,
+          "method": "paired-percentile-bootstrap/1.0",
+          "samples": 10000,
+          "seed": 7717,
+          "upper": 0.04857480182155508
+        },
+        "candidate_brier": 0.0330578512396694,
+        "candidate_log_loss": 0.2006706954621511,
+        "exact_prediction_ece": 0.18181818181818177,
+        "negative": 0,
+        "outcome_rate": 1.0,
+        "outcome_rate_interval": {
+          "confidence": 0.95,
+          "lower": 0.20654931437723745,
+          "method": "wilson-score/1.0",
+          "upper": 1.0
+        },
+        "positive": 1,
+        "samples": 1
+      }
+    },
+    "overall": {
+      "baseline_brier": 0.17185821697099896,
+      "baseline_log_loss": 0.529375548594719,
+      "brier_improvement": 0.007705067545018179,
+      "brier_improvement_interval": {
+        "confidence": 0.95,
+        "lower": -0.014021579770254694,
+        "method": "paired-percentile-bootstrap/1.0",
+        "samples": 10000,
+        "seed": 7717,
+        "upper": 0.025298300882669145
+      },
+      "candidate_brier": 0.16415314942598078,
+      "candidate_log_loss": 0.5085650868526098,
+      "exact_prediction_ece": 0.06817176631418116,
+      "negative": 4,
+      "outcome_rate": 0.7894736842105263,
+      "outcome_rate_interval": {
+        "confidence": 0.95,
+        "lower": 0.5666572155618583,
+        "method": "wilson-score/1.0",
+        "upper": 0.9149232336708375
+      },
+      "positive": 15,
+      "samples": 19
+    },
+    "readout_conflict_rate": 0.0,
+    "readout_coverage": 0.95
+  },
+  "outcome_label_sources": [
+    {
+      "labels": 4,
+      "observed_labels": 4,
+      "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104911-00/fdas-induction-outcome-labels.json",
+      "persistence_identity": "7c091b5c2790f6f216a44b40220f3c55c18a2e395c6603079810348f70992e7f",
+      "sha256": "7ec3aeb84c4dbbb8f848cbdee7aa3a2730d3b4ef384f50c86a630a34caef847f",
+      "store_digest": "13a4fb0507d36ac26a07017fb885f86c3ced4fbc849ee4f0ef40851e4153b751",
+      "targets": [
+        "durable-attributed-actor-city-defense/32-turn/1.0"
+      ]
+    },
+    {
+      "labels": 5,
+      "observed_labels": 5,
+      "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104917-00/fdas-induction-outcome-labels.json",
+      "persistence_identity": "bf2c6c9d12134e946585e3b5fe2a3125ce24f4548053467883636ae7b4d72113",
+      "sha256": "4ef9dec81c8e5cb468ac9144c9c1f99846cc80aa4a2379700e7e9254912d642e",
+      "store_digest": "953ad43ee50a6050d31dd601f5ce3431c8c03c5ff7642bcde93c57e8cbe0689e",
+      "targets": [
+        "durable-attributed-actor-city-defense/32-turn/1.0"
+      ]
+    },
+    {
+      "labels": 2,
+      "observed_labels": 2,
+      "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104933-00/fdas-induction-outcome-labels.json",
+      "persistence_identity": "5982b8085b37502974829d77d01ef37f002c000261ced903d6ee466e0d72b5ab",
+      "sha256": "aa5e58925027518c06fb2203f39be3b7d04f4bb028c3e3c5fdd32cccdca5a8b1",
+      "store_digest": "dcfe231538cea6c7703c302f1479781c658e8ffead43c6ff796ee77a02536c84",
+      "targets": [
+        "durable-attributed-actor-city-defense/32-turn/1.0"
+      ]
+    },
+    {
+      "labels": 3,
+      "observed_labels": 3,
+      "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104947-00/fdas-induction-outcome-labels.json",
+      "persistence_identity": "e96556b2099ef280eebc1ab5d0baf025b8b62f0fefbd8f6c23506b2d3df7789e",
+      "sha256": "bd92249360e242b451f15d49cd6cb23e61ab7ac6e882f427cabdecc35d08f9f9",
+      "store_digest": "b8ec8c347744640b21349bf4f96e56cbe6e59f10818e234c77fb02fa0a2d15fe",
+      "targets": [
+        "durable-attributed-actor-city-defense/32-turn/1.0"
+      ]
+    },
+    {
+      "labels": 3,
+      "observed_labels": 3,
+      "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104953-00/fdas-induction-outcome-labels.json",
+      "persistence_identity": "c30957a7b4c788982b62fb8b031b6404e2ebb9b02be6acddf1a793c5ad5d47dd",
+      "sha256": "6da741ac9c52da250ba068c313d178f65480edf08cde6e09bf786ef40b7346b7",
+      "store_digest": "9f7c3ef46096f0e0d613cf942a0535dba7066ff66a8c2543f528b56ab80f42f9",
+      "targets": [
+        "durable-attributed-actor-city-defense/32-turn/1.0"
+      ]
+    },
+    {
+      "labels": 3,
+      "observed_labels": 3,
+      "path": "artifacts/freeciv/fdas-promoted-rule-shadow-confirmation-live-160-v1/games/main/e_full_loop/104959-00/fdas-induction-outcome-labels.json",
+      "persistence_identity": "cf6ce7daf6208664ab64fa51294017a88d6af3fafcf15cbaccb9ba7853c054f3",
+      "sha256": "20f55ac65cdc38df66df7c7d9741b2126b3020e408c344219f5ac33fd5fe56f4",
+      "store_digest": "0db5db33eb4ce05dd4b23443e62d1400820108244e973ee1c8d40b399a06aad2",
+      "targets": [
+        "durable-attributed-actor-city-defense/32-turn/1.0"
+      ]
+    }
+  ],
+  "schema_version": "1.0",
+  "source": {
+    "commit": "188ebc195a26e00ce21848172dea97b96650ce67",
+    "dirty": false,
+    "implementation_sha256": "29396a2354e68c6af637384814c8334afbeb18e2cad334e151fb0365a89fdf45",
+    "runner_sha256": "e7cfdd368581f1c0bfd8ca15faaeb2dd01a06362d4d98c758a35efef96aee574",
+    "source_files": 273
+  },
+  "structural_hash": "948b840e13adb107a6c0411a82c6c1162d7cd05a79508bf24979aed0db2c15ae"
+}
