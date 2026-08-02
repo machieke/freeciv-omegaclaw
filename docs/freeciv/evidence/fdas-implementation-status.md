@@ -264,3 +264,13 @@ interval `[-0.01402, +0.02530]` crosses zero. This repeats the directional
 point improvement without establishing statistical superiority, intervention
 value, gameplay impact, score, or win rate. Induced readout remains entirely
 non-authorizing. See `fdas-pr31-promoted-rule-shadow.md`.
+
+PR32 joins that exact approved basis to snapshot-bound fortification choice
+sets and reconstructs the typed PF scores behind the emitted schedule. A
+clean, deterministic 38-snapshot replay evaluated 101 candidates, produced 80
+nonzero contextual priority deltas, and had complete prediction coverage in
+21 evaluations. Twenty-nine evaluations contained multiple same-category
+candidates, but none changed the category-local winner because the retained
+rules do not differentiate actors within those choice sets. The live
+capability remains shadow-only and changes no truth, schedule, authority, or
+action. See `fdas-pr32-candidate-impact-shadow.md`.

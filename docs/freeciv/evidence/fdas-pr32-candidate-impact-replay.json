@@ -6742,14 +6742,14 @@
   "ruleset": "civ2civ3",
   "schema_version": "1.0",
   "source": {
-    "commit": "9cd34411d6e192184eb8dfe4fdfc1d661b8803a0",
-    "dirty": true,
+    "commit": "d17d56838dd9858d00a135ef320f77080211f2b3",
+    "dirty": false,
     "implementation_sha256": "230aa0262b165d975098e019ee6e070159ecf4b8ce8ead7024124dd58bb8eec4",
     "runner_path": "scripts/freeciv/evaluate_fdas_candidate_impact_replay.py",
     "runner_sha256": "479f0fc92e07dde91ba5f663779f22c993354bbd5c78e2743e92555b7d66915e",
     "source_files": 273
   },
-  "structural_hash": "9e673cd388ac57283820e082b563b178ed529894a8565c3c0d5083068fa3b1ec",
+  "structural_hash": "9426b470750e575aff243dbc7cc760eafbc8a0c9c066b8fa32ecbdf78b73673e",
   "summary": {
     "candidate_rows": 101,
     "complete_prediction_coverage_count": 21,
