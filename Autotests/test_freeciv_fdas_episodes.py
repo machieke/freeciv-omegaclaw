@@ -118,6 +118,8 @@ def _begin_episode(
         grounding_result_ids=("grounding-route",),
         resource_claim_ids=("claim-unit-7",),
     )
+    assert recorder.context_for_operation(record.spec, before) == (
+        episode.context_signature)
     return recorder, episode_store, episode
 
 

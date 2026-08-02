@@ -24,6 +24,7 @@ from freeciv_agent.planning import (  # noqa: E402
     FdasEpisodeInductionAdapter,
     FdasEpisodeInductionHeldoutGate,
     FdasEpisodeInductionShadow,
+    causal_induction_feature_query,
     combine_episode_stores,
     combine_outcome_label_stores,
 )
@@ -242,6 +243,27 @@ def test_causal_schema_excludes_exact_actor_type_and_uses_lifecycle_features():
     assert not any(
         "actor_unit_type" in value
         for value in encoded.induction_episode.features)
+
+
+def test_causal_candidate_query_matches_episode_features_without_outcome():
+    episode = _episode(
+        0, "goal-relief-observed",
+        feature_schema=CAUSAL_INDUCTION_FEATURE_SCHEMA)
+    store = DecisionEpisodeStore("fdas-candidate-query", (episode,))
+    shadow = FdasEpisodeInductionShadow(
+        store, InductionLedger(identity="fdas-candidate-query"))
+    base = shadow._spec(episode)
+    encoded = shadow.adapter.encode(base)
+    query = causal_induction_feature_query(
+        "candidate-query",
+        episode.context_signature,
+        base.outcome_target,
+        ("candidate-hash", "snapshot-id"))
+
+    assert query.context == encoded.induction_episode.context
+    assert query.features == encoded.induction_episode.features
+    assert query.provenance_ids == ("candidate-hash", "snapshot-id")
+    assert "outcome" not in query.to_dict()
 
 
 def test_context_and_evidence_features_must_be_linked_to_episode():

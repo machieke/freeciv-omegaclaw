@@ -137,6 +137,8 @@ from .fdas_episode_learning import (
     FdasEpisodeLearningAdapter,
 )
 from .fdas_episode_induction import (
+    CAUSAL_INDUCTION_CONTEXT_KEYS,
+    CAUSAL_INDUCTION_FEATURE_KEYS,
     IMMEDIATE_GOAL_RELIEF_TARGET,
     EpisodeInductionHeldoutResult,
     EpisodeInductionResult,
@@ -145,6 +147,7 @@ from .fdas_episode_induction import (
     FdasEpisodeInductionAdapter,
     FdasEpisodeInductionHeldoutGate,
     FdasEpisodeInductionShadow,
+    causal_induction_feature_query,
     combine_episode_stores,
 )
 from .fdas_induction_labels import (
@@ -253,6 +256,7 @@ __all__ = [
     "FdasCityDefenseOperationAdapter",
     "FdasDefenseActionBinding", "FdasDefenseLifecycleUpdate",
     "FdasDefenseRequirementContext",
+    "CAUSAL_INDUCTION_CONTEXT_KEYS", "CAUSAL_INDUCTION_FEATURE_KEYS",
     "CAUSAL_INDUCTION_FEATURE_SCHEMA",
     "EPISODE_SCHEMA_VERSION", "INDUCTION_FEATURE_SCHEMA",
     "DecisionEpisode", "DecisionEpisodeStore",
@@ -265,7 +269,7 @@ __all__ = [
     "EpisodeInductionResult", "EpisodeInductionShadowResult",
     "EpisodeInductionSpec", "FdasEpisodeInductionAdapter",
     "FdasEpisodeInductionHeldoutGate", "FdasEpisodeInductionShadow",
-    "combine_episode_stores",
+    "causal_induction_feature_query", "combine_episode_stores",
     "DURABLE_ACTOR_CITY_DEFENSE_TARGET", "DURABLE_CITY_COVERAGE_TARGET",
     "LABEL_SCHEMA_VERSION",
     "EpisodeInductionOutcomeLabel", "EpisodeInductionOutcomeLabelStore",

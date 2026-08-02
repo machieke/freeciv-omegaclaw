@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from ..events.schema import structural_hash
 from ..pressure.induction import (
     InductionEpisode,
+    InductionFeatureQuery,
     InductionLedger,
     InductionPromotionApproval,
     PatternMiner,
@@ -22,6 +23,55 @@ from .fdas_induction_labels import (
 
 
 IMMEDIATE_GOAL_RELIEF_TARGET = "immediate-goal-relief/1.0"
+CAUSAL_INDUCTION_CONTEXT_KEYS = (
+    "induction_feature_schema", "operation_type")
+CAUSAL_INDUCTION_FEATURE_KEYS = (
+    "actor_homecity_relation",
+    "actor_moves_band",
+    "actor_veteran_band",
+    "city_disorder",
+    "city_production_class",
+    "city_size_band",
+    "economy_operating_gold_band",
+    "empire_city_count_band",
+    "other_fortified_units_at_target_band",
+    "other_own_units_at_target_band",
+    "own_units_at_target_band",
+    "turn_phase_band",
+    "visible_enemy_count_near_city_band",
+    "visible_enemy_proximity_band",
+)
+
+
+def causal_induction_feature_query(
+        query_id, context_signature, outcome_target, provenance_ids=()):
+    """Build an outcome-free query from exact snapshot-bound context."""
+    context_rows = tuple(context_signature)
+    context = dict(context_rows)
+    if len(context) != len(context_rows):
+        raise ValueError("candidate induction context keys must be unique")
+    if context.get("induction_feature_schema") != (
+            CAUSAL_INDUCTION_FEATURE_SCHEMA):
+        raise ValueError("candidate query requires causal feature schema")
+    required = set(
+        CAUSAL_INDUCTION_CONTEXT_KEYS + CAUSAL_INDUCTION_FEATURE_KEYS)
+    missing = sorted(required.difference(context))
+    if missing:
+        raise ValueError(
+            "candidate induction context keys missing: {}".format(
+                ",".join(missing)))
+    if not isinstance(outcome_target, str) or not outcome_target:
+        raise ValueError("candidate query requires an outcome target")
+    query_context = tuple(
+        (key, context[key]) for key in CAUSAL_INDUCTION_CONTEXT_KEYS)
+    if outcome_target != IMMEDIATE_GOAL_RELIEF_TARGET:
+        query_context += (("outcome_target", outcome_target),)
+    return InductionFeatureQuery(
+        str(query_id),
+        query_context,
+        tuple("context:{}={}".format(key, context[key])
+              for key in CAUSAL_INDUCTION_FEATURE_KEYS),
+        tuple(provenance_ids))
 
 
 def combine_episode_stores(stores, persistence_identity):
@@ -322,23 +372,8 @@ class FdasEpisodeInductionShadow(object):
                 "induction_feature_schema") == CAUSAL_INDUCTION_FEATURE_SCHEMA:
             return EpisodeInductionSpec(
                 episode.episode_id,
-                ("induction_feature_schema", "operation_type"),
-                (
-                    "actor_homecity_relation",
-                    "actor_moves_band",
-                    "actor_veteran_band",
-                    "city_disorder",
-                    "city_production_class",
-                    "city_size_band",
-                    "economy_operating_gold_band",
-                    "empire_city_count_band",
-                    "other_fortified_units_at_target_band",
-                    "other_own_units_at_target_band",
-                    "own_units_at_target_band",
-                    "turn_phase_band",
-                    "visible_enemy_count_near_city_band",
-                    "visible_enemy_proximity_band",
-                ))
+                CAUSAL_INDUCTION_CONTEXT_KEYS,
+                CAUSAL_INDUCTION_FEATURE_KEYS)
         if context.get("induction_feature_schema") == INDUCTION_FEATURE_SCHEMA:
             return EpisodeInductionSpec(
                 episode.episode_id,

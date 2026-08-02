@@ -11,6 +11,7 @@ from .fdas import ShadowOperationCandidate
 from .fdas_authority import FdasAuthorityReadout
 from .fdas_defense import FdasDefenseActionBinding
 from .operation_store import OperationRecord, OperationStore
+from .operations import OperationSpec
 
 
 EPISODE_SCHEMA_VERSION = 1
@@ -459,22 +460,15 @@ class FdasDefenseEpisodeRecorder(object):
         self.store = store
         self.induction_feature_schema = induction_feature_schema
 
-    def begin(self, binding, operation_record, before_snapshot,
-              before_revision_id, validation_result_hash,
-              execution_event_id=None, source_atom_ids=(),
-              source_support_ids=(), grounding_result_ids=(),
-              prediction_ids=(), resource_claim_ids=(),
-              outcome_status="accepted-by-server"):
-        if not isinstance(binding, FdasDefenseActionBinding):
-            raise TypeError("defense episode requires exact action binding")
-        if not binding.legal_bound:
-            raise ValueError("defense episode requires a legal-bound action")
-        if not isinstance(operation_record, OperationRecord):
-            raise TypeError("defense episode requires operation record")
-        spec = operation_record.spec
-        if spec.operation_id != binding.operation_id:
-            raise ValueError("episode operation/binding mismatch")
-        participant = spec.participants[0]
+    def context_for_operation(self, operation, before_snapshot):
+        """Project snapshot-bound defense features without opening an episode."""
+        if not isinstance(operation, OperationSpec):
+            raise TypeError("defense feature context requires OperationSpec")
+        if (not operation.participants
+                or not isinstance(operation.target_ref, str)
+                or not operation.target_ref.startswith("city:")):
+            raise ValueError("defense feature context requires a city target")
+        participant = operation.participants[0]
         actor_ref = participant.actor_id
         normalized_actor_ref = (
             "unit:{}".format(actor_ref)
@@ -483,7 +477,7 @@ class FdasDefenseEpisodeRecorder(object):
         actor = (
             before_snapshot.unit(int(normalized_actor_ref.split(":", 1)[1]))
             if normalized_actor_ref.startswith("unit:") else None)
-        city_id = int(spec.target_ref.split(":", 1)[1])
+        city_id = int(operation.target_ref.split(":", 1)[1])
         city = before_snapshot.city(city_id)
         target_units = tuple(
             value for value in before_snapshot.units
@@ -507,7 +501,7 @@ class FdasDefenseEpisodeRecorder(object):
             "city_size_band": _city_size_band(
                 None if city is None else city.size),
             "induction_feature_schema": self.induction_feature_schema,
-            "operation_type": spec.operation_type,
+            "operation_type": operation.operation_type,
             "other_own_units_at_target_band": _count_band(
                 len(other_target_units)),
             "own_units_at_target_band": _count_band(len(target_units)),
@@ -535,7 +529,24 @@ class FdasDefenseEpisodeRecorder(object):
                 "visible_enemy_count_near_city_band": nearby_threat_count,
                 "visible_enemy_proximity_band": threat_proximity,
             })
-        context = tuple(sorted(context.items()))
+        return tuple(sorted(context.items()))
+
+    def begin(self, binding, operation_record, before_snapshot,
+              before_revision_id, validation_result_hash,
+              execution_event_id=None, source_atom_ids=(),
+              source_support_ids=(), grounding_result_ids=(),
+              prediction_ids=(), resource_claim_ids=(),
+              outcome_status="accepted-by-server"):
+        if not isinstance(binding, FdasDefenseActionBinding):
+            raise TypeError("defense episode requires exact action binding")
+        if not binding.legal_bound:
+            raise ValueError("defense episode requires a legal-bound action")
+        if not isinstance(operation_record, OperationRecord):
+            raise TypeError("defense episode requires operation record")
+        spec = operation_record.spec
+        if spec.operation_id != binding.operation_id:
+            raise ValueError("episode operation/binding mismatch")
+        context = self.context_for_operation(spec, before_snapshot)
         material = {
             "action_key": binding.action_key,
             "before_revision_id": before_revision_id,
