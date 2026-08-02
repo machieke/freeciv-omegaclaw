@@ -23,6 +23,9 @@ from freeciv_agent.events.schema import (  # noqa: E402
 )
 from freeciv_agent.events.validator import validate_file  # noqa: E402
 from freeciv_agent.planning import (  # noqa: E402
+    DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES,
+    DEFENSE_CANDIDATE_CHOICE_SURFACE,
+    DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET,
     FdasCandidateChoiceSetStore,
     combine_candidate_choice_stores,
 )
@@ -62,8 +65,23 @@ def _choice_component_authority_safe(path):
     return count, count > 0
 
 
-def audit(run_root):
+def _choice_operation_type(choice):
+    context = dict(choice.feature_query.context)
+    value = context.get("operation_type")
+    if not isinstance(value, str) or not value:
+        raise ValueError("candidate choice lacks exact operation type")
+    return value
+
+
+def audit(run_root, expected_seeds=EXPECTED_SEEDS, pilot_id=PILOT_ID,
+          require_surface_strata=False):
     run_root = os.path.abspath(run_root)
+    expected_seeds = tuple(int(value) for value in expected_seeds)
+    if (not expected_seeds
+            or len(expected_seeds) != len(set(expected_seeds))):
+        raise ValueError("yield audit requires unique expected seeds")
+    if not isinstance(pilot_id, str) or not pilot_id:
+        raise ValueError("yield audit requires pilot identity")
     game_dirs = tuple(sorted(glob.glob(os.path.join(
         run_root, "games", "main", "e_full_loop", "*"))))
     rows = []
@@ -143,7 +161,7 @@ def audit(run_root):
             component_authority_safe),
         "exact_preregistered_seeds_completed": (
             tuple(sorted(value["seed"] for value in rows))
-            == EXPECTED_SEEDS),
+            == tuple(sorted(expected_seeds))),
         "no_infrastructure_failures": not any(
             value["infrastructure_failure"] for value in rows),
         "source_is_clean_and_identical": bool(rows) and (
@@ -151,6 +169,22 @@ def audit(run_root):
             and all(value["source"].get("dirty") is False
                     for value in rows)),
     }
+    if require_surface_strata:
+        mechanical_gates["exact_defense_choice_surface_scope"] = bool(
+            choice_audit["operation_type"]
+            == DEFENSE_CANDIDATE_CHOICE_SURFACE
+            and choice_audit["outcome_target"]
+            == DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET)
+    selected_operation_type_counts = dict(
+        (operation_type, sum(
+            _choice_operation_type(row) == operation_type
+            for row in selected_rows))
+        for operation_type in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES)
+    choice_operation_type_counts = dict(
+        (operation_type, sum(
+            _choice_operation_type(row) == operation_type
+            for value in choice_sets for row in value.choices))
+        for operation_type in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES)
     yield_measures = {
         "actor_context_signatures": len(actor_context_signatures),
         "choice_sets": len(choice_sets),
@@ -159,6 +193,9 @@ def audit(run_root):
         "engine_hours": engine_hours,
         "multi_candidate_choice_sets": sum(
             len(value.choices) > 1 for value in choice_sets),
+        "mixed_operation_type_choice_sets": sum(
+            len(set(_choice_operation_type(row) for row in value.choices))
+            > 1 for value in choice_sets),
         "no_in_scope_selection_sets": sum(
             value.selected_operation_id is None for value in choice_sets),
         "nonselected_censored_choices": sum(
@@ -175,6 +212,9 @@ def audit(run_root):
             value.selected_operation_id is not None
             and value.outcome_status != "observed"
             for value in choice_sets),
+        "selected_operation_type_counts": (
+            selected_operation_type_counts),
+        "choice_operation_type_counts": choice_operation_type_counts,
     }
     progression_gates = {
         "actor_context_signature_yield": (
@@ -187,6 +227,14 @@ def audit(run_root):
             yield_measures["observed_positive_selected_outcomes"] >= 2
             and yield_measures["observed_negative_selected_outcomes"] >= 2),
     }
+    if require_surface_strata:
+        progression_gates.update({
+            "mixed_action_strata_yield": (
+                yield_measures["mixed_operation_type_choice_sets"] >= 3),
+            "selected_action_strata_yield": all(
+                selected_operation_type_counts.get(value, 0) >= 2
+                for value in DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES),
+        })
     semantic = {
         "candidate_choice_audit": choice_audit,
         "claim_scope": (
@@ -197,7 +245,7 @@ def audit(run_root):
         "games": rows,
         "mechanical_gates": mechanical_gates,
         "mechanically_accepted": all(mechanical_gates.values()),
-        "pilot_id": PILOT_ID,
+        "pilot_id": pilot_id,
         "progression_gate_passed": all(progression_gates.values()),
         "progression_gates": progression_gates,
         "schema_version": "fdas-candidate-choice-yield-audit/1.0",
@@ -211,8 +259,19 @@ def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("run_root")
     parser.add_argument("--output")
+    parser.add_argument(
+        "--expected-seed", action="append", type=int,
+        help="repeat for each preregistered seed; defaults to PR34")
+    parser.add_argument("--pilot-id", default=PILOT_ID)
+    parser.add_argument("--require-surface-strata", action="store_true")
     args = parser.parse_args(argv)
-    report = audit(args.run_root)
+    report = audit(
+        args.run_root,
+        expected_seeds=(
+            tuple(args.expected_seed)
+            if args.expected_seed else EXPECTED_SEEDS),
+        pilot_id=args.pilot_id,
+        require_surface_strata=args.require_surface_strata)
     payload = canonical_json_bytes(report) + b"\n"
     if args.output:
         output = os.path.abspath(args.output)
