@@ -101,7 +101,7 @@ The environment must also supply the existing FreeCiv proxy URL/WebSocket,
 server container, ruleset root, Ollama OpenAI-compatible base URL, and API
 token.
 
-## Claim boundary and next gate
+## Claim boundary and continuation
 
 This proves the fail-closed observation execution and evidence-return mechanism
 for a visibility-frontier test attached to legacy-selected movement. It does
@@ -110,8 +110,10 @@ establish opponent absence, or that the mechanism improves score or win rate.
 The opponent-presence PR18 test also remains a planning-only model; PR20 does
 not relabel a visibility frontier delta as direct opponent-presence evidence.
 
-The remaining Phase 8 empirical gap is a live contradictory independent
-lineage that exercises conflict and quarantine without authority leakage.
-Broader decision gaps and any FDAS-selected observation action require their
-own calibrated transition model, legal-action safety evidence, and explicit
-activation gate.
+PR21 subsequently exercised a live contradictory independent lineage and
+complete context quarantine without authority leakage; see
+[`fdas-pr21-belief-conflict.md`](fdas-pr21-belief-conflict.md). That diagnostic
+uses an intentionally false capped prior and does not turn PR20's visibility
+delta into opponent-presence or absence evidence. Broader decision gaps and
+any FDAS-selected observation action require their own calibrated transition
+model, legal-action safety evidence, and explicit activation gate.

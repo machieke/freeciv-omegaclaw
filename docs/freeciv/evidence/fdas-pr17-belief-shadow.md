@@ -109,7 +109,7 @@ The deterministic report structural hash is
 The tracked report file SHA-256 is
 `de5e19d0f0b27f856a7a228428e84c59f82aefb1874816b0ad8ad1fb1bbca2ff`.
 
-## Claim boundary and next gate
+## Claim boundary and continuation
 
 This is mechanism, epistemic-separation, decay, support-invalidation,
 behavior-preservation, and latency evidence. The paired cohort was deliberately
@@ -118,7 +118,8 @@ claim-ineligible and supports no score or win-rate claim.
 Observation-pressure selection has since passed its independent shadow-live
 gate in
 [`fdas-pr18-observation-pressure-shadow.md`](fdas-pr18-observation-pressure-shadow.md).
-The remaining gate is execution and authoritative return: bind a selected test
-to a current legal observation action, commit-revalidate it, and allow evidence
-registration only through the authoritative-return firewall. A selected test
-still has no direct path to authoritative or crisp FDAS truth.
+PR20 added a legacy-bound visibility return and no-write censoring firewall;
+PR21 then exercised an independent-source conflict and complete context
+quarantine in live engine shadow. A selected test still has no direct path to
+authoritative or crisp FDAS truth, and neither continuation grants FDAS action
+choice.

@@ -171,8 +171,8 @@ into scoped, non-crisp AtomSpace revisions. Its clean paired 30-turn cohort
 kept every live belief non-authoritative, invalidated expired supports instead
 of inventing absence, preserved sampled cold parity, accepted all 135 actions,
 and remained inside the 500 ms controller gate. No contradictory lineage
-occurred in that cohort, so live conflict/quarantine remains a separate gate.
-See `fdas-pr17-belief-shadow.md`.
+occurred in that cohort, so conflict/quarantine required the later independent
+PR21 gate. See `fdas-pr17-belief-shadow.md`.
 
 PR 18 routes one real opponent-presence uncertainty gap through bounded
 value-of-information planning. A clean paired 30-turn cohort made two
@@ -188,8 +188,16 @@ two accepted moves whose actors were no longer provable at the endpoint. The
 censored returns wrote no evidence; all 13,892 events validated with zero
 warnings and no policy authority. See `fdas-pr20-observation-return.md`.
 This does not grant FDAS scouting choice or turn frontier visibility into
-opponent-absence evidence. Live contradictory lineage/quarantine remains the
-next Phase 8 empirical gate.
+opponent-absence evidence.
+
+PR 21 closes the remaining Phase 8 contradiction mechanism gate in a separate,
+claim-ineligible diagnostic. Both clean 30-turn arms formed one conflict from
+an explicitly capped model prior and an independent player-visible roster
+lineage, partitioned both contexts, projected all four quarantines, accepted
+all 114 engine actions, and emitted no authority. Both ledgers validate with
+zero warnings. See `fdas-pr21-belief-conflict.md`. The synthetic prior is not a
+calibrated opponent model and provides no score, win-rate, or belief-policy
+claim.
 
 ## Post-substrate episode induction shadow
 

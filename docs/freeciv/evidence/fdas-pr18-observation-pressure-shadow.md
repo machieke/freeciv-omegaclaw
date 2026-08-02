@@ -112,7 +112,7 @@ python3 scripts/freeciv/audit_fdas_observation_live.py \
 The environment must also supply the existing FreeCiv proxy URL/WebSocket,
 server container, ruleset root, Ollama OpenAI-compatible base URL, and API token.
 
-## Claim boundary and next gate
+## Claim boundary and continuation
 
 This closes the Phase 8 shadow-live observation-selection mechanism for a real
 belief and bounded decision. It does not close an FDAS authority path. The
@@ -124,8 +124,10 @@ move, exact-revalidates it, and accepts fresh visibility evidence through
 cannot be proven at the endpoint.
 
 PR20 does not treat visibility expansion as direct opponent-presence evidence
-and does not let FDAS choose the move. Live contradictory lineages still need
-to exercise conflict and quarantine behavior, and broader decision gaps or an
-FDAS-selected observation action need separate calibration, safety, and
-activation evidence. Until those tests pass, observation pressure remains
-non-authorizing.
+and does not let FDAS choose the move. PR21 subsequently exercised conflict
+and complete quarantine with an independent player-visible lineage and a
+capped diagnostic prior; see
+[`fdas-pr21-belief-conflict.md`](fdas-pr21-belief-conflict.md). It remains
+non-authorizing and deliberately does not establish model quality. Broader
+decision gaps or an FDAS-selected observation action need separate
+calibration, safety, and activation evidence.

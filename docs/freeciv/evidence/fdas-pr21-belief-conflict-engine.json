@@ -1,0 +1,154 @@
+{
+  "acceptance": {
+    "accepted": true,
+    "checks": {
+      "both_arms_pass_conflict_acceptance": true,
+      "cohort_completed_without_failures": true,
+      "cohort_is_predeclared_and_claim_ineligible": true,
+      "paired_source_is_clean_and_stable": true
+    }
+  },
+  "arms": [
+    {
+      "acceptance": {
+        "accepted": true,
+        "checks": {
+          "actions_complete_and_accepted": true,
+          "conflict_and_quarantine_atoms_are_projected": true,
+          "conflict_profile_is_manifest_bound_shadow_only": true,
+          "effective_conflict_thresholds_are_logged": true,
+          "independent_conflict_and_quarantine_are_causally_complete": true,
+          "source_is_clean_and_horizon_completed": true,
+          "status_counters_match_conflict_artifacts": true,
+          "uncertainty_never_becomes_absence_or_authority": true
+        }
+      },
+      "arm": "baseline",
+      "evidence": {
+        "events.jsonl": {
+          "path": "artifacts/freeciv/fdas-belief-conflict-live-30-v4/games/impact_pair/fdas_belief_conflict_shadow_diagnostic_v1/baseline/e_full_loop/161803-00/events.jsonl",
+          "sha256": "9f5ddf3152788188202e4db0a90bd2fc5246c4cb0624a5f96e85ffbf655c9a55"
+        },
+        "manifest.json": {
+          "path": "artifacts/freeciv/fdas-belief-conflict-live-30-v4/games/impact_pair/fdas_belief_conflict_shadow_diagnostic_v1/baseline/e_full_loop/161803-00/manifest.json",
+          "sha256": "25b9d3a14b55c6bfed2553634b6ac3ef7e8c9a5c60f1502b110fe616ce6b1cf1"
+        },
+        "status.json": {
+          "path": "artifacts/freeciv/fdas-belief-conflict-live-30-v4/games/impact_pair/fdas_belief_conflict_shadow_diagnostic_v1/baseline/e_full_loop/161803-00/status.json",
+          "sha256": "7a7f28bbdb8a34308b37dbcdc209f9c8eace1ffc2ffa398cb8a79515bb8bf83b"
+        }
+      },
+      "projected_predicates": {
+        "belief-about-opponent": 9,
+        "belief-conflict-lineage": 4,
+        "belief-conflict-target": 2,
+        "belief-context": 17,
+        "belief-context-quarantine": 6,
+        "belief-current-revision": 9,
+        "belief-model-source": 9,
+        "belief-proposition": 9,
+        "belief-quarantine-context": 6,
+        "belief-quarantine-target": 6,
+        "belief-quarantines-evidence": 6,
+        "belief-retains-evidence": 6,
+        "belief-supported-by-evidence": 17
+      },
+      "source": {
+        "commit": "2463fd2d7a22fb791fca90d18fe964818fa4393f",
+        "dirty": false,
+        "implementation_sha256": "338366e5aceb60df04986ed5126434a479da3c7a98c6b31b6e26c22c783c5d0f",
+        "source_files": 271
+      },
+      "summary": {
+        "actions": 62,
+        "conflicts": 1,
+        "context_quarantines": 2,
+        "model_priors": 1,
+        "visible_roster_revisions": 1
+      }
+    },
+    {
+      "acceptance": {
+        "accepted": true,
+        "checks": {
+          "actions_complete_and_accepted": true,
+          "conflict_and_quarantine_atoms_are_projected": true,
+          "conflict_profile_is_manifest_bound_shadow_only": true,
+          "effective_conflict_thresholds_are_logged": true,
+          "independent_conflict_and_quarantine_are_causally_complete": true,
+          "source_is_clean_and_horizon_completed": true,
+          "status_counters_match_conflict_artifacts": true,
+          "uncertainty_never_becomes_absence_or_authority": true
+        }
+      },
+      "arm": "treatment",
+      "evidence": {
+        "events.jsonl": {
+          "path": "artifacts/freeciv/fdas-belief-conflict-live-30-v4/games/impact_pair/fdas_belief_conflict_shadow_diagnostic_v1/treatment/e_full_loop/161803-00/events.jsonl",
+          "sha256": "539b48396a3eeff8458f3e3789f4ac5961f65dbb9fbe31c9b536585e6d6f98a6"
+        },
+        "manifest.json": {
+          "path": "artifacts/freeciv/fdas-belief-conflict-live-30-v4/games/impact_pair/fdas_belief_conflict_shadow_diagnostic_v1/treatment/e_full_loop/161803-00/manifest.json",
+          "sha256": "eff6461ac33163005b2c3ab268ee5943a178cd106e3e00572b783843fe6ce7ae"
+        },
+        "status.json": {
+          "path": "artifacts/freeciv/fdas-belief-conflict-live-30-v4/games/impact_pair/fdas_belief_conflict_shadow_diagnostic_v1/treatment/e_full_loop/161803-00/status.json",
+          "sha256": "f601b31f94dd48cb2a56fb466c0aabc7df6bfe518b0b120b7bb12996de16176b"
+        }
+      },
+      "projected_predicates": {
+        "belief-about-opponent": 11,
+        "belief-conflict-lineage": 4,
+        "belief-conflict-target": 2,
+        "belief-context": 19,
+        "belief-context-quarantine": 6,
+        "belief-current-revision": 11,
+        "belief-model-source": 9,
+        "belief-proposition": 11,
+        "belief-quarantine-context": 6,
+        "belief-quarantine-target": 6,
+        "belief-quarantines-evidence": 6,
+        "belief-retains-evidence": 6,
+        "belief-supported-by-evidence": 19
+      },
+      "source": {
+        "commit": "2463fd2d7a22fb791fca90d18fe964818fa4393f",
+        "dirty": false,
+        "implementation_sha256": "338366e5aceb60df04986ed5126434a479da3c7a98c6b31b6e26c22c783c5d0f",
+        "source_files": 271
+      },
+      "summary": {
+        "actions": 52,
+        "conflicts": 1,
+        "context_quarantines": 2,
+        "model_priors": 1,
+        "visible_roster_revisions": 1
+      }
+    }
+  ],
+  "claim_scope": "live capped model-prior versus player-visible roster conflict, explicit independent source lineages, context-local quarantine projection, and zero authority; no model accuracy, opponent absence, score, or gameplay-improvement claim",
+  "cohort": "fdas_belief_conflict_shadow_diagnostic_v1",
+  "evidence": {
+    "impact_aggregate": {
+      "path": "artifacts/freeciv/fdas-belief-conflict-live-30-v4/impact-aggregate.json",
+      "sha256": "7f890bd846bc85636f176049befd1b52656d0472fd8645bb42c80beaa200b2e3"
+    },
+    "impact_run_summary": {
+      "path": "artifacts/freeciv/fdas-belief-conflict-live-30-v4/impact-run-summary.json",
+      "sha256": "a0ed0f3c24eea269f6792d79425726d5ac6ae9fe856d9b90020c57ce38aada6a"
+    }
+  },
+  "schema_version": "1.0",
+  "source": {
+    "commit": "2463fd2d7a22fb791fca90d18fe964818fa4393f",
+    "implementation_sha256": "338366e5aceb60df04986ed5126434a479da3c7a98c6b31b6e26c22c783c5d0f"
+  },
+  "structural_hash": "4d0a1b65fbdfabd9d87852f42c4a198d1c4a53dddd92e6772e6c6baf6817fb87",
+  "summary": {
+    "actions": 114,
+    "conflicts": 2,
+    "context_quarantines": 4,
+    "model_priors": 2,
+    "visible_roster_revisions": 2
+  }
+}

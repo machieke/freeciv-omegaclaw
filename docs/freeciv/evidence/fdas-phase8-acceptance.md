@@ -2,9 +2,9 @@
 
 Date: 2026-08-02
 Branch: `experimental/functional-dependent-atomspace`
-Acceptance level: belief projection, observation-pressure planning, and
-legacy-bound visibility return are engine shadow-live in dedicated profiles;
-disabled in the default profile
+Acceptance level: belief projection, observation-pressure planning,
+legacy-bound visibility return, and independent-lineage conflict/quarantine
+are engine shadow-live in dedicated profiles; disabled in the default profile
 
 ## Realized wiring
 
@@ -32,6 +32,11 @@ disabled in the default profile
   and accepts evidence only from a fresh authoritative visibility delta.
   Accepted moves without a provable endpoint actor are explicitly censored and
   write no evidence.
+- A claim-ineligible contradiction profile places one capped, non-exact model
+  prior before reading a public player-roster packet. The independent visible
+  lineage revises the same proposition, creates an explicit conflict, directly
+  causes every context quarantine, and rematerializes the diagnostic graph
+  without action authority.
 
 ## Exit-criterion disposition
 
@@ -41,7 +46,7 @@ disabled in the default profile
 | Pressure cannot revise beliefs | read-only projector and VOI conflict scheduling; belief formulas remain solely in `BeliefStore` |
 | No hidden absence inference | projector consumes only explicit belief revisions/evidence and emits no snapshot-derived negatives |
 | Observe only for decision-sensitive gaps | posterior outcome readouts must cross an explicit action threshold; the fresh PR18 cohort selected exactly one qualifying operation per arm |
-| Quarantine cannot authorize | quarantine is diagnostic-only; no legal binding or operation relation is emitted |
+| Quarantine cannot authorize | the PR21 engine cohort projected two conflicts and four complete context quarantines while emitting no legal binding, operation authority, or FDAS authority action |
 | Activation matrix is accurate | belief projection requires its component; uncertain assessment requires belief+observation at `shadow-live`; authority using uncertainty requires both at `bounded-authority` |
 | Return cannot fabricate evidence | 72 exact bindings produced 70 authoritative evidence returns and two causally complete no-write abstentions in the PR20 cohort |
 
@@ -52,8 +57,11 @@ engine evidence is recorded in
 [`fdas-pr17-belief-shadow.md`](fdas-pr17-belief-shadow.md) and
 [`fdas-pr18-observation-pressure-shadow.md`](fdas-pr18-observation-pressure-shadow.md).
 The execution continuation is recorded in
-[`fdas-pr20-observation-return.md`](fdas-pr20-observation-return.md). Both PR18
-and both PR20 event logs pass full schema validation with zero warnings.
+[`fdas-pr20-observation-return.md`](fdas-pr20-observation-return.md), and the
+contradiction continuation in
+[`fdas-pr21-belief-conflict.md`](fdas-pr21-belief-conflict.md). Both PR18,
+both PR20, and both PR21 event logs pass full schema validation with zero
+warnings.
 
 ## Non-claims
 
@@ -62,5 +70,7 @@ The checked-in default keeps `projection.beliefs=false` and
 shadow-live subset; they do not claim authoritative return for opponent
 presence, FDAS action choice, engine score improvement, calibration, or
 win-rate impact. PR20 proves only a visibility-frontier return bound to a
-legacy-selected move. Live contradictory lineage/quarantine and any
-FDAS-selected observation action require separate evidence and activation.
+legacy-selected move. PR21 uses an intentionally false diagnostic prior and
+therefore proves conflict/quarantine mechanics, not model quality. Any
+FDAS-selected observation action or authority using uncertain beliefs requires
+separate evidence and activation.
