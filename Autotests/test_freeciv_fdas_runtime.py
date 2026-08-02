@@ -240,6 +240,54 @@ def test_defense_authority_domain_gate_is_available_before_materialization():
         "unit_movement", 1.0, "test movement winner"))
 
 
+def test_post_projection_reconciler_is_read_before_final_revision():
+    runtime = build_runtime(_enabled_city_declaration())
+    calls = []
+
+    def reconcile(snapshot, revision):
+        calls.append((snapshot.snapshot_id, revision.revision_id))
+        return False
+
+    runtime.configure_post_projection_reconciler(reconcile)
+    update = runtime.replace(_snapshot())
+
+    assert calls == [(update.snapshot_id, update.revision_id)]
+
+
+def test_post_projection_reconciler_rematerializes_changed_durable_source(
+        monkeypatch):
+    runtime = build_runtime(_enabled_city_declaration())
+    rematerializations = []
+    original = runtime.snapshot_store.rematerialize_dependent
+
+    def observe_rematerialization(game_id, player_id):
+        rematerializations.append((game_id, player_id))
+        return original(game_id, player_id)
+
+    monkeypatch.setattr(
+        runtime.snapshot_store, "rematerialize_dependent",
+        observe_rematerialization)
+    runtime.configure_post_projection_reconciler(
+        lambda _snapshot_value, _revision: True)
+
+    snapshot = _snapshot()
+    update = runtime.replace(snapshot)
+
+    assert rematerializations == [(
+        snapshot.identity.game_id, snapshot.player_id)]
+    assert update.revision_id == runtime.snapshot_store.current_dependent_revision(
+        snapshot.identity.game_id, snapshot.player_id).revision_id
+
+
+def test_post_projection_reconciler_fails_closed_on_untyped_result():
+    runtime = build_runtime(_enabled_city_declaration())
+    runtime.configure_post_projection_reconciler(
+        lambda _snapshot_value, _revision: "changed")
+
+    with pytest.raises(RuntimeError, match="must return a boolean"):
+        runtime.replace(_snapshot())
+
+
 def test_route_corridor_shadow_projection_can_be_activated_independently():
     runtime = build_runtime(_enabled_corridor_only_declaration())
 

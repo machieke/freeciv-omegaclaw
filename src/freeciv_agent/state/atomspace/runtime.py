@@ -375,6 +375,7 @@ class FdasRuntime(object):
         self._pressure_adapter = None
         self._authority_adapter = None
         self._authority_domain = None
+        self._post_projection_reconciler = None
         self._last_cold_verification_turn = {}
 
     @property
@@ -446,6 +447,14 @@ class FdasRuntime(object):
                 expected_prior_revision_id=prior_revision.revision_id)
         revision = self.snapshot_store.current_dependent_revision(
             snapshot.identity.game_id, snapshot.player_id)
+        if self._post_projection_reconciler is not None:
+            changed = self._post_projection_reconciler(snapshot, revision)
+            if not isinstance(changed, bool):
+                raise RuntimeError(
+                    "FDAS source reconciler must return a boolean")
+            if changed:
+                revision = self.snapshot_store.rematerialize_dependent(
+                    snapshot.identity.game_id, snapshot.player_id)
         return FdasRuntimeUpdate(
             snapshot.snapshot_id,
             None if revision is None else revision.revision_id,
@@ -498,6 +507,17 @@ class FdasRuntime(object):
                 "FDAS authority adapter domain is not enabled")
         self._authority_adapter = authority_adapter
         self._authority_domain = authority_domain
+        return self
+
+    def configure_post_projection_reconciler(self, reconciler):
+        """Install one non-authorizing durable-source reconciliation hook."""
+        if not self.enabled:
+            raise FdasRuntimeConfigurationError(
+                "disabled FDAS cannot configure source reconciliation")
+        if not callable(reconciler):
+            raise FdasRuntimeConfigurationError(
+                "FDAS source reconciler must be callable")
+        self._post_projection_reconciler = reconciler
         return self
 
     @staticmethod
@@ -808,7 +828,10 @@ class FdasRuntime(object):
 
 
 def build_runtime(declaration, ruleset_ir=None, belief_store=None,
-                  operation_records_source=None, episode_source=None):
+                  operation_records_source=None,
+                  operation_bindings_source=None,
+                  operation_requirement_contexts_source=None,
+                  episode_source=None):
     """Assemble the exact configured projector set or fail closed."""
     from ..store import SnapshotStore
 
@@ -860,7 +883,11 @@ def build_runtime(declaration, ruleset_ir=None, belief_store=None,
         if operation_records_source is None:
             raise FdasRuntimeConfigurationError(
                 "operation projection requires a durable record source")
-        projectors.append(OperationProjector(operation_records_source))
+        projectors.append(OperationProjector(
+            operation_records_source,
+            bindings_source=operation_bindings_source,
+            requirement_contexts_source=(
+                operation_requirement_contexts_source)))
     if projection["beliefs"]:
         if belief_store is None:
             raise FdasRuntimeConfigurationError(

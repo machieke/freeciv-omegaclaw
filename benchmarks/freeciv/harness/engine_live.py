@@ -45,7 +45,9 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     DecisionEpisodeStore,
                                     EpisodeControlPrediction,
                                     FdasDefenseEpisodeRecorder,
-                                    FdasEpisodeLearningAdapter)
+                                    FdasEpisodeLearningAdapter,
+                                    FdasExpansionOperationAdapter,
+                                    OperationStore)
 from freeciv_agent.rulesets.compiler import compile_ruleset
 from freeciv_agent.state import ProxyStateDTO, SnapshotStore, StateSummaryService
 from freeciv_agent.state.atomspace import build_runtime as build_fdas_runtime
@@ -2023,6 +2025,29 @@ async def _play(run_dir, manifest, context):
         pressure_state_identity=pressure_state_identity)
         if context.capabilities["scheduler"] else None)
     control_event_emitter = ControlEventEmitter()
+    fdas_projection_config = manifest["dependent_atomspace"]["config"][
+        "projection"]
+    fdas_expansion_shadow = bool(
+        fdas_projection_config["settlement_sites"]
+        or fdas_projection_config["population_recovery"])
+    fdas_expansion_path = os.path.join(
+        run_dir, "fdas-expansion-operations.json")
+    fdas_expansion_store = None
+    fdas_expansion_adapter = None
+    if fdas_expansion_shadow:
+        fdas_expansion_identity = structural_hash([
+            manifest["manifest_identity"], manifest["attempt_id"],
+            manifest["game_id"], "fdas-expansion-operations/1.0",
+        ])
+        fdas_expansion_store = OperationStore.load(
+            fdas_expansion_path, fdas_expansion_identity)
+        if fdas_expansion_store.quarantined:
+            raise RuntimeError(
+                "FDAS expansion operation store is quarantined: {}".format(
+                    fdas_expansion_store.quarantine_reason))
+        fdas_expansion_adapter = FdasExpansionOperationAdapter(
+            fdas_expansion_store, observability_ir,
+            structural_hash(observability_ir.to_dict()))
     fdas_learning_config = manifest["dependent_atomspace"]["config"][
         "learning"]
     fdas_episode_path = os.path.join(
@@ -2062,15 +2087,47 @@ async def _play(run_dir, manifest, context):
                         "effect-without-goal-relief",
                         "no-effect-observed"):
                     fdas_episode_learning.apply(existing_episode.episode_id)
+    def fdas_operation_records():
+        rows = tuple(control_event_emitter.fdas_operation_records(
+            manifest["game_id"]))
+        if fdas_expansion_store is not None:
+            rows += fdas_expansion_store.records()
+        operation_ids = tuple(value.spec.operation_id for value in rows)
+        if len(operation_ids) != len(set(operation_ids)):
+            raise RuntimeError("FDAS operation sources contain duplicate IDs")
+        return rows
+
     fdas_runtime = build_fdas_runtime(
         manifest["dependent_atomspace"],
         ruleset_ir=observability_ir,
         belief_store=belief_store,
-        operation_records_source=lambda: (
-            control_event_emitter.fdas_operation_records(
-                manifest["game_id"])),
+        operation_records_source=fdas_operation_records,
+        operation_bindings_source=(
+            None if fdas_expansion_adapter is None
+            else fdas_expansion_adapter.bindings),
+        operation_requirement_contexts_source=(
+            None if fdas_expansion_adapter is None
+            else fdas_expansion_adapter.requirement_contexts),
         episode_source=fdas_episode_store,
     )
+    if fdas_expansion_adapter is not None:
+        def reconcile_fdas_expansion(current, revision):
+            updates = fdas_expansion_adapter.reconcile(current, revision)
+            if updates:
+                fdas_expansion_store.save(fdas_expansion_path)
+                decision_stats["fdas_expansion_reconciliations"] += len(
+                    updates)
+                decision_stats["fdas_expansion_completions"] += sum(
+                    value.disposition == "completed" for value in updates)
+                decision_stats["fdas_expansion_failures"] += sum(
+                    value.disposition == "failed"
+                    for value in updates)
+                decision_stats["fdas_expansion_expirations"] += sum(
+                    value.disposition == "expired" for value in updates)
+            return bool(updates)
+
+        fdas_runtime.configure_post_projection_reconciler(
+            reconcile_fdas_expansion)
     fdas_store = fdas_runtime.snapshot_store
     fdas_turn_sampled = bool(
         fdas_runtime.enabled
@@ -2146,6 +2203,11 @@ async def _play(run_dir, manifest, context):
         "fdas_episode_no_effect": 0,
         "fdas_episode_confounded": 0,
         "fdas_conductance_samples": 0,
+        "fdas_expansion_action_matches": 0,
+        "fdas_expansion_completions": 0,
+        "fdas_expansion_expirations": 0,
+        "fdas_expansion_failures": 0,
+        "fdas_expansion_reconciliations": 0,
         "production_persistence_guard_applications": 0,
         "production_persistence_guard_excluded_actions": 0,
         "production_persistence_guard_opportunities": 0,
@@ -2503,6 +2565,31 @@ async def _play(run_dir, manifest, context):
                 writer, current.turn, result,
                 "fdas_episode_projection_latency_ms", update.latency_ms,
                 manifest, atoms=update.atom_count, scopes=update.scope_count)
+
+        def commit_fdas_expansion_action(current, action, outcome, cause):
+            """Observe a legacy action in the non-authorizing FDAS lifecycle."""
+            if fdas_expansion_adapter is None:
+                return cause
+            updates = fdas_expansion_adapter.commit_matching_action(
+                current, action, accepted=outcome.status == "accepted",
+                reason=outcome.reason)
+            if not updates:
+                return cause
+            decision_stats["fdas_expansion_action_matches"] += len(updates)
+            fdas_expansion_store.save(fdas_expansion_path)
+            prior_revision = fdas_store.current_dependent_revision(
+                manifest["game_id"], player_id)
+            update = fdas_runtime.rematerialize(
+                manifest["game_id"], player_id)
+            events = fdas_runtime.emit_current(
+                writer, current, caused_by=(cause,),
+                prior_revision=prior_revision)
+            parent_id = events[-1]["event_id"] if events else cause
+            return _metric(
+                writer, current.turn, parent_id,
+                "fdas_expansion_projection_latency_ms", update.latency_ms,
+                manifest, atoms=update.atom_count,
+                matched_actions=len(updates), scopes=update.scope_count)
 
         def reconcile_fdas_decision_episodes(
                 current, cause, observation_window_closed=False):
@@ -3440,6 +3527,8 @@ async def _play(run_dir, manifest, context):
                         gate, manifest["game_id"], player_id, snapshot,
                         impact_action, parent, attempted_count, decision.plan,
                         diagnostics=impact_execution_diagnostics)
+                    parent = commit_fdas_expansion_action(
+                        action_snapshot, impact_action, outcome, parent)
                     impact_execution_latency_ms += (
                         time.perf_counter() - execution_started) * 1000.0
                     impact_execution_calls += 1
@@ -4276,6 +4365,16 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_episode_confounded"]),
         ("fdas_conductance_samples",
          decision_stats["fdas_conductance_samples"]),
+        ("fdas_expansion_action_matches",
+         decision_stats["fdas_expansion_action_matches"]),
+        ("fdas_expansion_completions",
+         decision_stats["fdas_expansion_completions"]),
+        ("fdas_expansion_expirations",
+         decision_stats["fdas_expansion_expirations"]),
+        ("fdas_expansion_failures",
+         decision_stats["fdas_expansion_failures"]),
+        ("fdas_expansion_reconciliations",
+         decision_stats["fdas_expansion_reconciliations"]),
         ("production_persistence_guard_opportunities",
          decision_stats[
              "production_persistence_guard_opportunities"]),
@@ -4685,6 +4784,16 @@ async def _play(run_dir, manifest, context):
                 decision_stats["fdas_episode_confounded"]),
             "fdas_conductance_samples": (
                 decision_stats["fdas_conductance_samples"]),
+            "fdas_expansion_action_matches": (
+                decision_stats["fdas_expansion_action_matches"]),
+            "fdas_expansion_completions": (
+                decision_stats["fdas_expansion_completions"]),
+            "fdas_expansion_expirations": (
+                decision_stats["fdas_expansion_expirations"]),
+            "fdas_expansion_failures": (
+                decision_stats["fdas_expansion_failures"]),
+            "fdas_expansion_reconciliations": (
+                decision_stats["fdas_expansion_reconciliations"]),
             "production_persistence_guard_applications": (
                 decision_stats[
                     "production_persistence_guard_applications"]),
@@ -4960,6 +5069,16 @@ async def _play(run_dir, manifest, context):
             decision_stats["fdas_episode_confounded"]),
         "fdas_conductance_samples": (
             decision_stats["fdas_conductance_samples"]),
+        "fdas_expansion_action_matches": (
+            decision_stats["fdas_expansion_action_matches"]),
+        "fdas_expansion_completions": (
+            decision_stats["fdas_expansion_completions"]),
+        "fdas_expansion_expirations": (
+            decision_stats["fdas_expansion_expirations"]),
+        "fdas_expansion_failures": (
+            decision_stats["fdas_expansion_failures"]),
+        "fdas_expansion_reconciliations": (
+            decision_stats["fdas_expansion_reconciliations"]),
         "production_persistence_guard_applications": (
             decision_stats[
                 "production_persistence_guard_applications"]),
