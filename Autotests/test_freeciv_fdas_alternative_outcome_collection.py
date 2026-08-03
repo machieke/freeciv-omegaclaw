@@ -211,6 +211,97 @@ def _case(ir):
         candidates, scores, union)
 
 
+def _movement_case(ir):
+    with open(FIXTURE, encoding="utf-8") as stream:
+        payload = copy.deepcopy(json.load(stream))
+    payload["legal_actions"] = [
+        value for value in payload["legal_actions"]
+        if value.get("action_type") != "unit_move"]
+    for unit_id in (7, 8):
+        unit = copy.deepcopy(payload["units"]["7"])
+        unit.update({
+            "id": unit_id, "tile": 83, "transported": False,
+            "x": 3, "y": 2,
+        })
+        payload["units"][str(unit_id)] = unit
+        payload["legal_actions"].append({
+            "action_type": "unit_move",
+            "actor_id": unit_id,
+            "is_valid": True,
+            "movement_cost": 3,
+            "target": {"x": 2, "y": 2},
+            "transport_required": False,
+        })
+    payload["authoritative"]["source_seq"] = 912
+    payload["authoritative"]["movement_routes"] = [
+        {
+            "authority": "freeciv-server-pathfinder",
+            "destination_tile": 82,
+            "estimated_turns": 1,
+            "first_step_movement_cost": 3,
+            "first_step_tile": 82,
+            "initially_transported": False,
+            "movement_points_remaining": 0,
+            "moves_left_at_request": 3,
+            "origin_tile": 83,
+            "path_directions": [6],
+            "path_length": 1,
+            "reachable": True,
+            "schema_version": "1.0",
+            "source_seq": 912,
+            "total_movement_cost": 3,
+            "transported_at_request": False,
+            "turn": payload["turn"],
+            "unit_id": unit_id,
+        }
+        for unit_id in (7, 8)]
+    snapshot = ProxyStateDTO.parse(
+        "fdas-alternative-movement", 912, payload).to_snapshot()
+    digest = ruleset_digest(ir)
+    store = DependentAtomSpaceStore(
+        domain_projector=CompositeDomainProjector((
+            CityEconomyProjector(ir, digest),
+            UnitDefenseProjector(ir, digest),
+        )))
+    revision = store.build(snapshot)
+    goals = tuple(
+        value for value in GoalFactory().instantiate(
+            revision,
+            store.query_current(snapshot.identity.game_id, snapshot.player_id))
+        if value.deficit_predicate == "city-garrison-deficit")
+    candidates = tuple(
+        value for value in CandidateOperationFactory(ir, digest).instantiate(
+            snapshot, goals, revision=revision)
+        if value.action.get("action_type") == "unit_move")
+    assert len(candidates) == 2
+    adapter = DependentAtomPressureAdapter()
+    pressure = adapter.evaluate(revision, goals, candidates)
+    scores = adapter.scheduler.score_all(
+        pressure.context.operations, pressure.pressure_result)
+    baseline_id = pressure.schedule["selected_operation_id"]
+    baseline = next(
+        value for value in candidates
+        if value.operation.operation_id == baseline_id)
+    treatment = next(value for value in candidates if value != baseline)
+    instantiation = CandidateInstantiation(
+        candidates, 0, (), (), structural_hash(tuple(
+            value.candidate_hash for value in candidates)))
+    explanation = FdasRuntime.explain_shadow_decision(
+        revision, RevisionQueryContext(revision), goals, candidates,
+        instantiation, pressure)
+    evaluation = FdasShadowEvaluation(
+        snapshot.snapshot_id, revision.revision_id, goals, candidates,
+        instantiation, pressure, None, explanation, (), 0.0)
+    legacy = ImpactCandidate(
+        baseline.action, "city_defense", 1.0,
+        "active exact scalar reinforcement")
+    union = _persistence_union(
+        snapshot, revision, baseline, treatment)
+    return (
+        snapshot, revision, evaluation, legacy,
+        candidates, scores, union)
+
+
 def test_alternative_collection_records_stable_safe_shadow_assignment(ir):
     case = _case(ir)
     evaluator = FdasAlternativeOutcomeCollectionEvaluator(
@@ -252,10 +343,34 @@ def test_alternative_collection_fails_closed_when_active_winner_differs(ir):
     readout = evaluator.evaluate(*case)
 
     assert readout.status == "ineligible"
-    assert readout.reason == "active-winner-is-not-bounded-fortification"
+    assert readout.reason == (
+        "active-winner-is-not-configured-defense-slice")
     assert readout.assigned_arm is None
     assert readout.selection_propensity is None
     assert not readout.policy_authority
+
+
+def test_alternative_collection_preflights_matched_reinforcement_pair(ir):
+    case = _movement_case(ir)
+    evaluator = FdasAlternativeOutcomeCollectionEvaluator(
+        FdasAlternativeOutcomeCollectionConfig(
+            "fdas-reinforcement-outcome-smoke-v1", 1777,
+            allowed_action_type="unit_move"))
+
+    readout = evaluator.evaluate(*case)
+
+    assert readout.status == "eligible-shadow"
+    assert readout.config["allowed_action_type"] == "unit_move"
+    assert readout.config["require_same_target_ref"] is True
+    assert readout.selection_propensity == 0.5
+    assert readout.checks[-3:] == (
+        "control-exact-preflight",
+        "treatment-exact-preflight",
+        "stable-propensity-recorded-assignment",
+    )
+    assert all(
+        value.target_ref == "city:3" for value in readout.arms)
+    assert all(value.source_atom_id for value in readout.arms)
 
 
 def test_alternative_collection_declaration_rejects_authority_leak():

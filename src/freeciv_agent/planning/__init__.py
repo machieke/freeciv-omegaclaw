@@ -255,6 +255,7 @@ from .fdas_authority import (
     FdasBoundedCityAuthority,
     FdasBoundedDefenseAuthority,
     validate_bounded_defense_fortification_candidate,
+    validate_bounded_defense_reinforcement_candidate,
 )
 from .fdas_consolidation import (
     LegacyConsolidationAudit,
@@ -396,6 +397,7 @@ __all__ = [
     "FdasAuthorityReadout", "FdasBoundedCityAuthority",
     "FdasBoundedDefenseAuthority",
     "validate_bounded_defense_fortification_candidate",
+    "validate_bounded_defense_reinforcement_candidate",
     "LegacyConsolidationAudit", "LegacyConsolidationReport",
     "LegacyReplacementDecision", "LegacyReplacementSpec",
     "ShadowCandidateComparison", "ShadowOperationCandidate",

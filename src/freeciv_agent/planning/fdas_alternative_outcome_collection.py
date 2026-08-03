@@ -1,10 +1,10 @@
 """Fail-closed shadow assignment for safe alternative-action outcomes.
 
-This component does not execute its assignment.  It identifies the narrow
-fortification decisions at which a later diagnostic may randomize between the
-current scalar winner and one persistence-only alternative, records the exact
-policy probability, and proves that both arms cross the same legal, resource,
-packet, and commit-validation boundary.
+This component does not execute its assignment.  It identifies narrow defence
+decisions at which a later diagnostic may randomize between the current scalar
+winner and one persistence-only alternative, records the exact policy
+probability, and proves that both arms cross the same legal, resource, packet,
+and commit-validation boundary.
 """
 
 from dataclasses import dataclass, replace
@@ -18,6 +18,7 @@ from ..pressure.scheduler import OperationScore
 from .fdas import ShadowOperationCandidate
 from .fdas_authority import (
     validate_bounded_defense_fortification_candidate,
+    validate_bounded_defense_reinforcement_candidate,
 )
 from .fdas_commit import FDASCommitBinding, FDASCommitValidator
 from .fdas_path_persistence_candidate_union import (
@@ -27,9 +28,9 @@ from .impact_types import ImpactCandidate
 
 
 ALTERNATIVE_OUTCOME_COLLECTION_IDENTITY = (
-    "fdas-safe-alternative-outcome-collection/1.0")
+    "fdas-safe-alternative-outcome-collection/1.2")
 ALTERNATIVE_OUTCOME_POLICY_VERSION = (
-    "fdas-fortification-persistence-randomized-shadow/1.0")
+    "fdas-defense-persistence-randomized-shadow/1.2")
 
 
 def _finite(value, name):
@@ -52,6 +53,7 @@ class FdasAlternativeOutcomeCollectionConfig:
     truth_mutated: bool = False
     source_sink_flow_enabled: bool = False
     outcome_update_scope: str = "control-model-only"
+    require_same_target_ref: bool = True
 
     def __post_init__(self):
         if not isinstance(self.experiment_id, str) or not self.experiment_id:
@@ -76,9 +78,9 @@ class FdasAlternativeOutcomeCollectionConfig:
         if self.mode != "shadow":
             raise ValueError(
                 "alternative collection v1 supports shadow assignment only")
-        if self.allowed_action_type != "unit_fortify":
+        if self.allowed_action_type not in ("unit_fortify", "unit_move"):
             raise ValueError(
-                "alternative collection v1 is fortification-only")
+                "alternative collection action slice is unsupported")
         for name in (
                 "claim_eligible", "truth_mutated",
                 "source_sink_flow_enabled"):
@@ -88,6 +90,9 @@ class FdasAlternativeOutcomeCollectionConfig:
         if self.outcome_update_scope != "control-model-only":
             raise ValueError(
                 "alternative collection cannot update truth")
+        if not isinstance(self.require_same_target_ref, bool):
+            raise TypeError(
+                "alternative collection target-match gate must be boolean")
 
     @classmethod
     def from_dict(cls, value):
@@ -100,6 +105,7 @@ class FdasAlternativeOutcomeCollectionConfig:
             "mode",
             "outcome_update_scope",
             "randomization_seed",
+            "require_same_target_ref",
             "source_sink_flow_enabled",
             "treatment_probability",
             "truth_mutated",
@@ -120,6 +126,7 @@ class FdasAlternativeOutcomeCollectionConfig:
             "mode": self.mode,
             "outcome_update_scope": self.outcome_update_scope,
             "randomization_seed": self.randomization_seed,
+            "require_same_target_ref": self.require_same_target_ref,
             "source_sink_flow_enabled": False,
             "treatment_probability": self.treatment_probability,
             "truth_mutated": False,
@@ -136,7 +143,7 @@ class FdasAlternativeArmReadout:
     resource_keys: tuple
     priority: float
     risk_penalty: float
-    opportunity_atom_id: str
+    source_atom_id: str
     pressure_evaluation_hash: str
     resource_packet_artifact_hash: str
     commit_validation_hash: str
@@ -148,7 +155,7 @@ class FdasAlternativeArmReadout:
                 (self.operation_id, "operation ID"),
                 (self.action_key, "action key"),
                 (self.target_ref, "target reference"),
-                (self.opportunity_atom_id, "opportunity atom ID"),
+                (self.source_atom_id, "source atom ID"),
                 (self.pressure_evaluation_hash, "pressure evaluation hash"),
                 (self.resource_packet_artifact_hash,
                  "resource/packet artifact hash"),
@@ -173,7 +180,7 @@ class FdasAlternativeArmReadout:
             "arm": self.arm,
             "commit_validation_hash": self.commit_validation_hash,
             "operation_id": self.operation_id,
-            "opportunity_atom_id": self.opportunity_atom_id,
+            "source_atom_id": self.source_atom_id,
             "pressure_evaluation_hash": self.pressure_evaluation_hash,
             "priority": self.priority,
             "resource_keys": list(self.resource_keys),
@@ -193,6 +200,7 @@ class FdasAlternativeOutcomeCollectionReadout:
     persistence_union_result_hash: str
     experiment_id: str
     policy_version: str
+    config: dict
     checks: tuple
     arms: tuple
     assigned_arm: object
@@ -227,6 +235,14 @@ class FdasAlternativeOutcomeCollectionReadout:
                     name))
         object.__setattr__(self, "checks", tuple(self.checks))
         object.__setattr__(self, "arms", tuple(self.arms))
+        if not isinstance(self.config, dict) or not self.config:
+            raise TypeError("alternative collection config is invalid")
+        canonical_config = (
+            FdasAlternativeOutcomeCollectionConfig.from_dict(
+                dict(self.config)).to_dict())
+        if canonical_config != self.config:
+            raise ValueError("alternative collection config is not canonical")
+        object.__setattr__(self, "config", canonical_config)
         if any(not isinstance(value, FdasAlternativeArmReadout)
                for value in self.arms):
             raise TypeError("alternative collection arms are invalid")
@@ -290,6 +306,7 @@ class FdasAlternativeOutcomeCollectionReadout:
             "assignment_material_hash": self.assignment_material_hash,
             "checks": list(self.checks),
             "claim_eligible": False,
+            "config": dict(self.config),
             "experiment_id": self.experiment_id,
             "identity": ALTERNATIVE_OUTCOME_COLLECTION_IDENTITY,
             "outcome_update_scope": self.outcome_update_scope,
@@ -345,6 +362,7 @@ class FdasAlternativeOutcomeCollectionEvaluator:
             "persistence_union_result_hash": persistence_union.result_hash,
             "experiment_id": self.config.experiment_id,
             "policy_version": ALTERNATIVE_OUTCOME_POLICY_VERSION,
+            "config": self.config.to_dict(),
             "checks": tuple(checks),
             "arms": tuple(arms),
             "assigned_arm": assigned_arm,
@@ -376,6 +394,7 @@ class FdasAlternativeOutcomeCollectionEvaluator:
             "assignment_material_hash": assignment_material_hash,
             "checks": list(values["checks"]),
             "claim_eligible": False,
+            "config": self.config.to_dict(),
             "experiment_id": self.config.experiment_id,
             "identity": ALTERNATIVE_OUTCOME_COLLECTION_IDENTITY,
             "outcome_update_scope": "control-model-only",
@@ -397,14 +416,18 @@ class FdasAlternativeOutcomeCollectionEvaluator:
             result_hash=structural_hash(semantic), **values)
 
     @staticmethod
-    def _promote(candidate, opportunity):
+    def _promote(candidate, source_record):
+        contract = {
+            "unit_fortify": "freeciv-unit-fortification-contract/1.0",
+            "unit_move": "freeciv-unit-reinforcement-contract/1.0",
+        }[candidate.action["action_type"]]
         operation = replace(
             candidate.operation,
             provenance=tuple(
                 value for value in candidate.operation.provenance
                 if value != "no-action-authority") + (
                     ALTERNATIVE_OUTCOME_COLLECTION_IDENTITY,
-                    "freeciv-unit-fortification-contract/1.0",
+                    contract,
                     "claim-ineligible-stochastic-shadow-preflight",
                 ))
         semantic = {
@@ -412,7 +435,7 @@ class FdasAlternativeOutcomeCollectionEvaluator:
             "authority_identity": ALTERNATIVE_OUTCOME_COLLECTION_IDENTITY,
             "goal_ids": list(operation.goal_ids),
             "operation_spec_digest": operation.spec_digest,
-            "opportunity_atom_id": opportunity.atom_id,
+            "source_atom_id": source_record.atom_id,
             "resource_keys": list(candidate.resource_keys),
         }
         return replace(
@@ -422,19 +445,24 @@ class FdasAlternativeOutcomeCollectionEvaluator:
             blockers=(),
             provenance=tuple(candidate.provenance) + (
                 ALTERNATIVE_OUTCOME_COLLECTION_IDENTITY,
-                "atom:" + opportunity.atom_id,
-                "freeciv-unit-fortification-contract/1.0",
+                "atom:" + source_record.atom_id,
+                contract,
                 "claim-ineligible-stochastic-shadow-preflight",
             ),
             candidate_hash=structural_hash(semantic))
 
     def _preflight(self, arm, candidate, score, snapshot, revision, goals):
-        route, opportunity, reason = (
-            validate_bounded_defense_fortification_candidate(
-                candidate, snapshot, revision, goals))
+        validator = {
+            "unit_fortify": validate_bounded_defense_fortification_candidate,
+            "unit_move": validate_bounded_defense_reinforcement_candidate,
+        }.get(candidate.action.get("action_type"))
+        if validator is None:
+            return None, "{}-unsupported-action-slice".format(arm)
+        route, source_record, reason = validator(
+            candidate, snapshot, revision, goals)
         if reason is not None:
             return None, "{}-{}".format(arm, reason)
-        promoted = self._promote(candidate, opportunity)
+        promoted = self._promote(candidate, source_record)
         evaluation = self.pressure_adapter.evaluate(
             revision, (route,), (promoted,))
         if (evaluation.status != "complete"
@@ -466,7 +494,7 @@ class FdasAlternativeOutcomeCollectionEvaluator:
             promoted.resource_keys,
             float(score.priority),
             float(score.risk_penalty),
-            opportunity.atom_id,
+            source_record.atom_id,
             evaluation.evaluation_hash,
             scheduling.artifact_hash,
             validation.result_hash,
@@ -492,7 +520,7 @@ class FdasAlternativeOutcomeCollectionEvaluator:
                 or legacy_candidate.action.get("action_type")
                 != self.config.allowed_action_type):
             return self._readout(
-                "ineligible", "active-winner-is-not-bounded-fortification",
+                "ineligible", "active-winner-is-not-configured-defense-slice",
                 snapshot, revision, persistence_union,
                 checks=checks + ["active-fortification-slice"])
         checks.append("active-fortification-slice")
@@ -556,9 +584,8 @@ class FdasAlternativeOutcomeCollectionEvaluator:
         checks.append("admissible-score-pair")
         if (baseline.operation.operation_type
                 != treatment.operation.operation_type
-                or baseline.operation.target_ref
-                != treatment.operation.target_ref
                 or baseline.operation.target_ref is None
+                or treatment.operation.target_ref is None
                 or baseline.resource_keys == treatment.resource_keys
                 or set(baseline.resource_keys).intersection(
                     treatment.resource_keys)):
@@ -567,6 +594,27 @@ class FdasAlternativeOutcomeCollectionEvaluator:
                 snapshot, revision, persistence_union,
                 checks=checks + ["same-slice-distinct-resource-pair"])
         checks.append("same-slice-distinct-resource-pair")
+        if (self.config.require_same_target_ref
+                and baseline.operation.target_ref
+                != treatment.operation.target_ref):
+            return self._readout(
+                "ineligible", "alternative-target-reference-mismatch",
+                snapshot, revision, persistence_union,
+                checks=checks + ["configured-target-match-gate"])
+        checks.append("configured-target-match-gate")
+        if self.config.allowed_action_type == "unit_move":
+            baseline_actor = snapshot.unit(baseline.action["actor_id"])
+            treatment_actor = snapshot.unit(treatment.action["actor_id"])
+            if (baseline_actor is None or treatment_actor is None
+                    or baseline_actor.unit_type != treatment_actor.unit_type
+                    or baseline.action.get("movement_cost")
+                    != treatment.action.get("movement_cost")):
+                return self._readout(
+                    "ineligible",
+                    "reinforcement-actor-or-step-cost-mismatch",
+                    snapshot, revision, persistence_union,
+                    checks=checks + ["matched-reinforcement-actor-class"])
+            checks.append("matched-reinforcement-actor-class")
         priority_regret = (
             float(baseline_score.priority)
             - float(treatment_score.priority))

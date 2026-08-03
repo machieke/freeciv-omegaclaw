@@ -120,14 +120,15 @@
     "assignment_executed": false,
     "claim_eligible": false,
     "config": {
-      "allowed_action_type": "unit_fortify",
+      "allowed_action_type": "unit_move",
       "claim_eligible": false,
-      "experiment_id": "fdas-fortification-alternative-outcome-shadow-v1",
+      "experiment_id": "fdas-reinforcement-alternative-outcome-shadow-v1",
       "maximum_priority_regret": 0.01,
       "maximum_risk_penalty_delta": 0.0,
       "mode": "shadow",
       "outcome_update_scope": "control-model-only",
       "randomization_seed": 1729,
+      "require_same_target_ref": false,
       "source_sink_flow_enabled": false,
       "treatment_probability": 0.5,
       "truth_mutated": false

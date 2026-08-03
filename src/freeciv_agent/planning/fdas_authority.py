@@ -108,6 +108,97 @@ def validate_bounded_defense_fortification_candidate(
     return routes[0], opportunity, None
 
 
+def validate_bounded_defense_reinforcement_candidate(
+        candidate, snapshot, revision, goals):
+    """Validate one exact, source-safe, non-transport reinforcement step."""
+    if not isinstance(candidate, ShadowOperationCandidate):
+        return None, None, "selected-operation-candidate-unavailable"
+    if (not candidate.legal_bound
+            or candidate.action_key not in snapshot.legal_action_json):
+        return None, None, "selected-action-not-currently-legal"
+    action = candidate.action
+    allowed_keys = {
+        "action_type", "actor_id", "movement_cost", "target",
+        "transport_required",
+    }
+    target = action.get("target")
+    if (action.get("action_type") != "unit_move"
+            or not {"action_type", "actor_id", "target"} <= set(action)
+            or set(action) - allowed_keys
+            or isinstance(action.get("actor_id"), bool)
+            or not isinstance(action.get("actor_id"), int)
+            or not isinstance(target, dict)
+            or set(target) != {"x", "y"}
+            or any(isinstance(target.get(name), bool)
+                   or not isinstance(target.get(name), int)
+                   for name in ("x", "y"))
+            or action.get("transport_required") is True):
+        return (
+            None, None,
+            "outside-bounded-defense-reinforcement-action-shape")
+    goal_by_id = dict((value.goal.goal_id, value) for value in goals)
+    routes = tuple(
+        goal_by_id.get(goal_id)
+        for goal_id in candidate.operation.goal_ids)
+    if (len(routes) != 1
+            or routes[0] is None
+            or routes[0].deficit_predicate != "city-garrison-deficit"):
+        return None, None, "outside-bounded-city-garrison-route"
+    city_id = _defense_target_city(routes[0])
+    city = snapshot.city(city_id)
+    actor_id = action["actor_id"]
+    actor = snapshot.unit(actor_id)
+    if (city is None or city.tile is None or actor is None
+            or actor.tile is None or actor.tile == city.tile):
+        return (
+            None, None,
+            "current-reinforcement-actor-or-city-state-unavailable")
+    if (candidate.operation.operation_type
+            != "fdas-shadow:city-garrison-deficit:unit_move"
+            or candidate.operation.target_ref
+            != "city:{}".format(city_id)):
+        return None, None, "reinforcement-operation-target-mismatch"
+    native_route = snapshot.movement_route(actor_id, city.tile)
+    if not bool(
+            native_route is not None
+            and native_route.authority == "freeciv-server-pathfinder"
+            and native_route.schema_version == "1.0"
+            and native_route.reachable
+            and native_route.origin_tile == actor.tile
+            and native_route.turn == snapshot.turn
+            and native_route.source_seq <= snapshot.identity.source_seq
+            and snapshot.map_width > 0):
+        return None, None, "current-native-reinforcement-route-unavailable"
+    first_x = native_route.first_step_tile % snapshot.map_width
+    first_y = native_route.first_step_tile // snapshot.map_width
+    if target != {"x": first_x, "y": first_y}:
+        return None, None, "reinforcement-first-step-route-mismatch"
+    movement_cost = action.get("movement_cost")
+    if (movement_cost is not None
+            and (isinstance(movement_cost, bool)
+                 or not isinstance(movement_cost, int)
+                 or movement_cost <= 0
+                 or (actor.moves_left is not None
+                     and movement_cost > actor.moves_left))):
+        return None, None, "reinforcement-movement-budget-mismatch"
+    if candidate.resource_keys != (
+            "unit-action:{}".format(actor_id),):
+        return None, None, "bounded-defense-resource-identity-mismatch"
+    permitted_blockers = frozenset((
+        "legacy-shadow-control-route-uncompiled",
+        "uncompiled-action-effect",
+    ))
+    unexpected_blockers = tuple(
+        value for value in candidate.blockers
+        if value not in permitted_blockers)
+    if unexpected_blockers:
+        return None, None, "candidate-has-noncontractual-blockers"
+    deficit = revision.record(routes[0].deficit_atom_id)
+    if deficit is None or not deficit.supports:
+        return None, None, "fdas-city-garrison-support-unavailable"
+    return routes[0], deficit, None
+
+
 @dataclass(frozen=True)
 class FdasAuthorityReadout:
     status: str

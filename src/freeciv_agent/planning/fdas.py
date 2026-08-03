@@ -84,11 +84,22 @@ class ShadowOperationCandidate:
                 and not self.blockers
                 and self.action.get("action_type") == "unit_fortify"
                 and set(self.action) == {"action_type", "actor_id"}
+                and "fdas-bounded-defense-fortification/1.0"
+                in self.provenance)
+            defense_alternative = bool(
+                self.legal_bound
+                and not self.blockers
+                and self.action.get("action_type") in (
+                    "unit_fortify", "unit_move")
                 and any(value in self.provenance for value in (
-                    "fdas-bounded-defense-fortification/1.0",
                     "fdas-safe-alternative-outcome-collection/1.0",
+                    "fdas-safe-alternative-outcome-collection/1.1",
+                    "fdas-safe-alternative-outcome-collection/1.2",
                 )))
-            if not city_stability and not defense_fortification:
+            if not (
+                    city_stability
+                    or defense_fortification
+                    or defense_alternative):
                 raise ValueError(
                     "FDAS authority candidate violates every bounded "
                     "authority contract")
@@ -99,6 +110,18 @@ class ShadowOperationCandidate:
                 raise ValueError(
                     "FDAS defense authority candidate violates the bounded "
                     "fortification action shape")
+            if defense_alternative and (
+                    isinstance(self.action.get("actor_id"), bool)
+                    or not isinstance(self.action.get("actor_id"), int)
+                    or (self.action.get("action_type") == "unit_fortify"
+                        and set(self.action)
+                        != {"action_type", "actor_id"})
+                    or (self.action.get("action_type") == "unit_move"
+                        and not isinstance(self.action.get("target"), dict))
+            ):
+                raise ValueError(
+                    "FDAS alternative outcome candidate violates the bounded "
+                    "defense action shape")
 
     def to_dict(self):
         return {
