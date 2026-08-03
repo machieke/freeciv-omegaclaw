@@ -967,3 +967,15 @@ consuming more fresh seeds merely to reproduce a sparse diagnostic event. A
 pass can identify the stored conjuncts and motivate a future contract, but it
 cannot repair PR68 or PR69 or establish alternative value. See
 `fdas-pr70-pr68-pair-scope-sensitivity-specification.md`.
+
+PR70 reconstructs all six PR68 rows but fails its expected same-target-support
+gate. Every pair is a distinct action by the same unit, with matching operation
+type and identical inferred actor resource, yet every pair has different
+bounded target-support atoms. This falsifies the earlier same-objective reading:
+the readout correctly rejected moves serving different city deficits. The real
+bottleneck is upstream recall, whose one calibrated-per-action slot is broad
+enough to select another target and leave no alternative for scalar top-1's
+decision scope. The next correction must keep readout safety intact and make
+protected recall target-conditioned. See
+`fdas-pr70-pr68-pair-scope-sensitivity.md` and
+`fdas-pr70-pr68-pair-scope-sensitivity.json`.
