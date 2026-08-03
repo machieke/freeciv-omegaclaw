@@ -18,3 +18,18 @@ assignment key was selected to exercise the known treatment opportunity.
 Frozen output directory:
 `artifacts/freeciv/fdas-randomized-execution-pilot-v1-corrected`
 
+## Frozen outcome
+
+PR52b reached the eligible turn-17 assignment but was rejected before sending
+the assigned action. The assignment selected control with draw `0.5506114`;
+the engine then raised because the generic GDO operation-event adapter requires
+a retained GDO payload that this independent FDAS operation does not have. No
+randomized action was executed and no outcome was generated. The artifact is
+preserved at the frozen output directory.
+
+Commit `dd304be` isolates the already emitted revision-bound FDAS authority
+event from the unrelated GDO payload lifecycle. It also changes the
+mechanics-only assignment seed to `2`, selected from the observed exact PR52b
+pair to exercise treatment. This makes the next retry explicitly unsuitable
+for causal estimation, as were PR52 and PR52b.
+
