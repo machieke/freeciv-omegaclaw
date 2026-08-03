@@ -518,3 +518,25 @@ still a targeted one-opportunity pilot and makes no value or score claim. The
 next gate is a separately preregistered fresh-seed randomized outcome cohort;
 see `fdas-pr52f-exogenous-assignment-pilot-preregistration.md` and
 `fdas-pr52f-exogenous-assignment-pilot.json`.
+
+PR53's 12-game fresh-seed launch was rejected before gameplay because the
+required local ruleset binding was omitted. PR53b supplied only that
+environment correction and exposed two multi-game defects that the targeted
+pilot could not reveal: three choice-set identity collisions and one exact
+rematerialization failure. Eight games completed, seven reached the fixed
+endpoint, and the cohort is mechanically rejected. Of three raw treatment
+events, two belonged to the failed rematerialization game and audit 1.3
+correctly excludes them. The sole analyzable turn-111 treatment was accepted
+and resolved positive at turn 143, but there were zero control outcomes and no
+effect estimate. See `fdas-pr53b-randomized-outcome-yield-preregistration.md`
+and `fdas-pr53b-randomized-outcome-yield.json`.
+
+Commit `db11226` hardens decision-safe readout. Candidate choice IDs now bind
+the complete immutable record, including game, snapshot, choices, and
+selection provenance. Exact bounded city-defense authority prefers the cached
+catalog but can reproject only its byte-identical current move/fortify action
+through the existing operation-authority candidate path when the legacy
+catalog is narrower; unrelated action types fail closed. Audit 1.3 also
+preserves incomplete failed games and separates raw assignment events from
+mechanically analyzable outcomes. The exact four failure seeds are frozen for
+the claim-ineligible PR54 mechanics replay before another fresh cohort.
