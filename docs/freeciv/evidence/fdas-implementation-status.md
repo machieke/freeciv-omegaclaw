@@ -1002,3 +1002,10 @@ noninferiority independently of interval separation and replace exact unit-name
 equality only if ruleset-grounded defense capability supports it. See
 `fdas-pr71-target-scoped-readout.md` and
 `fdas-pr71-target-scoped-readout.json`.
+
+PR72 separates mechanical noninferiority observability from calibrated interval
+separation in the scalar shadow readout. Every grounded alternative now records
+its passed route/unit checks before the interval gate; an overlapping candidate
+also emits exact grounded failures when present. Eligibility, interval
+thresholds, selection, and authority are unchanged. This makes the next
+ruleset-capability correction attributable without weakening uncertainty.

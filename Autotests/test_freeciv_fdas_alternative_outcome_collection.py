@@ -684,9 +684,48 @@ def test_scalar_baseline_readout_abstains_on_interval_overlap(ir):
     assert readout.reason == (
         "no-separated-grounded-noninferior-alternative")
     assert len(readout.candidates) == 2
+    alternative = next(
+        value for value in readout.candidates
+        if value.operation_id != readout.baseline_operation_id)
+    assert alternative.eligibility_reason == "grounded-noninferior"
+    assert set(alternative.noninferiority_checks) == {
+        "estimated-turns", "first-step-movement-cost",
+        "homecity-relation", "hit-points", "moves-left",
+        "total-movement-cost", "unit-type", "veteran-level",
+    }
     assert any(value.endswith(":calibrated-interval-overlap")
                for value in readout.rejected)
     assert not readout.shadow_preference
+
+
+def test_scalar_baseline_overlap_exposes_grounded_failure_independently(ir):
+    case = list(_decision_safe_case(
+        ir, control_interval=(0.30, 0.50, 0.70),
+        treatment_interval=(0.50, 0.70, 0.90)))
+    treatment = next(
+        value for value in case[4]
+        if value.operation.operation_id
+        != case[6].baseline_selected_operation_id)
+    case[0] = replace(case[0], units=tuple(
+        replace(value, unit_type="Different Defensive Unit")
+        if value.unit_id == treatment.action["actor_id"] else value
+        for value in case[0].units))
+    evaluator = FdasScalarBaselineCandidateReadoutEvaluator()
+
+    readout = evaluator.evaluate(
+        case[0], case[1], case[2], case[4], case[6])
+
+    prefix = treatment.operation.operation_id
+    assert prefix + ":calibrated-interval-overlap" in readout.rejected
+    assert (prefix + ":grounded-noninferiority-failed:unit-type"
+            in readout.rejected)
+    alternative = next(
+        value for value in readout.candidates
+        if value.operation_id == treatment.operation.operation_id)
+    assert alternative.eligibility_reason == (
+        "grounded-noninferiority-failed")
+    assert "unit-type" not in alternative.noninferiority_checks
+    assert readout.shadow_preference is False
 
 
 def test_scalar_baseline_readout_exposes_exact_grounding_failure(ir):

@@ -231,6 +231,15 @@ class FdasScalarBaselineCandidateReadoutEvaluator(
             if alternative is None:
                 rejected.append(operation_id + ":" + reason)
                 continue
+            noninferior, passed, failed = self._noninferiority(
+                control, alternative)
+            alternative = FdasGroundedCandidateValue(**{
+                **alternative.__dict__,
+                "eligibility_reason": (
+                    "grounded-noninferior"
+                    if noninferior else "grounded-noninferiority-failed"),
+                "noninferiority_checks": passed,
+            })
             separated = (
                 alternative.interval_lower
                 >= control.interval_upper
@@ -240,9 +249,11 @@ class FdasScalarBaselineCandidateReadoutEvaluator(
                 grounded.append(alternative)
                 rejected.append(
                     operation_id + ":calibrated-interval-overlap")
+                if not noninferior:
+                    rejected.append(
+                        operation_id + ":grounded-noninferiority-failed:"
+                        + ",".join(failed))
                 continue
-            noninferior, passed, failed = self._noninferiority(
-                control, alternative)
             alternative = FdasGroundedCandidateValue(**{
                 **alternative.__dict__,
                 "eligibility_reason": (
