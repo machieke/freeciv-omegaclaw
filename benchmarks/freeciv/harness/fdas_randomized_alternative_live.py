@@ -1,6 +1,7 @@
 """Audit randomized FDAS alternative execution and delayed outcomes."""
 
 import json
+import math
 import os
 
 from freeciv_agent.events.schema import structural_hash
@@ -13,7 +14,7 @@ from freeciv_agent.planning import (
 )
 
 
-AUDIT_IDENTITY = "fdas-randomized-alternative-live-audit/1.0"
+AUDIT_IDENTITY = "fdas-randomized-alternative-live-audit/1.1"
 ASSIGNMENT_IDENTITY = "fdas-safe-alternative-outcome-collection/4.0"
 ASSIGNMENT_POLICY = "fdas-defense-nearest-score-randomized/4.0"
 ASSIGNMENT_UNIT = "game-turn-exact-action-pair/1.0"
@@ -56,6 +57,91 @@ def assignment_draw(event):
     return material_hash, int(material_hash[:16], 16) / float(2 ** 64)
 
 
+def wilson_interval(successes, trials, z=1.959963984540054):
+    """Return a bounded Wilson score interval for one Bernoulli arm."""
+    successes = int(successes)
+    trials = int(trials)
+    z = float(z)
+    if trials < 0 or successes < 0 or successes > trials:
+        raise ValueError("Wilson counts are invalid")
+    if not math.isfinite(z) or z <= 0.0:
+        raise ValueError("Wilson critical value is invalid")
+    if trials == 0:
+        return None
+    rate = successes / float(trials)
+    scale = 1.0 + z * z / trials
+    center = (rate + z * z / (2.0 * trials)) / scale
+    radius = z * math.sqrt(
+        rate * (1.0 - rate) / trials
+        + z * z / (4.0 * trials * trials)) / scale
+    return (max(0.0, center - radius), min(1.0, center + radius))
+
+
+def randomized_outcome_summary(assignments):
+    """Summarize only due-turn-observed outcomes without imputing censoring."""
+    assignments = tuple(assignments)
+    arms = {}
+    for arm in ("control", "treatment"):
+        assigned = tuple(
+            value for value in assignments if value["assigned_arm"] == arm)
+        observed = tuple(
+            value for value in assigned if value["label_status"] == "observed")
+        positives = sum(value["label_outcome"] is True for value in observed)
+        weights = tuple(
+            1.0 / float(value["selection_propensity"])
+            for value in observed)
+        ess = (
+            0.0 if not weights else
+            sum(weights) ** 2 / sum(value * value for value in weights))
+        interval = wilson_interval(positives, len(observed))
+        arms[arm] = {
+            "administratively_pending": sum(
+                value["label_status"] == "pending"
+                and value.get("label_due_by_endpoint") is False
+                for value in assigned),
+            "assigned": len(assigned),
+            "assigned_games": len({
+                value["game_id"] for value in assigned}),
+            "effective_sample_size": ess,
+            "observed": len(observed),
+            "observed_games": len({
+                value["game_id"] for value in observed}),
+            "positive": positives,
+            "rate": (
+                None if not observed else positives / float(len(observed))),
+            "wilson_interval": (
+                None if interval is None else list(interval)),
+        }
+    control = arms["control"]
+    treatment = arms["treatment"]
+    if control["observed"] and treatment["observed"]:
+        difference = treatment["rate"] - control["rate"]
+        # Newcombe's score-interval construction without continuity
+        # correction. It is intentionally conservative for a progression
+        # gate and does not treat censored alternatives as negative.
+        interval = (
+            treatment["wilson_interval"][0]
+            - control["wilson_interval"][1],
+            treatment["wilson_interval"][1]
+            - control["wilson_interval"][0],
+        )
+    else:
+        difference, interval = None, None
+    return {
+        "arms": arms,
+        "estimand": (
+            "treatment-minus-control durable selected-actor city-defense "
+            "probability among assignments with due turn observed"),
+        "risk_difference": difference,
+        "risk_difference_interval": (
+            None if interval is None else list(interval)),
+        "unresolved_after_due": sum(
+            value["label_status"] == "pending"
+            and value.get("label_due_by_endpoint") is True
+            for value in assignments),
+    }
+
+
 def _load_store(path, store_type):
     raw = _load(path)
     identity = raw.get("persistence_identity")
@@ -87,7 +173,8 @@ def _provenance_has(values, prefix, expected):
 
 def audit_randomized_alternative_game(
         game_dir, expected_source_commit=None,
-        expected_implementation_sha256=None, require_treatment=False):
+        expected_implementation_sha256=None, require_treatment=False,
+        require_assignment=True):
     """Audit one engine-backed randomized alternative game fail-closed."""
     game_dir = os.path.abspath(game_dir)
     paths = dict((name, os.path.join(game_dir, name)) for name in (
@@ -154,6 +241,10 @@ def audit_randomized_alternative_game(
         errors = []
         if details.get("policy_version") != ASSIGNMENT_POLICY:
             errors.append("assignment-policy-version-differs")
+        if (isinstance(probability, bool)
+                or not isinstance(probability, (int, float))
+                or not 0.0 < probability < 1.0):
+            errors.append("assignment-probability-is-invalid")
         if details.get("assignment_material_hash") != material_hash:
             errors.append("assignment-material-hash-differs")
         if details.get("assignment_draw") != draw:
@@ -304,7 +395,11 @@ def audit_randomized_alternative_game(
             "choice_set_id": None if choice is None else choice.choice_set_id,
             "episode_id": None if episode is None else episode.episode_id,
             "errors": errors,
+            "game_id": manifest.get("game_id"),
             "label_due_turn": None if label is None else label.due_turn,
+            "label_due_by_endpoint": bool(
+                label is not None and isinstance(final_turn, int)
+                and final_turn >= label.due_turn),
             "label_id": None if label is None else label.label_id,
             "label_outcome": None if label is None else label.outcome,
             "label_status": None if label is None else label.status,
@@ -336,7 +431,8 @@ def audit_randomized_alternative_game(
             manifest.get("dependent_atomspace", {}).get("manifest_source")
             == "profile/fdas_manifest_defense_alternative_collection_"
                "randomized_pilot.json"),
-        "one_or_more_randomized_assignments": bool(assignment_events),
+        "one_or_more_randomized_assignments_when_required": bool(
+            assignment_events or not require_assignment),
         "source_is_clean_and_expected": bool(
             source.get("dirty") is False
             and (expected_source_commit is None
@@ -399,7 +495,8 @@ def audit_randomized_alternative_game(
 
 def audit_randomized_alternative_run(
         run_dir, expected_seeds=(), expected_source_commit=None,
-        expected_implementation_sha256=None, require_treatment=False):
+        expected_implementation_sha256=None, require_treatment=False,
+        minimum_observed_per_arm=0, allow_zero_assignment_games=False):
     """Audit all engine games in one frozen randomized run."""
     run_dir = os.path.abspath(run_dir)
     root = os.path.join(run_dir, "games", "main", "e_full_loop")
@@ -411,7 +508,8 @@ def audit_randomized_alternative_run(
         value,
         expected_source_commit=expected_source_commit,
         expected_implementation_sha256=expected_implementation_sha256,
-        require_treatment=require_treatment)
+        require_treatment=require_treatment,
+        require_assignment=not allow_zero_assignment_games)
         for value in game_dirs)
     observed_seeds = tuple(sorted(value["seed"] for value in games))
     expected_seeds = tuple(sorted(int(value) for value in expected_seeds))
@@ -427,6 +525,18 @@ def audit_randomized_alternative_run(
     }
     assignments = tuple(
         row for game in games for row in game["assignments"])
+    outcome_summary = randomized_outcome_summary(assignments)
+    minimum_observed_per_arm = int(minimum_observed_per_arm)
+    if minimum_observed_per_arm < 0:
+        raise ValueError("minimum observed outcomes per arm cannot be negative")
+    gates["minimum_observed_effective_sample_and_game_clusters_per_arm"] = all(
+        outcome_summary["arms"][arm]["effective_sample_size"]
+        >= minimum_observed_per_arm
+        and outcome_summary["arms"][arm]["observed_games"]
+        >= minimum_observed_per_arm
+        for arm in ("control", "treatment"))
+    gates["zero_unresolved_outcomes_after_due_turn"] = (
+        outcome_summary["unresolved_after_due"] == 0)
     semantic = {
         "assignments": len(assignments),
         "audit_identity": AUDIT_IDENTITY,
@@ -437,6 +547,7 @@ def audit_randomized_alternative_run(
         "gates": gates,
         "negative_outcomes": sum(
             value["label_outcome"] is False for value in assignments),
+        "outcome_summary": outcome_summary,
         "passed": all(gates.values()),
         "positive_outcomes": sum(
             value["label_outcome"] is True for value in assignments),

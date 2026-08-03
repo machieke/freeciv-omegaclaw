@@ -26,6 +26,44 @@ from .statistics import paired_win_design_power
 
 
 DEFAULT_PATH = repo_path("profile", "freeciv_harness.yaml")
+SEED_OVERLAY_IDENTITY = "freeciv-harness-seed-overlay/1.0"
+
+
+def _load_harness_yaml(path):
+    """Load either a complete harness file or a strict seed-only overlay."""
+    path = os.path.abspath(path)
+    with open(path, encoding="utf-8") as stream:
+        value = yaml.safe_load(stream)
+    if not isinstance(value, dict):
+        raise ValueError("harness configuration must be an object")
+    base_source = value.get("seed_overlay_base")
+    if base_source is None:
+        return value
+    if set(value) != {"schema_version", "seed_overlay_base", "seeds"}:
+        raise ValueError(
+            "seed overlay may declare only schema_version, "
+            "seed_overlay_base, and seeds")
+    if (not isinstance(base_source, str) or not base_source.strip()
+            or os.path.isabs(base_source)):
+        raise ValueError(
+            "seed_overlay_base must be a non-empty repository-relative path")
+    repository_root = os.path.realpath(repo_path())
+    base_path = os.path.realpath(repo_path(base_source))
+    if os.path.commonpath((repository_root, base_path)) != repository_root:
+        raise ValueError("seed_overlay_base must remain inside the repository")
+    with open(base_path, encoding="utf-8") as stream:
+        base = yaml.safe_load(stream)
+    if not isinstance(base, dict):
+        raise ValueError("seed overlay base must be a harness object")
+    if "seed_overlay_base" in base:
+        raise ValueError("recursive seed overlays are not supported")
+    if value.get("schema_version") != base.get("schema_version"):
+        raise ValueError("seed overlay schema must match its base")
+    merged = copy.deepcopy(base)
+    merged["seeds"] = copy.deepcopy(value.get("seeds"))
+    merged["seed_overlay_base"] = base_source
+    merged["seed_overlay_identity"] = SEED_OVERLAY_IDENTITY
+    return merged
 
 
 def _validate_impact_policy(impact, prefix="impact_policy"):
@@ -1305,8 +1343,7 @@ def _validate_paired_impact(value):
 
 
 def load(path=None):
-    with open(os.path.abspath(path or DEFAULT_PATH), encoding="utf-8") as stream:
-        value = yaml.safe_load(stream)
+    value = _load_harness_yaml(path or DEFAULT_PATH)
     if value.get("schema_version") != "1.0":
         raise ValueError("harness schema_version must be 1.0")
     fdas_paths = value.get("dependent_atomspace", {

@@ -27,6 +27,11 @@ def main():
     parser.add_argument("--expected-source-commit")
     parser.add_argument("--expected-implementation-sha256")
     parser.add_argument("--require-treatment", action="store_true")
+    parser.add_argument(
+        "--minimum-observed-per-arm", type=int, default=0,
+        help=("minimum effective observations and independent game clusters "
+              "required in each randomized arm"))
+    parser.add_argument("--allow-zero-assignment-games", action="store_true")
     args = parser.parse_args()
     report = audit_randomized_alternative_run(
         args.run_dir,
@@ -34,7 +39,9 @@ def main():
         expected_source_commit=args.expected_source_commit,
         expected_implementation_sha256=(
             args.expected_implementation_sha256),
-        require_treatment=args.require_treatment)
+        require_treatment=args.require_treatment,
+        minimum_observed_per_arm=args.minimum_observed_per_arm,
+        allow_zero_assignment_games=args.allow_zero_assignment_games)
     payload = json.dumps(report, sort_keys=True, separators=(",", ":")) + "\n"
     if args.output:
         output = os.path.abspath(args.output)

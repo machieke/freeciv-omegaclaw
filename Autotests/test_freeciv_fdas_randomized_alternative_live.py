@@ -6,6 +6,8 @@ from freeciv.harness.fdas_randomized_alternative_live import (
     ASSIGNMENT_UNIT,
     assignment_draw,
     assignment_material,
+    randomized_outcome_summary,
+    wilson_interval,
 )
 
 
@@ -66,3 +68,57 @@ def test_assignment_audit_ignores_arm_bookkeeping_but_not_action_identity():
     changed["payload"]["details"]["arms"][1][
         "action_key"] = "different-treatment-action"
     assert assignment_draw(changed) != assignment_draw(event)
+
+
+def test_randomized_summary_keeps_administrative_censoring_out_of_outcomes():
+    rows = (
+        {"assigned_arm": "control", "game_id": "game-1",
+         "label_due_by_endpoint": True,
+         "label_outcome": True, "label_status": "observed",
+         "selection_propensity": 0.5},
+        {"assigned_arm": "control", "game_id": "game-2",
+         "label_due_by_endpoint": False,
+         "label_outcome": None, "label_status": "pending",
+         "selection_propensity": 0.5},
+        {"assigned_arm": "treatment", "game_id": "game-3",
+         "label_due_by_endpoint": True,
+         "label_outcome": False, "label_status": "observed",
+         "selection_propensity": 0.5},
+    )
+
+    summary = randomized_outcome_summary(rows)
+
+    assert summary["arms"]["control"]["assigned"] == 2
+    assert summary["arms"]["control"]["observed"] == 1
+    assert summary["arms"]["control"]["positive"] == 1
+    assert summary["arms"]["control"]["administratively_pending"] == 1
+    assert summary["arms"]["control"]["assigned_games"] == 2
+    assert summary["arms"]["control"]["effective_sample_size"] == 1.0
+    assert summary["arms"]["control"]["observed_games"] == 1
+    assert summary["arms"]["treatment"]["rate"] == 0.0
+    assert summary["risk_difference"] == -1.0
+    assert summary["unresolved_after_due"] == 0
+
+
+def test_randomized_summary_distinguishes_overdue_from_administrative_pending():
+    summary = randomized_outcome_summary(({
+        "assigned_arm": "control",
+        "game_id": "game-overdue",
+        "label_due_by_endpoint": True,
+        "label_outcome": None,
+        "label_status": "pending",
+        "selection_propensity": 0.5,
+    },))
+
+    assert summary["arms"]["control"]["administratively_pending"] == 0
+    assert summary["unresolved_after_due"] == 1
+
+
+def test_wilson_interval_is_bounded_and_rejects_invalid_counts():
+    assert wilson_interval(0, 0) is None
+    lower, upper = wilson_interval(5, 10)
+    assert 0.0 < lower < 0.5 < upper < 1.0
+
+    import pytest
+    with pytest.raises(ValueError):
+        wilson_interval(2, 1)

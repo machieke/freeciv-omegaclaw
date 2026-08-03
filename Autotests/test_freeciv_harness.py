@@ -23,7 +23,8 @@ for path in (os.path.join(REPO, "src"), os.path.join(REPO, "benchmarks")):
 
 from freeciv.harness import (HarnessRunner, aggregate_impact_pairs,  # noqa: E402
                              aggregate_runs, write_impact_report, write_report)
-from freeciv.harness.config import CapabilityContext, load  # noqa: E402
+from freeciv.harness.config import (CapabilityContext,  # noqa: E402
+                                    SEED_OVERLAY_IDENTITY, load)
 from freeciv.harness.statistics import (paired_binary_discordance,  # noqa: E402
                                         paired_binary_effect, paired_delta,
                                         paired_power, paired_score_randomization,
@@ -145,6 +146,35 @@ def test_config_accepts_the_versioned_2000_turn_horizon():
     assert config["turn_limit"] == 2000
     assert config["engine_max_turns"] == 2000
     assert config["impact_policy"]["horizon_turn"] == 2000
+
+
+def test_config_accepts_strict_fresh_seed_overlay():
+    config = load(os.path.join(
+        REPO, "profile",
+        "freeciv_harness_fdas_randomized_outcome_yield_160_turn.yaml"))
+
+    assert config["turn_limit"] == 160
+    assert config["engine_max_turns"] == 160
+    assert config["impact_policy"]["horizon_turn"] == 160
+    assert config["seeds"][:3] == [105503, 105509, 105517]
+    assert len(config["seeds"]) == 40
+    assert config["seed_overlay_base"] == (
+        "profile/freeciv_harness_fdas_pr49_160_turn.yaml")
+    assert config["seed_overlay_identity"] == SEED_OVERLAY_IDENTITY
+
+
+def test_config_seed_overlay_rejects_extra_authority_changes(tmp_path):
+    overlay = tmp_path / "unsafe-overlay.yaml"
+    overlay.write_text(
+        "schema_version: '1.0'\n"
+        "seed_overlay_base: "
+        "profile/freeciv_harness_fdas_pr49_160_turn.yaml\n"
+        "seeds: []\n"
+        "turn_limit: 2000\n",
+        encoding="utf-8")
+
+    with pytest.raises(ValueError, match="seed overlay may declare only"):
+        load(str(overlay))
 
 
 def test_config_accepts_manifest_bound_fdas_shadow_profile_override(
