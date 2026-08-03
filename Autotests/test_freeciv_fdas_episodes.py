@@ -182,6 +182,10 @@ def test_acceptance_effect_and_goal_relief_are_separate_idempotent_states():
     assert moved.attributed_effects == ({
         "effect": "actor-tile-changed", "from": 82, "to": 83},)
     assert not moved.realized_goal_relief
+    unchanged_pending = recorder.observe(
+        episode.episode_id, intermediate,
+        "fdas-revision-intermediate-unchanged")
+    assert unchanged_pending is moved
 
     final = _snapshot(_payload(
         turn=14, unit_tile=84, unit_x=4, legal_target_x=4), 492)
@@ -371,7 +375,9 @@ def test_selected_defense_target_supports_move_without_requiring_fortify():
     assert recorder.observation_window_should_close(
         attributed, 14, True) is False
     assert recorder.observation_window_should_close(
-        attributed, 20, True) is True
+        attributed, 20, True) is False
+    assert recorder.observation_window_should_close(
+        attributed, 21, True) is True
     assert recorder.observation_window_should_close(
         attributed, 21, False) is False
 

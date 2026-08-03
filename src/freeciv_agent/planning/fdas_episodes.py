@@ -552,7 +552,10 @@ class FdasDefenseEpisodeRecorder(object):
             raise ValueError("episode goal-relief due turn is invalid")
         if due_turn < 0:
             raise ValueError("episode goal-relief due turn is invalid")
-        return int(current_turn) >= due_turn
+        # FreeCiv actions execute during the numbered turn.  A route whose
+        # ETA is turn N must remain observable through that turn and close at
+        # the next turn boundary.
+        return int(current_turn) > due_turn
 
     def begin(self, binding, operation_record, before_snapshot,
               before_revision_id, validation_result_hash,
@@ -831,6 +834,19 @@ class FdasDefenseEpisodeRecorder(object):
                 "observed_turn": after_snapshot.turn,
                 "target_tile": target_tile,
             }
+        prior_delta = dict(prior.observed_delta or {})
+        comparable_prior_delta = dict(
+            (key, value) for key, value in prior_delta.items()
+            if key != "observed_turn")
+        comparable_delta = dict(
+            (key, value) for key, value in delta.items()
+            if key != "observed_turn")
+        if (prior.outcome_status == "immediate-effect-observed"
+                and status == "immediate-effect-observed"
+                and prior.attributed_effects == effects
+                and prior.realized_goal_relief == relief
+                and comparable_prior_delta == comparable_delta):
+            return prior
         updated = replace(
             prior,
             after_revision_id=str(after_revision_id),
