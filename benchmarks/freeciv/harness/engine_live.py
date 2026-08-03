@@ -3525,6 +3525,7 @@ async def _play(run_dir, manifest, context):
         "fdas_path_persistence_union_readouts": 0,
         "fdas_path_persistence_union_members": 0,
         "fdas_path_persistence_union_additions": 0,
+        "fdas_path_persistence_union_retained_by_smoothing": 0,
         "fdas_path_persistence_union_retained_by_dwell": 0,
         "fdas_path_persistence_union_retained_by_hysteresis": 0,
         "fdas_path_persistence_union_regret_rejections": 0,
@@ -5787,6 +5788,11 @@ async def _play(run_dir, manifest, context):
                                                     .persistence_added_operation_ids)
                                             decision_stats[
                                                 "fdas_path_persistence_union_"
+                                                "retained_by_smoothing"] += int(
+                                                    persistence_union
+                                                    .retained_by_smoothing)
+                                            decision_stats[
+                                                "fdas_path_persistence_union_"
                                                 "retained_by_dwell"] += int(
                                                     persistence_union
                                                     .retained_by_dwell)
@@ -7109,6 +7115,9 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_path_persistence_union_members"]),
         ("fdas_path_persistence_union_additions",
          decision_stats["fdas_path_persistence_union_additions"]),
+        ("fdas_path_persistence_union_retained_by_smoothing",
+         decision_stats[
+             "fdas_path_persistence_union_retained_by_smoothing"]),
         ("fdas_path_persistence_union_retained_by_dwell",
          decision_stats["fdas_path_persistence_union_retained_by_dwell"]),
         ("fdas_path_persistence_union_retained_by_hysteresis",
@@ -7664,6 +7673,9 @@ async def _play(run_dir, manifest, context):
                 "fdas_path_persistence_union_members"],
             "fdas_path_persistence_union_additions": decision_stats[
                 "fdas_path_persistence_union_additions"],
+            "fdas_path_persistence_union_retained_by_smoothing": (
+                decision_stats[
+                    "fdas_path_persistence_union_retained_by_smoothing"]),
             "fdas_path_persistence_union_retained_by_dwell": decision_stats[
                 "fdas_path_persistence_union_retained_by_dwell"],
             "fdas_path_persistence_union_retained_by_hysteresis": (
@@ -8085,6 +8097,8 @@ async def _play(run_dir, manifest, context):
             "fdas_path_persistence_union_members"],
         "fdas_path_persistence_union_additions": decision_stats[
             "fdas_path_persistence_union_additions"],
+        "fdas_path_persistence_union_retained_by_smoothing": decision_stats[
+            "fdas_path_persistence_union_retained_by_smoothing"],
         "fdas_path_persistence_union_retained_by_dwell": decision_stats[
             "fdas_path_persistence_union_retained_by_dwell"],
         "fdas_path_persistence_union_retained_by_hysteresis": decision_stats[

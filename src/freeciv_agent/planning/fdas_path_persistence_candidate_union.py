@@ -216,6 +216,7 @@ class FdasPathPersistenceCandidateUnion:
     persistence_selected_operation_id: object
     persistence_selected_route_id: object
     persistence_added_operation_ids: tuple
+    retained_by_smoothing: bool
     retained_by_dwell: bool
     retained_by_hysteresis: bool
     regret_rejected: bool
@@ -251,12 +252,16 @@ class FdasPathPersistenceCandidateUnion:
         object.__setattr__(self, "maximum_reachability_regret", regret_bound)
         object.__setattr__(self, "reachability_regret", regret)
         for name in (
-                "retained_by_dwell", "retained_by_hysteresis",
+                "retained_by_smoothing", "retained_by_dwell",
+                "retained_by_hysteresis",
                 "regret_rejected", "fallback_required"):
             if not isinstance(getattr(self, name), bool):
                 raise TypeError("path persistence state must be boolean")
         if (self.fallback_required != (self.fallback_reason is not None)
-                or self.retained_by_dwell and self.retained_by_hysteresis):
+                or sum((
+                    self.retained_by_smoothing,
+                    self.retained_by_dwell,
+                    self.retained_by_hysteresis)) > 1):
             raise ValueError("path persistence fallback or retention differs")
         if ((self.persistence_selected_operation_id is None)
                 != (self.persistence_selected_route_id is None)):
@@ -359,6 +364,7 @@ class FdasPathPersistenceCandidateUnion:
             "readout_authority": False,
             "readouts": [value.to_dict() for value in self.readouts],
             "regret_rejected": self.regret_rejected,
+            "retained_by_smoothing": self.retained_by_smoothing,
             "retained_by_dwell": self.retained_by_dwell,
             "retained_by_hysteresis": self.retained_by_hysteresis,
             "revision_id": self.revision_id,
@@ -514,6 +520,7 @@ class FdasPathPersistenceCandidateController:
             "no-positive-reachability" if fallback_required else None)
         retained_by_dwell = False
         retained_by_hysteresis = False
+        retained_by_smoothing = False
         regret_rejected = False
         selected_route = None
         switch_cause = reset_reason or "initial-selection"
@@ -549,6 +556,11 @@ class FdasPathPersistenceCandidateController:
                 retained_by_hysteresis = False
                 regret_rejected = True
                 switch_cause = "reachability-regret-rejected"
+            elif (selected_route != instantaneous_best
+                  and not retained_by_dwell
+                  and not retained_by_hysteresis):
+                retained_by_smoothing = True
+                switch_cause = "retained-by-smoothing"
             elif selected_route == previous_selected:
                 switch_cause = (
                     switch_cause if retained_by_dwell
@@ -642,6 +654,7 @@ class FdasPathPersistenceCandidateController:
             "readout_authority": False,
             "readouts": [value.to_dict() for value in readouts],
             "regret_rejected": regret_rejected,
+            "retained_by_smoothing": retained_by_smoothing,
             "retained_by_dwell": retained_by_dwell,
             "retained_by_hysteresis": retained_by_hysteresis,
             "revision_id": str(revision_id),
@@ -674,6 +687,7 @@ class FdasPathPersistenceCandidateController:
             persistence_selected_operation_id=selected_operation,
             persistence_selected_route_id=selected_route,
             persistence_added_operation_ids=additions,
+            retained_by_smoothing=retained_by_smoothing,
             retained_by_dwell=retained_by_dwell,
             retained_by_hysteresis=retained_by_hysteresis,
             regret_rejected=regret_rejected,

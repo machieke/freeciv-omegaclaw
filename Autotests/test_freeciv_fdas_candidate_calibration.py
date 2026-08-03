@@ -474,6 +474,7 @@ def test_path_persistence_adds_only_a_current_near_tied_corridor_member():
     assert first_union.persistence_added_operation_ids == ()
     assert second_union.persistence_selected_operation_id == "b-t2"
     assert second_union.persistence_added_operation_ids == ("b-t2",)
+    assert not second_union.retained_by_smoothing
     assert second_union.retained_by_dwell
     assert not second_union.retained_by_hysteresis
     assert not second_union.regret_rejected
@@ -488,6 +489,35 @@ def test_path_persistence_adds_only_a_current_near_tied_corridor_member():
     assert details["flow_advection_enabled"] is False
     assert details["capacity_solver_enabled"] is False
     assert details["scalar_final_score_authority"] is True
+
+
+def test_path_persistence_attributes_smoothing_retention_separately():
+    model = fit_candidate_calibration(
+        _fixture_exports(), "path-persistence-smoothing-model",
+        minimum_action_lineages=5, minimum_lifecycle_lineages=3)
+    first = _persistence_surface(
+        model, 1, ((0, 0), (3, 0), (6, 0)))
+    second = _persistence_surface(
+        model, 2, ((3, 0), (6, 0), (9, 0)))
+    controller = FdasPathPersistenceCandidateController(
+        ScalarBaselineConfig(
+            smoothing=0.35, route_momentum=0.15,
+            minimum_dwell_steps=2, dwell_bonus=0.05,
+            switch_margin=0.01, diversity_floor=0.0),
+        maximum_reachability_regret=0.05)
+    controller.build_union(
+        first[4], first[0], first[1], first[2], first[3])
+
+    union = controller.build_union(
+        second[4], second[0], second[1], second[2], second[3])
+
+    assert union.persistence_selected_operation_id == "b-t2"
+    assert union.persistence_added_operation_ids == ("b-t2",)
+    assert union.retained_by_smoothing
+    assert not union.retained_by_dwell
+    assert not union.retained_by_hysteresis
+    assert union.switch_cause == "retained-by-smoothing"
+    assert union.to_dict()["retained_by_smoothing"] is True
 
 
 def test_path_persistence_regret_gate_reanchors_on_current_probe_region():
