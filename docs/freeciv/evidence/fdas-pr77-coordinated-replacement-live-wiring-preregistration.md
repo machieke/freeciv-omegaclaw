@@ -50,6 +50,18 @@ The engine evidence passes only if:
 - every lifecycle event references a persistent operation; and
 - status and terminal counters exactly match durable events and records.
 
+## Failed first attempt and frozen correction
+
+Artifact `fdas-pr77-coordinated-replacement-live-wiring-v1` is retained as a
+failed attempt. It reached turn 33, where the first replacement opportunity
+failed closed with `replacement operation ruleset changed`. The harness had
+constructed the adapter with `structural_hash(ir.to_dict())`, while the
+candidate factory correctly used the canonical FDAS identity over compiler,
+ruleset, semantics, and source hashes. The only correction is to use the same
+canonical identity through both paths, guarded by a regression test. The `v2`
+confirmation starts from a new clean commit and directory; it does not resume
+or overwrite `v1`.
+
 ## Frozen execution
 
 ```bash
@@ -59,12 +71,12 @@ test -z "$(git status --porcelain)"
 FREECIV_RULESET_ROOT=/home/purplezky/Repos/freeciv-llm/freeciv/freeciv/data \
 PYTHONPATH=src:benchmarks \
 python3 scripts/freeciv/run_harness.py \
-  --out artifacts/freeciv/fdas-pr77-coordinated-replacement-live-wiring-v1 \
+  --out artifacts/freeciv/fdas-pr77-coordinated-replacement-live-wiring-v2 \
   --config profile/freeciv_harness_fdas_pr77_replacement_live_wiring_160_turn.yaml \
   --backend engine-live --workers 1 --base-port 6001 \
   --condition e_full_loop --main-only --seed-offset 43 --limit-seeds 1 --no-resume
 
-GAME_DIR=artifacts/freeciv/fdas-pr77-coordinated-replacement-live-wiring-v1/games/main/e_full_loop/109459-00
+GAME_DIR=artifacts/freeciv/fdas-pr77-coordinated-replacement-live-wiring-v2/games/main/e_full_loop/109459-00
 PYTHONPATH=src:benchmarks \
 python3 scripts/freeciv/audit_fdas_replacement_live.py \
   --game-dir "$GAME_DIR" \

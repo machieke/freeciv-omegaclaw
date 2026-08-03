@@ -35,6 +35,7 @@ from freeciv.harness.impact_evaluation import _claim_evaluation  # noqa: E402
 from freeciv.harness.runner import _impact_cohort_token  # noqa: E402
 from freeciv.harness.engine_live import (  # noqa: E402
     _active_research_continuation, _available_research_names,
+    _fdas_ruleset_identity,
     _needs_cognitive_stack, _opponent_memory_path,
     _claim_eligible_manifest, _ollama_readiness, _plain_prompt_state,
     _plain_state_summary, _refresh_accepted_impact_action,
@@ -53,6 +54,19 @@ from freeciv_agent.events.writer import EventWriter  # noqa: E402
 from freeciv_agent.beliefs import BeliefKey, BeliefStore, Evidence  # noqa: E402
 from freeciv_agent.config import belief_config  # noqa: E402
 from freeciv_agent.state import ProxyStateDTO  # noqa: E402
+from freeciv_agent.state.atomspace import ruleset_digest  # noqa: E402
+
+
+def test_engine_replacement_uses_canonical_fdas_ruleset_identity():
+    ir = SimpleNamespace(
+        compiler_version="compiler-proof",
+        ruleset="ruleset-proof",
+        source_hashes={"source": "digest"},
+        to_dict=lambda: {"semantic": "payload"},
+    )
+
+    assert _fdas_ruleset_identity(ir) == ruleset_digest(ir)
+    assert _fdas_ruleset_identity(ir) != structural_hash(ir.to_dict())
 
 
 def test_terminal_calibration_retains_only_latest_prediction_per_atom():

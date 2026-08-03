@@ -1077,3 +1077,13 @@ one active route cannot flood the store. A known rich-defense seed is frozen
 for a live wiring smoke; zero opportunity is accepted as activation evidence,
 not treated as success evidence. See
 `fdas-pr77-coordinated-replacement-live-wiring-preregistration.md`.
+
+The first PR77 known-seed attempt is retained as a failed integration run. It
+reached turn 33 and produced the empty activation store, then the first real
+replacement candidate failed closed because the harness supplied the raw IR
+payload hash while candidate construction uses the canonical FDAS ruleset
+identity (compiler, ruleset, semantics, and source hashes). No action was
+authorized by the replacement path. The correction makes the harness consume
+the same canonical identity and adds a regression that proves it differs from
+the formerly used raw semantic hash. Confirmation must use a new artifact
+version and clean source commit; the failed `v1` evidence is not overwritten.

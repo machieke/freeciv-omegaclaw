@@ -105,7 +105,10 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
 from freeciv_agent.pressure import ScalarBaselineConfig
 from freeciv_agent.rulesets.compiler import compile_ruleset
 from freeciv_agent.state import ProxyStateDTO, SnapshotStore, StateSummaryService
-from freeciv_agent.state.atomspace import build_runtime as build_fdas_runtime
+from freeciv_agent.state.atomspace import (
+    build_runtime as build_fdas_runtime,
+    ruleset_digest as atomspace_ruleset_digest,
+)
 from .domain_observability import DomainObservabilityEmitter
 
 
@@ -175,6 +178,11 @@ def _ruleset_root():
     if not root or not os.path.isfile(os.path.join(root, "civ2civ3", "techs.ruleset")):
         raise RuntimeError("engine-live requires FREECIV_RULESET_ROOT")
     return root
+
+
+def _fdas_ruleset_identity(ruleset_ir):
+    """Use the same canonical identity as FDAS candidate construction."""
+    return atomspace_ruleset_digest(ruleset_ir)
 
 
 def _cognitive_stack():
@@ -2686,8 +2694,7 @@ async def _play(run_dir, manifest, context):
         fdas_expansion_adapter = FdasExpansionOperationAdapter(
             fdas_expansion_store, observability_ir,
             structural_hash(observability_ir.to_dict()))
-    fdas_ruleset_digest = structural_hash(
-        observability_ir.to_dict())
+    fdas_ruleset_digest = _fdas_ruleset_identity(observability_ir)
     fdas_replacement_path = os.path.join(
         run_dir, "fdas-coordinated-replacement-operations.json")
     fdas_replacement_store = None
