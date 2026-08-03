@@ -847,3 +847,17 @@ overlaps, abstentions, and shadow preferences. Eighty-four focused tests pass.
 Fresh seed `109009` is preregistered for a clean mechanics smoke that requires
 at least one grounded protected comparison but not a preference; see
 `fdas-pr65-scalar-baseline-readout-smoke-preregistration.md`.
+
+PR65 is mechanically accepted but fails its frozen grounded-comparison yield
+gate. Clean seed `109009` ended genuinely at turn 152 with no failure, resume,
+rejected action, event error, warning, or authority leak. All 82 unions had
+only their scalar member, so there were no additions or alternatives. The
+model nevertheless supplied 73 candidate-specific move estimates (47 full,
+24 ETA, and two route); all later control groundings returned the generic
+`control-grounded-transition-input-unavailable`, while nine fortify baselines
+correctly abstained outside domain. The failed primary result is preserved.
+Before a larger opportunity cohort, the strict grounding layer must expose the
+exact predicate behind this PR59-complete/readout-unavailable mismatch so
+opportunity and grounding yield are not confounded. See
+`fdas-pr65-scalar-baseline-readout-smoke.md` and
+`fdas-pr65-scalar-baseline-readout-smoke.json`.
