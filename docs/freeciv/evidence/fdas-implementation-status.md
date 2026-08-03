@@ -565,3 +565,18 @@ authority, treatment, and reprojection gate. PR54b remains claim-ineligible and
 its negative outcomes are not evidence of value. The engineering blocker is
 closed, so the next gate is an unseen-seed opportunity-yield cohort using the
 same frozen controller and provenance contract.
+
+PR55 then supplied a clean 12-seed unseen-gameplay yield cohort. Eight exact
+assignments completed—four per arm—with four observed outcomes and two
+independent game clusters per arm, satisfying the frozen yield-only progression
+threshold. Eleven games reached turn 161; seed `105667` was authoritatively
+eliminated at turn 138 with terminal-absorbing score carry-forward and zero
+randomized assignments. Because the preregistration required every row's
+`horizon_reached` flag, the primary audit is mechanically rejected despite all
+ledger, store, source, authority, execution-version, outcome, propensity, and
+counter gates passing. The descriptive treatment-minus-control durable-defense
+risk difference is `-0.75` with interval `[-0.9544, 0.1892]`; it is sparse,
+clustered, claim-ineligible, and cannot tune the next design. The next
+hardening task is to preregister terminal absorbing endpoints explicitly, then
+size a powered candidate-value cohort solely from observed assignment and game-
+cluster yield.

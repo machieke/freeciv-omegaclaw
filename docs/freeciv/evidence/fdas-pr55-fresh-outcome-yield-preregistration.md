@@ -1,6 +1,6 @@
 # PR55 fresh randomized outcome-yield cohort preregistration
 
-Status: preregistered; execution not started
+Status: mechanically rejected; outcome-yield progression threshold met
 
 Implementation commit: `285796528273f38d0e85dffa9661eb9b80b99241`
 
@@ -75,3 +75,47 @@ descriptive only. If the progression rule fails, the cohort is frozen as yield
 evidence and the next decision may use assignment and cluster counts—but never
 outcome direction—to preregister a larger fresh block or revise the candidate
 surface. No seed is added, removed, resumed, or rerun after outcomes are seen.
+
+## Frozen result
+
+PR55 executed all 12 frozen unseen seeds from clean source commit `f5d7483`
+with implementation digest
+`c7422be000364cdf39076c8e1a394d6362d2db689f50e23598b62fe92911299c`.
+All games completed without infrastructure failure or rejected engine action.
+Eleven reached final observed turn 161. Seed `105667` was authoritatively
+eliminated at turn 138; its terminal score was carried forward under
+`terminal_absorbing_score_carried_to_horizon`, but `horizon_reached` remained
+false. Under the frozen fixed-endpoint rule, that single row mechanically
+rejects the cohort. It had zero randomized assignments and does not change any
+assignment outcome statistic.
+
+The other gates passed exactly:
+
+- 8 assignment events and 8 analyzable assignments;
+- 4 control and 4 treatment assignments;
+- 4 observed outcomes in 2 independent games in each arm;
+- inverse-propensity effective sample size 4 in each arm;
+- no pending or overdue outcomes;
+- every execution used version 1.1 typed reprojection provenance;
+- zero catalog reprojections in this fresh cohort; and
+- valid warning-free ledgers and unquarantined digest-valid stores.
+
+Opportunity-bearing games were 3 of 12, rate `0.25` with Wilson interval
+`[0.0889, 0.5323]`. Assignment yield was 8 across 12 games, or `0.667` per
+game; the Wilson interval for the binary at-least-one-assignment game rate is
+the opportunity interval, not the assignment-per-game rate. Total engine time
+was 3,524.66 seconds, mean 293.72 seconds per game under four-worker
+contention.
+
+The descriptive outcomes were 4/4 positive control and 1/4 positive treatment:
+risk difference `-0.75`, Newcombe interval `[-0.9544, 0.1892]`. This is sparse,
+clustered, and not claim-eligible. Per the frozen rule, neither its direction
+nor magnitude may tune the next design. The yield-only progression gate did
+pass, demonstrating enough independent clusters to parameterize a separately
+preregistered powered study after terminal-endpoint semantics are frozen.
+
+The machine-readable primary report is `fdas-pr55-fresh-outcome-yield.json`,
+report hash
+`9f080889f4a1bb26a04d9c97656655dbfd61ff73d3967597e66763fb725aa60f`.
+The rejected row and all eight valid assignment lifecycles remain preserved;
+no seed will be rerun or replaced.
