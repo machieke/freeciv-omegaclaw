@@ -921,3 +921,18 @@ not required. Prior games cannot be pooled, and no seed can be replaced or
 retried. This remains an outcome-free readout-yield gate with no ranking,
 gameplay, score, or win-rate claim. See
 `fdas-pr68-safe-filtered-scalar-readout-opportunity-preregistration.md`.
+
+PR68 is preserved as a failed primary opportunity cohort from clean commit
+`66d153f`. All eight games and the parent PR67 safety-filter audit pass. The
+cohort admitted 390 safe candidates, grounded 50 scalar controls across five
+games, generated 43 candidate-specific estimates, and recalled 27 calibrated
+additions. It nevertheless produced zero grounded alternatives. Six additions
+coincided with a grounded move control, and every one was rejected before
+grounding by the aggregate `pair-scope-mismatch` predicate. Event inspection
+shows the readout's disjoint-resource rule structurally rejects same-actor
+substitute moves even when they are different actions for the same grounded
+reinforcement decision. The next correction must expose each scope predicate
+and permit only explicitly protected same-actor action substitution while
+keeping every other shared resource fail-closed. See
+`fdas-pr68-safe-filtered-scalar-readout-opportunity.md` and
+`fdas-pr68-safe-filtered-scalar-readout-opportunity.json`.
