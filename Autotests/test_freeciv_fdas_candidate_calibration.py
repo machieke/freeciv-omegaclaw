@@ -22,6 +22,7 @@ from freeciv_agent.planning import (  # noqa: E402
     OperationSpec,
     OperationStep,
     ShadowOperationCandidate,
+    FdasPathPersistenceCandidateController,
     build_calibrated_candidate_union,
     build_probe_candidate_union,
     fit_candidate_calibration,
@@ -33,8 +34,10 @@ from freeciv_agent.pressure import (  # noqa: E402
     InductionFeatureQuery,
     Operation,
     OperationScore,
+    ScalarBaselineConfig,
 )
 from freeciv_agent.state import ProxyStateDTO  # noqa: E402
+from freeciv_agent.state.snapshot import SnapshotIdentity  # noqa: E402
 
 
 MOVE = "fdas-shadow:city-garrison-deficit:unit_move"
@@ -387,3 +390,123 @@ def test_probe_union_falls_back_to_calibrated_membership_when_unhealthy():
     assert union.operation_ids == union.base_calibrated_operation_ids
     assert union.probe_selected_operation_ids == ()
     assert union.probe_added_operation_ids == ()
+
+
+def _persistence_surface(model, turn, coordinates):
+    actors = (102, 110, 111)
+    candidates = []
+    for index, (actor_id, target) in enumerate(zip(actors, coordinates)):
+        operation_id = "{}-t{}".format(chr(ord("a") + index), turn)
+        candidate = _candidate(operation_id, MOVE, actor_id)
+        action = dict(candidate.action, target={
+            "x": target[0], "y": target[1]})
+        action_key = json.dumps(
+            action, sort_keys=True, separators=(",", ":"))
+        candidates.append(ShadowOperationCandidate(
+            candidate.operation, action, action_key,
+            candidate.resource_keys, True, False, (),
+            candidate.provenance,
+            candidate.candidate_hash + structural_hash(target)[:8]))
+    candidates = tuple(candidates)
+    path = os.path.join(
+        REPO, "benchmarks", "freeciv", "samples", "real_state_turn1.json")
+    with open(path, encoding="utf-8") as stream:
+        snapshot = ProxyStateDTO.parse(
+            "fdas-persistence", 1, json.load(stream)).to_snapshot()
+    identity = SnapshotIdentity(
+        "fdas-persistence", turn, turn,
+        structural_hash([turn, coordinates]))
+    action_keys = tuple(sorted(value.action_key for value in candidates))
+    snapshot = replace(
+        snapshot, identity=identity,
+        legal_action_json=action_keys,
+        legal_actions_digest=structural_hash(action_keys),
+        legal_action_kinds=("unit_move",))
+    scores = tuple(
+        _score(candidate, priority)
+        for candidate, priority in zip(candidates, (0.8, 0.9, 1.0)))
+    queries = dict(
+        (candidate.operation.operation_id,
+         _query(candidate.operation.operation_type, "0-31"))
+        for candidate in candidates)
+    revision_id = "persistence-revision-{}".format(turn)
+    calibrated = build_calibrated_candidate_union(
+        model, candidates, scores, queries, snapshot.snapshot_id,
+        revision_id, scalar_top_k=1, calibrated_per_action=1,
+        maximum_interval_width=1.0)
+    probe = build_probe_candidate_union(
+        calibrated, candidates, snapshot, revision_id,
+        DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET,
+        probe_config=ProbeConfig(
+            path_count=128, max_steps=16, reference_fraction=0.25,
+            minimum_path_diversity=0.0),
+        maximum_probe_regions=1, probe_per_action=1)
+    return candidates, queries, snapshot, revision_id, probe
+
+
+def _persistence_controller(maximum_regret=0.05):
+    return FdasPathPersistenceCandidateController(
+        ScalarBaselineConfig(
+            smoothing=1.0, route_momentum=0.0,
+            minimum_dwell_steps=2, dwell_bonus=0.0,
+            switch_margin=0.0, diversity_floor=0.0),
+        maximum_reachability_regret=maximum_regret)
+
+
+def test_path_persistence_adds_only_a_current_near_tied_corridor_member():
+    model = fit_candidate_calibration(
+        _fixture_exports(), "path-persistence-model",
+        minimum_action_lineages=5, minimum_lifecycle_lineages=3)
+    first = _persistence_surface(
+        model, 1, ((0, 0), (3, 0), (6, 0)))
+    second = _persistence_surface(
+        model, 2, ((3, 0), (6, 0), (9, 0)))
+    controller = _persistence_controller()
+
+    first_union = controller.build_union(
+        first[4], first[0], first[1], first[2], first[3])
+    second_union = controller.build_union(
+        second[4], second[0], second[1], second[2], second[3])
+
+    assert first[4].probe_selected_operation_ids == ("b-t1",)
+    assert second[4].probe_selected_operation_ids == ("a-t2",)
+    assert first_union.persistence_selected_operation_id == "b-t1"
+    assert first_union.persistence_added_operation_ids == ()
+    assert second_union.persistence_selected_operation_id == "b-t2"
+    assert second_union.persistence_added_operation_ids == ("b-t2",)
+    assert second_union.retained_by_dwell
+    assert not second_union.retained_by_hysteresis
+    assert not second_union.regret_rejected
+    assert second_union.reachability_regret < 0.05
+    assert second_union.operation_ids == ("c-t2", "b-t2", "a-t2")
+    assert controller.build_union(
+        second[4], second[0], second[1], second[2], second[3]) == second_union
+    details = second_union.to_dict()
+    assert details["action_selection_changed"] is False
+    assert details["path_persistence_authority"] is False
+    assert details["source_sink_flow_enabled"] is False
+    assert details["flow_advection_enabled"] is False
+    assert details["capacity_solver_enabled"] is False
+    assert details["scalar_final_score_authority"] is True
+
+
+def test_path_persistence_regret_gate_reanchors_on_current_probe_region():
+    model = fit_candidate_calibration(
+        _fixture_exports(), "path-persistence-regret-model",
+        minimum_action_lineages=5, minimum_lifecycle_lineages=3)
+    first = _persistence_surface(
+        model, 1, ((0, 0), (3, 0), (6, 0)))
+    second = _persistence_surface(
+        model, 2, ((3, 0), (6, 0), (9, 0)))
+    controller = _persistence_controller(maximum_regret=0.0)
+    controller.build_union(
+        first[4], first[0], first[1], first[2], first[3])
+
+    union = controller.build_union(
+        second[4], second[0], second[1], second[2], second[3])
+
+    assert union.regret_rejected
+    assert union.switch_cause == "reachability-regret-rejected"
+    assert union.persistence_selected_operation_id == "a-t2"
+    assert union.persistence_added_operation_ids == ()
+    assert not union.retained_by_dwell

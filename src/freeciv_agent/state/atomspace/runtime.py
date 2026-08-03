@@ -970,6 +970,37 @@ class FdasRuntime(object):
             component_id="fdas-probe-candidate-union",
             component_version="1.0")
 
+    def emit_path_persistence_union(
+            self, writer, snapshot, candidate_union, caused_by=()):
+        """Emit temporal candidate retention without action authority."""
+        if self.event_emitter is None:
+            return None
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        if (revision is None
+                or revision.snapshot_id != snapshot.snapshot_id
+                or candidate_union.snapshot_id != snapshot.snapshot_id
+                or candidate_union.revision_id != revision.revision_id):
+            raise RuntimeError(
+                "FDAS path persistence union is not revision-current")
+        details = candidate_union.to_dict()
+        if any(details.get(name) is not False for name in (
+                "action_selection_changed", "capacity_solver_enabled",
+                "flow_advection_enabled", "path_persistence_authority",
+                "policy_authority", "readout_authority",
+                "source_sink_flow_enabled", "truth_mutated")):
+            raise RuntimeError(
+                "FDAS path persistence union grants undeclared authority")
+        if details.get("scalar_final_score_authority") is not True:
+            raise RuntimeError(
+                "FDAS path persistence union displaced scalar authority")
+        return self.event_emitter.emit_component(
+            writer, "atomspace_shadow_decision", snapshot.turn, revision,
+            details, caused_by=tuple(caused_by),
+            ruleset_digest=self.ruleset_digest,
+            component_id="fdas-path-persistence-candidate-union",
+            component_version="1.0")
+
 
 def build_runtime(declaration, ruleset_ir=None, belief_store=None,
                   operation_records_source=None,

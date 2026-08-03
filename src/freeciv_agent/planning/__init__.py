@@ -196,6 +196,15 @@ from .fdas_probe_candidate_reachability import (
     FdasProbeReachabilityReadout,
     build_probe_candidate_union,
 )
+from .fdas_path_persistence_candidate_union import (
+    PATH_PERSISTENCE_CANDIDATE_UNION_IDENTITY,
+    FdasPathPersistenceCandidateController,
+    FdasPathPersistenceCandidateUnion,
+    FdasPathPersistenceMember,
+    FdasPathPersistenceReadout,
+    FdasPathPersistenceRouteState,
+    fdas_candidate_corridor_id,
+)
 from .fdas_induction_labels import (
     DURABLE_ACTOR_CITY_DEFENSE_TARGET,
     DURABLE_CITY_COVERAGE_TARGET,

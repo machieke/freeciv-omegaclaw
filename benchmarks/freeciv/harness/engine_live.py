@@ -61,6 +61,7 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     DecisionEpisodeStore,
                                     FdasCandidateChoiceSetRecorder,
                                     FdasCandidateChoiceSetStore,
+                                    FdasPathPersistenceCandidateController,
                                     DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES,
                                     DEFENSE_CANDIDATE_CHOICE_SELECTION_ACTION_TYPES,
                                     DEFENSE_CANDIDATE_CHOICE_SURFACE,
@@ -90,6 +91,7 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     EpisodeInductionOutcomeLabelStore,
                                     OperationStore,
                                     declared_transport_intents)
+from freeciv_agent.pressure import ScalarBaselineConfig
 from freeciv_agent.rulesets.compiler import compile_ruleset
 from freeciv_agent.state import ProxyStateDTO, SnapshotStore, StateSummaryService
 from freeciv_agent.state.atomspace import build_runtime as build_fdas_runtime
@@ -2749,6 +2751,14 @@ async def _play(run_dir, manifest, context):
         probe_union_capability is not None
         or probe_union_diagnostic is not None)
     fdas_probe_config = None
+    persistence_union_capability = fdas_manifest["capabilities"].get(
+        "path_persistence_candidate_union")
+    persistence_union_diagnostic = fdas_manifest.get(
+        "path_persistence_candidate_union_diagnostic")
+    fdas_path_persistence_candidate_union = bool(
+        persistence_union_capability is not None
+        or persistence_union_diagnostic is not None)
+    fdas_path_persistence_controller = None
     fdas_outcome_label_path = os.path.join(
         run_dir, "fdas-induction-outcome-labels.json")
     fdas_outcome_label_store = None
@@ -3123,6 +3133,63 @@ async def _play(run_dir, manifest, context):
                 != probe_union_diagnostic["probe_config"]):
             raise RuntimeError(
                 "FDAS probe reachability config is not canonical")
+    if fdas_path_persistence_candidate_union:
+        expected_persistence_keys = {
+            "action_selection_changed",
+            "capacity_solver_enabled",
+            "config",
+            "flow_advection_enabled",
+            "maximum_reachability_regret",
+            "path_persistence_authority",
+            "policy_authority",
+            "probe_candidate_union_required",
+            "readout_authority",
+            "scalar_final_score_authority",
+            "source_sink_flow_enabled",
+            "truth_mutated",
+        }
+        if persistence_union_capability != "shadow-live":
+            raise RuntimeError(
+                "FDAS path persistence requires shadow-live manifest")
+        if (not isinstance(persistence_union_diagnostic, dict)
+                or set(persistence_union_diagnostic)
+                != expected_persistence_keys):
+            raise RuntimeError(
+                "FDAS path persistence declaration is incomplete")
+        if any(persistence_union_diagnostic[name] is not False for name in (
+                "action_selection_changed", "capacity_solver_enabled",
+                "flow_advection_enabled", "path_persistence_authority",
+                "policy_authority", "readout_authority",
+                "source_sink_flow_enabled", "truth_mutated")):
+            raise RuntimeError(
+                "FDAS path persistence cannot grant authority")
+        if (persistence_union_diagnostic[
+                    "probe_candidate_union_required"] is not True
+                or persistence_union_diagnostic[
+                    "scalar_final_score_authority"] is not True
+                or not fdas_probe_candidate_reachability):
+            raise RuntimeError(
+                "FDAS path persistence requires corrected probe baseline")
+        try:
+            persistence_config = ScalarBaselineConfig(
+                **persistence_union_diagnostic["config"])
+            maximum_reachability_regret = float(
+                persistence_union_diagnostic[
+                    "maximum_reachability_regret"])
+            if (not math.isfinite(maximum_reachability_regret)
+                    or maximum_reachability_regret < 0.0):
+                raise ValueError("invalid reachability regret")
+        except (TypeError, ValueError) as error:
+            raise RuntimeError(
+                "FDAS path persistence config is invalid: {}".format(error))
+        if persistence_config.to_dict() != persistence_union_diagnostic[
+                "config"]:
+            raise RuntimeError(
+                "FDAS path persistence config is not canonical")
+        fdas_path_persistence_controller = (
+            FdasPathPersistenceCandidateController(
+                persistence_config,
+                maximum_reachability_regret=maximum_reachability_regret))
     if (candidate_impact_capability is not None
             or candidate_impact_diagnostic is not None):
         if candidate_impact_capability != "shadow-live":
@@ -3454,6 +3521,16 @@ async def _play(run_dir, manifest, context):
         "fdas_probe_candidate_union_unhealthy": 0,
         "fdas_probe_candidate_union_incomplete_graphs": 0,
         "fdas_probe_candidate_union_selection_changes": 0,
+        "fdas_path_persistence_union_evaluations": 0,
+        "fdas_path_persistence_union_readouts": 0,
+        "fdas_path_persistence_union_members": 0,
+        "fdas_path_persistence_union_additions": 0,
+        "fdas_path_persistence_union_retained_by_dwell": 0,
+        "fdas_path_persistence_union_retained_by_hysteresis": 0,
+        "fdas_path_persistence_union_regret_rejections": 0,
+        "fdas_path_persistence_union_expired_routes": 0,
+        "fdas_path_persistence_union_fallbacks": 0,
+        "fdas_path_persistence_union_selection_changes": 0,
         "fdas_candidate_choice_sets": (
             len(fdas_candidate_choice_store.choice_sets())
             if fdas_candidate_choice_store is not None else 0),
@@ -5681,6 +5758,72 @@ async def _play(run_dir, manifest, context):
                                         if probe_union_event is not None:
                                             parent = probe_union_event[
                                                 "event_id"]
+                                        if fdas_path_persistence_candidate_union:
+                                            persistence_union = (
+                                                fdas_path_persistence_controller
+                                                .build_union(
+                                                    probe_union,
+                                                    surface_candidates,
+                                                    surface_queries,
+                                                    snapshot,
+                                                    choice_revision.revision_id))
+                                            persistence_details = (
+                                                persistence_union.to_dict())
+                                            decision_stats[
+                                                "fdas_path_persistence_union_"
+                                                "evaluations"] += 1
+                                            decision_stats[
+                                                "fdas_path_persistence_union_"
+                                                "readouts"] += len(
+                                                    persistence_union.readouts)
+                                            decision_stats[
+                                                "fdas_path_persistence_union_"
+                                                "members"] += len(
+                                                    persistence_union.members)
+                                            decision_stats[
+                                                "fdas_path_persistence_union_"
+                                                "additions"] += len(
+                                                    persistence_union
+                                                    .persistence_added_operation_ids)
+                                            decision_stats[
+                                                "fdas_path_persistence_union_"
+                                                "retained_by_dwell"] += int(
+                                                    persistence_union
+                                                    .retained_by_dwell)
+                                            decision_stats[
+                                                "fdas_path_persistence_union_"
+                                                "retained_by_hysteresis"] += int(
+                                                    persistence_union
+                                                    .retained_by_hysteresis)
+                                            decision_stats[
+                                                "fdas_path_persistence_union_"
+                                                "regret_rejections"] += int(
+                                                    persistence_union
+                                                    .regret_rejected)
+                                            decision_stats[
+                                                "fdas_path_persistence_union_"
+                                                "expired_routes"] += len(
+                                                    persistence_union
+                                                    .expired_route_ids)
+                                            decision_stats[
+                                                "fdas_path_persistence_union_"
+                                                "fallbacks"] += int(
+                                                    persistence_union
+                                                    .fallback_required)
+                                            decision_stats[
+                                                "fdas_path_persistence_union_"
+                                                "selection_changes"] += int(
+                                                    persistence_details[
+                                                        "action_selection_changed"])
+                                            persistence_event = (
+                                                fdas_runtime
+                                                .emit_path_persistence_union(
+                                                    writer, snapshot,
+                                                    persistence_union,
+                                                    caused_by=(parent,)))
+                                            if persistence_event is not None:
+                                                parent = persistence_event[
+                                                    "event_id"]
                                 prior_choice_ids = frozenset(
                                     value.choice_set_id for value in
                                     fdas_candidate_choice_store.choice_sets())
@@ -6958,6 +7101,27 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_probe_candidate_union_incomplete_graphs"]),
         ("fdas_probe_candidate_union_selection_changes",
          decision_stats["fdas_probe_candidate_union_selection_changes"]),
+        ("fdas_path_persistence_union_evaluations",
+         decision_stats["fdas_path_persistence_union_evaluations"]),
+        ("fdas_path_persistence_union_readouts",
+         decision_stats["fdas_path_persistence_union_readouts"]),
+        ("fdas_path_persistence_union_members",
+         decision_stats["fdas_path_persistence_union_members"]),
+        ("fdas_path_persistence_union_additions",
+         decision_stats["fdas_path_persistence_union_additions"]),
+        ("fdas_path_persistence_union_retained_by_dwell",
+         decision_stats["fdas_path_persistence_union_retained_by_dwell"]),
+        ("fdas_path_persistence_union_retained_by_hysteresis",
+         decision_stats[
+             "fdas_path_persistence_union_retained_by_hysteresis"]),
+        ("fdas_path_persistence_union_regret_rejections",
+         decision_stats["fdas_path_persistence_union_regret_rejections"]),
+        ("fdas_path_persistence_union_expired_routes",
+         decision_stats["fdas_path_persistence_union_expired_routes"]),
+        ("fdas_path_persistence_union_fallbacks",
+         decision_stats["fdas_path_persistence_union_fallbacks"]),
+        ("fdas_path_persistence_union_selection_changes",
+         decision_stats["fdas_path_persistence_union_selection_changes"]),
         ("fdas_candidate_choice_sets",
          decision_stats["fdas_candidate_choice_sets"]),
         ("fdas_candidate_choices",
@@ -7492,6 +7656,27 @@ async def _play(run_dir, manifest, context):
             "fdas_probe_candidate_union_selection_changes": (
                 decision_stats[
                     "fdas_probe_candidate_union_selection_changes"]),
+            "fdas_path_persistence_union_evaluations": decision_stats[
+                "fdas_path_persistence_union_evaluations"],
+            "fdas_path_persistence_union_readouts": decision_stats[
+                "fdas_path_persistence_union_readouts"],
+            "fdas_path_persistence_union_members": decision_stats[
+                "fdas_path_persistence_union_members"],
+            "fdas_path_persistence_union_additions": decision_stats[
+                "fdas_path_persistence_union_additions"],
+            "fdas_path_persistence_union_retained_by_dwell": decision_stats[
+                "fdas_path_persistence_union_retained_by_dwell"],
+            "fdas_path_persistence_union_retained_by_hysteresis": (
+                decision_stats[
+                    "fdas_path_persistence_union_retained_by_hysteresis"]),
+            "fdas_path_persistence_union_regret_rejections": decision_stats[
+                "fdas_path_persistence_union_regret_rejections"],
+            "fdas_path_persistence_union_expired_routes": decision_stats[
+                "fdas_path_persistence_union_expired_routes"],
+            "fdas_path_persistence_union_fallbacks": decision_stats[
+                "fdas_path_persistence_union_fallbacks"],
+            "fdas_path_persistence_union_selection_changes": decision_stats[
+                "fdas_path_persistence_union_selection_changes"],
             "fdas_candidate_choice_sets": (
                 decision_stats["fdas_candidate_choice_sets"]),
             "fdas_candidate_choices": (
@@ -7892,6 +8077,26 @@ async def _play(run_dir, manifest, context):
             decision_stats["fdas_probe_candidate_union_incomplete_graphs"]),
         "fdas_probe_candidate_union_selection_changes": (
             decision_stats["fdas_probe_candidate_union_selection_changes"]),
+        "fdas_path_persistence_union_evaluations": decision_stats[
+            "fdas_path_persistence_union_evaluations"],
+        "fdas_path_persistence_union_readouts": decision_stats[
+            "fdas_path_persistence_union_readouts"],
+        "fdas_path_persistence_union_members": decision_stats[
+            "fdas_path_persistence_union_members"],
+        "fdas_path_persistence_union_additions": decision_stats[
+            "fdas_path_persistence_union_additions"],
+        "fdas_path_persistence_union_retained_by_dwell": decision_stats[
+            "fdas_path_persistence_union_retained_by_dwell"],
+        "fdas_path_persistence_union_retained_by_hysteresis": decision_stats[
+            "fdas_path_persistence_union_retained_by_hysteresis"],
+        "fdas_path_persistence_union_regret_rejections": decision_stats[
+            "fdas_path_persistence_union_regret_rejections"],
+        "fdas_path_persistence_union_expired_routes": decision_stats[
+            "fdas_path_persistence_union_expired_routes"],
+        "fdas_path_persistence_union_fallbacks": decision_stats[
+            "fdas_path_persistence_union_fallbacks"],
+        "fdas_path_persistence_union_selection_changes": decision_stats[
+            "fdas_path_persistence_union_selection_changes"],
         "fdas_candidate_choice_sets": (
             decision_stats["fdas_candidate_choice_sets"]),
         "fdas_candidate_choices": (

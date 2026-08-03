@@ -203,6 +203,48 @@ def test_probe_candidate_union_event_is_revision_bound_and_shadow_only(
             writer, snapshot, stale)
 
 
+def test_path_persistence_union_event_is_revision_bound_and_shadow_only(
+        tmp_path):
+    runtime = build_runtime(_enabled_city_declaration())
+    snapshot = _snapshot()
+    update = runtime.replace(snapshot)
+    details = {
+        "action_selection_changed": False,
+        "capacity_solver_enabled": False,
+        "flow_advection_enabled": False,
+        "path_persistence_authority": False,
+        "policy_authority": False,
+        "readout_authority": False,
+        "result_hash": "path-persistence-result-hash",
+        "scalar_final_score_authority": True,
+        "source_sink_flow_enabled": False,
+        "truth_mutated": False,
+    }
+    candidate_union = SimpleNamespace(
+        revision_id=update.revision_id,
+        snapshot_id=snapshot.snapshot_id,
+        to_dict=lambda: dict(details))
+    path = os.path.join(str(tmp_path), "path-persistence-events.jsonl")
+    writer = EventWriter(path, snapshot.identity.game_id, durable=False)
+
+    event = runtime.emit_path_persistence_union(
+        writer, snapshot, candidate_union)
+
+    assert event["type"] == "atomspace_shadow_decision"
+    assert event["payload"]["component_id"] == (
+        "fdas-path-persistence-candidate-union")
+    assert event["payload"]["details"]["path_persistence_authority"] is False
+    assert validate_file(path).valid
+
+    stale = SimpleNamespace(
+        revision_id="fdas-revision-stale",
+        snapshot_id=snapshot.snapshot_id,
+        to_dict=lambda: dict(details))
+    with pytest.raises(RuntimeError, match="revision-current"):
+        runtime.emit_path_persistence_union(
+            writer, snapshot, stale)
+
+
 def test_checked_city_stability_authority_runtime_assembles_explicitly():
     declaration = load_runtime_declaration(
         os.path.join(
