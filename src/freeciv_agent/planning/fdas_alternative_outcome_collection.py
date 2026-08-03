@@ -1,10 +1,10 @@
-"""Fail-closed shadow assignment for safe alternative-action outcomes.
+"""Fail-closed assignment for safe alternative-action outcomes.
 
-This component does not execute its assignment.  It identifies narrow defence
-decisions at which a later diagnostic may randomize between the current scalar
-winner and one persistence-only alternative, records the exact policy
-probability, and proves that both arms cross the same legal, resource, packet,
-and commit-validation boundary.
+Shadow mode only identifies narrow defence decisions.  The separately
+declared randomized-diagnostic mode may expose one exact assignment to the
+existing planner and final execution gate after repeating the complete legal,
+resource, packet, and commit preflight.  Neither mode updates epistemic truth
+or supports a gameplay claim.
 """
 
 from dataclasses import dataclass, replace
@@ -25,12 +25,16 @@ from .fdas_path_persistence_candidate_union import (
     FdasPathPersistenceCandidateUnion,
 )
 from .impact_types import ImpactCandidate
+from .operations import (
+    OperationAuthorityKind,
+    OperationAuthorityReadout,
+)
 
 
 ALTERNATIVE_OUTCOME_COLLECTION_IDENTITY = (
-    "fdas-safe-alternative-outcome-collection/2.0")
+    "fdas-safe-alternative-outcome-collection/3.0")
 ALTERNATIVE_OUTCOME_POLICY_VERSION = (
-    "fdas-defense-nearest-score-randomized-shadow/2.0")
+    "fdas-defense-nearest-score-randomized/3.0")
 
 
 def _finite(value, name):
@@ -78,9 +82,9 @@ class FdasAlternativeOutcomeCollectionConfig:
                 raise ValueError("{} cannot be negative".format(
                     name.replace("_", " ")))
             object.__setattr__(self, name, value)
-        if self.mode != "shadow":
+        if self.mode not in ("shadow", "randomized-diagnostic"):
             raise ValueError(
-                "alternative collection v1 supports shadow assignment only")
+                "alternative collection mode is unsupported")
         if self.allowed_action_type not in ("unit_fortify", "unit_move"):
             raise ValueError(
                 "alternative collection action slice is unsupported")
@@ -237,7 +241,9 @@ class FdasAlternativeOutcomeCollectionReadout:
     result_hash: str
 
     def __post_init__(self):
-        if self.status not in ("disabled", "ineligible", "eligible-shadow"):
+        if self.status not in (
+                "disabled", "ineligible", "eligible-shadow",
+                "eligible-randomized-diagnostic"):
             raise ValueError("alternative collection status is invalid")
         for value, name in (
                 (self.snapshot_id, "snapshot ID"),
@@ -263,16 +269,18 @@ class FdasAlternativeOutcomeCollectionReadout:
         if any(not isinstance(value, FdasAlternativeArmReadout)
                for value in self.arms):
             raise TypeError("alternative collection arms are invalid")
-        if any((
-                self.action_selection_changed,
-                self.policy_authority,
-                self.truth_mutated,
-                self.claim_eligible)):
+        actual = self.status == "eligible-randomized-diagnostic"
+        expected_change = bool(actual and self.assigned_arm == "treatment")
+        if (self.action_selection_changed != expected_change
+                or self.policy_authority != actual
+                or self.truth_mutated
+                or self.claim_eligible):
             raise ValueError(
-                "shadow alternative collection gained undeclared authority")
+                "alternative collection authority semantics differ")
         if self.outcome_update_scope != "control-model-only":
             raise ValueError("alternative collection update scope differs")
-        if self.status == "eligible-shadow":
+        if self.status in (
+                "eligible-shadow", "eligible-randomized-diagnostic"):
             if (self.reason is not None
                     or tuple(value.arm for value in self.arms)
                     != ("control", "treatment")
@@ -313,7 +321,7 @@ class FdasAlternativeOutcomeCollectionReadout:
 
     def _semantic(self):
         return {
-            "action_selection_changed": False,
+            "action_selection_changed": self.action_selection_changed,
             "arms": [value.to_dict() for value in self.arms],
             "assigned_action_key": self.assigned_action_key,
             "assigned_arm": self.assigned_arm,
@@ -329,7 +337,7 @@ class FdasAlternativeOutcomeCollectionReadout:
             "outcome_update_scope": self.outcome_update_scope,
             "persistence_union_result_hash": (
                 self.persistence_union_result_hash),
-            "policy_authority": False,
+            "policy_authority": self.policy_authority,
             "policy_version": self.policy_version,
             "priority_regret": self.priority_regret,
             "reason": self.reason,
@@ -350,7 +358,7 @@ class FdasAlternativeOutcomeCollectionReadout:
 
 
 class FdasAlternativeOutcomeCollectionEvaluator:
-    """Find safe randomized-outcome opportunities without executing them."""
+    """Find and, when declared, expose one safe randomized assignment."""
 
     def __init__(self, config, pressure_adapter=None, scheduling_bridge=None,
                  commit_validator=None):
@@ -371,6 +379,10 @@ class FdasAlternativeOutcomeCollectionEvaluator:
                  risk_penalty_delta=None):
         arm_by_name = dict((value.arm, value) for value in arms)
         assigned = arm_by_name.get(assigned_arm)
+        actual = bool(
+            status == "eligible-randomized-diagnostic")
+        action_selection_changed = bool(
+            actual and assigned_arm == "treatment")
         values = {
             "status": status,
             "reason": reason,
@@ -394,14 +406,14 @@ class FdasAlternativeOutcomeCollectionEvaluator:
             "assignment_material_hash": assignment_material_hash,
             "priority_regret": priority_regret,
             "risk_penalty_delta": risk_penalty_delta,
-            "action_selection_changed": False,
-            "policy_authority": False,
+            "action_selection_changed": action_selection_changed,
+            "policy_authority": actual,
             "truth_mutated": False,
             "claim_eligible": False,
             "outcome_update_scope": "control-model-only",
         }
         semantic = {
-            "action_selection_changed": False,
+            "action_selection_changed": action_selection_changed,
             "arms": [value.to_dict() for value in values["arms"]],
             "assigned_action_key": values["assigned_action_key"],
             "assigned_arm": assigned_arm,
@@ -416,7 +428,7 @@ class FdasAlternativeOutcomeCollectionEvaluator:
             "identity": ALTERNATIVE_OUTCOME_COLLECTION_IDENTITY,
             "outcome_update_scope": "control-model-only",
             "persistence_union_result_hash": persistence_union.result_hash,
-            "policy_authority": False,
+            "policy_authority": actual,
             "policy_version": ALTERNATIVE_OUTCOME_POLICY_VERSION,
             "priority_regret": priority_regret,
             "reason": reason,
@@ -445,7 +457,7 @@ class FdasAlternativeOutcomeCollectionEvaluator:
                 if value != "no-action-authority") + (
                     ALTERNATIVE_OUTCOME_COLLECTION_IDENTITY,
                     contract,
-                    "claim-ineligible-stochastic-shadow-preflight",
+                    "claim-ineligible-stochastic-preflight",
                 ))
         semantic = {
             "action_key": candidate.action_key,
@@ -464,7 +476,7 @@ class FdasAlternativeOutcomeCollectionEvaluator:
                 ALTERNATIVE_OUTCOME_COLLECTION_IDENTITY,
                 "atom:" + source_record.atom_id,
                 contract,
-                "claim-ineligible-stochastic-shadow-preflight",
+                "claim-ineligible-stochastic-preflight",
             ),
             candidate_hash=structural_hash(semantic))
 
@@ -778,7 +790,10 @@ class FdasAlternativeOutcomeCollectionEvaluator:
             else 1.0 - self.config.treatment_probability)
         checks.append("stable-propensity-recorded-assignment")
         return self._readout(
-            "eligible-shadow", None, snapshot, revision, persistence_union,
+            ("eligible-randomized-diagnostic"
+             if self.config.mode == "randomized-diagnostic" else
+             "eligible-shadow"),
+            None, snapshot, revision, persistence_union,
             checks=checks,
             arms=(control_arm, treatment_arm),
             assigned_arm=assigned_arm,
@@ -787,3 +802,72 @@ class FdasAlternativeOutcomeCollectionEvaluator:
             assignment_material_hash=assignment_hash,
             priority_regret=priority_regret,
             risk_penalty_delta=risk_delta)
+
+    def authority_readout(
+            self, assignment, snapshot, revision, shadow_evaluation,
+            legacy_candidate, candidates, scores, persistence_union):
+        """Revalidate and expose the assigned action to the active planner."""
+        if self.config.mode != "randomized-diagnostic":
+            raise ValueError(
+                "shadow alternative assignment cannot gain action authority")
+        if (not isinstance(
+                    assignment, FdasAlternativeOutcomeCollectionReadout)
+                or assignment.status != "eligible-randomized-diagnostic"
+                or not assignment.policy_authority
+                or assignment.claim_eligible
+                or assignment.truth_mutated):
+            raise ValueError(
+                "alternative authority requires an eligible diagnostic")
+        current = self.evaluate(
+            snapshot, revision, shadow_evaluation, legacy_candidate,
+            candidates, scores, persistence_union)
+        if current != assignment:
+            raise RuntimeError(
+                "alternative assignment changed during exact revalidation")
+        matches = tuple(
+            value for value in candidates
+            if (value.operation.operation_id
+                == assignment.assigned_operation_id
+                and value.action_key == assignment.assigned_action_key))
+        if len(matches) != 1:
+            raise RuntimeError(
+                "alternative assignment has no unique current candidate")
+        candidate = matches[0]
+        score = next((
+            value for value in scores
+            if value.operation_id == assignment.assigned_operation_id
+        ), None)
+        if score is None:
+            raise RuntimeError(
+                "alternative assignment lost its current typed score")
+        arm = next(
+            value for value in assignment.arms
+            if value.arm == assignment.assigned_arm)
+        repeated, reason = self._preflight(
+            assignment.assigned_arm, candidate, score,
+            snapshot, revision, shadow_evaluation.goals)
+        if reason is not None or repeated != arm:
+            raise RuntimeError(
+                "alternative assignment exact preflight changed: {}".format(
+                    reason or "arm-proof-mismatch"))
+        return OperationAuthorityReadout(
+            OperationAuthorityKind.CITY_DEFENSE,
+            candidate.operation.operation_id,
+            candidate.operation.operation_type,
+            dict(candidate.action),
+            candidate.action_key,
+            legacy_candidate.category,
+            snapshot.snapshot_id,
+            snapshot.legal_actions_digest,
+            max(0.0, float(score.priority)),
+            (
+                ALTERNATIVE_OUTCOME_COLLECTION_IDENTITY,
+                ALTERNATIVE_OUTCOME_POLICY_VERSION,
+                "claim-ineligible-randomized-diagnostic",
+                "experiment:" + assignment.experiment_id,
+                "assignment-result:" + assignment.result_hash,
+                "assigned-arm:" + assignment.assigned_arm,
+                "selection-propensity:{:.17g}".format(
+                    assignment.selection_propensity),
+                "truth-authority:false",
+            ))

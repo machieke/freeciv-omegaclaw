@@ -254,6 +254,7 @@ def test_alternative_collection_event_requires_propensity_and_no_authority(
         "action_selection_changed": False,
         "assignment_executed": False,
         "claim_eligible": False,
+        "config": {"mode": "shadow"},
         "outcome_update_scope": "control-model-only",
         "policy_authority": False,
         "selection_policy_kind": "stochastic",
@@ -290,9 +291,60 @@ def test_alternative_collection_event_requires_propensity_and_no_authority(
         revision_id=update.revision_id,
         snapshot_id=snapshot.snapshot_id,
         to_dict=lambda: dict(details, assignment_executed=True))
-    with pytest.raises(RuntimeError, match="undeclared authority"):
+    with pytest.raises(RuntimeError, match="declared scope"):
         runtime.emit_alternative_outcome_collection(
             writer, snapshot, authority_leak)
+
+
+def test_randomized_alternative_assignment_and_execution_are_authority_events(
+        tmp_path):
+    runtime = build_runtime(_enabled_city_declaration())
+    snapshot = _snapshot()
+    update = runtime.replace(snapshot)
+    details = {
+        "action_selection_changed": True,
+        "assigned_arm": "treatment",
+        "assignment_executed": False,
+        "claim_eligible": False,
+        "config": {"mode": "randomized-diagnostic"},
+        "outcome_update_scope": "control-model-only",
+        "policy_authority": True,
+        "selection_policy_kind": "stochastic",
+        "selection_propensity": 0.5,
+        "source_sink_flow_enabled": False,
+        "status": "eligible-randomized-diagnostic",
+        "truth_mutated": False,
+    }
+    assignment = SimpleNamespace(
+        revision_id=update.revision_id,
+        snapshot_id=snapshot.snapshot_id,
+        status="eligible-randomized-diagnostic",
+        policy_authority=True,
+        claim_eligible=False,
+        truth_mutated=False,
+        action_selection_changed=True,
+        assigned_action_key="test-action-key",
+        assigned_arm="treatment",
+        assigned_operation_id="test-operation",
+        result_hash="test-assignment-result",
+        selection_propensity=0.5,
+        to_dict=lambda: dict(details))
+    path = os.path.join(str(tmp_path), "alternative-execution-events.jsonl")
+    writer = EventWriter(path, snapshot.identity.game_id, durable=False)
+
+    assignment_event = runtime.emit_alternative_outcome_collection(
+        writer, snapshot, assignment)
+    execution_event = runtime.emit_alternative_outcome_execution(
+        writer, snapshot, assignment, True, "action-result-1",
+        episode_id="episode-1",
+        caused_by=(assignment_event["event_id"],))
+
+    assert assignment_event["type"] == "atomspace_authority_decision"
+    assert execution_event["type"] == "atomspace_authority_decision"
+    assert execution_event["payload"]["details"]["assignment_executed"]
+    assert execution_event["payload"]["details"]["episode_id"] == (
+        "episode-1")
+    assert validate_file(path).valid
 
 
 def test_checked_city_stability_authority_runtime_assembles_explicitly():

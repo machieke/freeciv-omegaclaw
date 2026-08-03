@@ -6874,6 +6874,114 @@ class GroundedImpactPlanner(object):
                 advisory_artifact.get("target_artifact"))
         return None
 
+    def _materialize_candidate(
+            self, snapshot, candidate, pressure_artifact=None,
+            operation_authority_result=None, diagnostics=None,
+            record_control=True, record_batch_intent=True):
+        """Build one exact plan without repeating candidate generation.
+
+        The public planner and the bounded alternative-action diagnostic share
+        this pure plan boundary.  Experimental rematerialization deliberately
+        disables legacy batch-intent and control-feedback side effects.
+        """
+        materialization_started = time.perf_counter()
+        if (record_batch_intent
+                and candidate.category == "production_military_score"
+                and self._unit_score_batch_intent is None):
+            projection = candidate.projection or {}
+            action_keys = projection.get("batch_action_keys", ())
+            if action_keys:
+                self._unit_score_batch_intent = {
+                    "awaiting": candidate.action_key,
+                    "projection": {
+                        key: value for key, value in projection.items()
+                        if key.startswith("batch_")},
+                    "remaining": set(action_keys),
+                    "turn": int(snapshot.turn),
+                }
+        elif (record_batch_intent
+              and candidate.category == "production_military_score"
+              and isinstance(self._unit_score_batch_intent, dict)):
+            self._unit_score_batch_intent["awaiting"] = candidate.action_key
+        proof_hash = structural_hash({
+            "action": candidate.action, "category": candidate.category,
+            "projection": candidate.projection,
+            "snapshot_id": snapshot.snapshot_id,
+        })
+        step_id = "impact-step-" + proof_hash[:16]
+        step = PlanStep(
+            step_id, "engine-action", candidate.action, snapshot.turn, 0, 0.0,
+            status="ACTIVE", snapshot_id=snapshot.snapshot_id,
+            legal_actions_digest=snapshot.legal_actions_digest,
+            spatial=_spatial_target(candidate.action))
+        scheduler_cost = max(0.0, 1000.0 - candidate.utility)
+        branch = BranchScore(
+            "impact-" + candidate.category, 1.0, scheduler_cost, 0, True)
+        plan_id = "impact-plan-" + structural_hash([
+            proof_hash, step.to_dict(), branch.to_dict()])[:20]
+        plan = Plan(
+            plan_id, "grounded-impact:{}".format(candidate.category),
+            proof_hash, snapshot.snapshot_id, (step,), ResourceLedger(),
+            (branch,), branch.branch_id, "grounded-impact-utility",
+            scheduler_cost, 1.0, 0, self.SOLVER_IDENTITY)
+        if diagnostics is not None:
+            diagnostics["materialization_latency_ms"] = (
+                diagnostics.get("materialization_latency_ms", 0.0)
+                + (time.perf_counter() - materialization_started) * 1000.0)
+        if record_control and self.last_control_decision is not None:
+            control_key = (candidate.action_key, snapshot.snapshot_id)
+            self._pending_control_decisions[control_key] = (
+                self.last_control_decision, self.last_control_query)
+            while len(self._pending_control_decisions) > 128:
+                self._pending_control_decisions.pop(next(iter(
+                    self._pending_control_decisions)))
+        return ImpactDecision(
+            candidate, plan, pressure_artifact, operation_authority_result)
+
+    def rematerialize_exact_authority(
+            self, snapshot, prior_decision, authority_readout,
+            diagnostics=None):
+        """Apply one current exact authority readout to the cached catalog.
+
+        This cannot manufacture a candidate or action.  It accepts exactly one
+        candidate produced by the immediately preceding plan call and keeps
+        the existing final execution gate downstream.
+        """
+        if not isinstance(prior_decision, ImpactDecision):
+            raise TypeError("exact rematerialization requires a prior decision")
+        if not isinstance(authority_readout, OperationAuthorityReadout):
+            raise TypeError("exact rematerialization requires typed authority")
+        if (authority_readout.snapshot_id != snapshot.snapshot_id
+                or authority_readout.legal_actions_digest
+                != snapshot.legal_actions_digest
+                or authority_readout.action_key
+                not in snapshot.legal_action_json):
+            raise ValueError("exact rematerialization authority is stale")
+        matches = tuple(
+            value for value in self.last_candidate_catalog
+            if (value.action_key == authority_readout.action_key
+                and value.category
+                == authority_readout.candidate_category))
+        if len(matches) != 1:
+            raise ValueError(
+                "exact rematerialization requires one cached candidate")
+        candidate = matches[0]
+        changed = candidate.action_key != prior_decision.candidate.action_key
+        authority_result = {
+            "applied": True,
+            "baseline_candidate_key": prior_decision.candidate.action_key,
+            "changed_winner": changed,
+            "readout": authority_readout,
+        }
+        return self._materialize_candidate(
+            snapshot, candidate,
+            pressure_artifact=(
+                None if changed else prior_decision.pressure_artifact),
+            operation_authority_result=authority_result,
+            diagnostics=diagnostics,
+            record_control=False,
+            record_batch_intent=False)
+
     def plan(self, snapshot, excluded=(), excluded_scopes=(),
              diagnostics=None, operation_authority=None):
         self.last_stranded_pressure_artifact = None
@@ -7058,66 +7166,10 @@ class GroundedImpactPlanner(object):
                     "readout":
                         operation_authority,
                 }
-        materialization_started = time.perf_counter()
         candidate = rows[0]
-        if (candidate.category == "production_military_score"
-                and self._unit_score_batch_intent is None):
-            projection = candidate.projection or {}
-            action_keys = projection.get("batch_action_keys", ())
-            if action_keys:
-                self._unit_score_batch_intent = {
-                    "awaiting": candidate.action_key,
-                    "projection": {
-                        key: value for key, value in projection.items()
-                        if key.startswith("batch_")},
-                    "remaining": set(action_keys),
-                    "turn": int(snapshot.turn),
-                }
-        elif (candidate.category == "production_military_score"
-              and isinstance(self._unit_score_batch_intent, dict)):
-            self._unit_score_batch_intent["awaiting"] = candidate.action_key
-        proof_hash = structural_hash({
-            "action": candidate.action, "category": candidate.category,
-            "projection": candidate.projection,
-            "snapshot_id": snapshot.snapshot_id,
-        })
-        step_id = "impact-step-" + proof_hash[:16]
-        step = PlanStep(
-            step_id, "engine-action", candidate.action, snapshot.turn, 0, 0.0,
-            status="ACTIVE", snapshot_id=snapshot.snapshot_id,
-            legal_actions_digest=snapshot.legal_actions_digest,
-            spatial=_spatial_target(candidate.action))
-        scheduler_cost = max(0.0, 1000.0 - candidate.utility)
-        branch = BranchScore(
-            "impact-" + candidate.category, 1.0, scheduler_cost, 0, True)
-        plan_id = "impact-plan-" + structural_hash([
-            proof_hash, step.to_dict(), branch.to_dict()])[:20]
-        plan = Plan(
-            plan_id, "grounded-impact:{}".format(candidate.category), proof_hash,
-            snapshot.snapshot_id, (step,), ResourceLedger(), (branch,),
-            branch.branch_id, "grounded-impact-utility", scheduler_cost, 1.0, 0,
-            self.SOLVER_IDENTITY)
-        if diagnostics is not None:
-            diagnostics["materialization_latency_ms"] = (
-                diagnostics.get("materialization_latency_ms", 0.0)
-                + (time.perf_counter() - materialization_started) * 1000.0)
-        if self.last_control_decision is not None:
-            control_key = (
-                candidate.action_key,
-                snapshot.snapshot_id)
-            self._pending_control_decisions[
-                control_key] = (
-                    self.last_control_decision,
-                    self.last_control_query)
-            while len(
-                    self._pending_control_decisions) > 128:
-                self._pending_control_decisions.pop(
-                    next(iter(
-                        self._pending_control_decisions)))
-        return ImpactDecision(
-            candidate, plan,
-            pressure_artifact,
-            operation_authority_result)
+        return self._materialize_candidate(
+            snapshot, candidate, pressure_artifact,
+            operation_authority_result, diagnostics)
 
     def flush_domain_estimates(self, timeout=None):
         """Drain retained non-authoritative domain artifacts for observability."""

@@ -14,7 +14,9 @@ if SRC not in sys.path:
 
 from freeciv_agent.planning import (DeferredImpactOutcomeLedger,
                                     GroundedImpactPlanner, ImpactCandidate,
-                                    ImpactTurnBudget)  # noqa: E402
+                                    ImpactTurnBudget,
+                                    OperationAuthorityKind,
+                                    OperationAuthorityReadout)  # noqa: E402
 from freeciv_agent.state import ProxyStateDTO  # noqa: E402
 
 
@@ -238,6 +240,60 @@ def test_candidate_enumeration_skips_unplanned_production_projection():
             [_unit(1, "Settlers"), _unit(11, "Alpine Troops")], actions))
     }
     assert "Pyramids" not in projected
+
+
+def test_exact_authority_rematerializes_only_a_cached_legal_candidate():
+    actions = [
+        {"action_type": "unit_fortify", "actor_id": 11,
+         "is_valid": True},
+        {"action_type": "unit_fortify", "actor_id": 12,
+         "is_valid": True},
+        {"action_type": "end_turn", "is_valid": True},
+    ]
+    snapshot = _snapshot([
+        _unit(11, "Alpine Troops"),
+        _unit(12, "Alpine Troops"),
+    ], actions)
+    planner = GroundedImpactPlanner()
+    control = ImpactCandidate(
+        {"action_type": "unit_fortify", "actor_id": 11},
+        "city_defense", 10.0, "control")
+    treatment = ImpactCandidate(
+        {"action_type": "unit_fortify", "actor_id": 12},
+        "city_defense", 10.0, "treatment")
+    planner.last_candidate_catalog = (control, treatment)
+    prior = planner._materialize_candidate(snapshot, control)
+    authority = OperationAuthorityReadout(
+        OperationAuthorityKind.CITY_DEFENSE,
+        "test-randomized-operation", "test-defense-operation",
+        treatment.action, treatment.action_key, treatment.category,
+        snapshot.snapshot_id, snapshot.legal_actions_digest, 0.0,
+        ("test-randomized-authority",))
+
+    rematerialized = planner.rematerialize_exact_authority(
+        snapshot, prior, authority)
+
+    assert rematerialized.candidate == treatment
+    assert rematerialized.plan.steps[0].target == treatment.action
+    assert rematerialized.operation_authority["applied"] is True
+    assert rematerialized.operation_authority["changed_winner"] is True
+    assert rematerialized.operation_authority[
+        "baseline_candidate_key"] == control.action_key
+    assert rematerialized.pressure_artifact is None
+
+    uncached = OperationAuthorityReadout(
+        OperationAuthorityKind.CITY_DEFENSE,
+        "test-uncached-operation", "test-defense-operation",
+        {"action_type": "end_turn"},
+        '{"action_type":"end_turn"}', "city_defense",
+        snapshot.snapshot_id, snapshot.legal_actions_digest, 0.0,
+        ("test-randomized-authority",))
+    try:
+        planner.rematerialize_exact_authority(snapshot, prior, uncached)
+    except ValueError as error:
+        assert "one cached candidate" in str(error)
+    else:
+        raise AssertionError("uncached authority unexpectedly materialized")
 
 
 def test_ruleset_driven_policy_answers_naval_threat_with_buildable_vessel():

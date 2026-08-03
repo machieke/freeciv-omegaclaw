@@ -1003,7 +1003,7 @@ class FdasRuntime(object):
 
     def emit_alternative_outcome_collection(
             self, writer, snapshot, readout, caused_by=()):
-        """Emit a safe randomized assignment that has no action authority."""
+        """Emit a safe randomized assignment with explicit authority scope."""
         if self.event_emitter is None:
             return None
         revision = self.snapshot_store.current_dependent_revision(
@@ -1016,25 +1016,102 @@ class FdasRuntime(object):
                 "FDAS alternative collection readout is not revision-current")
         details = readout.to_dict()
         if any(details.get(name) is not False for name in (
-                "action_selection_changed", "assignment_executed",
-                "claim_eligible", "policy_authority",
+                "assignment_executed", "claim_eligible",
                 "source_sink_flow_enabled", "truth_mutated")):
             raise RuntimeError(
-                "FDAS alternative collection grants undeclared authority")
+                "FDAS alternative collection escaped its declared scope")
         if details.get("outcome_update_scope") != "control-model-only":
             raise RuntimeError(
                 "FDAS alternative collection escaped control-model scope")
-        if (details.get("status") == "eligible-shadow"
+        eligible = details.get("status") in (
+            "eligible-shadow", "eligible-randomized-diagnostic")
+        if (eligible
                 and (details.get("selection_policy_kind") != "stochastic"
                      or details.get("selection_propensity") is None)):
             raise RuntimeError(
                 "FDAS eligible alternative collection lacks propensity")
+        configured_actual = bool(
+            details.get("config", {}).get("mode")
+            == "randomized-diagnostic")
+        actual = details.get("status") == "eligible-randomized-diagnostic"
+        if (details.get("policy_authority") is not actual
+                or details.get("action_selection_changed") is not bool(
+                    actual and details.get("assigned_arm") == "treatment")
+                or (details.get("status") == "eligible-shadow"
+                    and configured_actual)
+                or (actual and not configured_actual)):
+            raise RuntimeError(
+                "FDAS alternative collection authority semantics differ")
         return self.event_emitter.emit_component(
-            writer, "atomspace_shadow_decision", snapshot.turn, revision,
+            writer,
+            ("atomspace_authority_decision"
+             if configured_actual else "atomspace_shadow_decision"),
+            snapshot.turn, revision,
             details, caused_by=tuple(caused_by),
             ruleset_digest=self.ruleset_digest,
             component_id="fdas-safe-alternative-outcome-collection",
-            component_version="2.0")
+            component_version="3.0")
+
+    def emit_alternative_outcome_execution(
+            self, writer, snapshot, assignment, accepted,
+            execution_event_id, episode_id=None, caused_by=()):
+        """Link one diagnostic assignment to execution and its episode."""
+        if self.event_emitter is None:
+            return None
+        revision = self.snapshot_store.current_dependent_revision(
+            snapshot.identity.game_id, snapshot.player_id)
+        if (revision is None
+                or revision.snapshot_id != snapshot.snapshot_id
+                or assignment.snapshot_id != snapshot.snapshot_id
+                or assignment.revision_id != revision.revision_id
+                or assignment.status
+                != "eligible-randomized-diagnostic"
+                or not assignment.policy_authority
+                or assignment.claim_eligible
+                or assignment.truth_mutated):
+            raise RuntimeError(
+                "FDAS alternative execution lacks current assignment authority")
+        if not isinstance(accepted, bool):
+            raise TypeError("FDAS alternative execution status must be boolean")
+        if (not isinstance(execution_event_id, str)
+                or not execution_event_id):
+            raise ValueError(
+                "FDAS alternative execution requires an event identity")
+        if accepted:
+            if not isinstance(episode_id, str) or not episode_id:
+                raise ValueError(
+                    "accepted FDAS alternative execution requires an episode")
+        elif episode_id is not None:
+            raise ValueError(
+                "rejected FDAS alternative execution cannot link an episode")
+        semantic = {
+            "action_selection_changed": (
+                assignment.action_selection_changed),
+            "assigned_action_key": assignment.assigned_action_key,
+            "assigned_arm": assignment.assigned_arm,
+            "assigned_operation_id": assignment.assigned_operation_id,
+            "assignment_executed": accepted,
+            "assignment_execution_attempted": True,
+            "assignment_result_hash": assignment.result_hash,
+            "claim_eligible": False,
+            "episode_id": episode_id,
+            "execution_event_id": execution_event_id,
+            "outcome_update_scope": "control-model-only",
+            "policy_authority": True,
+            "selection_policy_kind": "stochastic",
+            "selection_propensity": assignment.selection_propensity,
+            "status": (
+                "execution-accepted-episode-linked"
+                if accepted else "execution-rejected"),
+            "truth_mutated": False,
+        }
+        semantic["result_hash"] = structural_hash(semantic)
+        return self.event_emitter.emit_component(
+            writer, "atomspace_authority_decision", snapshot.turn, revision,
+            semantic, caused_by=tuple(caused_by),
+            ruleset_digest=self.ruleset_digest,
+            component_id="fdas-safe-alternative-outcome-execution",
+            component_version="1.0")
 
 
 def build_runtime(declaration, ruleset_ir=None, belief_store=None,

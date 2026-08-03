@@ -226,6 +226,24 @@ def test_authorized_fortification_episode_separates_acceptance_and_relief(ir):
     assert "selection-evidence:choice-set-selection-evidence" in (
         observed.provenance_ids)
 
+    randomized_store = DecisionEpisodeStore(
+        "fdas-defense-randomized-selection-episodes")
+    randomized = FdasDefenseEpisodeRecorder(
+        randomized_store).begin_observed_selection(
+            evaluation.candidates[0], evaluation, snapshot, revision,
+            "action-result-randomized", "randomized-selection-evidence",
+            selection_policy_authority=True,
+            selection_provenance_ids=(
+                "alternative-assignment-result:test-assignment",
+                "assigned-arm:treatment",
+                "selection-propensity:0.5",
+                "claim-eligible:false",
+            ))
+    assert "fdas-observed-randomized-defense-selection/1.0" in (
+        randomized.provenance_ids)
+    assert "policy-authority:true" in randomized.provenance_ids
+    assert "selection-propensity:0.5" in randomized.provenance_ids
+
     operations = OperationStore("fdas-defense-authority-episode-operations")
     record = operations.propose(
         promoted.operation, snapshot.snapshot_id, snapshot.turn)

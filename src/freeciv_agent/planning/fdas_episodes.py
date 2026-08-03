@@ -687,8 +687,10 @@ class FdasDefenseEpisodeRecorder(object):
 
     def begin_observed_selection(
             self, candidate, shadow_evaluation, before_snapshot,
-            before_revision, execution_event_id, selection_evidence_hash):
-        """Open a non-authorizing episode for one accepted legacy selection."""
+            before_revision, execution_event_id, selection_evidence_hash,
+            selection_policy_authority=False,
+            selection_provenance_ids=()):
+        """Open an episode for one exact accepted defense-surface selection."""
         if not isinstance(candidate, ShadowOperationCandidate):
             raise TypeError("observed episode requires shadow candidate")
         if (shadow_evaluation.snapshot_id != before_snapshot.snapshot_id
@@ -698,6 +700,13 @@ class FdasDefenseEpisodeRecorder(object):
         if (not isinstance(selection_evidence_hash, str)
                 or not selection_evidence_hash):
             raise ValueError("observed episode requires selection evidence")
+        if not isinstance(selection_policy_authority, bool):
+            raise TypeError("observed episode policy authority must be boolean")
+        selection_provenance_ids = _strings(
+            selection_provenance_ids, "selection provenance", unique=True)
+        if selection_policy_authority and not selection_provenance_ids:
+            raise ValueError(
+                "authorizing observed selection requires policy provenance")
         action = candidate.action
         operation_type = candidate.operation.operation_type
         supported = {
@@ -753,10 +762,13 @@ class FdasDefenseEpisodeRecorder(object):
             source_support_ids=source_support_ids,
             grounding_result_ids=(candidate.candidate_hash,),
             extra_provenance_ids=(
-                "fdas-observed-legacy-defense-selection/1.0",
+                ("fdas-observed-randomized-defense-selection/1.0"
+                 if selection_policy_authority else
+                 "fdas-observed-legacy-defense-selection/1.0"),
                 "selection-evidence:" + selection_evidence_hash,
-                "policy-authority:false",
-            ))
+                "policy-authority:{}".format(
+                    str(selection_policy_authority).lower()),
+            ) + selection_provenance_ids)
 
     def observe(self, episode_id, after_snapshot, after_revision_id,
                 observation_window_closed=False):

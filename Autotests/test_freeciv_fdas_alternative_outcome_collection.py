@@ -390,6 +390,44 @@ def test_bounded_nearest_score_source_does_not_require_scalar_equivalence(ir):
     assert "single-persistence-addition" not in readout.checks
 
 
+def test_randomized_diagnostic_revalidates_one_exact_authority_readout(ir):
+    case = _movement_case(ir)
+    evaluator = FdasAlternativeOutcomeCollectionEvaluator(
+        FdasAlternativeOutcomeCollectionConfig(
+            "fdas-reinforcement-randomized-pilot-v1", 1777,
+            allowed_action_type="unit_move",
+            alternative_source="bounded-nearest-score",
+            mode="randomized-diagnostic"))
+
+    assignment = evaluator.evaluate(*case)
+    authority = evaluator.authority_readout(assignment, *case)
+
+    assert assignment.status == "eligible-randomized-diagnostic"
+    assert assignment.policy_authority
+    assert assignment.claim_eligible is False
+    assert assignment.action_selection_changed == (
+        assignment.assigned_arm == "treatment")
+    assert authority.action_key == assignment.assigned_action_key
+    assert authority.operation_id == assignment.assigned_operation_id
+    assert authority.snapshot_id == case[0].snapshot_id
+    assert authority.legal_actions_digest == case[0].legal_actions_digest
+    assert "claim-ineligible-randomized-diagnostic" in authority.provenance
+    assert any(value.startswith("selection-propensity:")
+               for value in authority.provenance)
+
+
+def test_shadow_assignment_cannot_be_exposed_as_action_authority(ir):
+    case = _movement_case(ir)
+    evaluator = FdasAlternativeOutcomeCollectionEvaluator(
+        FdasAlternativeOutcomeCollectionConfig(
+            "fdas-reinforcement-outcome-smoke-v1", 1777,
+            allowed_action_type="unit_move"))
+    assignment = evaluator.evaluate(*case)
+
+    with pytest.raises(ValueError, match="cannot gain action authority"):
+        evaluator.authority_readout(assignment, *case)
+
+
 def test_alternative_collection_declaration_rejects_authority_leak():
     values = FdasAlternativeOutcomeCollectionConfig(
         "fdas-fortification-outcome-smoke-v1", 1729).to_dict()

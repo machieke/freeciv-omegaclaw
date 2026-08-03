@@ -2769,6 +2769,7 @@ async def _play(run_dir, manifest, context):
         alternative_collection_capability is not None
         or alternative_collection_diagnostic is not None)
     fdas_alternative_collection_evaluator = None
+    fdas_alternative_randomized_diagnostic = False
     fdas_outcome_label_path = os.path.join(
         run_dir, "fdas-induction-outcome-labels.json")
     fdas_outcome_label_store = None
@@ -3212,22 +3213,11 @@ async def _play(run_dir, manifest, context):
             "source_sink_flow_enabled",
             "truth_mutated",
         }
-        if alternative_collection_capability != "shadow-live":
-            raise RuntimeError(
-                "FDAS alternative collection requires shadow-live manifest")
         if (not isinstance(alternative_collection_diagnostic, dict)
                 or set(alternative_collection_diagnostic)
                 != expected_alternative_keys):
             raise RuntimeError(
                 "FDAS alternative collection declaration is incomplete")
-        if any(alternative_collection_diagnostic[name] is not False
-               for name in (
-                   "action_selection_changed", "assignment_executed",
-                   "claim_eligible", "policy_authority",
-                   "readout_authority", "source_sink_flow_enabled",
-                   "truth_mutated")):
-            raise RuntimeError(
-                "FDAS alternative collection cannot grant authority")
         if (alternative_collection_diagnostic[
                     "path_persistence_candidate_union_required"] is not True
                 or not fdas_path_persistence_candidate_union):
@@ -3245,6 +3235,37 @@ async def _play(run_dir, manifest, context):
                 "config"]:
             raise RuntimeError(
                 "FDAS alternative collection config is not canonical")
+        fdas_alternative_randomized_diagnostic = bool(
+            alternative_config.mode == "randomized-diagnostic")
+        expected_capability = (
+            "bounded-authority"
+            if fdas_alternative_randomized_diagnostic else "shadow-live")
+        if alternative_collection_capability != expected_capability:
+            raise RuntimeError(
+                "FDAS alternative collection capability differs from mode")
+        expected_authority = fdas_alternative_randomized_diagnostic
+        for name in (
+                "action_selection_changed", "assignment_executed",
+                "policy_authority", "readout_authority"):
+            if (alternative_collection_diagnostic[name]
+                    is not expected_authority):
+                raise RuntimeError(
+                    "FDAS alternative collection authority declaration "
+                    "differs from mode")
+        if any(alternative_collection_diagnostic[name] is not False
+               for name in (
+                   "claim_eligible", "source_sink_flow_enabled",
+                   "truth_mutated")):
+            raise RuntimeError(
+                "FDAS alternative collection escaped diagnostic scope")
+        if (fdas_alternative_randomized_diagnostic
+                and (not fdas_runtime.config.authority_enabled
+                     or not fdas_runtime.config.section(
+                         "domain_authority")["city_defense"]
+                     or not fdas_manifest.get("policy_authority"))):
+            raise RuntimeError(
+                "FDAS randomized alternative collection requires bounded "
+                "city-defense authority")
         fdas_alternative_collection_evaluator = (
             FdasAlternativeOutcomeCollectionEvaluator(alternative_config))
     if (candidate_impact_capability is not None
@@ -3595,6 +3616,10 @@ async def _play(run_dir, manifest, context):
         "fdas_alternative_collection_control_assignments": 0,
         "fdas_alternative_collection_treatment_assignments": 0,
         "fdas_alternative_collection_selection_changes": 0,
+        "fdas_alternative_collection_execution_attempts": 0,
+        "fdas_alternative_collection_execution_accepted": 0,
+        "fdas_alternative_collection_execution_rejected": 0,
+        "fdas_alternative_collection_episode_links": 0,
         "fdas_candidate_choice_sets": (
             len(fdas_candidate_choice_store.choice_sets())
             if fdas_candidate_choice_store is not None else 0),
@@ -5438,6 +5463,11 @@ async def _play(run_dir, manifest, context):
                     fdas_authority = None
                     candidate_impact = None
                     candidate_choice_set = None
+                    alternative_readout = None
+                    alternative_authority = None
+                    legacy_decision_action_key = (
+                        None if decision is None
+                        else decision.candidate.action_key)
                     typed_scores = None
                     defense_choice_surface_relevant = bool(
                         fdas_defense_choice_surface
@@ -5911,7 +5941,10 @@ async def _play(run_dir, manifest, context):
                                                     "fdas_alternative_"
                                                     "collection_eligible"] += int(
                                                         alternative_readout.status
-                                                        == "eligible-shadow")
+                                                        in (
+                                                            "eligible-shadow",
+                                                            "eligible-randomized-"
+                                                            "diagnostic"))
                                                 decision_stats[
                                                     "fdas_alternative_"
                                                     "collection_ineligible"] += int(
@@ -5946,6 +5979,55 @@ async def _play(run_dir, manifest, context):
                                                 if alternative_event is not None:
                                                     parent = alternative_event[
                                                         "event_id"]
+                                                if (fdas_alternative_randomized_diagnostic
+                                                        and alternative_readout
+                                                        .status
+                                                        == "eligible-randomized-"
+                                                        "diagnostic"):
+                                                    alternative_authority = (
+                                                        fdas_alternative_collection_evaluator
+                                                        .authority_readout(
+                                                            alternative_readout,
+                                                            snapshot,
+                                                            choice_revision,
+                                                            fdas_shadow,
+                                                            decision.candidate,
+                                                            surface_candidates,
+                                                            typed_scores,
+                                                            persistence_union))
+                                                    decision = (
+                                                        impact_planner
+                                                        .rematerialize_exact_authority(
+                                                            snapshot,
+                                                            decision,
+                                                            alternative_authority,
+                                                            diagnostics=(
+                                                                impact_planning_diagnostics)))
+                                                    if (decision.candidate
+                                                            .action_key
+                                                            != alternative_readout
+                                                            .assigned_action_key):
+                                                        raise RuntimeError(
+                                                            "FDAS randomized "
+                                                            "assignment changed "
+                                                            "during plan "
+                                                            "materialization")
+                                alternative_choice_provenance = ()
+                                if (alternative_readout is not None
+                                        and alternative_readout.status
+                                        == "eligible-randomized-diagnostic"):
+                                    alternative_choice_provenance = (
+                                        "alternative-assignment-result:" +
+                                        alternative_readout.result_hash,
+                                        "selection-policy-kind:stochastic",
+                                        "selection-propensity:{:.17g}".format(
+                                            alternative_readout
+                                            .selection_propensity),
+                                        "assigned-arm:" +
+                                        alternative_readout.assigned_arm,
+                                        "policy-authority:true",
+                                        "claim-eligible:false",
+                                    )
                                 prior_choice_ids = frozenset(
                                     value.choice_set_id for value in
                                     fdas_candidate_choice_store.choice_sets())
@@ -5966,14 +6048,14 @@ async def _play(run_dir, manifest, context):
                                                 "dependent_atomspace"][
                                                     "declaration_hash"],
                                             "legacy-selection-action-key:" +
-                                            decision.candidate.action_key,
+                                            legacy_decision_action_key,
                                             "ambiguous-action-key-count:" +
                                             str(len(
                                                 ambiguous_surface_action_keys)),
                                             "ambiguous-action-keys-hash:" +
                                             structural_hash(
                                                 ambiguous_surface_action_keys),
-                                        )))
+                                        ) + alternative_choice_provenance))
                                 choice_is_new = (
                                     candidate_choice_set.choice_set_id
                                     not in prior_choice_ids)
@@ -6005,6 +6087,17 @@ async def _play(run_dir, manifest, context):
                                             caused_by=(parent,)))
                                     if choice_event is not None:
                                         parent = choice_event["event_id"]
+                                if (alternative_readout is not None
+                                        and alternative_readout.status
+                                        == "eligible-randomized-diagnostic"
+                                        and (candidate_choice_set is None
+                                             or candidate_choice_set
+                                             .selected_operation_id
+                                             != alternative_readout
+                                             .assigned_operation_id)):
+                                    raise RuntimeError(
+                                        "FDAS randomized assignment lacks "
+                                        "an exact selected outcome row")
                     # Identity-resource scheduling is observational in GDO-3.
                     # Dispatch it only after the complete live planning
                     # boundary has stopped its latency clock.
@@ -6216,6 +6309,12 @@ async def _play(run_dir, manifest, context):
                         prepare_fdas_observation_action(
                             action_snapshot, impact_action, parent))
                     execution_started = time.perf_counter()
+                    if (alternative_readout is not None
+                            and alternative_readout.status
+                            == "eligible-randomized-diagnostic"):
+                        decision_stats[
+                            "fdas_alternative_collection_execution_attempts"
+                        ] += 1
                     outcome, parent = await _execute_action(
                         gate, manifest["game_id"], player_id, snapshot,
                         impact_action, parent, attempted_count, decision.plan,
@@ -6302,6 +6401,23 @@ async def _play(run_dir, manifest, context):
                                     caused_by=(parent,)))
                             if choice_event is not None:
                                 parent = choice_event["event_id"]
+                        if (alternative_readout is not None
+                                and alternative_readout.status
+                                == "eligible-randomized-diagnostic"):
+                            alternative_execution_event = (
+                                fdas_runtime
+                                .emit_alternative_outcome_execution(
+                                    writer, action_snapshot,
+                                    alternative_readout, False,
+                                    outcome.action_result_event_id
+                                    or outcome.result_event_id or parent,
+                                    caused_by=(parent,)))
+                            if alternative_execution_event is not None:
+                                parent = alternative_execution_event[
+                                    "event_id"]
+                            decision_stats[
+                                "fdas_alternative_collection_execution_"
+                                "rejected"] += 1
                         raise RuntimeError(
                             "impact plan action failed: {}".format(outcome.reason))
                     selected_episode_id = None
@@ -6324,6 +6440,12 @@ async def _play(run_dir, manifest, context):
                                 "FDAS defense choice selection lacks exact "
                                 "candidate")
                         selection_evidence_hash = structural_hash({
+                            "alternative_assignment_result_hash": (
+                                alternative_readout.result_hash
+                                if (alternative_readout is not None
+                                    and alternative_readout.status
+                                    == "eligible-randomized-diagnostic")
+                                else None),
                             "choice_set_id": (
                                 candidate_choice_set.choice_set_id),
                             "evaluation_result_hash": (
@@ -6342,7 +6464,26 @@ async def _play(run_dir, manifest, context):
                                 action_snapshot, episode_revision,
                                 outcome.action_result_event_id
                                 or outcome.result_event_id or parent,
-                                selection_evidence_hash))
+                                selection_evidence_hash,
+                                selection_policy_authority=bool(
+                                    alternative_readout is not None
+                                    and alternative_readout.status
+                                    == "eligible-randomized-diagnostic"),
+                                selection_provenance_ids=(
+                                    (
+                                        "alternative-assignment-result:" +
+                                        alternative_readout.result_hash,
+                                        "assigned-arm:" +
+                                        alternative_readout.assigned_arm,
+                                        "selection-propensity:{:.17g}".format(
+                                            alternative_readout
+                                            .selection_propensity),
+                                        "claim-eligible:false",
+                                    ) if (
+                                        alternative_readout is not None
+                                        and alternative_readout.status
+                                        == "eligible-randomized-diagnostic"
+                                    ) else ())))
                         parent = publish_fdas_episode_revision(
                             action_snapshot, parent,
                             opened_episode_id=episode.episode_id)
@@ -6377,6 +6518,28 @@ async def _play(run_dir, manifest, context):
                             opened_episode_id=episode.episode_id)
                         selected_episode_id = episode.episode_id
                         decision_stats["fdas_episode_opened"] += 1
+                    if (alternative_readout is not None
+                            and alternative_readout.status
+                            == "eligible-randomized-diagnostic"):
+                        if selected_episode_id is None:
+                            raise RuntimeError(
+                                "accepted FDAS randomized assignment lacks "
+                                "a linked episode")
+                        alternative_execution_event = (
+                            fdas_runtime.emit_alternative_outcome_execution(
+                                writer, action_snapshot,
+                                alternative_readout, True,
+                                outcome.action_result_event_id
+                                or outcome.result_event_id or parent,
+                                episode_id=selected_episode_id,
+                                caused_by=(parent,)))
+                        if alternative_execution_event is not None:
+                            parent = alternative_execution_event["event_id"]
+                        decision_stats[
+                            "fdas_alternative_collection_execution_accepted"
+                        ] += 1
+                        decision_stats[
+                            "fdas_alternative_collection_episode_links"] += 1
                     if (candidate_choice_set is not None
                             and candidate_choice_set
                             .selected_operation_id is not None):
@@ -7262,6 +7425,18 @@ async def _play(run_dir, manifest, context):
         ("fdas_alternative_collection_selection_changes",
          decision_stats[
              "fdas_alternative_collection_selection_changes"]),
+        ("fdas_alternative_collection_execution_attempts",
+         decision_stats[
+             "fdas_alternative_collection_execution_attempts"]),
+        ("fdas_alternative_collection_execution_accepted",
+         decision_stats[
+             "fdas_alternative_collection_execution_accepted"]),
+        ("fdas_alternative_collection_execution_rejected",
+         decision_stats[
+             "fdas_alternative_collection_execution_rejected"]),
+        ("fdas_alternative_collection_episode_links",
+         decision_stats[
+             "fdas_alternative_collection_episode_links"]),
         ("fdas_candidate_choice_sets",
          decision_stats["fdas_candidate_choice_sets"]),
         ("fdas_candidate_choices",
@@ -7832,6 +8007,14 @@ async def _play(run_dir, manifest, context):
                 "fdas_alternative_collection_treatment_assignments"],
             "fdas_alternative_collection_selection_changes": decision_stats[
                 "fdas_alternative_collection_selection_changes"],
+            "fdas_alternative_collection_execution_attempts": decision_stats[
+                "fdas_alternative_collection_execution_attempts"],
+            "fdas_alternative_collection_execution_accepted": decision_stats[
+                "fdas_alternative_collection_execution_accepted"],
+            "fdas_alternative_collection_execution_rejected": decision_stats[
+                "fdas_alternative_collection_execution_rejected"],
+            "fdas_alternative_collection_episode_links": decision_stats[
+                "fdas_alternative_collection_episode_links"],
             "fdas_candidate_choice_sets": (
                 decision_stats["fdas_candidate_choice_sets"]),
             "fdas_candidate_choices": (
@@ -8266,6 +8449,14 @@ async def _play(run_dir, manifest, context):
             "fdas_alternative_collection_treatment_assignments"],
         "fdas_alternative_collection_selection_changes": decision_stats[
             "fdas_alternative_collection_selection_changes"],
+        "fdas_alternative_collection_execution_attempts": decision_stats[
+            "fdas_alternative_collection_execution_attempts"],
+        "fdas_alternative_collection_execution_accepted": decision_stats[
+            "fdas_alternative_collection_execution_accepted"],
+        "fdas_alternative_collection_execution_rejected": decision_stats[
+            "fdas_alternative_collection_execution_rejected"],
+        "fdas_alternative_collection_episode_links": decision_stats[
+            "fdas_alternative_collection_episode_links"],
         "fdas_candidate_choice_sets": (
             decision_stats["fdas_candidate_choice_sets"]),
         "fdas_candidate_choices": (
