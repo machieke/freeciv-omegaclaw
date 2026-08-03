@@ -819,3 +819,18 @@ unused seeds after fixed first seed `109007`, and explicitly executes only the
 first seed with `--limit-seeds 1`. No model, threshold, auditor, authority, or
 evidence was observed or changed; see
 `fdas-pr64a-grounded-transition-readout-launch-correction.md`.
+
+The corrected PR64 smoke passes from clean commit `d33bea6`. Seed `109007`
+reached turn 161 with no failure, resume, or rejected action. Across 135 unions,
+the confirmed model produced 458 estimates, all candidate-specific, and added
+20 protected candidates beyond scalar top-1. All 124 fortify candidates
+correctly abstained outside the move-only domain, and two move intervals were
+too wide. The decision-safe layer nevertheless abstained 135 times: 128 active
+legacy actions had no unique matching FDAS reinforcement route, four were not
+reinforcement moves, two lacked complete control grounding, and one control
+was out of slice. No comparison reached interval separation, and no action
+changed. This closes model loading and protected candidate-yield mechanics but
+identifies control alignment—not calibration coverage or uncertainty width—as
+the next semantic bottleneck. See
+`fdas-pr64-grounded-transition-readout-smoke.md` and
+`fdas-pr64-grounded-transition-readout-smoke.json`.
