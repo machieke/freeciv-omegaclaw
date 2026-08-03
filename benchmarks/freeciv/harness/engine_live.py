@@ -7687,6 +7687,21 @@ async def _play(run_dir, manifest, context):
         "fdas_candidate_impact_counterfactual_winner_changes": (
             decision_stats[
                 "fdas_candidate_impact_counterfactual_winner_changes"]),
+        "fdas_calibrated_candidate_union_readouts": (
+            decision_stats[
+                "fdas_calibrated_candidate_union_readouts"]),
+        "fdas_calibrated_candidate_union_members": (
+            decision_stats[
+                "fdas_calibrated_candidate_union_members"]),
+        "fdas_calibrated_candidate_union_additions": (
+            decision_stats[
+                "fdas_calibrated_candidate_union_additions"]),
+        "fdas_calibrated_candidate_union_abstentions": (
+            decision_stats[
+                "fdas_calibrated_candidate_union_abstentions"]),
+        "fdas_calibrated_candidate_union_selection_changes": (
+            decision_stats[
+                "fdas_calibrated_candidate_union_selection_changes"]),
         "fdas_candidate_choice_sets": (
             decision_stats["fdas_candidate_choice_sets"]),
         "fdas_candidate_choices": (
