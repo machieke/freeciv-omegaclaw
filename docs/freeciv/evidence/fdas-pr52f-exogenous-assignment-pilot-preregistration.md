@@ -54,9 +54,11 @@ binding. In addition:
   gate, be accepted by the engine, and link to exactly one episode, label, and
   observed choice-set outcome.
 
-Source must be clean at commit `1a14afd`; all event and store hashes must pass;
-all submitted actions must be accepted; and no truth, claim, flow, advection,
-capacity, or unrelated policy authority may appear.
+The source worktree must be clean and all implementation files must be
+byte-identical to implementation commit `1a14afd`; documentation-only
+preregistration descendants are permitted. All event and store hashes must
+pass, all submitted actions must be accepted, and no truth, claim, flow,
+advection, capacity, or unrelated policy authority may appear.
 
 ## Decision rule
 
