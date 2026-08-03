@@ -26,11 +26,11 @@ from .statistics import paired_win_design_power
 
 
 DEFAULT_PATH = repo_path("profile", "freeciv_harness.yaml")
-SEED_OVERLAY_IDENTITY = "freeciv-harness-seed-overlay/1.0"
+SEED_OVERLAY_IDENTITY = "freeciv-harness-seed-overlay/1.1"
 
 
 def _load_harness_yaml(path):
-    """Load either a complete harness file or a strict seed-only overlay."""
+    """Load a complete harness file or a strict seed/FDAS-path overlay."""
     path = os.path.abspath(path)
     with open(path, encoding="utf-8") as stream:
         value = yaml.safe_load(stream)
@@ -39,10 +39,14 @@ def _load_harness_yaml(path):
     base_source = value.get("seed_overlay_base")
     if base_source is None:
         return value
-    if set(value) != {"schema_version", "seed_overlay_base", "seeds"}:
+    required_overlay_keys = {
+        "schema_version", "seed_overlay_base", "seeds"}
+    allowed_overlay_keys = required_overlay_keys | {"dependent_atomspace"}
+    if (not required_overlay_keys.issubset(value)
+            or not set(value).issubset(allowed_overlay_keys)):
         raise ValueError(
             "seed overlay may declare only schema_version, "
-            "seed_overlay_base, and seeds")
+            "seed_overlay_base, seeds, and dependent_atomspace")
     if (not isinstance(base_source, str) or not base_source.strip()
             or os.path.isabs(base_source)):
         raise ValueError(
@@ -61,6 +65,9 @@ def _load_harness_yaml(path):
         raise ValueError("seed overlay schema must match its base")
     merged = copy.deepcopy(base)
     merged["seeds"] = copy.deepcopy(value.get("seeds"))
+    if "dependent_atomspace" in value:
+        merged["dependent_atomspace"] = copy.deepcopy(
+            value["dependent_atomspace"])
     merged["seed_overlay_base"] = base_source
     merged["seed_overlay_identity"] = SEED_OVERLAY_IDENTITY
     return merged

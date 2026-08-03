@@ -177,6 +177,19 @@ def test_config_seed_overlay_rejects_extra_authority_changes(tmp_path):
         load(str(overlay))
 
 
+def test_config_seed_overlay_can_bind_exact_fdas_profiles():
+    config = load(os.path.join(
+        REPO, "profile",
+        "freeciv_harness_fdas_pr57_execution_hardening_replay_160_turn.yaml"))
+
+    assert config["seeds"][:2] == [106417, 107123]
+    assert config["dependent_atomspace"]["config_source"] == (
+        "profile/dependent_atomspace_defense_choice_surface_shadow.yaml")
+    assert config["dependent_atomspace"]["manifest_source"] == (
+        "profile/fdas_manifest_defense_alternative_collection_"
+        "randomized_pilot.json")
+
+
 def test_config_accepts_manifest_bound_fdas_shadow_profile_override(
         monkeypatch):
     path = os.path.join(
