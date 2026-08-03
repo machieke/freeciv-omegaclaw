@@ -540,3 +540,16 @@ catalog is narrower; unrelated action types fail closed. Audit 1.3 also
 preserves incomplete failed games and separates raw assignment events from
 mechanically analyzable outcomes. The exact four failure seeds are frozen for
 the claim-ineligible PR54 mechanics replay before another fresh cohort.
+
+PR54 completed all four historical failure seeds to the 160-turn fixed endpoint
+with zero infrastructure failures, zero engine rejections, and no recurrence of
+the three identity collisions or exact-rematerialization exception. Seven
+assignments completed their exact action, episode, choice, and due-turn outcome
+lifecycles. The frozen progression rule nevertheless failed: designated seed
+`105529` drew two controls and no treatment, so it could not prove that seed's
+formerly failing broader action. Audit 1.4 now supports seed-scoped treatment
+and reprojection requirements. Alternative execution events version 1.1 also
+carry a typed `authority_catalog_reprojected` field, backed by an exact
+per-decision diagnostic delta and aggregate status counter. This closes the
+observability ambiguity for a targeted, claim-ineligible reprojection retry;
+fresh unseen-seed outcome-yield evaluation remains downstream of that proof.

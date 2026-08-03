@@ -159,3 +159,28 @@ def test_run_audit_preserves_early_failed_game_as_rejected_row(tmp_path):
         "failed_game_is_preserved_not_completed"] is True
     assert report["games"][0]["gates"][
         "complete_randomized_evidence_present"] is False
+
+
+def test_run_audit_rejects_unobserved_required_seed(tmp_path):
+    game = tmp_path / "games" / "main" / "e_full_loop" / "123-00"
+    game.mkdir(parents=True)
+    (game / "manifest.json").write_text(json.dumps({
+        "game_id": "failed-game-123",
+        "seed": 123,
+        "source": {"dirty": False},
+    }), encoding="utf-8")
+    (game / "status.json").write_text(json.dumps({
+        "completed": False,
+        "infrastructure_failure": True,
+    }), encoding="utf-8")
+
+    report = audit_randomized_alternative_run(
+        str(tmp_path), expected_seeds=(123,),
+        allow_zero_assignment_games=True,
+        required_treatment_seeds=(999,),
+        required_catalog_reprojection_seeds=(998,))
+
+    assert report["gates"][
+        "required_treatment_seeds_are_expected"] is False
+    assert report["gates"][
+        "required_catalog_reprojection_seeds_are_expected"] is False

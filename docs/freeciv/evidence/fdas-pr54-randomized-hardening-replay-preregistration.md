@@ -1,6 +1,6 @@
 # PR54 randomized decision-readout hardening replay preregistration
 
-Status: preregistered; execution not started
+Status: mechanically stable; preregistered acceptance rejected
 
 Implementation commit: `db11226a20b029d1eff8ed389569ad9053477fa1`
 
@@ -59,3 +59,37 @@ PR54 passes only if:
 Zero-opportunity games remain valid mechanical evidence and are not excluded.
 No outcome direction can alter the decision rule. After a pass, the next yield
 study must use a new, unobserved seed cohort.
+
+## Frozen result
+
+PR54 ran all four exact historical failure seeds from clean source commit
+`2a4c902` with implementation digest
+`5f6e888d6208ddb3cea41728d4d1387a4b7c31f1929d87f841dacf16e7235c7d`.
+The four games completed the fixed 160-turn endpoint in 683.11 seconds with no
+infrastructure failure and zero rejected engine actions. None reproduced the
+three choice-set identity collisions or the exact-rematerialization exception.
+
+The replay emitted seven randomized assignments. All seven reconstructed to
+their frozen exogenous draws and propensities, executed as accepted actions,
+linked to one exact episode and selected choice, and resolved their due-turn
+labels. Seed `105557` exercised the repeated-selection pattern with five
+assignments, including three treatments. Seed `105529`, however, produced two
+control assignments and no treatment. It therefore failed frozen acceptance
+criterion 5 even though its formerly crashing turns now completed safely.
+
+The original audit 1.3 generic mechanical gates pass when zero-opportunity games
+are allowed: four controls, three treatments, seven observed labels, no overdue
+pending labels, and report hash
+`8a90addb28ed11d2194a63d14223e00c4e175348a1c34705ef5311ee09b1bb44`.
+Audit 1.4 adds seed-scoped gates and correctly rejects the frozen seed-`105529`
+treatment requirement; the checked-in report hash is
+`09e2326711c360bc9623a234c8635f663f076bf42605acefda35bd8247c07b55`.
+
+This replay remains claim-ineligible. Its raw descriptive outcome was one
+positive among four controls and one positive among three treatments, with the
+three treatments clustered in one already-selected game. That is neither a
+candidate-value estimate nor a gameplay claim. In addition, execution version
+1.0 did not record whether exact rematerialization used the cached catalog or
+the bounded reprojection fallback. The next engineering retry must use the new
+typed `authority_catalog_reprojected` execution provenance and require at least
+one accepted observed fallback before unseen-seed yield work resumes.

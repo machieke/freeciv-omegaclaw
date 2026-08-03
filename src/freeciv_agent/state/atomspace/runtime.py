@@ -1054,7 +1054,8 @@ class FdasRuntime(object):
 
     def emit_alternative_outcome_execution(
             self, writer, snapshot, assignment, accepted,
-            execution_event_id, episode_id=None, caused_by=()):
+            execution_event_id, authority_catalog_reprojected,
+            episode_id=None, caused_by=()):
         """Link one diagnostic assignment to execution and its episode."""
         if self.event_emitter is None:
             return None
@@ -1073,6 +1074,10 @@ class FdasRuntime(object):
                 "FDAS alternative execution lacks current assignment authority")
         if not isinstance(accepted, bool):
             raise TypeError("FDAS alternative execution status must be boolean")
+        if not isinstance(authority_catalog_reprojected, bool):
+            raise TypeError(
+                "FDAS alternative execution reprojection status must be "
+                "boolean")
         if (not isinstance(execution_event_id, str)
                 or not execution_event_id):
             raise ValueError(
@@ -1093,6 +1098,8 @@ class FdasRuntime(object):
             "assignment_executed": accepted,
             "assignment_execution_attempted": True,
             "assignment_result_hash": assignment.result_hash,
+            "authority_catalog_reprojected": (
+                authority_catalog_reprojected),
             "claim_eligible": False,
             "episode_id": episode_id,
             "execution_event_id": execution_event_id,
@@ -1111,7 +1118,7 @@ class FdasRuntime(object):
             semantic, caused_by=tuple(caused_by),
             ruleset_digest=self.ruleset_digest,
             component_id="fdas-safe-alternative-outcome-execution",
-            component_version="1.0")
+            component_version="1.1")
 
 
 def build_runtime(declaration, ruleset_ir=None, belief_store=None,

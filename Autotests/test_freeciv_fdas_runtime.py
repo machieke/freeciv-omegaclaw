@@ -336,6 +336,7 @@ def test_randomized_alternative_assignment_and_execution_are_authority_events(
         writer, snapshot, assignment)
     execution_event = runtime.emit_alternative_outcome_execution(
         writer, snapshot, assignment, True, "action-result-1",
+        True,
         episode_id="episode-1",
         caused_by=(assignment_event["event_id"],))
 
@@ -344,6 +345,9 @@ def test_randomized_alternative_assignment_and_execution_are_authority_events(
     assert execution_event["payload"]["details"]["assignment_executed"]
     assert execution_event["payload"]["details"]["episode_id"] == (
         "episode-1")
+    assert execution_event["payload"]["details"][
+        "authority_catalog_reprojected"] is True
+    assert execution_event["payload"]["component_version"] == "1.1"
     assert validate_file(path).valid
 
 

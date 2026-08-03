@@ -3625,6 +3625,7 @@ async def _play(run_dir, manifest, context):
         "fdas_alternative_collection_execution_accepted": 0,
         "fdas_alternative_collection_execution_rejected": 0,
         "fdas_alternative_collection_episode_links": 0,
+        "fdas_alternative_collection_authority_catalog_reprojections": 0,
         "fdas_candidate_choice_sets": (
             len(fdas_candidate_choice_store.choice_sets())
             if fdas_candidate_choice_store is not None else 0),
@@ -5472,6 +5473,7 @@ async def _play(run_dir, manifest, context):
                     candidate_choice_set = None
                     alternative_readout = None
                     alternative_authority = None
+                    alternative_authority_catalog_reprojected = False
                     legacy_decision_action_key = (
                         None if decision is None
                         else decision.candidate.action_key)
@@ -6002,6 +6004,11 @@ async def _play(run_dir, manifest, context):
                                                             surface_candidates,
                                                             typed_scores,
                                                             persistence_union))
+                                                    catalog_reprojections_before = (
+                                                        impact_planning_diagnostics
+                                                        .get(
+                                                            "authority_catalog_"
+                                                            "reprojections", 0))
                                                     decision = (
                                                         impact_planner
                                                         .rematerialize_exact_authority(
@@ -6010,6 +6017,27 @@ async def _play(run_dir, manifest, context):
                                                             alternative_authority,
                                                             diagnostics=(
                                                                 impact_planning_diagnostics)))
+                                                    catalog_reprojections_after = (
+                                                        impact_planning_diagnostics
+                                                        .get(
+                                                            "authority_catalog_"
+                                                            "reprojections", 0))
+                                                    reprojection_delta = (
+                                                        catalog_reprojections_after
+                                                        - catalog_reprojections_before)
+                                                    if reprojection_delta not in (0, 1):
+                                                        raise RuntimeError(
+                                                            "FDAS randomized "
+                                                            "authority catalog "
+                                                            "reprojection counter "
+                                                            "is inconsistent")
+                                                    alternative_authority_catalog_reprojected = bool(
+                                                        reprojection_delta)
+                                                    decision_stats[
+                                                        "fdas_alternative_"
+                                                        "collection_authority_"
+                                                        "catalog_reprojections"
+                                                    ] += reprojection_delta
                                                     if (decision.candidate
                                                             .action_key
                                                             != alternative_readout
@@ -6424,6 +6452,7 @@ async def _play(run_dir, manifest, context):
                                     alternative_readout, False,
                                     outcome.action_result_event_id
                                     or outcome.result_event_id or parent,
+                                    alternative_authority_catalog_reprojected,
                                     caused_by=(parent,)))
                             if alternative_execution_event is not None:
                                 parent = alternative_execution_event[
@@ -6508,6 +6537,7 @@ async def _play(run_dir, manifest, context):
                                     alternative_readout, True,
                                     outcome.action_result_event_id
                                     or outcome.result_event_id or parent,
+                                    alternative_authority_catalog_reprojected,
                                     episode_id=selected_episode_id,
                                     caused_by=(parent,)))
                             if alternative_execution_event is not None:
@@ -7480,6 +7510,9 @@ async def _play(run_dir, manifest, context):
         ("fdas_alternative_collection_episode_links",
          decision_stats[
              "fdas_alternative_collection_episode_links"]),
+        ("fdas_alternative_collection_authority_catalog_reprojections",
+         decision_stats[
+             "fdas_alternative_collection_authority_catalog_reprojections"]),
         ("fdas_candidate_choice_sets",
          decision_stats["fdas_candidate_choice_sets"]),
         ("fdas_candidate_choices",
@@ -8058,6 +8091,10 @@ async def _play(run_dir, manifest, context):
                 "fdas_alternative_collection_execution_rejected"],
             "fdas_alternative_collection_episode_links": decision_stats[
                 "fdas_alternative_collection_episode_links"],
+            "fdas_alternative_collection_authority_catalog_reprojections": (
+                decision_stats[
+                    "fdas_alternative_collection_authority_catalog_"
+                    "reprojections"]),
             "fdas_candidate_choice_sets": (
                 decision_stats["fdas_candidate_choice_sets"]),
             "fdas_candidate_choices": (
@@ -8500,6 +8537,10 @@ async def _play(run_dir, manifest, context):
             "fdas_alternative_collection_execution_rejected"],
         "fdas_alternative_collection_episode_links": decision_stats[
             "fdas_alternative_collection_episode_links"],
+        "fdas_alternative_collection_authority_catalog_reprojections": (
+            decision_stats[
+                "fdas_alternative_collection_authority_catalog_"
+                "reprojections"]),
         "fdas_candidate_choice_sets": (
             decision_stats["fdas_candidate_choice_sets"]),
         "fdas_candidate_choices": (

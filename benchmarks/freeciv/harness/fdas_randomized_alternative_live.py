@@ -14,7 +14,7 @@ from freeciv_agent.planning import (
 )
 
 
-AUDIT_IDENTITY = "fdas-randomized-alternative-live-audit/1.3"
+AUDIT_IDENTITY = "fdas-randomized-alternative-live-audit/1.4"
 ASSIGNMENT_IDENTITY = "fdas-safe-alternative-outcome-collection/4.0"
 ASSIGNMENT_POLICY = "fdas-defense-nearest-score-randomized/4.0"
 ASSIGNMENT_UNIT = "game-turn-exact-action-pair/1.0"
@@ -246,7 +246,8 @@ def _incomplete_failed_game_report(
 def audit_randomized_alternative_game(
         game_dir, expected_source_commit=None,
         expected_implementation_sha256=None, require_treatment=False,
-        require_assignment=True, preserve_incomplete_failure=False):
+        require_catalog_reprojection=False, require_assignment=True,
+        preserve_incomplete_failure=False):
     """Audit one engine-backed randomized alternative game fail-closed."""
     game_dir = os.path.abspath(game_dir)
     paths = dict((name, os.path.join(game_dir, name)) for name in (
@@ -361,6 +362,10 @@ def audit_randomized_alternative_game(
         execution = linked[0] if len(linked) == 1 else None
         if execution is not None:
             execution_details = _details(execution)
+            execution_component_version = execution.get(
+                "payload", {}).get("component_version")
+            catalog_reprojected = execution_details.get(
+                "authority_catalog_reprojected")
             episode = episode_store.get(execution_details.get("episode_id"))
             action_result = event_by_id.get(
                 execution_details.get("execution_event_id"))
@@ -370,6 +375,16 @@ def audit_randomized_alternative_game(
                     or execution_details.get("selection_propensity")
                     != expected_propensity):
                 errors.append("execution-link-semantics-differ")
+            if (execution_component_version == "1.0"
+                    and catalog_reprojected is not None):
+                errors.append(
+                    "legacy-execution-has-reprojection-provenance")
+            elif (execution_component_version == "1.1"
+                    and not isinstance(catalog_reprojected, bool)):
+                errors.append(
+                    "execution-reprojection-provenance-is-not-typed")
+            elif execution_component_version not in ("1.0", "1.1"):
+                errors.append("execution-component-version-is-unsupported")
             if (action_result is None
                     or action_result.get("type") != "action_result"
                     or action_result.get("payload", {}).get("status")
@@ -481,6 +496,12 @@ def audit_randomized_alternative_game(
             "label_id": None if label is None else label.label_id,
             "label_outcome": None if label is None else label.outcome,
             "label_status": None if label is None else label.status,
+            "authority_catalog_reprojected": (
+                None if execution is None else _details(execution).get(
+                    "authority_catalog_reprojected")),
+            "execution_component_version": (
+                None if execution is None else execution.get(
+                    "payload", {}).get("component_version")),
             "selection_propensity": expected_propensity,
             "turn": assignment["turn"],
         })
@@ -526,11 +547,25 @@ def audit_randomized_alternative_game(
             and status.get("fdas_alternative_collection_episode_links")
             == len(execution_events)
             and status.get("fdas_alternative_collection_execution_rejected")
-            == 0),
+            == 0
+            and (
+                status.get(
+                    "fdas_alternative_collection_authority_catalog_"
+                    "reprojections") is None
+                or status.get(
+                    "fdas_alternative_collection_authority_catalog_"
+                    "reprojections") == sum(
+                        _details(value).get(
+                            "authority_catalog_reprojected") is True
+                        for value in execution_events))),
         "stores_are_hash_valid_and_not_quarantined": store_hashes_valid,
         "treatment_exercised_when_required": bool(
             not require_treatment
             or any(value["assigned_arm"] == "treatment"
+                   for value in assignment_rows)),
+        "catalog_reprojection_exercised_when_required": bool(
+            not require_catalog_reprojection
+            or any(value["authority_catalog_reprojected"] is True
                    for value in assignment_rows)),
         "zero_rejected_engine_actions": status.get("rejected_actions") == 0,
     }
@@ -565,6 +600,9 @@ def audit_randomized_alternative_game(
                 for value in assignment_rows),
             "treatment": sum(value["assigned_arm"] == "treatment"
                              for value in assignment_rows),
+            "authority_catalog_reprojections": sum(
+                value["authority_catalog_reprojected"] is True
+                for value in assignment_rows),
         },
     }
     semantic["report_hash"] = structural_hash(semantic)
@@ -574,7 +612,8 @@ def audit_randomized_alternative_game(
 def audit_randomized_alternative_run(
         run_dir, expected_seeds=(), expected_source_commit=None,
         expected_implementation_sha256=None, require_treatment=False,
-        minimum_observed_per_arm=0, allow_zero_assignment_games=False):
+        minimum_observed_per_arm=0, allow_zero_assignment_games=False,
+        required_treatment_seeds=(), required_catalog_reprojection_seeds=()):
     """Audit all engine games in one frozen randomized run."""
     run_dir = os.path.abspath(run_dir)
     root = os.path.join(run_dir, "games", "main", "e_full_loop")
@@ -582,14 +621,28 @@ def audit_randomized_alternative_run(
         os.path.join(root, directory)
         for directory in os.listdir(root)
         if os.path.isfile(os.path.join(root, directory, "status.json"))))
-    games = tuple(audit_randomized_alternative_game(
-        value,
-        expected_source_commit=expected_source_commit,
-        expected_implementation_sha256=expected_implementation_sha256,
-        require_treatment=require_treatment,
-        require_assignment=not allow_zero_assignment_games,
-        preserve_incomplete_failure=True)
-        for value in game_dirs)
+    required_treatment_seeds = frozenset(
+        int(value) for value in required_treatment_seeds)
+    required_catalog_reprojection_seeds = frozenset(
+        int(value) for value in required_catalog_reprojection_seeds)
+    games = []
+    for value in game_dirs:
+        manifest_path = os.path.join(value, "manifest.json")
+        manifest_seed = (
+            _load(manifest_path).get("seed")
+            if os.path.isfile(manifest_path) else None)
+        games.append(audit_randomized_alternative_game(
+            value,
+            expected_source_commit=expected_source_commit,
+            expected_implementation_sha256=expected_implementation_sha256,
+            require_treatment=(
+                require_treatment
+                or manifest_seed in required_treatment_seeds),
+            require_catalog_reprojection=(
+                manifest_seed in required_catalog_reprojection_seeds),
+            require_assignment=not allow_zero_assignment_games,
+            preserve_incomplete_failure=True))
+    games = tuple(games)
     observed_seeds = tuple(sorted(value["seed"] for value in games))
     expected_seeds = tuple(sorted(int(value) for value in expected_seeds))
     gates = {
@@ -601,6 +654,10 @@ def audit_randomized_alternative_run(
             (value["source"].get("commit"),
              value["source"].get("implementation_sha256"))
             for value in games}) == 1,
+        "required_treatment_seeds_are_expected": (
+            required_treatment_seeds.issubset(observed_seeds)),
+        "required_catalog_reprojection_seeds_are_expected": (
+            required_catalog_reprojection_seeds.issubset(observed_seeds)),
     }
     assignment_events = tuple(
         row for game in games for row in game["assignments"])
