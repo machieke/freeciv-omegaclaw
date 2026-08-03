@@ -23,6 +23,91 @@ _DEFENSE_AUTHORITY_IDENTITY = (
     "fdas-bounded-defense-fortification/1.0")
 
 
+def _defense_target_city(goal):
+    values = tuple(
+        value.entity_id for value in goal.target_key.arguments
+        if (getattr(value, "kind", None) == "city"
+            and getattr(value, "entity_id", None) is not None))
+    return values[0] if len(values) == 1 else None
+
+
+def _defense_opportunity_record(revision, actor_id, city_id):
+    matches = tuple(
+        record for record in revision.records
+        if (record.key.predicate == "unit-fortification-opportunity"
+            and len(record.key.arguments) == 2
+            and getattr(record.key.arguments[0], "entity_id", None)
+            == str(actor_id)
+            and getattr(record.key.arguments[1], "entity_id", None)
+            == str(city_id)))
+    return matches[0] if len(matches) == 1 else None
+
+
+def validate_bounded_defense_fortification_candidate(
+        candidate, snapshot, revision, goals):
+    """Validate the shared exact fortification safety contract.
+
+    The function grants no authority and changes no candidate.  Keeping this
+    check separate lets diagnostic alternative-selection policies prove that
+    both arms satisfy the same bounded contract without pretending that the
+    alternative was the legacy-selected pass-through.
+    """
+    if not isinstance(candidate, ShadowOperationCandidate):
+        return None, None, "selected-operation-candidate-unavailable"
+    if (not candidate.legal_bound
+            or candidate.action_key not in snapshot.legal_action_json):
+        return None, None, "selected-action-not-currently-legal"
+    action = candidate.action
+    if (
+            action.get("action_type") != "unit_fortify"
+            or set(action) != {"action_type", "actor_id"}
+            or isinstance(action.get("actor_id"), bool)
+            or not isinstance(action.get("actor_id"), int)):
+        return (
+            None, None,
+            "outside-bounded-defense-fortification-action-shape")
+    goal_by_id = dict((value.goal.goal_id, value) for value in goals)
+    routes = tuple(
+        goal_by_id.get(goal_id)
+        for goal_id in candidate.operation.goal_ids)
+    if (len(routes) != 1
+            or routes[0] is None
+            or routes[0].deficit_predicate
+            != "unit-fortification-opportunity"):
+        return None, None, "outside-bounded-unit-fortification-route"
+    city_id = _defense_target_city(routes[0])
+    city = snapshot.city(city_id)
+    actor_id = action["actor_id"]
+    actor = snapshot.unit(actor_id)
+    if (city is None or city.tile is None or actor is None
+            or actor.tile != city.tile):
+        return (
+            None, None,
+            "current-defense-actor-or-city-state-unavailable")
+    if str(actor.activity or "").lower() in (
+            "fortify", "fortified", "fortifying"):
+        return None, None, "current-unit-is-already-fortifying"
+    opportunity = _defense_opportunity_record(
+        revision, actor_id, city_id)
+    if opportunity is None or not opportunity.supports:
+        return (
+            None, None,
+            "fdas-fortification-opportunity-support-unavailable")
+    if candidate.resource_keys != (
+            "unit-action:{}".format(actor_id),):
+        return None, None, "bounded-defense-resource-identity-mismatch"
+    permitted_blockers = frozenset((
+        "legacy-shadow-control-route-uncompiled",
+        "uncompiled-action-effect",
+    ))
+    unexpected_blockers = tuple(
+        value for value in candidate.blockers
+        if value not in permitted_blockers)
+    if unexpected_blockers:
+        return None, None, "candidate-has-noncontractual-blockers"
+    return routes[0], opportunity, None
+
+
 @dataclass(frozen=True)
 class FdasAuthorityReadout:
     status: str
@@ -352,72 +437,20 @@ class FdasBoundedDefenseAuthority(object):
 
     @staticmethod
     def _target_city(goal):
-        values = tuple(
-            value.entity_id for value in goal.target_key.arguments
-            if (getattr(value, "kind", None) == "city"
-                and getattr(value, "entity_id", None) is not None))
-        return values[0] if len(values) == 1 else None
+        return _defense_target_city(goal)
 
     @staticmethod
     def _opportunity_record(revision, actor_id, city_id):
-        matches = tuple(
-            record for record in revision.records
-            if (record.key.predicate == "unit-fortification-opportunity"
-                and len(record.key.arguments) == 2
-                and getattr(record.key.arguments[0], "entity_id", None)
-                == str(actor_id)
-                and getattr(record.key.arguments[1], "entity_id", None)
-                == str(city_id)))
-        return matches[0] if len(matches) == 1 else None
+        return _defense_opportunity_record(revision, actor_id, city_id)
 
     def _promote(self, candidate, snapshot, revision, goals):
-        if not isinstance(candidate, ShadowOperationCandidate):
-            return None, "selected-operation-candidate-unavailable"
-        if (not candidate.legal_bound
-                or candidate.action_key not in snapshot.legal_action_json):
-            return None, "selected-action-not-currently-legal"
+        _route, opportunity, reason = (
+            validate_bounded_defense_fortification_candidate(
+                candidate, snapshot, revision, goals))
+        if reason is not None:
+            return None, reason
         action = candidate.action
-        if (
-                action.get("action_type") != "unit_fortify"
-                or set(action) != {"action_type", "actor_id"}
-                or isinstance(action.get("actor_id"), bool)
-                or not isinstance(action.get("actor_id"), int)):
-            return None, "outside-bounded-defense-fortification-action-shape"
-        goal_by_id = dict((value.goal.goal_id, value) for value in goals)
-        routes = tuple(
-            goal_by_id.get(goal_id)
-            for goal_id in candidate.operation.goal_ids)
-        if (len(routes) != 1
-                or routes[0] is None
-                or routes[0].deficit_predicate
-                != "unit-fortification-opportunity"):
-            return None, "outside-bounded-unit-fortification-route"
-        city_id = self._target_city(routes[0])
-        city = snapshot.city(city_id)
         actor_id = action["actor_id"]
-        actor = snapshot.unit(actor_id)
-        if (city is None or city.tile is None or actor is None
-                or actor.tile != city.tile):
-            return None, "current-defense-actor-or-city-state-unavailable"
-        if str(actor.activity or "").lower() in (
-                "fortify", "fortified", "fortifying"):
-            return None, "current-unit-is-already-fortifying"
-        opportunity = self._opportunity_record(
-            revision, actor_id, city_id)
-        if opportunity is None or not opportunity.supports:
-            return None, "fdas-fortification-opportunity-support-unavailable"
-        if candidate.resource_keys != (
-                "unit-action:{}".format(actor_id),):
-            return None, "bounded-defense-resource-identity-mismatch"
-        permitted_blockers = frozenset((
-            "legacy-shadow-control-route-uncompiled",
-            "uncompiled-action-effect",
-        ))
-        unexpected_blockers = tuple(
-            value for value in candidate.blockers
-            if value not in permitted_blockers)
-        if unexpected_blockers:
-            return None, "candidate-has-noncontractual-blockers"
         operation = replace(
             candidate.operation,
             provenance=tuple(

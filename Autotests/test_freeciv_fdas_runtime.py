@@ -245,6 +245,56 @@ def test_path_persistence_union_event_is_revision_bound_and_shadow_only(
             writer, snapshot, stale)
 
 
+def test_alternative_collection_event_requires_propensity_and_no_authority(
+        tmp_path):
+    runtime = build_runtime(_enabled_city_declaration())
+    snapshot = _snapshot()
+    update = runtime.replace(snapshot)
+    details = {
+        "action_selection_changed": False,
+        "assignment_executed": False,
+        "claim_eligible": False,
+        "outcome_update_scope": "control-model-only",
+        "policy_authority": False,
+        "selection_policy_kind": "stochastic",
+        "selection_propensity": 0.5,
+        "source_sink_flow_enabled": False,
+        "status": "eligible-shadow",
+        "truth_mutated": False,
+    }
+    readout = SimpleNamespace(
+        revision_id=update.revision_id,
+        snapshot_id=snapshot.snapshot_id,
+        to_dict=lambda: dict(details))
+    path = os.path.join(str(tmp_path), "alternative-collection-events.jsonl")
+    writer = EventWriter(path, snapshot.identity.game_id, durable=False)
+
+    event = runtime.emit_alternative_outcome_collection(
+        writer, snapshot, readout)
+
+    assert event["type"] == "atomspace_shadow_decision"
+    assert event["payload"]["component_id"] == (
+        "fdas-safe-alternative-outcome-collection")
+    assert event["payload"]["details"]["selection_propensity"] == 0.5
+    assert validate_file(path).valid
+
+    missing_propensity = SimpleNamespace(
+        revision_id=update.revision_id,
+        snapshot_id=snapshot.snapshot_id,
+        to_dict=lambda: dict(details, selection_propensity=None))
+    with pytest.raises(RuntimeError, match="lacks propensity"):
+        runtime.emit_alternative_outcome_collection(
+            writer, snapshot, missing_propensity)
+
+    authority_leak = SimpleNamespace(
+        revision_id=update.revision_id,
+        snapshot_id=snapshot.snapshot_id,
+        to_dict=lambda: dict(details, assignment_executed=True))
+    with pytest.raises(RuntimeError, match="undeclared authority"):
+        runtime.emit_alternative_outcome_collection(
+            writer, snapshot, authority_leak)
+
+
 def test_checked_city_stability_authority_runtime_assembles_explicitly():
     declaration = load_runtime_declaration(
         os.path.join(

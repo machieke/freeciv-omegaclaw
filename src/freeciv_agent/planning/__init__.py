@@ -205,6 +205,14 @@ from .fdas_path_persistence_candidate_union import (
     FdasPathPersistenceRouteState,
     fdas_candidate_corridor_id,
 )
+from .fdas_alternative_outcome_collection import (
+    ALTERNATIVE_OUTCOME_COLLECTION_IDENTITY,
+    ALTERNATIVE_OUTCOME_POLICY_VERSION,
+    FdasAlternativeArmReadout,
+    FdasAlternativeOutcomeCollectionConfig,
+    FdasAlternativeOutcomeCollectionEvaluator,
+    FdasAlternativeOutcomeCollectionReadout,
+)
 from .fdas_induction_labels import (
     DURABLE_ACTOR_CITY_DEFENSE_TARGET,
     DURABLE_CITY_COVERAGE_TARGET,
@@ -246,6 +254,7 @@ from .fdas_authority import (
     FdasAuthorityReadout,
     FdasBoundedCityAuthority,
     FdasBoundedDefenseAuthority,
+    validate_bounded_defense_fortification_candidate,
 )
 from .fdas_consolidation import (
     LegacyConsolidationAudit,
@@ -351,6 +360,20 @@ __all__ = [
     "CALIBRATED_CANDIDATE_UNION_IDENTITY",
     "FdasCalibratedCandidateMember", "FdasCalibratedCandidateReadout",
     "FdasCalibratedCandidateUnion", "build_calibrated_candidate_union",
+    "PROBE_CANDIDATE_REACHABILITY_IDENTITY",
+    "FdasProbeCandidateMember", "FdasProbeCandidateUnion",
+    "FdasProbeReachabilityReadout", "build_probe_candidate_union",
+    "PATH_PERSISTENCE_CANDIDATE_UNION_IDENTITY",
+    "FdasPathPersistenceCandidateController",
+    "FdasPathPersistenceCandidateUnion", "FdasPathPersistenceMember",
+    "FdasPathPersistenceReadout", "FdasPathPersistenceRouteState",
+    "fdas_candidate_corridor_id",
+    "ALTERNATIVE_OUTCOME_COLLECTION_IDENTITY",
+    "ALTERNATIVE_OUTCOME_POLICY_VERSION",
+    "FdasAlternativeArmReadout",
+    "FdasAlternativeOutcomeCollectionConfig",
+    "FdasAlternativeOutcomeCollectionEvaluator",
+    "FdasAlternativeOutcomeCollectionReadout",
     "DURABLE_ACTOR_CITY_DEFENSE_TARGET", "DURABLE_CITY_COVERAGE_TARGET",
     "DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET",
     "LABEL_SCHEMA_VERSION",
@@ -372,6 +395,7 @@ __all__ = [
     "FDASCommitBinding", "FDASCommitValidation", "FDASCommitValidator",
     "FdasAuthorityReadout", "FdasBoundedCityAuthority",
     "FdasBoundedDefenseAuthority",
+    "validate_bounded_defense_fortification_candidate",
     "LegacyConsolidationAudit", "LegacyConsolidationReport",
     "LegacyReplacementDecision", "LegacyReplacementSpec",
     "ShadowCandidateComparison", "ShadowOperationCandidate",

@@ -61,6 +61,8 @@ from freeciv_agent.planning import (BranchScore, NonPlan, Plan, PlanAssumption,
                                     DecisionEpisodeStore,
                                     FdasCandidateChoiceSetRecorder,
                                     FdasCandidateChoiceSetStore,
+                                    FdasAlternativeOutcomeCollectionConfig,
+                                    FdasAlternativeOutcomeCollectionEvaluator,
                                     FdasPathPersistenceCandidateController,
                                     DEFENSE_CANDIDATE_CHOICE_OPERATION_TYPES,
                                     DEFENSE_CANDIDATE_CHOICE_SELECTION_ACTION_TYPES,
@@ -2759,6 +2761,14 @@ async def _play(run_dir, manifest, context):
         persistence_union_capability is not None
         or persistence_union_diagnostic is not None)
     fdas_path_persistence_controller = None
+    alternative_collection_capability = fdas_manifest["capabilities"].get(
+        "safe_alternative_outcome_collection")
+    alternative_collection_diagnostic = fdas_manifest.get(
+        "safe_alternative_outcome_collection_diagnostic")
+    fdas_alternative_outcome_collection = bool(
+        alternative_collection_capability is not None
+        or alternative_collection_diagnostic is not None)
+    fdas_alternative_collection_evaluator = None
     fdas_outcome_label_path = os.path.join(
         run_dir, "fdas-induction-outcome-labels.json")
     fdas_outcome_label_store = None
@@ -3190,6 +3200,53 @@ async def _play(run_dir, manifest, context):
             FdasPathPersistenceCandidateController(
                 persistence_config,
                 maximum_reachability_regret=maximum_reachability_regret))
+    if fdas_alternative_outcome_collection:
+        expected_alternative_keys = {
+            "action_selection_changed",
+            "assignment_executed",
+            "claim_eligible",
+            "config",
+            "path_persistence_candidate_union_required",
+            "policy_authority",
+            "readout_authority",
+            "source_sink_flow_enabled",
+            "truth_mutated",
+        }
+        if alternative_collection_capability != "shadow-live":
+            raise RuntimeError(
+                "FDAS alternative collection requires shadow-live manifest")
+        if (not isinstance(alternative_collection_diagnostic, dict)
+                or set(alternative_collection_diagnostic)
+                != expected_alternative_keys):
+            raise RuntimeError(
+                "FDAS alternative collection declaration is incomplete")
+        if any(alternative_collection_diagnostic[name] is not False
+               for name in (
+                   "action_selection_changed", "assignment_executed",
+                   "claim_eligible", "policy_authority",
+                   "readout_authority", "source_sink_flow_enabled",
+                   "truth_mutated")):
+            raise RuntimeError(
+                "FDAS alternative collection cannot grant authority")
+        if (alternative_collection_diagnostic[
+                    "path_persistence_candidate_union_required"] is not True
+                or not fdas_path_persistence_candidate_union):
+            raise RuntimeError(
+                "FDAS alternative collection requires path persistence")
+        try:
+            alternative_config = (
+                FdasAlternativeOutcomeCollectionConfig.from_dict(
+                    alternative_collection_diagnostic["config"]))
+        except (TypeError, ValueError) as error:
+            raise RuntimeError(
+                "FDAS alternative collection config is invalid: {}".format(
+                    error))
+        if alternative_config.to_dict() != alternative_collection_diagnostic[
+                "config"]:
+            raise RuntimeError(
+                "FDAS alternative collection config is not canonical")
+        fdas_alternative_collection_evaluator = (
+            FdasAlternativeOutcomeCollectionEvaluator(alternative_config))
     if (candidate_impact_capability is not None
             or candidate_impact_diagnostic is not None):
         if candidate_impact_capability != "shadow-live":
@@ -3532,6 +3589,12 @@ async def _play(run_dir, manifest, context):
         "fdas_path_persistence_union_expired_routes": 0,
         "fdas_path_persistence_union_fallbacks": 0,
         "fdas_path_persistence_union_selection_changes": 0,
+        "fdas_alternative_collection_evaluations": 0,
+        "fdas_alternative_collection_eligible": 0,
+        "fdas_alternative_collection_ineligible": 0,
+        "fdas_alternative_collection_control_assignments": 0,
+        "fdas_alternative_collection_treatment_assignments": 0,
+        "fdas_alternative_collection_selection_changes": 0,
         "fdas_candidate_choice_sets": (
             len(fdas_candidate_choice_store.choice_sets())
             if fdas_candidate_choice_store is not None else 0),
@@ -5830,6 +5893,59 @@ async def _play(run_dir, manifest, context):
                                             if persistence_event is not None:
                                                 parent = persistence_event[
                                                     "event_id"]
+                                            if fdas_alternative_outcome_collection:
+                                                alternative_readout = (
+                                                    fdas_alternative_collection_evaluator
+                                                    .evaluate(
+                                                        snapshot,
+                                                        choice_revision,
+                                                        fdas_shadow,
+                                                        decision.candidate,
+                                                        surface_candidates,
+                                                        typed_scores,
+                                                        persistence_union))
+                                                decision_stats[
+                                                    "fdas_alternative_"
+                                                    "collection_evaluations"] += 1
+                                                decision_stats[
+                                                    "fdas_alternative_"
+                                                    "collection_eligible"] += int(
+                                                        alternative_readout.status
+                                                        == "eligible-shadow")
+                                                decision_stats[
+                                                    "fdas_alternative_"
+                                                    "collection_ineligible"] += int(
+                                                        alternative_readout.status
+                                                        == "ineligible")
+                                                decision_stats[
+                                                    "fdas_alternative_"
+                                                    "collection_control_"
+                                                    "assignments"] += int(
+                                                        alternative_readout
+                                                        .assigned_arm
+                                                        == "control")
+                                                decision_stats[
+                                                    "fdas_alternative_"
+                                                    "collection_treatment_"
+                                                    "assignments"] += int(
+                                                        alternative_readout
+                                                        .assigned_arm
+                                                        == "treatment")
+                                                decision_stats[
+                                                    "fdas_alternative_"
+                                                    "collection_selection_"
+                                                    "changes"] += int(
+                                                        alternative_readout
+                                                        .action_selection_changed)
+                                                alternative_event = (
+                                                    fdas_runtime
+                                                    .emit_alternative_outcome_collection(
+                                                        writer, snapshot,
+                                                        alternative_readout,
+                                                        caused_by=(parent,)))
+                                                if alternative_event is not None:
+                                                    parent = alternative_event[
+                                                        "event_id"]
                                 prior_choice_ids = frozenset(
                                     value.choice_set_id for value in
                                     fdas_candidate_choice_store.choice_sets())
@@ -7131,6 +7247,21 @@ async def _play(run_dir, manifest, context):
          decision_stats["fdas_path_persistence_union_fallbacks"]),
         ("fdas_path_persistence_union_selection_changes",
          decision_stats["fdas_path_persistence_union_selection_changes"]),
+        ("fdas_alternative_collection_evaluations",
+         decision_stats["fdas_alternative_collection_evaluations"]),
+        ("fdas_alternative_collection_eligible",
+         decision_stats["fdas_alternative_collection_eligible"]),
+        ("fdas_alternative_collection_ineligible",
+         decision_stats["fdas_alternative_collection_ineligible"]),
+        ("fdas_alternative_collection_control_assignments",
+         decision_stats[
+             "fdas_alternative_collection_control_assignments"]),
+        ("fdas_alternative_collection_treatment_assignments",
+         decision_stats[
+             "fdas_alternative_collection_treatment_assignments"]),
+        ("fdas_alternative_collection_selection_changes",
+         decision_stats[
+             "fdas_alternative_collection_selection_changes"]),
         ("fdas_candidate_choice_sets",
          decision_stats["fdas_candidate_choice_sets"]),
         ("fdas_candidate_choices",
@@ -7689,6 +7820,18 @@ async def _play(run_dir, manifest, context):
                 "fdas_path_persistence_union_fallbacks"],
             "fdas_path_persistence_union_selection_changes": decision_stats[
                 "fdas_path_persistence_union_selection_changes"],
+            "fdas_alternative_collection_evaluations": decision_stats[
+                "fdas_alternative_collection_evaluations"],
+            "fdas_alternative_collection_eligible": decision_stats[
+                "fdas_alternative_collection_eligible"],
+            "fdas_alternative_collection_ineligible": decision_stats[
+                "fdas_alternative_collection_ineligible"],
+            "fdas_alternative_collection_control_assignments": decision_stats[
+                "fdas_alternative_collection_control_assignments"],
+            "fdas_alternative_collection_treatment_assignments": decision_stats[
+                "fdas_alternative_collection_treatment_assignments"],
+            "fdas_alternative_collection_selection_changes": decision_stats[
+                "fdas_alternative_collection_selection_changes"],
             "fdas_candidate_choice_sets": (
                 decision_stats["fdas_candidate_choice_sets"]),
             "fdas_candidate_choices": (
@@ -8111,6 +8254,18 @@ async def _play(run_dir, manifest, context):
             "fdas_path_persistence_union_fallbacks"],
         "fdas_path_persistence_union_selection_changes": decision_stats[
             "fdas_path_persistence_union_selection_changes"],
+        "fdas_alternative_collection_evaluations": decision_stats[
+            "fdas_alternative_collection_evaluations"],
+        "fdas_alternative_collection_eligible": decision_stats[
+            "fdas_alternative_collection_eligible"],
+        "fdas_alternative_collection_ineligible": decision_stats[
+            "fdas_alternative_collection_ineligible"],
+        "fdas_alternative_collection_control_assignments": decision_stats[
+            "fdas_alternative_collection_control_assignments"],
+        "fdas_alternative_collection_treatment_assignments": decision_stats[
+            "fdas_alternative_collection_treatment_assignments"],
+        "fdas_alternative_collection_selection_changes": decision_stats[
+            "fdas_alternative_collection_selection_changes"],
         "fdas_candidate_choice_sets": (
             decision_stats["fdas_candidate_choice_sets"]),
         "fdas_candidate_choices": (

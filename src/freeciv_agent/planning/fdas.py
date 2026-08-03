@@ -84,8 +84,10 @@ class ShadowOperationCandidate:
                 and not self.blockers
                 and self.action.get("action_type") == "unit_fortify"
                 and set(self.action) == {"action_type", "actor_id"}
-                and "fdas-bounded-defense-fortification/1.0"
-                in self.provenance)
+                and any(value in self.provenance for value in (
+                    "fdas-bounded-defense-fortification/1.0",
+                    "fdas-safe-alternative-outcome-collection/1.0",
+                )))
             if not city_stability and not defense_fortification:
                 raise ValueError(
                     "FDAS authority candidate violates every bounded "
