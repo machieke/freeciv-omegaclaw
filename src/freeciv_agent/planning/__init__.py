@@ -175,6 +175,12 @@ from .fdas_candidate_calibration import (
     FdasCandidateCalibrationPrediction,
     fit_candidate_calibration,
 )
+from .fdas_candidate_calibration_validation import (
+    DEFAULT_VALIDATION_THRESHOLDS,
+    VALIDATION_IDENTITY,
+    evaluate_candidate_calibration,
+    load_candidate_calibration_model,
+)
 from .fdas_induction_labels import (
     DURABLE_ACTOR_CITY_DEFENSE_TARGET,
     DURABLE_CITY_COVERAGE_TARGET,
@@ -314,6 +320,8 @@ __all__ = [
     "CANDIDATE_CALIBRATION_SCHEMA_VERSION",
     "FdasCandidateCalibrationBin", "FdasCandidateCalibrationModel",
     "FdasCandidateCalibrationPrediction", "fit_candidate_calibration",
+    "DEFAULT_VALIDATION_THRESHOLDS", "VALIDATION_IDENTITY",
+    "evaluate_candidate_calibration", "load_candidate_calibration_model",
     "DURABLE_ACTOR_CITY_DEFENSE_TARGET", "DURABLE_CITY_COVERAGE_TARGET",
     "DURABLE_SELECTED_ACTOR_CITY_DEFENSE_TARGET",
     "LABEL_SCHEMA_VERSION",

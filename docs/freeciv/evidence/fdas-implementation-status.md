@@ -378,3 +378,13 @@ a wide Wilson interval `[0.280, 0.787]`; fortify is `0.709` with interval
 action backoff. This is an in-sample descriptive model only; it remains
 non-authorizing and may not rank candidates until a disjoint confirmation
 gate passes. See `fdas-pr40-candidate-calibration-discovery.md`.
+
+PR41 implements the disjoint confirmation evaluator without inspecting the
+reserved seeds. It validates the frozen model and source independence,
+collapses route rows to durable lineages, and reports action-stratified Brier,
+log loss, calibration-in-the-large, empirical Wilson intervals, and a
+game-clustered lifecycle-versus-action-only bootstrap. All artifacts remain
+selected-only and non-authorizing, and the evaluator fails closed on overlap,
+missing provenance, insufficient support, threshold failure, or model hash
+mismatch. Confirmation remains the next gate. See
+`fdas-pr41-calibration-confirmation-evaluator.md`.
