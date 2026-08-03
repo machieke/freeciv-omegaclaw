@@ -119,3 +119,22 @@ report hash
 `9f080889f4a1bb26a04d9c97656655dbfd61ff73d3967597e66763fb725aa60f`.
 The rejected row and all eight valid assignment lifecycles remain preserved;
 no seed will be rerun or replaced.
+
+## Post-hoc terminal-endpoint sensitivity audit
+
+Audit 1.5 adds an opt-in endpoint class for a completed authoritative terminal
+game or player elimination whose observer score is explicitly carried forward
+as an absorbing fixed-horizon value. It requires matching final observer turn
+identities and, for randomized assignments, zero pending outcomes at that
+terminal endpoint. The default remains strict fixed-horizon-only behavior.
+
+Applied post hoc to the immutable PR55 artifact, audit 1.5 classifies seed
+`105667` as `terminal-absorbing`: player elimination at turn 138, authoritative
+observer score at the same turn, explicit absorbing carry-forward, and no
+randomized or pending assignment outcome. Every gate then passes. The secondary
+report is `fdas-pr55-fresh-outcome-yield-terminal-aware.json`, report hash
+`21c04cc7c285d9922e6af8c6688660b5a8a5fbca7afda2daa27e63c588778f36`.
+
+This sensitivity result does not rewrite the frozen PR55 verdict or make its
+outcome contrast claim-eligible. It establishes the endpoint contract that a
+future powered cohort may preregister before execution.

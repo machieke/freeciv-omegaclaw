@@ -580,3 +580,13 @@ clustered, claim-ineligible, and cannot tune the next design. The next
 hardening task is to preregister terminal absorbing endpoints explicitly, then
 size a powered candidate-value cohort solely from observed assignment and game-
 cluster yield.
+
+Audit 1.5 now exposes that contract as an explicit opt-in rather than silently
+equating early completion with a fixed horizon. A terminal endpoint is accepted
+only when the game completed without infrastructure failure, an authoritative
+game-over or player-elimination flag exists, observer score authority and turn
+match the final observed turn, the score declares absorbing carry-forward, and
+no randomized assignment remains pending. A post-hoc sensitivity audit passes
+the immutable PR55 artifact under this rule, while the preregistered audit 1.4
+failure remains the primary verdict. Future powered work can preregister audit
+1.5 and avoid treating legitimate terminal absorption as missingness.

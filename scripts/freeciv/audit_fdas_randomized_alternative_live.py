@@ -41,6 +41,10 @@ def main():
         help=("minimum effective observations and independent game clusters "
               "required in each randomized arm"))
     parser.add_argument("--allow-zero-assignment-games", action="store_true")
+    parser.add_argument(
+        "--allow-terminal-absorbing-endpoints", action="store_true",
+        help=("accept authoritative terminal game/elimination observations "
+              "as absorbing fixed-horizon endpoints"))
     args = parser.parse_args()
     report = audit_randomized_alternative_run(
         args.run_dir,
@@ -59,7 +63,9 @@ def main():
             or "profile/fdas_manifest_defense_alternative_collection_"
                "randomized_pilot.json"),
         expected_execution_component_version=(
-            args.expected_execution_component_version))
+            args.expected_execution_component_version),
+        allow_terminal_absorbing_endpoints=(
+            args.allow_terminal_absorbing_endpoints))
     payload = json.dumps(report, sort_keys=True, separators=(",", ":")) + "\n"
     if args.output:
         output = os.path.abspath(args.output)

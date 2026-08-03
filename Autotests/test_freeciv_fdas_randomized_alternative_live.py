@@ -8,6 +8,7 @@ from freeciv.harness.fdas_randomized_alternative_live import (
     assignment_draw,
     assignment_material,
     audit_randomized_alternative_run,
+    endpoint_classification,
     randomized_outcome_summary,
     wilson_interval,
 )
@@ -124,6 +125,50 @@ def test_wilson_interval_is_bounded_and_rejects_invalid_counts():
     import pytest
     with pytest.raises(ValueError):
         wilson_interval(2, 1)
+
+
+def test_endpoint_classification_requires_explicit_terminal_authority():
+    status = {
+        "completed": True,
+        "final_global_observed_turn": 138,
+        "final_score_authority": "observer_global_state",
+        "final_score_authority_turn": 138,
+        "horizon_reached": False,
+        "infrastructure_failure": False,
+        "score_observation_semantics": (
+            "terminal_absorbing_score_carried_to_horizon"),
+        "score_observation_turn": 138,
+        "status": "completed",
+        "terminal_game_over": False,
+        "terminal_player_elimination": True,
+    }
+
+    assert endpoint_classification(status, 160)["valid"] is False
+    endpoint = endpoint_classification(
+        status, 160, allow_terminal_absorbing=True)
+    assert endpoint["valid"] is True
+    assert endpoint["endpoint_kind"] == "terminal-absorbing"
+
+    changed = deepcopy(status)
+    changed["final_score_authority"] = "derived"
+    assert endpoint_classification(
+        changed, 160, allow_terminal_absorbing=True)["valid"] is False
+
+
+def test_endpoint_classification_accepts_fixed_horizon_without_terminal_flag():
+    endpoint = endpoint_classification({
+        "completed": True,
+        "final_global_observed_turn": 161,
+        "horizon_reached": True,
+        "infrastructure_failure": False,
+        "status": "completed",
+    }, 160)
+
+    assert endpoint == {
+        "endpoint_kind": "fixed-horizon",
+        "final_observed_turn": 161,
+        "valid": True,
+    }
 
 
 def test_run_audit_preserves_early_failed_game_as_rejected_row(tmp_path):

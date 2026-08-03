@@ -14,7 +14,7 @@ from freeciv_agent.planning import (
 )
 
 
-AUDIT_IDENTITY = "fdas-randomized-alternative-live-audit/1.4"
+AUDIT_IDENTITY = "fdas-randomized-alternative-live-audit/1.5"
 ASSIGNMENT_IDENTITY = "fdas-safe-alternative-outcome-collection/4.0"
 ASSIGNMENT_POLICY = "fdas-defense-nearest-score-randomized/4.0"
 ASSIGNMENT_UNIT = "game-turn-exact-action-pair/1.0"
@@ -78,6 +78,53 @@ def wilson_interval(successes, trials, z=1.959963984540054):
         rate * (1.0 - rate) / trials
         + z * z / (4.0 * trials * trials)) / scale
     return (max(0.0, center - radius), min(1.0, center + radius))
+
+
+def endpoint_classification(status, turn_limit,
+                            allow_terminal_absorbing=False):
+    """Classify a completed fixed-horizon or explicit absorbing endpoint."""
+    turn_limit = int(turn_limit)
+    final_turn = status.get("final_global_observed_turn")
+    common = bool(
+        status.get("completed") is True
+        and status.get("status") == "completed"
+        and status.get("infrastructure_failure") is False
+        and isinstance(final_turn, int)
+        and not isinstance(final_turn, bool)
+        and 0 <= final_turn <= turn_limit + 1)
+    if common and status.get("horizon_reached") is True:
+        return {
+            "endpoint_kind": "fixed-horizon",
+            "final_observed_turn": final_turn,
+            "valid": True,
+        }
+    terminal = bool(
+        status.get("terminal_game_over") is True
+        or status.get("terminal_player_elimination") is True)
+    terminal_authority = bool(
+        status.get("score_observation_semantics")
+        == "terminal_absorbing_score_carried_to_horizon"
+        and status.get("final_score_authority")
+        == "observer_global_state"
+        and status.get("final_score_authority_turn") == final_turn
+        and status.get("score_observation_turn") == final_turn)
+    if (allow_terminal_absorbing and common
+            and status.get("horizon_reached") is False
+            and terminal and terminal_authority):
+        return {
+            "endpoint_kind": "terminal-absorbing",
+            "final_observed_turn": final_turn,
+            "terminal_game_over": (
+                status.get("terminal_game_over") is True),
+            "terminal_player_elimination": (
+                status.get("terminal_player_elimination") is True),
+            "valid": True,
+        }
+    return {
+        "endpoint_kind": "invalid",
+        "final_observed_turn": final_turn,
+        "valid": False,
+    }
 
 
 def randomized_outcome_summary(assignments):
@@ -252,7 +299,8 @@ def audit_randomized_alternative_game(
         require_catalog_reprojection=False, require_assignment=True,
         preserve_incomplete_failure=False,
         expected_manifest_source=DEFAULT_RANDOMIZED_MANIFEST_SOURCE,
-        expected_execution_component_version=None):
+        expected_execution_component_version=None,
+        allow_terminal_absorbing_endpoint=False):
     """Audit one engine-backed randomized alternative game fail-closed."""
     game_dir = os.path.abspath(game_dir)
     paths = dict((name, os.path.join(game_dir, name)) for name in (
@@ -290,6 +338,9 @@ def audit_randomized_alternative_game(
     event_by_id = dict((value["event_id"], value) for value in events)
     source = manifest.get("source", {})
     final_turn = status.get("final_global_observed_turn")
+    endpoint = endpoint_classification(
+        status, manifest.get("turn_limit", -1),
+        allow_terminal_absorbing=allow_terminal_absorbing_endpoint)
 
     assignment_events = tuple(
         value for value in events
@@ -531,10 +582,8 @@ def audit_randomized_alternative_game(
             all_labels_have_selected_choices),
         "event_ledger_valid_without_warnings": (
             validation.valid and not validation.warnings),
-        "fixed_endpoint_completed_without_infrastructure_failure": bool(
-            status.get("completed") is True
-            and status.get("horizon_reached") is True
-            and status.get("infrastructure_failure") is False),
+        "valid_analysis_endpoint_without_infrastructure_failure": (
+            endpoint["valid"]),
         "manifest_is_exact_randomized_profile": bool(
             manifest.get("dependent_atomspace", {}).get("manifest_source")
             == expected_manifest_source),
@@ -567,6 +616,10 @@ def audit_randomized_alternative_game(
                             "authority_catalog_reprojected") is True
                         for value in execution_events))),
         "stores_are_hash_valid_and_not_quarantined": store_hashes_valid,
+        "terminal_endpoint_has_no_pending_assignment_outcomes": bool(
+            endpoint["endpoint_kind"] != "terminal-absorbing"
+            or all(value["label_status"] == "observed"
+                   for value in assignment_rows)),
         "treatment_exercised_when_required": bool(
             not require_treatment
             or any(value["assigned_arm"] == "treatment"
@@ -584,6 +637,7 @@ def audit_randomized_alternative_game(
         "claim_scope": CLAIM_SCOPE,
         "event_errors": list(validation.errors),
         "event_warnings": list(validation.warnings),
+        "endpoint": endpoint,
         "game_id": manifest.get("game_id"),
         "gates": gates,
         "passed": all(gates.values()),
@@ -623,7 +677,8 @@ def audit_randomized_alternative_run(
         minimum_observed_per_arm=0, allow_zero_assignment_games=False,
         required_treatment_seeds=(), required_catalog_reprojection_seeds=(),
         expected_manifest_source=DEFAULT_RANDOMIZED_MANIFEST_SOURCE,
-        expected_execution_component_version=None):
+        expected_execution_component_version=None,
+        allow_terminal_absorbing_endpoints=False):
     """Audit all engine games in one frozen randomized run."""
     run_dir = os.path.abspath(run_dir)
     root = os.path.join(run_dir, "games", "main", "e_full_loop")
@@ -654,7 +709,9 @@ def audit_randomized_alternative_run(
             preserve_incomplete_failure=True,
             expected_manifest_source=expected_manifest_source,
             expected_execution_component_version=(
-                expected_execution_component_version)))
+                expected_execution_component_version),
+            allow_terminal_absorbing_endpoint=(
+                allow_terminal_absorbing_endpoints)))
     games = tuple(games)
     observed_seeds = tuple(sorted(value["seed"] for value in games))
     expected_seeds = tuple(sorted(int(value) for value in expected_seeds))
