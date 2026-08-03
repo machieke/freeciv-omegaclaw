@@ -18,6 +18,9 @@ AUDIT_IDENTITY = "fdas-randomized-alternative-live-audit/1.4"
 ASSIGNMENT_IDENTITY = "fdas-safe-alternative-outcome-collection/4.0"
 ASSIGNMENT_POLICY = "fdas-defense-nearest-score-randomized/4.0"
 ASSIGNMENT_UNIT = "game-turn-exact-action-pair/1.0"
+DEFAULT_RANDOMIZED_MANIFEST_SOURCE = (
+    "profile/fdas_manifest_defense_alternative_collection_"
+    "randomized_pilot.json")
 CLAIM_SCOPE = (
     "randomized bounded-alternative mechanics and selected-action outcomes; "
     "no candidate-value, gameplay, score, or win-rate claim")
@@ -247,7 +250,8 @@ def audit_randomized_alternative_game(
         game_dir, expected_source_commit=None,
         expected_implementation_sha256=None, require_treatment=False,
         require_catalog_reprojection=False, require_assignment=True,
-        preserve_incomplete_failure=False):
+        preserve_incomplete_failure=False,
+        expected_manifest_source=DEFAULT_RANDOMIZED_MANIFEST_SOURCE):
     """Audit one engine-backed randomized alternative game fail-closed."""
     game_dir = os.path.abspath(game_dir)
     paths = dict((name, os.path.join(game_dir, name)) for name in (
@@ -528,8 +532,7 @@ def audit_randomized_alternative_game(
             and status.get("infrastructure_failure") is False),
         "manifest_is_exact_randomized_profile": bool(
             manifest.get("dependent_atomspace", {}).get("manifest_source")
-            == "profile/fdas_manifest_defense_alternative_collection_"
-               "randomized_pilot.json"),
+            == expected_manifest_source),
         "one_or_more_randomized_assignments_when_required": bool(
             assignment_events or not require_assignment),
         "source_is_clean_and_expected": bool(
@@ -613,7 +616,8 @@ def audit_randomized_alternative_run(
         run_dir, expected_seeds=(), expected_source_commit=None,
         expected_implementation_sha256=None, require_treatment=False,
         minimum_observed_per_arm=0, allow_zero_assignment_games=False,
-        required_treatment_seeds=(), required_catalog_reprojection_seeds=()):
+        required_treatment_seeds=(), required_catalog_reprojection_seeds=(),
+        expected_manifest_source=DEFAULT_RANDOMIZED_MANIFEST_SOURCE):
     """Audit all engine games in one frozen randomized run."""
     run_dir = os.path.abspath(run_dir)
     root = os.path.join(run_dir, "games", "main", "e_full_loop")
@@ -641,7 +645,8 @@ def audit_randomized_alternative_run(
             require_catalog_reprojection=(
                 manifest_seed in required_catalog_reprojection_seeds),
             require_assignment=not allow_zero_assignment_games,
-            preserve_incomplete_failure=True))
+            preserve_incomplete_failure=True,
+            expected_manifest_source=expected_manifest_source))
     games = tuple(games)
     observed_seeds = tuple(sorted(value["seed"] for value in games))
     expected_seeds = tuple(sorted(int(value) for value in expected_seeds))

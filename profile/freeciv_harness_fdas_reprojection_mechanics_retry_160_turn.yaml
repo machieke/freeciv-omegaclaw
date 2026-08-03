@@ -1,0 +1,4 @@
+schema_version: "1.0"
+seed_overlay_base: profile/freeciv_harness_fdas_pr49_160_turn.yaml
+seeds:
+  - 105529

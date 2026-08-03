@@ -26,6 +26,7 @@ def main():
                         default=[])
     parser.add_argument("--expected-source-commit")
     parser.add_argument("--expected-implementation-sha256")
+    parser.add_argument("--expected-manifest-source")
     parser.add_argument("--require-treatment", action="store_true")
     parser.add_argument(
         "--require-treatment-seed", action="append", type=int, default=[],
@@ -51,7 +52,11 @@ def main():
         allow_zero_assignment_games=args.allow_zero_assignment_games,
         required_treatment_seeds=args.require_treatment_seed,
         required_catalog_reprojection_seeds=(
-            args.require_catalog_reprojection_seed))
+            args.require_catalog_reprojection_seed),
+        expected_manifest_source=(
+            args.expected_manifest_source
+            or "profile/fdas_manifest_defense_alternative_collection_"
+               "randomized_pilot.json"))
     payload = json.dumps(report, sort_keys=True, separators=(",", ":")) + "\n"
     if args.output:
         output = os.path.abspath(args.output)
