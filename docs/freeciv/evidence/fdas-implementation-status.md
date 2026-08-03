@@ -458,3 +458,13 @@ strengthening exact-regret and route-continuity checks; the initial rejection
 is preserved in Git. This establishes bounded temporal candidate recall, not
 precision, gameplay, score, or win rate. See
 `fdas-pr49-path-persistence-union.md`.
+
+PR50 adds an exploratory delayed-relevance comparator for first unique
+persistence-only corridors. Against deterministic within-decision near-tied
+non-probe controls, persistence was not incrementally predictive within eight
+decisions: probe re-entry was 12/15 versus 13/15 and future scalar-winner status
+was 10/15 versus 11/15, both paired deltas `-0.0667`. Only 17/30 routes had a
+valid control, so the result is imprecise and claim-ineligible, but its direction
+fails the source--sink-flow entry gate. The next bottleneck is authoritative
+alternative-candidate value, not faster transport. See
+`fdas-pr50-path-persistence-relevance-discovery.md`.
