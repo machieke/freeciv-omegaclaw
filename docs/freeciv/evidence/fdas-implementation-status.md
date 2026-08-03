@@ -1048,3 +1048,19 @@ alternatives, while 34 overlaps continue to abstain. This confirms live
 mechanics only; unseen-seed preference yield and outcome value remain open.
 See `fdas-pr75-calibrated-equivalence-pareto-confirmation.md` and its JSON
 report.
+
+PR76 measures readout `1.2` on 16 fixed unseen seeds. All games and inherited
+safety gates pass with 5,101 accepted engine actions and zero rejections. The
+567 readouts contain 17 grounded alternatives in three games, six strict
+grounded improvements, and four equivalence-Pareto preferences; all strict
+improvements and preferences occur in seed `109459`. The game-level preference
+rate is therefore `1/16` (`0.0625`, descriptive 95% Wilson interval
+`[0.0111, 0.2833]`), not four independent observations. The opportunity funnel
+shows that 550 of 567 target-scoped surfaces are singletons. All 2,003 safety
+filter exclusions protect a source-city garrison, while the union already
+retains 17 of only 21 candidates available beyond the controls. The next
+bottleneck is safe same-target candidate generation—especially exact
+coordinated replacement—not a wider calibrated union or looser equivalence
+gate. Randomized outcome collection remains premature until preference yield
+appears in at least two independent unseen game clusters. See
+`fdas-pr76-calibrated-equivalence-pareto-opportunity.md` and its JSON report.
