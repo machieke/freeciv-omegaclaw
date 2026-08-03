@@ -706,6 +706,39 @@ def test_scalar_baseline_readout_exposes_exact_grounding_failure(ir):
     assert not readout.shadow_preference
 
 
+def test_scalar_baseline_readout_exposes_every_pair_scope_failure(ir):
+    case = list(_decision_safe_case(ir))
+    baseline = next(
+        value for value in case[4]
+        if value.operation.operation_id
+        == case[6].baseline_selected_operation_id)
+    treatment = next(value for value in case[4] if value != baseline)
+    treatment = replace(
+        treatment,
+        resource_keys=baseline.resource_keys,
+        candidate_hash=structural_hash([
+            treatment.candidate_hash, "same-resource-diagnostic",
+        ]))
+    case[4] = tuple(
+        treatment if value.operation.operation_id
+        == treatment.operation.operation_id else value
+        for value in case[4])
+    evaluator = FdasScalarBaselineCandidateReadoutEvaluator()
+
+    readout = evaluator.evaluate(
+        case[0], case[1], case[2], case[4], case[6])
+
+    prefix = treatment.operation.operation_id + ":pair-scope:"
+    assert readout.status == "abstained"
+    assert prefix + "identical-resource-set" in readout.rejected
+    assert prefix + "resource-overlap:" + baseline.resource_keys[0] in (
+        readout.rejected)
+    assert not any(value.endswith(":pair-scope-mismatch")
+                   for value in readout.rejected)
+    assert len(readout.candidates) == 1
+    assert not readout.shadow_preference
+
+
 def test_decision_safe_filter_excludes_source_garrison_but_preserves_surface(
         ir):
     case = list(_decision_safe_case(ir))

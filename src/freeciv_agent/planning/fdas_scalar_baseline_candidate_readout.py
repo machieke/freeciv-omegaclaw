@@ -101,6 +101,26 @@ class FdasScalarBaselineCandidateReadoutEvaluator(
         FdasDecisionSafeCandidateReadoutEvaluator):
     """Compare protected candidates only with their scalar top-1 control."""
 
+    @staticmethod
+    def _pair_scope_rejections(candidate, baseline_candidate):
+        """Return exact fail-closed scope predicates without changing scope."""
+        reasons = []
+        if candidate.action_key == baseline_candidate.action_key:
+            reasons.append("duplicate-action")
+        if (candidate.operation.operation_type
+                != baseline_candidate.operation.operation_type):
+            reasons.append("operation-type-mismatch")
+        if (candidate.operation.target_ref
+                != baseline_candidate.operation.target_ref):
+            reasons.append("target-ref-mismatch")
+        if candidate.resource_keys == baseline_candidate.resource_keys:
+            reasons.append("identical-resource-set")
+        overlap = tuple(sorted(set(candidate.resource_keys).intersection(
+            baseline_candidate.resource_keys)))
+        reasons.extend(
+            "resource-overlap:" + str(value) for value in overlap)
+        return tuple(reasons)
+
     def _ground(self, candidate, prediction, snapshot, revision, goals,
                 *, eligibility_reason, checks=()):
         return self._ground_exact(
@@ -194,16 +214,15 @@ class FdasScalarBaselineCandidateReadoutEvaluator(
             if candidate is None:
                 rejected.append(operation_id + ":candidate-is-missing")
                 continue
-            if (candidate.action_key == baseline_candidate.action_key
-                    or candidate.operation.operation_type
-                    != baseline_candidate.operation.operation_type
-                    or (self.config.require_same_target_ref
-                        and candidate.operation.target_ref
-                        != baseline_candidate.operation.target_ref)
-                    or candidate.resource_keys == baseline_candidate.resource_keys
-                    or set(candidate.resource_keys).intersection(
-                        baseline_candidate.resource_keys)):
-                rejected.append(operation_id + ":pair-scope-mismatch")
+            scope_rejections = self._pair_scope_rejections(
+                candidate, baseline_candidate)
+            if self.config.require_same_target_ref is not True:
+                raise AssertionError(
+                    "scalar-baseline readout lost same-target protection")
+            if scope_rejections:
+                rejected.extend(
+                    operation_id + ":pair-scope:" + value
+                    for value in scope_rejections)
                 continue
             alternative, reason = self._ground(
                 candidate, predictions.get(operation_id),

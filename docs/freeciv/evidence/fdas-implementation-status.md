@@ -936,3 +936,13 @@ and permit only explicitly protected same-actor action substitution while
 keeping every other shared resource fail-closed. See
 `fdas-pr68-safe-filtered-scalar-readout-opportunity.md` and
 `fdas-pr68-safe-filtered-scalar-readout-opportunity.json`.
+
+PR69 versions only the scalar-baseline pair-scope diagnostic. Every predicate
+that formerly produced aggregate `pair-scope-mismatch` now emits exact
+duplicate-action, operation-type, target-ref, identical-resource-set, and
+per-resource overlap reasons while retaining identical fail-closed eligibility.
+Eight fresh seeds are sized from PR68's descriptive three-of-eight scope-event
+rate and frozen before collection. The gate requires full parent safety-filter
+acceptance, at least one exact overlap, no generic reason, and no malformed
+reason; it does not relax scope or require a preference. See
+`fdas-pr69-pair-scope-diagnostic-preregistration.md`.
